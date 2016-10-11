@@ -112,6 +112,7 @@ MODULE HCO_Diagn_Mod
   USE HCO_Types_Mod
   USE HCO_Arr_Mod
   USE HCO_Clock_Mod 
+  USE HCO_State_Mod, ONLY : HCO_State
 
   IMPLICIT NONE
   PRIVATE
@@ -152,9 +153,20 @@ MODULE HCO_Diagn_Mod
   PRIVATE :: DiagnCollection_DefineID 
   PRIVATE :: DiagnCollection_Find
   PRIVATE :: Diagn_UpdateDriver
+  PRIVATE :: Diagn_UpdateSp0d
+  PRIVATE :: Diagn_UpdateSp2d
+  PRIVATE :: Diagn_UpdateSp3d
+  PRIVATE :: Diagn_UpdateDp0d
+  PRIVATE :: Diagn_UpdateDp2d
+  PRIVATE :: Diagn_UpdateDp3d
 
   INTERFACE Diagn_Update
-     MODULE PROCEDURE Diagn_UpdateAll
+     MODULE PROCEDURE Diagn_UpdateSp0d
+     MODULE PROCEDURE Diagn_UpdateSp2d
+     MODULE PROCEDURE Diagn_UpdateSp3d
+     MODULE PROCEDURE Diagn_UpdateDp0d
+     MODULE PROCEDURE Diagn_UpdateDp2d
+     MODULE PROCEDURE Diagn_UpdateDp3d
   END INTERFACE
 !
 ! !REVISION HISTORY:
@@ -170,6 +182,8 @@ MODULE HCO_Diagn_Mod
 !                              control the file output time stamp (beginning, 
 !                              middle, end of diagnostics interval).
 !  25 Jan 2016 - R. Yantosca - Added bug fixes for pgfortran compiler
+!  19 Sep 2016 - R. Yantosca - Add extra overloaded functions to the 
+!                              Diagn_Update interface to avoid Gfortran errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1061,9 +1075,12 @@ CONTAINS
     CALL DiagnCont_Find( HcoState%Diagn, -1, -1, -1, -1, -1, &
                         Trim(ADJUSTL(cName)), -1, FOUND, TmpDiagn, COL=PS )
     IF ( FOUND ) THEN
-       MSG = 'There is already a diagnostics with this name: ' // TRIM(cName)
-       CALL HCO_ERROR( HcoState%config%Err, MSG, RC, THISLOC=LOC )
-       RETURN
+!       MSG = 'There is already a diagnostics with this name: ' // TRIM(cName)
+!       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+!       RETURN
+       ThisDiagn%cName = trim(cName) // '_a'
+       MSG = 'Changed Diagn name to ' // trim(ThisDiagn%cName)
+       CALL HCO_MSG ( HcoState%Config%Err, MSG )
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -1126,22 +1143,374 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: Diagn_UpdateAll
+! !ROUTINE: Diagn_UpdateSp0d
 !
-! !DESCRIPTION: Subroutine Diagn\_UpdateDp is the wrapper routine to update 
-! the diagnostics for double precision arrays. It invokes the main diagnostics
+! !DESCRIPTION: Subroutine Diagn\_UpdateSp0d is the wrapper routine to update 
+! the diagnostics for single precision scalar values.  It invokes the main 
+! diagnostics update routine with the appropriate arguments. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_UpdateSp0d( am_I_Root,   HcoState, cID,   cName,   ExtNr, &
+                               Cat,         Hier,   HcoID,   AutoFill,       &
+                               Scalar,      Total,  PosOnly, COL,            &
+                               MinDiagnLev, RC                         )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned 
+                                                                !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! Diagnostics 
+                                                                !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr          ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat            ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier           ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID          ! HEMCO species
+                                                                !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 1=yes; 0=no; 
+                                                                ! -1=either 
+    REAL(sp),         INTENT(IN   )           :: Scalar         ! 0D scalar 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Total          ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly        ! Use only vals
+                                                                !  >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev    ! minimum diagn level 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
+!
+! !REVISION HISTORY:
+!  20 Apr 2015 - C. Keller - Initialization
+!  19 Sep 2016 - R. Yantosca - Rewritten for Gfortran: remove Scalar and
+!                              Array3d (put those in other overloaded methods)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Call down to driver routine
+    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       & 
+                             cID         = cID,         & 
+                             cName       = cName,       & 
+                             ExtNr       = ExtNr,       &  
+                             Cat         = Cat,         & 
+                             Hier        = Hier,        & 
+                             HcoID       = HcoID,       & 
+                             AutoFill    = AutoFill,    & 
+                             Scalar_SP   = Scalar,      &
+                             Total_SP    = Total,       & 
+                             PosOnly     = PosOnly,     &  
+                             COL         = COL,         & 
+                             MinDiagnLev = MinDiagnLev, & 
+                             RC          = RC )
+
+  END SUBROUTINE Diagn_UpdateSp0d
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: Diagn_UpdateSp2d
+!
+! !DESCRIPTION: Subroutine Diagn\_UpdateSp2d is the wrapper routine to update 
+! the diagnostics for single precision 2-D arrays.  It invokes the main 
+! diagnostics update routine with the appropriate arguments. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_UpdateSp2d( am_I_Root,   HcoState, cID,   cName,   ExtNr,     &
+                               Cat,         Hier,  HcoID,   AutoFill,  &
+                               Array2D,     Total, PosOnly, COL,       &
+                               MinDiagnLev, RC                        )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned 
+                                                                !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! Diagnostics 
+                                                                !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr          ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat            ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier           ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID          ! HEMCO species
+                                                                !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 1=yes; 0=no; 
+                                                                ! -1=either 
+    REAL(sp),         INTENT(IN   )           :: Array2D(:,:)   ! 2D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Total          ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly        ! Use only vals
+                                                                !  >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev    ! minimum diagn level 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
+!
+! !REVISION HISTORY:
+!  20 Apr 2015 - C. Keller - Initialization
+!  19 Sep 2016 - R. Yantosca - Rewritten for Gfortran: remove Scalar and
+!                              Array3d (put those in other overloaded methods)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Call down to driver routine
+    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       & 
+                             cID         = cID,         & 
+                             cName       = cName,       & 
+                             ExtNr       = ExtNr,       &  
+                             Cat         = Cat,         & 
+                             Hier        = Hier,        & 
+                             HcoID       = HcoID,       & 
+                             AutoFill    = AutoFill,    & 
+                             Array2D_SP  = Array2D,     & 
+                             Total_SP    = Total,       & 
+                             PosOnly     = PosOnly,     &  
+                             COL         = COL,         & 
+                             MinDiagnLev = MinDiagnLev, & 
+                             RC          = RC )
+
+  END SUBROUTINE Diagn_UpdateSp2d
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: Diagn_UpdateSp3d
+!
+! !DESCRIPTION: Subroutine Diagn\_UpdateSp is the wrapper routine to update 
+! the diagnostics for single precision 3-D arrays. It invokes the main 
+! diagnostics update routine with the appropriate arguments. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_UpdateSp3d( am_I_Root,   HcoState, cID,   cName,   ExtNr,     &   
+                               Cat,         Hier,  HcoID,   AutoFill,  &
+                               Array3D,     Total, PosOnly, COL,       &
+                               MinDiagnLev, RC                        )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned 
+                                                                !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! Diagnostics 
+                                                                !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr          ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat            ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier           ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID          ! HEMCO species
+                                                                !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 1=yes; 0=no; 
+                                                                ! -1=either 
+    REAL(sp),         INTENT(IN   )           :: Array3D(:,:,:) ! 3D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Total          ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly        ! Use only vals
+                                                                !  >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev    ! minimum diagn level 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
+!
+! !REVISION HISTORY:
+!  20 Apr 2015 - C. Keller - Initialization
+!  19 Sep 2016 - R. Yantosca - Rewritten for Gfortran: remove Scalar and
+!                              Array2d (put those in other overloaded methods)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Call down to driver routine
+    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       & 
+                             cID         = cID,         & 
+                             cName       = cName,       & 
+                             ExtNr       = ExtNr,       & 
+                             Cat         = Cat,         & 
+                             Hier        = Hier,        & 
+                             HcoID       = HcoID,       & 
+                             AutoFill    = AutoFill,    & 
+                             Array3D_SP  = Array3D,     & 
+                             Total_SP    = Total,       & 
+                             PosOnly     = PosOnly,     & 
+                             COL         = COL,         & 
+                             MinDiagnLev = MinDiagnLev, & 
+                             RC          = RC )
+
+  END SUBROUTINE Diagn_UpdateSp3d
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: Diagn_UpdateDp0d
+!
+! !DESCRIPTION: Subroutine Diagn\_UpdateSp0d is the wrapper routine to update 
+! the diagnostics for double-precision scalar values.  It invokes the main 
+! diagnostics update routine with the appropriate arguments. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_UpdateDp0d( am_I_Root,   HcoState, cID,   cName,   ExtNr,     & 
+                               Cat,         Hier,  HcoID,   AutoFill,  &
+                               Scalar,      Total, PosOnly, COL,       &
+                               MinDiagnLev, RC                        )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned 
+                                                                !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! Diagnostics 
+                                                                !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr          ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat            ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier           ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID          ! HEMCO species
+                                                                !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 1=yes; 0=no; 
+                                                                ! -1=either 
+    REAL(dp),         INTENT(IN   )           :: Scalar         ! 1D scalar 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Total          ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly        ! Use only vals
+                                                                !  >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev    ! minimum diagn level 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
+!
+! !REVISION HISTORY:
+!  20 Apr 2015 - C. Keller   - Initialization
+!  19 Sep 2016 - R. Yantosca - Rewritten for Gfortran: remove Array2d and
+!                              Array3d (put those in other overloaded methods)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Call down to driver routine
+    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       & 
+                             cID         = cID,         & 
+                             cName       = cName,       & 
+                             ExtNr       = ExtNr,       &  
+                             Cat         = Cat,         & 
+                             Hier        = Hier,        & 
+                             HcoID       = HcoID,       & 
+                             AutoFill    = AutoFill,    & 
+                             Scalar      = Scalar,      & 
+                             Total       = Total,       & 
+                             PosOnly     = PosOnly,     &  
+                             COL         = COL,         & 
+                             MinDiagnLev = MinDiagnLev, & 
+                             RC          = RC )
+
+  END SUBROUTINE Diagn_UpdateDp0d
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: Diagn_UpdateDp2d
+!
+! !DESCRIPTION: Subroutine Diagn\_UpdateSp2d is the wrapper routine to update 
+! the diagnostics for single precision 2D arrays.  It invokes the main 
+! diagnostics update routine with the appropriate arguments. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_UpdateDp2d( am_I_Root,   HcoState, cID,   cName,   ExtNr,     & 
+                               Cat,         Hier,  HcoID,   AutoFill,  &
+                               Array2D,     Total, PosOnly, COL,       &
+                               MinDiagnLev, RC                        )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned 
+                                                                !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! Diagnostics 
+                                                                !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr          ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat            ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier           ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID          ! HEMCO species
+                                                                !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 1=yes; 0=no; 
+                                                                ! -1=either 
+    REAL(dp),         INTENT(IN   )           :: Array2D(:,:)   ! 2D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Total          ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly        ! Use only vals
+                                                                !  >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev    ! minimum diagn level 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
+!
+! !REVISION HISTORY: 
+!  20 Apr 2015 - C. Keller   - Initialization
+!  19 Sep 2016 - R. Yantosca - Rewritten for Gfortran: remove Scalar and
+!                              Array3d (put those in other overloaded methods)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Call down to driver routine
+    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       & 
+                             cID         = cID,         & 
+                             cName       = cName,       & 
+                             ExtNr       = ExtNr,       &  
+                             Cat         = Cat,         & 
+                             Hier        = Hier,        & 
+                             HcoID       = HcoID,       & 
+                             AutoFill    = AutoFill,    & 
+                             Array2D     = Array2D,     & 
+                             Total       = Total,       & 
+                             PosOnly     = PosOnly,     &  
+                             COL         = COL,         & 
+                             MinDiagnLev = MinDiagnLev, & 
+                             RC          = RC )
+
+  END SUBROUTINE Diagn_UpdateDp2d
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: Diagn_UpdateDp3d
+!
+! !DESCRIPTION: Subroutine Diagn\_UpdateSp3d is the wrapper routine to update 
+! the diagnostics for single precision arrays. It invokes the main diagnostics
 ! update routine with the appropriate arguments. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateAll( am_I_Root, HcoState, cID,        cName,       &
-                           ExtNr,     Cat,        Hier,       HcoID,       &
-                           AutoFill,  Scalar,     Array2D,    Array3D,     &
-                           Total,     Scalar_DP,  Array2D_DP, Array3D_DP, &
-                           Total_DP,  Scalar_SP,  Array2D_SP, Array3D_SP, &
-                           Total_SP,  PosOnly,    COL,        MinDiagnLev, &
-                           RC                                               )
+  SUBROUTINE Diagn_UpdateDp3d( am_I_Root,   HcoState, cID,   cName,   ExtNr, &   
+                               Cat,         Hier,  HcoID,   AutoFill,        &
+                               Array3D,     Total, PosOnly, COL,             &
+                               MinDiagnLev, RC                        )
 !
 ! !USES:
 !
@@ -1149,81 +1518,55 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root         ! Root CPU?
-    TYPE(HCO_State),  POINTER                 :: HcoState          ! HEMCO state obj
-    INTEGER,          INTENT(IN   ), OPTIONAL :: cID               ! Assigned 
-                                                                   !  container ID
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName             ! Diagnostics 
-                                                                   !  name
-    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr             ! Extension #
-    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat               ! Category 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier              ! Hierarchy 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID             ! HEMCO species
-                                                                   !  ID number 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill          ! 1=yes; 0=no; 
-                                                                   ! -1=either 
-
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Scalar_SP         ! 1D scalar 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Array2D_SP(:,:)   ! 2D array 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Array3D_SP(:,:,:) ! 3D array 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Total_SP          ! Total 
-
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Scalar_DP            ! 1D scalar 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Array2D_DP   (:,:)   ! 2D array 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Array3D_DP   (:,:,:) ! 3D array 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Total_DP             ! Total 
-
-    REAL(hp),         INTENT(IN   ), OPTIONAL :: Scalar               ! 1D scalar 
-    REAL(hp),         INTENT(IN   ), OPTIONAL :: Array2D      (:,:)   ! 2D array 
-    REAL(hp),         INTENT(IN   ), OPTIONAL :: Array3D      (:,:,:) ! 3D array 
-    REAL(hp),         INTENT(IN   ), OPTIONAL :: Total                ! Total 
-
-    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
-                                                                   !  >= 0?
-    INTEGER,          INTENT(IN   ), OPTIONAL :: COL               ! Collection Nr.
-    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev       ! minimum diagn level 
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned 
+                                                                !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! Diagnostics 
+                                                                !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr          ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat            ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier           ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID          ! HEMCO species
+                                                                !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 1=yes; 0=no; 
+                                                                ! -1=either 
+    REAL(dp),         INTENT(IN   )           :: Array3D(:,:,:) ! 3D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Total          ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly        ! Use only vals
+                                                                !  >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev    ! minimum diagn level 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)           :: RC                ! Return code 
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
 !
 ! !REVISION HISTORY:
-!  20 Apr 2015 - C. Keller - Initialization
+!  20 Apr 2015 - C. Keller   - Initialization
+!  19 Sep 2016 - R. Yantosca - Rewritten for Gfortran: remove Scalar and
+!                              Array2d (put those in other overloaded methods)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     ! Call down to driver routine
-    CALL Diagn_UpdateDriver( am_I_Root, HcoState, & 
-                       cID = cID, & 
-                       cName = cName, & 
-                       ExtNr = ExtNr, & 
-                       Cat = Cat, & 
-                       Hier = Hier, & 
-                       HcoID = HcoID, & 
-                       AutoFill = AutoFill, & 
+    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       & 
+                             cID         = cID,         & 
+                             cName       = cName,       & 
+                             ExtNr       = ExtNr,       & 
+                             Cat         = Cat,         & 
+                             Hier        = Hier,        & 
+                             HcoID       = HcoID,       & 
+                             AutoFill    = AutoFill,    & 
+                             Array3D     = Array3D,     & 
+                             Total       = Total,       & 
+                             PosOnly     = PosOnly,     & 
+                             COL         = COL,         & 
+                             MinDiagnLev = MinDiagnLev, & 
+                             RC          = RC )
 
-                       Scalar_HP = Scalar, & 
-                       Array2D_HP = Array2D, & 
-                       Array3D_HP = Array3D, & 
-                       Total_HP   = Total,   & 
-
-                       Scalar = Scalar_DP, & 
-                       Array2D = Array2D_DP, & 
-                       Array3D = Array3D_DP, & 
-                       Total   = Total_DP,   & 
-
-                       Scalar_SP = Scalar_SP, & 
-                       Array2D_SP = Array2D_SP, & 
-                       Array3D_SP = Array3D_SP, & 
-                       Total_SP   = Total_SP,   & 
-
-                       PosOnly = PosOnly, & 
-                       COL = COL, & 
-                       MinDiagnLev = MinDiagnLev, & 
-                       RC = RC )
-
-  END SUBROUTINE Diagn_UpdateAll
+  END SUBROUTINE Diagn_UpdateDp3d
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1292,7 +1635,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_State_Mod, ONLY : HCO_State
     USE HCO_Arr_Mod,   ONLY : HCO_ArrAssert
 !
 ! !INPUT PARAMETERS:

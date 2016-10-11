@@ -222,7 +222,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE PHYSCONSTANTS
+    USE PhysConstants
 !
 ! !INPUT PARAMETERS: 
 !
@@ -397,7 +397,7 @@ CONTAINS
 ! !USES:
 !
     ! Include files w/ physical constants and met values
-    USE PHYSCONSTANTS
+    USE PhysConstants
 !
 ! !INPUT PARAMETERS: 
 !

@@ -88,6 +88,7 @@
 #  04 Mar 2015 - R. Yantosca - Add uvalbedo_mod.F
 #  10 Jul 2015 - R. Yantosca - Use ./protex to avoid problems on some systems
 #  10 Jul 2015 - R. Yantosca - Updated list of files as of v11-01b
+#  29 Aug 2016 - M. Sulprizio- Updated list of files as of v11-01g
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -96,16 +97,17 @@
 SRC1 :=                               \
 ./intro.geos-chem                     \
 ./headers.geos-chem                   \
-$(HDR)/precision_mod.F                \
 $(HDR)/CMN_SIZE_mod.F                 \
 $(HDR)/CMN_DIAG_mod.F                 \
-$(HDR)/CMN_GCTM_mod.F                 \
 $(HDR)/CMN_O3_mod.F                   \
 $(HDR)/CMN_FJX_MOD.F                  \
-$(HDR)/comode_loop_mod.F              \
-$(HDR)/gigc_errcode_mod.F90           \
-$(HDR)/gigc_state_chm_mod.F90         \
-$(HDR)/gigc_state_met_mod.F90         \
+$(HDR)/errcode_mod.F90                \
+$(HDR)/precision_mod.F                \
+$(HDR)/physconstants.F                \
+$(HDR)/species_database_mod.F90       \
+$(HDR)/species_mod.F90                \
+$(HDR)/state_chm_mod.F90              \
+$(HDR)/state_met_mod.F90              \
 $(CORE)/main.F                        \
 $(CORE)/a3_read_mod.F                 \
 $(CORE)/a6_read_mod.F                 \
@@ -117,12 +119,12 @@ $(CORE)/carbon_mod.F                  \
 $(CORE)/chemgrid_mod.F                \
 $(CORE)/chemistry_mod.F               \
 $(CORE)/co2_mod.F                     \
-$(CORE)/comode_mod.F                  \
 $(CORE)/convection_mod.F              \
 $(CORE)/dao_mod.F                     \
 $(CORE)/depo_mercury_mod.F            \
 $(CORE)/diag03_mod.F                  \
 $(CORE)/diag04_mod.F                  \
+$(CORE)/diag20_mod.F                  \
 $(CORE)/diag41_mod.F                  \
 $(CORE)/diag42_mod.F                  \
 $(CORE)/diag49_mod.F                  \
@@ -132,18 +134,18 @@ $(CORE)/diag53_mod.F                  \
 $(CORE)/diag56_mod.F                  \
 $(CORE)/diag63_mod.F                  \
 $(CORE)/diag_mod.F                    \
-$(CORE)/diag_pl_mod.F                 \
 $(CORE)/diag_oh_mod.F                 \
 $(CORE)/drydep_mod.F                  \
 $(CORE)/dust_mod.F                    \
 $(CORE)/emissions_mod.F90             \
 $(CORE)/exchange_mod.F                \
 $(CORE)/fast_jx_mod.F                 \
+$(CORE)/flexchem_mod.F90              \
 $(CORE)/gamap_mod.F                   \
 $(CORE)/gcap_read_mod.F               \
-$(CORE)/get_ndep_mod.F                \
-$(CORE)/gigc_environment_mod.F90      \
+$(CORE)/gc_environment_mod.F90        \
 $(CORE)/geosfp_read_mod.F90           \
+$(CORE)/get_ndep_mod.F                \
 $(CORE)/global_ch4_mod.F              \
 $(CORE)/i6_read_mod.F                 \
 $(CORE)/input_mod.F                   \
@@ -151,33 +153,37 @@ $(CORE)/isoropiaII_mod.F              \
 $(CORE)/land_mercury_mod.F            \
 $(CORE)/linoz_mod.F                   \
 $(CORE)/mapping_mod.F90               \
+$(CORE)/mercury_mod.F                 \
+$(CORE)/merra2_read_mod.F90           \
 $(CORE)/merra_a1_mod.F                \
 $(CORE)/merra_a3_mod.F                \
 $(CORE)/merra_cn_mod.F                \
 $(CORE)/merra_i6_mod.F                \
+$(CORE)/mixing_mod.F90                \
 $(CORE)/modis_lai_mod.F90             \
 $(CORE)/olson_landmap_mod.F90         \
-$(CORE)/optdepth_mod.F                \
 $(CORE)/pbl_mix_mod.F                 \
 $(CORE)/pjc_pfix_mod.F                \
 $(CORE)/planeflight_mod.F             \
 $(CORE)/pops_mod.F                    \
+$(CORE)/restart_mod.F                 \
 $(CORE)/RnPbBe_mod.F                  \
 $(CORE)/rrtmg_rad_transfer_mod.F      \
+$(CORE)/seasalt_mod.F                 \
 $(CORE)/strat_chem_mod.F90            \
 $(CORE)/sulfate_mod.F                 \
 $(CORE)/tagged_co_mod.F               \
-$(CORE)/tagged_ox_mod.F               \
+$(CORE)/tagged_o3_mod.F               \
 $(CORE)/toms_mod.F                    \
 $(CORE)/tpcore_bc_mod.F               \
-$(CORE)/tracer_mod.F                  \
 $(CORE)/tpcore_fvdas_mod.F90          \
-$(CORE)/tpcore_geos5_window_mod.F90   \
+$(CORE)/tpcore_window_mod.F90         \
 $(CORE)/transport_mod.F               \
 $(CORE)/ucx_mod.F                     \
 $(CORE)/uvalbedo_mod.F90              \
 $(CORE)/vdiff_mod.F90                 \
 $(CORE)/vdiff_pre_mod.F90             \
+$(CORE)/wetscav_mod.F                 \
 ./subs.geos-chem                      \
 $(CORE)/cldice_HBrHOBr_rxn.F          \
 $(CORE)/cleanup.F                     \
@@ -185,24 +191,16 @@ $(CORE)/diag1.F                       \
 $(CORE)/diag_2pm.F                    \
 $(CORE)/diag3.F                       \
 $(CORE)/diagoh.F                      \
-$(CORE)/gasconc.F                     \
+$(CORE)/get_global_ch4.F              \
 $(CORE)/initialize.F                  \
-$(CORE)/lump.F                        \
 $(CORE)/ndxx_setup.F                  \
 $(CORE)/ohsave.F                      \
-$(CORE)/partition.F                   \
-$(CORE)/physproc.F                    \
-$(CORE)/set_prof_o3.F                 \
-$(CORE)/setemdep.F                    \
-$(CORE)/ruralbox.F                    \
-$(CORE)/setemis.F
-
+$(CORE)/set_prof_o3.F
 
 # Output file names
 TEX1 := GC_Ref_Vol_3.tex
 DVI1 := GC_Ref_Vol_3.dvi
 PDF1 := GC_Ref_Vol_3.pdf
-
 
 # Make commands
 srcdoc: 

@@ -68,6 +68,8 @@
 #  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #  07 Dec 2015 - R. Yantosca - Also add the slowrealclean target, which can
 #                              be used for cleaning everything except RRTMG
+#  12 May 2016 - R. Yantosca - Added "firstpass" target to compile Precision,
+#                              Parameters, and Monitor modules first
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -92,12 +94,12 @@ include $(ROOT)/Makefile_header.mk
 # Make the standard benchmark simulation if CHEM is not passed
 # NOTE: In v10-01+, CHEM should always be passed from Makefile_header.mk!
 ifndef KPP_CHEM
- KPP_CHEM :=benchmark
+ KPP_CHEM :=Standard
 endif
 
 # Make rosenbrock the default solver
 ifndef KPPSOLVER
- KPPSOLVER := rosenbrock
+ KPPSOLVER :=rosenbrock
 endif
 
 # solver (S=Source, T=Target)
@@ -110,19 +112,23 @@ SOLVER_TFILE :=./$(KPP_CHEM)/gckpp_Integrator.F90
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: all lib kppintegrator clean realclean doc help slowclean slowrealclean
+.PHONY: all       lib firstpass kppintegrator clean 
+.PHONY: realclean doc help      slowclean     slowrealclean
 
 all: lib
 
 lib: kppintegrator
 	@$(MAKE) -C $(KPP_CHEM)
 
+firstpass:
+	@$(MAKE) -C $(KPP_CHEM) firstpass
+
 kppintegrator:
-	@diff $(SOLVER_SFILE) $(SOLVER_TFILE) ;\
-	if [ $$? == 1 ] ; then   \
-		echo " copy $(SOLVER_SFILE) --> $(SOLVER_TFILE)";\
-		cp $(SOLVER_SFILE) $(SOLVER_TFILE) ;    \
-	fi
+#	@diff $(SOLVER_SFILE) $(SOLVER_TFILE) ;\
+#	if [ $$? == 1 ] ; then   \
+#		echo " copy $(SOLVER_SFILE) --> $(SOLVER_TFILE)";\
+#		cp $(SOLVER_SFILE) $(SOLVER_TFILE) ;    \
+#	fi
 
 clean:
 	@$(MAKE) -C $(KPP_CHEM) clean
@@ -131,18 +137,18 @@ slowclean:
 	@$(MAKE) -C $(KPP_CHEM) slowclean
 
 realclean:
-	@$(MAKE) -C benchmark        clean
-	@$(MAKE) -C SOA              clean
-	@$(MAKE) -C SOA_SVPOA        clean
-	@$(MAKE) -C UCX              clean
-	@$(MAKE) -C NOx_Ox_HC_Aer_Br clean
+	@$(MAKE) -C Standard  clean
+	@$(MAKE) -C SOA       clean
+	@$(MAKE) -C SOA_SVPOA clean
+	@$(MAKE) -C Tropchem  clean
+	@$(MAKE) -C UCX       clean
 
 slowrealclean:
-	@$(MAKE) -C benchmark        slowclean
-	@$(MAKE) -C SOA              slowclean
-	@$(MAKE) -C SOA_SVPOA        slowclean
-	@$(MAKE) -C UCX              slowclean
-	@$(MAKE) -C NOx_Ox_HC_Aer_Br slowclean
+	@$(MAKE) -C Standard  slowclean
+	@$(MAKE) -C SOA       slowclean
+	@$(MAKE) -C SOA_SVPOA slowclean
+	@$(MAKE) -C Tropchem  slowclean
+	@$(MAKE) -C UCX       slowclean
 
 help:
 	@$(MAKE) -C $(HELP) 

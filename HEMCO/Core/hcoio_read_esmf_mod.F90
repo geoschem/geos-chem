@@ -83,9 +83,9 @@ CONTAINS
     INTEGER                    :: II, JJ, LL, TT
     INTEGER                    :: I, J, L, T
     INTEGER                    :: STAT
-    REAL,             POINTER  :: Ptr3D(:,:,:)   => NULL() 
-    REAL,             POINTER  :: Ptr2D(:,:)     => NULL() 
-    TYPE(ESMF_State), POINTER  :: IMPORT         => NULL()
+    REAL,             POINTER  :: Ptr3D(:,:,:)
+    REAL,             POINTER  :: Ptr2D(:,:)  
+    TYPE(ESMF_State), POINTER  :: IMPORT
     CHARACTER(LEN=255)         :: MSG
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_READ_ESMF (hcoi_read_esmf_mod.F90)'
     CHARACTER(LEN=ESMF_MAXSTR) :: Iam
@@ -102,6 +102,10 @@ CONTAINS
     ! Point to ESMF IMPORT object
     IMPORT => HcoState%IMPORT
     ASSERT_(ASSOCIATED(IMPORT))
+
+    ! Init pointers
+    Ptr3D => NULL()
+    Ptr2D => NULL()
 
     ! Verbose?
     IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN

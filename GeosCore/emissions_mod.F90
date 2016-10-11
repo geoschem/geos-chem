@@ -26,14 +26,18 @@ MODULE EMISSIONS_MOD
   PUBLIC :: EMISSIONS_RUN
   PUBLIC :: EMISSIONS_FINAL
 !
-! !PRIVATE MEMBER FUNCTIONS:
-!
-!
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version. 
+!  20 Jun 2016 - R. Yantosca - Declare species ID flags as module variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES: 
+!
+  ! Species ID flags
+  INTEGER :: id_BrO, id_CH4, id_CH3Br
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -54,13 +58,14 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_INIT
     USE HCO_TYPES_MOD,      ONLY : ConfigObj
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -75,7 +80,9 @@ CONTAINS
     INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  27 Aug 2014 - C. Keller    - Initial version 
+!  27 Aug 2014 - C. Keller   - Initial version 
+!  16 Jun 2016 - J. Sheng    - Added tracer index retriever
+!  20 Jun 2016 - R. Yantosca - Now define species IDs only in the INIT phase
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -85,12 +92,17 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC       = GC_SUCCESS
+
+    ! Define species ID flags for use in routines below
+    id_BrO   = Ind_('BrO'  )
+    id_CH4   = Ind_('CH4'  )
+    id_CH3Br = Ind_('CH3Br')    
 
     ! Initialize the HEMCO environment for this GEOS-Chem run.
     CALL HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, State_Chm, &
                        RC,        HcoConfig=HcoConfig ) 
-    IF ( RC/=GIGC_SUCCESS ) RETURN 
+    IF ( RC/=GC_SUCCESS ) RETURN 
 
   END SUBROUTINE EMISSIONS_INIT
 !EOC
@@ -112,23 +124,21 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE ERROR_MOD,          ONLY : GIGC_ERROR
-    USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
+    USE BROMOCARB_MOD,      ONLY : SET_BRO
+    USE BROMOCARB_MOD,      ONLY : SET_CH3BR
     USE CARBON_MOD,         ONLY : EMISSCARBON
+    USE CO2_MOD,            ONLY : EMISSCO2
+    USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : GC_Error
+    USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
+    USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Chm_Mod,      ONLY : ChmState
 #if defined ( TOMAS )
     USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
     USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
 #endif
-    USE CO2_MOD,            ONLY : EMISSCO2
-    USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
-    USE TRACERID_MOD,       ONLY : IDTCH4
-    USE TRACERID_MOD,       ONLY : IDTCH3Br, IDTBrO
-    USE BROMOCARB_MOD,      ONLY : SET_BRO
-    USE BROMOCARB_MOD,      ONLY : SET_CH3BR
 
     ! Use old mercury code for now (ckeller, 09/23/2014)
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
@@ -141,7 +151,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    LOGICAL,          INTENT(IN   )  :: EmisTime   ! Emissions in this time step? 
+    LOGICAL,          INTENT(IN   )  :: EmisTime   ! Emissions in this time step
     INTEGER,          INTENT(IN   )  :: Phase      ! Run phase
  
 !
@@ -157,25 +167,26 @@ CONTAINS
 !  13 Nov 2014 - C. Keller    - Added EMISSCARBON (for SESQ and POA)
 !  21 Nov 2014 - C. Keller    - Added EMISSVOC to prevent VOC build-up
 !                               above tropopause
+!  22 Sep 2016 - R. Yantosca  - Don't call EMISSCARBON unless we are doing
+!                               a fullchem or aerosol simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
- 
     !=================================================================
     ! EMISSIONS_RUN begins here!
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Run HEMCO. Phase 1 will only update the HEMCO clock and the 
     ! HEMCO data list, phase 2 will perform the emission calculations.
     CALL HCOI_GC_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, & 
                       EmisTime,  Phase,     RC                     ) 
-    IF ( RC /= GIGC_SUCCESS ) RETURN 
+    IF ( RC /= GC_SUCCESS ) RETURN 
 
     ! The following only needs to be done in phase 2
     IF ( Phase /= 1 ) THEN 
@@ -184,8 +195,16 @@ CONTAINS
        ! emissions calculated in HEMCO (SESQ) are passed to the internal
        ! species array in carbon, as well as to ensure that POA emissions
        ! are correctly treated.
-       CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN 
+!-----------------------------------------------------------------------------
+! Prior to 9/22/16:
+!       CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN 
+!-----------------------------------------------------------------------------
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
+            Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
+          CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN 
+       ENDIF
 
     ! Call TOMAS emission routines (JKodros 6/2/15)
 #if defined ( TOMAS )
@@ -199,7 +218,7 @@ CONTAINS
        ! thus need to be added explicitly, which is done in EMISSCO2.
        IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
           CALL EMISSCO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-          IF ( RC /= GIGC_SUCCESS ) RETURN 
+          IF ( RC /= GC_SUCCESS ) RETURN 
        ENDIF
    
        ! For CH4 simulation or if CH4 is defined, call EMISSCH4. 
@@ -209,9 +228,9 @@ CONTAINS
        ! call to EMISSCH4 is for backwards consistency, in particular for the
        ! ND58 diagnostics.
        IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
-          ( IDTCH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
+          ( id_CH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
           CALL EMISSCH4( am_I_Root, Input_Opt, State_Met, RC )
-          IF ( RC /= GIGC_SUCCESS ) RETURN 
+          IF ( RC /= GC_SUCCESS ) RETURN 
        ENDIF
    
        ! For UCX, use Seb's routines for stratospheric species for now.
@@ -236,7 +255,7 @@ CONTAINS
           ! Kludge: eventually I want to keep the concentration
           !         entirely fixed! Ask around on how to...
           !========================================================
-          IF ( Input_Opt%LEMIS .AND. ( IDTCH3Br > 0 ) ) THEN
+          IF ( Input_Opt%LEMIS .AND. ( id_CH3Br > 0 ) ) THEN
              CALL SET_CH3BR( am_I_Root, Input_Opt, State_Met, &
                              State_Chm, RC )
           ENDIF
@@ -245,7 +264,7 @@ CONTAINS
           ! If selected in input.geos, then set the MBL
           ! concentration of BrO equal to 1 pptv during daytime.
           ! ----------------------------------------------------
-          IF ( Input_Opt%LEMIS .AND. ( IDTBrO > 0 ) ) THEN
+          IF ( Input_Opt%LEMIS .AND. ( id_BrO > 0 ) ) THEN
              CALL SET_BRO( am_I_Root, Input_Opt, State_Met, & 
                            State_Chm, RC          )
           ENDIF
@@ -254,7 +273,7 @@ CONTAINS
     ENDIF ! Phase/=1  
     
     ! Return w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
    
    END SUBROUTINE EMISSIONS_RUN
 !EOC

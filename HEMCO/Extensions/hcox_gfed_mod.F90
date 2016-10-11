@@ -222,6 +222,8 @@ CONTAINS
 !  15 Dec 2013 - C. Keller     - Now a HEMCO extension 
 !  03 Apr 2015 - C. Keller     - Humid tropical forest mask is not binary 
 !                                any more but fraction (0.0 - 1.0).
+!  21 Sep 2016 - R. Yantosca   - Bug fix: move WHERE statement for HUMTROP
+!                                into the GFED3 block to avoid segfault
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -230,7 +232,7 @@ CONTAINS
 !
     LOGICAL, SAVE       :: FIRST = .TRUE.
     INTEGER             :: N, M
-    REAL(sp), POINTER   :: TmpPtr(:,:)  => NULL()
+    REAL(sp), POINTER   :: TmpPtr(:,:)
     CHARACTER(LEN=63)   :: MSG
 
     REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)
@@ -269,6 +271,11 @@ CONTAINS
           CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_HUMTROP', HUMTROP, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
+          ! Make sure HUMTROP does not exceed one
+          WHERE ( HUMTROP > 1.0_sp ) 
+             HUMTROP = 1.0_sp
+          END WHERE
+
        ! Get pointers to GFED4 data
        ELSEIF ( IsGFED4 ) THEN
           CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_TEMP', GFED_WDL, RC )
@@ -284,11 +291,6 @@ CONTAINS
           CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_DEFO', GFED_DEF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
-
-       ! Make sure HUMTROP does not exceed one
-       WHERE ( HUMTROP > 1.0_sp ) 
-          HUMTROP = 1.0_sp
-       END WHERE
 
        ! Also point to scale factors if needed
        IF ( DoDay ) THEN
@@ -308,7 +310,6 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Calculate emissions for defined species
     !-----------------------------------------------------------------
-
     DO N = 1, nSpc
 
        ! Continue if species not defined
@@ -321,7 +322,7 @@ CONTAINS
 
        ! Calculate emissions for all source types
        DO M = 1, N_EMFAC
-         
+
           ! Point to the emission factor array for each source type
           SELECT CASE ( M ) 
              CASE( 1 )

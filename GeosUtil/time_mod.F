@@ -143,10 +143,6 @@
       PUBLIC  :: SET_HISTYR
       PUBLIC  :: GET_HISTYR
 !eml]
-#if   defined( APM )
-      PUBLIC  :: ITS_TIME_FOR_A6UPDATE
-#endif
-
 #if defined( ESMF_ )
       PUBLIC  :: Accept_External_Date_Time
 #endif
@@ -238,6 +234,10 @@
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  17 Dec 2014 - R. Yantosca - Need to keep time variables as 8-byte precision
 !  06 Jan 2015 - R. Yantosca - Add ITS_TIME_FOR_EXCH function for 2-way nests
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3019,19 +3019,10 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( APM )
-
-      ! For APM, return the time 6h (360m) from now
-      DATE = GET_TIME_AHEAD( 360 )
-
-#else
-
       ! Return the time 3h (180m) from now, since there is a 3-hour 
       ! offset between the actual time when the A-6 fields are read
       ! and the time that the A-6 fields are stamped with.
       DATE = GET_TIME_AHEAD( 180 )      
-
-#endif
 
       END FUNCTION GET_A6_TIME
 !EOC
@@ -3911,23 +3902,10 @@
       ! For all other types of met data (except MERRA)
       !-----------------------------------------------------------------
 
-#if   defined( APM )
-
-      ! %%% WITH APM MICROPHYSICS %%%
-
-      ! A-6 fields need to be interpolated for APM simulation
-      DATE = GET_TIME_AHEAD( 360 )
-
-#else
-
-      ! %%% WITHOUT APM MICROPHYSICS %%%
-
       ! For all GEOS data: We need to read A-6 fields when it is 03, 
       ! 09, 15, 21 GMT.  DATE is the time 3 hours from now -- test below.
       DATE = GET_TIME_AHEAD( 180 )
      
-#endif
-
 #endif
 
       ! Test if DATE corresponds to 00, 06, 12, 18 GMT.  
@@ -3936,78 +3914,6 @@
 
       END FUNCTION ITS_TIME_FOR_A6
 !EOC
-#if   defined( APM )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: its_time_for_a6update
-!
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_A6UPDATE returns TRUE if it is time 
-!  to update the A6 (average 6-hr fields) for APM microphysics, and FALSE
-!  otherwise.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION ITS_TIME_FOR_A6UPDATE() RESULT( FLAG )
-!
-! !RETURN VALUE:
-!
-      LOGICAL :: FLAG 
-!
-! !REMARKS:
-!  This subroutine will only be compiled if you build GEOS-Chem with the
-!  APM=yes makefile option.
-! 
-! !REVISION HISTORY: 
-!  21 Mar 2003 - R. Yantosca - Initial Version
-!  (1 ) Now compute when it's time to read in GEOS-4 A-6 fields. (bmy, 6/26/03)
-!  (2 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
-!  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: DATE(2)
-
-#if   defined( GCAP )
-
-      !-----------------------------------------------------------------
-      ! For GCAP met only 
-      !-----------------------------------------------------------------
-
-      ! For GCAP data: We need to read A-6 fields when it 00, 06, 
-      ! 12, 18 GMT.  DATE is the current time -- test below.
-      DATE = GET_TIME_AHEAD( 0 )
-
-#else
-
-      !-----------------------------------------------------------------
-      ! For all other types of met data (except MERRA)
-      !-----------------------------------------------------------------
-
-      ! For all GEOS data: We need to read A-6 fields when it is 03, 
-      ! 09, 15, 21 GMT.  DATE is the time 3 hours from now
-      ! below.
-      DATE = GET_TIME_AHEAD( 180 )
-     
-#endif
-
-      ! Test if DATE corresponds to 00, 06, 12, 18 GMT.  
-      ! If so, then it is time to read A-6 fields from disk.
-      FLAG = ( MOD( DATE(2), 060000 ) == 0 ) 
-
-      ! Return to calling program
-      END FUNCTION ITS_TIME_FOR_A6UPDATE
-
-!EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -4206,8 +4112,8 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_DIAG_MOD  ! NJDAY
+      USE CMN_SIZE_MOD  ! Size parameters
 !
 ! !RETURN VALUE:
 !
@@ -4544,6 +4450,7 @@
 !  01 Apr 2004 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  12 Oct 2011 - R. Yantosca - Modified for central chemistry timestep option
+!  27 Apr 2016 - E. Lundgren - Include minute condition for first day of month
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4567,8 +4474,8 @@
 
       ! Emissions timestep [hours]
       TS = DBLE( TS_EMIS ) / 60e+0_f8
-     
-      IF ( DAY == 1 .and. HOUR == 0 ) THEN
+
+      IF ( DAY == 1 .and. HOUR == 0 .and. MINUTE == 0 ) THEN
 
          !==============================================================
          ! FOR THE FIRST DAY OF THE MONTH
@@ -4629,7 +4536,7 @@
          IS_NEW_MONTH = .FALSE.
 
       ENDIF
-
+      
       END FUNCTION ITS_A_NEW_MONTH
 !EOC
 !------------------------------------------------------------------------------
@@ -5334,7 +5241,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
       USE JULDAY_MOD,       ONLY : JULDAY
       USE JULDAY_MOD,       ONLY : CALDATE
 !
@@ -5459,7 +5366,7 @@
       DAY_OF_WEEK = INT( B )
 
       ! Return successfully
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE Accept_External_Date_Time
 !EOC

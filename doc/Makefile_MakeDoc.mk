@@ -45,10 +45,10 @@ $(CORE)/Makefile                 \
 $(GTMM)/Makefile                 \
 $(GCRT)/Makefile                 \
 $(KPP)/Makefile                  \
-$(KPP)/benchmark/Makefile        \
-$(KPP)/NOx_Ox_HC_Aer_Br/Makefile \
 $(KPP)/SOA/Makefile              \
 $(KPP)/SOA_SVPOA/Makefile        \
+$(KPP)/Standard/Makefile         \
+$(KPP)/Tropchem/Makefile         \
 $(KPP)/UCX/Makefile              \
 $(DOC)/Makefile                  \
 $(DOC)/Makefile_SrcDoc.mk        \

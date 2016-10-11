@@ -21,7 +21,6 @@
 #                                                                             .
 # Variable   Description
 # --------   -----------
-# GEOSAPM    Specifies the directory where GEOS-Chem + APM routines are found
 # GEOSDIR    Specifies the directory where GEOS-Chem "core" routines are found
 # GTMM       Specifies the directory where the GTMM routines are found
 #
@@ -42,12 +41,12 @@
 #  15 Jan 2014 - R. Yantosca - Updated comments
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #  04 Jun 2015 - R. Yantosca - Now add "wipeout" and "debug" targets
+#  23 Jun 2016 - R. Yantosca - Remove references to GeosApm
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # Directories
-GEOSAPM :=GeosApm
 GEOSDIR :=GeosCore
 GTMM    :=GTMM
 
@@ -149,27 +148,6 @@ ligbtmm:
 
 exehg:
 	@$(MAKE) -C $(GEOSDIR) GTMM_Hg=yes exehg
-
-###############################################################################
-###                                                                         ###
-###  Targets for APM aerosol microphysics simulations                       ###
-###                                                                         ###
-###############################################################################
-
-.PHONY: apm libapm exeapm cleanapm
-
-apm:
-	@$(MAKE) -C $(GEOSAPM) APM=yes all
-
-libapm:
-	@$(MAKE) -C $(GEOSAPM) APM=yes lib
-
-exeapm:
-	@$(MAKE) -C $(GEOSAPM) APM=yes exe
-
-cleanapm:
-	@$(MAKE) -C $(GEOSAPM) APM=yes clean
-
 
 #EOC
 

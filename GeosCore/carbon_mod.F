@@ -16,9 +16,9 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS
-      USE HCO_ERROR_MOD                    ! For HEMCO error reporting
-      USE PRECISION_MOD                    ! For GEOS-Chem Precisions
+      USE HCO_ERROR_MOD     ! For HEMCO error reporting
+      USE PhysConstants     ! Physical constants
+      USE PRECISION_MOD     ! For GEOS-Chem Precisions
 
       IMPLICIT NONE
       PRIVATE
@@ -200,6 +200,12 @@
 !  05 Jan 2016 - E. Lundgren - Use global physical parameters (AIRMW and AVO)
 !  14 Jan 2016 - M. Sulprizio- POAEMISS(:,:,:,1) now represents POG1 and
 !                              POAEMISS(:,:,:,2) now represents POG2
+!  17 Jun 2016 - J.D.Maaasakkers - Now use Ind_ to define species ID's  
+!  17 Jun 2016 - R. Yantosca - Now declare all species ID's as module
+!                              variables, and initialize them at startup
+!  28 Jun 2016 - M. Sulprizio- Add species ID's for L*RO2N/H and LISOP* to
+!                              replace uses of IL*RO2N/H and ILISOP* from
+!                              comode_loop_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,7 +214,7 @@
 !
 !
       ! Molecules OH  per kg OH [molec/kg]
-      REAL(fp), PARAMETER   :: XNUMOL_OH  = AVO / 17e-3_fp
+      REAL(fp), PARAMETER   :: XNUMOL_OH  = AVO / 17e-3_fp ! hard-coded MW
       REAL(fp), PARAMETER   :: CM3PERM3   = 1.e+6_fp
 
       ! OM/OC for POA (hotp 7/26/10)
@@ -229,7 +235,7 @@
 
       REAL(fp), PARAMETER   :: SMALLNUM   = 1e-20_fp
 
-      ! Indicate number of parent HC based on simulation tracers
+      ! Indicate number of parent HC based on simulation species
       ! (hotp 8/24/09)
       !INTEGER, SAVE        :: MAXSIMHC
       ! Now loop over number of semivolatiles (hotp 5/13/10)
@@ -258,8 +264,6 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER               :: I1_NA,    J1_NA
-      INTEGER               :: I2_NA,    J2_NA
       ! Rate constant for RO2+NO and RO2+HO2
       ! k=Aexp(B/T) like globchem.dat (hotp 5/7/10)
       REAL(fp)              :: AARO2NO,  BBRO2NO
@@ -343,6 +347,22 @@
       REAL(f4), POINTER     :: OH(:,:,:)  => NULL()
       REAL(f4), POINTER     :: NO3(:,:,:) => NULL()
 
+      ! Species ID flags
+      INTEGER :: id_ASOG1,   id_ASOG2,  id_ASOG3,  id_ASOA1,  id_ASOA2
+      INTEGER :: id_ASOA3,   id_ASOAN,  id_AW1,    id_BCPI,   id_BCPO 
+      INTEGER :: id_BENZ,    id_ECIL1,  id_ECOB1,  id_GLYX,   id_HO2  
+      INTEGER :: id_ISOA1,   id_ISOA2,  id_ISOA3,  id_ISOG1,  id_ISOG2
+      INTEGER :: id_ISOG3,   id_ISOP,   id_LIMO,   id_MGLY,   id_MTPA 
+      INTEGER :: id_MTPO,    id_NAP,    id_NK1,    id_NH4,    id_NO   
+      INTEGER :: id_NO3,     id_OCIL1,  id_OCOB1,  id_O3,     id_OH   
+      INTEGER :: id_OCPO,    id_OCPI,   id_OPOA1,  id_OPOG1,  id_OPOA2
+      INTEGER :: id_OPOG2,   id_POA1,   id_POA2,   id_POG1,   id_POG2 
+      INTEGER :: id_SOAG,    id_SOAM,   id_TOLU,   id_TSOA0,  id_TSOA1
+      INTEGER :: id_TSOA2,   id_TSOA3,  id_TSOG0,  id_TSOG1,  id_TSOG2
+      INTEGER :: id_TSOG3,   id_XYLE,   id_LBRO2N, id_LBRO2H, id_LTRO2N
+      INTEGER :: id_LTRO2H,  id_LXRO2N, id_LXRO2H, id_LNRO2N, id_LNRO2H
+      INTEGER :: id_LISOPOH, id_LISOPNO3
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -369,16 +389,15 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD 
+      USE ErrCode_Mod 
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACERID_MOD
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS                       !(win, 1/25/10)
 #endif
@@ -427,25 +446,27 @@
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  23 Sep 2014 - M. Sulprizio- Get OH, NO3, and O3 fields for offline aerosol
 !                              simulation from HEMCO
+!  16 Jun 2016 - J.D.Maasakkers- Now define species ID's with Ind_ function
+!  23 Jun 2016 - R. Yantosca - Add more error checks to make sure each id_*
+!                              species flag is defined before using it
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRSTCHEM = .TRUE.
-      LOGICAL       :: prtDebug
-      LOGICAL       :: IT_IS_AN_AEROSOL_SIM
-      LOGICAL       :: LSOA
-      LOGICAL       :: LEMIS
-      LOGICAL       :: LPRT
-      INTEGER       :: N
-      CHARACTER(LEN=14) :: DEPNAME(Input_Opt%MAX_DEP)
+      LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
+      LOGICAL            :: prtDebug
+      LOGICAL            :: IT_IS_AN_AEROSOL_SIM
+      LOGICAL            :: LSOA
+      LOGICAL            :: LEMIS
+      LOGICAL            :: LPRT
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: Spc(:,:,:,:)
 
       ! For getting fields from HEMCO 
       LOGICAL            :: aIR
@@ -456,7 +477,7 @@
       !=================================================================
 
       ! Assume success
-      RC                   = GIGC_SUCCESS
+      RC                   = GC_SUCCESS
 
       ! am I root? 
       aIR                  = am_I_Root
@@ -466,14 +487,12 @@
       LEMIS                = Input_Opt%LEMIS
       LPRT                 = Input_Opt%LPRT
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
-      DEPNAME              = Input_Opt%DEPNAME
 
       ! Do we have to print debug output?
-      prtDebug = ( LPRT .and. am_I_Root )
+      prtDebug             = ( LPRT .and. am_I_Root )
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc                  => State_Chm%Species
 
       ! First-time initialization
       IF ( FIRSTCHEM ) THEN
@@ -486,39 +505,35 @@
          IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
             ! update for isoprene SOA (hotp 5/20/10)
-            IF ( IDTISOA1 > 0 ) THEN
-               STT(:,:,:,IDTISOA1) = 0e+0_fp
-               STT(:,:,:,IDTISOA2) = 0e+0_fp
-               STT(:,:,:,IDTISOA3) = 0e+0_fp
-               STT(:,:,:,IDTISOG1) = 0e+0_fp
-               STT(:,:,:,IDTISOG2) = 0e+0_fp
-               STT(:,:,:,IDTISOG3) = 0e+0_fp
-            ENDIF
+            IF ( id_ISOA1 > 0 ) Spc(:,:,:,id_ISOA1) = 0.0_fp
+            IF ( id_ISOA2 > 0 ) Spc(:,:,:,id_ISOA2) = 0.0_fp
+            IF ( id_ISOA3 > 0 ) Spc(:,:,:,id_ISOA3) = 0.0_fp
+            IF ( id_ISOG1 > 0 ) Spc(:,:,:,id_ISOG1) = 0.0_fp
+            IF ( id_ISOG2 > 0 ) Spc(:,:,:,id_ISOG2) = 0.0_fp
+            IF ( id_ISOG3 > 0 ) Spc(:,:,:,id_ISOG3) = 0.0_fp
 
             ! lumped arom/IVOC (hotp 5/17/10)
             ! LUMPAROMIVOC: lump arom/IVOC not supported for offline sims
-            IF ( IDTASOAN > 0 ) THEN
-               STT(:,:,:,IDTASOAN) = 0e+0_fp
-               STT(:,:,:,IDTASOA1) = 0e+0_fp
-               STT(:,:,:,IDTASOA2) = 0e+0_fp
-               STT(:,:,:,IDTASOA3) = 0e+0_fp
-               STT(:,:,:,IDTASOG1) = 0e+0_fp
-               STT(:,:,:,IDTASOG2) = 0e+0_fp
-               STT(:,:,:,IDTASOG3) = 0e+0_fp
-            ENDIF
+            IF ( id_ASOAN > 0 ) Spc(:,:,:,id_ASOAN) = 0.0_fp
+            IF ( id_ASOA1 > 0 ) Spc(:,:,:,id_ASOA1) = 0.0_fp
+            IF ( id_ASOA2 > 0 ) Spc(:,:,:,id_ASOA2) = 0.0_fp
+            IF ( id_ASOA3 > 0 ) Spc(:,:,:,id_ASOA3) = 0.0_fp
+            IF ( id_ASOG1 > 0 ) Spc(:,:,:,id_ASOG1) = 0.0_fp
+            IF ( id_ASOG2 > 0 ) Spc(:,:,:,id_ASOG2) = 0.0_fp
+            IF ( id_ASOG3 > 0 ) Spc(:,:,:,id_ASOG3) = 0.0_fp
 
             IF ( LSOA ) THEN
                ! Get offline oxidant fields from HEMCO (mps, 9/23/14)
                CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_OH',  OH,  RC )
-               IF ( RC /= GIGC_SUCCESS )
+               IF ( RC /= GC_SUCCESS )
      &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_OH',  LOC)
 
                CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_NO3', NO3, RC )
-               IF ( RC /= GIGC_SUCCESS )
+               IF ( RC /= GC_SUCCESS )
      &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_NO3', LOC)
 
                CALL HCO_GetPtr( aIR, HcoState, 'O3',         O3,  RC )
-               IF ( RC /= GIGC_SUCCESS )
+               IF ( RC /= GC_SUCCESS )
      &         CALL ERROR_STOP( 'Cannot get pointer to O3',         LOC)
             ENDIF
 
@@ -531,8 +546,8 @@
          IF ( LSOA ) THEN
             ! updated (hotp 5/20/10) new mtp
             MAXSIMSV = 3  ! mono+sesq (1) + isop (2) + aromatics (3)
-            IF ( IDTPOA1  > 0 ) MAXSIMSV = MAXSIMSV + 1
-            IF ( IDTOPOA1 > 0 ) MAXSIMSV = MAXSIMSV + 1
+            IF ( id_POA1  > 0 ) MAXSIMSV = MAXSIMSV + 1
+            IF ( id_OPOA1 > 0 ) MAXSIMSV = MAXSIMSV + 1
             IF ( MAXSIMSV > MSV ) THEN
                CALL ERROR_STOP('YOUVE GOT A PROBLEM W/ SEMIVOLATILES',
      &              'carbon_mod.f')
@@ -548,36 +563,36 @@
       ENDIF
 
       !=================================================================
-      ! Do chemistry for carbon aerosol tracers 
+      ! Do chemistry for carbon aerosol species 
       !=================================================================
 
       ! Chemistry for hydrophobic BC
-      IF ( IDTBCPO > 0 ) THEN
-         CALL CHEM_BCPO( am_I_Root, Input_Opt, STT(:,:,:,IDTBCPO), RC )
+      IF ( id_BCPO > 0 ) THEN
+         CALL CHEM_BCPO( am_I_Root, Input_Opt, Spc(:,:,:,id_BCPO), RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
          ENDIF
       ENDIF
 
       ! Chemistry for hydrophilic BC
-      IF ( IDTBCPI > 0 ) THEN
-         CALL CHEM_BCPI( am_I_Root, Input_Opt, STT(:,:,:,IDTBCPI), RC )
+      IF ( id_BCPI > 0 ) THEN
+         CALL CHEM_BCPI( am_I_Root, Input_Opt, Spc(:,:,:,id_BCPI), RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
          ENDIF
       ENDIF
 
       ! Chemistry for hydrophobic OC (traditional POA only) 
-      IF ( IDTOCPO > 0 ) THEN
-         CALL CHEM_OCPO( am_I_Root, Input_Opt, STT(:,:,:,IDTOCPO), RC )
+      IF ( id_OCPO > 0 ) THEN
+         CALL CHEM_OCPO( am_I_Root, Input_Opt, Spc(:,:,:,id_OCPO), RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
          ENDIF
       ENDIF
 
       ! Chemistry for hydrophilic OC (traditional POA only)
-      IF ( IDTOCPI > 0 ) THEN 
-         CALL CHEM_OCPI( am_I_Root, Input_Opt, STT(:,:,:,IDTOCPI), RC )
+      IF ( id_OCPI > 0 ) THEN 
+         CALL CHEM_OCPI( am_I_Root, Input_Opt, Spc(:,:,:,id_OCPI), RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
          ENDIF
@@ -585,16 +600,16 @@
 
 #if   defined( TOMAS )
       ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
-      IF ( IDTECOB1 > 0 ) THEN
-         CALL AGING_CARB( STT(:,:,:,IDTECIL1:IDTECIL1+IBINS-1), 
-     &                     STT(:,:,:,IDTECOB1:IDTECOB1+IBINS-1) )
+      IF ( id_ECIL1 > 0 .and. id_ECOB1 > 0 ) THEN
+         CALL AGING_CARB( Spc(:,:,:,id_ECIL1:id_ECIL1+IBINS-1), 
+     &                    Spc(:,:,:,id_ECOB1:id_ECOB1+IBINS-1) )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB EC' )
          ENDIF
       ENDIF
-      IF ( IDTOCOB1 > 0 ) THEN
-         CALL AGING_CARB( STT(:,:,:,IDTOCIL1:IDTOCIL1+IBINS-1), 
-     &                     STT(:,:,:,IDTOCOB1:IDTOCOB1+IBINS-1) )
+      IF ( id_OCIL1 > 0 .and. id_OCOB1 > 0 ) THEN
+         CALL AGING_CARB( Spc(:,:,:,id_OCIL1:id_OCIL1+IBINS-1), 
+     &                    Spc(:,:,:,id_OCOB1:id_OCOB1+IBINS-1) )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB OC' )
          ENDIF
@@ -602,7 +617,7 @@
 #endif
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       !=================================================================
       ! Do chemistry for secondary organic aerosols 
@@ -635,9 +650,14 @@
             CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
          ENDIF
 
+         !==============================================================
+         ! NOTE: The following routines are for dicarbonyl chemistry.
+         ! These will be skipped if certain species are not found.
+         !==============================================================
+
          ! If SOAG and SOAM are declared, switch on 
          !    SOA production from dicarbonyls (tmf, 12/07/07) 
-         IF ( IDTSOAG > 0 ) THEN
+         IF ( id_SOAG > 0 .and. id_GLYX > 0 ) THEN
 
             ! Get grid box cloud fraction (tmf, 2/26/07)
             ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
@@ -646,19 +666,19 @@
             ! Cloud uptake
             CALL SOAG_CLOUD( State_Met, State_Chm )
             IF ( prtDebug ) THEN
-               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
+               CALL DEBUG_MSG( '### CHEMCARBON: a SOAG_CLOUD' )       
             ENDIF
 
             ! Aqueous aerosol uptake
             CALL SOAG_LIGGIO_DIFF( am_I_Root, Input_Opt, 
      &                             State_Met, State_Chm, RC )
             IF ( prtDebug ) THEN 
-               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
+               CALL DEBUG_MSG( '### CHEMCARBON: a SOAG_LIGGIO_DIFF' )
             ENDIF
 
          ENDIF
 
-         IF ( IDTSOAM > 0 ) THEN
+         IF ( id_SOAM > 0 .and. id_MGLY > 0 ) THEN
          
             ! Get grid box cloud fraction (tmf, 2/26/07)
             ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
@@ -703,10 +723,9 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_BC 
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTBCPO
 !
 ! !INPUT PARAMETERS:
 !
@@ -759,11 +778,8 @@
       ! CHEM_BCPO begins here!
       !=================================================================
 
-      ! Return if BCPO isn't defined
-      IF ( IDTBCPO == 0 ) RETURN
-
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Initialize
       KBC       = 1.e+0_fp / ( 86400e+0_fp * BC_LIFE )
@@ -771,7 +787,7 @@
       BCCONV    = 0e+0_fp
 
       !=================================================================
-      ! For tracers with dry deposition, the loss rate of dry dep is 
+      ! For species with dry deposition, the loss rate of dry dep is 
       ! combined in chem loss term.
       !
       ! Conversion from hydrophobic to hydrophilic:  
@@ -816,7 +832,7 @@
              AD07_BC(I,J,L) = AD07_BC(I,J,L) + BCCONV(I,J,L)
          ENDIF
 
-         ! Store new concentration back into tracer array
+         ! Store new concentration back into species array
          TC(I,J,L) = CNEW
       ENDDO
       ENDDO
@@ -844,9 +860,8 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTBCPI
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -894,11 +909,8 @@
       ! CHEM_BCPI begins here!
       !=================================================================
 
-      ! Return if BCPI isn't defined
-      IF ( IDTBCPI == 0 ) RETURN
-
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -920,7 +932,7 @@
          ! Prevent underflow condition
          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
 
-         ! Save new concentration of H-philic IC in tracer array
+         ! Save new concentration of H-philic IC in species array
          TC(I,J,L) = CNEW
 
       ENDDO
@@ -955,9 +967,8 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_OC 
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTOCPO
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -1007,11 +1018,8 @@
       ! CHEM_OCPO begins here!
       !=================================================================
 
-      ! Return if OCPO isn't defined
-      IF ( IDTOCPO == 0 ) RETURN
-
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Initialize
       KOC       = 1.e+0_fp / ( 86400e+0_fp * OC_LIFE )
@@ -1019,7 +1027,7 @@
       OCCONV    = 0e+0_fp
 
       !=================================================================
-      ! For tracers with dry deposition, the loss rate of dry dep is 
+      ! For species with dry deposition, the loss rate of dry dep is 
       ! combined in chem loss term.
       !
       ! Conversion from hydrophobic to hydrophilic:  
@@ -1063,7 +1071,7 @@
             AD07_OC(I,J,L) = AD07_OC(I,J,L) + OCCONV(I,J,L) 
          ENDIF
 
-         ! Store modified OC concentration back in tracer array
+         ! Store modified OC concentration back in species array
          TC(I,J,L) = CNEW
 
       ENDDO
@@ -1092,9 +1100,8 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTOCPI
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -1141,10 +1148,9 @@
       !=================================================================
       ! CHEM_OCPI begins here!
       !=================================================================
-      IF ( IDTOCPI == 0 ) RETURN
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1166,7 +1172,7 @@
          ! Prevent underflow condition
          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
 
-         ! Store modified concentration back in tracer array [kg]
+         ! Store modified concentration back in species array [kg]
          TC(I,J,L) = CNEW
 
       ENDDO
@@ -1248,7 +1254,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: soa_liggio_diff
+! !IROUTINE: soag_liggio_diff
 !
 ! !DESCRIPTION: Subroutine SOAG\_LIGGIO\_DIFF produces SOA on aqueous aerosol
 !  surfaces from GLYX following the uptake model used for N2O5, and the gamma 
@@ -1266,17 +1272,13 @@
       USE CMN_DIAG_MOD
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS 
-      USE COMODE_MOD,         ONLY : AIRDENS, JLOP
-      USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
-      USE TRACERID_MOD,       ONLY : IDTGLYX, IDTSOAG
 !
 ! !INPUT PARAMETERS:
 !
@@ -1301,13 +1303,19 @@
 !                              derived type object
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. WERADIUS,
+!                              WTAREA are now pointers that point to 3D fields
+!                              in State_Chm.
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: I, J, L, JLOOP, N
+      INTEGER  :: I, J, L, N
       REAL(fp) :: XTEMP       ! Temperature [K]
       REAL(fp) :: XSQTEMP     ! SQRT of Temperature
       REAL(fp) :: XAD         ! Air density [molec/cm3]
@@ -1326,7 +1334,7 @@
                               !  type [kg]
       REAL(fp) :: XUPTKSUM    ! Potential uptake of gas by aerosol [kg]
       REAL(fp) :: XUPTK       ! Actual uptake of gas by aerosol [kg]
-                              !  XUPTK <= STT( I, J, L, IDTGLYX )
+                              !  XUPTK <= Spc( I, J, L, IDTGLYX )
       REAL(fp) :: XGAMMA      ! Uptake coefficient 
 
       ! Local variables not changing 
@@ -1336,20 +1344,21 @@
       REAL(fp) :: CRITRH      ! Critical RH [%], above which 
                               !  heteorogeneous chem takes place
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
+      REAL(fp), POINTER :: WERADIUS(:,:,:,:)
+      REAL(fp), POINTER :: WTAREA(:,:,:,:)
 
       !=================================================================
       ! SOAG_LIGGIO_DIFF begins here!
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Initialize pointers
+      Spc      => State_Chm%Species     ! Chemical species array [kg]
+      WERADIUS => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
+      WTAREA   => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
 
       ! Get chemistry time step
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
@@ -1367,18 +1376,12 @@
       !=================================================================
       ! Loop over grid boxes
       !
-      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GIGC
+      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GCHP
       !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
       !=================================================================
       DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
-            ! Get 1-D index
-            JLOOP   = JLOP( I, J, L )
-
-            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
-            IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
             XRH     = State_Met%RH( I, J, L )   ![%]
@@ -1394,13 +1397,13 @@
             XSQTEMP = SQRT( XTEMP )
 
             ! Get air density  [molec/cm3]
-            XAD     = AIRDENS( JLOOP )
+            XAD     = State_Met%AIRNUMDEN( I, J, L )
 
             ! Get air volumne [m3]
             XAIRM3   = State_Met%AIRVOL( I, J, L )
 
             ! Get gas mass at grid box [kg]
-            XGASM   = STT( I, J, L, IDTGLYX )
+            XGASM   = Spc( I, J, L, id_GLYX )
 
             ! Get gas concentration at grid box [molec/cm3]
             XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp)
@@ -1426,12 +1429,12 @@
                   !  archived in 'aerosol_mod.f.glyx'
                   !  XWAREA [ cm^2 wet sfc area of aerosol cm^-3 air ]
                   !---------------------------------------
-                  XWAREA  = WTAREA( JLOOP, N) 
+                  XWAREA  = WTAREA( I, J, L, N ) 
 
                   IF ( XWAREA > 0e+0_fp ) THEN 
 
                      ! Get particle radius [cm]
-                     XRADIUS = WERADIUS( JLOOP, N )   
+                     XRADIUS = WERADIUS( I, J, L, N )   
 
                      !---------------------------------------
                      ! First order rate constant
@@ -1459,12 +1462,12 @@
                   !  cannot exceed the original amount of gas XGASM
                   XUPTK  = MIN( XUPTKSUM, XGASM )
             
-                  ! Update GLYX in the STT array
-                  STT( I, J, L, IDTGLYX ) = STT( I, J, L, IDTGLYX ) -
+                  ! Update GLYX in the Spc array
+                  Spc( I, J, L, id_GLYX ) = Spc( I, J, L, id_GLYX ) -
      &                                      XUPTK
 
-                  ! Update SOAG in the STT array
-                  STT( I, J, L, IDTSOAG ) = STT( I, J, L, IDTSOAG ) + 
+                  ! Update SOAG in the Spc array
+                  Spc( I, J, L, id_SOAG ) = Spc( I, J, L, id_SOAG ) + 
      &                                      XUPTK
 
             ENDIF
@@ -1481,7 +1484,7 @@
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc, WERADIUS, WTAREA )
 
       END SUBROUTINE SOAG_LIGGIO_DIFF
 !EOC
@@ -1507,17 +1510,13 @@
       USE CMN_DIAG_MOD
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
-      USE COMODE_MOD,         ONLY : AIRDENS, JLOP
-      USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
-      USE TRACERID_MOD,       ONLY : IDTMGLY, IDTSOAM
 !
 ! !INPUT PARAMETERS:
 !
@@ -1543,13 +1542,19 @@
 !   5 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt arguments
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. WERADIUS,
+!                              WTAREA are now pointers that point to 3D fields
+!                              in State_Chm.
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: I, J, L, JLOOP, N
+      INTEGER  :: I, J, L, N
       REAL(fp) :: XTEMP       ! Temperature [K]
       REAL(fp) :: XSQTEMP     ! SQRT of Temperature
       REAL(fp) :: XAD         ! Air density [molec/cm3]
@@ -1568,7 +1573,7 @@
                               !  type [kg]
       REAL(fp) :: XUPTKSUM    ! Potential uptake of gas by aerosol [kg]
       REAL(fp) :: XUPTK       ! Actual uptake of gas by aerosol [kg]
-                              !  XUPTK <= STT( I, J, L, IDTGLYX )
+                              !  XUPTK <= State_Chm%Species(I,J,L,id_GLYX)
       REAL(fp) :: XGAMMA      ! Uptake coefficient 
 
       ! Local  changing 
@@ -1579,20 +1584,21 @@
                               !  heteorogeneous chem takes place
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)      ! GEOS-Chem species array [kg]
+      REAL(fp), POINTER :: WERADIUS(:,:,:,:) ! Wet Aerosol Radius [cm]
+      REAL(fp), POINTER :: WTAREA(:,:,:,:)   ! Wet Aerosol Area [cm2/cm3]
 
       !=================================================================
       ! SOAG_LIGGIO_DIFF begins here!
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Initialize pointers
+      Spc      => State_Chm%Species     ! Chemical species array [kg]
+      WERADIUS => State_Chm%WetAeroRadi ! Aerosol Radius [cm]
+      WTAREA   => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
 
       ! Get chemistry time step
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
@@ -1610,18 +1616,12 @@
       !=================================================================
       ! Loop over grid boxes
       !
-      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GIGC
+      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GCHP
       !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
       !=================================================================
       DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
-            ! Get 1-D index
-            JLOOP   = JLOP( I, J, L )
-
-            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
-            IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
             XRH     = State_Met%RH( I, J, L )   ![%]
@@ -1637,13 +1637,13 @@
             XSQTEMP = SQRT( XTEMP )
 
             ! Get air density  [molec/cm3]
-            XAD     = AIRDENS( JLOOP )
+            XAD     = State_Met%AIRNUMDEN( I, J, L )
 
             ! Get air volumne [m3]
             XAIRM3  = State_Met%AIRVOL( I, J, L )
 
             ! Get gas mass at grid box [kg]
-            XGASM   = STT( I, J, L, IDTMGLY )
+            XGASM   = Spc( I, J, L, id_MGLY )
 
             ! Get gas concentration at grid box [molec/cm3]
             XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp)
@@ -1669,12 +1669,12 @@
                   !  archived in 'aerosol_mod.f.glyx'
                   !  XWAREA [ cm^2 wet sfc area of aerosol cm^-3 air ]
                   !---------------------------------------
-                  XWAREA  = WTAREA( JLOOP, N) 
+                  XWAREA  = WTAREA( I, J, L, N) 
 
                   IF ( XWAREA > 0e+0_fp ) THEN 
 
                      ! Get particle radius [cm]
-                     XRADIUS = WERADIUS( JLOOP, N )   
+                     XRADIUS = WERADIUS( I, J, L, N )   
 
                      !---------------------------------------
                      ! First order rate constant
@@ -1702,12 +1702,12 @@
                   !  cannot exceed the original amount of gas XGASM
                   XUPTK  = MIN( XUPTKSUM, XGASM )
             
-                  ! Update MGLY in the STT array
-                  STT( I, J, L, IDTMGLY ) = STT( I, J, L, IDTMGLY ) -
+                  ! Update MGLY in the Spc array
+                  Spc( I, J, L, id_MGLY ) = Spc( I, J, L, id_MGLY ) -
      &                                      XUPTK
 
-                  ! Update SOAM in the STT array
-                  STT( I, J, L, IDTSOAM ) = STT( I, J, L, IDTSOAM ) + 
+                  ! Update SOAM in the Spc array
+                  Spc( I, J, L, id_SOAM ) = Spc( I, J, L, id_SOAM ) + 
      &                                      XUPTK
 
             ENDIF
@@ -1724,7 +1724,7 @@
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc, WERADIUS, WTAREA )
 
       END SUBROUTINE SOAM_LIGGIO_DIFF
 !EOC
@@ -1752,14 +1752,13 @@
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_HC
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,      GET_MONTH
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_BPCH
-      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -1817,8 +1816,8 @@
 !  O-SVOC/OPOA    OH                OPOA/G1-2
 !  NAP            OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !                                                                             .
-!  Tracers that must be defined in input.geos (in addition to standard
-!  full chem tracers) (34 additional):
+!  Species that must be defined in input.geos (in addition to standard
+!  full chem species) (34 additional):
 !  TSOA1      TSOG1      ISOA1      ISOG1      ASOA1      ASOG1
 !  TSOA2      TSOG2      ISOA2      ISOG2      ASOA2      ASOG2
 !  TSOA3      TSOG3      ISOA3      ISOG3      ASOA3      ASOG3
@@ -1858,8 +1857,8 @@
 !  TOLU           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !  XYLE           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !                                                                             .
-!  Tracers that must be defined in input.geos (in addition to standard
-!  full chem tracers) (25 additional):
+!  Species that must be defined in input.geos (in addition to standard
+!  full chem species) (25 additional):
 !  TSOA1      TSOG1      ISOA1      ISOG1      ASOA1      ASOG1
 !  TSOA2      TSOG2      ISOA2      ISOG2      ASOA2      ASOG2
 !  TSOA3      TSOG3      ISOA3      ISOG3      ASOA3      ASOG3
@@ -1919,6 +1918,8 @@
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  12 Jun 2015 - R. Yantosca - Removed SOA_DEPO; ND44 is now done in mixing_mod
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1957,23 +1958,20 @@
       REAL(fp), SAVE  :: GLOB_OPOA_PROD
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! SOA_CHEMISTRY begins here!
       !=================================================================
 
       ! Save fields from Input_Opt to local variables
-      LPRT = Input_Opt%LPRT
+      LPRT         = Input_Opt%LPRT
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc          => State_Chm%Species
 
       ! Do we have to print debug output?
-      prtDebug = ( LPRT .and. am_I_Root )
+      prtDebug     = ( LPRT .and. am_I_Root )
 
       ! Zero some diagnostics (hotp 5/17/10)
       GLOB_POGRXN  = 0e+0_fp
@@ -2042,14 +2040,14 @@
      &              'box 20,33,2   ', 'box 20,33,10    '
 
          IF ( Input_Opt%LSVPOA ) THEN
-            print*,'POA1', SUM(STT(:,:,:,IDTPOA1))
-            print*,'POA2', SUM(STT(:,:,:,IDTPOA2))
-            print*,'POG1', SUM(STT(:,:,:,IDTPOG1))
-            print*,'POG2', SUM(STT(:,:,:,IDTPOG2))
-            print*,'OPOA1',SUM(STT(:,:,:,IDTOPOA1))
-            print*,'OPOA2',SUM(STT(:,:,:,IDTOPOA2))
-            print*,'OPOG1',SUM(STT(:,:,:,IDTOPOG1))
-            print*,'OPOG2',SUM(STT(:,:,:,IDTOPOG2))
+            print*,'POA1', SUM(Spc(:,:,:,id_POA1))
+            print*,'POA2', SUM(Spc(:,:,:,id_POA2))
+            print*,'POG1', SUM(Spc(:,:,:,id_POG1))
+            print*,'POG2', SUM(Spc(:,:,:,id_POG2))
+            print*,'OPOA1',SUM(Spc(:,:,:,id_OPOA1))
+            print*,'OPOA2',SUM(Spc(:,:,:,id_OPOA2))
+            print*,'OPOG1',SUM(Spc(:,:,:,id_OPOG1))
+            print*,'OPOG2',SUM(Spc(:,:,:,id_OPOG2))
          ENDIF
 
          ! semivolpoa3: debug POAEMISS
@@ -2062,10 +2060,10 @@
 
          ! 10/12/09 debug
          IF ( Input_Opt%LSVPOA ) THEN
-            print*,'POAG tot', SUM(STT(:,:,:,IDTPOA1))+
-     &                         SUM(STT(:,:,:,IDTPOA2))+
-     &                         SUM(STT(:,:,:,IDTPOG1))+
-     &                         SUM(STT(:,:,:,IDTPOG2))
+            print*,'POAG tot', SUM(Spc(:,:,:,id_POA1))+
+     &                         SUM(Spc(:,:,:,id_POA2))+
+     &                         SUM(Spc(:,:,:,id_POG1))+
+     &                         SUM(Spc(:,:,:,id_POG2))
          ENDIF
       ENDIF
  
@@ -2073,7 +2071,7 @@
       JSVPOA  = IDSV(PARENTPOA)
       JSVOPOA = IDSV(PARENTOPOA)
 
-      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GIGC
+      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GCHP
       !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
 
       ! For parallel do:
@@ -2112,7 +2110,7 @@
          CALL SOA_PARA( RTEMP, KO3, KOH, KNO3, KOM,
      &                  I,     J,   L,   KRO2NO, KRO2HO2, State_Met )
 
-         ! Partition mass of gas & aerosol tracers 
+         ! Partition mass of gas & aerosol species 
          ! according to 5 VOC classes & 3 oxidants
          CALL SOA_PARTITION( I, J, L, GM0, AM0, State_Chm )
 
@@ -2148,7 +2146,7 @@
          ! semivolpoa2: include OA mass with POA (hotp 3/2/09)
          ! Check to make sure POA is defined (hotp 8/24/09)
          ! Convert from [ugC/m3] to [ug/m3]
-         IF ( IDTPOA1 > 0 ) THEN
+         IF ( id_POA1 > 0 ) THEN
             JHC = PARENTPOA
             JSV = IDSV(JHC)
             DO IPR = 1, NPROD(JSV)
@@ -2160,7 +2158,7 @@
          ! semivolpoa4opoa: add OPOA mass (hotp 3/18/09)
          ! Check to make sure OPOA is defined (hotp 8/24/09)
          ! Convert from [ugC/m3] to [ug/m3]
-         IF ( IDTOPOA1 > 0 ) THEN
+         IF ( id_OPOA1 > 0 ) THEN
             JHC = PARENTOPOA
             JSV = IDSV(JHC)
             DO IPR = 1, NPROD(JSV)
@@ -2173,7 +2171,7 @@
          ! Compute SOG condensation onto OC aerosol
          !
          ! Primary organic aerosol concentrations [ug/m3]
-         ! We carry carbon mass only in the STT array and here
+         ! We carry carbon mass only in the Spc array and here
          ! multiply by 2.1 to account for non-carbon mass in the SOA.
          !
          ! Partitioning theory (Pankow, 1994) describes organic
@@ -2189,8 +2187,8 @@
          ! (Colette Heald, 12/3/09)
          !-----------------------------------------------------------
          ! Now treat either traditional POA or semivolatile POA (hotp 7/25/10)
-         IF ( IDTOCPI > 0 ) THEN
-            MPOC = ( STT(I,J,L,IDTOCPI) + STT(I,J,L,IDTOCPO) ) * FAC
+         IF ( id_OCPI > 0 .and. id_OCPO > 0 ) THEN
+            MPOC = ( Spc(I,J,L,id_OCPI) + Spc(I,J,L,id_OCPO) ) * FAC
             MPOC = MPOC * 2.1e+0_fp
          ELSE
             ! semivolpoa2: MPOC is zero now (hotp 2/27/09)
@@ -2271,7 +2269,7 @@
 
             ! semivolpoa2: remove OA mass from POA (hotp 3/2/09)
             ! Check if POA defined (hotp 8/24/09)
-            IF ( IDTPOA1 > 0 ) THEN
+            IF ( id_POA1 > 0 ) THEN
                JHC = PARENTPOA
                JSV = IDSV(JHC)
                DO IPR = 1, NPROD(JSV)
@@ -2282,7 +2280,7 @@
 
             ! semivolpoa4opoa: remove OA mass from OPOA (hotp 3/18/09)
             ! Check if OPOA defined (hotp 8/24/09)
-            IF ( IDTOPOA1 > 0 ) THEN
+            IF ( id_OPOA1 > 0 ) THEN
                JHC = PARENTOPOA
                JSV = IDSV(JHC)
                DO IPR = 1, NPROD(JSV)
@@ -2360,10 +2358,10 @@
 
          IF ( Input_Opt%LSVPOA ) THEN
             ! 10/12/09 debug            
-            print*,'POAG tot', SUM(STT(:,:,:,IDTPOA1))+
-     &                         SUM(STT(:,:,:,IDTPOA2))+
-     &                         SUM(STT(:,:,:,IDTPOG1))+
-     &                         SUM(STT(:,:,:,IDTPOG2))
+            print*,'POAG tot', SUM(Spc(:,:,:,id_POA1))+
+     &                         SUM(Spc(:,:,:,id_POA2))+
+     &                         SUM(Spc(:,:,:,id_POG1))+
+     &                         SUM(Spc(:,:,:,id_POG2))
          ENDIF
 
          ! dkh print some diagnostics 
@@ -2412,14 +2410,14 @@
      &           'box 20,33,2   ', 'box 20,33,10    '
 
          IF ( Input_Opt%LSVPOA ) THEN
-            print*,'POA1 ', SUM(STT(:,:,:,IDTPOA1))
-            print*,'POA2 ', SUM(STT(:,:,:,IDTPOA2))
-            print*,'POG1 ', SUM(STT(:,:,:,IDTPOG1))
-            print*,'POG2 ', SUM(STT(:,:,:,IDTPOG2))
-            print*,'OPOA1', SUM(STT(:,:,:,IDTOPOA1))
-            print*,'OPOA2', SUM(STT(:,:,:,IDTOPOA2))
-            print*,'OPOG1', SUM(STT(:,:,:,IDTOPOG1))
-            print*,'OPOG2', SUM(STT(:,:,:,IDTOPOG2))
+            print*,'POA1 ', SUM(Spc(:,:,:,id_POA1))
+            print*,'POA2 ', SUM(Spc(:,:,:,id_POA2))
+            print*,'POG1 ', SUM(Spc(:,:,:,id_POG1))
+            print*,'POG2 ', SUM(Spc(:,:,:,id_POG2))
+            print*,'OPOA1', SUM(Spc(:,:,:,id_OPOA1))
+            print*,'OPOA2', SUM(Spc(:,:,:,id_OPOA2))
+            print*,'OPOG1', SUM(Spc(:,:,:,id_OPOG1))
+            print*,'OPOG2', SUM(Spc(:,:,:,id_OPOG2))
          ENDIF
 
          ! semivolpoa4: diag for POG reacted (hotp 3/27/09)
@@ -2437,7 +2435,7 @@
      &              POAEMISS(20,33,10,1)+POAEMISS(20,33,10,2)
 
          ! semivolpoa4opoa: add OPOA (hotp 3/27/09)
-         IF ( IDTOPOA1 > 0 ) THEN ! hotp 8/24/09 ! hotp 10/11/09
+         IF ( id_OPOA1 > 0 ) THEN ! hotp 8/24/09 ! hotp 10/11/09
             GLOB_POA_PROD  = GLOB_POA_PROD +
      &                       SUM(GLOB_AM0_POA(:,:,:,:,:,1)) -
      &                       SUM(GLOB_AM0_POA_0(:,:,:,:,:,1))
@@ -2472,15 +2470,15 @@
      &                           GLOB_AM0_POA(20,33,2,1,2,2),
      &                           GLOB_AM0_POA(20,33,10,1,2,2)
      
-            print*, 'POA to trop', SUM(STT(:,:,1:LLCHEM,IDTPOA1)) + 
-     &                             SUM(STT(:,:,1:LLCHEM,IDTPOA2))
+            print*, 'POA to trop', SUM(Spc(:,:,1:LLCHEM,id_POA1)) + 
+     &                             SUM(Spc(:,:,1:LLCHEM,id_POA2))
          ENDIF ! OPOA (hotp 8/24/09)
 
       ENDIF
       !------------------------------------------------------------------------
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE SOA_CHEMISTRY
 !EOC
@@ -2865,7 +2863,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3206,7 +3204,7 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3596,12 +3594,11 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_HC
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
-      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3655,6 +3652,9 @@
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  12 Dec 2014 - M. Yannetti - Changed DEXP to EXP for compatability
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  22 Sep 2016 - R. Yantosca - Avoid array size mismatch for GLOB_DARO2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3674,39 +3674,36 @@
       REAL(fp) :: TEMPHC
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHEM_NVOC begins here!
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC      = GC_SUCCESS
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc     => State_Chm%Species
 
       ! Chemistry timestep [s]
       DTCHEM  = GET_TS_CHEM() * 60e+0_fp 
 
       ! Get offline OH, NO3, O3 concentrations [molec/cm3]
-      OHMC    = GET_OH(  I, J, L, Input_Opt, State_Met ) 
-      TTNO3   = GET_NO3( I, J, L, Input_Opt, State_Met )
-      TTO3    = GET_O3(  I, J, L, Input_Opt, State_Met ) 
+      OHMC    = GET_OH(  I, J, L, Input_Opt, State_Chm, State_Met ) 
+      TTNO3   = GET_NO3( I, J, L, Input_Opt, State_Chm, State_Met )
+      TTO3    = GET_O3(  I, J, L, Input_Opt, State_Chm, State_Met ) 
 
       ! Get RO2+NO, RO2+HO2 branching ratio (hotp 5/7/10)
-      NOTEMP  = GET_NO(  I, J, L, Input_Opt            )
-      HO2TEMP = GET_HO2( I, J, L, Input_Opt            )
+      NOTEMP  = GET_NO(  I, J, L, Input_Opt, State_Chm, State_Met )
+      HO2TEMP = GET_HO2( I, J, L, Input_Opt, State_Chm, State_Met )
 
       IF ( NOTEMP .GT. 0.0 ) THEN
          BETANO  = ( KNO * NOTEMP ) / ( KNO * NOTEMP + KHO2 * HO2TEMP )
       ELSEIF ( HO2TEMP .GT. 0.0 ) THEN
          BETANO = 0.e+0_fp
       ELSE
-         ! default value if no CSPEC value
+         ! default value if no State_Chm%Species value
          BETANO = 0.5e+0_fp
       ENDIF
 
@@ -3714,9 +3711,9 @@
       BETANOSAVE(I,J,L) = BETANO
 
       ! update for new mtp lumping (hotp 5/22/10)
-      NMVOC(1) = STT(I,J,L,IDTMTPA)
-      NMVOC(2) = STT(I,J,L,IDTLIMO)
-      NMVOC(3) = STT(I,J,L,IDTMTPO)
+      NMVOC(1) = Spc(I,J,L,id_MTPA)
+      NMVOC(2) = Spc(I,J,L,id_LIMO)
+      NMVOC(3) = Spc(I,J,L,id_MTPO)
       NMVOC(4) = ORVC_SESQ(I,J,L)
 
       ! Initialize DELHC so that the values from the previous
@@ -3728,12 +3725,12 @@
       !=================================================================
 
       ! semivolpoa2: update for POA (hotp 2/27/09)
-      ! add POA emissions to GMO here (not to STT in EMITHIGH)
+      ! add POA emissions to GMO here (not to Spc in EMITHIGH)
       
       ! Only loop over parent hydrocarbons defined for a given simulation
       ! Max should be 11 for semivolatile POA/IVOC (PARENTNAP =11)
       ! Max should be 8  for nonvolatile POA/ traditional simulation
-      IF ( IDTPOA1 > 0 ) THEN
+      IF ( id_POA1 > 0 ) THEN
          MAXLOOP = PARENTNAP   !11
       ELSE
          MAXLOOP = PARENTXYLE  ! 8
@@ -3825,10 +3822,12 @@
             ! Get ISOP lost to rxn with OH [kg]
             !DOH = GET_DOH( I, J, L, Input_Opt )
             ! Save as DELHC (hotp 5/22/10)
-            DELHC(1) = GET_DOH( I, J, L, Input_Opt )
+            DELHC(1) = GET_DOH( I, J, L, Input_Opt, State_Chm,
+     &                          State_Met )
 
             ! Get ISOP lost to rxn with NO3 [kgC]
-            DELHC(2) = GET_ISOPNO3( I, J, L, Input_Opt )
+            DELHC(2) = GET_ISOPNO3( I, J, L, Input_Opt, State_Chm,
+     &                              State_Met )
 
             ! Save diagnostic info for bug check (hotp 5/22/10)
             ! convert from kgC to kg
@@ -3866,11 +3865,16 @@
             ! Here, we add the two pathways together and use an
             ! offline branching ratio (BETANO) (hotp 5/22/10)
             NOX = NHIGHNOX ! NOX=1
-            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC,Input_Opt) +
-     &                     GET_DARO2(I,J,L,2,JHC,Input_Opt) ) * BETANO
+            DELHC(NOX) = ( GET_DARO2(I, J, L, 1, JHC, Input_Opt,
+     &                               State_Chm, State_Met) +
+     &                     GET_DARO2(I, J, L, 2, JHC, Input_Opt,
+     &                               State_Chm, State_Met) )
+     &                   * BETANO
             NOX = NLOWNOX  ! NOX=2
-            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC,Input_Opt) +
-     &                     GET_DARO2(I,J,L,2,JHC,Input_Opt) )
+            DELHC(NOX) = ( GET_DARO2(I, J, L, 1, JHC, Input_Opt,
+     &                               State_Chm, State_Met) +
+     &                     GET_DARO2(I, J, L, 2, JHC, Input_Opt,
+     &                               State_Chm, State_Met) )
      &                   * (1e+0_fp-BETANO)
 
             ! Determine SOG yield and add to GM0 (hotp 5/22/10)
@@ -3884,9 +3888,21 @@
             ! Diagnostic/debug info (hotp 5/22/10)
             IF ( JHC == PARENTBENZ .or. JHC == PARENTTOLU
      &                             .or. JHC == PARENTXYLE ) THEN 
-               GLOB_DARO2(I,J,L,:,JHC-5) = DELHC(:)
+!---------------------------------------------------------------------------
+! Prior to 9/22/16:
+! The 4th dimension of GLOB_DARO2 is 2, but DELHC has a dimension of 3,
+! so avoid the array-size mismatch.
+!               GLOB_DARO2(I,J,L,:,JHC-5) = DELHC(:)
+!---------------------------------------------------------------------------
+               GLOB_DARO2(I,J,L,1:2,JHC-5) = DELHC(1:2)
             ELSE ! NAP
-               GLOB_DARO2(I,J,L,:,4) = DELHC(:)
+!---------------------------------------------------------------------------
+! Prior to 9/22/16:
+! The 4th dimension of GLOB_DARO2 is 2, but DELHC has a dimension of 3,
+! so avoid the array-size mismatch.
+!               GLOB_DARO2(I,J,L,:,4) = DELHC(:)
+!---------------------------------------------------------------------------
+               GLOB_DARO2(I,J,L,1:2,4) = DELHC(1:2)
             ENDIF
 
             ! Total SOG production diagnostic (hotp 5/18/10)
@@ -3926,7 +3942,8 @@
 
             ! here we oxidize gas phase POA (POG) to OPOG by reaction with OH
             ! use constant KOH = 2e-11 for now (hotp 3/18/09)
-            OHMC        = GET_OH(  I, J, L, Input_Opt, State_Met ) 
+            OHMC        = GET_OH( I, J, L, Input_Opt, State_Chm,
+     &                            State_Met ) 
             RK          = 2.e-11_fp * OHMC
 
             ! Identify IDSV (hotp 5/14/10)
@@ -3977,7 +3994,7 @@
 
       ! semivolpoa4opoa: emit POA last (after OPOA formation) (hotp 3/18/09)
       ! SVOC emissions are added to gas-phase GM0
-      IF ( IDTPOA1 > 0 ) THEN
+      IF ( id_POA1 > 0 ) THEN
          JHC = PARENTPOA
    
          ! Use IDSV (hotp 5/14/10)
@@ -4000,18 +4017,18 @@
       ENDIF
 
       !=================================================================
-      ! Store Hydrocarbon remaining after oxidation rxn back into STT
+      ! Store Hydrocarbon remaining after oxidation rxn back into Spc
       !=================================================================
       ! update for new mtp lumping (hotp 5/22/10)
-      STT(I,J,L,IDTMTPA) = MAX( NMVOC(1), 1.e-32_fp )
-      STT(I,J,L,IDTLIMO) = MAX( NMVOC(2), 1.e-32_fp )
-      STT(I,J,L,IDTMTPO) = MAX( NMVOC(3), 1.e-32_fp )
+      Spc(I,J,L,id_MTPA) = MAX( NMVOC(1), 1.e-32_fp )
+      Spc(I,J,L,id_LIMO) = MAX( NMVOC(2), 1.e-32_fp )
+      Spc(I,J,L,id_MTPO) = MAX( NMVOC(3), 1.e-32_fp )
       ORVC_SESQ(I,J,L)   = MAX( NMVOC(4), 1.e-32_fp )
       ! Nothing to do for isoprene or aromatics here, 
       ! as their oxidation is treated online. 
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE CHEM_NVOC
 !EOC
@@ -4023,12 +4040,12 @@
 ! !IROUTINE: soa_partition
 !
 ! !DESCRIPTION: Subroutine SOA\_PARTITION partitions the mass of gas and
-!  aerosol tracers according to five Hydrocarbon species and three oxidants.
+!  aerosol species according to five Hydrocarbon species and three oxidants.
 !  (rjp, bmy, 7/7/04, 5/22/06)
 !\\
 !\\
-!  Revised purpose: SOA\_PARTITION assigns the mass in the STT array to 
-!  the GM0 and AM0 arrays (hotp 5/13/10)
+!  Revised purpose: SOA\_PARTITION assigns the mass in the chemical
+!  species array to the GM0 and AM0 arrays (hotp 5/13/10)
 !\\
 !\\
 ! !INTERFACE:
@@ -4038,8 +4055,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4069,26 +4085,26 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: JHC, IPR, NOX, JSV ! JSV Added (hotp 5/13)
+      ! Scalars
+      INTEGER           :: JHC, IPR, NOX, JSV 
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! SOA_PARTITION begins here!
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to the chemical species array [kg]
+      Spc => State_Chm%Species
 
       ! Initialize everything to zero (hotp 5/17/10)
       GM0 = 0e+0_fp
@@ -4101,15 +4117,15 @@
       JHC = PARENTMTPA
       JSV = IDSV(JHC)
       ! gas phase
-      GM0(1,JSV)=STT(I,J,L,IDTTSOG1) ! C* =   1
-      GM0(2,JSV)=STT(I,J,L,IDTTSOG2) ! C* =  10
-      GM0(3,JSV)=STT(I,J,L,IDTTSOG3) ! C* = 100
-      GM0(4,JSV)=STT(I,J,L,IDTTSOG0) ! C* =   0.1
+      GM0(1,JSV)=Spc(I,J,L,id_TSOG1) ! C* =   1
+      GM0(2,JSV)=Spc(I,J,L,id_TSOG2) ! C* =  10
+      GM0(3,JSV)=Spc(I,J,L,id_TSOG3) ! C* = 100
+      GM0(4,JSV)=Spc(I,J,L,id_TSOG0) ! C* =   0.1
       ! aerosol phase
-      AM0(1,JSV)=STT(I,J,L,IDTTSOA1)
-      AM0(2,JSV)=STT(I,J,L,IDTTSOA2)
-      AM0(3,JSV)=STT(I,J,L,IDTTSOA3)
-      AM0(4,JSV)=STT(I,J,L,IDTTSOA0)
+      AM0(1,JSV)=Spc(I,J,L,id_TSOA1)
+      AM0(2,JSV)=Spc(I,J,L,id_TSOA2)
+      AM0(3,JSV)=Spc(I,J,L,id_TSOA3)
+      AM0(4,JSV)=Spc(I,J,L,id_TSOA0)
 
       !---------------------------------------
       ! SEMIVOLATILE 2: ISOP
@@ -4117,13 +4133,13 @@
       JHC = PARENTISOP
       JSV = IDSV(JHC)
       ! gas phase
-      GM0(1,JSV)=STT(I,J,L,IDTISOG1)
-      GM0(2,JSV)=STT(I,J,L,IDTISOG2)
-      GM0(3,JSV)=STT(I,J,L,IDTISOG3)
+      GM0(1,JSV)=Spc(I,J,L,id_ISOG1)
+      GM0(2,JSV)=Spc(I,J,L,id_ISOG2)
+      GM0(3,JSV)=Spc(I,J,L,id_ISOG3)
       ! aerosol phase
-      AM0(1,JSV)=STT(I,J,L,IDTISOA1)
-      AM0(2,JSV)=STT(I,J,L,IDTISOA2)
-      AM0(3,JSV)=STT(I,J,L,IDTISOA3)
+      AM0(1,JSV)=Spc(I,J,L,id_ISOA1)
+      AM0(2,JSV)=Spc(I,J,L,id_ISOA2)
+      AM0(3,JSV)=Spc(I,J,L,id_ISOA3)
 
       !---------------------------------------
       ! SEMIVOLATILE 3: BENZ, TOLU, XYLE, NAP
@@ -4132,14 +4148,14 @@
       JHC = PARENTBENZ ! IDSV(B)=IDSV(T)=IDSV(X)=IDSV(N)
       JSV = IDSV(JHC)
       ! gas phase
-      GM0(1,JSV)=STT(I,J,L,IDTASOG1)
-      GM0(2,JSV)=STT(I,J,L,IDTASOG2)
-      GM0(3,JSV)=STT(I,J,L,IDTASOG3)
+      GM0(1,JSV)=Spc(I,J,L,id_ASOG1)
+      GM0(2,JSV)=Spc(I,J,L,id_ASOG2)
+      GM0(3,JSV)=Spc(I,J,L,id_ASOG3)
       ! aerosol phase
-      AM0(1,JSV)=STT(I,J,L,IDTASOA1)
-      AM0(2,JSV)=STT(I,J,L,IDTASOA2)
-      AM0(3,JSV)=STT(I,J,L,IDTASOA3)
-      AM0(4,JSV)=STT(I,J,L,IDTASOAN)
+      AM0(1,JSV)=Spc(I,J,L,id_ASOA1)
+      AM0(2,JSV)=Spc(I,J,L,id_ASOA2)
+      AM0(3,JSV)=Spc(I,J,L,id_ASOA3)
+      AM0(4,JSV)=Spc(I,J,L,id_ASOAN)
 
       !---------------------------------------
       ! SEMIVOLATILE 4: POA/SVOCs
@@ -4147,14 +4163,14 @@
       ! POA-Primary SVOCs (hotp 5/13/10)
       JHC = PARENTPOA
       JSV = IDSV(JHC)
-      IF ( IDTPOA1 > 0 .and. IDTPOA2 > 0 .and.
-     &     IDTPOG1 > 0 .and. IDTPOG2 > 0 ) THEN
+      IF ( id_POA1 > 0 .and. id_POA2 > 0 .and.
+     &     id_POG1 > 0 .and. id_POG2 > 0 ) THEN
          ! gas phase
-         GM0(1,JSV) = STT(I,J,L,IDTPOG1)
-         GM0(2,JSV) = STT(I,J,L,IDTPOG2)
+         GM0(1,JSV) = Spc(I,J,L,id_POG1)
+         GM0(2,JSV) = Spc(I,J,L,id_POG2)
          ! aerosol phase
-         AM0(1,JSV) = STT(I,J,L,IDTPOA1)
-         AM0(2,JSV) = STT(I,J,L,IDTPOA2)
+         AM0(1,JSV) = Spc(I,J,L,id_POA1)
+         AM0(2,JSV) = Spc(I,J,L,id_POA2)
       ENDIF
 
       !---------------------------------------
@@ -4163,18 +4179,18 @@
       ! OPOA-Oxidized SVOCs (hotp 5/13/10)
       JHC = PARENTOPOA
       JSV = IDSV(JHC)
-      IF ( IDTOPOA1 > 0 .and. IDTOPOA2 > 0 .and.
-     &     IDTOPOG1 > 0 .and. IDTOPOG2 > 0 ) THEN
+      IF ( id_OPOA1 > 0 .and. id_OPOA2 > 0 .and.
+     &     id_OPOG1 > 0 .and. id_OPOG2 > 0 ) THEN
          ! gas phase
-         GM0(1,JSV) = STT(I,J,L,IDTOPOG1)
-         GM0(2,JSV) = STT(I,J,L,IDTOPOG2)
+         GM0(1,JSV) = Spc(I,J,L,id_OPOG1)
+         GM0(2,JSV) = Spc(I,J,L,id_OPOG2)
          ! aerosol phase
-         AM0(1,JSV) = STT(I,J,L,IDTOPOA1)
-         AM0(2,JSV) = STT(I,J,L,IDTOPOA2)
+         AM0(1,JSV) = Spc(I,J,L,id_OPOA1)
+         AM0(2,JSV) = Spc(I,J,L,id_OPOA2)
       ENDIF
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE SOA_PARTITION
 !EOC
@@ -4198,8 +4214,7 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_HC 
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4227,6 +4242,8 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4235,21 +4252,18 @@
 !
       INTEGER           :: JHC, IPR, NOX, JSV ! JSV (hotp 5/13/10)
       REAL(fp)          :: GASMASS, AERMASS
-      INTEGER           :: IDTSPECIES ! hotp 6/5/10
+      INTEGER           :: id_SPECIES ! hotp 6/5/10
       REAL(fp)          :: AERCHANGE  ! hotp 6/5/10
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! SOA_LUMP begins here!
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to the chemical species array [kg]
+      Spc => State_Chm%Species
 
       !=================================================================
       ! Semivolatile Group 1: monoterpenes and sesquiterpenes (hotp 5/22/10)
@@ -4273,19 +4287,19 @@
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
      &                    + ( AERMASS - 
-     &                        STT(I,J,L,IDTTSOA1) -
-     &                        STT(I,J,L,IDTTSOA2) -
-     &                        STT(I,J,L,IDTTSOA3) -
-     &                        STT(I,J,L,IDTTSOA0)  )
+     &                        Spc(I,J,L,id_TSOA1) -
+     &                        Spc(I,J,L,id_TSOA2) -
+     &                        Spc(I,J,L,id_TSOA3) -
+     &                        Spc(I,J,L,id_TSOA0)  )
       ENDIF
 
       !-----------------------------
       ! Transient mass bal prod/evap
       ! (hotp 6/5/10)
       !-----------------------------
-      IDTSPECIES = IDTTSOA1
+      id_SPECIES = id_TSOA1
       IPR = 1
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                 SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4294,9 +4308,9 @@
      &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IDTSPECIES = IDTTSOA2
+      id_SPECIES = id_TSOA2
       IPR = 2
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                 SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4305,9 +4319,9 @@
      &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IDTSPECIES = IDTTSOA3
+      id_SPECIES = id_TSOA3
       IPR = 3
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                 SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4317,9 +4331,9 @@
       ENDIF
 
       ! Add C*=0.1 product (hotp 6/12/10)
-      IDTSPECIES = IDTTSOA0
+      id_SPECIES = id_TSOA0
       IPR = 4
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                 SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4329,18 +4343,18 @@
       ENDIF
 
       !-----------------------------
-      ! Update tracers [kg]
+      ! Update species [kg]
       !-----------------------------
       ! gas phase
-      STT(I,J,L,IDTTSOG1) = MAX( GM0(1,JSV), 1e-32_fp )
-      STT(I,J,L,IDTTSOG2) = MAX( GM0(2,JSV), 1e-32_fp )
-      STT(I,J,L,IDTTSOG3) = MAX( GM0(3,JSV), 1e-32_fp )
-      STT(I,J,L,IDTTSOG0) = MAX( GM0(4,JSV), 1e-32_fp )
+      Spc(I,J,L,id_TSOG1) = MAX( GM0(1,JSV), 1e-32_fp )
+      Spc(I,J,L,id_TSOG2) = MAX( GM0(2,JSV), 1e-32_fp )
+      Spc(I,J,L,id_TSOG3) = MAX( GM0(3,JSV), 1e-32_fp )
+      Spc(I,J,L,id_TSOG0) = MAX( GM0(4,JSV), 1e-32_fp )
       ! aerosol phase
-      STT(I,J,L,IDTTSOA1) = MAX( AM0(1,JSV), 1e-32_fp )
-      STT(I,J,L,IDTTSOA2) = MAX( AM0(2,JSV), 1e-32_fp )
-      STT(I,J,L,IDTTSOA3) = MAX( AM0(3,JSV), 1e-32_fp )
-      STT(I,J,L,IDTTSOA0) = MAX( AM0(4,JSV), 1e-32_fp )
+      Spc(I,J,L,id_TSOA1) = MAX( AM0(1,JSV), 1e-32_fp )
+      Spc(I,J,L,id_TSOA2) = MAX( AM0(2,JSV), 1e-32_fp )
+      Spc(I,J,L,id_TSOA3) = MAX( AM0(3,JSV), 1e-32_fp )
+      Spc(I,J,L,id_TSOA0) = MAX( AM0(4,JSV), 1e-32_fp )
 
       !=================================================================
       ! Semivolatile Group 2: isoprene (hotp 5/22/10)
@@ -4364,18 +4378,18 @@
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
      &                    + ( AERMASS - 
-     &                        STT(I,J,L,IDTISOA1) -
-     &                        STT(I,J,L,IDTISOA2) -
-     &                        STT(I,J,L,IDTISOA3)   )
+     &                        Spc(I,J,L,id_ISOA1) -
+     &                        Spc(I,J,L,id_ISOA2) -
+     &                        Spc(I,J,L,id_ISOA3)   )
       ENDIF
 
       !-----------------------------
       ! Transient mass bal prod/evap
       ! (hotp 6/5/10)
       !-----------------------------
-      IDTSPECIES = IDTISOA1
+      id_SPECIES = id_ISOA1
       IPR = 1
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                 SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4384,9 +4398,9 @@
      &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IDTSPECIES = IDTISOA2
+      id_SPECIES = id_ISOA2
       IPR = 2
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                 SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4395,9 +4409,9 @@
      &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IDTSPECIES = IDTISOA3
+      id_SPECIES = id_ISOA3
       IPR = 3
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                 SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4407,16 +4421,16 @@
       ENDIF
 
       !-----------------------------
-      ! Update tracers [kg]
+      ! Update species [kg]
       !-----------------------------
       ! gas phase
-      STT(I,J,L,IDTISOG1) = MAX( GM0(1,JSV), 1e-32_fp )
-      STT(I,J,L,IDTISOG2) = MAX( GM0(2,JSV), 1e-32_fp )
-      STT(I,J,L,IDTISOG3) = MAX( GM0(3,JSV), 1e-32_fp )
+      Spc(I,J,L,id_ISOG1) = MAX( GM0(1,JSV), 1e-32_fp )
+      Spc(I,J,L,id_ISOG2) = MAX( GM0(2,JSV), 1e-32_fp )
+      Spc(I,J,L,id_ISOG3) = MAX( GM0(3,JSV), 1e-32_fp )
       ! aerosol phase
-      STT(I,J,L,IDTISOA1) = MAX( AM0(1,JSV), 1e-32_fp )
-      STT(I,J,L,IDTISOA2) = MAX( AM0(2,JSV), 1e-32_fp )
-      STT(I,J,L,IDTISOA3) = MAX( AM0(3,JSV), 1e-32_fp )
+      Spc(I,J,L,id_ISOA1) = MAX( AM0(1,JSV), 1e-32_fp )
+      Spc(I,J,L,id_ISOA2) = MAX( AM0(2,JSV), 1e-32_fp )
+      Spc(I,J,L,id_ISOA3) = MAX( AM0(3,JSV), 1e-32_fp )
 
       !=================================================================
       ! Semivolatile Group 3: benzene, toluene, xylene, naphthalene/IVOC
@@ -4443,19 +4457,19 @@
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
      &                    + ( AERMASS - 
-     &                        STT(I,J,L,IDTASOAN) -
-     &                        STT(I,J,L,IDTASOA1) -
-     &                        STT(I,J,L,IDTASOA2) -
-     &                        STT(I,J,L,IDTASOA3)   )
+     &                        Spc(I,J,L,id_ASOAN) -
+     &                        Spc(I,J,L,id_ASOA1) -
+     &                        Spc(I,J,L,id_ASOA2) -
+     &                        Spc(I,J,L,id_ASOA3)   )
       ENDIF
 
       !-----------------------------
       ! Transient mass bal prod/evap
       ! (hotp 6/5/10)
       !-----------------------------
-      IDTSPECIES = IDTASOA1
+      id_SPECIES = id_ASOA1
       IPR = 1
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                 SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4464,9 +4478,9 @@
      &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IDTSPECIES = IDTASOA2
+      id_SPECIES = id_ASOA2
       IPR = 2
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                 SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4475,9 +4489,9 @@
      &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IDTSPECIES = IDTASOA3
+      id_SPECIES = id_ASOA3
       IPR = 3
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                 SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4486,9 +4500,9 @@
      &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IDTSPECIES = IDTASOAN
+      id_SPECIES = id_ASOAN
       IPR = 4
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                 SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4498,31 +4512,31 @@
       ENDIF
 
       !-----------------------------
-      ! Update tracers [kg]
+      ! Update species [kg]
       !-----------------------------
       ! APROD and GPROD are no longer used, but GM0 and AM0
-      ! need to be saved to tracer arrays (hotp 5/13/10)
+      ! need to be saved to species arrays (hotp 5/13/10)
       ! HIGH NOX  ! update dims (hotp 5/22/10)
       !NOX = NHIGHNOX
       ! gas phase
-      STT(I,J,L,IDTASOG1) = MAX( GM0(1,JSV), 1e-32_fp )
-      STT(I,J,L,IDTASOG2) = MAX( GM0(2,JSV), 1e-32_fp )
-      STT(I,J,L,IDTASOG3) = MAX( GM0(3,JSV), 1e-32_fp )
+      Spc(I,J,L,id_ASOG1) = MAX( GM0(1,JSV), 1e-32_fp )
+      Spc(I,J,L,id_ASOG2) = MAX( GM0(2,JSV), 1e-32_fp )
+      Spc(I,J,L,id_ASOG3) = MAX( GM0(3,JSV), 1e-32_fp )
       ! aerosol phase
-      STT(I,J,L,IDTASOA1) = MAX( AM0(1,JSV), 1e-32_fp )
-      STT(I,J,L,IDTASOA2) = MAX( AM0(2,JSV), 1e-32_fp )
-      STT(I,J,L,IDTASOA3) = MAX( AM0(3,JSV), 1e-32_fp )
+      Spc(I,J,L,id_ASOA1) = MAX( AM0(1,JSV), 1e-32_fp )
+      Spc(I,J,L,id_ASOA2) = MAX( AM0(2,JSV), 1e-32_fp )
+      Spc(I,J,L,id_ASOA3) = MAX( AM0(3,JSV), 1e-32_fp )
       ! LOW NOX (only 1 aerosol phase)
       !NOX = NLOWNOX ! store in spot 4 (hotp 5/22/10)
-      STT(I,J,L,IDTASOAN) = MAX( AM0(4,JSV), 1e-32_fp )
+      Spc(I,J,L,id_ASOAN) = MAX( AM0(4,JSV), 1e-32_fp )
 
       !=================================================================
       ! Semivolatile 4: POA/primary SVOCs
       ! Lump of products of 10th Hydrocarbon class (POA) 
       ! semivolpoa2: lump POA (hotp 2/27/09)
       !=================================================================
-      IF ( IDTPOA1 > 0 .and. IDTPOA2 > 0 .and.
-     &     IDTPOG1 > 0 .and. IDTPOG2 > 0 ) THEN
+      IF ( id_POA1 > 0 .and. id_POA2 > 0 .and.
+     &     id_POG1 > 0 .and. id_POG2 > 0 ) THEN
  
          ! Initialize
          !JHC     = 10
@@ -4542,17 +4556,17 @@
          !---------------------------
          IF ( ND07 > 0 .and. L <= LD07 ) THEN
             AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                         + ( AERMASS - STT(I,J,L,IDTPOA1) -
-     &                                       STT(I,J,L,IDTPOA2) )
+     &                         + ( AERMASS - Spc(I,J,L,id_POA1) -
+     &                                       Spc(I,J,L,id_POA2) )
          ENDIF
 
          !---------------------------
          ! Transient SOA PROD/EVAP
          ! (hotp 6/5/10)
          !---------------------------
-         IDTSPECIES = IDTPOA1
+         id_SPECIES = id_POA1
          IPR = 1
-         AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+         AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
          IF ( AERCHANGE .GT. 0e+0_fp ) THEN
             SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                    SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4561,9 +4575,9 @@
      &                    SPECSOAEVAP(I,J,L,IPR,JSV)
          ENDIF
 
-         IDTSPECIES = IDTPOA2
+         id_SPECIES = id_POA2
          IPR = 2
-         AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+         AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
          IF ( AERCHANGE .GT. 0e+0_fp ) THEN
             SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                    SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4573,14 +4587,14 @@
          ENDIF
 
          !---------------------------
-         ! Update tracers [kg]
+         ! Update species [kg]
          !---------------------------
          ! gas phase
-         STT(I,J,L,IDTPOG1) = MAX( GM0(1,JSV), 1.e-32_fp )
-         STT(I,J,L,IDTPOG2) = MAX( GM0(2,JSV), 1.e-32_fp )
+         Spc(I,J,L,id_POG1) = MAX( GM0(1,JSV), 1.e-32_fp )
+         Spc(I,J,L,id_POG2) = MAX( GM0(2,JSV), 1.e-32_fp )
          ! aerosol phase
-         STT(I,J,L,IDTPOA1) = MAX( AM0(1,JSV), 1.e-32_fp )
-         STT(I,J,L,IDTPOA2) = MAX( AM0(2,JSV), 1.e-32_fp )
+         Spc(I,J,L,id_POA1) = MAX( AM0(1,JSV), 1.e-32_fp )
+         Spc(I,J,L,id_POA2) = MAX( AM0(2,JSV), 1.e-32_fp )
 
       ENDIF ! POA
 
@@ -4589,8 +4603,8 @@
       ! Lump of products of 11th Hydrocarbon class (OPOA) 
       ! semivolpoa4opoa: lump OPOA (hotp 2/27/09)
       !=================================================================
-      IF ( IDTOPOA1 > 0 .and. IDTOPOA2 > 0 .and.
-     &     IDTOPOG1 > 0 .and. IDTOPOG2 > 0 ) THEN
+      IF ( id_OPOA1 > 0 .and. id_OPOA2 > 0 .and.
+     &     id_OPOG1 > 0 .and. id_OPOG2 > 0 ) THEN
  
          ! Initialize
          GASMASS = 0e+0_fp
@@ -4609,17 +4623,17 @@
          !---------------------------
          IF ( ND07 > 0 .and. L <= LD07 ) THEN
             AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                         + ( AERMASS - STT(I,J,L,IDTOPOA1) -
-     &                                       STT(I,J,L,IDTOPOA2) )
+     &                         + ( AERMASS - Spc(I,J,L,id_OPOA1) -
+     &                                       Spc(I,J,L,id_OPOA2) )
          ENDIF
 
          !---------------------------
          ! Transient SOA PROD/EVAP
          ! (hotp 6/5/10)
          !---------------------------
-         IDTSPECIES = IDTOPOA1
+         id_SPECIES = id_OPOA1
          IPR = 1
-         AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+         AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
          IF ( AERCHANGE .GT. 0e+0_fp ) THEN
             SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                    SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4628,9 +4642,9 @@
      &                    SPECSOAEVAP(I,J,L,IPR,JSV)
          ENDIF
 
-         IDTSPECIES = IDTOPOA2
+         id_SPECIES = id_OPOA2
          IPR = 2
-         AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+         AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
          IF ( AERCHANGE .GT. 0e+0_fp ) THEN
             SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
      &                    SPECSOAPROD(I,J,L,IPR,JSV)
@@ -4640,19 +4654,19 @@
          ENDIF
 
          !---------------------------
-         ! Update tracers [kg]
+         ! Update species [kg]
          !---------------------------
          ! gas phase
-         STT(I,J,L,IDTOPOG1) = MAX( GM0(1,JSV), 1.e-32_fp )
-         STT(I,J,L,IDTOPOG2) = MAX( GM0(2,JSV), 1.e-32_fp )
+         Spc(I,J,L,id_OPOG1) = MAX( GM0(1,JSV), 1.e-32_fp )
+         Spc(I,J,L,id_OPOG2) = MAX( GM0(2,JSV), 1.e-32_fp )
          ! aerosol phase
-         STT(I,J,L,IDTOPOA1) = MAX( AM0(1,JSV), 1.e-32_fp )
-         STT(I,J,L,IDTOPOA2) = MAX( AM0(2,JSV), 1.e-32_fp )
+         Spc(I,J,L,id_OPOA1) = MAX( AM0(1,JSV), 1.e-32_fp )
+         Spc(I,J,L,id_OPOA2) = MAX( AM0(2,JSV), 1.e-32_fp )
 
       ENDIF ! OPOA
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE SOA_LUMP
 !EOC
@@ -4681,13 +4695,10 @@
       USE DIAG_MOD,           ONLY : AD59_OCIL,   AD59_OCOB
       USE DIAG_MOD,           ONLY : AD59_NUMB
       USE ERROR_MOD,          ONLY : IT_IS_NAN
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
-      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1
-      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
-      USE TRACERID_MOD,       ONLY : IDTNH4,   IDTAW1
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TOMAS_MOD,          ONLY : IBINS,    AVGMASS,  ICOMP,   IDIAG
       USE TOMAS_MOD,          ONLY : SRTECIL,  SRTECOB,  SRTOCIL
       USE TOMAS_MOD,          ONLY : SRTOCOB,  SRTSO4,   SRTNH4
@@ -4712,6 +4723,8 @@
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod.
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4740,23 +4753,20 @@
       DATA ii, jj, ll /53, 29, 8 /
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! EMITSGC begins here!
       !=================================================================
-
+      
       IF ( Input_Opt%LNLPBL ) THEN 
          print *,'Currently subroutine EMITHIGH2 does not support ',
      &        'the new non-local PBL scheme!'
          stop
       ENDIF
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to the chemical species array [kg]
+      Spc => State_Chm%Species
 
       ! Maximum extent of PBL [model levels]
       PBL_MAX = GET_PBL_MAX_L()
@@ -4765,11 +4775,11 @@
       if( dbg) then
          print *,'===== Entering EMITSGC ===== at',ii,jj,ll
          print *,'Nk'
-         print *,STT(ii,jj,ll,IDTNK1:IDTNK1+ibins-1)
+         print *,Spc(ii,jj,ll,id_NK1:id_NK1+ibins-1)
          print *,'Mk'
          do k=1,icomp-idiag
             print *,'comp',k
-            print *,STT(ii,jj,ll,IDTNK1+k*IBINS:IDTNK1+IBINS-1+k*IBINS)
+            print *,Spc(ii,jj,ll,id_NK1+k*IBINS:id_NK1+IBINS-1+k*IBINS)
          enddo
          print *,'EMISSION'
          print *,emismass(ii,jj,:)
@@ -4786,22 +4796,22 @@
 
          DO K = 1, IBINS
             NDISTINIT(K) = EMISMASS(I,J,K) * F_OF_PBL / AVGMASS(K) 
-            NDIST(K) = STT(I,J,L,IDTNK1+K-1)
+            NDIST(K) = Spc(I,J,L,id_NK1+K-1)
             DO C = 1, ICOMP-IDIAG
-               MDIST(K,C) = STT(I,J,L,IDTNK1+IBINS*C+K-1)
+               MDIST(K,C) = Spc(I,J,L,id_NK1+IBINS*C+K-1)
                IF( IT_IS_NAN( MDIST(K,C) ) ) THEN
                   PRINT *,'+++++++ Found NaN in EMITSGC ++++++++'
                   PRINT *,'Location (I,J,L):',I,J,L,'Bin',K,'comp',C
                ENDIF
             ENDDO
-            MDIST(K,SRTH2O) = STT(I,J,L,IDTAW1-1+K)
+            MDIST(K,SRTH2O) = Spc(I,J,L,id_AW1-1+K)
             NDISTFINAL(K) = 0e+0_fp
             MADDFINAL(K) = 0e+0_fp
          ENDDO
 
          IF ( SRTNH4 > 0 ) THEN
             CALL NH4BULKTOBIN( MDIST(:,SRTSO4),
-     &                         STT(I,J,L,IDTNH4),
+     &                         Spc(I,J,L,id_NH4),
      &                         MDIST(:,SRTNH4) )
          ENDIF
 
@@ -4856,10 +4866,10 @@
      &                     PRES, TSCALE, NDISTFINAL, MADDFINAL,pdbug)
          IF ( PDBUG ) THEN
             PRINT *,'Found error in SUBGRIDCOAG at', I,J,L
-            PRINT *,'Nk',STT(I,J,L,IDTNK1:IDTNK1+ibins-1)
+            PRINT *,'Nk',Spc(I,J,L,id_NK1:id_NK1+ibins-1)
             do k=1,8 
                print *,'Mk comp',k
-               print *,STT(I,J,L,IDTNK1+k*IBINS:IDTNK1+IBINS-1+k*IBINS)
+               print *,Spc(I,J,L,id_NK1+k*IBINS:id_NK1+IBINS-1+k*IBINS)
             enddo
          ENDIF
 ccc            
@@ -4916,11 +4926,11 @@ ccc
      &           'after SUBGRIDCOAG at ',I,J,L
 
          DO K = 1, IBINS
-            STT(I,J,L,IDTNK1-1+K) = NDIST2(K)
+            Spc(I,J,L,id_NK1-1+K) = NDIST2(K)
             DO C = 1, ICOMP-IDIAG
-               STT(I,J,L,IDTNK1+K-1+C*IBINS) = MDIST2(K,C)
+               Spc(I,J,L,id_NK1+K-1+C*IBINS) = MDIST2(K,C)
             ENDDO
-            STT(I,J,L,IDTAW1-1+K)  = MDIST2(K,SRTH2O)
+            Spc(I,J,L,id_AW1-1+K)  = MDIST2(K,SRTH2O)
          ENDDO
 
          ! Save final info for diagnostic
@@ -4966,7 +4976,7 @@ ccc
       ENDDO ! J loop
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE EMITSGC
 !EOC
@@ -5159,16 +5169,15 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-      USE GIGC_State_Met_Mod,    ONLY : MetState
+      USE ErrCode_Mod
       USE GRID_MOD,              ONLY : GET_AREA_M2
       USE HCO_INTERFACE_MOD,     ONLY : HcoState, GetHcoID, GetHcoVal
       USE HCO_ERROR_MOD
+      USE Input_Opt_Mod,         ONLY : OptInput
       USE PBL_MIX_MOD,           ONLY : GET_PBL_MAX_L
       USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL
+      USE State_Met_Mod,         ONLY : MetState
       USE TIME_MOD,              ONLY : GET_TS_EMIS
-      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
 !      
@@ -5185,7 +5194,7 @@ ccc
 ! emissions need be specified in the HEMCO configuration file. In the original
 ! code, the emissions were calculated by scaling anthropogenic, biofuel and
 ! biomass burning OC emissions. The same behavior can be achieved in HEMCO
-! by assigning the desired SVOC tracer name to the given source type, e.g.:
+! by assigning the desired SVOC species name to the given source type, e.g.:
 !
 ! 0 BOND\_ANTH\_POG1 Bond\_fossil.nc OC 2000/1-12/1/0 C xy kg/m2/s POG1 74 1 1
 !
@@ -5209,6 +5218,7 @@ ccc
 !  14 Jan 2016 - M. Sulprizio- Emit SVOC emissions as POG1 and POG2 (not POA1
 !                              and POG1) in HEMCO to better reflect that these
 !                              emissions are added to the gas-phase species
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5227,10 +5237,11 @@ ccc
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
-
-      ! Reset POAEMISS
-      POAEMISS = 0e+0_fp
+      RC = GC_SUCCESS
+      
+      ! Initialize
+      POAEMISS =  0e+0_fp
+      HcoState => NULL()
 
       ! Get HEMCO ID of species SESQ 
       IF ( SESQID == -999 ) THEN
@@ -5243,13 +5254,13 @@ ccc
       ENDIF
  
       ! Get HEMCO ID of species POG1 and POG2
-      HCOPOG1 = GetHcoID( TrcID=IDTPOG1 )
+      HCOPOG1 = GetHcoID( SpcID=id_POG1 )
       IF ( HCOPOG1 > 0 ) THEN
          IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG1)%Emis%Val) ) THEN
             HCOPOG1 = -1
          ENDIF
       ENDIF
-      HCOPOG2 = GetHcoID( TrcID=IDTPOG2 )
+      HCOPOG2 = GetHcoID( SpcID=id_POG2 )
       IF ( HCOPOG2 > 0 ) THEN
          IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG2)%Emis%Val) ) THEN
             HCOPOG2 = -1
@@ -5340,21 +5351,19 @@ ccc
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE UNITCONV_MOD
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE UnitConv_Mod
 !
 ! TOMAS DIAGNs:
 !
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND
       USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG, xSOA
-      USE TRACERID_MOD,       ONLY : IDTECIL1,  IDTECOB1, IDTNK1
-      USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1
 
       ! HEMCO update
       USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
@@ -5377,6 +5386,7 @@ ccc
 !  12 Jun 2015 - J. Kodros   - Initial version
 !  12 Jun 2015 - R. Yantosca - Bug fix: also add reference to DEBUG_MSG
 !  10 Jul 2015 - R. Yantosca - Fixed typo in ProTeX header
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5424,25 +5434,23 @@ ccc
       CHARACTER(LEN=255)       :: LOC='EMISSCARBONTOMAS (carbon_mod.F)'
       LOGICAL                  :: LPRT
 
-      ! For fields from Input_Opt
-      INTEGER                  :: N_TRACERS
-      INTEGER                  :: ID_TRACER(Input_Opt%N_TRACERS)
       ! Pointers
-      REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
+      TYPE(HCO_State), POINTER :: HcoState
+      REAL(f4),        POINTER :: Ptr2D(:,:)
+
       !=================================================================
       ! EMISSCARBONTOMAS begins here!
       !=================================================================
 
       ! Assume success
-      RC                  = GIGC_SUCCESS
+      RC                  = GC_SUCCESS
 
       ! Get nested-grid offsets
       I0                  = GET_XOFFSET()
       J0                  = GET_YOFFSET()
 
-      ! Copy values from Input_Opt
-      N_TRACERS           = Input_Opt%N_TRACERS
-      ID_TRACER           = Input_Opt%ID_TRACER(1:N_TRACERS)
+      ! Initialize pointers
+      Ptr2D               => NULL()
 
       ! Import emissions from HEMCO (through HEMCO state)
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
@@ -5455,14 +5463,14 @@ ccc
       ! Grid box aarea
       AREA = HcoState%Grid%AREA_M2%Val(:,:)
 
-      ! Convert State_Chm%Tracers from [kg/kg dry air] to [kg] for TOMAS.
+      ! Convert State_Chm%Species from [kg/kg dry air] to [kg] for TOMAS.
       ! This will be removed once TOMAS uses mixing ratio instead of mass 
-      ! as tracer units (ewl, 9/11/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                     'Routine EMISSCARBONTOMAS in carbon_mod.F')
+      ! as species units (ewl, 9/11/15)
+      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
+     &                               State_Chm, RC         ) 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( 'Unit conversion error', RC, 
+     &                  'Routine EMISSCARBONTOMAS in carbon_mod.F' )
          RETURN
       ENDIF 
 
@@ -5597,8 +5605,9 @@ ccc
       OCPO_BIOB_BULK = OCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
 
       ! ---- SCALE INTO TOMAS BINS ---------------------------
-      IF ( IDTNK1 > 0 .AND. IDTECIL1 > 0 .AND.
-     &     IDTECOB1 > 0 .AND. IDTOCIL1 > 0 .AND. IDTOCOB1 > 1 ) THEN
+      IF ( id_NK1 > 0 .AND. id_ECIL1 > 0 .AND.
+     &     id_ECOB1 > 0 .AND. id_OCIL1 > 0 .AND.
+     &     id_OCOB1 > 1 ) THEN
 
          BCFF(:,:,:,1) = SCALECARB( BCPI_ANTH_BULK(:,:), 1, 1 )
          BCBF(:,:,:,1) = SCALECARB( BCPI_BIOF_BULK(:,:), 2, 1 ) 
@@ -5708,12 +5717,12 @@ ccc
 
       ENDIF  ! size resolved > 0
 
-      ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
-     &                             State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'Routine EMISSCARBONTOMAS in carbon_mod.F')
+      ! Convert State_Chm%Species back to kg (ewl, 9/11/15)
+      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
+     &                               State_Chm, RC         ) 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'Routine EMISSCARBONTOMAS in carbon_mod.F')
          RETURN
       ENDIF  
 
@@ -5728,7 +5737,7 @@ ccc
 !
 ! !IROUTINE: emithigh2
 !
-! !DESCRIPTION: Subroutine EMITHIGH2 mixes tracer completely from the surface
+! !DESCRIPTION: Subroutine EMITHIGH2 mixes species completely from the surface
 !  to the PBL top. This is a copy of subroutine EMITHIGH modified to work with
 !  30-bin EC and OC mass and also aerosol number.  (win, 9/4/07)
 !\\
@@ -5741,19 +5750,17 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
-      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1
-      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TOMAS_MOD,          ONLY : IBINS
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(IN)  :: BCSRC(IIPAR,JJPAR,IBINS, 2) ! Total BC [kg]
-      REAL(fp),         INTENT(IN)  :: OCSRC(IIPAR,JJPAR,IBINS, 2) ! Total OC [kg]
-      REAL(fp),         INTENT(IN)  :: NUMBSRC(IIPAR,JJPAR,IBINS)
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt                   ! Input Options
+      REAL(fp),       INTENT(IN)  :: BCSRC(IIPAR,JJPAR,IBINS, 2) !Total BC [kg]
+      REAL(fp),       INTENT(IN)  :: OCSRC(IIPAR,JJPAR,IBINS, 2) !Total OC [kg]
+      REAL(fp),       INTENT(IN)  :: NUMBSRC(IIPAR,JJPAR,IBINS)
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt                   !Input Options
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -5766,27 +5773,26 @@ ccc
 !        Rewrote for computational expediency using routines from
 !        "pbl_mix_mod.f".  (bmy, 2/17/05)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                       :: I, J, L, PBL_MAX, K
-      REAL(fp)                        :: F_OF_PBL
+      INTEGER           :: I, J, L, PBL_MAX, K
+      REAL(fp)          :: F_OF_PBL
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp),         POINTER       :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! EMITHIGH2 begins here!
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
       ! Maximum extent of PBL [model levels]
       PBL_MAX = GET_PBL_MAX_L()
@@ -5816,23 +5822,23 @@ ccc
          F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
 
          ! Hydrophilic ELEMENTAL CARBON
-         STT(I,J,L,IDTECIL1-1+K) =  STT(I,J,L,IDTECIL1-1+K) +
+         Spc(I,J,L,id_ECIL1-1+K) =  Spc(I,J,L,id_ECIL1-1+K) +
      &                            ( F_OF_PBL * BCSRC(I,J,K,1) )
 
          ! Hydrophobic ELEMENTAL CARBON
-         STT(I,J,L,IDTECOB1-1+K) =  STT(I,J,L,IDTECOB1-1+K) +
+         Spc(I,J,L,id_ECOB1-1+K) =  Spc(I,J,L,id_ECOB1-1+K) +
      &                            ( F_OF_PBL * BCSRC(I,J,K,2) )
 
          ! Hydrophilic ORGANIC CARBON
-         STT(I,J,L,IDTOCIL1-1+K) =  STT(I,J,L,IDTOCIL1-1+K) +
+         Spc(I,J,L,id_OCIL1-1+K) =  Spc(I,J,L,id_OCIL1-1+K) +
      &                            ( F_OF_PBL * OCSRC(I,J,K,1) )
 
          ! Hydrophobic ORGANIC CARBON
-         STT(I,J,L,IDTOCOB1-1+K) =  STT(I,J,L,IDTOCOB1-1+K) +
+         Spc(I,J,L,id_OCOB1-1+K) =  Spc(I,J,L,id_OCOB1-1+K) +
      &                            ( F_OF_PBL * OCSRC(I,J,K,2) )
 
          ! Number corresponding to EC + OC [No.]
-         STT(I,J,L,IDTNK1-1+K)   = STT(I,J,L,IDTNK1-1+K) + 
+         Spc(I,J,L,id_NK1-1+K)   = Spc(I,J,L,id_NK1-1+K) + 
      &                            ( F_OF_PBL * NUMBSRC(I,J,K) )
 
       ENDDO
@@ -5842,7 +5848,7 @@ ccc
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
 
       END SUBROUTINE EMITHIGH2
 !EOC
@@ -5885,6 +5891,8 @@ ccc
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
+!                              from (MAXIJ) to (IIPAR,JJPAR)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5892,10 +5900,10 @@ ccc
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE  :: FIRST = .TRUE.
-      INTEGER        :: I, IJLOOP, J, L, N, NT, NDYSTEP
+      INTEGER        :: I, J, L, N, NT, NDYSTEP
       REAL(fp)       :: A0, A1, A2, A3, B1, B2, B3
       REAL(fp)       :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL(fp)       :: SUNTMP(MAXIJ)
+      REAL(fp)       :: SUNTMP(IIPAR,JJPAR)
       
       !=================================================================
       ! OHNO3TIME begins here!
@@ -5933,20 +5941,18 @@ ccc
          DO N = 1, NDYSTEP
             
             ! Zero SUNTMP array
-            SUNTMP(:) = 0e+0_fp
+            SUNTMP = 0e+0_fp
 
             ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
+!$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
                ! Grid box latitude center [radians]
                YMID_R = GET_YMID_R( I, J, 1 )
 
-               ! Increment IJLOOP
-               IJLOOP = ( (J-1) * IIPAR ) + I
                TIMLOC = real(LHR0) + real(NT)/3600.0 + 
      &                  GET_XMID( I, J, 1 ) / 15.0
          
@@ -5960,26 +5966,26 @@ ccc
 
                AHR = abs(TIMLOC - 12.) * 15.0 * PI_180
 
-            !===========================================================
-            ! The cosine of the solar zenith angle (SZA) is given by:
-            !     
-            !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
-            !                   
-            ! where LAT = the latitude angle, 
-            !       DEC = the solar declination angle,  
-            !       AHR = the hour angle, all in radians. 
-            !
-            ! If SUNCOS < 0, then the sun is below the horizon, and 
-            ! therefore does not contribute to any solar heating.  
-            !===========================================================
+               !===========================================================
+               ! The cosine of the solar zenith angle (SZA) is given by:
+               !     
+               !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
+               !                   
+               ! where LAT = the latitude angle, 
+               !       DEC = the solar declination angle,  
+               !       AHR = the hour angle, all in radians. 
+               !
+               ! If SUNCOS < 0, then the sun is below the horizon, and 
+               ! therefore does not contribute to any solar heating.  
+               !===========================================================
 
                ! Compute Cos(SZA)
-               SUNTMP(IJLOOP) = sin(YMID_R) * sin(DEC) +
-     &                          cos(YMID_R) * cos(DEC) * cos(AHR)
+               SUNTMP(I,J) = sin(YMID_R) * sin(DEC) +
+     &                       cos(YMID_R) * cos(DEC) * cos(AHR)
 
                ! TCOSZ is the sum of SUNTMP at location (I,J)
                ! Do not include negative values of SUNTMP
-               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(IJLOOP), 0e+0_fp )
+               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(I,J), 0e+0_fp )
 
             ENDDO
             ENDDO
@@ -6002,25 +6008,25 @@ ccc
 !
 ! !IROUTINE: get_oh
 !
-! !DESCRIPTION: Function GET\_OH returns OH from SMVGEAR's CSPEC array (for
+! !DESCRIPTION: Function GET\_OH returns OH from State\_Chm%Species (for
 !  coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal
 !  variation on OH for offline simulations. (bmy, 7/9/04)
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_OH( I, J, L, Input_Opt, State_Met ) 
+      FUNCTION GET_OH( I, J, L, Input_Opt, State_Chm, State_Met ) 
      &         RESULT( OH_MOLEC_CM3 )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDOH
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6028,6 +6034,7 @@ ccc
       INTEGER,        INTENT(IN)  :: J           ! Latitude index
       INTEGER,        INTENT(IN)  :: L           ! Altitude index
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
@@ -6043,14 +6050,18 @@ ccc
 !   4 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  23 Sep 2014 - M. Sulprizio- Now get OH for offline aerosol sim from HEMCO
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
+!  07 Sep 2016 - M. Sulprizio- Bug fix: Convert State_Chm%Species from kg to
+!                              molec/cm3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP
- 
+      REAL(fp) :: MolecRatio ! moles C / moles species
+      REAL(fp) :: OH_MW_kg   ! kg OH / mol
+
       !=================================================================
       ! GET_OH begins here!
       !=================================================================
@@ -6060,15 +6071,22 @@ ccc
          ! Coupled simulation
          !---------------------
 
-         ! JLOOP = SMVGEAR 1-D grid box index
-         JLOOP = JLOP(I,J,L)
+         ! OH is defined only in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
-         ! Take OH from the SMVGEAR array CSPEC
-         ! OH is defined only in the troposphere
-         IF ( JLOOP > 0 ) THEN
-            OH_MOLEC_CM3 = CSPEC(JLOOP,IDOH)
+            ! Get OH from State_Chm%Species [kg] and convert to [molec/cm3]
+            MolecRatio = State_Chm%SpcData(id_OH)%Info%MolecRatio
+            OH_MW_kg   = State_Chm%SpcData(id_OH)%Info%emMW_g * 1.e-3_fp
+
+            OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH)
+     &                   * ( AVO / OH_MW_kg )
+     &                   / ( State_Met%AIRVOL(I,J,L)
+     &                   * 1e+6_fp * MolecRatio )
+
          ELSE
+
             OH_MOLEC_CM3 = 0e+0_fp
+
          ENDIF
 
       ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
@@ -6076,9 +6094,6 @@ ccc
          !---------------------
          ! Offline simulation
          !---------------------
-
-         ! 1-D grid box index for SUNCOS
-         JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test for sunlight...
          IF ( State_Met%SUNCOS(I,J) > 0e+0_fp 
@@ -6121,7 +6136,7 @@ ccc
 !
 ! !IROUTINE: get_no3
 !
-! !DESCRIPTION: Function GET\_NO3 returns NO3 from SMVGEAR's CSPEC array (for
+! !DESCRIPTION: Function GET\_NO3 returns NO3 from State\_Chm%Species (for
 !  coupled runs) or monthly mean OH (for offline runs).  For offline runs, the
 !  concentration of NO3 is set to zero during the day. (rjp, bmy, 12/16/02,
 !  7/20/04)
@@ -6129,17 +6144,17 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NO3( I, J, L, Input_Opt, State_Met ) 
+      FUNCTION GET_NO3( I, J, L, Input_Opt, State_Chm, State_Met ) 
      &         RESULT( NO3_MOLEC_CM3 ) 
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDNO3
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6147,6 +6162,7 @@ ccc
       INTEGER,        INTENT(IN)  :: J           ! Latitude index
       INTEGER,        INTENT(IN)  :: L           ! Altitude index
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
@@ -6166,17 +6182,21 @@ ccc
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_MOD
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  23 Sep 2014 - M. Sulprizio- Now get NO3 for offline aerosol sims from HEMCO
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
+!  28 Jul 2016 - R. Yantosca - Now convert NO3 from kg to molec/cm3
+!  07 Sep 2016 - M. Sulprizio- Get MolecRatio and NO3_MW_kg from species DB
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER :: XNUMOL_NO3 = AVO / 62e-3_fp
+      REAL(fp),  PARAMETER :: XNUMOL_NO3 = AVO / 62e-3_fp ! hard-coded MW
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER              :: JLOOP
+      REAL(fp)             :: MolecRatio ! moles C / moles species
+      REAL(fp)             :: NO3_MW_kg  ! kg NO3 / mol
       REAL(fp)             :: BOXVL
 
       !=================================================================
@@ -6188,15 +6208,22 @@ ccc
          ! Fullchem simulation
          !----------------------
 
-         ! 1-D SMVGEAR grid box index
-         JLOOP = JLOP(I,J,L)
+         ! NO3 is defined only in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
-         ! Take NO3 from the SMVGEAR array CSPEC
-         ! NO3 is defined only in the troposphere
-         IF ( JLOOP > 0 ) THEN
-            NO3_MOLEC_CM3 = CSPEC(JLOOP,IDNO3)
+            ! Get NO3 from State_Chm%Species [kg] and convert to [molec/cm3]
+            MolecRatio  = State_Chm%SpcData(id_NO3)%Info%MolecRatio
+            NO3_MW_kg   = State_Chm%SpcData(id_NO3)%Info%emMW_g*1.e-3_fp
+
+            NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3)
+     &                    * ( AVO / NO3_MW_kg )
+     &                    / ( State_Met%AIRVOL(I,J,L)
+     &                    * 1e+6_fp * MolecRatio )
+
          ELSE
+
             NO3_MOLEC_CM3 = 0e+0_fp
+
          ENDIF
 
       ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
@@ -6224,9 +6251,6 @@ ccc
          ! the monthly mean concentration every 3 hours (as for HNO3) 
          ! since NO3 has a very short lifetime. (rjp, bmy, 12/16/02) 
          !==============================================================
-
-         ! 1-D grid box index for SUNCOS
-         JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test if daylight
          IF ( State_Met%SUNCOS(I,J) > 0e+0_fp ) THEN
@@ -6274,18 +6298,18 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_O3( I, J, L, Input_Opt, State_Met ) 
+      FUNCTION GET_O3( I, J, L, Input_Opt, State_Chm, State_Met ) 
      &         RESULT( O3_MOLEC_CM3 )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDO3
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6293,6 +6317,7 @@ ccc
       INTEGER,        INTENT(IN)  :: J           ! Latitude index
       INTEGER,        INTENT(IN)  :: L           ! Altitude index
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
@@ -6312,19 +6337,23 @@ ccc
 !  18 Sep 2014 - M. Sulprizio- Now get O3 for offline aerosol sim from HEMCO
 !  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
 !                              CMN_GTCM_MOD for XNUMOLAIR
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !  06 Jan 2016 - E. Lundgren - Use global physical parameter AVO
+!  28 Jul 2016 - R. Yantosca - Now convert O3 from kg to molec/cm3
+!  07 Sep 2016 - M. Sulprizio- Get MolecRatio and NO3_MW_kg from species DB
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER :: XNUMOL_O3 = AVO / 48e-3_fp
+      REAL(fp),  PARAMETER :: XNUMOL_O3 = AVO / 48e-3_fp ! hard-coded MW
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: JLOOP
-      REAL(fp)           :: BOXVL
+      REAL(fp)             :: MolecRatio ! moles C / moles species
+      REAL(fp)             :: O3_MW_kg   ! kg O3 / mol
+      REAL(fp)             :: BOXVL
 
       !=================================================================
       ! GET_O3 begins here!
@@ -6335,15 +6364,22 @@ ccc
          ! Coupled simulation
          !--------------------
 
-         ! JLOOP = SMVGEAR 1-D grid box index
-         JLOOP = JLOP(I,J,L)
+         ! O3 is defined only in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            
+            ! Get O3 from State_Chm%Species [kg] and convert to [molec/cm3]
+            MolecRatio = State_Chm%SpcData(id_O3)%Info%MolecRatio
+            O3_MW_kg   = State_Chm%SpcData(id_O3)%Info%emMW_g * 1.e-3_fp
 
-         ! Get O3 from CSPEC [molec/cm3]
-         ! O3 data will only be defined below the tropopause
-         IF ( JLOOP  > 0 ) THEN
-            O3_MOLEC_CM3 = CSPEC(JLOOP,IDO3)
+            O3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_O3)
+     &                   * ( AVO / O3_MW_kg )
+     &                   / ( State_Met%AIRVOL(I,J,L)
+     &                   * 1e+6_fp * MolecRatio )
+
          ELSE
+
             O3_MOLEC_CM3 = 0e+0_fp
+
          ENDIF
          
       ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
@@ -6353,12 +6389,12 @@ ccc
          !--------------------
 
          ! Get O3 [v/v] for this gridbox & month
-         ! O3 data will only be defined below the tropopause
+         ! O3 is defined only in the chemistry grid
          IF ( L <= LLCHEM ) THEN
 
             ! Get O3 [v/v] and convert it to [kg]
             O3_MOLEC_CM3 = O3(I,J,L) * State_Met%AD(I,J,L) *
-     &                     ( 48e+0_fp / AIRMW )
+     &                     ( 48e+0_fp / AIRMW )            ! hard-coded MW
                
             ! Convert O3 from [kg] to [molec/cm3]
             BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -6368,9 +6404,6 @@ ccc
             O3_MOLEC_CM3 = 0e+0_fp
          ENDIF
 
-         ! 1-D grid box index for SUNCOS
-         JLOOP = ( (J-1) * IIPAR ) + I
-
          ! Test for sunlight...
          IF ( State_Met%SUNCOS(I,J) > 0e+0_fp 
      &      .and. TCOSZ(I,J) > 0e+0_fp ) THEN
@@ -6378,7 +6411,7 @@ ccc
             ! Impose a diurnal variation on OH during the day
             O3_MOLEC_CM3 = O3_MOLEC_CM3                             *  
      &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   *
-     &                     ( 1440e+0_fp                / GET_TS_CHEM() )
+     &                     ( 1440e+0_fp            / GET_TS_CHEM() )
 
             ! Make sure OH is not negative
             O3_MOLEC_CM3 = MAX( O3_MOLEC_CM3, 0e+0_fp )
@@ -6413,19 +6446,20 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_DARO2( I, J, L, NOX, JHC, Input_Opt ) RESULT( DARO2 )
+      FUNCTION GET_DARO2( I, J, L, NOX, JHC, Input_Opt,
+     &                    State_Chm, State_Met )
+     &         RESULT( DARO2 )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTBENZ, IDTTOLU, IDTXYLE
-      ! NAPSOA: add IVOC surrogate (NAP) (hotp 7/22/09)
-      USE TRACERID_MOD,       ONLY : IDTNAP
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : AVO
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6435,6 +6469,8 @@ ccc
       INTEGER,        INTENT(IN)  :: NOX
       INTEGER,        INTENT(IN)  :: JHC
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
@@ -6444,23 +6480,30 @@ ccc
 !  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
 !  13 Aug 2013 - M. Sulprizio- Add NAP for SOA + semivolatile POA (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Met%Species
+!  17 May 2016 - R. Yantosca - Now get MolecRatio from species database
+!  31 May 2016 - E. Lundgren - Now get molecular weight from species database
+!  07 Sep 2016 - M. Sulprizio- Bug fix: Convert State_Chm%Species from kg LARO2
+!                              to kg AROM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: JLOOP, ILARO2, IDTAROM
-      REAL(fp) :: ARO2CARB
-
-      ! For values from Input_Opt
-      REAL(fp) :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER  :: id_LARO2      ! Species ID for AROM lost to HO2 or NO
+      INTEGER  :: id_AROM       ! Species ID of the parent aromatic
+      REAL(fp) :: ARO2CARB      ! kg C of ARO2 / kg ARO2
+      REAL(fp) :: AROM_MW_kg    ! g C of AROM  / mol C
+      REAL(fp) :: LARO2_MW_kg   ! g C of LARO2 / mol C
+      REAL(fp) :: MolecRatio    ! moles C / moles species
 
       !=================================================================
       ! GET_DARO2 begins here!
       !=================================================================
 
-      !print*, ' get DARO2'
+      ! Initialize
       DARO2 = 0e+0_fp
 
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
@@ -6469,11 +6512,8 @@ ccc
          ! Coupled simulation
          !--------------------
 
-         ! Get 1-D index from current 3-D position
-         JLOOP = JLOP(I,J,L)
-
-         ! Test if we are in the troposphere
-         IF ( JLOOP > 0 ) THEN
+         ! Test if we are in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
             ! Get information on the 
             ! specified type of aromatic peroxy radical
@@ -6486,9 +6526,9 @@ ccc
                ! (NOX = 1) while loss due to HO2 corresponds to 
                ! low NOX experiments (NOX = 2). 
                IF ( NOX == 1 ) THEN
-                  ILARO2 = ILBRO2N
+                  id_LARO2 = id_LBRO2N
                ELSEIF ( NOX == 2 ) THEN
-                  ILARO2 = ILBRO2H
+                  id_LARO2 = id_LBRO2H
                ELSE
                   CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
                ENDIF
@@ -6502,17 +6542,17 @@ ccc
                ARO2CARB = 6e+0_fp * 12e+0_fp / 
      &                    ( 6e+0_fp * 12e+0_fp + 6e+0_fp )
 
-               ! Tracer index of the parent aromatic
-               IDTAROM = IDTBENZ
+               ! Species index of the parent aromatic
+               id_AROM = id_BENZ
 
             ! Toluene
             !ELSEIF ( JHC == 8 ) THEN ! hotp 5/13/10
             ELSEIF ( JHC == PARENTTOLU ) THEN
 
                IF ( NOX == 1 ) THEN
-                  ILARO2 = ILTRO2N
+                  id_LARO2 = id_LTRO2N
                ELSEIF ( NOX == 2 ) THEN
-                  ILARO2 = ILTRO2H
+                  id_LARO2 = id_LTRO2H
                ELSE
                   CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
                ENDIF
@@ -6528,17 +6568,17 @@ ccc
                ARO2CARB = 7e+0_fp * 12e+0_fp / 
      &                    ( 7e+0_fp * 12e+0_fp + 8e+0_fp )
 
-               ! Tracer index of the parent aromatic
-               IDTAROM = IDTTOLU
+               ! Species index of the parent aromatic
+               id_AROM = id_TOLU
 
             ! XYLENE
             !ELSEIF ( JHC == 9 ) THEN ! hotp 5/13/10
             ELSEIF ( JHC == PARENTXYLE ) THEN
 
                IF ( NOX == 1 ) THEN
-                  ILARO2 = ILXRO2N
+                  id_LARO2 = id_LXRO2N
                ELSEIF ( NOX == 2 ) THEN
-                  ILARO2 = ILXRO2H
+                  id_LARO2 = id_LXRO2H
                ELSE
                   CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
                ENDIF
@@ -6555,17 +6595,17 @@ ccc
                ARO2CARB = 8e+0_fp * 12e+0_fp / 
      &                    ( 8e+0_fp * 12e+0_fp + 10e+0_fp ) 
 
-               ! Tracer index of the parent aromatic
-               IDTAROM = IDTXYLE
+               ! Species index of the parent aromatic
+               id_AROM = id_XYLE
 
             ! NAPHTHALENE (IVOC surrogate) (hotp 7/22/09)
             !ELSEIF ( JHC == 12 ) THEN ! hotp 5/13/10
             ELSEIF ( JHC == PARENTNAP ) THEN
 
                IF ( NOX == 1 ) THEN
-                  ILARO2 = ILNRO2N
+                  id_LARO2 = id_LNRO2N
                ELSEIF ( NOX == 2 ) THEN
-                  ILARO2 = ILNRO2H
+                  id_LARO2 = id_LNRO2H
                ELSE
                   CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
                ENDIF
@@ -6577,8 +6617,8 @@ ccc
                ARO2CARB = 12e+0_fp * 10e+0_fp / 
      &                    ( 12e+0_fp * 10e+0_fp + 8e+0_fp )
 
-               ! Tracer index of the parent aromatic
-               IDTAROM = IDTNAP
+               ! Species index of the parent aromatic
+               id_AROM = id_NAP
 
             ELSE
 
@@ -6587,25 +6627,26 @@ ccc
             ENDIF
 
             !-----------------------------------------------------------
-            ! Get DARO2 from CSPEC [molec/cm3] and 
-            ! convert to [kg ARO2 / box]
+            ! Get LARO2 (AROM lost to HO2 or NO) from State_Chm%Species
+            ! [kg LARO2] and convert to [kg AROM]
             ! 
-            ! CSPEC             : molec ARO2 (lost to HO2 or NO ) / cm3
-            ! XNUMOL            : atom C / kg C of ARO2
-            ! TRACER_COEFF      : atom C / molec ARO2
-            ! VOLUME            : cm3 / box
-            ! ARO2CARB          : kg C of ARO2 / kg ARO2
-            ! 
-            ! where we use XNUMOL and TRACER_COEFF for the parent aromatic
-            ! hydrocarbon, Arom, because:
-            !   atom  C / molec ARO2  = atom C / molec AROM
-            !   kg C of ARO2 / atom C = kg C of AROM / atom C
+            ! We use MolecRatio for the parent aromatic hydrocarbon,
+            ! AROM, because:
+            !   atom  C / mol ARO2  = atom C / mol AROM
             !-----------------------------------------------------------
 
-            DARO2 = CSPEC(JLOOP,ILARO2)
-     &            * VOLUME(JLOOP)
-     &            * Input_Opt%TRACER_COEFF(IDTAROM,1)
-     &            / ( Input_Opt%XNUMOL(IDTAROM) * ARO2CARB )
+            ! Now get the species coefficient from the species database
+            ! instead of from Input_Opt (bmy, 5/17/16)
+            MolecRatio  = State_Chm%SpcData(id_AROM)%Info%MolecRatio
+            AROM_MW_kg  = State_Chm%SpcData(id_AROM)%Info%emMW_g
+     &                    * 1.e-3_fp
+            LARO2_MW_kg = State_Chm%SpcData(id_LARO2)%Info%emMW_g
+     &                    * 1.e-3_fp
+
+            DARO2 = State_Chm%Species(I,J,L,id_LARO2)
+     &            * ( AVO / LARO2_MW_kg )
+     &            / ( AVO / AROM_MW_kg  ) * MolecRatio
+     &            * ARO2CARB
 
          ELSE
 
@@ -6649,16 +6690,18 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_DOH( I, J, L, Input_Opt ) RESULT( DOH )
+      FUNCTION GET_DOH( I, J, L, Input_Opt, State_Chm, State_Met )
+     &         RESULT( DOH )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTISOP
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : AVO
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6666,6 +6709,8 @@ ccc
       INTEGER,        INTENT(IN)  :: J           ! Latitude index
       INTEGER,        INTENT(IN)  :: L           ! Altitude index
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
@@ -6674,13 +6719,20 @@ ccc
 ! !REVISION HISTORY:
 !  04 Mar 2013 - R. Yantosca - Now use fields from Input_Opt object
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
+!  17 May 2016 - R. Yantosca - Now get MolecRatio from species database
+!  31 May 2016 - E. Lundgren - Now get molecular weight from species database
+!  07 Sep 2016 - M. Sulprizio- Bug fix: Convert State_Chm%Species from kg ISOPOH
+!                              to kg ISOP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP
+      REAL(fp) :: MolecRatio    ! moles C / moles ISOP
+      REAL(fp) :: ISOP_MW_kg    ! kg C ISOP    / mol C
+      REAL(fp) :: LISOPOH_MW_kg ! kg C LISOPOH / mol C
 
       !=================================================================
       ! GET_DOH begins here!
@@ -6692,25 +6744,22 @@ ccc
          ! Coupled simulation
          !--------------------
 
-         ! Get 1-D index from current 3-D position
-         JLOOP = JLOP(I,J,L)
-
-         ! Test if we are in the troposphere
-         IF ( JLOOP > 0 ) THEN 
+         ! Test if we are in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN 
  
             !-----------------------------------------------------------
-            ! Get DOH from CSPEC [molec/cm3] and 
-            ! convert to [kg C isop / box]
-            ! 
-            ! CSPEC(JLOOP,ILISOPOH)    : molec isop (lost to OH) / cm3
-            !  XNUMOL(IDTISOP)         : atom C / kg C isop
-            !  TRACER_COEFF(IDTISOP,1) : atom C / molec isop
-            !  VOLUME                  : cm3 / box
+            ! Get LISOPOH (ISOP lost to OH) from State_Chm%Species
+            ! [kg LISOPOH] and convert to [kg C ISOP]
             !-----------------------------------------------------------
-            DOH = CSPEC(JLOOP,ILISOPOH)             * 
-     &            VOLUME(JLOOP)                     * 
-     &            Input_Opt%TRACER_COEFF(IDTISOP,1) / 
-     &            Input_Opt%XNUMOL(IDTISOP) 
+            MolecRatio    = State_Chm%SpcData(id_ISOP)%Info%MolecRatio
+            ISOP_MW_kg    = State_Chm%SpcData(id_ISOP)%Info%emMW_g
+     &                      * 1.e-3_fp
+            LISOPOH_MW_kg = State_Chm%SpcData(id_LISOPOH)%Info%emMW_g
+     &                      * 1.e-3_fp
+
+            DOH = State_Chm%Species(I,J,L,id_LISOPOH)
+     &          * ( AVO / LISOPOH_MW_kg )
+     &          / ( AVO / ISOP_MW_kg    ) * MolecRatio
  
          ELSE
 
@@ -6759,7 +6808,7 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -6913,10 +6962,9 @@ ccc
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_LAND 
       USE DIAG_MOD,           ONLY : AD07_SOAGM
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTGLYX, IDTSOAG
 !
 ! !INPUT PARAMETERS:
 !
@@ -6940,6 +6988,8 @@ ccc
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6975,22 +7025,19 @@ ccc
                                      !  to cloud chemistry [molecules/cm3]
       REAL(fp)            :: XUPTKMAX  ! Potential max uptake of gas by cloud [kg]
       REAL(fp)            :: XUPTK     ! Actual uptake of gas by cloud [kg]
-                                     !  XUPTK <= STT( I, J, L, IDTGLYX )
+                                     !  XUPTK <= Spc( I, J, L, id_GLYX )
       REAL(fp)            :: FC        ! Cloud fraction by volume [unitless]
       REAL(fp)            :: LWC       ! Liquid water content [g/m3]
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
 
       !=================================================================
       ! SOAG_CLOUD begins here!
       !=================================================================
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
@@ -7017,7 +7064,7 @@ ccc
          XAIRM3  = State_Met%AIRVOL( I, J, L )
 
          ! Get gas mass at grid box [kg]
-         XGASM   = STT( I, J, L, IDTGLYX )
+         XGASM   = Spc( I, J, L, id_GLYX )
 
          ! Get gas concentration at grid box [molec/cm3]
          XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp) 
@@ -7107,12 +7154,12 @@ ccc
             !---------------------------------------
             XUPTK  = MIN( XUPTKMAX, XGASM )
             
-            ! Update GLYX in the STT array
-            STT( I, J, L, IDTGLYX ) = STT( I, J, L, IDTGLYX ) -
+            ! Update GLYX in the Spc array
+            Spc( I, J, L, id_GLYX ) = Spc( I, J, L, id_GLYX ) -
      &                                XUPTK
 
-            ! Update SOAG in the STT array
-            STT( I, J, L, IDTSOAG ) = STT( I, J, L, IDTSOAG ) + 
+            ! Update SOAG in the Spc array
+            Spc( I, J, L, id_SOAG ) = Spc( I, J, L, id_SOAG ) + 
      &                                XUPTK
 
             !==============================================================
@@ -7130,7 +7177,7 @@ ccc
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE SOAG_CLOUD
 !EOC
@@ -7156,10 +7203,9 @@ ccc
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_LAND
       USE DIAG_MOD,           ONLY : AD07_SOAGM
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTMGLY, IDTSOAM
 !
 ! !INPUT PARAMETERS:
 !
@@ -7179,6 +7225,8 @@ ccc
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7215,22 +7263,19 @@ ccc
                                      !  to cloud chemistry [molecules/cm3]
       REAL(fp)            :: XUPTKMAX  ! Potential max uptake of gas by cloud [kg]
       REAL(fp)            :: XUPTK     ! Actual uptake of gas by cloud [kg]
-                                     !  XUPTK <= STT( I, J, L, IDTGLYX )
+                                       !  XUPTK <= Spc( I, J, L, id_GLYX )
       REAL(fp)            :: FC        ! Cloud fraction by volume [unitless]
       REAL(fp)            :: LWC       ! Liquid water content [g/m3]
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
 
       !=================================================================
       ! SOAM_CLOUD begins here!
       !=================================================================
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
@@ -7257,7 +7302,7 @@ ccc
          XAIRM3  = State_Met%AIRVOL( I, J, L )
 
          ! Get gas mass at grid box [kg]
-         XGASM   = STT( I, J, L, IDTMGLY )
+         XGASM   = Spc( I, J, L, id_MGLY )
 
          ! Get gas concentration at grid box [molec/cm3]
          XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp) 
@@ -7345,12 +7390,12 @@ ccc
             !---------------------------------------
             XUPTK  = MIN( XUPTKMAX, XGASM )
             
-            ! Update MGLY in the STT array
-            STT( I, J, L, IDTMGLY ) = STT( I, J, L, IDTMGLY ) -
+            ! Update MGLY in the Spc array
+            Spc( I, J, L, id_MGLY ) = Spc( I, J, L, id_MGLY ) -
      &                                XUPTK
 
-            ! Update SOAM in the STT array
-            STT( I, J, L, IDTSOAM ) = STT( I, J, L, IDTSOAM ) + 
+            ! Update SOAM in the Spc array
+            Spc( I, J, L, id_SOAM ) = Spc( I, J, L, id_SOAM ) + 
      &                                XUPTK
 
             !==============================================================
@@ -7368,7 +7413,7 @@ ccc
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE SOAM_CLOUD
 !EOC
@@ -7392,20 +7437,7 @@ ccc
 !
 ! !USES:
 !
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTASOAN
-      USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOG1
-      USE TRACERID_MOD,       ONLY : IDTPOA2,  IDTPOG2
-      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
-      USE TRACERID_MOD,       ONLY : IDTOCPI,  IDTOCPO
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7440,6 +7472,8 @@ ccc
 !  (2)  Add OCPIOCPO and remove NOX (hotp 6/9/10)
 !  (3)  Add TSOA0 (hotp 6/12/10)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7453,44 +7487,45 @@ ccc
       ! hotp 6/11/10
       REAL(fp), PARAMETER :: ACCEPTERRORUG = 1e-8_fp ! error in ug/m3
 !
-! !LOCAL VARIABLES:
+! !LOCAL VARIABLES:}
 !
       INTEGER             :: NOX, IPR, JHC, JSV
       REAL(fp)            :: MOTEMP, OATEMP, EQLBDIFF
 
       ! Pointers
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHECK_EQLB starts here
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
       ! Calculate mass of absorbing organic medium 
-      MOTEMP = STT(I,J,L,IDTASOAN) +
-     &         STT(I,J,L,IDTASOA1) +
-     &         STT(I,J,L,IDTASOA2) +
-     &         STT(I,J,L,IDTASOA3) +
-     &         STT(I,J,L,IDTTSOA1) +
-     &         STT(I,J,L,IDTTSOA2) +
-     &         STT(I,J,L,IDTTSOA3) +
-     &         STT(I,J,L,IDTTSOA0) +
-     &         STT(I,J,L,IDTISOA1) +
-     &         STT(I,J,L,IDTISOA2) +
-     &         STT(I,J,L,IDTISOA3)
+      MOTEMP = Spc(I,J,L,id_ASOAN) +
+     &         Spc(I,J,L,id_ASOA1) +
+     &         Spc(I,J,L,id_ASOA2) +
+     &         Spc(I,J,L,id_ASOA3) +
+     &         Spc(I,J,L,id_TSOA1) +
+     &         Spc(I,J,L,id_TSOA2) +
+     &         Spc(I,J,L,id_TSOA3) +
+     &         Spc(I,J,L,id_TSOA0) +
+     &         Spc(I,J,L,id_ISOA1) +
+     &         Spc(I,J,L,id_ISOA2) +
+     &         Spc(I,J,L,id_ISOA3)
 
       ! Add primary material as appropriate
-      IF ( IDTPOA1 > 0 ) THEN
+      IF ( id_POA1 > 0 ) THEN
          MOTEMP = MOTEMP              +
-     &            STT(I,J,L,IDTPOA1 ) * OCFPOA  +
-     &            STT(I,J,L,IDTPOA2 ) * OCFPOA  +
-     &            STT(I,J,L,IDTOPOA1) * OCFOPOA +
-     &            STT(I,J,L,IDTOPOA2) * OCFOPOA
-      ELSEIF ( IDTOCPI > 0 ) THEN
+     &            Spc(I,J,L,id_POA1 ) * OCFPOA  +
+     &            Spc(I,J,L,id_POA2 ) * OCFPOA  +
+     &            Spc(I,J,L,id_OPOA1) * OCFOPOA +
+     &            Spc(I,J,L,id_OPOA2) * OCFOPOA
+      ELSEIF ( id_OCPI > 0 ) THEN
          MOTEMP = MOTEMP +
-     &           ( STT(I,J,L,IDTOCPI) + STT(I,J,L,IDTOCPO) ) * 2.1e+0_fp
+     &           ( Spc(I,J,L,id_OCPI) + 
+     &			 Spc(I,J,L,id_OCPO) ) * 2.1e+0_fp
       ENDIF
 
       ! Convert Mo from [kg] to [ug/m3]
@@ -7519,9 +7554,9 @@ ccc
       ! Product 1
       IPR = 1
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTTSOG1) * KOMIJL(IPR,JSV) * MOTEMP 
+      OATEMP = Spc(I,J,L,id_TSOG1) * KOMIJL(IPR,JSV) * MOTEMP 
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTTSOA1) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_TSOA1) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV',  IPR, JSV, 
@@ -7531,25 +7566,25 @@ ccc
       ! Product 2
       IPR = 2
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTTSOG2) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(I,J,L,id_TSOG2) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTTSOA2) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_TSOA2) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
      &              ' in box ', I, J, L,
      &              MSOACHEM,MOTEMP,LOW,TOL,
      &              ASOANGAS, ASOANAER, OCPIOCPO,
-     &              STT(I,J,L,IDTTSOA2),STT(I,J,L,IDTTSOG2)
+     &              Spc(I,J,L,id_TSOA2),Spc(I,J,L,id_TSOG2)
          WRITE(*,*) 'KOM',KOMIJL(IPR,JSV),OATEMP,CONVFAC
       ENDIF
 
       ! Product 3
       IPR = 3
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTTSOG3) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(I,J,L,id_TSOG3) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTTSOA3) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_TSOA3) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
@@ -7559,16 +7594,16 @@ ccc
       ! Product 4, C*=0.1
       IPR = 4
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTTSOG0) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(I,J,L,id_TSOG0) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTTSOA0) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_TSOA0) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
      &              ' in box ', I, J, L,
      &              MSOACHEM,MOTEMP,LOW,TOL,
      &              ASOANGAS, ASOANAER, OCPIOCPO,
-     &              STT(I,J,L,IDTTSOA0),STT(I,J,L,IDTTSOG0)
+     &              Spc(I,J,L,id_TSOA0),Spc(I,J,L,id_TSOG0)
          WRITE(*,*) 'KOM',KOMIJL(IPR,JSV),OATEMP,CONVFAC
       ENDIF
 
@@ -7581,9 +7616,9 @@ ccc
       ! Product 1
       IPR = 1
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTISOG1) * KOMIJL(IPR,JSV) * MOTEMP 
+      OATEMP = Spc(I,J,L,id_ISOG1) * KOMIJL(IPR,JSV) * MOTEMP 
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTISOA1) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ISOA1) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
@@ -7593,9 +7628,9 @@ ccc
       ! Product 2
       IPR = 2
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTISOG2) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(I,J,L,id_ISOG2) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTISOA2) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ISOA2) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
@@ -7605,9 +7640,9 @@ ccc
       ! Product 3
       IPR = 3
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTISOG3) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(I,J,L,id_ISOG3) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTISOA3) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ISOA3) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
@@ -7624,9 +7659,9 @@ ccc
       !NOX = NHIGHNOX
       IPR = 1
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTASOG1) * KOMIJL(IPR,JSV) * MOTEMP 
+      OATEMP = Spc(I,J,L,id_ASOG1) * KOMIJL(IPR,JSV) * MOTEMP 
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTASOA1) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ASOA1) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
@@ -7637,9 +7672,9 @@ ccc
       !NOX = NHIGHNOX
       IPR = 2
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTASOG2) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(I,J,L,id_ASOG2) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTASOA2) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ASOA2) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
@@ -7650,9 +7685,9 @@ ccc
       !NOX = NHIGHNOX
       IPR = 3
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTASOG3) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(I,J,L,id_ASOG3) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTASOA3) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ASOA3) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
@@ -7665,7 +7700,7 @@ ccc
       !----------------------------------------------------
       ! POA: total POA+POG in kgC
       !----------------------------------------------------
-      IF ( IDTPOA1 > 0 ) THEN
+      IF ( id_POA1 > 0 ) THEN
       JHC = PARENTPOA
       JSV = IDSV(JHC)
       NOX = NONLYNOX
@@ -7674,9 +7709,9 @@ ccc
       NOX = NONLYNOX
       IPR = 1
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTPOG1) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(I,J,L,id_POG1) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTPOA1) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_POA1) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, 
@@ -7687,9 +7722,9 @@ ccc
       NOX = NONLYNOX
       IPR = 2
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTPOG2) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(I,J,L,id_POG2) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTPOA2) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_POA2) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, 
@@ -7701,7 +7736,7 @@ ccc
       !----------------------------------------------------
       ! OPOA: total SOA+SOG in kgC
       !----------------------------------------------------
-      IF ( IDTOPOA1 > 0 ) THEN
+      IF ( id_OPOA1 > 0 ) THEN
       JHC = PARENTOPOA
       JSV = IDSV(JHC)
       NOX = NONLYNOX
@@ -7710,9 +7745,9 @@ ccc
       NOX = NONLYNOX
       IPR = 1
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTOPOG1) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(I,J,L,id_OPOG1) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTOPOA1) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_OPOA1) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, 
@@ -7723,9 +7758,9 @@ ccc
       NOX = NONLYNOX
       IPR = 2
       ! Compute OA in kg
-      OATEMP = STT(I,J,L,IDTOPOG2) * KOMIJL(IPR,JSV) * MOTEMP 
+      OATEMP = Spc(I,J,L,id_OPOG2) * KOMIJL(IPR,JSV) * MOTEMP 
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - STT(I,J,L,IDTOPOA2) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_OPOA2) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, 
@@ -7735,7 +7770,7 @@ ccc
       ENDIF ! OPOA
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE CHECK_EQLB
 !EOC
@@ -7759,19 +7794,7 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTASOAN
-      USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOG1
-      USE TRACERID_MOD,       ONLY : IDTPOA2,  IDTPOG2
-      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7783,23 +7806,25 @@ ccc
 !      (I,J,L,NPROD,JSV)
 !  (3) Add compatability with non-vol sim (hotp 6/7/10)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, NOX, JHC, JSV
-
+      INTEGER           :: I, J, L, NOX, JHC, JSV
+      
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! SAVE_OAGINIT starts here
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -7813,62 +7838,62 @@ ccc
          !----------------------------------------------------
          JHC = PARENTMTPA
          JSV = IDSV(JHC)
-         OAGINITSAVE(I,J,L,1,JSV) = STT(I,J,L,IDTTSOA1) +
-     &                              STT(I,J,L,IDTTSOG1)
-         OAGINITSAVE(I,J,L,2,JSV) = STT(I,J,L,IDTTSOA2) +
-     &                              STT(I,J,L,IDTTSOG2)
-         OAGINITSAVE(I,J,L,3,JSV) = STT(I,J,L,IDTTSOA3) +
-     &                              STT(I,J,L,IDTTSOG3)
-         OAGINITSAVE(I,J,L,4,JSV) = STT(I,J,L,IDTTSOA0) +
-     &                              STT(I,J,L,IDTTSOG0)
+         OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_TSOA1) +
+     &                              Spc(I,J,L,id_TSOG1)
+         OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_TSOA2) +
+     &                              Spc(I,J,L,id_TSOG2)
+         OAGINITSAVE(I,J,L,3,JSV) = Spc(I,J,L,id_TSOA3) +
+     &                              Spc(I,J,L,id_TSOG3)
+         OAGINITSAVE(I,J,L,4,JSV) = Spc(I,J,L,id_TSOA0) +
+     &                              Spc(I,J,L,id_TSOG0)
          !----------------------------------------------------
          ! Semivolatile 2: isoprene SOA+SOG in kg
          !----------------------------------------------------
          JHC = PARENTISOP
          JSV = IDSV(JHC)
-         OAGINITSAVE(I,J,L,1,JSV) = STT(I,J,L,IDTISOA1) +
-     &                              STT(I,J,L,IDTISOG1)
-         OAGINITSAVE(I,J,L,2,JSV) = STT(I,J,L,IDTISOA2) +
-     &                              STT(I,J,L,IDTISOG2)
-         OAGINITSAVE(I,J,L,3,JSV) = STT(I,J,L,IDTISOA3) +
-     &                              STT(I,J,L,IDTISOG3)
+         OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_ISOA1) +
+     &                              Spc(I,J,L,id_ISOG1)
+         OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_ISOA2) +
+     &                              Spc(I,J,L,id_ISOG2)
+         OAGINITSAVE(I,J,L,3,JSV) = Spc(I,J,L,id_ISOA3) +
+     &                              Spc(I,J,L,id_ISOG3)
          !----------------------------------------------------
          ! Semivolatile 3: lumped arom/IVOC: total SOA+SOG in kg
          !----------------------------------------------------
          JHC = PARENTBENZ
          JSV = IDSV(JHC)
          ! High NOx
-         OAGINITSAVE(I,J,L,1,JSV) = STT(I,J,L,IDTASOA1) +
-     &                              STT(I,J,L,IDTASOG1)
-         OAGINITSAVE(I,J,L,2,JSV) = STT(I,J,L,IDTASOA2) +
-     &                              STT(I,J,L,IDTASOG2)
-         OAGINITSAVE(I,J,L,3,JSV) = STT(I,J,L,IDTASOA3) +
-     &                              STT(I,J,L,IDTASOG3)
+         OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_ASOA1) +
+     &                              Spc(I,J,L,id_ASOG1)
+         OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_ASOA2) +
+     &                              Spc(I,J,L,id_ASOG2)
+         OAGINITSAVE(I,J,L,3,JSV) = Spc(I,J,L,id_ASOA3) +
+     &                              Spc(I,J,L,id_ASOG3)
          ! Low NOx
-         OAGINITSAVE(I,J,L,4,JSV) = STT(I,J,L,IDTASOAN)
+         OAGINITSAVE(I,J,L,4,JSV) = Spc(I,J,L,id_ASOAN)
 
          !----------------------------------------------------
          ! POA: total POA+POG in kgC (if semivol simulation)
          !----------------------------------------------------
-         IF ( IDTPOA1 > 0 ) THEN
+         IF ( id_POA1 > 0 ) THEN
             JHC = PARENTPOA
             JSV = IDSV(JHC)
-            OAGINITSAVE(I,J,L,1,JSV) = STT(I,J,L,IDTPOA1) +
-     &                                 STT(I,J,L,IDTPOG1)
-            OAGINITSAVE(I,J,L,2,JSV) = STT(I,J,L,IDTPOA2) +
-     &                                 STT(I,J,L,IDTPOG2)
+            OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_POA1) +
+     &                                 Spc(I,J,L,id_POG1)
+            OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_POA2) +
+     &                                 Spc(I,J,L,id_POG2)
          ENDIF
 
          !----------------------------------------------------
          ! OPOA: total SOA+SOG in kgC (if semivol simulation)
          !----------------------------------------------------
-         IF ( IDTOPOA1 > 0 ) THEN
+         IF ( id_OPOA1 > 0 ) THEN
             JHC = PARENTOPOA
             JSV = IDSV(JHC)
-            OAGINITSAVE(I,J,L,1,JSV) = STT(I,J,L,IDTOPOA1) +
-     &                                 STT(I,J,L,IDTOPOG1)
-            OAGINITSAVE(I,J,L,2,JSV) = STT(I,J,L,IDTOPOA2) +
-     &                                 STT(I,J,L,IDTOPOG2)
+            OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_OPOA1) +
+     &                                 Spc(I,J,L,id_OPOG1)
+            OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_OPOA2) +
+     &                                 Spc(I,J,L,id_OPOG2)
          ENDIF
 
 
@@ -7878,7 +7903,7 @@ ccc
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE SAVE_OAGINIT
 !EOC
@@ -7903,21 +7928,9 @@ ccc
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTASOAN
-      USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-      USE TRACERID_MOD,       ONLY : IDTPOA1, IDTPOG1
-      USE TRACERID_MOD,       ONLY : IDTPOA2, IDTPOG2
-      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -7933,6 +7946,8 @@ ccc
 !      with each oxidant cumulative (hotp 5/24/10)
 !  (4) Add non-volatile compatability (hotp 6/9/10)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7942,33 +7957,32 @@ ccc
       ! [kg/kg] of acceptable error, 1e-12_fp = 1e-10_fp %
       !REAL(fp), PARAMETER  :: ACCEPTERROR = 1e-12_fp 
       ! more strict (hotp 5/26/10): 1e-12_fp %
-      REAL(fp), PARAMETER  :: ACCEPTERROR = 1e-14_fp
+      REAL(fp), PARAMETER :: ACCEPTERROR = 1e-14_fp
 !
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL :: prtDebug
-      INTEGER :: I, J, L, NOX, JHC, JSV, IPR
-      REAL(fp)  :: TEMPDELTA(MNOX,MPROD)
-      REAL(fp)  :: TEMPSOAG
-      REAL(fp)  :: MBDIFF
+      LOGICAL              :: prtDebug
+      INTEGER              :: I, J, L, NOX, JHC, JSV, IPR
+      REAL(fp)             :: TEMPDELTA(MNOX,MPROD)
+      REAL(fp)             :: TEMPSOAG
+      REAL(fp)             :: MBDIFF
 
       ! For fields from Input_Opt
-      LOGICAL         :: LPRT
+      LOGICAL              :: LPRT
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER    :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHECK_MB starts here
       !=================================================================
-
+      
       ! Copy logical fields from INPUT_OPT to local variables
       LPRT = Input_Opt%LPRT
 
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
@@ -8004,8 +8018,8 @@ ccc
          ! Product 1, C* = 1 ug/m3
          IPR      = 1
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-         MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTTSOA1) +
-     &                                STT(I,J,L,IDTTSOG1)   ))
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_TSOA1) +
+     &                                Spc(I,J,L,id_TSOG1)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
@@ -8018,8 +8032,8 @@ ccc
          ! Product 2, C* = 10 ug/m3
          IPR      = 2
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-         MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTTSOA2) +
-     &                                STT(I,J,L,IDTTSOG2)   ))
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_TSOA2) +
+     &                                Spc(I,J,L,id_TSOG2)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
@@ -8032,8 +8046,8 @@ ccc
          ! Product 3, C* = 100 ug/m3
          IPR      = 3
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-         MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTTSOA3) +
-     &                                STT(I,J,L,IDTTSOG3)   ))
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_TSOA3) +
+     &                                Spc(I,J,L,id_TSOG3)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
@@ -8046,8 +8060,8 @@ ccc
          ! Product 4, C* = 0.1 ug/m3
          IPR      = 4
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-         MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTTSOA0) +
-     &                                STT(I,J,L,IDTTSOG0)   ))
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_TSOA0) +
+     &                                Spc(I,J,L,id_TSOG0)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
@@ -8073,8 +8087,8 @@ ccc
          ! Product 1, C* = 1 ug/m3
          IPR      = 1
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-         MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTISOA1) +
-     &                                STT(I,J,L,IDTISOG1)   ))
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA1) +
+     &                                Spc(I,J,L,id_ISOG1)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
@@ -8085,7 +8099,7 @@ ccc
             print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
             print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
             print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
-            print*,'STT',STT(I,J,L,IDTISOA1),STT(I,J,L,IDTISOG1)
+            print*,'Spc',Spc(I,J,L,id_ISOA1),Spc(I,J,L,id_ISOG1)
             print*,'NNOX',NNOX(JSV)
             print*,'strat?',ITS_IN_THE_STRAT(I,J,L,State_Met)
          ENDIF
@@ -8093,8 +8107,8 @@ ccc
          ! Product 2, C* = 10 ug/m3
          IPR      = 2
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-         MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTISOA2) +
-     &                                STT(I,J,L,IDTISOG2)   ))
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA2) +
+     &                                Spc(I,J,L,id_ISOG2)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
@@ -8105,7 +8119,7 @@ ccc
             print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
             print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
             print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
-            print*,'STT',STT(I,J,L,IDTISOA2),STT(I,J,L,IDTISOG2)
+            print*,'Spc',Spc(I,J,L,id_ISOA2),Spc(I,J,L,id_ISOG2)
             print*,'NNOX',NNOX(JSV)
             print*,'strat?',ITS_IN_THE_STRAT(I,J,L,State_Met)
          ENDIF
@@ -8113,8 +8127,8 @@ ccc
          ! Product 3, C* = 100 ug/m3
          IPR      = 3
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-         MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTISOA3) +
-     &                                STT(I,J,L,IDTISOG3)   ))
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA3) +
+     &                                Spc(I,J,L,id_ISOG3)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
@@ -8125,7 +8139,7 @@ ccc
             print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
             print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
             print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
-            print*,'STT',STT(I,J,L,IDTISOA3),STT(I,J,L,IDTISOG3)
+            print*,'Spc',Spc(I,J,L,id_ISOA3),Spc(I,J,L,id_ISOG3)
             print*,'NNOX',NNOX(JSV)
             print*,'strat?',ITS_IN_THE_STRAT(I,J,L,State_Met)
          ENDIF
@@ -8150,7 +8164,7 @@ ccc
          NOX      = NLOWNOX
          IPR      = 4
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-         MBDIFF   = ABS( TEMPSOAG - STT(I,J,L,IDTASOAN) )
+         MBDIFF   = ABS( TEMPSOAG - Spc(I,J,L,id_ASOAN) )
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
@@ -8160,7 +8174,7 @@ ccc
      &             TEMPDELTA(:,IPR)
 !            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,6:8)
 !            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,11)
-!            print*,'STT',STT(I,J,L,IDTASOAN)
+!            print*,'Spc',Spc(I,J,L,id_ASOAN)
 !            print*,'NNOX',NNOX(JSV)
 !            print*,'strat?',ITS_IN_THE_STRAT(I,J,L,State_Met)
          ENDIF
@@ -8178,8 +8192,8 @@ ccc
          NOX      = NHIGHNOX
          IPR      = 1
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-         MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTASOA1) +
-     &                                STT(I,J,L,IDTASOG1)   ))
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ASOA1) +
+     &                                Spc(I,J,L,id_ASOG1)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
@@ -8193,8 +8207,8 @@ ccc
          NOX      = NHIGHNOX
          IPR      = 2
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-         MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTASOA2) +
-     &                                STT(I,J,L,IDTASOG2)   ))
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ASOA2) +
+     &                                Spc(I,J,L,id_ASOG2)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
@@ -8208,8 +8222,8 @@ ccc
          NOX      = NHIGHNOX
          IPR      = 3
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-         MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTASOA3) +
-     &                                STT(I,J,L,IDTASOG3)   ))
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ASOA3) +
+     &                                Spc(I,J,L,id_ASOG3)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
@@ -8224,7 +8238,7 @@ ccc
          !----------------------------------------------------
          ! Note that POA+G is both increased (due to emission) 
          ! and decreased (due to conversion to OPOG)
-         IF ( IDTPOA1 > 0 ) THEN
+         IF ( id_POA1 > 0 ) THEN
             TEMPDELTA = 0e+0_fp
             JHC = PARENTPOA
             JSV = IDSV(JHC)
@@ -8239,8 +8253,8 @@ ccc
             ! Only NOx, Product 1
             IPR      = 1
             TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-            MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTPOA1) +
-     &                                   STT(I,J,L,IDTPOG1)   ))
+            MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_POA1) +
+     &                                   Spc(I,J,L,id_POG1)   ))
             MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
             IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
                WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR,
@@ -8253,8 +8267,8 @@ ccc
             ! Only NOx, Product 2
             IPR      = 2
             TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-            MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTPOA2) +
-     &                                   STT(I,J,L,IDTPOG2)   ))
+            MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_POA2) +
+     &                                   Spc(I,J,L,id_POG2)   ))
             MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
             IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
                WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR,
@@ -8268,7 +8282,7 @@ ccc
          !----------------------------------------------------
          ! OPOA: total SOA+SOG in kgC
          !----------------------------------------------------
-         IF ( IDTOPOA1 > 0 ) THEN
+         IF ( id_OPOA1 > 0 ) THEN
             TEMPDELTA = 0e+0_fp
             JHC = PARENTOPOA
             JSV = IDSV(JHC)
@@ -8281,8 +8295,8 @@ ccc
             ! Only NOx, Product 1
             IPR      = 1
             TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-            MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTOPOA1) +
-     &                                   STT(I,J,L,IDTOPOG1)   ))
+            MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_OPOA1) +
+     &                                   Spc(I,J,L,id_OPOG1)   ))
             MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
             IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
                WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR,
@@ -8295,8 +8309,8 @@ ccc
             ! Only NOx, Product 2
             IPR      = 2
             TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-            MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTOPOA2) +
-     &                                   STT(I,J,L,IDTOPOG2)   ))
+            MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_OPOA2) +
+     &                                   Spc(I,J,L,id_OPOG2)   ))
             MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
             IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
                WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR,
@@ -8359,9 +8373,9 @@ ccc
          print*,'POG1 OH       Rxn : ', DELTAHCSAVE(1,JHC)
          print*,'POG2 OH       Rxn : ', DELTAHCSAVE(2,JHC)
 
-         ! Check STT for debug purposes (hotp 6/4/10)
+         ! Check Spc for debug purposes (hotp 6/4/10)
          !IF ( LPRT ) THEN
-         !   print*,STT(37,25,4,:)
+         !   print*,Spc(37,25,4,:)
          !ENDIF
  
          ! Print diagnostic info about SOA production
@@ -8424,7 +8438,7 @@ ccc
       ENDIF
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE CHECK_MB
 !EOC
@@ -8435,21 +8449,23 @@ ccc
 !
 ! !IROUTINE: get_no
 !
-! !DESCRIPTION: Function GET\_NO returns NO from SMVGEAR's CSPEC array 
+! !DESCRIPTION: Function GET\_NO returns NO from State\_Chm%Species 
 ! (for coupled runs). (hotp 5/7/2010)
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NO( I, J, L, Input_Opt ) RESULT( NO_MOLEC_CM3 )
+      FUNCTION GET_NO( I, J, L, Input_Opt, State_Chm, State_Met )
+     &         RESULT( NO_MOLEC_CM3 )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDNO
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -8457,10 +8473,12 @@ ccc
       INTEGER,        INTENT(IN) :: J              ! Latitude index
       INTEGER,        INTENT(IN) :: L              ! Altitude index
       TYPE(OptInput), INTENT(IN) :: Input_Opt      ! Input Options object
+      TYPE(ChmState), INTENT(IN) :: State_Chm      ! Chemistry State object
+      TYPE(MetState), INTENT(IN) :: State_Met      ! Meteorology State object
 !
 ! !RETURN VALUE
 !
-      REAL(fp)                     :: NO_MOLEC_CM3   ! NO conc [molec/cm3]
+      REAL(fp)                   :: NO_MOLEC_CM3   ! NO conc [molec/cm3]
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDNO (bmy, 11/1/02)
@@ -8469,14 +8487,18 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
+!  28 Jul 2016 - R. Yantosca - Now convert NO from kg to molec/cm3
+!  07 Sep 2016 - M. Sulprizio- Get MolecRatio and NO3_MW_kg from species DB
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP
- 
+      REAL(fp) :: MolecRatio ! moles C / moles species
+      REAL(fp) :: NO_MW_kg   ! kg NO / mol
+
       !=================================================================
       ! GET_NO begins here!
       !=================================================================
@@ -8486,15 +8508,22 @@ ccc
          ! Coupled simulation
          !---------------------
 
-         ! JLOOP = SMVGEAR 1-D grid box index
-         JLOOP = JLOP(I,J,L)
+         ! NO is defined only in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
-         ! Take NO from the SMVGEAR array CSPEC
-         ! NO is defined only in the troposphere
-         IF ( JLOOP > 0 ) THEN
-            NO_MOLEC_CM3 = CSPEC(JLOOP,IDNO)
+            ! Get NO from State_Chm%Species [kg] and convert to [molec/cm3]
+            MolecRatio = State_Chm%SpcData(id_NO)%Info%MolecRatio
+            NO_MW_kg   = State_Chm%SpcData(id_NO)%Info%emMW_g * 1.e-3_fp
+
+            NO_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO)
+     &                   * ( AVO / NO_MW_kg )
+     &                   / ( State_Met%AIRVOL(I,J,L)
+     &                   * 1e+6_fp * MolecRatio )
+
          ELSE
+
             NO_MOLEC_CM3 = 0e+0_fp
+
          ENDIF
 
       ELSE
@@ -8516,21 +8545,23 @@ ccc
 !
 ! !IROUTINE: get_ho2
 !
-! !DESCRIPTION: Function GET\_HO2 returns HO2 from SMVGEAR's CSPEC array 
+! !DESCRIPTION: Function GET\_HO2 returns HO2 from State\_Chm%Species
 ! (for coupled runs). Created by Havala Pye (5/7/2010).
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_HO2( I, J, L, Input_Opt ) RESULT( HO2_MOLEC_CM3 )
+      FUNCTION GET_HO2( I, J, L, Input_Opt, State_Chm, State_Met )
+     &         RESULT( HO2_MOLEC_CM3 )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDHO2
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -8538,10 +8569,12 @@ ccc
       INTEGER,        INTENT(IN) :: J               ! Latitude index
       INTEGER,        INTENT(IN) :: L               ! Altitude index
       TYPE(OptInput), INTENT(IN) :: Input_Opt       ! Input Options object
+      TYPE(ChmState), INTENT(IN) :: State_Chm       ! Chemistry State object
+      TYPE(MetState), INTENT(IN) :: State_Met       ! Meteorology State object
 !
 ! !RETURN VALUE
 !
-      REAL(fp)                     :: HO2_MOLEC_CM3   ! HO2 conc [molec/cm3]
+      REAL(fp)                   :: HO2_MOLEC_CM3   ! HO2 conc [molec/cm3]
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDHO2 (bmy, 11/1/02)
@@ -8550,14 +8583,16 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP
- 
+      REAL(fp) :: MolecRatio ! moles C / moles species
+      REAL(fp) :: HO2_MW_kg  ! kg HO2 / mol
+
       !=================================================================
       ! GET_HO2 begins here!
       !=================================================================
@@ -8567,15 +8602,22 @@ ccc
          ! Coupled simulation
          !---------------------
 
-         ! JLOOP = SMVGEAR 1-D grid box index
-         JLOOP = JLOP(I,J,L)
+         ! HO2 is defined only in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
-         ! Take HO2 from the SMVGEAR array CSPEC
-         ! HO2 is defined only in the troposphere
-         IF ( JLOOP > 0 ) THEN
-            HO2_MOLEC_CM3 = CSPEC(JLOOP,IDHO2)
+            ! Get HO2 from State_Chm%Species [kg] and convert to [molec/cm3]
+            MolecRatio = State_Chm%SpcData(id_HO2)%Info%MolecRatio
+            HO2_MW_kg  = State_Chm%SpcData(id_HO2)%Info%emMW_g*1.e-3_fp
+
+            HO2_MOLEC_CM3 = State_Chm%Species(I,J,L,id_HO2)
+     &                    * ( AVO / HO2_MW_kg )
+     &                    / ( State_Met%AIRVOL(I,J,L)
+     &                    * 1e+6_fp * MolecRatio )
+
          ELSE
+
             HO2_MOLEC_CM3 = 0e+0_fp
+
          ENDIF
 
       ELSE
@@ -8604,16 +8646,18 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_ISOPNO3( I, J, L, Input_Opt ) RESULT( ISOPNO3 )
+      FUNCTION GET_ISOPNO3( I, J, L, Input_Opt, State_Chm, State_Met )
+     &         RESULT( ISOPNO3 )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE TRACERID_MOD,       ONLY : IDTISOP
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : AVO
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -8621,6 +8665,8 @@ ccc
       INTEGER,        INTENT(IN) :: J           ! Latitude index
       INTEGER,        INTENT(IN) :: L           ! Altitude index
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE
 !
@@ -8634,14 +8680,22 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
+!  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Met%Species
+!  17 May 2016 - R. Yantosca - Now get MolecRatio from species database
+!  31 May 2016 - E. Lundgren - Now get molecular weight from species database
+!  07 Sep 2016 - M. Sulprizio- Bug fix: Convert State_Chm%Species from kg ISOPOH
+!                              to kg ISOP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP
-
+      REAL(fp) :: MolecRatio     ! molec C / moles ISOP
+      REAL(fp) :: ISOP_MW_kg     ! kg C ISOP      / mol C
+      REAL(fp) :: LISOPNO3_MW_kg ! kg C LISOPONO3 / mol Ckg
+      
       !=================================================================
       ! GET_ISOPNO3 begins here!
       !=================================================================
@@ -8652,30 +8706,26 @@ ccc
          ! Coupled simulation
          !--------------------
 
-         ! Get 1-D index from current 3-D position
-         JLOOP = JLOP(I,J,L)
+         ! Test if we are in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN 
+ 
+            !-----------------------------------------------------------
+            ! Get ISOPNO3 (ISOP list to NO3) from State_Chm%Species
+            ! [kg ISOPNO3] and convert to [kg C ISOP]
+            !-----------------------------------------------------------
+            MolecRatio     = State_Chm%SpcData(id_ISOP)%Info%MolecRatio
+            ISOP_MW_kg     = State_Chm%SpcData(id_ISOP)%Info%emMW_g
+     &                       * 1.e-3_fp
+            LISOPNO3_MW_kg = State_Chm%SpcData(id_LISOPNO3)%Info%emMW_g
+     &                       * 1.e-3_fp
 
-         ! comment out temporarily
-         ! Test if we are in the troposphere
-         IF ( JLOOP > 0 ) THEN 
- 
-            !-----------------------------------------------------------
-            ! Get ISOPNO3 from CSPEC [molec/cm3] and 
-            ! convert to [kg C isop / box]
-            ! 
-            ! CSPEC(JLOOP,ILISOPNO3)   : molec isop (lost to NO3) / cm3
-            !  XNUMOL(IDTISOP)         : atom C / kg C isop
-            !  TRACER_COEFF(IDTISOP,1) : atom C / molec isop
-            !  VOLUME                  : cm3 / box
-            !-----------------------------------------------------------
-            ISOPNO3 = CSPEC(JLOOP,ILISOPNO3)            * 
-     &                VOLUME(JLOOP)                     * 
-     &                Input_Opt%TRACER_COEFF(IDTISOP,1) / 
-     &                Input_Opt%XNUMOL(IDTISOP) 
- 
+            ISOPNO3 = State_Chm%Species(I,J,L,id_LISOPNO3)
+     &              * ( AVO / LISOPNO3_MW_kg )
+     &              / ( AVO / ISOP_MW_kg     ) * MolecRatio
+
          ELSE
 
-            ! Otherwise set DOH=0
+            ! Otherwise set ISOPNO3=0
             ISOPNO3 = 0e+0_fp
  
          ENDIF
@@ -8720,10 +8770,10 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_BOUNDING_BOX
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : Ind_
       USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
 !
 ! !INPUT PARAMETERS:
@@ -8760,7 +8810,6 @@ ccc
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  11 Aug 2015 - R. Yantosca - Add support for MERRA2 data
 !  23 Sep 2015 - R. Yantosca - Remove reference to DRY* flags, they're obsolete
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8775,7 +8824,76 @@ ccc
       !=================================================================
       
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
+
+      ! Define species IDs
+      id_ASOG1    = IND_('ASOG1'   )
+      id_ASOG2    = IND_('ASOG2'   )
+      id_ASOG3    = IND_('ASOG3'   )
+      id_ASOA1    = IND_('ASOA1'   )
+      id_ASOA2    = IND_('ASOA2'   )
+      id_ASOA3    = IND_('ASOA3'   )
+      id_ASOAN    = IND_('ASOAN'   )
+      id_AW1      = IND_('AW1'     )
+      id_BCPI     = IND_('BCPI'    )
+      id_BCPO     = IND_('BCPO'    )
+      id_BENZ     = IND_('BENZ'    )
+      id_ECIL1    = IND_('ECIL1'   )
+      id_ECOB1    = IND_('ECOB1'   )
+      id_GLYX     = IND_('GLYX'    )
+      id_HO2      = IND_('HO2'     )
+      id_ISOA1    = IND_('ISOA1'   )
+      id_ISOA2    = IND_('ISOA2'   )
+      id_ISOA3    = IND_('ISOA3'   )
+      id_ISOG1    = IND_('ISOG1'   )
+      id_ISOG2    = IND_('ISOG2'   )
+      id_ISOG3    = IND_('ISOG3'   )
+      id_ISOP     = IND_('ISOP'    )
+      id_LIMO     = IND_('LIMO'    )
+      id_MGLY     = IND_('MGLY'    )
+      id_MTPA     = IND_('MTPA'    )
+      id_MTPO     = IND_('MTPO'    )
+      id_NAP      = IND_('NAP'     )
+      id_NK1      = IND_('NK1'     )
+      id_NH4      = IND_('NH4'     )
+      id_NO       = IND_('NO'      )
+      id_NO3      = IND_('NO3'     )
+      id_OCIL1    = IND_('OCIL1'   )
+      id_OCOB1    = IND_('OCOB1'   )
+      id_O3       = IND_('O3'      )
+      id_OH       = IND_('OH'      )
+      id_OCPO     = IND_('OCPO'    )
+      id_OCPI     = IND_('OCPI'    )
+      id_OPOA1    = IND_('OPOA1'   )
+      id_OPOG1    = IND_('OPOG1'   )
+      id_OPOA2    = IND_('OPOA2'   )
+      id_OPOG2    = IND_('OPOG2'   )
+      id_POA1     = IND_('POA1'    )
+      id_POA2     = IND_('POA2'    )
+      id_POG1     = IND_('POG1'    )
+      id_POG2     = IND_('POG2'    )
+      id_SOAG     = IND_('SOAG'    )
+      id_SOAM     = IND_('SOAM'    )
+      id_TOLU     = IND_('TOLU'    )
+      id_TSOA0    = IND_('TSOA0'   )
+      id_TSOA1    = IND_('TSOA1'   )
+      id_TSOA2    = IND_('TSOA2'   )
+      id_TSOA3    = IND_('TSOA3'   )
+      id_TSOG0    = IND_('TSOG0'   )
+      id_TSOG1    = IND_('TSOG1'   )
+      id_TSOG2    = IND_('TSOG2'   )
+      id_TSOG3    = IND_('TSOG3'   )
+      id_XYLE     = IND_('XYLE '   )
+      id_LBRO2N   = IND_('LBRO2N'  )
+      id_LBRO2H   = IND_('LBRO2H'  )
+      id_LTRO2N   = IND_('LTRO2N'  )
+      id_LTRO2H   = IND_('LTRO2H'  )
+      id_LXRO2N   = IND_('LXRO2N'  )
+      id_LXRO2H   = IND_('LXRO2H'  )
+      id_LNRO2N   = IND_('LNRO2N'  )
+      id_LNRO2H   = IND_('LNRO2H'  )
+      id_LISOPOH  = IND_('LISOPOH' )
+      id_LISOPNO3 = IND_('LISOPNO3')
 
       ! Some parent hydrocarbons are lumped together into 1 or more
       ! semivolatiles. Map the parent HC to lumped semivolatiles here
@@ -8958,64 +9076,6 @@ ccc
 
       ENDIF
 
-      !=================================================================
-      ! Compute indices which define the N. America region so that we 
-      ! can overwrite T. Bond emissions w/ Cooke/RJP emissions 
-      !=================================================================
-
-#if   defined( NESTED_NA )
-      ! For 1x1 N. America nested grid: set indices to grid extent
-      I1_NA = 1
-      J1_NA = 1
-      I2_NA = IIPAR
-      J2_NA = JJPAR
-
-#elif defined( NESTED_CH )
-      ! For China nested grids: we don't cover N. America region
-      ! Setting these to zero will turn off Cooke/RJP emissions
-      I1_NA = 0
-      J1_NA = 0
-      I2_NA = 0
-      J2_NA = 0
-
-#elif defined( NESTED_EU )
-      ! For EU nested grid: we don't cover N. America region
-      ! Setting these to zero will turn off Cooke/RJP emissions
-      I1_NA = 0
-      J1_NA = 0
-      I2_NA = 0
-      J2_NA = 0
-
-#else
-
-      ! Definition of the N. American bounding box
-      ! with LL corner (10N,165W) and UR corner (90N,40W)
-      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
-#if defined( DEVEL )
-
-      I1_NA = 0
-      J1_NA = 0
-      I2_NA = 0
-      J2_NA = 0
-
-#else
-
-      ! Definition of the N. American bounding box
-      ! with LL corner (10N,165W) and UR corner (90N,40W)
-      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
-      COORDS = (/ -165e+0_fp,  10e+0_fp,  -40e+0_fp,   90e+0_fp  /)
-      
-      ! Get the indices corresponding to the lon/lat values in COORDS
-      CALL GET_BOUNDING_BOX( 1, IIPAR, 1, JJPAR, 1, COORDS, INDICES )
-
-      ! Copy values from INDEX array to scalars
-      I1_NA = INDICES(1)
-      J1_NA = INDICES(2)
-      I2_NA = INDICES(3)
-      J2_NA = INDICES(4)
-
-#endif
-#endif
       END SUBROUTINE INIT_CARBON
 !EOC
 !------------------------------------------------------------------------------

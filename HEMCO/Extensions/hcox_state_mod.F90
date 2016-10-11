@@ -143,7 +143,7 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: SZAFACT     ! current SZA/total daily SZA
      TYPE(ExtDat_2R),  POINTER :: PARDR       ! direct photsyn radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: PARDF       ! diffuse photsyn radiation [W/m2]
-     TYPE(ExtDat_2R),  POINTER :: PSC2        ! Interpolated sfc pressure [hPa]
+     TYPE(ExtDat_2R),  POINTER :: PSC2_WET    ! Interpolated sfc pressure [hPa]
      TYPE(ExtDat_2R),  POINTER :: RADSWG      ! surface radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: FRCLND      ! Olson land fraction [-] 
      TYPE(ExtDat_2R),  POINTER :: FRLAND      ! land fraction [-] 
@@ -152,7 +152,7 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: FRLANDIC    ! land ice fraction [-] 
      TYPE(ExtDat_2R),  POINTER :: CLDFRC      ! cloud fraction [-]
      TYPE(ExtDat_2R),  POINTER :: JNO2        ! J-Value for NO2 [1/s] 
-     TYPE(ExtDat_2R),  POINTER :: JO1D        ! J-Value for O3  [1/s]
+     TYPE(ExtDat_2R),  POINTER :: JOH         ! J-Value for O3->OH  [1/s]
      TYPE(ExtDat_2R),  POINTER :: LAI         ! daily leaf area index [cm2/cm2]
      TYPE(ExtDat_2R),  POINTER :: CHLR        ! daily chlorophyll-a [mg/m3]
      INTEGER,          POINTER :: PBL_MAX     ! Max height of PBL [level]
@@ -222,6 +222,8 @@ MODULE HCOX_STATE_MOD
 !  03 Apr 2015 - C. Keller   - Added ExtDat_Set.
 !  21 Feb 2016 - C. Keller   - Update to HEMCO v2.0
 !  03 Mar 2016 - C. Keller   - Added CNV_FRC
+!  20 Apr 2016 - M. Sulprizio- Change JO1D pointer to JOH to reflect that it now
+!                              points to the effective O3 + hv -> 2OH rates
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -386,7 +388,7 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%PARDF, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%PSC2, RC ) 
+    CALL ExtDat_Init ( ExtState%PSC2_WET, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%RADSWG, RC ) 
@@ -419,7 +421,7 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%JNO2, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%JO1D, RC ) 
+    CALL ExtDat_Init ( ExtState%JOH, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%CNV_MFC, RC ) 
@@ -530,7 +532,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%SZAFACT    )
        CALL ExtDat_Cleanup( ExtState%PARDR      )
        CALL ExtDat_Cleanup( ExtState%PARDF      )
-       CALL ExtDat_Cleanup( ExtState%PSC2       )
+       CALL ExtDat_Cleanup( ExtState%PSC2_WET   )
        CALL ExtDat_Cleanup( ExtState%RADSWG     )
        CALL ExtDat_Cleanup( ExtState%FRCLND     )
        CALL ExtDat_Cleanup( ExtState%FRLAND     )
@@ -541,7 +543,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%LAI        )
        CALL ExtDat_Cleanup( ExtState%CHLR       )
        CALL ExtDat_Cleanup( ExtState%JNO2       )
-       CALL ExtDat_Cleanup( ExtState%JO1D       )
+       CALL ExtDat_Cleanup( ExtState%JOH        )
        CALL ExtDat_Cleanup( ExtState%CNV_MFC    )
        CALL ExtDat_Cleanup( ExtState%FRAC_OF_PBL)
        CALL ExtDat_Cleanup( ExtState%SPHU       )
@@ -1010,7 +1012,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
-    REAL(hp),         POINTER,       OPTIONAL         :: Trgt(:,:)
+    REAL(hp),         POINTER      , OPTIONAL         :: Trgt(:,:)
     LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
 !
@@ -1206,7 +1208,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
-    REAL(sp),         POINTER,       OPTIONAL         :: Trgt(:,:)
+    REAL(sp),         POINTER      , OPTIONAL         :: Trgt(:,:)
     LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
 !
@@ -1602,7 +1604,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
-    REAL(hp),         POINTER,       OPTIONAL         :: Trgt(:,:,:)
+    REAL(hp),         POINTER      , OPTIONAL         :: Trgt(:,:,:)
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: OnLevEdge 
     LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
@@ -1816,7 +1818,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
-    REAL(sp),         POINTER,       OPTIONAL         :: Trgt(:,:,:)
+    REAL(sp),         POINTER      , OPTIONAL         :: Trgt(:,:,:)
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: OnLevEdge 
     LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 

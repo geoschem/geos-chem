@@ -17,7 +17,6 @@
 ! !USES:
 !
       USE CMN_FJX_MOD
-
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -30,7 +29,7 @@
       PUBLIC  :: PHOTO_JX
       PUBLIC  :: INIT_FJX
       PUBLIC  :: FAST_JX
-      PUBLIC  :: FJXFUNC
+      PUBLIC  :: PHOTRATE_ADJ
 
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -58,9 +57,23 @@
 !  28 Mar 2013 - S. D. Eastham - Upgraded to Fast-JX v7.0
 !  20 Feb 2014 - M. Sulprizio  - Removed "define.h", this is now obsolete
 !  13 Nov 2014 - M. Yannetti   - Added PRECISION_MOD
+!  29 Mar 2016 - R. Yantosca   - Add flags for rxns adjusted by PHOTRATE_ADJ
+!  27 Jun 2016 - M. Sulprizio  - Remove FJXFUNC and JV_INDEX routines. We now
+!                                obtain the photolysis rates directly from the
+!                                ZPJ array.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      ! Flags for certain photo-reactions that will be adjusted by 
+      ! subroutine PHOTRATE_ADJ, which is called by FlexChem (bmy 3/29/16)
+      INTEGER, PUBLIC :: RXN_O2    = -1   ! O2  + jv --> O   + O
+      INTEGER, PUBLIC :: RXN_O3_1  = -1   ! O3  + hv --> O2  + O
+      INTEGER, PUBLIC :: RXN_O3_2a = -1   ! O3  + hv --> 2OH         (Tropchem)
+                                          ! O3  + hv --> O2  + O(1D) (UCX #1)
+      INTEGER, PUBLIC :: RXN_O3_2b = -1   ! O3  + hv --> O2  + O(1D) (UCX #2)
+      INTEGER, PUBLIC :: RXN_H2SO4 = -1   ! SO4 + hv --> SO2 + 2OH
+      INTEGER, PUBLIC :: RXN_NO2   = -1   ! NO2 + hv --> NO  + O
+
       CONTAINS      
 !EOC
 !------------------------------------------------------------------------------
@@ -83,20 +96,19 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
-      USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR, LLPAR
-      USE CMN_SIZE_MOD,       ONLY : NDUST,   MAXIJ
-      USE COMODE_MOD,         ONLY : JLOP, CSPEC, AIRDENS, ABSHUM
+      USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+      USE CMN_SIZE_MOD,       ONLY : NDUST
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
-      USE TRACERID_MOD,       ONLY : IDO3
 
       IMPLICIT NONE
 
@@ -211,6 +223,8 @@
 !  09 Apr 2015 - R. Yantosca - Bug fixes: Add missing vars to !$OMP+PRIVATE
 !                              clause and error check for JLOOP > 0
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as for GEOS-FP
+!  21 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
+!  17 Jun 2016 - R. Yantosca - Now define id_O3 with the Ind_ function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -219,7 +233,7 @@
 !
       INTEGER, SAVE :: LASTMONTH = -1
       INTEGER       :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L, N
-      INTEGER       :: IOPT, JLOOP, LCHEM
+      INTEGER       :: IOPT, LCHEM
       REAL(fp)      :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
       REAL(fp)      :: O3_CTM(LLPAR+1)
       REAL(fp)      :: T_CTM(LLPAR+1), OPTD(LLPAR)
@@ -247,26 +261,40 @@
       ! Local variables for quantities from Input_Opt
       LOGICAL       :: LPRT
 
+      ! Species ID flags
+      INTEGER, SAVE :: id_O3
+
       !=================================================================
       ! FAST_JX begins here!
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT
       LPRT = ( am_I_Root .and. Input_Opt%LPRT )
 
-#if defined( USE_MAXIMUM_RANDOM_OVERLAP )
+      ! Special handling for first-time setup
       IF ( FIRST ) THEN
 
+         ! Get the species ID for O3
+         id_O3 = Ind_('O3')
+         IF ( id_O3 < 0 ) THEN
+            CALL ERROR_STOP( 'O3 is not a defined species!', 
+     &                       'GeosCore/fast_jx_mod.F' )
+         ENDIF
+
+#if defined( USE_MAXIMUM_RANDOM_OVERLAP )
+         ! Special setup only for max random overlap
          DO i = 1,LLPAR+1
             INDGEN(i) = i       !(/(i,i=1,LLPAR+1)/)
          ENDDO
+#endif
+         
+         ! Reset first-time flag
          FIRST = .FALSE.
 
       ENDIF
-#endif
 
       ! Get day of year (0-365 or 0-366)
       DAY_OF_YR = GET_DAY_OF_YEAR()
@@ -290,7 +318,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( NLAT,    NLON,   YLAT,      CSZA,    L       )
 !$OMP+PRIVATE( P_CTM ,  T_CTM,  SFCA,      O3_TOMS, O3_CTM  )
-!$OMP+PRIVATE( LCHEM,   JLOOP,  OPTAER,    N,       IOPT    )
+!$OMP+PRIVATE( LCHEM,   OPTAER, N,         IOPT             )
 !$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D                      )
 #if defined( USE_MAXIMUM_RANDOM_OVERLAP )
 !$OMP+PRIVATE( FMAX,    KK,     NUMB,      KBOT             )
@@ -334,10 +362,7 @@
             O3_CTM          = 0e+0_fp
             LCHEM           = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
             DO L = 1, LCHEM
-               JLOOP        = JLOP(NLON,NLAT,L)
-               IF ( JLOOP > 0 ) THEN
-                  O3_CTM(L) = CSPEC(JLOOP,IDO3)
-               ENDIF
+               O3_CTM(L) = State_Chm%Species(NLON,NLAT,L,id_O3)
             ENDDO
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
@@ -1641,10 +1666,10 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !USES:
 !
-      USE inquireMod,         ONLY : findFreeLUN
       USE CMN_DIAG_MOD,       ONLY : ND64
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE inquireMod,         ONLY : findFreeLUN
 !
 ! !INPUT PARAMETERS:
 !
@@ -1676,7 +1701,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       IF ( am_I_Root) THEN
          write(6,*) ' Initializing Fast-JX v7.0 standalone CTM code.'
@@ -1758,9 +1783,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ENDIF
 
       call RD_JS_JX(JXUNIT,TRIM( FILENAME ), TITLEJXX,NJXX,am_I_Root)
-
-      ! Build cross-referencing indices
-      call JV_INDEX(am_I_Root)
 
       END SUBROUTINE INIT_FJX
 !EOC
@@ -2062,7 +2084,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !USES:
 !
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2193,7 +2215,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !USES:
 !
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       IMPLICIT NONE
 
 !
@@ -2606,33 +2628,45 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !USES:
 !
+      USE CHARPAK_MOD, ONLY : CSTRIP
+      USE ERROR_MOD,   ONLY : ERROR_STOP
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)                    ::  NUNIT, NJXX
-      CHARACTER(*), INTENT(IN)               ::  NAMFIL
-      CHARACTER*6, INTENT(IN),DIMENSION(NJXX):: TITLEJX
-      LOGICAL, INTENT(IN)                    :: am_I_Root
-!
-! !OUTPUT VARIABLES:
-!
+      INTEGER,          INTENT(IN)                  :: NUNIT
+      INTEGER,          INTENT(IN)                  :: NJXX
+      CHARACTER(LEN=*), INTENT(IN)                  :: NAMFIL
+      CHARACTER(LEN=6), INTENT(IN), DIMENSION(NJXX) :: TITLEJX
+      LOGICAL,          INTENT(IN)                  :: am_I_Root
 !
 ! !REMARKS:
+!  Now flag special reactions that are to be adjusted for FlexChem later.
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
 !  31 Mar 2013 - S. D. Eastham - Modified to track number of branches
+!  29 Mar 2016 - R. Yantosca   - Now flag rxn numbers for use in PHOTRATE_ADJ
+!  27 Jun 2016 - M. Sulprizio  - Add RXN_NO2 flag for PARANOX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER   J,JJ,K
-      CHARACTER*120 CLINE
-      CHARACTER*50 T_REACT
-      CHARACTER*6  JMAP(JVN_), T_FJX
-      REAL(fp) F_FJX
+      ! Scalars
+      INTEGER            :: J, JJ, K
+      REAL(fp)           :: F_FJX
+
+      ! Strings
+      CHARACTER(LEN=6  ) :: T_FJX
+      CHARACTER(LEN=50 ) :: T_REACT
+      CHARACTER(LEN=50 ) :: TEXT
+      CHARACTER(LEN=80 ) :: MSG
+      CHARACTER(LEN=80 ) :: LOC = 'RD_JS_JX (GeosCore/fast_jx_mod.F)'
+      CHARACTER(LEN=120) :: CLINE
+
+      ! String arrays
+      CHARACTER(LEN=6)   :: JMAP(JVN_)
 
       !=================================================================
       ! RD_JS_JX begins here!
@@ -2696,15 +2730,123 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
             J = JIND(K)
             IF ( am_I_Root ) THEN 
                if (J.eq.0) then
-         write(6,'(i5,a50,f6.3,a,1x,a6)') K,JLABEL(K),JFACTA(K),
+         write(6,'(i5,1x,a50,f6.3,a,1x,a6)') K,JLABEL(K),JFACTA(K),
      &         ' no mapping onto fast-JX',JMAP(K)
                else
-         write(6,'(i5,a50,f6.3,a,i4,1x,a6)') K,JLABEL(K),JFACTA(K),
+         write(6,'(i5,1x,a50,f6.3,a,i4,1x,a6)') K,JLABEL(K),JFACTA(K),
      &         ' mapped to FJX:',J,TITLEJX(J)
                endif
             ENDIF
          endif
       enddo
+
+      !=================================================================
+      ! Flag special reactions that will be later adjusted by
+      ! routine PHOTRATE_ADJ (called from FlexChem)
+      !=================================================================
+
+      ! Loop over all photolysis reactions
+      DO K = 1, NRATJ
+
+         ! Strip all blanks from the reactants and products list
+         TEXT = JLABEL(K)
+         CALL CSTRIP( TEXT )
+
+         ! Look for certain reactions
+         SELECT CASE( TRIM( TEXT ) )
+         
+            ! O2 + hv -> O + O
+            CASE( 'O2PHOTONOO' )
+               RXN_O2 = K
+
+            ! O3 + hv -> O2 + O
+            CASE( 'O3PHOTONO2O' )
+               RXN_O3_1 = K
+
+            ! O3 + hv -> O2 + O(1D)
+            CASE( 'O3PHOTONO2O(1D)' )
+
+               ! NOTE: There are 2 reactions of this form.  We shall save
+               ! the first one that is encountered in RXN_O3_2a and the
+               ! second one in RXN_O3_2b. (bmy, 3/29/16)
+               IF ( RXN_O3_2a > 0 ) THEN
+                  RXN_O3_2b = K
+               ELSE
+                  RXN_O3_2a = K
+               ENDIF
+
+            ! SO4 + hv -> SO2 + OH + OH
+            CASE( 'SO4PHOTONSO2OHOH' )
+               RXN_H2SO4 = K
+
+            ! NO2 + hv -> NO + O
+            CASE( 'NO2PHOTONNOO' )
+               RXN_NO2 = K
+
+            CASE DEFAULT
+               ! Nothing
+         END SELECT
+      ENDDO
+
+      !------------------------------------
+      ! Error check the various rxn flags
+      !------------------------------------
+      IF ( RXN_O2 < 0 ) THEN
+         MSG = 'Could not find rxn O2 + hv -> O + O'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      IF ( RXN_O3_1 < 0 ) THEN
+         MSG = 'Could not find rxn O3 + hv -> O2 + O'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      IF ( RXN_O3_2a < 0 ) THEN
+         MSG = 'Could not find rxn O3 + hv -> O2 + O(1D) #1'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      IF ( RXN_O3_2b  < 0 ) THEN
+         MSG = 'Could not find rxn O3 + hv -> O2 + O(1D) #2'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+#if defined( UCX )
+      IF ( RXN_H2SO4  < 0 ) THEN
+         MSG = 'Could not find rxn SO4 + hv -> SO2 + OH + OH!'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+#endif
+
+      IF ( RXN_NO2 < 0 ) THEN
+         MSG = 'Could not find rxn NO2 + hv -> NO + O'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      !------------------------------------
+      ! Print out saved rxn flags
+      !------------------------------------
+      WRITE( 6, 100 ) REPEAT( '=', 79 )
+      wRITE( 6, 110 )
+      WRITE( 6, 120 ) RXN_O2
+      WRITE( 6, 130 ) RXN_O3_1
+      WRITE( 6, 140 ) RXN_O3_2a
+      WRITE( 6, 150 ) RXN_O3_2b
+#if defined( UCX )
+      WRITE( 6, 160 ) RXN_H2SO4
+#endif
+      WRITE( 6, 170 ) RXN_NO2
+      WRITE( 6, 100 ) REPEAT( '=', 79 )
+
+      ! FORMAT statements
+ 100  FORMAT( a                                                 )
+ 110  FORMAT( 'Photo rxn flags saved for use in PHOTRATE_ADJ:', / )
+ 120  FORMAT( 'RXN_O2    [ O2  + hv -> O + O         ]  =  ', i5 )
+ 130  FORMAT( 'RXN_O3_1  [ O3  + hv -> O2 + O        ]  =  ', i5 )
+ 140  FORMAT( 'RXN_O3_2a [ O3  + hv -> O2 + O(1D) #1 ]  =  ', i5 )
+ 150  FORMAT( 'RXN_O3_2b [ O3  + hv -> O2 + O(1D) #2 ]  =  ', i5 )
+ 160  FORMAT( 'RXN_H2SO4 [ SO4 + hv -> SO2 + OH + OH ]  =  ', i5 )
+ 170  FORMAT( 'RXN_NO2   [ NO2 + hv -> NO + O        ]  =  ', i5 )
 
       END SUBROUTINE RD_JS_JX
 !EOC
@@ -2724,7 +2866,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,ONLY : PI
+      USE PhysConstants,ONLY : PI
 !
 ! !INPUT PARAMETERS:
 !
@@ -2792,9 +2934,9 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD,       ONLY : LD64, ND64
-      USE DIAG_MOD,           ONLY : AD64
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE CMN_DIAG_MOD,       ONLY : LD22, LD64, ND22, ND64
+      USE DIAG_MOD,           ONLY : AD22, AD64, LTJV
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2955,14 +3097,14 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
        ! Clunky fix to accomodate RRTMG and UCX (DAR 01/2015)
        ! Using a combination of old optics LUT format and
        ! new optics format (greater spectral resolution and range
-       ! for RRTMG). Clouds, non-tracer aerosols and strat aerosols 
+       ! for RRTMG). Clouds, non-species aerosols and strat aerosols 
        ! are not incorporated into the new LUT so must still use the
        ! old LUT for these.
 
        ! Don't bother on extraneous level - leave as zero
        do L = 1,L_
           DO KMIE=1,5
-             ! Clouds and non-tracer aerosols
+             ! Clouds and non-species aerosols
              DO M=1,3
                 IF (AERX_COL(M,L).gt.0e+0_fp) THEN
                    IDXAER=MIEDX(M)
@@ -3197,6 +3339,85 @@ C-----------------------------------------------------------------------
      &            (FDIFFUSE(L)*SOLF*FL(K)*UVXFACTOR(K))
             ENDDO
          ENDDO
+      ENDIF
+
+      !---------------------------------------------------------------
+      ! Archive J-values for ND22 diagnostic
+      !---------------------------------------------------------------
+      IF ( ND22 > 0 ) THEN
+
+         ! Save J-values for 2PM diagnostic boxes
+         IF ( LTJV(ILON,ILAT) > 0 ) THEN
+
+            DO L = 1, LD22
+               ! AD22 IDs 5, 6, and 15 (J-values for O3 and O2)
+               ! are handled in routine PHOTRATE_ADJ
+               ! Hardcode ZPJ indices based on valued from FJX_j2j.dat
+               ! for now (mps, 3/15/16)
+               AD22(ILON,ILAT,L, 1) = AD22(ILON,ILAT,L, 1) +  ! JNO2
+     &                                ZPJ(L,11,ILON,ILAT)
+               AD22(ILON,ILAT,L, 2) = AD22(ILON,ILAT,L, 2) +  ! JHNO3
+     &                                ZPJ(L,16,ILON,ILAT)
+               AD22(ILON,ILAT,L, 3) = AD22(ILON,ILAT,L, 3) +  ! JH2O2
+     &                                ZPJ(L, 9,ILON,ILAT)
+               AD22(ILON,ILAT,L, 4) = AD22(ILON,ILAT,L, 4) +  ! JCH2O
+     &                                ZPJ(L, 7,ILON,ILAT)  + 
+     &                                ZPJ(L, 8,ILON,ILAT)
+               AD22(ILON,ILAT,L, 7) = AD22(ILON,ILAT,L, 7) +  ! JGLYX
+     &                                ZPJ(L,72,ILON,ILAT)  + 
+     &                                ZPJ(L,73,ILON,ILAT)  +
+     &                                ZPJ(L,74,ILON,ILAT)
+               AD22(ILON,ILAT,L, 8) = AD22(ILON,ILAT,L, 8) +  ! JMGLY
+     &                                ZPJ(L,71,ILON,ILAT)
+               AD22(ILON,ILAT,L, 9) = AD22(ILON,ILAT,L, 9) +  ! JBrO
+     &                                ZPJ(L,28,ILON,ILAT)
+               AD22(ILON,ILAT,L,10) = AD22(ILON,ILAT,L,10) +  ! JHOBr
+     &                                ZPJ(L,32,ILON,ILAT)
+               AD22(ILON,ILAT,L,11) = AD22(ILON,ILAT,L,11) +  ! JBrNO2
+     &                                ZPJ(L,31,ILON,ILAT)
+               AD22(ILON,ILAT,L,12) = AD22(ILON,ILAT,L,12) +  ! JBrNO3
+     &                                ZPJ(L,29,ILON,ILAT)  +
+     &                                ZPJ(L,30,ILON,ILAT)
+               AD22(ILON,ILAT,L,13) = AD22(ILON,ILAT,L,13) +  ! JCHBr3
+     &                                ZPJ(L,56,ILON,ILAT)
+               AD22(ILON,ILAT,L,14) = AD22(ILON,ILAT,L,14) +  ! JBr2
+     &                                ZPJ(L,23,ILON,ILAT)
+               AD22(ILON,ILAT,L,16) = AD22(ILON,ILAT,L,16) +  ! JN2O
+     &                                ZPJ(L,36,ILON,ILAT)
+               AD22(ILON,ILAT,L,17) = AD22(ILON,ILAT,L,17) +  ! JNO
+     &                                ZPJ(L, 6,ILON,ILAT)
+               AD22(ILON,ILAT,L,18) = AD22(ILON,ILAT,L,18) +  ! JNO3
+     &                                ZPJ(L,12,ILON,ILAT)  +
+     &                                ZPJ(L,13,ILON,ILAT)
+               AD22(ILON,ILAT,L,19) = AD22(ILON,ILAT,L,19) +  ! JCFC11
+     &                                ZPJ(L,37,ILON,ILAT)
+               AD22(ILON,ILAT,L,20) = AD22(ILON,ILAT,L,20) +  ! JCFC12
+     &                                ZPJ(L,38,ILON,ILAT)
+               AD22(ILON,ILAT,L,21) = AD22(ILON,ILAT,L,21) +  ! JCCl4
+     &                                ZPJ(L,42,ILON,ILAT)
+               AD22(ILON,ILAT,L,22) = AD22(ILON,ILAT,L,22) +  ! JCH3Cl
+     &                                ZPJ(L,43,ILON,ILAT)
+               AD22(ILON,ILAT,L,23) = AD22(ILON,ILAT,L,23) +  ! JACET
+     &                                ZPJ(L,76,ILON,ILAT)  +
+     &                                ZPJ(L,77,ILON,ILAT)
+               AD22(ILON,ILAT,L,24) = AD22(ILON,ILAT,L,24) +  ! JALD2
+     &                                ZPJ(L,61,ILON,ILAT)  +
+     &                                ZPJ(L,62,ILON,ILAT)
+               AD22(ILON,ILAT,L,25) = AD22(ILON,ILAT,L,25) +  ! JMVK
+     &                                ZPJ(L,63,ILON,ILAT)  +
+     &                                ZPJ(L,64,ILON,ILAT)  +
+     &                                ZPJ(L,65,ILON,ILAT)
+               AD22(ILON,ILAT,L,26) = AD22(ILON,ILAT,L,26) +  ! JMACR
+     &                                ZPJ(L,66,ILON,ILAT)  +
+     &                                ZPJ(L,67,ILON,ILAT)
+               AD22(ILON,ILAT,L,27) = AD22(ILON,ILAT,L,27) +  ! JHAC
+     &                                ZPJ(L,75,ILON,ILAT)
+               AD22(ILON,ILAT,L,28) = AD22(ILON,ILAT,L,28) +  ! JGLYC
+     &                                ZPJ(L,68,ILON,ILAT)
+            ENDDO
+
+         ENDIF
+
       ENDIF
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3960,8 +4181,8 @@ C---Always does PL(2) = P[1]
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,      ONLY : AIRMW, AVO, g0, BOLTZ ! Physical parameters
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : AIRMW, AVO, g0, BOLTZ
 !
 ! !INPUT PARAMETERS:
 !
@@ -4204,7 +4425,7 @@ C---Always does PL(2) = P[1]
       ! Updated with UCX
       ! Since we now have stratospheric ozone calculated online, use
       ! this instead of archived profiles for all chemistry-grid cells
-      ! The variable O3_CTM is obtained from State_Met%Tracers, and will be 0
+      ! The variable O3_CTM is obtained from State_Met%Species, and will be 0
       ! outside the chemgrid (in which case we use climatology)
 
       ! Scale monthly O3 profile to the daily O3 profile (if available)
@@ -4322,207 +4543,6 @@ c  Ensure all 'AN_' types are valid selections
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: fjxfunc
-!
-! !DESCRIPTION: Function FJXFUNC supplies J-values to the chemistry solver.  
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION FJXFUNC( I, J, L, NREAC, BRCH, NAME ) RESULT( JVAL )
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,           INTENT(IN) :: I       ! Longitude index
-      INTEGER,           INTENT(IN) :: J       ! Latitude index
-      INTEGER,           INTENT(IN) :: L       ! Level index
-      INTEGER,           INTENT(IN) :: NREAC   ! Photolysis reaction #
-      INTEGER,           INTENT(IN) :: BRCH    ! Branch # of photolysis rxn
-      CHARACTER (LEN=4), INTENT(IN) :: NAME    ! Photolysis species name
-!
-! !RETURN VALUE:
-!
-      REAL(fp)                        :: JVAL    ! Desired J-value [s-1]
-!
-! !REVISION HISTORY: 
-!  (1  ) "cmn_fj.h" also includes "CMN_SIZE" and "define.h".
-!  (2  ) J-values are stored in array "ZPJ" from "cmn_fjx_mod.F".
-!  (3  ) Now references ERROR_STOP from "error_mod.F".  Updated comments,
-!         and made some cosmetic changes. (bmy, 10/15/02)
-!  27 Mar 2013 - S. D. Eastham - Rolled into FAST_JX_MOD
-!  29 Mar 2013 - S. D. Eastham - Converted from fjfunc into fjxfunc
-!  22 Jul 2014 - R. Yantosca   - Cosmetic changes
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER  :: N
-      
-      !=================================================================
-      ! FJXFUNC begins here!
-      !
-      ! If your compiler has subscript-range checking (-C or 
-      ! -check_bounds) then it is recommended to use this option to 
-      ! test for the validity of (I,J,L), since repeated IF statements 
-      ! are computationally expensive.
-      !
-      ! If your compiler does not have subscript-range checking, then 
-      ! uncomment the following lines to do a manual test for the 
-      ! validity of (I,J,L).  
-      !=================================================================
-
-!      IF ( I > IIPAR .OR. J > JJPAR .OR. L > JVL_ ) THEN 
-!         CALL EXITC('Invalid grid-box # in call to FJXFUNC')
-!      ENDIF
-
-      !=================================================================
-      ! RINDEX converts the J-value index as read from "globchem.dat" to 
-      ! the J-value index as read from "fjx_j2j.dat". 
-      ! (bmy, 10/5/98, SDE 03/29/13)
-      !
-      ! Make sure that we have taken the proper reaction! 
-      !=================================================================
-
-      N = RINDEX(NREAC)
-
-      IF ( (N > NRATJ ) .or. (N .eq. 0) ) THEN
-         WRITE(6,*) 'RXN for ',name,', branch ',brch,' not found!'
-         CALL EXITC( 'Check FJXFUNC' )
-      ENDIF
-
-      !=================================================================
-      ! Return the appropriate J-value as the value of the function 
-      !=================================================================
-      JVAL = ZPJ(L,N,I,J)
-
-!      ! Uncomment following lines for more rigorous checking
-!      IF (ISNAN(FJXFUNC)) THEN
-!         WRITE(6,*) 'Photolysis error for branch ', brch, ' of ', name
-!         WRITE(6,*) 'NaN photorate in grid I J L: ',I, J, L
-!         CALL EXITC('Bad photorate')
-!      ENDIF
-
-      END FUNCTION FJXFUNC
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: jv_index
-!
-! !DESCRIPTION: Subroutine JV\_INDEX computes the mapping between the CTM 
-!  indices (from "globchem.dat") for J-values to the FAST-JX indices 
-!  (from "FJX\_j2j.dat") for J-values.  (bmy, 10/5/98, 4/27/10)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE JV_INDEX( am_I_Root )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
-
-! !INPUT PARAMETERS: 
-!
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
-! !REVISION HISTORY:
-!  05 Oct 1998 - R. Yantosca - Initial version
-!  (1 ) Assumes the ordering of a species with several branches in 
-!        "ratj.d" is the same as in "chem.dat".
-!  (2 ) Updated comments, cosmetic changes (bmy, 11/15/01)
-!  (3 ) NAMESPEC is now NAMEGAS for SMVGEAR II.   We don't need to reference 
-!        CMN anymore. Now loop from NCS = 1..NCSGAS (bdf, bmy, 4/8/03)
-!  (4 ) Now reset NCS to NCSURBAN after loop (dbm, bmy, 10/16/06)
-!  (5 ) Increase species name length (fp, 6/09)
-!  (6 ) Change "Harvard #" to "GEOS-Chem #" in output (bmy, 4/27/10)
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  30 Jul 2012 - R. Yantosca - Added ProTeX headers
-!  31 Mar 2013 - S. D. Eastham - Adapted for Fast-JX v7.0
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Local variables
-      INTEGER            :: I, IFNC, IBRCH, N, NK
-
-      ! Needed longer name limits (SDE 03/31/13)
-      CHARACTER (LEN=14)  :: FULLNAME
-      CHARACTER (LEN=10)  :: SPECNAME
-
-      !=================================================================
-      ! JV_INDEX begins here!
-      !=================================================================
-
-      ! Zero the RINDEX array
-      RINDEX(:) = 0
-
-      ! Loop over photolysis rxns (urban chemistry only)
-      DO NCS = 1, NCSGAS
-      DO I   = 1, NPHOT
-
-         !==============================================================
-         ! I        = Index of photo rxns    from "globchem.dat"
-         ! NK       = Absolute rxn number (adds offset to I)
-         ! SPECNAME = Name of species I,     from "globchem.dat"
-         ! IBRCH    = Branch # of species I, from "globchem.dat"
-         !==============================================================
-         NK       = NRATES(NCS) + I
-         FULLNAME = TRIM(NAMEGAS(IRM(1,NK,NCS)))
-         ! Get first 10 characters only
-         READ (FULLNAME(1:10),"(a10)") SPECNAME
-         IFNC     = DEFPRAT(NK,NCS) + 0.01e+0_fp
-         IBRCH    = 10e+0_fp*( DEFPRAT(NK,NCS) - IFNC ) + 0.5e+0_fp
-
-         !==============================================================
-         ! N      = Index of photolysis reaction in "FJX_j2j.dat"
-         ! RNAMES = Name of species N as listed in "FJX_j2j.dat" 
-         ! BRANCH = Relative count of reaction in "FJX_j2j.dat"
-         !  
-         ! If the species names and branch numbers from both "globchem" 
-         ! and "FJX_j2j" match, then store N (the FJX index) in the 
-         ! Ith element of RINDEX.
-         !  
-         ! Thus, when looping over I (the "globchem" indices), as is 
-         ! done in FJXFUNC, RINDEX(I) will access the correct J-value 
-         ! according to the ordering in "FJX_j2j.dat".
-         !==============================================================
-         DO N = 1, NRATJ
-            IF ( SPECNAME == RNAMES(N) .and. IBRCH == BRANCH(N) ) THEN
-               RINDEX(I) = N
-
-               ! change formatting for longer name (FP 6/2009)
-               IF ( am_I_Root ) THEN
-                  WRITE ( 6, 100 ) I,         FULLNAME,  IBRCH, 
-     &                             RINDEX(I), RNAMES(N), BRANCH(N)
-               ENDIF
- 100           FORMAT('GEOS-Chem #: ', i3, 1x, a14, ' Branch: ', i2, 
-     &               ' --->  Fast-JX #: ', i3, 1x, a10, ' Branch: ',i2 )
-               EXIT
-            ENDIF
-         ENDDO
-      ENDDO  
-      ENDDO
-
-      ! Reset NCS to NCSURBAN for safety's sake (bmy, 10/16/06)
-      NCS = NCSURBAN
-
-      ! Return to calling program      
-      END SUBROUTINE JV_INDEX
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: rd_prof_nc
 !
 ! !DESCRIPTION: Subroutine RAD\_PROF\_NC reads in the reference climatology  
@@ -4540,8 +4560,8 @@ c  Ensure all 'AN_' types are valid selections
       USE m_netcdf_io_read
       USE m_netcdf_io_readattr
       USE m_netcdf_io_close
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -4589,7 +4609,7 @@ c  Ensure all 'AN_' types are valid selections
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=========================================================================
       ! Open and read data from the netCDF file
@@ -4673,5 +4693,186 @@ c  Ensure all 'AN_' types are valid selections
  140  FORMAT( '%% Successfully closed file!'                 )
 
       END SUBROUTINE RD_PROF_NC
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: photrate_adj
+!
+! !DESCRIPTION: Subroutine PHOTRATE\_ADJ adjusts certain photolysis rates
+!  for chemistry.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE PHOTRATE_ADJ( am_I_root, I,    J,
+     &                         L,         AD,   TEMP,
+     &                         C_H2O,     FRAC, RC      )
+!
+! !USES:
+!
+      USE CMN_DIAG_MOD,       ONLY : LD22, ND22
+      USE DIAG_MOD,           ONLY : AD22, LTJV
+      USE ErrCode_Mod
+      USE Precision_Mod,      ONLY : fp
+!     
+! !INPUT PARAMETERS:
+!     
+      LOGICAL,   INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
+      INTEGER,   INTENT(IN)  :: I, J, L    ! Grid box indices (lon, lat, lev)
+      REAL(fp),  INTENT(IN)  :: AD         ! Air number density [molec/m3] ??
+      REAL(fp),  INTENT(IN)  :: TEMP       ! Temperature [K]
+      REAL(fp),  INTENT(IN)  :: C_H2O      ! H2O conc [molec/cm3]
+      REAL(fp),  INTENT(IN)  :: FRAC       ! Result of SO4_PHOTFRAC,
+                                           !  called from flex_chemdr.F
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,   INTENT(OUT) :: RC         ! Success or failure
+!
+! !REMARKS:
+!
+!  %%%% NOTE: WE SHOULD UPDATE THE COMMENTS TO MAKE SURE THAT WE DO      %%%%
+!  %%%% NOT KEEP ANY CONFLICTING OR INCORRECT INFORMATION (bmy, 3/28/16) %%%%
+!
+! !REVISION HISTORY:
+!  10 Mar 2016 - M. Sulprizio- Added ProTeX header
+!  18 Apr 2016 - R. Yantosca - Remove Input_Opt, State_Met, State_Chm args
+!                              and pass air density & temperature instead
+!  18 Apr 2016 - R. Yantosca - Also prevent div-by-zero conditions
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      REAL(fp) :: C_O2,      C_N2,     C_H2, ITEMPK
+      REAL(fp) :: RO1DplH2O, RO1DplH2, RO1D
+
+      !==============================================================
+      ! PHOTRATE_ADJ begins here!
+      !==============================================================
+
+      ! Assume success
+      RC = GC_SUCCESS
+
+#if defined( UCX )
+      !==============================================================
+      ! SPECIAL TREATMENT FOR H2SO4+hv -> SO2 + 2OH
+      !
+      ! Only allow photolysis of H2SO4 when gaseous (SDE 04/11/13)
+      !==============================================================
+
+      ! Calculate if H2SO4 expected to be gaseous or aqueous
+      ! Only allow photolysis above 6 hPa
+      ! RXN_H2SO4 specifies SO4 + hv -> SO2 + OH + OH
+      ZPJ(L,RXN_H2SO4,I,J) = ZPJ(L,RXN_H2SO4,I,J) * FRAC
+
+      ! Store unadjusted O2 rate for ND22
+      IF ( ND22 > 0 ) THEN
+         IF ( L <= LD22 .and. LTJV(I,J) > 0 ) THEN
+            AD22(I,J,L,15) = AD22(I,J,L,15) + ZPJ(L,RXN_O2,I,J)
+         ENDIF
+      ENDIF
+
+#endif
+
+      !==============================================================
+      ! SPECIAL TREATMENT FOR O3+hv -> OH+OH (trop-only simulation)
+      !                    or O3+hv -> O+O2  (UCX simulation)
+      !
+      ! [O1D]ss=J[O3]/(k[H2O]+k[N2]+k[O2])
+      ! SO, THE EFFECTIVE J-VALUE IS J*k[H2O]/(k[H2O]+k[N2]+k[O2])
+      !
+      ! We don't want to do this if strat-chem is in use, as all
+      ! the intermediate reactions are included - this would be
+      ! double-counting (SDE 04/01/13)
+      !==============================================================
+#if defined( UCX )
+
+      ! Need to subtract O3->O1D from rate
+      ! RXN_O3_1  specifies: O3 + hv -> O2 + O
+      ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
+      ZPJ(L,RXN_O3_1,I,J) = ZPJ(L,RXN_O3_1,I,J) - ZPJ(L,RXN_O3_2a,I,J)
+
+      ! For UCX, store O1D and O3P rates separately
+      IF ( ND22 > 0  ) THEN
+         IF ( L <= LD22 .and. LTJV(I,J) > 0 ) THEN
+            AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,RXN_O3_2a,I,J)
+            AD22(I,J,L,6) = AD22(I,J,L,6) + ZPJ(L,RXN_O3_1, I,J)
+         ENDIF
+      ENDIF
+
+#else
+
+      ! Store unadjusted total J-O3 as AD22(:,:,:,5)
+      ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
+      IF ( ND22 > 0 ) THEN
+         IF ( L <= LD22 .and. LTJV(I,J) > 0 ) THEN
+            AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,RXN_O3_2a,I,J)
+         ENDIF
+      ENDIF
+
+      !========================================================
+      ! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
+      ! than 2.6e-11.  The temperature dependence remains the
+      ! same, so the constant changes from 1.8e-11 to 2.14e-11
+      ! according to Heard, pers. comm.,2002. (amf, bmy, 1/7/02)
+      !========================================================
+      ! Change the rate of O(1D)+H2O from 2.2e-10 to 1.45e-10*
+      ! exp(89/temp) on the basis of Dunlea and Ravishankara
+      ! 'Measurement of the Rate coefficient for the reaction 
+      ! of O(1D) with H2O and re-evaluation of the atmospheric
+      ! OH Production Rate'.  One of the RSC Journals
+      ! (mje 4/5/04)
+      !========================================================
+      ! Updated from JPL2006, the difference is pretty small.
+      ! (jmao,02/26/2009)
+      !========================================================
+      ! Additional update from JPL 10-6 for reaction of
+      ! O3 + hv --> HO2 + OH and O1D + H2:
+      ! Includes calculation of k[O3], where
+      ! k[O3]  = J[O3]*1.2e-10/k[O1D], where
+      ! k[O1D] = ([O1D]*[H2]+[O1D]*[H2O])/
+      !          ([O1D]*[H2]+[O1D]*[H2O]+[O1D][N2]+[O1D][O2])
+      ! (bhh, jmao, eam, 7/18/11)
+      !========================================================
+
+      ! Inverse temperature [K-1]
+      ITEMPK    = 1.0_fp / TEMP
+
+      ! Set species concentrations [molec/m3] ???
+      C_O2      = 0.2095e+0_fp * AD
+      C_N2      = 0.7808e+0_fp * AD
+
+      ! Added H2 concentration (bhh, jmao, eam, 7/18/11)
+      ! Seasonal variability of H2 may be important, 
+      ! but not included in this update (bhh, jmao, eam, 7/18/11)
+      C_H2      = 0.5000e-6_fp * AD
+
+      RO1DplH2O = 1.63e-10_fp * EXP(  60.0_fp * ITEMPK ) * C_H2O
+
+      RO1DplH2  = 1.2e-10                                * C_H2
+
+      RO1D      = RO1DplH2O
+     &          + RO1DplH2  
+     &          + 2.15e-11_fp * EXP( 110.0_fp * ITEMPK ) * C_N2
+     &          + 3.30e-11_fp * EXP(  55.0_fp * ITEMPK ) * C_O2
+
+      ! Prevent div-by-zero
+      IF ( RO1D > 0.0_fp ) THEN
+
+         ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D) #1
+         ZPJ(L,RXN_O3_2a,I,J) = ZPJ(L,RXN_O3_2a,I,J) * RO1DplH2O / RO1D
+
+         ! RXN_O3_2b specifies: O3 + hv -> O2 + O(1D) #2
+         ZPJ(L,RXN_O3_2b,I,J) = ZPJ(L,RXN_O3_2b,I,J) * RO1DplH2  / RO1D
+
+      ENDIF
+#endif
+      
+      END SUBROUTINE PHOTRATE_ADJ
 !EOC
       END MODULE FAST_JX_MOD

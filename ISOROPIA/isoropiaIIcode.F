@@ -5494,10 +5494,15 @@
       SUBROUTINE KMFUL4 (IONIC,TEMP,G01,G02,G03,G04,G05,G06,G07,G08,G09,
      &                             G10,G11,G12,G15,G16,G17,G18,G19,G20,
      &                             G21,G22,G23)
-      REAL Ionic, TEMP
+      REAL TEMP
       DATA Z01,Z02,Z03,Z04,Z05,Z06,Z07,Z08,Z10,Z11,Z15,Z16,Z17,Z19,Z20,
      &     Z21,Z22,Z23/1, 2, 1, 2, 1, 1, 2, 1, 1, 1, 2, 2, 2, 1, 1, 4,
      &                 2, 2/
+#if defined( ESMF_ )
+      REAL*4 Ionic
+#else
+      REAL*8 Ionic
+#endif 
 !
       SION = SQRT(IONIC)
 !
@@ -5575,7 +5580,12 @@
 !
       SUBROUTINE KMFUL3 (IONIC,TEMP,G01,G02,G03,G04,G05,G06,G07,G08,G09,
      &                  G10,G11,G12)
-      REAL Ionic, TEMP
+      REAL TEMP
+#if defined( ESMF_ )
+      REAL*4 Ionic
+#else
+      REAL*8 Ionic
+#endif 
       DATA Z01,Z02,Z03,Z04,Z05,Z06,Z07,Z08,Z10,Z11
      &    /1,  2,  1,  2,  1,  1,  2,  1,  1,  1/
 !
@@ -5635,7 +5645,12 @@
 !=======================================================================
 !
       SUBROUTINE KMFUL2 (IONIC,TEMP,G04,G05,G07,G08,G09,G10)
-      REAL Ionic, TEMP
+      REAL TEMP
+#if defined( ESMF_ )
+      REAL*4 Ionic
+#else
+      REAL*8 Ionic
+#endif 
       DATA Z01,Z02,Z03,Z04,Z05,Z06,Z07,Z08,Z10,Z11
      &    /1,  2,  1,  2,  1,  1,  2,  1,  1,  1/
 !
@@ -5695,9 +5710,14 @@
 !=======================================================================
 !
       SUBROUTINE KMFUL1 (IONIC,TEMP,G04,G07,G08,G09)
-      REAL Ionic, TEMP
       DATA Z01,Z02,Z03,Z04,Z05,Z06,Z07,Z08,Z10,Z11
      &    /1,  2,  1,  2,  1,  1,  2,  1,  1,  1/
+      REAL Temp
+#if defined( ESMF_ )
+      REAL*4 Ionic
+#else
+      REAL*8 Ionic
+#endif 
 !
       SION = SQRT(IONIC)
 !
@@ -5756,7 +5776,11 @@
 !
       SUBROUTINE MKBI(Q,IONIC,SION,ZIP,BI)
 !
-      REAL IONIC
+#if defined( ESMF_ )
+      REAL*4 IONIC
+#else
+      REAL*8 IONIC
+#endif 
 !
       B=.75-.065*Q
       C= 1.0
@@ -5785,7 +5809,12 @@
 !
       SUBROUTINE KMTAB (IN,TEMP,G01,G02,G03,G04,G05,G06,G07,G08,G09,G10,
      &                  G11,G12,G15,G16,G17,G18,G19,G20,G21,G22,G23)
-      REAL IN, Temp, binarray (23)
+      REAL Binarray (23), Temp
+#if defined( ESMF_ )
+      REAL*4 IN
+#else
+      REAL*8 IN
+#endif 
 !
 ! *** Find temperature range
 !
@@ -5885,7 +5914,12 @@
      &BNC13M(  561),BNC14M(  561),BNC15M(  561),BNC16M(  561),
      &BNC17M(  561),BNC18M(  561),BNC19M(  561),BNC20M(  561),
      &BNC21M(  561),BNC22M(  561),BNC23M(  561)
-      REAL Binarr (23), Ionic
+      REAL Binarr (23)
+#if defined( ESMF_ )
+      REAL*4 IONIC
+#else
+      REAL*8 IONIC
+#endif 
 !
 ! *** Find position in arrays for bincoef
 !
@@ -7535,7 +7569,12 @@
      &BNC13M(  561),BNC14M(  561),BNC15M(  561),BNC16M(  561),
      &BNC17M(  561),BNC18M(  561),BNC19M(  561),BNC20M(  561),
      &BNC21M(  561),BNC22M(  561),BNC23M(  561)
-      REAL Binarr (23), Ionic
+      REAL Binarr (23)
+#if defined( ESMF_ )
+      REAL*4 Ionic
+#else
+      REAL*8 Ionic
+#endif 
 !
 ! *** Find position in arrays for bincoef
 !
@@ -9185,7 +9224,12 @@
      &BNC13M(  561),BNC14M(  561),BNC15M(  561),BNC16M(  561),
      &BNC17M(  561),BNC18M(  561),BNC19M(  561),BNC20M(  561),
      &BNC21M(  561),BNC22M(  561),BNC23M(  561)
-      REAL Binarr (23), Ionic
+      REAL Binarr (23)
+#if defined( ESMF_ )
+      REAL*4 Ionic
+#else
+      REAL*8 Ionic
+#endif 
 !
 ! *** Find position in arrays for bincoef
 !
@@ -10835,7 +10879,12 @@
      &BNC13M(  561),BNC14M(  561),BNC15M(  561),BNC16M(  561),
      &BNC17M(  561),BNC18M(  561),BNC19M(  561),BNC20M(  561),
      &BNC21M(  561),BNC22M(  561),BNC23M(  561)
-      REAL Binarr (23), Ionic
+      REAL Binarr (23)
+#if defined( ESMF_ )
+      REAL*4 Ionic
+#else
+      REAL*8 Ionic
+#endif 
 !
 ! *** Find position in arrays for bincoef
 !
@@ -12485,7 +12534,12 @@
      &BNC13M(  561),BNC14M(  561),BNC15M(  561),BNC16M(  561),
      &BNC17M(  561),BNC18M(  561),BNC19M(  561),BNC20M(  561),
      &BNC21M(  561),BNC22M(  561),BNC23M(  561)
-      REAL Binarr (23), Ionic
+      REAL Binarr (23)
+#if defined( ESMF_ )
+      REAL*4 Ionic
+#else
+      REAL*8 Ionic
+#endif 
 !
 ! *** Find position in arrays for bincoef
 !
@@ -14135,7 +14189,12 @@
      &BNC13M(  561),BNC14M(  561),BNC15M(  561),BNC16M(  561),
      &BNC17M(  561),BNC18M(  561),BNC19M(  561),BNC20M(  561),
      &BNC21M(  561),BNC22M(  561),BNC23M(  561)
-      REAL Binarr (23), Ionic
+      REAL Binarr (23)
+#if defined( ESMF_ )
+      REAL*4 Ionic
+#else
+      REAL*8 Ionic
+#endif 
 !
 ! *** Find position in arrays for bincoef
 !

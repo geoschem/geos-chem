@@ -629,7 +629,7 @@
       IF ( FOUND ) THEN 
 
 #if   defined( GRID1x1 ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
-#if   defined(NESTED_CH) || defined(NESTED_NA)     || defined( NESTED_EU )
+#if   defined(NESTED_CH) || defined(NESTED_NA)     || defined( NESTED_EU ) || defined( NESTED_AS )
          ! *** NOTE: now use NESTED_CH/NESTED_NA/NESTED_EU cpp switches ***
          ! *** to block off this section of code (bmy, 12/1/04)  ***
          ! This is a kludge to overwrite the IFIRST, JFIRST, LFIRST For

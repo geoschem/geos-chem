@@ -160,6 +160,7 @@ CONTAINS
 !  21 Aug 2014 - C. Keller   - Added concentration.
 !  14 Apr 2016 - C. Keller   - Bug fix: avoid double-counting if multiple 
 !                              regional inventories have the same hierarchy.
+!  19 Sep 2016 - R. Yantosca - Use .neqv. for LOGICAL comparisons
 !EOP
 !------------------------------------------------------------------------------
 !BOC

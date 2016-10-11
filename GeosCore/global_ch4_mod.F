@@ -15,9 +15,9 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,ONLY : AVO, AIRMW
-      USE HCO_ERROR_MOD    ! For HEMCO error reporting
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
+      USE HCO_ERROR_MOD       ! For HEMCO error reporting
+      USE PhysConstants, ONLY : AVO, AIRMW
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp, f4, f8)
 
       IMPLICIT NONE
       PRIVATE
@@ -40,7 +40,7 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL(fp), PARAMETER,   PUBLIC :: XNUMOL_CH4 = AVO / 16d-3
+      REAL(fp), PARAMETER,   PUBLIC :: XNUMOL_CH4 = AVO / 16d-3 ! hard-coded MW
 
 #if defined( USE_CH4_BUDGET_DIAG )
       REAL(fp), ALLOCATABLE, PUBLIC :: TCH4(:,:,:,:)
@@ -103,6 +103,8 @@
 !  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  04 Mar 2015 - R. Yantosca - Now use REAL(f4) for HCO_GetPtr pointer args
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  16 Jun 2016 - M. Sulprizio- Now define IDTCH4 locally
+!  20 Jun 2016 - R. Yantosca - Rename IDTCH4 to id_CH4 for consistency
 !------------------------------------------------------------------------------
 !BOC
 !     
@@ -124,13 +126,17 @@
       !========================================================================
 
       ! Number of CH4 budget types 
-      INTEGER,  PARAMETER    :: N_CH4     = 12
+      INTEGER,  PARAMETER   :: N_CH4     = 12
 
-      REAL(fp), PARAMETER    :: XNUMOL_OH = AVO / 17e-3_fp  ! molec OH / kg OH
-      REAL(fp), PARAMETER    :: CM3PERM3  = 1.e+6_fp
+      REAL(fp), PARAMETER   :: XNUMOL_OH = AVO / 17e-3_fp  ! molec OH / kg OH
+                                                           ! hard-coded MW
+      REAL(fp), PARAMETER   :: CM3PERM3  = 1.e+6_fp
 !
 ! !LOCAL VARIABLES:
 !
+      ! Species ID flag
+      INTEGER               :: id_CH4
+
       ! Various arrays      
       REAL(fp), ALLOCATABLE :: BAIRDENS(:,:,:)
       REAL(fp), ALLOCATABLE :: PAVG(:,:,:)
@@ -138,6 +144,8 @@
 
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared as REAL(f4), aka REAL*4.
+      ! NOTE: These are globally SAVEd variables so we can
+      ! nullify these in the declaration statement (bmy, 4/29/16)
       REAL(f4), POINTER     :: BOH    (:,:,:) => NULL()
       REAL(f4), POINTER     :: CH4LOSS(:,:,:) => NULL()
 
@@ -167,12 +175,11 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD             ! Size parameters
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -323,8 +330,8 @@
 !
 ! !IROUTINE: emissch4
 !
-! !DESCRIPTION: Subroutine EMISSCH4 places emissions of CH4 [kg] into the STT
-!  array. (jsw, bnd, bey, bmy, 1/16/01, 10/3/05)
+! !DESCRIPTION: Subroutine EMISSCH4 places emissions of CH4 [kg] into the
+!  chemical species array.
 !\\
 !\\
 ! !INTERFACE:
@@ -336,15 +343,14 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE DIAG_MOD,           ONLY : AD58
-
-      ! HEMCO update
       USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
+      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -417,8 +423,6 @@
       ! For fields from Input_Opt
       LOGICAL                  :: ITS_A_CH4_SIM
       LOGICAL                  :: ITS_A_FULLCHEM_SIM
-      INTEGER                  :: N_TRACERS
-      INTEGER                  :: ID_TRACER(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
@@ -428,15 +432,13 @@
       !=================================================================
 
       ! Assume success
-      RC                  = GIGC_SUCCESS
+      RC                  = GC_SUCCESS
 
       ! Get nested-grid offsets
       I0                  = GET_XOFFSET()
       J0                  = GET_YOFFSET()
 
       ! Copy values from Input_Opt
-      N_TRACERS           = Input_Opt%N_TRACERS
-      ID_TRACER           = Input_Opt%ID_TRACER(1:N_TRACERS)
       ITS_A_CH4_SIM       = Input_Opt%ITS_A_CH4_SIM
       ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
 
@@ -454,14 +456,14 @@
 
       ! =================================================================
       ! --> All emission calculations are now done through HEMCO
-      ! HEMCO stores emissions of all tracers internally in the HEMCO
+      ! HEMCO stores emissions of all species internally in the HEMCO
       ! state object. Here, we pass these emissions into module array 
-      ! CH4_EMIS. These values are then either added to the tracers 
+      ! CH4_EMIS. These values are then either added to the species 
       ! array (full mixing scheme) or used later on in vdiff_mod.F90 if 
       ! the non-local PBL mixing scheme is used.
       ! The CH4_EMIS array is mostly used for backwards compatibility
       ! (especially the diagnostics). It is also used to ensure that 
-      ! in a multi-tracer simulation, tracer 1 (total CH4) is properly
+      ! in a multi-species simulation, species 1 (total CH4) is properly
       ! defined. 
       !                                              (ckeller, 9/12/2013)
       ! =================================================================
@@ -625,9 +627,10 @@
 !      write(*,*) 'wetl 55,29: ',ch4_emis(55,29,10)
  
       ! =================================================================
-      ! Modify the STT with emissions rates.               (kjw, 5/29/09)
-      ! There are 12 tracers in the multi-tracer run.
-      ! One tracer for total CH4 and one for each emission category.
+      ! Modify the chemical species array with emissions rates. 
+      ! (kjw, 5/29/09)
+      ! There are 12 species in the multi-species run.
+      ! One species for total CH4 and one for each emission category.
       !
       !  1. Total CH4
       !  2. Gas and Oil 
@@ -645,7 +648,7 @@
  
       ! Only added to SST for offline CH4 simulations.
       IF ( ITS_A_CH4_SIM ) THEN
-       WRITE( 6, '(a)' ) '% EMISSCH4 --- Adding Emissions to STT array.'
+       WRITE( 6, '(a)' ) '% EMISSCH4 --- Adding Emissions to Spc array.'
       ENDIF
 
       ! J0 and I0 are global variables, both set = 0.
@@ -654,30 +657,6 @@
 
       DO I = 1, IIPAR
          IREF = I + I0
-
-         ! Grid box surface area [m2]
-         ! No longer needed since ND58 is now area-independent with 
-         ! units kg/m2 (ewl, 9/11/15)
-!         AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
-
-         ! The following is now done in mixing_mod.F90 (ckeller, 3/4/15)
-!         ! Offline CH4 only
-!         ! Convert kg/m2/s to kg.
-!         IF ( ITS_A_CH4_SIM ) THEN
-!
-!            ! Pass directly to tracers array (surface level) if
-!            ! non-local scheme is not used.
-!            ! For the non-local PBL scheme, CH4_EMIS will
-!            ! be used directly in vdiff_mod.F90
-!            IF ( .NOT. Input_Opt%LNLPBL ) THEN
-!               DO N = 1, N_TRACERS
-!                  State_Chm%Tracers(IREF,JREF,1,N)
-!     &            = State_Chm%Tracers(IREF,JREF,1,N)
-!     &            + CH4_EMIS(IREF,JREF,ID_TRACER(N))
-!     &            * DTSRCE * AREA_M2
-!               ENDDO
-!            ENDIF
-!         ENDIF
 
          ! Update diagnostics
          IF ( ND58 > 0 ) THEN
@@ -886,16 +865,15 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD43
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_DAY,   GET_MONTH
-
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_DAY,   GET_MONTH
 !
 ! !INPUT PARAMETERS:
 !
@@ -961,40 +939,36 @@
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  17 Sep 2014 - C. Keller   - Now use HEMCO to get CH4 loss and OH conc. field.
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !DEFINED PARAMETERS:
-!
-      ! Weight of air (taken from "comode.h") 
-      ! REAL(fp), PARAMETER      :: WTAIR = 28.966e+0_fp ! Use global AIRMW
-!
 ! !LOCAL VARIABLES:
 !
-      LOGICAL                :: FIRSTCHEM = .TRUE.
-      INTEGER                :: I, J, L, K, M, N
-      INTEGER                :: NPART
+      LOGICAL            :: FIRSTCHEM = .TRUE.
+      INTEGER            :: I, J, L, K, M, N, NA, nAdvect
+      INTEGER            :: NPART
 
-      REAL(fp)                 :: PREVCH4(IIPAR, JJPAR, LLPAR)
-      REAL(fp)                 :: BOXVL  
+      REAL(fp)           :: PREVCH4(IIPAR, JJPAR, LLPAR)
+      REAL(fp)           :: BOXVL  
 
       ! Number of days per month
-      INTEGER                :: NODAYS(12) = (/ 31, 28, 31, 30, 
-     &                                          31, 30, 31, 31, 
-     &                                          30, 31, 30, 31 /)
+      INTEGER            :: NODAYS(12) = (/ 31, 28, 31, 30, 
+     &                                      31, 30, 31, 31, 
+     &                                      30, 31, 30, 31 /)
 
       ! For fields from Input_Opt
-      LOGICAL                :: LSPLIT
-      LOGICAL                :: LCH4BUD
+      LOGICAL            :: LSPLIT
+      LOGICAL            :: LCH4BUD
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER        :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: Spc(:,:,:,:)
 
       ! For error messages
-      CHARACTER(LEN=255)    :: LOC = 'CHEMCH4 (global_ch4_mod.F)'
+      CHARACTER(LEN=255) :: LOC = 'CHEMCH4 (global_ch4_mod.F)'
 
       !=================================================================
       ! CHEMCH4 begins here!
@@ -1002,12 +976,17 @@
       WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC      = GC_SUCCESS
+
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
 
       ! Copy values from Input_Opt
-!      N_TRACERS = Input_Opt%N_TRACERS
-      LSPLIT    = Input_Opt%LSPLIT
-      LCH4BUD   = Input_Opt%LCH4BUD
+      LSPLIT  = Input_Opt%LSPLIT
+      LCH4BUD = Input_Opt%LCH4BUD
+
+      ! Point to the chemical species 
+      Spc     => State_Chm%Species
 
       !=================================================================
       ! (0) Calculate each box's air density [molec/cm3]
@@ -1041,15 +1020,10 @@
      &      CALL ERROR_STOP ( 'Cannot get pointer to CH4_LOSS', LOC )
 
 #if defined( USE_CH4_BUDGET_DIAG )
-         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-         ! (mpayer, 12/6/12)
-         STT => State_Chm%Tracers
          
          ! Initialize the CH4 burden TCH4 [molec/box], (ccc, 7/23/09)
-         TCH4(:,:,:,1) = STT(:,:,:,1) * XNUMOL_CH4 
+         TCH4(:,:,:,1) = Spc(:,:,:,1) * XNUMOL_CH4 
          
-         ! Free pointer
-         NULLIFY( STT )
 #endif
       ENDIF
 
@@ -1090,14 +1064,10 @@
       CALL CH4_OHSAVE( State_Met, State_Chm )
 
       !=================================================================
-      ! (5) If multi-CH4 tracers, we store the CH4 total conc. to
+      ! (5) If multi-CH4 species, we store the CH4 total conc. to
       !     distribute the sink after the chemistry. (ccc, 2/10/09)
       !================================================================= 
       IF ( LSPLIT ) THEN
-
-         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-         ! (mpayer, 12/6/12)
-         STT => State_Chm%Tracers
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1105,14 +1075,12 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            PREVCH4(I,J,L) = STT(I,J,L,1)
+            PREVCH4(I,J,L) = Spc(I,J,L,1)
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
 
-         ! Free pointer
-         NULLIFY( STT )
       ENDIF
 
       !=================================================================
@@ -1127,7 +1095,7 @@
 
       !=================================================================
       ! (8) distribute the chemistry sink from total CH4 to other CH4 
-      !     tracers. (ccc, 2/10/09)
+      !     species. (ccc, 2/10/09)
       !=================================================================
       IF ( LSPLIT ) THEN
          CALL CH4_DISTRIB( PREVCH4, Input_Opt, State_Chm )
@@ -1176,6 +1144,9 @@
       print*,'END CHEMCH4'
       call flush(6)
 
+      ! Free pointer
+      Spc => NULL()
+
       ! Set FIRSTCHEM to FALSE
       FIRSTCHEM = .FALSE.
 
@@ -1203,10 +1174,10 @@
       USE CMN_SIZE_MOD
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE DIAG_MOD,           ONLY : AD19   	      
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR
       USE TIME_MOD,           ONLY : GET_MONTH
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1237,21 +1208,20 @@
 !  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
 !                              code out with #ifdef blocks so it can be used)
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, L
-      REAL(fp)              :: DT, GCH4, STT2GCH4, KRATE
-      REAL(fp)              :: BOXVL
-      REAL(fp)              :: C_OH
+      ! Scalars
+      INTEGER           :: I,  J,    L,        N,     NA,    nAdvect
+      REAL(fp)          :: DT, GCH4, Spc2GCH4, KRATE, BOXVL, C_OH
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER     :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CH4_DECAY begins here!
@@ -1259,6 +1229,9 @@
 
       ! Chemistry timestep in seconds
       DT = GET_TS_CHEM() * 60e+0_fp
+
+      ! Point to the chemical species array
+      Spc => State_Chm%Species
 
       !=================================================================
       ! Compute decay of CH4 by OH in the troposphere
@@ -1270,13 +1243,10 @@
       ! This is from JPL '97.
       ! JPL '00 & '06 do not revise '97 value. (jsw, kjw)
       !=================================================================
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( L, J, I, KRATE, STT2GCH4, GCH4, BOXVL, C_OH )
+!$OMP+PRIVATE( L, J, I, KRATE, Spc2GCH4, GCH4, BOXVL, C_OH )
 !$OMP+REDUCTION( +:TROPOCH4 )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -1291,11 +1261,11 @@
 
             ! Conversion from [kg/box] --> [molec/cm3]
             ! [kg CH4/box] * [box/cm3] * XNUMOL_CH4 [molec CH4/kg CH4]
-            STT2GCH4 = 1e+0_fp / State_Met%AIRVOL(I,J,L) / 1e+6_fp 
+            Spc2GCH4 = 1e+0_fp / State_Met%AIRVOL(I,J,L) / 1e+6_fp 
      &                 * XNUMOL_CH4 
 
             ! CH4 in [molec/cm3]
-            GCH4 = STT(I,J,L,1) * STT2GCH4
+            GCH4 = Spc(I,J,L,1) * Spc2GCH4
 
             ! OH in [molec/cm3]. BOH is imported from HEMCO in units of
             ! kg/m3, convert here to molec/cm3 (ckeller, 9/16/2014)
@@ -1311,7 +1281,7 @@
      &                        KRATE * C_OH * DT )
 #endif
 
-            TROPOCH4=TROPOCH4 + GCH4 * KRATE * C_OH * DT / STT2GCH4
+            TROPOCH4=TROPOCH4 + GCH4 * KRATE * C_OH * DT / Spc2GCH4
 
             ! Modify AD19 Diagnostic
             ! How much CH4 (kg) is lost by reaction with OH
@@ -1319,7 +1289,7 @@
                IF ( L <= LD19 ) THEN
 !	    	AD19(I,J,12) = AD19(I,J,12) + 
                   AD19(I,J,L) = AD19(I,J,L) + 
-     &                 ( GCH4 * KRATE * C_OH * DT ) / STT2GCH4
+     &                 ( GCH4 * KRATE * C_OH * DT ) / Spc2GCH4
                ENDIF
             ENDIF
 
@@ -1327,7 +1297,7 @@
             GCH4 = GCH4 * ( 1e+0_fp - KRATE * C_OH * DT )
 
             ! Convert back from [molec/cm3] --> [kg/box]
-            STT(I,J,L,1) = GCH4 / STT2GCH4
+            Spc(I,J,L,1) = GCH4 / Spc2GCH4
 
          ENDIF
       ENDDO
@@ -1335,12 +1305,12 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Free pointer
-      NULLIFY( STT )
-
       print*,'% --- CHEMCH4: CH4_DECAY: TROP DECAY (Tg): ',TROPOCH4/1e9
       print*,'Trop decay should be over 1Tg per day globally'
       print*,'    ~ 500Tg/365d ~ 1.37/d'
+
+      ! Free pointers
+      Spc => NULL()
 
       END SUBROUTINE CH4_DECAY
 !EOC
@@ -1364,9 +1334,9 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
 !
 ! !INPUT PARAMETERS:
@@ -1390,22 +1360,25 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER              :: I, J, L
-      REAL(fp)               :: MASST,   AREA_CM2
-      REAL(fp)               :: KCLO,    LOSS,       OHMASS  
-      REAL(fp)               :: KCH4,    CH4LOSE,    CH4MASS
-      REAL(fp)               :: CH4EMIS, CH4TROPMASS
-      REAL(fp)               :: BOXVL
-      REAL(fp)               :: C_OH 
+      ! Scalars
+      INTEGER           :: I,       J,           L
+      INTEGER           :: N,       NA,          nAdvect
+      REAL(fp)          :: MASST,   AREA_CM2
+      REAL(fp)          :: KCLO,    LOSS,        OHMASS  
+      REAL(fp)          :: KCH4,    CH4LOSE,     CH4MASS
+      REAL(fp)          :: CH4EMIS, CH4TROPMASS, BOXVL
+      REAL(fp)          :: C_OH 
 
       ! Pointers
-      REAL(fp), POINTER      :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CH4_OHSAVE begins here!
@@ -1414,8 +1387,8 @@
       ! (2) ND59: Diagnostic for CH3CCl3 calculation
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
       ! 1. Calculate OH mass and total air mass
       DO L = 1, LLPAR
@@ -1452,8 +1425,8 @@
             KCH4 = 2.45e-12_fp * EXP( -1775e+0_fp / State_Met%T(I,J,L) )
 
             ! Calculate CH4 mass [molec / box] from [kg / box]
-            CH4TROPMASS = STT(I,J,L,1) * XNUMOL_CH4 
-            CH4MASS     = STT(I,J,L,1) * XNUMOL_CH4 
+            CH4TROPMASS = Spc(I,J,L,1) * XNUMOL_CH4 
+            CH4MASS     = Spc(I,J,L,1) * XNUMOL_CH4 
 
             ! Calculate loss term  [molec /box / s]
             CH4LOSE = KCH4            * C_OH  *
@@ -1480,7 +1453,7 @@
             CH4LOSE     = 0e+0_fp
             CH4TROPMASS = 0e+0_fp
             CH4EMIS     = 0e+0_fp
-            CH4MASS     = STT(I,J,L,1) * XNUMOL_CH4 
+            CH4MASS     = Spc(I,J,L,1) * XNUMOL_CH4 
 
          ENDIF
 
@@ -1495,7 +1468,7 @@
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE CH4_OHSAVE
 !EOC
@@ -1521,14 +1494,13 @@
       USE CMN_SIZE_MOD
       USE CHEMGRID_MOD,       ONLY : GET_MIN_TPAUSE_LEVEL
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : CHECK_SPC
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : CHECK_STT
-      USE TRACERID_MOD,       ONLY : IDTCH4
-!
+
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
@@ -1566,42 +1538,39 @@
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  24 Mar 2015 - E. Lundgren - Now pass Input_Opt to Check_STT
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !DEFINED PARAMETERS:
-!
-      ! Weight of air (taken from "comode.h") 
-      !REAL(fp), PARAMETER   :: WTAIR = 28.966e+0_fp ! Use global AIRMW
-!
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, L, BASELEV
-      REAL(fp)              :: DT, GCH4, STT2GCH4, LRATE
-      REAL(fp)              :: BOXVL
+      ! Scalars
+      INTEGER           :: N,  NA,   nAdvect
+      INTEGER           :: I,  J,    L,        BASELEV
+      REAL(fp)          :: DT, GCH4, Spc2GCH4, LRATE,  BOXVL
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL             :: LUCX
-      LOGICAL             :: ITS_A_FULLCHEM_SIM
+      LOGICAL           :: LUCX
+      LOGICAL           :: ITS_A_FULLCHEM_SIM
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER     :: STT(:,:,:,:)
-
-!      LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CH4_STRAT begins here!
       !=================================================================
 
       ! Assume success
-      RC                  =  GIGC_SUCCESS
+      RC                  =  GC_SUCCESS
 
       ! Copy fields from INPUT_OPT
-      LUCX                = Input_Opt%LUCX
-      ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
+      LUCX                =  Input_Opt%LUCX
+      ITS_A_FULLCHEM_SIM  =  Input_Opt%ITS_A_FULLCHEM_SIM
+
+      ! Point to chemical species
+      Spc                 => State_Chm%Species
 
       ! If unified chemistry is active, ignore all of this
       IF ( .not. LUCX ) THEN
@@ -1647,10 +1616,6 @@
 !            ENDIF
          ENDIF
 
-         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-         ! (mpayer, 12/6/12)
-         STT => State_Chm%Tracers
-
          !=================================================================
          ! Loop over stratospheric boxes only
          !=================================================================
@@ -1662,11 +1627,11 @@
 
                ! Conversion factor [kg/box] --> [molec/cm3]
                ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
-               STT2GCH4 = 1e+0_fp / State_Met%AIRVOL(I,J,L) / 1e+6_fp *
+               Spc2GCH4 = 1e+0_fp / State_Met%AIRVOL(I,J,L) / 1e+6_fp *
      &                    XNUMOL_CH4
 
                ! CH4 in [molec/cm3]
-               GCH4 = STT(I,J,L,1) * STT2GCH4
+               GCH4 = Spc(I,J,L,1) * Spc2GCH4
 
                ! Loss rate [molec/cm3/s]
 !               LRATE = GCH4 * CH4LOSS( I,J,L,LMN )
@@ -1690,13 +1655,13 @@
 !               GCH4 = GCH4 - ( COPROD(J,L,LMN) * DT * BAIRDENS(I,J,L) )
 
                ! Convert back from [molec CH4/cm3] --> [kg/box] 
-               STT(I,J,L,1) = GCH4 / STT2GCH4
+               Spc(I,J,L,1) = GCH4 / Spc2GCH4
 
-! With new linearized chemistry, STT should never be negative
+! With new linearized chemistry, Spc should never be negative
 !  (kjw, 11/19/11)
-!               ! Prevent negative values in STT
-!              IF ( STT(I,J,L,1) < 0 ) THEN
-!          	STT(I,J,L,1)=0
+!               ! Prevent negative values in Spc
+!              IF ( Spc(I,J,L,1) < 0 ) THEN
+!          	Spc(I,J,L,1)=0
 !              ENDIF
 
             ENDIF
@@ -1708,12 +1673,12 @@
 
 !      FIRSTCHEM = .FALSE.
 
-      ! Check STT for negatives and NaN
-      CALL CHECK_STT( State_Chm, Input_Opt,
+      ! Check Spc for negatives and NaN
+      CALL CHECK_SPC( State_Chm, Input_Opt,
      &                'IN global_ch4_mod.F: CH4_STRAT' )
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE CH4_STRAT
 !EOC
@@ -1740,13 +1705,11 @@
 !
 ! !USES:
 !
-!      USE BPCH2_MOD,  ONLY : BPCH2,       BPCH2_HDR,   GET_MODELNAME
-      USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,   ONLY : GET_MONTH,   GET_YEAR
-      USE TIME_MOD,   ONLY : GET_DIAGb,   GET_CT_DYN
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE TIME_MOD,           ONLY : GET_MONTH,   GET_YEAR
+      USE TIME_MOD,           ONLY : GET_DIAGb,   GET_CT_DYN
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1785,61 +1748,33 @@
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Modified for the run with new emissions (j drevet, 03/06)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, K, L, M, NERROR, UD
+      INTEGER           :: I, J, K, L, M, NERROR, UD, N, NA, nAdvect
 
-      REAL(fp)              :: STTCONV, TGS, SCALEDYN
-      REAL(fp)              :: NTP, NTQ, NTP2, NTQ2 
-      REAL(fp)              :: SOURCES, SINKS
+      REAL(fp)          :: SpcCONV, TGS, SCALEDYN
+      REAL(fp)          :: NTP, NTQ, NTP2, NTQ2 
+      REAL(fp)          :: SOURCES, SINKS
 
-      CHARACTER(LEN=17)   :: MERGE
-
-      ! For binary punch file, v. 2.0
-!      REAL*4              :: ARRAY(IIPAR, JJPAR, LLPAR)
-!      REAL*4              :: LONRES, LATRES
-!
-!      INTEGER             :: IFIRST, JFIRST, LFIRST
-!      INTEGER, PARAMETER  :: HALFPOLAR = 1
-!      INTEGER, PARAMETER  :: CENTER180 = 1
-!
-!      CHARACTER (LEN=20)  :: MODELNAME 
-!      CHARACTER (LEN=40)  :: UNIT
-!      CHARACTER (LEN=40)  :: RESERVED = ''
-!      CHARACTER (LEN=40)  :: CATEGORY 
-!      CHARACTER (LEN=80)  :: LABEL
+      CHARACTER(LEN=17) :: MERGE
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CH4_BUDGET begins here!
       !
       ! Initialize quantities 
       !=================================================================
-!      IFIRST    = GET_XOFFSET() + 1
-!      JFIRST    = GET_YOFFSET() + 1
-!      LFIRST    = 1
-!      LONRES    = DISIZE
-!      LATRES    = DJSIZE
-!
-!      ! Make up a category name for GAMAP (use 8 characters)
-!      CATEGORY  = 'CH4BUDT'
-
-!      ! Get the proper model name for the binary punch file
-!      MODELNAME = GET_MODELNAME()
-
-!      ! Descriptor string
-!      LABEL    = 'GEOS-CHEM -- CH4 Budget output (jsw, bmy, 1/16/01)'
-
-!      ! Unit of quantity being saved
-!      UNIT      = 'Tg'  !(NOTE: check w/ bnd to get the right units!!!)
 
       ! Scale factor for dynamic time steps
       SCALEDYN  = FLOAT( GET_CT_DYN() ) + 1e-20_fp
@@ -1848,15 +1783,15 @@
       ! Store the final burden of CH4 in TCH4(2) 
       ! Convert kg CH4/box to molecules/box.
       !=================================================================
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+
+      ! Point to the chemical species array
+      Spc => State_Chm%Species
 
       TCH4(:,:,:,2) = 0e+0_fp
-      TCH4(:,:,:,2) = STT(:,:,:,1) * XNUMOL_CH4
+      TCH4(:,:,:,2) = Spc(:,:,:,1) * XNUMOL_CH4
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       !=================================================================
       ! Write GLOBAL AVERAGES for all layers to ASCII file
@@ -1868,7 +1803,7 @@
       REWIND( 189 )
       
       TGS     = 1.e-9_fp
-      STTCONV = XNUMOL_CH4/TGS
+      SpcCONV = XNUMOL_CH4/TGS
       SOURCES = 0.e+0_fp
       SINKS   = 0.e+0_fp
       NERROR  = 0
@@ -1889,20 +1824,20 @@
  1990 FORMAT('Tropospheric Burden')
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,1,State_Met)
-      WRITE(189,20)NTP,NTP/STTCONV
+      WRITE(189,20)NTP,NTP/SpcCONV
 
       NTP2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,1,State_Met)
-      WRITE(189,21)NTP2,NTP2/STTCONV
+      WRITE(189,21)NTP2,NTP2/SpcCONV
 
       WRITE(189,18)
       WRITE(189,1991)
  1991 FORMAT('Stratospheric Burden')
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,0,State_Met)
-      WRITE(189,20) NTP,NTP/STTCONV
+      WRITE(189,20) NTP,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,0,State_Met)
-      WRITE(189,21) NTP,NTP/STTCONV
+      WRITE(189,21) NTP,NTP/SpcCONV
       
       WRITE(189,18)
       WRITE(189,31)
@@ -1912,10 +1847,10 @@
       NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,0,State_Met)
       SINKS=NTP+NTQ
 
-      WRITE(189,22) NTP,NTP/SINKS*100.e+0_fp,NTP/STTCONV
-      WRITE(189,220) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/STTCONV
+      WRITE(189,22) NTP,NTP/SINKS*100.e+0_fp,NTP/SpcCONV
+      WRITE(189,220) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/SpcCONV
       WRITE(189,29) 
-      WRITE(189,34) SINKS,SINKS/STTCONV  !Just OH sink 
+      WRITE(189,34) SINKS,SINKS/SpcCONV  !Just OH sink 
       WRITE(189,18)
       WRITE(189,30)
 
@@ -1924,28 +1859,28 @@
       SOURCES=NTP
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,5,5,1,State_Met)
-      WRITE(189,24) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,24) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,9,9,1,State_Met)
-      WRITE(189,27) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,27) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,6,6,1,State_Met)
-      WRITE(189,39) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,39) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,7,7,1,State_Met)
-      WRITE(189,25) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,25) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,8,8,1,State_Met)
-      WRITE(189,26) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,26) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       !jsw Following lines added by jsw.
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,10,10,1,State_Met)
-      WRITE(189,35) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,35) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       SINKS=SINKS-NTP  !Minus sign because soil absorption is negative.
 
       WRITE(189,29) 
-      WRITE(189,28) SOURCES,SOURCES/STTCONV
+      WRITE(189,28) SOURCES,SOURCES/SpcCONV
       WRITE(189,18)
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,1,State_Met)
@@ -1954,10 +1889,10 @@
       NTQ2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,0,State_Met)
       WRITE(189,18)
       WRITE(189,288) NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS,
-     *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/STTCONV
+     *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/SpcCONV
       WRITE(189,18)
       WRITE(189,289) -(NTP-NTP2+NTQ-NTQ2),
-     *     -(NTP-NTP2+NTQ-NTQ2)/STTCONV
+     *     -(NTP-NTP2+NTQ-NTQ2)/SpcCONV
       
       !=================================================================
       ! Write SOUTHERN HEMISPHERE averages to ASCII file
@@ -1975,18 +1910,18 @@
       WRITE(189,1990)
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,1,State_Met)
-      WRITE(189,20) NTP,NTP/STTCONV
+      WRITE(189,20) NTP,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,1,State_Met)
-      WRITE(189,21) NTP,NTP/STTCONV
+      WRITE(189,21) NTP,NTP/SpcCONV
 
       WRITE(189,18)
       WRITE(189,1991)
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,0,State_Met)
-      WRITE(189,20) NTP,NTP/STTCONV
+      WRITE(189,20) NTP,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,0,State_Met)
-      WRITE(189,21) NTP,NTP/STTCONV
+      WRITE(189,21) NTP,NTP/SpcCONV
       WRITE(189,18)
       WRITE(189,31)
 
@@ -2001,19 +1936,19 @@
       NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1,State_Met)
       NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0,State_Met)
       SINKS=SINKS+NTQ+NTQ2
-      WRITE(189,22) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/STTCONV
-      WRITE(189,220) NTQ2,NTQ2/SINKS*100.e+0_fp,NTQ2/STTCONV
+      WRITE(189,22) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/SpcCONV
+      WRITE(189,220) NTQ2,NTQ2/SINKS*100.e+0_fp,NTQ2/SpcCONV
  
       IF(NTP.GE.0.e+0_fp) THEN
-         WRITE(189,270) NTP,NTP/SINKS*100.e+0_fp,NTP/STTCONV
+         WRITE(189,270) NTP,NTP/SINKS*100.e+0_fp,NTP/SpcCONV
       ENDIF
 
       IF(NTP.GE.0.e+0_fp) THEN
-         WRITE(189,2700) NTP,NTP/SINKS*100.e+0_fp,NTP/STTCONV
+         WRITE(189,2700) NTP,NTP/SINKS*100.e+0_fp,NTP/SpcCONV
       ENDIF
       
       WRITE(189,29)
-      WRITE(189,34) SINKS,SINKS/STTCONV
+      WRITE(189,34) SINKS,SINKS/SpcCONV
       WRITE(189,18)
       WRITE(189,30)
       
@@ -2034,23 +1969,23 @@
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,1,State_Met)
       NTP2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0,State_Met)
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,5,5,1,State_Met)
-      WRITE(189,24) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,24) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,6,6,1,State_Met)
-      WRITE(189,39) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,39) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,7,7,1,State_Met)
-      WRITE(189,25) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,25) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,8,8,1,State_Met)
-      WRITE(189,26) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,26) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,9,9,1,State_Met)
-      WRITE(189,27) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,27) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
       
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.LT.0.e+0_fp) THEN
-         WRITE(189,270) -NTP,-NTP/SOURCES*100.e+0_fp,-NTP/STTCONV
+         WRITE(189,270) -NTP,-NTP/SOURCES*100.e+0_fp,-NTP/SpcCONV
       ENDIF
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
@@ -2061,14 +1996,14 @@
       NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1,State_Met)
       NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0,State_Met)
       SINKS=SINKS+NTQ+NTQ2
-      WRITE(189,22) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/STTCONV
+      WRITE(189,22) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/SpcCONV
 
       IF(NTP.LT.0.e+0_fp) THEN
-         WRITE(189,2700) -NTP,-NTP/SOURCES*100.e+0_fp,-NTP/STTCONV
+         WRITE(189,2700) -NTP,-NTP/SOURCES*100.e+0_fp,-NTP/SpcCONV
       ENDIF
       
       WRITE(189,29)
-      WRITE(189,28) SOURCES,SOURCES/STTCONV
+      WRITE(189,28) SOURCES,SOURCES/SpcCONV
       WRITE(189,18)
       
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,1,State_Met)
@@ -2077,10 +2012,10 @@
       NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,0,State_Met)
       WRITE(189,18)
       WRITE(189,288) (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS),
-     *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/STTCONV
+     *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/SpcCONV
       WRITE(189,18)
       WRITE(189,289) -(NTP-NTP2+NTQ-NTQ2),
-     *     -(NTP-NTP2+NTQ-NTQ2)/STTCONV
+     *     -(NTP-NTP2+NTQ-NTQ2)/SpcCONV
 
       !=================================================================
       ! Write NORTHERN HEMISPHERE averages to ASCII file 
@@ -2098,18 +2033,18 @@
       WRITE(189,1990)
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,1,State_Met)
-      WRITE(189,20) NTP,NTP/STTCONV
+      WRITE(189,20) NTP,NTP/SpcCONV
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,1,State_Met)
-      WRITE(189,21) NTP,NTP/STTCONV
+      WRITE(189,21) NTP,NTP/SpcCONV
       
       WRITE(189,18)
       WRITE(189,1991)
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,0,State_Met)
-      WRITE(189,20) NTP,NTP/STTCONV
+      WRITE(189,20) NTP,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,0,State_Met)
-      WRITE(189,21) NTP,NTP/STTCONV
+      WRITE(189,21) NTP,NTP/SpcCONV
       
       WRITE(189,18)
       WRITE(189,31)
@@ -2128,21 +2063,21 @@
          SINKS=SINKS-NTP
       ENDIF
 
-      WRITE(189,22) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/STTCONV
-      WRITE(189,220) NTQ2,NTQ2/SINKS*100.e+0_fp,NTQ2/STTCONV
+      WRITE(189,22) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/SpcCONV
+      WRITE(189,220) NTQ2,NTQ2/SINKS*100.e+0_fp,NTQ2/SpcCONV
       
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.LT.0.e+0_fp) THEN
-         WRITE(189,270) -NTP,-NTP/SINKS*100.e+0_fp,-NTP/STTCONV
+         WRITE(189,270) -NTP,-NTP/SINKS*100.e+0_fp,-NTP/SpcCONV
       ENDIF
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF(NTP.LT.0.e+0_fp) THEN
-         WRITE(189,2700) -NTP,-NTP/SINKS*100.e+0_fp,-NTP/STTCONV
+         WRITE(189,2700) -NTP,-NTP/SINKS*100.e+0_fp,-NTP/SpcCONV
       ENDIF
 
       WRITE(189,29)
-      WRITE(189,34)SINKS,SINKS/STTCONV
+      WRITE(189,34)SINKS,SINKS/SpcCONV
       WRITE(189,18)
       WRITE(189,30)
 
@@ -2165,32 +2100,32 @@
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0,State_Met)
       
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,5,5,1,State_Met)
-      WRITE(189,24) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,24) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,6,6,1,State_Met)
-      WRITE(189,39) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,39) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,7,7,1,State_Met)
-      WRITE(189,25) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,25) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,8,8,1,State_Met)
-      WRITE(189,26) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,26) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,9,9,1,State_Met)
-      WRITE(189,27) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+      WRITE(189,27) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.GE.0.e+0_fp) THEN
-         WRITE(189,270) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+         WRITE(189,270) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
       ENDIF
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF(NTP.GE.0.e+0_fp) THEN
-         WRITE(189,2700) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
+         WRITE(189,2700) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
       ENDIF
 
       WRITE(189,29)
-      WRITE(189,28) SOURCES,SOURCES/STTCONV
+      WRITE(189,28) SOURCES,SOURCES/SpcCONV
       WRITE(189,18)
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,1,State_Met)
@@ -2199,10 +2134,10 @@
       NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,0,State_Met)
       WRITE(189,18)
       WRITE(189,288) (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS),
-     *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/STTCONV
+     *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/SpcCONV
       WRITE(189,18)
       WRITE(189,289) -(NTP-NTP2+NTQ-NTQ2),
-     *     -(NTP-NTP2+NTQ-NTQ2)/STTCONV
+     *     -(NTP-NTP2+NTQ-NTQ2)/SpcCONV
 
  18   FORMAT()
  19   FORMAT('                    #Molecules               TG')
@@ -2232,36 +2167,13 @@
       
       CLOSE(189)
 
-!     !=================================================================
-!     ! Also save to binary punch file. Don't save the bpunch file 
-!     ! anymore, because it's not used. Keep the code for reference.
-!     ! The code creates the bpunch file fort.190. Should use a diag.
-!     ! instead. (ccc, 8/14/09)
-!     !=================================================================
-!     CALL BPCH2_HDR( 190, LABEL )
-!
-!     DO K = 1, N_CH4
-!       
-!        ! Cast REAL(fp) into REAL*4, convert from molec to Tg
-!        ARRAY(:,:,:) = TCH4(:,:,:,K) / STTCONV
-!       
-!        ! Save the data block 
-!        CALL BPCH2( 190,       MODELNAME,   LONRES,      LATRES,
-!    &               HALFPOLAR, CENTER180,   CATEGORY,    K,     
-!    &               UNIT,      GET_DIAGB(), GET_DIAGb(), RESERVED, 
-!    &               IIPAR,     JJPAR,       LLPAR,       IFIRST,  
-!    &               JFIRST,    LFIRST,      ARRAY )
-!     ENDDO
-!
-!     CLOSE(190)
-
       !=================================================================
       ! Final burden at last of month equals initial burden
       ! of next month.  Also set TCH4 = 0 for next month.
       !=================================================================
       TCH4(:,:,:,1      ) = TCH4(:,:,:,2)
       TCH4(:,:,:,2:N_CH4) = 0e+0_fp
-	
+
       END SUBROUTINE CH4_BUDGET
 !EOC
 !------------------------------------------------------------------------------
@@ -2289,14 +2201,14 @@
       USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_CHEMGRID
       USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod
+      USE State_Met_Mod,     ONLY : State_Met
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: I1, I2 ! Min/max longitude indices of TCH4 to sum
       INTEGER, INTENT(IN) :: J1, J2 ! Min/max latitude  indices of TCH4 to sum 
       INTEGER, INTENT(IN) :: L1, L2 ! Min/max altitude  indices of TCH4 to sum
-      INTEGER, INTENT(IN) :: K1, K2 ! Min/max tracer    indices of TCH4 to sum
+      INTEGER, INTENT(IN) :: K1, K2 ! Min/max species   indices of TCH4 to sum
       INTEGER, INTENT(IN) :: UPDOWN ! Sum in trop (=1) or in strat (=0)
 
       ! Also need to pass the State_Met for the CHEMGRID functons
@@ -2398,7 +2310,7 @@
 ! !IROUTINE: ch4_distrib
 !
 ! !DESCRIPTION: Subroutine CH4\_DISTRIB allocates the chemistry sink to
-!  different emission tracers. (ccc, 10/2/09)
+!  different emission species. (ccc, 10/2/09)
 !\\
 !\\
 ! !INTERFACE:
@@ -2408,9 +2320,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE ERROR_MOD,          ONLY : SAFE_DIV
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
    
       IMPLICIT NONE
 !
@@ -2427,6 +2339,8 @@
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm args
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2434,26 +2348,23 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER         :: N_TRACERS
-      INTEGER         :: N, I, J, L
+      INTEGER           :: I, J, L, N, NA, nAdvect
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !========================================================================
       ! CH4_DISTRIB begins here
       !========================================================================
 
-      ! Copy values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Loop over the number of advected species
+      DO NA = 2, nAdvect
 
-      DO N=2,N_TRACERS
+         ! Advected species ID
+         N = State_Chm%Map_Advect(NA)
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -2461,8 +2372,8 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-           STT(I,J,L,N) = SAFE_DIV(STT(I,J,L,N),PREVCH4(I,J,L),0.e+0_fp)
-     &                     * STT(I,J,L,1)
+           Spc(I,J,L,N) = SAFE_DIV(Spc(I,J,L,N),PREVCH4(I,J,L),0.e+0_fp)
+     &                     * Spc(I,J,L,1)
          ENDDO
          ENDDO
          ENDDO
@@ -2471,7 +2382,7 @@
       ENDDO
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE CH4_DISTRIB
 !EOC
@@ -2493,14 +2404,13 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTCH4
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN) :: I           ! GEOS-Chem longitude index
       INTEGER,        INTENT(IN) :: J           ! GEOS-Chem latitude index
-      INTEGER,        INTENT(IN) :: N           ! GEOS-Chem tracer index
+      INTEGER,        INTENT(IN) :: N           ! GEOS-Chem species index
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options!
 !
 ! !RETURN VALUE:
@@ -2526,7 +2436,7 @@
       ! Copy fields from INPUT_OPT
       LCH4EMIS = Input_Opt%LCH4EMIS
 
-      IF (( LCH4EMIS ).and.( N == IDTCH4 )) THEN
+      IF (( LCH4EMIS ).and.( N == id_CH4 )) THEN
          CH4_ANTHRO = SUMANTHRO(I,J)
       ELSE
          CH4_ANTHRO = -1e+0_fp
@@ -2552,14 +2462,13 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTCH4
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN) :: I           ! GEOS-Chem longitude index
       INTEGER,        INTENT(IN) :: J           ! GEOS-Chem latitude index
-      INTEGER,        INTENT(IN) :: N           ! GEOS-Chem tracer index
+      INTEGER,        INTENT(IN) :: N           ! GEOS-Chem species index
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options!
 !
 ! !RETURN VALUE:
@@ -2585,7 +2494,7 @@
       ! Copy fields from INPUT_OPT
       LCH4EMIS = Input_Opt%LCH4EMIS
 
-      IF (( LCH4EMIS ).and.( N == IDTCH4 )) THEN
+      IF (( LCH4EMIS ).and.( N == id_CH4 )) THEN
          CH4_BIOG = SUMBIOG(I,J)
       ELSE
          CH4_BIOG = -1e+0_fp
@@ -2612,9 +2521,11 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -2626,7 +2537,7 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  This routine is called from GIGC_INIT_EXTRA (in GeosCore/input_mod.f)
+!  This routine is called from GC_INIT_EXTRA (in GeosCore/input_mod.f)
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
@@ -2634,6 +2545,9 @@
 !  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
 !                              code out with #ifdef blocks so it can be used
 !  11 Apr 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
+!  16 Jun 2016 - M. Sulprizio- Now define IDT_CH4 locally
+!  20 Jun 2016 - R. Yantosca - Rename IDTCH4 to id_CH4 for consistency
+!  20 Jun 2016 - R. Yantosca - Now stop run if id_CH4 is undefined
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2647,28 +2561,20 @@
       !=================================================================
 
       ! Assume Success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
-!      ALLOCATE( AVGOH( NSEAS, NCMSLATS, NCMSALTS ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGOH' )
-!      AVGOH = 0e+0_fp
+      ! Define species ID flag
+      id_CH4 = Ind_('CH4')
+
+      ! Make sure CH4 is a defined species (bmy, 6/20/16)
+      IF ( id_CH4 <= 0 ) THEN
+         CALL ERROR_STOP( 'CH4 is an undefined species!',
+     &                    'INIT_CH4 (GeosCore/global_ch4_mod.F)' )
+      ENDIF
 
       ALLOCATE( BAIRDENS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BAIRDENS' )
       BAIRDENS = 0e+0_fp
-
-!      ALLOCATE( BOH( IIPAR, JJPAR, LLPAR, 12 ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BOH' )
-!      BOH = 0e+0_fp
-
-!      ALLOCATE( COPROD( JJPAR, LLPAR, 12 ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'COPROD' )
-!      COPROD = 0e+0_fp
-
-!      ALLOCATE( CH4LOSS( IIPAR, JJPAR, LLPAR, 12 ), STAT=AS )
-!      ALLOCATE( CH4LOSS( IIPAR, JJPAR, LLPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4LOSS' )
-!      CH4LOSS = 0e+0_fp
 
       ALLOCATE( PAVG( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PAVG' )
@@ -2730,9 +2636,6 @@
       !=================================================================
 
       IF ( ALLOCATED( BAIRDENS  ) ) DEALLOCATE( BAIRDENS  )
-!      IF ( ALLOCATED( BOH       ) ) DEALLOCATE( BOH       )
-!      IF ( ALLOCATED( COPROD    ) ) DEALLOCATE( COPROD    )
-!      IF ( ALLOCATED( CH4LOSS   ) ) DEALLOCATE( CH4LOSS   )
       IF ( ASSOCIATED( BOH      ) ) BOH     => NULL()
       IF ( ASSOCIATED( CH4LOSS  ) ) CH4LOSS => NULL()
 #if defined( USE_CH4_BUDGET_DIAG )

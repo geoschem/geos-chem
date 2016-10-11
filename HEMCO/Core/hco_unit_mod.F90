@@ -48,6 +48,8 @@ MODULE HCO_Unit_Mod
 !  16 Mar 2015 - R. Yantosca - Add dobsons and dobsons/day units
 !  16 Jun 2015 - R. Yantosca - Add % and percent to the unitless list
 !  07 Jan 2016 - E. Lundgren - Update Avogadro's # to NIST 2014 value
+!  19 Sep 2016 - R. Yantosca - Make sure all strings are the same length in
+!                              the array constructor or Gfortran will choke
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,13 +116,12 @@ MODULE HCO_Unit_Mod
 
   ! Emission units
   INTEGER,           PARAMETER :: NHE = 6
-  CHARACTER(LEN=15), PARAMETER :: HE(NHE) = (/ 'kg/m2/s    ', &
-                                               'kgc/m2/s   ', &
-                                               'kg(c)/m2/s ', &
-                                               'kgm-2s-1   ', &
-                                               'kgcm-2s-1  ', &
+  CHARACTER(LEN=15), PARAMETER :: HE(NHE) = (/ 'kg/m2/s    ',   &
+                                               'kgc/m2/s   ',   &
+                                               'kg(c)/m2/s ',   &
+                                               'kgm-2s-1   ',   &
+                                               'kgcm-2s-1  ',   &
                                                'kg(c)m-2s-1'  /)
-
   ! Concentration units
   INTEGER,           PARAMETER :: NHC = 3
   CHARACTER(LEN=15), PARAMETER :: HC(NHC) = (/ 'kg/m3 ',        &

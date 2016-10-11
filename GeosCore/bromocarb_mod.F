@@ -44,21 +44,23 @@
 ! !DEFINED PARAMETERS:
 !
       ! Molecular weight of CHBr3  [kg/mol]
-      REAL(fp),  PARAMETER   :: MWT_CHBr3  = 2.53e-1_fp
+      REAL(fp), PARAMETER :: MWT_CHBr3  = 2.53e-1_fp
 
       ! Molecular weight of CH2Br2 [kg/mol]
-      REAL(fp),  PARAMETER   :: MWT_CH2Br2 = 1.74e-1_fp
+      REAL(fp), PARAMETER :: MWT_CH2Br2 = 1.74e-1_fp
 
       ! Number of elements for TOT_OC_AREA
-      INTEGER, PARAMETER   :: NUM_REGIONS = 2
+      INTEGER,  PARAMETER :: NUM_REGIONS = 2
 !
 ! PRIVATE TYPES:
 !
       ! Surface area of the box; only depends on latitude
-      REAL(fp)               :: A_M2
+      REAL(fp)            :: A_M2
 
-      LOGICAL, SAVE        :: FIRST_INIT = .TRUE.
-
+      ! Species ID flags
+      INTEGER             :: id_CH3Br
+      INTEGER             :: id_BrO
+      
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -82,13 +84,15 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PhysConstants,      ONLY : AIRMW
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -105,7 +109,7 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS: 
-!   1) STT is converted back and forth between units of [kg] and
+!   1) Spc is converted back and forth between units of [kg] and
 !      [v/v]. Placement of the call to SET_CH3Br in main.f (it's
 !      with the emissions) means that it should be in [kg].
 !
@@ -121,6 +125,9 @@
 !  10 Sep 2015 - E. Lundgren - Modification for State_Chm%TRACERS units 
 !                              now in kg/kg dry air (previously kg/box)
 !  10 Sep 2015 - E. Lundgren - Remove passed argument 'unitflag'
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  25 Jul 2016 - M. Yannetti - Replaced TCVV with MW from spec db and phys const
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -135,52 +142,50 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I,  J,  L,  N
-      INTEGER             :: CH3Br_sel
+      ! SAVEd scalars 
+      LOGICAL             :: FIRST = .TRUE.
+
+      ! Scalars
+      INTEGER             :: I,  J,  L
       REAL(fp)            :: CH3Br_conc
       REAL(fp)            :: LAT_MID
 
-      ! For values from Input_Opt
-      INTEGER             :: N_TRACERS
-      REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
-      REAL(fp),   POINTER :: STT(:,:,:,:)
+      ! Pointers
+      REAL(fp),   POINTER :: Spc(:,:,:,:)
 
-      !===================================
-      ! Initializing Variables
-      !===================================
+      !=================================================================
+      ! Initialization
+      !=================================================================
 
-      ! Get fields from derived-type objects
-      N_TRACERS  =  Input_Opt%N_TRACERS
-      TCVV       =  Input_Opt%TCVV(1:N_TRACERS)
-      STT        => State_Chm%TRACERS
-
-      ! Zero
-      LAT_MID    = 0e+0_fp
-      CH3Br_conc = 0e+0_fp
-
-      ! get ID # for CH3Br
-      DO N = 1, N_TRACERS
-         IF( Input_Opt%TRACER_NAME(N) == 'CH3Br') THEN
-            CH3Br_sel = N
-         ENDIF
-      ENDDO
+      ! Locate the species ID of CH3Br on the first call
+      IF ( FIRST ) THEN
+         id_CH3Br = Ind_('CH3Br')
+         FIRST    = .FALSE.
+      ENDIF
 
       ! Return if CH3Br is not found
-      IF ( CH3Br_sel <= 0 .and. am_I_Root ) THEN
+      IF ( id_CH3Br <= 0 .and. am_I_Root ) THEN
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, '(a)' ) 'SET_CH3Br: CH3Br not found, so do not'
-         WRITE( 6, '(a)' ) 'set concentrations in STT'
+         WRITE( 6, '(a)' ) 'set concentrations in Spc'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          RETURN 
       ENDIF
 
-      ! Check that tracer units are in kg/kg dry air (ewl, 9/10/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-         CALL GIGC_Error( 'Incorrect tracer units: ' //
-     &                    State_Chm%Trac_Units, RC, 
-     &                    'Routine SET_CH3Br in bromocarb_mod.F' )
+      ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+         CALL GC_Error( 'Incorrect species units: ' //
+     &                  State_Chm%Spc_Units, RC, 
+     &                  'Routine SET_CH3Br in bromocarb_mod.F' )
          RETURN
       ENDIF
+
+      ! Point to the chemical species array [kg/kg dry air]
+      Spc        => State_Chm%Species
+
+      ! Zero
+      LAT_MID    = 0e+0_fp
+      CH3Br_conc = 0e+0_fp
 
       !=================================================================
       ! SET_CH3Br begins here!
@@ -213,8 +218,9 @@
             ENDIF
 
             ! Convert the [v/v] CH3Br conc units (dry air) to [kg/kg] 
-            ! when setting tracer concentration (ewl, 9/10/15)
-            STT(I,J,L,CH3Br_sel) = CH3Br_conc / TCVV(CH3Br_sel)
+            ! when setting species concentration (ewl, 9/10/15)
+            Spc(I,J,L,id_CH3Br) = CH3Br_conc / ( AIRMW / 
+     &                         State_Chm%SpcData(id_CH3Br)%Info%emMW_g )
                
          ENDIF  ! end selection of PBL boxes
 
@@ -224,7 +230,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE SET_CH3Br
 !EOC
@@ -251,12 +257,14 @@
 !
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PhysConstants,      ONLY : AIRMW
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -273,7 +281,7 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!   1) STT is converted back and forth between units of [kg] and
+!   1) Spc is converted back and forth between units of [kg] and
 !      [v/v]. Placement of the call to SET_Bro in main.f (it's
 !      with the emissions) means that it should be in [kg].
 !
@@ -290,66 +298,69 @@
 !  10 Sep 2015 - E. Lundgren - Modification for State_Chm%TRACERS units 
 !                              now in kg/kg dry air (previously kg/box)
 !  10 Sep 2015 - E. Lundgren - Remove passed argument 'unitflag'
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  25 Jul 2016 - M. Yannetti - Replaced TCVV with MW from spec db and phys const
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! SAVEd scalars 
+      LOGICAL           :: FIRST = .TRUE.
+
       ! Scalars
-      INTEGER           :: I,  J,  L,  N, N_TRACERS, BrO_sel
+      INTEGER           :: I,  J,  L,  N
       REAL(fp)          :: BrO_conc
 
       ! Pointers
-      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !====================================================================
       ! SET_BrO begins here!
       !====================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
+
+      ! Get the species ID for BrO only on the first call
+      IF ( FIRST ) THEN
+         id_BrO = Ind_('BrO')
+         FIRST  = .FALSE.
+      ENDIF
+
+      ! Return if BrO is not found
+      IF ( id_BrO <= 0 ) THEN
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, '(a)' ) 'SET_BrO: BrO not found, so do not'
+         WRITE( 6, '(a)' ) 'set concentrations in Spc'
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         RETURN 
+      ENDIF
 
       ! -----------------------------------------
       ! If we aren't using this 1pptv experiment
-      ! then return without updating STT array.
+      ! then return without updating Spc array.
       ! -----------------------------------------
       IF ( .not. Input_Opt%LFIX_PBL_BRO ) THEN
          RETURN
       ENDIF
 
+      ! Point to the chemical species array [kg/kg dry air]
       ! Reference fields in derived-type objects
-      N_TRACERS =  Input_Opt%N_TRACERS
-      TCVV      =  Input_Opt%TCVV(1:N_TRACERS)
-      STT       => State_Chm%TRACERS
+      Spc => State_Chm%Species
 
       ! ------------------------------------------------------
       ! Set the BrO concentration to 1 pptv inside the PBL.
       ! ------------------------------------------------------
       BrO_conc = 1.0e-12_fp
 
-      ! get ID # for Bro
-      DO N = 1, N_TRACERS
-         IF( Input_Opt%TRACER_NAME(N) == 'BrO') THEN
-            BrO_sel = N
-         ENDIF
-      ENDDO
-
-      ! Return if BrO is not found
-      IF ( BrO_sel <= 0 ) THEN
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         WRITE( 6, '(a)' ) 'SET_BrO: BrO not found, so do not'
-         WRITE( 6, '(a)' ) 'set concentrations in STT'
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         RETURN 
-      ENDIF
-
-      ! Check that tracer units are in kg/kg dry air (ewl, 9/10/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-         CALL GIGC_Error( 'Incorrect tracer units: ' //
-     &                    State_Chm%Trac_Units, RC, 
-     &                    'Routine SET_BrO in bromocarb_mod.F' )
+      ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+         CALL GC_Error( 'Incorrect species units: ' //
+     &                  State_Chm%Spc_Units, RC, 
+     &                  'Routine SET_BrO in bromocarb_mod.F' )
          RETURN
       ENDIF
 
@@ -392,26 +403,10 @@
             DO L = 1, LLPAR
                IF ( GET_FRAC_UNDER_PBLTOP( I, J, L ) > 0d0 ) THEN
 
-! old:
-!                  ! Make sure we're using the correct units
-!                  IF ( unit_flag ) THEN
-!                     ! If the flag is true, then STT has been
-!                     ! converted from kg/box to v/v mixing ratio.
-!                     ! so we must supply v/v
-!                     STT(I,J,L,BrO_sel) = BrO_conc
-!                  ELSE
-!                     ! Now convert the [v/v] units to [kg]
-!                     ! as in convert_units subroutine in dao_mod.f
-!                     STT(I,J,L,BrO_sel) = BrO_conc * 
-!     &                                    State_Met%AD(I,J,L) /
-!     &                                    TCVV(BrO_sel)
-!                  ENDIF
-!
-! new:
                   ! Convert the [v/v] BrO conc units (dry air) to [kg/kg] 
-                  ! when setting tracer concentration (ewl, 9/10/15)
-                  STT(I,J,L,BrO_sel) = BrO_conc / TCVV(BrO_sel)
-! end new (ewl)
+                  ! when setting species concentration (ewl, 9/10/15)
+                  Spc(I,J,L,id_BrO) = BrO_conc / ( AIRMW 
+     &                       / State_Chm%SpcData(id_BrO)%Info%emMW_g )
 
                ENDIF            ! end selection of PBL boxes
 
@@ -421,9 +416,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
-
-      RETURN
+      Spc => NULL()
 
       END SUBROUTINE SET_BRO
 !EOC

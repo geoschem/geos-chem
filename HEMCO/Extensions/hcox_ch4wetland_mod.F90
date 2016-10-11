@@ -25,7 +25,7 @@
 ! factor of 1.1, as well as applying the gridded factors NAFIELD and EUFIELD to 
 ! CH4\_NA and CH4\_EU, respectively:
 !
-!121     CH4_WETLANDS       : on    CH4/CH4\_NA/CH4\_EU
+!121     CH4\_WETLANDS      : on    CH4/CH4\_NA/CH4\_EU
 !    --> Wetlands           :       true
 !    --> Rice               :       true
 !    --> Scaling\_CH4\_NA   :       1.10

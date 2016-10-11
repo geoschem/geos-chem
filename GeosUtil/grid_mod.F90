@@ -17,9 +17,9 @@ MODULE Grid_Mod
 ! 
 ! !USES:
 !
-  USE PHYSCONSTANTS    ! Physical constants
   USE Error_Mod        ! Error-handling routines
   USE Precision_Mod    ! For GEOS-Chem Precision (fp)
+  USE PhysConstants    ! Physical constants
 
   IMPLICIT NONE
   PRIVATE
@@ -112,7 +112,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -154,7 +154,7 @@ CONTAINS
   !======================================================================
 
   ! Assume success
-  RC = GIGC_SUCCESS
+  RC = GC_SUCCESS
 
   ! Compute the GEOS-Chem grid specifications
   Call DoGridComputation( am_I_Root,                                     &
@@ -187,7 +187,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -382,7 +382,7 @@ CONTAINS
           ! Lat centers (radians)
           YMDR(I,J,L)   = ( PI_180 * YMD(I,J,L)  )
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_SE )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_AS )
 
           !----------------------------------------------------------------
           !              %%%%% FOR NESTED GRIDS ONLY %%%%%
@@ -430,13 +430,6 @@ CONTAINS
           YDGR(I,J,L)   = ( PI_180  * YDG(I,J,L) )
           
           ! mjc - Compute sine of latitude edges (needed for map_a2a regrid)
-!------------------------------------------------------------------------------
-! Prior to 3/26/15:
-! Fix apparent optimization error.  Now pass a scalar to the SIN function.
-! Also save the result of SIN in a scalar before storing in the YSN array.
-! Don't know why this happens but this seems to fix it. (bmy, 3/26/15)
-!             YSN(I,J,L) = SIN ( YDGR(I,J,L) )
-!------------------------------------------------------------------------------
           YEDGE_VAL     = YDGR(I,J,L)           ! Lat edge in radians
           YSIN_VAL      = SIN( YEDGE_VAL )      ! SIN( lat edge )
           YSN(I,J,L)    = YSIN_VAL              ! Store in YSN array
@@ -472,14 +465,7 @@ CONTAINS
 #endif
           YDGR(I,J2+1,L)   = YDG(I,J2+1,L) * PI_180
 
-             ! Also compute sine of last latitude edge! (ckeller, 02/13/12)
-!------------------------------------------------------------------------------
-! Prior to 3/26/15:
-! Fix apparent optimization error.  Now pass a scalar to the SIN function.
-! Also save the result of SIN in a scalar before storing in the YSN array.
-! Don't know why this happens but this seems to fix it. (bmy, 3/26/15)
-!             YSN(I,J2+1,L) = SIN ( YDGR(I,J2+1,L) )
-!------------------------------------------------------------------------------
+          ! Also compute sine of last latitude edge! (ckeller, 02/13/12)
           YEDGE_VAL        = YDGR(I,J2+1,L)     ! Lat edge in radians
           YSIN_VAL         = SIN( YEDGE_VAL )   ! SIN( lat edge )
           YSN(I,J2+1,L)    = YSIN_VAL           ! Store in YSN array
@@ -498,13 +484,6 @@ CONTAINS
           YDGR(I,J2+1,L)  = YDG(I,J2+1,L) * PI_180
 
           ! Also compute sine of last latitude edge! (ckeller, 02/13/12)
-!------------------------------------------------------------------------------
-! Prior to 3/26/15:
-! Fix apparent optimization error.  Now pass a scalar to the SIN function.
-! Also save the result of SIN in a scalar before storing in the YSN array.
-! Don't know why this happens but this seems to fix it. (bmy, 3/26/15)
-!             YSN(I,J2+1,L) = SIN ( YDGR(I,J2+1,L) )
-!------------------------------------------------------------------------------
           YEDGE_VAL       = YDGR(I,J2+1,L)
           YSIN_VAL        = SIN( YEDGE_VAL )
           YSN(I,J2+1,L)   = YSIN_VAL
@@ -667,7 +646,7 @@ CONTAINS
     ENDDO
 
     ! Return successfully
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     !======================================================================
     ! Echo info to stdout
@@ -716,7 +695,7 @@ CONTAINS
 !
 ! USES
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -760,7 +739,7 @@ CONTAINS
     IF ( NX /= NI .OR. NY /= NJ ) THEN
        WRITE(MSG,*) 'Grid dimension mismatch: ',NX,'/=',NI,' and/or ',NY,'/=',NJ
        CALL ERROR_STOP ( MSG, 'SetGridFromCtr (grid_mod.F90)' )
-       RC = GIGC_FAILURE
+       RC = GC_FAILURE
        RETURN
     ENDIF
 
@@ -803,13 +782,6 @@ CONTAINS
 
        ! Special quantities directly derived from YEDGE
        YEDGE_R(I,J,L)   = YEDGE(I,J,L) * PI_180
-!------------------------------------------------------------------------------
-! Prior to 3/26/15:
-! Fix apparent optimization error.  Now pass a scalar to the SIN function.
-! Also save the result of SIN in a scalar before storing in the YSN array.
-! Don't know why this happens but this seems to fix it. (bmy, 3/26/15)
-!       YSIN(I,J,L)      = SIN( YEDGE_R(I,J,L) )
-!------------------------------------------------------------------------------
        YEDGE_VAL        = YEDGE_R(I,J,L)           ! Lat edge [radians]
        YSIN_VAL         = SIN( YEDGE_VAL)          ! SIN( lat edge )
        YSIN(I,J,L)      = YSIN_VAL                 ! Store in YSIN array
@@ -819,7 +791,7 @@ CONTAINS
     ENDDO 
 
     ! Return w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE SetGridFromCtr
 !EOC
@@ -1188,7 +1160,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_SE )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_AS )
 
     ! For nested grids, return the latitude center of the window
     ! region (in radians)
@@ -1497,8 +1469,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1532,7 +1504,7 @@ CONTAINS
     !======================================================================
 
     ! Assume success
-    RC        = GIGC_SUCCESS
+    RC        = GC_SUCCESS
 
     ! IS_NESTED is now a local shadow variable (bmy, 4/1/15)
     IS_NESTED = Input_Opt%ITS_A_NESTED_GRID

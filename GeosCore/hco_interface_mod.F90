@@ -211,7 +211,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION GetHcoID( name, TrcID ) RESULT ( HcoID )
+  FUNCTION GetHcoID( name, SpcID ) RESULT ( HcoID )
 !
 ! !USES:
 !
@@ -220,7 +220,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: Name  ! Tracer name 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: TrcID ! Tracer ID 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: SpcID ! Tracer ID 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -238,9 +238,9 @@ CONTAINS
     HcoID = -1
 
     ! To get HEMCO ID by tracer ID
-    IF ( PRESENT(TrcID) ) THEN
+    IF ( PRESENT(SpcID) ) THEN
 !       IF ( TrcID > 0 ) HcoID = M2HID(TrcID)%ID
-       IF ( TrcID > 0 ) HcoID = TrcID 
+       IF ( SpcID > 0 ) HcoID = SpcID 
     ENDIF
     IF ( PRESENT(name) ) THEN
        HcoID = HCO_GetHcoID( name, HcoState )

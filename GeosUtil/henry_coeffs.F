@@ -14,8 +14,6 @@
 !
 ! !USES:
 !
-!      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
- 
       IMPLICIT NONE
       PRIVATE
 !
@@ -55,25 +53,28 @@
       ! Constants to be used for each tracer
       INTEGER,           PARAMETER :: N = 4
 
-      CHARACTER(LEN=31), PARAMETER :: NAME(N) = (/ 'H2O2',   ! Jacob et al. 2000 
-     &                                             'CH3I',   ! Moore et al. 1995
-     &                                             'DMS',    ! De Bruyn et al. 1995
-     &                                             'ACET' /) ! Benkelberg et al. 1995
+      ! NOTE: GFORTRAN throws a hissy fit if the names in the array 
+      ! constructor are not all the same length (bmy, 9/19/16)
+      CHARACTER(LEN=31), PARAMETER :: NAME(N) = (/
+     &  'H2O2',   ! Jacob et al. 2000 
+     &  'CH3I',   ! Moore et al. 1995
+     &  'DMS ',   ! De Bruyn et al. 1995
+     &  'ACET' /) ! Benkelberg et al. 1995
 
       REAL*8,          PARAMETER :: K0(N)   = (/ 8.3d+4,  
-     &                                             1.4d-1,
-     &                                             4.8d-1, 
-     &                                             27d+0   /)
+     &                                           1.4d-1,
+     &                                           4.8d-1, 
+     &                                           27d+0   /)
 
       REAL*8,          PARAMETER :: CR(N)   = (/ 7.4d+3,  
-     &                                             4.3d+3,
-     &                                             3.1d+3,  
-     &                                             5300d+0 /) 
+     &                                           4.3d+3,
+     &                                           3.1d+3,  
+     &                                           5300d+0 /) 
 
       REAL*8,          PARAMETER :: PKa(N)  = (/ -999d+0, 
-     &                                             -999d+0,
-     &                                             -999d+0, 
-     &                                             -999d+0 /) 
+     &                                           -999d+0,
+     &                                           -999d+0, 
+     &                                           -999d+0 /) 
 
       CONTAINS
 !EOC

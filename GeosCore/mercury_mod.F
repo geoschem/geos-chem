@@ -8,7 +8,7 @@
 ! !DESCRIPTION: Module MERCURY\_MOD contains variables and routines for the 
 !  GEOS-CHEM mercury simulation.  Many choices of reaction mechanism and 
 !  model processes can be selected with logical switches located in 
-!  INIT_MERCURY.
+!  INIT\_MERCURY.
 !\\
 !\\
 ! !INTERFACE:
@@ -17,9 +17,8 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS             ! physical parameters
-      USE DEPO_MERCURY_MOD , ONLY : ADD_HG2_SNOWPACK
-      USE DEPO_MERCURY_MOD , ONLY : LHGSNOW
+      USE DEPO_MERCURY_MOD,  ONLY : ADD_HG2_SNOWPACK
+      USE DEPO_MERCURY_MOD,  ONLY : LHGSNOW
       USE OCEAN_MERCURY_MOD, ONLY : LDYNSEASALT
       USE OCEAN_MERCURY_MOD, ONLY : LGCAPEMIS
       USE OCEAN_MERCURY_MOD, ONLY : LPOLARBR
@@ -37,8 +36,8 @@
       USE OCEAN_MERCURY_MOD, ONLY : LNEI2005
       USE OCEAN_MERCURY_MOD, ONLY : LInPlume    
       USE OCEAN_MERCURY_MOD, ONLY : LOCEANCOEF
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PhysConstants           ! Physical constants
+      USE PRECISION_MOD           ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -77,11 +76,11 @@
 !  (2 ) Hg(II) a.k.a. Hg2  : Divalent    mercury
 !  (3 ) HgP                : Particulate mercury
 !                                                                             .
-!  Mercury Tracers (1-3 are always defined; 4-87 are defined for tagged runs)
+!  Mercury Species (1-3 are always defined; 4-87 are defined for tagged runs)
 !  ============================================================================
-!  (1 ) Hg(0)              : Hg(0)  - total tracer
-!  (2 ) Hg(II)             : Hg(II) - total tracer 
-!  (3 ) HgP                : HgP    - total tracer
+!  (1 ) Hg(0)              : Hg(0)  - total species
+!  (2 ) Hg(II)             : Hg(II) - total species 
+!  (3 ) HgP                : HgP    - total species
 !  ------------------------+---------------------------------------------------
 !  (4 ) Hg0_can            : Hg(0) - Canadian Anthropogenic
 !  (5 ) Hg0_usa            : Hg(0) - USA Anthropogenic
@@ -183,6 +182,8 @@
 !  10 Aug 2015 - J. Fisher   - Updated treatment of polar BrO chemistry
 !                              (orig. 29/11/11)
 !  05 Jan 2016 - E. Lundgren - Now use global dry air gas and Henry's Law consts
+!  31 May 2016 - E. Lundgren - Replace Input_Opt%XNUMOL with AVO / (emMW_g*1e-3)
+!                              where emMW_g is emitted MW from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -190,7 +191,7 @@
 ! !PRIVATE TYPES:
 !
       ! Parameters
-      REAL(fp),  PARAMETER   :: SMALLNUM = 1e-20_fp
+      REAL(fp),  PARAMETER  :: SMALLNUM = 1e-20_fp
 
       ! Arrays
       INTEGER,  ALLOCATABLE :: AN_Hg0(:,:)    ! Index array for anth Hg0 regions
@@ -274,9 +275,32 @@
 
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared REAL(f4), aka REAL*4.
+      ! (NOTE: We can set them to NULL here because 
+      ! they are globally SAVEd variables (bmy, 4/29/16)
       REAL(f4), POINTER :: O3  (:,:,:) => NULL()
       REAL(f4), POINTER :: OH  (:,:,:) => NULL()
       REAL(f4), POINTER :: JNO2(:,:,:) => NULL()
+
+      ! Hg species IDs
+      INTEGER           :: N_Hg_CATS
+      INTEGER           :: id_Hg0,     id_Hg2,     id_HgP
+      INTEGER           :: ID_Hg_tot,  ID_Hg_can,  ID_Hg_usa
+      INTEGER           :: ID_Hg_cam,  ID_Hg_sam,  ID_Hg_waf
+      INTEGER           :: ID_Hg_eaf,  ID_Hg_saf,  ID_Hg_naf
+      INTEGER           :: ID_Hg_eur,  ID_Hg_eeu,  ID_Hg_sov
+      INTEGER           :: ID_Hg_mde,  ID_Hg_sas,  ID_Hg_eas
+      INTEGER           :: ID_Hg_sea,  ID_Hg_jpn,  ID_Hg_oce
+      INTEGER           :: ID_Hg_so,   ID_Hg_bb,   ID_Hg_geo
+      INTEGER           :: ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
+      INTEGER           :: ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
+      INTEGER           :: ID_Hg_ocn,  ID_Hg_str
+
+      ! Pointers for Hg indexing
+      ! (NOTE: We can set them to NULL here because 
+      ! they are globally SAVEd variables (bmy, 4/29/16)
+      INTEGER, POINTER  :: Hg0_Id_List(:) => NULL()
+      INTEGER, POINTER  :: Hg2_Id_List(:) => NULL()
+      INTEGER, POINTER  :: HgP_Id_List(:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -322,30 +346,23 @@
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SS,  LD03
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SSR, ND03 
       USE DIAG03_MOD,         ONLY : AD03_Br
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_A3 
-      USE TRACERID_MOD,       ONLY : ID_Hg0
-      USE TRACERID_MOD,       ONLY : ID_Hg2
-      USE TRACERID_MOD,       ONLY : ID_HgP
-      USE TRACERID_MOD,       ONLY : ID_HG_TOT
-      USE TRACERID_MOD,       ONLY : N_HG_CATS
-      USE TRACERID_MOD,       ONLY : IDTHG2
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -463,43 +480,49 @@
 !  12 Aug 2015 - R. Yantosca - Added support for MERRA2 meteorology
 !  05 Jan 2016 - E. Lundgren - Use Henry's constant from species database and
 !                              calculate dry air gas constant from global params
+!  25 Apr 2016 - R. Yantosca - Now pass Hg category # to ADD_Hg2_* routines
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 
-      LOGICAL, SAVE   :: FIRST = .TRUE.
-      INTEGER         :: I, J, L, K, N, NN, MONTH, NSTEPS
-      REAL(fp)        :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
-      REAL(fp)        :: C_OH, C_O3, C_BR, C_BRO
-      REAL(fp)        :: K_OH, K_O3, K_BR, K_BRO
-      REAL(fp)        :: K_OX, K_RED, K_DEP0, K_DEP2G, K_DEP2P
-      REAL(fp)        :: DEP_Hg0, DEP_HG2G, DEP_HG2P
-      REAL(fp)        :: DEP_HG2G_DRY, DEP_HG2G_SALT, DEP_HG2P_DRY
-      REAL(fp)        :: DEP_HG2_DRY
-      REAL(fp)        :: GROSS_OX, GROSS_OX_BR, GROSS_OX_OH, GROSS_OX_O3
-      REAL(fp)        :: GROSS_RED, NET_OX
-      REAL(fp)        :: F_PBL, FC, Faq, LWC
-      REAL(fp)        :: AREA_CM2, DEP_DRY_FLX
-      REAL(fp)        :: F_HG0_DEP
-      REAL(fp)        :: DTCHEM, DT
-      REAL(fp)        :: KMAX
-      REAL(fp)        :: A(9,9), Xold(9), Xnew(9)
-      REAL(fp)        :: s1(9), s2(9), s3(9), s4(9)
-      REAL(fp)        :: K0, R_DRY
+      ! SAVEd scalars
+      LOGICAL, SAVE      :: FIRST = .TRUE.
 
-      ! For values from Input_Opt
-      LOGICAL         :: LDYNOCEAN
-      LOGICAL         :: LGTMM 
-      LOGICAL         :: LNLPBL
-      LOGICAL         :: LPRT
-      INTEGER         :: N_TRACERS
-      REAL(fp)        :: XNUMOL(Input_Opt%N_TRACERS)
+      ! Scalars
+      LOGICAL            :: LDYNOCEAN
+      LOGICAL            :: LGTMM 
+      LOGICAL            :: LNLPBL
+      LOGICAL            :: LPRT
+      INTEGER            :: NA, nAdvect
+      INTEGER            :: I, J, L, K, N, NN, MONTH, NSTEPS, Hg_Cat
+      REAL(fp)           :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
+      REAL(fp)           :: C_OH, C_O3, C_BR, C_BRO
+      REAL(fp)           :: K_OH, K_O3, K_BR, K_BRO
+      REAL(fp)           :: K_OX, K_RED, K_DEP0, K_DEP2G, K_DEP2P
+      REAL(fp)           :: DEP_Hg0, DEP_HG2G, DEP_HG2P
+      REAL(fp)           :: DEP_HG2G_DRY, DEP_HG2G_SALT, DEP_HG2P_DRY
+      REAL(fp)           :: DEP_HG2_DRY
+      REAL(fp)           :: GROSS_OX, GROSS_OX_BR
+      REAL(fp)           :: GROSS_OX_OH, GROSS_OX_O3
+      REAL(fp)           :: GROSS_RED, NET_OX
+      REAL(fp)           :: F_PBL, FC, Faq, LWC
+      REAL(fp)           :: AREA_CM2, DEP_DRY_FLX
+      REAL(fp)           :: F_HG0_DEP
+      REAL(fp)           :: DTCHEM, DT
+      REAL(fp)           :: KMAX
+      REAL(fp)           :: A(9,9), Xold(9), Xnew(9)
+      REAL(fp)           :: s1(9), s2(9), s3(9), s4(9)
+      REAL(fp)           :: K0, R_DRY
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
-      REAL(fp), POINTER :: T(:,:,:)
+      REAL(fp), POINTER  :: Spc(:,:,:,:)
+      REAL(fp), POINTER  :: T(:,:,:)
 
       ! Strings
       CHARACTER(LEN=255) :: LOC = 'CHEMMERCURY (mercury_mod.F)'
@@ -538,22 +561,63 @@
       !%%% NOTE: Someone will have to add tunings for the GEOS-5.7.2
       !%%% nested grids at 0.25 x 0.3125 resolution (bmy, 6/3/13)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#if defined( GRID4x5 )
-      !REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5d-3 / 2e+0_fp ! ref: Amos et al. (2011)
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp ! yzh, consider cloud fraction 
-#elif defined( GRID2x25 )
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5e-3_fp/2e+0_fp
-#elif defined( GRID05x0625 ) && defined( NESTED_NA )
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% Bob Y. used same value as for GRID05x0666             %%%
-      !%%% Team Hg needs to supply a better value (bmy, 8/12/15) %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 ! yzh
-#elif defined( GRID05x0666 ) && defined( NESTED_NA )
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 ! yzh
+      ! These K_RED_JNO2 parameters have been defined based on GEOS-5
+      ! runs and remain appropriate for GEOS-5 at 4x5 in v11-01c. Based
+      ! on the GEOS-FP 4x5 run, we need to increase K_RED_JNO2 for
+      ! GEOS-FP. In the absences of benchmark runs for GEOS-FP at other
+      ! resolutions, we assume the same decrease in GEOS-FP relative to
+      ! GEOS-5, regardless of resolution. This should be adapated and
+      ! tested by other users as appropriate (J. Fisher, 3/2016)
+      ! Although we have not tested other met fields, we assume same
+      ! parameters apply for GEOS-FP, MERRA, and MERRA-2.
+      ! To simplify this code, for now we remove the various resolution
+      ! differences (which haven't been tested) and simply include
+      ! different versions for GEOS-FP vs GEOS-5 and nested vs.
+      ! non-nested. Users are encouraged to test and adapt. (J. Fisher,
+      ! 4/2016)
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( NESTED_NA )
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 9.6e-3_fp * 1.33
 #else
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp        ! yzh, need tune 
-#endif   
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 9.6e-3_fp
+#endif
+#else
+#if   defined( NESTED_NA )
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33
+#else
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp
+#endif
+#endif
+
+!!!#if defined( GRID4x5 )
+!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.5e+0_fp
+!!!#elif defined( GRID2x25 )
+!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5e-3_fp/2e+0_fp * 1.5e+0_fp
+!!!#elif defined( GRID05x0625 ) && defined( NESTED_NA )
+!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 * 1.5e+0_fp
+!!!#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 * 1.5e+0_fp
+!!!#else
+!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp  * 1.5e+0_fp
+!!!#endif   
+!!!#else
+!!!#if defined( GRID4x5 )
+!!!      !REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5d-3 / 2e+0_fp ! ref: Amos et al. (2011)
+!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp ! yzh, consider cloud fraction 
+!!!#elif defined( GRID2x25 )
+!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5e-3_fp/2e+0_fp
+!!!#elif defined( GRID05x0625 ) && defined( NESTED_NA )
+!!!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!!      !%%% Bob Y. used same value as for GRID05x0666             %%%
+!!!      !%%% Team Hg needs to supply a better value (bmy, 8/12/15) %%%
+!!!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 ! yzh
+!!!#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 ! yzh
+!!!#else
+!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp        ! yzh, need tune 
+!!!#endif   
+!!!#endif   
 
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
@@ -561,32 +625,31 @@
       CHARACTER(LEN=*), PARAMETER  :: METHOD='GoodsiteUpdate'
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: SpcInfo
 
       !================================================================
       ! CHEMMERCURY begins here!
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Copy values from Input_Opt
       LDYNOCEAN = Input_Opt%LDYNOCEAN
       LGTMM     = Input_Opt%LGTMM
       LNLPBL    = Input_Opt%LNLPBL
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Initialize pointers
-      STT      => State_Chm%Tracers
-      T        => State_Met%T
+      Spc      => State_Chm%Species   ! Chemical species array [kg]
+      T        => State_Met%T         ! Temperature [K]
+      SpcInfo  => NULL()
 
       ! Get info about this species from the database
-      ThisSpc => State_Chm%SpcData(IDTHG2)%Info
+      SpcInfo => State_Chm%SpcData(id_Hg2)%Info
 
       ! Get Henry's Law constant for Hg2 [mol/L/atm] (ewl, 1/5/16)
-      K0 = ThisSpc%Henry_K0
+      K0 = SpcInfo%Henry_K0
 
       ! Calculate dry air gas constant in [L atm/K/mol] (ewl, 1/5/16)
       R_DRY = Rd * AIRMW / ATM
@@ -618,13 +681,13 @@
 
          ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', OH,   RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
          ENDIF
 
          ! Get a pointer to the monthly mean O3 from HEMCO (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_O3', O3,  RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_O3', LOC )
          ENDIF
 
@@ -634,7 +697,7 @@
          ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
          IF ( LRED_JNO2 ) THEN
             CALL HCO_GetPtr( am_I_Root, HcoState, 'JNO2', JNO2,  RC )
-            IF ( RC /= GIGC_SUCCESS ) THEN
+            IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP ( 'Cannot get pointer to JNO2', LOC )
             ENDIF
          ENDIF
@@ -642,7 +705,7 @@
       ENDIF
       
       !=================================================================
-      ! Perform chemistry on Hg tracers 
+      ! Perform chemistry on Hg species 
       !=================================================================
       
       ! Chemistry timestep [s]
@@ -677,7 +740,7 @@
 !$OMP+PRIVATE( GROSS_OX, GROSS_OX_BR, GROSS_OX_OH, GROSS_OX_O3 )
 !$OMP+PRIVATE( GROSS_RED, NET_OX )
 !$OMP+PRIVATE( AREA_CM2,  DEP_DRY_FLX )
-!$OMP+PRIVATE( F_HG0_DEP )
+!$OMP+PRIVATE( F_HG0_DEP, Hg_Cat )
 !%%%% NOTE: LOOP IS IN WRONG ORDER, WILL BE MORE EFFICIENT IF REVERSED %%%%
 !%%%% Putting this loop in the correct order causes differences in the %%%%
 !%%%% AD03_HG2_SS diagnostic array when using mp vs sp (mps, 9/3/15)   %%%%
@@ -693,18 +756,6 @@
          K_DRYD0  = 0e+0_fp
          K_DRYD2G = 0e+0_fp
          K_DRYD2P = 0e+0_fp
-
-         ! Use calculated deposition velocity, as long as
-         ! they are defined. If using non-local PBL mixing
-         ! then drydep will happen in vdiff_mod and dry
-         ! deposition here should be zero.
-         ! dry-deposition is now handled in mixing_mod.F90 
-         ! (ckeller, 3/5/15).
-!         IF (.NOT. LNLPBL) THEN
-!            IF (DRYHG0 > 0) K_DRYD0  = DEPSAV(I,J,DRYHG0)
-!            IF (DRYHG2 > 0) K_DRYD2G = DEPSAV(I,J,DRYHG2)
-!            IF (DRYHGP > 0) K_DRYD2P = DEPSAV(I,J,DRYHGP)
-!         ENDIF
 
          !------------------------------------------------------
          ! Sea-salt aerosol uptake
@@ -975,9 +1026,9 @@
 
             ! Load initial concentrations into vector, kg
             Xold(:) = 0e+0_fp
-            Xold(1)  = MAX( STT(I,J,L,ID_Hg0(N)), SMALLNUM )
-            Xold(2) = MAX( STT(I,J,L,ID_Hg2(N)), SMALLNUM )   
-            Xold(3) = MAX( STT(I,J,L,ID_HgP(N)), SMALLNUM )   
+            Xold(1) = MAX( Spc(I,J,L,Hg0_Id_List(N)), SMALLNUM )
+            Xold(2) = MAX( Spc(I,J,L,Hg2_Id_List(N)), SMALLNUM )   
+            Xold(3) = MAX( Spc(I,J,L,HgP_Id_List(N)), SMALLNUM )   
             ! Rows 4-9 accumulate oxidation, reduction, and deposition fluxes
             ! so these start at zero
 
@@ -1020,9 +1071,9 @@
             !--------------------------------------------------
 
             ! Archive Concentrations, kg/box
-            STT(I,J,L,ID_Hg0(N)) = Xnew(1)
-            STT(I,J,L,ID_Hg2(N)) = Xnew(2)
-            STT(I,J,L,ID_HgP(N)) = Xnew(3)
+            Spc(I,J,L,Hg0_Id_List(N)) = Xnew(1)
+            Spc(I,J,L,Hg2_Id_List(N)) = Xnew(2)
+            Spc(I,J,L,HgP_Id_List(N)) = Xnew(3)
 
             ! Accumulated fluxes, kg/box/timestep [timestep=DTCHEM]
             DEP_HG0  = Xnew(4)
@@ -1057,24 +1108,41 @@
             ! aerosol, so all Hg2p deposition is dry deposition
             DEP_Hg2p_DRY = DEP_Hg2p
 
+            !=================================================================
             ! Add deposited Hg(II) to the ocean module. OCEAN_MERCURY_MOD
             ! determines whether the box is marine, so we don't need to here.
             ! We should add an if statement to test whether DYNAMIC LAND is 
             ! active.
+            !
+            ! IMPORTANT NOTE: DEP_Hg2G, DEP_Hg2P, and DEP_Hg2_DRY are defined
+            ! on each 3-D (I,J,K) iteration.  But in routines ADD_Hg2_DD,
+            ! ADD_Hg2_WD and ADD_Hg2_SNOWPACK, these are saved to diagnostic 
+            ! arrays that have only 2-D (I,J) spatial size.  This can cause 
+            ! slight numerical differences when OpenMP parallelization is 
+            ! turned on, because more than one CPU is trying to write to the 
+            ! diagnostic arrays simultaneously.  To avoid this situation, we 
+            ! call  ADD_Hg2_WD and ADD_Hg2_SNOWPACK from within an 
+            ! !$OMP CRITICAL block, which ensures that only one CPU at a time 
+            ! can write to the diagnostic arrays. (bmy, 4/20/16)
+            !=================================================================
+!$OMP CRITICAL
             IF ( LDYNOCEAN ) THEN
-               NN = ID_Hg2(N)
-               CALL ADD_Hg2_DD( I, J, NN, DEP_Hg2G )
 
-               NN = ID_HgP(N)
-               CALL ADD_HgP_DD( I, J, NN, DEP_Hg2P )
+               ! Archive dry deposited Hg2 for Hg category # N
+               CALL ADD_Hg2_DD( I, J, N, DEP_Hg2G )
+
+               ! Archive dry-deposited HgP for Hg category # N
+               CALL ADD_HgP_DD( I, J, N, DEP_Hg2P )
+
             ENDIF           
 
             ! Add deposited Hg(II) to the snowpack
             IF ( LHGSNOW ) THEN
-               NN = ID_Hg2(N)
-               DEP_HG2_DRY = DEP_HG2g_DRY + DEP_HG2p_DRY
-               CALL ADD_HG2_SNOWPACK( I, J, NN, DEP_HG2_DRY, State_Met )
+               DEP_HG2_DRY =  DEP_HG2g_DRY + DEP_HG2p_DRY
+               CALL ADD_HG2_SNOWPACK( I, J, N, DEP_HG2_DRY, 
+     &                                         State_Met    )
             ENDIF           
+!$OMP END CRITICAL
 
 #if defined( BPCH_DIAG )
             !=================================================================
@@ -1086,28 +1154,31 @@
                AREA_CM2 = GET_AREA_CM2( I, J, L )
 
                ! Amt of Hg(0) lost to drydep [molec/cm2/s]
-               DEP_DRY_FLX  = DEP_HG0 * XNUMOL(ID_Hg0(N)) / 
-     &              ( AREA_CM2 * DTCHEM )
+               DEP_DRY_FLX  = DEP_HG0 * AVO / ( 1.e-3_fp *
+     &             State_Chm%SpcData(Hg0_Id_List(N))%Info%emMW_g ) / 
+     &             ( AREA_CM2 * DTCHEM )
 
                ! Archive Hg(0) drydep flux in AD44 array [molec/cm2/s]
-               AD44(I,J,ID_HG0(N),1) = AD44(I,J,ID_HG0(N),1) +
-     &              DEP_DRY_FLX
+               AD44(I,J,Hg0_Id_List(N),1) = 
+     &         AD44(I,J,Hg0_Id_List(N),1) +  DEP_DRY_FLX
 
                ! Amt of Hg(II)g lost to drydep [molec/cm2/s]
-               DEP_DRY_FLX  = DEP_HG2G_DRY * XNUMOL(ID_Hg2(N)) / 
-     &              ( AREA_CM2 * DTCHEM )
+               DEP_DRY_FLX  = DEP_HG2G_DRY * AVO / ( 1.e-3_fp *
+     &             State_Chm%SpcData(Hg2_Id_List(N))%Info%emMW_g ) / 
+     &             ( AREA_CM2 * DTCHEM )
 
                ! Archive Hg(II) drydep flux in AD44 array [molec/cm2/s]
-               AD44(I,J,ID_HG2(N),1) = AD44(I,J,ID_HG2(N),1) +
-     &              DEP_DRY_FLX
+               AD44(I,J,Hg2_Id_List(N),1) = 
+     &         AD44(I,J,Hg2_Id_List(N),1) + DEP_DRY_FLX
 
                ! Amt of Hg(II)p lost to drydep [molec/cm2/s]
-               DEP_DRY_FLX  = DEP_HG2P_DRY * XNUMOL(ID_HgP(N)) / 
-     &              ( AREA_CM2 * DTCHEM )
+               DEP_DRY_FLX  = DEP_HG2P_DRY * AVO / ( 1.e-3_fp *
+     &             State_Chm%SpcData(HgP_Id_List(N))%Info%emMW_g ) / 
+     &             ( AREA_CM2 * DTCHEM )
 
                ! Archive Hg(II)p drydep flux in AD44 array [molec/cm2/s]
-               AD44(I,J,ID_HGP(N),1) = AD44(I,J,ID_HGP(N),1) +
-     &              DEP_DRY_FLX
+               AD44(I,J,HgP_Id_List(N),1) = 
+     &         AD44(I,J,HgP_Id_List(N),1) + DEP_DRY_FLX
 
             ENDIF
 #endif
@@ -1117,8 +1188,8 @@
             !==============================================================
             IF ( ND03 > 0 .AND. L <= LD03 ) THEN 
 
-               ! Store chemistry diagnostics only for total tracer
-               IF ( ID_HG0(N) == ID_HG_TOT) THEN
+               ! Store chemistry diagnostics only for total species
+               IF ( Hg0_Id_List(N) == ID_HG_TOT) THEN
 
                   ! Net oxidation [kg]
                   NET_OX = GROSS_OX - GROSS_RED
@@ -1158,13 +1229,12 @@
       CALL PARTITIONHG2( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Free pointer memory
-      NULLIFY( STT )
-      NULLIFY( T   )
-      NULLIFY( ThisSpc )
+      Spc     => NULL()
+      T       => NULL()
+      SpcInfo => NULL()
 
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_HgP' )
 
-      ! Return to calling program
       END SUBROUTINE CHEMMERCURY
 !EOC
 !------------------------------------------------------------------------------
@@ -1461,23 +1531,21 @@
 !
       USE CMN_SIZE_MOD
       USE DEPO_MERCURY_MOD,   ONLY : RESET_HG_DEP_ARRAYS
+      USE ErrCode_Mod
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XMID, GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE LAND_MERCURY_MOD,   ONLY : LAND_MERCURY_FLUX, VEGEMIS
       USE LAND_MERCURY_MOD,   ONLY : SOILEMIS, BIOMASSHG
       USE LAND_MERCURY_MOD,   ONLY : SNOWPACK_MERCURY_FLUX
       USE OCEAN_MERCURY_MOD,  ONLY : OCEAN_MERCURY_FLUX
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE UNITCONV_MOD
-!      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE 
+      USE UnitConv_Mod
 
       ! Added for GTMM (ccc, 11/19/09)
       USE LAND_MERCURY_MOD,   ONLY : GTMM_DR
-      USE TRACERID_MOD,       ONLY : ID_Hg_tot, ID_Hg0
 !
 !
 ! !INPUT PARAMETERS:
@@ -1519,7 +1587,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE   :: FIRST = .TRUE. 
-      INTEGER         :: THISMONTH, I, J, N
+      INTEGER         :: THISMONTH, I, J
 
       ! For fields from Input_Opt
       LOGICAL         :: LDYNOCEAN
@@ -1534,7 +1602,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
       
       ! Copy fields from Input_Opt
       LDYNOCEAN = Input_Opt%LDYNOCEAN
@@ -1544,13 +1612,13 @@
       LEMIS     = Input_Opt%LEMIS
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
 
-      ! Convert tracer units to [kg] for EMISSMERCURY (ewl, 8/12/15)
+      ! Convert species units to [kg] for EMISSMERCURY (ewl, 8/12/15)
       ! NOTE: This is temporary until mercury code is in [kg/kg dry air]
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'Routine EMISSIONS_RUN in emissions_mod.F')
+      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
+     &                               State_Chm, RC ) 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'Routine EMISSIONS_RUN in emissions_mod.F')
          RETURN
       ENDIF                         
 
@@ -1668,28 +1736,27 @@
       ! If we are using the non-local PBL mixing,
       ! we need to initialize the EMIS_SAVE array (cdh, 08/27/09)
       ! EMIS_SAVE is now HG_EMIS (ckeller, 10/21/2014)
-!      IF (LNLPBL) EMIS_SAVE = 0e+0_fp
       IF ( LNLPBL ) HG_EMIS = 0.0e+0_fp
 
-      ! Add Hg(0) source into State_Chm%TRACERS [kg]
+      ! Add Hg(0) source into State_Chm%Species [kg]
       CALL SRCHg0( am_I_Root, Input_Opt, State_Chm, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
 
-      ! Add Hg(II) source into State_Chm%TRACERS [kg]
+      ! Add Hg(II) source into State_Chm%Species [kg]
       CALL SRCHg2( am_I_Root, Input_Opt, State_Chm, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg2' )
 
-      ! Add HgP source into State_Chm%TRACERS [kg]
+      ! Add HgP source into State_Chm%Species [kg]
       CALL SRCHgP( am_I_Root, Input_Opt, State_Chm, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHgP' )
       
-      ! Convert tracer units back to [kg/kg] after mercury emissions
+      ! Convert species units back to [kg/kg] after mercury emissions
       !  (ewl, 8/12/15)
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
-     &                            State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'Routine EMISSMERCURY in mercury_mod.F')
+      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
+     &                               State_Chm, RC ) 
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'Routine EMISSMERCURY in mercury_mod.F')
          RETURN
       ENDIF  
 
@@ -1703,9 +1770,9 @@
 !
 ! !IROUTINE: emithg
 !
-! !DESCRIPTION: Subroutine EMITHG directs emission either to STT directly 
-!  or to EMIS_SAVE for use by the non-local PBL mixing. This is a programming
-!  convenience.
+! !DESCRIPTION: Subroutine EMITHG directs emission either to the chemical
+!  species array (State\_Chm%Species) directly or to Hg\_EMIS for use by the 
+!  non-local PBL mixing. This is a programming convenience.
 !\\
 !\\
 ! !INTERFACE:
@@ -1714,18 +1781,16 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod
       USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-!      USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE
-!
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,        INTENT(IN)    :: I, J, L, ID ! Grid boxes + tracer #
-      REAL(fp),         INTENT(IN)    :: E_Hg        ! Hg emissions 
+      INTEGER,        INTENT(IN)    :: I, J, L, ID ! Grid boxes + species #
+      REAL(fp),       INTENT(IN)    :: E_Hg        ! Hg emissions 
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1741,47 +1806,57 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! For fields in Input_Opt
-      LOGICAL         :: LNLPBL
-
-      ! Working variables
+      ! Scalars
       REAL(fp)          :: AM2, TS
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! EMITHG begins here!
       !=================================================================
 
-      ! Copy values from Input_Opt
-      LNLPBL = Input_Opt%LNLPBL
+      IF ( Input_Opt%LNLPBL ) THEN
 
-      ! Save emissions for non-local PBL mixing or emit directly.
-      ! Make sure that emitted mass is non-negative
-      ! This is hear only for consistency with old code which warned of
-      ! underflow error (cdh, 08/27/09)
-      ! EMIS_SAVE is now HG_EMIS array. Convert kg to kg/m2/s
-      ! (ckeller, 09/23/2014)
-      IF ( LNLPBL ) THEN
-!         EMIS_SAVE(I,J,ID) = EMIS_SAVE(I,J,ID) + MAX( E_HG, 0e+0_fp )
-          AM2 = GET_AREA_M2(I,J,1)
-          TS  = GET_TS_EMIS() * 60.0e+0_fp
-!          State_Chm%Trac_Tend(I,J,1,ID) = State_Chm%Trac_Tend(I,J,1,ID)
-          HG_EMIS(I,J,ID) = HG_EMIS(I,J,ID) 
-     &                    + ( MAX(E_HG,0e+0_fp) / AM2 / TS )
+         !--------------------------------------------------------------
+         ! We are using FULL PBL MIXING (routine TURBDAY)
+
+         ! Save emissions for non-local PBL mixing or emit directly.
+         ! Make sure that emitted mass is non-negative
+         ! This is hear only for consistency with old code which warned
+         ! of underflow error (cdh, 08/27/09)
+         ! EMIS_SAVE is now HG_EMIS array. Convert kg to kg/m2/s
+         ! (ckeller, 09/23/2014)
+         !--------------------------------------------------------------
+
+         ! Surface area [m2]
+         AM2             = GET_AREA_M2(I,J,1)
+
+         ! Emission timestep
+         TS              = GET_TS_EMIS() * 60.0e+0_fp
+
+         ! Save emissions as [kg/m2/s].  These will be added
+         ! to the chemical species array in routine DO_TEND
+         ! (in mixing_mod.F90).
+         HG_EMIS(I,J,ID) = HG_EMIS(I,J,ID) 
+     &                   + ( MAX(E_HG,0e+0_fp) / AM2 / TS )
+
       ELSE
 
-         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-         ! (mpayer, 12/6/12)
-         STT => State_Chm%Tracers
+         !--------------------------------------------------------------
+         ! We are using FULL PBL MIXING (routine TURBDAY)
+         ! so add directly to the State_Chm%Species array
+         !--------------------------------------------------------------
 
-         STT(I,J,L,ID) = STT(I,J,L,ID) + MAX( E_HG, 0e+0_fp )
+         ! Point to the chemical spcies array [kg]
+         Spc             => State_Chm%Species
+
+         ! Add emissions 
+         Spc(I,J,L,ID)   =  Spc(I,J,L,ID) + MAX( E_HG, 0e+0_fp )
 
          ! Free pointer
-         NULLIFY( STT )
+         Spc             => NULL()
+
       ENDIF
 
       END SUBROUTINE EMITHG
@@ -1796,7 +1871,6 @@
 ! !DESCRIPTION: Subroutine SRCHg0 is the subroutine for Hg(0) emissions.  
 !  Emissions of Hg(0) will be distributed throughout the boundary layer. 
 !  (eck, cdh, bmy, 1/21/05, 4/6/06)
- 
 !\\
 !\\
 ! !INTERFACE:
@@ -1807,24 +1881,12 @@
 !
       USE CMN_SIZE_MOD
       USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_nat
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE TRACERID_MOD,       ONLY : ID_Hg_tot,  ID_Hg_can,  ID_Hg_usa
-      USE TRACERID_MOD,       ONLY : ID_Hg_cam,  ID_Hg_sam,  ID_Hg_waf
-      USE TRACERID_MOD,       ONLY : ID_Hg_eaf,  ID_Hg_saf,  ID_Hg_naf
-      USE TRACERID_MOD,       ONLY : ID_Hg_eur,  ID_Hg_eeu,  ID_Hg_sov
-      USE TRACERID_MOD,       ONLY : ID_Hg_mde,  ID_Hg_sas,  ID_Hg_eas
-      USE TRACERID_MOD,       ONLY : ID_Hg_sea,  ID_Hg_jpn,  ID_Hg_oce
-      USE TRACERID_MOD,       ONLY : ID_Hg_so,   ID_Hg_bb,   ID_Hg_geo
-      USE TRACERID_MOD,       ONLY : ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
-      USE TRACERID_MOD,       ONLY : ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
-      USE TRACERID_MOD,       ONLY : ID_Hg_ocn,  ID_Hg_str
-      USE TRACERID_MOD,       ONLY : ID_Hg0
-      USE TRACERID_MOD,       ONLY : N_HG_CATS
 !
 ! !INPUT PARAMETERS:
 !
@@ -1848,25 +1910,26 @@
 !        Now use ID_Hg0 index array from "tracerid_mod.f".  Now make sure
 !        STT does not underflow. (cdh, bmy, 4/6/06)
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,      J,    L,        N,    PBL_MAX
-      INTEGER :: NN !eds 9/9/10 
-      REAL(fp)  :: DTSRCE, E_Hg, F_OF_PBL, T_Hg, T_Hg_An
+      INTEGER  :: I,      J,    L,        N,    NN,     PBL_MAX
+      REAL(fp) :: DTSRCE, E_Hg, F_OF_PBL, T_Hg, T_Hg_An
 
       ! For fields from Input_Opt
-      LOGICAL :: LSPLIT, LPREINDHG, LGTMM
+      LOGICAL  :: LSPLIT, LPREINDHG, LGTMM
 
       !=================================================================
       ! SRCHg0 begins here!
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
       ! Copy values from Input_Opt
       LSPLIT    = Input_Opt%LSPLIT
@@ -1947,14 +2010,14 @@
             F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
 
             !-----------------
-            ! Total Hg tracer
+            ! Total Hg species
             !-----------------
-            N    = ID_Hg0(ID_Hg_tot)
+            N    = Hg0_Id_List(ID_Hg_tot)
             E_Hg = F_OF_PBL * T_Hg * DTSRCE
             CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
             !-----------------
-            ! Tagged tracers
+            ! Tagged species
             !-----------------
             IF ( LSPLIT ) THEN 
 
@@ -1963,102 +2026,102 @@
                !--------------------
                
                ! Anthro Canada Hg0
-               N    = ID_Hg0(ID_Hg_can)
+               N    = Hg0_Id_List(ID_Hg_can)
                E_Hg = F_OF_PBL * EHg0_can(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro United States Hg0
-               N    = ID_Hg0(ID_Hg_usa)
+               N    = Hg0_Id_List(ID_Hg_usa)
                E_Hg = F_OF_PBL * EHg0_usa(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Central America Hg0
-               N    = ID_Hg0(ID_Hg_cam)
+               N    = Hg0_Id_List(ID_Hg_cam)
                E_Hg = F_OF_PBL * EHg0_cam(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South America Hg0
-               N    = ID_Hg0(ID_Hg_sam)
+               N    = Hg0_Id_List(ID_Hg_sam)
                E_Hg = F_OF_PBL * EHg0_sam(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro West Africa Hg0
-               N    = ID_Hg0(ID_Hg_waf)
+               N    = Hg0_Id_List(ID_Hg_waf)
                E_Hg = F_OF_PBL * EHg0_waf(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Africa Hg0
-               N    = ID_Hg0(ID_Hg_eaf)
+               N    = Hg0_Id_List(ID_Hg_eaf)
                E_Hg = F_OF_PBL * EHg0_eaf(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Africa Hg0
-               N    = ID_Hg0(ID_Hg_saf)
+               N    = Hg0_Id_List(ID_Hg_saf)
                E_Hg = F_OF_PBL * EHg0_saf(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro North Africa Hg0
-               N    = ID_Hg0(ID_Hg_naf)
+               N    = Hg0_Id_List(ID_Hg_naf)
                E_Hg = F_OF_PBL * EHg0_naf(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro OECD Europe Hg0
-               N    = ID_Hg0(ID_Hg_eur)
+               N    = Hg0_Id_List(ID_Hg_eur)
                E_Hg = F_OF_PBL * EHg0_eur(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Eastern Europe Hg0
-               N    = ID_Hg0(ID_Hg_eeu)
+               N    = Hg0_Id_List(ID_Hg_eeu)
                E_Hg = F_OF_PBL * EHg0_eeu(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Middle East Hg0
-               N    = ID_Hg0(ID_Hg_mde)
+               N    = Hg0_Id_List(ID_Hg_mde)
                E_Hg = F_OF_PBL * EHg0_mde(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Former USSR Hg0
-               N    = ID_Hg0(ID_Hg_sov)
+               N    = Hg0_Id_List(ID_Hg_sov)
                E_Hg = F_OF_PBL * EHg0_sov(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Asia Hg0
-               N    = ID_Hg0(ID_Hg_sas)
+               N    = Hg0_Id_List(ID_Hg_sas)
                E_Hg = F_OF_PBL * EHg0_sas(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Asia Hg0
-               N    = ID_Hg0(ID_Hg_eas)
+               N    = Hg0_Id_List(ID_Hg_eas)
                E_Hg = F_OF_PBL * EHg0_eas(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Southeast Asia Hg0
-               N    = ID_Hg0(ID_Hg_sea)
+               N    = Hg0_Id_List(ID_Hg_sea)
                E_Hg = F_OF_PBL * EHg0_sea(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Japan Hg0
-               N    = ID_Hg0(ID_Hg_jpn)
+               N    = Hg0_Id_List(ID_Hg_jpn)
                E_Hg = F_OF_PBL * EHg0_jpn(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Oceania Hg0
-               N    = ID_Hg0(ID_Hg_oce)
+               N    = Hg0_Id_List(ID_Hg_oce)
                E_Hg = F_OF_PBL * EHg0_oce(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Soil emissions
-               N    = ID_Hg0(ID_Hg_so)
+               N    = Hg0_Id_List(ID_Hg_so)
                E_Hg = F_OF_PBL * EHg0_so(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Biomass burning emissions             
-               N    = ID_Hg0(ID_Hg_bb)
+               N    = Hg0_Id_List(ID_Hg_bb)
                E_Hg = F_OF_PBL * EHg0_bb(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Geogenic emissions             
-               N    = ID_Hg0(ID_Hg_geo)
+               N    = Hg0_Id_List(ID_Hg_geo)
                E_Hg = F_OF_PBL * EHg0_geo(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
@@ -2067,142 +2130,142 @@
                !--------------------
 
                ! Anthro Canada re-emission from ocean
-               N    = ID_Hg0(ID_Hg_can)
+               N    = Hg0_Id_List(ID_Hg_can)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_can) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro United States re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_usa)
+               N    = Hg0_Id_List(ID_Hg_usa)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_usa) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Central America re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_cam)
+               N    = Hg0_Id_List(ID_Hg_cam)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_cam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South America re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_sam)
+               N    = Hg0_Id_List(ID_Hg_sam)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro West Africa re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_waf)
+               N    = Hg0_Id_List(ID_Hg_waf)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_waf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Africa re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_eaf)
+               N    = Hg0_Id_List(ID_Hg_eaf)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eaf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Africa re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_saf)
+               N    = Hg0_Id_List(ID_Hg_saf)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_saf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro North Africa re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_naf)
+               N    = Hg0_Id_List(ID_Hg_naf)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_naf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro OECD Europe re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_eur)
+               N    = Hg0_Id_List(ID_Hg_eur)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eur) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Eastern Europe re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_eeu)
+               N    = Hg0_Id_List(ID_Hg_eeu)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eeu) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Middle East re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_mde)
+               N    = Hg0_Id_List(ID_Hg_mde)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_mde) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Former Soviet Union re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_sov)
+               N    = Hg0_Id_List(ID_Hg_sov)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sov) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Asia re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_sas)
+               N    = Hg0_Id_List(ID_Hg_sas)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sas) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Asia re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_eas)
+               N    = Hg0_Id_List(ID_Hg_eas)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eas) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Southeast Asia re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_sea)
+               N    = Hg0_Id_List(ID_Hg_sea)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sea) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Japan re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_jpn)
+               N    = Hg0_Id_List(ID_Hg_jpn)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_jpn) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Oceania re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_oce)
+               N    = Hg0_Id_List(ID_Hg_oce)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_oce) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Soil re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_so)
+               N    = Hg0_Id_List(ID_Hg_so)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_so) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Biomass burning re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_bb)
+               N    = Hg0_Id_List(ID_Hg_bb)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_bb) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Geogenic re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_geo)
+               N    = Hg0_Id_List(ID_Hg_geo)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_geo) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Mid-Atlantic re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_atl)
+               N    = Hg0_Id_List(ID_Hg_atl)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_atl) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer North Atlantic re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_nat)
+               N    = Hg0_Id_List(ID_Hg_nat)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_nat) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer South Atlantic re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_sat)
+               N    = Hg0_Id_List(ID_Hg_sat)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sat) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer North Pacific re-emission from ocean
-               N    = ID_Hg0(ID_Hg_npa)
+               N    = Hg0_Id_List(ID_Hg_npa)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_npa) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Arctic re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_arc)
+               N    = Hg0_Id_List(ID_Hg_arc)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_arc) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt,  State_Chm )
 
                ! Below Mixed Layer Antarctic re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_ant)
+               N    = Hg0_Id_List(ID_Hg_ant)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_ant) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer All Other Ocean re-emission from ocean
-               N    = ID_Hg0(ID_Hg_ocn)
+               N    = Hg0_Id_List(ID_Hg_ocn)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_ocn) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Residual Stratosphere from Spin-up re-emission from ocean 
-               N    = ID_Hg0(ID_Hg_str)
+               N    = Hg0_Id_List(ID_Hg_str)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_str) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
@@ -2211,142 +2274,142 @@
                !--------------------
 
                ! Anthro Canada re-emission from land
-               N    = ID_Hg0(ID_Hg_can)
+               N    = Hg0_Id_List(ID_Hg_can)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_can) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro United States re-emission from land 
-               N    = ID_Hg0(ID_Hg_usa)
+               N    = Hg0_Id_List(ID_Hg_usa)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_usa) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Central America re-emission from land 
-               N    = ID_Hg0(ID_Hg_cam)
+               N    = Hg0_Id_List(ID_Hg_cam)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_cam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South America re-emission from land 
-               N    = ID_Hg0(ID_Hg_sam)
+               N    = Hg0_Id_List(ID_Hg_sam)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro West Africa re-emission from land 
-               N    = ID_Hg0(ID_Hg_waf)
+               N    = Hg0_Id_List(ID_Hg_waf)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_waf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Africa re-emission from land 
-               N    = ID_Hg0(ID_Hg_eaf)
+               N    = Hg0_Id_List(ID_Hg_eaf)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eaf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Africa re-emission from land 
-               N    = ID_Hg0(ID_Hg_saf)
+               N    = Hg0_Id_List(ID_Hg_saf)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_saf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro North Africa re-emission from land 
-               N    = ID_Hg0(ID_Hg_naf)
+               N    = Hg0_Id_List(ID_Hg_naf)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_naf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro OECD Europe re-emission from land 
-               N    = ID_Hg0(ID_Hg_eur)
+               N    = Hg0_Id_List(ID_Hg_eur)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eur) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Eastern Europe re-emission from land 
-               N    = ID_Hg0(ID_Hg_eeu)
+               N    = Hg0_Id_List(ID_Hg_eeu)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eeu) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Middle East re-emission from land 
-               N    = ID_Hg0(ID_Hg_mde)
+               N    = Hg0_Id_List(ID_Hg_mde)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_mde) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Former Soviet Union re-emission from land 
-               N    = ID_Hg0(ID_Hg_sov)
+               N    = Hg0_Id_List(ID_Hg_sov)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sov) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Asia re-emission from land 
-               N    = ID_Hg0(ID_Hg_sas)
+               N    = Hg0_Id_List(ID_Hg_sas)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sas) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Asia re-emission from land 
-               N    = ID_Hg0(ID_Hg_eas)
+               N    = Hg0_Id_List(ID_Hg_eas)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eas) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Southeast Asia re-emission from land 
-               N    = ID_Hg0(ID_Hg_sea)
+               N    = Hg0_Id_List(ID_Hg_sea)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sea) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Japan re-emission from land 
-               N    = ID_Hg0(ID_Hg_jpn)
+               N    = Hg0_Id_List(ID_Hg_jpn)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_jpn) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Oceania re-emission from land 
-               N    = ID_Hg0(ID_Hg_oce)
+               N    = Hg0_Id_List(ID_Hg_oce)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_oce) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Soil re-emission from land 
-               N    = ID_Hg0(ID_Hg_so)
+               N    = Hg0_Id_List(ID_Hg_so)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_so) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Biomass burning re-emission from land 
-               N    = ID_Hg0(ID_Hg_bb)
+               N    = Hg0_Id_List(ID_Hg_bb)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_bb) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Geogenic re-emission from land 
-               N    = ID_Hg0(ID_Hg_geo)
+               N    = Hg0_Id_List(ID_Hg_geo)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_geo) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Mid-Atlantic re-emission from land 
-               N    = ID_Hg0(ID_Hg_atl)
+               N    = Hg0_Id_List(ID_Hg_atl)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_atl) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer North Atlantic re-emission from land 
-               N    = ID_Hg0(ID_Hg_nat)
+               N    = Hg0_Id_List(ID_Hg_nat)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_nat) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer South Atlantic re-emission from land 
-               N    = ID_Hg0(ID_Hg_sat)
+               N    = Hg0_Id_List(ID_Hg_sat)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sat) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer North Pacific re-emission from land
-               N    = ID_Hg0(ID_Hg_npa)
+               N    = Hg0_Id_List(ID_Hg_npa)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_npa) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Arctic re-emission from land 
-               N    = ID_Hg0(ID_Hg_arc)
+               N    = Hg0_Id_List(ID_Hg_arc)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_arc) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Antarctic re-emission from land 
-               N    = ID_Hg0(ID_Hg_ant)
+               N    = Hg0_Id_List(ID_Hg_ant)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_ant) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer All Other Ocean re-emission from land
-               N    = ID_Hg0(ID_Hg_ocn)
+               N    = Hg0_Id_List(ID_Hg_ocn)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_ocn) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Residual Stratosphere from Spin-up re-emission from land 
-               N    = ID_Hg0(ID_Hg_str)
+               N    = Hg0_Id_List(ID_Hg_str)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_str) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
                
@@ -2355,142 +2418,142 @@
                !--------------------
 
                ! Anthro Canada re-emission from snow
-               N    = ID_Hg0(ID_Hg_can)
+               N    = Hg0_Id_List(ID_Hg_can)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_can) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro United States re-emission from snow 
-               N    = ID_Hg0(ID_Hg_usa)
+               N    = Hg0_Id_List(ID_Hg_usa)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_usa) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Central America re-emission from snow 
-               N    = ID_Hg0(ID_Hg_cam)
+               N    = Hg0_Id_List(ID_Hg_cam)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_cam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South America re-emission from snow 
-               N    = ID_Hg0(ID_Hg_sam)
+               N    = Hg0_Id_List(ID_Hg_sam)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro West Africa re-emission from snow 
-               N    = ID_Hg0(ID_Hg_waf)
+               N    = Hg0_Id_List(ID_Hg_waf)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_waf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Africa re-emission from snow 
-               N    = ID_Hg0(ID_Hg_eaf)
+               N    = Hg0_Id_List(ID_Hg_eaf)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eaf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Africa re-emission from snow 
-               N    = ID_Hg0(ID_Hg_saf)
+               N    = Hg0_Id_List(ID_Hg_saf)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_saf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro North Africa re-emission from snow 
-               N    = ID_Hg0(ID_Hg_naf)
+               N    = Hg0_Id_List(ID_Hg_naf)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_naf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro OECD Europe re-emission from snow 
-               N    = ID_Hg0(ID_Hg_eur)
+               N    = Hg0_Id_List(ID_Hg_eur)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eur) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Eastern Europe re-emission from snow 
-               N    = ID_Hg0(ID_Hg_eeu)
+               N    = Hg0_Id_List(ID_Hg_eeu)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eeu) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Middle East re-emission from snow 
-               N    = ID_Hg0(ID_Hg_mde)
+               N    = Hg0_Id_List(ID_Hg_mde)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_mde) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Former Soviet Union re-emission from snow 
-               N    = ID_Hg0(ID_Hg_sov)
+               N    = Hg0_Id_List(ID_Hg_sov)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sov) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Asia re-emission from snow 
-               N    = ID_Hg0(ID_Hg_sas)
+               N    = Hg0_Id_List(ID_Hg_sas)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sas) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Asia re-emission from snow 
-               N    = ID_Hg0(ID_Hg_eas)
+               N    = Hg0_Id_List(ID_Hg_eas)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eas) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Southeast Asia re-emission from snow 
-               N    = ID_Hg0(ID_Hg_sea)
+               N    = Hg0_Id_List(ID_Hg_sea)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sea) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Japan re-emission from snow 
-               N    = ID_Hg0(ID_Hg_jpn)
+               N    = Hg0_Id_List(ID_Hg_jpn)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_jpn) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Oceania re-emission from snow 
-               N    = ID_Hg0(ID_Hg_oce)
+               N    = Hg0_Id_List(ID_Hg_oce)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_oce) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Soil re-emission from snow
-               N    = ID_Hg0(ID_Hg_so)
+               N    = Hg0_Id_List(ID_Hg_so)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_so) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Biomass burning re-emission from snow 
-               N    = ID_Hg0(ID_Hg_bb)
+               N    = Hg0_Id_List(ID_Hg_bb)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_bb) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Geogenic re-emission from snow 
-               N    = ID_Hg0(ID_Hg_geo)
+               N    = Hg0_Id_List(ID_Hg_geo)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_geo) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Mid-Atlantic re-emission from snow 
-               N    = ID_Hg0(ID_Hg_atl)
+               N    = Hg0_Id_List(ID_Hg_atl)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_atl) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer North Atlantic re-emission from snow 
-               N    = ID_Hg0(ID_Hg_nat)
+               N    = Hg0_Id_List(ID_Hg_nat)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_nat) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer South Atlantic re-emission from snow 
-               N    = ID_Hg0(ID_Hg_sat)
+               N    = Hg0_Id_List(ID_Hg_sat)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sat) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer North Pacific re-emission from snow
-               N    = ID_Hg0(ID_Hg_npa)
+               N    = Hg0_Id_List(ID_Hg_npa)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_npa) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Arctic re-emission from snow 
-               N    = ID_Hg0(ID_Hg_arc)
+               N    = Hg0_Id_List(ID_Hg_arc)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_arc) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer Antarctic re-emission from snow 
-               N    = ID_Hg0(ID_Hg_ant)
+               N    = Hg0_Id_List(ID_Hg_ant)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_ant) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Below Mixed Layer All Other Ocean re-emission from snow
-               N    = ID_Hg0(ID_Hg_ocn)
+               N    = Hg0_Id_List(ID_Hg_ocn)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_ocn) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Residual Stratosphere from Spin-up re-emission from snow 
-               N    = ID_Hg0(ID_Hg_str)
+               N    = Hg0_Id_List(ID_Hg_str)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_str) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
@@ -2580,7 +2643,6 @@
 !
 ! !DESCRIPTION: Subroutine SRCHg2 is the subroutine for Hg(II) emissions.  
 !  Emissions of Hg(II) will be distributed throughout the boundary layer. 
-
 !\\
 !\\
 ! !INTERFACE:
@@ -2591,28 +2653,13 @@
 !
       USE CMN_SIZE_MOD
       USE DIAG03_MOD,         ONLY : AD03, ND03
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE TRACERID_MOD,       ONLY : ID_Hg_tot, ID_Hg2
-      USE TRACERID_MOD,       ONLY : ID_Hg_can,  ID_Hg_usa
-      USE TRACERID_MOD,       ONLY : ID_Hg_cam,  ID_Hg_sam,  ID_Hg_waf
-      USE TRACERID_MOD,       ONLY : ID_Hg_eaf,  ID_Hg_saf,  ID_Hg_naf
-      USE TRACERID_MOD,       ONLY : ID_Hg_eur,  ID_Hg_eeu,  ID_Hg_sov
-      USE TRACERID_MOD,       ONLY : ID_Hg_mde,  ID_Hg_sas,  ID_Hg_eas
-      USE TRACERID_MOD,       ONLY : ID_Hg_sea,  ID_Hg_jpn,  ID_Hg_oce
-      USE TRACERID_MOD,       ONLY : ID_Hg_so,   ID_Hg_bb,   ID_Hg_geo
-      USE TRACERID_MOD,       ONLY : ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
-      USE TRACERID_MOD,       ONLY : ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
-      USE TRACERID_MOD,       ONLY : ID_Hg_ocn,  ID_Hg_str
-
-      ! Testing only
-      USE GRID_MOD, ONLY : GET_AREA_M2
- 
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_EMIS 
 !
 ! !INPUT PARAMETERS:
 !
@@ -2642,18 +2689,18 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,      J,        L,    N,   PBL_MAX
-      REAL(fp)  :: DTSRCE, F_OF_PBL, E_Hg 
+      INTEGER  :: I,      J,        L,    N,   PBL_MAX
+      REAL(fp) :: DTSRCE, F_OF_PBL, E_Hg 
 
       ! For values from Input_Opt
-      LOGICAL :: LSPLIT, LPREINDHG
+      LOGICAL  :: LSPLIT, LPREINDHG
 
       !=================================================================
       ! SRCHg2 begins here!
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS      
+      RC        = GC_SUCCESS      
 
       ! Copy values from Input_Opt
       LSPLIT    = Input_Opt%LSPLIT
@@ -2686,7 +2733,7 @@
                !---------------------------
                ! Total anthro Hg(II) [kg]
                !---------------------------
-               N    = ID_Hg2(ID_Hg_tot)
+               N    = Hg2_Id_List(ID_Hg_tot)
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                !---------------------------
@@ -2695,87 +2742,87 @@
                IF ( LSPLIT ) THEN 
 
                   ! Anthro Canada Hg2
-                  N    = ID_Hg2(ID_Hg_can)
+                  N    = Hg2_Id_List(ID_Hg_can)
                   E_Hg = F_OF_PBL * EHg2_can(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                   ! Anthro United States Hg2
-                  N    = ID_Hg2(ID_Hg_usa)
+                  N    = Hg2_Id_List(ID_Hg_usa)
                   E_Hg = F_OF_PBL * EHg2_usa(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                   ! Anthro Central America Hg2
-                  N    = ID_Hg2(ID_Hg_cam)
+                  N    = Hg2_Id_List(ID_Hg_cam)
                   E_Hg = F_OF_PBL * EHg2_cam(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                   ! Anthro South America Hg2
-                  N    = ID_Hg2(ID_Hg_sam)
+                  N    = Hg2_Id_List(ID_Hg_sam)
                   E_Hg = F_OF_PBL * EHg2_sam(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                   ! Anthro West Africa Hg2
-                  N    = ID_Hg2(ID_Hg_waf)
+                  N    = Hg2_Id_List(ID_Hg_waf)
                   E_Hg = F_OF_PBL * EHg2_waf(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
    
                   ! Anthro East Africa Hg2
-                  N    = ID_Hg2(ID_Hg_eaf)
+                  N    = Hg2_Id_List(ID_Hg_eaf)
                   E_Hg = F_OF_PBL * EHg2_eaf(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
    
                   ! Anthro South Africa Hg2
-                  N    = ID_Hg2(ID_Hg_saf)
+                  N    = Hg2_Id_List(ID_Hg_saf)
                   E_Hg = F_OF_PBL * EHg2_saf(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
    
                   ! Anthro North Africa Hg2
-                  N    = ID_Hg2(ID_Hg_naf)
+                  N    = Hg2_Id_List(ID_Hg_naf)
                   E_Hg = F_OF_PBL * EHg2_naf(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
    
                   ! Anthro OECD Europe Hg2
-                  N    = ID_Hg2(ID_Hg_eur)
+                  N    = Hg2_Id_List(ID_Hg_eur)
                   E_Hg = F_OF_PBL * EHg2_eur(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
    
                   ! Anthro Eastern Europe Hg2
-                  N    = ID_Hg2(ID_Hg_eeu)
+                  N    = Hg2_Id_List(ID_Hg_eeu)
                   E_Hg = F_OF_PBL * EHg2_eeu(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
    
                   ! Anthro Middle East Hg2
-                  N    = ID_Hg2(ID_Hg_mde)
+                  N    = Hg2_Id_List(ID_Hg_mde)
                   E_Hg = F_OF_PBL * EHg2_mde(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
    
                   ! Anthro Former USSR Hg2
-                  N    = ID_Hg2(ID_Hg_sov)
+                  N    = Hg2_Id_List(ID_Hg_sov)
                   E_Hg = F_OF_PBL * EHg2_sov(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
    
                   ! Anthro South Asia Hg2
-                  N    = ID_Hg2(ID_Hg_sas)
+                  N    = Hg2_Id_List(ID_Hg_sas)
                   E_Hg = F_OF_PBL * EHg2_sas(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
    
                   ! Anthro East Asia Hg2
-                  N    = ID_Hg2(ID_Hg_eas)
+                  N    = Hg2_Id_List(ID_Hg_eas)
                   E_Hg = F_OF_PBL * EHg2_eas(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
    
                   ! Anthro Southeast Asia Hg2
-                  N    = ID_Hg2(ID_Hg_sea)
+                  N    = Hg2_Id_List(ID_Hg_sea)
                   E_Hg = F_OF_PBL * EHg2_sea(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
    
                   ! Anthro Japan Hg2
-                  N    = ID_Hg2(ID_Hg_jpn)
+                  N    = Hg2_Id_List(ID_Hg_jpn)
                   E_Hg = F_OF_PBL * EHg2_jpn(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
    
                   ! Anthro Oceania Hg2
-                  N    = ID_Hg2(ID_Hg_oce)
+                  N    = Hg2_Id_List(ID_Hg_oce)
                   E_Hg = F_OF_PBL * EHg2_oce(I,J) * DTSRCE
                   CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
@@ -2816,24 +2863,13 @@
 !
       USE CMN_SIZE_MOD
       USE DIAG03_MOD,         ONLY : AD03, ND03
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS 
-      USE TRACERID_MOD,       ONLY : ID_Hg_tot, ID_HgP
-      USE TRACERID_MOD,       ONLY : ID_Hg_can,  ID_Hg_usa
-      USE TRACERID_MOD,       ONLY : ID_Hg_cam,  ID_Hg_sam,  ID_Hg_waf
-      USE TRACERID_MOD,       ONLY : ID_Hg_eaf,  ID_Hg_saf,  ID_Hg_naf
-      USE TRACERID_MOD,       ONLY : ID_Hg_eur,  ID_Hg_eeu,  ID_Hg_sov
-      USE TRACERID_MOD,       ONLY : ID_Hg_mde,  ID_Hg_sas,  ID_Hg_eas
-      USE TRACERID_MOD,       ONLY : ID_Hg_sea,  ID_Hg_jpn,  ID_Hg_oce
-      USE TRACERID_MOD,       ONLY : ID_Hg_so,   ID_Hg_bb,   ID_Hg_geo
-      USE TRACERID_MOD,       ONLY : ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
-      USE TRACERID_MOD,       ONLY : ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
-      USE TRACERID_MOD,       ONLY : ID_Hg_ocn,  ID_Hg_str
 !
 ! !INPUT PARAMETERS:
 !
@@ -2873,7 +2909,7 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS      
+      RC        = GC_SUCCESS      
 
       ! Copy values from Input_Opt
       LSPLIT    = Input_Opt%LSPLIT
@@ -2905,7 +2941,7 @@
                !------------------------
                ! Total anthro HgP [kg]
                !------------------------
-               N               = ID_HgP(ID_Hg_tot)
+               N               = HgP_Id_List(ID_Hg_tot)
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                !------------------------
@@ -2914,87 +2950,87 @@
                IF ( LSPLIT ) THEN
 
                ! Anthro Canada HgP
-               N            = ID_HgP(ID_Hg_can)
+               N            = HgP_Id_List(ID_Hg_can)
                E_Hg         = F_OF_PBL * EHgP_can(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro United States HgP
-               N            = ID_HgP(ID_Hg_usa)
+               N            = HgP_Id_List(ID_Hg_usa)
                E_Hg         = F_OF_PBL * EHgP_usa(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Central America HgP
-               N            = ID_HgP(ID_Hg_cam)
+               N            = HgP_Id_List(ID_Hg_cam)
                E_Hg         = F_OF_PBL * EHgP_cam(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South America HgP
-               N            = ID_HgP(ID_Hg_sam)
+               N            = HgP_Id_List(ID_Hg_sam)
                E_Hg         = F_OF_PBL * EHgP_sam(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro West Africa HgP
-               N            = ID_HgP(ID_Hg_waf)
+               N            = HgP_Id_List(ID_Hg_waf)
                E_Hg         = F_OF_PBL * EHgP_waf(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Africa HgP
-               N            = ID_HgP(ID_Hg_eaf)
+               N            = HgP_Id_List(ID_Hg_eaf)
                E_Hg         = F_OF_PBL * EHgP_eaf(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Africa HgP
-               N            = ID_HgP(ID_Hg_saf)
+               N            = HgP_Id_List(ID_Hg_saf)
                E_Hg         = F_OF_PBL * EHgP_saf(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro North Africa HgP
-               N            = ID_HgP(ID_Hg_naf)
+               N            = HgP_Id_List(ID_Hg_naf)
                E_Hg         = F_OF_PBL * EHgP_naf(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro OECD Europe HgP
-               N            = ID_HgP(ID_Hg_eur)
+               N            = HgP_Id_List(ID_Hg_eur)
                E_Hg         = F_OF_PBL * EHgP_eur(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Eastern Europe HgP
-               N            = ID_HgP(ID_Hg_eeu)
+               N            = HgP_Id_List(ID_Hg_eeu)
                E_Hg         = F_OF_PBL * EHgP_eeu(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Middle East HgP
-               N            = ID_HgP(ID_Hg_mde)
+               N            = HgP_Id_List(ID_Hg_mde)
                E_Hg         = F_OF_PBL * EHgP_mde(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Former USSR HgP
-               N            = ID_HgP(ID_Hg_sov)
+               N            = HgP_Id_List(ID_Hg_sov)
                E_Hg         = F_OF_PBL * EHgP_sov(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro South Asia HgP
-               N            = ID_HgP(ID_Hg_sas)
+               N            = HgP_Id_List(ID_Hg_sas)
                E_Hg         = F_OF_PBL * EHgP_sas(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro East Asia HgP
-               N            = ID_HgP(ID_Hg_eas)
+               N            = HgP_Id_List(ID_Hg_eas)
                E_Hg         = F_OF_PBL * EHgP_eas(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Southeast Asia HgP
-               N            = ID_HgP(ID_Hg_sea)
+               N            = HgP_Id_List(ID_Hg_sea)
                E_Hg         = F_OF_PBL * EHgP_sea(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Japan HgP
-               N            = ID_HgP(ID_Hg_jpn)
+               N            = HgP_Id_List(ID_Hg_jpn)
                E_Hg         = F_OF_PBL * EHgP_jpn(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Anthro Oceania HgP
-               N            = ID_HgP(ID_Hg_oce)
+               N            = HgP_Id_List(ID_Hg_oce)
                E_Hg         = F_OF_PBL * EHgP_oce(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
@@ -3034,16 +3070,13 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-
-      ! HEMCO update
       USE HCO_ERROR_MOD
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn 
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3083,6 +3116,7 @@
 !  06 Sep 2013 - R. Yantosca - Kludge: use GEOS-5 soil file for GEOS-4 testing
 !                              and debugging.  Worry about this later.
 !  24 Sep 2014 - C. Keller   - HEMCO update
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3102,7 +3136,7 @@
 
       ! HEMCO update
       CHARACTER(LEN=63)        :: DgnName
-      REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()  
+      REAL(f4),        POINTER :: Ptr2D(:,:)
 
       ! Strings
       CHARACTER(LEN=255)       :: MSG
@@ -3113,7 +3147,10 @@
       !=================================================================
 
       ! Assume success
-      RC             = GIGC_SUCCESS
+      RC             = GC_SUCCESS
+
+      ! Initialize pointers
+      Ptr2D          => NULL()  
 
       ! Copy values from Input_Opt
       LDYNOCEAN      = Input_Opt%LDYNOCEAN 
@@ -3312,7 +3349,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3397,7 +3434,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3459,7 +3496,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -3485,23 +3522,18 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP
- 
       !=================================================================
       ! GET_OH begins here!
       !=================================================================
 
-      ! 1-D grid box index for SUNCOS
-      JLOOP = ( (J-1) * IIPAR ) + I
-
       ! Test for sunlight...
       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp .and. 
-     &    TCOSZ(I,J) > 0e+0_fp ) THEN
+     &     TCOSZ(I,J) > 0e+0_fp ) THEN
 
          ! Impose a diurnal variation on OH during the day
          OH_MOLEC_CM3 = OH(I,J,L)                                 *    
      &                  ( State_Met%SUNCOS(I,J) / TCOSZ(I,J)    ) *
-     &                  ( 1440e+0_fp                / GET_TS_CHEM() )
+     &                  ( 1440e+0_fp            / GET_TS_CHEM() )
 
          ! Make sure OH is not negative
          OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
@@ -3525,7 +3557,6 @@
 !
 ! !DESCRIPTION: Function GET\_BR returns instantaneous Br concentration 
 !  calculated from the monthly mean and an imposed diurnal variation.
-
 !\\
 !\\
 ! !INTERFACE:
@@ -3541,12 +3572,12 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG03_MOD,         ONLY : AD03_Br,   LD03,     ND03
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_BR_MOD,      ONLY : BR_MERGE,  BR_TROP
       USE GLOBAL_BR_MOD,      ONLY : BR_STRAT,  J_BRO
       USE GLOBAL_BR_MOD,      ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
       USE GRID_MOD,           ONLY : GET_YMID
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_LOCALTIME 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
       USE TIME_MOD,           ONLY : GET_MONTH
@@ -3585,7 +3616,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: JLOOP
       REAL(fp)              :: BR_PPTV, BR_MBL, BR_FAC
       REAL(fp)              :: LOCALTIME, HOUR, BRO_PPTV, FPBL
       REAL(fp)              :: BOXVL           
@@ -3683,9 +3713,6 @@
       ! At the moment, we only have Br north of 60N, i.e. not Hudson's Bay
       !----------------------------------------------------------------
 !
-!      ! 1-D grid box index for SUNCOS
-!      JLOOP = ( (J-1) * IIPAR ) + I
-!
 !      IF ( ( LPOLARBR ) .AND. ( FPBL >  0e+0_fp   ) .AND.
 !     &     ( State_Met%SUNCOS(I,J)   >  0e+0_fp   ) .AND. 
 !     &     ( State_Met%T(I,J,1)      <= 268e+0_fp ) .AND.
@@ -3716,12 +3743,9 @@
       ! which fit RGM observations for Okinawa and a Pacific cruise
       !----------------------------------------------------------------
             
-      ! 1-D grid box index for SUNCOS
-      JLOOP = ( (J-1) * IIPAR ) + I
-      
       ! Test for sunlight...
       IF ( (State_Met%SUNCOS(I,J) > 0e+0_fp) .and. 
-     &    (TTDAY(I,J) > 0e+0_fp) ) THEN
+     &     (TTDAY(I,J) > 0e+0_fp) ) THEN
       
          ! Use a constant function if daylight is < 2 hours or > 22hours
          IF ( ( TTDAY(I,J) < 120e+0_fp  ) .OR. 
@@ -3899,6 +3923,8 @@
 !  (4 ) Also added parallel loop over grid boxes (eck, bmy, 12/8/04)
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
+!  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
+!                              from (MAXIJ) to (IIPAR,JJPAR)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3908,10 +3934,10 @@
       ! References to F90 modules
       ! Local variables
       LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I, IJLOOP, J, L, N, NT, NDYSTEP
-      REAL(fp)        :: A0, A1, A2, A3, B1, B2, B3
-      REAL(fp)        :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL(fp)        :: SUNTMP(MAXIJ)
+      INTEGER       :: I, J, L, N, NT, NDYSTEP
+      REAL(fp)      :: A0, A1, A2, A3, B1, B2, B3
+      REAL(fp)      :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
+      REAL(fp)      :: SUNTMP(IIPAR,JJPAR)
       
       !=================================================================
       ! OHNO3TIME begins here!
@@ -3951,20 +3977,18 @@
          DO N = 1, NDYSTEP
             
             ! Zero SUNTMP array
-            SUNTMP(:) = 0e+0_fp
+            SUNTMP = 0e+0_fp
 
             ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
+!$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
                ! Grid box latitude center [radians]
                YMID_R = GET_YMID_R( I, J, 1 )
 
-               ! Increment IJLOOP
-               IJLOOP = ( (J-1) * IIPAR ) + I
                TIMLOC = real(LHR0) + real(NT)/3600.0 
      &                + GET_XMID(I,J,1)/15.0
          
@@ -3978,33 +4002,33 @@
 
                AHR = abs(TIMLOC - 12.) * 15.0 * PI_180
 
-            !===========================================================
-            ! The cosine of the solar zenith angle (SZA) is given by:
-            !     
-            !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
-            !                   
-            ! where LAT = the latitude angle, 
-            !       DEC = the solar declination angle,  
-            !       AHR = the hour angle, all in radians. 
-            !
-            ! If SUNCOS < 0, then the sun is below the horizon, and 
-            ! therefore does not contribute to any solar heating.  
-            !===========================================================
+               !===========================================================
+               ! The cosine of the solar zenith angle (SZA) is given by:
+               !     
+               !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
+               !                   
+               ! where LAT = the latitude angle, 
+               !       DEC = the solar declination angle,  
+               !       AHR = the hour angle, all in radians. 
+               !
+               ! If SUNCOS < 0, then the sun is below the horizon, and 
+               ! therefore does not contribute to any solar heating.  
+               !===========================================================
 
                ! Compute Cos(SZA)
-               SUNTMP(IJLOOP) = sin(YMID_R) * sin(DEC) +
-     &                          cos(YMID_R) * cos(DEC) * cos(AHR)
+               SUNTMP(I,J) = sin(YMID_R) * sin(DEC) +
+     &                       cos(YMID_R) * cos(DEC) * cos(AHR)
 
                ! TCOSZ is the sum of SUNTMP at location (I,J)
                ! Do not include negative values of SUNTMP
-               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(IJLOOP), 0e+0_fp )
+               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(I,J), 0e+0_fp )
 
                ! COSZM is the peak value of SUMTMP during a day at (I,J)
                ! (rjp, bmy, 3/30/04)
-               COSZM(I,J) = MAX( COSZM(I,J), SUNTMP(IJLOOP) )
+               COSZM(I,J) = MAX( COSZM(I,J), SUNTMP(I,J) )
 
                ! TTDAY is the total daylight time at location (I,J)
-               IF ( SUNTMP(IJLOOP) > 0e+0_fp ) THEN
+               IF ( SUNTMP(I,J) > 0e+0_fp ) THEN
                   TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() )
                ENDIF
             ENDDO
@@ -4042,8 +4066,8 @@
 !
       USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_WATER
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_M
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4151,10 +4175,10 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS
       USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID_R
+      USE PhysConstants
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR 
 !
 ! !INPUT PARAMETERS: 
@@ -4182,18 +4206,15 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP, JDAY
-      REAL(fp)  :: CSZANOON
-      REAL(fp)  :: A0, A1, A2, A3, B1, B2, B3
-      REAL(fp)  :: R, DEC, YMID_R  
+      INTEGER  :: JDAY
+      REAL(fp) :: CSZANOON
+      REAL(fp) :: A0, A1, A2, A3, B1, B2, B3
+      REAL(fp) :: R, DEC, YMID_R  
  
       !=================================================================
       ! GET_JNO2 begins here!
       !=================================================================
       
-      ! 1-D grid box index for SUNCOS
-      JLOOP = ( (J-1) * IIPAR ) + I
-
       ! Test for sunlight...
       IF ( State_Met%SUNCOS(I,J) > TINY(1e+0_fp) ) THEN
 
@@ -4232,8 +4253,8 @@
 
          ! Impose a diurnal variation on JNO2 during the day
          ! Note: We don't need to check for divide-by-zero errors
-         ! because we already checked SUNCOS(JLOOP) and we know
-         ! CSZANOON >= SUNCOS(JLOOP)
+         ! because we already checked SUNCOS(I,J) and we know
+         ! CSZANOON >= SUNCOS(I,J)
          JNO2_NOW = JNO2(I,J,L) * 
      &     EXP( 0.36e+0_fp * 
      &        ( 1e+0_fp/CSZANOON - 1e+0_fp/State_Met%SUNCOS(I,J) ) )
@@ -4270,15 +4291,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : SAFE_DIV  , GEOS_CHEM_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE OCEAN_MERCURY_MOD,  ONLY : Fg
-      USE TRACERID_MOD,       ONLY : ID_HG2,     ID_HGP, N_HG_CATS
-
-
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -4304,36 +4322,30 @@
 !                              we no longer need to 'reverse' partition. 
 !  03 Jun 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  18 Nov 2014 - M. Yannetti - Took out OCEAN_MERCURY_MOD calling Fp
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER           :: I, J, L, N
       REAL(fp)          :: FGas, Hg2TOT
 
-      ! For values from Input_Opt
-      INTEGER           :: N_TRACERS
-
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! PARTITIONHG2 begins here!
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS 
+      RC  =  GC_SUCCESS 
 
-      ! Copy values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT       => State_Chm%Tracers
+      ! Point to the chemical species array [kg]
+      Spc => State_Chm%Species
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -4355,14 +4367,14 @@
          DO N = 1, N_HG_CATS
 
             ! Total Hg(II) (gas +aerosol)
-            HG2TOT = STT(I,J,L,ID_HG2(N)) + 
-     &               STT(I,J,L,ID_HGP(N))
+            HG2TOT = Spc(I,J,L,Hg2_Id_List(N)) + 
+     &               Spc(I,J,L,HgP_Id_List(N))
 
             ! Gas portion
-            STT(I,J,L,ID_HG2(N)) = Hg2TOT * Fgas 
+            Spc(I,J,L,Hg2_Id_List(N)) = Hg2TOT * Fgas 
 
             ! Aerosol portion
-            STT(I,J,L,ID_HGP(N)) = Hg2TOT * (1e+0_fp - Fgas)
+            Spc(I,J,L,HgP_Id_List(N)) = Hg2TOT * (1e+0_fp - Fgas)
 
          ENDDO
 
@@ -4372,7 +4384,7 @@
 !$OMP END PARALLEL DO
       
       ! Free pointer memory
-      NULLIFY( STT )
+      Spc => NULL()
 
       ! Return to calling program
       END SUBROUTINE PARTITIONHG2
@@ -4384,7 +4396,7 @@
 !
 ! !IROUTINE: red_inplume_grid
 !
-! !DESCRIPTION: Subroutine RED\_INPLUME\_GRID conduct in plume reduction of 
+! !DESCRIPTION: Subroutine RED\_INPLUME\_GRID conducts in plume reduction of 
 !  Hg2 for selected grids
 !\\
 !\\
@@ -4435,7 +4447,7 @@
 !
 ! !IROUTINE: do_red_inplume
 !
-! !DESCRIPTION: Subroutine RED_INPLUME conduct in plume reduction of 
+! !DESCRIPTION: Subroutine DO\_RED\_INPLUME conducts in plume reduction of 
 !  Hg2 for selected grids.
 !\\
 !\\
@@ -4446,12 +4458,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
       IMPLICIT NONE
@@ -4471,6 +4483,7 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path'
 !  16 Mar 2015 - R. Yantosca - Remove bpch input
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4485,7 +4498,7 @@
       CHARACTER(LEN=255)  :: LOC = 'DO_RED_INPLUME (mercury_mod.F)'
 
       ! Pointers
-      REAL(f4), POINTER   :: E_ELEC_Hg2(:,:) => NULL()
+      REAL(f4), POINTER   :: E_ELEC_Hg2(:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -4494,11 +4507,15 @@
       !=================================================================
       ! DO_RED_INPLUME begins here!
       !=================================================================
+
+      ! Initialize
+      E_ELEC_Hg2 => NULL()
+
       
       ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
       CALL HCO_GetPtr( am_I_Root, HcoState, 
      &                'CFPP_NEI2005_Hg2', E_ELEC_Hg2, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 
      &      'Cannot get pointer to CFPP_NEI2005_Hg2!', LOC )
       ENDIF
@@ -4536,22 +4553,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_MERCURY( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_MERCURY( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : DEPNAME  , NUMDEP
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : N_Hg_CATS
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -4569,6 +4587,9 @@
 !  11 Apr 2012 - R. Yantosca - Now move LAI initialization to main.F
 !  03 Jun 2013 - R. Yantosca - Now use fields from Input_Opt
 !  12 Mar 2015 - R. Yantosca - Now test if HEMCO_Collections are defined
+!  25 Apr 2016 - R. Yantosca - Now use species database for tagHg indexing
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4576,34 +4597,124 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL, SAVE       :: IS_INIT = .FALSE. 
-      LOGICAL             :: LSPLIT
-      LOGICAL             :: LDRYD
-      LOGICAL             :: LNLPBL
-      LOGICAL             :: LGTMM
-      INTEGER             :: N_TRACERS
-      INTEGER             :: AS, N
-      CHARACTER(LEN=255)  :: LOCATION
+      LOGICAL, SAVE          :: IS_INIT = .FALSE. 
+      LOGICAL                :: LSPLIT
+      LOGICAL                :: LDRYD
+      LOGICAL                :: LNLPBL
+      LOGICAL                :: LGTMM
+      INTEGER                :: nAdvect
+      INTEGER                :: AS, N
+      CHARACTER(LEN=255)     :: LOCATION
+
+      ! Pointers
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! INIT_MERCURY begins here!
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
 
-      ! Copy values from Input_Opt
+      ! Initialize 
+      SpcInfo        => NULL()
       LDRYD          = Input_Opt%LDRYD            ! Use drydep?
       LGTMM          = Input_Opt%LGTMM            ! Use GTMM model?
       LNLPBL         = Input_Opt%LNLPBL           ! Use non-local PBL?
       LSPLIT         = Input_Opt%LSPLIT           ! Tagged simulation?
-      N_TRACERS      = Input_Opt%N_TRACERS        ! # of Hg tracers
+      nAdvect        = State_Chm%nAdvect          ! # of Hg advected species
 
       ! Location string for ERROR_STOP
       LOCATION       = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'
+
+      ! Store the # of tagged Hg categories in a module variable
+      N_Hg_CATS   = State_Chm%N_Hg_CATS
+      
+      ! Hg species index corresponding to a given Hg category number
+      Hg0_Id_List => State_Chm%Hg0_Id_List
+      Hg2_Id_List => State_Chm%Hg2_Id_List
+      HgP_Id_List => State_Chm%HgP_Id_List
+
+      ! Locate various species flags
+      DO N = 1, State_Chm%nSpecies
+         
+         ! Point to the species database entry for species # N
+         SpcInfo => State_Chm%SpcData(N)%Info
+
+         SELECT CASE( TRIM( SpcInfo%Name ) )
+            CASE( 'Hg0'     )
+               id_Hg0    = SpcInfo%ModelId
+               ID_Hg_tot = SpcInfo%Hg_Cat
+            CASE( 'Hg2'     )
+               id_Hg2    = SpcInfo%ModelId
+            CASE( 'HgP'     )
+               id_HgP    = SpcInfo%ModelId
+            CASE( 'Hg0_can' )
+               ID_Hg_can = SpcInfo%Hg_Cat
+            CASE( 'Hg0_usa' )
+               ID_Hg_usa = SpcInfo%Hg_Cat
+            CASE( 'Hg0_cam' )
+               ID_Hg_cam = SpcInfo%Hg_Cat 
+            CASE( 'Hg0_sam' )
+               ID_Hg_sam = SpcInfo%Hg_Cat 
+            CASE( 'Hg0_waf' )
+               ID_Hg_waf = SpcInfo%Hg_Cat
+            CASE( 'Hg0_eaf' )
+               ID_Hg_eaf = SpcInfo%Hg_Cat 
+            CASE( 'Hg0_saf' )
+               ID_Hg_saf = SpcInfo%Hg_Cat 
+            CASE( 'Hg0_naf' )
+               ID_Hg_naf = SpcInfo%Hg_Cat
+            CASE( 'Hg0_eur' )
+               ID_Hg_eur = SpcInfo%Hg_Cat 
+            CASE( 'Hg0_eeu' )
+               ID_Hg_eeu = SpcInfo%Hg_Cat 
+            CASE( 'Hg0_sov' )
+               ID_Hg_sov = SpcInfo%Hg_Cat
+            CASE( 'Hg0_mde' )
+               ID_Hg_mde = SpcInfo%Hg_Cat 
+            CASE( 'Hg0_sas' )
+               ID_Hg_sas = SpcInfo%Hg_Cat 
+            CASE( 'Hg0_eas' )
+               ID_Hg_eas = SpcInfo%Hg_Cat
+            CASE( 'Hg0_sea' )
+               ID_Hg_sea = SpcInfo%Hg_Cat 
+            CASE( 'Hg0_jpn' )
+               ID_Hg_jpn = SpcInfo%Hg_Cat 
+            CASE( 'Hg0_oce' )
+               ID_Hg_oce = SpcInfo%Hg_Cat
+            CASE( 'Hg0_so'  )
+               ID_Hg_so  = SpcInfo%Hg_Cat 
+            CASE( 'Hg0_bb'  )
+               ID_Hg_bb  = SpcInfo%Hg_Cat 
+            CASE( 'Hg0_geo' )
+               ID_Hg_geo = SpcInfo%Hg_Cat
+            CASE( 'Hg0_atl' ) 
+               ID_Hg_atl = SpcInfo%Hg_Cat
+            CASE( 'Hg0_nat' )
+               ID_Hg_nat = SpcInfo%Hg_Cat
+            CASE( 'Hg0_sat' )
+               ID_Hg_sat = SpcInfo%Hg_Cat
+            CASE( 'Hg0_npa' )
+               ID_Hg_npa = SpcInfo%Hg_Cat
+            CASE( 'Hg0_arc' )
+               ID_Hg_arc = SpcInfo%Hg_Cat
+            CASE( 'Hg0_ant' )
+               ID_Hg_ant = SpcInfo%Hg_Cat
+            CASE( 'Hg0_ocn' )
+               ID_Hg_ocn = SpcInfo%Hg_Cat
+            CASE( 'Hg0_str' )
+               ID_Hg_str = SpcInfo%Hg_cat
+            CASE DEFAULT
+               ! Do nothing
+         END SELECT
+
+         ! Free pointer
+         SpcInfo => NULL()
+      ENDDO
 
       !=================================================================
       ! Allocate arrays
@@ -4903,11 +5014,11 @@
       HG2_SEASALT_LOSSRATE = 0e+0_fp
 
       !=================================================================
-      ! Allocate & initialize arrays for tagged tracer indices
+      ! Allocate & initialize arrays for tagged species indices
       !=================================================================
       IF ( LSPLIT ) THEN
 
-         ! Tracer indices for tagged anthro regions
+         ! Species indices for tagged anthro regions
          ALLOCATE( AN_Hg0( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AN_Hg0' )
          AN_Hg0 = 0e+0_fp
@@ -4923,7 +5034,7 @@
       ENDIF
 
       ! HG_EMIS is needed for non-local PBL mixing 
-      ALLOCATE ( HG_EMIS( IIPAR, JJPAR, N_TRACERS ), STAT=AS )
+      ALLOCATE ( HG_EMIS( IIPAR, JJPAR, nAdvect ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG_EMIS' )
       HG_EMIS = 0e+0_fp
 
@@ -5225,9 +5336,14 @@
       IF ( ALLOCATED( HG_EMIS   ) ) DEALLOCATE( HG_EMIS   ) 
   
       ! Free pointers to HEMCO fields
-      O3   => NULL()
-      OH   => NULL()
-      JNO2 => NULL()
+      O3    => NULL()
+      OH    => NULL()
+      JNO2  => NULL()
+
+      ! Free Hg indexing pointers
+      Hg0_Id_List => NULL()
+      Hg2_Id_List => NULL()
+      HgP_Id_List => NULL()
 
       END SUBROUTINE CLEANUP_MERCURY
 !EOC

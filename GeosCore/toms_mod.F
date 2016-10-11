@@ -16,7 +16,7 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD                    ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -115,11 +115,11 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE Error_Mod,          ONLY : Error_Stop
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -221,7 +221,7 @@
       ! Read TOMS O3 columns [dobsons]
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS_O3_COL', TOMS, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
       ENDIF
 
@@ -230,7 +230,7 @@
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root,      HcoState, 
      &                'DTOMS1_O3_COL', DTOMS1, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
       ENDIF
 
@@ -239,7 +239,7 @@
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root,      HcoState, 
      &                'DTOMS2_O3_COL', DTOMS2, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
       ENDIF
 
@@ -487,10 +487,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD  
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -520,7 +520,7 @@
       ! Allocate arrays
       IF (.not. ALLOCATED( TO3_DAILY) )
      &     ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) CALL ALLOC_ERR( 'TO3_DAILY' )
+      IF ( RC /= GC_SUCCESS ) CALL ALLOC_ERR( 'TO3_DAILY' )
       TO3_DAILY = 0e+0_fp
 
       ! Initialize pointers

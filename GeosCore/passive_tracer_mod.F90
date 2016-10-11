@@ -115,7 +115,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ALLOC_ERR 
 !
 ! !INPUT PARAMETERS:
@@ -144,7 +144,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
   
     ! Set module variable 
     NPASSIVE = NPT
@@ -155,7 +155,7 @@ CONTAINS
                  PASSIVE_INITCONC(NPASSIVE), STAT=AS )
        IF ( AS /= 0 ) THEN
           CALL ALLOC_ERR( 'passive tracer arrays' )
-          RC = GIGC_FAILURE
+          RC = GC_FAILURE
           RETURN
        ENDIF
 
@@ -184,10 +184,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE GIGC_State_Chm_Mod, ONLY : Get_Indx
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE ERROR_MOD,     ONLY : ERROR_STOP
+    USE State_Chm_Mod, ONLY : ind_ 
 !
 ! !INPUT PARAMETERS:
 !
@@ -220,14 +220,14 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Error check: cannot define passive tracer if # of passive tracers is 0.
     IF ( NPASSIVE <= 0 ) THEN
        MSG = 'Cannot add passive tracer ' // TRIM(TrcName) // &
              ': # of passive tracers is smaller than 1!'
        CALL ERROR_STOP ( TRIM(MSG), TRIM(LOC) )
-       RC = GIGC_FAILURE
+       RC = GC_FAILURE
        RETURN 
     ENDIF 
 
@@ -244,19 +244,19 @@ CONTAINS
        WRITE(MSG,*) 'Cannot add passive tracer ', TRIM(TrcName), &
                     ': all ', NPASSIVE, ' tracer slots are already being used.'
        CALL ERROR_STOP ( TRIM(MSG), TRIM(LOC) )
-       RC = GIGC_FAILURE
+       RC = GC_FAILURE
        RETURN 
     ENDIF 
 
     ! Find GEOS-Chem tracer ID for this tracer (by name)
-    TRCID = Get_Indx( TRIM(TrcName), Input_Opt%ID_TRACER, Input_Opt%TRACER_NAME ) 
+    TRCID = ind_( TRIM(TrcName) )
 
     ! Return w/ error if this tracer is not defined as GEOS-Chem tracer
     IF ( TRCID <= 0 ) THEN
        WRITE(MSG,*) 'Cannot add passive tracer ', TRIM(TrcName), &
                     ': this is not a GEOS-Chem tracer.'
        CALL ERROR_STOP ( TRIM(MSG), TRIM(LOC) )
-       RC = GIGC_FAILURE
+       RC = GC_FAILURE
        RETURN 
     ENDIF 
 
@@ -278,7 +278,7 @@ CONTAINS
 130 FORMAT( A, ES10.2 )
  
     ! Return w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE ADD_PASSIVE_TRACER
 !EOC
@@ -300,11 +300,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod,     ONLY : OptInput
-    USE GIGC_State_Chm_Mod,     ONLY : ChmState
-    USE GIGC_State_Met_Mod,     ONLY : MetState
-    USE TIME_MOD,               ONLY : GET_TS_CHEM
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,     ONLY : OptInput
+    USE State_Chm_Mod,     ONLY : ChmState
+    USE State_Met_Mod,     ONLY : MetState
+    USE TIME_MOD,          ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -337,7 +337,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Return if there are no passive tracers
     IF ( NPASSIVE <= 0 ) RETURN
@@ -360,12 +360,12 @@ CONTAINS
        Rate     = EXP( - DTCHEM * Decay )
 
        ! Apply loss
-       State_Chm%Tracers(:,:,:,GCID) = State_Chm%Tracers(:,:,:,GCID) * Rate
+       State_Chm%Species(:,:,:,GCID) = State_Chm%Species(:,:,:,GCID) * Rate
 
     ENDDO
 
     ! Return w/ success 
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
  
   END SUBROUTINE CHEM_PASSIVE_TRACER
 !EOC
@@ -386,7 +386,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -455,7 +455,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
+    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -483,7 +483,7 @@ CONTAINS
     IF ( ALLOCATED( PASSIVE_INITCONC ) ) DEALLOCATE( PASSIVE_INITCONC )
 
     ! Return w/ success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
   END SUBROUTINE CLEANUP_PASSIVE_TRACER
 !EOC

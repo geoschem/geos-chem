@@ -43,10 +43,6 @@
       REAL*4,  ALLOCATABLE :: AD07_HC(:,:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_SOAGM(:,:,:,:)
 
-#if   defined( APM )
-      REAL*4,  ALLOCATABLE :: AD07_OM(:,:)
-#endif 
-
       ! For ND09 -- HCN / CH3CN simulation
       REAL*4,  ALLOCATABLE :: AD09(:,:,:,:)
       REAL*4,  ALLOCATABLE :: AD09_em(:,:,:)
@@ -208,6 +204,9 @@
       ! For ND64 -- radiative flux from FAST-JX
       REAL*4,  ALLOCATABLE :: AD64(:,:,:,:,:)
 
+      ! For ND65 -- production/loss rates
+      REAL*4,  ALLOCATABLE :: AD65(:,:,:,:)
+
 #if defined( BPCH_DIAG )
       ! For ND66 -- I-6 fields diagnostic
       REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
@@ -226,10 +225,10 @@
       REAL*4,  ALLOCATABLE :: AD71(:,:,:)      
       REAL*4,  ALLOCATABLE :: AD71_HR(:,:,:)
       REAL*4,  ALLOCATABLE :: AD71_DAY(:,:,:)
-      INTEGER, ALLOCATABLE :: AD71_COUNT
-      INTEGER, ALLOCATABLE :: AD71_HRCT
-      INTEGER, ALLOCATABLE :: AD71_LHR
-      INTEGER, ALLOCATABLE :: AD71_LDAY
+      INTEGER              :: AD71_COUNT
+      INTEGER              :: AD71_HRCT
+      INTEGER              :: AD71_LHR
+      INTEGER              :: AD71_LDAY
 
       ! For ND72 -- Radiation output diagnostic
       REAL*4,  ALLOCATABLE :: AD72(:,:,:)
@@ -306,6 +305,10 @@
 !  15 Apr 2015 - R. Yantosca - Add TARGET spec to MASSFLEW, MASSFLNS, MASSFLUP
 !  20 Jan 2016 - M. Sulprizio- Remove AD06, AD07, and AD08 arrays since these
 !                              diagnostics are tracked by HEMCO
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
+!  02 Aug 2016 - M. Sulprizio- Move AD65 array here from diag_pl_mod.F
+!  03 Oct 2016 - R. Yantosca - Bug fix: scalars cannot be ALLOCATABLE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -347,6 +350,7 @@
 !  (15) Now deallocate TOMAS related arrays (win, bmy, 1/25/10)
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM microphysics
 !  15 Aug 2014 - R. Yantosca - Remove diagnostics now tracked by HEMCO
+!   3 Oct 2016 - R. Yantosca - Bug fix: Don't deallocate ND71 scalar variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -416,6 +420,7 @@
       IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
 #endif
       IF ( ALLOCATED( AD64        ) ) DEALLOCATE( AD64        )
+      IF ( ALLOCATED( AD65        ) ) DEALLOCATE( AD65        )
 #if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
@@ -424,10 +429,6 @@
       IF ( ALLOCATED( AD71        ) ) DEALLOCATE( AD71        )
       IF ( ALLOCATED( AD71_HR     ) ) DEALLOCATE( AD71_HR     )
       IF ( ALLOCATED( AD71_DAY    ) ) DEALLOCATE( AD71_DAY    )
-      IF ( ALLOCATED( AD71_COUNT  ) ) DEALLOCATE( AD71_COUNT  )
-      IF ( ALLOCATED( AD71_HRCT   ) ) DEALLOCATE( AD71_HRCT   )
-      IF ( ALLOCATED( AD71_LDAY   ) ) DEALLOCATE( AD71_LDAY   )
-      IF ( ALLOCATED( AD71_LHR    ) ) DEALLOCATE( AD71_LHR    )
       IF ( ALLOCATED( AD72        ) ) DEALLOCATE( AD72        )
       IF ( ALLOCATED( CONVFLUP    ) ) DEALLOCATE( CONVFLUP    )
       IF ( ALLOCATED( CT16        ) ) DEALLOCATE( CT16        )
@@ -468,13 +469,6 @@
 #endif
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
       IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  )
-
-#if   defined( APM )
-      !-----------------------------------------
-      ! Deallocate arrays for APM microphysics
-      !-----------------------------------------
-      IF ( ALLOCATED( AD07_OM     ) ) DEALLOCATE( AD07_OM     )
-#endif
 
       END SUBROUTINE CLEANUP_DIAG
 !EOC

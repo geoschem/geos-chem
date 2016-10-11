@@ -1514,7 +1514,8 @@ CONTAINS
 !  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
 !                                to valid range n1:(n2-1). Do not initialize q2
 !                                to zero after pointer assignment. This seems to
-!                                cause problems with some compilers. 
+!                                cause problems with some compilers.
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1532,10 +1533,14 @@ CONTAINS
     ! Update
     INTEGER              :: n1, n2
     INTEGER              :: in
-    REAL*8, POINTER      :: lon2(:) => NULL()
-    REAL*8, POINTER      :: q2(:,:) => NULL()
+    REAL*8, POINTER      :: lon2(:)
+    REAL*8, POINTER      :: q2(:,:)
     REAL*8               :: minlon, maxlon 
     REAL*8               :: lon1s(im+1)
+
+    ! Initialize pointers
+    lon2 => NULL()
+    q2   => NULL()
 
     ! XMAP begins here!
     do i=1,im+1
@@ -1765,6 +1770,7 @@ CONTAINS
 !                                to valid range n1:(n2-1). Do not initialize q2
 !                                to zero after pointer assignment. This seems to
 !                                cause problems with some compilers. 
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1782,10 +1788,14 @@ CONTAINS
     ! Update
     INTEGER              :: n1, n2
     INTEGER              :: in
-    REAL*4, POINTER      :: lon2(:) => NULL()
-    REAL*4, POINTER      :: q2(:,:) => NULL()
+    REAL*4, POINTER      :: lon2(:)
+    REAL*4, POINTER      :: q2(:,:)
     REAL*4               :: minlon, maxlon 
     REAL*4               :: lon1s(im+1)
+
+    ! Initialize
+    lon2 => NULL()
+    q2   => NULL()
 
     ! XMAP begins here!
     do i=1,im+1
@@ -2034,10 +2044,14 @@ CONTAINS
     ! Update
     INTEGER              :: n1, n2
     INTEGER              :: in
-    REAL*4, POINTER      :: lon2(:) => NULL()
-    REAL*8, POINTER      :: q2(:,:) => NULL()
+    REAL*4, POINTER      :: lon2(:)
+    REAL*8, POINTER      :: q2(:,:)
     REAL*4               :: minlon, maxlon 
     REAL*4               :: lon1s(im+1)
+
+    ! Initialize
+    lon2 => NULL()
+    q2   => NULL()
 
     ! XMAP begins here!
     do i=1,im+1
@@ -2267,6 +2281,7 @@ CONTAINS
 !                                to valid range n1:(n2-1). Do not initialize q2
 !                                to zero after pointer assignment. This seems to
 !                                cause problems with some compilers. 
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2284,10 +2299,14 @@ CONTAINS
     ! Update
     INTEGER              :: n1, n2
     INTEGER              :: in
-    REAL*4, POINTER      :: lon2(:) => NULL()
-    REAL*4, POINTER      :: q2(:,:) => NULL()
+    REAL*4, POINTER      :: lon2(:)
+    REAL*4, POINTER      :: q2(:,:)
     REAL*4               :: minlon, maxlon 
     REAL*4               :: lon1s(im+1)
+
+    ! Initialize
+    lon2 => NULL()
+    q2   => NULL()
 
     ! XMAP begins here!
     do i=1,im+1

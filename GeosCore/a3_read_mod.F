@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
+      USE inquireMod,    ONLY : findFreeLUN
       USE PRECISION_MOD
 
       IMPLICIT NONE
@@ -23,9 +23,6 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-#if defined( BPCH_DIAG )
-      PUBLIC  :: ARCHIVE_ND67_1D
-#endif 
       PUBLIC  :: GET_A3_FIELDS
       PUBLIC  :: OPEN_A3_FIELDS
       PUBLIC  :: UNZIP_A3_FIELDS
@@ -66,6 +63,8 @@
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  05 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  12 May 2016 - M. Sulprizio- Remove routine ARCHIVE_ND67_1D. It is obsolete
+!                              and it not called from any other routine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -101,8 +100,8 @@
 !
       USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -338,7 +337,7 @@
       USE CMN_SIZE_MOD                          ! Size parameters
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR,    FILE_EXISTS
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -503,8 +502,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -829,7 +828,7 @@
       USE DIAG_MOD,           ONLY : AD67
 #endif
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput!
+      USE Input_Opt_Mod,      ONLY : OptInput!
       USE TIME_MOD,           ONLY : SET_CT_A3
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
 !
@@ -946,7 +945,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: I, IJLOOP, IOS, J, N_A3, NFOUND 
+      INTEGER           :: I, IOS, J, N_A3, NFOUND 
       REAL*4            :: Q2(IIPAR,JJPAR)
       CHARACTER(LEN=8)  :: NAME
       CHARACTER(LEN=16) :: STAMP
@@ -1572,63 +1571,6 @@
 
       END SUBROUTINE READ_A3
 !EOC
-#if defined( BPCH_DIAG )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: archive_nd67_1d
-!
-! !DESCRIPTION: Subroutine ARCHIVE\_ND67\_1D saves 1-D arrays for the ND67 
-!  diagnostic.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE ARCHIVE_ND67_1D( FIELD, N )
-!
-! !USES:
-!
-      USE DIAG_MOD, ONLY : AD67             ! ND67 diagnostic array
-
-      USE CMN_SIZE_MOD                      ! Size parameters
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*8,  INTENT(IN) :: FIELD(MAXIJ)   ! Array to be archived in ND67
-      INTEGER, INTENT(IN) :: N              ! ND67 index in which to store data
-! 
-! !REVISION HISTORY: 
-!  23 Jun 2003 - R. Yantosca - Initial version
-!  21 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  02 Feb 2016 - E. Lundgren - Wrap this routine in if defined bpch
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I, IJLOOP, J
-
-      !=================================================================
-      ! ARCHIVE_1D begins here
-      !=================================================================
-
-      ! Zero 1-D counter
-      IJLOOP = 0
-
-      ! Archive for diagnostic
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         IJLOOP      = IJLOOP + 1
-         AD67(I,J,N) = AD67(I,J,N) + FIELD(IJLOOP)
-      ENDDO
-      ENDDO
-
-      END SUBROUTINE ARCHIVE_ND67_1D
-!EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

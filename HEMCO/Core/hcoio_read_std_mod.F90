@@ -163,6 +163,7 @@ CONTAINS
 !  22 Nov 2015 - C. Keller   - Bug fix: now use Lun2 if reading second file.
 !  24 Mar 2016 - C. Keller   - Simplified handling of file in buffer. Remove
 !                              args LUN and CloseFile.
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,15 +185,15 @@ CONTAINS
     INTEGER                       :: nlatEdge, nlonEdge
     REAL(hp)                      :: MW_g, EmMW_g, MolecRatio
     REAL(sp)                      :: wgt1,   wgt2
-    REAL(sp), POINTER             :: ncArr(:,:,:,:)   => NULL()
-    REAL(sp), POINTER             :: ncArr2(:,:,:,:)  => NULL()
-    REAL(hp), POINTER             :: SigEdge(:,:,:)   => NULL()
-    REAL(hp), POINTER             :: SigLev (:,:,:)   => NULL()
-    REAL(hp), POINTER             :: LonMid   (:)     => NULL()
-    REAL(hp), POINTER             :: LatMid   (:)     => NULL()
-    REAL(hp), POINTER             :: LevMid   (:)     => NULL()
-    REAL(hp), POINTER             :: LonEdge  (:)     => NULL()
-    REAL(hp), POINTER             :: LatEdge  (:)     => NULL()
+    REAL(sp), POINTER             :: ncArr(:,:,:,:)
+    REAL(sp), POINTER             :: ncArr2(:,:,:,:)
+    REAL(hp), POINTER             :: SigEdge(:,:,:)
+    REAL(hp), POINTER             :: SigLev (:,:,:)
+    REAL(hp), POINTER             :: LonMid   (:)
+    REAL(hp), POINTER             :: LatMid   (:)
+    REAL(hp), POINTER             :: LevMid   (:)
+    REAL(hp), POINTER             :: LonEdge  (:)
+    REAL(hp), POINTER             :: LatEdge  (:)
     REAL(hp)                      :: UnitFactor
     LOGICAL                       :: KeepSpec
     LOGICAL                       :: FOUND
@@ -215,6 +216,17 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOIO_READ_STD (hcoio_read_std_mod.F90)' , RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Initialize pointers
+    ncArr   => NULL()
+    ncArr2  => NULL()
+    SigEdge => NULL()
+    SigLev  => NULL()
+    LonMid  => NULL()
+    LatMid  => NULL()
+    LevMid  => NULL()
+    LonEdge => NULL()
+    LatEdge => NULL()
 
     ! Get unit tolerance set in configuration file
     UnitTolerance = HCO_UnitTolerance( HcoState%Config )
@@ -1225,13 +1237,13 @@ CONTAINS
        IF ( Lct%Dct%Dta%SpaceDim == 3 .AND. ASSOCIATED(Lct%Dct%Dta%V3) ) THEN
           IF ( ASSOCIATED(Lct%Dct%Dta%V3(1)%Val) ) THEN
              CALL Diagn_Update ( am_I_Root, HcoState, cName=TRIM(Lct%Dct%cName), &
-                                 Array3D_SP=Lct%Dct%Dta%V3(1)%Val, COL=-1, RC=RC )
+                                 Array3D=Lct%Dct%Dta%V3(1)%Val, COL=-1, RC=RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
        ELSEIF ( Lct%Dct%Dta%SpaceDim == 2 .AND. ASSOCIATED(Lct%Dct%Dta%V2) ) THEN
           IF ( ASSOCIATED(Lct%Dct%Dta%V2(1)%Val) ) THEN
              CALL Diagn_Update ( am_I_Root, HcoState, cName=TRIM(Lct%Dct%cName), &
-                                 Array2D_SP=Lct%Dct%Dta%V2(1)%Val, COL=-1, RC=RC )
+                                 Array2D=Lct%Dct%Dta%V2(1)%Val, COL=-1, RC=RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
        ENDIF
@@ -1328,7 +1340,7 @@ CONTAINS
     INTEGER               :: prefYr, prefMt, prefDy, prefHr, prefMn
     INTEGER               :: refYear
     INTEGER(8)            :: origYMDh, prefYMDh
-    INTEGER(8), POINTER   :: availYMDh(:) => NULL() 
+    INTEGER(8), POINTER   :: availYMDh(:)
     LOGICAL               :: ExitSearch 
     LOGICAL               :: verb
 
@@ -1347,6 +1359,9 @@ CONTAINS
     oYMDh = 0
     YMDh  = 0
     YMDh1 = 0
+ 
+    ! Initialize pointers
+    availYMDh => NULL() 
  
     ! ---------------------------------------------------------------- 
     ! Extract netCDF time slices (YYYYMMDDhh) 
@@ -3605,7 +3620,7 @@ CONTAINS
     INTEGER            :: prefYr, prefMt, prefDy, prefHr, prefMn
     REAL(hp)           :: UnitFactor 
     REAL(hp)           :: FileVals(100)
-    REAL(hp), POINTER  :: FileArr(:,:,:,:) => NULL()
+    REAL(hp), POINTER  :: FileArr(:,:,:,:)
     LOGICAL            :: IsPerArea
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'GetDataVals (hcoio_dataread_mod.F90)'
@@ -3614,6 +3629,9 @@ CONTAINS
     ! GetDataVals begins here
     !======================================================================
    
+    ! Initialize
+    FileArr => NULL()
+
     ! Shadow molecular weights and molec. ratio (needed for
     ! unit conversion during file read)
     HcoID = Lct%Dct%HcoID

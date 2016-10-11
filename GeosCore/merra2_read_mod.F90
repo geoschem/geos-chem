@@ -22,9 +22,7 @@ MODULE Merra2_Read_Mod
   USE m_netcdf_io_close                   ! netCDF close
 
   ! GEOS-Chem modules
-  USE Precision_Mod                       ! Flexible precision definitions
   USE CMN_SIZE_MOD                        ! Size parameters
-  USE PHYSCONSTANTS                       ! Physical constants
 #if defined( BPCH_DIAG )
   USE CMN_DIAG_MOD                        ! Diagnostic arrays & counters
   USE DIAG_MOD,      ONLY : AD21          ! Array for ND21 diagnostic  
@@ -32,6 +30,8 @@ MODULE Merra2_Read_Mod
   USE DIAG_MOD,      ONLY : AD67          ! Array for ND67 diagnostic
 #endif
   USE ERROR_MOD,     ONLY : ERROR_STOP    ! Stop w/ error message
+  USE PhysConstants                       ! Physical constants
+  USE Precision_Mod                       ! Flexible precision definitions
   USE TIME_MOD                            ! Date & time routines
   USE TRANSFER_MOD                        ! Routines for casting 
 
@@ -127,17 +127,14 @@ CONTAINS
 #elif defined( GRID05x0666 )
     resString = '05x0666.nc4'
 
-#elif defined( GRID05x0625 ) && defined( NESTED_CH )
-    resString = '05x0625.CH.nc4'
+#elif defined( GRID05x0625 ) && defined( NESTED_AS )
+    resString = '05x0625.AS.nc4'
 
 #elif defined( GRID05x0625 ) && defined( NESTED_EU )
     resString = '05x0625.EU.nc4'
 
 #elif defined( GRID05x0625 ) && defined( NESTED_NA )
     resString = '05x0625.NA.nc4'
-
-#elif defined( GRID05x0625 ) && defined( NESTED_SE )
-    resString = '05x0625.SE.nc4'
 
 #elif defined( GRID05x0625 )
     resString = '05x0625.nc4'
@@ -251,8 +248,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -396,8 +393,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -483,6 +480,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
     
+    ! Name of this routine (for error printout)
+    caller  = "MERRA2_READ_A1 (merra2_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 10000 ) + 1
 
@@ -498,9 +498,6 @@ CONTAINS
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN     
     
-       ! Name of this routine (for error printout)
-       caller  = "MERRA2_READ_A1 (merra2_read_mod.F90)"
-
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%MERRA2_DIR )
        CALL Expand_Date( dir, YYYYMMDD, HHMMSS )
@@ -851,8 +848,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -932,8 +929,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -983,6 +980,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
     
+    ! Name of this routine (for error printout)
+    caller  = "MERRA2_READ_A3cld (Merra2_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -998,9 +998,6 @@ CONTAINS
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
        
-       ! Name of this routine (for error printout)
-       caller  = "MERRA2_READ_A3cld (Merra2_read_mod.F90)"
-
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%MERRA2_DIR )
        CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
@@ -1112,8 +1109,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput  
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput  
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1163,6 +1160,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
     
+    ! Name of this routine (for error printout)
+    caller  = "MERRA2_READ_A3dyn (merra2_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1178,9 +1178,6 @@ CONTAINS
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
        
-       ! Name of this routine (for error printout)
-       caller  = "MERRA2_READ_A3dyn (merra2_read_mod.F90)"
-
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%MERRA2_DIR )
        CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
@@ -1295,8 +1292,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1345,6 +1342,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
     
+    ! Name of this routine (for error printout)
+    caller  = "MERRA2_READ_A3mstC (merra2_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1360,9 +1360,6 @@ CONTAINS
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
        
-       ! Name of this routine (for error printout)
-       caller  = "MERRA2_READ_A3mstC (merra2_read_mod.F90)"
-
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%MERRA2_DIR )
        CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
@@ -1456,8 +1453,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1509,6 +1506,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
     
+    ! Name of this routine (for error printout)
+    caller  = "MERRA2_READ_A3mstE (merra2_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1524,9 +1524,6 @@ CONTAINS
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
        
-       ! Name of this routine (for error printout)
-       caller  = "MERRA2_READ_A3mstE (merra2_read_mod.F90)"
-
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%MERRA2_DIR )
        CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
@@ -1644,8 +1641,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1701,6 +1698,9 @@ CONTAINS
     ! Read data from the netCDF file
     !======================================================================
     
+    ! Name of this routine (for error printout)
+    caller  = "MERRA2_READ_I3_1 (merra2_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1716,9 +1716,6 @@ CONTAINS
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
        
-       ! Name of this routine (for error printout)
-       caller  = "MERRA2_READ_I3_1 (merra2_read_mod.F90)"
-
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%MERRA2_DIR )
        CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
@@ -1763,7 +1760,7 @@ CONTAINS
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fI3_1, TRIM(v_name), st3d, ct3d )
-    State_Met%PS1 = Q2
+    State_Met%PS1_WET = Q2
 
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)
@@ -1821,8 +1818,8 @@ CONTAINS
     State_Met%T         = State_Met%TMPU1
     State_Met%SPHU      = State_Met%SPHU1
 
-    ! Convert PS1 from [Pa] to [hPa]
-    State_Met%PS1 = State_Met%PS1 * 1e-2_fp
+    ! Convert PS1_WET from [Pa] to [hPa]
+    State_Met%PS1_WET = State_Met%PS1_WET * 1e-2_fp
 
     !======================================================================
     ! Diagnostics, cleanup, and quit
@@ -1865,8 +1862,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1892,6 +1889,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  12 Aug 2015 - R. Yantosca - Initial version, based on geosfp_read_mod.F90
 !  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  20 Sep 2016 - R. Yantosca - Bug fix: FIRST must be declared as LOGICAL
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1910,7 +1909,7 @@ CONTAINS
     CHARACTER(LEN=255) :: caller                   ! Name of this routine
 
     ! SAVEd scalars
-    INTEGER, SAVE      :: first = .TRUE.           ! First time reading data?
+    LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                     
     ! Arrays                                 
     INTEGER            :: st3d(3), ct3d(3)         ! Start & count indices
@@ -1922,6 +1921,9 @@ CONTAINS
     ! Read data from the netCDF file
     !======================================================================
     
+    ! Name of this routine (for error printout)
+    caller  = "MERRA2_READ_I3_2 (merra2_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1937,9 +1939,6 @@ CONTAINS
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
        
-       ! Name of this routine (for error printout)
-       caller  = "MERRA2_READ_I3_2 (merra2_read_mod.F90)"
-
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%MERRA2_DIR )
        CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
@@ -1984,7 +1983,7 @@ CONTAINS
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fI3_2, TRIM(v_name), st3d, ct3d )
-    State_Met%PS2 = Q2
+    State_Met%PS2_WET = Q2
 
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)
@@ -2034,8 +2033,8 @@ CONTAINS
 
     ENDWHERE
 
-    ! Convert PS1 from [Pa] to [hPa]
-    State_Met%PS2 = State_Met%PS2 * 1e-2_fp
+    ! Convert PS2_WET from [Pa] to [hPa]
+    State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
 
     !======================================================================
     ! Diagnostics, cleanup, and quit

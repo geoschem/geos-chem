@@ -1585,7 +1585,8 @@ CONTAINS
 !  14 Jan 2015 - L. Murray   - Updated GEOS-FP files through Oct 2014
 !  01 Apr 2015 - R. Yantosca - Cosmetic changes
 !  01 Apr 2015 - R. Yantosca - Bug fix: GRID025x0325 should be GRID025x03125
-!  01 Mar 2016 - L. Murray   - Add preliminary values for MERRA-2
+!  01 Mar 2016 - L. Murray   - Add preliminary values for MERRA-2 4x5, NA, CH
+!  19 Jul 2016 - L. Murray   - Add preliminary values for MERRA-2 2x2.5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1622,7 +1623,7 @@ CONTAINS
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
 
-#elif defined( GRID05x0625   ) && defined( NESTED_CH )
+#elif defined( GRID05x0625   ) && defined( NESTED_AS )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 9.1040315d0
 
 #elif defined( GRID05x0625   ) && defined( NESTED_NA )
@@ -1748,10 +1749,10 @@ CONTAINS
     ! met fields become available (ltm, 2016-03-01).
     BETA = ANN_AVG_FLASHRATE / 256.00370d0
 
-#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_CH )
+#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_AS )
 
     !---------------------------------------
-    ! MERRA-2: Nested China simulation
+    ! MERRA-2: Nested Asia simulation
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
@@ -1765,9 +1766,10 @@ CONTAINS
     ! MERRA2: 2 x 2.5 global simulation
     !---------------------------------------
 
-    ! To be generated. Force graceful model stop below by
-    ! setting BETA equal to 1.0 here (ltm, 2016-03-01).
-    BETA = 1d0
+    ! Constrained with simulated "climatology" for
+    ! Jan 2009 - Dec 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2016-07-19).
+    BETA = ANN_AVG_FLASHRATE / 319.85d0
 
 #elif defined( MERRA2 ) && defined( GRID4x5 )
 

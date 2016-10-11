@@ -19,8 +19,7 @@
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD  ! For real precisions (hp)
-
+      USE HCO_ERROR_MOD    ! For real precisions (hp)
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -80,6 +79,8 @@
 !  23 Sep 2014 - M. Sulprizio - Get global HNO3 for offline aerosol simulation
 !                               from HEMCO 
 !  14 Nov 2014 - M. Yannetti  - Added PRECISION_MOD
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -122,32 +123,19 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
-      USE CMN_SIZE_MOD
+      USE CMN_SIZE_MOD 
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACERID_MOD,       ONLY : IDTHNO3
-      USE TRACERID_MOD,       ONLY : IDTNIT
-      USE TRACERID_MOD,       ONLY : IDTNH4
-      USE TRACERID_MOD,       ONLY : IDTNH3
-      USE TRACERID_MOD,       ONLY : IDTSALA
-      USE TRACERID_MOD,       ONLY : IDTSO4
-#if   defined( APM )          
-      USE APM_INIT_MOD,       ONLY : NSO4
-      USE APM_INIT_MOD,       ONLY : IDTSO4BIN1
-      USE APM_INIT_MOD,       ONLY : IDTCTSEA
-      USE APM_INIT_MOD,       ONLY : IDTCTBCOC
-      USE APM_INIT_MOD,       ONLY : IDTCTDST
-      USE APM_INIT_MOD,       ONLY : IDTCTSO4
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -181,6 +169,12 @@
 !                               derived type object
 !  25 Mar 2013 - M. Payer     - Now pass State_Chm object via the arg list
 !  23 Sep 2014 - M. Sulprizio - Now get HNO3 for offline aerosol sim from HEMCO
+!  16 Jun 2016 - K. Travis    - Now define species ID's with the Ind_ function 
+!  17 Jun 2016 - R. Yantosca  - Now only define species ID's on the first call;
+!                               we don't want to do it on each loop iteration
+!  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
+!                               species ID from State_Chm%Map_Advect.
+!  10 Aug 2016 - R. Yantosca  - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -200,31 +194,33 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! SAVEd scalars
       LOGICAL, SAVE            :: FIRST = .TRUE.
+      INTEGER, SAVE            :: id_HNO3, id_NH3,  id_NH4
+      INTEGER, SAVE            :: id_NIT,  id_SALA, id_SO4
+
+      ! Scalars
       INTEGER                  :: I,    J,    L,    N
-      REAL(fp)                   :: ANO3, GNO3
-      REAL(f8)                   :: RHI, TEMPI
-      REAL(fp)                   :: TCA,  TMG,  TK,   HNO3_DEN
-      REAL(fp)                   :: TNA,  TCL,  TNH3, TNH4
-      REAL(fp)                   :: TNIT, TNO3, TSO4, VOL
-      REAL(f8)                   :: AERLIQ(NIONSA+NGASAQA+2)
-      REAL(f8)                   :: AERSLD(NSLDSA) 
-      REAL(f8)                   :: GAS(NGASAQA) 
-      REAL(f8)                   :: OTHER(NOTHERA)
-      REAL(f8)                   :: WI(NCOMPA)    
-      REAL(f8)                   :: WT(NCOMPA)
-      REAL(f8)                   :: CNTRL(NCTRLA)
+      REAL(fp)                 :: ANO3, GNO3
+      REAL(f8)                 :: RHI,  TEMPI
+      REAL(fp)                 :: TCA,  TMG,  TK,   HNO3_DEN
+      REAL(fp)                 :: TNA,  TCL,  TNH3, TNH4
+      REAL(fp)                 :: TNIT, TNO3, TSO4, VOL
+      REAL(f8)                 :: AERLIQ(NIONSA+NGASAQA+2)
+      REAL(f8)                 :: AERSLD(NSLDSA) 
+      REAL(f8)                 :: GAS(NGASAQA) 
+      REAL(f8)                 :: OTHER(NOTHERA)
+      REAL(f8)                 :: WI(NCOMPA)    
+      REAL(f8)                 :: WT(NCOMPA)
+      REAL(f8)                 :: CNTRL(NCTRLA)
       CHARACTER(LEN=255)       :: X 
       CHARACTER(LEN=15)        :: SCASI  
-#if   defined( APM )
-      REAL(fp)                   :: TSO4COAT
-#endif
 
       !Temporary variables to check if division is safe
-      REAL(fp)                   :: NUM_SAV, DEN_SAV
+      REAL(fp)                 :: NUM_SAV, DEN_SAV
               
       ! AEROPH: Temporary variable for pH (hotp 8/11/09)
-      REAL(fp)                   :: HPLUSTEMP
+      REAL(fp)                 :: HPLUSTEMP
 
       ! debug variables
       INTEGER                  :: Itemp, Jtemp, Ltemp
@@ -235,9 +231,7 @@
       LOGICAL                  :: LPRT
                   
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER          :: STT(:,:,:,:)
+      REAL(fp), POINTER        :: Spc(:,:,:,:)
 
       ! For getting fields from HEMCO 
       LOGICAL                  :: aIR
@@ -247,7 +241,7 @@
       !=================================================================
 
       ! Assume success
-      RC                   = GIGC_SUCCESS
+      RC                   = GC_SUCCESS
 
       ! am I root? 
       aIR                  = am_I_Root
@@ -264,28 +258,46 @@
       IF ( FIRST ) THEN
 
          ! Make sure certain tracers are defined
-         IF ( IDTSO4  == 0 ) CALL ERROR_STOP( 'IDTSO4 is undefined!', X)
-         IF ( IDTNH3  == 0 ) CALL ERROR_STOP( 'IDTNH3 is undefined!', X)
-         IF ( IDTNH4  == 0 ) CALL ERROR_STOP( 'IDTNH4 is undefined!', X)
-         IF ( IDTNIT  == 0 ) CALL ERROR_STOP( 'IDTNIT is undefined!', X)
-         IF ( IDTSALA == 0 ) CALL ERROR_STOP( 'IDTSALA is undefined!',X)
+         id_HNO3 = Ind_('HNO3') 
+         id_NH3  = Ind_('NH3' )
+         id_NH4  = Ind_('NH4' )
+         id_NIT  = Ind_('NIT' )
+         id_SALA = Ind_('SALA')
+         id_SO4  = Ind_('SO4' )
+
+         ! Make sure certain tracers are defined
+         IF ( id_SO4 <= 0 ) THEN
+            CALL ERROR_STOP( 'SO4 is an undefined species!',  X )
+         ENDIF
+         IF ( id_NH3 <= 0 ) THEN
+            CALL ERROR_STOP( 'NH3 is an undefined species!',  X )
+         ENDIF
+         IF ( id_NH4 <= 0 ) THEN
+            CALL ERROR_STOP( 'NH4 is an undefined species!',  X )
+         ENDIF
+         IF ( id_NIT <= 0 ) THEN
+            CALL ERROR_STOP( 'NIT is an undefined species!',  X )
+         ENDIF
+         IF ( id_SALA <= 0 ) THEN
+            CALL ERROR_STOP( 'SALA is an undefined species!', X )
+         ENDIF
 
          ! Initialize arrays
-         CALL INIT_ISOROPIAII
+         CALL INIT_ISOROPIAII()
 
          ! Check to see if we need to get HNO3 from HEMCO
-         IF ( IDTHNO3 == 0 ) THEN
+         IF ( id_HNO3 <= 0 ) THEN
 
             IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
                ! Coupled simulation: stop w/ error since we need HNO3
-               CALL ERROR_STOP( 'IDTHNO3 is not defined !', X )
+               CALL ERROR_STOP( 'id_HNO3 is not defined !', X )
  
             ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
                ! Offline simulation: get HNO3 from HEMCO (mps, 9/23/14)
                CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_HNO3', HNO3, RC )
-               IF ( RC /= GIGC_SUCCESS ) 
+               IF ( RC /= GC_SUCCESS ) 
      &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', X )
 
             ELSE
@@ -314,9 +326,8 @@
          GAS_HNO3 = 0e+0_fp
       ENDIF
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to chemical species array [kg]
+      Spc => State_Chm%Species
 
       !=================================================================
       ! Loop over grid boxes and call ISOROPIA (see comments in the 
@@ -332,9 +343,6 @@
 !$OMP+PRIVATE( TCA,  TMG,    TK,      CNTRL,  SCASI                  )
 !$OMP+PRIVATE( TNO3, AERLIQ, AERSLD,  OTHER,  TNH4, TNIT             )
 !$OMP+PRIVATE( HPLUSTEMP,    NUM_SAV, DEN_SAV, HNO3_DEN              )
-#if   defined( APM )
-!$OMP+PRIVATE( TSO4COAT             )
-#endif
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -371,46 +379,27 @@
          ! Compute quantities for ISOROPIA
          !---------------------------------
 
-#if   defined( APM )
-         
-         ! %%% WITH APM %%%
-
-         !GanLuo+ Deduce SULFLO form TSO4, 
-         ! Add those sulfate coated on primary particles
-         TSO4     = (SUM(STT(I,J,L,IDTSO4BIN1:(IDTSO4BIN1+NSO4-1)))
-     &            ) * 1.e+3_fp / ( 96.e+0_fp * VOL )
-
-         TSO4COAT = (STT(I,J,L,(IDTCTBCOC-1+1)) +
-     &               STT(I,J,L,(IDTCTBCOC-1+2)) +
-     &               STT(I,J,L,IDTCTDST)+STT(I,J,L,IDTCTSEA)) *
-     &               1.e+3_fp / ( 96.e+0_fp * VOL )
-         TSO4 = TSO4 + TSO4COAT
-#else
-
-         !%%% WITHOUT APM %%%
-
          ! Total SO4 [mole/m3]
-         TSO4     = STT(I,J,L,IDTSO4) * 1.e+3_fp / ( 96.e+0_fp * VOL )
+         TSO4 = Spc(I,J,L,id_SO4) * 1.e+3_fp / ( 96.e+0_fp * VOL )
 
-#endif
          ! Total NH3 [mole/m3] 
-         TNH3     = STT(I,J,L,IDTNH4) * 1.e+3_fp / ( 18.e+0_fp * VOL ) +
-     &              STT(I,J,L,IDTNH3) * 1.e+3_fp / ( 17.e+0_fp * VOL )
+         TNH3 = Spc(I,J,L,id_NH4) * 1.e+3_fp / (18.e+0_fp * VOL ) +
+     &          Spc(I,J,L,id_NH3) * 1.e+3_fp / (17.e+0_fp * VOL )
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: The error-trap statement above will halt execution if IDTSALA is
+!%%% NOTE: The error-trap statement above will halt execution if id_SALA is
 !%%% undefined.  Therefore this IF statement is superfluous.  Comment out 
 !%%% for clarity.  (hotp, bmy, 2/1/10)
 !%%%
-!%%%         IF ( IDTSALA > 0 ) THEN
+!%%%         IF ( id_SALA > 0 ) THEN
             
             ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
-            TNA      = STT(I,J,L,IDTSALA) * 0.3061e+0_fp * 1.e+3_fp /
-     &                                    ( 22.99e+0_fp  * VOL  )
+            TNA = Spc(I,J,L,id_SALA) * 0.3061e+0_fp * 1.e+3_fp /
+     &        ( 22.99e+0_fp  * VOL  )
 
             ! Total Cl- (55.04% by weight of seasalt) [mole/m3]
-            TCL      = STT(I,J,L,IDTSALA) * 0.5504e+0_fp * 1.e+3_fp /
-     &                                    ( 35.45e+0_fp  * VOL  )
+            TCL = Spc(I,J,L,id_SALA) * 0.5504e+0_fp * 1.e+3_fp /
+     &           ( 35.45e+0_fp  * VOL  )
 
 !==============================================================================
 !=== NOTE: As of 11/2007, ISORROPIAII does not conserve mass when Ca,K,Mg are 
@@ -418,15 +407,15 @@
 !=== isoropiaIIcode.f ISRP4F routines must be debugged.  (hotp, bmy, 2/1/10)
 !===
 !===            ! Total Ca2+ (1.16% by weight of seasalt) [mole/m3]
-!===            TCA      = STT(I,J,L,IDTSALA) * 0.0116e+0_fp * 1.d3 /
+!===            TCA      = Spc(I,J,L,id_SALA) * 0.0116e+0_fp * 1.d3 /
 !===     &                                 ( 40.08e+0_fp  * VOL  )
 !===
 !===            ! Total K+   (1.1% by weight of seasalt)  [mole/m3]
-!===            TK       = STT(I,J,L,IDTSALA) * 0.0110e+0_fp * 1.d3 /
+!===            TK       = Spc(I,J,L,id_SALA) * 0.0110e+0_fp * 1.d3 /
 !===     &                                 ( 39.102e+0_fp * VOL  )
 !===
 !===            ! Total Mg+  (3.69% by weight of seasalt) [mole/m3]
-!===            TMG      = STT(I,J,L,IDTSALA) * 0.0369e+0_fp * 1.d3 /
+!===            TMG      = Spc(I,J,L,id_SALA) * 0.0369e+0_fp * 1.d3 /
 !===     &                                 ( 24.312e+0_fp * VOL  )
 
             ! Set Ca, K, Mg to zero for time being (hotp, bmy, 2/1/10)
@@ -447,18 +436,19 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ! Compute gas-phase NO3
-         IF ( IDTHNO3 > 0 ) THEN
+         IF ( id_HNO3 > 0 ) THEN
             
             !---------------------
             ! COUPLED SIMULATION
             !---------------------
 
             ! Compute gas-phase HNO3 [mole/m3] from HNO3 tracer
-            GNO3  = STT(I,J,L,IDTHNO3)
-            GNO3  = MAX( GNO3 * 1.e+3_fp / ( 63.e+0_fp * VOL ), CONMIN )
+            GNO3 = Spc(I,J,L,id_HNO3)
+            GNO3 = MAX( GNO3 * 1.e+3_fp / ( 63.e+0_fp * VOL ), CONMIN )
 
             ! Aerosol-phase NO3 [mole/m3]
-            ANO3  = STT(I,J,L,IDTNIT) * 1.e+3_fp / ( 62.e+0_fp * VOL )
+            ANO3 = Spc(I,J,L,id_NIT) * 1.e+3_fp /
+     &           (62.e+0_fp * VOL )
 
             ! Total NO3 [mole/m3]
             TNO3    = GNO3 + ANO3
@@ -510,36 +500,33 @@
          !---------------------------------
          ! Save back into tracer array
          !---------------------------------
-#if   defined( APM )
-         ! Nothing
-#else
          ! Convert ISOROPIA output from [mole/m3] to [kg]
          TSO4 = MAX( 96.e-3_fp * VOL *   WT(2),            CONMIN )
-#endif
          TNH3 = MAX( 17.e-3_fp * VOL *   GAS(1),           CONMIN )
          TNH4 = MAX( 18.e-3_fp * VOL * ( WT(3) - GAS(1) ), CONMIN )
          TNIT = MAX( 62.e-3_fp * VOL * ( WT(4) - GAS(2) ), CONMIN )
 
-         ! Save tracers back into STT array [kg]
-         ! no longer save TSO4 back into STT. SO4 is all aerosol phase
+         ! Save tracers back into Spc array [kg]
+         ! no longer save TSO4 back into Spc. SO4 is all aerosol phase
          ! (hotp 11/7/07)
-         ! STT(I,J,L,IDTSO4) = TSO4
-         STT(I,J,L,IDTNH3) = TNH3
-         STT(I,J,L,IDTNH4) = TNH4
-         STT(I,J,L,IDTNIT) = TNIT
+         ! Spc(I,J,L,id_SO4) = TSO4
+         Spc(I,J,L,id_NH3) = TNH3
+         Spc(I,J,L,id_NH4) = TNH4
+         Spc(I,J,L,id_NIT) = TNIT
 
          ! Special handling for HNO3 [kg]
-         IF ( IDTHNO3 > 0 ) THEN
+         IF ( id_HNO3 > 0 ) THEN
             
             !---------------------
             ! COUPLED SIMULATION
             !---------------------
 
-            ! HNO3 [mole/m3] is in GAS(2); convert & store in STT [kg]
-            STT(I,J,L,IDTHNO3) = MAX( 63.e-3_fp * VOL * GAS(2), CONMIN )
+            ! HNO3 [mole/m3] is in GAS(2); convert & store in Spc [kg]
+            Spc(I,J,L,id_HNO3)
+     &           = MAX( 63.e-3_fp * VOL * GAS(2), CONMIN )
 
             ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
-            HNO3_DEN           = STT(I,J,L,IDTHNO3)
+            HNO3_DEN           = Spc(I,J,L,id_HNO3)
 
          ELSE
 
@@ -587,14 +574,14 @@
          SULRAT_SAV(I,J,L)  = OTHER(2)
          NARAT_SAV(I,J,L)   = OTHER(4)
 
-         NUM_SAV    = ( STT(I,J,L,IDTNH3) /17e+0_fp         +
-     &                STT(I,J,L,IDTNH4) /18e+0_fp         +
-     &                STT(I,J,L,IDTSALA)*0.3061e+0_fp/23.0e+0_fp )
+         NUM_SAV    = ( Spc(I,J,L,id_NH3) /17e+0_fp         +
+     &                  Spc(I,J,L,id_NH4) /18e+0_fp         +
+     &                  Spc(I,J,L,id_SALA)*0.3061e+0_fp/23.0e+0_fp )
 
-         DEN_SAV    = ( STT(I,J,L,IDTSO4)  / 96e+0_fp   * 2e+0_fp     +
-     &                STT(I,J,L,IDTNIT)  / 62e+0_fp             + 
-     &                HNO3_DEN           / 63e+0_fp             +
-     &                STT(I,J,L,IDTSALA) * 0.55e+0_fp / 35.45e+0_fp )
+         DEN_SAV    = ( Spc(I,J,L,id_SO4)  / 96e+0_fp  * 2e+0_fp  +
+     &                  Spc(I,J,L,id_NIT)  / 62e+0_fp             + 
+     &                  HNO3_DEN           / 63e+0_fp             +
+     &                  Spc(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)
 
          ! Value if DEN_SAV and NUM_SAV too small.
          ACIDPUR_SAV(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
@@ -606,12 +593,11 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### ISOROPIAII: a AERO_THERMO' )
 
-      ! Return to calling program
       END SUBROUTINE DO_ISOROPIAII
 !EOC
 !------------------------------------------------------------------------------
@@ -723,9 +709,9 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS,      ONLY : AIRMW
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : AIRMW
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
 !
 ! !INPUT PARAMETERS: 
@@ -800,14 +786,16 @@
 !  06 Jul 2007 - H. O. T. Pye - Initial version, in ISORROPIA II
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
 !  11 Jan 2015 - M. Yannetti  - Some precision edits, for safety.
+!  19 Sep 2016 - R. Yantosca  - Bug fix: #ifdef's should be lower case
+!  19 Sep 2016 - R. Yantosca  - Bug fix: elif should be else
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#IF !defined ( USE_REAL_8 )
+#if !defined( USE_REAL_8 )
       HNO3_sav(I,J,L) = SNGL(HNO3_UGM3) ! if we are not using real*8
-#ELIF
-      HNO3_sav(I,J,L) = HNO3_UGM3 ! if we are using real*8
-#ENDIF
+#else
+      HNO3_sav(I,J,L) = HNO3_UGM3       ! if we are using real*8
+#endif
 
       END SUBROUTINE SET_HNO3
 !EOC
@@ -828,7 +816,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -878,8 +866,8 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD      ! Size parameters
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE CMN_SIZE_MOD                   ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2007 - H. O. T. Pye - Initial version

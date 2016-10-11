@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
+      USE inquireMod,    ONLY : findFreeLUN
       USE PRECISION_MOD
 
       IMPLICIT NONE
@@ -97,7 +97,7 @@
       USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -339,7 +339,7 @@
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR, FILE_EXISTS
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -493,8 +493,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -845,7 +845,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE PHYSCONSTANTS
+      USE PhysConstants
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
@@ -853,7 +853,7 @@
       USE DIAG_MOD,           ONLY : AD67
 #endif
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_A6
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Lp1
@@ -987,7 +987,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                        :: I, IJLOOP, J, K, L
+      INTEGER                        :: I, J, K, L
       INTEGER                        :: IOS, NFOUND, N_A6
       REAL*4                         :: D(IIPAR,JJPAR,LGLOB)       
       REAL*4                         :: D1(IIPAR,JJPAR,LGLOB+1)       
@@ -1679,8 +1679,8 @@
       !          %%%%% ND21 diagnostic: OPTD and CLDF %%%%%
       !=================================================================
       IF ( ND21 > 0 ) THEN
-         AD21(I,J,1:LD21,1) = AD21(I,J,1:LD21,1) + OPTDEPTH(I,J,1:LD21)
-         AD21(I,J,1:LD21,2) = AD21(I,J,1:LD21,2) + CLDF(I,J,1:LD21)
+         AD21(:,:,1:LD21,1) = AD21(:,:,1:LD21,1) + OPTDEPTH(:,:,1:LD21)
+         AD21(:,:,1:LD21,2) = AD21(:,:,1:LD21,2) + CLDF(:,:,1:LD21)
       ENDIF
 
       !=================================================================
@@ -1800,7 +1800,7 @@
  120     FORMAT( 'There are ', i2, ' fields but only ', i2 ,
      &           ' were found!' )
 
-         WRITE( 6, '(a)' ) '### STOP in A6_CHECK (dao_read_mod.f)'
+         WRITE( 6, '(a)' ) '### STOP in A6_CHECK (a6_read_mod.f)'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
          ! Deallocate arrays and stop (bmy, 10/15/02)
