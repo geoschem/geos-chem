@@ -484,6 +484,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  11 Oct 2016 - R. Yantosca - Pass additional args to SET_OPTIONS_FROM_HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -658,7 +659,7 @@
       ! be done in INIT_MERCURY because at that time the HEMCO configuration 
       ! file has not been read yet. (bmy, 3/12/15)
       IF ( FIRST ) THEN
-         CALL SET_OPTIONS_FROM_HEMCO( RC )
+         CALL SET_OPTIONS_FROM_HEMCO( am_I_Root, Input_Opt, RC )
 
 #if !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
          ! Warning for non-MERRA
@@ -1634,11 +1635,6 @@
 
          ! Read anthro, ocean, land emissions of Hg from disk
          CALL MERCURY_READYR( am_I_Root, Input_Opt, RC )
-
-         ! In plume degradation of Hg2 by SO2 in U.S. and Canada at CFPPs, yzh 11/1/2011
-         IF ( LInPlume .AND. .NOT. LPREINDHG .AND. LNEI2005) THEN
-              CALL DO_RED_INPLUME( am_I_Root, Input_Opt, RC )
-         ENDIF
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -5132,22 +5128,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_OPTIONS_FROM_HEMCO( RC )
+      SUBROUTINE SET_OPTIONS_FROM_HEMCO( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE ERROR_MOD,       ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
       USE HCO_ExtList_Mod, ONLY : GetExtOpt
+      USE Input_Opt_Mod,   ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC   ! Success or failure?
+      INTEGER,        INTENT(OUT) :: RC   ! Success or failure?
 !
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  11 Oct 2016 - R. Yantosca - Move call to DO_RED_INPLUME here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5157,6 +5160,7 @@
       ! Scalars
       LOGICAL :: LGC
       LOGICAL :: LTOMCAT
+      LOGICAL :: LPREINDHG
       LOGICAL :: FOUND
 
       ! Strings
@@ -5196,6 +5200,9 @@
       ! Set BrOx_TOMCAT to be the opposite of LGCBROMINE
       LTOMCAT   = ( .not. LGCBROMINE )
 
+      ! Are we doing a preindustrial simulation?
+      LPREINDHG = Input_Opt%LPREINDHG
+
       !-----------------------------------------------------------------
       ! Set the value of LNEI2005 depending on whether or not
       ! the HEMCO collection NEI2005 is activated
@@ -5220,6 +5227,13 @@
       ENDIF
       IF ( .not. FOUND ) THEN
          LInPlume = .FALSE.
+      ENDIF
+
+      ! In plume degradation of Hg2 by SO2 in U.S. and Canada at CFPPs, 
+      ! (yzh 11/1/2011).  Move this here so that the HEMCO_Config file
+      ! will have been already read by this point. (bmy, 10/11/16)
+      IF ( LInPlume .AND. .NOT. LPREINDHG .AND. LNEI2005 ) THEN
+         CALL DO_RED_INPLUME( am_I_Root, Input_Opt, RC )
       ENDIF
 
       !-----------------------------------------------------------------
