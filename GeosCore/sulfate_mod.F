@@ -3626,6 +3626,8 @@
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  11 Oct 2016 - R. Yantosca - Bug fix: make sure that MW_HNO3 is defined
+!                              for aerosol-only sims (where id_HNO3 < 0)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3703,10 +3705,15 @@
 
       SO2_eq = MAX( SO2_eq, MINDAT )
 
-      IF ( IT_IS_A_FULLCHEM_SIM ) THEN
-
-         ! Set molecular weights for fullchem sim species 
+      ! Get the molecular weight of HNO3 from the species database
+      ! if it is defined, otherwise set it manually (bmy, 10/11/16)
+      IF ( id_HNO3 > 0 ) THEN
          MW_HNO3 = State_Chm%SpcData(id_HNO3)%Info%emMW_g
+      ELSE
+         MW_HNO3 = 63.0_fp
+      ENDIF
+
+      IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
  	 ! Convert HNO3 [v/v] to [equivalents]
          HNO3_vv = Spc(I,J,L,id_HNO3)
