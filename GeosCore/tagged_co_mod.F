@@ -176,6 +176,7 @@
       USE HCOI_GC_Main_Mod,   ONLY : GetHcoState
       USE HCOI_GC_Main_Mod,   ONLY : GetHcoDiagn 
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : AVO
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
@@ -272,6 +273,8 @@
 !                              species ID from State_Chm%Map_Advect.
 !  11 Oct 2016 - R. Yantosca - If emissions are turned off, do not update
 !                              the SUM*CO arrays, they will remain zeroed out.
+!  12 Oct 2016 - R. Yantosca - Bug fix: convert OH from kg/m3 (which HEMCO
+!                              brings in from disk) to molec/cm3.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -295,6 +298,7 @@
       REAL(fp)                 :: FEXP2,         KCO1,        KCO2
       REAL(fp)                 :: OH_MOLEC_CM3,  FAC_DIURNAL, SUNCOS
       REAL(fp)                 :: kgs_to_atomsC, Emis
+      REAL(fp)                 :: kgm3_to_mcm3OH
 
       ! Strings
       CHARACTER(LEN=255)       :: ERR_VAR
@@ -358,6 +362,9 @@
       ! Get the molecular weight of CO [kg/mol] from the species database
       ! (All tagged species are CO, so we can use the value for species #1)
       FMOL_CO   =  State_Chm%SpcData(1)%Info%MW_g * 1.0e-3_fp
+
+      ! Factor to convert OH from kg/m3 (from HEMCO) to molec/cm3 
+      kgm3_to_mcm3OH = ( AVO / 17.0_fp ) * 1.0e-6_fp
 
       ! Compute diurnal cycle for OH every day (check for new day inside
       ! subroutine) - jaf 7/10/14
@@ -524,10 +531,14 @@
             FAC_DIURNAL = 0.0_fp
          ENDIF
 
+
          ! Now impose a diurnal cycle on OH.
          ! This is done in other offline simulations but was
          ! missing from tagged CO (jaf, 3/12/14)
-         OH_MOLEC_CM3 = OH(I,J,L) * FAC_DIURNAL
+         !
+         ! NOTE: HEMCO brings in OH in kg/m3, so we need to also
+         ! apply a conversion to molec/cm3 here. (bmy, 10/12/16)
+         OH_MOLEC_CM3 = ( OH(I,J,L) * kgm3_to_mcm3OH ) * FAC_DIURNAL
 
          ! Make sure OH is not negative
          OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
