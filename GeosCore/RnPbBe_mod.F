@@ -501,7 +501,7 @@
 !
       LOGICAL,            INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
       CHARACTER(LEN=4),   INTENT(IN)  :: NDxx         ! Diagnostic id
-      CHARACTER(LEN=255), INTENT(IN)  :: SpeciesName  ! Species name
+      CHARACTER(LEN=*),   INTENT(IN)  :: SpeciesName  ! Species name
       REAL(fp), TARGET,   INTENT(IN)  :: DiagArray(:,:,:)
       INTEGER,            INTENT(IN)  :: ColNo        ! Diag collection #
 !

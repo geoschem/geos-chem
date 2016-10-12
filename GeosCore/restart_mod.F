@@ -1168,7 +1168,6 @@
       Ptr3D       => NULL()
       Ptr2D       => NULL()
       Hg_Cat_Name => NULL()
-      HcoState    => NULL()
       SpcInfo     => NULL()
 
       ! Set the GEOS-Chem restart collection ID
@@ -1279,7 +1278,7 @@
          
          ! Define container name
          ContainerName = 'SPC_' // TRIM( SpcInfo%Name )
-         
+        
          ! Populate container
          CALL Diagn_Update( am_I_Root, HcoState,
      &                      cName      = TRIM( ContainerName ),

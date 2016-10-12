@@ -5241,7 +5241,6 @@ ccc
       
       ! Initialize
       POAEMISS =  0e+0_fp
-      HcoState => NULL()
 
       ! Get HEMCO ID of species SESQ 
       IF ( SESQID == -999 ) THEN
@@ -5435,7 +5434,6 @@ ccc
       LOGICAL                  :: LPRT
 
       ! Pointers
-      TYPE(HCO_State), POINTER :: HcoState
       REAL(f4),        POINTER :: Ptr2D(:,:)
 
       !=================================================================

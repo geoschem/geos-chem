@@ -3263,7 +3263,7 @@ CONTAINS
        cId = cId + 1
 
        ! Create container
-       CALL Diagn_Create( am_I_Root,                     &
+       CALL Diagn_Create( am_I_Root, HcoState,           &
                           Col       = Collection,        & 
                           cId       = cId,               &
                           cName     = TRIM( DiagnName ), &
@@ -3284,7 +3284,7 @@ CONTAINS
     cId = cId + 1
 
     ! Create container
-    CALL Diagn_Create( am_I_Root,       &
+    CALL Diagn_Create( am_I_Root, HcoState,           &
                        Col       = Collection,        & 
                        cId       = cId,               &
                        cName     = TRIM( DiagnName ), &
@@ -3303,7 +3303,7 @@ CONTAINS
     !--------------------------------------
     ! Create container
     cId = cId + 1
-    CALL Diagn_Create( am_I_Root,          &
+    CALL Diagn_Create( am_I_Root, HcoState,&
          Col       = Collection,           & 
          cId       = cId,                  &
          cName     = TRIM( 'STK_N2O5' ),   &
@@ -3313,7 +3313,7 @@ CONTAINS
          RC        = RC )
     
     cId = cId + 1
-    CALL Diagn_Create( am_I_Root,          &
+    CALL Diagn_Create( am_I_Root, HcoState,&
          Col       = Collection,           & 
          cId       = cId,                  &
          cName     = TRIM( 'STK_HBr' ),    &
@@ -3323,7 +3323,7 @@ CONTAINS
          RC        = RC )
     
     cId = cId + 1
-    CALL Diagn_Create( am_I_Root,          &
+    CALL Diagn_Create( am_I_Root, HcoState,&
          Col       = Collection,           & 
          cId       = cId,                  &
          cName     = TRIM( 'STK_HBrICE' ), &
@@ -3407,7 +3407,7 @@ CONTAINS
        cId = cId + 1
 
        ! Create container
-       CALL Diagn_Create( am_I_Root,                     &
+       CALL Diagn_Create( am_I_Root, HcoState,           &
                           Col       = Collection,        & 
                           cId       = cId,               &
                           cName     = TRIM( DiagnName ), &
@@ -3446,6 +3446,7 @@ CONTAINS
     USE HCO_Diagn_Mod,      ONLY : Diagn_TotalGet
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
+    USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH 
 !
 ! !INPUT PARAMETERS:
@@ -3469,6 +3470,9 @@ CONTAINS
     INTEGER, SAVE :: SAVEMONTH = -999
     REAL(sp)      :: TOTAL
     LOGICAL       :: FOUND
+
+    ! Pointers
+    TYPE(Species), POINTER :: SpcInfo
 
     !=================================================================
     ! TotalsToLogfile begins here!
@@ -3599,9 +3603,6 @@ CONTAINS
     !=======================================================================
     ! Diagnostics_Write begins here 
     !=======================================================================
-
-    ! Initialize
-    HcoState => NULL()
 
     ! Write HEMCO diagnostics
     CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, RESTART, RC )

@@ -94,10 +94,10 @@ MODULE HCO_Error_Mod
   ! Missing value
   ! Note: define missing value as single precision because all data arrays
   ! are read/stored in single precision.
-  REAL(sp), PARAMETER, PUBLIC :: HCO_MISSVAL = -1.e-31_sp
+  REAL(sp), PARAMETER, PUBLIC :: HCO_MISSVAL = -1.e31_sp
 
   ! HEMCO version number.
-  CHARACTER(LEN=12), PARAMETER, PUBLIC :: HCO_VERSION = 'v2.0.001'
+  CHARACTER(LEN=12), PARAMETER, PUBLIC :: HCO_VERSION = 'v2.0.002'
 
   INTERFACE HCO_Error
      MODULE PROCEDURE HCO_ErrorNoErr

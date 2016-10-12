@@ -250,6 +250,7 @@
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE UnitConv_Mod
 #if defined( NC_DIAG )
+      USE SPECIES_MOD
       USE HCO_ERROR_MOD
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update

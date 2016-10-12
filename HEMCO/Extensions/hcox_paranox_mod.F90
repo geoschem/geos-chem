@@ -432,6 +432,7 @@ CONTAINS
           TmpCnt => NULL()
        ENDIF  
     ENDIF
+
     IF ( DoDiagn ) DIAGN(:,:,:) = 0.0_hp
 
     ! ------------------------------------------------------------------
@@ -461,6 +462,8 @@ CONTAINS
 !                          MAXVAL( ExtState%JOH%Arr%Val )
 !    print*, '### JNO2: ', SUM   ( ExtState%JNO2%Arr%Val ),  &
 !                          MAXVAL( ExtState%JNO2%Arr%Val )
+!    print*, '### SC5 : ', SUM   ( SC5 ), MAXVAL(SC5) 
+!    print*, '### EMIS: ', SUM   ( SHIPNOEMIS(:,:,1) ), MAXVAL(SHIPNOEMIS(:,:,1))
 !------------------------------------------------------------------------
 
     ! Loop over all grid boxes
@@ -624,6 +627,7 @@ CONTAINS
 
              ! Deposition flux in kg/m2/s.
              ! Make sure ozone deposition flux is positive (ckeller, 3/29/16).
+             !DEPO3(I,J) = iFlx
              DEPO3(I,J) = ABS(iFlx)
  
 !             ! Get mass of species. This can either be the total PBL
@@ -680,6 +684,21 @@ CONTAINS
        RC = HCO_FAIL
        RETURN 
     ENDIF
+
+!------------------------------------------------------------------------
+!    ! Debug
+!    print*, '### In EVOLVE_PLUME (B):'
+!    print*, '### DIAG 1: ',  SUM   ( DIAGN(:,:,1) ),  &
+!                             MAXVAL( DIAGN(:,:,1) )
+!    print*, '### DIAG 2: ',  SUM   ( DIAGN(:,:,2) ),  &
+!                             MAXVAL( DIAGN(:,:,2) )
+!    print*, '### DIAG 3: ',  SUM   ( DIAGN(:,:,3) ),  &
+!                             MAXVAL( DIAGN(:,:,3) )
+!    print*, '### DIAG 4: ',  SUM   ( DIAGN(:,:,4) ),  &
+!                             MAXVAL( DIAGN(:,:,4) )
+!    print*, '### DIAG 5: ',  SUM   ( DIAGN(:,:,5) ),  &
+!                             MAXVAL( DIAGN(:,:,5) )
+!------------------------------------------------------------------------
 
     !=======================================================================
     ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
@@ -2261,7 +2280,7 @@ CONTAINS
 !   if(I==3.and.J==35)then
 !      write(*,*) 'Call PARANOX_LUT @ ',I,J
 !      write(*,*) 'Tair: ', Tair
-!      write(*,*) 'SUNCOSmid: ', ExtState%SUNCOSmid%Arr%Val(I,J)
+!      write(*,*) 'SUNCOSmid: ', SC5(I,J)
 !   endif
 
    ! Check if sun is up
@@ -2306,7 +2325,7 @@ CONTAINS
 !      write(*,*) 'JNO2: ', JNO2
 !      write(*,*) 'JOH : ', JOH
 !   endif
-
+ 
    !========================================================================
    ! Load all variables into a single array
    !========================================================================

@@ -7200,7 +7200,6 @@
       !=================================================================
       ! DIAGINIT_UCX begins here!
       !=================================================================
-      HcoState => NULL()
 
       ! Define restart quantity    
       CALL HCO_RestartDefine ( am_I_Root, HcoState, 

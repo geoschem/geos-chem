@@ -1273,28 +1273,28 @@ CONTAINS
        Trgt3D => NULL()
     ENDIF
     IF ( id_NO2 > 0 ) THEN
-       Trgt3D => State_Chm%Species(:,:,:,id_O3)
+       Trgt3D => State_Chm%Species(:,:,:,id_NO2)
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO2, &
            'HEMCO_NO2_FOR_EMIS', HCRC,      FIRST,    Trgt3D ) 
        IF ( HCRC /= HCO_SUCCESS ) RETURN
        Trgt3D => NULL()
     ENDIF
     IF ( id_NO > 0 ) THEN
-       Trgt3D => State_Chm%Species(:,:,:,id_O3)
+       Trgt3D => State_Chm%Species(:,:,:,id_NO)
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO, &
             'HEMCO_NO_FOR_EMIS', HCRC,      FIRST,    Trgt3D ) 
        IF ( HCRC /= HCO_SUCCESS ) RETURN
        Trgt3D => NULL()
     ENDIF
     IF ( id_HNO3 > 0 ) THEN
-       Trgt3D => State_Chm%Species(:,:,:,id_O3)
+       Trgt3D => State_Chm%Species(:,:,:,id_HNO3)
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%HNO3, &
           'HEMCO_HNO3_FOR_EMIS', HCRC,      FIRST,    Trgt3D ) 
        IF ( HCRC /= HCO_SUCCESS ) RETURN
        Trgt3D => NULL()
     ENDIF
     IF ( id_POPG > 0 ) THEN
-       Trgt3D => State_Chm%Species(:,:,:,id_O3)
+       Trgt3D => State_Chm%Species(:,:,:,id_POPG)
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%POPG, &
           'HEMCO_POPG_FOR_EMIS', HCRC,      FIRST,    Trgt3D ) 
        IF ( HCRC /= HCO_SUCCESS ) RETURN

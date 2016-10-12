@@ -339,8 +339,8 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=15)           :: TRANSPORT_OUTPUT_TYPE
      CHARACTER(LEN=15)           :: WETSCAV_OUTPUT_TYPE
      CHARACTER(LEN=15)           :: DRYDEP_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: TRACER_CONC_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: TRACER_EMIS_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: SPECIES_CONC_OUTPUT_TYPE
+     CHARACTER(LEN=15)           :: SPECIES_EMIS_OUTPUT_TYPE
      CHARACTER(LEN=15)           :: MET_OUTPUT_TYPE
 
      ! Placeholders pending grouping of diagnostics

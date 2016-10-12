@@ -4545,8 +4545,8 @@
       Input_Opt%TRANSPORT_OUTPUT_TYPE    = 'Mean'
       Input_Opt%WETSCAV_OUTPUT_TYPE      = 'Mean'
       Input_Opt%DRYDEP_OUTPUT_TYPE       = 'Mean'
-      Input_Opt%TRACER_CONC_OUTPUT_TYPE  = 'Mean'
-      Input_Opt%TRACER_EMIS_OUTPUT_TYPE  = 'Mean'
+      Input_Opt%SPECIES_CONC_OUTPUT_TYPE  = 'Mean'
+      Input_Opt%SPECIES_EMIS_OUTPUT_TYPE  = 'Mean'
       Input_Opt%MET_OUTPUT_TYPE          = 'Mean'
 
       ! placeholders pending grouping of diagnostics
