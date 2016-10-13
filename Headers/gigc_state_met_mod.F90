@@ -228,7 +228,81 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: XCHLR     (:,:,:) ! CHLR per land type, this month
      REAL(fp), POINTER :: XCHLR2    (:,:,:) ! CHLR per land type, next month
 
-
+! TEMPORARY TO TEST GCHP DRYDEP UPDATES (ewl, 10/12/16)
+     REAL(fp), POINTER :: OLSON01   (:,:)   ! Fractional coverage for type 1
+     REAL(fp), POINTER :: OLSON02   (:,:)   ! Fractional coverage for type 2
+     REAL(fp), POINTER :: OLSON03   (:,:)  
+     REAL(fp), POINTER :: OLSON04   (:,:)  
+     REAL(fp), POINTER :: OLSON05   (:,:)  
+     REAL(fp), POINTER :: OLSON06   (:,:)  
+     REAL(fp), POINTER :: OLSON07   (:,:)  
+     REAL(fp), POINTER :: OLSON08   (:,:)  
+     REAL(fp), POINTER :: OLSON09   (:,:)  
+     REAL(fp), POINTER :: OLSON10   (:,:)  
+     REAL(fp), POINTER :: OLSON11   (:,:)  
+     REAL(fp), POINTER :: OLSON12   (:,:)  
+     REAL(fp), POINTER :: OLSON13   (:,:)  
+     REAL(fp), POINTER :: OLSON14   (:,:)  
+     REAL(fp), POINTER :: OLSON15   (:,:)  
+     REAL(fp), POINTER :: OLSON16   (:,:)  
+     REAL(fp), POINTER :: OLSON17   (:,:)  
+     REAL(fp), POINTER :: OLSON18   (:,:)  
+     REAL(fp), POINTER :: OLSON19   (:,:)  
+     REAL(fp), POINTER :: OLSON20   (:,:)  
+     REAL(fp), POINTER :: OLSON21   (:,:)  
+     REAL(fp), POINTER :: OLSON22   (:,:)  
+     REAL(fp), POINTER :: OLSON23   (:,:)  
+     REAL(fp), POINTER :: OLSON24   (:,:)  
+     REAL(fp), POINTER :: OLSON25   (:,:)  
+     REAL(fp), POINTER :: OLSON26   (:,:)  
+     REAL(fp), POINTER :: OLSON27   (:,:)  
+     REAL(fp), POINTER :: OLSON28   (:,:)  
+     REAL(fp), POINTER :: OLSON29   (:,:)  
+     REAL(fp), POINTER :: OLSON30   (:,:)  
+     REAL(fp), POINTER :: OLSON31   (:,:)  
+     REAL(fp), POINTER :: OLSON32   (:,:)  
+     REAL(fp), POINTER :: OLSON33   (:,:)  
+     REAL(fp), POINTER :: OLSON34   (:,:)  
+     REAL(fp), POINTER :: OLSON35   (:,:)  
+     REAL(fp), POINTER :: OLSON36   (:,:)  
+     REAL(fp), POINTER :: OLSON37   (:,:)  
+     REAL(fp), POINTER :: OLSON38   (:,:)  
+     REAL(fp), POINTER :: OLSON39   (:,:)  
+     REAL(fp), POINTER :: OLSON40   (:,:)  
+     REAL(fp), POINTER :: OLSON41   (:,:)  
+     REAL(fp), POINTER :: OLSON42   (:,:)  
+     REAL(fp), POINTER :: OLSON43   (:,:)  
+     REAL(fp), POINTER :: OLSON44   (:,:)  
+     REAL(fp), POINTER :: OLSON45   (:,:)  
+     REAL(fp), POINTER :: OLSON46   (:,:)  
+     REAL(fp), POINTER :: OLSON47   (:,:)  
+     REAL(fp), POINTER :: OLSON48   (:,:)  
+     REAL(fp), POINTER :: OLSON49   (:,:)  
+     REAL(fp), POINTER :: OLSON50   (:,:)  
+     REAL(fp), POINTER :: OLSON51   (:,:)  
+     REAL(fp), POINTER :: OLSON52   (:,:)  
+     REAL(fp), POINTER :: OLSON53   (:,:)  
+     REAL(fp), POINTER :: OLSON54   (:,:)  
+     REAL(fp), POINTER :: OLSON55   (:,:)  
+     REAL(fp), POINTER :: OLSON56   (:,:)  
+     REAL(fp), POINTER :: OLSON57   (:,:)  
+     REAL(fp), POINTER :: OLSON58   (:,:)  
+     REAL(fp), POINTER :: OLSON59   (:,:)  
+     REAL(fp), POINTER :: OLSON60   (:,:)  
+     REAL(fp), POINTER :: OLSON61   (:,:)  
+     REAL(fp), POINTER :: OLSON62   (:,:)  
+     REAL(fp), POINTER :: OLSON63   (:,:)  
+     REAL(fp), POINTER :: OLSON64   (:,:)  
+     REAL(fp), POINTER :: OLSON65   (:,:)  
+     REAL(fp), POINTER :: OLSON66   (:,:)  
+     REAL(fp), POINTER :: OLSON67   (:,:)  
+     REAL(fp), POINTER :: OLSON68   (:,:)  
+     REAL(fp), POINTER :: OLSON69   (:,:)  
+     REAL(fp), POINTER :: OLSON70   (:,:)  
+     REAL(fp), POINTER :: OLSON71   (:,:)  
+     REAL(fp), POINTER :: OLSON72   (:,:)  
+     REAL(fp), POINTER :: OLSON73   (:,:)  
+     REAL(fp), POINTER :: OLSON74   (:,:)  
 
   END TYPE MetState
 !
@@ -969,6 +1043,304 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%XCHLR2    = 0.0_fp
 
+! TEMPORARY - brute force implementation of olson for gchp
+!             Remove from state_met in the future!!! (ewl, 10/12/16)
+    ALLOCATE( State_Met%OLSON01    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON01   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON02    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON02   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON03    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON03   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON04    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON04   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON05    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON05   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON06    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON06   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON07    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON07   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON08    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON08   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON09    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON09   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON10    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON10   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON11    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON11   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON12    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON12   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON13    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON13   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON14    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON14  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON15    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON15  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON16    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON16  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON17    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON17  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON18    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON18  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON19    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON19   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON20    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON20  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON21    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON21  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON22    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON22  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON23    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON23  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON24    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON24  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON25    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON25  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON26    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON26  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON27    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON27  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON28    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON28   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON29    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON29   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON30    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON30   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON31    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON31   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON32    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON32   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON33    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON33   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON34    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON34  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON35    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON35  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON36    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON36  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON37    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON37  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON38    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON38  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON39    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON39  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON40    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON40  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON41    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON41  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON42    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON42  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON43    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON43  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON44    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON44  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON45    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON45  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON46    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON46  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON47    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON47  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON48    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON48  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON49    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON49  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON50    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON50  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON51    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON51  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON52    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON52  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON53    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON53  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON54    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON54  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON55    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON55  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON56    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON56  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON57    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON57  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON58    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON58  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON59    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON59  = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON60    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON60   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON61    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON61   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON62    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON62   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON63    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON63   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON64    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON64   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON65    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON65   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON66    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON66   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON67    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON67    = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON68    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON68   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON69    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON69   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON70    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON70   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON71    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON71   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON72    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON72   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON73    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON73   = 0.0_fp
+
+    ALLOCATE( State_Met%OLSON74    ( IM, JM        ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OLSON74   = 0.0_fp
+
   END SUBROUTINE Init_GIGC_State_Met
 !EOC
 !------------------------------------------------------------------------------
@@ -1213,6 +1585,83 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%XLAI2      )) DEALLOCATE( State_Met%XLAI2      )
     IF ( ASSOCIATED( State_Met%XCHLR      )) DEALLOCATE( State_Met%XCHLR      )
     IF ( ASSOCIATED( State_Met%XCHLR2     )) DEALLOCATE( State_Met%XCHLR2     )
+
+! TEMPORARY (ewl, 10/12/16)
+    IF ( ASSOCIATED( State_Met%OLSON01    )) DEALLOCATE( State_Met%OLSON01    )
+    IF ( ASSOCIATED( State_Met%OLSON02    )) DEALLOCATE( State_Met%OLSON02    )
+    IF ( ASSOCIATED( State_Met%OLSON03    )) DEALLOCATE( State_Met%OLSON03    )
+    IF ( ASSOCIATED( State_Met%OLSON04    )) DEALLOCATE( State_Met%OLSON04    )
+    IF ( ASSOCIATED( State_Met%OLSON05    )) DEALLOCATE( State_Met%OLSON05    )
+    IF ( ASSOCIATED( State_Met%OLSON06    )) DEALLOCATE( State_Met%OLSON06    )
+    IF ( ASSOCIATED( State_Met%OLSON07    )) DEALLOCATE( State_Met%OLSON07    )
+    IF ( ASSOCIATED( State_Met%OLSON08    )) DEALLOCATE( State_Met%OLSON08    )
+    IF ( ASSOCIATED( State_Met%OLSON09    )) DEALLOCATE( State_Met%OLSON09    )
+    IF ( ASSOCIATED( State_Met%OLSON10    )) DEALLOCATE( State_Met%OLSON10    )
+    IF ( ASSOCIATED( State_Met%OLSON11    )) DEALLOCATE( State_Met%OLSON11    )
+    IF ( ASSOCIATED( State_Met%OLSON12    )) DEALLOCATE( State_Met%OLSON12    )
+    IF ( ASSOCIATED( State_Met%OLSON13    )) DEALLOCATE( State_Met%OLSON13    )
+    IF ( ASSOCIATED( State_Met%OLSON14    )) DEALLOCATE( State_Met%OLSON14    )
+    IF ( ASSOCIATED( State_Met%OLSON15    )) DEALLOCATE( State_Met%OLSON15    )
+    IF ( ASSOCIATED( State_Met%OLSON16    )) DEALLOCATE( State_Met%OLSON16    )
+    IF ( ASSOCIATED( State_Met%OLSON17    )) DEALLOCATE( State_Met%OLSON17    )
+    IF ( ASSOCIATED( State_Met%OLSON18    )) DEALLOCATE( State_Met%OLSON18    )
+    IF ( ASSOCIATED( State_Met%OLSON19    )) DEALLOCATE( State_Met%OLSON19    )
+    IF ( ASSOCIATED( State_Met%OLSON20    )) DEALLOCATE( State_Met%OLSON20    )
+    IF ( ASSOCIATED( State_Met%OLSON21    )) DEALLOCATE( State_Met%OLSON21    )
+    IF ( ASSOCIATED( State_Met%OLSON22    )) DEALLOCATE( State_Met%OLSON22    )
+    IF ( ASSOCIATED( State_Met%OLSON23    )) DEALLOCATE( State_Met%OLSON23    )
+    IF ( ASSOCIATED( State_Met%OLSON24    )) DEALLOCATE( State_Met%OLSON24    )
+    IF ( ASSOCIATED( State_Met%OLSON25    )) DEALLOCATE( State_Met%OLSON25    )
+    IF ( ASSOCIATED( State_Met%OLSON26    )) DEALLOCATE( State_Met%OLSON26    )
+    IF ( ASSOCIATED( State_Met%OLSON27    )) DEALLOCATE( State_Met%OLSON27    )
+    IF ( ASSOCIATED( State_Met%OLSON28    )) DEALLOCATE( State_Met%OLSON28    )
+    IF ( ASSOCIATED( State_Met%OLSON29    )) DEALLOCATE( State_Met%OLSON29    )
+    IF ( ASSOCIATED( State_Met%OLSON30    )) DEALLOCATE( State_Met%OLSON30    )
+    IF ( ASSOCIATED( State_Met%OLSON31    )) DEALLOCATE( State_Met%OLSON31    )
+    IF ( ASSOCIATED( State_Met%OLSON32    )) DEALLOCATE( State_Met%OLSON32    )
+    IF ( ASSOCIATED( State_Met%OLSON33    )) DEALLOCATE( State_Met%OLSON33    )
+    IF ( ASSOCIATED( State_Met%OLSON34    )) DEALLOCATE( State_Met%OLSON34    )
+    IF ( ASSOCIATED( State_Met%OLSON35    )) DEALLOCATE( State_Met%OLSON35    )
+    IF ( ASSOCIATED( State_Met%OLSON36    )) DEALLOCATE( State_Met%OLSON36    )
+    IF ( ASSOCIATED( State_Met%OLSON37    )) DEALLOCATE( State_Met%OLSON37    )
+    IF ( ASSOCIATED( State_Met%OLSON38    )) DEALLOCATE( State_Met%OLSON38    )
+    IF ( ASSOCIATED( State_Met%OLSON39    )) DEALLOCATE( State_Met%OLSON39    )
+    IF ( ASSOCIATED( State_Met%OLSON40    )) DEALLOCATE( State_Met%OLSON40    )
+    IF ( ASSOCIATED( State_Met%OLSON41    )) DEALLOCATE( State_Met%OLSON41    )
+    IF ( ASSOCIATED( State_Met%OLSON42    )) DEALLOCATE( State_Met%OLSON42    )
+    IF ( ASSOCIATED( State_Met%OLSON43    )) DEALLOCATE( State_Met%OLSON43    )
+    IF ( ASSOCIATED( State_Met%OLSON44    )) DEALLOCATE( State_Met%OLSON44    )
+    IF ( ASSOCIATED( State_Met%OLSON45    )) DEALLOCATE( State_Met%OLSON45    )
+    IF ( ASSOCIATED( State_Met%OLSON46    )) DEALLOCATE( State_Met%OLSON46    )
+    IF ( ASSOCIATED( State_Met%OLSON47    )) DEALLOCATE( State_Met%OLSON47    )
+    IF ( ASSOCIATED( State_Met%OLSON48    )) DEALLOCATE( State_Met%OLSON48    )
+    IF ( ASSOCIATED( State_Met%OLSON49    )) DEALLOCATE( State_Met%OLSON49    )
+    IF ( ASSOCIATED( State_Met%OLSON50    )) DEALLOCATE( State_Met%OLSON50    )
+    IF ( ASSOCIATED( State_Met%OLSON51    )) DEALLOCATE( State_Met%OLSON51    )
+    IF ( ASSOCIATED( State_Met%OLSON52    )) DEALLOCATE( State_Met%OLSON52    )
+    IF ( ASSOCIATED( State_Met%OLSON53    )) DEALLOCATE( State_Met%OLSON53    )
+    IF ( ASSOCIATED( State_Met%OLSON54    )) DEALLOCATE( State_Met%OLSON54    )
+    IF ( ASSOCIATED( State_Met%OLSON55    )) DEALLOCATE( State_Met%OLSON55    )
+    IF ( ASSOCIATED( State_Met%OLSON56    )) DEALLOCATE( State_Met%OLSON56    )
+    IF ( ASSOCIATED( State_Met%OLSON57    )) DEALLOCATE( State_Met%OLSON57    )
+    IF ( ASSOCIATED( State_Met%OLSON58    )) DEALLOCATE( State_Met%OLSON58    )
+    IF ( ASSOCIATED( State_Met%OLSON59    )) DEALLOCATE( State_Met%OLSON59    )
+    IF ( ASSOCIATED( State_Met%OLSON60    )) DEALLOCATE( State_Met%OLSON60    )
+    IF ( ASSOCIATED( State_Met%OLSON61    )) DEALLOCATE( State_Met%OLSON61    )
+    IF ( ASSOCIATED( State_Met%OLSON62    )) DEALLOCATE( State_Met%OLSON62    )
+    IF ( ASSOCIATED( State_Met%OLSON63    )) DEALLOCATE( State_Met%OLSON63    )
+    IF ( ASSOCIATED( State_Met%OLSON64    )) DEALLOCATE( State_Met%OLSON64    )
+    IF ( ASSOCIATED( State_Met%OLSON65    )) DEALLOCATE( State_Met%OLSON65    )
+    IF ( ASSOCIATED( State_Met%OLSON66    )) DEALLOCATE( State_Met%OLSON66    )
+    IF ( ASSOCIATED( State_Met%OLSON67    )) DEALLOCATE( State_Met%OLSON67    )
+    IF ( ASSOCIATED( State_Met%OLSON68    )) DEALLOCATE( State_Met%OLSON68    )
+    IF ( ASSOCIATED( State_Met%OLSON69    )) DEALLOCATE( State_Met%OLSON69    )
+    IF ( ASSOCIATED( State_Met%OLSON70    )) DEALLOCATE( State_Met%OLSON70    )
+    IF ( ASSOCIATED( State_Met%OLSON71    )) DEALLOCATE( State_Met%OLSON71    )
+    IF ( ASSOCIATED( State_Met%OLSON72    )) DEALLOCATE( State_Met%OLSON72    )
+    IF ( ASSOCIATED( State_Met%OLSON73    )) DEALLOCATE( State_Met%OLSON73    )
+    IF ( ASSOCIATED( State_Met%OLSON74    )) DEALLOCATE( State_Met%OLSON74    )
+
 
    END SUBROUTINE Cleanup_GIGC_State_Met
 !EOC
