@@ -847,7 +847,7 @@ CONTAINS
           ERROR = 1 ! Will cause error
           EXIT
        ENDIF 
- 
+
        ! Loop over all levels
        DO L = LowLL, UppLL
 
@@ -2341,31 +2341,45 @@ CONTAINS
 
        ! Get bottom height
        h1 = 0.0_hp
-       IF ( LowLL > 1 ) THEN
-          DO L1=1,LowLL-1
-             h1 = h1 + HcoState%Grid%BXHEIGHT_M%Val(I,J,L1)
-          ENDDO 
+       IF ( EmisL1Unit == HCO_EMISL_M .OR. &
+            EmisL1Unit == HCO_EMISL_PBL     ) THEN
+          h1 = EmisL1
+       ELSE
+          IF ( LowLL > 1 ) THEN
+             DO L1=1,LowLL-1
+                h1 = h1 + HcoState%Grid%BXHEIGHT_M%Val(I,J,L1)
+             ENDDO 
+          ENDIF
        ENDIF
+
        ! Only use fraction of lowest level
        IF ( L == LowLL ) THEN
           IF ( EmisL1Unit == HCO_EMISL_M   .OR. & 
                EmisL1Unit == HCO_EMISL_PBL       ) THEN
              dh = h1 + HcoState%Grid%BXHEIGHT_M%Val(I,J,L) - EmisL1
-             h1 = EmisL1
           ENDIF 
        ENDIF
 
        ! Get top height 
        h2 = 0.0_hp
-       DO L1=1,UppLL
-          h2 = h2 + HcoState%Grid%BXHEIGHT_M%Val(I,J,L1)
-       ENDDO
+       IF ( EmisL2Unit == HCO_EMISL_M .OR. &
+            EmisL2Unit == HCO_EMISL_PBL     ) THEN
+          h2 = EmisL2
+       ELSE
+          DO L1=1,UppLL
+             h2 = h2 + HcoState%Grid%BXHEIGHT_M%Val(I,J,L1)
+          ENDDO
+       ENDIF
+
        ! Only use fraction of top level
        IF ( L == UppLL ) THEN
           IF ( EmisL2Unit == HCO_EMISL_M   .OR. & 
                EmisL2Unit == HCO_EMISL_PBL       ) THEN
-             dh = h2 - HcoState%Grid%BXHEIGHT_M%Val(I,J,L) + EmisL2
-             h2 = EmisL2
+             IF ( L > 1 ) THEN
+                dh = EmisL2 - SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:(L-1)))
+             ELSE
+                dh = EmisL2
+             ENDIF
           ENDIF 
        ENDIF
 
