@@ -29,15 +29,14 @@ MODULE Olson_LandMap_Mod
   IMPLICIT NONE
   PRIVATE
 !
-! !PUBLIC MEMBER FUNCT
-IONS:
+! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: Init_Olson_Landmap
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
   PUBLIC  :: Compute_Olson_Landmap_GCHP
 #else
   PUBLIC  :: Compute_Olson_Landmap
-#endifl
+#endif
   PUBLIC  :: Cleanup_Olson_LandMap
 !
 ! !REMARKS:
@@ -657,7 +656,8 @@ CONTAINS
 
   END SUBROUTINE Compute_Olson_LandMap
 !EOC
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+
+#if defined( ESMF_ )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -673,11 +673,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Olson_Landmap_GCHP( am_I_Root, State_Met )
+  SUBROUTINE Compute_Olson_Landmap_GCHP( am_I_Root, State_Met, RC )
 !
 ! !USES:
 !
+!    USE ESMF
     USE GIGC_State_Met_Mod, ONLY : MetState
+!   use MAPL_mod
+
+!#include "MAPL_Generic.h"
+!#include "GIGCchem_GetPointer___.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -686,6 +691,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(MetState),  INTENT(INOUT) :: State_Met    ! Meteorology State object
+    INTEGER,         INTENT(INOUT) :: RC
 !
 ! !REMARKS:
 !  This routine supplies arrays that are required for legacy code routines:
@@ -708,19 +714,24 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: I, J, T
-    INTEGER :: typeNum, maxIUse
+    INTEGER :: I, J, T, STAT
+    INTEGER :: typeNum, sumIUse
     REAL*4  :: sumFrac
-
+    INTEGER :: maxIuse(1)
     
     ! Arrays
-    REAL(fp) :: Olson_Landmap_GCHP(IIPAR, JJPAR, 0:N_OLSON-1) 
+    REAL(fp) :: Olson_Landmap_GCHP(IIPAR, JJPAR, N_OLSON) 
 
-    ! Pointers
-    INTEGER,  POINTER :: IREG(:,:)
-    INTEGER,  POINTER :: ILAND(:,:,:)
-    INTEGER,  POINTER :: IUSE(:,:,:)
-    REAL(fp), POINTER :: FRCLND(:,:)
+!    ! MAPL
+!    TYPE(ESMF_STATE), POINTER  :: IMPORT
+
+    !! State_Met pointers
+    !INTEGER,  POINTER :: IREG(:,:)
+    !INTEGER,  POINTER :: ILAND(:,:,:)
+    !INTEGER,  POINTER :: IUSE(:,:,:)
+    !REAL(fp), POINTER :: FRCLND(:,:)
+
+    ! Local generic pointers
     REAL(fp), POINTER :: Ptr2D(:,:)
     REAL(fp), POINTER :: Ptr3D(:,:)
 
@@ -732,28 +743,204 @@ CONTAINS
     State_Met%ILAND    = 0
     State_Met%IUSE     = 0
     State_Met%FRCLND   = 1e+3_fp
+!    IMPORT => NULL()
     Ptr2D => NULL()
     Ptr3D => NULL()
 
-    !======================================================================
-    ! Read data from ESMF
-    !======================================================================
-    ! Point to ESMF IMPORT object
-    IMPORT => HcoState%IMPORT
-    IF ( .NOT. ASSOCIATED(IMPORT) ) RETURN 
+    !! Testing (currently getting the ptr from map does not work
+    !! (instead, use state_met brute force way temporarily)
+    !! Need to point to import object, such as hcoState%IMPORT
+    !!IMPORT => HcoState%IMPORT
+    !ASSERT_(ASSOCIATED(IMPORT))
+    !call MAPL_GetPointer ( IMPORT, PTR2D,  'OLSON01', RC=STAT )
+    !! Check for MAPL error
+    !IF( STAT /= ESMF_SUCCESS ) THEN 
+    !   MSG = 'Cannot get xy pointer: ' // TRIM('OLSON01')
+    !   CALL GIGC_Error ( MSG, RC, 'Compute_Olson_Landmap_GCHP' ) 
+    !   RETURN
+    !ENDIF
+    !PRINT *, "Testing reading OLSON01"
+    !PRINT *, PTR2D(20,20)
+    !Ptr2D => NULL()
+    
 
+   ! !======================================================================
+   ! ! Read data from ESMF
+   ! !======================================================================
+   ! ! Point to ESMF IMPORT object
+   ! IMPORT => HcoState%IMPORT
+   ! IF ( .NOT. ASSOCIATED(IMPORT) ) RETURN 
+   ! 
     ! Set Olson Landmap values (read/regridded via ExtData)
-    DO T = 0, N_OLSON-1
-       IF ( T < 10 ) THEN
-          varname = 'OLSON0' // T ! need to make sure first is OLSON00 in mapl
-       ELSE
-          varname = 'OLSON' // T
-       ENDIF
-       CALL MAPL_GetPointer( IMPORT, Ptr2D, TRIM(varname),  &
-                             notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2D) ) THEN
-          Olson_Landmap_GCHP(:,:,T) = Ptr2D(:,:)
-       ENDIF
+    DO T = 1, N_OLSON
+
+       ! This is the goal:
+       !IF ( T < 10 ) THEN
+       !   varname = 'OLSON0' // T
+       !ELSE
+       !   varname = 'OLSON' // T
+       !ENDIF
+       !CALL MAPL_GetPointer( IMPORT, Ptr2D, TRIM(varname),  &
+       !                      notFoundOK=.TRUE., __RC__ )
+       !IF ( ASSOCIATED(Ptr2D) ) THEN
+       !   Olson_Landmap_GCHP(:,:,T) = Ptr2D(:,:)
+       !ENDIF
+
+
+       ! Instead, use really awful brute force way, purely for testing. 
+       ! replace with above once know how to get mapl ptr!
+       SELECT CASE ( T )
+          CASE( 1 )
+             Ptr2D => State_Met%OLSON01
+          CASE( 2 )
+             Ptr2D => State_Met%OLSON02
+          CASE( 3 )
+             Ptr2D => State_Met%OLSON03
+          CASE( 4 )
+             Ptr2D => State_Met%OLSON04
+          CASE( 5 )
+             Ptr2D => State_Met%OLSON05
+          CASE( 6 )
+             Ptr2D => State_Met%OLSON06
+          CASE( 7 )
+             Ptr2D => State_Met%OLSON07
+          CASE( 8 )
+             Ptr2D => State_Met%OLSON08
+          CASE( 9 )
+             Ptr2D => State_Met%OLSON09
+          CASE( 10 )
+             Ptr2D => State_Met%OLSON10
+          CASE( 11 )
+             Ptr2D => State_Met%OLSON11
+          CASE( 12 )
+             Ptr2D => State_Met%OLSON12
+          CASE( 13 )
+             Ptr2D => State_Met%OLSON13
+          CASE( 14 )
+             Ptr2D => State_Met%OLSON14
+          CASE( 15 )
+             Ptr2D => State_Met%OLSON15
+          CASE( 16 )
+             Ptr2D => State_Met%OLSON16
+          CASE( 17 )
+             Ptr2D => State_Met%OLSON17
+          CASE( 18 )
+             Ptr2D => State_Met%OLSON18
+          CASE( 19 )
+             Ptr2D => State_Met%OLSON19
+          CASE( 20 )
+             Ptr2D => State_Met%OLSON20
+          CASE( 21 )
+             Ptr2D => State_Met%OLSON21
+          CASE( 22 )
+             Ptr2D => State_Met%OLSON22
+          CASE( 23 )
+             Ptr2D => State_Met%OLSON23
+          CASE( 24 )
+             Ptr2D => State_Met%OLSON24
+          CASE( 25 )
+             Ptr2D => State_Met%OLSON25
+          CASE( 26 )
+             Ptr2D => State_Met%OLSON26
+          CASE( 27 )
+             Ptr2D => State_Met%OLSON27
+          CASE( 28 )
+             Ptr2D => State_Met%OLSON28
+          CASE( 29 )
+             Ptr2D => State_Met%OLSON29
+          CASE( 30 )
+             Ptr2D => State_Met%OLSON30
+          CASE( 31 )
+             Ptr2D => State_Met%OLSON31
+          CASE( 32 )
+             Ptr2D => State_Met%OLSON32
+          CASE( 33 )
+             Ptr2D => State_Met%OLSON33
+          CASE( 34 )
+             Ptr2D => State_Met%OLSON34
+          CASE( 35 )
+             Ptr2D => State_Met%OLSON35
+          CASE( 36 )
+             Ptr2D => State_Met%OLSON36
+          CASE( 37 )
+             Ptr2D => State_Met%OLSON37
+          CASE( 38 )
+             Ptr2D => State_Met%OLSON38
+          CASE( 39 )
+             Ptr2D => State_Met%OLSON39
+          CASE( 40 )
+             Ptr2D => State_Met%OLSON40
+          CASE( 41 )
+             Ptr2D => State_Met%OLSON41
+          CASE( 42 )
+             Ptr2D => State_Met%OLSON42
+          CASE( 43 )
+             Ptr2D => State_Met%OLSON43
+          CASE( 44 )
+             Ptr2D => State_Met%OLSON44
+          CASE( 45 )
+             Ptr2D => State_Met%OLSON45
+          CASE( 46 )
+             Ptr2D => State_Met%OLSON46
+          CASE( 47 )
+             Ptr2D => State_Met%OLSON47
+          CASE( 48 )
+             Ptr2D => State_Met%OLSON48
+          CASE( 49 )
+             Ptr2D => State_Met%OLSON49
+          CASE( 50 )
+             Ptr2D => State_Met%OLSON50
+          CASE( 51 )
+             Ptr2D => State_Met%OLSON51
+          CASE( 52 )
+             Ptr2D => State_Met%OLSON52
+          CASE( 53 )
+             Ptr2D => State_Met%OLSON53
+          CASE( 54 )
+             Ptr2D => State_Met%OLSON54
+          CASE( 55 )
+             Ptr2D => State_Met%OLSON55
+          CASE( 56 )
+             Ptr2D => State_Met%OLSON56
+          CASE( 57 )
+             Ptr2D => State_Met%OLSON57
+          CASE( 58 )
+             Ptr2D => State_Met%OLSON58
+          CASE( 59 )
+             Ptr2D => State_Met%OLSON59
+          CASE( 60 )
+             Ptr2D => State_Met%OLSON60
+          CASE( 61 )
+             Ptr2D => State_Met%OLSON61
+          CASE( 62 )
+             Ptr2D => State_Met%OLSON62
+          CASE( 63 )
+             Ptr2D => State_Met%OLSON63
+          CASE( 64 )
+             Ptr2D => State_Met%OLSON64
+          CASE( 65 )
+             Ptr2D => State_Met%OLSON65
+          CASE( 66 )
+             Ptr2D => State_Met%OLSON66
+          CASE( 67 )
+             Ptr2D => State_Met%OLSON67
+          CASE( 68 )
+             Ptr2D => State_Met%OLSON68
+          CASE( 69 )
+             Ptr2D => State_Met%OLSON69
+          CASE( 70 )
+             Ptr2D => State_Met%OLSON70
+          CASE( 71 )
+             Ptr2D => State_Met%OLSON71
+          CASE( 72 )
+             Ptr2D => State_Met%OLSON72
+          CASE( 73 )
+             Ptr2D => State_Met%OLSON73
+          CASE( 74 )
+             Ptr2D => State_Met%OLSON74
+
+       END SELECT
+       Olson_Landmap_GCHP(:,:,T) = Ptr2D(:,:)
        Ptr2D => NULL()
     ENDDO
 
@@ -766,8 +953,9 @@ CONTAINS
        typeNum = 0
        sumFrac = 0e+0_fp
        maxIUse = 0
+       sumIUse = 0
 
-       DO T = 0, N_OLSON-1
+       DO T = 1, N_OLSON
           ! State_Met%FRCLND
           ! Keep cumulative variable of FRCLND - fraction land
           ! Loop over OLSON 3D array (I,J,T)
@@ -782,24 +970,31 @@ CONTAINS
           ! State_MET%ILAND = types in this box
           ! State_Met%IUSE = fractional area (mil) per type in this box
           ! loop over all land types T
-          IF ( OLSON(I,J,T) > 0.0 ) THEN
+          IF ( Olson_Landmap_GCHP(I,J,T) > 0.0 ) THEN
              typeNum = typeNum + 1
              State_Met%IREG(I,J) = typeNum
-             State_Met%ILAND(I,J,typeNum) = T
-             State_Met%IUSE(I,J,typeNum) = OLSON(I,J,T)
+             State_Met%ILAND(I,J,typeNum) = T ! ok that it starts at 1?
+             State_Met%IUSE(I,J,typeNum) = Olson_Landmap_GCHP(I,J,T)
              ! need to make IUSE be mil
              sumFrac = sumFrac + State_Met%IUSE(I,J,typeNum)
-             ! this keeps a tally of the total
-             maxIUse ! legacy, but need to add it back in for below use
+
           ENDIF
        ENDDO
+
+       ! this keeps a tally of the total
+       ! maxIUse, legacy, but need to add it back in for below use
+       ! Land type with the largest coverage in the GEOS-CHEM GRID BOX
+       maxIuse = MAXLOC(State_Met%IUSE(I, J, 1:State_Met%IREG(I,J)))
        
+       ! Sum of all land types in the GEOS-CHEM GRID BOX (should be 1000)
+       sumIUse = SUM ( State_Met%IUSE(I, J, 1:State_Met%IREG(I,J)))
+
        ! Make sure everything adds up to 1000.  If not, then adjust
        ! the land type w/ the largest coverage accordingly.
        ! This follows the algorithm from "regridh_lai.pro".
        IF ( sumIUse /= 1000 ) THEN
           State_Met%IUSE(I,J,maxIUse) = State_Met%IUSE(I,J,maxIUse) &
-                            + ( 1000 - sumIUse )
+                                        + ( 1000 - sumIUse )
        ENDIF
        
        ! Loop over land types in the GEOS-CHEM GRID BOX
@@ -824,16 +1019,16 @@ CONTAINS
     ENDDO
     ENDDO
 
-!### Save code here for debugging
-!###    do j = 1, jjpar
-!###    do i = 1, iipar
-!###       write( 800, '(2i5, f13.6)' ) i, j, frclnd(i,j)
-!###       
-!###       write( 810, '(25i4)'       ) i, j, ireg(i,j),                 &
-!###                                    ( iland(i,j,t), t=1,ireg(i,j) ), &
-!###                                    ( iuse (i,j,t), t=1,ireg(i,j) )
-!###    enddo
-!###    enddo
+! UNCOMMENT FOR COMPARISON WITH CLASSIC
+! Save code here for debugging
+    do J = 1, JJPAR
+    do I = 1, IIPAR
+       write( 800, '(2i5, f13.6)' ) I, J, state_Met%FRCLND(I,J)
+       write( 810, '(25i4)'       ) I, J, State_Met%IREG(I,J),       &
+                ( State_Met%ILAND(I,J,T), T=1,State_Met%IREG(I,J) ), &
+                ( State_Met%IUSE(I,J,T), T=1,State_Met%IREG(I,J) )
+    enddo
+    enddo
 
   END SUBROUTINE Compute_Olson_Landmap_GCHP
 !EOC
