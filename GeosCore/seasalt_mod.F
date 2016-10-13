@@ -1096,6 +1096,7 @@
 !  30 Sep 2015 - R. Yantosca - DD_A_Density is renamed to Density
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  17 Jun 2016 - R. Yantosca - Now define species ID's on the first call
+!  13 Oct 2016 - R. Yantosca - Now allocate OCCONV for marine-POA simulations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1137,6 +1138,13 @@
       ALLOCATE( DMID( NR_MAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
       DMID = 0e+0_fp
+
+      ! Allocate OCCONV only for marine-POA simulations (bmy, 10/13/16)
+      IF ( Input_Opt%LMPOA ) THEN
+         ALLOCATE( OCCONV( IIPAR, JJPAR, LLPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONV' )
+         OCCONV = 0e+0_fp
+      ENDIF
 
       ! Zero the IDDEP array
       IDDEP  = 0
@@ -1192,6 +1200,7 @@
 !  (1 ) Now deallocates ALK_EMIS, N_DENS, SRC_N (bec, bmy, 4/13/05)
 !  (2 ) Deallocated SALT_V and DMID (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  13 Oct 2016 - R. Yantosca - Bug fix: now deallocate OCCONV array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1202,6 +1211,7 @@
       !=================================================================
       IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
+      IF ( ALLOCATED( OCCONV   ) ) DEALLOCATE( OCCONV   )
 
       END SUBROUTINE CLEANUP_SEASALT
 !EOC
