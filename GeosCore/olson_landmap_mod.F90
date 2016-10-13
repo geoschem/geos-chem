@@ -32,12 +32,11 @@ MODULE Olson_LandMap_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: Init_Olson_Landmap
-#if defined( ESMF_ )
-  PUBLIC  :: Compute_Olson_Landmap_GCHP
-#else
   PUBLIC  :: Compute_Olson_Landmap
-#endif
   PUBLIC  :: Cleanup_Olson_LandMap
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+  PUBLIC  :: Compute_Olson_Landmap_GCHP
+#endif
 !
 ! !REMARKS:
 !  Eloise Marais and the GEOS-Chem Support Team updated the Olson 2001 
@@ -657,7 +656,7 @@ CONTAINS
   END SUBROUTINE Compute_Olson_LandMap
 !EOC
 
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

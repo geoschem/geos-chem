@@ -2323,14 +2323,15 @@ CONTAINS
              Ptr2D => State_Met%FRCLND
           CASE ( 25 )
              NameSuffix = 'IREG'         ! GCHP validation (ewl)
-             Ptr2D => State_Met%IREG
+             Temp2D = State_Met%IREG * 1.0_fp ! for to fp
+             Ptr2D => Temp2D
           CASE ( 26 )
              NameSuffix = 'ILAND1'       ! GCHP validation (ewl)
-             Temp2D = State_Met%ILAND(:,:,1)
+             Temp2D = State_Met%ILAND(:,:,1) * 1.0_fp ! force to fp
              Ptr2D => Temp2D
           CASE ( 27 )
              NameSuffix = 'IUSE1'        ! GCHP validation (ewl)
-             Temp2D = State_Met%IUSE(:,:,1)
+             Temp2D = State_Met%IUSE(:,:,1) * 1.0_fp ! force to fp
              Ptr2D => Temp2D
 
           CASE DEFAULT
