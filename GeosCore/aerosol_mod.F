@@ -148,7 +148,7 @@
       INTEGER :: id_OPOA2, id_TSOA1, id_TSOA2, id_TSOA3 
       INTEGER :: id_TSOA0, id_ISOA1, id_ISOA2, id_ISOA3
       INTEGER :: id_ASOAN, id_ASOA1, id_ASOA2, id_ASOA3
-      INTEGER :: id_DUST1
+      INTEGER :: id_DUST1, id_SOAS
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -605,8 +605,12 @@
                ! components which are attached to the OC aerosol.
                ! (rjp, bmy, 7/15/04)
                ! SOAupdate: use 2.1 (OCFOPOA) (hotp 7/21/10)
-               OCPISOA(I,J,L) = Spc(I,J,L,id_OCPI)
-     &                          * OCFOPOA / AIRVOL(I,J,L)
+               !sfarina - add SOA-Simplified to primary OC.
+               !        - IDTSOAS is already mass basis, so only apply
+               !        - OCFOPOA to IDTOCPI
+               OCPISOA(I,J,L) = 
+     &          ( Spc(I,J,L,id_OCPI) * OCFOPOA +
+     &            Spc(I,J,L,id_SOAS)             ) / AIRVOL(I,J,L)
                   
             ENDIF ! LSOA
 
@@ -1970,6 +1974,7 @@
       id_NIT   = Ind_('NIT'  ) 
       id_OCPO  = Ind_('OCPO' ) 
       id_OCPI  = Ind_('OCPI' )  
+      id_SOAS  = Ind_('SOAS' )  
       id_SALA  = Ind_('SALA' )  
       id_SALC  = Ind_('SALC' )   
       id_SO4   = Ind_('SO4'  )         

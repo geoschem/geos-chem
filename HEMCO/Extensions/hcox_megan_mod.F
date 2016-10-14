@@ -197,6 +197,12 @@
          INTEGER                 :: ExtNrSoa     ! Extension number for MEGAN_SOA
          REAL(hp)                :: ISOP_SCALING ! Isoprene emissions scaling
          REAL(hp)                :: GLOBCO2      ! Global CO2 conc (ppmv)
+         REAL(hp)                :: ISOPTOSOAP   ! SOAP Emission factor
+         REAL(hp)                :: MONOTOSOAP   ! SOAP Emission factor
+         REAL(hp)                :: OTHRTOSOAP   ! SOAP Emission factor
+         REAL(hp)                :: ISOPTOSOAS   ! Direct SOA Emission factor
+         REAL(hp)                :: MONOTOSOAS   ! Direct SOA Emission factor
+         REAL(hp)                :: OTHRTOSOAS   ! Direct SOA Emission factor
          LOGICAL                 :: LISOPCO2     ! Include CO2 inhibition of ISOP?
    
          ! Physical parameter
@@ -211,11 +217,13 @@
          INTEGER                 :: IDTPRPE
          INTEGER                 :: IDTC2H4
          INTEGER                 :: IDTALD2
-         INTEGER                 :: IDTOCPI
+!         INTEGER                 :: IDTOCPI
          INTEGER                 :: IDTLIMO
          INTEGER                 :: IDTMTPA
          INTEGER                 :: IDTMTPO
          INTEGER                 :: IDTSESQ
+         INTEGER                 :: IDTSOAP
+         INTEGER                 :: IDTSOAS
    
          ! Pointers to annual emission factor arrays.
          ! These fields are obtained from ext. data (from config file)
@@ -356,6 +364,7 @@
       REAL(hp)            :: EMIS_MOHX, EMIS_ETOH, EMIS_FAXX, EMIS_AAXX
       REAL(hp)            :: EMIS_ACET, EMIS_PRPE, EMIS_C2H4
       REAL(hp)            :: EMIS_FARN, EMIS_BCAR, EMIS_OSQT
+      REAL(hp)            :: EMIS_OTHR
       REAL(hp)            :: BIOG_ALPH, BIOG_LIMO
       REAL(hp)            :: BIOG_ALCO
       REAL(hp)            :: MONO_MOL
@@ -380,11 +389,12 @@
       REAL(hp), TARGET    :: FLUXCO    (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXPRPE  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXC2H4  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXOCPI  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXLIMO  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXMTPA  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXMTPO  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXSESQ  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXSOAP  (HcoState%NX,HcoState%NY) !SOA-Precursor emitted from biogenics
+      REAL(hp), TARGET    :: FLUXSOAS  (HcoState%NX,HcoState%NY) !directly emitted SOA from biogenic sources
 
       ! Emission arrays for use in diagnostics only (kgC/m2/s)
       REAL(hp), TARGET    :: FLUXMBOX  (HcoState%NX,HcoState%NY)
@@ -479,7 +489,6 @@
       FLUXCO     = 0.0_hp
       FLUXPRPE   = 0.0_hp
       FLUXC2H4   = 0.0_hp
-      FLUXOCPI   = 0.0_hp
       FLUXLIMO   = 0.0_hp
       FLUXMTPA   = 0.0_hp
       FLUXMTPO   = 0.0_hp
@@ -487,6 +496,8 @@
       FLUXBCAR   = 0.0_hp
       FLUXOSQT   = 0.0_hp
       FLUXSESQ   = 0.0_hp
+      FLUXSOAP   = 0.0_hp
+      FLUXSOAS   = 0.0_hp
 
       !IF ( FIRST ) THEN
          ! Generate annual emission factors for MEGAN inventory
@@ -533,7 +544,7 @@
 !$OMP+PRIVATE( EMIS_LIMO, EMIS_SABI, EMIS_MYRC, EMIS_CARE, EMIS_OCIM   )
 !$OMP+PRIVATE( EMIS_OMON, EMIS_MONO, EMIS_MOHX, EMIS_ETOH, EMIS_FAXX   )
 !$OMP+PRIVATE( EMIS_AAXX, EMIS_ACET, EMIS_PRPE, EMIS_C2H4              )
-!$OMP+PRIVATE( EMIS_FARN, EMIS_BCAR, EMIS_OSQT, EMIS_ALD2              )
+!$OMP+PRIVATE( EMIS_FARN, EMIS_BCAR, EMIS_OSQT, EMIS_ALD2, EMIS_OTHR   )
 !$OMP+PRIVATE( MONO_MOL,  TMP,       MBOX_MOL                          )
 !$OMP+PRIVATE( DIURFACT,  DIURORVC,  BIOG_ALPH                         ) 
 !$OMP+PRIVATE( BIOG_LIMO, BIOG_ALCO, X, Y, RC                          )
@@ -556,6 +567,7 @@
          EMIS_OCIM  = 0.0_hp
          EMIS_OMON  = 0.0_hp
          EMIS_MONO  = 0.0_hp
+         EMIS_OTHR  = 0.0_hp
          EMIS_ALD2  = 0.0_hp
          EMIS_MOHX  = 0.0_hp
          EMIS_ETOH  = 0.0_hp
@@ -633,13 +645,13 @@
          IF ( Inst%IDTISOP > 0 ) THEN
             FLUXISOP(I,J) = EMIS_ISOP 
 
-!            ! testing only
-!            if ( i==ix .and. j==iy ) then
-!               write(*,*) 'HEMCO MEGAN @ ', ix, iy
-!               write(*,*) 'ISOP_SCAL      : ', ISOP_SCALING
-!               write(*,*) 'ISOP (kgC/m2/s): ', EMIS_ISOP
-!            endif
+         ENDIF
 
+         IF ( (Inst%IDTISOP>0) .AND. (Inst%IDTSOAP>0) ) THEN
+            FLUXSOAP(I,J) = FLUXSOAP(I,J) + EMIS_ISOP * Inst%ISOPTOSOAP
+         ENDIF
+         IF ( (Inst%IDTISOP>0) .AND. (Inst%IDTSOAS>0) ) THEN
+            FLUXSOAS(I,J) = FLUXSOAS(I,J) + EMIS_ISOP * Inst%ISOPTOSOAS
          ENDIF
 
          !--------------------------------------------------------------------
@@ -695,12 +707,13 @@
                ERR = .TRUE.
                EXIT
             ENDIF 
-            IF ( Inst%ExtNrSoa < 1 ) THEN
+!            IF ( Inst%ExtNrSoa < 1 ) THEN
                ! Update FLUXLIMO here for diagnostic purposes if the
                ! SOA mechanism is turned off.
                ! Otherwise, FLUXLIMO is updated below.
+               !sfarina - soa mechanism no longer requires limo so update it
                FLUXLIMO(I,J) = EMIS_LIMO
-            ENDIF
+!            ENDIF
 
             ! ---------------------------------------------------
             ! Sabinene emissions
@@ -1014,6 +1027,16 @@
          ENDIF
 
          !--------------------------------------------------------------------
+         ! Biogenic emissions of SOA and SOA-Precursor from monoterpenes
+         !--------------------------------------------------------------------
+         IF ( (Inst%IDTSOAP>0) .AND. (Inst%ExtNrMono>0) ) THEN
+            FLUXSOAP(I,J) = FLUXSOAP(I,J) + EMIS_MONO * Inst%MONOTOSOAP
+         ENDIF
+         IF ( (Inst%IDTSOAS>0) .AND. (Inst%ExtNrMono>0) ) THEN
+            FLUXSOAS(I,J) = FLUXSOAS(I,J) + EMIS_MONO * Inst%MONOTOSOAS
+         ENDIF
+
+         !--------------------------------------------------------------------
          ! Biogenic emissions of PRPE
          !
          ! Now uses MEGAN2.1 (dbm, 12/2012)
@@ -1057,31 +1080,6 @@
 
             ! Add to tracer tendency array [kg C/m2/s]
             FLUXC2H4(I,J) = EMIS_C2H4
-         ENDIF
-
-         !--------------------------------------------------------------------
-         ! Biogenic emissions of OC
-         ! Assume a 10% yield of hydrophilic OC from terpene emissions
-         ! if secondary organic aerosols are turned off. Otherwise,
-         ! use CALTECH algorithm to calculate biogenic VOC emissions.
-         !--------------------------------------------------------------------
-
-         ! Get monoterpenes from MEGAN [kg C/m2/s]
-         ! terpene emissions
-         IF ( (Inst%ExtNrMono > 0 ) .AND. ( Inst%IDTOCPI > 0 ) ) THEN
-
-            ! Convert monoterpenes into hydrophilic OC and pass to
-            ! OC emissions array 
-            FLUXOCPI(I,J) = EMIS_MONO * EMMT2OC
-
-!            ! testing only
-!            if ( i==ix .and. j==iy ) then
-!                  write(*,*) ' '
-!                  write(*,*) 'HEMCO MEGAN @ ', ix, iy
-!                  write(*,*) 'OCPI (NOSOA) (kg/m2/s): ', FLUXOCPI(I,J)
-!                  write(*,*) 'EMIS_MONO             : ', EMIS_MONO
-!                  write(*,*) 'EMMT2OC               : ', EMMT2OC
-!            endif
          ENDIF
 
          ! Use CALTECH algorithm if SOA is turned on
@@ -1226,6 +1224,8 @@
                   FLUXSESQ(I,J) = ( EMIS_FARN + EMIS_BCAR +
      &                              EMIS_OSQT ) * FC3
                ENDIF
+ 
+               EMIS_OTHR = EMIS_FARN + EMIS_BCAR + EMIS_OSQT
 
             ! If MEGAN Monoterpene is turned off:
             ! NOTE: In the original GEOS-Chem code, many of these fluxes
@@ -1263,7 +1263,19 @@
                   FLUXSESQ(I,J) = DIURORVC * FC3 * 0.05_hp
                ENDIF
 
+               EMIS_OTHR = 0.0_hp
+
             ENDIF
+         ENDIF
+
+         !--------------------------------------------------------------------
+         ! Biogenic emissions of SOA and SOA-Precursor from Other terpenes
+         !--------------------------------------------------------------------
+         IF ( (Inst%IDTSOAP>0) .AND. (Inst%ExtNrSoa>0) ) THEN
+            FLUXSOAP(I,J) = FLUXSOAP(I,J) + EMIS_OTHR * Inst%OTHRTOSOAP
+         ENDIF
+         IF ( (IDTSOAS>0) .AND. (ExtNrSoa>0) ) THEN
+            FLUXSOAS(I,J) = FLUXSOAS(I,J) + EMIS_OTHR * Inst%OTHRTOSOAS
          ENDIF
 
          !-----------------------------------------------------------------
@@ -1400,6 +1412,45 @@
       ENDIF
 
       ! ----------------------------------------------------------------
+      ! SOA-Precursor (SOAP) and SOA-Simplified (SOAS)
+      IF (  Inst%IDTSOAP > 0 ) THEN
+
+         ! Add flux to emission array
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSOAP, Inst%IDTSOAP, 
+     &                     RC,        ExtNr=Inst%ExtNr )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSOAP', RC )
+            RETURN 
+         ENDIF
+
+         ! Also archive the BIOGENIC_SOAP diagnostic
+         DiagnName =  'BIOGENIC_SOAP'
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr,
+     &      cName=TRIM(DiagnName), Array2D=FLUXSOAP, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         Arr2D => NULL()
+
+      ENDIF
+
+      IF (  Inst%IDTSOAS > 0 ) THEN
+
+         ! Add flux to emission array
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSOAS, Inst%IDTSOAS, 
+     &                     RC,        ExtNr=Inst%ExtNr )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSOAS', RC )
+            RETURN 
+         ENDIF
+
+         ! Also archive the BIOGENIC_SOAS diagnostic
+         DiagnName =  'BIOGENIC_SOAS'
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr,
+     &      cName=TRIM(DiagnName), Array2D=FLUXSOAS, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         Arr2D => NULL()
+      ENDIF
+
+      ! ----------------------------------------------------------------
       ! CO
       IF ( ( Inst%ExtNrMono > 0 ) .AND. 
      &     ( Inst%IDTCO     > 0 )      ) THEN
@@ -1447,29 +1498,6 @@
      &                  'HCO_EmisAdd error: FLUXC2H4', RC )
             RETURN 
          ENDIF
-      ENDIF
-
-      ! ----------------------------------------------------------------
-      ! OC
-      ! Note: OC emissions will only be non-zero if OC species is defined
-      ! and Monoterpene option is enabled.
-      IF ( Inst%IDTOCPI > 0 ) THEN 
-
-         ! Add flux to emission array
-         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXOCPI, Inst%IDTOCPI, 
-     &                     RC,        ExtNr=Inst%ExtNr )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            CALL HCO_ERROR( HcoState%Config%Err,
-     &                  'HCO_EmisAdd error: FLUXOCPI', RC )
-            RETURN 
-         ENDIF
-
-         ! Also archive the BIOGENIC_OCPI diagnostic (ckeller, 9/30/15)
-         DiagnName =  'BIOGENIC_OCPI'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr,
-     &      cName=TRIM(DiagnName), Array2D=FLUXOCPI, RC=RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN
-         Arr2D => NULL()
       ENDIF
 
       ! ----------------------------------------------------------------
@@ -4067,6 +4095,7 @@
       TYPE(MyInst), POINTER          :: Inst
       CHARACTER(LEN=255)             :: MSG
       CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:) 
+      LOGICAL                        :: Optfound
  
       !=================================================================
       ! HCOX_MEGAN_INIT begins here!
@@ -4125,6 +4154,34 @@
          ENDIF
       ENDIF
 
+      Optfound = .FALSE.
+      !optional arguments for SOAP
+      CALL GetExtOpt ( HcoState%Config, ExtNr, 'Isoprene to SOAP', 
+     &                 OptValHp=Inst%ISOPTOSOAP, FOUND=Optfound, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      IF ( Optfound ) THEN
+         !convert from carbon basis to mass basis
+         Inst%ISOPTOSOAP = Inst%ISOPTOSOAP * 1.134
+      ELSE
+         !set to zero if not specified
+         Inst%ISOPTOSOAP = 0.0
+      ENDIF
+
+      Optfound = .FALSE.
+      !optional arguments for SOAS
+      CALL GetExtOpt ( HcoState%Config, ExtNr, 'Isoprene to SOAS', 
+     &                 OptValHp=Inst%ISOPTOSOAS, FOUND=Optfound, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      IF ( Optfound ) THEN
+         !convert from carbon basis to mass basis
+         Inst%ISOPTOSOAS = Inst%ISOPTOSOAS * 1.134
+      ELSE
+         !set to zero if not specified
+         Inst%ISOPTOSOAS = 0.0
+      ENDIF
+
       ! Verbose mode
       IF ( am_I_Root ) THEN
          MSG = 'Use MEGAN biogenic emissions (extension module)'
@@ -4145,6 +4202,8 @@
       Inst%IDTPRPE = -1
       Inst%IDTC2H4 = -1
       Inst%IDTALD2 = -1
+      Inst%IDTSOAP = -1
+      Inst%IDTSOAS = -1
       DO I = 1, nSpc
          SELECT CASE ( TRIM(SpcNames(I)) )
             CASE( 'ISOP' )
@@ -4167,6 +4226,14 @@
                Inst%IDTC2H4 = HcoIDs(I)
                WRITE(MSG,*) '   Ethene     = ',
      &                      TRIM(SpcNames(I)),Inst%IDTC2H4
+            CASE( 'SOAP' )
+               Inst%IDTSOAP = HcoIDs(I)
+               WRITE(MSG,*) 'SOA-Precursor = ',
+     &                      TRIM(SpcNames(I)),Inst%IDTSOAP
+            CASE( 'SOAS' )
+               Inst%IDTSOAS = HcoIDs(I)
+               WRITE(MSG,*) '  SOA-Simple  = ',
+     &                      TRIM(SpcNames(I)),Inst%IDTSOAS
             CASE DEFAULT
                MSG = 'Invalid species names: ' // TRIM(SpcNames(I))
                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
@@ -4189,10 +4256,20 @@
          CALL HCO_MSG(HcoState%Config%Err,MSG )
       ENDIF
 
+      IF ( am_I_Root ) THEN
+         !convert back to direct mass basis just for show
+         WRITE(MSG,*) ' --> Isoprene to SOA-Precursor',
+     &       ISOPTOSOAP / 1.134
+         CALL HCO_MSG( MSG )
+         WRITE(MSG,*) ' --> Isoprene direct to SOA (Simple)',
+     &       ISOPTOSOAS / 1.134
+         CALL HCO_MSG( MSG )
+      ENDIF
+
       ! Check for monoterpene option --> this one is required for 
       ! CO, OCPI, MONX
       Inst%IDTCO     = -1 
-      Inst%IDTOCPI   = -1 
+!      Inst%IDTOCPI   = -1 
       Inst%IDTMONX   = -1 
       Inst%ExtNrMono = GetExtNr( HcoState%Config%ExtList, 'MEGAN_Mono')
       IF ( Inst%ExtNrMono > 0 ) THEN
@@ -4203,10 +4280,38 @@
             CALL HCO_MSG(HcoState%Config%Err,MSG )
          ENDIF
 
-         ! Get HEMCO species IDs of CO, OCPI and MONX
+         ! Get HEMCO species IDs of CO, MONX, SOAS, SOAP
          CALL HCO_GetExtHcoID( HcoState, Inst%ExtNrMono, HcoIDs,
      &                         SpcNames, nSpc,           RC       )
          IF ( RC /= HCO_SUCCESS ) RETURN
+
+         Optfound = .FALSE.
+         CALL GetExtOpt ( HcoState, Inst%ExtNrMono,
+     &               'Monoterp to SOAP', 
+     &               OptValHp=Inst%MONOTOSOAP, FOUND=Optfound, RC=RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         IF ( Optfound ) THEN
+            !convert from carbon basis to mass basis
+            Inst%MONOTOSOAP = Inst%MONOTOSOAP * 1.134
+         ELSE
+            !set to zero if not specified
+            Inst%MONOTOSOAP = 0.0
+         ENDIF
+
+         Optfound = .FALSE.
+         CALL GetExtOpt ( HcoState, Inst%ExtNrMono,
+     &               'Monoterp to SOAS', 
+     &               OptValHp=Inst%MONOTOSOAS, FOUND=Optfound, RC=RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         IF ( Optfound ) THEN
+            !convert from carbon basis to mass basis
+            Inst%MONOTOSOAS = Inst%MONOTOSOAS * 1.134
+         ELSE
+            !set to zero if not specified
+            Inst%MONOTOSOAS = 0.0
+         ENDIF
     
          DO I = 1, nSpc
             SELECT CASE ( TRIM(SpcNames(I)) )
@@ -4214,14 +4319,22 @@
                   Inst%IDTCO = HcoIDs(I)
                   WRITE(MSG,*) '   CO         = ',
      &                         TRIM(SpcNames(I)),Inst%IDTCO
-               CASE( 'OC', 'OCPI' )
-                  Inst%IDTOCPI = HcoIDs(I)
-                  WRITE(MSG,*) '   OC aerosol = ',
-     &                         TRIM(SpcNames(I)),Inst%IDTOCPI
                CASE( 'MONX' )
                   Inst%IDTMONX = HcoIDs(I)
                   WRITE(MSG,*) '   Monoterp.  = ',
      &                         TRIM(SpcNames(I)),Inst%IDTMONX
+               CASE( 'SOAP' )
+                  IF (Inst%IDTSOAP < 0) THEN
+                     Inst%IDTSOAP = HcoIDs(I)
+                  END IF
+                  WRITE(MSG,*) '     SOA-Precursor = ',
+     &               TRIM(SpcNames(I)),Inst%IDTSOAP
+               CASE( 'SOAS' )
+                  IF (Inst%IDTSOAS < 0) THEN
+                     Inst%IDTSOAS = HcoIDs(I)
+                  END IF
+                  WRITE(MSG,*) '     SOA-Simple = ',
+     &               TRIM(SpcNames(I)),Inst%IDTSOAS
                CASE DEFAULT
                   MSG = 'Invalid species names: ' // TRIM(SpcNames(I))
                   CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
@@ -4234,12 +4347,23 @@
 
          ! Check if at least one of the Mono species is defined 
          IF ( Inst%IDTCO   < 0 .AND. 
-     &        Inst%IDTOCPI < 0 .AND. 
+     &        Inst%IDTSOAP < 0 .AND. 
+     &        Inst%IDTSOAS < 0 .AND. 
      &        Inst%IDTMONX < 0      ) THEN
             MSG = 'MEGAN_MONO option is anabled but none of the '// 
      &            'species is found (CO, OC/OCPI, MONX)!'
             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
             RETURN
+         ENDIF
+
+         IF ( am_I_Root ) THEN
+            !convert back to direct mass basis just for show
+            WRITE(MSG,*) ' --> Monoterpene to SOA-Precursor',
+     &       Inst%MONOTOSOAP / 1.134
+            CALL HCO_MSG( MSG )
+            WRITE(MSG,*) ' --> Monoterpene direct to SOA (Simple)',
+     &       Inst%MONOTOSOAS / 1.134
+            CALL HCO_MSG( MSG )
          ENDIF
 
       !-----------------------------------------------------------------
@@ -4277,6 +4401,35 @@
             CALL HCO_MSG(HcoState%Config%Err,MSG )
          ENDIF
 
+         Optfound = .FALSE.
+         CALL GetExtOpt ( HcoState, Inst%ExtNrSoa, 'Othrterp to SOAP', 
+     &                 OptValHp=Inst%OTHRTOSOAP, FOUND=Optfound, RC=RC )
+         !convert from kgC basis to kg basis (68.117 / 60.054)
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         IF ( Optfound ) THEN
+            !convert from carbon basis to mass basis
+            Inst%OTHRTOSOAP = Inst%OTHRTOSOAP * 1.134
+         ELSE
+            !set to zero if not specified
+            Inst%OTHRTOSOAP = 0.0
+         ENDIF
+
+         Optfound = .FALSE.
+         CALL GetExtOpt ( HcoState, Inst%ExtNrSoa, 'Othrterp to SOAS', 
+     &                 OptValHp=Inst%OTHRTOSOAS, FOUND=Optfound, RC=RC )
+         !convert from kgC basis to kg basis (68.117 / 60.054)
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         IF ( Optfound ) THEN
+            !convert from carbon basis to mass basis
+            Inst%OTHRTOSOAS = Inst%OTHRTOSOAS * 1.134
+         ELSE
+            !set to zero if not specified
+            Inst%OTHRTOSOAS = 0.0
+         ENDIF
+    
+
          ! Get HEMCO species IDs of ALPH/LIMO/ALCO 
          CALL HCO_GetExtHcoID( HcoState, Inst%ExtNrSoa, HcoIDs,
      &                         SpcNames, nSpc,          RC       )
@@ -4300,6 +4453,18 @@
                   Inst%IDTSESQ = HcoIDs(I)
                   WRITE(MSG,*) '     Sesquiterpenes = ',
      &               TRIM(SpcNames(I)),Inst%IDTSESQ
+               CASE( 'SOAP' )
+                  IF (Inst%IDTSOAP < 0) THEN
+                     Inst%IDTSOAP = HcoIDs(I)
+                  END IF
+                  WRITE(MSG,*) '     SOA-Precursor = ',
+     &               TRIM(SpcNames(I)),Inst%IDTSOAP
+               CASE( 'SOAS' )
+                  IF (Inst%IDTSOAS < 0) THEN
+                     Inst%IDTSOAS = HcoIDs(I)
+                  END IF
+                  WRITE(MSG,*) '     SOA-Simple = ',
+     &               TRIM(SpcNames(I)),Inst%IDTSOAS
                CASE DEFAULT
                   MSG = 'Invalid species names: ' // TRIM(SpcNames(I))
                   CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
@@ -4312,22 +4477,26 @@
 
          ! Check if at least one of the SOA species is defined 
          IF ( Inst%IDTMTPA < 0 .AND. Inst%IDTMTPO < 0 .AND.  
-     &        Inst%IDTLIMO < 0 .AND. Inst%IDTSESQ < 0        ) THEN
+     &        Inst%IDTLIMO < 0 .AND. Inst%IDTSESQ < 0 .AND.
+     &        Inst%IDTSOAP < 0 .AND. Inst%IDTSOAS < 0        ) THEN
             MSG = 'MEGAN_SOA option is anabled but none of the '// 
-     &            'SOA species is found (MTPA, MTPO, LIMO, SESQ)!'
+     &            'SOA species is found (MTPA, MTPO, LIMO, '    //
+     &            'SESQ, SOAS, SOAP)!'
             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
             RETURN
+
          ENDIF
 
-         ! Never calculate OCPI if SOA is turned on!!
-         IF ( Inst%IDTOCPI > 0 ) THEN
-            Inst%IDTOCPI = -1
-            IF ( am_I_Root ) THEN
-               MSG = 'SOA option is turned on - '// 
-     &               'no OCPI emissions will be calculated'
-               CALL HCO_WARNING(HcoState%Config%Err,MSG,RC)
-            ENDIF
+         IF ( am_I_Root ) THEN
+            !convert back to direct mass basis just for show
+            WRITE(MSG,*) ' --> Othrterpene to SOA-Precursor',
+     &    Inst%OTHRTOSOAP / 1.134
+            CALL HCO_MSG( MSG )
+            WRITE(MSG,*) ' --> Othrterpene direct to SOA (Simple)',
+     &    Inst%OTHRTOSOAS / 1.134
+            CALL HCO_MSG( MSG )
          ENDIF
+
       ENDIF
 
       CALL GetExtOpt( HcoState%Config, ExtNr, 'MEGAN_SUFFIX',  

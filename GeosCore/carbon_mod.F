@@ -358,6 +358,7 @@
       INTEGER :: id_TSOG3,   id_XYLE,   id_LBRO2N, id_LBRO2H, id_LTRO2N
       INTEGER :: id_LTRO2H,  id_LXRO2N, id_LXRO2H, id_LNRO2N, id_LNRO2H
       INTEGER :: id_LISOPOH, id_LISOPNO3
+      INTEGER :: id_SOAS,    id_SOAP
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -394,8 +395,11 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if   defined( TOMAS )
-      USE TOMAS_MOD,          ONLY : IBINS                       !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : SOACOND, IBINS              !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : CHECKMN                     !(sfarina)
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -448,6 +452,8 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  14 Oct 2016 - S. Farina   - Added 1-day e-folding "chemistry" for
+!                              SOA Simplified and SOA Precursor
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -460,6 +466,14 @@
       LOGICAL            :: LSOA
       LOGICAL            :: LEMIS
       LOGICAL            :: LPRT
+
+      REAL(fp)              :: NEWSOA
+      REAL(fp)              :: DTCHEM, SOAP_LIFETIME  ! [=] seconds
+
+#if defined ( TOMAS )
+      INTEGER   :: I, J, L
+      REAL*4    :: BOXVOL, TEMPTMS, PRES 
+#endif
 
       ! Pointers
       REAL(fp), POINTER  :: Spc(:,:,:,:)
@@ -483,6 +497,10 @@
       LEMIS                = Input_Opt%LEMIS
       LPRT                 = Input_Opt%LPRT
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
+
+      DTCHEM               = GET_TS_CHEM() * 60.0_fp
+      !                      ( days )*(hrs/day)*(mins/hr)*(sec/min)
+      SOAP_LIFETIME        = 1.00_fp * 24.0_fp * 60.0_fp * 60.0_fp
 
       ! Do we have to print debug output?
       prtDebug             = ( LPRT .and. am_I_Root )
@@ -531,6 +549,12 @@
                CALL HCO_GetPtr( aIR, HcoState, 'O3',         O3,  RC )
                IF ( RC /= GC_SUCCESS )
      &         CALL ERROR_STOP( 'Cannot get pointer to O3',         LOC)
+            ENDIF
+
+            ! initialize SOA Precursor and SOA for simplified SOA sims
+            IF ( id_SOAP > 0 ) THEN
+               Spc(:,:,:,id_SOAP) = 0e+0_fp
+               Spc(:,:,:,id_SOAS) = 0e+0_fp
             ENDIF
 
          ENDIF
@@ -595,6 +619,9 @@
       ENDIF
 
 #if   defined( TOMAS )
+      CALL CHECKMN( 0,         0,         0, 
+     &              Input_Opt, State_Met, State_Chm, 
+     &              'kg',      'CHECKMN from chemcarbon')
       ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
       IF ( id_ECIL1 > 0 .and. id_ECOB1 > 0 ) THEN
          CALL AGING_CARB( Spc(:,:,:,id_ECIL1:id_ECIL1+IBINS-1), 
@@ -611,6 +638,56 @@
          ENDIF
       ENDIF
 #endif
+
+      IF ( id_SOAP > 0 ) THEN
+      ! AGE SOAP -> SOA
+
+#if defined ( TOMAS )
+      CALL CHECKMN( 0,         0,         0, 
+     &              Input_Opt, State_Met, State_Chm, 
+     &              'kg',      'CHECKMN from chemcarbon')
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES )
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            NEWSOA  = Spc(I,J,L,id_SOAP) *
+     &         (1.e+0_fp - DEXP(-DTCHEM/SOAP_LIFETIME))
+            BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
+            TEMPTMS = State_Met%T(I,J,L)
+            PRES    = GET_PCENTER(I,j,L)*100.0 ! in Pa
+            IF ( NEWSOA > 0.d0 ) THEN
+            !sfarina16: SOAP -> size Resolved TOMAS SOA
+               CALL SOACOND( NEWSOA, I, J, L,
+     &               BOXVOL, TEMPTMS, PRES, State_Chm )
+            ENDIF
+            Spc(I,J,L,id_SOAS) = Spc(I,J,L,id_SOAS) + NEWSOA
+            Spc(I,J,L,id_SOAP) = Spc(I,J,L,id_SOAP) - NEWSOA
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+#else
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( L, NEWSOA, )
+         DO L = 1, LLPAR
+         !NEWSOA used in a different context than above.
+         !above is absolute mass, here is a relative decay factor
+         NEWSOA = DEXP(-DTCHEM/SOAP_LIFETIME)
+         Spc(:,:,L,id_SOAS) = Spc(:,:,L,id_SOAS) + 
+     &       Spc(:,:,L,id_SOAP) * (1.0_fp - NEWSOA)
+         Spc(:,:,L,id_SOAP) = Spc(:,:,L,id_SOAP) * NEWSOA
+         ENDDO
+!$OMP END PARALLEL DO
+#endif
+
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBO: SIMPLIFIED SOA')
+         ENDIF
+      ENDIF
 
       ! Free pointer
       Spc => NULL()
@@ -1213,6 +1290,7 @@
 !
 ! !REMARKS:
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  14 Oct 2016 - S. Farina   - Vectorized loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1230,16 +1308,9 @@
       DTCHEM = GET_TS_CHEM() / 60e+0_fp / 24e+0_fp    ![=] day
 
       DO K = 1, IBINS
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         MIL(I,J,L,K) = MIL(I,J,L,K) + 
-     &                  MOB(I,J,L,K) * 
-     &                  (1.e+0_fp - DEXP(-DTCHEM/TAU_HYDRO))
-         MOB(I,J,L,K) = MOB(I,J,L,K) * (DEXP(-DTCHEM/TAU_HYDRO))
-      ENDDO
-      ENDDO
-      ENDDO
+         MIL(:,:,:,K) = MIL(:,:,:,K) +
+     &       MOB(:,:,:,K) * (1.e+0_fp - DEXP(-DTCHEM/TAU_HYDRO))
+         MOB(:,:,:,K) = MOB(:,:,:,K) * (DEXP(-DTCHEM/TAU_HYDRO))
       ENDDO
 
       END SUBROUTINE AGING_CARB
@@ -1690,7 +1761,7 @@
      &                        AVO*(XMW*1.e-3_fp)*(XAIRM3*1.e+6_fp)
                      XUPTKSUM = XUPTKSUM + XUPTK1
 
-	            ENDIF
+               ENDIF
            
                ENDDO
 
@@ -5256,6 +5327,8 @@ ccc
       ! Maximum extent of PBL [model levels]
       PBL_MAX = GET_PBL_MAX_L()
 
+!sfarina16: anything to do here for simple SOA?
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_OF_PBL, TMPFLX, Emis, FOUND )
@@ -5346,7 +5419,8 @@ ccc
 !
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND
-      USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG, xSOA
+      USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG
+      USE TOMAS_MOD,          ONLY : CHECKMN
 
       ! HEMCO update
       USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
@@ -5405,7 +5479,6 @@ ccc
       REAL(fp)                 :: OC2OM = 1.8d0
 
       LOGICAL                  :: SGCOAG = .True.
-      !LOGICAL                  :: XSOA = .True.  !add SDD antrho SOA?
 
       INTEGER                  :: K
 
@@ -5645,8 +5718,9 @@ ccc
 
       ENDIF  !sgcoag
 
-      ! READ IN BIOGENIC SOA
-      DgnName = 'BIOGENIC_MONX'
+      ! READ IN directly emitted SOAS (sfarina / jkodros)
+      Ptr2D => NULL()
+      DgnName = 'BIOGENIC_SOAS'
       CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
@@ -5654,46 +5728,27 @@ ccc
       ENDIF
       TERP_ORGC = Ptr2D(:,:)
       Ptr2D => NULL()
+      TERP_ORGC = TERP_ORGC(:,:) * AREA(:,:) * DTSRCE
 
-      ! READ IN ANTRHO CO and SCALE TO ANTRHO SOA
-      DgnName = 'CO_ANTH'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-         print*, 'NOT ASSOCIATED CO ANTH'
-      ENDIF
-      CO_ANTH = Ptr2D(:,:)
-      Ptr2D => NULL()
-
-      ! Convert to kg/box/timestpe
-      CO_ANTH = CO_ANTH(:,:) * AREA(:,:) * DTSRCE
-      CO_ANTH_TOTAL = sum(CO_ANTH)
-      !print*, 'CO_ANTH_TOTAL: ', CO_ANTH_TOTAL
-
-      ! Multiply by 10% and convert to [kg/box/time step]
-      TERP_ORGC = TERP_ORGC(:,:) * 0.1 * AREA(:,:) * DTSRCE
-
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, BOXVOL, TEMPTMS, PRES )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         ! Scale CO into SOA - 100 Tg/yr,
-         XTRA_ORG_A(I,J) = 100.d9 * CO_ANTH(I,J)/CO_ANTH_TOTAL /
-     &        (60*60*24*365/DTSRCE)
-
-         !print*, 'XTRA_ORG_A: ', XTRA_ORG_A(ii,jj)
+      CALL CHECKMN( I,         J,         1, 
+     &              Input_Opt, State_Met, State_Chm, 
+     &              'kg',  'CHECKMN from emisscarbontomas')
+         IF ( TERP_ORGC(I,J) > 0.d0 ) THEN
          BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3
          TEMPTMS = State_Met%T(I,J,1)
-         PRES    = GET_PCENTER(i,j,1)*100.0 ! in Pa
-         IF ( TERP_ORGC(I,J) > 0.d0 )
-     &        CALL SOACOND( am_I_Root, OC2OM * TERP_ORGC(I,J), I, J, 1,
-     &               BOXVOL, TEMPTMS, PRES, State_Chm, RC )
-            IF ( xSOA == 1) Then  !JKodros, switch from tomas_mod (6/15)
-               IF ( XTRA_ORG_A(I,J) > 0.d0 )  ! (SDD, 01/14)
-     &            CALL SOACOND( am_I_Root, XTRA_ORG_A(I,J), I, J, 1,
-     &               BOXVOL, TEMPTMS, PRES, State_Chm, RC )
+         PRES    = GET_PCENTER(I,J,1)*100.0 ! in Pa
+         CALL SOACOND( TERP_ORGC(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES, State_Chm )
+         END IF
+      END DO
+      END DO
+!$OMP END PARALLEL DO
 
-            ENDIF
-      ENDDO
-      ENDDO
       IF ( LPRT )
      &    CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
 
@@ -6839,7 +6894,7 @@ ccc
       DO L = 1, LLCHEM
       DO J = 1, JJPAR 
       DO I = 1, IIPAR
-	
+
          ! Surface pressure
          PSFC = State_Met%PEDGE(I,J,1)
 
@@ -6854,7 +6909,7 @@ ccc
          R0   = ZRT + ( ZRS - ZRT ) * EXP( 1e+0_fp - 
      &          ( PSFC / PRES )**2.5 )
          B0   = ( RH2 - R0 ) / ( 1e+0_fp - R0 )
-	   
+   
          ! Force B0 into the range 0-1
          IF ( RH2 < R0  ) B0 = 0e+0_fp
          IF ( B0  > 1e+0_fp ) B0 = 1e+0_fp
@@ -8856,6 +8911,8 @@ ccc
       id_POG2     = IND_('POG2'    )
       id_SOAG     = IND_('SOAG'    )
       id_SOAM     = IND_('SOAM'    )
+      id_SOAP     = IND_('SOAP'    )
+      id_SOAS     = IND_('SOAS'    )
       id_TOLU     = IND_('TOLU'    )
       id_TSOA0    = IND_('TSOA0'   )
       id_TSOA1    = IND_('TSOA1'   )

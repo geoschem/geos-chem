@@ -3772,6 +3772,7 @@ Cjrp      endif
       REAL(fp)                 :: Gcd(ICOMP - 1)
       REAL*4                   :: thresh
       CHARACTER(LEN=255)       :: MSG, LOC ! For species unit check (ewl)
+      LOGICAL                          :: ERRORSWITCH = .FALSE.
 
       ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
@@ -3961,6 +3962,7 @@ Cjrp      endif
 
 
       ! Fix any inconsistencies in M/N distribution
+      !this never happened?
 
       ! Swap Nk and Mk arrays back to Spc array
       DO K = 1, IBINS
@@ -5213,6 +5215,10 @@ C If any ANKD are zero, set them to a small value to avoid division by zero
 Cpja Sometimes, after repeated condensation calls, the average bin mass
 Cpja can be just above the bin boundary - in that case, transfer a some
 Cpja to the next highest bin
+!sfarina this is also true when small particles are growing really fast?
+!sfarina SOACOND throws thousands of errors for XI < 1
+!sfarina what this really means is AVG particle massfor bin k > XK(k+1)
+!sfarina through the debugger I found that mostly the difference is small
       do k=1,ibins-1
          if ( ANKD(k) .lt. NEPS2) goto 300 !<step4.5> (win, 10/18/05)
          ! Modify the check to include all dry mass (win, 10/3/08)
@@ -5223,6 +5229,15 @@ Cpja to the next highest bin
          if ((AMKD_tot)/ANKD(k).gt.xk(k+1)) then
          !Prior to 10/3/08 (win)
          !if ((AMKD(k,srtso4))/ANKD(k).gt.xk(k+1)) then
+         !sfarina: this does noting to help our avg mass per particle 
+         !         falling outside of bin boundaries:
+         !         amkd_tot / ankd(k) = (amkd_tot * 0.9) / (ankd(k) * 0.9)
+         !         we need to shift more mass than number.
+         !         assuming we have some kind of distributionof particle sizes in bin K
+         !         the largest ones will have more mass than average, so we can safly move 
+         !         more mass than number.
+         !         that or we redistribute mass before SOAcond
+         !         
             do j=1,icomp-idiag
                AMKD(k+1,j)=AMKD(k+1,j)+0.1e+0_fp*AMKD(k,j)
                AMKD(k,j)=AMKD(k,j)*0.9e+0_fp
@@ -5394,8 +5409,8 @@ c            AVG=MAX(X(L),MIN(X(L+1),AMKDRY(L)/(NEPS+ANKD(L))))
                   !W1 will have sqrt of negative number
                   write(*,*)'ERROR: tmcond - XI<1 for bin: ',L
                   write(*,*)'AVG is ',AVG
-                  write(*,*)'Nk is ', ANKD(k)
-                  write(*,*)'Mk are ', (AMKD(k,j),j=1,icomp)
+                  write(*,*)'Nk is ', ANKD(L)
+                  write(*,*)'Mk are ', (AMKD(L,j),j=1,icomp)
                   write(*,*)'Initial N and M are: ',ANKD(L),AMKDRY(L)
                   errspot = .true.
                   RETURN
@@ -5410,7 +5425,7 @@ c            AVG=MAX(X(L),MIN(X(L+1),AMKDRY(L)/(NEPS+ANKD(L))))
                   write(*,*)'lower limit is',X(L)
                   write(*,*)'AVG is ',AVG
                   write(*,*)'Nk is ', ANKD(L)
-                  write(*,*)'Mk are ', (AMKD(k,j),j=1,icomp)
+                  write(*,*)'Mk are ', (AMKD(L,j),j=1,icomp)
                   write(*,*)'Initial N and M are: ',ANKD(L),AMKDRY(L)
                   errspot = .true.
                   RETURN

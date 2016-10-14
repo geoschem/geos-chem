@@ -21,3 +21,4 @@ GIGC
 *.continue.*
 *.ppk
 *.log
+bin/*

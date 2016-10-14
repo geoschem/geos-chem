@@ -3040,6 +3040,41 @@ CONTAINS
     ! Only if MEGAN is on ... 
     IF ( ExtNr > 0 ) THEN
 
+
+#if ! defined ( TOMAS )
+       IF ( ND07 > 0 ) THEN
+#endif
+         !-------------------------------------------------------------------
+         ! %%%%% diag for direct emission of SOAS Biogenic OC for TOMAS %%%%%
+         ! %%%%% this is optional for non-tomas simulations             %%%%%
+         ! %%%%% this is not optional for tomas simulations             %%%%%
+         !-------------------------------------------------------------------
+          ! HEMCO species ID
+          HcoID = HCO_GetHcoID( 'SOAS', HcoState )
+      
+          ! Create diagnostic container
+          IF ( HcoID > 0 ) THEN
+             DiagnName = 'BIOGENIC_SOAS'
+             CALL Diagn_Create( am_I_Root,                     &  
+                                HcoState  = HcoState,          &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &  
+                                Cat       = Cat,               &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                COL       = HcoDiagnIDManual,  &
+                                AutoFill  = 1,                 &
+                                RC        = RC                  ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN 
+          ENDIF
+
+#if ! defined ( TOMAS )
+       ENDIF
+#endif
+
        ! ND46 only
        IF ( ND46 > 0 ) THEN
 
@@ -3318,6 +3353,7 @@ CONTAINS
     !=======================================================================
     ! These diagnostics use the MEGAN Monoterpenes extension
     !=======================================================================
+
 
     ! Extension # of MEGAN monoterpenes
     ExtNr = GetExtNr( HcoState%Config%ExtList, 'MEGAN_Mono')
