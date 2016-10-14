@@ -201,8 +201,8 @@
                                                      !  formation
                                                      !  [cm3 H2O/cm3 air/s]
 #if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-      REAL*8,  ALLOCATABLE          :: REEVAP(:,:,:) !  Rate of precip 
-                                                     ! reevaporation
+      REAL*8,  ALLOCATABLE          :: REEVAP(:,:,:) ! Rate of precip 
+                                                     !  reevaporation
                                                      !  [cm3 H2O/cm3 air/s]
 #endif
       ! Define local shadow variables for values in Input_Opt
@@ -684,7 +684,8 @@
          ALLOCATE( REEVAP( LLPAR, IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAP' )
          REEVAP = 0d0
-#endif         
+#endif
+
          ! Reset flag
          FIRST = .FALSE.
       ENDIF
@@ -3423,6 +3424,7 @@
 
       END SUBROUTINE WETDEP
 !EOC
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -3805,8 +3807,9 @@
                   ! is the precip entering thru the top
                   QDOWN = PDOWN(L+1,I,J)            
                    
-                  !** MERRA and GEOS-FP distinguish between rates of new precipitation 
-                  ! (field DQRLSAN) and evaporation of precipitation (field REEVAPLS).
+                  !** GEOS-FP, MERRA, and MERRA-2 distinguish between rates of
+                  ! new precipitation (field DQRLSAN) and evaporation of
+                  ! precipitation (field REEVAPLS).
                   ! So the assumption below is not required. ** VPS (6/21/16)
                   
                   ! The amount of precipitating water entering from above 
@@ -4019,6 +4022,7 @@
 
       END SUBROUTINE WETDEP_MERRA
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
