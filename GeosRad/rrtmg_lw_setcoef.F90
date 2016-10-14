@@ -253,8 +253,13 @@
 !  layer pressure.  Store them in JP and JP1.  Store in FP the
 !  fraction of the difference (in ln(pressure)) between these
 !  two values that the layer pressure lies.
-!         plog = alog(pavel(lay))
-         plog = dlog(pavel(lay))
+!------------------------------------------------------------------------------
+! Prior to 10/14/16: 
+! Use the F90 standard LOG function instead of ALOG or DLOG.  (bmy, 10/14/16)
+!!         plog = alog(pavel(lay))
+!         plog = dlog(pavel(lay))
+!------------------------------------------------------------------------------
+         plog = LOG(pavel(lay))
          jp(lay) = int(36._rb - 5*(plog+0.04_rb))
          if (jp(lay) .lt. 1) then
             jp(lay) = 1
