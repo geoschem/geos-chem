@@ -77,6 +77,7 @@ MODULE HCOX_CH4WETLAND_Mod
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jun 2015 - C. Keller   - Update to support multiple species with individual
 !                              scale factors and mask regions.
+!  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -97,13 +98,13 @@ MODULE HCOX_CH4WETLAND_Mod
    CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
 
    ! Pointers to data read through configuration file
-   REAL(sp), POINTER               :: RICE        (:,:) => NULL()
-   REAL(sp), POINTER               :: GWET_ANNUAL (:,:) => NULL()
-   REAL(sp), POINTER               :: GWET_MONTHLY(:,:) => NULL()
-   REAL(sp), POINTER               :: WETFRAC     (:,:) => NULL()
-   REAL(sp), POINTER               :: LITTER_C    (:,:) => NULL()
-   REAL(sp), POINTER               :: SOIL_C      (:,:) => NULL()
-   REAL(sp), POINTER               :: MEAN_T      (:,:) => NULL()
+   REAL(hp), POINTER               :: RICE        (:,:) => NULL()
+   REAL(hp), POINTER               :: GWET_ANNUAL (:,:) => NULL()
+   REAL(hp), POINTER               :: GWET_MONTHLY(:,:) => NULL()
+   REAL(hp), POINTER               :: WETFRAC     (:,:) => NULL()
+   REAL(hp), POINTER               :: LITTER_C    (:,:) => NULL()
+   REAL(hp), POINTER               :: SOIL_C      (:,:) => NULL()
+   REAL(hp), POINTER               :: MEAN_T      (:,:) => NULL()
    TYPE(MyInst), POINTER           :: NextInst          => NULL()
   END TYPE MyInst
 
@@ -129,6 +130,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_CALC_MOD,     ONLY : HCO_EvalFld
     USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr 
     USE HCO_FLUXARR_MOD,  ONLY : HCO_EmisAdd
     USE HCO_TYPES_MOD,    ONLY : DiagnCont
@@ -192,16 +194,16 @@ CONTAINS
     ! On first call, get pointers to data and check if manual 
     ! diagnostics will be used 
     ! ---------------------------------------------------------------
-    IF ( HcoClock_First( HcoState%Clock, .TRUE.) ) THEN
+    !IF ( HcoClock_First( HcoState%Clock, .TRUE.) ) THEN
     
        IF ( Inst%DoWetland ) THEN
-          CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_WETFRAC',  Inst%WETFRAC,  RC )
+          CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_WETFRAC',  Inst%WETFRAC,  RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_LITTER_C', Inst%LITTER_C, RC )
+          CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_LITTER_C', Inst%LITTER_C, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_SOIL_C',   Inst%SOIL_C,   RC )
+          CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_SOIL_C',   Inst%SOIL_C,   RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_MEAN_T',   Inst%MEAN_T,   RC )
+          CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_MEAN_T',   Inst%MEAN_T,   RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( .NOT. Inst%DoDiagn ) THEN
              CALL DiagnCont_Find ( HcoState%Diagn, -1,-1,-1,-1,-1, &
@@ -212,11 +214,11 @@ CONTAINS
  
        ! Fields required by rice emissions
        IF ( Inst%DoRice ) THEN
-          CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_RICE',    Inst%RICE,         RC )
+          CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_RICE',    Inst%RICE,         RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_GWET_YR', Inst%GWET_ANNUAL,  RC )
+          CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_GWET_YR', Inst%GWET_ANNUAL,  RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_GWET_MT', Inst%GWET_MONTHLY, RC )
+          CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_GWET_MT', Inst%GWET_MONTHLY, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( .NOT. Inst%DoDiagn ) THEN
              CALL DiagnCont_Find ( HcoState%Diagn, -1,-1,-1,-1,-1, &
@@ -224,7 +226,7 @@ CONTAINS
              TmpCnt => NULL()
           ENDIF
        ENDIF
-    ENDIF
+    !ENDIF
 
     ! ---------------------------------------------------------------
     ! Calculate emissions
@@ -704,7 +706,7 @@ CONTAINS
 ! !LOCAL VARIABLES
 !
     ! Scalars
-    INTEGER                        :: ExtNr, N
+    INTEGER                        :: ExtNr, N, AS
     CHARACTER(LEN=255)             :: MSG
     TYPE(MyInst), POINTER          :: Inst => NULL()
 
@@ -729,6 +731,25 @@ CONTAINS
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create CH4WETLAND instance', RC )
        RETURN
     ENDIF
+
+    ALLOCATE ( Inst%RICE(HcoState%NX, HcoState%NY), & 
+               Inst%GWET_ANNUAL(HcoState%NX, HcoState%NY), & 
+               Inst%GWET_MONTHLY(HcoState%NX, HcoState%NY), & 
+               Inst%WETFRAC(HcoState%NX, HcoState%NY), & 
+               Inst%LITTER_C(HcoState%NX, HcoState%NY), & 
+               Inst%SOIL_C(HcoState%NX, HcoState%NY), & 
+               Inst%MEAN_T(HcoState%NX, HcoState%NY), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Allocation error', RC )
+       RETURN
+    ENDIF 
+    Inst%RICE         = 0.0_hp
+    Inst%GWET_ANNUAL  = 0.0_hp
+    Inst%GWET_MONTHLY = 0.0_hp
+    Inst%WETFRAC      = 0.0_hp
+    Inst%LITTER_C     = 0.0_hp
+    Inst%SOIL_C       = 0.0_hp
+    Inst%MEAN_T       = 0.0_hp
 
     ! HEMCO species IDs of species names defined in config. file 
     CALL HCO_GetExtHcoID( HcoState, ExtNr, Inst%SpcIDs, SpcNames, Inst%nSpc, RC )
@@ -950,13 +971,13 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! Type specific initialization statements follow below
     ! ----------------------------------------------------------------
-    Inst%RICE         => NULL()
-    Inst%GWET_ANNUAL  => NULL()
-    Inst%GWET_MONTHLY => NULL()
-    Inst%WETFRAC      => NULL()
-    Inst%LITTER_C     => NULL()
-    Inst%SOIL_C       => NULL()
-    Inst%MEAN_T       => NULL()
+!    Inst%RICE         => NULL()
+!    Inst%GWET_ANNUAL  => NULL()
+!    Inst%GWET_MONTHLY => NULL()
+!    Inst%WETFRAC      => NULL()
+!    Inst%LITTER_C     => NULL()
+!    Inst%SOIL_C       => NULL()
+!    Inst%MEAN_T       => NULL()
 
     Inst%DoWetland = .FALSE. 
     Inst%DoRice    = .FALSE. 
@@ -1003,16 +1024,24 @@ CONTAINS
 
     ! Instance-specific deallocation
     IF ( ASSOCIATED(Inst) ) THEN 
-       IF ( ALLOCATED(Inst%SpcIDs       ) ) DEALLOCATE ( Inst%SpcIDs        )
-       IF ( ALLOCATED(Inst%SpcScal      ) ) DEALLOCATE ( Inst%SpcScal       )
-       IF ( ALLOCATED(Inst%SpcScalFldNme) ) DEALLOCATE ( Inst%SpcScalFldNme )
-       Inst%RICE => NULL()
-       Inst%GWET_ANNUAL => NULL()
-       Inst%GWET_MONTHLY => NULL()
-       Inst%WETFRAC => NULL()
-       Inst%LITTER_C => NULL()
-       Inst%SOIL_C => NULL()
-       Inst%MEAN_T => NULL()
+       IF ( ALLOCATED (Inst%SpcIDs       ) ) DEALLOCATE ( Inst%SpcIDs        )
+       IF ( ALLOCATED (Inst%SpcScal      ) ) DEALLOCATE ( Inst%SpcScal       )
+       IF ( ALLOCATED (Inst%SpcScalFldNme) ) DEALLOCATE ( Inst%SpcScalFldNme )
+       IF ( ASSOCIATED(Inst%RICE         ) ) DEALLOCATE ( Inst%RICE          )
+       IF ( ASSOCIATED(Inst%GWET_ANNUAL  ) ) DEALLOCATE ( Inst%GWET_ANNUAL   )
+       IF ( ASSOCIATED(Inst%GWET_MONTHLY ) ) DEALLOCATE ( Inst%GWET_MONTHLY  )
+       IF ( ASSOCIATED(Inst%WETFRAC      ) ) DEALLOCATE ( Inst%WETFRAC       )
+       IF ( ASSOCIATED(Inst%LITTER_C     ) ) DEALLOCATE ( Inst%LITTER_C      )
+       IF ( ASSOCIATED(Inst%SOIL_C       ) ) DEALLOCATE ( Inst%SOIL_C        )
+       IF ( ASSOCIATED(Inst%MEAN_T       ) ) DEALLOCATE ( Inst%MEAN_T        )
+
+!       Inst%RICE => NULL()
+!       Inst%GWET_ANNUAL => NULL()
+!       Inst%GWET_MONTHLY => NULL()
+!       Inst%WETFRAC => NULL()
+!       Inst%LITTER_C => NULL()
+!       Inst%SOIL_C => NULL()
+!       Inst%MEAN_T => NULL()
  
        ! Pop off instance from list
        IF ( ASSOCIATED(PrevInst) ) THEN

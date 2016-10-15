@@ -91,6 +91,7 @@ MODULE HcoX_FINN_Mod
 !  11 Aug 2014 - R. Yantosca - Cosmetic changes to ProTeX subroutine headers
 !  11 Jun 2015 - C. Keller   - Update to include individual scale factors and
 !                              masks.
+!  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -166,12 +167,12 @@ MODULE HcoX_FINN_Mod
   ! These are the pointers to the 6 vegetation type data arrays
   ! specified in the configuration file
   !=================================================================
-  REAL(sp),          POINTER     :: VEGTYP1(:,:) => NULL()
-  REAL(sp),          POINTER     :: VEGTYP2(:,:) => NULL()
-  REAL(sp),          POINTER     :: VEGTYP3(:,:) => NULL()
-  REAL(sp),          POINTER     :: VEGTYP4(:,:) => NULL()
-  REAL(sp),          POINTER     :: VEGTYP5(:,:) => NULL()
-  REAL(sp),          POINTER     :: VEGTYP9(:,:) => NULL()
+  REAL(hp),          POINTER     :: VEGTYP1(:,:) => NULL()
+  REAL(hp),          POINTER     :: VEGTYP2(:,:) => NULL()
+  REAL(hp),          POINTER     :: VEGTYP3(:,:) => NULL()
+  REAL(hp),          POINTER     :: VEGTYP4(:,:) => NULL()
+  REAL(hp),          POINTER     :: VEGTYP5(:,:) => NULL()
+  REAL(hp),          POINTER     :: VEGTYP9(:,:) => NULL()
 
 CONTAINS
 !EOC
@@ -193,6 +194,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_EmisList_mod,  ONLY : HCO_GetPtr
+    USE HCO_Calc_Mod,      ONLY : HCO_EvalFld
     USE HCO_FluxArr_mod,   ONLY : HCO_EmisAdd
     USE HCO_State_mod,     ONLY : HCO_GetHcoID
     USE HCO_Clock_mod,     ONLY : HcoClock_Get
@@ -234,7 +236,7 @@ CONTAINS
     REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
 
     ! Pointers
-    REAL(sp), POINTER   :: THISTYP(:,:) => NULL()
+    REAL(hp), POINTER   :: THISTYP(:,:) => NULL()
 
     !=======================================================================
     ! HCOX_FINN_Run begins here!
@@ -250,7 +252,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get pointers to data arrays 
     !-----------------------------------------------------------------------
-    IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
+    !IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
        IF ( UseDay ) THEN
           PREFIX = 'FINN_DAILY_'
        ELSE
@@ -258,31 +260,31 @@ CONTAINS
        ENDIF
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP1'
-       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP1, RC )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP1, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FLDNME = TRIM(PREFIX) // 'VEGTYP2'
-       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP2, RC )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP2, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP3'
-       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP3, RC )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP3, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP4'
-       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP4, RC )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP4, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FLDNME = TRIM(PREFIX) // 'VEGTYP5'
-       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP5, RC )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP5, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP9'
-       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP9, RC )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP9, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
 !       FIRST = .FALSE.
-    ENDIF
+    !ENDIF
 
     ! For logfile
     IF ( am_I_Root ) THEN
@@ -593,7 +595,7 @@ CONTAINS
                SpcScal(nSpcMax), SpcScalFldNme(nSpcMax), STAT=AS )
 
     IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate FinnIDs', RC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate FinnIDs', RC )
        RETURN
     ENDIF
     nSpc             = 0
@@ -602,6 +604,23 @@ CONTAINS
     SpcScal          = 1.0_sp
     SpcNames(:)      = ''
     SpcScalFldNme(:) = HCOX_NOSCALE
+
+    ALLOCATE ( VEGTYP1(HcoState%NX,HcoState%NY), &
+               VEGTYP2(HcoState%NX,HcoState%NY), &
+               VEGTYP3(HcoState%NX,HcoState%NY), &
+               VEGTYP4(HcoState%NX,HcoState%NY), &
+               VEGTYP5(HcoState%NX,HcoState%NY), &
+               VEGTYP9(HcoState%NX,HcoState%NY), STAT=AS )
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate VEGTYP', RC )
+       RETURN
+    ENDIF
+    VEGTYP1 = 0.0_hp
+    VEGTYP2 = 0.0_hp
+    VEGTYP3 = 0.0_hp
+    VEGTYP4 = 0.0_hp
+    VEGTYP5 = 0.0_hp
+    VEGTYP9 = 0.0_hp
 
     !----------------------------------------------------------------------- 
     ! Define FINN species names
@@ -1017,12 +1036,12 @@ CONTAINS
     !=================================================================
 
     ! Free pointers
-    VEGTYP1   => NULL()
-    VEGTYP2   => NULL()
-    VEGTYP3   => NULL()
-    VEGTYP4   => NULL()
-    VEGTYP5   => NULL()
-    VEGTYP9   => NULL()
+    IF ( ASSOCIATED ( VEGTYP1 ) ) DEALLOCATE ( VEGTYP1 ) 
+    IF ( ASSOCIATED ( VEGTYP2 ) ) DEALLOCATE ( VEGTYP2 ) 
+    IF ( ASSOCIATED ( VEGTYP3 ) ) DEALLOCATE ( VEGTYP3 ) 
+    IF ( ASSOCIATED ( VEGTYP4 ) ) DEALLOCATE ( VEGTYP4 ) 
+    IF ( ASSOCIATED ( VEGTYP5 ) ) DEALLOCATE ( VEGTYP5 ) 
+    IF ( ASSOCIATED ( VEGTYP9 ) ) DEALLOCATE ( VEGTYP9 ) 
 
     ! Cleanup module arrays
     IF ( ALLOCATED( FINN_EMFAC     )) DEALLOCATE( FINN_EMFAC     )

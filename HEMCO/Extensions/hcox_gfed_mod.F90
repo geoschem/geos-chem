@@ -102,6 +102,7 @@ MODULE HCOX_GFED_MOD
 !  12 Mar 2015 - C. Keller / P. Kasibhatla - Added GFED-4.
 !  03 Jun 2015 - C. Keller / P. Kasibhatla - GFED-4 update: now use GFED-4
 !                                            specific emission factors and DM data.
+!  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -175,15 +176,28 @@ MODULE HCOX_GFED_MOD
   ! These are the pointers to the 6 input data specified in the 
   ! the configuration file
   !=================================================================
-  REAL(sp), POINTER   :: GFED_WDL(:,:) => NULL()
-  REAL(sp), POINTER   :: GFED_SAV(:,:) => NULL()
-  REAL(sp), POINTER   :: GFED_PET(:,:) => NULL()
-  REAL(sp), POINTER   :: GFED_FOR(:,:) => NULL()
-  REAL(sp), POINTER   :: GFED_AGW(:,:) => NULL()
-  REAL(sp), POINTER   :: GFED_DEF(:,:) => NULL()
-  REAL(sp), POINTER   :: HUMTROP (:,:) => NULL()
-  REAL(sp), POINTER   :: DAYSCAL (:,:) => NULL()
-  REAL(sp), POINTER   :: HRSCAL  (:,:) => NULL()
+!  REAL(sp), POINTER   :: GFED_WDL(:,:) => NULL()
+!  REAL(sp), POINTER   :: GFED_SAV(:,:) => NULL()
+!  REAL(sp), POINTER   :: GFED_PET(:,:) => NULL()
+!  REAL(sp), POINTER   :: GFED_FOR(:,:) => NULL()
+!  REAL(sp), POINTER   :: GFED_AGW(:,:) => NULL()
+!  REAL(sp), POINTER   :: GFED_DEF(:,:) => NULL()
+!  REAL(sp), POINTER   :: HUMTROP (:,:) => NULL()
+!  REAL(sp), POINTER   :: DAYSCAL (:,:) => NULL()
+!  REAL(sp), POINTER   :: HRSCAL  (:,:) => NULL()
+ 
+  REAL(hp), ALLOCATABLE, TARGET   :: GFED_WDL(:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: GFED_SAV(:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: GFED_PET(:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: GFED_FOR(:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: GFED_AGW(:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: GFED_DEF(:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: HUMTROP (:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: DAYSCAL (:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: HRSCAL  (:,:)
+
+
+
 
 CONTAINS
 !EOC
@@ -204,6 +218,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
     USE HCO_EmisList_Mod, ONLY : HCO_GetPtr
     USE HCO_FluxArr_MOD,  ONLY : HCO_EmisAdd
 !
@@ -232,7 +247,7 @@ CONTAINS
 !
     LOGICAL, SAVE       :: FIRST = .TRUE.
     INTEGER             :: N, M
-    REAL(sp), POINTER   :: TmpPtr(:,:)
+    REAL(hp), POINTER   :: TmpPtr(:,:)
     CHARACTER(LEN=63)   :: MSG
 
     REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)
@@ -252,23 +267,23 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Get pointers to data arrays 
     !-----------------------------------------------------------------
-    IF ( FIRST ) THEN
+    !IF ( FIRST ) THEN
 
        ! Get pointers to GFED3 data 
        IF ( IsGFED3 ) THEN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_WDL', GFED_WDL, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_WDL', GFED_WDL, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_SAV', GFED_SAV, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_SAV', GFED_SAV, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_PET', GFED_PET, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_PET', GFED_PET, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_FOR', GFED_FOR, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_FOR', GFED_FOR, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_AGW', GFED_AGW, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_AGW', GFED_AGW, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_DEF', GFED_DEF, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_DEF', GFED_DEF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_HUMTROP', HUMTROP, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_HUMTROP', HUMTROP, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Make sure HUMTROP does not exceed one
@@ -278,34 +293,34 @@ CONTAINS
 
        ! Get pointers to GFED4 data
        ELSEIF ( IsGFED4 ) THEN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_TEMP', GFED_WDL, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_TEMP', GFED_WDL, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_SAVA', GFED_SAV, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_SAVA', GFED_SAV, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_PEAT', GFED_PET, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_PEAT', GFED_PET, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_BORF', GFED_FOR, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_BORF', GFED_FOR, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_AGRI', GFED_AGW, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_AGRI', GFED_AGW, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_DEFO', GFED_DEF, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_DEFO', GFED_DEF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! Also point to scale factors if needed
        IF ( DoDay ) THEN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_FRAC_DAY', &
-                            DAYSCAL,   RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_FRAC_DAY', &
+                             DAYSCAL,   RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
        IF ( Do3Hr ) THEN
-          CALL HCO_GetPtr ( am_I_Root, HcoState, 'GFED_FRAC_3HOUR', &
-                            HRSCAL,    RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_FRAC_3HOUR', &
+                             HRSCAL,    RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        FIRST = .FALSE.
-    ENDIF
+    !ENDIF
 
     !-----------------------------------------------------------------
     ! Calculate emissions for defined species
@@ -362,14 +377,14 @@ CONTAINS
           ! Eventually add daily / 3-hourly scale factors. These scale
           ! factors are unitless.
           IF ( DoDay ) THEN
-             IF ( ASSOCIATED(DAYSCAL) ) THEN
+             !IF ( ASSOCIATED(DAYSCAL) ) THEN
                 TypArr = TypArr * DAYSCAL
-             ENDIF
+             !ENDIF
           ENDIF
           IF ( Do3Hr ) THEN
-             IF ( ASSOCIATED(HRSCAL) ) THEN
+             !IF ( ASSOCIATED(HRSCAL) ) THEN
                 TypArr = TypArr * HRSCAL
-             ENDIF
+             !ENDIF
           ENDIF
 
           ! Add to output array
@@ -605,6 +620,16 @@ CONTAINS
     GFED4_EMFAC = 0.0_hp
     GFED3_EMFAC = 0.0_hp
 
+    ALLOCATE( GFED_WDL(HcoState%NX,HcoState%NY) )
+    ALLOCATE( GFED_SAV(HcoState%NX,HcoState%NY) )
+    ALLOCATE( GFED_PET(HcoState%NX,HcoState%NY) )
+    ALLOCATE( GFED_FOR(HcoState%NX,HcoState%NY) )
+    ALLOCATE( GFED_AGW(HcoState%NX,HcoState%NY) )
+    ALLOCATE( GFED_DEF(HcoState%NX,HcoState%NY) )
+    ALLOCATE( HUMTROP (HcoState%NX,HcoState%NY) )
+    ALLOCATE( DAYSCAL (HcoState%NX,HcoState%NY) )
+    ALLOCATE( HRSCAL  (HcoState%NX,HcoState%NY) )
+
     ! Now get definitions for GFED_EMFAC and GFED_SPEC_NAME from an include 
     ! file.  This avoids ASCII file reads in the ESMF environment.  To update
     ! the emission factors, one just needs to modify the include file.
@@ -787,16 +812,26 @@ CONTAINS
     !=================================================================
 
     ! Free pointers
-    GFED_WDL   => NULL()
-    GFED_SAV   => NULL()
-    GFED_PET   => NULL()
-    GFED_FOR   => NULL()
-    GFED_AGW   => NULL()
-    GFED_DEF   => NULL()
-    HUMTROP    => NULL()
-    DAYSCAL    => NULL()
-    HRSCAL     => NULL()
+!    GFED_WDL   => NULL()
+!    GFED_SAV   => NULL()
+!    GFED_PET   => NULL()
+!    GFED_FOR   => NULL()
+!    GFED_AGW   => NULL()
+!    GFED_DEF   => NULL()
+!    HUMTROP    => NULL()
+!    DAYSCAL    => NULL()
+!    HRSCAL     => NULL()
     GFED_EMFAC => NULL()
+  
+    DEALLOCATE( GFED_WDL)
+    DEALLOCATE( GFED_SAV)
+    DEALLOCATE( GFED_PET)
+    DEALLOCATE( GFED_FOR)
+    DEALLOCATE( GFED_AGW)
+    DEALLOCATE( GFED_DEF)
+    DEALLOCATE( HUMTROP )
+    DEALLOCATE( DAYSCAL )
+    DEALLOCATE( HRSCAL  )
 
     ! Cleanup module arrays
     IF ( ALLOCATED( GFED3_EMFAC  ) ) DEALLOCATE( GFED3_EMFAC  )

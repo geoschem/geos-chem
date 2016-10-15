@@ -76,6 +76,7 @@
 !  07 Jan 2016 - E. Lundgren - Change dry air gas constant and molec wt to 
 !                              match main GC and update acc due to gravity and 
 !                              universal gas constant to NIST 2014
+!  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -98,23 +99,23 @@
        !---------------------------------------
  
        ! Time-invariant fields
-       REAL(sp), POINTER          :: ERD_FCT_GEO  (:,:) => NULL()
+       REAL(hp), POINTER          :: ERD_FCT_GEO  (:,:) => NULL()
 !      REAL,    POINTER          :: ERD_FCT_HYDRO(:,:,:,:)
 !      REAL,    POINTER          :: ERD_FCT_TOPO (:,:,:,:)
 !      REAL,    POINTER          :: ERD_FCT_UNITY(:,:,:,:)
 !      REAL,    POINTER          :: MBL_BSN_FCT  (:,:,:,:)
  
        ! GOCART source function (tdf, bmy, 1/25/07)
-       REAL(sp), POINTER          :: SRCE_FUNC(:,:) => NULL()
+       REAL(hp), POINTER          :: SRCE_FUNC(:,:) => NULL()
  
        ! Land surface that is not lake or wetland (by area)
-       REAL(sp), POINTER          :: LND_FRC_DRY  (:,:) => NULL()
-       REAL(sp), POINTER          :: MSS_FRC_CACO3(:,:) => NULL()
-       REAL(sp), POINTER          :: MSS_FRC_CLY  (:,:) => NULL()
-       REAL(sp), POINTER          :: MSS_FRC_SND  (:,:) => NULL()
-       REAL(sp), POINTER          :: SFC_TYP      (:,:) => NULL()
+       REAL(hp), POINTER          :: LND_FRC_DRY  (:,:) => NULL()
+       REAL(hp), POINTER          :: MSS_FRC_CACO3(:,:) => NULL()
+       REAL(hp), POINTER          :: MSS_FRC_CLY  (:,:) => NULL()
+       REAL(hp), POINTER          :: MSS_FRC_SND  (:,:) => NULL()
+       REAL(hp), POINTER          :: SFC_TYP      (:,:) => NULL()
  
-       REAL(sp), POINTER          :: VAI_DST(:,:) => NULL()
+       REAL(hp), POINTER          :: VAI_DST(:,:) => NULL()
  
        ! Time-varying surface info from CTM
 !       REAL*8,  ALLOCATABLE :: FLX_LW_DWN_SFC(:,:)
@@ -201,6 +202,7 @@
 !
 ! !USES:
 !
+      USE HCO_CALC_MOD,      ONLY : HCO_EvalFld
       USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
       USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd 
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
@@ -328,41 +330,41 @@
       ! MSS_FRC_SND    ; mass fraction of sand:        HcoState%NX HcoState%NY
       ! SFC_TYP        ; surface type:                 HcoState%NX HcoState%NY
       !=================================================================
-      IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
-         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_EF_GEO', 
+      !IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_EF_GEO', 
      &                    Inst%ERD_FCT_GEO, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_LF_DRY', 
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_LF_DRY', 
      &                    Inst%LND_FRC_DRY, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_MF_CACO3', 
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_CACO3', 
      &                    Inst%MSS_FRC_CACO3,  RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_MF_CLY', 
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_CLY', 
      &                    Inst%MSS_FRC_CLY, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_MF_SND', 
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_SND', 
      &                    Inst%MSS_FRC_SND, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_SFC_TYP', 
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_SFC_TYP', 
      &                    Inst%SFC_TYP, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_GOC_SRC', 
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_GOC_SRC', 
      &                    Inst%SRCE_FUNC, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN 
    
-         CALL HCO_GetPtr( aIR, HcoState, 'DEAD_VAI', 
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_VAI', 
      &                    Inst%VAI_DST, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
 !         FIRST = .FALSE.
-      ENDIF
+      !ENDIF
 
       !=================================================================
       ! CALL DUST MOBILIZATION SCHEME 
@@ -701,6 +703,28 @@
       !-----------------------------------------------------------------
       ! Init module arrays 
       !-----------------------------------------------------------------
+
+      ALLOCATE ( Inst%ERD_FCT_GEO   ( HcoState%NX, HcoState%NY),
+     &           Inst%SRCE_FUNC     ( HcoState%NX, HcoState%NY),
+     &           Inst%LND_FRC_DRY   ( HcoState%NX, HcoState%NY),
+     &           Inst%MSS_FRC_CACO3 ( HcoState%NX, HcoState%NY),
+     &           Inst%MSS_FRC_CLY   ( HcoState%NX, HcoState%NY),
+     &           Inst%MSS_FRC_SND   ( HcoState%NX, HcoState%NY),
+     &           Inst%SFC_TYP       ( HcoState%NX, HcoState%NY),
+     &           Inst%VAI_DST       ( HcoState%NX, HcoState%NY),
+     &           STAT=AS )
+      IF ( AS /= 0 ) THEN 
+        CALL HCO_ERROR ( HcoState%Config%Err, 'Allocation error', RC )
+        RETURN
+      ENDIF
+      Inst%ERD_FCT_GEO    = 0.0_hp
+      Inst%SRCE_FUNC      = 0.0_hp
+      Inst%LND_FRC_DRY    = 0.0_hp
+      Inst%MSS_FRC_CACO3  = 0.0_hp
+      Inst%MSS_FRC_CLY    = 0.0_hp
+      Inst%MSS_FRC_SND    = 0.0_hp
+      Inst%SFC_TYP        = 0.0_hp
+      Inst%VAI_DST        = 0.0_hp
 
 !      ! Allocate arrays
 !      ALLOCATE( Inst%FLX_LW_DWN_SFC( I, J ), STAT=AS )
@@ -5814,13 +5838,13 @@ c Fix up for negative argument, erf, etc.
       !-----------------------------------------------------------------
       ! Nullify pointers
       !-----------------------------------------------------------------
-      Inst%ERD_FCT_GEO     => NULL()
-      Inst%SRCE_FUNC       => NULL()
-      Inst%LND_FRC_DRY     => NULL()
-      Inst%MSS_FRC_CACO3   => NULL()
-      Inst%MSS_FRC_SND     => NULL()
-      Inst%SFC_TYP         => NULL()
-      Inst%VAI_DST         => NULL()
+      IF(ASSOCIATED( Inst%ERD_FCT_GEO  )) DEALLOCATE(Inst%ERD_FCT_GEO  )
+      IF(ASSOCIATED( Inst%SRCE_FUNC    )) DEALLOCATE(Inst%SRCE_FUNC    )
+      IF(ASSOCIATED( Inst%LND_FRC_DRY  )) DEALLOCATE(Inst%LND_FRC_DRY  )
+      IF(ASSOCIATED( Inst%MSS_FRC_CACO3)) DEALLOCATE(Inst%MSS_FRC_CACO3)
+      IF(ASSOCIATED( Inst%MSS_FRC_SND  )) DEALLOCATE(Inst%MSS_FRC_SND  )
+      IF(ASSOCIATED( Inst%SFC_TYP      )) DEALLOCATE(Inst%SFC_TYP      )
+      IF(ASSOCIATED( Inst%VAI_DST      )) DEALLOCATE(Inst%VAI_DST      )
 
       !-----------------------------------------------------------------
       ! Cleanup module arrays 

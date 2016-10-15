@@ -104,6 +104,7 @@ MODULE HCOX_SoilNOx_Mod
 !  28 Jul 2014 - C. Keller       - Now allow DRYCOEFF to be read through 
 !                                  configuration file (as setting)
 !  11 Dec 2014 - M. Yannetti     - Changed REAL*8 to REAL(hp)
+!  14 Oct 2016 - C. Keller       - Now use HCO_EvalFld instead of HCO_GetPtr.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,7 +113,7 @@ MODULE HCOX_SoilNOx_Mod
 !
   ! Derived type to hold MODIS land types
   TYPE MODL
-     REAL(sp), POINTER             :: VAL              (:,:)
+     REAL(hp), POINTER             :: VAL              (:,:)
   ENDTYPE MODL
 
   TYPE :: MyInst
@@ -139,11 +140,11 @@ MODULE HCOX_SoilNOx_Mod
      TYPE(MODL), POINTER            :: LANDTYPE         (:    ) => NULL()
   
      ! Soil fertilizer (kg/m3) 
-     REAL(sp), POINTER              :: SOILFERT         (:,:  ) => NULL()
+     REAL(hp), POINTER              :: SOILFERT         (:,:  ) => NULL()
 
      ! Fraction of arid and non-arid land
-     REAL(sp), POINTER              :: CLIMARID         (:,:  ) => NULL()
-     REAL(sp), POINTER              :: CLIMNARID        (:,:  ) => NULL()
+     REAL(hp), POINTER              :: CLIMARID         (:,:  ) => NULL()
+     REAL(hp), POINTER              :: CLIMNARID        (:,:  ) => NULL()
   
      ! DRYCOEFF (if read from settings in configuration file)
      REAL(hp), POINTER              :: DRYCOEFF(:)
@@ -276,6 +277,7 @@ CONTAINS
     USE HCO_CLOCK_MOD,      ONLY : HcoClock_Rewind
     USE HCO_FLuxArr_Mod,    ONLY : HCO_EmisAdd
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt
     USE HCO_ExtList_Mod,    ONLY : HCO_GetOpt
     USE HCO_Restart_Mod,    ONLY : HCO_RestartGet
@@ -348,62 +350,63 @@ CONTAINS
     !-----------------------------------------------------------------
     FIRST = HcoClock_First ( HcoState%Clock, .TRUE. )
 
-    IF ( FIRST ) THEN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK1',  Inst%LANDTYPE(1)%VAL,  RC )
+    !IF ( FIRST ) THEN
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK1',  Inst%LANDTYPE(1)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK2',  Inst%LANDTYPE(2)%VAL,  RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK2',  Inst%LANDTYPE(2)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK3',  Inst%LANDTYPE(3)%VAL,  RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK3',  Inst%LANDTYPE(3)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK4',  Inst%LANDTYPE(4)%VAL,  RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK4',  Inst%LANDTYPE(4)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK5',  Inst%LANDTYPE(5)%VAL,  RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK5',  Inst%LANDTYPE(5)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK6',  Inst%LANDTYPE(6)%VAL,  RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK6',  Inst%LANDTYPE(6)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK7',  Inst%LANDTYPE(7)%VAL,  RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK7',  Inst%LANDTYPE(7)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK8',  Inst%LANDTYPE(8)%VAL,  RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK8',  Inst%LANDTYPE(8)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK9',  Inst%LANDTYPE(9)%VAL,  RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK9',  Inst%LANDTYPE(9)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK10', Inst%LANDTYPE(10)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK10', Inst%LANDTYPE(10)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK11', Inst%LANDTYPE(11)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK11', Inst%LANDTYPE(11)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK12', Inst%LANDTYPE(12)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK12', Inst%LANDTYPE(12)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK13', Inst%LANDTYPE(13)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK13', Inst%LANDTYPE(13)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK14', Inst%LANDTYPE(14)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK14', Inst%LANDTYPE(14)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK15', Inst%LANDTYPE(15)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK15', Inst%LANDTYPE(15)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK16', Inst%LANDTYPE(16)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK16', Inst%LANDTYPE(16)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK17', Inst%LANDTYPE(17)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK17', Inst%LANDTYPE(17)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK18', Inst%LANDTYPE(18)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK18', Inst%LANDTYPE(18)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK19', Inst%LANDTYPE(19)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK19', Inst%LANDTYPE(19)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK20', Inst%LANDTYPE(20)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK20', Inst%LANDTYPE(20)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK21', Inst%LANDTYPE(21)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK21', Inst%LANDTYPE(21)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK22', Inst%LANDTYPE(22)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK22', Inst%LANDTYPE(22)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK23', Inst%LANDTYPE(23)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK23', Inst%LANDTYPE(23)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_LANDK24', Inst%LANDTYPE(24)%VAL, RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK24', Inst%LANDTYPE(24)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_FERT',    Inst%SOILFERT,         RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_FERT',    Inst%SOILFERT,         RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_ARID',    Inst%CLIMARID,         RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_ARID',    Inst%CLIMARID,         RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr( aIR, HcoState, 'SOILNOX_NONARID', Inst%CLIMNARID,        RC )
+       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_NONARID', Inst%CLIMNARID,        RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
+    IF ( FIRST ) THEN
        ! Check if ExtState variables DRYCOEFF is defined. Otherwise, try to
        ! read it from settings.
        IF ( .NOT. ASSOCIATED(ExtState%DRYCOEFF) ) THEN
@@ -786,8 +789,24 @@ CONTAINS
        RETURN
     ENDIF
     DO II = 1,NBIOM
-       Inst%LANDTYPE(NBIOM)%VAL => NULL()
+       ALLOCATE( Inst%LANDTYPE(II)%VAL( I, J ), STAT=AS )
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, 'LANDTYPE array', RC )
+          RETURN
+       ENDIF
+       Inst%LANDTYPE(II)%Val = 0.0_hp
     ENDDO
+
+    ALLOCATE ( Inst%SOILFERT  ( I, J ), &
+               Inst%CLIMARID  ( I, J ), &
+               Inst%CLIMNARID ( I, J ), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR( HcoState%Config%Err, 'SOILFERT', RC )
+       RETURN
+    ENDIF
+    Inst%SOILFERT  = 0.0_hp
+    Inst%CLIMARID  = 0.0_hp
+    Inst%CLIMNARID = 0.0_hp
 
     ! Zero arrays
     Inst%DRYPERIOD     = 0.0_sp
@@ -802,9 +821,9 @@ CONTAINS
 #endif
 
     ! Initialize pointers 
-    Inst%CLIMARID  => NULL()
-    Inst%CLIMNARID => NULL()
-    Inst%SOILFERT  => NULL()
+    !Inst%CLIMARID  => NULL()
+    !Inst%CLIMNARID => NULL()
+    !Inst%SOILFERT  => NULL()
 
     ! ---------------------------------------------------------------------- 
     ! Set diagnostics
@@ -2335,11 +2354,12 @@ CONTAINS
        ! Deallocate LANDTYPE vector 
        IF ( ASSOCIATED(Inst%LANDTYPE) ) THEN
           DO I = 1,NBIOM
-             Inst%LANDTYPE(I)%VAL => NULL()
+             IF ( ASSOCIATED(Inst%LANDTYPE(I)%VAL) ) &
+                DEALLOCATE(Inst%LANDTYPE(I)%Val)
           ENDDO
           DEALLOCATE ( Inst%LANDTYPE )
        ENDIF
-  
+ 
        ! Eventually deallocate DRYCOEFF. Make sure ExtState DRYCOEFF pointer is
        ! not dangling! 
        IF ( ASSOCIATED ( Inst%DRYCOEFF      ) ) THEN
@@ -2348,9 +2368,9 @@ CONTAINS
        ENDIF
 
        ! Free pointers 
-       Inst%CLIMARID  => NULL()
-       Inst%CLIMNARID => NULL()
-       Inst%SOILFERT  => NULL()
+       IF ( ASSOCIATED( Inst%CLIMARID  ) ) DEALLOCATE ( Inst%CLIMARID  ) 
+       IF ( ASSOCIATED( Inst%CLIMNARID ) ) DEALLOCATE ( Inst%CLIMNARID ) 
+       IF ( ASSOCIATED( Inst%SOILFERT  ) ) DEALLOCATE ( Inst%SOILFERT  ) 
 
        ! ----------------------------------------------------------------
        ! Pop off instance from list

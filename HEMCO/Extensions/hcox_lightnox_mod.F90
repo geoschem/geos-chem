@@ -137,6 +137,7 @@ MODULE HCOX_LightNOx_Mod
 !                              to reduce compilation time.
 !  31 Jul 2015 - C. Keller   - Added option to define scalar/gridded scale 
 !                              factors via HEMCO configuration file. 
+!  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -178,7 +179,7 @@ MODULE HCOX_LightNOx_Mod
    REAL(hp), POINTER             :: SLBASE(:,:,:)
 
    ! OTD scale factors read through configuration file
-   REAL(sp), POINTER :: OTDLIS(:,:) => NULL()
+   REAL(hp), POINTER :: OTDLIS(:,:) => NULL()
 
    ! Overall scale factor to be applied to lightning NOx emissions. Must
    ! be defined in the HEMCO configuration file as extension attribute 
@@ -321,6 +322,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
     USE HCO_EmisList_Mod, ONLY : HCO_GetPtr      
     USE HCO_GeoTools_Mod, ONLY : HCO_LANDTYPE
     USE HCO_Clock_Mod,    ONLY : HcoClock_Get
@@ -421,11 +423,11 @@ CONTAINS
                              '', 0, Inst%DoDiagn, TmpCnt )
        TmpCnt => NULL()
 
-       ! Eventually get OTD-LIS local redistribution factors from HEMCO.
-       IF ( Inst%LOTDLOC ) THEN
-          CALL HCO_GetPtr( am_I_Root, HcoState, 'LIGHTNOX_OTDLIS', Inst%OTDLIS, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF
+!       ! Eventually get OTD-LIS local redistribution factors from HEMCO.
+!       IF ( Inst%LOTDLOC ) THEN
+!          CALL HCO_GetPtr( am_I_Root, HcoState, 'LIGHTNOX_OTDLIS', Inst%OTDLIS, RC )
+!          IF ( RC /= HCO_SUCCESS ) RETURN
+!       ENDIF
 
        ! Get scale factor. 
        ! - Try to read from configuration file first.
@@ -439,6 +441,12 @@ CONTAINS
           CALL GET_OTD_LIS_SCALE( am_I_Root, HcoState, Inst%OTD_LIS_SCALE, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
+    ENDIF
+
+    ! Eventually get OTD-LIS local redistribution factors from HEMCO.
+    IF ( Inst%LOTDLOC ) THEN
+       CALL HCO_EvalFld( am_I_Root, HcoState, 'LIGHTNOX_OTDLIS', Inst%OTDLIS, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
     ! Reset arrays 
@@ -2083,6 +2091,16 @@ CONTAINS
     ENDIF
     Inst%SLBASE = 0d0
 
+    ! Allocate SLBASE (holds NO emissins from lightning)
+    IF ( Inst%LOTDLOC ) THEN 
+       ALLOCATE( Inst%OTDLIS(HcoState%NX,HcoState%NY), STAT=AS )
+       IF( AS /= 0 ) THEN
+          CALL HCO_ERROR ( HcoState%Config%Err, 'OTDLIS', RC )
+          RETURN
+       ENDIF
+       Inst%OTDLIS = 0d0
+    ENDIF
+
     !=======================================================================
     ! Obtain lightning CDF's from Ott et al [JGR, 2010]. (ltm, 1/25/11)
     !=======================================================================
@@ -2375,7 +2393,7 @@ CONTAINS
     ! Instance-specific deallocation
     IF ( ASSOCIATED(Inst) ) THEN 
        ! Free pointer
-       Inst%OTDLIS => NULL()
+       IF ( ASSOCIATED( Inst%OTDLIS        ) ) DEALLOCATE ( Inst%OTDLIS        )
 
        IF ( ASSOCIATED( Inst%PROFILE       ) ) DEALLOCATE ( Inst%PROFILE       )
        IF ( ASSOCIATED( Inst%SLBASE        ) ) DEALLOCATE ( Inst%SLBASE        )

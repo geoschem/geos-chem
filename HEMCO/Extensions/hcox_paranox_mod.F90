@@ -122,6 +122,7 @@ MODULE HCOX_ParaNOx_MOD
 !                              references to J(O1D). In FlexChem, adjustment of
 !                              photolysis rates are now done in routine
 !                              PHOTRATE_ADJ (found in GeosCore/fast_jx_mod.F).
+!  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

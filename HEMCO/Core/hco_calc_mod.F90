@@ -781,6 +781,7 @@ CONTAINS
     INTEGER                 :: I, J, L, N
     INTEGER                 :: LowLL, UppLL, ScalLL, TmpLL
     INTEGER                 :: ERROR
+    INTEGER                 :: TotLL, nnLL
     CHARACTER(LEN=255)      :: MSG, LOC
     LOGICAL                 :: NegScalExist
     LOGICAL                 :: MaskFractions
@@ -824,6 +825,10 @@ CONTAINS
     ! Initialize ERROR. Will be set to 1 if error occurs below
     ERROR = 0
 
+    ! Initialize upper level counter
+    totLL = 0
+    nnLL  = 0
+
     ! Loop over all latitudes and longitudes
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT( SHARED )                                                &
@@ -847,6 +852,9 @@ CONTAINS
           ERROR = 1 ! Will cause error
           EXIT
        ENDIF 
+
+       totLL = totLL + UppLL
+       nnLL  = nnLL + 1
 
        ! Loop over all levels
        DO L = LowLL, UppLL
@@ -1185,7 +1193,10 @@ CONTAINS
     ENDIF ! N > 0 
 
     ! Update optional variables
-    IF ( PRESENT(UseLL) ) UseLL = UppLL
+    IF ( PRESENT(UseLL) ) THEN
+       UseLL = 1
+       IF ( nnLL > 0 ) UseLL = NINT(REAL(TotLL,4)/REAL(nnLL,4))
+    ENDIF
 
     ! Weight output emissions by mask
     OUTARR_3D = OUTARR_3D * MASK
@@ -1792,7 +1803,7 @@ CONTAINS
 
     ! For error handling & verbose mode
     CHARACTER(LEN=255)  :: MSG
-    CHARACTER(LEN=255)  :: LOC = "HCO_EvalFld_3d (HCO_calc_mod.F90)"
+    CHARACTER(LEN=255)  :: LOC = "HCO_EvalFld_2d (HCO_calc_mod.F90)"
 
     !=================================================================
     ! HCO_EvalFld_2D begins here!
@@ -1841,7 +1852,7 @@ CONTAINS
 
     ! Calculate emissions for base container
     CALL GET_CURRENT_EMISSIONS( am_I_Root,  HcoState, Lct%Dct, & 
-                                nI, nJ, nL, Arr3D,    Mask, RC, UseLL=UseLL )
+                                nI, nJ, nL, Arr3D, Mask, RC, UseLL=UseLL )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! For 2D data, we expect UseLL to be 1
