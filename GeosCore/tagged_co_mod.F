@@ -364,7 +364,7 @@
       FMOL_CO   =  State_Chm%SpcData(1)%Info%MW_g * 1.0e-3_fp
 
       ! Factor to convert OH from kg/m3 (from HEMCO) to molec/cm3 
-      kgm3_to_mcm3OH = ( AVO / 17.0_fp ) * 1.0e-6_fp
+      kgm3_to_mcm3OH = ( AVO / 17.0e-3_fp ) * 1.0e-6_fp
 
       ! Compute diurnal cycle for OH every day (check for new day inside
       ! subroutine) - jaf 7/10/14
