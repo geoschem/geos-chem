@@ -470,7 +470,6 @@
       USE DAO_MOD,            ONLY : IS_LAND
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE MODIS_LAI_MOD,      ONLY : ISOLAI  => GC_LAI
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : GET_TS_EMIS
 
@@ -620,7 +619,7 @@
 
             ! attenuate solar radiation based on function of leaf area index
             ! Jacob and Wofsy 1990 equations 8 & 9
-            TAUZ = ISOLAI(I,J) * 0.5e+0_fp
+            TAUZ = State_Met%MODISLAI(I,J) * 0.5e+0_fp
 
             ! For very low and below-horizon solar zenith angles, use
             ! same attenuation as for SZA=85 degrees

@@ -426,7 +426,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,    GET_PBL_TOP_m
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN,  GET_TS_CHEM 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
@@ -1139,7 +1138,7 @@
                IF ( K == 1 ) THEN
               
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( ISOLAI(I,J) * GOOD(I) ) 
+     &                     ( State_Met%MODISLAI(I,J) * GOOD(I) ) 
                ENDIF
 
 

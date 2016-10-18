@@ -208,7 +208,6 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1473,7 +1472,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = ISOLAI(I,J) 
+               Q(X,Y,1) = State_Met%MODISLAI(I,J) 
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO

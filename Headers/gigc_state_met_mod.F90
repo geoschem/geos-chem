@@ -42,7 +42,7 @@ MODULE GIGC_State_Met_Mod
      !----------------------------------------------------------------------
      ! Surface fields
      !----------------------------------------------------------------------
-     REAL(fp), POINTER :: ALBD      (:,:  ) ! Visible surface albedo [1]
+     REAL(fp), POINTER :: ALBD      (:,:  ) ! Visible surface albedo [1
      REAL(fp), POINTER :: CLDFRC    (:,:  ) ! Column cloud fraction [1]
      INTEGER,  POINTER :: CLDTOPS   (:,:  ) ! Max cloud top height [levels]
      REAL(fp), POINTER :: EFLUX     (:,:  ) ! Latent heat flux [W/m2]
@@ -58,7 +58,7 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: GWETROOT  (:,:  ) ! Root soil wetness [1]
      REAL(fp), POINTER :: GWETTOP   (:,:  ) ! Top soil moisture [1]
      REAL(fp), POINTER :: HFLUX     (:,:  ) ! Sensible heat flux [W/m2]
-     REAL(fp), POINTER :: LAI       (:,:  ) ! Leaf area index [m2/m2]
+     REAL(fp), POINTER :: LAI       (:,:  ) ! Leaf area index [m2/m2] (online)
      REAL(fp), POINTER :: ITY       (:,:  ) ! Land surface type index
      REAL(fp), POINTER :: LWI       (:,:  ) ! Land/water indices [1]
      REAL(fp), POINTER :: LWI_GISS  (:,:  ) ! Land fraction [1]
@@ -217,16 +217,18 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: SPHU_PREV (:,:,:) ! Previous State_Met%SPHU
 
      !----------------------------------------------------------------------
-     ! Land type and leaf area index (LAI) fields for dry deposition
+     ! Offline land type, leaf area index, and chlorophyll fields
      !----------------------------------------------------------------------
      INTEGER,  POINTER :: IREG      (:,:  ) ! # of landtypes in grid box (I,J) 
      INTEGER,  POINTER :: ILAND     (:,:,:) ! Land type at (I,J); 1..IREG(I,J)
      INTEGER,  POINTER :: IUSE      (:,:,:) ! Fraction (per mil) of grid box
-                                            !  (I,J) occupied by each land type
-     REAL(fp), POINTER :: XLAI      (:,:,:) ! LAI per land type, this month
-     REAL(fp), POINTER :: XLAI2     (:,:,:) ! LAI per land type, next month
-     REAL(fp), POINTER :: XCHLR     (:,:,:) ! CHLR per land type, this month
-     REAL(fp), POINTER :: XCHLR2    (:,:,:) ! CHLR per land type, next month
+                                            ! (I,J) occupied by each land type
+     REAL(fp), POINTER :: MODISLAI  (:,:  ) ! Daily LAI computed from monthly
+                                            ! offline MODIS values [m2/m2]
+     REAL(fp), POINTER :: MODISCHLR (:,:  ) ! Daily chlorophyll-a computed from
+                                            ! offline MODIS monthly values
+     REAL(fp), POINTER :: XLAI      (:,:,:) ! MODIS LAI per land type, this mo
+     REAL(fp), POINTER :: XCHLR     (:,:,:) ! MODIS CHLR per land type, this mo
 
 ! TEMPORARY TO TEST GCHP DRYDEP UPDATES (ewl, 10/12/16)
      REAL(fp), POINTER :: OLSON01   (:,:)   ! Fractional coverage for type 1
@@ -334,6 +336,8 @@ MODULE GIGC_State_Met_Mod
 !  28 Oct 2015 - E. Lundgren - Add previous delta-P and specific humidity for
 !                              tracer mass conservation in mixing ratio update
 !  17 Mar 2016 - M. Sulprizio- Remove OPTDEP. Instead, we now solely use OPTD.
+!  18 Oct 2016 - E. Lundgren - Remove XLAI2, CHLR2; add MODISLAI, MODISCHLR to
+!                              replace modis_lai_mod-level GC_LAI and GC_CHLR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1015,33 +1019,33 @@ CONTAINS
     !=======================================================================
     ! Allocate land type and leaf area index fields for dry deposition
     !=======================================================================
-    ALLOCATE( State_Met%IREG      ( IM, JM        ), STAT=RC )
+    ALLOCATE( State_Met%IREG       ( IM, JM        ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%IREG     = 0
+    State_Met%IREG = 0
 
-    ALLOCATE( State_Met%ILAND     ( IM, JM, NTYPE ), STAT=RC )
+    ALLOCATE( State_Met%ILAND      ( IM, JM, NTYPE ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%ILAND    = 0
+    State_Met%ILAND = 0
 
-    ALLOCATE( State_Met%IUSE      ( IM, JM, NTYPE ), STAT=RC )
+    ALLOCATE( State_Met%IUSE       ( IM, JM, NTYPE ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%IUSE     = 0
+    State_Met%IUSE = 0
 
-    ALLOCATE( State_Met%XLAI      ( IM, JM, NTYPE ), STAT=RC )
+    ALLOCATE( State_Met%XLAI       ( IM, JM, NTYPE ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%XLAI     = 0.0_fp
+    State_Met%XLAI = 0.0_fp
 
-    ALLOCATE( State_Met%XLAI2     ( IM, JM, NTYPE ), STAT=RC )        
+    ALLOCATE( State_Met%MODISLAI   ( IM, JM        ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%XLAI2    = 0.0_fp
+    State_Met%MODISLAI = 0.0_fp
 
     ALLOCATE( State_Met%XCHLR      ( IM, JM, NTYPE ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%XCHLR     = 0.0_fp
+    State_Met%XCHLR = 0.0_fp
 
-    ALLOCATE( State_Met%XCHLR2     ( IM, JM, NTYPE ), STAT=RC )        
+    ALLOCATE( State_Met%MODISCHLR  ( IM, JM        ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%XCHLR2    = 0.0_fp
+    State_Met%MODISCHLR = 0.0_fp
 
 ! TEMPORARY - brute force implementation of olson for gchp
 !             Remove from state_met in the future!!! (ewl, 10/12/16)
@@ -1582,9 +1586,9 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%ILAND      )) DEALLOCATE( State_Met%ILAND      )
     IF ( ASSOCIATED( State_Met%IUSE       )) DEALLOCATE( State_Met%IUSE       )
     IF ( ASSOCIATED( State_Met%XLAI       )) DEALLOCATE( State_Met%XLAI       )
-    IF ( ASSOCIATED( State_Met%XLAI2      )) DEALLOCATE( State_Met%XLAI2      )
+    IF ( ASSOCIATED( State_Met%MODISLAI   )) DEALLOCATE( State_Met%MODISLAI   )
     IF ( ASSOCIATED( State_Met%XCHLR      )) DEALLOCATE( State_Met%XCHLR      )
-    IF ( ASSOCIATED( State_Met%XCHLR2     )) DEALLOCATE( State_Met%XCHLR2     )
+    IF ( ASSOCIATED( State_Met%MODISCHLR  )) DEALLOCATE( State_Met%MODISCHLR  )
 
 ! TEMPORARY (ewl, 10/12/16)
     IF ( ASSOCIATED( State_Met%OLSON01    )) DEALLOCATE( State_Met%OLSON01    )

@@ -1034,11 +1034,6 @@ CONTAINS
     ! For POPs
     USE TRACERID_MOD,          ONLY : IDTPOPG
 
-#if !defined(ESMF_)
-    USE MODIS_LAI_MOD,         ONLY : GC_LAI
-#endif
-    USE MODIS_LAI_MOD,         ONLY : GC_CHLR
-
 #if defined(ESMF_)
     USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
 #endif
@@ -1240,12 +1235,12 @@ CONTAINS
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #else
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
-              'LAI', HCRC,      FIRST,    GC_LAI         )
+              'LAI', HCRC,      FIRST,    State_Met%MODISLAI )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CHLR, &
-             'CHLR', HCRC,      FIRST,   GC_CHLR          )
+             'CHLR', HCRC,      FIRST,    State_Met%MODISCHLR )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
 

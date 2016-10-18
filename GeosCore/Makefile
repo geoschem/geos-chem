@@ -554,8 +554,8 @@ diag48_mod.o                : diag48_mod.F                                   \
                               tracer_mod.o
 
 diag49_mod.o                : diag49_mod.F                                   \
-                              modis_lai_mod.o         pbl_mix_mod.o          \
-                              tracer_mod.o            tracerid_mod.o
+                              pbl_mix_mod.o           tracer_mod.o           \
+                              tracerid_mod.o
 
 diag50_mod.o                : diag50_mod.F                                   \
                               chemgrid_mod.o          comode_mod.o           \
@@ -563,14 +563,12 @@ diag50_mod.o                : diag50_mod.F                                   \
                               tracerid_mod.o
 
 diag51_mod.o                : diag51_mod.F                                   \
-                              chemgrid_mod.o          modis_lai_mod.o        \
-                              pbl_mix_mod.o           tracer_mod.o           \
-                              tracerid_mod.o
+                              chemgrid_mod.o          pbl_mix_mod.o          \
+                              tracer_mod.o            tracerid_mod.o
 
 diag51b_mod.o               : diag51b_mod.F                                  \
-                              chemgrid_mod.o          modis_lai_mod.o        \
-                              pbl_mix_mod.o           tracer_mod.o           \
-                              tracerid_mod.o
+                              chemgrid_mod.o          pbl_mix_mod.o          \
+                              tracer_mod.o            tracerid_mod.o
 
 diag53_mod.o                : diag53_mod.F
 
@@ -690,9 +688,8 @@ hcoi_gc_diagn_mod.o         : hcoi_gc_diagn_mod.F90                          \
 
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               tracerid_mod.o          get_ndep_mod.o         \
-                              drydep_mod.o            modis_lai_mod.o        \
-                              fast_jx_mod.o           hcoi_gc_diagn_mod.o    \
-                              tomas_mod.o
+                              drydep_mod.o            fast_jx_mod.o          \
+                              hcoi_gc_diagn_mod.o     tomas_mod.o
 
 i6_read_mod.o               : i6_read_mod.F                                  \
                               diag_mod.o              
@@ -737,8 +734,7 @@ ksparse.o                   : ksparse.F
 
 land_mercury_mod.o          : land_mercury_mod.F                             \
                               dao_mod.o               tracerid_mod.o         \
-                              depo_mercury_mod.o      modis_lai_mod.o        \
-                              hcoi_gc_main_mod.o
+                              depo_mercury_mod.o      hcoi_gc_main_mod.o
 
 linoz_mod.o                 : linoz_mod.F                                    \
                               chemgrid_mod.o          tracerid_mod.o
