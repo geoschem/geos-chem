@@ -27,7 +27,6 @@ MODULE Modis_Lai_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  !PUBLIC  :: Compute_Modis_Lai_GCHP
   PUBLIC  :: Init_Modis_Lai
   PUBLIC  :: Read_Modis_Lai
   PUBLIC  :: Compute_Modis_Lai
@@ -37,8 +36,12 @@ MODULE Modis_Lai_Mod
 ! !PRIVATE MEMBER FUNCTIONS:
 !
 !  PUBLIC  :: Compute_Modis_GCHP
+!#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+  PUBLIC  :: Compute_Modis_GCHP
+!#else
   PUBLIC  :: Read_Modis
   PUBLIC  :: Compute_Modis
+!#endif
   PRIVATE :: RoundOff
 !
 ! !REMARKS:
@@ -115,359 +118,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_modis_lai
-!
-! !DESCRIPTION: Subroutine READ\_MODIS\_LAI is the wrapper routine to read 
-!  the MODIS LAI from disk in netCDF format for the current month, and for 
-!  next month. If enabled, MODIS CHLR is also read in the same way as LAI.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Read_Modis_Lai( am_I_Root, Input_Opt, yyyy, mm, wasModisRead, RC )
-!
-! !USES:
-!
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput 
-   
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
-    INTEGER,        INTENT(IN)  :: yyyy          ! Year for LAI data
-    INTEGER,        INTENT(IN)  :: mm            ! Month for LAI data
-!
-! !OUTPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(OUT) :: wasModisRead  ! Was LAI data just read in?
-    INTEGER,        INTENT(OUT) :: RC            ! Success or failure?   
-!
-! !REVISION HISTORY:
-!  03 Apr 2012 - R. Yantosca - Initial version
-!  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
-!  05 Jun 2013 - R. Yantosca - Bug fix, use "mm" for current month index
-!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  09 Oct 2014 - C. Keller   - MODIS_LAI_PM not needed anymore.
-!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
-!  07 Jul 2015 - E. Lundgren - Generalized to read either LAI or CHLR
-!  08 Jul 2015 - E. Lundgren - Now read LAI and CHLR data. Abstracted 
-!                              read code to new routine Read_Modis.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    CHARACTER(LEN=255)   :: nc_tmpl         ! netCDF file name template 
-    LOGICAL              :: ReadLAI         ! T = read LAI, F = read CHLR
-
-    ! Assume success
-    RC = GIGC_SUCCESS
-
-    ! Set filename template for LAI
-    IF ( Input_Opt%USE_OLSON_2001 ) THEN
-       nc_tmpl = 'For_Olson_2001/MODIS.LAIv.V5.generic.025x025.YYYY.nc'
-    ELSE
-       nc_tmpl = 'For_Olson_1992/MODIS.LAIv.V5.generic.05x05.YYYY.nc'
-    ENDIF
-
-    ! Always read LAI file
-    ReadLAI = .true.
-    CALL Read_Modis( am_I_Root, ReadLAI, nc_tmpl,      Input_Opt,  &
-                     yyyy,      mm,      wasModisRead, RC         )
-
-    ! Read CHLR only if organic marine aerosols tracers are turned on
-    IF ( Input_Opt%LMPOA ) THEN
-
-       ! Set filename template for CHLR
-       IF ( Input_Opt%USE_OLSON_2001 ) THEN
-          nc_tmpl = 'For_Olson_2001/MODIS.CHLRv.V5.generic.025x025.YYYY.nc'
-       ELSE
-          nc_tmpl = 'For_Olson_1992/MODIS.CHLRv.V5.generic.05x05.YYYY.nc'  
-       ENDIF
-
-       ! Read CHLR file
-       ReadLAI = .false.
-       CALL Read_Modis(  am_I_Root, ReadLAI, nc_tmpl,      Input_Opt,  &
-                         yyyy,      mm,      wasModisRead, RC         )
-    ENDIF
-
-  END SUBROUTINE Read_Modis_Lai
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_modis
-!
-! !DESCRIPTION: Subroutine READ\_MODIS reads the MODIS LAI or CHLR from disk
-!  (in netCDF format) for the current month, and for next month.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Read_Modis( am_I_Root, ReadLAI, nc_tmpl,      Input_Opt,  &
-                         yyyy,      mm,      wasModisRead, RC         )
-!
-! !USES:
-!
-    USE m_netcdf_io_open                         ! netCDF file open
-    USE m_netcdf_io_read                         ! netCDF read
-    USE m_netcdf_io_readattr                     ! netCDF attribute reads
-    USE m_netcdf_io_close                        ! netCDF file close
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput 
-   
-#   include "netcdf.inc"                         ! netCDF settings & parameters
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,            INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
-    LOGICAL,            INTENT(IN)  :: ReadLAI   ! T for LAI, F to read CHLR
-    TYPE(OptInput),     INTENT(IN)  :: Input_Opt ! Input Options object
-    CHARACTER(LEN=255), INTENT(IN)  :: nc_tmpl
-    INTEGER,            INTENT(IN)  :: yyyy      ! Year for LAI data
-    INTEGER,            INTENT(IN)  :: mm        ! Month for LAI data
-!
-! !OUTPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(OUT) :: wasModisRead  ! Was data just read in?
-    INTEGER,        INTENT(OUT) :: RC            ! Success or failure?   
-!
-! !REVISION HISTORY:
-!  07 Jul 2015 - E. Lundgren - Initial version, containing legacy Read_Modis_Lai
-!                              code plus modifications to read CHLR
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER              :: fId                ! netCDF file ID
-    INTEGER              :: Pyyyy              ! Previous LAI year
-    INTEGER              :: Nyyyy              ! Next     LAI year
-    INTEGER              :: Pmm                ! Previous LAI month
-    INTEGER              :: Nmm                ! Next     LAI month
-    INTEGER              :: yyyymmdd           ! Date variable
-    INTEGER              :: MODIS_END          ! Last year or MODIS data
-                         
-    ! Character strings  
-    CHARACTER(LEN=255)   :: nc_file            ! netCDF file name
-    CHARACTER(LEN=255)   :: nc_dir             ! netCDF directory name
-    CHARACTER(LEN=255)   :: nc_path            ! netCDF path name
-    CHARACTER(LEN=255)   :: v_name             ! netCDF variable name 
-    CHARACTER(LEN=255)   :: a_name             ! netCDF attribute name
-    CHARACTER(LEN=255)   :: a_val              ! netCDF attribute value
-
-    ! Arrays for netCDF  start and count values
-    INTEGER              :: st1d(1), ct1d(1)   ! For 1D arrays    
-    INTEGER              :: st3d(3), ct3d(3)   ! For 3D arrays 
-
-    ! SAVED variable
-    INTEGER, SAVE        :: mmLastLAI  = -1
-    INTEGER, SAVE        :: mmLastCHLR = -1
-
-    ! Pointers
-    REAL*4, POINTER      :: MODIS_PTR_CM(:,:) => NULL()
-    REAL*4, POINTER      :: MODIS_PTR_NM(:,:) => NULL()
-
-    !======================================================================
-    ! Test if it is time to read data
-    !======================================================================
-
-    ! Assume success
-    RC = GIGC_SUCCESS
-
-    ! Assign pointers etc. based on whether reading LAI or CHLR
-    IF ( ReadLAI ) THEN
-       MODIS_PTR_CM => MODIS_LAI_CM
-       MODIS_PTR_NM => MODIS_LAI_NM
-       MODIS_END    =  LAI_END
-    ELSE
-       MODIS_PTR_CM => MODIS_CHLR_CM
-       MODIS_PTR_NM => MODIS_CHLR_NM
-       MODIS_END    =  CHLR_END
-    ENDIF
-
-    ! If we enter a new month, then read MODIS from disk
-    ! Otherwise, just exit, since it is not time to read data yet
-    IF ( ReadLAI .and. mm /= mmLastLAI ) THEN
-       mmLastLAI    = mm
-       wasModisRead = .TRUE.
-    ELSEIF ( ( .not. ReadLAI ) .and. mm /= mmLastCHLR ) THEN
-       mmLastCHLR   = mm
-       wasModisRead = .TRUE.
-    ELSE
-       wasModisRead = .FALSE.
-       RETURN
-    ENDIF
-
-    ! Save for next iteration
-
-    !======================================================================
-    ! Initialize variables
-    !======================================================================
-
-    ! Construct file path from directory & file name (use LAI directory)
-    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'MODIS_LAI_201204/'
-
-    !======================================================================
-    ! Read current month's LAI
-    !======================================================================
-
-    ! Test if yyyy is w/in the valid range of MODIS data
-    IF ( yyyy >= MODIS_START .and. yyyy <= MODIS_END ) THEN
-
-       ! Here, yyyy lies w/in the MODIS data timespan
-       nc_file  = nc_tmpl
-       yyyymmdd = yyyy*10000 + mm*100 + 01
-       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
-
-    ELSE
-
-       ! Here, yyyy lies outside the MODIS data timespan,
-       ! so we have to read data from a different year.
-       IF ( Input_Opt%USE_OLSON_2001 ) THEN
-          IF ( yyyy > MODIS_END ) THEN                    !%%% OLSON 2001 %%%
-             yyyymmdd = MODIS_END*10000   + mm*100 + 01   ! Use final year
-          ELSE IF ( yyyy < MODIS_START ) THEN             !
-             yyyymmdd = MODIS_START*10000 + mm*100 + 01   ! Use 1st year
-          ENDIF
-       ELSE                                               !%%% OLSON 1992 %%%
-          yyyymmdd = 19850001 + mm*100                    ! Use climatology
-       ENDIF
-
-       ! Expand date tokens in filename
-       nc_file  = nc_tmpl
-       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
-
-    ENDIF
-
-    ! Open file for read
-    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
-    CALL Ncop_Rd( fId, TRIM(nc_path) )  
-
-    ! Echo info to stdout
-    WRITE( 6, 100 ) REPEAT( '%', 79 )
-    WRITE( 6, 110 ) TRIM(nc_file)
-    WRITE( 6, 120 ) TRIM(nc_dir)
-
-    ! Variable name
-    v_name = "MODIS"
-    
-    ! Read OLSON from file
-    st3d   = (/ 1,       1,       mm /)
-    ct3d   = (/ I_MODIS, J_MODIS, 1  /)
-    CALL NcRd( MODIS_PTR_CM, fId, TRIM(v_name), st3d, ct3d )
-
-    ! Read the OLSON:units attribute
-    a_name = "units"
-    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-    
-    ! Echo info to stdout
-    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val), mm
-
-    ! Close netCDF file
-    CALL NcCl( fId )
-    
-    ! Echo info to stdout
-    WRITE( 6, 140 )
- 
-    !======================================================================
-    ! Read next month's LAI
-    !======================================================================
-
-    ! Next LAI month
-    Nmm = mm + 1
-
-    ! Year corresponding to next LAI month (readjust for December)
-    IF ( Nmm == 13 ) THEN
-       Nmm   = 1
-       Nyyyy = yyyy + 1
-    ELSE
-       Nyyyy = yyyy
-    ENDIF
-
-    ! Test if Nyyy is w/in the valid range of MODIS data
-    IF ( Nyyyy >= MODIS_START .and. Nyyyy <= MODIS_END ) THEN
-
-       ! Here, Nyyyy lies w/in the MODIS data timespan
-       nc_file  = nc_tmpl
-       yyyymmdd = Nyyyy*10000 + Nmm*100 + 01
-       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
-
-    ELSE
-
-       ! Here, yyyy lies outside the MODIS data timespan,
-       ! so we have to read data from a different year.
-       IF ( Input_Opt%USE_OLSON_2001 ) THEN
-          IF ( Nyyyy > MODIS_END ) THEN                   !%%% OLSON 2001 %%%
-             yyyymmdd = MODIS_END*10000   + Nmm*100 + 01  ! Use final year
-          ELSE IF ( Nyyyy < MODIS_START ) THEN            !
-             yyyymmdd = MODIS_START*10000 + Nmm*100 + 01  ! Use 1st year
-          ENDIF
-       ELSE                                               !%%% OLSON 1992 %%%
-          yyyymmdd = 19850001 + Nmm*100                   ! Use climatology
-       ENDIF
-
-       ! Expand date tokens in filename
-       nc_file  = nc_tmpl
-       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
-          
-    ENDIF
-
-    ! Open file for read
-    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
-    CALL Ncop_Rd( fId, TRIM(nc_path) )
-     
-    ! Echo info to stdout
-    WRITE( 6, 100 ) REPEAT( '%', 79 )
-    WRITE( 6, 110 ) TRIM(nc_file)
-    WRITE( 6, 120 ) TRIM(nc_dir)
-
-    ! Variable name
-    v_name = "MODIS"
-    
-    ! Read OLSON from file
-    st3d   = (/ 1,       1,       Nmm /)
-    ct3d   = (/ I_MODIS, J_MODIS, 1   /)
-    CALL NcRd( MODIS_PTR_NM, fId, TRIM(v_name), st3d, ct3d )
-
-    ! Read the OLSON:units attribute
-    a_name = "units"
-    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-    
-    ! Echo info to stdout
-    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val), Nmm
-
-    ! Close netCDF file
-    CALL NcCl( fId )
-    
-    ! Echo info to stdout
-    WRITE( 6, 140 )
-    WRITE( 6, 100 ) REPEAT( '%', 79 )
-
-    ! FORMAT statements
-100 FORMAT( a                                                                 )
-110 FORMAT( '%% Opening file  : ',         a                                  )
-120 FORMAT( '%%  in directory : ',         a, / , '%%'                        )
-130 FORMAT( '%% Successfully read ',       a, ' [', a, '] for month = ', i2.2 )
-140 FORMAT( '%% Successfully closed file!'                                    )
-
-    ! Cleanup pointers
-    MODIS_PTR_CM => NULL()
-    MODIS_PTR_NM => NULL()
-
-  END SUBROUTINE Read_Modis
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: compute_modis_lai
 !
 ! !DESCRIPTION: Subroutine COMPUTE\_MODIS\_LAI is the wrapper routine to
@@ -536,22 +186,288 @@ CONTAINS
 
     ! Always compute LAI
     ComputeLAI = .true.
-    CALL Compute_Modis( am_I_Root,  ComputeLAI,                    &
-                        Input_Opt,  State_Met,  doy,               & 
-                        mm,         mapping,    wasModisRead,  RC )
+!#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    CALL Compute_Modis_GCHP( am_I_Root,  ComputeLAI, State_Met, RC )
+!#else
+    CALL Compute_Modis( am_I_Root,  ComputeLAI, Input_Opt,    State_Met,  &
+                        doy,  mm,   mapping,    wasModisRead, RC )
+!#endif
 
     ! Only compute CHLR if organic marine aerosols are tracers
     IF ( Input_Opt%LMPOA ) THEN
 
        ComputeLAI = .false.
-       CALL Compute_Modis( am_I_Root,  ComputeLAI,                    &
-                           Input_Opt,  State_Met,  doy,               & 
-                           mm,         mapping,    wasModisRead,  RC )
-
+!#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+       CALL Compute_Modis_GCHP( am_I_Root,  ComputeLAI, State_Met, RC )
+!#else
+       CALL Compute_Modis( am_I_Root,  ComputeLAI, Input_Opt,    State_Met, &
+                           doy,  mm,   mapping,    wasModisRead, RC )
+!#endif
     ENDIF
 
   END SUBROUTINE Compute_Modis_LAI
 !EOC
+!#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: compute_modis_gchp
+!
+! !DESCRIPTION: Subroutine COMPUTE\_MODIS\_GCHP computes MODIS-based leaf
+!  area indices (LAI) or chlorophyll-a (CHLR) State_Met variables using 
+!  offline MODIS data regridded to the cubed sphere by ExtData. Variables 
+!  include State_Met%MODISLAI and State_MET%MODISCHLR, which are the daily
+!  LAI and CHLR values per grid cell, and State_Met%XLAI and State_Met%XCHLR,
+!  which are the LAI and CHLR values per land type per grid cell.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Compute_Modis_GCHP( am_I_Root,  ComputeLAI, State_Met, RC )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Olson_LandMap_Mod,  ONLY : N_OLSON
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
+    LOGICAL,         INTENT(IN)  :: ComputeLAI 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState),  INTENT(INOUT) :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(OUT) :: RC            ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  18 Oct 2016 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I, J, T
+    REAL(fp), POINTER  :: ModisPtr(:,:) 
+    REAL(fp), POINTER  :: OlsonPtr(:,:) 
+    REAL(fp), POINTER  :: XPtr(:,:,:)  
+
+    !======================================================================
+    ! Initialize
+    !======================================================================
+
+    ! Assume success
+    RC                = GIGC_SUCCESS
+
+    ! Initialize pointers
+    ModisPtr => NULL()
+    OlsonPtr => NULL()
+    XPtr     => NULL()
+
+    ! Daily LAI and CHLR are the regridded and time-interpolated values
+    ! from ExtData, and so do not need to be computed.
+    ! State_Met%MODISLAI = MODISLAI (from MAPL)
+    ! State_Met%MODISCHLR = MODISCHLR (from MAPL)
+    !
+    ! Then there is State_met%XLAI and State_Met%XCHLR, which are size
+    ! (IIPAR,JJPAR,NTYPE).
+    ! I believe XLAI(I,J,T) is the same as MODISLAI(I,J) * fraction (I,J)
+    ! that is land type T, or simply MODISLAI(I,J) * OLSON{T}(I,J)
+
+    ! Assign pointers and precision based on whether computing LAI or CHLR
+    IF ( ComputeLAI ) THEN
+       ModisPtr => State_Met%MODISLAI  ! Daily LAI per GC grid cell
+       XPtr     => State_Met%XLAI      ! LAI/land type, GC grid
+    ELSE
+       ModisPtr => State_Met%MODISCHLR ! Daily CHLR per GC grid cell
+       XPtr     => State_Met%XCHLR     ! CHLR/land type, GC grid
+    ENDIF
+
+    ! Loop over all types
+    DO T = 1, NVEGTYPE
+
+       ! Get OLSON pointer from MAPL using MAPL_GetPointer.
+       ! For now, use really awful brute force way, purely for testing. 
+       ! Replace with above once I know how to get mapl ptr!
+       SELECT CASE ( T )
+          CASE( 1 )
+             OlsonPtr => State_Met%OLSON01
+          CASE( 2 )
+             OlsonPtr => State_Met%OLSON02
+          CASE( 3 )
+             OlsonPtr => State_Met%OLSON03
+          CASE( 4 )
+             OlsonPtr => State_Met%OLSON04
+          CASE( 5 )
+             OlsonPtr => State_Met%OLSON05
+          CASE( 6 )
+             OlsonPtr => State_Met%OLSON06
+          CASE( 7 )
+             OlsonPtr => State_Met%OLSON07
+          CASE( 8 )
+             OlsonPtr => State_Met%OLSON08
+          CASE( 9 )
+             OlsonPtr => State_Met%OLSON09
+          CASE( 10 )
+             OlsonPtr => State_Met%OLSON10
+          CASE( 11 )
+             OlsonPtr => State_Met%OLSON11
+          CASE( 12 )
+             OlsonPtr => State_Met%OLSON12
+          CASE( 13 )
+             OlsonPtr => State_Met%OLSON13
+          CASE( 14 )
+             OlsonPtr => State_Met%OLSON14
+          CASE( 15 )
+             OlsonPtr => State_Met%OLSON15
+          CASE( 16 )
+             OlsonPtr => State_Met%OLSON16
+          CASE( 17 )
+             OlsonPtr => State_Met%OLSON17
+          CASE( 18 )
+             OlsonPtr => State_Met%OLSON18
+          CASE( 19 )
+             OlsonPtr => State_Met%OLSON19
+          CASE( 20 )
+             OlsonPtr => State_Met%OLSON20
+          CASE( 21 )
+             OlsonPtr => State_Met%OLSON21
+          CASE( 22 )
+             OlsonPtr => State_Met%OLSON22
+          CASE( 23 )
+             OlsonPtr => State_Met%OLSON23
+          CASE( 24 )
+             OlsonPtr => State_Met%OLSON24
+          CASE( 25 )
+             OlsonPtr => State_Met%OLSON25
+          CASE( 26 )
+             OlsonPtr => State_Met%OLSON26
+          CASE( 27 )
+             OlsonPtr => State_Met%OLSON27
+          CASE( 28 )
+             OlsonPtr => State_Met%OLSON28
+          CASE( 29 )
+             OlsonPtr => State_Met%OLSON29
+          CASE( 30 )
+             OlsonPtr => State_Met%OLSON30
+          CASE( 31 )
+             OlsonPtr => State_Met%OLSON31
+          CASE( 32 )
+             OlsonPtr => State_Met%OLSON32
+          CASE( 33 )
+             OlsonPtr => State_Met%OLSON33
+          CASE( 34 )
+             OlsonPtr => State_Met%OLSON34
+          CASE( 35 )
+             OlsonPtr => State_Met%OLSON35
+          CASE( 36 )
+             OlsonPtr => State_Met%OLSON36
+          CASE( 37 )
+             OlsonPtr => State_Met%OLSON37
+          CASE( 38 )
+             OlsonPtr => State_Met%OLSON38
+          CASE( 39 )
+             OlsonPtr => State_Met%OLSON39
+          CASE( 40 )
+             OlsonPtr => State_Met%OLSON40
+          CASE( 41 )
+             OlsonPtr => State_Met%OLSON41
+          CASE( 42 )
+             OlsonPtr => State_Met%OLSON42
+          CASE( 43 )
+             OlsonPtr => State_Met%OLSON43
+          CASE( 44 )
+             OlsonPtr => State_Met%OLSON44
+          CASE( 45 )
+             OlsonPtr => State_Met%OLSON45
+          CASE( 46 )
+             OlsonPtr => State_Met%OLSON46
+          CASE( 47 )
+             OlsonPtr => State_Met%OLSON47
+          CASE( 48 )
+             OlsonPtr => State_Met%OLSON48
+          CASE( 49 )
+             OlsonPtr => State_Met%OLSON49
+          CASE( 50 )
+             OlsonPtr => State_Met%OLSON50
+          CASE( 51 )
+             OlsonPtr => State_Met%OLSON51
+          CASE( 52 )
+             OlsonPtr => State_Met%OLSON52
+          CASE( 53 )
+             OlsonPtr => State_Met%OLSON53
+          CASE( 54 )
+             OlsonPtr => State_Met%OLSON54
+          CASE( 55 )
+             OlsonPtr => State_Met%OLSON55
+          CASE( 56 )
+             OlsonPtr => State_Met%OLSON56
+          CASE( 57 )
+             OlsonPtr => State_Met%OLSON57
+          CASE( 58 )
+             OlsonPtr => State_Met%OLSON58
+          CASE( 59 )
+             OlsonPtr => State_Met%OLSON59
+          CASE( 60 )
+             OlsonPtr => State_Met%OLSON60
+          CASE( 61 )
+             OlsonPtr => State_Met%OLSON61
+          CASE( 62 )
+             OlsonPtr => State_Met%OLSON62
+          CASE( 63 )
+             OlsonPtr => State_Met%OLSON63
+          CASE( 64 )
+             OlsonPtr => State_Met%OLSON64
+          CASE( 65 )
+             OlsonPtr => State_Met%OLSON65
+          CASE( 66 )
+             OlsonPtr => State_Met%OLSON66
+          CASE( 67 )
+             OlsonPtr => State_Met%OLSON67
+          CASE( 68 )
+             OlsonPtr => State_Met%OLSON68
+          CASE( 69 )
+             OlsonPtr => State_Met%OLSON69
+          CASE( 70 )
+             OlsonPtr => State_Met%OLSON70
+          CASE( 71 )
+             OlsonPtr => State_Met%OLSON71
+          CASE( 72 )
+             OlsonPtr => State_Met%OLSON72
+          CASE( 73 )
+             OlsonPtr => State_Met%OLSON73
+          CASE( 74 )
+             OlsonPtr => State_Met%OLSON74
+       END SELECT
+
+       ! Loop over all cells to set XLAI or XCHLR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          XPtr(I,J,T) = ModisPtr(I,J) * OlsonPtr(I,J)
+       ENDDO
+       ENDDO
+
+       ! Nullify Olson pointer
+       OlsonPtr => NULL()
+
+    ENDDO
+
+    ! Cleanup pointers
+    XPtr => NULL()
+    ModisPtr => NULL()
+
+  END SUBROUTINE Compute_Modis_GCHP
+!EOC
+!#else
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -851,6 +767,359 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: read_modis_lai
+!
+! !DESCRIPTION: Subroutine READ\_MODIS\_LAI is the wrapper routine to read 
+!  the MODIS LAI from disk in netCDF format for the current month, and for 
+!  next month. If enabled, MODIS CHLR is also read in the same way as LAI.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Read_Modis_Lai( am_I_Root, Input_Opt, yyyy, mm, wasModisRead, RC )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput 
+   
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
+    INTEGER,        INTENT(IN)  :: yyyy          ! Year for LAI data
+    INTEGER,        INTENT(IN)  :: mm            ! Month for LAI data
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(OUT) :: wasModisRead  ! Was LAI data just read in?
+    INTEGER,        INTENT(OUT) :: RC            ! Success or failure?   
+!
+! !REVISION HISTORY:
+!  03 Apr 2012 - R. Yantosca - Initial version
+!  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
+!  05 Jun 2013 - R. Yantosca - Bug fix, use "mm" for current month index
+!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  09 Oct 2014 - C. Keller   - MODIS_LAI_PM not needed anymore.
+!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
+!  07 Jul 2015 - E. Lundgren - Generalized to read either LAI or CHLR
+!  08 Jul 2015 - E. Lundgren - Now read LAI and CHLR data. Abstracted 
+!                              read code to new routine Read_Modis.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255)   :: nc_tmpl         ! netCDF file name template 
+    LOGICAL              :: ReadLAI         ! T = read LAI, F = read CHLR
+
+    ! Assume success
+    RC = GIGC_SUCCESS
+
+    ! Set filename template for LAI
+    IF ( Input_Opt%USE_OLSON_2001 ) THEN
+       nc_tmpl = 'For_Olson_2001/MODIS.LAIv.V5.generic.025x025.YYYY.nc'
+    ELSE
+       nc_tmpl = 'For_Olson_1992/MODIS.LAIv.V5.generic.05x05.YYYY.nc'
+    ENDIF
+
+    ! Always read LAI file
+    ReadLAI = .true.
+    CALL Read_Modis( am_I_Root, ReadLAI, nc_tmpl,      Input_Opt,  &
+                     yyyy,      mm,      wasModisRead, RC         )
+
+    ! Read CHLR only if organic marine aerosols tracers are turned on
+    IF ( Input_Opt%LMPOA ) THEN
+
+       ! Set filename template for CHLR
+       IF ( Input_Opt%USE_OLSON_2001 ) THEN
+          nc_tmpl = 'For_Olson_2001/MODIS.CHLRv.V5.generic.025x025.YYYY.nc'
+       ELSE
+          nc_tmpl = 'For_Olson_1992/MODIS.CHLRv.V5.generic.05x05.YYYY.nc'  
+       ENDIF
+
+       ! Read CHLR file
+       ReadLAI = .false.
+       CALL Read_Modis(  am_I_Root, ReadLAI, nc_tmpl,      Input_Opt,  &
+                         yyyy,      mm,      wasModisRead, RC         )
+    ENDIF
+
+  END SUBROUTINE Read_Modis_Lai
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_modis
+!
+! !DESCRIPTION: Subroutine READ\_MODIS reads the MODIS LAI or CHLR from disk
+!  (in netCDF format) for the current month, and for next month.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Read_Modis( am_I_Root, ReadLAI, nc_tmpl,      Input_Opt,  &
+                         yyyy,      mm,      wasModisRead, RC         )
+!
+! !USES:
+!
+    USE m_netcdf_io_open                         ! netCDF file open
+    USE m_netcdf_io_read                         ! netCDF read
+    USE m_netcdf_io_readattr                     ! netCDF attribute reads
+    USE m_netcdf_io_close                        ! netCDF file close
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput 
+   
+#   include "netcdf.inc"                         ! netCDF settings & parameters
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,            INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+    LOGICAL,            INTENT(IN)  :: ReadLAI   ! T for LAI, F to read CHLR
+    TYPE(OptInput),     INTENT(IN)  :: Input_Opt ! Input Options object
+    CHARACTER(LEN=255), INTENT(IN)  :: nc_tmpl
+    INTEGER,            INTENT(IN)  :: yyyy      ! Year for LAI data
+    INTEGER,            INTENT(IN)  :: mm        ! Month for LAI data
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(OUT) :: wasModisRead  ! Was data just read in?
+    INTEGER,        INTENT(OUT) :: RC            ! Success or failure?   
+!
+! !REVISION HISTORY:
+!  07 Jul 2015 - E. Lundgren - Initial version, containing legacy Read_Modis_Lai
+!                              code plus modifications to read CHLR
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: fId                ! netCDF file ID
+    INTEGER              :: Pyyyy              ! Previous LAI year
+    INTEGER              :: Nyyyy              ! Next     LAI year
+    INTEGER              :: Pmm                ! Previous LAI month
+    INTEGER              :: Nmm                ! Next     LAI month
+    INTEGER              :: yyyymmdd           ! Date variable
+    INTEGER              :: MODIS_END          ! Last year or MODIS data
+                         
+    ! Character strings  
+    CHARACTER(LEN=255)   :: nc_file            ! netCDF file name
+    CHARACTER(LEN=255)   :: nc_dir             ! netCDF directory name
+    CHARACTER(LEN=255)   :: nc_path            ! netCDF path name
+    CHARACTER(LEN=255)   :: v_name             ! netCDF variable name 
+    CHARACTER(LEN=255)   :: a_name             ! netCDF attribute name
+    CHARACTER(LEN=255)   :: a_val              ! netCDF attribute value
+
+    ! Arrays for netCDF  start and count values
+    INTEGER              :: st1d(1), ct1d(1)   ! For 1D arrays    
+    INTEGER              :: st3d(3), ct3d(3)   ! For 3D arrays 
+
+    ! SAVED variable
+    INTEGER, SAVE        :: mmLastLAI  = -1
+    INTEGER, SAVE        :: mmLastCHLR = -1
+
+    ! Pointers
+    REAL*4, POINTER      :: MODIS_PTR_CM(:,:) => NULL()
+    REAL*4, POINTER      :: MODIS_PTR_NM(:,:) => NULL()
+
+    !======================================================================
+    ! Test if it is time to read data
+    !======================================================================
+
+    ! Assume success
+    RC = GIGC_SUCCESS
+
+    ! Assign pointers etc. based on whether reading LAI or CHLR
+    IF ( ReadLAI ) THEN
+       MODIS_PTR_CM => MODIS_LAI_CM
+       MODIS_PTR_NM => MODIS_LAI_NM
+       MODIS_END    =  LAI_END
+    ELSE
+       MODIS_PTR_CM => MODIS_CHLR_CM
+       MODIS_PTR_NM => MODIS_CHLR_NM
+       MODIS_END    =  CHLR_END
+    ENDIF
+
+    ! If we enter a new month, then read MODIS from disk
+    ! Otherwise, just exit, since it is not time to read data yet
+    IF ( ReadLAI .and. mm /= mmLastLAI ) THEN
+       mmLastLAI    = mm
+       wasModisRead = .TRUE.
+    ELSEIF ( ( .not. ReadLAI ) .and. mm /= mmLastCHLR ) THEN
+       mmLastCHLR   = mm
+       wasModisRead = .TRUE.
+    ELSE
+       wasModisRead = .FALSE.
+       RETURN
+    ENDIF
+
+    ! Save for next iteration
+
+    !======================================================================
+    ! Initialize variables
+    !======================================================================
+
+    ! Construct file path from directory & file name (use LAI directory)
+    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'MODIS_LAI_201204/'
+
+    !======================================================================
+    ! Read current month's LAI or CHLR
+    !======================================================================
+
+    ! Test if yyyy is w/in the valid range of MODIS data
+    IF ( yyyy >= MODIS_START .and. yyyy <= MODIS_END ) THEN
+
+       ! Here, yyyy lies w/in the MODIS data timespan
+       nc_file  = nc_tmpl
+       yyyymmdd = yyyy*10000 + mm*100 + 01
+       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
+
+    ELSE
+
+       ! Here, yyyy lies outside the MODIS data timespan,
+       ! so we have to read data from a different year.
+       IF ( Input_Opt%USE_OLSON_2001 ) THEN
+          IF ( yyyy > MODIS_END ) THEN                    !%%% OLSON 2001 %%%
+             yyyymmdd = MODIS_END*10000   + mm*100 + 01   ! Use final year
+          ELSE IF ( yyyy < MODIS_START ) THEN             !
+             yyyymmdd = MODIS_START*10000 + mm*100 + 01   ! Use 1st year
+          ENDIF
+       ELSE                                               !%%% OLSON 1992 %%%
+          yyyymmdd = 19850001 + mm*100                    ! Use climatology
+       ENDIF
+
+       ! Expand date tokens in filename
+       nc_file  = nc_tmpl
+       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
+
+    ENDIF
+
+    ! Open file for read
+    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
+    CALL Ncop_Rd( fId, TRIM(nc_path) )  
+
+    ! Echo info to stdout
+    WRITE( 6, 100 ) REPEAT( '%', 79 )
+    WRITE( 6, 110 ) TRIM(nc_file)
+    WRITE( 6, 120 ) TRIM(nc_dir)
+
+    ! Variable name
+    v_name = "MODIS"
+    
+    ! Read OLSON from file
+    st3d   = (/ 1,       1,       mm /)
+    ct3d   = (/ I_MODIS, J_MODIS, 1  /)
+    CALL NcRd( MODIS_PTR_CM, fId, TRIM(v_name), st3d, ct3d )
+
+    ! Read the OLSON:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+    
+    ! Echo info to stdout
+    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val), mm
+
+    ! Close netCDF file
+    CALL NcCl( fId )
+    
+    ! Echo info to stdout
+    WRITE( 6, 140 )
+ 
+    !======================================================================
+    ! Read next month's LAI or CHLR
+    !======================================================================
+
+    ! Next LAI month
+    Nmm = mm + 1
+
+    ! Year corresponding to next LAI month (readjust for December)
+    IF ( Nmm == 13 ) THEN
+       Nmm   = 1
+       Nyyyy = yyyy + 1
+    ELSE
+       Nyyyy = yyyy
+    ENDIF
+
+    ! Test if Nyyy is w/in the valid range of MODIS data
+    IF ( Nyyyy >= MODIS_START .and. Nyyyy <= MODIS_END ) THEN
+
+       ! Here, Nyyyy lies w/in the MODIS data timespan
+       nc_file  = nc_tmpl
+       yyyymmdd = Nyyyy*10000 + Nmm*100 + 01
+       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
+
+    ELSE
+
+       ! Here, yyyy lies outside the MODIS data timespan,
+       ! so we have to read data from a different year.
+       IF ( Input_Opt%USE_OLSON_2001 ) THEN
+          IF ( Nyyyy > MODIS_END ) THEN                   !%%% OLSON 2001 %%%
+             yyyymmdd = MODIS_END*10000   + Nmm*100 + 01  ! Use final year
+          ELSE IF ( Nyyyy < MODIS_START ) THEN            !
+             yyyymmdd = MODIS_START*10000 + Nmm*100 + 01  ! Use 1st year
+          ENDIF
+       ELSE                                               !%%% OLSON 1992 %%%
+          yyyymmdd = 19850001 + Nmm*100                   ! Use climatology
+       ENDIF
+
+       ! Expand date tokens in filename
+       nc_file  = nc_tmpl
+       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
+          
+    ENDIF
+
+    ! Open file for read
+    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
+    CALL Ncop_Rd( fId, TRIM(nc_path) )
+     
+    ! Echo info to stdout
+    WRITE( 6, 100 ) REPEAT( '%', 79 )
+    WRITE( 6, 110 ) TRIM(nc_file)
+    WRITE( 6, 120 ) TRIM(nc_dir)
+
+    ! Variable name
+    v_name = "MODIS"
+    
+    ! Read OLSON from file
+    st3d   = (/ 1,       1,       Nmm /)
+    ct3d   = (/ I_MODIS, J_MODIS, 1   /)
+    CALL NcRd( MODIS_PTR_NM, fId, TRIM(v_name), st3d, ct3d )
+
+    ! Read the OLSON:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+    
+    ! Echo info to stdout
+    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val), Nmm
+
+    ! Close netCDF file
+    CALL NcCl( fId )
+    
+    ! Echo info to stdout
+    WRITE( 6, 140 )
+    WRITE( 6, 100 ) REPEAT( '%', 79 )
+
+    ! FORMAT statements
+100 FORMAT( a                                                                 )
+110 FORMAT( '%% Opening file  : ',         a                                  )
+120 FORMAT( '%%  in directory : ',         a, / , '%%'                        )
+130 FORMAT( '%% Successfully read ',       a, ' [', a, '] for month = ', i2.2 )
+140 FORMAT( '%% Successfully closed file!'                                    )
+
+    ! Cleanup pointers
+    MODIS_PTR_CM => NULL()
+    MODIS_PTR_NM => NULL()
+
+  END SUBROUTINE Read_Modis
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: find_lai_month
 !
 ! !DESCRIPTION: Function FIND\_LAI\_MONTH returns the corresponding LAI 
@@ -906,6 +1175,7 @@ CONTAINS
 
   END SUBROUTINE Find_Lai_Month
 !EOC
+!endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

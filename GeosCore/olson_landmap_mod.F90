@@ -6,10 +6,7 @@
 ! !MODULE: olson_landmap_mod
 !
 ! !DESCRIPTION: Module OLSON\_LANDMAP\_MOD reads the Olson land map and
-!  computes the IREG, ILAND, and IUSE arrays.  This module was written to
-!  facilitate Grid-Independent GEOS-Chem development while still keeping 
-!  backwards compatibility with existing legacy code.  It replaces the old 
-!  routine rdland.F.
+!  computes the IREG, ILAND, IUSE, and FRCLND State_Met arrays. 
 !\\
 !\\
 ! !INTERFACE: 
@@ -31,12 +28,13 @@ MODULE Olson_LandMap_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+!#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+  PUBLIC  :: Compute_Olson_Landmap_GCHP
+!#else
   PUBLIC  :: Init_Olson_Landmap
   PUBLIC  :: Compute_Olson_Landmap
   PUBLIC  :: Cleanup_Olson_LandMap
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-  PUBLIC  :: Compute_Olson_Landmap_GCHP
-#endif
+!#endif
 !
 ! !REMARKS:
 !  Eloise Marais and the GEOS-Chem Support Team updated the Olson 2001 
@@ -53,7 +51,7 @@ MODULE Olson_LandMap_Mod
 !  dominant vegetation types at 0.25x0.25 degrees or they are crop types that 
 !  I lump with other similar vegetation types (either crops or mixed 
 !  forest/field vegetation) so that the Olson 2001 landcover dataset at 
-!  0.25x0.25 degrees has 74 vegetation types).
+!  0.25x0.25 degrees has 74 vegetation types.
 !  
 !  There are also new vegetation types that are defined in the Olson 2001 
 !  dataset from 1-74 that were previously listed as "not used" in 
@@ -165,68 +163,25 @@ MODULE Olson_LandMap_Mod
 !   94	Crops, Grass, Shrubs			41		42
 !   95	Evergreen Tree Crop			33		34
 !   96	Deciduous Tree Crop			33		34
-!                                                                             .
+!                                                                             
 !  Arrays computed by olson_landmap_mod.F90
 !  ============================================================================
-!  (1) IREG   (in CMN_DEP_mod.F): # of Olson land types per G-C grid box 
-!  (2) ILAND  (in CMN_DEP_mod.F): List of all Olson land types in G-C grid box
-!  (3) IUSE   (in CMN_DEP_mod.F): Coverage of each Olson type in G-C grid box
-!  (4) IJREG  (in CMN_VEL_mod.F): %%%%% OBSOLETE: NOW REPLACED BY IREG  %%%%%
-!  (5) IJLAND (in CMN_VEL_mod.F): %%%%% OBSOLETE: NOW REPLACED BY ILAND %%%%%
-!  (6) IJUSE  (in CMN_VEL_mod.F): %%%%% OBSOLETE: NOW REPLACED BY IUSE  %%%%%
-!  (7) FRCLND (in CMN_DEP_mod.F): Fraction of G-C grid box that is not water
-!                                                                             .
+!  (1) IREG   (in CMN_DEP_mod.F): # of Olson land types per GC grid box 
+!  (2) ILAND  (in CMN_DEP_mod.F): List of all Olson land types in GC grid box
+!  (3) IUSE   (in CMN_DEP_mod.F): Coverage of each Olson type in GC grid box
+!  (4) FRCLND (in CMN_DEP_mod.F): Fraction of G-C grid box that is not water
+!                           
+!  The variables are defined as follows:
+!      State_Met%IREG(I,J)    : # of land types in horizontal grid cell (I,J)
+!      State_Met%ILAND(I,J,T) : Land type ID for land types T=1,IREG(I,J)
+!      State_Met%IUSE(I,J,T)  : Fraction area (per mil) occupied by land types
+!                               T=1,IREG(I,J) 
+!      State_Met%FRCLND(I,J)  : Fraction area occupied by land for cell (I,J)
+!                                                  
 !  NOTES: 
-!  (1) IREG,  ILAND,  IUSE  are used by the soil NOx emissions routines
-!  (2) IJREG, IJLAND, IJUSE are used by the drydep routines (legacy code)
-!  (3) FRCLND               is  used by various GEOS-Chem routines
-!                                                                             .
-!                                                                             .
-!  BUG IN THE OLD "rdland.F" FOR 2 X 2.5 DEGREE RESOLUTION
-!  ============================================================================
-!  This module ("olson_landmap_mod.F") replaces the old routine "rdland.F", 
-!  which previously read in the Olson landtype data from the ASCII format
-!  file named "vegtype.global".  There used to be a different "vegtype.global"
-!  file for each different horizontal grid resolution.
-!                                                                             .
-!  The "vegtype.global" stored the following quantities, such that values
-!  for a single grid box were saved on a single line:
-!                                                                             .
-!    I, J, IREG(I,J), ILAND(I,J,K), IUSE(I,J,K)  (where K=1,IREG(I,J))
-!                                                                             .
-!  Routine "rdland.F" reads these quantities from "vegtype.global" assuming 
-!  there were 20 integer characters on a single line (i.e. using Fortran
-!  FORMAT '(20i4)').   However, ~ 12 lines of the 2 x 2.5 "vegtype.global"
-!  file contained more than 20 integer values.  This caused "rdland.F", 
-!  to read in the values from these lines improperly, which in turn caused
-!  the IREG, ILAND, IUSE, IJREG, IJLAND, IJUSE, and FRCLND arrays to be
-!  improperly initialized for the grid boxes corresponding to these
-!  lines in the "vegtype.global" file.
-!                                                                             .
-!  Bob Yantosca has validated that "olson_landmap_mod.F" returns results
-!  100% identical to the "vegtype.global" file.  Therefore, if you want
-!  to compare the output of model simulations using "olson_landmap_mod.F" 
-!  the output of simulations using "rdland.F", you will see a slight 
-!  difference in the MCL lifetime and tracer concentrations.
-!                                                                             .
-!  If you need to run a GEOS-Chem simulation with an older version of the
-!  code using "rdland.F", then this bug may be corrected by changing the
-!  line of code:
-!                                                                             .
-!      101  FORMAT(20I4)
-!                                                                             .
-!  to:
-!                                                                             .
-!     #if   defined( GRID2x25 )
-!      101  FORMAT(25I4)
-!     #else
-!      100  FORMAT(20I4)
-!     #endif
-!                                                                             .
-!  This is more or less a moot point, as "olson_landmap_mod.F" will be
-!  installed into GEOS-Chem v9-01-03 and higher versions.
-!                                                                             .
-!                                                                             .
+!  (1) IREG, ILAND, and IUSE are used by the soil NOx emissions routines
+!  (2) FRCLND is used by various GEOS-Chem routines
+!                                                                             
 !  NOTE FOR 0.5 x 0.666 grids
 !  ============================================================================
 !  As of 21 Mar 2012, the IUSE values computed by "olson_landmap_mod.F90"
@@ -253,6 +208,7 @@ MODULE Olson_LandMap_Mod
 !  20 Mar 2014 - R. Yantosca - Speed up Olson computation by skipping boxes
 !  24 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  18 Oct 2016 - E. Lundgren - Add GCHP routine for computing landmap variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -273,6 +229,538 @@ MODULE Olson_LandMap_Mod
   REAL*4,  ALLOCATABLE :: A_CM2(:,:,:)  ! Surface areas [cm2]
 
 CONTAINS
+!EOC
+!#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: compute_olson_landmap_gchp
+!
+! !DESCRIPTION: Subroutine COMPUTE\_OLSON\_LANDMAP\_GCHP computes the 
+!  GEOS-Chem State_Met variables that are dependent on the Olson Landmap, 
+!  specifically IREG, ILAND, IUSE, and FRCLND, using the Olson Landmap data
+!  regridded by ExtData in High Performance GEOS-Chem (GCHP).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Compute_Olson_Landmap_GCHP( am_I_Root, State_Met, RC )
+!
+! !USES:
+!
+    USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState),  INTENT(INOUT) :: State_Met    ! Meteorology State object
+    INTEGER,         INTENT(INOUT) :: RC
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY: 
+!  27 Sep 2016 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I, J, T
+    INTEGER :: typeNum, maxFracType(1)
+    REAL*4  :: sumCoverage
+    REAL(fp) :: Olson_Landmap_GCHP(IIPAR, JJPAR, N_OLSON) 
+    REAL(fp), POINTER :: OlsonPtr(:,:)
+
+    !======================================================================
+    ! Initialize
+    !======================================================================
+
+    State_Met%FRCLND = 1e+3_fp ! Fraction land (I,J)
+    OlsonPtr => NULL()
+    
+    ! Store fractional coverage for each Olson type and grid cell in 3D array
+    DO T = 1, N_OLSON
+
+       ! This is the goal:
+       !IF ( T < 10 ) THEN
+       !   varname = 'OLSON0' // T
+       !ELSE
+       !   varname = 'OLSON' // T
+       !ENDIF
+       !CALL MAPL_GetPointer( IMPORT, OlsonPtr, TRIM(varname),  &
+       !                      notFoundOK=.TRUE., __RC__ )
+       !IF ( ASSOCIATED(OlsonPtr) ) THEN
+       !   Olson_Landmap_GCHP(:,:,T) = OlsonPtr(:,:)
+       !ELSE
+       ! ! throw an error
+       !ENDIF
+
+       ! Instead, use really awful brute force way, purely for testing. 
+       ! Replace with above once know how to get mapl ptr!
+       SELECT CASE ( T )
+          CASE( 1 )
+             OlsonPtr => State_Met%OLSON01
+          CASE( 2 )
+             OlsonPtr => State_Met%OLSON02
+          CASE( 3 )
+             OlsonPtr => State_Met%OLSON03
+          CASE( 4 )
+             OlsonPtr => State_Met%OLSON04
+          CASE( 5 )
+             OlsonPtr => State_Met%OLSON05
+          CASE( 6 )
+             OlsonPtr => State_Met%OLSON06
+          CASE( 7 )
+             OlsonPtr => State_Met%OLSON07
+          CASE( 8 )
+             OlsonPtr => State_Met%OLSON08
+          CASE( 9 )
+             OlsonPtr => State_Met%OLSON09
+          CASE( 10 )
+             OlsonPtr => State_Met%OLSON10
+          CASE( 11 )
+             OlsonPtr => State_Met%OLSON11
+          CASE( 12 )
+             OlsonPtr => State_Met%OLSON12
+          CASE( 13 )
+             OlsonPtr => State_Met%OLSON13
+          CASE( 14 )
+             OlsonPtr => State_Met%OLSON14
+          CASE( 15 )
+             OlsonPtr => State_Met%OLSON15
+          CASE( 16 )
+             OlsonPtr => State_Met%OLSON16
+          CASE( 17 )
+             OlsonPtr => State_Met%OLSON17
+          CASE( 18 )
+             OlsonPtr => State_Met%OLSON18
+          CASE( 19 )
+             OlsonPtr => State_Met%OLSON19
+          CASE( 20 )
+             OlsonPtr => State_Met%OLSON20
+          CASE( 21 )
+             OlsonPtr => State_Met%OLSON21
+          CASE( 22 )
+             OlsonPtr => State_Met%OLSON22
+          CASE( 23 )
+             OlsonPtr => State_Met%OLSON23
+          CASE( 24 )
+             OlsonPtr => State_Met%OLSON24
+          CASE( 25 )
+             OlsonPtr => State_Met%OLSON25
+          CASE( 26 )
+             OlsonPtr => State_Met%OLSON26
+          CASE( 27 )
+             OlsonPtr => State_Met%OLSON27
+          CASE( 28 )
+             OlsonPtr => State_Met%OLSON28
+          CASE( 29 )
+             OlsonPtr => State_Met%OLSON29
+          CASE( 30 )
+             OlsonPtr => State_Met%OLSON30
+          CASE( 31 )
+             OlsonPtr => State_Met%OLSON31
+          CASE( 32 )
+             OlsonPtr => State_Met%OLSON32
+          CASE( 33 )
+             OlsonPtr => State_Met%OLSON33
+          CASE( 34 )
+             OlsonPtr => State_Met%OLSON34
+          CASE( 35 )
+             OlsonPtr => State_Met%OLSON35
+          CASE( 36 )
+             OlsonPtr => State_Met%OLSON36
+          CASE( 37 )
+             OlsonPtr => State_Met%OLSON37
+          CASE( 38 )
+             OlsonPtr => State_Met%OLSON38
+          CASE( 39 )
+             OlsonPtr => State_Met%OLSON39
+          CASE( 40 )
+             OlsonPtr => State_Met%OLSON40
+          CASE( 41 )
+             OlsonPtr => State_Met%OLSON41
+          CASE( 42 )
+             OlsonPtr => State_Met%OLSON42
+          CASE( 43 )
+             OlsonPtr => State_Met%OLSON43
+          CASE( 44 )
+             OlsonPtr => State_Met%OLSON44
+          CASE( 45 )
+             OlsonPtr => State_Met%OLSON45
+          CASE( 46 )
+             OlsonPtr => State_Met%OLSON46
+          CASE( 47 )
+             OlsonPtr => State_Met%OLSON47
+          CASE( 48 )
+             OlsonPtr => State_Met%OLSON48
+          CASE( 49 )
+             OlsonPtr => State_Met%OLSON49
+          CASE( 50 )
+             OlsonPtr => State_Met%OLSON50
+          CASE( 51 )
+             OlsonPtr => State_Met%OLSON51
+          CASE( 52 )
+             OlsonPtr => State_Met%OLSON52
+          CASE( 53 )
+             OlsonPtr => State_Met%OLSON53
+          CASE( 54 )
+             OlsonPtr => State_Met%OLSON54
+          CASE( 55 )
+             OlsonPtr => State_Met%OLSON55
+          CASE( 56 )
+             OlsonPtr => State_Met%OLSON56
+          CASE( 57 )
+             OlsonPtr => State_Met%OLSON57
+          CASE( 58 )
+             OlsonPtr => State_Met%OLSON58
+          CASE( 59 )
+             OlsonPtr => State_Met%OLSON59
+          CASE( 60 )
+             OlsonPtr => State_Met%OLSON60
+          CASE( 61 )
+             OlsonPtr => State_Met%OLSON61
+          CASE( 62 )
+             OlsonPtr => State_Met%OLSON62
+          CASE( 63 )
+             OlsonPtr => State_Met%OLSON63
+          CASE( 64 )
+             OlsonPtr => State_Met%OLSON64
+          CASE( 65 )
+             OlsonPtr => State_Met%OLSON65
+          CASE( 66 )
+             OlsonPtr => State_Met%OLSON66
+          CASE( 67 )
+             OlsonPtr => State_Met%OLSON67
+          CASE( 68 )
+             OlsonPtr => State_Met%OLSON68
+          CASE( 69 )
+             OlsonPtr => State_Met%OLSON69
+          CASE( 70 )
+             OlsonPtr => State_Met%OLSON70
+          CASE( 71 )
+             OlsonPtr => State_Met%OLSON71
+          CASE( 72 )
+             OlsonPtr => State_Met%OLSON72
+          CASE( 73 )
+             OlsonPtr => State_Met%OLSON73
+          CASE( 74 )
+             OlsonPtr => State_Met%OLSON74
+       END SELECT
+       Olson_Landmap_GCHP(:,:,T) = OlsonPtr(:,:)
+       OlsonPtr => NULL()
+    ENDDO
+
+    ! Loop over all grid cells to set State_Met variables
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+
+       ! Initialize local variables for this cell
+       typeNum = 0           ! # types with non-zero coverage
+       sumCoverage = 0e+0_fp ! total coverage across all types [mil]
+       maxFracType = 0       ! type id with greatest coverage
+
+       ! Loop over all landmap types to set IREG, ILAND, and IUSE
+       DO T = 1, N_OLSON
+
+          ! If this type as non-zero coverage in this grid box, updates vars
+          IF ( Olson_Landmap_GCHP(I,J,T) > 0.0 ) THEN
+
+             ! Increment number of types in this cell
+             typeNum = typeNum + 1
+
+             ! Set IREG to number of types
+             State_Met%IREG(I,J) = typeNum
+
+             ! Store type id in ILAND array for this grid cell
+             State_Met%ILAND(I,J,typeNum) = T
+             
+             ! Store fractional coverage [mil] in IUSE array for this grid cell
+             State_Met%IUSE(I,J,typeNum) = Olson_Landmap_GCHP(I,J,T)
+
+          ENDIF
+       ENDDO
+
+       ! Get this cell's type id with maximum single type coverage [mil]
+       maxFracType = MAXLOC(State_Met%IUSE(I, J, 1:State_Met%IREG(I,J)))
+       
+       ! Sum this cell's total fractional coverage across all land types [mil]
+       sumCoverage = SUM ( State_Met%IUSE(I, J, 1:State_Met%IREG(I,J)))
+
+       ! Force total coverage to 1000 by adjusting max single type coverage
+       IF ( sumCoverage /= 1000 ) THEN
+          State_Met%IUSE(I,J,maxFracType) = State_Met%IUSE(I,J,maxFracType) &
+                                            + ( 1000 - sumCoverage )
+       ENDIF
+       
+       ! Loop over all landmap types to set FRCLND
+       DO T = 1, State_Met%IREG(I,J)
+       
+          ! If the current Olson land type is water (type 1), then
+          ! subtract the coverage fraction (State_Met%IUSE) from FRCLND.
+          IF ( State_Met%ILAND(I,J,T) == 1 ) THEN
+             State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J)   &
+                                     - State_Met%IUSE(I,J,T)
+          ENDIF
+       ENDDO
+       
+       ! Normalize FRCLND into a true fraction in range of 0 to 1
+       State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J) / 1e+3_fp
+
+    ENDDO
+    ENDDO
+
+  END SUBROUTINE Compute_Olson_Landmap_GCHP
+!EOC
+!#else
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_olson_landmap
+!
+! !DESCRIPTION: Subroutine INIT\_OLSON\_LANDMAP reads Olson land map 
+! information from disk (in netCDF format).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_Olson_LandMap( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE m_netcdf_io_open
+    USE m_netcdf_io_read
+    USE m_netcdf_io_readattr
+    USE m_netcdf_io_close
+    
+    IMPLICIT NONE
+    
+#   include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!
+! !REVISION HISTORY:
+!  13 Mar 2012 - R. Yantosca - Initial version
+!  22 Mar 2012 - R. Yantosca - Also read in surface areas [m2] from file
+!  27 Mar 2012 - R. Yantosca - Now read the "units" attribute of each variable
+!  27 Mar 2012 - R. Yantosca - Now echo file I/O status info to stdout
+!  27 Mar 2012 - R. Yantosca - Now can read Olson 1992 or Olson 2001 land map
+!  29 Nov 2012 - R. Yantosca - Add am_I_Root to the argument list
+!  26 Feb 2013 - M. Long     - Now pass DATA_DIR_1x1 via the argument list
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt, RC via the arg list
+!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    !======================================================================
+    ! Variable declarations
+    !======================================================================
+    
+    ! Scalars
+    INTEGER            :: I, J               ! Loop indices
+    INTEGER            :: fId                ! netCDF file ID
+    INTEGER            :: as                 ! Allocation status
+    
+    ! Character strings
+    CHARACTER(LEN=255) :: nc_dir             ! netCDF directory name
+    CHARACTER(LEN=255) :: nc_file            ! netCDF file name
+    CHARACTER(LEN=255) :: nc_path            ! netCDF path name
+    CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
+    CHARACTER(LEN=255) :: a_name             ! netCDF attribute name
+    CHARACTER(LEN=255) :: a_val              ! netCDF attribute value
+     
+    ! Arrays for netCDF start and count values
+    INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays    
+    INTEGER            :: st3d(3), ct3d(3)   ! For 3D arrays 
+     
+    !======================================================================
+    ! Initialize variables
+    !======================================================================
+    IF ( Input_Opt%USE_OLSON_2001 ) THEN
+
+       !--------------------------------
+       ! Settings for Olson 2001 grid
+       !--------------------------------
+       I_OLSON = 1440                                     ! # lons (0.25x0.25)
+       J_OLSON = 720                                      ! # lats (0.25x0.25)
+       N_OLSON = 74                                       ! # of land types
+       D_LON   = 0.25e+0_fp                                   ! Delta lon [degrees]
+       D_LAT   = 0.25e+0_fp                                   ! Delta lat [degrees]
+       nc_file = 'Olson_2001_Land_Map.025x025.generic.nc' ! Input file name
+
+    ELSE
+
+       !--------------------------------
+       ! Settings for Olson 1992 grid
+       !--------------------------------
+       I_OLSON = 720                                      ! # lons (0.5x0.5)
+       J_OLSON = 360                                      ! # lats (0.5x0.5)
+       N_OLSON = 74                                       ! # of land types
+       D_LON   = 0.5e+0_fp                                    ! Delta lon [degrees]
+       D_LAT   = 0.5e+0_fp                                    ! Delta lat [degrees]
+       nc_file = 'Olson_1992_Land_Map.05x05.generic.nc'   ! Input file name
+
+    ENDIF
+
+    ! Allocate arrays
+    ALLOCATE( lon  ( I_OLSON             ), STAT=as )  
+    ALLOCATE( lat  ( J_OLSON             ), STAT=as )
+    ALLOCATE( OLSON( I_OLSON, J_OLSON, 1 ), STAT=as ) 
+    ALLOCATE( A_CM2( I_OLSON, J_OLSON, 1 ), STAT=as )
+
+    !======================================================================
+    ! Open and read data from the netCDF file
+    !======================================================================
+
+    ! Construct file path from directory & file name
+    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'Olson_Land_Map_201203/'
+    nc_path = TRIM( nc_dir )                    // TRIM( nc_file )
+
+    ! Open file for read
+    CALL Ncop_Rd( fId, TRIM(nc_path) )
+     
+    ! Echo info to stdout
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 100 ) REPEAT( '%', 79 )
+       WRITE( 6, 110 ) TRIM(nc_file)
+       WRITE( 6, 120 ) TRIM(nc_dir)
+    ENDIF
+
+    !----------------------------------------
+    ! VARIABLE: lon
+    !----------------------------------------
+     
+    ! Variable name
+    v_name = "lon"
+    
+    ! Read lon from file
+    st1d   = (/ 1       /)
+    ct1d   = (/ I_OLSON /)
+    CALL NcRd( lon, fId, TRIM(v_name), st1d, ct1d )
+ 
+    ! Read the lon:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+    
+    ! Echo info to stdout
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)     
+    ENDIF
+
+    !----------------------------------------
+    ! VARIABLE: lat
+    !----------------------------------------
+    
+    ! Variable name
+    v_name = "lat"
+    
+    ! Read lat from file
+    st1d   = (/ 1       /)
+    ct1d   = (/ J_OLSON /)
+    CALL NcRd( lat, fId, TRIM(v_name), st1d, ct1d )
+     
+    ! Read the lat:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+    
+    ! Echo info to stdout
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    ENDIF
+
+    !----------------------------------------
+    ! VARIABLE: OLSON
+    !----------------------------------------
+    
+    ! Variable name
+    v_name = "OLSON"
+    
+    ! Read OLSON from file
+    st3d   = (/ 1,       1,       1 /)
+    ct3d   = (/ I_OLSON, J_OLSON, 1 /)
+    CALL NcRd( OLSON, fId, TRIM(v_name), st3d, ct3d )
+
+    ! Read the OLSON:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+    
+    ! Echo info to stdout
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    ENDIF
+
+    !----------------------------------------
+    ! VARIABLE: DXYP 
+    ! Convert from m2 to cm2; store as A_CM2 
+    !----------------------------------------
+    
+    ! Variable name
+    v_name = "DXYP"
+    
+    ! Read OLSON from file
+    st3d   = (/ 1,       1,       1 /)
+    ct3d   = (/ I_OLSON, J_OLSON, 1 /)
+    CALL NcRd( A_CM2, fId, TRIM(v_name), st3d, ct3d )
+    
+    ! Read the DXYP:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+    
+    ! Echo info to stdout
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    ENDIF
+
+    ! Convert from [m2] to [cm2]
+    A_CM2  = A_CM2 * 1e4
+
+    !=================================================================
+    ! Cleanup and quit
+    !=================================================================
+    
+    ! Close netCDF file
+    CALL NcCl( fId )
+    
+    ! Echo info to stdout
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 140 )
+       WRITE( 6, 100 ) REPEAT( '%', 79 )
+    ENDIF
+
+    ! FORMAT statements
+100 FORMAT( a                                              )
+110 FORMAT( '%% Opening file  : ',         a               )
+120 FORMAT( '%%  in directory : ',         a, / , '%%'     )
+130 FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
+140 FORMAT( '%% Successfully closed file!'                 )
+
+  END SUBROUTINE Init_Olson_LandMap
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -655,627 +1143,6 @@ CONTAINS
 
   END SUBROUTINE Compute_Olson_LandMap
 !EOC
-
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: compute_olson_landmap_gchp
-!
-! !DESCRIPTION: Subroutine COMPUTE\_OLSON\_LANDMAP\_GCHP computes the 
-!  GEOS-Chem State_Met variables that are dependent on the Olson Landmap, 
-!  specifically IREG, ILAND, IUSE, and FRCLND, using the Olson Landmap data
-!  regridded by ExtData in High Performance GEOS-Chem (GCHP).
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Compute_Olson_Landmap_GCHP( am_I_Root, State_Met, RC )
-!
-! !USES:
-!
-!    USE ESMF
-    USE GIGC_State_Met_Mod, ONLY : MetState
-!   use MAPL_mod
-
-!#include "MAPL_Generic.h"
-!#include "GIGCchem_GetPointer___.h"
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,         INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(MetState),  INTENT(INOUT) :: State_Met    ! Meteorology State object
-    INTEGER,         INTENT(INOUT) :: RC
-!
-! !REMARKS:
-!  This routine supplies arrays that are required for legacy code routines:
-!    (1) IREG, ILAND, and IUSE are used by the dry deposition routine DEPVEL
-!    (2) FRCLND is used by several GEOS-Chem modules
-! 
-!  The variables are defined as follows:
-!      State_Met%IREG(I,J)    : # of land types in horizontal grid cell (I,J)
-!      State_Met%ILAND(I,J,T) : Land type ID for land types T=1,IREG(I,J)
-!      State_Met%IUSE(I,J,T)  : Fraction area (per mil) occupied by land types
-!                               T=1,IREG(I,J) 
-!      State_Met%FRCLND(I,J)  : Fraction area occupied by land for cell (I,J)
-! 
-! !REVISION HISTORY: 
-!  27 Sep 2016 - E. Lundgren - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER :: I, J, T, STAT
-    INTEGER :: typeNum, sumIUse
-    REAL*4  :: sumFrac
-    INTEGER :: maxIuse(1)
-    
-    ! Arrays
-    REAL(fp) :: Olson_Landmap_GCHP(IIPAR, JJPAR, N_OLSON) 
-
-!    ! MAPL
-!    TYPE(ESMF_STATE), POINTER  :: IMPORT
-
-    !! State_Met pointers
-    !INTEGER,  POINTER :: IREG(:,:)
-    !INTEGER,  POINTER :: ILAND(:,:,:)
-    !INTEGER,  POINTER :: IUSE(:,:,:)
-    !REAL(fp), POINTER :: FRCLND(:,:)
-
-    ! Local generic pointers
-    REAL(fp), POINTER :: Ptr2D(:,:)
-    REAL(fp), POINTER :: Ptr3D(:,:)
-
-    !======================================================================
-    ! Initialize
-    !======================================================================
-
-    State_Met%IREG     = 0
-    State_Met%ILAND    = 0
-    State_Met%IUSE     = 0
-    State_Met%FRCLND   = 1e+3_fp
-!    IMPORT => NULL()
-    Ptr2D => NULL()
-    Ptr3D => NULL()
-
-    !! Testing (currently getting the ptr from map does not work
-    !! (instead, use state_met brute force way temporarily)
-    !! Need to point to import object, such as hcoState%IMPORT
-    !!IMPORT => HcoState%IMPORT
-    !ASSERT_(ASSOCIATED(IMPORT))
-    !call MAPL_GetPointer ( IMPORT, PTR2D,  'OLSON01', RC=STAT )
-    !! Check for MAPL error
-    !IF( STAT /= ESMF_SUCCESS ) THEN 
-    !   MSG = 'Cannot get xy pointer: ' // TRIM('OLSON01')
-    !   CALL GIGC_Error ( MSG, RC, 'Compute_Olson_Landmap_GCHP' ) 
-    !   RETURN
-    !ENDIF
-    !PRINT *, "Testing reading OLSON01"
-    !PRINT *, PTR2D(20,20)
-    !Ptr2D => NULL()
-    
-
-   ! !======================================================================
-   ! ! Read data from ESMF
-   ! !======================================================================
-   ! ! Point to ESMF IMPORT object
-   ! IMPORT => HcoState%IMPORT
-   ! IF ( .NOT. ASSOCIATED(IMPORT) ) RETURN 
-   ! 
-    ! Set Olson Landmap values (read/regridded via ExtData)
-    DO T = 1, N_OLSON
-
-       ! This is the goal:
-       !IF ( T < 10 ) THEN
-       !   varname = 'OLSON0' // T
-       !ELSE
-       !   varname = 'OLSON' // T
-       !ENDIF
-       !CALL MAPL_GetPointer( IMPORT, Ptr2D, TRIM(varname),  &
-       !                      notFoundOK=.TRUE., __RC__ )
-       !IF ( ASSOCIATED(Ptr2D) ) THEN
-       !   Olson_Landmap_GCHP(:,:,T) = Ptr2D(:,:)
-       !ENDIF
-
-
-       ! Instead, use really awful brute force way, purely for testing. 
-       ! replace with above once know how to get mapl ptr!
-       SELECT CASE ( T )
-          CASE( 1 )
-             Ptr2D => State_Met%OLSON01
-          CASE( 2 )
-             Ptr2D => State_Met%OLSON02
-          CASE( 3 )
-             Ptr2D => State_Met%OLSON03
-          CASE( 4 )
-             Ptr2D => State_Met%OLSON04
-          CASE( 5 )
-             Ptr2D => State_Met%OLSON05
-          CASE( 6 )
-             Ptr2D => State_Met%OLSON06
-          CASE( 7 )
-             Ptr2D => State_Met%OLSON07
-          CASE( 8 )
-             Ptr2D => State_Met%OLSON08
-          CASE( 9 )
-             Ptr2D => State_Met%OLSON09
-          CASE( 10 )
-             Ptr2D => State_Met%OLSON10
-          CASE( 11 )
-             Ptr2D => State_Met%OLSON11
-          CASE( 12 )
-             Ptr2D => State_Met%OLSON12
-          CASE( 13 )
-             Ptr2D => State_Met%OLSON13
-          CASE( 14 )
-             Ptr2D => State_Met%OLSON14
-          CASE( 15 )
-             Ptr2D => State_Met%OLSON15
-          CASE( 16 )
-             Ptr2D => State_Met%OLSON16
-          CASE( 17 )
-             Ptr2D => State_Met%OLSON17
-          CASE( 18 )
-             Ptr2D => State_Met%OLSON18
-          CASE( 19 )
-             Ptr2D => State_Met%OLSON19
-          CASE( 20 )
-             Ptr2D => State_Met%OLSON20
-          CASE( 21 )
-             Ptr2D => State_Met%OLSON21
-          CASE( 22 )
-             Ptr2D => State_Met%OLSON22
-          CASE( 23 )
-             Ptr2D => State_Met%OLSON23
-          CASE( 24 )
-             Ptr2D => State_Met%OLSON24
-          CASE( 25 )
-             Ptr2D => State_Met%OLSON25
-          CASE( 26 )
-             Ptr2D => State_Met%OLSON26
-          CASE( 27 )
-             Ptr2D => State_Met%OLSON27
-          CASE( 28 )
-             Ptr2D => State_Met%OLSON28
-          CASE( 29 )
-             Ptr2D => State_Met%OLSON29
-          CASE( 30 )
-             Ptr2D => State_Met%OLSON30
-          CASE( 31 )
-             Ptr2D => State_Met%OLSON31
-          CASE( 32 )
-             Ptr2D => State_Met%OLSON32
-          CASE( 33 )
-             Ptr2D => State_Met%OLSON33
-          CASE( 34 )
-             Ptr2D => State_Met%OLSON34
-          CASE( 35 )
-             Ptr2D => State_Met%OLSON35
-          CASE( 36 )
-             Ptr2D => State_Met%OLSON36
-          CASE( 37 )
-             Ptr2D => State_Met%OLSON37
-          CASE( 38 )
-             Ptr2D => State_Met%OLSON38
-          CASE( 39 )
-             Ptr2D => State_Met%OLSON39
-          CASE( 40 )
-             Ptr2D => State_Met%OLSON40
-          CASE( 41 )
-             Ptr2D => State_Met%OLSON41
-          CASE( 42 )
-             Ptr2D => State_Met%OLSON42
-          CASE( 43 )
-             Ptr2D => State_Met%OLSON43
-          CASE( 44 )
-             Ptr2D => State_Met%OLSON44
-          CASE( 45 )
-             Ptr2D => State_Met%OLSON45
-          CASE( 46 )
-             Ptr2D => State_Met%OLSON46
-          CASE( 47 )
-             Ptr2D => State_Met%OLSON47
-          CASE( 48 )
-             Ptr2D => State_Met%OLSON48
-          CASE( 49 )
-             Ptr2D => State_Met%OLSON49
-          CASE( 50 )
-             Ptr2D => State_Met%OLSON50
-          CASE( 51 )
-             Ptr2D => State_Met%OLSON51
-          CASE( 52 )
-             Ptr2D => State_Met%OLSON52
-          CASE( 53 )
-             Ptr2D => State_Met%OLSON53
-          CASE( 54 )
-             Ptr2D => State_Met%OLSON54
-          CASE( 55 )
-             Ptr2D => State_Met%OLSON55
-          CASE( 56 )
-             Ptr2D => State_Met%OLSON56
-          CASE( 57 )
-             Ptr2D => State_Met%OLSON57
-          CASE( 58 )
-             Ptr2D => State_Met%OLSON58
-          CASE( 59 )
-             Ptr2D => State_Met%OLSON59
-          CASE( 60 )
-             Ptr2D => State_Met%OLSON60
-          CASE( 61 )
-             Ptr2D => State_Met%OLSON61
-          CASE( 62 )
-             Ptr2D => State_Met%OLSON62
-          CASE( 63 )
-             Ptr2D => State_Met%OLSON63
-          CASE( 64 )
-             Ptr2D => State_Met%OLSON64
-          CASE( 65 )
-             Ptr2D => State_Met%OLSON65
-          CASE( 66 )
-             Ptr2D => State_Met%OLSON66
-          CASE( 67 )
-             Ptr2D => State_Met%OLSON67
-          CASE( 68 )
-             Ptr2D => State_Met%OLSON68
-          CASE( 69 )
-             Ptr2D => State_Met%OLSON69
-          CASE( 70 )
-             Ptr2D => State_Met%OLSON70
-          CASE( 71 )
-             Ptr2D => State_Met%OLSON71
-          CASE( 72 )
-             Ptr2D => State_Met%OLSON72
-          CASE( 73 )
-             Ptr2D => State_Met%OLSON73
-          CASE( 74 )
-             Ptr2D => State_Met%OLSON74
-
-       END SELECT
-       Olson_Landmap_GCHP(:,:,T) = Ptr2D(:,:)
-       Ptr2D => NULL()
-    ENDDO
-
-    !======================================================================
-    ! Loop over all GEOS-CHEM GRID BOXES and initialize variables
-    !======================================================================
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
-
-       typeNum = 0
-       sumFrac = 0e+0_fp
-       maxIUse = 0
-       sumIUse = 0
-
-       DO T = 1, N_OLSON
-          ! State_Met%FRCLND
-          ! Keep cumulative variable of FRCLND - fraction land
-          ! Loop over OLSON 3D array (I,J,T)
-          ! If type is not land, FRCLND = FRCLND - OLSON(I,J,T)
-          ! Q: is OLSON a decimal? If yes, multiply by 1000
-          ! however, might be complication if does not add up to 1000
-          ! since legacy code does round to force it do so.
-          ! Q: how do you know which are land?
-          ! Q: where should OLSON be put into 3D var? worth it?
-          
-          ! State_Met%IREG = # land types in this box
-          ! State_MET%ILAND = types in this box
-          ! State_Met%IUSE = fractional area (mil) per type in this box
-          ! loop over all land types T
-          IF ( Olson_Landmap_GCHP(I,J,T) > 0.0 ) THEN
-             typeNum = typeNum + 1
-             State_Met%IREG(I,J) = typeNum
-             State_Met%ILAND(I,J,typeNum) = T ! ok that it starts at 1?
-             State_Met%IUSE(I,J,typeNum) = Olson_Landmap_GCHP(I,J,T)
-             ! need to make IUSE be mil
-             sumFrac = sumFrac + State_Met%IUSE(I,J,typeNum)
-
-          ENDIF
-       ENDDO
-
-       ! this keeps a tally of the total
-       ! maxIUse, legacy, but need to add it back in for below use
-       ! Land type with the largest coverage in the GEOS-CHEM GRID BOX
-       maxIuse = MAXLOC(State_Met%IUSE(I, J, 1:State_Met%IREG(I,J)))
-       
-       ! Sum of all land types in the GEOS-CHEM GRID BOX (should be 1000)
-       sumIUse = SUM ( State_Met%IUSE(I, J, 1:State_Met%IREG(I,J)))
-
-       ! Make sure everything adds up to 1000.  If not, then adjust
-       ! the land type w/ the largest coverage accordingly.
-       ! This follows the algorithm from "regridh_lai.pro".
-       IF ( sumIUse /= 1000 ) THEN
-          State_Met%IUSE(I,J,maxIUse) = State_Met%IUSE(I,J,maxIUse) &
-                                        + ( 1000 - sumIUse )
-       ENDIF
-       
-       ! Loop over land types in the GEOS-CHEM GRID BOX
-       DO T = 1, State_Met%IREG(I,J)
-       
-          ! If the current Olson land type is water (type 0),
-          ! subtract the coverage fraction (State_Met%IUSE) from FRCLND.
-          ! This can't be done in the earlier loop since the fraction
-          ! might have been rounded, and that can't happen until
-          ! after all of them are done being tracked since only the
-          ! largest one is rounded.
-          IF ( State_Met%ILAND(I,J,T) == 0 ) THEN
-             State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J)   &
-                                     - State_Met%IUSE(I,J,T)
-          ENDIF
-       ENDDO
-       
-       ! Normalize FRCLND into the range of 0-1
-       ! NOTE: Use REAL*4 for backwards compatibility w/ existing code!
-       State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J) / 1000e0
-
-    ENDDO
-    ENDDO
-
-! UNCOMMENT FOR COMPARISON WITH CLASSIC
-! Save code here for debugging
-    do J = 1, JJPAR
-    do I = 1, IIPAR
-       write( 800, '(2i5, f13.6)' ) I, J, state_Met%FRCLND(I,J)
-       write( 810, '(25i4)'       ) I, J, State_Met%IREG(I,J),       &
-                ( State_Met%ILAND(I,J,T), T=1,State_Met%IREG(I,J) ), &
-                ( State_Met%IUSE(I,J,T), T=1,State_Met%IREG(I,J) )
-    enddo
-    enddo
-
-  END SUBROUTINE Compute_Olson_Landmap_GCHP
-!EOC
-#endif
-
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_olson_landmap
-!
-! !DESCRIPTION: Subroutine INIT\_OLSON\_LANDMAP reads Olson land map 
-! information from disk (in netCDF format).
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Init_Olson_LandMap( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE m_netcdf_io_open
-    USE m_netcdf_io_read
-    USE m_netcdf_io_readattr
-    USE m_netcdf_io_close
-    
-    IMPLICIT NONE
-    
-#   include "netcdf.inc"
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  Assumes that you have:
-!  (1) A netCDF library (either v3 or v4) installed on your system
-!  (2) The NcdfUtilities package (from Bob Yantosca) source code
-!
-! !REVISION HISTORY:
-!  13 Mar 2012 - R. Yantosca - Initial version
-!  22 Mar 2012 - R. Yantosca - Also read in surface areas [m2] from file
-!  27 Mar 2012 - R. Yantosca - Now read the "units" attribute of each variable
-!  27 Mar 2012 - R. Yantosca - Now echo file I/O status info to stdout
-!  27 Mar 2012 - R. Yantosca - Now can read Olson 1992 or Olson 2001 land map
-!  29 Nov 2012 - R. Yantosca - Add am_I_Root to the argument list
-!  26 Feb 2013 - M. Long     - Now pass DATA_DIR_1x1 via the argument list
-!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt, RC via the arg list
-!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    !======================================================================
-    ! Variable declarations
-    !======================================================================
-    
-    ! Scalars
-    INTEGER            :: I, J               ! Loop indices
-    INTEGER            :: fId                ! netCDF file ID
-    INTEGER            :: as                 ! Allocation status
-    
-    ! Character strings
-    CHARACTER(LEN=255) :: nc_dir             ! netCDF directory name
-    CHARACTER(LEN=255) :: nc_file            ! netCDF file name
-    CHARACTER(LEN=255) :: nc_path            ! netCDF path name
-    CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
-    CHARACTER(LEN=255) :: a_name             ! netCDF attribute name
-    CHARACTER(LEN=255) :: a_val              ! netCDF attribute value
-     
-    ! Arrays for netCDF start and count values
-    INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays    
-    INTEGER            :: st3d(3), ct3d(3)   ! For 3D arrays 
-     
-    !======================================================================
-    ! Initialize variables
-    !======================================================================
-    IF ( Input_Opt%USE_OLSON_2001 ) THEN
-
-       !--------------------------------
-       ! Settings for Olson 2001 grid
-       !--------------------------------
-       I_OLSON = 1440                                     ! # lons (0.25x0.25)
-       J_OLSON = 720                                      ! # lats (0.25x0.25)
-       N_OLSON = 74                                       ! # of land types
-       D_LON   = 0.25e+0_fp                                   ! Delta lon [degrees]
-       D_LAT   = 0.25e+0_fp                                   ! Delta lat [degrees]
-       nc_file = 'Olson_2001_Land_Map.025x025.generic.nc' ! Input file name
-
-    ELSE
-
-       !--------------------------------
-       ! Settings for Olson 1992 grid
-       !--------------------------------
-       I_OLSON = 720                                      ! # lons (0.5x0.5)
-       J_OLSON = 360                                      ! # lats (0.5x0.5)
-       N_OLSON = 74                                       ! # of land types
-       D_LON   = 0.5e+0_fp                                    ! Delta lon [degrees]
-       D_LAT   = 0.5e+0_fp                                    ! Delta lat [degrees]
-       nc_file = 'Olson_1992_Land_Map.05x05.generic.nc'   ! Input file name
-
-    ENDIF
-
-    ! Allocate arrays
-    ALLOCATE( lon  ( I_OLSON             ), STAT=as )  
-    ALLOCATE( lat  ( J_OLSON             ), STAT=as )
-    ALLOCATE( OLSON( I_OLSON, J_OLSON, 1 ), STAT=as ) 
-    ALLOCATE( A_CM2( I_OLSON, J_OLSON, 1 ), STAT=as )
-
-    !======================================================================
-    ! Open and read data from the netCDF file
-    !======================================================================
-
-    ! Construct file path from directory & file name
-    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'Olson_Land_Map_201203/'
-    nc_path = TRIM( nc_dir )                    // TRIM( nc_file )
-
-    ! Open file for read
-    CALL Ncop_Rd( fId, TRIM(nc_path) )
-     
-    ! Echo info to stdout
-    IF ( am_I_Root ) THEN
-       WRITE( 6, 100 ) REPEAT( '%', 79 )
-       WRITE( 6, 110 ) TRIM(nc_file)
-       WRITE( 6, 120 ) TRIM(nc_dir)
-    ENDIF
-
-    !----------------------------------------
-    ! VARIABLE: lon
-    !----------------------------------------
-     
-    ! Variable name
-    v_name = "lon"
-    
-    ! Read lon from file
-    st1d   = (/ 1       /)
-    ct1d   = (/ I_OLSON /)
-    CALL NcRd( lon, fId, TRIM(v_name), st1d, ct1d )
- 
-    ! Read the lon:units attribute
-    a_name = "units"
-    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-    
-    ! Echo info to stdout
-    IF ( am_I_Root ) THEN
-       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)     
-    ENDIF
-
-    !----------------------------------------
-    ! VARIABLE: lat
-    !----------------------------------------
-    
-    ! Variable name
-    v_name = "lat"
-    
-    ! Read lat from file
-    st1d   = (/ 1       /)
-    ct1d   = (/ J_OLSON /)
-    CALL NcRd( lat, fId, TRIM(v_name), st1d, ct1d )
-     
-    ! Read the lat:units attribute
-    a_name = "units"
-    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-    
-    ! Echo info to stdout
-    IF ( am_I_Root ) THEN
-       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
-    ENDIF
-
-    !----------------------------------------
-    ! VARIABLE: OLSON
-    !----------------------------------------
-    
-    ! Variable name
-    v_name = "OLSON"
-    
-    ! Read OLSON from file
-    st3d   = (/ 1,       1,       1 /)
-    ct3d   = (/ I_OLSON, J_OLSON, 1 /)
-    CALL NcRd( OLSON, fId, TRIM(v_name), st3d, ct3d )
-
-    ! Read the OLSON:units attribute
-    a_name = "units"
-    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-    
-    ! Echo info to stdout
-    IF ( am_I_Root ) THEN
-       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
-    ENDIF
-
-    !----------------------------------------
-    ! VARIABLE: DXYP 
-    ! Convert from m2 to cm2; store as A_CM2 
-    !----------------------------------------
-    
-    ! Variable name
-    v_name = "DXYP"
-    
-    ! Read OLSON from file
-    st3d   = (/ 1,       1,       1 /)
-    ct3d   = (/ I_OLSON, J_OLSON, 1 /)
-    CALL NcRd( A_CM2, fId, TRIM(v_name), st3d, ct3d )
-    
-    ! Read the DXYP:units attribute
-    a_name = "units"
-    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-    
-    ! Echo info to stdout
-    IF ( am_I_Root ) THEN
-       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
-    ENDIF
-
-    ! Convert from [m2] to [cm2]
-    A_CM2  = A_CM2 * 1e4
-
-    !=================================================================
-    ! Cleanup and quit
-    !=================================================================
-    
-    ! Close netCDF file
-    CALL NcCl( fId )
-    
-    ! Echo info to stdout
-    IF ( am_I_Root ) THEN
-       WRITE( 6, 140 )
-       WRITE( 6, 100 ) REPEAT( '%', 79 )
-    ENDIF
-
-    ! FORMAT statements
-100 FORMAT( a                                              )
-110 FORMAT( '%% Opening file  : ',         a               )
-120 FORMAT( '%%  in directory : ',         a, / , '%%'     )
-130 FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
-140 FORMAT( '%% Successfully closed file!'                 )
-
-  END SUBROUTINE Init_Olson_LandMap
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1308,4 +1175,5 @@ CONTAINS
 
   END SUBROUTINE Cleanup_Olson_LandMap
 !EOC
+!#endif
 END MODULE Olson_LandMap_Mod
