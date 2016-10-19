@@ -231,7 +231,6 @@ CONTAINS
 !
     USE GIGC_ErrCode_Mod
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE Olson_LandMap_Mod,  ONLY : N_OLSON
 !
 ! !INPUT PARAMETERS:
 !

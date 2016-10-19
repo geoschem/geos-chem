@@ -812,7 +812,7 @@ mixing_mod.o                : mixing_mod.F90                                 \
                               vdiff_mod.o                                    
 
 modis_lai_mod.o             : modis_lai_mod.F90                              \
-                              mapping_mod.o           olson_landmap_mod.o
+                              mapping_mod.o
 
 nc_soilnox_read.o           : nc_soilnox_read.F90
 
