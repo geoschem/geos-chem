@@ -618,6 +618,9 @@
       TOTIT          = 0.e+0_fp
       TELAPS         = 0.e+0_fp
       RMSERR         = 0.e+0_fp
+!#BMY KLUDGE
+      TIME           = 0.0_fp
+      TSPMIDC        = 0.0_fp
 !
       MB1            = 1 
       MB2            = 2 

@@ -352,6 +352,7 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
 !                              Remove dependency on pressure_mod.
 !  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
+!  20 Oct 2016 - R. Yantosca  - Only print out debug output on the root CPU
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -514,7 +515,7 @@
         IF ( FIRST ) FIRST = .FALSE.
       ENDIF
 
-      IF (LPRT) CALL DEBUG_MSG('SEASALT: STARTING WET_SETTLING')
+      IF ( prtDebug ) CALL DEBUG_MSG('SEASALT: STARTING WET_SETTLING')
 
       ! Sea salt radius [cm]
       !RCM  = REFF * 100e+0_fp  
@@ -784,7 +785,7 @@
       ENDIF
 #endif
 
-      IF (LPRT) CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
+      IF ( prtDebug ) CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
       END SUBROUTINE WET_SETTLING
 !EOC
 !------------------------------------------------------------------------------

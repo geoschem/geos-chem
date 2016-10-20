@@ -1933,6 +1933,7 @@ contains
 !  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO 
 !                              diagnostics.
 !  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
+!  20 Oct 2016 - R. Yantosca - Only write eflx/dflx debug on the root CPU
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2541,12 +2542,15 @@ contains
 !$OMP END PARALLEL DO
 
 #if defined( DEBUG )
-    write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
-    do N=1,N_TRACERS
-       write(*,*) 'eflx TRACER ', N, ': ', SUM(eflx(:,:,N))
-       write(*,*) 'dflx TRACER ', N, ': ', SUM(dflx(:,:,N))
-!       write(*,*) 'eflx TRACER ', N, ': ', MINVAL(eflx(:,:,N)), MAXVAL(eflx(:,:,N))
-    enddo
+    ! Only put debug output on the root CPU (bmy, 10/20/16)
+    IF ( am_I_Root ) THEN
+       write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
+       do N=1,N_TRACERS
+          write(*,*) 'eflx TRACER ', N, ': ', SUM(eflx(:,:,N))
+          write(*,*) 'dflx TRACER ', N, ': ', SUM(dflx(:,:,N))
+!         write(*,*) 'eflx TRACER ', N, ': ', MINVAL(eflx(:,:,N)), MAXVAL(eflx(:,:,N))
+       enddo
+    ENDIF
 #endif
 
     ! Write (surface) emissions into diagnostics

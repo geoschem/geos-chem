@@ -180,6 +180,7 @@
 !                               derived type object
 !  25 Mar 2013 - M. Payer     - Now pass State_Chm object via the arg list
 !  23 Sep 2014 - M. Sulprizio - Now get HNO3 for offline aerosol sim from HEMCO
+!  20 Oct 2016 - R. Yantosca  - Only print out debug output on the root CPU
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -252,7 +253,7 @@
       aIR                  = am_I_Root
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LPRT                 = Input_Opt%LPRT  
+      LPRT                 = ( Input_Opt%LPRT .and. am_I_Root )
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
 
