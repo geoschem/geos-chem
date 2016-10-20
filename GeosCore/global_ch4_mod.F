@@ -344,10 +344,10 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD58
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, GetHcoDiagn
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
@@ -425,7 +425,6 @@
       LOGICAL                  :: ITS_A_FULLCHEM_SIM
 
       ! Pointers
-      TYPE(HCO_State), POINTER :: HcoState   => NULL()
       REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
 
       !=================================================================
@@ -444,7 +443,6 @@
       ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
 
       ! Import emissions from HEMCO (through HEMCO state)
-      CALL GetHcoState( HcoState )
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not defined!', LOC )
       ENDIF
@@ -612,22 +610,22 @@
       CH4_EMIS(:,:,1) = SUM(CH4_EMIS, 3) - (2 * CH4_EMIS(:,:,11))
 
       ! testing only
-      write(*,*) 'CH4_EMIS (kg/m2/s):'
-      write(*,*) '1 : ', SUM(CH4_EMIS(:,:,1))
-      write(*,*) '2 : ', SUM(CH4_EMIS(:,:,2))
-      write(*,*) '3 : ', SUM(CH4_EMIS(:,:,3))
-      write(*,*) '4 : ', SUM(CH4_EMIS(:,:,4))
-      write(*,*) '5 : ', SUM(CH4_EMIS(:,:,5))
-      write(*,*) '6 : ', SUM(CH4_EMIS(:,:,6))
-      write(*,*) '7 : ', SUM(CH4_EMIS(:,:,7))
-      write(*,*) '8 : ', SUM(CH4_EMIS(:,:,8))
-      write(*,*) '9 : ', SUM(CH4_EMIS(:,:,9))
-      write(*,*) '10: ', SUM(CH4_EMIS(:,:,10))
-      write(*,*) '11: ', SUM(CH4_EMIS(:,:,11))
-      write(*,*) '12: ', SUM(CH4_EMIS(:,:,12))
+!      write(*,*) 'CH4_EMIS (kg/m2/s):'
+!      write(*,*) '1 : ', SUM(CH4_EMIS(:,:,1))
+!      write(*,*) '2 : ', SUM(CH4_EMIS(:,:,2))
+!      write(*,*) '3 : ', SUM(CH4_EMIS(:,:,3))
+!      write(*,*) '4 : ', SUM(CH4_EMIS(:,:,4))
+!      write(*,*) '5 : ', SUM(CH4_EMIS(:,:,5))
+!      write(*,*) '6 : ', SUM(CH4_EMIS(:,:,6))
+!      write(*,*) '7 : ', SUM(CH4_EMIS(:,:,7))
+!      write(*,*) '8 : ', SUM(CH4_EMIS(:,:,8))
+!      write(*,*) '9 : ', SUM(CH4_EMIS(:,:,9))
+!      write(*,*) '10: ', SUM(CH4_EMIS(:,:,10))
+!      write(*,*) '11: ', SUM(CH4_EMIS(:,:,11))
+!      write(*,*) '12: ', SUM(CH4_EMIS(:,:,12))
 !      write(*,*) 'rice 55,29: ',ch4_emis(55,29,7)
 !      write(*,*) 'wetl 55,29: ',ch4_emis(55,29,10)
-
+ 
       ! =================================================================
       ! Modify the chemical species array with emissions rates. 
       ! (kjw, 5/29/09)
@@ -870,6 +868,7 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -976,10 +975,6 @@
       !=================================================================
       WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
 
-      ! testing only
-      WRITE(*,*) 'Total species before chemistry: ',
-     &            SUM(State_Chm%Species)
-
       ! Assume success
       RC      = GC_SUCCESS
 
@@ -1020,7 +1015,7 @@
 
          ! Import CH4 loss frequencies from HEMCO. The target will be 
          ! updated automatically by HEMCO (ckeller, 9/16/2014)
-         CALL HCO_GetPtr( am_I_Root, 'CH4_LOSS', CH4LOSS, RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_LOSS', CH4LOSS, RC )
          IF ( RC /= HCO_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to CH4_LOSS', LOC )
 
@@ -1037,7 +1032,7 @@
       ! automatically by HEMCO (ckeller, 9/16/2014)
       !================================================================
       IF ( FIRSTCHEM ) THEN
-         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', BOH, RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', BOH, RC )
          IF ( RC /= HCO_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
       ENDIF
@@ -1148,9 +1143,6 @@
 
       print*,'END CHEMCH4'
       call flush(6)
-
-      ! testing only
-      write(*,*)'Total species after chemistry: ',SUM(State_Chm%Species)
 
       ! Free pointer
       Spc => NULL()

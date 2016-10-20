@@ -35,7 +35,8 @@
 MODULE HCOI_GC_Diagn_Mod
 !
 ! !USES:
-! 
+!
+  ! GEOS-Chem diagnostic switches and arrays
   USE CMN_SIZE_Mod
   USE CMN_DIAG_Mod
   USE DIAG_Mod
@@ -43,6 +44,7 @@ MODULE HCOI_GC_Diagn_Mod
   USE DIAG56_Mod
   USE HCO_Diagn_Mod
   USE HCO_Error_Mod
+  USE HCO_Interface_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -75,6 +77,7 @@ MODULE HCOI_GC_Diagn_Mod
 !  23 Sep 2014 - C. Keller   - Added Hg diagnostics
 !  11 Nov 2014 - C. Keller   - Added call to ESMF diagnostics.
 !  22 Apr 2015 - M. Sulprizio- Now save out hydrocarbons in units kgC/m2/s
+!  27 Feb 2016 - C. Keller   - Update to HEMCO v2.0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -380,7 +383,7 @@ CONTAINS
                                     LevIDx    = -1,                     &
                                     OutUnit   = TRIM(Unit),             &
                                     AutoFill  = 1,                      &
-                                    COL       = HcoDiagnIDDefault,      &
+                                    COL       = HcoState%Diagn%HcoDiagnIDDefault,      &
                                     RC        = RC                       ) 
                 IF ( RC /= HCO_SUCCESS ) RETURN
              ENDIF
@@ -438,7 +441,7 @@ CONTAINS
                                        LevIDx    = -1,                &
                                        OutUnit   = 'kg/m2/s',         & 
                                        AutoFill  = 1,                 &
-                                       COL       = HcoDiagnIDDefault, &
+                                       COL       = HcoState%Diagn%HcoDiagnIDDefault, &
                                        RC        = RC ) 
                    IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -520,7 +523,7 @@ CONTAINS
     IF ( ExtState%GC_RnPbBe .and. ( ND01 > 0 ) ) THEN
 
        ! HEMCO extension # for Rn-Pb-Be
-       ExtNr = GetExtNr( 'GC_Rn-Pb-Be' )
+       ExtNr = GetExtNr( HcoState%Config%ExtList, 'GC_Rn-Pb-Be' )
        IF ( ExtNr <= 0 ) THEN
           CALL HCO_Error ( 'Cannot find Rn-Pb-Be extension', RC, THISLOC=LOC )
           RETURN      
@@ -547,7 +550,7 @@ CONTAINS
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/s',            &
                           AutoFill  = 1,                 &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -571,7 +574,7 @@ CONTAINS
                           SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/s',            &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -652,8 +655,8 @@ CONTAINS
          ( ND06 > 0                                   ) ) THEN
 
        ! Get Ext. Nr of used extension
-       ExtNr = GetExtNr( 'DustDead' )
-       IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'DustGinoux' )
+       ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustDead' )
+       IF ( ExtNr <= 0 ) ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustGinoux' )
        IF ( ExtNr <= 0 ) THEN
           CALL HCO_Error( 'Cannot find dust extension', RC, THISLOC=LOC )
           RETURN      
@@ -697,7 +700,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg',              &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -708,7 +711,7 @@ CONTAINS
        IF ( Input_Opt%LDSTUP ) THEN
 
           ! Get Ext. Nr of used extension
-          ExtNr = GetExtNr( 'DustAlk' )
+          ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustAlk' )
           IF ( ExtNr <= 0 ) THEN
              CALL HCO_Error( 'Cannot find dust alk extension', RC, &
                               THISLOC=LOC )
@@ -738,7 +741,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg',              &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -872,7 +875,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -954,7 +957,7 @@ CONTAINS
     IF ( ND08 > 0 .AND. Input_Opt%LSSALT .AND. ExtState%SeaSalt ) THEN
 
        ! Get HEMCO extension # for SeaSalt
-       ExtNrSS = GetExtNr( 'SeaSalt' )
+       ExtNrSS = GetExtNr( HcoState%Config%ExtList, 'SeaSalt' )
        IF ( ExtNrSS <= 0 ) THEN
           CALL HCO_Error( 'Cannot find extension SeaSalt', RC, THISLOC=LOC )
           RETURN
@@ -963,7 +966,7 @@ CONTAINS
        ! Get HEMCO extension # for marine organic aerosols and
        ! set number of seasalt tracers
        IF ( Input_Opt%LMPOA ) THEN
-          ExtNrMPOA = GetExtNr( 'MarinePOA' )
+          ExtNrMPOA = GetExtNr( HcoState%Config%ExtList, 'MarinePOA' )
           IF ( ExtNrMPOA <= 0 ) THEN
              CALL HCO_Error( 'Cannot find extension MarinePOA', RC,  &
                              THISLOC=LOC )
@@ -1012,7 +1015,7 @@ CONTAINS
                               SpaceDim  = 2,                 &
                               LevIDx    = -1,                &
                               OutUnit   = 'kg',              &
-                              COL       = HcoDiagnIDManual,  &
+                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                               AutoFill  = 1,                 &
                               RC        = RC                  ) 
 
@@ -1092,7 +1095,7 @@ CONTAINS
     IF ( ND11 > 0 .OR. ND46 > 0 ) THEN 
 
        ! Get extension # for SeaFlux 
-       ExtNr = GetExtNr( 'SeaFlux' )
+       ExtNr = GetExtNr( HcoState%Config%ExtList, 'SeaFlux' )
 
        IF ( ExtNr <= 0 ) THEN
 
@@ -1117,7 +1120,7 @@ CONTAINS
                               SpaceDim  = 2,                 &
                               LevIDx    = -1,                &
                               OutUnit   = 'kgC/m2/s',         &
-                              COL       = HcoDiagnIDManual,  &
+                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                               AutoFill  = 1,                 &
                               RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1207,7 +1210,7 @@ CONTAINS
        !-------------------------------------------
 
        ! HEMCO extension # for SeaFlux
-       ExtNr = GetExtNr( 'SeaFlux' )
+       ExtNr = GetExtNr( HcoState%Config%ExtList, 'SeaFlux' )
 
        IF ( ExtNr <= 0 ) THEN
 
@@ -1234,7 +1237,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg',              &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1261,7 +1264,7 @@ CONTAINS
                           SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg',              &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1278,7 +1281,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg',              &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1295,7 +1298,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg',              &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1312,7 +1315,7 @@ CONTAINS
                           SpaceDim  = 3,                       &
                           LevIDx    = -1,                      &
                           OutUnit   = 'kg',                    &
-                          COL       = HcoDiagnIDManual,        &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,        &
                           AutoFill  = 1,                       &
                           RC        = RC                        )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1329,7 +1332,7 @@ CONTAINS
                           SpaceDim  = 3,                       &
                           LevIDx    = -1,                      &
                           OutUnit   = 'kg',                    &
-                          COL       = HcoDiagnIDManual,        &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,        &
                           AutoFill  = 1,                       &
                           RC        = RC                        )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1346,7 +1349,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg',              &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1372,7 +1375,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg',              &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1390,7 +1393,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg',              &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1408,7 +1411,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg',              &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1434,7 +1437,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg',              &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1452,7 +1455,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg',              &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1540,8 +1543,8 @@ CONTAINS
     ! First test if GFED is used.  If not, then test if FINN is used.
     ! If not, then use extension # 0 and the default biomass category.
     Cat   = -1
-    ExtNr = GetExtNr( 'GFED' )
-    IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
+    ExtNr = GetExtNr( HcoState%Config%ExtList, 'GFED' )
+    IF ( ExtNr <= 0 ) ExtNr = GetExtNr( HcoState%Config%ExtList, 'FINN' )
     IF ( ExtNr <= 0 ) THEN
        ExtNr = 0
        Cat   = CATEGORY_BIOMASS
@@ -1570,7 +1573,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1596,7 +1599,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1622,7 +1625,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1648,7 +1651,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1674,7 +1677,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1700,7 +1703,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1726,7 +1729,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1751,7 +1754,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1773,7 +1776,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1800,7 +1803,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1836,7 +1839,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1862,7 +1865,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1883,7 +1886,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1909,7 +1912,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1930,7 +1933,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1996,7 +1999,7 @@ CONTAINS
                                    SpaceDim  = 2,                   &
                                    LevIDx    = -1,                  &
                                    OutUnit   = 'kg/m2/s',           &
-                                   COL       = HcoDiagnIDManual,    &
+                                   COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                    AutoFill  = 1,                   &
                                    RC        = RC                  ) 
              ENDIF
@@ -2028,7 +2031,7 @@ CONTAINS
                              SpaceDim  = 2,               &
                              LevIDx    = -1,              &
                              OutUnit   = 'kg/m2/s',       &
-                             COL       = HcoDiagnIDManual,&
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,&
                              AutoFill  = 1,               &
                              RC        = RC                ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2055,7 +2058,7 @@ CONTAINS
                           SpaceDim  = 2,               &
                           LevIDx    = -1,              &
                           OutUnit   = 'kg/m2/s',       &
-                          COL       = HcoDiagnIDManual,&
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,&
                           AutoFill  = 1,               &
                           RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2154,7 +2157,7 @@ CONTAINS
                           SpaceDim  = 3,                  &
                           LevIDx    = -1,                 &
                           OutUnit   = 'kg/m2/s',          &
-                          COL       = HcoDiagnIDManual,   &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,   &
                           AutoFill  = 1,                  &
                           RC        = RC                   )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -2167,7 +2170,7 @@ CONTAINS
        !     SHIP_NO from ParaNOx is defined in ND63.
        !----------------------------------------------
        Cat   = -1
-       ExtNr = GetExtNr( 'ParaNOx' )
+       ExtNr = GetExtNr( HcoState%Config%ExtList, 'ParaNOx' )
    
        IF ( ExtNr <= 0 ) THEN
           ExtNr     = 0
@@ -2183,7 +2186,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -2195,7 +2198,7 @@ CONTAINS
        ! ==> Only define if LightNox is turned on
        !----------------------------------------------
        Cat   = -1
-       ExtNr = GetExtNr('LightNOx')
+       ExtNr = GetExtNr( HcoState%Config%ExtList, 'LightNOx')
        IF ( ExtNr > 0 ) THEN
           DiagnName = 'LIGHTNING_NO'
           CALL Diagn_Create( am_I_Root,                     & 
@@ -2208,7 +2211,7 @@ CONTAINS
                              SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -2221,7 +2224,7 @@ CONTAINS
        ! ==> Only define if SoilNox is turned on
        !----------------------------------------------
        Cat   = -1
-       ExtNr = GetExtNr('SoilNOx')
+       ExtNr = GetExtNr( HcoState%Config%ExtList, 'SoilNOx')
        IF ( ExtNr > 0 ) THEN
    
           ! %%%%%% Soil NO %%%%%%
@@ -2236,13 +2239,14 @@ CONTAINS
                               SpaceDim  = 2,                 &
                               LevIDx    = -1,                &
                               OutUnit   = 'kg/m2/s',         &
-                              COL       = HcoDiagnIDManual,  &
+                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                               AutoFill  = 1,                 &
                               RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN 
    
           ! %%%%%% Fertilizer NO %%%%%%
-          CALL GetExtOpt( ExtNr, 'Use fertilizer NOx', OptValBool=YesOrNo, RC=RC )
+          CALL GetExtOpt( HcoState%Config, ExtNr, &
+             'Use fertilizer NOx', OptValBool=YesOrNo, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
    
 !----------------------------------------------------------------------------
@@ -2266,7 +2270,7 @@ CONTAINS
                               SpaceDim  = 2,                 &
                               LevIDx    = -1,                &
                               OutUnit   = 'kg/m2/s',         &
-                              COL       = HcoDiagnIDManual,  &
+                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                               AutoFill  = 0,                 &
                               RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -2406,7 +2410,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = TRIM(Unit),        &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2438,7 +2442,7 @@ CONTAINS
                             SpaceDim  = 2,                 &
                             LevIDx    = -1,                &
                             OutUnit   = 'kg/m2/s',         &
-                            COL       = HcoDiagnIDManual,  &
+                            COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                             AutoFill  = 1,                 &
                             RC        = RC                  ) 
          IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2470,7 +2474,7 @@ CONTAINS
                             SpaceDim  = 2,                 &
                             LevIDx    = -1,                &
                             OutUnit   = 'kg/m2/s',         &
-                            COL       = HcoDiagnIDManual,  &
+                            COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                             AutoFill  = 1,                 &
                             RC        = RC                  ) 
          IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2589,7 +2593,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2614,7 +2618,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2639,7 +2643,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2664,7 +2668,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2689,7 +2693,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2714,7 +2718,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2739,7 +2743,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2764,7 +2768,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2794,7 +2798,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2874,7 +2878,7 @@ CONTAINS
                                    SpaceDim  = 2,                         &
                                    LevIDx    = -1,                        &
                                    OutUnit   = 'kg/m2/s',                 &
-                                   COL       = HcoDiagnIDManual,          &
+                                   COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                    AutoFill  = 1,                         &
                                    RC        = RC                        ) 
 
@@ -2889,7 +2893,7 @@ CONTAINS
                                    SpaceDim  = 2,                         &
                                    LevIDx    = -1,                        &
                                    OutUnit   = 'kg/m2/s',                 &
-                                   COL       = HcoDiagnIDManual,          &
+                                   COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                    AutoFill  = 1,                         &
                                    RC        = RC                        ) 
 
@@ -2906,7 +2910,7 @@ CONTAINS
                                       SpaceDim  = 2,                      &
                                       LevIDx    = -1,                     &
                                       OutUnit   = 'kg/m2/s',              &
-                                      COL       = HcoDiagnIDManual,       &
+                                      COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                       AutoFill  = 1,                      &
                                       RC        = RC                     ) 
                 ENDIF
@@ -2922,7 +2926,7 @@ CONTAINS
                                    SpaceDim  = 2,                         &
                                    LevIDx    = -1,                        &
                                    OutUnit   = 'kg/m2/s',                 &
-                                   COL       = HcoDiagnIDManual,          &
+                                   COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                    AutoFill  = 1,                         &
                                    RC        = RC                        ) 
 
@@ -3017,7 +3021,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_TAGO3_SIM   ) RETURN
 
     ! Extension and category #'s for MEGAN
-    ExtNr = GetExtNr('MEGAN')
+    ExtNr = GetExtNr( HcoState%Config%ExtList, 'MEGAN')
     Cat   = -1
 
     ! Make sure MEGAN is on if ND46 is used
@@ -3053,7 +3057,7 @@ CONTAINS
                                  SpaceDim  = 2,                 &
                                  LevIDx    = -1,                &
                                  OutUnit   = 'kgC/m2/s',        &
-                                 COL       = HcoDiagnIDManual,  &
+                                 COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                  AutoFill  = 1,                 &
                                  RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3079,7 +3083,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kgC/m2/s',        &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3105,7 +3109,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kgC/m2/s',        &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3131,7 +3135,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kgC/m2/s',        &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3159,7 +3163,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3187,7 +3191,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3227,7 +3231,7 @@ CONTAINS
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
                                 OutOper   = 'Mean',            &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -3258,7 +3262,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kgC/m2/s',        &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3296,7 +3300,7 @@ CONTAINS
                                    SpaceDim  = 2,                 &
                                    LevIDx    = -1,                &
                                    OutUnit   = 'kgC/m2/s',        &
-                                   COL       = HcoDiagnIDManual,  &
+                                   COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                    AutoFill  = 0,                 &
                                    RC        = RC                  ) 
                 IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -3310,7 +3314,7 @@ CONTAINS
     !=======================================================================
 
     ! Extension # of MEGAN monoterpenes
-    ExtNr = GetExtNr('MEGAN_Mono')
+    ExtNr = GetExtNr( HcoState%Config%ExtList, 'MEGAN_Mono')
     IF ( ExtNr > 0 ) THEN
 
        !%%% For ND46 diagnostic %%%
@@ -3377,7 +3381,7 @@ CONTAINS
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
                                 OutOper   = 'Mean',            &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -3408,7 +3412,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3438,7 +3442,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -3453,14 +3457,15 @@ CONTAINS
            Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
 
        ! Extension # of SeaSalt
-       ExtNr = GetExtNr('SeaSalt')
+       ExtNr = GetExtNr( HcoState%Config%ExtList, 'SeaSalt')
        IF ( ExtNr <= 0 ) THEN
           CALL HCO_Error ( 'SeaSalt extension not enabled', RC, THISLOC=LOC )
           RETURN      
        ENDIF
 
        ! Find out if SeaSalt Br2 is enabled
-       CALL GetExtOpt ( ExtNr, 'Emit Br2', OptValBool=YesOrNo, RC=RC )
+       CALL GetExtOpt ( HcoState%Config, ExtNr, &
+                       'Emit Br2', OptValBool=YesOrNo, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Only save out SeaSalt Br2 diagnostic if the Br2 option is enabled
@@ -3486,7 +3491,7 @@ CONTAINS
                                 SpaceDim  = 2,                &
                                 LevIDx    = -1,               &
                                 OutUnit   = 'kg/m2/s',        &
-                                COL       = HcoDiagnIDManual, &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual, &
                                 AutoFill  = 1,                &
                                 RC        = RC                 ) 
              IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -3571,7 +3576,7 @@ CONTAINS
     IF ( Input_Opt%ND56 > 0 ) THEN
 
        ! Extension number
-       ExtNr = GetExtNr('LightNOx')
+       ExtNr = GetExtNr( HcoState%Config%ExtList, 'LightNOx')
 
        ! Exit if LightNOx is not turned on - the lightning NOx extension
        ! must be enabled in the HEMCO configuration file.
@@ -3590,9 +3595,9 @@ CONTAINS
        ! manual collection and the diagnostics will be written to the
        ! bpch file in diag3.F.
 #if defined( NC_DIAG )
-       COL = HcoDiagnIDDefault
+       COL = HcoState%Diagn%HcoDiagnIDDefault
 #else
-       COL = HcoDiagnIDManual
+       COL = HcoState%Diagn%HcoDiagnIDManual
 #endif
 
        ! Loop over lighthing flash quantities
@@ -3723,7 +3728,7 @@ CONTAINS
     IF ( .NOT. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
 
     ! Extension number
-    ExtNr = GetExtNr('ParaNOx')
+    ExtNr = GetExtNr( HcoState%Config%ExtList, 'ParaNOx')
 
     ! Exit if PARANOX extension was turned off
     IF ( ExtNr <= 0 .AND. Input_Opt%DO_ND63 ) THEN
@@ -3757,7 +3762,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3780,7 +3785,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 0,                 &
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3797,7 +3802,7 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = '1',               &
                              OutOper   = 'Mean',            &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 0,                 &
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3814,7 +3819,7 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = '1',               &
                              OutOper   = 'Mean',            &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 0,                 &
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3834,7 +3839,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 0,                 &
                                 RC        = RC                  )
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3908,7 +3913,7 @@ CONTAINS
     IF ( ExtState%GC_POPs .and. ( ND53 > 0 ) ) THEN
 
        ! HEMCO extension # for POPs
-       ExtNr = GetExtNr( 'GC_POPs' )
+       ExtNr = GetExtNr( HcoState%Config%ExtList, 'GC_POPs' )
        IF ( ExtNr <= 0 ) THEN
           CALL HCO_Error ( 'Cannot find POPs extension', RC, THISLOC=LOC )
           RETURN      
@@ -3934,7 +3939,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg',              &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3959,7 +3964,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg',              &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -3984,7 +3989,7 @@ CONTAINS
                           SpaceDim  = 2,               &
                           LevIDx    = -1,              &
                           OutUnit   = 'kg',            &
-                          COL       = HcoDiagnIDManual,&
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,&
                           AutoFill  = 1,               &
                           RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4034,7 +4039,7 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 'kg',              &
                              OutOper   = 'Mean',            &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4149,7 +4154,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -4180,7 +4185,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -4211,7 +4216,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -4242,7 +4247,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -4273,7 +4278,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -4304,7 +4309,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -4335,7 +4340,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -4366,7 +4371,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -4377,8 +4382,8 @@ CONTAINS
     !--------------------------------------------------------------------------
 
     ! HEMCO extension # for biomass ch4 
-    ExtNr = GetExtNr( 'GFED' )
-    IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
+    ExtNr = GetExtNr( HcoState%Config%ExtList, 'GFED' )
+    IF ( ExtNr <= 0 ) ExtNr = GetExtNr( HcoState%Config%ExtList, 'FINN' )
     IF ( ExtNr <= 0 ) THEN
        IF ( am_I_Root ) THEN
           MSG = 'Biomass burning not turned on - no CH4 emissions from biomass burning!'
@@ -4406,7 +4411,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -4418,7 +4423,7 @@ CONTAINS
     !----------------------------------------------------------------------
 
     ! HEMCO extension # for wetland ch4 
-    ExtNr = GetExtNr( 'CH4_WETLANDS' )
+    ExtNr = GetExtNr( HcoState%Config%ExtList, 'CH4_WETLANDS' )
     IF ( ExtNr <= 0 ) THEN
        IF ( am_I_Root ) THEN
           MSG = 'Wetland emissions not turned on - no CH4 emissions from rice!'
@@ -4446,7 +4451,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 0,                 &  ! Manually filled !!
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -4469,7 +4474,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 0,                 &  ! Manually filled !!
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -4559,7 +4564,7 @@ CONTAINS
                        SpaceDim  = 2,               &
                        LevIDx    = -1,              &
                        OutUnit   = 'kg/m2/s',       &
-                       COL       = HcoDiagnIDManual,&
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,&
                        AutoFill  = 1,               &
                        RC        = RC                ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4581,7 +4586,7 @@ CONTAINS
                        SpaceDim  = 2,               &
                        LevIDx    = -1,              &
                        OutUnit   = 'kg/m2/s',       &
-                       COL       = HcoDiagnIDManual,&
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,&
                        AutoFill  = 1,               &
                        RC        = RC                ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4605,7 +4610,7 @@ CONTAINS
                        SpaceDim  = 2,               &
                        LevIDx    = -1,              &
                        OutUnit   = 'kg/m2/s',       &
-                       COL       = HcoDiagnIDManual,&
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,&
                        AutoFill  = 1,               &
                        RC        = RC                ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4627,7 +4632,7 @@ CONTAINS
                           SpaceDim  = 2,               &
                           LevIDx    = -1,              &
                           OutUnit   = 'kg/m2/s',       &
-                          COL       = HcoDiagnIDManual,&
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,&
                           AutoFill  = 1,               &
                           RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4650,7 +4655,7 @@ CONTAINS
                           SpaceDim  = 2,               &
                           LevIDx    = -1,              &
                           OutUnit   = 'kg/m2/s',       &
-                          COL       = HcoDiagnIDManual,&
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,&
                           AutoFill  = 1,               &
                           RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4746,7 +4751,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoDiagnIDManual,  &
+			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4769,7 +4774,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoDiagnIDManual,  &
+			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4792,7 +4797,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoDiagnIDManual,  &
+			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4815,7 +4820,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoDiagnIDManual,  &
+			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4838,7 +4843,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoDiagnIDManual,  &
+			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4861,7 +4866,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoDiagnIDManual,  &
+			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4884,7 +4889,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoDiagnIDManual,  &
+			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4907,7 +4912,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoDiagnIDManual,  &
+			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4916,8 +4921,8 @@ CONTAINS
     ! First test if GFED is used.  If not, then test if FINN is used.
     ! If not, then use extension # 0 and the default biomass category.
       Cat   = -1
-      ExtNr = GetExtNr( 'GFED' )
-      IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
+      ExtNr = GetExtNr( HcoState%Config%ExtList, 'GFED' )
+      IF ( ExtNr <= 0 ) ExtNr = GetExtNr( HcoState%Config%ExtList, 'FINN' )
       IF ( ExtNr <= 0 ) THEN
          ExtNr = 0
          Cat   = CATEGORY_BIOMASS
@@ -4940,7 +4945,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoDiagnIDManual,  &
+			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4962,7 +4967,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoDiagnIDManual,  &
+			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4984,7 +4989,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoDiagnIDManual,  &
+			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5007,7 +5012,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoDiagnIDManual,  &
+			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5035,7 +5040,7 @@ CONTAINS
                        SpaceDim  = 3,                 &
                        LevIDx    = -1,                &
                        OutUnit   = 'kg/m2/s',         &
-		       COL       = HcoDiagnIDManual,  &
+		       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                        AutoFill  = 1,                 &
                        RC        = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5054,7 +5059,7 @@ CONTAINS
                        SpaceDim  = 2,                 &
                        LevIDx    = -1,                &
                        OutUnit   = 'kg/m2/s',         &
-		       COL       = HcoDiagnIDManual,  &
+		       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                        AutoFill  = 1,                 &
                        RC        = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5083,7 +5088,7 @@ CONTAINS
                        SpaceDim  = 2,                 &
                        LevIDx    = -1,                &
                        OutUnit   = 'kg/m2/s',         &
-		       COL       = HcoDiagnIDManual,  &
+		       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                        AutoFill  = 1,                 &
                        RC        = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN

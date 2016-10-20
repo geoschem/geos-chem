@@ -242,8 +242,8 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoDiagn
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState 
       USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -302,7 +302,6 @@
       ! HEMCO update
       CHARACTER(LEN= 63)       :: DgnName
       REAL(sp), POINTER        :: Ptr2D(:,:)
-      TYPE(HCO_STATE), POINTER :: HcoState
 
       CHARACTER(LEN=255)       :: MSG
       CHARACTER(LEN=255)       :: LOC ='BIOMASSHG (land_mercury_mod.F)'
@@ -313,13 +312,11 @@
 
       ! Initialize pointers
       Ptr2d    => NULL()
-      HcoState => NULL()
 
       ! Do biomass Hg emissions if biomass burning is on and it is a 
       ! present-day simulation (i.e. not preindustrial)
       IF ( .NOT. Input_Opt%LPREINDHG ) THEN
        
-         CALL GetHcoState ( HcoState )
          IF ( .NOT. ASSOCIATED(HcoState) ) THEN
             CALL ERROR_STOP ( 'HcoState not associated!', LOC )
          ENDIF
@@ -342,7 +339,6 @@
 
       ! Free pointer
       Ptr2D    => NULL()
-      HcoState => NULL()
 
       END SUBROUTINE BIOMASSHG
 !EOC

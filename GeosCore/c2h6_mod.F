@@ -110,6 +110,7 @@
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Error_Mod,          ONLY : Error_Stop
+      USE HCO_Interface_Mod,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -205,7 +206,7 @@
          !%%% (bmy, 6/30/16)                                         %%%
 
          ! Get a pointer to the HEMCO data structure (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,  RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', OH,  RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
          ENDIF

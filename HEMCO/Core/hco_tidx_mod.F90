@@ -59,7 +59,8 @@ MODULE HCO_tIdx_Mod
 ! !USES:
 !
   USE HCO_Error_Mod
-  USE HCO_FileData_Mod,  ONLY : TimeIdx
+  USE HCO_Types_Mod,  ONLY : TimeIdx
+  USE HCO_Types_Mod,  ONLY : TimeIdxCollection
 
   IMPLICIT NONE
   PRIVATE
@@ -94,19 +95,6 @@ MODULE HCO_tIdx_Mod
 !
 ! !PRIVATE TYPES:
 !
-  ! The TimeIdxCollection derived type contains the pointers with the
-  ! current valid vector indices for all defined cycling intervals.
-  TYPE ::  TimeIdxCollection
-     TYPE(TimeIdx), POINTER :: CONSTANT
-     TYPE(TimeIdx), POINTER :: HOURLY
-     TYPE(TimeIdx), POINTER :: HOURLY_GRID 
-     TYPE(TimeIdx), POINTER :: WEEKDAY
-     TYPE(TimeIdx), POINTER :: MONTHLY
-  END TYPE TimeIdxCollection
-
-  ! Define object based on TimeIdxCollection derived type
-  TYPE(TimeIdxCollection), POINTER :: AlltIDx  => NULL()
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -145,11 +133,11 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'tIDx_Init (hco_tidx_mod.F90)', RC )
+    CALL HCO_ENTER ( HcoState%Config%Err, 'tIDx_Init (hco_tidx_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Allocate collection of time indeces 
-    ALLOCATE ( AlltIDx ) 
+    ALLOCATE ( HcoState%AlltIDx ) 
 
     ! Initialize the vectors holding the currently valid time slice 
     ! indices for the various cycle intervals. Only create longitude- 
@@ -159,40 +147,40 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! "CONSTANT" => only one time slice, no cycling.
     ! ----------------------------------------------------------------
-    ALLOCATE ( AlltIDx%CONSTANT )
-    AlltIDx%CONSTANT%TypeID       = 0 
-    AlltIDx%CONSTANT%TempRes      = "Constant"
+    ALLOCATE ( HcoState%AlltIDx%CONSTANT )
+    HcoState%AlltIDx%CONSTANT%TypeID       = 0 
+    HcoState%AlltIDx%CONSTANT%TempRes      = "Constant"
 
     ! ----------------------------------------------------------------
     ! "HOURLY" => changes every hour, longitude-dependent
     ! ----------------------------------------------------------------
-    ALLOCATE ( AlltIDx%HOURLY )
-    AlltIDx%HOURLY%TypeID       = 24
-    AlltIDx%HOURLY%TempRes      = "Hourly"
+    ALLOCATE ( HcoState%AlltIDx%HOURLY )
+    HcoState%AlltIDx%HOURLY%TypeID       = 24
+    HcoState%AlltIDx%HOURLY%TempRes      = "Hourly"
 
     ! ----------------------------------------------------------------
     ! "HOURLY_GRID" => changes every hour, longitude-independent
     ! ----------------------------------------------------------------
-    ALLOCATE ( AlltIDx%HOURLY_GRID )
-    AlltIDx%HOURLY_GRID%TypeID       = 241
-    AlltIDx%HOURLY_GRID%TempRes      = "Hourly_Grid"
+    ALLOCATE ( HcoState%AlltIDx%HOURLY_GRID )
+    HcoState%AlltIDx%HOURLY_GRID%TypeID       = 241
+    HcoState%AlltIDx%HOURLY_GRID%TempRes      = "Hourly_Grid"
 
     ! ----------------------------------------------------------------
     ! "WEEKDAY" => changes every weekday, longitude-dependent
     ! ----------------------------------------------------------------
-    ALLOCATE ( AlltIDx%WEEKDAY )
-    AlltIDx%WEEKDAY%TypeID       = 7
-    AlltIDx%WEEKDAY%TempRes      = "Weekday"
+    ALLOCATE ( HcoState%AlltIDx%WEEKDAY )
+    HcoState%AlltIDx%WEEKDAY%TypeID       = 7
+    HcoState%AlltIDx%WEEKDAY%TempRes      = "Weekday"
 
     ! ----------------------------------------------------------------
     ! "MONTHLY" => changes every month, longitude-dependent
     ! ----------------------------------------------------------------
-    ALLOCATE ( AlltIDx%MONTHLY )
-    AlltIDx%MONTHLY%TypeID       = 12
-    AlltIDx%MONTHLY%TempRes      = "Monthly"
+    ALLOCATE ( HcoState%AlltIDx%MONTHLY )
+    HcoState%AlltIDx%MONTHLY%TypeID       = 12
+    HcoState%AlltIDx%MONTHLY%TempRes      = "Monthly"
 
     ! Return w/ success
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE ( HcoState%Config%Err, RC )
 
   END SUBROUTINE tIDx_Init
 !EOC
@@ -218,12 +206,17 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE tIDx_Set( ctIDx, TypeID )
+  SUBROUTINE tIDx_Set( HcoState, ctIDx, TypeID )
+!
+! !USES:
+!
+    USE HCO_State_Mod, ONLY : HCO_State
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(TimeIdx), POINTER     :: ctIDx   ! container TimeIDx
-    INTEGER,       INTENT(IN)  :: TypeID  ! type ID
+    TYPE(HCO_State), POINTER     :: HcoState ! HEMCO state
+    TYPE(TimeIdx),   POINTER     :: ctIDx   ! container TimeIDx
+    INTEGER,         INTENT(IN)  :: TypeID  ! type ID
 !
 ! !REVISION HISTORY:
 !  29 Dec 2012 - C. Keller - Initialization
@@ -239,22 +232,22 @@ CONTAINS
     SELECT CASE ( TypeID )
 
        CASE ( 1 )
-          ctIDx => AlltIDx%CONSTANT
+          ctIDx => HcoState%AlltIDx%CONSTANT
 
        CASE ( 24 )
-          ctIDx => AlltIDx%HOURLY
+          ctIDx => HcoState%AlltIDx%HOURLY
 
        CASE ( 241 )
-          ctIDx => AlltIDx%HOURLY_GRID
+          ctIDx => HcoState%AlltIDx%HOURLY_GRID
 
        CASE ( 7 )
-          ctIDx => AlltIDx%WEEKDAY
+          ctIDx => HcoState%AlltIDx%WEEKDAY
 
        CASE ( 12 )
-          ctIDx => AlltIDx%MONTHLY
+          ctIDx => HcoState%AlltIDx%MONTHLY
 
        CASE DEFAULT
-          ctIDx => AlltIDx%CONSTANT
+          ctIDx => HcoState%AlltIDx%CONSTANT
 
     END SELECT
 
@@ -273,7 +266,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE tIDx_Cleanup()
+  SUBROUTINE tIDx_Cleanup( AlltIDx )
+!
+! !Input/output arguments:
+!     
+     TYPE(TimeIdxCollection), POINTER :: AlltIDx
 !
 ! !REVISION HISTORY:
 !  29 Dec 2012 - C. Keller - Initialization
@@ -327,16 +324,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION tIDx_GetIndx ( HcoState, Dta, I, J ) RESULT ( Indx )
+  FUNCTION tIDx_GetIndx ( am_I_Root, HcoState, Dta, I, J ) RESULT ( Indx )
 !
 ! !USES:
 !
     USE HCO_State_Mod,    ONLY : HCO_State
-    USE HCO_FileData_Mod, ONLY : FileData 
+    USE HCO_Types_Mod,    ONLY : FileData 
     USE HCO_CLOCK_MOD,    ONLY : HcoClock_Get, HcoClock_GetLocal
 !
 ! !INPUT PARAMETERS:
 !
+    LOGICAL,         INTENT(IN) :: am_I_Root ! Longitude index of interest
     TYPE(HCO_State), POINTER    :: HcoState  ! Hemco state 
     TYPE(FileData),  POINTER    :: Dta       ! File data object 
     INTEGER,         INTENT(IN) :: I         ! Longitude index of interest
@@ -387,7 +385,7 @@ CONTAINS
        ! local time effects, hence just point to the time slice
        ! of current UTC time. Add one since hour starts at 0.
        CASE ( 241 )
-          CALL HcoClock_Get( cH = HH, RC=RC )
+          CALL HcoClock_Get( am_I_Root, HcoState%Clock, cH=HH, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Indx = HH + 1
 
@@ -404,7 +402,7 @@ CONTAINS
        ! For gridded weekday factors, just use the UTC slice. Add
        ! one since weekday start at 0.
 !       CASE ( 71 )
-!          CALL HcoClock_Get( cWeekday = WD, RC=RC )
+!          CALL HcoClock_Get( am_I_Root, HcoState%Clock, cWeekday=WD, RC=RC )
 !          IF ( RC /= HCO_SUCCESS ) RETURN
 !          Indx = WD + 1
 
@@ -470,12 +468,12 @@ CONTAINS
 ! !USES:
 !
     USE HCO_State_Mod,    ONLY : HCO_State
-    USE HCO_DataCont_MOD, ONLY : DataCont
+    USE HCO_Types_Mod,    ONLY : DataCont
 !
 ! !INPUT PARAMETERS: 
 !
     TYPE(HCO_State), POINTER       :: HcoState  ! Hemco state 
-    TYPE(DataCont),  POINTER       :: Dct   ! Data container
+    TYPE(DataCont),  POINTER       :: Dct       ! Data container
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -498,12 +496,13 @@ CONTAINS
     !-----------------------------------
 
     ! Enter
-    CALL HCO_ENTER( 'tIDx_Assign (hco_tidx_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, &
+                   'tIDx_Assign (hco_tidx_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check if already done
     IF ( ASSOCIATED( Dct%Dta%tIDx ) ) THEN
-       CALL HCO_LEAVE( RC )
+       CALL HCO_LEAVE( HcoState%Config%Err, RC )
        RETURN
     ENDIF
 
@@ -545,7 +544,7 @@ CONTAINS
           IF ( dt /= 24 ) THEN
              MSG = '7 time slices but delta t is not 24 hours!' // &
                   TRIM(Dct%cName)
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
 
@@ -558,7 +557,7 @@ CONTAINS
           IF ( .NOT. Dct%Dta%IsLocTime ) THEN
              MSG = 'Weekday data must be in local time!' // &
                   TRIM(Dct%cName)
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
 
           ELSE
@@ -577,7 +576,7 @@ CONTAINS
           ELSE
              MSG = 'Monthly data must not be gridded:' // &
                   TRIM(Dct%cName)
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
 
@@ -594,7 +593,7 @@ CONTAINS
           IF ( MOD(24,dt) /= 0 ) THEN
              MSG = 'Cannot properly split up hourly data!' // &
                   TRIM(Dct%cName)
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
 
@@ -603,7 +602,7 @@ CONTAINS
           IF ( ntexp /= nt ) THEN
              MSG = 'Wrong delta t and/or number of time slices!' // &
                   TRIM(Dct%cName)
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
 
@@ -623,7 +622,7 @@ CONTAINS
        ELSE
           MSG = 'Invalid time slice for field ' // &
                TRIM(Dct%cName)
-          CALL HCO_ERROR( MSG, RC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
           RETURN
        ENDIF
 
@@ -631,12 +630,12 @@ CONTAINS
        ! Establish the appropriate pointer for the
        ! 4th dimension (temporal resolution) of the field array
        ! -------------------------------------------------------------
-       CALL tIDx_Set( Dct%Dta%tIDx, cTypeID ) 
+       CALL tIDx_Set( HcoState, Dct%Dta%tIDx, cTypeID ) 
      
     ENDIF
 
     ! Leave w/ success
-    CALL HCO_LEAVE( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err, RC )
 
   END SUBROUTINE tIDx_Assign
 !EOC
@@ -656,7 +655,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_DATACONT_MOD, ONLY : ListCont
+    USE HCO_TYPES_MOD,    ONLY : ListCont
 !
 ! !INPUT PARAMETERS:
 !
@@ -733,16 +732,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetPrefTimeAttr( Lct,    readYr, readMt, &
-                                  readDy, readHr, readMn, RC ) 
+  SUBROUTINE HCO_GetPrefTimeAttr( am_I_Root, HcoState, Lct,    &
+                                  readYr,    readMt,   readDy, &
+                                  readHr,    readMn,   RC       ) 
 !
 ! !USES:
 !
-    USE HCO_DATACONT_MOD, ONLY : ListCont
-    USE HCO_CLOCK_MOD,    ONLY : HcoClock_Get
+    USE HCO_STATE_MOD,     ONLY : HCO_State
+    USE HCO_TYPES_MOD,     ONLY : ListCont
+    USE HCO_TYPES_MOD,     ONLY : HCO_CFLAG_RANGE, HCO_CFLAG_EXACT 
+    USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
+    USE HCO_TIMESHIFT_MOD, ONLY : TimeShift_Apply
 !
 ! !INPUT PARAMETERS: 
 !
+    LOGICAL,         INTENT(IN   ) :: am_I_Root ! preferred year 
+    TYPE(HCO_State), POINTER       :: HcoState  ! List container
     TYPE(ListCont),  POINTER       :: Lct       ! List container
 !
 ! !OUTPUT PARAMETERS: 
@@ -759,6 +764,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  13 Jan 2014 - C. Keller - Initial version 
+!  29 Feb 2016 - C. Keller - Added time shift option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -776,7 +782,8 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Get current time
-    CALL HcoClock_Get( cYYYY = cYr, cMM = cMt, cDD = cDy, &
+    CALL HcoClock_Get( am_I_Root, HcoState%Clock, &
+                       cYYYY = cYr, cMM = cMt, cDD = cDy, &
                        cH  = cHr,   cM  = cMn, RC  = RC    ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -809,6 +816,11 @@ CONTAINS
           readHr = -1
        ENDIF
 
+       ! Eventually shift reference time by amount specified
+       ! in HEMCO configuration file
+       CALL TimeShift_Apply ( am_I_Root, HcoState, Lct, &
+                              readYr, readMt, readDy, readHr, readMn, RC )
+
        ! Don't need below
        RETURN
     ENDIF
@@ -826,6 +838,11 @@ CONTAINS
        ELSE
           readHr = cHr
        ENDIF
+
+       ! Eventually shift reference time by amount specified
+       ! in HEMCO configuration file
+       CALL TimeShift_Apply ( am_I_Root, HcoState, Lct, &
+                              readYr, readMt, readDy, readHr, readMn, RC )
 
        ! Don't need below
        RETURN
@@ -881,7 +898,14 @@ CONTAINS
     IF ( readMt < 0 ) readMt = cMt
     IF ( readDy < 0 ) readDy = cDy
 
-    ! RC already set to HCO_SUCCESS at the beginning
+    ! Eventually shift reference time by amount specified
+    ! in HEMCO configuration file
+    CALL TimeShift_Apply ( am_I_Root, HcoState, Lct, &
+                           readYr, readMt, readDy, readHr, readMn, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Return w/ success
+    RC = HCO_SUCCESS 
 
   END SUBROUTINE HCO_GetPrefTimeAttr
 !EOC
@@ -916,16 +940,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ExtractTime ( CharStr, Dta, RC ) 
+  SUBROUTINE HCO_ExtractTime ( HcoConfig, CharStr, Dta, RC ) 
 !
 ! !USES:
 !
     USE CHARPAK_MOD,        ONLY : STRSPLIT
-    USE HCO_FILEDATA_MOD,   ONLY : FileData 
+    USE HCO_TYPES_MOD,      ONLY : FileData 
+    USE HCO_TYPES_MOD,      ONLY : ConfigObj
+    USE HCO_TYPES_MOD,      ONLY : HCO_UFLAG_ALWAYS 
     USE HCO_EXTLIST_MOD,    ONLY : HCO_GetOpt
+    USE HCO_TIMESHIFT_MOD,  ONLY : TimeShift_Set
 !
 ! !INPUT PARAMETERS: 
 !
+    TYPE(ConfigObj),  POINTER       :: HcoConfig  ! config obj 
     CHARACTER(LEN=*), INTENT(IN   ) :: CharStr 
     TYPE(FileData),   POINTER       :: Dta 
 !
@@ -935,13 +963,14 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2013 - C. Keller - Initial version (update) 
+!  29 Feb 2016 - C. Keller - Added time shift option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: I, I0, I1, N
+    INTEGER               :: I, I0, I1, N, M
     INTEGER               :: TimeVec(8)
     CHARACTER(LEN=255)    :: SUBSTR(255), DATERNG(255), MSG
     CHARACTER(LEN=255)    :: LOC = 'HCO_ExtractTime (hco_tidx_mod.F90)'
@@ -954,7 +983,7 @@ CONTAINS
     ! character. In this case, we want to update the file on every
     ! HEMCO time step, i.e. it will be added to readlist 'Always'
     ! (in hco_readlist_mod.F90).
-    IF ( TRIM(CharStr) == HCO_GetOpt('Wildcard') ) THEN
+    IF ( TRIM(CharStr) == HCO_GetOpt(HcoConfig%ExtList,'Wildcard') ) THEN
        Dta%UpdtFlag = HCO_UFLAG_ALWAYS
        Dta%ncYrs    = -999 
        Dta%ncMts    = -999 
@@ -969,10 +998,10 @@ CONTAINS
     TimeVec(:) = -1
 
     ! Extract strings to be translated into integers 
-    CALL STRSPLIT( CharStr, HCO_GetOpt('Separator'), SUBSTR, N )
-    IF ( N /= 4 ) THEN
-       MSG = 'Time stamp must have 4 elements: ' // TRIM(CharStr)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+    CALL STRSPLIT( CharStr, HCO_GetOpt(HcoConfig%ExtList,'Separator'), SUBSTR, N )
+    IF ( N < 4 ) THEN
+       MSG = 'Time stamp must have at least 4 elements: ' // TRIM(CharStr)
+       CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF   
 
@@ -988,7 +1017,7 @@ CONTAINS
 
        ! For wildcard character, set lower and upper limit both to -1.
        ! In this case, the whole time slice will be read into file!
-       IF ( TRIM(SUBSTR(I)) == TRIM(HCO_GetOpt('Wildcard') ) ) THEN
+       IF ( TRIM(SUBSTR(I)) == TRIM(HCO_GetOpt(HcoConfig%ExtList,'Wildcard') ) ) THEN
           TimeVec(I0:I1) = -1 
 
        ! Characters YYYY, MM, DD, and/or HH can be used to ensure that
@@ -1014,20 +1043,20 @@ CONTAINS
        ! Otherwise, check for date range and set lower and upper bound
        ! accordingly.
        ELSE
-          CALL STRSPLIT( SUBSTR(I), '-', DATERNG, N )
+          CALL STRSPLIT( SUBSTR(I), '-', DATERNG, M )
 
           ! If range is given:
-          IF ( N == 2 ) THEN
+          IF ( M == 2 ) THEN
              READ( DATERNG(1), * ) TimeVec(I0)
              READ( DATERNG(2), * ) TimeVec(I1)
 
           ! Use same value if only one value is given:
-          ELSEIF ( N == 1 ) THEN
+          ELSEIF ( M == 1 ) THEN
              READ( DATERNG(1), * ) TimeVec(I0)
              TimeVec(I1) = TimeVec(I0)
           ELSE
              MSG = 'Cannot extract time stamp: ' // TRIM(CharStr)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
        ENDIF
@@ -1052,6 +1081,12 @@ CONTAINS
     ! Weekdaily data is always in local time. All seven time slices will
     ! be read into memory.
     IF ( Dta%ncDys(1) == -10 ) Dta%IsLocTime  = .TRUE.
+
+    ! If time shift is specified, archive it in attribute 'tShift'. 
+    IF ( N > 4 ) THEN
+       CALL TimeShift_Set( HcoConfig, Dta, SUBSTR(5), RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
 
     ! Leave w/ success
     RC = HCO_SUCCESS

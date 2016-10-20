@@ -168,13 +168,10 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : CHECK_VALUE
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GRID_MOD,           ONLY : GET_YMID      
+      USE GRID_MOD,           ONLY : GET_YMID
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_Error_Mod
-      USE HCO_State_Mod,      ONLY : HCO_State
-      USE HCOI_GC_Main_Mod,   ONLY : GetHcoId
-      USE HCOI_GC_Main_Mod,   ONLY : GetHcoState
-      USE HCOI_GC_Main_Mod,   ONLY : GetHcoDiagn 
+      USE HCO_Interface_Mod,  ONLY : HcoState, GetHcoID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
       USE State_Chm_Mod,      ONLY : ChmState
@@ -315,7 +312,6 @@
       REAL(fp),        POINTER :: Spc   (:,:,:,:)
       REAL(fp),        POINTER :: T     (:,:,:  )
       REAL(f4),        POINTER :: Ptr2D (:,:    )
-      TYPE(HCO_State), POINTER :: HcoState
 
       ! SAVED scalars
       LOGICAL,   SAVE          :: FIRST = .TRUE.
@@ -357,7 +353,6 @@
       Spc       => State_Chm%Species
       T         => State_Met%T
       Ptr2D     => NULL()  
-      HcoState  => NULL()
 
       ! Get the molecular weight of CO [kg/mol] from the species database
       ! (All tagged species are CO, so we can use the value for species #1)
@@ -369,6 +364,11 @@
       ! Compute diurnal cycle for OH every day (check for new day inside
       ! subroutine) - jaf 7/10/14
       CALL CALC_DIURNAL()
+
+      ! Check HEMCO state object
+      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+         CALL ERROR_STOP( 'HcoState not associated!', LOC )
+      ENDIF 
 
       !=================================================================
       ! Get pointers from HEMCO for OH, P(CO), and L(CO) fields
@@ -383,19 +383,21 @@
       IF ( FIRST ) THEN
          
          ! Get a pointer to the OH field from the HEMCO list (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', OH,   RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
          ENDIF
 
          ! Get pointer to strat P(CO) from GMI
-         CALL HCO_GetPtr( am_I_Root, 'GMI_PROD_CO', GMI_PROD_CO, RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                   'GMI_PROD_CO', GMI_PROD_CO, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GMI_PROD_CO', LOC )
          ENDIF
 
          ! Get pointer to strat L(CO) from GMI
-         CALL HCO_GetPtr( am_I_Root, 'GMI_LOSS_CO', GMI_LOSS_CO, RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                   'GMI_LOSS_CO', GMI_LOSS_CO, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GMI_LOSS_CO', LOC )
          ENDIF
@@ -418,12 +420,6 @@
       ! which will keep the SUM*CO arrays zeroed out. (bmy, 10/11/16)
       !=================================================================
       IF ( Input_Opt%LEMIS ) THEN
-
-         ! Get HEMCO state object
-         CALL GetHcoState( HcoState )
-         IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-            CALL ERROR_STOP( 'HcoState not associated !', LOC )
-         ENDIF 
 
          ! Conversion factor from [kg/s] --> [atoms C]
          ! (atoms C /mole C) / (kg C /mole C) * chemistry timestep [s]
@@ -530,7 +526,6 @@
          ELSE
             FAC_DIURNAL = 0.0_fp
          ENDIF
-
 
          ! Now impose a diurnal cycle on OH.
          ! This is done in other offline simulations but was
@@ -982,7 +977,6 @@
       Spc      => NULL()
       T        => NULL()
       Ptr2D    => NULL()
-      HcoState => NULL()
 
       END SUBROUTINE CHEM_TAGGED_CO
 !EOC
@@ -1224,9 +1218,6 @@
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : Alloc_Err
-      USE HCO_STATE_MOD,      ONLY : Hco_State
-      USE HCO_EmisList_Mod,   ONLY : Hco_GetPtr
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
       USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:

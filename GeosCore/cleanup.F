@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP( am_I_Root, Input_Opt, ERROR, RC )
+      SUBROUTINE CLEANUP( am_I_Root, ERROR, RC )
 !
 ! !USES:
 !
@@ -70,6 +70,7 @@
 #endif
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
+      USE PASSIVE_TRACEr_MOD,      ONLY : Cleanup_Passive_Tracer
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
 
       ! HEMCO
@@ -94,7 +95,6 @@
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object 
       LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error? 
 !
 ! !OUTPUT PARAMETERS:
@@ -241,6 +241,8 @@
 !  16 Mar 2015 - R. Yantosca - Remove call to CLEANUP_HCN_CH3CN
 !  25 Mar 2015 - C. Keller   - Now cleanup UCX before emissisions.
 !  16 Apr 2015 - R. Yantosca - Remove call to CLEANUP_DAO; it's obsolete
+!  24 Mar 2016 - C. Keller   - Remove input arg Input_Opt; this is cleaned
+!                              up before routine CLEANUP is called.
 !  18 May 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE; it's obsolete
 !  30 Jun 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE_LOOP; it's obsolete
 !EOP
@@ -251,7 +253,9 @@
       !=================================================================
 
       ! Echo info
-      WRITE( 6, 100 ) 
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) 
+      ENDIF
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
       ! UCX needs to be cleaned up before emissions, because the UCX 
@@ -261,13 +265,14 @@
 
 #if defined( NC_DIAG )
       ! Cleanup the netCDF diagnostics structure
-      CALL DIAGNOSTICS_FINAL( am_I_Root, Input_Opt, RC )
+      ! Input_Opt is cleaned up before CLEANUP. Remove as argument.
+      ! (ckeller, 3/28/16)
+      !!!CALL DIAGNOSTICS_FINAL( am_I_Root, Input_Opt, RC )
+      CALL DIAGNOSTICS_FINAL( am_I_Root, RC )
 #endif
 
       ! Cleanup HEMCO
-      IF ( Input_Opt%LEMIS ) THEN
-         CALL EMISSIONS_FINAL ( am_I_Root, ERROR )
-      ENDIF
+      CALL EMISSIONS_FINAL ( am_I_Root, ERROR )
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_AEROSOL()

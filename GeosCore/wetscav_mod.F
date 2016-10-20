@@ -254,7 +254,9 @@
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE UnitConv_Mod
 #if defined( NC_DIAG )
+      USE SPECIES_MOD
       USE HCO_ERROR_MOD
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
 !
@@ -351,7 +353,7 @@
       ! Archive species concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'WETD', .FALSE., RC )
+     &                  State_Chm, 'WETD', RC )
 #endif
 
 #if   defined( NC_DIAG )
@@ -475,7 +477,7 @@
                DiagnName = 'WETSCAV_DEPLOSS_' 
      &                     // TRIM( SpcInfo%Name )
 
-               CALL Diagn_Update ( am_I_Root,
+               CALL Diagn_Update ( am_I_Root, HcoState,
      &                             cName   = DiagnName,
      &                             Array2D = TMP2D,
      &                             COL     = Input_Opt%DIAG_COLLECTION,
@@ -505,7 +507,7 @@
       !=================================================================
       DT_TEND = GET_TS_DYN() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'WETD', .FALSE., DT_TEND, RC )
+     &                  State_Chm, 'WETD', DT_TEND, RC )
 #endif
 
       END SUBROUTINE DO_WETDEP
@@ -3595,6 +3597,8 @@
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
 !  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
 !                              whether the dynamic ocean is used
+!  04 Mar 2016 - C. Keller   - Added option to scale convective fraction of
+!                              large-scale precip.
 !  22 Apr 2016 - R. Yantosca - Now get Is_Hg2, Is_HgP from species database
 !  25 Apr 2016 - R. Yantosca - Now get the Hg category # from species database
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
@@ -3625,6 +3629,7 @@
       REAL(fp)               :: ALPHA, ALPHA2, WETLOSS,   TMP
       REAL(fp)               :: F_RAINOUT,     F_WASHOUT 
       REAL(fp)               :: DEP_HG
+      REAL(fp)               :: CNVSCL
 
 
       ! Arrays
@@ -3668,6 +3673,21 @@
          IDX = 1
       ELSE
          IDX = 2
+      ENDIF
+
+      ! CNVSCL is the scale factor to be applied to convective large
+      ! scale precipitation: a fraction of model-resolved vertical 
+      ! transport is of convective nature (especially at high model
+      ! resolution). Treating all of it as large-scale precipiation 
+      ! may overestimate total washout. CNVSCL is a scale factor to
+      ! adjust the convective fraction of the precipitation. If set
+      ! to 1.0, it will yield the same result as without correction.
+      ! If set to 0.0, all convective large-scale precipitation is 
+      ! suppressed (ckeller, 3/4/16).
+      CNVSCL = -1.0 
+      IF ( ASSOCIATED(State_Met%CNV_FRC) ) THEN
+         CNVSCL = Input_Opt%WETD_CONV_SCAL
+         CNVSCL = MIN(MAX(CNVSCL,0.0_fp),1.0_fp)
       ENDIF
 
       !=================================================================
@@ -3732,6 +3752,12 @@
             ! Set F = F_RAINOUT, since there is no FTOP at L = LLPAR
             F = F_RAINOUT
 
+            ! Adjust convective large-scale precip (ckeller, 3/4/16)
+            IF ( CNVSCL >= 0.0_fp ) THEN
+               F = ( ( 1.0_fp - State_Met%CNV_FRC(I,J) ) * F )
+     &           + ( ( CNVSCL * State_Met%CNV_FRC(I,J) ) * F )
+            ENDIF       
+
             ! Only compute rainout if F > 0. 
             ! This helps to eliminate unnecessary CPU cycles.
             IF ( F > 0e+0_fp ) THEN 
@@ -3790,6 +3816,16 @@
                F_RAINOUT = 0e+0_fp
                F_WASHOUT = 0e+0_fp
             ENDIF
+
+            ! Adjust convective large-scale precip (ckeller, 3/4/16)
+            IF ( CNVSCL >= 0.0_fp ) THEN
+               F_RAINOUT = 
+     &             ( ( 1.0_fp - State_Met%CNV_FRC(I,J) ) * F_RAINOUT )
+     &           + ( ( CNVSCL * State_Met%CNV_FRC(I,J) ) * F_RAINOUT )
+               F_WASHOUT = 
+     &             ( ( 1.0_fp - State_Met%CNV_FRC(I,J) ) * F_WASHOUT )
+     &           + ( ( CNVSCL * State_Met%CNV_FRC(I,J) ) * F_WASHOUT )
+            ENDIF       
 
 
             IF ( F_WASHOUT > 0e+0_fp ) THEN    
@@ -5526,46 +5562,52 @@
 ! !REVISION HISTORY:
 !  12 Feb 2015 - C. Keller   - Initial version
 !  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod since not used. 
+!  27 Jun 2016 - C. Keller   - Use VUD_DEFINED instead of ESMF_ compiler switch.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL :: VUD_DEFINED
+
       !=================================================================
       ! GET_VUD begins here!
       !=================================================================
 
-#if defined(ESMF_)
+      ! Init
+      VUD_DEFINED = .FALSE.
+
       !=================================================================
       ! GEOS-5: Use vertical updraft velocity from GEOS-5. This array
       ! is stored in State_Met object UPDVVEL, in hPa/s. Convert to
       ! m/s here.
       !=================================================================
 
-      ! Convert VUD from hPa/s to m/s
-      IF ( State_Met%DELP(I,J,L) <= TINY_FP ) THEN
-         ! Something is weird if pressure is zero, so set vud to zero
-         VUD = 0.0_fp 
-      ELSE
-         ! We need the positive velocity, so use absolute values!
-         VUD = State_Met%UPDVVEL (I,J,L) 
-     &       * State_Met%BXHEIGHT(I,J,L) 
-     &       / State_Met%DELP    (I,J,L) 
+      IF ( ASSOCIATED( State_Met%UPDVVEL ) ) THEN
+
+         IF ( State_Met%DELP(I,J,L)    >  TINY_FP .AND. 
+     &        State_Met%UPDVVEL(I,J,L) >= 0.0_fp       ) THEN
+ 
+           ! We need the positive velocity, so use absolute values!
+            VUD = State_Met%UPDVVEL (I,J,L) 
+     &          * State_Met%BXHEIGHT(I,J,L) 
+     &          / State_Met%DELP    (I,J,L) 
+         ENDIF
       ENDIF
 
-#else
       !=================================================================
       ! Traditional GEOS-Chem:
       ! Compute Vud -- 5 m/s over oceans, 10 m/s over land (or ice?)
       ! Assume Vud is the same at all altitudes; the array can be 2-D
       !=================================================================
-      IF ( IS_WATER( I, J, State_Met ) ) THEN
-         VUD = 5e+0_fp
-      ELSE
-         VUD = 10e+0_fp
+      IF ( .NOT. VUD_DEFINED ) THEN
+         IF ( IS_WATER( I, J, State_Met ) ) THEN
+            VUD = 5e+0_fp
+         ELSE
+            VUD = 10e+0_fp
+         ENDIF
       ENDIF
-#endif     
 
       END FUNCTION GET_VUD
 !EOC

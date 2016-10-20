@@ -18,6 +18,8 @@
 ! (10 ) Added fix for negative H+ in CALCHS4 (hotp 8/25/09)
 !         search for 'PHFIX' to see where the fix was applied
 !         fix must be activated to use
+! (11 ) Added error trap for negative value of DD in FUNCH6A 
+!       (ckeller, 4/5/2016) 
 ! ======================================================================
 !
 ! *** ISORROPIA CODE II
@@ -20822,6 +20824,10 @@
      &               PSI7, PSI8, PSI9, PSI10, PSI11, PSI12, PSI13,
      &               PSI14, PSI15, PSI16, PSI17, A1, A2, A3, A4, A5, A6,
      &               A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17
+
+      ! ckeller, 4/5/16
+      REAL*8, PARAMETER :: SMALL = 1.0D-63
+
 !$OMP THREADPRIVATE( /SOLUT/ )
 !
 ! *** SETUP PARAMETERS ************************************************
@@ -20857,8 +20863,20 @@
          BB   =-(CHI4 + PSI6 + PSI5 + 1.d0/A4)
          CC   = CHI4*(PSI5+PSI6)
          DD   = BB*BB-4.d0*CC
-         PSI4 =0.5d0*(-BB - SQRT(DD))
-         PSI4 = MIN(PSI4,CHI4)
+         
+         ! ckeller, 4/5/16: prevent SQRT(DD) of very small/negative
+         ! number
+         IF ( DD > SMALL ) THEN
+            PSI4 =0.5d0*(-BB - SQRT(DD))
+            PSI4 = MIN(PSI4,CHI4)
+         ELSE
+            PSI4 = TINY
+            IF ( DD > 0.0d0 ) THEN
+               WRITE(*,*) 'ISOROPIA - DD smaller than min. value: ',
+     &                     DD,' < ',SMALL
+            ENDIF
+         ENDIF
+
       ELSE
          PSI4 = TINY
       ENDIF

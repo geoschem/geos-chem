@@ -155,9 +155,8 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE DIAG04_MOD,         ONLY : AD04, ND04
       USE DIAG04_MOD,         ONLY : AD04_plane,    AD04_chem
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
       USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -248,8 +247,7 @@
       CHARACTER(LEN=255)         :: LOC = 'EMISSCO2 (co2_mod.F)'
 
       ! Pointers
-      TYPE(HCO_State), POINTER   :: HcoState
-      REAL(f4),        POINTER   :: CO2_COPROD(:,:,:  )
+      REAL(f4),        POINTER   :: CO2_COPROD(:,:,:  ) 
       REAL(fp),        POINTER   :: Spc       (:,:,:,:)
 !
 ! !DEFINED PARAMETERS:
@@ -279,12 +277,10 @@
       LPLANETAG   = Input_Opt%LPLANETAG
   
       ! Initialize pointers
-      HcoState    => NULL()
       CO2_COPROD  => NULL()
       Spc         => NULL()
 
       ! Import emissions from HEMCO (through HEMCO state)
-      CALL GetHcoState( HcoState )
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not defined!', LOC ) 
       ENDIF
@@ -415,7 +411,8 @@
       ! Get a pointer to the CO2 production from CO oxidation
       ! This is now listed in the NON-EMISSIONS DATA section of
       ! the HEMCO configuration file. (bmy, 4/17/15)
-      CALL HCO_GetPtr( am_I_Root, 'CO2_COPROD', CO2_COPROD, RC )
+      CALL HCO_GetPtr( am_I_Root,   HcoState, 
+     &                'CO2_COPROD', CO2_COPROD, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'CO2 production not defined', LOC )
       ENDIF
@@ -917,7 +914,6 @@
 !$OMP END PARALLEL DO
 
       ! Free pointers
-      HcoState   => NULL()
       Spc        => NULL()
       CO2_COPROD => NULL()
 

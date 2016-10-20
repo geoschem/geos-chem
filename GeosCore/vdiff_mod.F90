@@ -1856,9 +1856,10 @@ contains
 #endif
 
     ! HEMCO update
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
+    USE HCO_INTERFACE_MOD,  ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
 #if defined( NC_DIAG )
     USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
@@ -2126,7 +2127,7 @@ contains
     ! Archive concentrations for tendencies calculations. Tracers array
     ! is already in v/v (ckeller, 7/15/2015).
     CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
-                      State_Chm, 'PBLMIX', .TRUE., RC )
+                      State_Chm, 'PBLMIX', RC )
 #endif
 
 ! (Turn off parallelization for now, skim 6/20/12)
@@ -2526,7 +2527,7 @@ contains
              cID = 10000 + cID
              ! Total in kg
              Total = SUM(Ptr3D(:,:,1) * State_Met%AREA_M2(:,:,1)) * dtime 
-             CALL Diagn_Update( am_I_Root,                           &
+             CALL Diagn_Update( am_I_Root, HcoState,                 &
                                 cID     = cID,                       &
                                 Array3D = Ptr3D,                     &
                                 Total   = Total,                     &
@@ -2612,7 +2613,7 @@ contains
                 DiagnName = 'DRYDEP_FLX_MIX_'                &
                             // TRIM( SpcInfo%Name )
                 Ptr2D => DryDepFlux
-                CALL Diagn_Update( am_I_Root,                           &
+                CALL Diagn_Update( am_I_Root, HcoState,                 &
                                    cName   = TRIM( DiagnName),          &
                                    Array2D = Ptr2D,                     & 
                                    COL     = Input_Opt%DIAG_COLLECTION, &
@@ -2848,7 +2849,7 @@ contains
 #if defined( USE_TEND )
     ! Compute tendencies and write to diagnostics (ckeller, 7/15/2015)
     CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
-                      State_Chm, 'PBLMIX', .TRUE., dtime, RC )
+                      State_Chm, 'PBLMIX', dtime, RC )
 #endif
 
 !      !### Debug

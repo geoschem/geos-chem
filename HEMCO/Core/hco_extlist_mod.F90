@@ -42,6 +42,7 @@ MODULE HCO_ExtList_Mod
 ! !USES:
 !
   USE HCO_Error_Mod
+  USE HCO_Types_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -82,30 +83,8 @@ MODULE HCO_ExtList_Mod
 !
 ! !PRIVATE TYPES:
 !
-  INTEGER, PARAMETER          :: OPTLEN = 1023
-
-  ! Derived type to manage options
-  TYPE :: Opt   
-     CHARACTER(LEN=OPTLEN)   :: OptName
-     CHARACTER(LEN=OPTLEN)   :: OptValue
-     TYPE(Opt), POINTER      :: NextOpt => NULL()
-  END TYPE Opt
-
-  ! Type holding name, species, options and extension number of
-  ! an extension (as defined in the HEMCO configuration file)
-  TYPE :: Ext 
-     CHARACTER(LEN=255)       :: ExtName  ! Name
-     CHARACTER(LEN=OPTLEN)    :: Spcs     ! Species
-     INTEGER                  :: ExtNr    ! Ext. number
-     TYPE(Opt), POINTER       :: Opts     ! Options linked list
-     TYPE(Ext), POINTER       :: NextExt  ! next list item
-  END TYPE Ext
-
-  ! Private linked list carrying information of all enabled extensions 
-  TYPE(Ext), POINTER          :: ExtList => NULL()
-
   ! Lenght of maximum token character length
-  CHARACTER(LEN=OPTLEN)        :: EMPTYOPT = '---'
+  CHARACTER(LEN=OPTLEN), PARAMETER  :: EMPTYOPT = '---'
 
   !---------------------------------------------------------------------------
   ! Default tokens
@@ -121,7 +100,6 @@ MODULE HCO_ExtList_Mod
 
   ! Default root directory
   CHARACTER(LEN=OPTLEN), PARAMETER :: DEF_ROOT = '/please/provide/root/path'
-  CHARACTER(LEN=OPTLEN)            :: ROOT     = ''
 
   ! Default values for characters that can be changed 
   ! through the configuration file
@@ -186,7 +164,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AddExt( am_I_Root, ExtName, ExtNr, InUse, Spcs, RC ) 
+  SUBROUTINE AddExt( am_I_Root, HcoConfig, ExtName, ExtNr, InUse, Spcs, RC ) 
 !
 ! !USES:
 !
@@ -194,7 +172,8 @@ CONTAINS
 !
 ! !INPUT PARAMETERS::
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root 
+    LOGICAL,          INTENT(IN   ) :: am_I_Root
+    TYPE(ConfigObj),  POINTER       :: HcoConfig 
     CHARACTER(LEN=*), INTENT(IN   ) :: ExtName 
     INTEGER,          INTENT(IN   ) :: ExtNr
     LOGICAL,          INTENT(IN   ) :: InUse 
@@ -228,14 +207,14 @@ CONTAINS
     CALL TRANLC( lcName )
 
     ! Check if extension already exists
-    OrigExtNr = GetExtNr( TRIM(lcName) ) 
+    OrigExtNr = GetExtNr( HcoConfig%ExtList, TRIM(lcName) ) 
     IF ( OrigExtNr /= -999 ) THEN
 
        ! Return w/ error if extension numbers do not match
        IF ( OrigExtNr /= ExtNr ) THEN
           WRITE(MSG,*) 'Cannot create extension - extension already exists', &
                        TRIM(lcName), ExtNr, OrigExtNr
-          CALL HCO_ERROR(MSG,RC,THISLOC='AddExt (hco_extlist_mod.F90)')
+          CALL HCO_ERROR(HcoConfig%Err,MSG,RC,THISLOC='AddExt (hco_extlist_mod.F90)')
           RETURN
 
        ! Nothing to do otherwise
@@ -270,12 +249,12 @@ CONTAINS
     ! them at the beginning of ExtList for better efficiency.
 
     ! If this is the first entry...
-    IF ( .NOT. ASSOCIATED(ExtList) ) THEN
-       ExtList => NewExt
+    IF ( .NOT. ASSOCIATED(HcoConfig%ExtList) ) THEN
+       HcoConfig%ExtList => NewExt
 
     ! Otherwise, scan list until last extension is encountered
     ELSE
-       ThisExt => ExtList
+       ThisExt => HcoConfig%ExtList
        DO WHILE(ASSOCIATED(ThisExt))
           IF ( .NOT. ASSOCIATED(ThisExt%NextExt) ) EXIT
           ThisExt => ThisExt%NextExt
@@ -286,9 +265,9 @@ CONTAINS
     ENDIF
 
     ! Verbose
-    IF ( am_I_Root .AND. HCO_IsVerb(2) .AND. InUse ) THEN
+    IF ( am_I_Root .AND. HCO_IsVerb(HcoConfig%Err,2) .AND. InUse ) THEN
        WRITE(MSG,*) 'Added HEMCO extension: ', TRIM(ExtName), ExtNr
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoConfig%Err,MSG)
     ENDIF
 
     ! Cleanup
@@ -316,7 +295,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AddExtOpt( am_I_Root, Opt, ExtNr, RC, IgnoreIfExist ) 
+  SUBROUTINE AddExtOpt( am_I_Root, HcoConfig, Opt, ExtNr, RC, IgnoreIfExist ) 
 !
 ! !USES:
 !
@@ -325,6 +304,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU? 
+    TYPE(ConfigObj),  POINTER                 :: HcoConfig      ! Configuration object 
     CHARACTER(LEN=*), INTENT(IN   )           :: Opt            ! Option name & value 
     INTEGER,          INTENT(IN   )           :: ExtNr          ! Add to this extension
     LOGICAL,          INTENT(IN   ), OPTIONAL :: IgnoreIfExist  ! Ignore this entry if it exists already?
@@ -358,7 +338,7 @@ CONTAINS
     IF ( IDX <= 0 ) THEN 
        MSG = 'Cannot extract option name/value pair - these must be ' // &
              'separated by a colon (:) character: ' // TRIM(Opt)
-       CALL HCO_ERROR(MSG,RC,THISLOC='AddExtOpt (hco_extlist_mod)')
+       CALL HCO_ERROR(HcoConfig%Err,MSG,RC,THISLOC='AddExtOpt (hco_extlist_mod)')
        RETURN
     ENDIF
 
@@ -375,7 +355,7 @@ CONTAINS
     ENDIF
 
     ! Pass to options
-    CALL HCO_AddOpt( am_I_Root, OptName, OptValue, ExtNr, RC, &
+    CALL HCO_AddOpt( am_I_Root, HcoConfig, OptName, OptValue, ExtNr, RC, &
                      IgnoreIfExist=IgnoreIfExist )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -402,8 +382,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetExtOpt ( ExtNr,      OptName,    OptValHp,      &
-                         OptValSp,   OptValDp,   OptValInt,     &
+  SUBROUTINE GetExtOpt ( HcoConfig,  ExtNr,      OptName,   OptValHp, &
+                         OptValSp,   OptValDp,   OptValInt,           &
                          OptValBool, OptValChar, Found,     RC ) 
 !
 ! !USES:
@@ -412,6 +392,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(ConfigObj),  POINTER                  :: HcoConfig
     INTEGER,          INTENT(IN   )            :: ExtNr 
     CHARACTER(LEN=*), INTENT(IN   )            :: OptName 
 !
@@ -436,6 +417,7 @@ CONTAINS
 !  17 Apr 2015 - C. Keller   - Passed option OptName must now exactly match the
 !                              stored option name to avoid ambiguity.
 !  20 Sep 2015 - C. Keller   - Options are now linked list.
+!  20 Jan 2016 - C. Keller   - Bug fix: boolean options are now case insensitive.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -454,7 +436,7 @@ CONTAINS
     LOC = 'GetExtOpt (hco_extlist_mod)'
 
     ! Get option
-    OptValue = HCO_GetOpt( OptName, ExtNr=ExtNr )
+    OptValue = HCO_GetOpt( HcoConfig%ExtList, OptName, ExtNr=ExtNr )
     IF ( TRIM(OptValue) == TRIM(EMPTYOPT) ) THEN
        OptFound = .FALSE.
     ELSE
@@ -469,7 +451,7 @@ CONTAINS
     ELSEIF ( .NOT. OptFound ) THEN
        WRITE(MSG,*) '(A) Cannot find option ', TRIM(OptName),  &
        ' in extension ', ExtNr 
-       CALL HCO_ERROR(MSG,RC,THISLOC=LOC )
+       CALL HCO_ERROR(HcoConfig%Err,MSG,RC,THISLOC=LOC )
        RETURN
     ENDIF
 
@@ -500,7 +482,7 @@ CONTAINS
        ENDIF
     ELSEIF ( PRESENT(OptValBool) ) THEN
        IF ( OptFound ) THEN
-          CALL TRANLC( TRIM(OptValue) )
+          CALL TRANLC( OptValue )
           IF ( INDEX( TRIM(OptValue), 'true' ) > 0 ) THEN
              OptValBool = .TRUE.
           ELSE
@@ -536,7 +518,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION GetExtNr( ExtName ) Result ( ExtNr )
+  FUNCTION GetExtNr( ExtList, ExtName ) Result ( ExtNr )
 !
 ! !USES:
 !
@@ -544,6 +526,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(Ext),        POINTER       :: ExtList
     CHARACTER(LEN=*), INTENT(IN   ) :: ExtName 
 !
 ! !RETURN VALUE:
@@ -610,10 +593,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetExtSpcStr( ExtNr, SpcStr, RC ) 
+  SUBROUTINE GetExtSpcStr( HcoConfig, ExtNr, SpcStr, RC ) 
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(ConfigObj),  POINTER       :: HcoConfig 
     INTEGER,          INTENT(IN   ) :: ExtNr    ! Extension Nr. 
 !
 ! !OUTPUT PARAMETERS:
@@ -644,7 +628,7 @@ CONTAINS
     RC  = HCO_SUCCESS
 
     ! Find extension of interest 
-    ThisExt => ExtList
+    ThisExt => HcoConfig%ExtList
     DO WHILE ( ASSOCIATED ( ThisExt ) ) 
        IF ( ThisExt%ExtNr == ExtNr ) EXIT 
        ThisExt => ThisExt%NextExt
@@ -652,7 +636,7 @@ CONTAINS
 
     IF ( .NOT. ASSOCIATED( ThisExt ) ) THEN
        WRITE(MSG,*) 'Cannot find extension Nr. ', ExtNr
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
@@ -682,10 +666,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetExtSpcVal_Sp( ExtNr, NSPC, SpcNames, Prefix, DefValue, SpcScal, RC ) 
+  SUBROUTINE GetExtSpcVal_Sp( HcoConfig, ExtNr,  NSPC,    SpcNames, &
+                              Prefix,  DefValue, SpcScal, RC         )
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(ConfigObj),       POINTER       :: HcoConfig 
     INTEGER,               INTENT(IN   ) :: ExtNr          ! Extension Nr. 
     INTEGER,               INTENT(IN   ) :: NSPC           ! # of species 
     CHARACTER(LEN=*),      INTENT(IN   ) :: SpcNames(NSPC) ! Species string
@@ -713,7 +699,7 @@ CONTAINS
     ALLOCATE(SpcScal(NSPC))
     SpcScal=DefValue
 
-    CALL GetExtSpcVal_Dr ( ExtNr, NSPC, SpcNames, Prefix, RC, &
+    CALL GetExtSpcVal_Dr ( HcoConfig, ExtNr, NSPC, SpcNames, Prefix, RC, &
                            DefVal_SP=DefValue, SpcScal_SP=SpcScal )
 
     END SUBROUTINE GetExtSpcVal_sp
@@ -735,10 +721,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetExtSpcVal_Int( ExtNr, NSPC, SpcNames, Prefix, DefValue, SpcScal, RC ) 
+  SUBROUTINE GetExtSpcVal_Int( HcoConfig, ExtNr,    NSPC,    SpcNames, &
+                               Prefix,    DefValue, SpcScal, RC         )
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(ConfigObj),       POINTER       :: HcoConfig 
     INTEGER,               INTENT(IN   ) :: ExtNr          ! Extension Nr. 
     INTEGER,               INTENT(IN   ) :: NSPC           ! # of species 
     CHARACTER(LEN=*),      INTENT(IN   ) :: SpcNames(NSPC) ! Species string
@@ -766,7 +754,7 @@ CONTAINS
     ALLOCATE(SpcScal(NSPC))
     SpcScal=DefValue
 
-    CALL GetExtSpcVal_Dr ( ExtNr, NSPC, SpcNames, Prefix, RC, &
+    CALL GetExtSpcVal_Dr ( HcoConfig, ExtNr, NSPC, SpcNames, Prefix, RC, &
                            DefVal_IN=DefValue, SpcScal_IN=SpcScal )
 
     END SUBROUTINE GetExtSpcVal_Int
@@ -788,10 +776,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetExtSpcVal_Char( ExtNr, NSPC, SpcNames, Prefix, DefValue, SpcScal, RC ) 
+  SUBROUTINE GetExtSpcVal_Char( HcoConfig, ExtNr,    NSPC,    SpcNames, &
+                                Prefix,    DefValue, SpcScal, RC ) 
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(ConfigObj),               POINTER       :: HcoConfig 
     INTEGER,                       INTENT(IN   ) :: ExtNr          ! Extension Nr. 
     INTEGER,                       INTENT(IN   ) :: NSPC           ! # of species 
     CHARACTER(LEN=*),              INTENT(IN   ) :: SpcNames(NSPC) ! Species string
@@ -819,7 +809,7 @@ CONTAINS
     ALLOCATE(SpcScal(NSPC))
     SpcScal=DefValue
 
-    CALL GetExtSpcVal_Dr ( ExtNr, NSPC, SpcNames, Prefix, RC, &
+    CALL GetExtSpcVal_Dr ( HcoConfig, ExtNr, NSPC, SpcNames, Prefix, RC, &
                            DefVal_Char=DefValue, SpcScal_Char=SpcScal )
 
     END SUBROUTINE GetExtSpcVal_char
@@ -836,13 +826,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetExtSpcVal_Dr( ExtNr, NSPC, SpcNames, Prefix, RC, &
-                              DefVal_SP, SpcScal_SP,             &
-                              DefVal_Char, SpcScal_Char,         &
-                              DefVal_IN, SpcScal_IN               )
+  SUBROUTINE GetExtSpcVal_Dr( HcoConfig, ExtNr, NSPC,    &
+                              SpcNames,  Prefix, RC,     &
+                              DefVal_SP, SpcScal_SP,     &
+                              DefVal_Char, SpcScal_Char, &
+                              DefVal_IN, SpcScal_IN       )
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(ConfigObj),               POINTER                 :: HcoConfig 
     INTEGER,                       INTENT(IN   )           :: ExtNr          ! Extension Nr. 
     INTEGER,                       INTENT(IN   )           :: NSPC           ! # of species 
     CHARACTER(LEN=*),              INTENT(IN   )           :: SpcNames(NSPC) ! Species string
@@ -888,17 +880,17 @@ CONTAINS
        IOptName = TRIM(Prefix)//'_'//TRIM(SpcNames(I))
 
        IF ( PRESENT(SpcScal_sp) ) THEN
-          CALL GetExtOpt ( ExtNr, IOptName, OptValSp=iScal_sp, FOUND=FND, RC=RC )
+          CALL GetExtOpt ( HcoConfig, ExtNr, IOptName, OptValSp=iScal_sp, FOUND=FND, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( FND ) SpcScal_sp(I) = iScal_sp
        ENDIF
        IF ( PRESENT(SpcScal_in) ) THEN
-          CALL GetExtOpt ( ExtNr, IOptName, OptValInt=iScal_in, FOUND=FND, RC=RC )
+          CALL GetExtOpt ( HcoConfig, ExtNr, IOptName, OptValInt=iScal_in, FOUND=FND, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( FND ) SpcScal_in(I) = iScal_in
        ENDIF
        IF ( PRESENT(SpcScal_char) ) THEN
-          CALL GetExtOpt ( ExtNr, IOptName, OptValChar=iScal_char, FOUND=FND, RC=RC )
+          CALL GetExtOpt ( HcoConfig, ExtNr, IOptName, OptValChar=iScal_char, FOUND=FND, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( FND ) SpcScal_char(I) = iScal_char
        ENDIF
@@ -926,7 +918,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SetExtNr( am_I_Root, ExtNr, ExtName, RC )
+  SUBROUTINE SetExtNr( am_I_Root, HcoConfig, ExtNr, ExtName, RC )
 !
 ! !USES:
 !
@@ -935,6 +927,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root
+    TYPE(ConfigObj),  POINTER                 :: HcoConfig 
     INTEGER,          INTENT(IN   )           :: ExtNr
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: ExtName
 !
@@ -960,7 +953,7 @@ CONTAINS
     !======================================================================
 
     ! verbose?
-    verb = HCO_IsVerb( 1 ) 
+    verb = HCO_IsVerb( HcoConfig%Err, 1 ) 
 
     ! Pass name to module and set to lower case
     IF ( PRESENT(ExtName) ) THEN
@@ -971,7 +964,7 @@ CONTAINS
     ENDIF
 
     ! Point to header of extensions list
-    ThisExt => ExtList
+    ThisExt => HcoConfig%ExtList
 
     ! Loop over all used extensions and check if any of them matches
     ! ExtName.
@@ -997,7 +990,7 @@ CONTAINS
           IF ( verb ) THEN
              WRITE(MSG,*) 'Force ExtNr of extension ', TRIM(ThisExt%ExtName), &
                           ' to ', ExtNr
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoConfig%Err,MSG)
           ENDIF
        ENDIF
 
@@ -1026,15 +1019,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION ExtNrInUse( ExtNr ) Result ( InUse )
+  FUNCTION ExtNrInUse( ExtList, ExtNr ) Result ( InUse )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN   ) :: ExtNr 
+    TYPE(Ext), POINTER       :: ExtList
+    INTEGER,   INTENT(IN   ) :: ExtNr 
 !
 ! !RETURN VALUE::
 !
-    LOGICAL                :: InUse
+    LOGICAL                  :: InUse
 !
 ! !REVISION HISTORY:
 !  03 Oct 2013 - C. Keller - Initial version
@@ -1094,7 +1088,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtFinal 
+  SUBROUTINE ExtFinal( ExtList ) 
+!
+! !INPUT/OUTPUT ARGUMENT:
+!
+    TYPE(Ext), POINTER       :: ExtList
 !
 ! !REVISION HISTORY:
 !  03 Oct 2013 - C. Keller - Initial version
@@ -1149,12 +1147,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_AddOpt ( am_I_Root, OptName, OptValue, ExtNr, RC, &
+  SUBROUTINE HCO_AddOpt ( am_I_Root, HcoConfig, OptName, OptValue, ExtNr, RC, &
                           VERB,      IgnoreIfExist )
 !
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(ConfigObj),  POINTER                 :: HcoConfig      ! HEMCO config obj 
     CHARACTER(LEN=*), INTENT(IN   )           :: OptName        ! OptName
     CHARACTER(LEN=*), INTENT(IN   )           :: OptValue       ! OptValue
     INTEGER,          INTENT(IN   )           :: ExtNr          ! Extension Nr. 
@@ -1194,7 +1193,7 @@ CONTAINS
     IF ( PRESENT(IgnoreIfExist) ) Ignore = IgnoreIfExist
 
     ! Check if this option already exists
-    DUM = HCO_GetOpt( OptName, ExtNr=ExtNr )
+    DUM = HCO_GetOpt( HcoConfig%ExtList, OptName, ExtNr=ExtNr )
 
     ! If option already exists...
     IF ( TRIM(DUM) /= TRIM(EMPTYOPT) ) THEN
@@ -1217,7 +1216,7 @@ CONTAINS
           IF ( TRIM(DUM) /= ADJUSTL(TRIM(OptValue)) ) THEN
              MSG = 'Cannot add option pair: '//TRIM(OptName)//': '//TRIM(OptValue) &
                 // ' - option already exists: '//TRIM(OptName)//': '//TRIM(DUM)
-             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ! Return with no error if values are the same
           ELSE
@@ -1228,7 +1227,7 @@ CONTAINS
     ENDIF
 
     ! Find extension of interest 
-    ThisExt => ExtList
+    ThisExt => HcoConfig%ExtList
     DO WHILE ( ASSOCIATED ( ThisExt ) ) 
        IF ( ThisExt%ExtNr == ExtNr ) EXIT 
        ThisExt => ThisExt%NextExt
@@ -1237,7 +1236,7 @@ CONTAINS
     IF ( .NOT. ASSOCIATED( ThisExt ) ) THEN
        WRITE(MSG,*) 'Cannot add option to extension Nr. ', ExtNr
        MSG = TRIM(MSG) // '. Make sure this extension is activated!'
-       CALL HCO_ERROR(MSG,RC,THISLOC='AddOpt (hco_extlist_mod)')
+       CALL HCO_ERROR(HcoConfig%Err,MSG,RC,THISLOC='AddOpt (hco_extlist_mod)')
        RETURN
     ENDIF
 
@@ -1255,9 +1254,9 @@ CONTAINS
     ThisExt%Opts => NewOpt
 
     ! Verbose
-    IF ( VRB .AND. am_I_Root .AND. HCO_IsVerb(2) ) THEN
+    IF ( VRB .AND. am_I_Root .AND. HCO_IsVerb(HcoConfig%Err,2) ) THEN
        MSG = 'Added the following option: ' // TRIM(OptName)//': '//TRIM(OptValue)
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoConfig%Err,MSG)
     ENDIF
 
     ! Cleanup and return w/ success
@@ -1279,10 +1278,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_GetOpt ( OptName, ExtNr ) RESULT ( OptValue )
+  FUNCTION HCO_GetOpt ( ExtList, OptName, ExtNr ) RESULT ( OptValue )
 !
 ! !INPUT PARAMETERS: 
 !
+    TYPE(Ext),        POINTER                 :: ExtList        ! Extension list
     CHARACTER(LEN=*), INTENT(IN   )           :: OptName  ! OptName
     INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr      ! Extension Nr.
 !
@@ -1373,13 +1373,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_ROOT ( ) RESULT ( OutRoot )
+  FUNCTION HCO_ROOT ( HcoConfig ) RESULT ( OutRoot )
 !
 ! !INPUT PARAMETERS: 
 !
 !
 ! !OUTPUT PARAMETERS:
 !
+    TYPE(ConfigObj), POINTER                  :: HcoConfig
     CHARACTER(LEN=OPTLEN)                     :: OutRoot ! Root output 
 ! 
 ! !REVISION HISTORY: 
@@ -1388,7 +1389,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    OutRoot = ROOT
+    OutRoot = HcoConfig%ROOT
 
   END FUNCTION HCO_ROOT
 !EOC
@@ -1465,7 +1466,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_SetDefaultToken ( am_I_Root, RC )
+  SUBROUTINE HCO_SetDefaultToken ( am_I_Root, CF, RC )
 !
 ! !USES:
 !
@@ -1473,6 +1474,7 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root  ! Root CPU?
+    TYPE(ConfigObj),  POINTER                 :: CF
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1494,43 +1496,43 @@ CONTAINS
     !=================================================================
 
     ! Wildcard character
-    CALL GetExtOpt( CoreNr, 'Wildcard', OptValChar=DUM, Found=FOUND, RC=RC )
+    CALL GetExtOpt( CF, CoreNr, 'Wildcard', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_WILDCARD
-    CALL HCO_AddOpt( am_I_Root, 'Wildcard', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( am_I_Root, CF, 'Wildcard', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! Separator
-    CALL GetExtOpt( CoreNr, 'Separator', OptValChar=DUM, Found=FOUND, RC=RC )
+    CALL GetExtOpt( CF, CoreNr, 'Separator', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_SEPARATOR
-    CALL HCO_AddOpt( am_I_Root, 'Separator', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( am_I_Root, CF, 'Separator', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! Colon
-    CALL GetExtOpt( CoreNr, 'Colon', OptValChar=DUM, Found=FOUND, RC=RC )
+    CALL GetExtOpt( CF, CoreNr, 'Colon', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_COLON
-    CALL HCO_AddOpt( am_I_Root, 'Colon', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( am_I_Root, CF, 'Colon', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! Root directory
-    CALL GetExtOpt( CoreNr, 'ROOT', OptValChar=DUM, Found=FOUND, RC=RC )
+    CALL GetExtOpt( CF, CoreNr, 'ROOT', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_ROOT
-    CALL HCO_AddOpt( am_I_Root, 'ROOT', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( am_I_Root, CF, 'ROOT', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! Also save in local variable (for fast access via HCO_ROOT)
-    ROOT = ADJUSTL( TRIM(DUM) )
+    CF%ROOT = ADJUSTL( TRIM(DUM) )
 
     ! Meteorology token
-    CALL GetExtOpt( CoreNr, 'MET', OptValChar=DUM, Found=FOUND, RC=RC )
+    CALL GetExtOpt( CF, CoreNr, 'MET', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_MET
-    CALL HCO_AddOpt( am_I_Root, 'MET', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( am_I_Root, CF, 'MET', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! Resolution token
-    CALL GetExtOpt( CoreNr, 'RES', OptValChar=DUM, Found=FOUND, RC=RC )
+    CALL GetExtOpt( CF, CoreNr, 'RES', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) DUM = DEF_RES
-    CALL HCO_AddOpt( am_I_Root, 'RES', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( am_I_Root, CF, 'RES', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! Return w/ success
     RC =  HCO_SUCCESS

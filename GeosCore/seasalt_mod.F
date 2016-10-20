@@ -328,6 +328,7 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if defined( NC_DIAG )
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
@@ -797,7 +798,7 @@
             DiagnName = 'DRYDEP_FLX_CHEM_' // 
      &                  TRIM( State_Chm%SpcData(spc_id)%Info%Name )
             Ptr2D => DryDepFlux
-            CALL Diagn_Update( am_I_Root,                           
+            CALL Diagn_Update( am_I_Root, HcoState, 
      &                         cName   = TRIM( DiagnName),         
      &                         Array2D = Ptr2D,                      
      &                         COL     = Input_Opt%DIAG_COLLECTION, 

@@ -87,7 +87,8 @@ MODULE Strat_Chem_Mod
 !  30 Dec 2014 - C. Keller   - Now read Bry data through HEMCO
 !  16 Jan 2015 - C. Keller   - Now read all prod/loss fields and OH conc.
 !                              through HEMCO.
-!  04 Mar 2015 - R. Yantosca - Declare pointer args for HCO_GetPtr as REAL(f4)
+!   4 Mar 2015 - R. Yantosca - Declare pointer args for HCO_GetPtr as REAL(f4)
+!  06 Apr 2016 - C. Keller   - Add Minit_Is_Set and SET_MINIT.
 !  03 Oct 2016 - R. Yantosca - Now dynamically allocate BrPtrDay, BrPtrNight
 !  03 Oct 2016 - R. Yantosca - Dynamically allocate BrPtrDay, BrPtrNight
 !EOP
@@ -167,6 +168,9 @@ MODULE Strat_Chem_Mod
   REAL(f4), ALLOCATABLE :: MInit(:,:,:,:)      ! Init. atm. state for STE period
   REAL(f4), ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                                !   (total P - L) [kg period-1]
+
+  ! Minit_Is_Set indicates whether Minit has been set or not
+  LOGICAL               :: Minit_Is_Set = .FALSE. 
 
   ! Species ID flags
   INTEGER               :: id_Br2,   id_Br,     id_BrNO3
@@ -254,6 +258,9 @@ CONTAINS
 !  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
 !                              CMN_GTCM_MOD for XNUMOLAIR
 !  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD for unit conversion
+!  05 Mar 2016 - C. Keller   - Allow O3 P/L be done by GMI if both LINOZ and
+!                              SYNOZ are disabled. This is primarily for 
+!                              testing/data assimilation applications.
 !  16 Jun 2016 - M. Yannetti - Replaced TRACERID_MOD.\
 !  20 Jun 2016 - R. Yantosca - Now make species ID flags module variables
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
@@ -286,6 +293,7 @@ CONTAINS
     REAL(fp)          :: TK,   RDLOSS,  T1L, mOH, BryTmp
     REAL(fp)          :: BOXVL
     LOGICAL           :: LLINOZ
+    LOGICAL           :: LSYNOZ
     LOGICAL           :: LPRT
     LOGICAL           :: LBRGCCM
     LOGICAL           :: LRESET, LCYCLE
@@ -309,6 +317,7 @@ CONTAINS
 
     ! Initialize
     LLINOZ               = Input_Opt%LLINOZ
+    LSYNOZ               = Input_Opt%LSYNOZ
     LPRT                 = Input_Opt%LPRT
     LBRGCCM              = Input_Opt%LBRGCCM
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
@@ -364,6 +373,13 @@ CONTAINS
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
     ENDIF
 
+    ! Eventually set Minit
+    IF ( .NOT. Minit_Is_Set ) THEN
+       CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, &
+                       State_Chm, errCode )
+       IF ( errCode /= GC_SUCCESS ) RETURN
+    ENDIF
+
     !======================-================================================
     ! FULL CHEMISTRY SIMULATIONS
     !
@@ -380,6 +396,9 @@ CONTAINS
 
        ! Advance counter for number of times we've sampled the tropopause level
        TpauseL_CNT = TpauseL_CNT + 1e+0_fp
+
+       ! Make note of inital state for determining tendency later
+       BEFORE = Spc(:,:,:,id_O3)
 
        !--------------------------------------------------------------------
        ! Do chemical production and loss for non-ozone species for
@@ -408,11 +427,13 @@ CONTAINS
                    ! Species ID (use this for State_Chm%Species)
                    NN = Strat_TrID_GC(N)
 
-                   ! Advected species ID (use this for SCHEM_TEND)
                    NA = Strat_TrID_TND(N)
 
                    ! Skip O3; we'll always use either Linoz or Synoz
-                   IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. id_O3 ) CYCLE
+                   ! Use GMI O3 P/L if both LINOZ and SYNOZ are deactivated.
+                   ! This is for test use in assimilation mode (ckeller, 3/7/16).
+                   IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. id_O3 .AND. &
+                        ( LLINOZ .OR. LSYNOZ ) ) CYCLE
 
                    ! timestep [s]
                    dt = DTCHEM
@@ -460,20 +481,20 @@ CONTAINS
        ! Ozone
        !--------------------------------------------------------------------
 
-       ! Make note of inital state for determining tendency later
-       BEFORE = Spc(:,:,:,id_O3)
+       IF ( LLINOZ .OR. LSYNOZ ) THEN
 
-       ! Put ozone in [v/v] for Linoz or Synoz
-       Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * ( AIRMW  &
-                          / State_Chm%SpcData(id_O3)%Info%emMW_g ) / AD
+          ! Put ozone in [v/v] for Linoz or Synoz
+          Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * ( AIRMW  &
+                             / State_Chm%SpcData(id_O3)%Info%emMW_g ) / AD
 
-       ! Do Linoz or Synoz
-       IF ( LLINOZ ) THEN
-          CALL Do_Linoz( am_I_Root, Input_Opt,             &
-                         State_Met, State_Chm, RC=errCode )
-       ELSE
-          CALL Do_Synoz( am_I_Root, Input_Opt,             &
-                         State_Met, State_Chm, RC=errCode )
+          ! Do Linoz or Synoz
+          IF ( LLINOZ ) THEN
+             CALL Do_Linoz( am_I_Root, Input_Opt,             &
+                            State_Met, State_Chm, RC=errCode )
+          ELSE
+             CALL Do_Synoz( am_I_Root, Input_Opt,             &
+                            State_Met, State_Chm, RC=errCode )
+          ENDIF
        ENDIF
  
        ! Put ozone back to [kg]
@@ -765,6 +786,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
@@ -822,7 +844,7 @@ CONTAINS
 
        ! Day
        FIELDNAME = TRIM(PREFIX) // '_DAY'
-       CALL HCO_GetPtr( am_I_Root, FIELDNAME, BrPtrDay(N)%MR, RC )
+       CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, BrPtrDay(N)%MR, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP ( TRIM(MSG)//' '//TRIM(FIELDNAME), &
                             'Set_BryPointers (start_chem_mod.F90)' )
@@ -830,7 +852,7 @@ CONTAINS
 
        ! Night
        FIELDNAME = TRIM(PREFIX) // '_NIGHT'
-       CALL HCO_GetPtr( am_I_Root, FIELDNAME, BrPtrNight(N)%MR, RC )
+       CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, BrPtrNight(N)%MR, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP ( TRIM(MSG)//' '//TRIM(FIELDNAME), &
                             'Set_BryPointers (start_chem_mod.F90)' )
@@ -863,6 +885,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
@@ -926,7 +949,8 @@ CONTAINS
 
        ! Production rates [v/v/s]
        FIELDNAME = 'GMI_PROD_'//TRIM(ThisName)
-       CALL HCO_GetPtr( am_I_Root, FIELDNAME, PLVEC(N)%PROD, RC, FOUND=FND )
+       CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
+                        PLVEC(N)%PROD, RC,       FOUND=FND )
        IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
           CALL ERROR_STOP ( TRIM(ERR)//' '//TRIM(FIELDNAME), &
                             'Set_PLVEC (start_chem_mod.F90)' )
@@ -942,7 +966,8 @@ CONTAINS
 
        ! Loss frequency [s-1]
        FIELDNAME = 'GMI_LOSS_'//TRIM(ThisName)
-       CALL HCO_GetPtr( am_I_Root, FIELDNAME, PLVEC(N)%LOSS, RC, FOUND=FND )
+       CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
+                        PLVEC(N)%LOSS, RC,       FOUND=FND )
        IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
           CALL ERROR_STOP ( TRIM(ERR)//' '//TRIM(FIELDNAME), &
                             'Set_PLVEC (start_chem_mod.F90)' )
@@ -959,7 +984,8 @@ CONTAINS
     ENDDO !N
 
     ! Get pointer to STRAT_OH
-    CALL HCO_GetPtr( am_I_Root, 'STRAT_OH', STRAT_OH, RC, FOUND=FND )
+    CALL HCO_GetPtr( am_I_Root, HcoState, 'STRAT_OH', &
+                     STRAT_OH,  RC,        FOUND=FND )
     IF ( RC /= HCO_SUCCESS .OR. .NOT. FND ) THEN
        MSG = 'Cannot find monthly archived strat. OH field '    // &
              '`STRAT_OH`. Please add a corresponding entry to ' // &
@@ -1445,7 +1471,7 @@ CONTAINS
                    IF ( am_I_Root ) THEN
                       WRITE( 6, '(a)' ) TRIM( SpcInfo%Name ) // ' (via Linoz)'
                    ENDIF
-                ELSE IF ( TRIM( SpcInfo%Name ) .eq. 'O3' ) THEN
+                ELSE IF ( Input_Opt%LSYNOZ .AND. TRIM( SpcInfo%Name ) .eq. 'O3' ) THEN
                    IF ( am_I_Root ) THEN
                       WRITE( 6, '(a)' ) TRIM( SpcInfo%Name ) // ' (via Synoz)'
                    ENDIF
@@ -1529,35 +1555,12 @@ CONTAINS
     ALLOCATE( MInit( IIPAR, JJPAR, LLPAR, nAdvect ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
 
-    ! Convert species from [kg/kg dry air] to [kg] so
-    ! that initial state of atmosphere is in same units as 
-    ! chemistry ([kg]), and then convert back after MInit is assigned 
-    ! (ewl, 8/10/15)
-    CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, &
-                     'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
-       RETURN
-    ENDIF 
-
-    ! Loop over only the advected species
-    DO NA = 1, nAdvect
-       
-       ! Get the species ID from the advected species ID
-       N = State_Chm%Map_Advect(NA)
-
-       ! Save initial conditions in MINIT
-       MInit(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-
-    ENDDO
-
-    ! Convert species back to [kg/kg dry air]
-    CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, &
-                     'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
-       RETURN
-    ENDIF 
+    ! Set MINIT. Ignore in ESMF environment because State_Chm%Species
+    ! is not yet filled during initialization. (ckeller, 4/6/16)
+#if !defined( ESMF_ )
+    CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+#endif
 
     ! Array to determine the mean tropopause level over the period
     ! for which STE is being estimated.
@@ -1574,6 +1577,102 @@ CONTAINS
     GC_Bry_TrID(1:6) = (/id_Br2,id_Br,id_BrO,id_HOBr,id_HBr,id_BrNO3/)
 
   END SUBROUTINE INIT_STRAT_CHEM
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SET_MINIT 
+!
+! !DESCRIPTION: Sets the MINIT array to current values in State_Chm%Species
+!\\
+!\\
+! !INTERFACE:
+!      
+  SUBROUTINE SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!
+! !USES:
+!
+    USE ERROR_MOD,     ONLY : GC_ERROR
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE State_Chm_Mod, ONLY : ChmState
+    USE State_Met_Mod, ONLY : MetState
+    USE UNITCONV_MOD
+
+    IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+! 
+! !REVISION HISTORY:
+!  06 Apr 2016 - C. Keller   - Initial version: moved outside of 
+!                              INIT_STRAT_CHEM so that it can be called from
+!                              within DO_STRAT_CHEM (for ESMF applications).
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: N, NA
+
+    !=================================================================
+    ! SET_MINIT begins here!
+    !=================================================================
+
+    ! Assume success
+    RC                       = GC_SUCCESS
+
+    ! Safety check that STT is non-zero.
+    IF ( SUM(State_Chm%Species) <= 0.0_fp ) RETURN
+
+    ! Convert species from [kg/kg dry air] to [kg] so
+    ! that initial state of atmosphere is in same units as 
+    ! chemistry ([kg]), and then convert back after MInit is assigned 
+    ! (ewl, 8/10/15)
+    CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
+                     'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
+       RETURN
+    ENDIF
+
+    ! Loop over only the advected species
+    DO NA = 1, State_Chm%nAdvect
+
+       ! Get the species ID from the advected species ID
+       N = State_Chm%Map_Advect(NA)
+
+       ! Save initial conditions in MINIT
+       MInit(:,:,:,NA) = State_Chm%Species(:,:,:,N)
+
+    ENDDO
+
+    ! Convert species back to [kg/kg dry air]
+    CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
+                     'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
+       RETURN
+    ENDIF
+
+    ! Minit is now set
+    MInit_Is_Set = .TRUE.
+
+  END SUBROUTINE SET_MINIT 
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

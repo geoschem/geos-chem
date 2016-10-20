@@ -19,6 +19,7 @@
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE inquireMod,    ONLY : findFreeLUN
       USE PhysConstants
       USE Precision_Mod
@@ -178,7 +179,7 @@
       deltaHMS = 999999
 #endif     
       ! Need to adjust this for restart file
-      CALL DiagnCollection_Create( am_I_Root,                      
+      CALL DiagnCollection_Create( am_I_Root, HcoState%Diagn, 
      &                             NX           = IIPAR,           
      &                             NY           = JJPAR,           
      &                             NZ           = LLPAR,           
@@ -232,7 +233,7 @@
          cID = cID + 1
 
          ! Create container
-         CALL Diagn_Create( am_I_Root,                     
+         CALL Diagn_Create( am_I_Root, HcoState, 
      &                      Col       = GC_RST_Collection,         
      &                      cId       = cID,                 
      &                      cName     = TRIM( ContainerName ), 
@@ -276,7 +277,7 @@
             cID = cID + 1
             
             ! Create container
-            CALL Diagn_Create( am_I_Root,                     
+            CALL Diagn_Create( am_I_Root, HcoState, 
      &                         Col       = GC_RST_Collection,         
      &                         cId       = cID,                 
      &                         cName     = TRIM( ContainerName ), 
@@ -320,8 +321,8 @@
                cID = cId + 1
             
                ! Create container
-               CALL Diagn_Create( am_I_Root,                     
-     &                            Col       = GC_RST_Collection,         
+               CALL Diagn_Create( am_I_Root, HcoState, 
+     &                            Col       = GC_RST_Collection,
      &                            cId       = cID,                 
      &                            cName     = TRIM( ContainerName ), 
      &                            SpaceDim  =  2,                
@@ -363,8 +364,8 @@
                   cID = cId + 1
                
                   ! Create container
-                  CALL Diagn_Create( am_I_Root,                     
-     &                               Col       = GC_RST_Collection,         
+                  CALL Diagn_Create( am_I_Root, HcoState, 
+     &                               Col       = GC_RST_Collection,
      &                               cId       = cID,                 
      &                               cName     = TRIM( ContainerName ), 
      &                               SpaceDim  =  2,                
@@ -413,6 +414,8 @@
       USE m_netcdf_io_readattr                     ! netCDF attribute reads
       USE m_netcdf_io_get_dimlen                   ! netCDF get dimensions
       USE m_netcdf_io_close                        ! netCDF file close
+      USE PHYSCONSTANTS,      ONLY : BOLTZ
+      USE PASSIVE_TRACER_MOD, ONLY : PASSIVE_TRACER_INQUIRE
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
@@ -473,6 +476,7 @@
       LOGICAL              :: FOUND              ! ocn Hg var in restart file
       CHARACTER(LEN=60)    :: Prefix             ! utility string
       CHARACTER(LEN=255)   :: LOC                ! routine location
+      CHARACTER(LEN=255)   :: MSG                ! message 
       REAL(fp)             :: MW_g               ! species molecular weight
       REAL(fp)             :: SMALL_NUM          ! small number threshold
 
@@ -501,6 +505,10 @@
       INTEGER                   :: Total_Hg_Id
       CHARACTER(LEN=60)         :: HgSpc
       CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
+
+      ! Passive tracers
+      LOGICAL         :: IsPassive
+      REAL(fp)        :: Background_VV
 
       ! Objects
       TYPE(Species),    POINTER :: SpcInfo
@@ -660,6 +668,11 @@
 
          ELSE
 
+            ! Check if it's a passive tracer with fixed initial background 
+            ! concentration (ckeller, 10/10/16).
+            CALL PASSIVE_TRACER_INQUIRE( N, IsPassive=IsPassive, 
+     &                                   InitConc=Background_VV )
+
             ! Set species to the background value converted to [kg/kg dry] 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -668,9 +681,15 @@
             DO L = 1, LLPAR 
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-                  
+               
+               ! Apply passive tracer background concentration. Convert
+               ! mol/mol to kg/kg dry (ckeller, 10/10/16).
+               IF ( IsPassive ) THEN
+                  State_Chm%Species(:,:,:,N) = Background_VV 
+     &                                       * MW_g / AIRMW
+   
                ! Special handling for MOH
-               IF ( TRIM( SpcInfo%Name ) == 'MOH' ) THEN
+               ELSEIF ( TRIM( SpcInfo%Name ) == 'MOH' ) THEN
 
                   !----------------------------------------------------
                   ! For methanol (MOH), use different initial
@@ -1071,10 +1090,8 @@
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
       ! HEMCO
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
       USE HCO_Error_Mod
       USE HCO_Diagn_Mod,      ONLY : Diagn_Update
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
       USE HCOIO_Diagn_Mod,    ONLY : HCOIO_Diagn_WriteOut
 
       ! For Hg simulation
@@ -1137,9 +1154,6 @@
       CHARACTER(LEN=60)         :: HgSpc
       CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
 
-      ! Pointer to HEMCO state
-      TYPE(HCO_STATE),  POINTER :: HcoState
-
       ! Objects
       TYPE(Species),    POINTER :: SpcInfo
 
@@ -1154,7 +1168,6 @@
       Ptr3D       => NULL()
       Ptr2D       => NULL()
       Hg_Cat_Name => NULL()
-      HcoState    => NULL()
       SpcInfo     => NULL()
 
       ! Set the GEOS-Chem restart collection ID
@@ -1265,35 +1278,35 @@
          
          ! Define container name
          ContainerName = 'SPC_' // TRIM( SpcInfo%Name )
-         
+        
          ! Populate container
-         CALL Diagn_Update( am_I_Root,                   
-     &                      cName   = TRIM( ContainerName ),
-     &                      COL     = GC_RST_Collection,
-     &                      Array3D = Ptr3D,             
-     &                      RC      = HCRC )
-         
+         CALL Diagn_Update( am_I_Root, HcoState,
+     &                      cName      = TRIM( ContainerName ),
+     &                      COL        = GC_RST_Collection,
+     &                      Array3D    = Ptr3D,
+     &                      RC         = HCRC )
+
          ! Free the pointer
          Ptr3D => NULL()
 
          ! Write min and max written to file if debugging
          IF ( Input_Opt%LPRT ) THEN
             WRITE( 6, 240 ) N, TRIM( SpcInfo%Name ),
-     &                      MINVAL( Temp3D(:,:,:) ), 
+     &                      MINVAL( Temp3D(:,:,:) ),
      &                      MAXVAL( Temp3D(:,:,:) )
- 240        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, 
+ 240        FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9,
      &              '  Max = ', es15.9 )
          ENDIF
-         
+
          IF ( RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot update restart species container: ' 
+            MSG = 'Cannot update restart species container: '
      &            // TRIM(ContainerName)
-            CALL ERROR_STOP( MSG, LOC ) 
-         ENDIF  
+            CALL ERROR_STOP( MSG, LOC )
+         ENDIF
 
          ! Free pointer
-         SpcInfo => NULL()
-
+         SpcInfo => NULL()        
+ 
       ENDDO
 
       !=================================================================
@@ -1333,11 +1346,11 @@
             Ptr2D => Temp2D
 
             ! Populate container with data
-            CALL Diagn_Update( am_I_Root,                   
-     &                         cName   = TRIM( ContainerName ),
-     &                         COL     = GC_RST_Collection,
-     &                         Array2D = Ptr2D,             
-     &                         RC      = HCRC )
+            CALL Diagn_Update( am_I_Root, HcoState, 
+     &                         cName      = TRIM( ContainerName ),
+     &                         COL        = GC_RST_Collection,
+     &                         Array2D    = Ptr2D,
+     &                         RC         = HCRC )
 
             ! Free the pointer
             Ptr2D => NULL()
@@ -1375,11 +1388,11 @@
      &                            '_'      // TRIM( Hg_Cat_Name(N) )
 
                   ! Populate container with data
-                  CALL Diagn_Update( am_I_Root,                   
-     &                               cName   = TRIM( ContainerName ),
-     &                               COL     = GC_RST_Collection,
-     &                               Array2D = Ptr2D,             
-     &                               RC      = HCRC )
+                  CALL Diagn_Update( am_I_Root, HcoState, 
+     &                               cName      = TRIM( ContainerName ),
+     &                               COL        = GC_RST_Collection,
+     &                               Array2D    = Ptr2D,
+     &                               RC         = HCRC )
                   
                   ! Free the pointer
                   Ptr2D => NULL()
@@ -1447,11 +1460,11 @@
                ENDIF
                
                ! Populate container with data
-               CALL Diagn_Update( am_I_Root,                   
-     &                            cName   = TRIM( ContainerName ),
-     &                            COL     = GC_RST_Collection,
-     &                            Array2D = Ptr2D,             
-     &                            RC      = HCRC )
+               CALL Diagn_Update( am_I_Root, HcoState,
+     &                            cName      = TRIM( ContainerName ),
+     &                            COL        = GC_RST_Collection,
+     &                            Array2D    = Ptr2D,
+     &                            RC         = HCRC )
                
                ! Free the pointer
                Ptr2D => NULL()
@@ -1492,17 +1505,9 @@
       !=================================================================
       ! Write output NetCDF restart file using HEMCO 
       !=================================================================
-
-      ! Get pointer to HEMCO state object.
-      CALL GetHcoState( HcoState )
-      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-         CALL ERROR_STOP( 'Cannot get HEMCO state object', LOC )
-      ENDIF
-
-      CALL HCOIO_Diagn_WriteOut( am_I_Root, 
-     &                           HcoState,                                 
-     &                           ForceWrite  = .TRUE.,                    
-     &                           UsePrevTime = .FALSE.,                    
+      CALL HCOIO_Diagn_WriteOut( am_I_Root, HcoState, 
+     &                           ForceWrite  = .TRUE.,
+     &                           UsePrevTime = .FALSE.,
      &                           COL         = GC_RST_Collection,  
      &                           RC          = RC                )
 
@@ -1511,7 +1516,7 @@
 
       !### Debug
       IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN 
-         CALL DEBUG_MSG('### WRITE_GC_RESTART: wrote file')
+         CALL DEBUG_MSG('### WRITE_GC_RESTART_NC: wrote file')
       ENDIF
 
       END SUBROUTINE WRITE_GC_RESTART
@@ -1640,7 +1645,6 @@
       TYPE(OptInput),     INTENT(IN) :: Input_Opt   ! Input Options object
       TYPE(MetState),     INTENT(IN) :: State_Met   ! Meteorology State object
       CHARACTER(LEN=*),   INTENT(IN) :: LOC
-
 !
       include "netcdf.inc"
 !

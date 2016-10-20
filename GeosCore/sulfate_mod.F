@@ -486,8 +486,7 @@
       USE ErrCode_Mod
       USE ERROR_MOD
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
@@ -591,7 +590,6 @@
 
       ! Pointers
       REAL(fp),        POINTER :: Spc(:,:,:,:)
-      TYPE(HCO_STATE), POINTER :: HcoState
 
       !=================================================================
       ! CHEMSULFATE begins here!
@@ -612,7 +610,6 @@
 
       ! Initialize pointers
       Spc                  => State_Chm%Species  ! Chemistry species [kg]
-      HcoState             => NULL()
 
       ! Should we print debug output?
       prtDebug             = ( LPRT .and. am_I_Root )
@@ -626,30 +623,29 @@
          ! Get offline oxidant fields from HEMCO (mps, 9/18/14)
          IF ( FIRSTCHEM ) THEN
 
-            CALL HCO_GetPtr( aIR, 'O3',    O3m,    RC )
+            CALL HCO_GetPtr( aIR, HcoState, 'O3',    O3m,    RC )
             IF ( RC /= GC_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get pointer to O3',    LOC )
 
-            CALL HCO_GetPtr( aIR, 'PH2O2', PH2O2m, RC )
+            CALL HCO_GetPtr( aIR, HcoState, 'PH2O2', PH2O2m, RC )
             IF ( RC /= GC_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get pointer to PH2O2', LOC )
 
-            CALL HCO_GetPtr( aIR, 'JH2O2', JH2O2,  RC )
+            CALL HCO_GetPtr( aIR, HcoState, 'JH2O2', JH2O2,  RC )
             IF ( RC /= GC_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get pointer to JH2O2', LOC )
 
-            CALL HCO_GetPtr( aIR, 'GLOBAL_OH',  OH,    RC )
+            CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_OH',  OH,    RC )
             IF ( RC /= GC_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_OH',   LOC )
 
-            CALL HCO_GetPtr( aIR, 'GLOBAL_NO3', NO3,   RC )
+            CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_NO3', NO3,   RC )
             IF ( RC /= GC_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_NO3',  LOC )
 
-            CALL HCO_GetPtr( aIR, 'GLOBAL_HNO3', HNO3, RC )
+            CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_HNO3', HNO3, RC )
             IF ( RC /= GC_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', LOC )
-
          ENDIF
 
          ! And compute time scaling arrays for offline OH, NO3
@@ -666,11 +662,9 @@
       ! TS_EMIS is the emission timestep (in seconds). This is a module
       ! variable, hence define only on first call.
       IF ( FIRSTCHEM ) THEN
-         CALL GetHcoState ( HcoState )
          IF ( .NOT. ASSOCIATED(HcoState) ) 
      &        CALL ERROR_STOP ( 'Cannot get HcoState', LOC )
          TS_EMIS = HcoState%TS_EMIS
-         HcoState => NULL()
       ENDIF
 
       ! Initialize module arrays
@@ -1063,15 +1057,13 @@
       USE CMN_DIAG_MOD             ! ND13 (for now)
       USE DIAG_MOD,           ONLY : AD59_SULF,     AD59_NUMB
       USE ERROR_MOD,          ONLY : ERROR_STOP,  IT_IS_NAN
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, GetHcoDiagn
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE State_Met_Mod,      ONLY : MetState
       USE TOMAS_MOD,          ONLY : IBINS, AVGMASS, ICOMP
       USE TOMAS_MOD,          ONLY : Xk,  SUBGRIDCOAG, MNFIX
       USE TOMAS_MOD,          ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
 !
 ! !INPUT PARAMETERS:
 !
@@ -1133,7 +1125,6 @@
       REAL(fp)               :: AREA3D(IIPAR, JJPAR,2)
 
       ! Pointers
-      TYPE(HCO_State), POINTER :: HcoState   
       REAL(f4),        POINTER :: Ptr2D(:,:  )
       REAL(f4),        POINTER :: Ptr3D(:,:,:)
 
@@ -1166,7 +1157,6 @@
       !=================================================================
 
       ! Free pointers
-      HcoState => NULL() 
       Ptr2D    => NULL()
       Ptr3D    => NULL()
 
@@ -1175,7 +1165,6 @@
       LNLPBL  = Input_Opt%LNLPBL
 
       ! Import emissions from HEMCO (through HEMCO state)
-      CALL GetHcoState( HcoState )
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not defined!', LOC )
       ENDIF
@@ -1521,6 +1510,7 @@
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if defined( NC_DIAG )
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
@@ -1973,7 +1963,7 @@
            Ptr2D => DryDepFlux
            
            ! Update diagnostics container
-           CALL Diagn_Update( am_I_Root,                           
+           CALL Diagn_Update( am_I_Root, HcoState, 
      &                        cName   = TRIM( DiagnName),        
      &                        Array2D = Ptr2D,                     
      &                        COL     = Input_Opt%DIAG_COLLECTION, 
@@ -2546,7 +2536,6 @@
       USE ERROR_MOD,          ONLY : IS_SAFE_EXP
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoDiagn
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE State_Chm_Mod,      ONLY : ChmState
@@ -2555,6 +2544,7 @@
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
+      USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
 !
 ! !INPUT PARAMETERS:
 !
@@ -7187,7 +7177,9 @@
       USE CMN_SIZE_MOD,       ONLY : NDUST
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : IT_IS_NAN, ERROR_STOP
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+      USE HCO_INTERFACE_MOD,  ONLY : GetHcoVal
+! (jas, 8/4/15) calculate kt using sea salt surface area concentration
+      USE CMN_SIZE_MOD,       ONLY : NDUST
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE State_Chm_Mod,      ONLY : ChmState

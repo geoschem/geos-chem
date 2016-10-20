@@ -1020,6 +1020,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState    
 #if defined( NC_DIAG )
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE Error_Mod,          ONLY : Error_Stop
       USE HCO_Diagn_Mod,      ONLY : Diagn_Update
       USE HCO_Error_Mod
@@ -1276,7 +1277,7 @@
                Ptr2D => TRPAUSE_P
          END SELECT
 
-         CALL Diagn_Update( am_I_Root,                                
+         CALL Diagn_Update( am_I_Root, HcoState, 
      &                      cName     = TRIM( DiagnName ),            
      &                      Array2D   = Ptr2D,                        
      &                      RC        = HCRC )

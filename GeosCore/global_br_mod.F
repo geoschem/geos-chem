@@ -100,6 +100,7 @@
       USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE OCEAN_MERCURY_MOD,  ONLY : LGCBROMINE     !eds 4/19/12
@@ -171,7 +172,7 @@
          !-----------------------------------------------------------------
 
          ! Get a pointer to the the GEOS-Chem Br from HEMCO (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, 'Br_GC', Br_GC,  RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'Br_GC', Br_GC,  RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to Br_GC', LOC )
          ENDIF
@@ -184,7 +185,7 @@
          !-----------------------------------------------------------------
 
          ! Get a pointer to the GEOS-Chem BrO from HEMCO (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, 'BrO_GC', BrO_GC, RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'BrO_GC', BrO_GC, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to BrO_GC', LOC )
          ENDIF
@@ -199,7 +200,8 @@
          !-----------------------------------------------------------------
 
          ! Get a pointer to the TOMCAT Br from HEMCO (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, 'Br_TOMCAT', Br_TOMCAT, RC )
+         CALL HCO_GetPtr( am_I_Root,  HcoState, 
+     &                   'Br_TOMCAT', Br_TOMCAT, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to Br_TOMCAT', LOC )
          ENDIF
@@ -212,7 +214,8 @@
          !-----------------------------------------------------------------
 
          ! Get a pointer to the TOMCAT Br from HEMCO (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, 'BrO_TOMCAT', BrO_TOMCAT, RC )
+         CALL HCO_GetPtr( am_I_Root,   HcoState, 
+     &                   'BrO_TOMCAT', BrO_TOMCAT, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to Br_TOMCAT', LOC )
          ENDIF
@@ -227,7 +230,7 @@
       !-----------------------------------------------------------------
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
-      CALL HCO_GetPtr( am_I_Root, 'Br_GMI', Br_GMI, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'Br_GMI', Br_GMI, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to Br_GMI', LOC )
       ENDIF
@@ -240,7 +243,7 @@
       !-----------------------------------------------------------------
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
-      CALL HCO_GetPtr( am_I_Root, 'BrO_GMI', BrO_GMI, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'BrO_GMI', BrO_GMI, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to BrO_GMI', LOC )
       ENDIF
@@ -285,7 +288,7 @@
 !$OMP END PARALLEL DO
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
-      CALL HCO_GetPtr( am_I_Root, 'JBrO', JBrO, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'JBrO', JBrO, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to JBrO', LOC )
       ENDIF

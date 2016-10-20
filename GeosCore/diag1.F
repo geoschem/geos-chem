@@ -52,6 +52,7 @@
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
       USE TIME_MOD,           ONLY : GET_DAY
       USE TIME_MOD,           ONLY : GET_HOUR
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
 
       IMPLICIT NONE
 !
@@ -635,7 +636,7 @@
          Ptr2D => Landmap
     
          ! Update the landmap diagnostic
-         CALL Diagn_Update( am_I_Root,
+         CALL Diagn_Update( am_I_Root, HcoState,
      &                      cName   = TRIM( DiagnName ),
      &                      Array2D = Ptr2D,
      &                      RC      = RC )
@@ -680,7 +681,7 @@
                Ptr3D => Spc_VV(:,:,:,N)
 
                ! Update the deposition velocity diagostics
-               CALL Diagn_Update( am_I_Root,
+               CALL Diagn_Update( am_I_Root, HcoState,
      &                            cName   = TRIM( DiagnName ),
      &                            Array3D = Ptr3D,
      &                            RC      = RC )
@@ -702,7 +703,6 @@
          ENDDO
 
       ENDIF !ND45
-   
 
       !=================================================================
       ! Met diagnostics: ND31, ND55, ND56, ND57, ND66, ND67, ND68, ND69

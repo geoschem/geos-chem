@@ -93,6 +93,7 @@ MODULE HCO_FileData_Mod
 !
 ! !USES:
 !
+  USE HCO_TYPES_MOD
   USE HCO_ERROR_MOD
   USE HCO_ARR_MOD
 
@@ -126,47 +127,6 @@ MODULE HCO_FileData_Mod
 !
 ! !PRIVATE TYPES:
 !
-  !-------------------------------------------------------------------------
-  ! FileData: Derived type definition for HEMCO filetype object
-  !-------------------------------------------------------------------------
-  TYPE, PUBLIC :: FileData
-     CHARACTER(LEN=255)          :: ncFile    ! file path+name
-     CHARACTER(LEN= 31)          :: ncPara    ! file parameter
-     INTEGER                     :: ncYrs(2)  ! year range
-     INTEGER                     :: ncMts(2)  ! month range
-     INTEGER                     :: ncDys(2)  ! day range
-     INTEGER                     :: ncHrs(2)  ! hour range
-     INTEGER                     :: CycleFlag ! cycle flag
-     LOGICAL                     :: MustFind  ! file must be found
-     INTEGER                     :: UpdtFlag  ! update flag 
-     LOGICAL                     :: ncRead    ! read from source?
-     TYPE(Arr3D_SP),     POINTER :: V3(:)     ! vector of 3D fields
-     TYPE(Arr2D_SP),     POINTER :: V2(:)     ! vector of 2D fields
-     TYPE(TimeIdx),      POINTER :: tIDx      ! for time slice indexing 
-     CHARACTER(LEN= 31)          :: OrigUnit  ! original data units 
-     CHARACTER(LEN= 63)          :: ArbDimName! name of additional dimension 
-     CHARACTER(LEN= 63)          :: ArbDimVal ! desired value of additional dimension 
-     INTEGER                     :: Cover     ! data coverage
-     INTEGER                     :: SpaceDim  ! space dimension: 1, 2 or 3 
-     INTEGER                     :: Levels    ! vertical level handling 
-     INTEGER                     :: Lev2D     ! level to use for 2D data 
-     INTEGER                     :: nt        ! time dimension: length of Arr
-     INTEGER                     :: DeltaT    ! temp. resolution of array [h]
-     LOGICAL                     :: IsLocTime ! local time? 
-     LOGICAL                     :: IsConc    ! concentration data?
-     LOGICAL                     :: DoShare   ! shared object?
-     LOGICAL                     :: IsInList  ! is in emissions list? 
-     LOGICAL                     :: IsTouched ! Has container been touched yet? 
-  END TYPE FileData
-
-  !-------------------------------------------------------------------------
-  ! TimeIdx: Derived type definition for the object that points to the 
-  ! current time slices of data within a file.  Used by hco_tidx_mod.F90.
-  !-------------------------------------------------------------------------
-  TYPE, PUBLIC :: TimeIdx
-     INTEGER                     :: TypeID
-     CHARACTER(LEN=31)           :: TempRes
-  END TYPE TimeIdx
 !
 ! !INTERFACES:
 !
@@ -229,6 +189,7 @@ CONTAINS
     NewFDta%ncMts(:)     = -999
     NewFDta%ncDys(:)     = -999
     NewFDta%ncHrs(:)     = -999
+    NewFDta%tShift(:)    = 0
     NewFDta%CycleFlag    = HCO_CFLAG_CYCLE
     NewFDta%UpdtFlag     = HCO_UFLAG_FROMFILE
     NewFDta%MustFind     = .FALSE.
@@ -238,7 +199,10 @@ CONTAINS
     NewFDta%nt           = 0
     NewFDta%SpaceDim     = -1
     NewFDta%Levels       = 0
-    NewFDta%Lev2D        = 1
+    NewFDta%EmisL1       = 1.0_hp
+    NewFDta%EmisL2       = 1.0_hp
+    NewFDta%EmisL1Unit   = HCO_EMISL_LEV
+    NewFDta%EmisL2Unit   = HCO_EMISL_LEV
     NewFDta%OrigUnit     = ''
     NewFDta%ArbDimName   = 'none'
     NewFDta%ArbDimVal    = ''
@@ -318,10 +282,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FileData_ArrCheck2D( FileDta, nx, ny, nt, RC )
+  SUBROUTINE FileData_ArrCheck2D( HcoConfig, FileDta, nx, ny, nt, RC )
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(ConfigObj),POINTER       :: HcoConfig ! HEMCO config object
     TYPE(FileData), POINTER       :: FileDta   ! file data object 
     INTEGER,        INTENT(IN)    :: nx        ! x-dim
     INTEGER,        INTENT(IN)    :: ny        ! y-dim
@@ -355,7 +320,7 @@ CONTAINS
             ( SIZE(FileDta%V2(1)%Val,1) /= nx ) .OR. &
             ( SIZE(FileDta%V2(1)%Val,2) /= ny )       ) THEN
           MSG = 'Wrong dimensions: ' // TRIM(FileDta%ncFile)
-          CALL HCO_ERROR ( MSG, RC )
+          CALL HCO_ERROR ( HcoConfig%Err, MSG, RC )
        ENDIF
        RETURN
     ENDIF
@@ -381,13 +346,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FileData_ArrCheck3D( FileDta, nx, ny, nz, nt, RC )
+  SUBROUTINE FileData_ArrCheck3D( HcoConfig, FileDta, nx, ny, nz, nt, RC )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(ConfigObj),POINTER       :: HcoConfig ! HEMCO config object
     TYPE(FileData), POINTER       :: FileDta  ! Container
     INTEGER,        INTENT(IN)    :: nx        ! x-dim
     INTEGER,        INTENT(IN)    :: ny        ! y-dim
@@ -423,7 +389,7 @@ CONTAINS
             ( SIZE(FileDta%V3(1)%Val,2) /= ny ) .OR. &
             ( SIZE(FileDta%V3(1)%Val,3) /= nz )       ) THEN
           MSG = 'Wrong dimensions: ' // TRIM(FileDta%ncFile)
-          CALL HCO_ERROR ( MSG, RC )
+          CALL HCO_ERROR ( HcoConfig%Err, MSG, RC )
        ENDIF
        RETURN
     ENDIF

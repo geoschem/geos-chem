@@ -116,6 +116,7 @@
       USE WETSCAV_MOD,        ONLY : SO2s
 #if defined( NC_DIAG )
       USE HCO_ERROR_MOD
+      USE HCO_INTERFACE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 
@@ -260,7 +261,7 @@
       ! Archive species concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'CONV', .TRUE., RC )
+     &                  State_Chm, 'CONV', RC )
 #endif
  
       ! Assume success
@@ -488,7 +489,7 @@
                DiagnName = 'WETSCAV_CONVLOSS_' 
      &                     // TRIM( SpcInfo%Name )
 
-               CALL Diagn_Update ( am_I_Root,
+               CALL Diagn_Update ( am_I_Root, HcoState, 
      &                             cName   = TRIM( DiagnName ),
      &                             Array2D = TMP2D,
      &                             COL     = Input_Opt%DIAG_COLLECTION,
@@ -518,7 +519,7 @@
       !=================================================================
       DT_TEND = GET_TS_CONV() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'CONV', .TRUE., DT_TEND, RC )
+     &                  State_Chm, 'CONV', DT_TEND, RC )
 #endif
 
       END SUBROUTINE DO_CONVECTION

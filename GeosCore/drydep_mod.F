@@ -308,6 +308,7 @@
 !
       USE ErrCode_Mod
       USE HCO_ERROR_MOD
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
@@ -639,8 +640,8 @@
                Ptr2D => SAVE_DEPVEL(:,:,D)
 
                ! Update the deposition velocity diagostics 
-               CALL Diagn_Update( am_I_Root,
-     &                            cName   = TRIM( DiagnName ),               
+               CALL Diagn_Update( am_I_Root, HcoState,
+     &                            cName   = TRIM( DiagnName ),
      &                            Array2D = Ptr2D,
      &                            COL     = Input_Opt%DIAG_COLLECTION,
      &                            RC      = HCRC )
@@ -1073,6 +1074,7 @@
 !  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC to AERO_DIADEN 
 !                              to enable unit conversion in that routine
 !  22 Sep 2015 - R. Yantosca - Now use NUMDEP instead of MAXDEP for arrays
+!  15 Mar 2016 - C. Keller   - Prevent very small numbers of CORR1 and Z0OBK
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  17 May 2016 - M. Sulprizio- Remove IJLOOP and change dimension of arrays
 !                              from (MAXIJ) to (IIPAR,JJPAR); Also remove NPTS
@@ -1176,6 +1178,9 @@
       ! For the species database
       INTEGER                :: SpcId
       TYPE(Species), POINTER :: SpcInfo
+
+      ! Small number
+      REAL(fp), PARAMETER :: SMALL = 1.0e-10_f8
 
       !=================================================================
       ! DEPVEL begins here!
@@ -1813,6 +1818,12 @@
                IF (CORR1.LE.0.0e+0_f8 .AND. Z0OBK .LT. -1.e+0_f8)THEN
 !*... unstable condition; set RA to zero. (first implemented in V. 3.2)
                   RA = 0.e+0_f8
+
+!*... error trap: prevent CORR1 or Z0OBK from being zero or close to
+!*... zero (ckeller, 3/15/16)
+               ELSEIF ( ABS(CORR1)<=SMALL .OR. ABS(Z0OBK)<=SMALL ) THEN
+                  RA = 0.e+0_f8
+
                ELSEIF (CORR1.LE.0.0e+0_f8 .AND. Z0OBK .GE. -1.e+0_f8) 
      &          THEN
 !*... unstable conditions; compute Ra as described above.
@@ -4204,9 +4215,10 @@
 
       ! SDE 2016-03-27: This is now called after Input_Opt has already
       ! been broadcast, so each CPU will do this independently anyway
+      ! ckeller: moved to end of routine (see below)
 !      Input_Opt%NUMDEP            = NUMDEP
-      Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
-      Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
+!      Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
+!      Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
 
       !=================================================================
       ! Echo information to stdout
@@ -4268,7 +4280,18 @@
       ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
       ! sea salt aerosols (jaegle 5/11/11)
       CALL INIT_WEIGHTSS( Input_Opt )
-      
+    
+      ! Archive variables in Input_Opt 
+      ! Moved after READ_DRYDEP_INPUTS because I'm experiencing memory
+      ! leaks if done beforehand. Best would be to execute
+      ! READ_DRYDEP_INPUTS only on the root CPU and then broadcast the
+      ! values but this solution here at least appears to fix the problem. 
+      ! (ckeller, 4/15/16)
+!      Input_Opt%NUMDEP            = NUMDEP
+!      Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
+      Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
+      Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
+ 
       END SUBROUTINE INIT_DRYDEP
 !EOC
 !------------------------------------------------------------------------------

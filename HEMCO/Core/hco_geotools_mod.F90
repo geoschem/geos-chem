@@ -29,6 +29,8 @@ MODULE HCO_GeoTools_Mod
   PUBLIC :: HCO_GetSUNCOS
   PUBLIC :: HCO_GetHorzIJIndex
   PUBLIC :: HCO_CalcVertGrid
+  PUBLIC :: HCO_SetPBLm
+!  PUBLIC :: HCO_CalcPBLlev
 
   INTERFACE HCO_LandType
      MODULE PROCEDURE HCO_LandType_Dp
@@ -39,6 +41,11 @@ MODULE HCO_GeoTools_Mod
      MODULE PROCEDURE HCO_ValidateLon_Dp
      MODULE PROCEDURE HCO_ValidateLon_Sp
   END INTERFACE HCO_ValidateLon
+
+!  INTERFACE HCO_CalcPBLlev
+!     MODULE PROCEDURE HCO_CalcPBLlev2D
+!     MODULE PROCEDURE HCO_CalcPBLlev3D
+!  END INTERFACE HCO_CalcPBLlev
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -188,11 +195,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ValidateLon_Sp ( NLON, LON, RC )
+  SUBROUTINE HCO_ValidateLon_Sp ( HcoState, NLON, LON, RC )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,   ONLY : HCO_STATE
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,  INTENT(IN   ) :: NLON        ! # of lons
+    TYPE(HCO_State), POINTER       :: HcoState       ! HEMCO state object
+    INTEGER,         INTENT(IN   ) :: NLON        ! # of lons
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -223,7 +235,7 @@ CONTAINS
        ! Exit w/ error after 10 iterations
        CNT = CNT + 1
        IF ( CNT > MAXIT ) THEN
-          CALL HCO_ERROR ( '>10 iterations', RC, &
+          CALL HCO_ERROR ( HcoState%Config%Err, '>10 iterations', RC, &
                            THISLOC='HCO_ValidateLon (HCO_GEOTOOLS_MOD.F90)' )
           RETURN
        ENDIF
@@ -266,11 +278,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ValidateLon_Dp ( NLON, LON, RC )
+  SUBROUTINE HCO_ValidateLon_Dp ( HcoState, NLON, LON, RC )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,   ONLY : HCO_STATE
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,  INTENT(IN   ) :: NLON        ! # of lons
+    TYPE(HCO_State), POINTER       :: HcoState       ! HEMCO state object
+    INTEGER,         INTENT(IN   ) :: NLON        ! # of lons
 !
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -299,7 +316,7 @@ CONTAINS
        ! Exit w/ error after 10 iterations
        CNT = CNT + 1
        IF ( CNT > MAXIT ) THEN
-          CALL HCO_ERROR ( '>10 iterations', RC, &
+          CALL HCO_ERROR ( HcoState%Config%Err, '>10 iterations', RC, &
                            THISLOC='HCO_ValidateLon (HCO_GEOTOOLS_MOD.F90)' )
           RETURN
        ENDIF
@@ -395,7 +412,7 @@ CONTAINS
     !-------------------------------
 
     ! Get current time information
-    CALL HcoClock_Get( cDOY=DOY, cH=HOUR, RC=RC )
+    CALL HcoClock_Get( am_I_Root, HcoState%Clock, cDOY=DOY, cH=HOUR, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add time adjustment 
@@ -471,13 +488,15 @@ CONTAINS
 
          ! COS(SZA) at the current time
          SUNCOS(I,J) = SC
+
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
     ! Check error status
     IF ( ERR ) THEN 
-       CALL HCO_ERROR ( 'Cannot calculate SZA', RC, &
+       CALL HCO_ERROR ( HcoState%Config%Err, &
+         'Cannot calculate SZA', RC, &
           THISLOC='HCO_GetSUNCOS (hco_geotools_mod.F90)' )
        RETURN
     ENDIF
@@ -555,7 +574,12 @@ CONTAINS
     LatR(:) = Lat / radToDeg 
 
     ! Get indeces
-    CALL MAPL_GetHorzIJIndex(N,idx,jdx,LonR,LatR,Grid=Grid,__RC__)
+    CALL MAPL_GetHorzIJIndex( npts=N,   II=idx,   JJ=jdx,    &
+                              lon=LonR, lat=LatR, Grid=Grid, &
+                              __RC__)
+
+!!! old version of MAPL:
+!    CALL MAPL_GetHorzIJIndex(N,idx,jdx,LonR,LatR,Grid=Grid,__RC__)
 
     ! Return w/ success
     RC =  HCO_SUCCESS
@@ -774,14 +798,14 @@ CONTAINS
     FoundBXHEIGHT = .FALSE.
 
     ! Verbose statements
-    IF ( am_I_Root .AND. FIRST .AND. HCO_IsVerb(2) ) THEN
+    IF ( am_I_Root .AND. FIRST .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
        Verb = .TRUE.
     ENDIF
     IF ( Verb ) THEN
        MSG = 'Details about vertical grid calculations (only shown on first time step):'
-       CALL HCO_MSG(MSG,SEP1='-')
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='-')
        MSG = '1. Input data availability: '
-       CALL HCO_MSG(MSG,SEP1=' ')
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1=' ')
     ENDIF
 
     ! ------------------------------------------------------------------
@@ -798,7 +822,7 @@ CONTAINS
             NZ /= HcoState%NZ ) THEN
           WRITE(MSG,*) 'Wrong TK array size: ', NX, NY, NZ, &
                        '; should be: ', HcoState%NX, HcoState%NY, HcoState%NZ
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN 
        ENDIF
 
@@ -809,7 +833,7 @@ CONTAINS
        ! Verbose
        IF ( Verb ) THEN 
           WRITE(MSG,*) ' - Temperature field TK obtained from model interface (min,max): ', MINVAL(ThisTK), MAXVAL(ThisTK)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
     ELSEIF ( EVAL_TK ) THEN
@@ -823,10 +847,10 @@ CONTAINS
        IF ( Verb ) THEN
           IF ( FoundTK ) THEN
              WRITE(MSG,*) ' - Temperature field TK [K] obtained from configuration file (min,max): ', MINVAL(ThisTK), MAXVAL(ThisTK)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ELSE
              WRITE(MSG,*) ' - No temperature field TK found - some vertical grid calculations may not be performed...'
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
        ENDIF
     ENDIF
@@ -845,7 +869,7 @@ CONTAINS
        IF ( NX /= HcoState%NX .OR. NY /= HcoState%NY ) THEN
           WRITE(MSG,*) 'Wrong PSFC array size: ', NX, NY, &
                        '; should be: ', HcoState%NX, HcoState%NY
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN 
        ENDIF
    
@@ -856,7 +880,7 @@ CONTAINS
        ! Verbose 
        IF ( Verb ) THEN
           WRITE(MSG,*) ' - Surface pressure PSFC [Pa] obtained from model interface (min, max): ', MINVAL(HcoState%Grid%PSFC%Val), MAXVAL(HcoState%Grid%PSFC%VAL)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
     ! Otherwise, try to read from HEMCO configuration file
@@ -869,10 +893,10 @@ CONTAINS
        IF ( Verb ) THEN
           IF ( FoundPSFC ) THEN
              WRITE(MSG,*) ' - Surface pressure PSFC [Pa] obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%PSFC%Val), MAXVAL(HcoState%Grid%PSFC%VAL)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ELSE
              MSG = ' - Surface pressure PSFC not found. Will attempt to calculate it.'
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
        ENDIF
     ENDIF
@@ -891,7 +915,7 @@ CONTAINS
        IF ( NX /= HcoState%NX .OR. NY /= HcoState%NY ) THEN
           WRITE(MSG,*) 'Wrong ZSFC array size: ', NX, NY, &
                        '; should be: ', HcoState%NX, HcoState%NY
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN 
        ENDIF
    
@@ -902,7 +926,7 @@ CONTAINS
        ! Verbose 
        IF ( Verb ) THEN
           WRITE(MSG,*) ' - Surface geopotential height ZSFC [m] obtained from model interface (min, max): ', MINVAL(HcoState%Grid%ZSFC%Val), MAXVAL(HcoState%Grid%ZSFC%VAL)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
     ! Otherwise, try to read from HEMCO configuration file
@@ -915,10 +939,10 @@ CONTAINS
        IF ( Verb ) THEN
           IF ( FoundZSFC ) THEN
              WRITE(MSG,*) ' - Surface geopotential height ZSFC [m] obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%ZSFC%Val), MAXVAL(HcoState%Grid%ZSFC%VAL)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ELSE
              MSG = ' - Surface geopotential height ZSFC not found. Will attempt to calculate it.'
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
        ENDIF
     ENDIF
@@ -939,7 +963,7 @@ CONTAINS
             NZ /= (HcoState%NZ + 1) ) THEN
           WRITE(MSG,*) 'Wrong PEDGE array size: ', NX, NY, NZ, &
                        '; should be: ', HcoState%NX, HcoState%NY, HcoState%NZ+1
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN 
        ENDIF
 
@@ -949,7 +973,7 @@ CONTAINS
        ! Verbose 
        IF ( Verb ) THEN
           WRITE(MSG,*) ' - Pressure edges PEDGE obtained from model interface (min, max): ', MINVAL(HcoState%Grid%PEDGE%Val), MAXVAL(HcoState%Grid%PEDGE%VAL)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
     ELSEIF ( EVAL_PEDGE ) THEN
@@ -962,10 +986,10 @@ CONTAINS
        IF ( Verb ) THEN
           IF ( FoundPEDGE ) THEN
              WRITE(MSG,*) ' - Pressure edges PEDGE obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%PEDGE%Val), MAXVAL(HcoState%Grid%PEDGE%VAL)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ELSE
              MSG = ' - Pressure edges PEDGE not found. Will attempt to calculate it.'
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
        ENDIF
     ENDIF
@@ -986,7 +1010,7 @@ CONTAINS
             NZ /= HcoState%NZ ) THEN
           WRITE(MSG,*) 'Wrong BXHEIGHT array size: ', NX, NY, NZ, &
                        '; should be: ', HcoState%NX, HcoState%NY, HcoState%NZ
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN 
        ENDIF
 
@@ -996,7 +1020,7 @@ CONTAINS
        ! Verbose 
        IF ( Verb ) THEN
           WRITE(MSG,*) ' - Boxheights BXHEIGHT_M obtained from model interface (min, max): ', MINVAL(HcoState%Grid%BXHEIGHT_M%Val), MAXVAL(HcoState%Grid%BXHEIGHT_M%VAL)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
     ! Otherwise, try to read from HEMCO configuration file
@@ -1010,10 +1034,10 @@ CONTAINS
        IF ( Verb ) THEN
           IF ( FoundBXHEIGHT ) THEN
              WRITE(MSG,*) ' - Boxheights BXHEIGHT_M obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%BXHEIGHT_M%Val), MAXVAL(HcoState%Grid%BXHEIGHT_M%VAL)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ELSE
              MSG = ' - Boxheights BXHEIGHT_M not found. Will attempt to calculate it.'
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
        ENDIF
     ENDIF
@@ -1046,7 +1070,7 @@ CONTAINS
           ! Verbose
           IF ( Verb ) THEN
              MSG = ' - Surface pressure set to surface pressure edge.'
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF          
        ELSE
           HcoState%Grid%PSFC%Val(:,:) = 101325.0_hp
@@ -1055,13 +1079,13 @@ CONTAINS
                    'This may affect the accuracy of vertical grid '     // &
                    'quantities. It is recommended you provide PSFC via '// &
                    'the model-HEMCO interface or the HEMCO configuration file!'
-             CALL HCO_WARNING( MSG, RC, THISLOC=LOC, WARNLEV=1 )
+             CALL HCO_WARNING( HcoState%Config%Err,MSG, RC, THISLOC=LOC, WARNLEV=1 )
           ENDIF
 
           ! Verbose
           IF ( Verb ) THEN
              MSG = ' - Surface pressure uniformly set to 101325.0 Pa.'
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF          
        ENDIF
        FoundPSFC = .TRUE.
@@ -1090,7 +1114,7 @@ CONTAINS
        IF ( Verb ) THEN
           WRITE(MSG,*) ' - PEDGE calculated from PSFC, Ap, and Bp (min, max): ', & 
              MINVAL(HcoState%Grid%PEDGE%Val), MAXVAL(HcoState%Grid%PEDGE%Val)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF          
     ENDIF
 
@@ -1145,7 +1169,7 @@ CONTAINS
                    'surface pressure value is zero! You can either provide an '    // &
                    'updated pressure edge field (PEDGE) or add a field with the '  // &
                    'surface geopotential height to your configuration file (ZSFC)'
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ELSE 
              FoundZSFC = .TRUE.
@@ -1154,7 +1178,7 @@ CONTAINS
              IF ( Verb ) THEN
                 WRITE(MSG,*) ' - ZSFC calculated from PSFC and T (min, max): ', & 
                    MINVAL(HcoState%Grid%ZSFC%Val), MAXVAL(HcoState%Grid%ZSFC%Val)
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF          
           ENDIF
 
@@ -1163,7 +1187,7 @@ CONTAINS
                    'pressure value is zero! You can either provide an '    // &
                    'updated pressure edge field (PEDGE) or add a field with the '  // &
                    'grid box heights to your configuration file (BOXHEIGHT_M)'
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ELSE 
              FoundZSFC = .TRUE.
@@ -1172,7 +1196,7 @@ CONTAINS
              IF ( Verb ) THEN
                 WRITE(MSG,*) ' - Boxheights calculated from PEDGE and T (min, max): ', & 
                    MINVAL(HcoState%Grid%BXHEIGHT_M%Val), MAXVAL(HcoState%Grid%BXHEIGHT_M%Val) 
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
           ENDIF
 
@@ -1183,14 +1207,14 @@ CONTAINS
                    'some extensions to fail. HEMCO tries to calculate '   // &
                    'ZSFC from surface pressure and air temperature, but ' // &
                    'at least one of these variables seem to be missing.'
-             CALL HCO_WARNING( MSG, RC, THISLOC=LOC, WARNLEV=1 )
+             CALL HCO_WARNING( HcoState%Config%Err,MSG, RC, THISLOC=LOC, WARNLEV=1 )
           ENDIF
           IF ( .NOT. FoundBXHEIGHT .AND. FIRST .AND. am_I_Root ) THEN
              MSG = 'Cannot set boxheights BXHEIGHT_M. This may cause '      // &
                    'some extensions to fail. HEMCO tries to calculate '     // &
                    'BXHEIGHT from pressure edges and air temperature, but ' // &
                    'at least one of these variables seem to be missing.'
-             CALL HCO_WARNING( MSG, RC, THISLOC=LOC, WARNLEV=1 )
+             CALL HCO_WARNING( HcoState%Config%Err,MSG, RC, THISLOC=LOC, WARNLEV=1 )
           ENDIF
        ENDIF
     ENDIF 
@@ -1202,7 +1226,7 @@ CONTAINS
     ! Verbose
     IF ( Verb ) THEN
        WRITE(MSG,*) 'Vertical grid calculations done.'
-       CALL HCO_MSG(MSG,SEP2='-')
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
     ENDIF
 
     ! Cleanup
@@ -1217,5 +1241,290 @@ CONTAINS
 
   END SUBROUTINE HCO_CalcVertGrid
 !EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !SUBROUTINE: HCO_SetPBLm
+!
+! !DESCRIPTION: Subroutine HCO\_SetPBLm sets the HEMCO PBL mixing height in 
+! meters. It first tries to read it from field 'FldName' (from the HEMCO data
+! list), then to fill it from field 'PBLM', and then assigns the default value
+! 'DefVal' to it.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_SetPBLm ( am_I_Root, HcoState, FldName, PBLM, DefVal, RC )
+!
+! !USES
+!
+    USE HCO_Arr_Mod,      ONLY : HCO_ArrAssert
+    USE HCO_STATE_MOD,    ONLY : HCO_STATE
+    USE HCO_CALC_MOD,     ONLY : HCO_EvalFld
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )            :: am_I_Root   ! Root CPU? 
+    TYPE(HCO_State),  POINTER                  :: HcoState    ! HEMCO state object
+    CHARACTER(LEN=*), OPTIONAL, INTENT(IN   )  :: FldName     ! field name
+    REAL(hp),         OPTIONAL, POINTER        :: PBLM(:,:)   ! pbl mixing height  
+    REAL(hp),         OPTIONAL, INTENT(IN   )  :: DefVal      ! default value 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC
+! 
+! !REVISION HISTORY:
+!  28 Sep 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                       :: NX, NY
+    LOGICAL                       :: FOUND
+    CHARACTER(LEN=255)            :: MSG
+    CHARACTER(LEN=255)            :: LOC = 'HCO_SetPBLm (hco_geotools_mod.F90)'
+
+    !-------------------------------
+    ! HCO_SetPBLm begins here
+    !-------------------------------
+
+    ! Init
+    FOUND = .FALSE.
+
+    ! Try to read from file first 
+    IF ( PRESENT( FldName ) ) THEN
+       CALL HCO_EvalFld ( am_I_Root, HcoState, FldName, &
+          HcoState%Grid%PBLHEIGHT%Val, RC, FOUND=FOUND )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Verbose
+       IF ( am_I_Root .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+          IF ( FOUND ) THEN
+             WRITE(MSG,*) 'HEMCO PBL heights obtained from field ',TRIM(FldName)
+             CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
+          ENDIF
+       ENDIF
+    ENDIF
+
+    ! Pass 2D field if available
+    IF ( .NOT. FOUND .AND. PRESENT(PBLM) ) THEN
+       IF ( ASSOCIATED(PBLM) ) THEN
+          NX = SIZE(PBLM,1)
+          NY = SIZE(PBLM,2)
+          IF ( NX /= HcoState%NX .OR. NY /= HcoState%NY ) THEN
+             WRITE(MSG,*) 'Wrong PBLM array size: ', NX, NY, &
+                          '; should be: ', HcoState%NX, HcoState%NY
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+             RETURN 
+          ENDIF
+
+          ! Make sure size is ok   
+          CALL HCO_ArrAssert( HcoState%Grid%PBLHEIGHT, HcoState%NX, HcoState%NY, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! Pass data 
+          HcoState%Grid%PBLHEIGHT%Val = PBLM
+          FOUND                       = .TRUE.
+
+          ! Verbose
+          IF ( am_I_Root .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+             WRITE(MSG,*) 'HEMCO PBL heights obtained from provided 2D field.'
+             CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
+          ENDIF
+       ENDIF
+    ENDIF
+
+    ! Finally, assign default value if field not yet set
+    IF ( .NOT. FOUND .AND. PRESENT(DefVal) ) THEN
+          ! Make sure size is ok   
+          CALL HCO_ArrAssert( HcoState%Grid%PBLHEIGHT, HcoState%NX, HcoState%NY, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! Pass data 
+          HcoState%Grid%PBLHEIGHT%Val = DefVal
+          FOUND                       = .TRUE.
+
+          ! Verbose
+          IF ( am_I_Root .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+             WRITE(MSG,*) 'HEMCO PBL heights uniformly set to ', DefVal 
+             CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
+          ENDIF
+    ENDIF
+
+    ! Error check
+    IF ( .NOT. FOUND ) THEN 
+       WRITE(MSG,*) 'Cannot set PBL height: a valid HEMCO data field, ', &
+          'an explicit 2D field or a default value must be provided!'
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+       RETURN 
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_SetPBLm
+!EOC
+!!------------------------------------------------------------------------------
+!!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !SUBROUTINE: HCO_CalcPBLlev3D
+!!
+!! !DESCRIPTION: 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE HCO_CalcPBLlev3D ( am_I_Root, HcoState, PBLFRAC, RC )
+!!
+!! !USES
+!!
+!    USE HCO_Arr_Mod,      ONLY : HCO_ArrAssert
+!    USE HCO_STATE_MOD,    ONLY : HCO_STATE
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,         INTENT(IN   )  :: am_I_Root       ! Root CPU? 
+!    TYPE(HCO_State), POINTER        :: HcoState        ! HEMCO state object
+!    REAL(hp),        POINTER        :: PBLFRAC(:,:,:)  ! planetary PBL fraction 
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    INTEGER,         INTENT(INOUT)  :: RC
+!! 
+!! !REVISION HISTORY:
+!!  05 May 2016 - C. Keller - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    INTEGER             :: I,  J,  L
+!    CHARACTER(LEN=255)  :: MSG
+!    CHARACTER(LEN=255)  :: LOC = 'HCO_CalcPBLlev3D (hco_geotools_mod.F90)' 
+!
+!    !-------------------------------
+!    ! HCO_CalcPBLlev3D begins here
+!    !-------------------------------
+!
+!    ! Check input array size
+!    IF ( SIZE(PBLFRAC,1) /= HcoState%NX .OR. &
+!         SIZE(PBLFRAC,2) /= HcoState%NY .OR. & 
+!         SIZE(PBLFRAC,3) /= HcoState%NZ        ) THEN
+!       WRITE(MSG,*) 'Input array PBLFRAC has wrong horiz. dimensions: ', &
+!                     SIZE(PBLFRAC,1),SIZE(PBLFRAC,2),SIZE(PBLFRAC,3)
+!       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+!       RETURN
+!    ENDIF
+!
+!    ! Make sure array is associated
+!    CALL HCO_ArrAssert( HcoState%Grid%PBL, HcoState%NX, HcoState%NY, RC ) 
+!    IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!    ! Initialize values
+!    HcoState%Grid%PBL%Val = 1.0
+!
+!!$OMP PARALLEL DO                                                      &
+!!$OMP DEFAULT( SHARED )                                                &
+!!$OMP PRIVATE( I, J, L )                                               &
+!!$OMP SCHEDULE( DYNAMIC )
+!    DO J = 1, HcoState%NY
+!    DO I = 1, HcoState%NX
+!       ! Search for first level where PBL fraction is zero
+!       DO L = 1, HcoState%NZ
+!          IF ( PBLFRAC(I,J,L) > 0.0_hp ) CYCLE
+!          HcoState%Grid%PBL%Val(I,J) = MAX(L-1,1)
+!          EXIT
+!       ENDDO
+!    ENDDO
+!    ENDDO
+!!$OMP END PARALLEL DO
+!
+!    ! Return w/ success
+!    RC = HCO_SUCCESS
+!
+!  END SUBROUTINE HCO_CalcPBLlev3D
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !SUBROUTINE: HCO_CalcPBLlev2D
+!!
+!! !DESCRIPTION: 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE HCO_CalcPBLlev2D ( am_I_Root, HcoState, PBLlev, RC )
+!!
+!! !USES
+!!
+!    USE HCO_Arr_Mod,      ONLY : HCO_ArrAssert
+!    USE HCO_STATE_MOD,    ONLY : HCO_STATE
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,         INTENT(IN   )  :: am_I_Root       ! Root CPU? 
+!    TYPE(HCO_State), POINTER        :: HcoState        ! HEMCO state object
+!    INTEGER,         POINTER        :: PBLlev(:,:)     ! planetary PBL lev 
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    INTEGER,         INTENT(INOUT)  :: RC
+!! 
+!! !REVISION HISTORY:
+!!  05 May 2016 - C. Keller - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    INTEGER             :: I,  J,  L
+!    CHARACTER(LEN=255)  :: MSG
+!    CHARACTER(LEN=255)  :: LOC = 'HCO_CalcPBLlev2D (hco_geotools_mod.F90)' 
+!
+!    !-------------------------------
+!    ! HCO_CalcPBLlev2D begins here
+!    !-------------------------------
+!
+!    ! Make sure array is associated
+!    CALL HCO_ArrAssert( HcoState%Grid%PBL, HcoState%NX, HcoState%NY, RC ) 
+!    IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!    ! Check input array size
+!    IF ( SIZE(PBLlev,1) /= HcoState%NX .OR. SIZE(PBLlev,2) /= HcoState%NY ) THEN
+!       WRITE(MSG,*) 'Input array PBLlev has wrong horiz. dimensions: ', &
+!              SIZE(PBLlev,1),SIZE(PBLlev,2)
+!       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+!       RETURN
+!    ENDIF
+!
+!    ! Set values from PBLlev
+!!$OMP PARALLEL DO                                                      &
+!!$OMP DEFAULT( SHARED )                                                &
+!!$OMP PRIVATE( I, J )                                                  &
+!!$OMP SCHEDULE( DYNAMIC )
+!    DO J = 1, HcoState%NY
+!    DO I = 1, HcoState%NX
+!       HcoState%Grid%PBL%Val(I,J) = MAX(PBLlev(I,J),1)
+!    ENDDO
+!    ENDDO
+!!$OMP END PARALLEL DO
+!
+!    ! Return w/ success
+!    RC = HCO_SUCCESS
+!
+!  END SUBROUTINE HCO_CalcPBLlev2D
+!!EOC
 END MODULE HCO_GeoTools_Mod
 !EOM

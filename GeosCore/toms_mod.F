@@ -117,6 +117,7 @@
 !
       USE ErrCode_Mod
       USE Error_Mod,          ONLY : Error_Stop
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -219,7 +220,7 @@
       !-----------------------------------------------------------------
       ! Read TOMS O3 columns [dobsons]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'TOMS_O3_COL', TOMS, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS_O3_COL', TOMS, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
       ENDIF
@@ -227,7 +228,8 @@
       !-----------------------------------------------------------------
       ! Read d(TOMS)/dt, 1st half of the month [dobsons/day]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'DTOMS1_O3_COL', DTOMS1, RC )
+      CALL HCO_GetPtr( am_I_Root,      HcoState, 
+     &                'DTOMS1_O3_COL', DTOMS1, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
       ENDIF
@@ -235,7 +237,8 @@
       !-----------------------------------------------------------------
       ! Read d(TOMS)/dt, 2nd half of the month [dobsons/day]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'DTOMS2_O3_COL', DTOMS2, RC )
+      CALL HCO_GetPtr( am_I_Root,      HcoState, 
+     &                'DTOMS2_O3_COL', DTOMS2, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
       ENDIF

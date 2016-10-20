@@ -508,6 +508,9 @@
       MONTH_STR_INT = GET_MONTH()
       WRITE( MONTH_STR, '(i0.2)' ) MONTH_STR_INT
 
+      ! Error trap: make sure CFCYEAR is properly initialized
+      IF ( CFCYEAR < 0 ) CFCYEAR = GET_YEAR()
+
       ! Are we using 2D data?
       ! Don't use LBASICEMIS in check below (ckeller, 05/12/14)
       USE2DDATA = ( LSETOCS     .or. LSETCFC      .or. LSETCL     .or.
@@ -2175,11 +2178,12 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE ERROR_MOD,              ONLY : GC_Error
-      USE Input_Opt_Mod,          ONLY : OptInput     
-      USE State_Chm_Mod,          ONLY : ChmState
-      USE State_Met_Mod,          ONLY : MetState
-      USE TIME_MOD,               ONLY : GET_MONTH
+      USE ERROR_MOD,          ONLY : GC_Error
+      USE Input_Opt_Mod,      ONLY : OptInput     
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -2244,6 +2248,11 @@
 
       ! Initialize GEOS-Chem species array [kg/kg dry]
       Spc => State_Chm%Species
+
+      ! Error trap: make sure CFCYEAR is defined. In ESMF mode, CFCYEAR
+      ! may become initialized to zero because the simulation year is not
+      ! yet know during initialization (ckeller, 1/20/16).
+      IF ( CFCYEAR <= 0 ) CFCYEAR = GET_YEAR()
 
        ! If not correct hour block and day read in new fields
        IF (SFC_MONTH/=GET_MONTH()) THEN
@@ -5400,10 +5409,9 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartGet
-      USE HCO_STATE_MOD,      ONLY : HCO_State
       USE HCO_CLOCK_MOD,      ONLY : HcoClock_First 
       USE HCO_CLOCK_MOD,      ONLY : HcoClock_Rewind
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
@@ -5436,27 +5444,24 @@
       ! Strings
       CHARACTER(LEN=255) :: MSG
      
-      ! Pointer to HEMCO state obj.
-      TYPE(HCO_State), POINTER  :: HcoState
-
       !=================================================================
       ! READ_PSC_FILE begins here!
       !=================================================================
 
       ! Assume success until otherwise 
       RC = GC_SUCCESS 
- 
-      ! Initialize
-      HcoState => NULL()
 
-      ! Only read on first call or after rewind
-      IF ( .NOT. HcoClock_First ( .FALSE. ) .AND. 
-     &     .NOT. HcoClock_Rewind( .FALSE. )      ) THEN
-         RETURN
+      ! Make sure HEMCO state is defined
+      IF ( .NOT. ASSOCIATED ( HcoState ) ) THEN
+         MSG = 'HEMCO state object not associated!'
+         CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
       ENDIF
  
-      ! Get HEMCO state obj.
-      CALL GetHcoState( HcoState )
+      ! Only read on first call or after rewind
+      IF ( .NOT. HcoClock_First ( HcoState%Clock, .FALSE. ) .AND. 
+     &     .NOT. HcoClock_Rewind( HcoState%Clock, .FALSE. )      ) THEN
+         RETURN
+      ENDIF
 
       ! Get restart variable
       CALL HCO_RestartGet( am_I_Root, HcoState, 'STATE_PSC',  
@@ -5465,9 +5470,6 @@
          MSG = 'Cannot get PSC restart variable'
          CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
       ENDIF
-
-      ! Cleanup
-      HcoState => NULL()
 
       ! On first call, prompt some messages
 
@@ -7170,8 +7172,7 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartDefine
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -7193,20 +7194,17 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      TYPE(HCO_State), POINTER :: HcoState
       CHARACTER(LEN=255)       :: MSG
       CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_UCX (ucx_mod.F)' 
 
       !=================================================================
       ! DIAGINIT_UCX begins here!
       !=================================================================
-      HcoState => NULL()
 
       ! Define restart quantity    
-      CALL GetHcoState( HcoState ) 
-      CALL HCO_RestartDefine ( am_I_Root, HcoState, 'STATE_PSC',
-     &                         State_Chm%STATE_PSC, 'count', RC )
-      HcoState => NULL() 
+      CALL HCO_RestartDefine ( am_I_Root, HcoState, 
+     &                       'STATE_PSC', State_Chm%STATE_PSC, 
+     &                           'count', RC )
 
       IF ( RC /= HCO_SUCCESS ) THEN
          MSG = 'Cannot define STATE_PSC restart'
@@ -7242,10 +7240,9 @@
 !
       USE ErrCode_Mod
       USE HCO_ERROR_MOD
-      USE HCO_RESTART_MOD,      ONLY : HCO_RestartWrite
-      USE HCO_STATE_MOD,        ONLY : HCO_STATE
-      USE HCOI_GC_MAIN_MOD,     ONLY : GetHcoState
-      USE State_Chm_Mod,        ONLY : ChmState
+      USE HCO_RESTART_MOD,   ONLY : HCO_RestartWrite
+      USE HCO_INTERFACE_MOD, ONLY : HcoState
+      USE State_Chm_Mod,     ONLY : ChmState
 ! 
 ! !INPUT ARGUMENTS:
 !
@@ -7265,23 +7262,14 @@
 !
 ! !LOCAL VARIABLES:
 !
-      TYPE(HCO_STATE), POINTER :: HcoState
 
       !=================================================================
       ! WRITE_STATE_PSC begins here!
       !=================================================================
-
-      ! Eventually write STATE_PSC to restart.
-      HcoState => NULL()
       
       ! Eventually write PSC_STATE to restart. 
-      CALL GetHcoState ( HcoState )
-
       CALL HCO_RestartWrite( am_I_Root,   HcoState, 
      &                       'STATE_PSC', State_Chm%STATE_PSC, RC )
-
-      ! Free HEMCO state pointer
-      HcoState => NULL()
 
       ! Error check
       IF ( RC /= HCO_SUCCESS ) THEN

@@ -6,12 +6,21 @@
 ! !MODULE: hco_state_mod.F90
 !
 ! !DESCRIPTION: Module HCO\_State\_Mod contains definitions and sub- 
-! routines for the HEMCO state derived type. The HEMCO state HcoState 
-! contains information about the emissions grid, all used species, 
-! various physical constants, etc. It also contains the final assembled 
-! 3D flux and 2D deposition arrays (to be passed to the overlaying 
-! model). 
-! HcoState is defined on the HEMCO-model interface level.
+! routines for the HEMCO state derived type. The HEMCO state object 
+! (HcoState) contains all information related to the HEMCO run, such
+! as the HEMCO clock, information on the emission grid and the data
+! fields to be read, details on all used species, various physical
+! constants, etc. 
+! It also contains the final assembled 3D flux and 2D deposition 
+! arrays (to be passed to the overlaying model) and a pointer to the 
+! HEMCO configuration object (Config). The latter contains error and
+! traceback information and holds the data fields (in the data list
+! ConfigList).
+!\\
+!\\
+! The HEMCO state object (typically called HcoState) for a given HEMCO
+! run must be defined on the HEMCO-model interface level (subroutine 
+! HcoState\_Init).
 !\\
 !\\
 ! !INTERFACE: 
@@ -20,6 +29,7 @@ MODULE HCO_State_Mod
 !
 ! USES:
 !
+  USE HCO_Types_Mod
   USE HCO_Error_Mod
   USE HCO_Arr_Mod
   USE HCO_VertGrid_Mod
@@ -53,7 +63,8 @@ MODULE HCO_State_Mod
      INTEGER                     :: NY         ! # of y-pts (lats) on this CPU
      INTEGER                     :: NZ         ! # of z-pts (levs) on this CPU
      TYPE(HcoGrid),      POINTER :: Grid       ! HEMCO grid information
-  
+     TYPE(HcoClock),     POINTER :: Clock      ! HEMCO clock 
+ 
      ! Data array        
      TYPE(Arr3D_HP),     POINTER :: Buffer3D   ! Placeholder to store temporary
                                                ! 3D array.  Emissions will be
@@ -71,9 +82,34 @@ MODULE HCO_State_Mod
      TYPE(HcoMicroPhys), POINTER :: MicroPhys  ! Microphysics settings
 
      !%%%%%  Run time options %%%%%
-     CHARACTER(LEN=255)          :: ConfigFile ! Full path to HEMCO Config file
      LOGICAL                     :: isESMF     ! Are we using ESMF?
      TYPE(HcoOpt),       POINTER :: Options    ! HEMCO run options
+
+     !%%%%% ReadLists %%%%%
+     TYPE(RdList),      POINTER  :: ReadLists 
+     LOGICAL                     :: SetReadListCalled 
+
+     !%%%%% Emissions linked list %%%%%%
+     TYPE(ListCont), POINTER     :: EmisList
+     INTEGER                     :: nnEmisCont =  0 ! # of container in EmisList     
+
+     !%%%%% Data container indeces %%%%% 
+     ! Element i of cIDList will point to data-container with container
+     ! ID i (e.g. cIDList(3) points to data-container with cID = 3). 
+     TYPE(cIDListPnt), POINTER   :: cIDList(:) => NULL()
+
+     ! # of defined data containers. Will be automatically increased
+     ! by one when creating a new data container (DataCont_Init)
+     INTEGER                     :: nnDataCont = 0
+
+     ! Define object based on TimeIdxCollection derived type
+     TYPE(TimeIdxCollection), POINTER :: AlltIDx  => NULL()
+   
+     ! HEMCO configuration object
+     TYPE(ConfigObj), POINTER    :: Config => NULL()
+
+     ! Pointer to beginning of collections linked list 
+     TYPE(DiagnBundle),  POINTER :: Diagn  => NULL()
 
      !%%%%%  ESMF objects
 #if defined(ESMF_)
@@ -82,115 +118,6 @@ MODULE HCO_State_Mod
      TYPE(ESMF_State),    POINTER :: EXPORT
 #endif
   END TYPE HCO_State
-!
-! !PRIVATE TYPES:
-!
-  !=========================================================================
-  ! HcoSpc: Derived type for HEMCO species
-  !
-  ! Notes:
-  ! **1 The emission molecular weight is the molecular weight of the 
-  !     emitted compound. This value is only different to MW_g if the 
-  !     emitted compound does not correspond to the transported species, 
-  !     e.g. if emissions are in kg C4H10 but the corresponding species 
-  !     is transported as mass Carbon. 
-  ! **2 MolecRatio is the ratio between # of species molecules per emitted 
-  !       molecule, e.g. 4 if emissions are kg C4H10 but model species 
-  !       are kg C.
-  !=========================================================================
-  TYPE :: HcoSpc
-     INTEGER                 :: HcoID      ! HEMCO species ID
-     INTEGER                 :: ModID      ! Model species ID
-     CHARACTER(LEN= 31)      :: SpcName    ! species names
-     REAL(hp)                :: MW_g       ! species molecular wt.     (g/mol)
-     REAL(hp)                :: EmMW_g     ! emission molecular wt.**1 (g/mol)
-     REAL(hp)                :: MolecRatio ! molecule emission ratio**2 (-)
-     REAL(hp)                :: HenryK0    ! liq. over gas Henry const [M/atm]
-     REAL(hp)                :: HenryCR    ! K0 temp. dependency [K] 
-     REAL(hp)                :: HenryPKA   ! pKa for Henry const. correction
-     TYPE(Arr2D_HP), POINTER :: Depv       ! Deposition velocity [1/s]
-     TYPE(Arr3D_HP), POINTER :: Emis       ! Emission flux [kg/m2/s]
-     TYPE(Arr3D_HP), POINTER :: Conc       ! Concentration [v/v]
-  END TYPE HcoSpc
-
-  !=========================================================================
-  ! HcoOpt: Derived type for HEMCO run options
-  !=========================================================================
-  TYPE :: HcoOpt
-     INTEGER  :: ExtNr          ! ExtNr to be used 
-     INTEGER  :: SpcMin         ! Smallest HEMCO species ID to be considered 
-     INTEGER  :: SpcMax         ! Highest HEMCO species ID to be considered
-     INTEGER  :: CatMin         ! Smallest category to be considered
-     INTEGER  :: CatMax         ! Highest category to be considered
-     LOGICAL  :: HcoWritesDiagn ! If set to .TRUE., HEMCO will schedule the
-                                ! output of the default HEMCO diagnostics 
-                                ! (in hco_driver_mod.F90).
-     LOGICAL  :: AutoFillDiagn  ! Write into AutoFill diagnostics?
-     LOGICAL  :: FillBuffer     ! Write calculated emissions into buffer
-                                ! instead of emission array? 
-     INTEGER  :: NegFlag        ! Negative value flag (from configfile):
-                                ! 2 = allow negative values
-                                ! 1 = set neg. values to zero and prompt warning 
-                                ! 0 = return w/ error if neg. value
-     LOGICAL  :: PBL_DRYDEP     ! If true, dry deposition frequencies will
-                                ! be calculated over the full PBL. If false, 
-                                ! they are calculated over the first layer only.
-     REAL(hp) :: MaxDepExp      ! Maximum value of deposition freq. x time step.
-     LOGICAL  :: MaskFractions  ! If TRUE, masks are treated as binary, e.g.  
-                                ! grid boxes are 100% inside or outside of a
-                                ! mask. 
-     LOGICAL  :: Field2Diagn    ! When reading fields from disk, check if there
-                                ! is a diagnostics with the same name and write
-                                ! field to that diagnostics? Defaults to yes in
-                                ! standalone mode and no in other setups.
-  END TYPE HcoOpt
-
-  !=========================================================================
-  ! HcoGrid: Derived type for HEMCO grid. The grid edges are used for data
-  ! interpolation. The pressure midpoints are not needed by HEMCO core but
-  ! can be specified for the extensions through ExtList.
-  !
-  ! NOTES:
-  ! *  Not used in ESMF environment
-  ! ** Only used by some extensions
-  !=========================================================================
-  TYPE :: HcoGrid
-     TYPE(Arr2D_Hp), POINTER :: XMID       ! mid-points in x-direction (lon)
-     TYPE(Arr2D_Hp), POINTER :: YMID       ! mid-points in y-direction (lat)
-     TYPE(Arr2D_Hp), POINTER :: XEDGE      ! grid edges in x-direction (lon)*
-     TYPE(Arr2D_Hp), POINTER :: YEDGE      ! grid edges in y-direction (lat)*
-     TYPE(Arr3D_Hp), POINTER :: PEDGE      ! pressure edges (Pa) 
-     TYPE(Arr2D_Hp), POINTER :: YSIN       ! sin of y-direction grid edges*
-     TYPE(Arr2D_Hp), POINTER :: AREA_M2    ! grid box areas (m2)
-     TYPE(Arr2D_Hp), POINTER :: ZSFC       ! surface geopotential height (m)**
-     TYPE(Arr2D_Hp), POINTER :: PSFC       ! surface pressure (Pa) 
-     TYPE(Arr3D_Hp), POINTER :: BXHEIGHT_M ! grid box heights (m)** 
-     TYPE(VertGrid), POINTER :: ZGRID      ! vertical grid description
-  END TYPE HcoGrid
-
-  !=========================================================================
-  ! HcoPhys: Derived type for HEMCO physical constants
-  !=========================================================================
-  TYPE :: HcoPhys
-     REAL(dp) :: Avgdr   ! Avogadro number [mol-1]
-     REAL(dp) :: PI      ! Pi
-     REAL(dp) :: PI_180  ! Pi / 180
-     REAL(dp) :: Re      ! Earth radius [m] 
-     REAL(dp) :: AIRMW   ! Molecular weight of air [g/mol]
-     REAL(dp) :: g0      ! Acc due to gravity at surface of earth [m/s2]
-     REAL(dp) :: Rd      ! Gas Constant (R) in dry air [J/K/kg]
-     REAL(dp) :: Rdg0    ! Rd/g0
-     REAL(dp) :: RSTARG  ! Universal gas constant [J/K/mol]
-  END TYPE HcoPhys 
-
-  !=========================================================================
-  ! HcoMicroPhys: Derived type for aerosol microphysics settings
-  !=========================================================================
-  TYPE :: HcoMicroPhys
-     INTEGER           :: nBins              ! # of size-resolved bins
-     INTEGER           :: nActiveModebins    ! # of active mode bins
-     REAL(dp), POINTER :: BinBound(:)        ! Size bin boundaries
-  END TYPE HcoMicroPhys
 !                                                                             
 ! !REVISION HISTORY:
 !  20 Aug 2013 - C. Keller   - Initial version, adapted from 
@@ -199,8 +126,7 @@ MODULE HCO_State_Mod
 !  30 Sep 2014 - R. Yantosca - Add HcoMicroPhys derived type to HcoState
 !  08 Apr 2015 - C. Keller   - Added MaskFractions to HcoState options.
 !  13 Jul 2015 - C. Keller   - Added option 'Field2Diagn'. 
-!  07 Jan 2016 - E. Lundgren - Add physical constant RSTARG and updated
-!                              Avgdr and g0 to NIST 2014 values
+!  15 Feb 2016 - C. Keller   - Update to v2.0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -215,13 +141,18 @@ CONTAINS
 !
 ! !DESCRIPTION: Routine HcoState\_Init initializes the HEMCO state object.
 ! This initializes (nullifies) all pointers and sets all HEMCO settings 
-! and options to default values. The here defined pointers are connected
-! at the HEMCO-model interface level. 
+! and options to default values. 
+! The here defined pointers are defined/connected at the HEMCO-model 
+! interface level.
+! The passed HEMCO configuration object (HcoConfig) must be defined,
+! e.g. this subroutine must be called after having read (at least 
+! stage 1 of) the HEMCO configuration file (Config\_ReadFile in 
+! hco\_config\_mod.F90).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoState_Init( am_I_Root, HcoState, nSpecies, RC ) 
+  SUBROUTINE HcoState_Init( am_I_Root, HcoState, HcoConfig, nSpecies, RC ) 
 !
 ! !USES:
 !
@@ -236,10 +167,14 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(HCO_State),  POINTER       :: HcoState  ! HEMCO State object
+    TYPE(ConfigObj),  POINTER       :: HcoConfig ! HEMCO Config object 
     INTEGER,          INTENT(INOUT) :: RC        ! Return code
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90
+!  07 Jan 2016 - E. Lundgren - Add physical constant RSTARG and updated
+!                              Avgdr and g0 to NIST 2014 values
+!  15 Feb 2016 - C. Keller - Now pass HcoConfig object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -256,7 +191,7 @@ CONTAINS
     !=====================================================================
 
     ! For error handling
-    CALL HCO_ENTER ('Init_HCO_State (hco_state_mod.F90)', RC )
+    CALL HCO_ENTER (HcoConfig%Err,'Init_HCO_State (hco_state_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=====================================================================
@@ -265,7 +200,7 @@ CONTAINS
 
     ! Check if already allocated
     IF ( ASSOCIATED(HcoState)) THEN
-       CALL HCO_WARNING( 'HcoState already allocated!', RC ) 
+       CALL HCO_WARNING( HcoConfig%Err,'HcoState already allocated!', RC ) 
        RETURN
     ENDIF
     ALLOCATE ( HcoState )
@@ -275,7 +210,7 @@ CONTAINS
     IF ( nSpecies > 0 ) THEN
        ALLOCATE ( HcoState%Spc (nSpecies ), STAT=AS )
        IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR( 'Species', RC )
+          CALL HCO_ERROR( HcoConfig%Err, 'Species', RC )
           RETURN
        ENDIF
     ENDIF
@@ -318,7 +253,7 @@ CONTAINS
     HcoState%NZ   = 0
     ALLOCATE ( HcoState%Grid, STAT = AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR( 'HEMCO grid', RC )
+       CALL HCO_ERROR( HcoConfig%Err, 'HEMCO grid', RC )
        RETURN
     ENDIF
 
@@ -337,6 +272,8 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     CALL HCO_ArrInit ( HcoState%Grid%AREA_M2,    0, 0,    RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL HCO_ArrInit ( HcoState%Grid%PBLHEIGHT,  0, 0,    RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
     CALL HCO_ArrInit ( HcoState%Grid%BXHEIGHT_M, 0, 0, 0, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     CALL HCO_ArrInit ( HcoState%Grid%ZSFC,       0, 0,    RC )
@@ -352,14 +289,12 @@ CONTAINS
     !=====================================================================
     ! Set misc. parameter
     !=====================================================================
-
-    HcoState%ConfigFile = '' 
     HcoState%isESMF     = .FALSE.
 
     ! Physical constants
     ALLOCATE ( HcoState%Phys, STAT = AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR( 'HEMCO physical constants', RC )
+       CALL HCO_ERROR( HcoConfig%Err, 'HEMCO physical constants', RC )
        RETURN
     ENDIF
     HcoState%Phys%Avgdr  = 6.022140857e23_dp
@@ -387,7 +322,7 @@ CONTAINS
     HcoState%nDust = 0
     ALLOCATE ( HcoState%MicroPhys, STAT = AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR( 'HEMCO aerosol microphysics options', RC )
+       CALL HCO_ERROR( HcoConfig%Err, 'HEMCO aerosol microphysics options', RC )
        RETURN
     ENDIF
     HcoState%MicroPhys%nBins           = 0
@@ -406,37 +341,45 @@ CONTAINS
     HcoState%Options%HcoWritesDiagn = .FALSE.
     HcoState%Options%FillBuffer     = .FALSE.
 
+    ! SetReadList has not been called yet
+    HcoState%SetReadListCalled      = .FALSE.
+
     ! Get negative flag value from configuration file. If not found, set to 0. 
-    CALL GetExtOpt ( CoreNr, 'Negative values', &
+    CALL GetExtOpt ( HcoConfig, CoreNr, 'Negative values', &
                      OptValInt=HcoState%Options%NegFlag, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%NegFlag = 0
 
     ! Get PBL_DRYDEP flag from configuration file. If not found, set to default
     ! value of false. 
-    CALL GetExtOpt ( CoreNr, 'PBL dry deposition', &
+    CALL GetExtOpt ( HcoConfig, CoreNr, 'PBL dry deposition', &
                      OptValBool=HcoState%Options%PBL_DRYDEP, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%PBL_DRYDEP = .FALSE. 
 
     ! Get MaxDepExp from configuration file. If not found, set to default
     ! value of 20. 
-    CALL GetExtOpt ( CoreNr, 'Maximum dep x ts', &
+    CALL GetExtOpt ( HcoConfig, CoreNr, 'Maximum dep x ts', &
                      OptValHp=HcoState%Options%MaxDepExp, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%MaxDepExp = 20.0_hp 
 
     ! Get binary mask flag from configuration file. If not found, set to default
-    ! value of false.
-    CALL GetExtOpt ( CoreNr, 'Mask fractions', &
+    ! value of TRUE. 
+    CALL GetExtOpt ( HcoConfig, CoreNr, 'Mask fractions', &
                      OptValBool=HcoState%Options%MaskFractions, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%MaskFractions = .FALSE.
 
-    CALL GetExtOpt ( CoreNr, 'ConfigField to diagnostics', &
+    CALL GetExtOpt ( HcoConfig, CoreNr, 'ConfigField to diagnostics', &
                      OptValBool=HcoState%Options%Field2Diagn, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%Field2Diagn = .FALSE.
+
+    CALL GetExtOpt ( HcoConfig, CoreNr, 'Vertical weights', &
+                     OptValBool=HcoState%Options%VertWeight, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%VertWeight = .TRUE.
 
     ! Make sure ESMF pointers are not dangling 
 #if defined(ESMF_)
@@ -446,26 +389,32 @@ CONTAINS
 #endif
 
     ! Read unit tolerance
-    UnitTolerance = HCO_UnitTolerance()
+    UnitTolerance = HCO_UnitTolerance( HcoConfig )
+
+    ! Connect to config object
+    HcoState%Config => HcoConfig
+
+    ! Make sure diagnostics pointer is not dangling 
+    HcoState%Diagn => NULL()
 
     ! Verbose mode 
-    IF ( HCO_IsVerb(1) ) THEN
+    IF ( HCO_IsVerb(HcoConfig%Err,1) ) THEN
        WRITE(MSG,'(A68)') 'Initialized HEMCO state. Will use the following settings:'
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,'(A33,I2)') 'Unit tolerance                 : ', UnitTolerance 
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,'(A33,I2)') 'Negative values                : ', HcoState%Options%NegFlag 
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,'(A33,L2)') 'Mask fractions                 : ', HcoState%Options%MaskFractions
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,'(A33,L2)') 'Do drydep over entire PBL      : ', HcoState%Options%PBL_DRYDEP
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,'(A33,F6.2)') 'Upper limit for deposition x ts: ', HcoState%Options%MaxDepExp
-       CALL HCO_MSG(MSG,SEP2='-')
+       CALL HCO_MSG(HcoConfig%Err,MSG,SEP2='-')
     ENDIF
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE ( HcoConfig%Err, RC ) 
 
   END SUBROUTINE HcoState_Init
 !EOC
@@ -526,6 +475,7 @@ CONTAINS
        CALL HCO_ArrCleanup( HcoState%Grid%PEDGE       )
        CALL HCO_ArrCleanup( HcoState%Grid%YSIN        )
        CALL HCO_ArrCleanup( HcoState%Grid%AREA_M2     )
+       CALL HCO_ArrCleanup( HcoState%Grid%PBLHEIGHT   )
        CALL HCO_ArrCleanup( HcoState%Grid%BXHEIGHT_M  )
        CALL HCO_ArrCleanup( HcoState%Grid%ZSFC        )
        CALL HCO_ArrCleanup( HcoState%Grid%PSFC        )
@@ -600,7 +550,7 @@ CONTAINS
     Indx = -1
 
     ! Return 0 if wildcard character
-    IF ( TRIM(name) == TRIM(HCO_GetOpt('Wildcard')) ) THEN
+    IF ( TRIM(name) == TRIM(HCO_GetOpt(HcoState%Config%ExtList,'Wildcard')) ) THEN
        Indx = 0
        RETURN
     ENDIF
@@ -661,7 +611,7 @@ CONTAINS
     Indx = -1
 
     ! Return 0 if wildcard character
-    IF ( TRIM(name) == TRIM(HCO_GetOpt('Wildcard')) ) THEN
+    IF ( TRIM(name) == TRIM(HCO_GetOpt(HcoState%Config%ExtList,'Wildcard')) ) THEN
        Indx = 0
        RETURN
     ENDIF
@@ -738,11 +688,11 @@ CONTAINS
     LOC = 'HCO_GetExtHcoID (hco_state_mod.F90)'
 
     ! Get all species names belonging to extension Nr. ExtNr
-    CALL GetExtSpcStr( ExtNr, SpcStr, RC )
+    CALL GetExtSpcStr( HcoState%Config, ExtNr, SpcStr, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Split character into species string. 
-    CALL STRSPLIT( SpcStr, HCO_GetOpt('Separator'), SUBSTR, nSpc )
+    CALL STRSPLIT( SpcStr, HCO_GetOpt(HcoState%Config%ExtList,'Separator'), SUBSTR, nSpc )
 
     ! nothing to do if there are no species
     IF ( nSpc == 0 ) RETURN 
@@ -752,7 +702,7 @@ CONTAINS
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames) 
     ALLOCATE(HcoIDs(nSpc), SpcNames(nSpc), STAT=AS)
     IF ( AS/=0 ) THEN
-       CALL HCO_ERROR('HcoIDs allocation error', RC, THISLOC=LOC)
+       CALL HCO_ERROR(HcoState%Config%Err,'HcoIDs allocation error', RC, THISLOC=LOC)
        RETURN
     ENDIF
 

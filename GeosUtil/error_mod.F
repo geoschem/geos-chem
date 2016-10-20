@@ -708,7 +708,6 @@
       LOGICAL :: am_I_Root   ! Is this the root CPU? 
 
 #if defined( ESMF_ )
-
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
@@ -725,8 +724,6 @@
       CALL GEOS_Timer_PrintAll( am_I_Root, RC )  
 #endif
 
-      STATUS = -1
-      VERIFY_(STATUS)
 
 #else
       ! Only write to stdout if we are on the root CPU

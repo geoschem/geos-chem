@@ -397,8 +397,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -480,7 +479,6 @@
 
       ! Pointers
       REAL(fp),        POINTER :: Spc(:,:,:,:)
-      TYPE(HCO_STATE), POINTER :: HcoState
 
       ! Strings
       CHARACTER(LEN=255) :: LOC = 'CHEM_TAGGED_O3 (tagged_o3_mod.F)'
@@ -497,7 +495,6 @@
 
       ! Pointers
       Spc       => State_Chm%Species   ! Points to chemical species [kg]
-      HcoState  => NULL()              ! Points to the HEMCO state
 
       ! Chemistry timestep [s]
       DTCHEM    =  GET_TS_CHEM() * 60e+0_fp
@@ -514,25 +511,24 @@
       !=================================================================
       IF ( FIRST ) THEN
 
+         IF ( .NOT. ASSOCIATED(HcoState) ) 
+     &      CALL ERROR_STOP ( 'Cannot get HcoState', LOC )
+
          ! Get pointer to O3 production
-         CALL HCO_GetPtr ( am_I_Root, 'O3_PROD', P24H, RC )
+         CALL HCO_GetPtr ( am_I_Root, HcoState, 'O3_PROD', P24H, RC )
          IF ( RC /= GC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to O3_PROD', LOC )
 
          ! Get pointer to O3 loss
-         CALL HCO_GetPtr ( am_I_Root, 'O3_LOSS', L24H, RC )
+         CALL HCO_GetPtr ( am_I_Root, HcoState, 'O3_LOSS', L24H, RC )
          IF ( RC /= GC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to O3_LOSS', LOC )
 
          ! Get emissions timestep (seconds)
-         CALL GetHcoState ( HcoState )
-         IF ( .NOT. ASSOCIATED(HcoState) ) 
-     &      CALL ERROR_STOP ( 'Cannot get HcoState', LOC )
          TS_EMIS = HcoState%TS_EMIS
          
-         ! Free the pointer and reset first-time variable
+         ! Reset first-time variable
          ! so that this won't be executed again
-         HcoState => NULL()
          FIRST    = .FALSE.
       ENDIF
 
@@ -620,8 +616,7 @@
       ENDDO
 
       ! Free pointer
-      Spc      => NULL()
-      HcoState => NULL()
+      Spc => NULL()
 
       END SUBROUTINE CHEM_TAGGED_O3
 !EOC

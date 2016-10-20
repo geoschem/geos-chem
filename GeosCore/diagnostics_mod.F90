@@ -18,6 +18,7 @@ MODULE Diagnostics_Mod
   USE ErrCode_Mod
   USE Error_Mod,          ONLY : Error_Stop
   USE HCO_Error_Mod
+  USE HCO_INTERFACE_MOD,  ONLY : HcoState
   USE Precision_Mod
 
   IMPLICIT NONE
@@ -100,6 +101,9 @@ MODULE Diagnostics_Mod
   ! concentrations (in addition to the advected species). Not recommended unless
   ! you have a good reason (ckeller, 8/11/2015).
   LOGICAL, PARAMETER, PUBLIC   :: DiagnSpec = .FALSE.
+
+  ! Also write out species tendencies
+  LOGICAL, PARAMETER, PUBLIC   :: DiagnSpecTend = .FALSE.
 
   ! Initialize GEOS-Chem diagnostics container id (ewl, 1/20/16)
   ! If we add containers, we will need to modify this to have a different
@@ -194,6 +198,7 @@ CONTAINS
     REAL(fp), POINTER  :: AM2(:,:)
 
     ! Strings
+    CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'Diagnostics_Init (diagnostics_mod.F90)'
 
     !=======================================================================
@@ -216,6 +221,23 @@ CONTAINS
     id_Pb   =  Ind_('Pb' )
     id_Be7  =  Ind_('Be7')
 
+    ! Double check that HcoState and also the diagnostics bundle are
+    ! available
+    IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+       MSG = 'Cannot initialize diagnostics - HEMCO state '     // &
+             'is not yet initialized. The HEMCO initialization '// &
+             'routines must be called first.'
+       CALL ERROR_STOP ( MSG, LOC )
+       RETURN
+    ENDIF
+    IF ( .NOT. ASSOCIATED(HcoState%Diagn) ) THEN
+       MSG = 'Cannot initialize diagnostics - HEMCO diagnostics '       // &
+             'bundle is not yet initialized. The HEMCO initialization ' // &
+             'routines must be called first.'
+       CALL ERROR_STOP ( MSG, LOC )
+       RETURN
+    ENDIF
+
     !-----------------------------------------------------------------------
     ! Create diagnostics collection for GEOS-Chem.  This will keep the
     ! GEOS-Chem diagostics separate from the HEMCO diagnostics.
@@ -223,23 +245,24 @@ CONTAINS
 
     ! Define output write frequency. In ESMF environment, make sure 
     ! diagnostics is always passed to MAPL history!
-    CALL DiagnCollection_GetDefaultDelta ( am_I_Root, deltaYMD, deltaHMS, RC )
+    CALL DiagnCollection_GetDefaultDelta ( am_I_Root, HcoState, &
+       deltaYMD, deltaHMS, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Temporarily manually set to hourly. Eventually this will be set
     ! per collection in input.geos or a new diagnostics input file
     !  (ewl, 1/13/16)
-    CALL DiagnCollection_Create( am_I_Root,                      &
+    CALL DiagnCollection_Create( am_I_Root, HcoState%Diagn,      &
                                  NX           = IIPAR,           &
                                  NY           = JJPAR,           &
                                  NZ           = LLPAR,           &
                                  TS           = TS,              &
                                  AM2          = AM2,             &
                                  PREFIX       = DGN,             &
-!                                 deltaYMD     = deltaYMD,        &
-!                                 deltaHMS     = deltaHMS,        &
-                                 deltaYMD     = 00000000,        &
-                                 deltaHMS     = 010000,          &
+                                 deltaYMD     = deltaYMD,        &
+                                 deltaHMS     = deltaHMS,        &
+                                 !deltaYMD     = 00000000,        &
+                                 !deltaHMS     = 010000,          &
                                  COL          = CollectionID,    &
                                  OutTimeStamp = HcoDiagnEnd,     &
                                  RC           = RC                )
@@ -498,7 +521,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagnostics_Final( am_I_Root, Input_Opt, RC ) 
+  SUBROUTINE Diagnostics_Final( am_I_Root, RC ) 
 !
 ! !USES:
 !
@@ -510,7 +533,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN ) :: am_I_Root  ! Are we on the root CPU?
-    TYPE(OptInput), INTENT(IN ) :: Input_Opt  ! Input Options objec
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -643,7 +665,7 @@ CONTAINS
              cId = cId + 1
    
              ! Create container
-             CALL Diagn_Create( am_I_Root,                     &
+             CALL Diagn_Create( am_I_Root,  HcoState,          &
                                 Col       = Collection,        & 
                                 cId       = cId,               &
                                 cName     = TRIM( DiagnName ), &
@@ -759,6 +781,7 @@ CONTAINS
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
+                             HcoState  = HcoState,          & 
                              Col       = Collection,        & 
                              cId       = cId,               &
                              cName     = TRIM( DiagnName ), &
@@ -785,8 +808,9 @@ CONTAINS
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
-                             Col       = Collection,        & 
-                             cId       = cId,               &
+                             HcoState  = HcoState,          & 
+                             Col       = Collection,        &
+                             cID       = cID,               &
                              cName     = TRIM( DiagnName ), &
                              SpaceDim  =  2,                &
                              OutUnit   = 'kg/s',            &
@@ -912,6 +936,7 @@ CONTAINS
        
              ! Create container
              CALL Diagn_Create( am_I_Root,                     &
+                                HcoState  = HcoState,          &
                                 Col       = Collection,        &
                                 cId       = cId,               & 
                                 cName     = TRIM( DiagnName ), &
@@ -1026,7 +1051,7 @@ CONTAINS
           cId = cId + 1
     
           ! Create container
-          CALL Diagn_Create( am_I_Root,                     &
+          CALL Diagn_Create( am_I_Root,  HcoState,          &
                              Col       = Collection,        & 
                              cId       = cId,               &
                              cName     = TRIM( DiagnName ), &
@@ -1172,7 +1197,7 @@ CONTAINS
        SpaceDim  = 3
 
        ! Create container
-       CALL Diagn_Create( am_I_Root,                     &
+       CALL Diagn_Create( am_I_Root,  HcoState,          &
                           Col       = Collection,        & 
                           cId       = cId,               &
                           cName     = TRIM( DiagnName ), &
@@ -1284,7 +1309,7 @@ CONTAINS
        SpaceDim  = 2
 
        ! Create container
-       CALL Diagn_Create( am_I_Root,                     &
+       CALL Diagn_Create( am_I_Root,  HcoState,          &
                           Col       = Collection,        & 
                           cId       = cId,               &
                           cName     = TRIM( DiagnName ), &
@@ -1385,7 +1410,7 @@ CONTAINS
        cId = cId + 1
 
        ! Create container
-       CALL Diagn_Create( am_I_Root,                     &
+       CALL Diagn_Create( am_I_Root,  HcoState,          &
                           Col       = Collection,        & 
                           cId       = cId,               &
                           cName     = TRIM( DiagnName ), &
@@ -1489,7 +1514,7 @@ CONTAINS
           cId = cId + 1
           
           ! Create container
-          CALL Diagn_Create( am_I_Root,                     &
+          CALL Diagn_Create( am_I_Root,  HcoState,          &
                              Col       = Collection,        & 
                              cId       = cId,               &
                              cName     = TRIM( DiagnName ), &
@@ -1572,7 +1597,7 @@ CONTAINS
     cId = cId + 1
 
     ! Create container
-    CALL Diagn_Create( am_I_Root,                     &
+    CALL Diagn_Create( am_I_Root,  HcoState,          &
                        Col       = Collection,        & 
                        cId       = cId,               &
                        cName     = TRIM( DiagnName ), &
@@ -1679,7 +1704,7 @@ CONTAINS
           cId = cId + 1
 
           ! Create container
-          CALL Diagn_Create( am_I_Root,                     &
+          CALL Diagn_Create( am_I_Root,  HcoState,          &
                              Col       = Collection,        & 
                              cId       = cId,               &
                              cName     = TRIM( DiagnName ), &
@@ -1793,7 +1818,7 @@ CONTAINS
           cId = cId + 1
 
           ! Create container
-          CALL Diagn_Create( am_I_Root,                     &
+          CALL Diagn_Create( am_I_Root,  HcoState,          &
                              Col       = Collection,        & 
                              cId       = cId,               &
                              cName     = TRIM( DiagnName ), &
@@ -1895,7 +1920,7 @@ CONTAINS
        cId = cId + 1
 
        ! Create container
-       CALL Diagn_Create( am_I_Root,                     &
+       CALL Diagn_Create( am_I_Root,  HcoState,          &
                           Col       = Collection,        & 
                           cId       = cId,               &
                           cName     = TRIM( DiagnName ), &
@@ -2023,7 +2048,7 @@ CONTAINS
              cId = cId + 1
       
              ! Create container
-             CALL Diagn_Create( am_I_Root,                     &
+             CALL Diagn_Create( am_I_Root,  HcoState,          &
                                 Col       = Collection,        & 
                                 cId       = cId,               &
                                 cName     = TRIM( DiagnName ), &
@@ -2154,7 +2179,7 @@ CONTAINS
              cId = cId + 1
 
              ! Create container
-             CALL Diagn_Create( am_I_Root,                     &
+             CALL Diagn_Create( am_I_Root,  HcoState,          &
                                 Col       = Collection,        & 
                                 cId       = cId,               &
                                 cName     = TRIM( DiagnName ), &
@@ -2242,7 +2267,7 @@ CONTAINS
     cId = cId + 1
 
     ! Create container
-    CALL Diagn_Create( am_I_Root,                     &
+    CALL Diagn_Create( am_I_Root,  HcoState,          &
                        Col       = Collection,        & 
                        cId       = cId,               &
                        cName     = TRIM( DiagnName ), &
@@ -2321,7 +2346,7 @@ CONTAINS
     cId = cId + 1
 
     ! Create container
-    CALL Diagn_Create( am_I_Root,                     &
+    CALL Diagn_Create( am_I_Root,  HcoState,          &
                        Col       = Collection,        & 
                        cId       = cId,               &
                        cName     = TRIM( DiagnName ), &
@@ -2509,7 +2534,7 @@ CONTAINS
 
        ! Update diagnostics
        IF ( ASSOCIATED(Ptr2D) ) THEN 
-          CALL Diagn_Update( am_I_Root,                   &
+          CALL Diagn_Update( am_I_Root, HcoState,         &
                              cName   = TRIM( DiagnName ), &
                              Array2D = Ptr2D,             &
                              RC      = HCRC )
@@ -2603,7 +2628,7 @@ CONTAINS
        DiagnName = 'MET_3D_' // NameSuffix
 
        ! Update diagnostics
-       CALL Diagn_Update( am_I_Root,                    &
+       CALL Diagn_Update( am_I_Root, HcoState,          &
                           cName   = TRIM( DiagnName ),  &
                           Array3D = Ptr3D,              &
                           RC      = RC )
@@ -2752,6 +2777,7 @@ CONTAINS
        
              ! Create container
              CALL Diagn_Update( am_I_Root,                        &
+                                HcoState  = HcoState,             &
                                 cName     = TRIM( DiagnName ),    &
                                 Array3D   = Ptr3D,                &
                                 RC        = RC )
@@ -2791,7 +2817,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
+    USE HCO_INTERFACE_MOD,  ONLY : GetHcoID
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
@@ -2890,6 +2916,7 @@ CONTAINS
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
+                             HcoState  = HcoState,          & 
                              Col       = Collection,        & 
                              cId       = cId,               &
                              cName     = TRIM( DiagnName ), &
@@ -2984,6 +3011,7 @@ CONTAINS
 
        ! Create container
        CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          & 
                           Col       = Collection,        & 
                           cId       = cId,               & 
                           cName     = TRIM( DiagnName ), &
@@ -3019,8 +3047,8 @@ CONTAINS
 !
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE HCO_Diagn_Mod,      ONLY : Diagn_Update
-    USE HCO_Diagn_Mod,      ONLY : DiagnCont
     USE HCO_Diagn_Mod,      ONLY : DiagnCont_Find
+    USE HCO_TYPES_MOD,      ONLY : DiagnCont
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants,      ONLY : AIRMW, AVO,   g0
     USE PRESSURE_MOD,       ONLY : GET_PEDGE
@@ -3041,6 +3069,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  07 Jul 2015 - C. Keller   - Initial version 
+!  27 Feb 2016 - C. Keller   - Deactivate OMP statement
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function 
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
@@ -3083,12 +3112,13 @@ CONTAINS
 
     ! On first call, check if any of the two diagnostics is defined
     IF ( FIRST ) THEN
-       CALL DiagnCont_Find( -1, -1, -1, -1, -1, 'O3_COLUMN', &
-                            -1, TotDiagn, DgnPtr )
+       CALL DiagnCont_Find( HcoState%Diagn, -1, -1, -1, -1, -1, &
+                           'O3_COLUMN', -1, TotDiagn, DgnPtr )
        DgnPtr => NULL()
 
-       CALL DiagnCont_Find( -1, -1, -1, -1, -1, 'O3_TROPCOLUMN', &
-                            -1, TropDiagn, DgnPtr ) 
+       CALL DiagnCont_Find( HcoState%Diagn, -1, -1, -1, -1, -1, &
+                           'O3_TROPCOLUMN', -1, TropDiagn, DgnPtr ) 
+                            
 
        DgnPtr => NULL()
        FIRST = .FALSE.
@@ -3105,9 +3135,14 @@ CONTAINS
     constant = 0.01_fp * AVO / ( g0 * ( AIRMW/1000.0_fp) )
 
     ! Do for all levels
+    ! The following OMP loop does produce non-reproducable results, 
+    ! presumably due to the call of GET_PEDGE or ITS_IN_THE_TROP? 
+    ! Deactivate for now (ckeller, 2/27/16) 
+#if defined(0)
     !$OMP PARALLEL DO &
     !$OMP DEFAULT( SHARED ) &
     !$OMP PRIVATE( I, J, L, DP, O3vv, DU )
+#endif
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
@@ -3136,19 +3171,23 @@ CONTAINS
     ENDDO
     ENDDO
     ENDDO
+#if defined(0)
     !$OMP END PARALLEL DO
+#endif
 
     ! Update diagnostics
     IF ( TotDiagn ) THEN
-       CALL Diagn_Update( am_I_Root, cName = 'O3_COLUMN',     Array2D = TOTO3,  RC=RC )
+       CALL Diagn_Update( am_I_Root, HcoState, cName = 'O3_COLUMN',     &
+                          Array2D = TOTO3,  RC=RC )
     ENDIF
     IF ( TropDiagn ) THEN
-       CALL Diagn_Update( am_I_Root, cName = 'O3_TROPCOLUMN', Array2D = TROPO3, RC=RC )
+       CALL Diagn_Update( am_I_Root, HcoState, cName = 'O3_TROPCOLUMN', &
+                          Array2D = TROPO3, RC=RC )
     ENDIF
 
     ! Return w/ success
-    RC = GC_SUCCESS
-   
+    RC = GIGC_SUCCESS
+ 
   END SUBROUTINE CalcDobsonColumn
 !EOC
 #endif
@@ -3224,7 +3263,7 @@ CONTAINS
        cId = cId + 1
 
        ! Create container
-       CALL Diagn_Create( am_I_Root,                     &
+       CALL Diagn_Create( am_I_Root, HcoState,           &
                           Col       = Collection,        & 
                           cId       = cId,               &
                           cName     = TRIM( DiagnName ), &
@@ -3245,7 +3284,7 @@ CONTAINS
     cId = cId + 1
 
     ! Create container
-    CALL Diagn_Create( am_I_Root,       &
+    CALL Diagn_Create( am_I_Root, HcoState,           &
                        Col       = Collection,        & 
                        cId       = cId,               &
                        cName     = TRIM( DiagnName ), &
@@ -3264,7 +3303,7 @@ CONTAINS
     !--------------------------------------
     ! Create container
     cId = cId + 1
-    CALL Diagn_Create( am_I_Root,          &
+    CALL Diagn_Create( am_I_Root, HcoState,&
          Col       = Collection,           & 
          cId       = cId,                  &
          cName     = TRIM( 'STK_N2O5' ),   &
@@ -3274,7 +3313,7 @@ CONTAINS
          RC        = RC )
     
     cId = cId + 1
-    CALL Diagn_Create( am_I_Root,          &
+    CALL Diagn_Create( am_I_Root, HcoState,&
          Col       = Collection,           & 
          cId       = cId,                  &
          cName     = TRIM( 'STK_HBr' ),    &
@@ -3284,7 +3323,7 @@ CONTAINS
          RC        = RC )
     
     cId = cId + 1
-    CALL Diagn_Create( am_I_Root,          &
+    CALL Diagn_Create( am_I_Root, HcoState,&
          Col       = Collection,           & 
          cId       = cId,                  &
          cName     = TRIM( 'STK_HBrICE' ), &
@@ -3368,7 +3407,7 @@ CONTAINS
        cId = cId + 1
 
        ! Create container
-       CALL Diagn_Create( am_I_Root,                     &
+       CALL Diagn_Create( am_I_Root, HcoState,           &
                           Col       = Collection,        & 
                           cId       = cId,               &
                           cName     = TRIM( DiagnName ), &
@@ -3403,10 +3442,11 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_INTERFACE_MOD,  ONLY : GetHcoID
     USE HCO_Diagn_Mod,      ONLY : Diagn_TotalGet
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
+    USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH 
 !
 ! !INPUT PARAMETERS:
@@ -3430,6 +3470,9 @@ CONTAINS
     INTEGER, SAVE :: SAVEMONTH = -999
     REAL(sp)      :: TOTAL
     LOGICAL       :: FOUND
+
+    ! Pointers
+    TYPE(Species), POINTER :: SpcInfo
 
     !=================================================================
     ! TotalsToLogfile begins here!
@@ -3477,13 +3520,13 @@ CONTAINS
           cId = 10000 + cId
 
           ! Get the total [kg] 
-          CALL Diagn_TotalGet( am_I_Root,                           & 
-                               cId     = cId,                       &
-                               Found   = Found,                     &
-                               Total   = Total,                     &
-                               COL     = Input_Opt%DIAG_COLLECTION, &
-                               Reset   = .TRUE.,                    &
-                               RC      = HCRC                       )
+          CALL Diagn_TotalGet( am_I_Root, HcoState%Diagn,         & 
+                             cId     = cId,                       &
+                             Found   = Found,                     &
+                             Total   = Total,                     &
+                             COL     = Input_Opt%DIAG_COLLECTION, &
+                             Reset   = .TRUE.,                    &
+                             RC      = HCRC                        )
           IF ( .NOT. FOUND ) CYCLE
 
           ! Only if there have been any emissions...
@@ -3502,7 +3545,7 @@ CONTAINS
 
 100 FORMAT( 'Emissions in month ', i2, ' of year ', i4, ':')
 101 FORMAT( a9, ': ', e11.3, ' Mg/month')
-
+ 
   END SUBROUTINE TotalsToLogfile 
 !EOC
 #endif
@@ -3528,8 +3571,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD,      ONLY : HCO_STATE
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoID
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_WriteDiagn 
     USE HCOIO_Diagn_Mod,    ONLY : HCOIO_Diagn_WriteOut
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -3556,15 +3598,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(HCO_STATE), POINTER :: HcoState
     CHARACTER(LEN=255)       :: LOC = 'Diagnostics_Write (diagnostics_mod.F90)'
 
     !=======================================================================
     ! Diagnostics_Write begins here 
     !=======================================================================
-
-    ! Initialize
-    HcoState => NULL()
 
     ! Write HEMCO diagnostics
     CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, RESTART, RC )
@@ -3572,11 +3610,6 @@ CONTAINS
 
     ! Write netCDF GEOS-Chem diagnostics
 #if defined( NC_DIAG )
-    ! Get pointer to HEMCO state object.
-    CALL GetHcoState( HcoState )
-    IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-       CALL ERROR_STOP( 'Cannot get HEMCO state object', LOC )
-    ENDIF
 
     !-----------------------------------------------------------------------
     ! Eventually write out emission totals to GEOS-Chem logfile
@@ -3613,9 +3646,6 @@ CONTAINS
        ENDIF
 
     ENDIF
-
-    ! Free pointer
-    HcoState => NULL()
 #endif
 
     ! Leave w/ success
@@ -3697,7 +3727,7 @@ CONTAINS
 !          DiagnName = 'CLD_OD_' // TRIM( Input_Opt%TRACER_NAME(N) )
 !
 !          ! Create container
-!          CALL Diagn_Create( am_I_Root,                     &
+!          CALL Diagn_Create( am_I_Root,  HcoState,          &
 !                             Col       = Collection,        & 
 !                             cId       = cId,               &
 !                             cName     = TRIM( DiagnName ), &
@@ -3787,7 +3817,7 @@ CONTAINS
 !          DiagnName = 'JVALUES_' // TRIM( Input_Opt%TRACER_NAME(N) )
 !
 !          ! Create container
-!          CALL Diagn_Create( am_I_Root,                  &
+!          CALL Diagn_Create( am_I_Root, HcoState,        &
 !                          Col       = Collection,        & 
 !                          cId       = cId,               &
 !                          cName     = TRIM( DiagnName ), &
@@ -3886,7 +3916,7 @@ CONTAINS
 !          DiagnName = 'HG_SOURCE_' // TRIM( Input_Opt%TRACER_NAME(N) )
 !
 !          ! Create container
-!          CALL Diagn_Create( am_I_Root,                     &
+!          CALL Diagn_Create( am_I_Root,  HcoState,          &
 !                             Col       = Collection,        & 
 !                             cId       = cId,               &
 !                             cName     = TRIM( DiagnName ), &
@@ -3974,7 +4004,7 @@ CONTAINS
 !          DiagnName = 'PL_SUL_' // TRIM( Input_Opt%TRACER_NAME(N) )
 !
 !          ! Create container
-!          CALL Diagn_Create( am_I_Root,                     &
+!          CALL Diagn_Create( am_I_Root,  HcoState,          &
 !                             Col       = Collection,        & 
 !                             cId       = cId,               &
 !                             cName     = TRIM( DiagnName ), &
@@ -3996,7 +4026,7 @@ CONTAINS
 !          DiagnName = 'PL_SUL_' // TRIM( Input_Opt%TRACER_NAME(N) )
 !
 !          ! Create container
-!          CALL Diagn_Create( am_I_Root,                     &
+!          CALL Diagn_Create( am_I_Root,  HcoState,          &
 !                             Col       = Collection,        & 
 !                             cId       = cId,               &
 !                             cName     = TRIM( DiagnName ), &
@@ -4017,7 +4047,7 @@ CONTAINS
 !          DiagnName = 'PL_SUL_' // TRIM( Input_Opt%TRACER_NAME(N) )
 !
 !          ! Create container
-!          CALL Diagn_Create( am_I_Root,                     &
+!          CALL Diagn_Create( am_I_Root,  HcoState,          &
 !                             Col       = Collection,        & 
 !                             cId       = cId,               &
 !                             cName     = TRIM( DiagnName ), &
@@ -4107,7 +4137,7 @@ CONTAINS
 !          DiagnName = 'C_AERSRC_' // TRIM( Input_Opt%TRACER_NAME(N) )
 !
 !          ! Create container
-!          CALL Diagn_Create( am_I_Root,                     &
+!          CALL Diagn_Create( am_I_Root,  HcoState,          &
 !                             Col       = Collection,        & 
 !                             cId       = cId,               &
 !                             cName     = TRIM( DiagnName ), &
@@ -4198,7 +4228,7 @@ CONTAINS
 !!       ARRAY(:,:,1) = AD71(:,:,N)/AD71_COUNT
 !
 !       ! Create container
-!       CALL Diagn_Create( am_I_Root,                  &
+!       CALL Diagn_Create( am_I_Root, HcoState,        &
 !                       Col       = Collection,        &
 !                       cId       = cId,               &
 !                       cName     = TRIM( DiagnName ), &

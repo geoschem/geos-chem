@@ -116,6 +116,8 @@
       USE TENDENCIES_MOD
 #endif
       USE UnitConv_Mod
+      USE PASSIVE_TRACER_MOD, ONLY : CHEM_PASSIVE_TRACER 
+
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
       USE UCX_MOD,            ONLY : READ_PSC_FILE
@@ -216,6 +218,7 @@
 !  08 May 2015 - C. Keller   - Added WRITE_STATE_PSC.
 !  18 May 2015 - R. Yantosca - Remove DIAG_STATE_PSC, that is not used anymore
 !  15 Jun 2015 - R. Yantosca - Removed calls to DRYFLXRnPbBe, that's obsolete
+!  04 Sep 2015 - C. Keller   - Added passive tracer call.
 !  17 Mar 2016 - M. Sulprizio- Remove call to OPTDEPTH. The optical depth fields
 !                              are now saved into State_Met%OPTD in the routines
 !                              that read the met fields from disk.
@@ -346,7 +349,7 @@
       ! Archive species concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'CHEM', .FALSE., RC )
+     &                  State_Chm, 'CHEM', RC )
 #endif
 
       !=================================================================
@@ -652,6 +655,18 @@
 
          ENDIF
 
+         !-----------------------------------------------------
+         ! Passive tracers
+         ! This performs a simple loss chemistry on all passive 
+         ! tracers. Call this routine for all simulation types
+         ! since passive tracers can be defined for various 
+         ! simulations (as additional tracers to the default
+         ! ones). ckeller, 09/04/15
+         !-----------------------------------------------------
+         CALL CHEM_PASSIVE_TRACER
+     &       ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+
          !### Debug
          IF ( LPRT .and. am_I_Root ) THEN
             CALL DEBUG_MSG( '### MAIN: a CHEMISTRY' )
@@ -689,13 +704,9 @@
 
       ! Compute tendencies
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'CHEM', .FALSE., DT_TEND, RC )
-
+     &                  State_Chm, 'CHEM', DT_TEND, RC )
 #endif
-
-      ! Reset first-time flag
-      FIRST = .FALSE.
-
+    
       END SUBROUTINE DO_CHEMISTRY
 !EOC
 !------------------------------------------------------------------------------

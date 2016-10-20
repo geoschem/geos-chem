@@ -492,6 +492,7 @@
 !
 ! !USES:
 !
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE HCO_Error_Mod
       USE Error_Mod
@@ -500,7 +501,7 @@
 !
       LOGICAL,            INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
       CHARACTER(LEN=4),   INTENT(IN)  :: NDxx         ! Diagnostic id
-      CHARACTER(LEN=255), INTENT(IN)  :: SpeciesName  ! Species name
+      CHARACTER(LEN=*),   INTENT(IN)  :: SpeciesName  ! Species name
       REAL(fp), TARGET,   INTENT(IN)  :: DiagArray(:,:,:)
       INTEGER,            INTENT(IN)  :: ColNo        ! Diag collection #
 !
@@ -540,7 +541,7 @@
       Ptr3D => DiagArray
 
       ! Update container for diagnostic
-      CALL Diagn_Update( am_I_Root,
+      CALL Diagn_Update( am_I_Root, HcoState,
      &                   cName   = TRIM( DiagnName ),
      &                   Array3D = Ptr3D,
      &                   COL     = ColNo,

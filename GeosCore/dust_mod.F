@@ -658,6 +658,7 @@
       USE Species_Mod,        ONLY : Species
 #if defined( NC_DIAG )
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
@@ -939,7 +940,7 @@
                Ptr2D => DryDepFlux(:,:,N)
                
                ! Update diagnostic container
-               CALL Diagn_Update( am_I_Root,                           
+               CALL Diagn_Update( am_I_Root, HcoState, 
      &                            cName   = TRIM( DiagnName),         
      &                            Array2D = Ptr2D,                      
      &                            COL     = Input_Opt%DIAG_COLLECTION, 

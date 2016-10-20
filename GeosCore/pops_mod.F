@@ -121,6 +121,7 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -189,19 +190,19 @@
       ! Get global concentrations of OH, O3, OC, and BC from HEMCO
       IF ( FIRST ) THEN
 
-         CALL HCO_GetPtr( aIR, 'GLOBAL_OC', C_OC, RC )
+         CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_OC', C_OC, RC )
          IF ( RC /= GC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OC', LOC )
 
-         CALL HCO_GetPtr( aIR, 'GLOBAL_BC', C_BC, RC )
+         CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_BC', C_BC, RC )
          IF ( RC /= GC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_BC', LOC )
 
-         CALL HCO_GetPtr( aIR, 'GLOBAL_OH', OH,   RC )
+         CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_OH', OH,   RC )
          IF ( RC /= GC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
 
-         CALL HCO_GetPtr( aIR, 'GLOBAL_O3', O3,   RC )
+         CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_O3', O3,   RC )
          IF ( RC /= GC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_O3', LOC )
 

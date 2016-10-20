@@ -252,7 +252,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP, SAFE_DIV
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
+    USE HCO_INTERFACE_MOD,  ONLY : GetHcoVal, GetHcoDiagn
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
     USE PhysConstants,      ONLY : AVO
@@ -267,7 +267,7 @@ CONTAINS
 #endif
 #if defined( NC_DIAG )
     USE HCO_ERROR_MOD
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoID
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
 #if defined( USE_TEND )
@@ -301,8 +301,11 @@ CONTAINS
 !                              if UCX=false.
 !  30 Sep 2015 - E. Lundgren - Now convert locally to kg/m2 for area-independent
 !                              compatibility between tracer units and flux
+!  22 Mar 2016 - C. Keller   - Bug fix: make sure drydep velocities are written
+!                              to diagnostics if emissions are zero.
 !  16 Mar 2016 - E. Lundgren - Exclude specialty simulations in restriction of
 !                              all emissions to chemistry grid if UCX=false
+!  29 Feb 2016 - C. Keller   - Make sure PARANOx fluxes are applied to tracers.
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  25 May 2016 - E. Lundgren - Replace input_opt%TRACER_MW_KG with species
 !                              database field emMW_g (emitted species g/mol)
@@ -441,8 +444,8 @@ CONTAINS
 
 #if defined( USE_TEND )
     ! Archive concentrations for tendencies (ckeller, 7/15/2015) 
-    CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met,    &
-                      State_Chm, 'FLUX',    .FALSE.,  RC )
+      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
+                        State_Chm, 'FLUX', RC )
 #endif
 
     ! Do for every advected species and grid box
@@ -637,8 +640,12 @@ CONTAINS
                    State_Chm%Species(I,J,L,N) = FRAC *    &
                                                 State_Chm%Species(I,J,L,N)
 
-                   ! Eventually add PARANOX loss. PNOXLOSS is in kg/m2/s. 
+                   ! Eventually add PARANOX loss. PNOXLOSS is in kg/m2/s.
+                   ! Make sure PARANOx loss is applied to tracers. (ckeller,
+                   ! 3/29/16).
                    IF ( PNOXLOSS > 0 ) THEN
+                      State_Chm%Species(I,J,L,N) = &
+                         State_Chm%Species(I,J,L,N) - ( PNOXLOSS * TS )
                       FLUX = FLUX + ( PNOXLOSS * TS )
                    ENDIF 
 
@@ -718,6 +725,9 @@ CONTAINS
                 ENDIF
              ENDIF
 
+             ! Prevent negative concentrations. (ckeller, 3/29/16)
+             State_Chm%Species(I,J,L,N) = MAX(State_Chm%Species(I,J,L,N),0.0_fp)
+
           ENDDO !L
        ENDDO !J
        ENDDO !I
@@ -730,9 +740,8 @@ CONTAINS
 
 #if defined( USE_TEND )
       ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
-      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met,  &
-                        State_Chm, 'FLUX',   .FALSE.,     &
-                        TS,        RC                    )
+      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
+                        State_Chm, 'FLUX', TS, RC )
 #endif
 
 
@@ -763,8 +772,8 @@ CONTAINS
              Ptr2D => DryDepFlux(:,:,D)
 
              ! Update diagnostic container
-             CALL Diagn_Update( am_I_Root,                           &
-                                cName     = TRIM( DiagnName),        &
+             CALL Diagn_Update( am_I_Root, HcoState,                 &
+                                cName   = TRIM( DiagnName),          &
                                 Array2D = Ptr2D,                     &
                                 COL     = Input_Opt%DIAG_COLLECTION, &
                                 RC      = HCRC                          )
@@ -808,7 +817,7 @@ CONTAINS
           Ptr3D => EMIS(:,:,:,N)
 
           ! Update the emissions diagnostics
-          CALL Diagn_Update( am_I_Root,                           &
+          CALL Diagn_Update( am_I_Root, HcoState,                 &
                              cName   = TRIM( DiagnName ),         &
                              Array3D = Ptr3D,                     &
                              Total   = TOTFLUX(N),                &
