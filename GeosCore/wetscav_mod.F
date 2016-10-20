@@ -200,7 +200,11 @@
       REAL(fp), ALLOCATABLE         :: QQ    (:,:,:) ! Rate of new precip
                                                      !  formation
                                                      !  [cm3 H2O/cm3 air/s]
-
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+      REAL*8,  ALLOCATABLE          :: REEVAP(:,:,:) ! Rate of precip 
+                                                     !  reevaporation
+                                                     !  [cm3 H2O/cm3 air/s]
+#endif
       ! Define local shadow variables for values in Input_Opt
       LOGICAL                       :: LPRT
       LOGICAL                       :: LGTMM
@@ -674,7 +678,14 @@
          ALLOCATE( QQ( LLPAR, IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'QQ' )
          QQ = 0e+0_fp
-         
+
+#if   defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
+         ! Allocate REEVAP on first call
+         ALLOCATE( REEVAP( LLPAR, IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAP' )
+         REEVAP = 0d0
+#endif
+
          ! Reset flag
          FIRST = .FALSE.
       ENDIF
@@ -707,6 +718,12 @@
             QQ(L,I,J)    = ( State_Met%DQRLSAN(I,J,L)          )
      &                   * ( State_Met%MAIRDEN(I,J,L)  / 1000e+0_fp )
 
+            ! Rate of re-evaporation in grid box (I,J,L)
+            ! [cm3 H2O/cm3 air/s]
+            REEVAP(L,I,J)= ( State_Met%REEVAPLS(I,J,L)          )
+     &                   * ( State_Met%AIRDEN(I,J,L)  / 1000e+0_fp )
+
+
             ! Column precipitation [cm3 H2O/cm2 air/s]
             PDOWN(L,I,J) = ( ( State_Met%PFLLSAN(I,J,L+1) / 1000e+0_fp )
      &                   + ( State_Met%PFILSAN(I,J,L+1) /  917e+0_fp ) )
@@ -727,6 +744,12 @@
             ! [cm3 H2O/cm3 air/s]
             QQ(L,I,J)    = ( State_Met%DQRLSAN(I,J,L)          )
      &                   * ( State_Met%MAIRDEN(I,J,L)  / 1000e+0_fp )
+
+            ! Rate of re-evaporation in grid box (I,J,L)
+            ! [cm3 H2O/cm3 air/s]
+            REEVAP(L,I,J)= ( State_Met%REEVAPLS(I,J,L)          )
+     &                   * ( State_Met%AIRDEN(I,J,L)  / 1000e+0_fp )
+
 
             ! Column precipitation [cm3 H2O/cm2 air/s]
             PDOWN(L,I,J) = ( ( State_Met%PFLLSAN(I,J,L) / 1000e+0_fp ) 
@@ -3243,6 +3266,7 @@
                   ! zero for now. Consequently there will be no resuspended
                   ! aerosol.
                   Q = 0e+0_fp
+                                   
                ENDIF
 
                ! Error msg for stdout
@@ -3400,6 +3424,7 @@
 
       END SUBROUTINE WETDEP
 !EOC
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -3601,6 +3626,7 @@
       REAL(fp)               :: F_RAINOUT,     F_WASHOUT 
       REAL(fp)               :: DEP_HG
 
+
       ! Arrays
       ! DSpc is the accumulator array of rained-out 
       ! soluble species for a given (I,J) column
@@ -3769,25 +3795,30 @@
             IF ( F_WASHOUT > 0e+0_fp ) THEN    
 
                ! QDOWN is the precip leaving thru the bottom of box (I,J,L)
-               ! Q     is the new precip that is forming within box (I,J,L)
-               QDOWN = PDOWN(L,I,J)
-               Q     = QQ(L,I,J)
-
+               ! Q     is the precip that is evaporating within box (I,J,L) 
+               QDOWN = PDOWN(L,I,J)               
+               Q     = REEVAP(L,I,J)                         
+	       Q     = MAX( Q, 0e+0_fp ) ! Negative values are unphysical
+               
                !  Define PDOWN and p
                IF ( F_RAINOUT > 0e+0_fp ) THEN
 
                   ! The precipitation causing washout 
                   ! is the precip entering thru the top
                   QDOWN = PDOWN(L+1,I,J)            
-                            
+                   
+                  !** GEOS-FP, MERRA, and MERRA-2 distinguish between rates of
+                  ! new precipitation (field DQRLSAN) and evaporation of
+                  ! precipitation (field REEVAPLS).
+                  ! So the assumption below is not required. ** VPS (6/21/16)
+                  
                   ! The amount of precipitating water entering from above 
                   ! which evaporates. If there is rainout (new precip
                   ! forming) then we have no way to estimate this, so assume
                   ! zero for now. Consequently there will be no resuspended
                   ! aerosol.
-                  Q = 0e+0_fp
+                  !Q = 0e+0_fp
                ENDIF
-
             ENDIF 
 
             !-----------------------------------------------------------
@@ -3991,6 +4022,7 @@
 
       END SUBROUTINE WETDEP_MERRA
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -4446,8 +4478,9 @@
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG       ! Error message
       REAL(fp),         INTENT(IN)    :: QDOWN        ! Precip leaving thru
                                                       !  bottom of box (I,J,L)
-      REAL(fp),         INTENT(IN)    :: Q            ! New precip forming
-                                                      !  in box (I,J,L)
+      REAL(fp),         INTENT(IN)    :: Q            ! Precip forming or
+                                                      ! evaporating 
+                                                      ! in box (I,J,L)
       REAL(fp),         INTENT(IN)    :: F_WASHOUT    ! Fraction of grid box 
                                                       !  undergoing washout
       REAL(fp),         INTENT(IN)    :: F_RAINOUT    ! Fraction of grid box 
@@ -4516,7 +4549,12 @@
 !  Recall that in make_qq.f we have restricted PDOWN to 
 !  positive values, otherwise, QQ would be equal to 
 !  PDOWN(L+1)-PDOWN(L).           
-! 
+!  =============================================================  
+!  Update (V. Shah 6/29/16)
+!  For GEOS-FP, MERRA and MERRA2 met fields we use the 
+!  following term in the numerator instead:
+!		REEVAP(L,I,J) * BXHEIGHT(I,J,L) 
+!  =============================================================
 !
 ! !REVISION HISTORY: 
 !  16 Sep 2010 - R. Yantosca - Initial version
@@ -6069,7 +6107,9 @@
       IF ( ALLOCATED( QQ     ) ) DEALLOCATE( QQ     )
       IF ( ALLOCATED( H2O2s  ) ) DEALLOCATE( H2O2s  )
       IF ( ALLOCATED( SO2s   ) ) DEALLOCATE( SO2s   )
-
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+      IF ( ALLOCATED( REEVAP ) ) DEALLOCATE( REEVAP )
+#endif      
       END SUBROUTINE CLEANUP_WETSCAV
 !EOC
       END MODULE WETSCAV_MOD

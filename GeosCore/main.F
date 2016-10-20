@@ -475,6 +475,8 @@
       CALL GEOS_Timer_Add( "RRTMG",               RC )
       CALL GEOS_Timer_Add( "Diagnostics",         RC )
       CALL GEOS_Timer_Add( "Reading met fields",  RC )
+      CALL GEOS_Timer_Add( "Reading restart file",RC )
+      CALL GEOS_Timer_Add( "Writing restart file",RC )
       CALL GEOS_Timer_Start( "GEOS-Chem",         RC )
       CALL GEOS_Timer_Start( "Initialization",    RC )
 #endif
@@ -724,9 +726,17 @@
       ! Read initial species conditions
       ! NOTE: Species concentrations are read in as [v/v dry air] 
       ! and converted to [kg/kg dry air] (ewl, 8/4/16)
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_Start( "Reading restart file",  RC )
+#endif
+
       CALL READ_GC_RESTART( am_I_Root, NYMDb,     NHMSb, 
      &                      Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_GC_RESTART' )
+
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_End( "Reading restart file",  RC )
+#endif
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
@@ -935,6 +945,10 @@
      &                        State_Met, RC )
             ENDIF
 
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "Writing restart file",  RC )
+#endif
+
             ! Make atmospheric restart file
             CALL WRITE_GC_RESTART( am_I_Root, NYMD, NHMS, Input_Opt,
      &                             State_Chm, State_Met, RC )
@@ -943,6 +957,10 @@
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### MAIN: a WRITE_GC_RESTART' )
             ENDIF
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "Writing restart file",  RC )
+#endif
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_Start( "HEMCO", RC )
