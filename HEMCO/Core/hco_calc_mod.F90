@@ -1693,7 +1693,6 @@ CONTAINS
 
     ! Init 
     RC    = HCO_SUCCESS
-    Arr3D = 0.0_hp
     IF ( PRESENT(FOUND) ) FOUND = .FALSE.
 
     ! Search for base container 
@@ -1710,6 +1709,9 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
+
+    ! Init 
+    Arr3D = 0.0_hp
 
     ! Define output dimensions
     nI = SIZE(Arr3D,1)
@@ -1811,7 +1813,6 @@ CONTAINS
 
     ! Init 
     RC    = HCO_SUCCESS
-    Arr2D = 0.0_hp
     IF ( PRESENT(FOUND) ) FOUND = .FALSE.
 
     ! Search for base container 
@@ -1828,6 +1829,9 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
+
+    ! Init Arr2D
+    Arr2D = 0.0_hp
 
     ! Define output dimensions
     nI = SIZE(Arr2D,1)
