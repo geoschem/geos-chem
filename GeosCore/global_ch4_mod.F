@@ -658,18 +658,20 @@
       DO I = 1, IIPAR
          IREF = I + I0
 
+         ! Grid box surface area [m2]
+         AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
+
          ! Update diagnostics
          IF ( ND58 > 0 ) THEN
 
-            ! All emission sources excluding soil absorption
-            ! Units of ND58 are now kg/m2 (previously kg) (ewl, 9/11/15)
+            ! All emission sources excluding soil absorption [kg]
             AD58(IREF,JREF,1) = AD58(IREF,JREF,1) + 
      &         ( CH4_EMIS(IREF,JREF,1) + CH4_EMIS(IREF,JREF,11) )
-     &           * DTSRCE
+     &           * DTSRCE * AREA_M2
 
             DO N = 2, PD58
                AD58(IREF,JREF,N) = AD58(IREF,JREF,N) + 
-     &            CH4_EMIS(IREF,JREF,N) * DTSRCE
+     &            CH4_EMIS(IREF,JREF,N) * DTSRCE * AREA_M2
             ENDDO
          ENDIF
 
