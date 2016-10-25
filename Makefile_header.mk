@@ -1017,7 +1017,13 @@ ifeq ($(COMPILER),gfortran)
   FFLAGS             :=-cpp -w -std=legacy -fautomatic -fno-align-commons
   FFLAGS             += -fconvert=big-endian
   FFLAGS             += -fno-range-check
-  FFLAGS             += -march=native
+
+  # OPTIONAL: Add the GNU Fortran -march option, which compiles for a
+  # specific computer architecture.  This may cause issues on some types
+  # of CPUs (e.g. Intel), so we have left this as an optional argument.
+  ifdef M_ARCH
+    FFLAGS           += -march=$(M_ARCH)
+  endif
 
   # Default optimization level for all routines (-O3)
   ifndef OPT
