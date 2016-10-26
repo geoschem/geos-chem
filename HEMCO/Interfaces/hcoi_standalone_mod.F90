@@ -1846,17 +1846,18 @@ CONTAINS
 !  28 Jul 2014 - C. Keller   - Initial Version
 !  06 Oct 2014 - M. Sulprizio- Remove PCENTER. Now calculate from pressure edges
 !  09 Jul 2015 - E. Lundgren - Add MODIS Chlorophyll-a (CHLR)
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    REAL(hp), POINTER             :: PSFC(:,:  )  => NULL()
-    REAL(hp), POINTER             :: ZSFC(:,:  )  => NULL()
-    REAL(hp), POINTER             :: TK  (:,:,:)  => NULL()
-    REAL(hp), POINTER             :: BXHEIGHT(:,:,:)  => NULL()
-    REAL(hp), POINTER             :: PEDGE(:,:,:)  => NULL()
+    REAL(hp), POINTER             :: PSFC(:,:  )
+    REAL(hp), POINTER             :: ZSFC(:,:  )
+    REAL(hp), POINTER             :: TK  (:,:,:)
+    REAL(hp), POINTER             :: BXHEIGHT(:,:,:)
+    REAL(hp), POINTER             :: PEDGE(:,:,:)
     CHARACTER(LEN=255)            :: MSG
     LOGICAL                       :: FIRST 
     CHARACTER(LEN=255), PARAMETER :: LOC = 'ExtState_SetFields (hcoi_standalone_mod.F90)'
@@ -1864,6 +1865,13 @@ CONTAINS
     !=================================================================
     ! ExtState_SetFields begins here
     !=================================================================
+
+    ! Nullify
+    PSFC     => NULL()
+    ZSFC     => NULL()
+    TK       => NULL()
+    BXHEIGHT => NULL()
+    PEDGE    => NULL()
 
     ! Enter
     CALL HCO_ENTER( HcoState%Config%Err, LOC, RC )
