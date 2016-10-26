@@ -335,6 +335,7 @@ CONTAINS
 !                              accomodate replay runs in GEOS-5.
 !  25 May 2015 - C. Keller   - Now calculate SC5 via HCO_GetSUNCOS 
 !  29 Mar 2016 - C. Keller   - Bug fix: archive O3 deposition as positive flux.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -358,13 +359,13 @@ CONTAINS
 !    REAL(hp), TARGET         :: DEPHNO3 (HcoState%NX,HcoState%NY)
 
     ! Pointers
-    REAL(hp), POINTER        :: Arr2D(:,:) => NULL()
+    REAL(hp), POINTER        :: Arr2D(:,:)
 
     ! For diagnostics
     REAL(hp), TARGET         :: DIAGN   (HcoState%NX,HcoState%NY,5)
     LOGICAL, SAVE            :: DODIAGN = .FALSE.
     CHARACTER(LEN=31)        :: DiagnName
-    TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
+    TYPE(DiagnCont), POINTER :: TmpCnt
 
     ! Paranox update
     REAL(dp)                 :: SHIP_FNOx, SHIP_DNOx, SHIP_OPE, SHIP_MOE
@@ -394,6 +395,10 @@ CONTAINS
        RC = HCO_SUCCESS 
        RETURN
     ENDIF
+
+    ! Nullify
+    Arr2D  => NULL()
+    TmpCnt => NULL()
 
     ! ------------------------------------------------------------------
     ! First call: check for diagnostics to write and fill restart values
@@ -2243,6 +2248,7 @@ CONTAINS
 !                                PHOTRATE_ADJ (found in GeosCore/fast_jx_mod.F).
 !  20 Sep 2016 - R. Yantosca   - Replace non-standard ASIND function with ASIN,
 !                                and convert to degrees (divide by PI/180)
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2261,8 +2267,10 @@ CONTAINS
    INTEGER,  DIMENSION(8,2)   :: INDX
    REAL(sp), DIMENSION(8,2)   :: WTS
 
-   REAL(sp), POINTER, DIMENSION(:,:,:,:,:,:,:) :: FRACNOX_LUT => NULL(), &
-          DNOX_LUT => NULL(), OPE_LUT  => NULL(),   MOE_LUT => NULL() 
+   REAL(sp), POINTER, DIMENSION(:,:,:,:,:,:,:) :: FRACNOX_LUT
+   REAL(sp), POINTER, DIMENSION(:,:,:,:,:,:,:) :: DNOX_LUT
+   REAL(sp), POINTER, DIMENSION(:,:,:,:,:,:,:) :: OPE_LUT
+   REAL(sp), POINTER, DIMENSION(:,:,:,:,:,:,:) :: MOE_LUT
     
    CHARACTER(LEN=255)         :: MSG
    CHARACTER(LEN=255)         :: LOC = 'PARANOX_LUT' 
@@ -2270,6 +2278,12 @@ CONTAINS
    !=================================================================
    ! PARANOX_LUT begins here!
    !=================================================================
+
+   ! Nullify
+   FRACNOX_LUT => NULL()
+   DNOX_LUT    => NULL()
+   OPE_LUT     => NULL()
+   MOE_LUT     => NULL()
 
    ! Air mass [kg]
    AIR = ExtState%AIR%Arr%Val(I,J,1)

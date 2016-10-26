@@ -132,6 +132,7 @@ CONTAINS
 !  06 Oct 2014 - C. Keller   - Now calculate pressure centers from edges.
 !  29 Oct 2014 - R. Yantosca - Use latitude centers of the grid box to
 !                              facilitate running in ESMF/MPI environment
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -149,8 +150,8 @@ CONTAINS
     REAL(hp)          :: LAT_TMP,  P_TMP,      Be_TMP
 
     ! Pointers
-    REAL(hp), POINTER :: Arr2D(:,:  ) => NULL()
-    REAL(hp), POINTER :: Arr3D(:,:,:) => NULL()
+    REAL(hp), POINTER :: Arr2D(:,:  )
+    REAL(hp), POINTER :: Arr3D(:,:,:)
 
     !=======================================================================
     ! HCOX_GC_RnPbBe_RUN begins here!
@@ -168,6 +169,10 @@ CONTAINS
 
     ! Emission timestep [s]
     DTSRCE = HcoState%TS_EMIS 
+
+    ! Nullify
+    Arr2D => NULL()
+    Arr3D => NULL()
 
     !=======================================================================
     ! Compute 222Rn emissions [kg/m2/s], according to the following:

@@ -148,6 +148,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  11 Sep 2014 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -160,8 +161,8 @@ CONTAINS
     REAL(hp)                 :: CH4tmp(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET         :: CH4wtl(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET         :: CH4rce(HcoState%NX,HcoState%NY)
-    TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
-    TYPE(MyInst),    POINTER :: Inst   => NULL()
+    TYPE(DiagnCont), POINTER :: TmpCnt
+    TYPE(MyInst),    POINTER :: Inst
 
     ! Name of the manual diagnostic container
     CHARACTER(LEN=31),  PARAMETER :: DiagnWtl = 'CH4_WETLAND'
@@ -181,6 +182,10 @@ CONTAINS
 
     ! Return if extension disabled 
     IF ( ExtState%Wetland_CH4 <= 0 ) RETURN
+
+    ! Init
+    TmpCnt => NULL()
+    Inst   => NULL()
 
     ! Get instance
     CALL InstGet ( ExtState%Wetland_CH4, Inst, RC )
@@ -699,6 +704,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 Sep 2014 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -708,7 +714,7 @@ CONTAINS
     ! Scalars
     INTEGER                        :: ExtNr, N, AS
     CHARACTER(LEN=255)             :: MSG
-    TYPE(MyInst), POINTER          :: Inst => NULL()
+    TYPE(MyInst), POINTER          :: Inst
 
     ! Arrays
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
@@ -724,6 +730,9 @@ CONTAINS
     ! Enter 
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_CH4WETLAND_Init (hcox_wetlands_ch4_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Init
+    Inst => NULL()
 
     ! Create Instance
     CALL InstCreate ( ExtNr, ExtState%Wetland_CH4, Inst, RC )
@@ -930,11 +939,12 @@ CONTAINS
     INTEGER,       INTENT(INOUT)    :: RC 
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    TYPE(MyInst), POINTER          :: TmpInst  => NULL()
+    TYPE(MyInst), POINTER          :: TmpInst
     INTEGER                        :: nnInst
 
     !=================================================================
@@ -946,7 +956,8 @@ CONTAINS
     ! ----------------------------------------------------------------
 
     ! Initialize
-    Inst => NULL()
+    Inst    => NULL()
+    TmpInst => NULL()
 
     ! Get number of already existing instances
     TmpInst => AllInst

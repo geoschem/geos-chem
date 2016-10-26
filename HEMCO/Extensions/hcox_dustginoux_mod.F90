@@ -165,6 +165,7 @@ CONTAINS
 !                              M=3 but was picked when M=2.  Now corrected.
 !  26 Jun 2015 - E. Lundgren - Add L. Zhang new dust size distribution scheme
 !  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -194,7 +195,7 @@ CONTAINS
     REAL(hp), TARGET  :: FLUX_ALK(HcoState%NX,HcoState%NY,NBINS)
 
     ! Pointers
-    REAL(hp), POINTER :: Arr2D(:,:) => NULL()
+    REAL(hp), POINTER :: Arr2D(:,:)
 
     !=======================================================================
     ! HCOX_DUSTGINOUX_RUN begins here!
@@ -222,6 +223,7 @@ CONTAINS
     ! Init
     FLUX     = 0.0_hp
     FLUX_ALK = 0.0_hp
+    Arr2D    => NULL()
 
     !=================================================================
     ! Point to DUST source functions 

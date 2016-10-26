@@ -240,6 +240,7 @@
 !  06 Oct 2014 - C. Keller   - Now calculate pressure center from edges.
 !  26 Jun 2015 - E. Lundgren - Add L. Zhang new dust size distribution scheme
 !  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -273,7 +274,7 @@
       REAL*8                 :: DUST_EMI_TOTAL(HcoState%NX) ! total dust emiss
       REAL(hp), TARGET       :: FLUX(HcoState%NX,HcoState%NY,NBINS) ! Flux array [kg/m2/s]   
       REAL(hp), TARGET       :: FLUX_ALK(HcoState%NX,HcoState%NY,NBINS) ! Flux array for dust alkalinity [kg/m2/s]   
-      TYPE(MyInst), POINTER  :: Inst => NULL()
+      TYPE(MyInst), POINTER  :: Inst
 !
 ! !DEFINED PARAMETERS:
 !
@@ -303,6 +304,7 @@
       aIR = am_I_Root
 
       ! Get instance
+      Inst => NULL()
       CALL InstGet ( ExtState%DustDead, Inst, RC )
       IF ( RC /= HCO_SUCCESS ) THEN 
        WRITE(MSG,*) 'Cannot find DEAD instance Nr. ', ExtState%DustDead
@@ -582,6 +584,7 @@
 ! !REVISION HISTORY:
 !  25 Nov 2013 - C. Keller   - Now a HEMCO extension
 !  14 Aug 2014 - R. Yantosca - Now always print out extension info
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -596,7 +599,7 @@
       CHARACTER(LEN=31), ALLOCATABLE :: SpcNamesAlk(:)
       REAL(dp)                       :: TmpScal
       LOGICAL                        :: FOUND
-      TYPE(MyInst), POINTER          :: Inst => NULL()
+      TYPE(MyInst), POINTER          :: Inst
 
       !=================================================================
       ! HCOX_DUST_DEAD_INIT begins here!
@@ -612,6 +615,7 @@
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! Create AeroCom instance for this simulation
+      Inst => NULL()
       CALL InstCreate ( ExtNr, ExtState%DustDead, Inst, RC )
       IF ( RC /= HCO_SUCCESS ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 
@@ -5745,10 +5749,11 @@ c Fix up for negative argument, erf, etc.
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version 
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      TYPE(MyInst), POINTER          :: TmpInst  => NULL()
+      TYPE(MyInst), POINTER          :: TmpInst
       INTEGER                        :: nnInst
   
       !=================================================================
@@ -5817,19 +5822,22 @@ c Fix up for negative argument, erf, etc.
       INTEGER                         :: Instance 
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       INTEGER                     :: RC
-      TYPE(MyInst), POINTER       :: PrevInst => NULL()
-      TYPE(MyInst), POINTER       :: Inst     => NULL()
+      TYPE(MyInst), POINTER       :: PrevInst
+      TYPE(MyInst), POINTER       :: Inst
 
       !=================================================================
       ! InstRemove begins here!
       !=================================================================
  
       ! Get instance. Also archive previous instance.
+      PrevInst => NULL()
+      Inst     => NULL()
       CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
 
       ! Instance-specific deallocation
