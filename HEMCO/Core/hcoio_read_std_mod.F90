@@ -3115,6 +3115,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Dec 2014 - C. Keller: Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3123,9 +3124,9 @@ CONTAINS
 !
     INTEGER               :: IUFILE, IOS
     INTEGER               :: ID1, ID2, I, NT, CID, NLINE
-    REAL(sp), POINTER     :: CNTR(:,:) => NULL()
+    REAL(sp), POINTER     :: CNTR(:,:)
     INTEGER,  ALLOCATABLE :: CIDS(:,:)
-    REAL(hp), POINTER     :: Vals(:) => NULL()
+    REAL(hp), POINTER     :: Vals(:)
     LOGICAL               :: Verb
     CHARACTER(LEN=2047)   :: LINE
     CHARACTER(LEN=255)    :: MSG, DUM, CNT
@@ -3135,6 +3136,10 @@ CONTAINS
     ! HCOIO_ReadCountryValues begins here
     !======================================================================
    
+    ! Init
+    CNTR => NULL()
+    Vals => NULL()
+
     ! verbose mode? 
     Verb = HCO_IsVerb(HcoState%Config%Err,2) 
    
@@ -3331,6 +3336,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Jul 2014 - C. Keller: Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3338,7 +3344,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: I, NT
-    REAL(hp), POINTER  :: Vals(:) => NULL()
+    REAL(hp), POINTER  :: Vals(:)
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'HCOIO_ReadFromConfig (hcoio_dataread_mod.F90)'
 
@@ -3346,6 +3352,9 @@ CONTAINS
     ! HCOIO_ReadFromConfig begins here
     !======================================================================
    
+    ! Init
+    Vals => NULL()
+
     ! Verbose
     IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
        WRITE(MSG, *) 'Read from config file: ', TRIM(Lct%Dct%cName)

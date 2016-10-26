@@ -757,6 +757,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY:
 !  28 Sep 2015 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -774,7 +775,7 @@ CONTAINS
     LOGICAL                       :: ERRBX, ERRZSFC 
     REAL(hp)                      :: P1, P2
     REAL(hp), ALLOCATABLE, TARGET :: TmpTK(:,:,:)
-    REAL(hp), POINTER             :: ThisTK(:,:,:) => NULL()
+    REAL(hp), POINTER             :: ThisTK(:,:,:)
     CHARACTER(LEN=255)            :: MSG
     CHARACTER(LEN=255)            :: LOC = 'HCO_CalcVertGrid (hco_geotools_mod.F90)'
 
@@ -796,6 +797,7 @@ CONTAINS
     FoundTK       = .FALSE.
     FoundPEDGE    = .FALSE.
     FoundBXHEIGHT = .FALSE.
+    ThisTK        => NULL()
 
     ! Verbose statements
     IF ( am_I_Root .AND. FIRST .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
@@ -1295,11 +1297,18 @@ CONTAINS
 
     ! Init
     FOUND = .FALSE.
+    print*, '@@@ FldName     : ', TRIM (FLDNAME)
+    print*, '@@@ PBLM minmax ; ', MINVAL( PBLM ), MAXVAL( PBLM )
+    call flush(6)
 
     ! Try to read from file first 
     IF ( PRESENT( FldName ) ) THEN
+       print*, '@@@ before hco_evalfld'
+       call flush(6)
        CALL HCO_EvalFld ( am_I_Root, HcoState, FldName, &
           HcoState%Grid%PBLHEIGHT%Val, RC, FOUND=FOUND )
+       print*, '@@@ RC, FOUND: ', RC, FOUND
+       call flush(6)
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Verbose
@@ -1312,37 +1321,44 @@ CONTAINS
     ENDIF
 
     ! Pass 2D field if available
-    IF ( .NOT. FOUND .AND. PRESENT(PBLM) ) THEN
-       IF ( ASSOCIATED(PBLM) ) THEN
-          NX = SIZE(PBLM,1)
-          NY = SIZE(PBLM,2)
-          IF ( NX /= HcoState%NX .OR. NY /= HcoState%NY ) THEN
-             WRITE(MSG,*) 'Wrong PBLM array size: ', NX, NY, &
-                          '; should be: ', HcoState%NX, HcoState%NY
-             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
-             RETURN 
-          ENDIF
+!    IF ( .NOT. FOUND .AND. PRESENT(PBLM) ) THEN
+    IF ( .not. FOUND ) THEN
+       IF ( PRESENT( PBLM ) ) THEN
+          IF ( ASSOCIATED(PBLM) ) THEN
+             NX = SIZE(PBLM,1)
+             NY = SIZE(PBLM,2)
+             IF ( NX /= HcoState%NX .OR. NY /= HcoState%NY ) THEN
+                WRITE(MSG,*) 'Wrong PBLM array size: ', NX, NY, &
+                             '; should be: ', HcoState%NX, HcoState%NY
+                CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+                RETURN 
+             ENDIF
 
-          ! Make sure size is ok   
-          CALL HCO_ArrAssert( HcoState%Grid%PBLHEIGHT, HcoState%NX, HcoState%NY, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
+             ! Make sure size is ok   
+             CALL HCO_ArrAssert( HcoState%Grid%PBLHEIGHT, &
+                                 HcoState%NX, HcoState%NY, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
 
-          ! Pass data 
-          HcoState%Grid%PBLHEIGHT%Val = PBLM
-          FOUND                       = .TRUE.
+             ! Pass data 
+             HcoState%Grid%PBLHEIGHT%Val = PBLM
+             FOUND                       = .TRUE.
 
-          ! Verbose
-          IF ( am_I_Root .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
-             WRITE(MSG,*) 'HEMCO PBL heights obtained from provided 2D field.'
-             CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
+             ! Verbose
+             IF ( am_I_Root .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+                WRITE(MSG,*) 'HEMCO PBL heights obtained from provided 2D field.'
+                CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
+             ENDIF
           ENDIF
        ENDIF
     ENDIF
 
     ! Finally, assign default value if field not yet set
-    IF ( .NOT. FOUND .AND. PRESENT(DefVal) ) THEN
+!    IF ( .NOT. FOUND .AND. PRESENT(DefVal) ) THEN
+    IF ( .NOT. FOUND ) THEN
+       IF ( PRESENT(DefVal) ) THEN
           ! Make sure size is ok   
-          CALL HCO_ArrAssert( HcoState%Grid%PBLHEIGHT, HcoState%NX, HcoState%NY, RC )
+          CALL HCO_ArrAssert( HcoState%Grid%PBLHEIGHT, &
+                              HcoState%NX, HcoState%NY, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Pass data 
@@ -1354,6 +1370,7 @@ CONTAINS
              WRITE(MSG,*) 'HEMCO PBL heights uniformly set to ', DefVal 
              CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
           ENDIF
+       ENDIF
     ENDIF
 
     ! Error check

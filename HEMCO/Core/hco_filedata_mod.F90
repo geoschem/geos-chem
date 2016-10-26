@@ -164,13 +164,14 @@ CONTAINS
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller   - Initialization
 !  21 Aug 2014 - C. Keller   - Added concentration
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(FileData), POINTER  :: NewFDta => NULL()
+    TYPE(FileData), POINTER  :: NewFDta
 
     !======================================================================
     ! FileData_Init begins here!

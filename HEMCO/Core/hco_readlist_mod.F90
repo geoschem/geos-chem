@@ -365,13 +365,14 @@ CONTAINS
 !                            the time. 
 !  24 Mar 2016 - C. Keller - Remove GetFileLUN and SaveFileLUN. This is now
 !                            handled in hcoio_read_std_mod.F90. 
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(ListCont), POINTER  :: Lct => NULL()
+    TYPE(ListCont), POINTER  :: Lct
     LOGICAL                  :: verb
     CHARACTER(LEN=255)       :: MSG
 
@@ -509,19 +510,24 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(ListCont), POINTER :: Lct => NULL()
-    TYPE(ListCont), POINTER :: TmpLct => NULL()
+    TYPE(ListCont), POINTER :: Lct
+    TYPE(ListCont), POINTER :: TmpLct
     INTEGER                 :: cID
 
     ! ================================================================
     ! DtCont_Add begins here
     ! ================================================================
+
+    ! Init
+    Lct    => NULL()
+    TmpLct => NULL()
 
     ! Create new container (to be added to ReadList)
     ALLOCATE ( Lct ) 
@@ -741,13 +747,17 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Jan 2015 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
     INTEGER                   :: I
-    TYPE(ListCont), POINTER   :: This => NULL()
-    TYPE(ListCont), POINTER   :: Prev => NULL()
-    TYPE(ListCont), POINTER   :: Next => NULL()
+    TYPE(ListCont), POINTER   :: This
+    TYPE(ListCont), POINTER   :: Prev
+    TYPE(ListCont), POINTER   :: Next
     LOGICAL                   :: FOUND
     CHARACTER(LEN=255)        :: MSG
     CHARACTER(LEN=255)        :: LOC = 'ReadList_Remove (HCO_ReadList_Mod.F90)' 
@@ -759,6 +769,11 @@ CONTAINS
     ! Assume success until otherwise
     RC = HCO_SUCCESS
     IF ( .NOT. ASSOCIATED(HcoState%ReadLists) ) RETURN
+
+    ! Init
+    This => NULL()
+    Prev => NULL()
+    Next => NULL()
 
     ! Search for the given container
     DO I = 1,6

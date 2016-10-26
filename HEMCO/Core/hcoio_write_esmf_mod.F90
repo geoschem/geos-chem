@@ -106,19 +106,21 @@ CONTAINS
     INTEGER,                    INTENT(INOUT) :: RC          ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  05 Aug 2014 - C. Keller    - Initial version 
+!  05 Aug 2014 - C. Keller    - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(DiagnCont), POINTER  :: ThisDiagn => NULL()
+    TYPE(DiagnCont), POINTER  :: ThisDiagn
     INTEGER                   :: PS, FLAG, STAT
     CHARACTER(LEN=255)        :: MSG
     LOGICAL                   :: EOI
-    REAL, POINTER             :: Ptr2D(:,:)   => NULL()
-    REAL, POINTER             :: Ptr3D(:,:,:) => NULL()
+    REAL, POINTER             :: Ptr2D(:,:)
+    REAL, POINTER             :: Ptr3D(:,:,:)
 
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_WRITE_ESMF (hcoio_write_esmf_mod.F90)'
 
@@ -128,6 +130,11 @@ CONTAINS
 
     ! Assume success until otherwise 
     RC  = HCO_SUCCESS
+
+    ! Init
+    ThisDiagn => NULL()
+    Ptr2D     => NULL()
+    Ptr3D     => NULL()
 
     ! Collection number
     PS = HcoState%Diagn%HcoDiagnIDDefault 
