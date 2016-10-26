@@ -1549,6 +1549,7 @@ CONTAINS
 !  06 Jun 2016 - R. Yantosca - Now declar PEDGE array for edge pressures [Pa]
 !  06 Jun 2016 - R. Yantosca - PSFC now points to PEDGE(:,:,1)
 !  06 Jun 2016 - R. Yantosca - Now add error traps
+!  26 Oct 2016 - R. Yantosca - Now improve error traps for PBLM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1606,7 +1607,13 @@ CONTAINS
     ENDIF
 
     ! Set PBL heights
-    ALLOCATE(PBLM(IIPAR,JJPAR))
+    ALLOCATE( PBLM( IIPAR, JJPAR ), STAT=RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'ERROR allocating the PBLM pointer-based array!'
+       LOC = 'GridEdge_Set (GeosCore/hcoi_gc_main_mod.F90)'
+       CALL ERROR_STOP( MSG, LOC )
+    ENDIF
+
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
 !$OMP PRIVATE( I, J )
@@ -1616,10 +1623,15 @@ CONTAINS
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
+
+    ! Use the met field PBL field to initialize HEMCO
     CALL HCO_SetPBLm ( am_I_Root, HcoState, FldName='PBL_HEIGHT', &
                        PBLM=PBLM, DefVal=1000.0_hp, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    DEALLOCATE(PBLM)
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'ERROR returning from HCO_SetPBLm!'
+       LOC = 'GridEdge_Set (GeosCore/hcoi_gc_main_mod.F90)'
+       CALL ERROR_STOP( MSG, LOC )
+    ENDIF
 
     ! Nullify local pointers
     ZSFC     => NULL()
@@ -1630,6 +1642,10 @@ CONTAINS
     ! Deallocate and nullify PEDGE
     IF ( ASSOCIATED( PEDGE ) ) DEALLOCATE( PEDGE )
     PEDGE    => NULL()
+
+    ! Deallocate the PBLM array
+    IF ( ASSOCIATED( PBLM  ) ) DEALLOCATE( PBLM  )
+    PBLM     => NULL()
 
     ! Return w/ success
     RC       = HCO_SUCCESS
