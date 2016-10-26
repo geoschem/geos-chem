@@ -1828,16 +1828,11 @@ CONTAINS
     !=================================================================
     ! HCO_EvalFld_2D begins here!
     !=================================================================
-    print*, '@@@ In hco_evalfld_2d'
-    call flush(6)
 
     ! Init 
     RC    = HCO_SUCCESS    
     Lct   => NULL()
     IF ( PRESENT(FOUND) ) FOUND = .FALSE.
-
-    print*, '@@@ cname : ', trim(cname)
-    call flush(6)
 
     ! Search for base container 
     CALL ListCont_Find ( HcoState%EmisList, TRIM(cName), FND, Lct )

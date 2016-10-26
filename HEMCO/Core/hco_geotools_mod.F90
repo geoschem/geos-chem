@@ -1297,18 +1297,11 @@ CONTAINS
 
     ! Init
     FOUND = .FALSE.
-    print*, '@@@ FldName     : ', TRIM (FLDNAME)
-    print*, '@@@ PBLM minmax ; ', MINVAL( PBLM ), MAXVAL( PBLM )
-    call flush(6)
 
     ! Try to read from file first 
     IF ( PRESENT( FldName ) ) THEN
-       print*, '@@@ before hco_evalfld'
-       call flush(6)
        CALL HCO_EvalFld ( am_I_Root, HcoState, FldName, &
           HcoState%Grid%PBLHEIGHT%Val, RC, FOUND=FOUND )
-       print*, '@@@ RC, FOUND: ', RC, FOUND
-       call flush(6)
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Verbose
