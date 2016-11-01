@@ -114,7 +114,7 @@ MODULE HCOX_STATE_MOD
      LOGICAL                   :: GC_POPs        ! GEOS-Chem POPs simulation
      INTEGER                   :: Wetland_CH4    ! Methane emiss from wetlands
      LOGICAL                   :: TOMAS_SeaSalt  ! TOMAS sectional sea salt
-     LOGICAL                   :: TOMAS_DustDead ! TOMAS sectional Dead Dust
+     INTEGER                   :: TOMAS_DustDead ! TOMAS sectional Dead Dust
      INTEGER                   :: AeroCom        ! AeroCom volcano 
 
      !----------------------------------------------------------------------

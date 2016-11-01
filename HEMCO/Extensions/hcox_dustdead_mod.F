@@ -74,8 +74,8 @@
 !                              configuration file.
 !  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
 !  07 Jan 2016 - E. Lundgren - Change dry air gas constant and molec wt to 
-!                              match main GC and update acc due to gravity and 
-!                              universal gas constant to NIST 2014
+!                              match GC values and update acc due to gravity 
+!                              and universal gas constant to NIST 2014 values
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !EOP
 !------------------------------------------------------------------------------
@@ -99,7 +99,7 @@
        !---------------------------------------
  
        ! Time-invariant fields
-       REAL(hp), POINTER          :: ERD_FCT_GEO  (:,:) => NULL()
+       REAL(hp), POINTER         :: ERD_FCT_GEO  (:,:) => NULL()
 !      REAL,    POINTER          :: ERD_FCT_HYDRO(:,:,:,:)
 !      REAL,    POINTER          :: ERD_FCT_TOPO (:,:,:,:)
 !      REAL,    POINTER          :: ERD_FCT_UNITY(:,:,:,:)
@@ -203,7 +203,6 @@
 ! !USES:
 !
       USE HCO_CALC_MOD,      ONLY : HCO_EvalFld
-      USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
       USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd 
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_First
@@ -333,36 +332,36 @@
       ! SFC_TYP        ; surface type:                 HcoState%NX HcoState%NY
       !=================================================================
       !IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_EF_GEO', 
-     &                    Inst%ERD_FCT_GEO, RC)
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_EF_GEO',
+     &                     Inst%ERD_FCT_GEO, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
          CALL HCO_EvalFld( aIR, HcoState, 'DEAD_LF_DRY', 
-     &                    Inst%LND_FRC_DRY, RC)
+     &                     Inst%LND_FRC_DRY, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_CACO3', 
-     &                    Inst%MSS_FRC_CACO3,  RC )
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_CACO3',
+     &                     Inst%MSS_FRC_CACO3,  RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_CLY', 
-     &                    Inst%MSS_FRC_CLY, RC)
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_CLY',
+     &                     Inst%MSS_FRC_CLY, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_SND', 
-     &                    Inst%MSS_FRC_SND, RC)
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_SND',
+     &                     Inst%MSS_FRC_SND, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_SFC_TYP', 
-     &                    Inst%SFC_TYP, RC )
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_SFC_TYP',
+     &                     Inst%SFC_TYP, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_GOC_SRC', 
-     &                    Inst%SRCE_FUNC, RC )
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_GOC_SRC',
+     &                     Inst%SRCE_FUNC, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN 
    
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_VAI', 
-     &                    Inst%VAI_DST, RC )
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_VAI',
+     &                     Inst%VAI_DST, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
 !         FIRST = .FALSE.
@@ -5664,8 +5663,7 @@ c Fix up for negative argument, erf, etc.
 
       ! Return to calling program
       END FUNCTION HCOX_DustDead_GetFluxTun
-!------------------------------------------------------------------------------
-!EOC
+
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
