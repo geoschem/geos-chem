@@ -27,6 +27,8 @@
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
 #  04 Jun 2015 - R. Yantosca - Remove EF_MGN20.F, this isn't used anymore
 #  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
+#  01 Nov 2016 - M. Sulprizio- Rename hcox_tomas_seasalt_mod.F90 to
+#                              hcox_tomas_jeagle_mod.F90 (J. Kodros)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -146,7 +148,7 @@ hcox_driver_mod.o           : hcox_driver_mod.F90             \
                               hcox_seasalt_mod.o              \
                               hcox_soilnox_mod.o              \
                               hcox_state_mod.o		      \
-                              hcox_tomas_seasalt_mod.o        
+                              hcox_tomas_jeagle_mod.o        
 
 
 hcox_dustdead_mod.o         : hcox_dustdead_mod.F             \
@@ -196,7 +198,7 @@ hcox_soilnox_mod.o          : hcox_soilnox_mod.F90            \
 
 hcox_state_mod.o            : hcox_state_mod.F90
 
-hcox_tomas_seasalt_mod.o    : hcox_tomas_seasalt_mod.F90      \
+hcox_tomas_jeagle_mod.o     : hcox_tomas_jeagle_mod.F90      \
                               hcox_state_mod.o
 
 hcox_tools_mod.o            : hcox_tools_mod.F90
