@@ -89,13 +89,14 @@ CONTAINS
 !  02 Feb 2015 - C. Keller - Moved tIDx_Assign call to hco_readlist_mod
 !                            so that this module can also be used by
 !                            hco_clock_mod.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL ARGUMENTS:
 !
-    TYPE(ListCont), POINTER                 :: Lct => NULL()
+    TYPE(ListCont), POINTER                 :: Lct
     LOGICAL                                 :: FOUND, VERBOSE, NEW 
     CHARACTER(LEN=255)                      :: MSG
     CHARACTER(LEN= 31)                      :: TempRes
@@ -111,6 +112,9 @@ CONTAINS
 
     ! Set verbose flag
     VERBOSE = HCO_IsVerb( HcoState%Config%Err, 2 ) 
+
+    ! Init
+    Lct => NULL()
 
     ! ----------------------------------------------------------------
     ! Nothing to do if it's not a new container, i.e. if container 
@@ -128,6 +132,9 @@ CONTAINS
     ! ----------------------------------------------------------------
     ALLOCATE ( Lct ) 
     Lct%NextCont => NULL()
+    IF ( .not. ASSOCIATED( Dct ) ) THEN
+       PRINT*, '#### DCT is not associated!'
+    ENDIF
     Lct%Dct      => Dct
 
     ! ----------------------------------------------------------------
@@ -442,6 +449,7 @@ CONTAINS
 !                            home container.
 !  23 Dec 2014 - C. Keller - Don't cleanup container anymore. This is
 !                            now handled in ReadList_Read.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -449,7 +457,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(ListCont),  POINTER  :: TargetLct => NULL()
+    TYPE(ListCont),  POINTER  :: TargetLct
 
     ! Scalars
     INTEGER                   :: I, J, L, T
@@ -464,6 +472,9 @@ CONTAINS
     CALL HCO_ENTER ( HcoState%Config%Err, &
                      'EmisList_Pass (hco_emislist_mod.F90)', RC )
     IF(RC /= HCO_SUCCESS) RETURN
+
+    ! Init
+    TargetLct => NULL()
 
     ! Verbose mode
     verb = HCO_IsVerb( HcoState%Config%Err, 2 )
@@ -717,6 +728,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  04 Sep 2013 - C. Keller    - Initialization
 !  19 May 2015 - C. Keller    - Added argument FILLED
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -729,7 +741,7 @@ CONTAINS
     CHARACTER(LEN=255)         :: MSG, LOC
 
     ! Pointers
-    TYPE(ListCont), POINTER    :: Lct => NULL()
+    TYPE(ListCont), POINTER    :: Lct
 
     !=================================================================
     ! HCO_GetPtr_3D BEGINS HERE
@@ -737,6 +749,9 @@ CONTAINS
 
     ! Enter
     LOC = 'HCO_GetPtr_3D (hco_emislist_mod.F90)'
+
+    ! Init
+    Lct => NULL()
 
     ! Define time index to use
     IF ( PRESENT(TIDX) ) THEN
@@ -840,6 +855,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  04 Sep 2013 - C. Keller    - Initialization
 !  19 May 2015 - C. Keller    - Added argument FILLED
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -852,7 +868,7 @@ CONTAINS
     CHARACTER(LEN=255)         :: MSG, LOC
 
     ! Pointers
-    TYPE(ListCont), POINTER    :: Lct     => NULL()
+    TYPE(ListCont), POINTER    :: Lct
 
     !=================================================================
     ! HCO_GetPtr_2D BEGINS HERE
@@ -860,6 +876,7 @@ CONTAINS
 
     ! Enter
     LOC = 'HCO_GetPtr_2D (hco_emislist_mod.F90)'
+    Lct => NULL()
 
     ! Define time index to use
     IF ( PRESENT(TIDX) )THEN

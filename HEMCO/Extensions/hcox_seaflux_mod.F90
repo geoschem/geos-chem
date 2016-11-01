@@ -152,6 +152,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  16 Apr 2013 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -168,7 +169,7 @@ CONTAINS
     LOGICAL            :: VERBOSE
 
     ! Pointers
-    REAL(hp), POINTER  :: Arr2D  (:,:) => NULL()
+    REAL(hp), POINTER  :: Arr2D(:,:)
 
     !=================================================================
     ! HCOX_SeaFlux_Run begins here!
@@ -183,6 +184,9 @@ CONTAINS
 
     ! Verbose?
     verbose = HCO_IsVerb(HcoState%Config%Err,1) 
+
+    ! Nullify
+    Arr2D => NULL()
 
     ! ---------------------------------------------------------------
     ! Calculate emissions

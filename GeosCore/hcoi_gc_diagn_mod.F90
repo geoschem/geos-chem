@@ -623,12 +623,16 @@ CONTAINS
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use dust
 !  30 Sep 2014 - R. Yantosca - Update for TOMAS dust species
+!  25 Oct 2016 - R. Yantosca - Make sure to cast INTEGER to LOGICAL values
+!                              before comparing them in an IF statement
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    LOGICAL            :: Is_DustDead
+    LOGICAL            :: Is_DustGinoux
     INTEGER            :: ExtNr, HcoID, I, N
     CHARACTER(LEN=1)   :: ISTR1
     CHARACTER(LEN=2)   :: ISTR2
@@ -650,9 +654,16 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Now use local LOGICAL variables to save ExtState%DustDead and
+    ! ExtState%DustGinoux.  This will make sure these variables are 
+    ! cast to LOGICAL, so that we can compare them in the same IF
+    ! statement.  Otherwise GNU Fortran will choke. (bmy, 10/25/16)
+    Is_DustDead   = ( ExtState%DustDead   )
+    Is_DustGinoux = ( ExtState%DustGinoux )
+
     ! Define diagnostics if dust is used
-    IF ( ( ExtState%DustDead .OR. ExtState%DustGinoux )   .AND. &
-         ( ND06 > 0                                   ) ) THEN
+    IF ( ( Is_DustDead .OR. Is_DustGinoux )  .AND. &
+         ( ND06 > 0                       ) ) THEN
 
        ! Get Ext. Nr of used extension
        ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustDead' )

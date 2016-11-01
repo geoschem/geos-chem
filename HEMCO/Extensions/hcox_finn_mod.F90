@@ -214,6 +214,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  02 Jan 2012 - J. Mao & J. Fisher - Initial version, based on GFED3
 !  18 Jun 2014 - C. Keller          - Now a HEMCO extension.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -236,7 +237,7 @@ CONTAINS
     REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
 
     ! Pointers
-    REAL(hp), POINTER   :: THISTYP(:,:) => NULL()
+    REAL(hp), POINTER   :: THISTYP(:,:)
 
     !=======================================================================
     ! HCOX_FINN_Run begins here!
@@ -248,6 +249,9 @@ CONTAINS
     ! Enter 
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_FINN_RUN (hcox_finn_mod.F90)', RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Init
+    THISTYP => NULL()
 
     !-----------------------------------------------------------------------
     ! Get pointers to data arrays 

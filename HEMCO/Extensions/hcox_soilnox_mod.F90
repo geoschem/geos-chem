@@ -298,6 +298,7 @@ CONTAINS
 !  05 Nov 2013 - C. Keller - Initial Version
 !  08 May 2015 - C. Keller - Now read/write restart variables from here to
 !                            accomodate replay runs in GEOS-5.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -315,11 +316,11 @@ CONTAINS
     LOGICAL                  :: aIR, FOUND
     CHARACTER(LEN= 31)       :: DiagnName
     CHARACTER(LEN=255)       :: MSG, DMY
-    TYPE(MyInst),    POINTER :: Inst => NULL()
+    TYPE(MyInst),    POINTER :: Inst
 
     ! For manual diagnostics
     LOGICAL, SAVE            :: DoDiagn = .FALSE.
-    TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
+    TYPE(DiagnCont), POINTER :: TmpCnt
 
     !=================================================================
     ! HCOX_SoilNOx_RUN begins here!
@@ -332,6 +333,11 @@ CONTAINS
     ! Return if extension disabled 
     IF ( ExtState%SoilNOx < 0 ) RETURN
 
+    ! Nullify
+    Inst   => NULL()
+    TmpCnt => NULL()
+
+    ! Get Instance
     CALL InstGet ( ExtState%SoilNox, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN 
        WRITE(MSG,*) 'Cannot find soil NOx instance Nr. ', ExtState%SoilNOx
@@ -662,6 +668,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  05 Nov 2013 - C. Keller   - Initial Version
 !  12 May 2015 - R. Yantosca - Cosmetic changes
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -673,7 +680,7 @@ CONTAINS
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
     INTEGER, ALLOCATABLE           :: HcoIDs(:)
     INTEGER                        :: nSpc, I, J, II, AS
-    TYPE(MyInst), POINTER          :: Inst => NULL()
+    TYPE(MyInst), POINTER          :: Inst
 
     !=================================================================
     ! HCOX_SoilNOx_INIT begins here!
@@ -688,6 +695,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Create instance
+    Inst => NULL()
     CALL InstCreate ( ExtNr, ExtState%SoilNox, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create soil NOx instance', RC )
@@ -2253,11 +2261,12 @@ CONTAINS
     INTEGER,       INTENT(INOUT)    :: RC 
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    TYPE(MyInst), POINTER          :: TmpInst  => NULL()
+    TYPE(MyInst), POINTER          :: TmpInst
     INTEGER                        :: nnInst
 
     !=================================================================
@@ -2320,20 +2329,23 @@ CONTAINS
     TYPE(Ext_State),  POINTER       :: ExtState      ! Extension state
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
     INTEGER                     :: RC
     INTEGER                     :: I
-    TYPE(MyInst), POINTER       :: PrevInst => NULL()
-    TYPE(MyInst), POINTER       :: Inst     => NULL()
+    TYPE(MyInst), POINTER       :: PrevInst
+    TYPE(MyInst), POINTER       :: Inst
 
     !=================================================================
     ! InstRemove begins here!
     !=================================================================
  
     ! Get instance. Also archive previous instance.
+    PrevInst => NULL()
+    Inst     => NULL()
     CALL InstGet ( ExtState%SoilNOx, Inst, RC, PrevInst=PrevInst )
 
     ! Instance-specific deallocation

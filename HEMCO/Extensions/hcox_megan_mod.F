@@ -342,6 +342,7 @@
 !  01 Jun 2016 - R. Yantosca - Bug fix: Now use ExtNrMono in the call to
 !                              Hco_EmisAdd for the MONX (in order to make MONX
 !                              show up as nonzero in HEMCO diagnostics).
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -404,7 +405,7 @@
       REAL(hp), TARGET    :: FLUXOSQT  (HcoState%NX,HcoState%NY)
 
       ! For diagnostics
-      REAL(hp), POINTER   :: Arr2D(:,:) => NULL()
+      REAL(hp), POINTER   :: Arr2D(:,:)
       CHARACTER(LEN=63)   :: DiagnName
       CHARACTER(LEN=255)  :: MSG
 
@@ -427,7 +428,7 @@
       REAL(hp), PARAMETER   :: MB_SCALE1  = 0.6_hp
       REAL(hp), PARAMETER   :: MB_SCALE2  = 0.76_hp
 
-      TYPE(MyInst), POINTER :: Inst => NULL()
+      TYPE(MyInst), POINTER :: Inst
 
       !=================================================================
       ! HCOX_Megan_Run begins here! 
@@ -438,6 +439,10 @@
      &               'HCOX_Megan_Run (hcox_megan_mod.F)', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
       ERR = .FALSE.
+
+      ! Nullify
+      Arr2d => NULL()
+      Inst  => NULL()
 
       ! Get instance
       CALL InstGet ( ExtState%Megan, Inst, RC )
@@ -4046,6 +4051,7 @@
 !  11 Apr 2013 - R. Yantosca - Now pass directory info with Input_Opt
 !  18 Feb 2015 - M. Sulprizio- Now allocate AEF arrays for species not read
 !                              from file
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4057,8 +4063,8 @@
       INTEGER, ALLOCATABLE           :: HcoIDs(:)
       LOGICAL                        :: FOUND
       REAL*8                         :: PI_180
-      REAL(hp), POINTER              :: Ptr2D(:,:) => NULL()
-      TYPE(MyInst), POINTER          :: Inst => NULL()
+      REAL(hp), POINTER              :: Ptr2D(:,:)
+      TYPE(MyInst), POINTER          :: Inst
       CHARACTER(LEN=255)             :: MSG
       CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:) 
  
@@ -4074,6 +4080,10 @@
       CALL HCO_ENTER( HcoState%Config%Err,
      &                  'HCOX_Megan_Init (hcox_megan_mod.F90)', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! Nullify
+      Ptr2D => NULL()
+      Inst  => NULL()
 
       ! Create AeroCom instance for this simulation
       CALL InstCreate ( ExtNr, ExtState%Megan, Inst, RC )
@@ -4735,11 +4745,12 @@
       INTEGER,       INTENT(INOUT)    :: RC 
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      TYPE(MyInst), POINTER          :: TmpInst  => NULL()
+      TYPE(MyInst), POINTER          :: TmpInst
       INTEGER                        :: nnInst
   
       !=================================================================
@@ -4807,14 +4818,16 @@
 !------------------------------------------------------------------------------
 !BOC
       INTEGER                     :: RC
-      TYPE(MyInst), POINTER       :: PrevInst => NULL()
-      TYPE(MyInst), POINTER       :: Inst     => NULL()
+      TYPE(MyInst), POINTER       :: PrevInst
+      TYPE(MyInst), POINTER       :: Inst
 
       !=================================================================
       ! InstRemove begins here!
       !=================================================================
  
       ! Get instance. Also archive previous instance.
+      PrevInst => NULL()
+      Inst     => NULL()
       CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
 
       ! Instance-specific deallocation

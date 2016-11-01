@@ -141,6 +141,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Feb 2015 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -156,9 +157,9 @@ CONTAINS
     REAL(sp)                :: LonEdgeO(HcoState%NX+1)
     REAL(sp)                :: LatEdgeO(HcoState%NY+1)
 
-    REAL(sp), POINTER       :: ORIG_2D(:,:)     => NULL()
-    REAL(sp), POINTER       :: REGR_2D(:,:)     => NULL()
-    REAL(sp), POINTER       :: REGR_4D(:,:,:,:) => NULL()
+    REAL(sp), POINTER       :: ORIG_2D(:,:)
+    REAL(sp), POINTER       :: REGR_2D(:,:)
+    REAL(sp), POINTER       :: REGR_4D(:,:,:,:)
 
     REAL(sp), ALLOCATABLE, TARGET :: FRACS(:,:,:,:)
     REAL(hp), ALLOCATABLE         :: REGFRACS(:,:,:,:) 
@@ -175,6 +176,11 @@ CONTAINS
     !=================================================================
     ! REGRID_MAPA2A begins here
     !=================================================================
+
+    ! Init
+    ORIG_2D => NULL()
+    REGR_2D => NULL()
+    REGR_4D => NULL()
 
     ! Check for verbose mode
     verb = HCO_IsVerb(HcoState%Config%Err,  3 )
@@ -1511,17 +1517,21 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Dec 2014 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
     INTEGER               :: I, NZ, ILEV, TOPLEV
     REAL(hp)              :: THICK
-    REAL(hp), POINTER     :: EDG(:) => NULL()
+    REAL(hp), POINTER     :: EDG(:)
     REAL(hp), ALLOCATABLE :: WGT(:)
 
     !=================================================================
     ! COLLAPSE begins here
     !=================================================================
+
+    ! Init
+    EDG => NULL()
 
     ! Reset
     Lct%Dct%Dta%V3(T)%Val(:,:,OutLev) = 0.0_hp

@@ -159,6 +159,7 @@ CONTAINS
 !  14 Apr 2014 - R. Yantosca - Prevent div-by-zero error w/ SUM_OF_ALL
 !  19 Aug 2014 - M. Sulprizio- Now a HEMCO extension
 !  07 Jan 2016 - E. Lundgren - Update molar gas constant to NIST 2014
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -240,7 +241,7 @@ CONTAINS
     REAL(hp)            :: KBC_298
 
     ! Pointers for diagnostics
-    REAL(hp), POINTER   :: Arr3D(:,:,:) => NULL()
+    REAL(hp), POINTER   :: Arr3D(:,:,:)
 
     !=======================================================================
     ! HCOX_GC_POPs_RUN begins here!
@@ -259,6 +260,7 @@ CONTAINS
     DEL_H   = ExtState%POP_DEL_H
     KOA_298 = ExtState%POP_KOA
     KBC_298 = ExtState%POP_KBC
+    Arr3D   => NULL()
 
     !=======================================================================
     ! Get pointers to gridded data imported through config. file

@@ -518,6 +518,7 @@ CONTAINS
 !  23 Sep 2015 - C. Keller - Added cycle flags 'A' and 'RA' (for averaging).
 !  06 Oct 2015 - C. Keller - Added cycle flags 'EF' and 'RF' (fields must be 
 !                            found).
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -555,9 +556,9 @@ CONTAINS
     INTEGER                   :: SplitInts(255)
 
     ! Pointers
-    TYPE(ListCont), POINTER   :: Lct => NULL()
-    TYPE(ListCont), POINTER   :: Tmp => NULL()
-    TYPE(FileData), POINTER   :: Dta => NULL() 
+    TYPE(ListCont), POINTER   :: Lct
+    TYPE(ListCont), POINTER   :: Tmp
+    TYPE(FileData), POINTER   :: Dta
 
     !=================================================================
     ! Config_ReadCont begins here!
@@ -569,6 +570,9 @@ CONTAINS
     ! Initialize
     SKIP           = .FALSE.
     nCat           = -1
+    Lct            => NULL()
+    Tmp            => NULL()
+    Dta            => NULL() 
 
     ! Get tokens
     WildCard  = HCO_GetOpt( HcoConfig%ExtList, 'Wildcard'  )
@@ -1236,6 +1240,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Feb 2015 - C. Keller   - Initial version.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1244,7 +1249,7 @@ CONTAINS
 !
     LOGICAL                       :: verb
     INTEGER                       :: I, N
-    TYPE(ListCont), POINTER       :: Shd => NULL()
+    TYPE(ListCont), POINTER       :: Shd
     CHARACTER(LEN=255)            :: MSG
     CHARACTER(LEN=5)              :: C5
 
@@ -1262,6 +1267,8 @@ CONTAINS
 
     ! Init
     verb = HCO_IsVerb( HcoConfig%Err, 1 )  
+    Shd  => NULL()
+
 
 !    ! Get number of currently used scale factors
 !    N = 0
@@ -1369,14 +1376,15 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Feb 2015 - C. Keller   - Initial version.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(ListCont), POINTER       :: Lct => NULL()
-    TYPE(FileData), POINTER       :: Dta => NULL() 
+    TYPE(ListCont), POINTER       :: Lct
+    TYPE(FileData), POINTER       :: Dta
     CHARACTER(LEN=255)            :: MSG
 
     LOGICAL                       :: FOUND
@@ -1385,6 +1393,10 @@ CONTAINS
     !======================================================================
     ! AddZeroScal begins here
     !======================================================================
+    
+    ! Initialize
+    Lct => NULL()
+    Dta => NULL() 
 
     ! Check if this container already exists
     CALL ListCont_Find ( HcoConfig%ConfigList, 'DUMMYSCALE_ZERO', FOUND )
@@ -1794,13 +1806,14 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2013 - C. Keller - Initial version (update) 
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(ListCont), POINTER      :: Lct => NULL()
+    TYPE(ListCont), POINTER      :: Lct
     INTEGER                      :: ThisCover, ThisHcoID, FLAG
     INTEGER                      :: lon1, lon2, lat1, lat2
     INTEGER                      :: cpux1, cpux2, cpuy1, cpuy2
@@ -1813,6 +1826,9 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER ( HcoState%Config%Err, 'RegisterPrepare', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    ! Initialize
+    Lct => NULL()
 
     ! Grid boundaries on this CPU. Will be needed to calculate 
     ! coverages. 
@@ -1959,7 +1975,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - C. Keller: Initialization
-!
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1967,7 +1983,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(ListCont), POINTER   :: Lct => NULL()
+    TYPE(ListCont), POINTER   :: Lct
 
     ! Scalars
     INTEGER               :: N, cID, HcoID
@@ -1979,9 +1995,12 @@ CONTAINS
     ! Register_Base begins here
     !======================================================================
 
-      ! Enter
+    ! Enter
     CALL HCO_ENTER ( HcoState%Config%Err, 'Register_Base (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Initialize
+    Lct => NULL()
 
     ! Point to next (first) line in ConfigList 
     CALL ListCont_NextCont ( HcoState%Config%ConfigList, Lct, FLAG )
@@ -2142,7 +2161,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - C. Keller - Initialization
-!  29 Dec 2014 - C. Keller - Now check for masks assigned to scale factors. 
+!  29 Dec 2014 - C. Keller - Now check for masks assigned to scale factors.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2150,8 +2170,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(ListCont),   POINTER :: Lct => NULL()
-    TYPE(ScalIDCont), POINTER :: TmpScalIDCont => NULL() 
+    TYPE(ListCont),   POINTER :: Lct
+    TYPE(ScalIDCont), POINTER :: TmpScalIDCont
 
     ! Scalars
     INTEGER                   :: cID, FLAG
@@ -2168,6 +2188,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Loop over all scale factor ids
+    Lct           => NULL()
     TmpScalIDCont => HcoState%Config%ScalIDList
     DO WHILE ( ASSOCIATED( TmpScalIDCont ) )  
 
@@ -2298,6 +2319,7 @@ CONTAINS
 !  11 Apr 2013 - C. Keller - Initialization
 !  07 Dec 2015 - C. Keller - Make sure emissions with limited time range do
 !                            never erase lower hierarchy base emissions.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2305,8 +2327,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(ListCont), POINTER   :: tmpLct => NULL()
-    TYPE(ListCont), POINTER   :: mskLct => NULL()
+    TYPE(ListCont), POINTER   :: tmpLct
+    TYPE(ListCont), POINTER   :: mskLct
 
     ! Scalars
     INTEGER                   :: HcoID, Cat, Hier, Scal, ExtNr, cID
@@ -2323,6 +2345,10 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER ( HcoState%Config%Err, 'Get_targetID (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Initialize
+    tmpLct => NULL()
+    mskLct => NULL()
 
     ! Get Tracer ID, category and hierarchy of entry to be checked
     cID   = Lct%Dct%cID
@@ -3057,6 +3083,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  18 Sep 2013 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3064,7 +3091,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(ListCont), POINTER  :: Lct => NULL()
+    TYPE(ListCont), POINTER  :: Lct
 
     ! Scalars
     CHARACTER(LEN=255)       :: MSG, LOC
@@ -3137,13 +3164,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  17 Sep 2013 - C. Keller: Initialization (update)
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(ListCont), POINTER :: NewLct => NULL()
+    TYPE(ListCont), POINTER :: NewLct
     INTEGER                 :: cID
 
     !======================================================================
@@ -3153,7 +3181,7 @@ CONTAINS
     ! Allocate container and create data structure.
     ! The DataCont_Init call creates a new data container (type DataCont)
     ! All HEMCO lists (ConfigList, ReadList, EmisList) point to this 
-    ! container!
+    ! container!    
     ALLOCATE ( NewLct ) 
     NewLct%Dct      => NULL()
     NewLct%NextCont => NULL()
@@ -3265,6 +3293,7 @@ CONTAINS
 !  10 Jan 2014 - C. Keller: Initialization (update)
 !  29 Dec 2014 - C. Keller: Now add new container to end of list to allow
 !                           list being updated while calling Register_Scal.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3272,9 +3301,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(ScalIDCont), POINTER  :: NewScalIDCont => NULL()
-    TYPE(ScalIDCont), POINTER  :: TmpScalIDCont => NULL() 
-    TYPE(ScalIDCont), POINTER  :: PrvScalIDCont => NULL() 
+    TYPE(ScalIDCont), POINTER  :: NewScalIDCont
+    TYPE(ScalIDCont), POINTER  :: TmpScalIDCont
+    TYPE(ScalIDCont), POINTER  :: PrvScalIDCont
 
     ! Scalars
     LOGICAL                    :: IsInList
@@ -3282,6 +3311,11 @@ CONTAINS
     !======================================================================
     ! ScalID_Register begins here
     !======================================================================
+
+    ! Initialize
+    NewScalIDCont => NULL()
+    TmpScalIDCont => NULL() 
+    PrvScalIDCont => NULL() 
 
     ! Check for every element of ScalIDs, if this scale factor ID is
     ! already a member of ScalIDList. If not, add it. 
@@ -3343,7 +3377,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
-!
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3351,14 +3385,15 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(ScalIDCont), POINTER  :: TmpScalIDCont => NULL()
-    TYPE(ScalIDCont), POINTER  :: NxtScalIDCont => NULL() 
+    TYPE(ScalIDCont), POINTER  :: TmpScalIDCont
+    TYPE(ScalIDCont), POINTER  :: NxtScalIDCont
 
     !======================================================================
     ! ScalID_Cleanup begins here
     !======================================================================
 
     ! Walk through list and remove each element
+    NxtScalIDCont => NULL() 
     TmpScalIDCont => ScalIDList
     DO WHILE ( ASSOCIATED(TmpScalIDCont) )
 
@@ -3406,15 +3441,15 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
-!
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL ARGUMENTS:
 !
-    TYPE(SpecNameCont), POINTER  :: NewSpecNameCont => NULL()
-    TYPE(SpecNameCont), POINTER  :: TmpSpecNameCont => NULL() 
+    TYPE(SpecNameCont), POINTER  :: NewSpecNameCont
+    TYPE(SpecNameCont), POINTER  :: TmpSpecNameCont
     LOGICAL                      :: IsInList
 
     !======================================================================
@@ -3426,6 +3461,10 @@ CONTAINS
        RC = HCO_SUCCESS
        RETURN
     ENDIF
+
+    ! Initialize
+    NewSpecNameCont => NULL()
+    TmpSpecNameCont => NULL()
 
     ! Check if already in list 
     IsInList = .FALSE.
@@ -3476,6 +3515,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3483,12 +3523,16 @@ CONTAINS
 ! !LOCAL ARGUMENTS:
 !
     ! Pointers
-    TYPE(SpecNameCont), POINTER  :: TmpSpecNameCont => NULL()
-    TYPE(SpecNameCont), POINTER  :: NxtSpecNameCont => NULL() 
+    TYPE(SpecNameCont), POINTER  :: TmpSpecNameCont
+    TYPE(SpecNameCont), POINTER  :: NxtSpecNameCont
 
     !======================================================================
     ! SpecName_Cleanup begins here
     !======================================================================
+
+    ! Initialize
+    TmpSpecNameCont => NULL()
+    NxtSpecNameCont => NULL() 
 
     ! Walk through list and remove each element
     TmpSpecNameCont => SpecNameList
@@ -3626,21 +3670,24 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
-!
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(SpecNameCont), POINTER   :: TmpSpecNameCont => NULL() 
+    TYPE(SpecNameCont), POINTER   :: TmpSpecNameCont
     INTEGER                       :: AS
     CHARACTER(LEN=255), PARAMETER :: &
-       LOC = 'Config_GetSpecAttr (hco_config_mod.F90)'
+         LOC = 'Config_GetSpecAttr (hco_config_mod.F90)'
 
     !======================================================================
     ! Config_GetSpecAttr begins here
     !======================================================================
+
+    ! Initialize
+    TmpSpecNameCont => NULL() 
 
     ! Eventually allocate pointer
     IF ( PRESENT(SpecNames) ) THEN
@@ -3924,7 +3971,7 @@ CONTAINS
        ! Verbose
        IF ( am_I_Root .AND. HCO_IsVerb(HcoConfig%Err,2) ) THEN
           WRITE(MSG,*) 'Will use additional dimension on file ', &
-             TRIM(Dta%ncFile), & ': ', TRIM(Dta%ArbDimName), ' = ', &
+             TRIM(Dta%ncFile), ': ', TRIM(Dta%ArbDimName), ' = ', &
              TRIM(Dta%ArbDimVal)
           CALL HCO_MSG(HcoConfig%Err,MSG)
        ENDIF

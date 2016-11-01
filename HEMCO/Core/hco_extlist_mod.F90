@@ -187,6 +187,7 @@ CONTAINS
 !  03 Oct 2013 - C. Keller - Initial version
 !  20 Sep 2015 - C. Keller - Options are now linked list
 !  12 Dec 2015 - C. Keller - Added argument InUse
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -195,12 +196,16 @@ CONTAINS
 !
     INTEGER             :: OrigExtNr
     CHARACTER(LEN=255)  :: MSG, lcName
-    TYPE(Ext), POINTER  :: NewExt  => NULL()
-    TYPE(Ext), POINTER  :: ThisExt => NULL()
+    TYPE(Ext), POINTER  :: NewExt
+    TYPE(Ext), POINTER  :: ThisExt
 
     !======================================================================
     ! AddExt 
     !======================================================================
+
+    ! Init
+    NewExt  => NULL()
+    ThisExt => NULL()
 
     ! All extension names are lower case
     lcName = TRIM(ExtName)
@@ -535,18 +540,22 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Oct 2013 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !INTERNAL VARIABLES:
 !
-    TYPE(Ext), POINTER  :: ThisExt => NULL()
+    TYPE(Ext), POINTER  :: ThisExt
     CHARACTER(LEN=255)  :: LCname
 
     !======================================================================
     ! GetExtNr begins here
     !======================================================================
+
+    ! Init
+    ThisExt => NULL()
 
     ! Pass name to module 
     LCname = TRIM(ExtName)
@@ -610,6 +619,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -617,7 +627,7 @@ CONTAINS
 ! !LOCAL ARGUMENTS:
 !
     CHARACTER(LEN=255)        :: MSG, LOC
-    TYPE(Ext), POINTER        :: ThisExt => NULL()
+    TYPE(Ext), POINTER        :: ThisExt
 
     !======================================================================
     ! GetExtSpcStr begins here
@@ -626,6 +636,7 @@ CONTAINS
     ! Enter
     LOC = 'GetExtSpcStr (hco_extlist_mod.F90)'
     RC  = HCO_SUCCESS
+    ThisExt => NULL()
 
     ! Find extension of interest 
     ThisExt => HcoConfig%ExtList
@@ -937,13 +948,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  12 Jan 2015 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !INTERNAL VARIABLES:
 !
-    TYPE(Ext), POINTER  :: ThisExt => NULL()
+    TYPE(Ext), POINTER  :: ThisExt
     CHARACTER(LEN=255)  :: LCname
     CHARACTER(LEN=255)  :: MSG
     LOGICAL             :: verb, overwrite
@@ -1032,13 +1044,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Oct 2013 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !INTERNAL VARIABLES:
 !
-    TYPE(Ext), POINTER  :: ThisExt => NULL()
+    TYPE(Ext), POINTER  :: ThisExt
     CHARACTER(LEN=255)  :: LCname
 
     !======================================================================
@@ -1097,14 +1110,15 @@ CONTAINS
 ! !REVISION HISTORY:
 !  03 Oct 2013 - C. Keller - Initial version
 !  20 Sep 2015 - C. Keller - Options are now linked list.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !INTERNAL VARIABLES:
 !
-    TYPE(Ext), POINTER  :: ThisExt => NULL()
-    TYPE(Ext), POINTER  :: NextExt => NULL()
+    TYPE(Ext), POINTER  :: ThisExt
+    TYPE(Ext), POINTER  :: NextExt
 
     !======================================================================
     ! ExtFinal begins here
@@ -1112,6 +1126,7 @@ CONTAINS
 
     ! Point to header of extensions list
     ThisExt => ExtList
+    NextExt => NULL()
 
     ! Loop over all extensions and deallocate the types 
     DO WHILE ( ASSOCIATED ( ThisExt ) ) 
@@ -1166,15 +1181,16 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2015 - C. Keller - Initial version 
-!  12 Dec 2015 - C. Keller - Added argument IgnoreIfExist 
+!  12 Dec 2015 - C. Keller - Added argument IgnoreIfExist
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(Ext), POINTER      :: ThisExt => NULL()
-    TYPE(Opt), POINTER      :: NewOpt => NULL()
+    TYPE(Ext), POINTER      :: ThisExt
+    TYPE(Opt), POINTER      :: NewOpt
     CHARACTER(LEN=OPTLEN)   :: DUM
     LOGICAL                 :: Exists
     LOGICAL                 :: VRB
@@ -1185,6 +1201,10 @@ CONTAINS
     !=================================================================
     ! HCO_AddOpt begins here!
     !=================================================================
+
+    ! Nullify
+    ThisExt => NULL()
+    NewOpt  => NULL()
 
     ! Init optional variables
     VRB    = .TRUE.
@@ -1291,7 +1311,8 @@ CONTAINS
     CHARACTER(LEN=OPTLEN)                     :: OptValue ! OptValue
 ! 
 ! !REVISION HISTORY: 
-!  18 Sep 2015 - C. Keller - Initial version 
+!  18 Sep 2015 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1300,8 +1321,8 @@ CONTAINS
 !
     INTEGER               :: ThisExtNr
     LOGICAL               :: OptFound 
-    TYPE(Opt), POINTER    :: ThisOpt => NULL()
-    TYPE(Ext), POINTER    :: ThisExt => NULL()
+    TYPE(Opt), POINTER    :: ThisOpt
+    TYPE(Ext), POINTER    :: ThisExt
 
     !=================================================================
     ! HCO_GetOpt begins here!
@@ -1310,6 +1331,8 @@ CONTAINS
     ! Init
     OptValue = EMPTYOPT
     OptFound = .FALSE.
+    ThisOpt  => NULL()
+    ThisExt  => NULL()
 
     ! Extension number to search for. If not explicitly set through the
     ! input argument, set to -999 to search all extensions.
@@ -1416,21 +1439,23 @@ CONTAINS
     TYPE(Opt), POINTER        :: OptList
 ! 
 ! !REVISION HISTORY: 
-!  18 Sep 2015 - C. Keller - Initial version 
+!  18 Sep 2015 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(Opt), POINTER    :: ThisOpt => NULL()
-    TYPE(Opt), POINTER    :: NextOpt => NULL()
+    TYPE(Opt), POINTER    :: ThisOpt
+    TYPE(Opt), POINTER    :: NextOpt
 
     !=================================================================
     ! HCO_CleanupOpt begins here!
     !=================================================================
 
     ! Walk through option list until we find the given value
+    NextOpt => NULL()
     ThisOpt => OptList
     DO WHILE ( ASSOCIATED(ThisOpt) ) 
 

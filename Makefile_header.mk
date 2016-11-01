@@ -1013,11 +1013,23 @@ endif
 
 ifeq ($(COMPILER),gfortran) 
 
+  # Get the GNU Fortran version
+  VERSIONTEXT        :=$(shell $(FC) --version)
+  VERSION            :=$(word 4, $(VERSIONTEXT))
+  VERSION            :=$(subst .,,$(VERSION))
+  NEWER_THAN_447     :=$(shell perl -e "print ($(VERSION) gt 447)")
+
   # Base set of compiler flags
   FFLAGS             :=-cpp -w -std=legacy -fautomatic -fno-align-commons
   FFLAGS             += -fconvert=big-endian
   FFLAGS             += -fno-range-check
-  FFLAGS             += -march=native
+
+  # OPTIONAL: Add the GNU Fortran -march option, which compiles for a
+  # specific computer architecture.  This may cause issues on some types
+  # of CPUs (e.g. Intel), so we have left this as an optional argument.
+  ifdef M_ARCH
+    FFLAGS           += -march=$(M_ARCH)
+  endif
 
   # Default optimization level for all routines (-O3)
   ifndef OPT
@@ -1080,12 +1092,20 @@ ifeq ($(COMPILER),gfortran)
 
   # Turn on checking for floating-point exceptions
   # These are approximately equivalent to -fpe0 -ftrapuv in IFORT
+  # NOTE: GNU Fortran 4.4.7 does not allow for -finit-real-snan, so
+  # we will only add this flag for versions newer than 4.4.7
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(FPE)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -ffpe-trap=invalid,zero,overflow -finit-real=snan
+    FFLAGS           += -ffpe-trap=invalid,zero,overflow
+    ifeq ($(NEWER_THAN_447),1)
+      FFLAGS           += -finit-real=snan
+    endif
   endif
   ifeq ($(shell [[ "$(FPEX)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -ffpe-trap=invalid,zero,overflow -finit-real=snan
+    FFLAGS           += -ffpe-trap=invalid,zero,overflow
+    ifeq ($(NEWER_THAN_447),1)
+      FFLAGS           += -finit-real=snan
+    endif
   endif
 
   # Add option for "array out of bounds" checking
@@ -1141,7 +1161,7 @@ ifeq ($(COMPILER),gfortran)
   F90ISO             :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE_ISO)
   LD                 :=$(COMPILE_CMD) $(FFLAGS)
   FREEFORM           := -ffree-form -ffree-line-length-none
-  R8                 := -fdefault-real-8 -freal-4-real-8
+  R8                 := -fdefault-real-8
 
 endif
 

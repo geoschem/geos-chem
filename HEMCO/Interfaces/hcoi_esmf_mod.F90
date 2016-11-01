@@ -119,6 +119,7 @@ CONTAINS
 !  29 Aug 2013 - C. Keller - Initial version.
 !  10 Sep 2015 - C. Keller - Added RESTART=MAPL_RestartSkip.
 !  21 Feb 2016 - C. Keller - Update to v2.0, added default diagnostics (optional)
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -134,8 +135,8 @@ CONTAINS
       CHARACTER(LEN=31)          :: cName, SpcName, OutUnit 
       CHARACTER(LEN=63)          :: DefaultSNAME, DefaultLNAME, DefaultUnit
       CHARACTER(LEN=63)          :: SNAME, LNAME, UnitName 
-      CHARACTER(LEN=63), POINTER :: Spc(:)   => NULL() 
-      TYPE(ListCont),    POINTER :: CurrCont => NULL()
+      CHARACTER(LEN=63), POINTER :: Spc(:)
+      TYPE(ListCont),    POINTER :: CurrCont
 
       ! ================================================================
       ! HCO_SetServices begins here
@@ -143,6 +144,10 @@ CONTAINS
 
       ! For MAPL/ESMF error handling (defines Iam and STATUS)
       __Iam__('HCO_SetServices (HCOI_ESMF_MOD.F90)')
+
+      ! Init
+      Spc      => NULL() 
+      CurrCont => NULL()
 
       ! ---------------------------------------------------------------------
       ! Read file into buffer

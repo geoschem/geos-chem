@@ -135,7 +135,8 @@ CONTAINS
 !  
 !
 ! !REVISION HISTORY:
-!  04 Jun 2015 - C. Keller   - Initial version 
+!  04 Jun 2015 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -147,7 +148,7 @@ CONTAINS
     REAL(sp)              :: SO2erupt(HcoState%NX,HcoState%NY,HcoState%NZ) ! eruptive
     REAL(sp)              :: iFlx    (HcoState%NX,HcoState%NY,HcoState%NZ)
     LOGICAL               :: ERR
-    TYPE(MyInst), POINTER :: Inst => NULL()
+    TYPE(MyInst), POINTER :: Inst
     CHARACTER(LEN=255)    :: MSG
 
     !=================================================================
@@ -160,6 +161,9 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_AeroCom_Run (hcox_aerocom_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Nullify
+    Inst => NULL()
 
     ! Get instance
     CALL InstGet ( ExtState%AeroCom, Inst, RC )
@@ -885,11 +889,12 @@ CONTAINS
     INTEGER,       INTENT(INOUT)    :: RC 
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    TYPE(MyInst), POINTER          :: TmpInst  => NULL()
+    TYPE(MyInst), POINTER          :: TmpInst
     INTEGER                        :: nnInst
 
     !=================================================================
@@ -951,18 +956,23 @@ CONTAINS
     INTEGER                         :: Instance 
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
     INTEGER                     :: RC
-    TYPE(MyInst), POINTER       :: PrevInst => NULL()
-    TYPE(MyInst), POINTER       :: Inst     => NULL()
+    TYPE(MyInst), POINTER       :: PrevInst
+    TYPE(MyInst), POINTER       :: Inst
 
     !=================================================================
     ! InstRemove begins here!
     !=================================================================
- 
+
+    ! Init 
+    PrevInst => NULL()
+    Inst     => NULL()
+    
     ! Get instance. Also archive previous instance.
     CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
 

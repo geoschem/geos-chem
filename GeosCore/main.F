@@ -673,8 +673,8 @@
 
        ! Initialize PBL quantities but do not do mixing
        ! Add option for non-local PBL (Lin, 03/31/09) 
-       CALL INIT_MIXING ( am_I_Root, Input_Opt, 
-     &                    State_Met, State_Chm, RC ) 
+      CALL INIT_MIXING ( am_I_Root, Input_Opt, 
+     &                   State_Met, State_Chm, RC ) 
  
       ! Initialize chemistry
       ! Moved here (from chemistry_mod.F and chemdr.F) because some

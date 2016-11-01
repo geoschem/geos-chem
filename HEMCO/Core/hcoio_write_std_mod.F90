@@ -128,6 +128,7 @@ CONTAINS
 !  14 Jan 2016 - E. Lundgren - Create netcdf title out of filename prefix
 !  20 Jan 2016 - C. Keller   - Added options DiagnRefTime and DiagnNoLevDim.
 !  03 Mar 2016 - M. Sulprizio- Change netCDF format to netCDF-4
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -139,11 +140,11 @@ CONTAINS
     REAL(sp)                  :: TMP, JD_DELTA_RND
     INTEGER                   :: YYYY, MM, DD, h, m, s
     REAL(sp), POINTER         :: nctime(:)
-    REAL(sp), POINTER         :: Arr1D(:) => NULL()
-    INTEGER,  POINTER         :: Int1D(:) => NULL()
-    REAL(sp), POINTER         :: Arr3D(:,:,:) => NULL()
-    REAL(sp), POINTER         :: Arr4D(:,:,:,:) => NULL()
-    TYPE(DiagnCont), POINTER  :: ThisDiagn => NULL()
+    REAL(sp), POINTER         :: Arr1D(:)
+    INTEGER,  POINTER         :: Int1D(:)
+    REAL(sp), POINTER         :: Arr3D(:,:,:)
+    REAL(sp), POINTER         :: Arr4D(:,:,:,:)
+    TYPE(DiagnCont), POINTER  :: ThisDiagn
     INTEGER                   :: FLAG
     CHARACTER(LEN=255)        :: ncFile
     CHARACTER(LEN=255)        :: Pfx, title 
@@ -169,8 +170,14 @@ CONTAINS
     !=================================================================
   
     ! Init
-    RC   = HCO_SUCCESS
-    CNT  = 0
+    RC        =  HCO_SUCCESS
+    CNT       =  0
+    nctime    => NULL()
+    Arr1D     => NULL()
+    Int1D     => NULL()
+    Arr3D     => NULL()
+    Arr4D     => NULL()
+    ThisDiagn => NULL()
 
     ! Collection number
     PS = HcoState%Diagn%HcoDiagnIDDefault

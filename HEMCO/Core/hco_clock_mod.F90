@@ -390,14 +390,15 @@ CONTAINS
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  08 Jul 2014 - C. Keller   - Now calculate DOY if not provided
 !  12 Jan 2015 - C. Keller   - Added IsEmisTime 
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL ARGUMENTS:
 !
-    TYPE(HcoClock), POINTER  :: Clock => NULL()
-    TYPE(ConfigObj),POINTER  :: CF    => NULL()
+    TYPE(HcoClock), POINTER  :: Clock
+    TYPE(ConfigObj),POINTER  :: CF
     REAL(sp)                 :: UTC
     INTEGER                  :: DUM, DOY
     INTEGER                  :: UseYr, UseMt, UseDy, UseHr
@@ -1607,13 +1608,14 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  29 Jul 2014 - C. Keller - Initial version 
 !  08 Sep 2014 - C. Keller - Bug fix: now calculate UTC as fraction of day.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(HcoClock),  POINTER  :: Clock => NULL()
+    TYPE(HcoClock),  POINTER  :: Clock
     INTEGER                   :: YYYYMMDD, HHMMSS
     INTEGER                   :: Yr, Mt, Dy, Hr, Mn, Sc
     REAL(dp)                  :: DAY, UTC, JD

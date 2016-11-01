@@ -247,6 +247,7 @@ CONTAINS
 !  19 Dec 2013 - C. Keller   - Initial version 
 !  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -255,17 +256,19 @@ CONTAINS
 !
     CHARACTER(LEN=255)        :: MSG, LOC
     INTEGER                   :: I, tmpID
-    REAL(hp), POINTER         :: Arr3D(:,:,:) => NULL()
-    REAL(hp), POINTER         :: Arr2D(:,:)   => NULL()
+    REAL(hp), POINTER         :: Arr3D(:,:,:)
+    REAL(hp), POINTER         :: Arr2D(:,:)
 
     !=================================================================
     ! HCODIAGN_AUTOUPDATE begins here!
     !=================================================================
     
     ! Init 
-    LOC = 'HCODIAGN_AUTOUPDATE (hco_diagn_mod.F90)'
-    RC  = HCO_SUCCESS
-    
+    LOC   = 'HCODIAGN_AUTOUPDATE (hco_diagn_mod.F90)'
+    RC    =  HCO_SUCCESS
+    Arr3D => NULL()
+    Arr2D => NULL()
+
     ! ================================================================
     ! AutoFill diagnostics: only write diagnostics at species level
     ! (level 1). Higher level diagnostics have been written in the
@@ -782,6 +785,7 @@ CONTAINS
 !  19 Dec 2013 - C. Keller - Initialization
 !  05 Mar 2015 - C. Keller - container ID can now be set by the user
 !  31 Mar 2015 - C. Keller - added argument OkIfExist
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -789,9 +793,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(DiagnCont),       POINTER :: ThisDiagn => NULL()
-    TYPE(DiagnCont),       POINTER :: TmpDiagn  => NULL()
-    TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
+    TYPE(DiagnCont),       POINTER :: ThisDiagn
+    TYPE(DiagnCont),       POINTER :: TmpDiagn
+    TYPE(DiagnCollection), POINTER :: ThisColl
 
     ! Scalars
     CHARACTER(LEN=255)             :: LOC, MSG
@@ -803,6 +807,11 @@ CONTAINS
     !======================================================================
     ! Diagn_Create begins here!
     !======================================================================
+
+    ! Nullify
+    ThisDiagn => NULL()
+    TmpDiagn  => NULL()
+    ThisColl  => NULL()
 
     ! Init
     LOC = 'Diagn_Create (hco_diagn_mod.F90)'
@@ -1676,6 +1685,7 @@ CONTAINS
 !  11 Mar 2015 - C. Keller - Now allow scanning of all diagnostic collections
 !  13 Mar 2015 - C. Keller - Bug fix: only prompt warning if it's a new timestep
 !  17 Jun 2015 - C. Keller - Added argument MinDiagnLev
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1683,11 +1693,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(DiagnCollection), POINTER :: ThisColl      => NULL()
-    TYPE(DiagnCont),       POINTER :: ThisDiagn     => NULL()
-    REAL(sp),              POINTER :: Arr2D (:,:)   => NULL()
-    REAL(sp),              POINTER :: Tmp2D (:,:)   => NULL()
-    REAL(sp),              POINTER :: Arr3D (:,:,:) => NULL()
+    TYPE(DiagnCollection), POINTER :: ThisColl
+    TYPE(DiagnCont),       POINTER :: ThisDiagn
+    REAL(sp),              POINTER :: Arr2D (:,:)
+    REAL(sp),              POINTER :: Tmp2D (:,:)
+    REAL(sp),              POINTER :: Arr3D (:,:,:)
     REAL(sp)                       :: TmpScalar
 
     ! Scalars
@@ -1711,8 +1721,13 @@ CONTAINS
     !======================================================================
 
     ! Init
-    LOC = 'Diagn_UpdateDriver (hco_diagn_mod.F90)'
-    RC  = HCO_SUCCESS
+    LOC       =  'Diagn_UpdateDriver (hco_diagn_mod.F90)'
+    RC        =  HCO_SUCCESS
+    ThisColl  => NULL()
+    ThisDiagn => NULL()
+    Arr2D     => NULL()
+    Tmp2D     => NULL()
+    Arr3D     => NULL()
 
     ! Get collection number. 
     CALL DiagnCollection_DefineID( HcoState%Diagn, PS, RC, COL=COL, DEF=-1, &
@@ -2247,13 +2262,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
+    TYPE(DiagnCollection), POINTER :: ThisColl
     INTEGER                        :: PS, AF
     LOGICAL                        :: TimeToWrite
     LOGICAL                        :: FOUND, CF
@@ -2264,9 +2280,10 @@ CONTAINS
     !======================================================================
 
     ! Init
-    FLAG   = HCO_FAIL
-    RC     = HCO_SUCCESS
-    CF     = .FALSE.
+    FLAG     =  HCO_FAIL
+    RC       =  HCO_SUCCESS
+    CF       = .FALSE.
+    ThisColl => NULL()
 
     ! Get collection number
     CALL DiagnCollection_DefineID( HcoState%Diagn, PS, RC, COL=COL, &
@@ -2403,13 +2420,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Mar 2015 - C. Keller: Initialization
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(DiagnCont),  POINTER  :: DgnCont => NULL() 
+    TYPE(DiagnCont),  POINTER  :: DgnCont
     INTEGER                    :: PS
     LOGICAL                    :: FND
 
@@ -2418,9 +2436,10 @@ CONTAINS
     !======================================================================
 
     ! Init
-    RC    = HCO_FAIL
-    Total = 0.0_sp
-    FND   = .FALSE.
+    RC      = HCO_FAIL
+    Total   = 0.0_sp
+    DgnCont => NULL() 
+    FND     = .FALSE.
     IF ( PRESENT(FOUND) ) THEN
        FOUND = .FALSE.
     ENDIF
@@ -2487,6 +2506,7 @@ CONTAINS
 !  19 Dec 2013 - C. Keller   - Initialization
 !  25 Jan 2016 - R. Yantosca - Bug fix for pgfortran compiler: Test if the
 !                              TMPCONT object is associated before deallocating
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2494,14 +2514,15 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(DiagnCont), POINTER  :: TmpCont => NULL()
-    TYPE(DiagnCont), POINTER  :: NxtCont => NULL()
+    TYPE(DiagnCont), POINTER  :: TmpCont
+    TYPE(DiagnCont), POINTER  :: NxtCont
 
     !======================================================================
     ! Diagn_Cleanup begins here!
     !======================================================================
 
     ! Walk through entire list and remove all containers
+    NxtCont => NULL()
     TmpCont => DiagnList
     DO WHILE ( ASSOCIATED( TmpCont ) ) 
 
@@ -2510,12 +2531,6 @@ CONTAINS
 
        ! Clean up this container 
        CALL DiagnCont_Cleanup( TmpCont )
-!-------------------------------------------------------------------------
-! Prior to 1/25/16:
-! Make sure that TMPCONT is associated before deallocating.
-! The pgfortran compiler will choke on this (bmy, 1/25/16)
-!       DEALLOCATE ( TmpCont )
-!-------------------------------------------------------------------------
        IF ( ASSOCIATED( TmpCont ) ) DEALLOCATE ( TmpCont )
 
        ! Advance
@@ -2555,13 +2570,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
+    TYPE(DiagnCollection), POINTER :: ThisColl
     INTEGER                        :: I, RC, PS
     LOGICAL                        :: InUse
 
@@ -2571,6 +2587,7 @@ CONTAINS
 
     ! Initialize
     IsDefined = .FALSE.
+    ThisColl  => NULL()
 
     ! Get collection number
     CALL DiagnCollection_DefineID( Diagn, PS, RC, COL=COL, DEF=-1, &
@@ -2642,13 +2659,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
+    TYPE(DiagnCollection), POINTER :: ThisColl
     INTEGER                        :: PS
     LOGICAL                        :: FOUND
 
@@ -2657,6 +2675,7 @@ CONTAINS
     !======================================================================
 
     ! Init
+    ThisColl => NULL()
     IF ( PRESENT(Prefix      ) ) Prefix       = ''
     IF ( PRESENT(InUse       ) ) InUse        = .FALSE. 
     IF ( PRESENT(nnDiagn     ) ) nnDiagn      = 0 
@@ -2725,13 +2744,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
+    TYPE(DiagnCollection), POINTER :: ThisColl
     INTEGER                        :: PS
     LOGICAL                        :: FOUND
 
@@ -2740,6 +2760,7 @@ CONTAINS
     !======================================================================
 
     ! Init
+    ThisColl => NULL()
     IF ( PRESENT(InUse    ) ) InUse     = .FALSE. 
 
     ! Get collection number
@@ -2926,13 +2947,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
+    TYPE(DiagnCollection), POINTER :: ThisColl
     LOGICAL                        :: FOUND
     INTEGER                        :: I, J, YYYY, MM
     REAL(hp)                       :: norm1, mult1, DPY, totscal
@@ -2947,6 +2969,7 @@ CONTAINS
     ! Init
     RC  = HCO_SUCCESS
     LOC = 'DiagnCont_PrepareOutput (hco_diagn_mod.F90) '
+    ThisColl => NULL()
     
     !-----------------------------------------------------------------------
     ! Don't do anything for pointer data and/or if data is already in 
@@ -3204,6 +3227,7 @@ CONTAINS
 !  19 Dec 2013 - C. Keller: Initialization
 !  25 Sep 2014 - C. Keller: Added Resume flag
 !  09 Apr 2015 - C. Keller: Can now search all collections
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3211,8 +3235,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                            :: RC, PS
-    TYPE(DiagnCont),       POINTER     :: CurrCnt  => NULL() 
-    TYPE(DiagnCollection), POINTER     :: ThisColl => NULL() 
+    TYPE(DiagnCont),       POINTER     :: CurrCnt
+    TYPE(DiagnCollection), POINTER     :: ThisColl
     LOGICAL                            :: IsMatch, InUse, Rsm
  
     !======================================================================
@@ -3220,7 +3244,9 @@ CONTAINS
     !======================================================================
 
     ! Initialize
-    FOUND  = .FALSE.
+    FOUND    = .FALSE.
+    CurrCnt  => NULL() 
+    ThisColl => NULL()
 
     ! Get collection number
     CALL DiagnCollection_DefineID( Diagn, PS, RC, COL=COL, Def=-1, &
@@ -3568,13 +3594,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Aug 2014 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !ARGUMENTS:
 !
-    TYPE(DiagnCollection), POINTER    :: ThisColl => NULL()
+    TYPE(DiagnCollection), POINTER    :: ThisColl
     CHARACTER(LEN=255)                :: MSG 
     INTEGER                           :: RC, PS, nx, ny, nz
     REAL(sp)                          :: sm
@@ -3582,6 +3609,9 @@ CONTAINS
     ! ================================================================
     ! Diagn_Print begins here
     ! ================================================================
+
+    ! Initialize
+    ThisColl => NULL()
 
     ! Get collection number
     CALL DiagnCollection_DefineID( HcoState%Diagn, PS, RC, &
@@ -3805,11 +3835,12 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  08 Jan 2015 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !ARGUMENTS:
+! !LOCAL VARIABLES:
 !
     TYPE(DiagnCollection), POINTER ::  ThisColl => NULL()
     TYPE(DiagnCollection), POINTER ::  NextColl => NULL()
@@ -3820,6 +3851,7 @@ CONTAINS
 
     ! Do for every collection in list
     ThisColl => Diagn%Collections
+    NextColl => NULL()
 
     DO WHILE ( ASSOCIATED(ThisColl) ) 
 
@@ -3978,18 +4010,22 @@ CONTAINS
 ! !REVISION HISTORY:
 !  01 Apr 2015 - C. Keller   - Initial version
 !  10 Jul 2015 - R. Yantosca - Fixed minor issues in ProTeX header
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !ARGUMENTS:
 !
-    TYPE(DiagnCollection), POINTER :: TmpColl => NULL()
+    TYPE(DiagnCollection), POINTER :: TmpColl
     CHARACTER(LEN=255), PARAMETER  :: LOC = 'DiagnCollection_Find (hco_diagn_mod.F90)'
 
     ! ================================================================
     ! DiagnCollection_Find begins here
     ! ================================================================
+
+    ! Init
+    TmpColl => NULL()
 
     ! Check if it's negative
     FOUND = .FALSE.

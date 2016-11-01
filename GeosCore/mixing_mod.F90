@@ -55,6 +55,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
@@ -77,7 +78,9 @@ CONTAINS
 !      computed in the dust/seasalt modules.
 !
 ! !REVISION HISTORY: 
-!  04 Mar 2015 - C. Keller    - Initial version 
+!  04 Mar 2015 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Now also call COMPUTE_PBL_HEIGHT so that we
+!                              populate PBL quantities w/ the initial met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -99,6 +102,11 @@ CONTAINS
        CALL DO_PBL_MIX( am_I_Root, .FALSE.,   Input_Opt, &
                         State_Met, State_Chm, RC          )
     ENDIF
+
+    ! Compute the various PBL quantities with the initial met fields.
+    ! This is needed so that HEMCO won't be passed a zero PBL height
+    ! (bmy, 10/26/16)
+    CALL COMPUTE_PBL_HEIGHT( State_Met )
 
   END SUBROUTINE INIT_MIXING 
 !EOC

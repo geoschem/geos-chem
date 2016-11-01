@@ -161,6 +161,7 @@ CONTAINS
 !  14 Apr 2016 - C. Keller   - Bug fix: avoid double-counting if multiple 
 !                              regional inventories have the same hierarchy.
 !  19 Sep 2016 - R. Yantosca - Use .neqv. for LOGICAL comparisons
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -168,8 +169,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Working pointers: list and data container 
-    TYPE(ListCont), POINTER :: Lct => NULL()
-    TYPE(DataCont), POINTER :: Dct => NULL()
+    TYPE(ListCont), POINTER :: Lct
+    TYPE(DataCont), POINTER :: Dct
 
     ! Temporary emission arrays
     REAL(hp), POINTER       :: OutArr(:,:,:) => NULL()
@@ -217,6 +218,10 @@ CONTAINS
     ! testing only
     ix = 30 
     iy = 34
+
+    ! Initialize
+    Lct => NULL()
+    Dct => NULL()
 
     ! Enter routine 
     CALL HCO_ENTER (HcoState%Config%Err,'HCO_CalcEmis (HCO_CALC_MOD.F90)', RC )
@@ -764,6 +769,7 @@ CONTAINS
 !  29 Dec 2014 - C. Keller   - Added scale factor masks.
 !  02 Mar 2015 - C. Keller   - Now check for missing values. Missing values are
 !                              excluded from emission calculation.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -771,8 +777,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(DataCont), POINTER :: ScalDct => NULL()
-    TYPE(DataCont), POINTER :: MaskDct => NULL()
+    TYPE(DataCont), POINTER :: ScalDct
+    TYPE(DataCont), POINTER :: MaskDct
 
     ! Scalars
     REAL(sp)                :: TMPVAL, MaskScale
@@ -792,6 +798,10 @@ CONTAINS
     !=================================================================
     ! GET_CURRENT_EMISSIONS begins here
     !=================================================================
+
+    ! Initialize
+    ScalDct => NULL()
+    MaskDct => NULL()
 
     ! Enter
     CALL HCO_ENTER(HcoState%Config%Err,'GET_CURRENT_EMISSIONS', RC )
@@ -1262,6 +1272,7 @@ CONTAINS
 !  07 Sep 2014 - C. Keller   - Mask update. Now set mask to zero as soon as 
 !                              on of the applied masks is zero.
 !  02 Mar 2015 - C. Keller   - Now check for missing values
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1269,8 +1280,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(DataCont), POINTER :: ScalDct => NULL()
-    TYPE(DataCont), POINTER :: MaskDct => NULL()
+    TYPE(DataCont), POINTER :: ScalDct
+    TYPE(DataCont), POINTER :: MaskDct
     REAL(sp)                :: TMPVAL, MaskScale
     INTEGER                 :: tIdx, IDX
     INTEGER                 :: I, J, L, N
@@ -1287,6 +1298,10 @@ CONTAINS
     !=================================================================
     ! GET_CURRENT_EMISSIONS_B begins here
     !=================================================================
+
+    ! Initialize
+    ScalDct => NULL()
+    MaskDct => NULL()
 
     ! Enter
     CALL HCO_ENTER(HcoState%Config%Err,'GET_CURRENT_EMISSIONS_B', RC )
@@ -1667,6 +1682,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 May 2015 - C. Keller   - Initial Version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1681,7 +1697,7 @@ CONTAINS
     REAL(hp), ALLOCATABLE   :: Mask(:,:,:)
 
     ! Working pointers: list and data container 
-    TYPE(ListCont), POINTER :: Lct      => NULL()
+    TYPE(ListCont), POINTER :: Lct
 
     ! For error handling & verbose mode
     CHARACTER(LEN=255)  :: MSG
@@ -1693,6 +1709,7 @@ CONTAINS
 
     ! Init 
     RC    = HCO_SUCCESS
+    Lct   => NULL()
     IF ( PRESENT(FOUND) ) FOUND = .FALSE.
 
     ! Search for base container 
@@ -1786,6 +1803,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 May 2015 - C. Keller   - Initial Version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1801,7 +1819,7 @@ CONTAINS
     REAL(hp), ALLOCATABLE   :: Arr3D(:,:,:)
 
     ! Working pointers: list and data container 
-    TYPE(ListCont), POINTER :: Lct      => NULL()
+    TYPE(ListCont), POINTER :: Lct
 
     ! For error handling & verbose mode
     CHARACTER(LEN=255)  :: MSG
@@ -1812,7 +1830,8 @@ CONTAINS
     !=================================================================
 
     ! Init 
-    RC    = HCO_SUCCESS
+    RC    = HCO_SUCCESS    
+    Lct   => NULL()
     IF ( PRESENT(FOUND) ) FOUND = .FALSE.
 
     ! Search for base container 
@@ -1989,6 +2008,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 Jun 2015 - C. Keller   - Initial Version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2000,7 +2020,7 @@ CONTAINS
     LOGICAL                 :: FND, ERR
     LOGICAL                 :: Fractions
 
-    TYPE(ListCont), POINTER :: MaskLct  => NULL() 
+    TYPE(ListCont), POINTER :: MaskLct
 
     CHARACTER(LEN=255)      :: MSG
     CHARACTER(LEN=255)      :: LOC = 'HCO_MaskFld (hco_calc_mod.F90)' 
@@ -2008,6 +2028,9 @@ CONTAINS
     !=================================================================
     ! HCO_MaskFld begins here
     !=================================================================
+
+    ! Nullify
+    MaskLct  => NULL() 
 
     ! Init: default is mask value of 1
     MASK = 1.0_sp

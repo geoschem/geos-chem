@@ -123,13 +123,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !ARGUMENTS:
 !
-      TYPE(ListCont), POINTER   :: TmpLct => NULL()
+      TYPE(ListCont), POINTER   :: TmpLct
       CHARACTER(LEN=255)        :: MSG 
 
       ! ================================================================

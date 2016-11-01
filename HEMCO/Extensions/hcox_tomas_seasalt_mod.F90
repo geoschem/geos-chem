@@ -104,6 +104,7 @@ CONTAINS
 !  20 May 2015 - R. Yantosca - Pass am_I_Root to HCO_EMISADD routine
 !  22 May 2015 - R. Yantosca - Extend up to 40 size bins
 !  10 Jul 2015 - R. Yantosca - Fixed minor issues in the ProTeX headers
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,7 +120,7 @@ CONTAINS
     CHARACTER(LEN=31) :: SpcName
        
     ! Pointers
-    REAL(dp), POINTER :: ptr3D(:,:,:) => NULL()
+    REAL(dp), POINTER :: ptr3D(:,:,:)
 
     ! For debugging
     !INTEGER            :: ii=50, jj=10
@@ -133,6 +134,9 @@ CONTAINS
 
     !### Debug
     !print*, 'JACK IN HCOX TOMAS SEASALT'
+
+    ! Init
+    ptr3D => NULL()
 
     ! Emission timestep [s]
     DTEMIS = HcoState%TS_EMIS

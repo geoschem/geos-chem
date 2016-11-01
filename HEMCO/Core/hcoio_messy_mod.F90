@@ -121,25 +121,26 @@ MODULE HCOIO_MESSY_MOD
 !
 ! !REVISION HISTORY:
 !  27 Jun 2014 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 ! 
 ! !ROUTINE ARGUMENTS:
 !
-    TYPE(narray), POINTER         :: narr_src(:)      => NULL()
-    TYPE(narray), POINTER         :: narr_dst(:)      => NULL()
-    TYPE(axis),   POINTER         :: axis_src(:)      => NULL()
-    TYPE(axis),   POINTER         :: axis_dst(:)      => NULL()
-    INTEGER,      POINTER         :: rg_type(:)       => NULL()
-    INTEGER,      POINTER         :: rcnt   (:)       => NULL()
-    REAL(dp),     POINTER         :: sovl   (:)       => NULL()
-    REAL(dp),     POINTER         :: dovl   (:)       => NULL()
-    REAL(hp),     POINTER         :: lon    (:)       => NULL()
-    REAL(hp),     POINTER         :: lat    (:)       => NULL()
-    REAL(hp),     POINTER         :: sigma  (:,:,:)   => NULL()
-    REAL(sp),     POINTER         :: ArrIn  (:,:,:,:) => NULL()
-    REAL(sp),     POINTER         :: ArrOut (:,:,:,:) => NULL()
+    TYPE(narray), POINTER         :: narr_src(:)
+    TYPE(narray), POINTER         :: narr_dst(:)
+    TYPE(axis),   POINTER         :: axis_src(:)
+    TYPE(axis),   POINTER         :: axis_dst(:)
+    INTEGER,      POINTER         :: rg_type(:)
+    INTEGER,      POINTER         :: rcnt   (:)
+    REAL(dp),     POINTER         :: sovl   (:)
+    REAL(dp),     POINTER         :: dovl   (:)
+    REAL(hp),     POINTER         :: lon    (:)
+    REAL(hp),     POINTER         :: lat    (:)
+    REAL(hp),     POINTER         :: sigma  (:,:,:)
+    REAL(sp),     POINTER         :: ArrIn  (:,:,:,:)
+    REAL(sp),     POINTER         :: ArrOut (:,:,:,:)
     REAL(hp), ALLOCATABLE, TARGET :: sigout (:,:,:) 
     REAL(hp)                      :: sigMin
     INTEGER                       :: NZIN, NZOUT, NTIME
@@ -157,6 +158,21 @@ MODULE HCOIO_MESSY_MOD
     LOC = 'HCO_MESSY_REGRID (HCOI_MESSY_MOD.F90)'
     CALL HCO_ENTER ( HcoState%Config%Err, LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Init
+    narr_src => NULL()
+    narr_dst => NULL()
+    axis_src => NULL()
+    axis_dst => NULL()
+    rg_type  => NULL()
+    rcnt     => NULL()
+    sovl     => NULL()
+    dovl     => NULL()
+    lon      => NULL()
+    lat      => NULL()
+    sigma    => NULL()
+    ArrIn    => NULL()
+    ArrOut   => NULL()
 
     ! verbose?
     verb = HCO_IsVerb(HcoState%Config%Err,3) 

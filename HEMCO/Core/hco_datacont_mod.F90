@@ -292,18 +292,23 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
+!  25 Oct 2016 - R. Yantosca - Do not nullify pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(ListCont), POINTER  :: TmpLct => NULL()
-    TYPE(ListCont), POINTER  :: NxtLct => NULL()
+    TYPE(ListCont), POINTER  :: TmpLct
+    TYPE(ListCont), POINTER  :: NxtLct
 
     !======================================================================
     ! ListCont_Cleanup begins here!
     !======================================================================
+
+    ! Initialize
+    TmpLct => NULL()
+    NxtLct => NULL()
 
     ! Walk through entire list and remove all containers
     TmpLct => List
@@ -365,6 +370,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Aug 2012 - C. Keller - Initial Version
+!  25 Oct 2016 - R. Yantosca - Do not nullify pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -372,13 +378,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                   :: II
-    TYPE(ListCont), POINTER   :: TmpLct => NULL()
+    TYPE(ListCont), POINTER   :: TmpLct
     LOGICAL                   :: verbose
     CHARACTER(LEN=255)        :: MSG
 
     !======================================================================
     ! cIDList_Create begins here
     !======================================================================
+
+    ! Initialize
+    TmpLct => NULL()
 
     ! Enter
     CALL HCO_ENTER( HcoState%Config%Err, 'cIDList_Create (hco_datacont_mod.F)', RC )
@@ -658,19 +667,21 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller: Initialization
+!  25 Oct 2016 - R. Yantosca - Do not nullify pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL ARGUMENTS:
 !
-    TYPE(ListCont),   POINTER         :: TmpLct => NULL() 
+    TYPE(ListCont), POINTER :: TmpLct
 
     !======================================================================
     ! ListCont_Find_Name begins here!
     !======================================================================
 
     ! Initialize
+    TmpLct => NULL()
     FOUND  = .FALSE.
 
     ! Error trap
@@ -735,13 +746,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller: Initialization
+!  25 Oct 2016 - R. Yantosca - Do not nullify pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL ARGUMENTS:
 !
-    TYPE(ListCont), POINTER :: TmpLct => NULL() 
+    TYPE(ListCont), POINTER :: TmpLct
     INTEGER                 :: thisID
 
     !======================================================================
@@ -749,6 +761,7 @@ CONTAINS
     !======================================================================
 
     ! Initialize
+    TmpLct => NULL()
     FOUND  = .FALSE.
 
     ! Error trap

@@ -245,13 +245,14 @@ CONTAINS
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
 !  07 Oct 2013 - C. Keller   - Now allow OTD-LIS scale factor to be set 
 !                              externally. Check for transition to Sep 2008.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !   
-    TYPE(MyInst), POINTER :: Inst => NULL()
+    TYPE(MyInst), POINTER :: Inst
     INTEGER               :: Yr, Mt
     LOGICAL               :: FOUND
     CHARACTER(LEN=255)    :: MSG
@@ -273,6 +274,7 @@ CONTAINS
     ! Get pointer to this instance. Varible Inst contains all module 
     ! variables for the current instance. The instance number is
     ! ExtState%<yourname>. 
+    Inst => NULL()
     CALL InstGet ( ExtState%LightNOx, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN 
        WRITE(MSG,*) 'Cannot find lightning NOx instance Nr. ', ExtState%LightNOx
@@ -373,7 +375,8 @@ CONTAINS
 !  31 Jul 2015 - C. Keller   - Take into account scalar/gridded scale factors
 !                              defined in HEMCO configuration file.
 !  03 Mar 2016 - C. Keller   - Use buoyancy in combination with convective 
-!                              fraction CNV_FRC (ESMF only). 
+!                              fraction CNV_FRC (ESMF only).
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -395,8 +398,8 @@ CONTAINS
     INTEGER           :: LNDTYPE, SFCTYPE
     INTEGER           :: DiagnID
     REAL(hp), TARGET  :: DIAGN(HcoState%NX,HcoState%NY,3)
-    REAL(hp), POINTER :: Arr2D(:,:) => NULL() 
-    TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
+    REAL(hp), POINTER :: Arr2D(:,:)
+    TYPE(DiagnCont), POINTER :: TmpCnt
     REAL(hp)          :: TROPP
     REAL(dp)          :: TmpScale
 
@@ -410,6 +413,10 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER( HcoState%Config%Err, 'LightNOx (hcox_lightnox_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Init
+    Arr2D  => NULL() 
+    TmpCnt => NULL()
 
     ! ----------------------------------------------------------------
     ! First call routines
@@ -1980,6 +1987,7 @@ CONTAINS
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
 !  26 Feb 2015 - R. Yantosca - Now re-introduce reading the CDF table from an
 !                              ASCII file (reduces compilation time)
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1992,7 +2000,7 @@ CONTAINS
     INTEGER, ALLOCATABLE           :: HcoIDs(:)
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
     CHARACTER(LEN=255)             :: MSG, LOC, FILENAME
-    TYPE(MyInst), POINTER          :: Inst => NULL()
+    TYPE(MyInst), POINTER          :: Inst
 
     !=======================================================================
     ! HCOX_LightNOX_Init begins here!
@@ -2007,6 +2015,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Create AeroCom instance for this simulation
+    Inst => NULL()
     CALL InstCreate ( ExtNr, ExtState%LightNOx, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create AeroCom instance', RC )
@@ -2307,11 +2316,12 @@ CONTAINS
     INTEGER,       INTENT(INOUT)    :: RC 
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    TYPE(MyInst), POINTER          :: TmpInst  => NULL()
+    TYPE(MyInst), POINTER          :: TmpInst
     INTEGER                        :: nnInst
 
     !=================================================================
@@ -2376,6 +2386,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version 
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2388,6 +2399,8 @@ CONTAINS
     !=================================================================
  
     ! Get instance. Also archive previous instance.
+    PrevInst => NULL()
+    Inst     => NULL()
     CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
 
     ! Instance-specific deallocation
