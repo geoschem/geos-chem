@@ -4234,6 +4234,7 @@ CONTAINS
     INTEGER             :: delta
     INTEGER             :: dymd, lymd, dhms, lhms 
     INTEGER             :: RC
+    LOGICAL             :: IsLast
     CHARACTER(LEN=255)  :: LOC = 'DiagnCollection_IsTimeToWrite (hco_diagn_mod.F90)' 
 
     !=================================================================
@@ -4242,15 +4243,21 @@ CONTAINS
 
     ! Init
     TimeToWrite = .FALSE.
-   
-    ! Get current simulation date
-    CALL HcoClock_Get(am_I_Root, HcoState%Clock, &
-                      sYYYY=YYYY,sMM=MM,sDD=DD,sH=h,sM=m,sS=s,RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
+  
+    ! Get collection time interval
     CALL DiagnCollection_Get( HcoState%Diagn, PS, DeltaYMD=dymd, &
                    LastYMD=lymd, DeltaHMS=dhms, LastHMS=lhms, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Get current simulation date
+    CALL HcoClock_Get(am_I_Root, HcoState%Clock, IsLast=IsLast, &
+                      sYYYY=YYYY,sMM=MM,sDD=DD,sH=h,sM=m,sS=s,RC=RC)
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Check for last time step
+    IF ( IsLast .AND. dymd == 99999999 .AND. dhms == 999999 ) THEN
+       TimeToWrite = .TRUE.
+    ENDIF
 
     ! Check if we need to write this collection now
     IF ( .NOT. TimeToWrite .AND. dhms > 0 .AND. lhms >= 0 ) THEN

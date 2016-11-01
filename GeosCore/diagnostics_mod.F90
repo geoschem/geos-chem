@@ -3630,6 +3630,17 @@ CONTAINS
        ! WRITE_GC_RESTART in main.F. That routine is implemented in
        ! GeosCore/restart_mod.F (ewl, 2/5/16)
 
+       ! Force regular diagnostics to be written out (ckeller, 11/1/16)
+       CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                & 
+                                  HcoState,                                 &
+                                  ForceWrite  = .TRUE.,                     &
+                                  UsePrevTime = .FALSE.,                    &
+                                  COL         = Input_Opt%DIAG_COLLECTION,  &
+                                  RC          = RC                         )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Diagnostics write error A', LOC ) 
+       ENDIF
+
     !-----------------------------------------------------------------------
     ! Not restart: write out regular diagnostics. Use current time stamp.
     !-----------------------------------------------------------------------
@@ -3642,7 +3653,7 @@ CONTAINS
                                   COL         = Input_Opt%DIAG_COLLECTION,  &
                                   RC          = RC                         )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'Diagnostics write error', LOC ) 
+          CALL ERROR_STOP( 'Diagnostics write error B', LOC ) 
        ENDIF
 
     ENDIF
