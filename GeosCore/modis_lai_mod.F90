@@ -216,11 +216,10 @@ CONTAINS
 ! !IROUTINE: compute_modis_gchp
 !
 ! !DESCRIPTION: Subroutine COMPUTE\_MODIS\_GCHP computes MODIS-based leaf
-!  area indices (LAI) or chlorophyll-a (CHLR) State_Met variables using 
-!  offline MODIS data regridded to the cubed sphere by ExtData. Variables 
-!  include State_Met%MODISLAI and State_MET%MODISCHLR, which are the daily
-!  LAI and CHLR values per grid cell, and State_Met%XLAI and State_Met%XCHLR,
-!  which are the LAI and CHLR values per land type per grid cell.
+!  area indices (LAI) or chlorophyll-a (CHLR) per land type and grid cell.
+!  This computation uses offline 0.25x0.25 MODIS LAI/CHLR and Olson landmap 
+!  data regridded to the cubed sphere. Variables set include State_Met%XLAI 
+!  and State_Met%XCHLR.
 !\\
 !\\
 ! !INTERFACE:
@@ -255,8 +254,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, J, T
-    REAL(fp), POINTER  :: ModisPtr(:,:) 
+    INTEGER            :: I, J, T, landType
+    CHARACTER(len=2)   :: landStr
+    REAL(fp), POINTER  :: XModisPtr(:,:) 
     REAL(fp), POINTER  :: OlsonPtr(:,:) 
     REAL(fp), POINTER  :: XPtr(:,:,:)  
 
@@ -268,201 +268,546 @@ CONTAINS
     RC                = GIGC_SUCCESS
 
     ! Initialize pointers
-    ModisPtr => NULL()
-    OlsonPtr => NULL()
-    XPtr     => NULL()
-
-    ! Daily LAI and CHLR are the regridded and time-interpolated values
-    ! from ExtData, and so do not need to be computed.
-    ! State_Met%MODISLAI = MODISLAI (from MAPL)
-    ! State_Met%MODISCHLR = MODISCHLR (from MAPL)
-    !
-    ! Then there is State_met%XLAI and State_Met%XCHLR, which are size
-    ! (IIPAR,JJPAR,NTYPE).
-    ! I believe XLAI(I,J,T) is the same as MODISLAI(I,J) * fraction (I,J)
-    ! that is land type T, or simply MODISLAI(I,J) * OLSON{T}(I,J)
+    XModisPtr => NULL()
+    OlsonPtr  => NULL()
+    XPtr      => NULL()
 
     ! Assign pointers and precision based on whether computing LAI or CHLR
     IF ( ComputeLAI ) THEN
-       ModisPtr => State_Met%MODISLAI  ! Daily LAI per GC grid cell
-       XPtr     => State_Met%XLAI      ! LAI/land type, GC grid
+       XPtr => State_Met%XLAI      ! LAI/land type, GC grid
     ELSE
-       ModisPtr => State_Met%MODISCHLR ! Daily CHLR per GC grid cell
-       XPtr     => State_Met%XCHLR     ! CHLR/land type, GC grid
+       XPtr => State_Met%XCHLR     ! CHLR/land type, GC grid
     ENDIF
 
     ! Loop over all types
     DO T = 1, NVEGTYPE
 
-       ! Get OLSON pointer from MAPL using MAPL_GetPointer.
-       ! For now, use really awful brute force way, purely for testing. 
-       ! Replace with above once I know how to get mapl ptr!
+       !This is the goal for the rest of this routine:
+       !
+       !!Get landtype string, used in OLSON, LAI, and CHLR variables
+       !landType = T-1
+       !IF ( landType < 10 ) THEN
+       !   WRITE ( landStr, "(I1)" ) landType ! left-justify to avoid this?
+       !ELSE
+       !   WRITE ( landStr, "(I2)" ) landType  
+       !ENDIF
+       !
+       !! Determine whether to get LAIxx or CHLRxx
+       !IF ( ComputeLAI ) THEN
+       !   varname = 'XLAI0' // TRIM(landStr)
+       !ELSE
+       !   Get XLAIxx pointer from MAPL using MAPL_GetPointer.
+       !   varname = 'XCHLR0' // TRIM(landStr)
+       !ENDIF
+       !
+       !!Get pointer to XLAIxx or CHLRxx from MAPL
+       !CALL MAPL_GetPointer( IMPORT, XModisPtr, TRIM(varname),  &
+       !                      notFoundOK=.TRUE., __RC__ )
+       !IF ( ASSOCIATED(XModisPtr) ) THEN
+       !   Do something here?
+       !ELSE
+       ! ! throw an error
+       !ENDIF
+       !
+       !!Get pointer to Olson land type fraction from MAPL
+       !varname = 'OLSON' // TRIM(landStr)
+       !CALL MAPL_GetPointer( IMPORT, OlsonPtr, TRIM(varname),  &
+       !                      notFoundOK=.TRUE., __RC__ )
+       !IF ( ASSOCIATED(OlsonPtr) ) THEN
+       !   Do something here?
+       !ELSE
+       ! ! throw an error
+       !ENDIF
+       !
+       !! Loop over all cells to set XLAI or XCHLR by dividing the
+       !! the conservatively regridded LAI per type divided by
+       !! the fraction grid cell for that type
+       !DO J = 1, JJPAR
+       !DO I = 1, IIPAR
+       !   XPtr(I,J,T) = XModisPtr(I,J) / OlsonPtr(I,J)
+       !ENDDO
+       !ENDDO
+       !
+       !! Nullify pointers
+       !XModisPtr => NULL()
+       !OlsonPtr => NULL()
+
+       ! Instead, for now, use really awful brute force way, purely for 
+       ! testing. Replace with above once I know how to get mapl ptr!
+       IF ( ComputeLAI) THEN
+
+          !Get XLAIxx pointer
+          SELECT CASE ( T )
+             CASE( 1 )
+                XModisPtr => State_Met%XLAI00
+             CASE( 2 )
+                XModisPtr => State_Met%XLAI01
+             CASE( 3 )
+                XModisPtr => State_Met%XLAI02
+             CASE( 4 )
+                XModisPtr => State_Met%XLAI03
+             CASE( 5 )
+                XModisPtr => State_Met%XLAI04
+             CASE( 6 )
+                XModisPtr => State_Met%XLAI05
+             CASE( 7 )
+                XModisPtr => State_Met%XLAI06
+             CASE( 8 )
+                XModisPtr => State_Met%XLAI07
+             CASE( 9 )
+                XModisPtr => State_Met%XLAI08
+             CASE( 10 )
+                XModisPtr => State_Met%XLAI09
+             CASE( 11 )
+                XModisPtr => State_Met%XLAI10
+             CASE( 12 )
+                XModisPtr => State_Met%XLAI11
+             CASE( 13 )
+                XModisPtr => State_Met%XLAI12
+             CASE( 14 )
+                XModisPtr => State_Met%XLAI13
+             CASE( 15 )
+                XModisPtr => State_Met%XLAI14
+             CASE( 16 )
+                XModisPtr => State_Met%XLAI15
+             CASE( 17 )
+                XModisPtr => State_Met%XLAI16
+             CASE( 18 )
+                XModisPtr => State_Met%XLAI17
+             CASE( 19 )
+                XModisPtr => State_Met%XLAI18
+             CASE( 20 )
+                XModisPtr => State_Met%XLAI19
+             CASE( 21 )
+                XModisPtr => State_Met%XLAI20
+             CASE( 22 )
+                XModisPtr => State_Met%XLAI21
+             CASE( 23 )
+                XModisPtr => State_Met%XLAI22
+             CASE( 24 )
+                XModisPtr => State_Met%XLAI23
+             CASE( 25 )
+                XModisPtr => State_Met%XLAI24
+             CASE( 26 )
+                XModisPtr => State_Met%XLAI25
+             CASE( 27 )
+                XModisPtr => State_Met%XLAI26
+             CASE( 28 )
+                XModisPtr => State_Met%XLAI27
+             CASE( 29 )
+                XModisPtr => State_Met%XLAI28
+             CASE( 30 )
+                XModisPtr => State_Met%XLAI29
+             CASE( 31 )
+                XModisPtr => State_Met%XLAI30
+             CASE( 32 )
+                XModisPtr => State_Met%XLAI31
+             CASE( 33 )
+                XModisPtr => State_Met%XLAI32
+             CASE( 34 )
+                XModisPtr => State_Met%XLAI33
+             CASE( 35 )
+                XModisPtr => State_Met%XLAI34
+             CASE( 36 )
+                XModisPtr => State_Met%XLAI35
+             CASE( 37 )
+                XModisPtr => State_Met%XLAI36
+             CASE( 38 )
+                XModisPtr => State_Met%XLAI37
+             CASE( 39 )
+                XModisPtr => State_Met%XLAI38
+             CASE( 40 )
+                XModisPtr => State_Met%XLAI39
+             CASE( 41 )
+                XModisPtr => State_Met%XLAI40
+             CASE( 42 )
+                XModisPtr => State_Met%XLAI41
+             CASE( 43 )
+                XModisPtr => State_Met%XLAI42
+             CASE( 44 )
+                XModisPtr => State_Met%XLAI43
+             CASE( 45 )
+                XModisPtr => State_Met%XLAI44
+             CASE( 46 )
+                XModisPtr => State_Met%XLAI45
+             CASE( 47 )
+                XModisPtr => State_Met%XLAI46
+             CASE( 48 )
+                XModisPtr => State_Met%XLAI47
+             CASE( 49 )
+                XModisPtr => State_Met%XLAI48
+             CASE( 50 )
+                XModisPtr => State_Met%XLAI49
+             CASE( 51 )
+                XModisPtr => State_Met%XLAI50
+             CASE( 52 )
+                XModisPtr => State_Met%XLAI51
+             CASE( 53 )
+                XModisPtr => State_Met%XLAI52
+             CASE( 54 )
+                XModisPtr => State_Met%XLAI53
+             CASE( 55 )
+                XModisPtr => State_Met%XLAI54
+             CASE( 56 )
+                XModisPtr => State_Met%XLAI55
+             CASE( 57 )
+                XModisPtr => State_Met%XLAI56
+             CASE( 58 )
+                XModisPtr => State_Met%XLAI57
+             CASE( 59 )
+                XModisPtr => State_Met%XLAI58
+             CASE( 60 )
+                XModisPtr => State_Met%XLAI59
+             CASE( 61 )
+                XModisPtr => State_Met%XLAI60
+             CASE( 62 )
+                XModisPtr => State_Met%XLAI61
+             CASE( 63 )
+                XModisPtr => State_Met%XLAI62
+             CASE( 64 )
+                XModisPtr => State_Met%XLAI63
+             CASE( 65 )
+                XModisPtr => State_Met%XLAI64
+             CASE( 66 )
+                XModisPtr => State_Met%XLAI65
+             CASE( 67 )
+                XModisPtr => State_Met%XLAI66
+             CASE( 68 )
+                XModisPtr => State_Met%XLAI67
+             CASE( 69 )
+                XModisPtr => State_Met%XLAI68
+             CASE( 70 )
+                XModisPtr => State_Met%XLAI69
+             CASE( 71 )
+                XModisPtr => State_Met%XLAI70
+             CASE( 72 )
+                XModisPtr => State_Met%XLAI71
+             CASE( 73 )
+                XModisPtr => State_Met%XLAI72
+             CASE( 74 )
+                XModisPtr => State_Met%XLAI73
+          END SELECT
+       ELSE
+          ! Get XCHLRxx pointer
+          SELECT CASE ( T )
+             CASE( 1 )
+                XModisPtr => State_Met%XCHLR00
+             CASE( 2 )
+                XModisPtr => State_Met%XCHLR01
+             CASE( 3 )
+                XModisPtr => State_Met%XCHLR02
+             CASE( 4 )
+                XModisPtr => State_Met%XCHLR03
+             CASE( 5 )
+                XModisPtr => State_Met%XCHLR04
+             CASE( 6 )
+                XModisPtr => State_Met%XCHLR05
+             CASE( 7 )
+                XModisPtr => State_Met%XCHLR06
+             CASE( 8 )
+                XModisPtr => State_Met%XCHLR07
+             CASE( 9 )
+                XModisPtr => State_Met%XCHLR08
+             CASE( 10 )
+                XModisPtr => State_Met%XCHLR09
+             CASE( 11 )
+                XModisPtr => State_Met%XCHLR10
+             CASE( 12 )
+                XModisPtr => State_Met%XCHLR11
+             CASE( 13 )
+                XModisPtr => State_Met%XCHLR12
+             CASE( 14 )
+                XModisPtr => State_Met%XCHLR13
+             CASE( 15 )
+                XModisPtr => State_Met%XCHLR14
+             CASE( 16 )
+                XModisPtr => State_Met%XCHLR15
+             CASE( 17 )
+                XModisPtr => State_Met%XCHLR16
+             CASE( 18 )
+                XModisPtr => State_Met%XCHLR17
+             CASE( 19 )
+                XModisPtr => State_Met%XCHLR18
+             CASE( 20 )
+                XModisPtr => State_Met%XCHLR19
+             CASE( 21 )
+                XModisPtr => State_Met%XCHLR20
+             CASE( 22 )
+                XModisPtr => State_Met%XCHLR21
+             CASE( 23 )
+                XModisPtr => State_Met%XCHLR22
+             CASE( 24 )
+                XModisPtr => State_Met%XCHLR23
+             CASE( 25 )
+                XModisPtr => State_Met%XCHLR24
+             CASE( 26 )
+                XModisPtr => State_Met%XCHLR25
+             CASE( 27 )
+                XModisPtr => State_Met%XCHLR26
+             CASE( 28 )
+                XModisPtr => State_Met%XCHLR27
+             CASE( 29 )
+                XModisPtr => State_Met%XCHLR28
+             CASE( 30 )
+                XModisPtr => State_Met%XCHLR29
+             CASE( 31 )
+                XModisPtr => State_Met%XCHLR30
+             CASE( 32 )
+                XModisPtr => State_Met%XCHLR31
+             CASE( 33 )
+                XModisPtr => State_Met%XCHLR32
+             CASE( 34 )
+                XModisPtr => State_Met%XCHLR33
+             CASE( 35 )
+                XModisPtr => State_Met%XCHLR34
+             CASE( 36 )
+                XModisPtr => State_Met%XCHLR35
+             CASE( 37 )
+                XModisPtr => State_Met%XCHLR36
+             CASE( 38 )
+                XModisPtr => State_Met%XCHLR37
+             CASE( 39 )
+                XModisPtr => State_Met%XCHLR38
+             CASE( 40 )
+                XModisPtr => State_Met%XCHLR39
+             CASE( 41 )
+                XModisPtr => State_Met%XCHLR40
+             CASE( 42 )
+                XModisPtr => State_Met%XCHLR41
+             CASE( 43 )
+                XModisPtr => State_Met%XCHLR42
+             CASE( 44 )
+                XModisPtr => State_Met%XCHLR43
+             CASE( 45 )
+                XModisPtr => State_Met%XCHLR44
+             CASE( 46 )
+                XModisPtr => State_Met%XCHLR45
+             CASE( 47 )
+                XModisPtr => State_Met%XCHLR46
+             CASE( 48 )
+                XModisPtr => State_Met%XCHLR47
+             CASE( 49 )
+                XModisPtr => State_Met%XCHLR48
+             CASE( 50 )
+                XModisPtr => State_Met%XCHLR49
+             CASE( 51 )
+                XModisPtr => State_Met%XCHLR50
+             CASE( 52 )
+                XModisPtr => State_Met%XCHLR51
+             CASE( 53 )
+                XModisPtr => State_Met%XCHLR52
+             CASE( 54 )
+                XModisPtr => State_Met%XCHLR53
+             CASE( 55 )
+                XModisPtr => State_Met%XCHLR54
+             CASE( 56 )
+                XModisPtr => State_Met%XCHLR55
+             CASE( 57 )
+                XModisPtr => State_Met%XCHLR56
+             CASE( 58 )
+                XModisPtr => State_Met%XCHLR57
+             CASE( 59 )
+                XModisPtr => State_Met%XCHLR58
+             CASE( 60 )
+                XModisPtr => State_Met%XCHLR59
+             CASE( 61 )
+                XModisPtr => State_Met%XCHLR60
+             CASE( 62 )
+                XModisPtr => State_Met%XCHLR61
+             CASE( 63 )
+                XModisPtr => State_Met%XCHLR62
+             CASE( 64 )
+                XModisPtr => State_Met%XCHLR63
+             CASE( 65 )
+                XModisPtr => State_Met%XCHLR64
+             CASE( 66 )
+                XModisPtr => State_Met%XCHLR65
+             CASE( 67 )
+                XModisPtr => State_Met%XCHLR66
+             CASE( 68 )
+                XModisPtr => State_Met%XCHLR67
+             CASE( 69 )
+                XModisPtr => State_Met%XCHLR68
+             CASE( 70 )
+                XModisPtr => State_Met%XCHLR69
+             CASE( 71 )
+                XModisPtr => State_Met%XCHLR70
+             CASE( 72 )
+                XModisPtr => State_Met%XCHLR71
+             CASE( 73 )
+                XModisPtr => State_Met%XCHLR72
+             CASE( 74 )
+                XModisPtr => State_Met%XCHLR73
+          END SELECT
+       ENDIF
+
+       ! Get OLSON pointer
        SELECT CASE ( T )
           CASE( 1 )
-             OlsonPtr => State_Met%OLSON01
+             OlsonPtr => State_Met%OLSON00
           CASE( 2 )
-             OlsonPtr => State_Met%OLSON02
+             OlsonPtr => State_Met%OLSON01
           CASE( 3 )
-             OlsonPtr => State_Met%OLSON03
+             OlsonPtr => State_Met%OLSON02
           CASE( 4 )
-             OlsonPtr => State_Met%OLSON04
+             OlsonPtr => State_Met%OLSON03
           CASE( 5 )
-             OlsonPtr => State_Met%OLSON05
+             OlsonPtr => State_Met%OLSON04
           CASE( 6 )
-             OlsonPtr => State_Met%OLSON06
+             OlsonPtr => State_Met%OLSON05
           CASE( 7 )
-             OlsonPtr => State_Met%OLSON07
+             OlsonPtr => State_Met%OLSON06
           CASE( 8 )
-             OlsonPtr => State_Met%OLSON08
+             OlsonPtr => State_Met%OLSON07
           CASE( 9 )
-             OlsonPtr => State_Met%OLSON09
+             OlsonPtr => State_Met%OLSON08
           CASE( 10 )
-             OlsonPtr => State_Met%OLSON10
+             OlsonPtr => State_Met%OLSON09
           CASE( 11 )
-             OlsonPtr => State_Met%OLSON11
+             OlsonPtr => State_Met%OLSON10
           CASE( 12 )
-             OlsonPtr => State_Met%OLSON12
+             OlsonPtr => State_Met%OLSON11
           CASE( 13 )
-             OlsonPtr => State_Met%OLSON13
+             OlsonPtr => State_Met%OLSON12
           CASE( 14 )
-             OlsonPtr => State_Met%OLSON14
+             OlsonPtr => State_Met%OLSON13
           CASE( 15 )
-             OlsonPtr => State_Met%OLSON15
+             OlsonPtr => State_Met%OLSON14
           CASE( 16 )
-             OlsonPtr => State_Met%OLSON16
+             OlsonPtr => State_Met%OLSON15
           CASE( 17 )
-             OlsonPtr => State_Met%OLSON17
+             OlsonPtr => State_Met%OLSON16
           CASE( 18 )
-             OlsonPtr => State_Met%OLSON18
+             OlsonPtr => State_Met%OLSON17
           CASE( 19 )
-             OlsonPtr => State_Met%OLSON19
+             OlsonPtr => State_Met%OLSON18
           CASE( 20 )
-             OlsonPtr => State_Met%OLSON20
+             OlsonPtr => State_Met%OLSON19
           CASE( 21 )
-             OlsonPtr => State_Met%OLSON21
+             OlsonPtr => State_Met%OLSON20
           CASE( 22 )
-             OlsonPtr => State_Met%OLSON22
+             OlsonPtr => State_Met%OLSON21
           CASE( 23 )
-             OlsonPtr => State_Met%OLSON23
+             OlsonPtr => State_Met%OLSON22
           CASE( 24 )
-             OlsonPtr => State_Met%OLSON24
+             OlsonPtr => State_Met%OLSON23
           CASE( 25 )
-             OlsonPtr => State_Met%OLSON25
+             OlsonPtr => State_Met%OLSON24
           CASE( 26 )
-             OlsonPtr => State_Met%OLSON26
+             OlsonPtr => State_Met%OLSON25
           CASE( 27 )
-             OlsonPtr => State_Met%OLSON27
+             OlsonPtr => State_Met%OLSON26
           CASE( 28 )
-             OlsonPtr => State_Met%OLSON28
+             OlsonPtr => State_Met%OLSON27
           CASE( 29 )
-             OlsonPtr => State_Met%OLSON29
+             OlsonPtr => State_Met%OLSON28
           CASE( 30 )
-             OlsonPtr => State_Met%OLSON30
+             OlsonPtr => State_Met%OLSON29
           CASE( 31 )
-             OlsonPtr => State_Met%OLSON31
+             OlsonPtr => State_Met%OLSON30
           CASE( 32 )
-             OlsonPtr => State_Met%OLSON32
+             OlsonPtr => State_Met%OLSON31
           CASE( 33 )
-             OlsonPtr => State_Met%OLSON33
+             OlsonPtr => State_Met%OLSON32
           CASE( 34 )
-             OlsonPtr => State_Met%OLSON34
+             OlsonPtr => State_Met%OLSON33
           CASE( 35 )
-             OlsonPtr => State_Met%OLSON35
+             OlsonPtr => State_Met%OLSON34
           CASE( 36 )
-             OlsonPtr => State_Met%OLSON36
+             OlsonPtr => State_Met%OLSON35
           CASE( 37 )
-             OlsonPtr => State_Met%OLSON37
+             OlsonPtr => State_Met%OLSON36
           CASE( 38 )
-             OlsonPtr => State_Met%OLSON38
+             OlsonPtr => State_Met%OLSON37
           CASE( 39 )
-             OlsonPtr => State_Met%OLSON39
+             OlsonPtr => State_Met%OLSON38
           CASE( 40 )
-             OlsonPtr => State_Met%OLSON40
+             OlsonPtr => State_Met%OLSON39
           CASE( 41 )
-             OlsonPtr => State_Met%OLSON41
+             OlsonPtr => State_Met%OLSON40
           CASE( 42 )
-             OlsonPtr => State_Met%OLSON42
+             OlsonPtr => State_Met%OLSON41
           CASE( 43 )
-             OlsonPtr => State_Met%OLSON43
+             OlsonPtr => State_Met%OLSON42
           CASE( 44 )
-             OlsonPtr => State_Met%OLSON44
+             OlsonPtr => State_Met%OLSON43
           CASE( 45 )
-             OlsonPtr => State_Met%OLSON45
+             OlsonPtr => State_Met%OLSON44
           CASE( 46 )
-             OlsonPtr => State_Met%OLSON46
+             OlsonPtr => State_Met%OLSON45
           CASE( 47 )
-             OlsonPtr => State_Met%OLSON47
+             OlsonPtr => State_Met%OLSON46
           CASE( 48 )
-             OlsonPtr => State_Met%OLSON48
+             OlsonPtr => State_Met%OLSON47
           CASE( 49 )
-             OlsonPtr => State_Met%OLSON49
+             OlsonPtr => State_Met%OLSON48
           CASE( 50 )
-             OlsonPtr => State_Met%OLSON50
+             OlsonPtr => State_Met%OLSON49
           CASE( 51 )
-             OlsonPtr => State_Met%OLSON51
+             OlsonPtr => State_Met%OLSON50
           CASE( 52 )
-             OlsonPtr => State_Met%OLSON52
+             OlsonPtr => State_Met%OLSON51
           CASE( 53 )
-             OlsonPtr => State_Met%OLSON53
+             OlsonPtr => State_Met%OLSON52
           CASE( 54 )
-             OlsonPtr => State_Met%OLSON54
+             OlsonPtr => State_Met%OLSON53
           CASE( 55 )
-             OlsonPtr => State_Met%OLSON55
+             OlsonPtr => State_Met%OLSON54
           CASE( 56 )
-             OlsonPtr => State_Met%OLSON56
+             OlsonPtr => State_Met%OLSON55
           CASE( 57 )
-             OlsonPtr => State_Met%OLSON57
+             OlsonPtr => State_Met%OLSON56
           CASE( 58 )
-             OlsonPtr => State_Met%OLSON58
+             OlsonPtr => State_Met%OLSON57
           CASE( 59 )
-             OlsonPtr => State_Met%OLSON59
+             OlsonPtr => State_Met%OLSON58
           CASE( 60 )
-             OlsonPtr => State_Met%OLSON60
+             OlsonPtr => State_Met%OLSON59
           CASE( 61 )
-             OlsonPtr => State_Met%OLSON61
+             OlsonPtr => State_Met%OLSON60
           CASE( 62 )
-             OlsonPtr => State_Met%OLSON62
+             OlsonPtr => State_Met%OLSON61
           CASE( 63 )
-             OlsonPtr => State_Met%OLSON63
+             OlsonPtr => State_Met%OLSON62
           CASE( 64 )
-             OlsonPtr => State_Met%OLSON64
+             OlsonPtr => State_Met%OLSON63
           CASE( 65 )
-             OlsonPtr => State_Met%OLSON65
+             OlsonPtr => State_Met%OLSON64
           CASE( 66 )
-             OlsonPtr => State_Met%OLSON66
+             OlsonPtr => State_Met%OLSON65
           CASE( 67 )
-             OlsonPtr => State_Met%OLSON67
+             OlsonPtr => State_Met%OLSON66
           CASE( 68 )
-             OlsonPtr => State_Met%OLSON68
+             OlsonPtr => State_Met%OLSON67
           CASE( 69 )
-             OlsonPtr => State_Met%OLSON69
+             OlsonPtr => State_Met%OLSON68
           CASE( 70 )
-             OlsonPtr => State_Met%OLSON70
+             OlsonPtr => State_Met%OLSON69
           CASE( 71 )
-             OlsonPtr => State_Met%OLSON71
+             OlsonPtr => State_Met%OLSON70
           CASE( 72 )
-             OlsonPtr => State_Met%OLSON72
+             OlsonPtr => State_Met%OLSON71
           CASE( 73 )
-             OlsonPtr => State_Met%OLSON73
+             OlsonPtr => State_Met%OLSON72
           CASE( 74 )
-             OlsonPtr => State_Met%OLSON74
+             OlsonPtr => State_Met%OLSON73
        END SELECT
 
        ! Loop over all cells to set XLAI or XCHLR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-          XPtr(I,J,T) = ModisPtr(I,J) * OlsonPtr(I,J)
+          XPtr(I,J,T) = XModisPtr(I,J) / OlsonPtr(I,J)
        ENDDO
        ENDDO
 
-       ! Nullify Olson pointer
+       ! Nullify pointers
+       XModisPtr => NULL()
        OlsonPtr => NULL()
 
     ENDDO
 
-    ! Cleanup pointers
+    ! Cleanup pointer
     XPtr => NULL()
-    ModisPtr => NULL()
 
   END SUBROUTINE Compute_Modis_GCHP
 !EOC

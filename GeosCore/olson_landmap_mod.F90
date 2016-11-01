@@ -271,11 +271,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, J, T
-    INTEGER :: typeNum, maxFracType(1)
-    REAL*4  :: sumCoverage
+    INTEGER  :: I, J, T, landType
+    INTEGER  :: typeNum, maxFracType(1)
+    REAL*4   :: sumCoverage
     REAL(fp) :: Olson_Landmap_GCHP(IIPAR, JJPAR, N_OLSON) 
     REAL(fp), POINTER :: OlsonPtr(:,:)
+    CHARACTER(len=2)  :: landStr
 
     !======================================================================
     ! Initialize
@@ -288,10 +289,13 @@ CONTAINS
     DO T = 1, N_OLSON
 
        ! This is the goal:
-       !IF ( T < 10 ) THEN
-       !   varname = 'OLSON0' // T
+       !landType = T-1
+       !IF ( landType < 10 ) THEN
+       !   WRITE ( landStr, "(I1)" ) landType
+       !   varname = 'OLSON0' // TRIM(landStr)
        !ELSE
-       !   varname = 'OLSON' // T
+       !   WRITE ( landStr, "(I2)" ) landType  
+       !   varname = 'OLSON' // TRIM(landStr)
        !ENDIF
        !CALL MAPL_GetPointer( IMPORT, OlsonPtr, TRIM(varname),  &
        !                      notFoundOK=.TRUE., __RC__ )
@@ -303,155 +307,157 @@ CONTAINS
 
        ! Instead, use really awful brute force way, purely for testing. 
        ! Replace with above once know how to get mapl ptr!
+       ! Note that the xx in OLSONxx is the landmap type value [0,73] 
+       ! in the Olson file, while T is the type index [1,74].
        SELECT CASE ( T )
           CASE( 1 )
-             OlsonPtr => State_Met%OLSON01
+             OlsonPtr => State_Met%OLSON00
           CASE( 2 )
-             OlsonPtr => State_Met%OLSON02
+             OlsonPtr => State_Met%OLSON01
           CASE( 3 )
-             OlsonPtr => State_Met%OLSON03
+             OlsonPtr => State_Met%OLSON02
           CASE( 4 )
-             OlsonPtr => State_Met%OLSON04
+             OlsonPtr => State_Met%OLSON03
           CASE( 5 )
-             OlsonPtr => State_Met%OLSON05
+             OlsonPtr => State_Met%OLSON04
           CASE( 6 )
-             OlsonPtr => State_Met%OLSON06
+             OlsonPtr => State_Met%OLSON05
           CASE( 7 )
-             OlsonPtr => State_Met%OLSON07
+             OlsonPtr => State_Met%OLSON06
           CASE( 8 )
-             OlsonPtr => State_Met%OLSON08
+             OlsonPtr => State_Met%OLSON07
           CASE( 9 )
-             OlsonPtr => State_Met%OLSON09
+             OlsonPtr => State_Met%OLSON08
           CASE( 10 )
-             OlsonPtr => State_Met%OLSON10
+             OlsonPtr => State_Met%OLSON09
           CASE( 11 )
-             OlsonPtr => State_Met%OLSON11
+             OlsonPtr => State_Met%OLSON10
           CASE( 12 )
-             OlsonPtr => State_Met%OLSON12
+             OlsonPtr => State_Met%OLSON11
           CASE( 13 )
-             OlsonPtr => State_Met%OLSON13
+             OlsonPtr => State_Met%OLSON12
           CASE( 14 )
-             OlsonPtr => State_Met%OLSON14
+             OlsonPtr => State_Met%OLSON13
           CASE( 15 )
-             OlsonPtr => State_Met%OLSON15
+             OlsonPtr => State_Met%OLSON14
           CASE( 16 )
-             OlsonPtr => State_Met%OLSON16
+             OlsonPtr => State_Met%OLSON15
           CASE( 17 )
-             OlsonPtr => State_Met%OLSON17
+             OlsonPtr => State_Met%OLSON16
           CASE( 18 )
-             OlsonPtr => State_Met%OLSON18
+             OlsonPtr => State_Met%OLSON17
           CASE( 19 )
-             OlsonPtr => State_Met%OLSON19
+             OlsonPtr => State_Met%OLSON18
           CASE( 20 )
-             OlsonPtr => State_Met%OLSON20
+             OlsonPtr => State_Met%OLSON19
           CASE( 21 )
-             OlsonPtr => State_Met%OLSON21
+             OlsonPtr => State_Met%OLSON20
           CASE( 22 )
-             OlsonPtr => State_Met%OLSON22
+             OlsonPtr => State_Met%OLSON21
           CASE( 23 )
-             OlsonPtr => State_Met%OLSON23
+             OlsonPtr => State_Met%OLSON22
           CASE( 24 )
-             OlsonPtr => State_Met%OLSON24
+             OlsonPtr => State_Met%OLSON23
           CASE( 25 )
-             OlsonPtr => State_Met%OLSON25
+             OlsonPtr => State_Met%OLSON24
           CASE( 26 )
-             OlsonPtr => State_Met%OLSON26
+             OlsonPtr => State_Met%OLSON25
           CASE( 27 )
-             OlsonPtr => State_Met%OLSON27
+             OlsonPtr => State_Met%OLSON26
           CASE( 28 )
-             OlsonPtr => State_Met%OLSON28
+             OlsonPtr => State_Met%OLSON27
           CASE( 29 )
-             OlsonPtr => State_Met%OLSON29
+             OlsonPtr => State_Met%OLSON28
           CASE( 30 )
-             OlsonPtr => State_Met%OLSON30
+             OlsonPtr => State_Met%OLSON29
           CASE( 31 )
-             OlsonPtr => State_Met%OLSON31
+             OlsonPtr => State_Met%OLSON30
           CASE( 32 )
-             OlsonPtr => State_Met%OLSON32
+             OlsonPtr => State_Met%OLSON31
           CASE( 33 )
-             OlsonPtr => State_Met%OLSON33
+             OlsonPtr => State_Met%OLSON32
           CASE( 34 )
-             OlsonPtr => State_Met%OLSON34
+             OlsonPtr => State_Met%OLSON33
           CASE( 35 )
-             OlsonPtr => State_Met%OLSON35
+             OlsonPtr => State_Met%OLSON34
           CASE( 36 )
-             OlsonPtr => State_Met%OLSON36
+             OlsonPtr => State_Met%OLSON35
           CASE( 37 )
-             OlsonPtr => State_Met%OLSON37
+             OlsonPtr => State_Met%OLSON36
           CASE( 38 )
-             OlsonPtr => State_Met%OLSON38
+             OlsonPtr => State_Met%OLSON37
           CASE( 39 )
-             OlsonPtr => State_Met%OLSON39
+             OlsonPtr => State_Met%OLSON38
           CASE( 40 )
-             OlsonPtr => State_Met%OLSON40
+             OlsonPtr => State_Met%OLSON39
           CASE( 41 )
-             OlsonPtr => State_Met%OLSON41
+             OlsonPtr => State_Met%OLSON40
           CASE( 42 )
-             OlsonPtr => State_Met%OLSON42
+             OlsonPtr => State_Met%OLSON41
           CASE( 43 )
-             OlsonPtr => State_Met%OLSON43
+             OlsonPtr => State_Met%OLSON42
           CASE( 44 )
-             OlsonPtr => State_Met%OLSON44
+             OlsonPtr => State_Met%OLSON43
           CASE( 45 )
-             OlsonPtr => State_Met%OLSON45
+             OlsonPtr => State_Met%OLSON44
           CASE( 46 )
-             OlsonPtr => State_Met%OLSON46
+             OlsonPtr => State_Met%OLSON45
           CASE( 47 )
-             OlsonPtr => State_Met%OLSON47
+             OlsonPtr => State_Met%OLSON46
           CASE( 48 )
-             OlsonPtr => State_Met%OLSON48
+             OlsonPtr => State_Met%OLSON47
           CASE( 49 )
-             OlsonPtr => State_Met%OLSON49
+             OlsonPtr => State_Met%OLSON48
           CASE( 50 )
-             OlsonPtr => State_Met%OLSON50
+             OlsonPtr => State_Met%OLSON49
           CASE( 51 )
-             OlsonPtr => State_Met%OLSON51
+             OlsonPtr => State_Met%OLSON50
           CASE( 52 )
-             OlsonPtr => State_Met%OLSON52
+             OlsonPtr => State_Met%OLSON51
           CASE( 53 )
-             OlsonPtr => State_Met%OLSON53
+             OlsonPtr => State_Met%OLSON52
           CASE( 54 )
-             OlsonPtr => State_Met%OLSON54
+             OlsonPtr => State_Met%OLSON53
           CASE( 55 )
-             OlsonPtr => State_Met%OLSON55
+             OlsonPtr => State_Met%OLSON54
           CASE( 56 )
-             OlsonPtr => State_Met%OLSON56
+             OlsonPtr => State_Met%OLSON55
           CASE( 57 )
-             OlsonPtr => State_Met%OLSON57
+             OlsonPtr => State_Met%OLSON56
           CASE( 58 )
-             OlsonPtr => State_Met%OLSON58
+             OlsonPtr => State_Met%OLSON57
           CASE( 59 )
-             OlsonPtr => State_Met%OLSON59
+             OlsonPtr => State_Met%OLSON58
           CASE( 60 )
-             OlsonPtr => State_Met%OLSON60
+             OlsonPtr => State_Met%OLSON59
           CASE( 61 )
-             OlsonPtr => State_Met%OLSON61
+             OlsonPtr => State_Met%OLSON60
           CASE( 62 )
-             OlsonPtr => State_Met%OLSON62
+             OlsonPtr => State_Met%OLSON61
           CASE( 63 )
-             OlsonPtr => State_Met%OLSON63
+             OlsonPtr => State_Met%OLSON62
           CASE( 64 )
-             OlsonPtr => State_Met%OLSON64
+             OlsonPtr => State_Met%OLSON63
           CASE( 65 )
-             OlsonPtr => State_Met%OLSON65
+             OlsonPtr => State_Met%OLSON64
           CASE( 66 )
-             OlsonPtr => State_Met%OLSON66
+             OlsonPtr => State_Met%OLSON65
           CASE( 67 )
-             OlsonPtr => State_Met%OLSON67
+             OlsonPtr => State_Met%OLSON66
           CASE( 68 )
-             OlsonPtr => State_Met%OLSON68
+             OlsonPtr => State_Met%OLSON67
           CASE( 69 )
-             OlsonPtr => State_Met%OLSON69
+             OlsonPtr => State_Met%OLSON68
           CASE( 70 )
-             OlsonPtr => State_Met%OLSON70
+             OlsonPtr => State_Met%OLSON69
           CASE( 71 )
-             OlsonPtr => State_Met%OLSON71
+             OlsonPtr => State_Met%OLSON70
           CASE( 72 )
-             OlsonPtr => State_Met%OLSON72
+             OlsonPtr => State_Met%OLSON71
           CASE( 73 )
-             OlsonPtr => State_Met%OLSON73
+             OlsonPtr => State_Met%OLSON72
           CASE( 74 )
-             OlsonPtr => State_Met%OLSON74
+             OlsonPtr => State_Met%OLSON73
        END SELECT
        Olson_Landmap_GCHP(:,:,T) = OlsonPtr(:,:)
        OlsonPtr => NULL()
@@ -478,7 +484,7 @@ CONTAINS
              ! Set IREG to number of types
              State_Met%IREG(I,J) = typeNum
 
-             ! Store type id in ILAND array for this grid cell
+             ! Store type index in ILAND array for this grid cell
              State_Met%ILAND(I,J,typeNum) = T
              
              ! Store fractional coverage [mil] in IUSE array for this grid cell
@@ -487,7 +493,7 @@ CONTAINS
           ENDIF
        ENDDO
 
-       ! Get this cell's type id with maximum single type coverage [mil]
+       ! Get this cell's type index with maximum single type coverage [mil]
        maxFracType = MAXLOC(State_Met%IUSE(I, J, 1:State_Met%IREG(I,J)))
        
        ! Sum this cell's total fractional coverage across all land types [mil]
@@ -502,7 +508,7 @@ CONTAINS
        ! Loop over all landmap types to set FRCLND
        DO T = 1, State_Met%IREG(I,J)
        
-          ! If the current Olson land type is water (type 1), then
+          ! If the current Olson land type is water (index 1), then
           ! subtract the coverage fraction (State_Met%IUSE) from FRCLND.
           IF ( State_Met%ILAND(I,J,T) == 1 ) THEN
              State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J)   &
