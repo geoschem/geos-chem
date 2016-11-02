@@ -175,6 +175,7 @@ CONTAINS
 !  07 Jan 2016 - E. Lundgren - Add physical constant RSTARG and updated
 !                              Avgdr and g0 to NIST 2014 values
 !  15 Feb 2016 - C. Keller - Now pass HcoConfig object
+!  01 Nov 2016 - C. Keller - Now nullify all pointers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -394,8 +395,13 @@ CONTAINS
     ! Connect to config object
     HcoState%Config => HcoConfig
 
-    ! Make sure diagnostics pointer is not dangling 
-    HcoState%Diagn => NULL()
+    ! Make sure pointers are not dangling
+    HcoState%Diagn     => NULL()
+    HcoState%EmisList  => NULL()
+    HcoState%ReadLists => NULL()
+    HcoState%Clock     => NULL()
+    HcoState%cIDList   => NULL()
+    HcoState%AlltIDx   => NULL()
 
     ! Verbose mode 
     IF ( HCO_IsVerb(HcoConfig%Err,1) ) THEN
