@@ -76,6 +76,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_State_Mod,        ONLY : HCO_State
+    USE HCO_Clock_Mod,        ONLY : HcoClock_SetLast
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -89,6 +90,8 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  03 Apr 2015 - C. Keller   - Initial version 
+!  01 Nov 2016 - C. Keller   - Also write out default diagnostics collection if
+!                              RESTART=.TRUE. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -115,8 +118,24 @@ CONTAINS
                                    RC          = RC                         )
        IF( RC /= HCO_SUCCESS) RETURN 
 
-    ! Write all HEMCO diagnostics
-    ELSE
+       ! Set last flag for use below
+       CALL HcoClock_SetLast ( am_I_Root, HcoState%Clock, .TRUE., RC )
+       IF( RC /= HCO_SUCCESS) RETURN 
+
+       CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root,                              &
+                                   HcoState,                               &
+                                   ForceWrite  = .FALSE.,                  &
+                                   UsePrevTime = .FALSE.,                  &
+                                   COL = HcoState%Diagn%HcoDiagnIDDefault, &
+                                   RC          = RC                         )
+       IF( RC /= HCO_SUCCESS) RETURN 
+
+       ! Reset IsLast flag. This is to ensure that the last flag is not 
+       ! carried over (ckeller, 11/1/16). 
+       CALL HcoClock_SetLast ( am_I_Root, HcoState%Clock, .FALSE., RC )
+       IF( RC /= HCO_SUCCESS) RETURN 
+
+    ELSE 
 
        ! Loop over all collections that shall be written out.
        ! HCOIO_DIAGN_WRITEOUT will determine whether it is time to

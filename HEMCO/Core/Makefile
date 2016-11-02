@@ -278,6 +278,7 @@ hco_vertgrid_mod.o     : hco_vertgrid_mod.F90    \
                          hco_types_mod.o
 
 hcoio_diagn_mod.o      : hcoio_diagn_mod.F90     \
+                         hco_clock_mod.o         \
                          hco_error_mod.o         \
                          hco_state_mod.o         \
                          hcoio_write_esmf_mod.o  \

@@ -835,7 +835,7 @@ CONTAINS
     ! Initialize ERROR. Will be set to 1 if error occurs below
     ERROR = 0
 
-    ! Initialize upper level counter
+    ! Initialize variables to compute average vertical level index 
     totLL = 0
     nnLL  = 0
 
@@ -863,6 +863,7 @@ CONTAINS
           EXIT
        ENDIF 
 
+       ! average upper level
        totLL = totLL + UppLL
        nnLL  = nnLL + 1
 
@@ -1804,6 +1805,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  11 May 2015 - C. Keller   - Initial Version
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  01 Nov 2016 - C. Keller   - Added error trap for UseLL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1878,15 +1880,18 @@ CONTAINS
                                 nI, nJ, nL, Arr3D, Mask, RC, UseLL=UseLL )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! For 2D data, we expect UseLL to be 1
+    ! Place 3D array into 2D array. UseLL returns the vertical level into which
+    ! emissions have been added within GET_CURRENT_EMISSIONS. This should be 
+    ! level 1 for most cases but it can be another level if specified so. Return
+    ! a warning if level is not 1 (ckeller, 11/1/16).
+    UseLL = MIN( MAX(useLL,1), SIZE(Arr3D,3) )
     IF ( UseLL /= 1 ) THEN
-       WRITE(MSG,*) "Data is not 2D: " , TRIM(cName), UseLL
-       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
-       RETURN
+       WRITE(MSG,*) "2D data was emitted above surface - this information might be lost: " , TRIM(cName), UseLL
+       CALL HCO_WARNING( HcoState%Config%Err, MSG, RC, THISLOC=LOC, WARNLEV=2 )
     ENDIF
 
     ! Pass 3D data to 2D array
-    Arr2D(:,:) = Arr3D(:,:,1)
+    Arr2D(:,:) = Arr3D(:,:,UseLL)
 
     ! All done
     IF (ALLOCATED(MASK ) ) DEALLOCATE(MASK )

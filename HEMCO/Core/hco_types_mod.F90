@@ -246,6 +246,9 @@ MODULE HCO_TYPES_MOD
      INTEGER              :: Fixdd    = -1
      INTEGER              :: Fixhh    = -1
 
+     ! Last time step?
+     LOGICAL              :: isLast
+
   END TYPE HcoClock
 
   !=========================================================================

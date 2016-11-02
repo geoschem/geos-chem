@@ -2304,6 +2304,13 @@ CONTAINS
     ! Type specific initialization statements follow below
     ! ----------------------------------------------------------------
 
+    ! Make sure pointers are not dangling
+    Inst%DRYCOEFF  => NULL()
+    Inst%CLIMARID  => NULL() 
+    Inst%CLIMNARID => NULL()
+    Inst%SOILFERT  => NULL()
+    Inst%LANDTYPE  => NULL()
+
     ! Return w/ success
     RC = HCO_SUCCESS
 
@@ -2374,9 +2381,9 @@ CONTAINS
  
        ! Eventually deallocate DRYCOEFF. Make sure ExtState DRYCOEFF pointer is
        ! not dangling! 
-       IF ( ASSOCIATED ( Inst%DRYCOEFF      ) ) THEN
+       IF ( ASSOCIATED ( Inst%DRYCOEFF ) ) THEN
+          DEALLOCATE ( Inst%DRYCOEFF )
           ExtState%DRYCOEFF => NULL()
-          DEALLOCATE ( Inst%DRYCOEFF      )
        ENDIF
 
        ! Free pointers 
