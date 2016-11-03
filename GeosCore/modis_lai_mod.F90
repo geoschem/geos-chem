@@ -280,7 +280,7 @@ CONTAINS
     ENDIF
 
     ! Loop over all types
-    DO T = 1, NVEGTYPE
+    DO T = 1, NSURFTYPE
 
        !This is the goal for the rest of this routine:
        !
@@ -877,10 +877,10 @@ CONTAINS
     REAL(fp)  :: mapWt,  area,  sumArea,  DMON,  DITD,   DIMUL
 
     ! Arrays
-    REAL(fp)  :: tempArea   (0:NVEGTYPE-1)
-    REAL(fp)  :: tempModis  (0:NVEGTYPE-1)
-    REAL(fp)  :: tempModisCm(0:NVEGTYPE-1)
-    REAL(fp)  :: tempModisNm(0:NVEGTYPE-1)
+    REAL(fp)  :: tempArea   (0:NSURFTYPE-1)
+    REAL(fp)  :: tempModis  (0:NSURFTYPE-1)
+    REAL(fp)  :: tempModisCm(0:NSURFTYPE-1)
+    REAL(fp)  :: tempModisNm(0:NSURFTYPE-1)
 
     ! Pointers
     REAL(fp), POINTER  :: GC_PTR(:,:)       => NULL()
@@ -1019,7 +1019,7 @@ CONTAINS
        ! Compute the LAI or CHLR for each Olson land type at GEOS-Chem grid 
        ! box (I,J).  These will be used to populate the XLAI & XYLAI arrays.
        !-------------------------------------------------------------------
-       DO C = 0, NVEGTYPE-1
+       DO C = 0, NSURFTYPE-1
           
           ! Skip land types that are not in "coarse" grid box (I,J)
           IF ( tempArea(C) > 0e+0_fp ) THEN

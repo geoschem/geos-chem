@@ -236,9 +236,9 @@
       !  DEPNAME   : Names of dry deposition species 
       !
       !  NOTE: these variables are defined in CMN_SIZE_mod.F
-      !    NTYPE    : Max # of landtypes / grid box
-      !    NPOLY    : Number of drydep polynomial coefficients
-      !    NVEGTYPE : Number of Olson land types
+      !    NTYPE     : Max # of landtypes / grid box
+      !    NPOLY     : Number of drydep polynomial coefficients
+      !    NSURFTYPE : Number of Olson land types
       !========================================================================
 
       ! Scalars
@@ -250,10 +250,10 @@
       REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
 
       ! Arrays that hold information for each of the 74 Olson land types
-      INTEGER                        :: INDOLSON(NVEGTYPE )
-      INTEGER, POINTER               :: IDEP    (:        )
-      INTEGER                        :: IZO     (NVEGTYPE )
-      INTEGER                        :: IWATER  (NVEGTYPE )
+      INTEGER                        :: INDOLSON(NSURFTYPE )
+      INTEGER, POINTER               :: IDEP    (:         )
+      INTEGER                        :: IZO     (NSURFTYPE )
+      INTEGER                        :: IWATER  (NSURFTYPE )
 
       ! Arrays that hold information for each of the 11 drydep land types
       INTEGER                        :: IDRYDEP (NDRYDTYPE)
@@ -2146,11 +2146,11 @@
       ! IVSMAX   : Max drydep velocity (for aerosol) perr drydep land type
       !-----------------------------------------------------------------------
       REAL(fp), INTENT(OUT) :: DRYCOEFF(NPOLY    ) 
-      INTEGER,  INTENT(OUT) :: IOLSON  (NVEGTYPE )       
-      INTEGER,  INTENT(OUT) :: IDEP    (NVEGTYPE )      
-      INTEGER,  INTENT(OUT) :: IWATER  (NVEGTYPE )    
+      INTEGER,  INTENT(OUT) :: IOLSON  (NSURFTYPE)       
+      INTEGER,  INTENT(OUT) :: IDEP    (NSURFTYPE)      
+      INTEGER,  INTENT(OUT) :: IWATER  (NSURFTYPE)    
       INTEGER,  INTENT(OUT) :: NWATER        
-      INTEGER,  INTENT(OUT) :: IZO     (NVEGTYPE )       
+      INTEGER,  INTENT(OUT) :: IZO     (NSURFTYPE)       
       INTEGER,  INTENT(OUT) :: IDRYDEP (NDRYDTYPE)
       INTEGER,  INTENT(OUT) :: IRI     (NDRYDTYPE)
       INTEGER,  INTENT(OUT) :: IRLU    (NDRYDTYPE)
@@ -2266,7 +2266,7 @@
 
       ! Read IOLSON from file
       st1d   = (/ 1         /)
-      ct1d   = (/ NVEGTYPE /)
+      ct1d   = (/ NSURFTYPE /)
       CALL NcRd( IOLSON, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IOLSON:units attribute
@@ -2287,7 +2287,7 @@
 
       ! Read IDEP from file
       st1d   = (/ 1         /)
-      ct1d   = (/ NVEGTYPE /)
+      ct1d   = (/ NSURFTYPE /)
       CALL NcRd( IDEP, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IDEP:units attribute
@@ -2314,7 +2314,7 @@
       IWATER = 0
 
       ! Read IWATER from file
-      ! NOTE: IWATER is declared with NNVEGTYPE, but has NWATER values
+      ! NOTE: IWATER is declared with NNSURFTYPE, but has NWATER values
       ! The rest can be zeroed out
       st1d   = (/ 1      /)
       ct1d   = (/ NWATER /)
@@ -2338,7 +2338,7 @@
 
       ! Read IZO from file
       st1d   = (/ 1         /)
-      ct1d   = (/ NVEGTYPE /)
+      ct1d   = (/ NSURFTYPE /)
       CALL NcRd( IZO, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IZO:long_name attribute
@@ -4362,7 +4362,7 @@
       ! confusion w/ previously-assinged variable name IOLSON
       CALL READ_DRYDEP_INPUTS( am_I_Root, Input_Opt, 
      &                         DRYCOEFF,  INDOLSON, 
-     &                         Input_Opt%IDEP(1:NVEGTYPE),    
+     &                         Input_Opt%IDEP(1:NSURFTYPE),    
      &                         IWATER,    NWATER,   IZO,      
      &                         IDRYDEP,   IRI,      IRLU,     
      &                         IRAC,      IRGSS,    IRGSO, 

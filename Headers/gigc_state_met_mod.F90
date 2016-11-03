@@ -16,7 +16,7 @@
 !  driver routine, and then passed to lower-level routines as an argument.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE GIGC_State_Met_Mod
 !
@@ -491,7 +491,7 @@ MODULE GIGC_State_Met_Mod
 !  17 Mar 2016 - M. Sulprizio- Remove OPTDEP. Instead, we now solely use OPTD.
 !  18 Oct 2016 - E. Lundgren - Remove XLAI2, CHLR2; add MODISLAI, MODISCHLR to
 !                              replace modis_lai_mod-level GC_LAI and GC_CHLR
-!  19 Oct 2016 - E. Lundgren - Use NVEGTYPE as the # of land types
+!  19 Oct 2016 - E. Lundgren - Use NSURFTYPE as the # of land types
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -515,7 +515,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod                         ! Error codes
-    USE CMN_SIZE_MOD,    ONLY : NVEGTYPE         ! # of land types
+    USE CMN_SIZE_MOD,    ONLY : NSURFTYPE         ! # of land types
 
 !
 ! !INPUT PARAMETERS:
@@ -1177,15 +1177,15 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%IREG = 0
 
-    ALLOCATE( State_Met%ILAND      ( IM, JM, NVEGTYPE ), STAT=RC )
+    ALLOCATE( State_Met%ILAND      ( IM, JM, NSURFTYPE), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%ILAND = 0
 
-    ALLOCATE( State_Met%IUSE       ( IM, JM, NVEGTYPE ), STAT=RC )
+    ALLOCATE( State_Met%IUSE       ( IM, JM, NSURFTYPE), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%IUSE = 0
 
-    ALLOCATE( State_Met%XLAI       ( IM, JM, NVEGTYPE ), STAT=RC )
+    ALLOCATE( State_Met%XLAI       ( IM, JM, NSURFTYPE), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%XLAI = 0.0_fp
 
@@ -1193,7 +1193,7 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%MODISLAI = 0.0_fp
 
-    ALLOCATE( State_Met%XCHLR      ( IM, JM, NVEGTYPE ), STAT=RC )
+    ALLOCATE( State_Met%XCHLR      ( IM, JM, NSURFTYPE), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%XCHLR = 0.0_fp
 

@@ -209,6 +209,7 @@ MODULE Olson_LandMap_Mod
 !  24 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  18 Oct 2016 - E. Lundgren - Add GCHP routine for computing landmap variables
+!  02 Nov 2016 - E. Lundgren - Remove N_OLSON since same as global NSURFTYPE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -218,7 +219,6 @@ MODULE Olson_LandMap_Mod
   ! Scalars
   INTEGER              :: I_OLSON       ! # of lons (0.5 x 0.5)
   INTEGER              :: J_OLSON       ! # of lats (0.5 x 0.5)
-  INTEGER              :: N_OLSON       ! Number of Olson land types 
   REAL(fp)             :: D_LON         ! Delta longitude, Olson grid [degrees]
   REAL(fp)             :: D_LAT         ! Delta latitude,  Olson grid [degrees]
 
@@ -274,7 +274,7 @@ CONTAINS
     INTEGER  :: I, J, T, landType
     INTEGER  :: typeNum, maxFracType(1)
     REAL*4   :: sumCoverage
-    REAL(fp) :: Olson_Landmap_GCHP(IIPAR, JJPAR, N_OLSON) 
+    REAL(fp) :: Olson_Landmap_GCHP(IIPAR, JJPAR, NSURFTYPE) 
     REAL(fp), POINTER :: OlsonPtr(:,:)
     CHARACTER(len=2)  :: landStr
 
@@ -286,7 +286,7 @@ CONTAINS
     OlsonPtr => NULL()
     
     ! Store fractional coverage for each Olson type and grid cell in 3D array
-    DO T = 1, N_OLSON
+    DO T = 1, NSURFTYPE
 
        ! This is the goal:
        !landType = T-1
@@ -308,7 +308,7 @@ CONTAINS
        ! Instead, use really awful brute force way, purely for testing. 
        ! Replace with above once know how to get mapl ptr!
        ! Note that the xx in OLSONxx is the landmap type value [0,73] 
-       ! in the Olson file, while T is the type index [1,74].
+       ! in the Olson file, while T is the type index [1,73].
        SELECT CASE ( T )
           CASE( 1 )
              OlsonPtr => State_Met%OLSON00
@@ -456,8 +456,6 @@ CONTAINS
              OlsonPtr => State_Met%OLSON71
           CASE( 73 )
              OlsonPtr => State_Met%OLSON72
-          CASE( 74 )
-             OlsonPtr => State_Met%OLSON73
        END SELECT
        Olson_Landmap_GCHP(:,:,T) = OlsonPtr(:,:)
        OlsonPtr => NULL()
@@ -473,7 +471,7 @@ CONTAINS
        maxFracType = 0       ! type id with greatest coverage
 
        ! Loop over all landmap types to set IREG, ILAND, and IUSE
-       DO T = 1, N_OLSON
+       DO T = 1, NSURFTYPE
 
           ! If this type as non-zero coverage in this grid box, updates vars
           IF ( Olson_Landmap_GCHP(I,J,T) > 0.0 ) THEN
@@ -615,7 +613,6 @@ CONTAINS
        !--------------------------------
        I_OLSON = 1440                                     ! # lons (0.25x0.25)
        J_OLSON = 720                                      ! # lats (0.25x0.25)
-       N_OLSON = 74                                       ! # of land types
        D_LON   = 0.25e+0_fp                                   ! Delta lon [degrees]
        D_LAT   = 0.25e+0_fp                                   ! Delta lat [degrees]
        nc_file = 'Olson_2001_Land_Map.025x025.generic.nc' ! Input file name
@@ -627,7 +624,6 @@ CONTAINS
        !--------------------------------
        I_OLSON = 720                                      ! # lons (0.5x0.5)
        J_OLSON = 360                                      ! # lats (0.5x0.5)
-       N_OLSON = 74                                       ! # of land types
        D_LON   = 0.5e+0_fp                                    ! Delta lon [degrees]
        D_LAT   = 0.5e+0_fp                                    ! Delta lat [degrees]
        nc_file = 'Olson_1992_Land_Map.05x05.generic.nc'   ! Input file name
@@ -851,9 +847,9 @@ CONTAINS
     REAL*4  :: latedge (          J_OLSON+1         ) ! Lat edges   [degrees]
     
     ! Arrays on the GEOS-CHEM GRID                 
-    INTEGER :: ctOlson (IIPAR,    JJPAR, 0:N_OLSON-1) ! Count of land types/box
-    REAL*4  :: frOlson (IIPAR,    JJPAR, 0:N_OLSON-1) ! Frac of land types/box
-    INTEGER :: ordOlson(IIPAR,    JJPAR, 0:N_OLSON-1) ! Order of land types
+    INTEGER :: ctOlson (IIPAR, JJPAR, 0:NSURFTYPE-1) ! Count of land types/box
+    REAL*4  :: frOlson (IIPAR, JJPAR, 0:NSURFTYPE-1) ! Frac of land types/box
+    INTEGER :: ordOlson(IIPAR, JJPAR, 0:NSURFTYPE-1) ! Order of land types
 
     ! Pointers
     INTEGER,  POINTER :: IREG(:,:)
@@ -1071,7 +1067,7 @@ CONTAINS
        maxIUse = 0
 
        ! Loop over all land types
-       DO T = 0, N_OLSON-1
+       DO T = 0, NSURFTYPE-1
 
           ! Save the ordering of Olson land types for later use 
           ! by routines in the module modis_lai_mod.F90

@@ -165,7 +165,7 @@ CONTAINS
           ALLOCATE( mapping(I,J)%ii      ( FINE_PER_COARSE ), STAT=as1 )
           ALLOCATE( mapping(I,J)%jj      ( FINE_PER_COARSE ), STAT=as2 )
           ALLOCATE( mapping(I,J)%olson   ( FINE_PER_COARSE ), STAT=as3 )
-          ALLOCATE( mapping(I,J)%ordOlson( 0:NVEGTYPE-1    ), STAT=as4 )
+          ALLOCATE( mapping(I,J)%ordOlson( 0:NSURFTYPE-1   ), STAT=as4 )
           ALLOCATE( mapping(I,J)%area    ( FINE_PER_COARSE ), STAT=as5 )
 
           ! Check for allocation error in such a way
