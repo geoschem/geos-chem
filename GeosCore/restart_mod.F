@@ -415,7 +415,6 @@
       USE m_netcdf_io_get_dimlen                   ! netCDF get dimensions
       USE m_netcdf_io_close                        ! netCDF file close
       USE PHYSCONSTANTS,      ONLY : BOLTZ
-      USE PASSIVE_TRACER_MOD, ONLY : PASSIVE_TRACER_INQUIRE
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
@@ -477,6 +476,7 @@
       CHARACTER(LEN=60)    :: Prefix             ! utility string
       CHARACTER(LEN=255)   :: LOC                ! routine location
       CHARACTER(LEN=255)   :: MSG                ! message 
+      CHARACTER(LEN=255)   :: MyName             ! local name 
       REAL(fp)             :: MW_g               ! species molecular weight
       REAL(fp)             :: SMALL_NUM          ! small number threshold
 
@@ -668,11 +668,6 @@
 
          ELSE
 
-            ! Check if it's a passive tracer with fixed initial background 
-            ! concentration (ckeller, 10/10/16).
-            CALL PASSIVE_TRACER_INQUIRE( N, IsPassive=IsPassive, 
-     &                                   InitConc=Background_VV )
-
             ! Set species to the background value converted to [kg/kg dry] 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -682,14 +677,8 @@
             DO J = 1, JJPAR
             DO I = 1, IIPAR
                
-               ! Apply passive tracer background concentration. Convert
-               ! mol/mol to kg/kg dry (ckeller, 10/10/16).
-               IF ( IsPassive ) THEN
-                  State_Chm%Species(:,:,:,N) = Background_VV 
-     &                                       * MW_g / AIRMW
-   
                ! Special handling for MOH
-               ELSEIF ( TRIM( SpcInfo%Name ) == 'MOH' ) THEN
+               IF ( TRIM( SpcInfo%Name ) == 'MOH' ) THEN
 
                   !----------------------------------------------------
                   ! For methanol (MOH), use different initial

@@ -462,8 +462,7 @@ chemistry_mod.o             : chemistry_mod.F                                \
                               RnPbBe_mod.o            seasalt_mod.o          \
                               strat_chem_mod.o        sulfate_mod.o          \
                               tagged_co_mod.o         tagged_o3_mod.o        \
-                              tomas_mod.o             flexchem_mod.o         \
-                              passive_tracer_mod.o
+                              tomas_mod.o             flexchem_mod.o
 
 cleanup.o                   : cleanup.F                                      \
                               aerosol_mod.o                                  \
@@ -490,8 +489,7 @@ cleanup.o                   : cleanup.F                                      \
                               uvalbedo_mod.o          tpcore_fvdas_mod.o     \
                               geosfp_read_mod.o       merra2_read_mod.o      \
                               tpcore_window_mod.o     flexchem_mod.o         \
-                              toms_mod.o              rrtmg_rad_transfer_mod.o \
-                              passive_tracer_mod.o
+                              toms_mod.o              rrtmg_rad_transfer_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
@@ -696,7 +694,6 @@ input_mod.o                 : input_mod.F                                    \
                               linoz_mod.o             vdiff_pre_mod.o        \
                               mercury_mod.o           modis_lai_mod.o        \
                               ocean_mercury_mod.o     planeflight_mod.o      \
-                              passive_tracer_mod.o                           \
                               restart_mod.o           seasalt_mod.o          \
                               sulfate_mod.o           tomas_mod.o            \
                               tpcore_bc_mod.o         get_ndep_mod.o         \
@@ -797,8 +794,6 @@ ohsave.o                    : ohsave.F                                       \
 olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               mapping_mod.o
 
-passive_tracer_mod.o        : passive_tracer_mod.F90
-
 pbl_mix_mod.o               : pbl_mix_mod.F                                  \
                               tendencies_mod.o                               \
                               diag_mod.o              
@@ -820,7 +815,7 @@ read_jv_atms_dat.o          : read_jv_atms_dat.F90
 
 restart_mod.o               : restart_mod.F                                  \
                               depo_mercury_mod.o      hco_interface_mod.o    \
-                              ocean_mercury_mod.o     passive_tracer_mod.o
+                              ocean_mercury_mod.o
 
 RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               chemgrid_mod.o          diag_mod.o             \

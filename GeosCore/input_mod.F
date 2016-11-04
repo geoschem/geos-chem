@@ -7224,7 +7224,7 @@
       ! Scalars
       INTEGER            :: I, N, NPT
       CHARACTER(LEN=31)  :: TRCNAME
-      REAL(fp)           :: TAU, INITCONC
+      REAL(fp)           :: MW, TAU, INITCONC
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -7246,22 +7246,24 @@
       ! Read passive tracer information for each passive tracer
       ! Every passive tracer line is expected to have 3 entries:
       ! - Tracer name
+      ! - Tracer molecular weight 
       ! - Atmospheric lifetime (s)
       ! - Default atmospheric concentration (v/v)
       IF ( NPT > 0 ) THEN
          DO I = 1, NPT
             ! Read values into substrings
-            CALL SPLIT_ONE_LINE( SUBSTRS, N, 3, 
+            CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 
      &                           'read_passive_tracer_menu:2' )
      
             ! Pass to temporary variables
             TRCNAME = TRIM(SUBSTRS(1))
-            READ( SUBSTRS(2), * ) TAU
-            READ( SUBSTRS(3), * ) INITCONC 
+            READ( SUBSTRS(2), * ) MW
+            READ( SUBSTRS(3), * ) TAU
+            READ( SUBSTRS(4), * ) INITCONC 
       
             ! Register as passive tracer 
-            CALL ADD_PASSIVE_TRACER ( am_I_Root, Input_Opt, TRCNAME, 
-     &                                TAU,       INITCONC,  RC      )
+            CALL ADD_PASSIVE_TRACER ( am_I_Root, TRCNAME, 
+     &                                TAU,       INITCONC,  MW, RC  )
             IF ( RC /= GC_SUCCESS ) RETURN 
 
          ENDDO
