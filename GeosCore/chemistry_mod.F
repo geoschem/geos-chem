@@ -23,9 +23,10 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: INIT_CHEMISTRY
-      PUBLIC :: DO_CHEMISTRY
-      PUBLIC :: RECOMPUTE_OD
+      PUBLIC  :: INIT_CHEMISTRY
+      PUBLIC  :: DO_CHEMISTRY
+      PUBLIC  :: RECOMPUTE_OD
+      PRIVATE :: CHEM_PASSIVE_TRACER
 !
 ! !REVISION HISTORY: 
 !  (1 ) Bug fix in DO_CHEMISTRY (bnd, bmy, 4/14/03)
@@ -60,6 +61,7 @@
 !                              to compile properly
 !  13 Aug 2015 - E. Lundgren - Tracer units are now kg/kg and converted to
 !                              kg within DO_CHEMISTRY
+!  03 Nov 2016 - C. Keller   - Added wrapper routine for passive tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -116,7 +118,6 @@
       USE TENDENCIES_MOD
 #endif
       USE UnitConv_Mod
-      USE PASSIVE_TRACER_MOD, ONLY : CHEM_PASSIVE_TRACER 
 
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
@@ -662,6 +663,7 @@
          ! since passive tracers can be defined for various 
          ! simulations (as additional tracers to the default
          ! ones). ckeller, 09/04/15
+         ! CHEM_PASSIVE_TRACER is defined below (ckeller, 11/3/16)
          !-----------------------------------------------------
          CALL CHEM_PASSIVE_TRACER
      &       ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -858,6 +860,107 @@
       ENDIF
 
       END SUBROUTINE RECOMPUTE_OD
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CHEM_PASSIVE_TRACER
+!
+! !DESCRIPTION: Subroutine RUN\_PASSIVE\_TRACER performs loss chemistry 
+!  on all passive tracers.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_PASSIVE_TRACER ( am_I_Root, Input_Opt,  
+     &                                 State_Met, State_Chm, RC ) 
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : GC_Error
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ind_ 
+      USE PASSIVE_TRACER_MOD, ONLY : PASSIVE_TRACER_GETRATE
+      USE PASSIVE_TRACER_MOD, ONLY : NPASSIVE, PASSIVE_NAME 
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
+      TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input options object
+      TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Meteorology state object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state object 
+      INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+!
+! !REMARKS
+!
+! !REVISION HISTORY: 
+!  04 Sep 2015 - C. Keller    - Initial version 
+!  03 Nov 2016 - C. Keller    - Moved to chemistry_mod
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N,  GCID
+      REAL(fp)           :: DT, Rate
+      CHARACTER(LEN=255) :: MSG
+      CHARACTER(LEN=255) :: LOC='CHEM_PASSIVE_TRACER (chemistry_mod.F)'
+
+      DT = GET_TS_CHEM() * 60.0_fp
+
+      ! Assume success
+      RC = GC_SUCCESS
+
+      ! Return if there are no passive tracers
+      IF ( NPASSIVE <= 0 ) RETURN
+
+      ! Prosa
+      IF ( am_I_Root ) THEN
+         WRITE(*,*) '### Passive tracer chemistry: '
+      ENDIF
+
+      ! Do for every passive tracer
+      DO N = 1, NPASSIVE
+
+         ! Sanity check (GCID should never be negative) 
+         GCID = ind_( TRIM(PASSIVE_NAME(N)) )
+         IF ( GCID <= 0 ) CYCLE
+
+         ! Calculate decay rate (unitless)
+         CALL PASSIVE_TRACER_GETRATE( am_I_Root, PASSIVE_NAME(N), 
+     &                                DT, RATE, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            MSG = 'Passive tracer rate error: '//TRIM(PASSIVE_NAME(N))
+            CALL GC_Error( MSG, RC, LOC )
+            RETURN
+         ENDIF
+
+         ! Apply loss
+         State_Chm%Species(:,:,:,GCID) = 
+     &      State_Chm%Species(:,:,:,GCID) * Rate
+
+         ! Prosa
+         IF ( am_I_Root ) THEN
+            write(*,*) '- Pass. tracer, Tracer ID, loss rate: ', 
+     &         TRIM(PASSIVE_NAME(N)), GCID, Rate
+         ENDIF
+
+      ENDDO
+
+      ! Return w/ success 
+      RC = GC_SUCCESS
+ 
+      END SUBROUTINE CHEM_PASSIVE_TRACER
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

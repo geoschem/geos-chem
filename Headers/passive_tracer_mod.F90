@@ -71,7 +71,7 @@ MODULE PASSIVE_TRACER_MOD
 !
   PUBLIC :: INIT_PASSIVE_TRACER
   PUBLIC :: ADD_PASSIVE_TRACER
-  PUBLIC :: CHEM_PASSIVE_TRACER
+  PUBLIC :: PASSIVE_TRACER_GETRATE
   PUBLIC :: PASSIVE_TRACER_INQUIRE
   PUBLIC :: CLEANUP_PASSIVE_TRACER
 !
@@ -88,10 +88,12 @@ MODULE PASSIVE_TRACER_MOD
 !
 ! !MODULE VARIABLES:
 !
-  INTEGER                :: NPASSIVE = 0
-  INTEGER,  ALLOCATABLE  :: PASSIVE_ID      (:)
-  REAL(fp), ALLOCATABLE  :: PASSIVE_TAU     (:)
-  REAL(fp), ALLOCATABLE  :: PASSIVE_INITCONC(:)
+  INTEGER,                        PUBLIC :: NPASSIVE = 0
+  CHARACTER(LEN=63), ALLOCATABLE, PUBLIC :: PASSIVE_NAME    (:)
+  INTEGER,  ALLOCATABLE                  :: PASSIVE_ID      (:)
+  REAL(fp), ALLOCATABLE                  :: PASSIVE_MW      (:)
+  REAL(fp), ALLOCATABLE                  :: PASSIVE_TAU     (:)
+  REAL(fp), ALLOCATABLE                  :: PASSIVE_INITCONC(:)
 
   !============================================================================
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -116,7 +118,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ALLOC_ERR 
 !
 ! !INPUT PARAMETERS:
 !
@@ -152,14 +153,17 @@ CONTAINS
     ! Allocate arrays
     IF ( NPASSIVE > 0 ) THEN
        ALLOCATE( PASSIVE_ID(NPASSIVE),       PASSIVE_TAU(NPASSIVE), &
-                 PASSIVE_INITCONC(NPASSIVE), STAT=AS )
+                 PASSIVE_INITCONC(NPASSIVE), PASSIVE_MW(NPASSIVE),  &
+                 PASSIVE_NAME(NPASSIVE),     STAT=AS )
        IF ( AS /= 0 ) THEN
-          CALL ALLOC_ERR( 'passive tracer arrays' )
+          WRITE(*,*) 'Cannot allocate passive tracers arrays'
           RC = GC_FAILURE
           RETURN
        ENDIF
 
        PASSIVE_ID(:)       = -999
+       PASSIVE_NAME(:)     = ''
+       PASSIVE_MW(:)       = 0.0_fp
        PASSIVE_TAU(:)      = 0.0_fp
        PASSIVE_INITCONC(:) = 0.0_fp
     ENDIF
@@ -179,23 +183,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ADD_PASSIVE_TRACER ( am_I_Root, Input_Opt,   TrcName, &
-                                  TrcTau,    TrcInitConc, RC        ) 
+  SUBROUTINE ADD_PASSIVE_TRACER ( am_I_Root,   TrcName, TrcTau, &
+                                  TrcInitConc, TrcMW,   RC ) 
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE ERROR_MOD,     ONLY : ERROR_STOP
-    USE State_Chm_Mod, ONLY : ind_ 
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
-    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt   ! Input opts
     CHARACTER(LEN=*), INTENT(IN   )  :: TrcName     ! Tracer name
     REAL(fp),         INTENT(IN   )  :: TrcTau      ! Tracer lifetime (s) 
     REAL(fp),         INTENT(IN   )  :: TrcInitConc ! Tracer default init conc (v/v) 
+    REAL(fp),         INTENT(IN   )  :: TrcMW       ! Tracer molec. weight (g/mol) 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -224,9 +225,8 @@ CONTAINS
 
     ! Error check: cannot define passive tracer if # of passive tracers is 0.
     IF ( NPASSIVE <= 0 ) THEN
-       MSG = 'Cannot add passive tracer ' // TRIM(TrcName) // &
+       WRITE(*,*) 'Cannot add passive tracer ', TRIM(TrcName), &
              ': # of passive tracers is smaller than 1!'
-       CALL ERROR_STOP ( TRIM(MSG), TRIM(LOC) )
        RC = GC_FAILURE
        RETURN 
     ENDIF 
@@ -241,34 +241,36 @@ CONTAINS
     ENDDO 
     
     IF ( IDX <= 0 ) THEN
-       WRITE(MSG,*) 'Cannot add passive tracer ', TRIM(TrcName), &
+       WRITE(*,*) 'Cannot add passive tracer ', TRIM(TrcName), &
                     ': all ', NPASSIVE, ' tracer slots are already being used.'
-       CALL ERROR_STOP ( TRIM(MSG), TRIM(LOC) )
        RC = GC_FAILURE
        RETURN 
     ENDIF 
 
-    ! Find GEOS-Chem tracer ID for this tracer (by name)
-    TRCID = ind_( TRIM(TrcName) )
+!    ! Find GEOS-Chem tracer ID for this tracer (by name)
+!    TRCID = ind_( TRIM(TrcName) )
 
-    ! Return w/ error if this tracer is not defined as GEOS-Chem tracer
-    IF ( TRCID <= 0 ) THEN
-       WRITE(MSG,*) 'Cannot add passive tracer ', TRIM(TrcName), &
-                    ': this is not a GEOS-Chem tracer.'
-       CALL ERROR_STOP ( TRIM(MSG), TRIM(LOC) )
-       RC = GC_FAILURE
-       RETURN 
-    ENDIF 
+!    ! Return w/ error if this tracer is not defined as GEOS-Chem tracer
+!    IF ( TRCID <= 0 ) THEN
+!       WRITE(MSG,*) 'Cannot add passive tracer ', TRIM(TrcName), &
+!                    ': this is not a GEOS-Chem tracer.'
+!       CALL ERROR_STOP ( TRIM(MSG), TRIM(LOC) )
+!       RC = GC_FAILURE
+!       RETURN 
+!    ENDIF 
 
     ! Register tracer
-    PASSIVE_ID(IDX)       = TRCID
+    PASSIVE_ID(IDX)       = IDX
+    PASSIVE_NAME(IDX)     = TRIM(TrcName)
     PASSIVE_TAU(IDX)      = TrcTau 
     PASSIVE_INITCONC(IDX) = TrcInitConc 
+    PASSIVE_MW(IDX)       = TrcMW
 
     ! Verbose
     IF ( am_I_Root ) THEN
        WRITE( 6, '(a)' ) 'Added passive tracer: '
-       WRITE( 6, 110   ) ' - Tracer name                 : ', TRIM(TrcName)
+       WRITE( 6, 110   ) ' - Tracer name                 : ', PASSIVE_NAME(IDX) 
+       WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ', PASSIVE_MW(IDX)
        WRITE( 6, 120   ) ' - Lifetime [s]                : ', PASSIVE_TAU(IDX)
        WRITE( 6, 130   ) ' - Default concentration [v/v] : ', PASSIVE_INITCONC(IDX)
     ENDIF
@@ -287,34 +289,33 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CHEM_PASSIVE_TRACER
+! !IROUTINE: PASSIVE_TRACER_GETRATE
 !
-! !DESCRIPTION: Subroutine RUN\_PASSIVE\_TRACER performs loss chemistry 
+! !DESCRIPTION: Subroutine PASSIVE\_TRACER\_GETRATE returns the unitless decay
+!  rate for the given tracer and chemistry time step. 
 !  on all passive tracers.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CHEM_PASSIVE_TRACER ( am_I_Root, Input_Opt, &
-                                   State_Met, State_Chm, RC ) 
+  SUBROUTINE PASSIVE_TRACER_GETRATE ( am_I_Root, TrcName, DT, Rate, RC ) 
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,     ONLY : OptInput
-    USE State_Chm_Mod,     ONLY : ChmState
-    USE State_Met_Mod,     ONLY : MetState
-    USE TIME_MOD,          ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input options object
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Meteorology state object
+    CHARACTER(LEN=*), INTENT(IN   )  :: TrcName    ! Passive tracer name 
+    REAL(fp),         INTENT(IN   )  :: DT         ! Time step in s
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(fp),         INTENT(  OUT)  :: Rate       ! Decay rate (unitless 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state object 
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REMARKS
@@ -327,47 +328,52 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER           :: I, J, L, N, GCID
-    REAL(fp)          :: DTCHEM, Decay, Rate
+    INTEGER             :: N, ID
+    REAL(fp)            :: Decay
+    CHARACTER(LEN=255)  :: MSG
+    CHARACTER(LEN=255)  :: LOC = "PASSIVE_TRACER_GETRATE (PASSIVE_TRACER_MOD.F90)"
 
     REAL(fp), PARAMETER :: ln2 = 0.693147181E+00_fp
 
     !=================================================================
-    ! CHEM_PASSIVE_TRACER begins here!
+    ! PASSIVE_TRACER_GETRATE begins here!
     !=================================================================
 
     ! Assume success
     RC = GC_SUCCESS
 
-    ! Return if there are no passive tracers
-    IF ( NPASSIVE <= 0 ) RETURN
-
-    ! Get chemistry timestep [s]
-    DTCHEM = GET_TS_CHEM() * 60.0_fp
-
-    ! Do for every passive tracer
+    ! Find the index
+    ID = -1
     DO N = 1, NPASSIVE
 
-       ! Sanity check (GCID should never be negative) 
-       GCID = PASSIVE_ID(N)
-       IF ( GCID <= 0 ) CYCLE
-
-       ! No loss needed if tau is zero or negative
-       IF ( PASSIVE_TAU(N) <= 0.0_fp ) CYCLE 
-
-       ! Calculate decay rate (unitless)
-       Decay    = ln2 / PASSIVE_TAU(N)
-       Rate     = EXP( - DTCHEM * Decay )
-
-       ! Apply loss
-       State_Chm%Species(:,:,:,GCID) = State_Chm%Species(:,:,:,GCID) * Rate
-
+       IF ( TRIM(TrcName) == TRIM(PASSIVE_NAME(N)) ) THEN
+          ID = N
+          EXIT
+       ENDIF
     ENDDO
+
+    ! Error check
+    IF ( ID <= 0 ) THEN
+       WRITE(*,*) 'This is not a passive tracer ', TRIM(TrcName)
+       RC = GC_FAILURE
+       RETURN 
+    ENDIF 
+
+    ! No loss needed if tau is zero or negative
+    IF ( PASSIVE_TAU(N) <= 0.0_fp ) THEN
+       Rate = 1.0
+
+    ! Calculate decay rate (unitless)
+    ELSE 
+       Decay    = ln2 / PASSIVE_TAU(N)
+       Rate     = EXP( - DT * Decay )
+
+    ENDIF
 
     ! Return w/ success 
     RC = GC_SUCCESS
  
-  END SUBROUTINE CHEM_PASSIVE_TRACER
+  END SUBROUTINE PASSIVE_TRACER_GETRATE
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -382,7 +388,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE PASSIVE_TRACER_INQUIRE ( TrcID, IsPassive, InitConc ) 
+  SUBROUTINE PASSIVE_TRACER_INQUIRE ( TrcName, IsPassive, MW, InitConc ) 
 !
 ! !USES:
 !
@@ -390,11 +396,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,            INTENT(IN   )  :: TrcID      ! GC tracer ID 
+    CHARACTER(LEN=*),   INTENT(IN   )  :: TrcName    ! GC tracer name 
 !
 ! !OUTPUT PARAMETERS:
 !
     LOGICAL,  OPTIONAL, INTENT(  OUT)  :: IsPassive  ! Is TrcID a passive tracer?
+    REAL(fp), OPTIONAL, INTENT(  OUT)  :: MW         ! Molecular weight (g/mol) 
     REAL(fp), OPTIONAL, INTENT(  OUT)  :: InitConc   ! Initial concentration (v/v) 
 !
 ! !REMARKS
@@ -407,9 +414,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER    :: N
+    INTEGER    :: N, ID
     LOGICAL    :: IsPass
-    REAL(fp)   :: InConc
+    REAL(fp)   :: InConc, molw
 
     !=================================================================
     ! PASSIVE_TRACER_INQUIRE begins here!
@@ -424,9 +431,10 @@ CONTAINS
 
        ! Loop over all passive tracers
        DO N = 1, NPASSIVE
-          IF ( PASSIVE_ID(N) == TrcID ) THEN
+          IF ( TRIM(TrcName) == TRIM(PASSIVE_NAME(N)) ) THEN
              IsPass = .TRUE.
              InConc = PASSIVE_INITCONC(N)
+             molw   = PASSIVE_MW(N)
              EXIT
           ENDIF
        ENDDO
@@ -435,6 +443,7 @@ CONTAINS
     ! Pass to output
     IF ( PRESENT(IsPassive) ) IsPassive = IsPass
     IF ( PRESENT(InitConc ) ) InitConc  = InConc
+    IF ( PRESENT(MW       ) ) MW        = molw    
 
   END SUBROUTINE PASSIVE_TRACER_INQUIRE
 !EOC
@@ -481,6 +490,8 @@ CONTAINS
     IF ( ALLOCATED( PASSIVE_ID       ) ) DEALLOCATE( PASSIVE_ID       )
     IF ( ALLOCATED( PASSIVE_TAU      ) ) DEALLOCATE( PASSIVE_TAU      )
     IF ( ALLOCATED( PASSIVE_INITCONC ) ) DEALLOCATE( PASSIVE_INITCONC )
+    IF ( ALLOCATED( PASSIVE_MW       ) ) DEALLOCATE( PASSIVE_MW       )
+    IF ( ALLOCATED( PASSIVE_NAME     ) ) DEALLOCATE( PASSIVE_NAME     )
 
     ! Return w/ success
     RC = GC_SUCCESS
