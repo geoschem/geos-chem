@@ -5803,17 +5803,8 @@
          ! Loop over ND65 families
          DO N = 1, Input_Opt%NFAM
 
-            ! Don't add TRCOFFSET for single tracer Ox
-            ! Also select proper unit string
-            IF ( Input_Opt%ITS_A_CH3I_SIM ) THEN
-               NN          = N
-               UNIT        = 'kg/s'
-
-               DO L = 1, LD65
-                  ARRAY(:,:,L) = AD65(:,:,L,N)
-               ENDDO
-
-            ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+            ! Select proper unit string
+            IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
                NN          = N
                UNIT        = 'kg/s'
                
@@ -5823,14 +5814,6 @@
                ELSEWHERE
                   ARRAY(:,:,1:LD65) = 0.
                ENDWHERE
-
-            ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-               NN          = N
-               UNIT        = 'mol/cm3/s'
-
-               DO L = 1, LD65
-                  ARRAY(:,:,L) = AD65(:,:,L,N) / SCALECHEM
-               ENDDO
 
             ELSE
                NN     = N

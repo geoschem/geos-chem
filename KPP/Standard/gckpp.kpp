@@ -4,10 +4,17 @@
 #HESSIAN off
 #MEX off
 #STOICMAT off 
-#FLUX on
+#FLUX off
 
 #INCLUDE globchem.spc
 #INCLUDE globchem.eqn
+
+#FAMILIES
+POx : O3 + NO2 + 2NO3 + PAN + PMN + PPN + HNO4 + 3N2O5 + HNO3 + BrO + HOBr + BrNO2 + 2BrNO3 + MPN;
+LOx : O3 + NO2 + 2NO3 + PAN + PMN + PPN + HNO4 + 3N2O5 + HNO3 + BrO + HOBr + BrNO2 + 2BrNO3 + MPN;
+PCO : CO;
+LCO : CO;
+PSO4 : SO4;
 
 #INLINE F90_RATES
   REAL(kind=dp) FUNCTION OH_O1D (J, H2O, TEMP, NUMDEN)

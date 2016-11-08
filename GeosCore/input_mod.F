@@ -6019,6 +6019,8 @@
       USE CHARPAK_MOD,        ONLY : ISDIGIT,         STRSPLIT
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE gckpp_Parameters,   ONLY : NFAM
+      USE gckpp_Monitor,      ONLY : FAM_NAMES
       USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -6053,15 +6055,10 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL              :: EOF,      DO_SAVE_PL, DO_SAVE_O3
-      INTEGER              :: F,        M,    N,          NFAM
-      CHARACTER(LEN=255)   :: LOCATION, NAME, MSG 
+      INTEGER              :: F,        N,          N_ADVECT
+      CHARACTER(LEN=255)   :: LOCATION, MSG
 
       ! Arrays
-      INTEGER              :: FAM_NMEM(MAXFAM)
-      REAL(fp)             :: FAM_COEF(MAXMEM,MAXFAM)
-      CHARACTER(LEN=14 )   :: FAM_NAME(MAXFAM)
-      CHARACTER(LEN=14 )   :: FAM_TYPE(MAXFAM)
-      CHARACTER(LEN=14 )   :: FAM_MEMB(MAXMEM,MAXFAM)
       CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM)
 
       !=================================================================
@@ -6077,13 +6074,6 @@
      &         'must be read in first!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
-
-      ! Initialize
-      FAM_NAME(:)   = ''
-      FAM_TYPE(:)   = ''
-      FAM_NMEM(:)   = 0
-      FAM_MEMB(:,:) = ''
-      FAM_COEF(:,:) = 0e+0_fp
 
       !=================================================================
       ! Read info about prod & loss families
@@ -6101,77 +6091,9 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:3' )
       READ( SUBSTRS(1:N), * ) DO_SAVE_O3
 
-      ! Read number of families 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:4' )
-      READ( SUBSTRS(1:N), * ) NFAM
-
-      ! Loop over families
-      DO F = 1, NFAM
-
-         ! Get family members
-         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1,  'read_prod_loss_menu:5' )
-
-         ! The first entry is the family name (strip colon at end)
-         NAME        = SUBSTRS(1)
-         FAM_NAME(F) = NAME( 1:LEN_TRIM( NAME )-1 )
-
-         ! Get family type as prod or loss
-         IF ( FAM_NAME(F)(1:1) == 'P'   .or. 
-     &        FAM_NAME(F)(1:1) == 'p' ) THEN
-            FAM_TYPE(F) = 'prod'
-         ELSE
-            FAM_TYPE(F) = 'loss'
-         ENDIF
-
-         ! Number of member species in this prodloss family
-         FAM_NMEM(F) = N - 1
-
-         ! Loop over substrings
-         DO M = 1, N-1
-
-            ! Family member name
-            NAME          =  TRIM( SUBSTRS(M+1) )
-
-            ! Family member coefficient (set to 1 for now)
-            FAM_COEF(M,F) = 1e+0_fp
-
-            ! If first char is a digit ...
-            IF ( ISDIGIT( NAME(1:1) ) ) THEN
-               
-               ! Save new family coefficient 
-               READ( NAME(1:1), * ) FAM_COEF(M,F)
-
-               ! Get the rest of the member name (skip digit)
-               NAME = NAME( 2:LEN_TRIM(NAME) )
-            ENDIF
-
-            ! Family member name
-            FAM_MEMB(M,F) = NAME
-         ENDDO
-      ENDDO
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:6' )
-
       !=================================================================
       ! Error check families for certain types of simulations
       !=================================================================
-
-      ! Tagged O3
-      IF ( DO_SAVE_PL .and. Input_Opt%ITS_A_TAGO3_SIM ) THEN
-         IF ( NFAM /= 2*Input_Opt%N_ADVECT ) THEN
-            MSG = 'Wrong number of P/L families for Tagged O3!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
-
-      ! Tagged CO
-      IF ( DO_SAVE_PL .and. Input_Opt%ITS_A_TAGCO_SIM ) THEN
-         IF ( NFAM /= Input_Opt%N_ADVECT+5 ) THEN
-            MSG = 'Wrong number of P/L families for Tagged CO!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
 
       ! Offline aerosol -- turn off DO_SAVE_PL, since we use ND05,
       ! ND06, ND07, ND08, ND13 etc diagnostics instead of ND65
@@ -6179,13 +6101,89 @@
          DO_SAVE_PL    = .FALSE.
          DO_SAVE_O3    = .FALSE.
          ND65          = 0
-         NFAM          = 0
-         FAM_NAME(:)   = ''
-         FAM_TYPE(:)   = ''
-         FAM_NMEM(:)   = 0
-         FAM_MEMB(:,:) = ''
-         FAM_COEF(:,:) = 0e+0_fp
       ENDIF
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+
+      ! Number of advected species
+      N_ADVECT = Input_Opt%N_ADVECT 
+
+      IF ( DO_SAVE_PL ) THEN
+         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+            ! Fullchem - Obtain NFAM from KPP
+            Input_Opt%NFAM = NFAM
+         ELSEIF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+            ! Tagged O3
+            Input_Opt%NFAM = 2*N_ADVECT
+         ELSEIF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+            ! Tagged CO
+            Input_Opt%NFAM = N_ADVECT+5
+         ENDIF
+      ENDIF
+
+      Input_Opt%LFAMILY = ( DO_SAVE_PL .and. NFAM > 0 )
+
+      ! Return if there are no prod/loss families
+      ! or if we have turned off this diagnostic
+      IF ( .not. Input_Opt%LFAMILY ) THEN
+         DO_SAVE_PL = .FALSE.
+         DO_SAVE_O3 = .FALSE.
+         ND65       = 0
+      ENDIF
+
+      Input_Opt%DO_SAVE_PL     = DO_SAVE_PL
+      Input_Opt%DO_SAVE_O3     = DO_SAVE_O3
+      Input_Opt%ND65           = ND65
+
+      ! Loop over families
+      DO F = 1, Input_Opt%NFAM
+
+         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+
+            ! Fullchem - Obtain FAM_NAME from KPP
+            Input_Opt%FAM_NAME(F) = FAM_NAMES(F) 
+
+         ELSEIF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+
+            ! Tagged O3
+            IF ( F <= N_ADVECT ) THEN
+               Input_Opt%FAM_NAME(F) =
+     &            'P' // TRIM(Input_Opt%AdvectSpc_Name(F))
+            ELSE
+               Input_Opt%FAM_NAME(F) =
+     &            'L' // TRIM(Input_Opt%AdvectSpc_Name(F-N_ADVECT))
+            ENDIF
+
+         ELSEIF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+
+            ! Tagged CO
+            IF ( F <= N_ADVECT ) THEN
+               Input_Opt%FAM_NAME(F) = 'P'//Input_Opt%AdvectSpc_Name(F)
+            ELSEIF ( F == N_ADVECT+1 ) THEN
+               Input_Opt%FAM_NAME(F) = 'PISOP'
+            ELSEIF ( F == N_ADVECT+2 ) THEN
+               Input_Opt%FAM_NAME(F) = 'PCH4'
+            ELSEIF ( F == N_ADVECT+3 ) THEN
+               Input_Opt%FAM_NAME(F) = 'PCH3OH'
+            ELSEIF ( F == N_ADVECT+4 ) THEN
+               Input_Opt%FAM_NAME(F) = 'PMONO'
+            ELSEIF ( F == N_ADVECT+5 ) THEN
+               Input_Opt%FAM_NAME(F) = 'PACET'
+            ENDIF
+
+         ENDIF
+
+         ! Get family type as prod or loss
+         IF ( Input_Opt%FAM_NAME(F)(1:1) == 'P'   .or.
+     &        Input_Opt%FAM_NAME(F)(1:1) == 'p' ) THEN
+            Input_Opt%FAM_TYPE(F) = 'prod'
+         ELSE
+            Input_Opt%FAM_TYPE(F) = 'loss'
+         ENDIF
+
+      ENDDO
 
       !=================================================================
       ! Print to screen
@@ -6195,58 +6193,23 @@
          WRITE( 6, '(  a)' ) '---------------------------'      
          WRITE( 6, 100 ) 'Turn on prod & loss diag?   : ', DO_SAVE_PL
          WRITE( 6, 110 ) '# of levels for P/L diag    : ', ND65
-         WRITE( 6, 100 ) 'Save P(Ox), L(Ox) for TagO3?: ', DO_SAVE_O3
+         WRITE( 6, 100 ) 'Save P(O3), L(O3) for TagO3?: ', DO_SAVE_O3
       
          ! Loop over families
-         DO F = 1, NFAM
+         DO F = 1, Input_Opt%NFAM
 
-            ! Write family name, type and # of members
-            WRITE( 6, 120 ) FAM_NAME(F), FAM_TYPE(F)
-         
-            ! Write info about each constituent member
-            DO M = 1, FAM_NMEM(F)
-               WRITE( 6, 130 ) M, FAM_COEF(M,F), FAM_MEMB(M,F)
-            ENDDO
+            ! Write family name and type
+            WRITE( 6, 120 ) TRIM(Input_Opt%FAM_NAME(F)),
+     &                      TRIM(Input_Opt%FAM_TYPE(F))
+
          ENDDO
+
       ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
  110  FORMAT( A, I5 )
- 120  FORMAT( /, 'Family=', A5, '  Type=', a4 )
- 130  FORMAT( I3, 1X, F4.1, 1X, A5 )
-
-      !=================================================================
-      ! Set fields of Input Options object
-      !=================================================================
-      Input_Opt%LFAMILY             = ( DO_SAVE_PL .and. NFAM > 0 )
-
-      ! Return if there are no prod/loss families
-      ! or if we have turned off this diagnostic
-      IF ( .not. Input_Opt%LFAMILY ) THEN
-         DO_SAVE_PL = .FALSE.
-         DO_SAVE_O3 = .FALSE.
-         NFAM       = 0
-         ND65       = 0
-      ENDIF
-
-      Input_Opt%DO_SAVE_PL          = DO_SAVE_PL
-      Input_Opt%DO_SAVE_O3          = DO_SAVE_O3
-      Input_Opt%NFAM                = NFAM
-      Input_Opt%ND65                = ND65
-
-      ! Loop over # families
-      DO F = 1, NFAM
-         Input_Opt%FAM_NAME(F)      = FAM_NAME(F) 
-         Input_Opt%FAM_NMEM(F)      = FAM_NMEM(F)
-         Input_Opt%FAM_TYPE(F)      = FAM_TYPE(F)
-
-         ! Loop over # members/family
-         DO M = 1, FAM_NMEM(F)   
-            Input_Opt%FAM_COEF(M,F) = FAM_COEF(M,F)
-            Input_Opt%FAM_MEMB(M,F) = FAM_MEMB(M,F)
-         ENDDO
-      ENDDO
+ 120  FORMAT( /, 'Family=', A10, '  Type=', A4 )
 
       ! Return success
       RC = GC_SUCCESS

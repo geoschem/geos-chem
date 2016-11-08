@@ -69,14 +69,14 @@ CONTAINS
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
     USE DIAG_MOD,             ONLY : AD65
     USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
-    USE DIAG20_MOD,           ONLY : DIAG20, O3_PROD, O3_LOSS
+    USE DIAG20_MOD,           ONLY : DIAG20, POx, LOx
     USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,          ONLY : PHOTRATE_ADJ, FAST_JX
     USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
     USE GCKPP_HetRates,       ONLY : SET_HET
-    USE GCKPP_Monitor,        ONLY : SPC_NAMES, FLUX_MAP
+    USE GCKPP_Monitor,        ONLY : SPC_NAMES, FAM_NAMES
     USE GCKPP_Parameters
     USE GCKPP_Integrator,     ONLY : INTEGRATE, NHnew
     USE GCKPP_Function 
@@ -202,9 +202,7 @@ CONTAINS
     REAL(fp)               :: SCF(3)
 
     ! For prod/loss diagnostic
-    REAL(fp)               :: PROD(NVAR)
-    REAL(fp)               :: LOSS(NVAR)
-    REAL(fp)               :: deltaCheck(2,2) ! debug only
+    REAL(fp)               :: FAM(NFAM)
     INTEGER                :: IND
     INTEGER                :: COEF
     CHARACTER(LEN=14)      :: NAME
@@ -512,7 +510,7 @@ CONTAINS
     !$OMP PRIVATE  ( I,     J,        L,          N,     YLAT ) &
     !$OMP PRIVATE  ( SCF,   SO4_FRAC, IERR,       RCNTRL      ) &
     !$OMP PRIVATE  ( START, FINISH,   ISTATUS,    RSTATE      ) &
-    !$OMP PRIVATE  ( PROD,  LOSS,     DELTACHECK, SpcId       ) &
+    !$OMP PRIVATE  ( FAM,   SpcId                             ) &
     !$OMP PRIVATE  ( NAME,  COEF,     IND,        F,     M    ) &
     !$OMP REDUCTION( +:ITIM                                   ) &
     !$OMP REDUCTION( +:RTIM                                   ) &
@@ -690,22 +688,9 @@ CONTAINS
           ENDIF
        ENDIF
 
-       !### Debug printout, we can remove it later
-       IF ( prtDebug ) THEN
-          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-             deltaCheck(1,1) = C(ind_OH)
-             DO N = 1,NSPEC
-                write(*,'(a5,a10,es13.6)') '<> b ', trim(SPC_NAMES(N)), C(N)
-             ENDDO
-          ENDIF
-       ENDIF
-
        !===========================================================
        ! Update KPP's rates
        !===========================================================
-
-       ! Reset prod/loss dummy species to zero
-       C(FLUX_MAP) = 0.
 
        ! VAR and FIX are chunks of array C (mps, 2/24/16)
        !
@@ -831,14 +816,6 @@ CONTAINS
           ! Copy concentrations back into State_Chm%Species
           State_Chm%Species(I,J,L,SpcID) = REAL( C(N), kind=fp )
 
-          !### Debug output, we can remove it later
-          IF ( prtDebug ) THEN
-             IF (I.eq.10.and.J.eq.10.and.L.eq.10.and.N.eq.ind_OH) THEN
-                write(*,'(a9,2es13.6)') 'SPC_OH : ', &
-                   C(N), State_Chm%Species(I,J,L,SpcID)
-             ENDIF
-          ENDIF
-
        ENDDO
 
        !==============================================================
@@ -847,83 +824,48 @@ CONTAINS
        IF ( Input_Opt%DO_SAVE_PL ) THEN
 
           ! Obtain prod/loss rates from KPP [molec/cm3]
-          CALL Flux( C(FLUX_MAP), PROD, LOSS)
+          CALL ComputeFamilies( VAR, FAM )
 
           ! Loop over # prod/loss families
-          DO F = 1, Input_Opt%NFAM
+          DO F = 1, NFAM
 
-             ! Loop over members in prod/loss families
-             DO M = 1, Input_Opt%FAM_NMEM(F)
+             !--------------------------------------------------------
+             ! Add to AD65 array [molec/cm3/s]
+             !--------------------------------------------------------
+             AD65(I,J,L,F) = AD65(I,J,L,F) + FAM(F) / DT
 
-                ! Get information about prod/loss species
-                NAME = Input_Opt%FAM_MEMB(M,F) ! Species name
-                COEF = Input_Opt%FAM_COEF(M,F) ! Species coefficient
-                IND  = Ind_(TRIM(NAME),'K')    ! KPP species ID
-
-                ! Skip prod/loss species if not found in KPP
-                IF ( IND <= 0 ) THEN
-                   IF ( I == 1 .and. J == 1 .and. L == 1 ) THEN
-                      WRITE(*,'(a8,a66)') TRIM(NAME),               &
-                         ' NOT found in KPP. Skipping prod/loss' // &
-                         ' diagnostic for this species.'
-                   ENDIF
-                   CYCLE
+             !--------------------------------------------------------
+             ! Save out P(Ox) and L(Ox) from the fullchem simulation
+             ! for a future tagged O3 run
+             !--------------------------------------------------------
+             IF ( Input_Opt%DO_SAVE_O3 ) THEN
+                IF ( TRIM(FAM_NAMES(F)) == 'POx' ) THEN
+                   POx(I,J,L) = FAM(F) / DT
                 ENDIF
-
-                ! Check if family type is prod or loss
-                ! and add to AD65 array [molec/cm3/s]
-                IF      ( Input_Opt%FAM_TYPE(F) == 'prod' ) THEN
-                   AD65(I,J,L,F) = AD65(I,J,L,F) + COEF*(PROD(IND)/DT)
-                ELSE IF ( Input_Opt%FAM_TYPE(F) == 'loss' ) THEN
-                   AD65(I,J,L,F) = AD65(I,J,L,F) + COEF*(LOSS(IND)/DT)
+                IF ( TRIM(FAM_NAMES(F)) == 'LOx' ) THEN
+                   LOx(I,J,L) = FAM(F) / DT
                 ENDIF
+             ENDIF
 
-#if   defined( TOMAS )
-                !-------------------------------------------------------
-                ! FOR TOMAS MICROPHYSICS:
-                !
-                ! Obtain P/L with a unit [kg S] for tracing 
-                ! gas-phase sulfur species production (SO2, SO4, MSA)
-                ! (win, 8/4/09)
-                !-------------------------------------------------------
+#if defined( TOMAS )
+             !-------------------------------------------------------
+             ! FOR TOMAS MICROPHYSICS:
+             !
+             ! Obtain P/L with a unit [kg S] for tracing 
+             ! gas-phase sulfur species production (SO2, SO4, MSA)
+             ! (win, 8/4/09)
+             !-------------------------------------------------------
 
-                ! Calculate H2SO4 production rate [kg s-1] in each
-                ! time step (win, 8/4/09)
-                IF ( Input_Opt%FAM_NAME(F) == 'PSO4' ) THEN 
-                   H2SO4_RATE(I,J,L) = PROD(IND) /             &
-                                       AVO * 98.e-3_fp *       & ! Hard-coded MW
-                                       State_Met%AIRVOL(I,J,L) * &
-                                       1e+6_fp   / DT
-                ENDIF
+             ! Calculate H2SO4 production rate [kg s-1] in each
+             ! time step (win, 8/4/09)
+             IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN 
+                H2SO4_RATE(I,J,L) = FAM(F) / AVO * 98.e-3_fp * & ! Hard-coded MW
+                                    State_Met%AIRVOL(I,J,L)  * &
+                                    1e+6_fp / DT
+             ENDIF
 #endif
-             ENDDO
-
           ENDDO
 
-          !-----------------------------------------------------------
-          ! Save out P(O3) and L(O3) from the fullchem simulation
-          ! for a future tagged O3 run
-          !-----------------------------------------------------------
-          IF ( Input_Opt%DO_SAVE_O3 ) THEN
-             IND =  Ind_('O3','K')
-             O3_PROD(I,J,L) = PROD(IND) / DT
-             O3_LOSS(I,J,L) = LOSS(IND) / DT
-          ENDIF
-
-       ENDIF
-
-       !### Debug output, we can remove it later
-       IF ( prtDebug ) THEN
-          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-             deltaCheck(1,1) = C(ind_OH) - deltaCheck(1,1)
-             deltaCheck(2,1) = PROD(ind_OH)-LOSS(ind_OH)
-             write(*,'(a25,a10,2e13.3)') '<> DELTA (actual v P-L): ', &
-                   trim(SPC_NAMES(ind_OH)), deltaCheck(1,1),          &
-                   deltaCheck(2,1)
-             DO N = 1,NSPEC
-                write(*,'(a5,a10,es13.6)') '<> a ', trim(SPC_NAMES(N)), C(N)
-             ENDDO
-          ENDIF
        ENDIF
 
     ENDDO
