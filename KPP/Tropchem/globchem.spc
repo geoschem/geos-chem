@@ -4,6 +4,7 @@
 
      A3O2            =          IGNORE;
      ACET            =          IGNORE;
+     ACTA            =          IGNORE;
      ALD2            =          IGNORE;
      ALK4            =          IGNORE;
      ATO2            =          IGNORE;
@@ -34,6 +35,7 @@
      GLYX            =          IGNORE;
      H2O2            =          IGNORE;
      HAC             =          IGNORE;
+     HCOOH           =          IGNORE;
      HNO2            =          IGNORE;
      HNO3            =          IGNORE;
      HNO4            =          IGNORE;
@@ -157,14 +159,12 @@
 
 #DEFFIX
 
-     ACTA            =          IGNORE;
      CH4             =          IGNORE;
      EMISSION        =          IGNORE;
      EOH             =          IGNORE;
      H               =          IGNORE;
      H2              =          IGNORE;
      H2O             =          IGNORE;
-     HCOOH           =          IGNORE;
      MNO3            =          IGNORE;
      MOH             =          IGNORE;
      N2              =          IGNORE;
