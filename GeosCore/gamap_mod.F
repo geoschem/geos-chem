@@ -7240,11 +7240,7 @@
                   UNIT(T,67) = 'm'
                CASE( 9  )
                   NAME(T,67) = 'PBL'
-#if   defined( GEOS_4 )
                   UNIT(T,67) = 'm'
-#else
-                  UNIT(T,67) = 'hPa'
-#endif
                CASE( 10 )
                   NAME(T,67) = 'CLDFRC'
                   UNIT(T,67) = 'unitless'

@@ -1527,7 +1527,7 @@
       ! (6 ) RADSWT : solar radiation @ atm. top         [W/m2]  
       ! (7 ) USTAR  : friction velocity                  [m/s]   
       ! (8 ) Z0     : surface roughness height           [m]    
-      ! (9 ) PBL    : planetary boundary layer depth     [hPa]   
+      ! (9 ) PBL    : planetary boundary layer depth     [m]
       ! (10) CLDFRC : column cloud fraction              [unitless]  
       ! (11) U10M   : U-winds @ 10 meters altitude       [m/s]   
       ! (12) V10M   : V-winds @ 10 meters altitude       [m/s]   
