@@ -646,6 +646,7 @@
       USE TIME_MOD,           ONLY : SET_BEGIN_TIME,   SET_END_TIME 
       USE TIME_MOD,           ONLY : SET_CURRENT_TIME, SET_DIAGb
       USE TIME_MOD,           ONLY : SET_NDIAGTIME,    GET_TAU
+      USE TIME_MOD,           ONLY : YMD_EXTRACT
       USE TRANSFER_MOD,       ONLY : INIT_TRANSFER
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE TIME_MOD,           ONLY : Accept_External_Date_Time
@@ -709,7 +710,9 @@
       INTEGER            :: N,       NDIAGTIME
       INTEGER            :: NYMDb,   NHMSb 
       INTEGER            :: NYMDe,   NHMSe
-      INTEGER            :: C
+      INTEGER            :: C,       H
+      INTEGER            :: M,       S
+      REAL(f4)           :: init_UTC
 
       ! Strings
       CHARACTER(LEN=255) :: TMP_CHAR
@@ -940,6 +943,11 @@
       NHMSb                   = Input_Opt%NHMSb
       NYMDe                   = Input_Opt%NYMDe
       NHMSe                   = Input_Opt%NHMSe
+
+      ! Get the starting UTC time from Input_Opt%NHMSb for use below
+      CALL YMD_Extract( Input_Opt%NHMSb, H, M, S )
+      init_UTC                = ( H + ( M / 60 ) + ( S / 3600 ) )
+
 #else
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
@@ -1043,6 +1051,7 @@
      &                                value_NHMSe = Input_Opt%NHMSe,
      &                                value_NYMD  = Input_Opt%NYMDb,
      &                                value_NHMS  = Input_Opt%NHMSb,
+     &                                value_UTC   = init_UTC,
      &                                RC          = RC               )
      &                                 
 
