@@ -934,21 +934,6 @@ CONTAINS
     write(*,'(a,I9)'   ) 'Flex LU Decompos.  : ', totnumLU
 #endif
 
-#if defined( UCX )
-    ! If using stratospheric chemistry, applying high-altitude
-    ! active nitrogen partitioning and H2SO4 photolysis
-    ! approximations  outside the chemgrid
-    CALL UCX_NOX( Input_Opt, State_Met, State_Chm )
-    IF ( prtDebug .and. am_I_Root ) THEN
-       CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
-    ENDIF
-
-    CALL UCX_H2SO4PHOT( Input_Opt, State_Met, State_Chm )
-    IF ( prtDebug .and. am_I_Root ) THEN
-       CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
-    ENDIF
-#endif
-
     !=================================================================
     ! Call OHSAVE which saves info on OH AND HO2 concentrations
     !=================================================================
@@ -979,6 +964,21 @@ CONTAINS
     ! Convert species from [molec/cm3] to [kg] (ewl, 8/16/16)
     !================================================================
     CALL ConvertSpc_MND_to_Kg( am_I_Root, State_Met, State_Chm, RC )
+
+#if defined( UCX )
+    ! If using stratospheric chemistry, applying high-altitude
+    ! active nitrogen partitioning and H2SO4 photolysis
+    ! approximations  outside the chemgrid
+    CALL UCX_NOX( Input_Opt, State_Met, State_Chm )
+    IF ( prtDebug .and. am_I_Root ) THEN
+       CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
+    ENDIF
+
+    CALL UCX_H2SO4PHOT( Input_Opt, State_Met, State_Chm )
+    IF ( prtDebug .and. am_I_Root ) THEN
+       CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
+    ENDIF
+#endif
 
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
     FIRSTCHEM = .FALSE.
