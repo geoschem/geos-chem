@@ -1248,7 +1248,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !SUBROUTINE: HCO_SetPBLm
+! !IROUTINE: HCO_SetPBLm
 !
 ! !DESCRIPTION: Subroutine HCO\_SetPBLm sets the HEMCO PBL mixing height in 
 ! meters. It first tries to read it from field 'FldName' (from the HEMCO data

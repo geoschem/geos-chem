@@ -175,7 +175,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: transfer_3d_r4
+! !IROUTINE: Transfer_3d_r4
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D\_R8 transfers 3-dimensional data from a 
 !  REAL*4  array to a REAL*4 array.  Vertical layers are collapsed (from LGLOB
@@ -287,7 +287,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: transfer_3d_r8
+! !IROUTINE: Transfer_3d_r8
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D\_R8 transfers 3-dimensional data from a 
 !  REAL*4  array to a REAL(fp) array.  Vertical layers are collapsed (from LGLOB
@@ -415,7 +415,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: transfer_g5_ple
+! !IROUTINE: Transfer_G5_Ple
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_G5\_PLE transfers GEOS-5/MERRA pressure 
 !  edge data from the native 72-level grid to the reduced 47-level grid.  
@@ -500,7 +500,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: transfer_3d_lp1
+! !IROUTINE: Transfer_3d_Lp1
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D\_Lp1 transfers 3-D data from a REAL*4 
 !  array of dimension (IIPAR,JJPAR,LGLOB+1) to a REAL(fp) array of dimension 
@@ -594,7 +594,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: lump_2_r4
+! !IROUTINE: Lump_2_r4
 !
 ! !DESCRIPTION: Function LUMP\_2\_R4 lumps 2 sigma levels into one thick 
 !  level.  Input arguments must be REAL*4. 
@@ -698,7 +698,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: lump_2_r8
+! !IROUTINE: Lump_2_r8
 !
 ! !DESCRIPTION: Function LUMP\_2\_R8 lumps 2 sigma levels into one thick 
 !  level.  Input arguments must be REAL(fp). 
@@ -805,7 +805,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: lump_4_r4
+! !IROUTINE: Lump_4_r4
 !
 ! !DESCRIPTION: Function LUMP\_4\_R4 lumps 4 sigma levels into one thick 
 !  level.  Input arguments must be REAL*4.
@@ -1027,7 +1027,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_transfer
+! !IROUTINE: Init_Transfer
 !
 ! !DESCRIPTION: Subroutine INIT\_TRANSFER initializes and zeroes 
 !  all module variables.
@@ -1216,7 +1216,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_transfer
+! !IROUTINE: Cleanup_Transfer
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_TRANSFER deallocates all module variables.
 !\\

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: time_mod
+! !MODULE: time_mod.F
 !
 ! !DESCRIPTION: Module TIME\_MOD contains GEOS-Chem date and time variables
 !  and timesteps, and routines for accessing them.
@@ -331,7 +331,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_current_time
+! !IROUTINE: Set_current_time
 !
 ! !DESCRIPTION: Subroutine SET\_CURRENT\_TIME takes in the elapsed time in 
 !  minutes since the start of a GEOS-Chem simulation and sets the GEOS-Chem 
@@ -509,7 +509,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_begin_time
+! !IROUTINE: Set_begin_time
 !
 ! !DESCRIPTION: Subroutine SET\_BEGIN\_TIME initializes NYMDb, NHMSb, and TAUb,
 !  which are the YYYYMMDD, HHMMSS, and hours since 1/1/1985 corresponding to 
@@ -578,7 +578,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_end_time
+! !IROUTINE: Set_end_time
 !
 ! !DESCRIPTION: Subroutine SET\_END\_TIME initializes NYMDe, NHMSe, and TAUe, 
 !  which are the YYYYMMDD, HHMMSS, and hours since 1/1/1985 corresponding to 
@@ -644,7 +644,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_ndiagtime
+! !IROUTINE: Set_ndiagtime
 !
 ! !DESCRIPTION:Subroutine SET\_NDIAGTIME initializes NDIAGTIME, the time of 
 !  day at which the binary punch file will be written out to disk.
@@ -673,7 +673,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_diagb
+! !IROUTINE: Set_diagb
 !
 ! !DESCRIPTION: Subroutine SET\_DIAGb initializes DIAGb, the TAU value at the 
 !  start of the diagnostic averaging interval.
@@ -702,7 +702,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_diage
+! !IROUTINE: Set_diage
 !
 ! !DESCRIPTION: Subroutine SET\_DIAGe initializes DIAGe, the TAU value at the 
 !  end of the diagnostic averaging interval.
@@ -731,7 +731,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_timesteps
+! !IROUTINE: Set_timesteps
 !
 ! !DESCRIPTION: Subroutine SET\_TIMESTEPS initializes the timesteps for 
 !  dynamics, convection, chemistry, emissions, and diagnostics.  
@@ -813,7 +813,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_ct_chem
+! !IROUTINE: Set_ct_chem
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_CHEM increments CT\_CHEM, the counter
 !  of chemistry timesteps executed thus far. 
@@ -847,7 +847,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_ct_rad
+! !IROUTINE: Set_ct_rad
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_RAD increments CT\_RAD, the
 ! counter of radiation timesteps executed thus far.
@@ -880,7 +880,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_hg2_diag
+! !IROUTINE: Set_hg2_diag
 !
 ! !DESCRIPTION: Subroutine SET\_Hg2\_DIAG increments Hg2\_DIAG, the counter for
 !  the number of times AAD03\_Fg and AD03\_Fp are recorded. (hma 20100218)
@@ -915,7 +915,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_ct_conv
+! !IROUTINE: Set_ct_conv
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_CONV increments CT\_CONV, the counter
 !  of convection timesteps executed thus far. 
@@ -949,7 +949,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_ct_dyn
+! !IROUTINE: Set_ct_dyn
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_DYN increments CT\_DYN, the counter
 !  of dynamical timesteps executed thus far. 
@@ -983,7 +983,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_ct_emis
+! !IROUTINE: Set_ct_emis
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_EMIS increments CT\_EMIS, the counter
 !  of emission timesteps executed thus far. 
@@ -1017,7 +1017,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_ct_diag
+! !IROUTINE: Set_ct_diag
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_DIAG increments CT\_DIAG, the counter
 !  of largest timesteps executed thus far. 
@@ -1051,7 +1051,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_ct_a1
+! !IROUTINE: Set_ct_a1
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_A1 increments CT\_A1, the counter of the 
 !  number of times we have read in A1 fields.
@@ -1084,7 +1084,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_ct_a3
+! !IROUTINE: Set_ct_a3
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_A3 increments CT\_A3, the counter of the 
 !  number of times we have read in A-3 fields.
@@ -1118,7 +1118,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_ct_a6
+! !IROUTINE: Set_ct_a6
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_A6 increments CT\_A6, the counter of the 
 !  number of times we have read in A-6 fields.
@@ -1152,7 +1152,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_ct_i3
+! !IROUTINE: Set_ct_i3
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_I3 increments CT\_I3, the counter of the 
 !  number of times we have read in I-3 fields.
@@ -1185,7 +1185,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_ct_i6
+! !IROUTINE: Set_ct_i6
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_I6 increments CT\_I6, the counter of the 
 !  number of times we have read in I-6 fields.
@@ -1219,7 +1219,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_ct_xtra
+! !IROUTINE: Set_ct_xtra
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_XTRA increments CT\_XTRA, the counter of 
 !  the number of times we have read in GEOS-3 XTRA fields. 
@@ -1253,7 +1253,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_elapsed_min
+! !IROUTINE: Set_elapsed_min
 !
 ! !DESCRIPTION: Subroutine SET\_ELAPSED\_MIN increments the number of elapsed 
 !  minutes by the dynamic timestep TS\_DYN.
@@ -1278,7 +1278,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_jd
+! !IROUTINE: Get_jd
 !
 ! !DESCRIPTION: Function GET\_JD is a wrapper for the JULDAY routine.  Given 
 !  the current NYMD and NHMS values, GET\_JD will return the current 
@@ -1340,7 +1340,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_elapsed_min
+! !IROUTINE: Get_elapsed_min
 !
 ! !DESCRIPTION: Function GET\_ELAPSED\_MIN returns the elapsed minutes since 
 !  the start of a GEOS-chem run.
@@ -1369,7 +1369,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_elapsed_sec
+! !IROUTINE: Get_elapsed_sec
 !
 ! !DESCRIPTION: Function GET\_ELAPSED\_SEC returns the elapsed minutes since 
 !  the start of a GEOS-Chem run to the calling program.
@@ -1398,7 +1398,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_nymdb
+! !IROUTINE: Get_nymdb
 !
 ! !DESCRIPTION: Function GET\_NYMDb returns the NYMDb value (YYYYMMDD at the 
 !  beginning of the run).
@@ -1427,7 +1427,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_nhmsb
+! !IROUTINE: Get_nhmsb
 !
 ! !DESCRIPTION: Function GET\_NHMSb returns the NHMSb value (HHMMSS at the 
 !  beginning of the run) to the calling program. (bmy, 3/21/03)
@@ -1456,7 +1456,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_nymde
+! !IROUTINE: Get_nymde
 !
 ! !DESCRIPTION: Function GET\_NYMDe returns the NYMDe value (YYYYMMDD at the 
 !  end of the run) to the calling program. (bmy, 3/21/03)
@@ -1485,7 +1485,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_nhmse
+! !IROUTINE: Get_nhmse
 !
 ! !DESCRIPTION: Function GET\_NHMSe returns the NHMSe value (HHMMSS at the end
 !  of the run).
@@ -1514,7 +1514,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_nymd
+! !IROUTINE: Get_nymd
 !
 ! !DESCRIPTION: Function GET\_NYMD returns the current NYMD value (YYYYMMDD).
 !\\
@@ -1542,7 +1542,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_nhms
+! !IROUTINE: Get_nhms
 !
 ! !DESCRIPTION: Function GET\_NHMS returns the current NHMS value (HHMMSS).
 !\\
@@ -1570,7 +1570,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ndiagtime
+! !IROUTINE: Get_ndiagtime
 !
 ! !DESCRIPTION: Subroutine GET\_NDIAGTIME returns to the calling program 
 !  NDIAGTIME, the time of day at which the binary punch file will be written 
@@ -1600,7 +1600,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_time_ahead
+! !IROUTINE: Get_time_ahead
 !
 ! !DESCRIPTION: Function GET\_3h\_AHEAD returns to the calling program a 
 !  2-element vector containing the YYYYMMDD and HHMMSS values at the current 
@@ -1690,7 +1690,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_month
+! !IROUTINE: Get_month
 !
 ! !DESCRIPTION: Function GET\_MONTH returns the current GMT month.
 !\\
@@ -1718,7 +1718,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_day
+! !IROUTINE: Get_day
 !
 ! !DESCRIPTION: Function GET\_DAY returns the current GMT day.
 !\\
@@ -1746,7 +1746,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_year
+! !IROUTINE: Get_year
 !
 ! !DESCRIPTION: Function GET\_YEAR returns the current GMT year.
 !\\
@@ -1774,7 +1774,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_histyr
+! !IROUTINE: Set_histyr
 !
 ! !DESCRIPTION: Function SET\_HISTYR returns the year stored in HISTYR w/o
 !  needing to include the CMN\_O3 common block (eml, 8/20/08)
@@ -1803,7 +1803,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_histyr
+! !IROUTINE: Get_histyr
 !
 ! !DESCRIPTION: Function GET\_HISTYR returns the year stored in HISTYR w/o
 !  needing to include the CMN\_O3 common block (eml, 8/20/08)
@@ -1832,7 +1832,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_hour
+! !IROUTINE: Get_hour
 !
 ! !DESCRIPTION: Function GET\_HOUR returns the current GMT hour.
 !\\
@@ -1860,7 +1860,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_minute
+! !IROUTINE: Get_minute
 !
 ! !DESCRIPTION: Function GET\_MINUTE returns the current GMT minutes.
 !\\
@@ -1888,7 +1888,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_second
+! !IROUTINE: Get_second
 !
 ! !DESCRIPTION: Function GET\_SECOND returns the current GMT seconds.
 !  calling program.
@@ -1917,7 +1917,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_day_of_year
+! !IROUTINE: Get_day_of_year
 !
 ! !DESCRIPTION: Function GET\_DAY\_OF\_YEAR returns the current day of the
 !  year (0-365 or 0-366 for leap years) to the calling program.
@@ -1946,7 +1946,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_day_of_week
+! !IROUTINE: Get_day_of_week
 !
 ! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK returns the day of the week (with
 !  respect to GREENWICH MEAN TIME) as a number: Sun=0, Mon=1, Tue=2, Wed=3,
@@ -1986,7 +1986,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_day_of_week_lt
+! !IROUTINE: Get_day_of_week_lt
 !
 ! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK\_LT returns the day of the week
 !  (with repect to the SOLAR LOCAL TIME AT GRID BOX [I,J,L]) as a number:
@@ -2059,7 +2059,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_gmt
+! !IROUTINE: Get_gmt
 !
 ! !DESCRIPTION:  Function GET\_GMT returns the current Greenwich Mean Time 
 !  to the calling program.
@@ -2089,7 +2089,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_tau
+! !IROUTINE: Get_tau
 !
 ! !DESCRIPTION: Function GET\_TAU returns TAU (hours since 1 Jan 
 !  1985 at the start of a GEOS-Chem run) to the calling program. 
@@ -2118,7 +2118,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_taub
+! !IROUTINE: Get_taub
 !
 ! !DESCRIPTION: Function GET\_TAUb returns TAUb (hours since 1 Jan 1985 
 !  at the start of a GEOS-Chem run) to the calling program. 
@@ -2147,7 +2147,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_taue
+! !IROUTINE: Get_taue
 !
 ! !DESCRIPTION: Function GET\_TAUe returns TAUe (hours since 1 Jan 1985 
 !  at the end of a GEOS-Chem run) to the calling program. 
@@ -2176,7 +2176,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_diagb
+! !IROUTINE: Get_diagb
 !
 ! !DESCRIPTION: Function GET\_DIAGb returns DIAGb (hours since 1 Jan 1985
 !  at the start of a diagnostic interval) to the calling program.
@@ -2206,7 +2206,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_diage
+! !IROUTINE: Get_diage
 !
 ! !DESCRIPTION: Function GET\_DIAGe returns DIAGe (hours since 1 Jan 1985
 !  at the end of a diagnostic interval) to the calling program.
@@ -2236,7 +2236,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_localtime
+! !IROUTINE: Get_localtime
 !
 ! !DESCRIPTION: Function GET\_LOCALTIME returns the local time of a grid
 !  box to the calling program. (bmy, 2/5/03)
@@ -2306,7 +2306,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_season
+! !IROUTINE: Get_season
 !
 ! !DESCRIPTION: Function GET\_SEASON returns the climatological season number 
 !  (1=DJF, 2=MAM, 3=JJA, 4=SON) to the calling program.
@@ -2335,7 +2335,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ts_chem
+! !IROUTINE: Get_ts_chem
 !
 ! !DESCRIPTION: Function GET\_TS\_CHEM returns the chemistry timestep in 
 !  minutes.
@@ -2364,7 +2364,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ts_rad
+! !IROUTINE: Get_ts_rad
 !
 ! !DESCRIPTION: Function GET\_TS\_RAD returns the radiation timestep in
 !  minutes.
@@ -2392,7 +2392,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ts_conv
+! !IROUTINE: Get_ts_conv
 !
 ! !DESCRIPTION: Function GET\_TS\_CONV returns the convection timestep in 
 !  minutes.
@@ -2421,7 +2421,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ts_diag
+! !IROUTINE: Get_ts_diag
 !
 ! !DESCRIPTION: Function GET\_TS\_DIAG returns the diagnostic timestep in 
 !  minutes.
@@ -2450,7 +2450,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ts_dyn
+! !IROUTINE: Get_ts_dyn
 !
 ! !DESCRIPTION: Function GET\_TS\_DIAG returns the diagnostic timestep in 
 !  minutes.
@@ -2479,7 +2479,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ts_emis
+! !IROUTINE: Get_ts_emis
 !
 ! !DESCRIPTION: Function GET\_TS\_EMIS returns the emission timestep in 
 !  minutes.
@@ -2508,7 +2508,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ts_unit
+! !IROUTINE: Get_ts_unit
 !
 ! !DESCRIPTION: Function GET\_TS\_UNIT returns the unit-conversion timestep
 !  in minutes.
@@ -2537,7 +2537,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ct_chem
+! !IROUTINE: Get_ct_chem
 !
 ! !DESCRIPTION: Function GET\_CT\_CHEM returns the chemistry timestep counter 
 !  to the calling program.
@@ -2566,7 +2566,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ct_rad
+! !IROUTINE: Get_ct_rad
 !
 ! !DESCRIPTION: Function GET\_CT\_RAD returns the radiation timestep counter
 !  to the calling program.
@@ -2594,7 +2594,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ct_conv
+! !IROUTINE: Get_ct_conv
 !
 ! !DESCRIPTION: Function GET\_CT\_CONV returns the convection timestep 
 !  counter to the calling program.
@@ -2623,7 +2623,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ct_dyn
+! !IROUTINE: Get_ct_dyn
 !
 ! !DESCRIPTION: Function GET\_CT\_CHEM returns the dynamic timestep counter 
 !  to the calling program.
@@ -2652,7 +2652,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ct_emis
+! !IROUTINE: Get_ct_emis
 !
 ! !DESCRIPTION: Function GET\_CT\_CHEM returns the emissions timestep counter
 !  to the calling program.
@@ -2682,7 +2682,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ct_a1
+! !IROUTINE: Get_ct_a1
 !
 ! !DESCRIPTION: Function GET\_CT\_A1 returns the A1 fields timestep 
 !  counter to the calling program.
@@ -2711,7 +2711,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ct_a3
+! !IROUTINE: Get_ct_a3
 !
 ! !DESCRIPTION: Function GET\_CT\_A3 returns the A-3 fields timestep 
 !  counter to the calling program.
@@ -2741,7 +2741,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ct_a6
+! !IROUTINE: Get_ct_a6
 !
 ! !DESCRIPTION: Function GET\_CT\_A6 returns the A-6 fields timestep counter 
 !  to the calling program.
@@ -2770,7 +2770,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ct_i3
+! !IROUTINE: Get_ct_i3
 !
 ! !DESCRIPTION: Function GET\_CT\_I3 returns the I-3 fields timestep counter
 !  to the calling program
@@ -2798,7 +2798,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ct_i6
+! !IROUTINE: Get_ct_i6
 !
 ! !DESCRIPTION: Function GET\_CT\_I6 returns the I-6 fields timestep counter
 !  to the calling program
@@ -2827,7 +2827,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ct_xtra
+! !IROUTINE: Get_ct_xtra
 !
 ! !DESCRIPTION: Function GET\_CT\_XTRA returns the XTRA fields timestep 
 !  counter to the calling program.
@@ -2856,7 +2856,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ct_diag
+! !IROUTINE: Get_ct_diag
 !
 ! !DESCRIPTION: Function GET\_CT\_DIAG returns the DIAG timestep counter to the
 !  calling program.
@@ -2885,7 +2885,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_hg2_diag
+! !IROUTINE: Get_hg2_diag
 !
 ! !DESCRIPTION: Function GET\_Hg2\_DIAG returns the DIAG timestep counter to
 !  the calling program. (hma 20100218)
@@ -2914,7 +2914,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_a1_time
+! !IROUTINE: Get_a1_time
 !
 ! !DESCRIPTION: Function GET\_A1\_TIME returns the correct YYYYMMDD and HHMMSS 
 !  values that are needed to read in the next average 1-hour (A-1) fields. 
@@ -2958,7 +2958,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_a3_time
+! !IROUTINE: Get_a3_time
 !
 ! !DESCRIPTION: Function GET\_A3\_TIME returns the correct YYYYMMDD and HHMMSS 
 !  values that are needed to read in the next average 3-hour (A-3) fields. 
@@ -2997,7 +2997,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_a6_time
+! !IROUTINE: Get_a6_time
 !
 ! !DESCRIPTION: Function GET\_A6\_TIME returns the correct YYYYMMDD and HHMMSS 
 !  values that are needed to read in the next average 6-hour (A-6) fields. 
@@ -3031,7 +3031,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_i3_time
+! !IROUTINE: Get_i3_time
 !
 ! !DESCRIPTION: Function GET\_I3\_TIME returns the correct YYYYMMDD and 
 !  HHMMSS values that are needed to read in the next instantaneous 3-hour 
@@ -3104,7 +3104,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_i6_time
+! !IROUTINE: Get_i6_time
 !
 ! !DESCRIPTION: Function GET\_I6\_TIME returns the correct YYYYMMDD and 
 !  HHMMSS values that are needed to read in the next instantaneous 6-hour 
@@ -3195,7 +3195,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_first_a1_time
+! !IROUTINE: Get_first_a1_time
 !
 ! !DESCRIPTION: Function GET\_FIRST\_A1\_TIME returns the correct YYYYMMDD
 !  and HHMMSS values the first time that A-3 fields are read in from disk. 
@@ -3229,7 +3229,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_first_a3_time
+! !IROUTINE: Get_first_a3_time
 !
 ! !DESCRIPTION: Function GET\_FIRST\_A3\_TIME returns the correct YYYYMMDD
 !  and HHMMSS values the first time that A-3 fields are read in from disk. 
@@ -3283,7 +3283,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_first_a6_time
+! !IROUTINE: Get_first_a6_time
 !
 ! !DESCRIPTION: Function GET\_FIRST\_A6\_TIME returns the correct YYYYMMDD and
 !  HHMMSS values the first time that A-6 fields are read in from disk.
@@ -3355,7 +3355,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_first_i3_time
+! !IROUTINE: Get_first_i3_time
 !
 ! !DESCRIPTION: Function GET\_FIRST\_I3\_TIME returns the correct YYYYMMDD and
 !  HHMMSS values the first time that I-3 fields are read in from disk.
@@ -3402,7 +3402,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_first_i6_time
+! !IROUTINE: Get_first_i6_time
 !
 ! !DESCRIPTION: Function GET\_FIRST\_I6\_TIME returns the correct YYYYMMDD and
 !  HHMMSS values the first time that I-6 fields are read in from disk.
@@ -3449,7 +3449,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_chem
+! !IROUTINE: Its_Time_For_chem
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_CHEM returns TRUE if it is time to do 
 !  chemistry, or FALSE otherwise.
@@ -3580,7 +3580,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_conv
+! !IROUTINE: Its_Time_For_conv
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_CONV returns TRUE if it is time to do 
 !  convection, or FALSE otherwise.
@@ -3610,7 +3610,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_dyn
+! !IROUTINE: Its_Time_For_dyn
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_DYN returns TRUE if it is time to do 
 !  chemistry and false otherwise.
@@ -3640,7 +3640,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_emis
+! !IROUTINE: Its_Time_For_emis
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_EMIS returns TRUE if it is time to do 
 !  emissions, or FALSE otherwise. 
@@ -3689,7 +3689,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_exch
+! !IROUTINE: Its_Time_For_exch
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_EXCH returns TRUE if it is time to do
 !  exchange for two-way coupled simulation, or FALSE otherwise.
@@ -3735,7 +3735,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_unit
+! !IROUTINE: Its_Time_For_unit
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_UNIT returns TRUE if it is time to do 
 !  unit conversion, or FALSE otherwise.
@@ -3766,7 +3766,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_diag
+! !IROUTINE: Its_Time_For_diag
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_DIAG returns TRUE if it is time to 
 !  archive certain diagnostics, or FALSE otherwise.
@@ -3797,7 +3797,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_a1
+! !IROUTINE: Its_Time_For_a1
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_A1 returns TRUE if it is time to read 
 !  in A1 (average 1-hr fields) and FALSE otherwise. 
@@ -3826,7 +3826,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_a3
+! !IROUTINE: Its_Time_For_a3
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_A3 returns TRUE if it is time to read 
 !  in A3 (average 3-hr fields) and FALSE otherwise. 
@@ -3856,7 +3856,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_a6
+! !IROUTINE: Its_Time_For_a6
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_A6 returns TRUE if it is time to read 
 !  in A6 (average 6-hr fields) and FALSE otherwise.
@@ -3919,7 +3919,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_i3
+! !IROUTINE: Its_Time_For_i3
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_I3 returns TRUE if it is time to read 
 !  in I2 (instantaneous 3-hr fields) and FALSE otherwise.
@@ -3955,7 +3955,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_i6
+! !IROUTINE: Its_Time_For_i6
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_I6 returns TRUE if it is time to read 
 !  in I6 (instantaneous 6-hr fields) and FALSE otherwise.
@@ -3992,7 +3992,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_unzip
+! !IROUTINE: Its_Time_For_unzip
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_UNZIP Treturns TRUE if it is time to 
 !  unzip the next day's met field files, or FALSE otherwise.
@@ -4030,7 +4030,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_del
+! !IROUTINE: Its_Time_For_del
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_DEL returns TRUE if it is time to 
 !  delete the previous day's met field files in the temporary directory. 
@@ -4069,7 +4069,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_exit
+! !IROUTINE: Its_Time_For_exit
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_EXIT returns TRUE if it is the end of
 !  the GEOS-Chem simulation (i.e. TAU >= TAUe), or FALSE otherwise.
@@ -4100,7 +4100,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_bpch
+! !IROUTINE: Its_Time_For_bpch
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_BPCH returns TRUE if it's time to 
 !  write output to the bpch file, or FALSE otherwise.
@@ -4164,7 +4164,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_a_leapyear
+! !IROUTINE: Its_A_LeapYear
 !
 ! !DESCRIPTION: Function ITS\_A\_LEAPYEAR tests to see if a year is really a 
 !  leapyear. 
@@ -4264,7 +4264,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_a_new_year
+! !IROUTINE: Its_A_New_Year
 !
 ! !DESCRIPTION: Function ITS\_A\_NEW\_YEAR returns TRUE if it's the first 
 !  timestep of the year when we have to read in annual data.
@@ -4404,7 +4404,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_a_new_month
+! !IROUTINE: Its_A_New_Month
 !
 ! !DESCRIPTION: Function ITS\_A\_NEW\_MONTH returns TRUE if it's the first
 !  timestep of the month when we have to read in monthly data.
@@ -4544,7 +4544,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_midmonth
+! !IROUTINE: Its_MidMonth
 !
 ! !DESCRIPTION: Function ITS\_MIDMONTH returns TRUE if it's the middle of a 
 !  month.
@@ -4576,7 +4576,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_a_new_day
+! !IROUTINE: Its_A_New_Day
 !
 ! !DESCRIPTION: Function ITS\_A\_NEW\_DAY returns TRUE if it's the first
 !  timestep of the day when we have to read in daily data.
@@ -4706,7 +4706,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_a_new_hour
+! !IROUTINE: Its_A_New_Hour
 !
 ! !DESCRIPTION: Function ITS\_A\_NEW\_HOUR returns TRUE if it's the first
 !  timestep of a new hour (it also returns TRUE on the first timestep of the
@@ -4758,7 +4758,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_a_new_season
+! !IROUTINE: Its_A_New_Season
 !
 ! !DESCRIPTION: Function ITS\_A\_NEW\_SEASON returns TRUE if it's a new season 
 !  or FALSE if it's not a new season.  Seasons are (1=DJF, 2=MAM, 3=JJA, 
@@ -4798,7 +4798,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: print_current_time
+! !IROUTINE: Print_Current_Time
 !
 ! !DESCRIPTION: Subroutine PRINT\_CURRENT\_TIME prints the date, GMT time, and 
 !  elapsed hours of a GEOS-Chem simulation. 
@@ -4836,7 +4836,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: timestamp_string
+! !IROUTINE: Timestamp_String
 !
 ! !DESCRIPTION: Function TIMESTAMP\_STRING returns a formatted string 
 !  "YYYY/MM/DD hh:mm" for the a date and time specified by YYYYMMDD and hhmmss.
@@ -4917,7 +4917,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ymd_extract
+! !IROUTINE: Ymd_Extract
 !
 ! !DESCRIPTION: Subroutine YMD\_EXTRACT extracts the year, month, and date 
 !  from an integer variable in YYYYMMDD format.  It can also extract the 
@@ -4966,7 +4966,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: expand_date
+! !IROUTINE: Expand_Date
 !
 ! !DESCRIPTION: Subroutine EXPAND\_DATE replaces "YYYYMMDD" and "hhmmss" 
 !  tokens within a filename string with the actual values.
@@ -5063,7 +5063,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: system_date_time
+! !IROUTINE: System_Date_Time
 !
 ! !DESCRIPTION: Subroutine SYSTEM\_DATE\_TIME returns the actual local date 
 !  and time (as opposed to the model date and time).
@@ -5120,7 +5120,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: system_timestamp
+! !IROUTINE: System_Timestamp
 !
 ! !DESCRIPTION: Function SYSTEM\_TIMESTAMP returns a 16 character string with 
 !  the system date and time in YYYY/MM/DD HH:MM format.
@@ -5190,7 +5190,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_nymd_diag
+! !IROUTINE: Get_nymd_diag
 !
 ! !DESCRIPTION: Function GET\_NYMD\_DIAG returns the previous NYMD value 
 !  (YYYYMMDD) to the calling program.  Used for diagnostic filenames. 
@@ -5221,7 +5221,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: accept_external_date_time
+! !IROUTINE: Accept_External_Date_Time
 !
 ! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_DATE\_TIME sets the date and
 !  time variables in time\_mod.F with the values obtained from an external

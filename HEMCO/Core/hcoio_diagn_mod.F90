@@ -63,7 +63,7 @@ CONTAINS
 !
 ! !IROUTINE: HcoDiagn_Write
 !
-! !DESCRIPTION: Subroutine HcoDiagn_Write is the wrapper routine to write out
+! !DESCRIPTION: Subroutine HcoDiagn\_Write is the wrapper routine to write out
 ! the content of the built-in HEMCO diagnostics. If input argument Restart is
 ! set to TRUE, only the restart collection will be written out. Otherwise,
 ! the default collection

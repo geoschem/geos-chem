@@ -77,7 +77,7 @@ CONTAINS
 !
 ! !IROUTINE: HCOX_<yourname>_Run
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Write a description here
 !\\
 !\\
 ! !INTERFACE:
@@ -151,7 +151,7 @@ CONTAINS
 !
 ! !IROUTINE: HCOX_<yourname>_Init
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Write a description here
 !\\
 !\\
 ! !INTERFACE:
@@ -270,7 +270,7 @@ CONTAINS
 !
 ! !IROUTINE: HCOX_<yourname>_Final
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Write a description here
 !\\
 !\\
 ! !INTERFACE:

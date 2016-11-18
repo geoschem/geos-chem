@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: error_mod
+! !MODULE: error_mod.F90
 !
 ! !DESCRIPTION: Module ERROR\_MOD contains error checking routines.
 !\\
@@ -156,7 +156,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nan_float
+! !IROUTINE: Nan_Float
 !
 ! !DESCRIPTION: Function NAN\_FLOAT returns TRUE if a REAL*4 number is equal 
 !  to the IEEE NaN (Not-a-Number) flag.  Returns FALSE otherwise.
@@ -217,7 +217,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nan_dble
+! !IROUTINE: Nan_Dble
 !
 ! !DESCRIPTION: Function NAN\_DBLE returns TRUE if a REAL(fp) number is equal 
 !  to the IEEE NaN (Not-a-Number) flag.  Returns FALSE otherwise.
@@ -278,7 +278,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: finite_float
+! !IROUTINE: Finite_Float
 !
 ! !DESCRIPTION: Function FINITE\_FLOAT returns FALSE if a REAL*4 number is 
 !  equal to the IEEE Infinity flag.  Returns TRUE otherwise.
@@ -362,7 +362,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: finite_dble
+! !IROUTINE: Finite_Dble
 !
 ! !DESCRIPTION: Function FINITE\_FLOAT returns FALSE if a REAL(fp) number is 
 !  equal to the IEEE Infinity flag.  Returns TRUE otherwise.
@@ -445,7 +445,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: check_real_value
+! !IROUTINE: Check_Real_Value
 !
 ! !DESCRIPTION: Subroutine CHECK\_REAL\_VALUE checks to make sure a REAL*4 
 !  value is not NaN or Infinity. This is a wrapper for the interfaces
@@ -506,7 +506,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: check_dble_value
+! !IROUTINE: Check_Dble_Value
 !
 ! !DESCRIPTION: Subroutine CHECK\_DBLE\_VALUE checks to make sure a REAL*4 
 !  value is not NaN or Infinity. This is a wrapper for the interfaces
@@ -619,7 +619,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: error_stop
+! !IROUTINE: Error_Stop
 !
 ! !DESCRIPTION: Subroutine ERROR\_STOP is a wrapper for GEOS\_CHEM\_STOP.  It 
 !  prints an error message then calls GEOS\_CHEM\_STOP to free memory and quit.
@@ -662,7 +662,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: geos_chem_stop
+! !IROUTINE: Geos_Chem_Stop
 !
 ! !DESCRIPTION: Subroutine GEOS\_CHEM\_STOP calls CLEANUP to deallocate all 
 !  module arrays and then stops the run.
@@ -760,7 +760,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: alloc_err
+! !IROUTINE: Alloc_Err
 !
 ! !DESCRIPTION: Subroutine ALLOC\_ERR prints an error message if there is not 
 !  enough memory to allocate a particular allocatable array.
@@ -838,7 +838,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: debug_msg
+! !IROUTINE: Debug_Msg
 !
 ! !DESCRIPTION: Subroutine DEBUG\_MSG prints a message to the stdout buffer 
 !  and flushes.  This is useful for determining the exact location where 
@@ -881,7 +881,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: safe_div
+! !IROUTINE: Safe_Div
 !
 ! !DESCRIPTION: Function SAFE\_DIV performs "safe division", that is to 
 !  prevent overflow, underlow, NaN, or infinity errors.  An alternate value 
@@ -969,7 +969,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: is_safe_div_r4
+! !IROUTINE: Is_Safe_Div_r4
 !
 ! !DESCRIPTION: Function IS\_SAFE\_DIV tests for "safe division", that is 
 !  check if the division will overflow/underflow or hold NaN.  .FALSE. is 
@@ -1039,7 +1039,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: is_safe_div_r8
+! !IROUTINE: Is_Safe_Div_r8
 !
 ! !DESCRIPTION: Function IS\_SAFE\_DIV tests for "safe division", that is 
 !  check if the division will overflow/underflow or hold NaN.  .FALSE. is 
@@ -1109,7 +1109,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: safe_exp
+! !IROUTINE: Safe_Exp
 !
 ! !DESCRIPTION: Function SAFE\_EXP performs a "safe exponential", that is to 
 !  prevent overflow, underlow, NaN, or infinity errors when taking the
@@ -1148,7 +1148,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: is_safe_exp
+! !IROUTINE: Is_Safe_Exp
 !
 ! !DESCRIPTION: Function IS\_SAFE\_EXP returns TRUE if it is safe to take
 !  the value EXP( x ) without encountering a floating point exception.  FALSE
@@ -1200,7 +1200,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: safe_log
+! !IROUTINE: Safe_Log
 !
 ! !DESCRIPTION: Function SAFE\_LOG performs a "safe natural logarithm", that 
 !  is to prevent overflow, underlow, NaN, or infinity errors when taking the
@@ -1242,7 +1242,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: safe_log10
+! !IROUTINE: Safe_Log10
 !
 ! !DESCRIPTION: Function SAFE\_LOG10 performs a "safe log10", that 
 !  is to prevent overflow, underlow, NaN, or infinity errors when taking the
@@ -1284,7 +1284,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: check_spc
+! !IROUTINE: Check_Spc
 !
 ! !DESCRIPTION: Subroutine CHECK\_SPC checks the species array for negative
 !  values, NaN values, or Infinity values.  If any of these are found, the code
@@ -1421,7 +1421,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: check_spc_nested
+! !IROUTINE: Check_Spc_Nested
 !
 ! !DESCRIPTION: Subroutine CHECK\_SPC\_NESTED checks the species array for
 !  negative values, NaN values, or Infinity values.  If any of these are found,
@@ -1542,7 +1542,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_error
+! !IROUTINE: Init_Error
 !
 ! !DESCRIPTION: Subroutine INIT\_ERROR stores shadow copies of am\_I\_Root
 !  and Input\_Opt.  We need store shadow copies of these variables within
@@ -1591,7 +1591,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_error
+! !IROUTINE: Cleanup_Error
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_ERROR finalizes all module variables.
 !\\
@@ -1618,7 +1618,7 @@
 ! !IROUTINE: Print_Global_Species_Kg
 !
 ! !DESCRIPTION: Subroutine Print\_Global\_Species\_Kg sums up the total 
-!   global species mass for tracer #1 and prints it to log along with
+!   global species mass for species \#1 and prints it to log along with
 !   a user-defined location
 !\\
 !\\
