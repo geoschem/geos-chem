@@ -4,7 +4,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: ncdf_mod
+! !MODULE: ncdf_mod.F90
 !
 ! !DESCRIPTION: Module NCDF\_MOD contains routines to read data from
 ! netCDF files. 
@@ -138,7 +138,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_open
+! !IROUTINE: Nc_Open
 !
 ! !DESCRIPTION: Simple wrapper routine to open the given netCDF file. 
 !\\
@@ -176,7 +176,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_close
+! !IROUTINE: Nc_Close
 !
 ! !DESCRIPTION: Simple wrapper routine to close the given lun. 
 !\\
@@ -209,7 +209,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_read_time
+! !IROUTINE: Nc_Read_Time
 !
 ! !DESCRIPTION: Subroutine NC\_READ\_TIME reads the time variable of the
 ! given fID and returns the time slices and unit. 
@@ -307,7 +307,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_read_var_sp
+! !IROUTINE: Nc_Read_Var_Sp
 !
 ! !DESCRIPTION: Subroutine NC\_READ\_VAR\_SP reads the given variable from the
 ! given fID and returns the corresponding variable values and units. 
@@ -348,7 +348,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_read_var_dp
+! !IROUTINE: Nc_Read_Var_Dp
 !
 ! !DESCRIPTION: Subroutine NC\_READ\_VAR\_DP reads the given variable from the
 ! given fID and returns the corresponding variable values and units. 
@@ -389,7 +389,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_read_var_core
+! !IROUTINE: Nc_Read_Var_Core
 !
 ! !DESCRIPTION: Subroutine NC\_READ\_VAR\_CORE reads the given variable from the
 ! given fID and returns the corresponding variable values and units. 
@@ -488,7 +488,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Routine NC\_READ\_ARR reads variable ncVar into a 4-D array 
+! !IROUTINE: Nc_Read_Arr
+!
+! !DESCRIPTION: Routine NC\_READ\_ARR reads variable ncVar into a 4-D array 
 ! (lon,lat,lev,time). Domain boundaries can be provided by input arguments
 ! lon1,lon2, lat1,lat2, lev1,lev2, and time1,time2. The level and time bounds
 ! are optional and can be set to zero (lev1=0 and/or time1=0) for data with
@@ -506,13 +508,13 @@ CONTAINS
 !\\
 !\\
 ! If the passed variable contains attribute names `offset` and/or 
-! `scale_factor`, those operations will be applied to the data array
+! `scale\_factor`, those operations will be applied to the data array
 ! before returning it.
 !\\
 !\\
 ! Missing values in the netCDF file are replaced with value 'MissVal'
-! (default = 0). Currently, the routine identifies attributes 'missing_value'
-! and '_FillValue' as missing values.
+! (default = 0). Currently, the routine identifies attributes 'missing\_value'
+! and '\_FillValue' as missing values.
 !\\
 !\\
 ! !INTERFACE:
@@ -1050,7 +1052,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_read_time_yyyymmddhh
+! !IROUTINE: Nc_Read_Time_yyyymmddhh
 !
 ! !DESCRIPTION: Returns a vector containing the datetimes (YYYYMMDDhh) of 
 ! all time slices in the netCDF file.
@@ -1170,7 +1172,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_refdatetime 
+! !IROUTINE: Nc_Get_RefDateTime 
 !
 ! !DESCRIPTION: Returns the reference datetime (tYr / tMt / tDy / tHr / 
 ! tMn ) of the provided time unit. For now, supported formats are 
@@ -1391,7 +1393,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_tidx
+! !IROUTINE: Get_Tidx
 !
 ! !DESCRIPTION: Routine GET\_TIDX returns the index with the specified time
 ! for a given time vector. 
@@ -1553,14 +1555,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: timeunit_check
+! !IROUTINE: TimeUnit_Check
 !
 ! !DESCRIPTION: Makes a validity check of the passed unit string.
 ! Supported formats are "days since YYYY-MM-DD" (TIMETYPE=1) and 
-! "hours since YYYY-MM-DD HH:MM:SS" (TIMETYPE=2).\\
+! "hours since YYYY-MM-DD HH:MM:SS" (TIMETYPE=2).
+!\\
+!\\
 ! The output argument TOFFSET gives the offset of the ncdf reference 
 ! time relative to Geos-Chem reference time (in hours).
-!
 !\\
 !\\
 ! !INTERFACE:
@@ -1745,7 +1748,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_grid_edges_sp
+! !IROUTINE: Nc_Get_Grid_Edges_Sp
 !
 ! !DESCRIPTION: Routine to get the longitude or latitude edges. If the edge 
 ! cannot be read from the netCDF file, they are calculated from the provided
@@ -1795,7 +1798,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_grid_edges_dp
+! !IROUTINE: Nc_Get_Grid_Edges_Dp
 !
 ! !DESCRIPTION: Routine to get the longitude or latitude edges. If the edge 
 ! cannot be read from the netCDF file, they are calculated from the provided
@@ -1845,7 +1848,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_grid_edges_c 
+! !IROUTINE: Nc_Get_Grid_Edges_C 
 !
 ! !DESCRIPTION: Routine to get the longitude or latitude edges. If the edge 
 ! cannot be read from the netCDF file, they are calculated from the provided
@@ -2047,7 +2050,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_sigma_levels_sp
+! !IROUTINE: Nc_Get_Sigma_Levels_Sp
 !
 ! !DESCRIPTION: Wrapper routine to get the sigma levels in single precision. 
 !\\
@@ -2094,7 +2097,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_sigma_levels_dp
+! !IROUTINE: Nc_Get_Sigma_Levels_Dp
 !
 ! !DESCRIPTION: Wrapper routine to get the sigma levels in double precision. 
 !\\
@@ -2141,18 +2144,18 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_sigma_levels
+! !IROUTINE: Nc_Get_Sigma_Levels_C
 !
 ! !DESCRIPTION: Routine to get the sigma levels from the netCDF file
 ! within the given grid bounds and for the given time index. This routine
 ! attempts to construct the 3D sigma values from provided variable levName.
 ! The vertical coordinate system is determined based upon the variable 
-! attribute "standard_name".
+! attribute "standard\_name".
 !\\
 !\\
 ! For now, only hybrid sigma coordinate systems are supported, and the 
-! standard_name attribute must follow CF conventions and be set to
-! "atmosphere_hybrid_sigma_pressure_coordinate".
+! standard\_name attribute must follow CF conventions and be set to
+! "atmosphere\_hybrid\_sigma\_pressure\_coordinate".
 !\\
 !\\
 ! !INTERFACE:
@@ -2258,7 +2261,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_sig_from_hybrid
+! !IROUTINE: Nc_Get_Sig_From_Hybrid
 !
 ! !DESCRIPTION: Calculates the sigma level field for a hybrid sigma coordinate
 ! system:
@@ -2272,7 +2275,7 @@ CONTAINS
 ! where sigma are the sigma levels, ap and bp are the hybrid sigma coordinates,
 ! p0 is the constant reference pressure, and ps is the surface pressure. The
 ! variable names of ap, p0, bp, and ps are taken from level attribute 
-! `formula_terms`.
+! `formula\_terms`.
 !\\
 !\\
 ! The direction of the vertical coordinate system is determined from attribute
@@ -2282,29 +2285,29 @@ CONTAINS
 ! downward coordinates (level 1 is top of atmosphere).
 !\\
 !\\
-! Example of valid netCDF meta-data: The attributes `standard_name` and
-! `formula_terms` are required, as is the 3D surface pressure field.\\
-! \\
+! !REMARKS:
+! Example of valid netCDF meta-data: The attributes `standard\_name` and
+! `formula\_terms` are required, as is the 3D surface pressure field.
+!
 ! double lev(lev) ;\\
-!	lev:standard_name = "atmosphere_hybrid_sigma_pressure_coordinate" ;\\
-!	lev:units = "level" ;\\
-!	lev:positive = "down" ;\\
-!	lev:formula_terms = "ap: hyam b: hybm ps: PS" ;\\
-!double hyam(nhym) ;\\
-!	hyam:long_name = "hybrid A coefficient at layer midpoints" ;\\
-!	hyam:units = "hPa" ;\\
-!double hybm(nhym) ;\\
-!	hybm:long_name = "hybrid B coefficient at layer midpoints" ;\\
-!	hybm:units = "1" ;\\
-!double time(time) ;\\
-!	time:standard_name = "time" ;\\
-!	time:units = "days since 2000-01-01 00:00:00" ;\\
-!	time:calendar = "standard" ;\\
-!double PS(time, lat, lon) ;\\
-!	PS:long_name = "surface pressure" ;\\
-!	PS:units = "hPa" ;\\
-!\\
-!\\
+!        lev:standard_name = "atmosphere_hybrid_sigma_pressure_coordinate" ;\\
+!        lev:units = "level" ;\\
+!        lev:positive = "down" ;\\
+!        lev:formula_terms = "ap: hyam b: hybm ps: PS" ;\\
+! double hyam(nhym) ;\\
+!        hyam:long_name = "hybrid A coefficient at layer midpoints" ;\\
+!        hyam:units = "hPa" ;\\
+! double hybm(nhym) ;\\
+!        hybm:long_name = "hybrid B coefficient at layer midpoints" ;\\
+!        hybm:units = "1" ;\\
+! double time(time) ;\\
+!        time:standard_name = "time" ;\\
+!        time:units = "days since 2000-01-01 00:00:00" ;\\
+!        time:calendar = "standard" ;\\
+! double PS(time, lat, lon) ;\\
+!        PS:long_name = "surface pressure" ;\\
+!        PS:units = "hPa" ;\\
+!
 ! !INTERFACE:
 !
   SUBROUTINE NC_GET_SIG_FROM_HYBRID ( fID,  levName, lon1, lon2, lat1, lat2, &
@@ -2618,7 +2621,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_write_3d
+! !IROUTINE: Nc_Write_3d
 !
 ! !DESCRIPTION: Routine to write time slices of 2D fields into netCDF. 
 !\\
@@ -2689,7 +2692,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_write_4d
+! !IROUTINE: Nc_Write_4d
 !
 ! !DESCRIPTION: Routine to write time slices of 3D fields into netCDF. 
 !\\
@@ -2761,7 +2764,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_define 
+! !IROUTINE: Nc_Define 
 !
 ! !DESCRIPTION: Routine to define the variables and attributes of a netCDF
 !  file.  
@@ -3016,7 +3019,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_write_dims
+! !IROUTINE: Nc_Write_Dims
 !
 ! !DESCRIPTION: Routine to write dimension arrays to a netCDF file.  
 !\\
@@ -3102,7 +3105,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_write_data_3d
+! !IROUTINE: Nc_Nrite_Data_3d
 !
 ! !DESCRIPTION: Routine to write a 3-D array to a netCDF file.  
 !\\
@@ -3155,7 +3158,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_write_data_4d
+! !IROUTINE: Nc_Write_Data_4d
 !
 ! !DESCRIPTION: Routine to write a 4-D array to a netCDF file.  
 !\\
@@ -3209,9 +3212,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_create
+! !IROUTINE: Nc_Create
 !
-! !DESCRIPTION: creates a new netCDF file. 
+! !DESCRIPTION: Creates a new netCDF file. 
 !\\
 !\\
 ! !INTERFACE:
@@ -3310,9 +3313,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_def
+! !IROUTINE: Nc_Var_Def
 !
-! !DESCRIPTION: defines a new variable. 
+! !DESCRIPTION: Defines a new variable. 
 !\\
 !\\
 ! !INTERFACE:
@@ -3425,7 +3428,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_r8_1d
+! !IROUTINE: Nc_Var_Write_R8_1d
 !
 ! !DESCRIPTION: Writes data of a 1-D double precision variable.
 !\\
@@ -3480,7 +3483,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_r8_2d
+! !IROUTINE: Nc_Var_Write_R8_2d
 !
 ! !DESCRIPTION: Writes data of a 2-D double precision variable. 
 !\\
@@ -3541,7 +3544,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_r8_3D
+! !IROUTINE: Nc_Var_Write_R8_3D
 !
 ! !DESCRIPTION: Writes data of a 3-D double precision variable. 
 !\\
@@ -3602,7 +3605,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_r8_4d
+! !IROUTINE: Nc_Var_Write_r8_4d
 !
 ! !DESCRIPTION: Writes data of a 4-D double precision variable. 
 !\\
@@ -3663,7 +3666,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_r4_1d
+! !IROUTINE: Nc_Var_Write_r4_1d
 !
 ! !DESCRIPTION: Writes data of a single precision variable. 
 !\\
@@ -3718,7 +3721,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_r4_2D
+! !IROUTINE: Nc_Var_Write_r4_2D
 !
 ! !DESCRIPTION: Writes data of a 2-D single precision variable. 
 !\\
@@ -3779,7 +3782,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_r4_3d
+! !IROUTINE: Nc_Var_Write_r4_3d
 !
 ! !DESCRIPTION: Writes data of a 3-D single precision variable. 
 !\\
@@ -3840,7 +3843,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_r4_4d
+! !IROUTINE: Nc_Var_Write_r4_4d
 !
 ! !DESCRIPTION: Writes data of a 4-D single precision variable. 
 !\\
@@ -3900,7 +3903,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_int_1d
+! !IROUTINE: Nc_Var_Write_int_1d
 !
 ! !DESCRIPTION: Writes data of an 1-D integer variable. 
 !\\
@@ -3955,7 +3958,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_int_2d
+! !IROUTINE: Nc_Var_Write_int_2d
 !
 ! !DESCRIPTION: writes data of an 2-D integer variable. 
 !\\
@@ -4016,7 +4019,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_int_3d
+! !IROUTINE: Nc_Var_Write_int_3d
 !
 ! !DESCRIPTION: writes data of an 3-D integer variable. 
 !\\
@@ -4077,7 +4080,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_int_4d
+! !IROUTINE: Nc_Var_Write_int_4d
 !
 ! !DESCRIPTION: writes data of an 4-Dinteger variable. 
 !\\
@@ -4137,7 +4140,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_tau0_6a
+! !IROUTINE: Get_Tau0_6a
 !
 ! !DESCRIPTION: Function GET\_TAU0\_6A returns the corresponding TAU0 value 
 !  for the first day of a given MONTH of a given YEAR.  This is necessary to 
@@ -4251,7 +4254,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_ismodellevels 
+! !IROUTINE: Nc_IsModelLevels 
 !
 ! !DESCRIPTION: Function NC\_ISMODELLEVELS returns true if (and only if) the 
 !  long name of the level variable name of the given file ID contains the 
