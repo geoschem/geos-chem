@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: land_mercury_mod
+! !MODULE: land_mercury_mod.F
 !
 ! !DESCRIPTION: Module LAND\_MERCURY\_MOD contains variables and routines for
 ! the land emissions for the GEOS-Chem mercury simulation.

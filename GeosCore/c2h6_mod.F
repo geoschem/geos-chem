@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: c2h6_mod
+! !MODULE: c2h6_mod.F
 !
 ! !DESCRIPTION: Module C2H6\_MOD contains variables and routines used for the
 !  tagged C2H6 (ethane) simulation. (xyp, qli, bmy, 7/28/01, 4/5/06)

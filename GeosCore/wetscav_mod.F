@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: wetscav_mod
+! !MODULE: wetscav_mod.F
 !     
 ! !DESCRIPTION: Module WETSCAV\_MOD contains routines and variables used in 
 !  the wet scavenging of species in cloud updrafts, rainout, and washout. 

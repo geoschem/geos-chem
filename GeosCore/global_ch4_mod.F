@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: global_ch4_mod
+! !MODULE: global_ch4_mod.F
 !
 ! !DESCRIPTION: Module GLOBAL\_CH4\_MOD contains variables and routines for
 !  simulating CH4 chemistry in the troposphere.

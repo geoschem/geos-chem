@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag56_mod.f
+! !MODULE: diag56_mod.F
 !
 ! !DESCRIPTION: Module DIAG56\_MOD contains arrays and routines for archiving 
 !  the ND56 diagnostic -- lightning flash rates. 

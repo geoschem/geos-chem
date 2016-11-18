@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag50_mod 
+! !MODULE: diag50_mod.F
 !
 ! !DESCRIPTION: Module DIAG50\_MOD contains variables and routines to 
 !  generate 24-hour average timeseries data.

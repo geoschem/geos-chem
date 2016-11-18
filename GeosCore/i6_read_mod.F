@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: i6_read_mod
+! !MODULE: i6_read_mod.F
 !
 ! !DESCRIPTION: Module I6\_READ\_MOD contains routines that unzip, open, and 
 !  read the GEOS-Chem I6 (instantaneous 6-hour) met fields from disk. 

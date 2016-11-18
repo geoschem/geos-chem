@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: linoz_mod
+! !MODULE: linoz_mod.F
 !
 ! !DESCRIPTION: Module LINOZ\_MOD contains routines to perform the Linoz 
 !  stratospheric ozone chemistry.

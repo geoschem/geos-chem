@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: diag3
+! !MODULE: diag3.F
 !
 ! !DESCRIPTION: Subroutine DIAG3 prints out diagnostics to the BINARY PUNCH
 !  format file.

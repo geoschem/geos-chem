@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag_mod
+! !MODULE: diag_mod.F
 !
 ! !DESCRIPTION: Module DIAG\_MOD contains declarations for allocatable arrays 
 !  for use with GEOS-CHEM diagnostics. 

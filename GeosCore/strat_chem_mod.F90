@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: strat_chem_mod
+! !MODULE: strat_chem_mod.F90
 !
 ! !DESCRIPTION: Module STRAT\_CHEM\_MOD contains variables and routines for 
 !  performing a simple linearized chemistry scheme in the stratosphere, 
@@ -188,7 +188,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: do_strat_chem
+! !IROUTINE: Do_Strat_Chem
 !
 ! !DESCRIPTION: Function DO\_STRAT\_CHEM is the driver routine for computing
 ! the simple linearized stratospheric chemistry scheme.
@@ -870,7 +870,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Set_PLVEC
+! !IROUTINE: Set_Plvec
 !
 ! !DESCRIPTION: Subroutine SET\_PLVEC gets the production and loss terms of
 ! all strat chem species from HEMCO. The pointers only need to be established 
@@ -1004,7 +1004,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: calc_ste
+! !IROUTINE: Calc_Ste
 !
 ! !DESCRIPTION: Subroutine CALC\_STE estimates what the stratosphere-to-
 !               troposphere exchange flux must have been since the last time
@@ -1244,7 +1244,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_strat_chem
+! !IROUTINE: Init_Strat_Chem
 !
 ! !DESCRIPTION: Subroutine INIT\_STRAT\_CHEM allocates all module arrays.  
 !  It also opens the necessary rate files.
@@ -1583,9 +1583,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: SET_MINIT 
+! !IROUTINE: Set_Minit 
 !
-! !DESCRIPTION: Sets the MINIT array to current values in State_Chm%Species
+! !DESCRIPTION: Sets the MINIT array to current values in State\_Chm%Species.
 !\\
 !\\
 ! !INTERFACE:
@@ -1679,7 +1679,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_strat_chem
+! !IROUTINE: Cleanup_Strat_Chem
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_STRAT\_CHEM deallocates all module 
 !  arrays.
@@ -1742,7 +1742,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: do_synoz
+! !IROUTINE: Do_Synoz
 !
 ! !DESCRIPTION: Subroutine Do\_Synoz establishes the flux boundary condition 
 !  for Ozone coming down from the stratosphere, using the Synoz algorithm of

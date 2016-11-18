@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: dust_mod
+! !MODULE: dust_mod.F
 !
 ! !DESCRIPTION: Module DUST\_MOD contains routines for computing dust aerosol 
 !  emissions, chemistry, and optical depths.

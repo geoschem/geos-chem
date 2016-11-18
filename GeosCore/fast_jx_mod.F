@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: fast_jx_mod
+! !MODULE: fast_jx_mod.F
 !
 ! !DESCRIPTION: Module FAST\_JX\_MOD contains routines and variables for 
 !  calculating photolysis rates using the Fast-JX scheme (Prather et al).
@@ -4111,7 +4111,7 @@ c---BLKSLV now called with all the wavelength arrays (K=1:W_)
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: legne+0_fp
+! !IROUTINE: legnd0
 !
 ! !DESCRIPTION: Subroutine LEGND0 calculates ordinary Legendre functions 
 !  of X (real) from $P[0] = PL(1) = 1, P[1] = X, \dots, P[N-1] = PL(N)$

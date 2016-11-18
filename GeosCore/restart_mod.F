@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: restart_mod
+! !MODULE: restart_mod.F
 !
 ! !DESCRIPTION: Module RESTART\_MOD contains variables and routines which 
 !  are used to read and write restart files for GEOS-Chem species in units

@@ -6,7 +6,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: geos_chem 
+! !MODULE: main.F 
 !
 ! !DESCRIPTION: Program GEOS\_CHEM is the main level driver program for the 
 !  GEOS-Chem model of atmospheric chemistry and composition.

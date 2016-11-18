@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: dao_mod
+! !MODULE: dao_mod.F
 !
 ! !DESCRIPTION: Module DAO\_MOD contains both arrays that hold DAO met fields, 
 !  as well as subroutines that compute, interpolate, or otherwise process 
@@ -1155,8 +1155,8 @@
 ! !IROUTINE: set_dry_surface_pressure
 !
 ! !DESCRIPTION: Subroutine SET\_DRY\_SURFACE\_PRESSURE sets the dry
-!  surface pressures PS1_DRY or PS2_DRY by removing the water vapor from
-!  the column constructed with MET pressure fields PS1_WET or PS2_WET. 
+!  surface pressures PS1\_DRY or PS2\_DRY by removing the water vapor from
+!  the column constructed with MET pressure fields PS1\_WET or PS2\_WET. 
 !\\
 !\\
 ! !INTERFACE:

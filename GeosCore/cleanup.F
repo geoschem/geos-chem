@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: cleanup
+! !MODULE: cleanup.F
 !
 ! !DESCRIPTION: Subroutine CLEANUP deallocates the memory assigned to 
 !  dynamically allocatable arrays just before exiting a GEOS-Chem simulation.

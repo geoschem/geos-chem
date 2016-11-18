@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag53_mod
+! !MODULE: diag53_mod.F
 !
 ! !DESCRIPTION: Module DIAG53\_MOD contains arrays and routines for archiving
 !  the ND53 diagnostic -- POPS emissions, mass, and production. (eck 9/20/10)

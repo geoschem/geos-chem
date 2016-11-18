@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cldice_hbrhobr_rxn
+! !MODULE: cldice_hbrhobr_rxn.F
 !
 ! !DESCRIPTION: Subroutine CLDICE\_HBrHOBr\_RXN calculates the rate constants
 ! for HBr and HOBr pseudo-reactions with ice.

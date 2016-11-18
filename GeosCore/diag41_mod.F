@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag41_mod
+! !MODULE: diag41_mod.F
 !
 ! !DESCRIPTION: Module DIAG41\_MOD contains arrays and routines for 
 !  archiving the ND41 diagnostic -- Afternoon PBL heights.

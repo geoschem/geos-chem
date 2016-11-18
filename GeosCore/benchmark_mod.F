@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: benchmark_mod
+! !MODULE: benchmark_mod.F
 !
 ! !DESCRIPTION: Module BENCHMARK\_MOD contains routines to save out initial 
 !  and final tracer mass mixing ratios which are needed for GEOS-Chem 1-month 

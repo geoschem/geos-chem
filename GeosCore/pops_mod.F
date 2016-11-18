@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: pops_mod
+! !MODULE: pops_mod.F
 !
 ! !DESCRIPTION: Module POPS\_MOD contains variables and routines for the 
 !  GEOS-Chem peristent organic pollutants (POPs) simulation. 

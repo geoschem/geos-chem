@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: vdiff_pre_mod
+! !MODULE: vdiff_pre_mod.F90
 !
 ! !DESCRIPTION: Module VDIFF\_PRE\_MOD contains variables used in VDIFF\_MOD.
 !\\

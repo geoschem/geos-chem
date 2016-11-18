@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: pbl_mix_mod
+! !MODULE: pbl_mix_mod.F
 !
 ! !DESCRIPTION: Module PBL\_MIX\_MOD contains routines and variables used to 
 !  compute the planetary boundary layer (PBL) height and to mix tracers 

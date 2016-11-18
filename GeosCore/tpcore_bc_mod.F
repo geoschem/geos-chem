@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: tpcore_bc_mod
+! !MODULE: tpcore_bc_mod.F
 !
 ! !DESCRIPTION: Module TPCORE\_BC\_MOD contains modules and variables 
 !  which are needed to save and read TPCORE nested-grid boundary conditions 
@@ -226,7 +226,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: set_clean_bc 
 !
 ! !DESCRIPTION: Subroutine SET\_CLEAN\_BC initializes the CLEAN\_BC logical 
 !  flag.  CLEAN\_BC decides whether or not we will zero the nested-grid 

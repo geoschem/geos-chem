@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: a6_read_mod
+! !MODULE: a6_read_mod.F
 !
 ! !DESCRIPTION: Module A6\_READ\_MOD contains subroutines that unzip, open, and
 !  read GEOS-CHEM A-6 (avg 6-hour) met fields from disk.

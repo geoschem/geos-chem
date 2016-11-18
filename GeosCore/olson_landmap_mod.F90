@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: olson_landmap_mod
+! !MODULE: olson_landmap_mod.F90
 !
 ! !DESCRIPTION: Module OLSON\_LANDMAP\_MOD reads the Olson land map and
 !  computes the IREG, ILAND, and IUSE arrays.  This module was written to

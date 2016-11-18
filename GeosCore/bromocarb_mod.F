@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: bromocarb_mod
+! !MODULE: bromocarb_mod.F
 !
 ! !DESCRIPTION: Module BROMOCARB\_MOD contains variables and routines for the
 !  GEOS-Chem bromocarbon simulation.

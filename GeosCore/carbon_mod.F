@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: carbon_mod
+! !MODULE: carbon_mod.F
 !     
 ! !DESCRIPTION: Module CARBON\_MOD contains arrays and routines for performing
 !  a carbonaceous aerosol simulation.  Original code taken from Mian Chin's 

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: a3_read_mod
+! !MODULE: a3_read_mod.F
 !
 ! !DESCRIPTION: Module A3\_READ\_MOD contains routines that unzip, open, and 
 !  read the GEOS-Chem A3 (avg 3-hour) met fields from disk. 

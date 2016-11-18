@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gamap_mod
+! !MODULE: gamap_mod.F
 !
 ! !DESCRIPTION: Module GAMAP\_MOD contains routines to create GAMAP 
 !  "tracerinfo.dat" and "diaginfo.dat" files which are customized to each

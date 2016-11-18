@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: flexchem_mod
+! !MODULE: flexchem_mod.F90
 !
 ! !DESCRIPTION: Module FlexChem\_Mod contines arrays and routines for the
 !  FlexChem chemical solver.

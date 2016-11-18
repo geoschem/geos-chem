@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: ucx_mod
+! !MODULE: ucx_mod.F
 !     
 ! !DESCRIPTION: Module UCX\_MOD contains routines and variables which
 !  are associated with the addition of full stratospheric chemistry to
@@ -3548,7 +3548,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: SO4_PHOTFRAC
+! !IROUTINE: so4_photfrac
 !
 ! !DESCRIPTION: FUNCTION SO4\_PHOTFRAC returns the fraction of H2SO4 which 
 !  is available for photolysis.

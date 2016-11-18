@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag63_mod
+! !MODULE: diag63_mod.F
 !
 ! !DESCRIPTION: Module DIAG63\_MOD contains variables and routines to save 
 !  out the fraction of NOx remaining and integrated OPE to disk

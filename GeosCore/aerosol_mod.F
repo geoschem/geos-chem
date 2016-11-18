@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: aerosol_mod
+! !MODULE: aerosol_mod.F
 !
 ! !DESCRIPTION: Module AEROSOL\_MOD contains variables and routines for
 !  computing optical properties for aerosols which are needed for both the

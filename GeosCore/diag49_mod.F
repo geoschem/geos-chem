@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag49_mod
+! !MODULE: diag49_mod.F
 !
 ! !DESCRIPTION: Module DIAG49\_MOD contains variables and routines to save 
 !  out 3-D instantaneous timeseries output to disk.

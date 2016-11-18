@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: sulfate_mod
+! !MODULE: sulfate_mod.F
 !
 ! !DESCRIPTION: Module SULFATE\_MOD contains arrays and routines for performing
 !  either a coupled chemistry/aerosol run or an offline sulfate aerosol
@@ -6531,7 +6531,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: SULFATE_PBL_MIX
+! !IROUTINE: sulfate_pbl_mix
 !
 ! !DESCRIPTION: Subroutine SULFATE\_PBL\_MIX partitions the total
 ! anthro sulfate emissions thru the entire boundary layer. Emissions

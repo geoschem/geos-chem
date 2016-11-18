@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: tagged_co_mod
+! !MODULE: tagged_co_mod.F
 !
 ! !DESCRIPTION: Module TAGGED\_CO\_MOD contains variables and routines 
 !  used for the  geographically tagged CO simulation.

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag42_mod
+! !MODULE: diag42_mod.F
 !
 ! !DESCRIPTION: Module DIAG42\_MOD contains arrays and routines for archiving 
 !  the ND42 diagnostic -- secondary organic aerosols [ug/m3]. 

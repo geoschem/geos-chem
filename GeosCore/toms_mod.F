@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: toms_mod
+! !MODULE: toms_mod.F
 !
 ! !DESCRIPTION: Module TOMS\_MOD contains variables and routines for reading 
 !  the TOMS/SBUV O3 column data from disk (for use w/ the FAST-J photolysis 
@@ -443,7 +443,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_overhead_O3
+! !IROUTINE: get_overhead_o3
 !
 ! !DESCRIPTION: Function GET\_OVERHEAD\_O3 returns the total overhead O3
 !  column [DU] (which is taken either from TOMS/SBUV or directly from the

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: depo_mercury_mod
+! !MODULE: depo_mercury_mod.F
 !
 ! !DESCRIPTION: Module DEPO\_MERCURY\_MOD contains routines to handle
 !  deposition fluxes for mercury. 

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: planeflight_mod
+! !MODULE: planeflight_mod.F
 !
 ! !DESCRIPTION: Module PLANEFLIGHT\_MOD contains variables and routines which 
 !  are used to "fly" a plane through the GEOS-Chem model simulation.  This is 

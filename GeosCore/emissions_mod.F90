@@ -45,7 +45,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EMISSIONS_INIT
+! !IROUTINE: emissions_init
 !
 ! !DESCRIPTION: Subroutine EMISSIONS\_INIT calls the HEMCO - GEOS-Chem
 ! interface initialization routines. 
@@ -111,7 +111,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EMISSIONS_RUN
+! !IROUTINE: emissions_run
 !
 ! !DESCRIPTION: Subroutine EMISSIONS\_RUN calls the HEMCO - GEOS-Chem
 ! interface run routines.
@@ -195,11 +195,6 @@ CONTAINS
        ! emissions calculated in HEMCO (SESQ) are passed to the internal
        ! species array in carbon, as well as to ensure that POA emissions
        ! are correctly treated.
-!-----------------------------------------------------------------------------
-! Prior to 9/22/16:
-!       CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, RC )
-!       IF ( RC /= GC_SUCCESS ) RETURN 
-!-----------------------------------------------------------------------------
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
             Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
           CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, RC )
@@ -282,7 +277,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EMISSIONS_FINAL
+! !IROUTINE: emissions_final
 !
 ! !DESCRIPTION: Subroutine EMISSIONS\_FINAL calls the HEMCO - GEOS-Chem
 ! interface finalization routines.

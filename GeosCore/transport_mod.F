@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: transport_mod
+! !MODULE: transport_mod.F
 !
 ! !DESCRIPTION: Module TRANSPORT\_MOD is used to call the proper version of 
 !  the TPCORE advection scheme for GCAP, GEOS-4, GEOS-5, or GEOS-5.7

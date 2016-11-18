@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: seasalt_mod
+! !MODULE: seasalt_mod.F
 !
 ! !DESCRIPTION: Module SEASALT\_MOD contains arrays and routines for performing
 !  either a coupled chemistry/aerosol run or an offline seasalt aerosol

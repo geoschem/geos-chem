@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: tagged_o3_mod
+! !MODULE: tagged_o3_mod.F
 !
 ! !DESCRIPTION: Module TAGGED\_O3\_MOD contains variables and routines to 
 !  perform a tagged O3 simulation.  P(O3) and L(O3) rates need to be archived 

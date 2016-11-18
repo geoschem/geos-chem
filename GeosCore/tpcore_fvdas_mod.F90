@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: Tpcore_FvDas_Mod
+! !MODULE: tpcore_fvdas_mod.F90
 !
 ! !DESCRIPTION: \subsection*{Overview}
 !  Module Tpcore\_Fvdas\_Mod contains routines for the TPCORE

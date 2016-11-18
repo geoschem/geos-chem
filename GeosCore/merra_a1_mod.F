@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: merra_a1_mod
+! !MODULE: merra_a1_mod.F90
 !
 ! !DESCRIPTION: Module MERRA\_A1\_MOD contains subroutines for reading the 
 !  1-hour time averaged (aka "A1") fields from the MERRA data archive.

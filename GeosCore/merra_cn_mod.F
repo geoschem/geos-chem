@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: merra_cn_mod
+! !MODULE: merra_cn_mod.F90
 !
 ! !DESCRIPTION: Module MERRA\_CN\_MOD contains subroutines for reading the 
 !  constant (aka "CN") fields from the MERRA data archive.

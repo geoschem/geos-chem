@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: vdiff_mod
+! !MODULE: vdiff_mod.F90
 !
 ! !DESCRIPTION: Module VDIFF\_MOD includes all routines for the non-local PBL
 !  mixing scheme.

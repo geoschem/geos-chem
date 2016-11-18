@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: Pjc_Pfix_Mod
+! !MODULE: pjc_pfix_mod.F
 !
 ! !DESCRIPTION: Module Pjc\_Pfix\_Mod contains routines which implements the 
 !  Philip Cameron-Smith pressure fixer for the new fvDAS transport 

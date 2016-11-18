@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag03_mod
+! !MODULE: diag03_mod.F
 !
 ! !DESCRIPTION:  Module DIAG03\_MOD contains arrays and routines for archiving 
 !  the ND03 diagnostic -- Hg emissions, mass, and production.

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: convection_mod
+! !MODULE: convection_mod.F90
 !
 ! !DESCRIPTION: Module CONVECTION\_MOD contains routines which select the 
 !  proper convection code for GEOS-3, GEOS-4, GEOS-5, MERRA, or GCAP met 

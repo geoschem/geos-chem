@@ -4,7 +4,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: rrtmg_rad_transfer_mod
+! !MODULE: rrtmg_rad_transfer_mod.F
 !
 ! !DESCRIPTION: Module RRTMG\_RAD\_TRANSFER\_MOD contains arrays and routines
 !  for performing online radiative transfer in GEOS-Chem.
@@ -100,7 +100,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: DO_RRTMG_RAD_TRANSFER
+! !IROUTINE: do_rrtmg_rad_transfer
 !
 ! !DESCRIPTION: INTERNAL SUBROUTINE 
 !\\

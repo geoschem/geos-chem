@@ -40,7 +40,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: INIT_MIXING 
+! !IROUTINE: init_mixing 
 !
 ! !DESCRIPTION: Subroutine INIT\_MIXING initialized the pbl mixing wrapper
 ! module. 
@@ -115,7 +115,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: DO_MIXING 
+! !IROUTINE: do_mixing 
 !
 ! !DESCRIPTION: Subroutine DO\_MIXING performs the PBL mixing. 
 !\\
@@ -240,7 +240,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: DO_TEND 
+! !IROUTINE: do_tend 
 !
 ! !DESCRIPTION: Subroutine DO\_TEND adds the species tendencies (dry deposition
 !  and emissions) to the species array.

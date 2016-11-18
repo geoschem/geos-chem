@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: diag04_mod
+! !MODULE: diag04_mod.F
 !     
 ! !DESCRIPTION: Module DIAG04\_MOD contains arrays and routines for archiving 
 !  the ND04 diagnostic -- CO2 emissions and fluxes.

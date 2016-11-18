@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: input_mod
+! !MODULE: input_mod.F
 !
 ! !DESCRIPTION: Module INPUT\_MOD contains routines that read the GEOS-Chem 
 !  input file at the start of the run and pass the information to several 

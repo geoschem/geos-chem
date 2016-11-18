@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: diag1
+! !MODULE: diag1.F
 !
 ! !DESCRIPTION: Subroutine DIAG1 accumulates diagnostic quantities on every 
 !  dynamic timestep.

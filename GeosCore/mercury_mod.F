@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: mercury_mod
+! !MODULE: mercury_mod.F
 !
 ! !DESCRIPTION: Module MERCURY\_MOD contains variables and routines for the 
 !  GEOS-CHEM mercury simulation.  Many choices of reaction mechanism and 
@@ -1862,7 +1862,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: srcHg0
 !
 ! !DESCRIPTION: Subroutine SRCHg0 is the subroutine for Hg(0) emissions.  
 !  Emissions of Hg(0) will be distributed throughout the boundary layer. 
@@ -2635,7 +2635,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: srchg2
+! !IROUTINE: srcHg2
 !
 ! !DESCRIPTION: Subroutine SRCHg2 is the subroutine for Hg(II) emissions.  
 !  Emissions of Hg(II) will be distributed throughout the boundary layer. 
@@ -2845,7 +2845,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: srchgp
+! !IROUTINE: srcHgp
 !
 ! !DESCRIPTION: Subroutine SRCHgP is the subroutine for HgP emissions.  
 !  Emissions of HgP will be distributed throughout the boundary layer. 
@@ -3333,7 +3333,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: get_vcldf 
 !
 ! !DESCRIPTION: Subroutine GET\_VCLDF computes the volume cloud fraction for 
 !  Hg0 and Hg2 chemistry.
@@ -3417,7 +3417,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: get_o3
 !
 ! !DESCRIPTION: Function GET\_O3 returns monthly mean O3 for the mercury
 !  simulation.
@@ -3549,7 +3549,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: get_Br 
 !
 ! !DESCRIPTION: Function GET\_BR returns instantaneous Br concentration 
 !  calculated from the monthly mean and an imposed diurnal variation.

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: drydep_mod
+! !MODULE: drydep_mod.F
 !
 ! !DESCRIPTION: Module DRYDEP\_MOD contains variables and routines for the
 !  GEOS-Chem dry deposition scheme.

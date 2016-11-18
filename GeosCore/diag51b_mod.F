@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag51b_mod 
+! !MODULE: diag51b_mod.F 
 !
 ! !DESCRIPTION: Module DIAG51b\_MOD contains variables and routines to 
 !  generate save timeseries data where the local time is between two 

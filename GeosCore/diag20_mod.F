@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag20_mod
+! !MODULE: diag20_mod.F
 !
 ! !DESCRIPTION: Module DIAG20\_MOD contains variables and routines which are 
 !  used to compute the production and loss of O3 for use in the tagged O3

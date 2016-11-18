@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: isoropiaii_mod
+! !MODULE: isoropiaii_mod.F
 !
 ! !DESCRIPTION: Module ISOROPIAII\_MOD contains the routines that provide
 !  the interface between ISORROPIA II and GEOS-Chem.

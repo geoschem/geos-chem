@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: mapping_mod
+! !MODULE: mapping_mod.F90
 !
 ! !DESCRIPTION: Module MAPPING\_MOD contains a derived-type object to compute
 !  and save the mapping weight (i.e. fraction of each "fine" grid box that
