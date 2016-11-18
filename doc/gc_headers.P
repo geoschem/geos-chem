@@ -1,0 +1,8 @@
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOS
+! !SECTION: GEOS-Chem header modules
+! !DESCRIPTION: Here follows a list modules that are used to define various global parameters and variables used by GEOS-Chem.  These were formerly COMMON-block include files (*.h), but were converted to Fortran-90 modules as part of the GEOS-Chem HP (high-performance) project.
+!EOS
+!------------------------------------------------------------------------------

@@ -1,9 +1,8 @@
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
-!BOI
-! !TITLE: GEOS-Chem Reference, Volume 3:\\"Core" Modules and Routines
-! !AUTHORS: GEOS-Chem Support Team
-! !DATE: 10 Jul 2015
-!EOI
+!BOS
+! !SECTION: Meteorological field modules
+! !DESCRIPTION: These modules contain routines to read archived meteorology into GEOS-Chem.
+!EOS
 !------------------------------------------------------------------------------

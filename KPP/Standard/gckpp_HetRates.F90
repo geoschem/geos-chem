@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gckpp_HetRates
+! !MODULE: gckpp_HetRates
 !
 ! !DESCRIPTION: FlexChem module for heterogeneous chemistry, via KPP.
 !\\
@@ -140,7 +140,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_het
+! !IROUTINE: Set_Het
 !
 ! !DESCRIPTION: Main heterogenous chemistry driver routine.  Sets up the
 !  vector of heterogeneous chemistry rates for the KPP chemistry solver.
@@ -652,7 +652,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hetno3
+! !IROUTINE: HetNO3
 !
 ! !DESCRIPTION: Set the heterogenous chemistry rate for NO3.
 !\\
@@ -729,7 +729,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hetno2
+! !IROUTINE: HetNO2
 !
 ! !DESCRIPTION: Set the heterogenous chemistry rate for NO2.
 !\\
@@ -806,7 +806,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hetho2
+! !IROUTINE: HetHO2
 !
 ! !DESCRIPTION: Set the heterogenous chemistry rate for HO2.
 !\\
@@ -887,7 +887,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hethbr
+! !IROUTINE: HetHBr
 !
 ! !DESCRIPTION: Set the heterogeneous rate for HBr.
 !\\
@@ -980,7 +980,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hetn2o5
+! !IROUTINE: HetN2O5
 !
 ! !DESCRIPTION: Set heterogenous chemistry rate for N2O5.
 !\\
@@ -1103,7 +1103,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hetbrno3
+! !IROUTINE: HetBrNO3
 !
 ! !DESCRIPTION: Sets the heterogenous chemistry rate for BrNO3.
 !\\
@@ -1207,7 +1207,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hethobr
+! !IROUTINE: HetHOBr
 !
 ! !DESCRIPTION: Sets the heterogenous chemistry rate for HOBr.
 !\\
@@ -1298,7 +1298,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hethobr_ice
+! !IROUTINE: HetHOBr_Ice
 !
 ! !DESCRIPTION: Sets the heterogenous chemistry rate for HOBr (on ice).
 !\\
@@ -1336,7 +1336,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hetbr_ice
+! !IROUTINE: HetBr_Ice
 !
 ! !DESCRIPTION: Sets the heterogenous chemistry rate for HBr (on ice).
 !\\
@@ -1374,7 +1374,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: n2o5
+! !IROUTINE: N2O5
 !
 ! !DESCRIPTION: Internal function N2O5 computes the GAMMA sticking factor
 !  for N2O5 hydrolysis. (mje, bmy, 8/7/03)
@@ -1536,7 +1536,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ho2
+! !IROUTINE: HO2
 !
 ! !DESCRIPTION: Function HO2 computes the GAMMA reaction probability
 !  for HO2 loss in aerosols based on the recommendation of 
@@ -1779,9 +1779,9 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cld1k_brno3
+! !IROUTINE: Cld1k_BrNO3
 !
-! !DESCRIPTION: Function CLD1K_BrNO3 calculates the rate constant for
+! !DESCRIPTION: Function CLD1K\_BrNO3 calculates the rate constant for
 !  heterogeneous cycling of BrNO3 off of cloud particles.
 !\\
 !\\
@@ -2090,7 +2090,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: fcro2ho2
+! !IROUTINE: FcrO2HO2
 !
 ! !DESCRIPTION: !fgap, based on saunder 2003 k14
 !\\
@@ -2122,7 +2122,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: FYHORO
+! !IROUTINE: FyHORO
 !
 ! !DESCRIPTION: \subsection*{Overview}
 !  Function FYHORO returns returns the branching ratio between 
@@ -2139,8 +2139,6 @@ MODULE GCKPP_HETRATES
 !         radicals}, \underline{Chem. Rev.}, \textbf{103}, 4657-4689.
 !  \end{enumerate}
 !
-!\\
-!\\
 ! !INTERFACE: 
 !
     FUNCTION FYHORO( ZDNUM, TT ) RESULT( FY_HORO )
@@ -2182,7 +2180,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: fyrno3
+! !IROUTINE: FyrNO3
 !
 ! !DESCRIPTION: Function FYRNO3 returns organic nitrate yields 
 !  YN = RKA/(RKA+RKB) from RO2+NO reactions as a function of the number 
@@ -2242,7 +2240,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: arsl1k
+! !ROUTINE: Arsl1k
 !
 ! !DESCRIPTION: Function ARSL1K calculates the 1st-order loss rate of species 
 !  on wet aerosol surface.
@@ -2341,7 +2339,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hetn2o5_psc
+! !IROUTINE: HetN2O5_Psc
 !
 ! !DESCRIPTION: Set heterogenous chemistry rate for N2O5(g) + HCl(l,s)
 !  in polar stratospheric clouds.
@@ -2440,7 +2438,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hetclno3_psc1
+! !IROUTINE: HetClNO3_Psc1
 !
 ! !DESCRIPTION: Set heterogenous chemistry rate for ClNO3(g) + H2O(l,s)
 !  in polar stratopsheric clouds.
@@ -2540,7 +2538,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hetclno3_psc2
+! !IROUTINE: HetClNO3_Psc2
 !
 ! !DESCRIPTION: Sets the heterogenous chemistry rate for ClNO3(g) + HCl(l,s)
 ! in polar stratospheric clouds.
@@ -2639,7 +2637,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hetclno3_psc3
+! !IROUTINE: HetClNO3_Psc3
 !
 ! !DESCRIPTION: Set heterogenous chemistry rate for ClNO3(g) + HBr(l,s)
 !  in polar stratospheric clouds.
@@ -2738,7 +2736,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hetbrno3_psc
+! !IROUTINE: HetBrNo3_Psc
 !
 ! !DESCRIPTION: Set heterogenous chemistry rate for BrNO3(g) + HCl(l,s)
 !  in polar stratospheric clouds.
@@ -2838,7 +2836,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hethocl_psc1
+! !IROUTINE: HetHOCl_Psc1
 !
 ! !DESCRIPTION: Set heterogenous chemistry rate for HOCl(g) + HCl(l,s)
 !  in polar stratopsheric clouds.
@@ -2937,7 +2935,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hethocl_psc2
+! !IROUTINE: HetHocl_Psc2
 !
 ! !DESCRIPTION: Set heterogenous chemistry rate for HOCl(g) + HBr(l,s)
 !  in polar stratospheric clouds.
@@ -3036,7 +3034,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hethobr_psc
+! !IROUTINE: HetHOBr_Psc
 !
 ! !DESCRIPTION: Set heterogenous chemistry rate for HOBr(g) + HCl(l,s)
 !  in polar stratospheric clouds.
@@ -3135,7 +3133,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: check_nat
+! !IROUTINE: Check_Nat
 !
 ! !DESCRIPTION: Subroutine CHECK\_NAT determines whether the solid PSC is 
 !  composed of ice or NAT (nitric acid trihydrate) (needed for heterogeneous

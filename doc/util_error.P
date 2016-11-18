@@ -1,9 +1,8 @@
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
-!BOP
-! !MODULE: Individual GTMM routines
-! !DESCRIPTION: Here follows a list of GTMM routines that do not
-!  belong to any F90 module.
-!EOP
+!BOS
+! !SECTION: Error handling routines
+! !DESCRIPTION: These modules contain routines for (1) error checking values and (2) for stopping GEOS-Chem when a fatal error occurs.
+!EOS
 !------------------------------------------------------------------------------

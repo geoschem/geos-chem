@@ -1,0 +1,8 @@
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOS
+! !SECTION: Aerosol modules
+! !DESCRIPTION: These modules contain routines to perform chemistry or removal of the various aerosol species.
+!EOS
+!------------------------------------------------------------------------------m]

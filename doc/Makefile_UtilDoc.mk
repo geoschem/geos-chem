@@ -28,31 +28,50 @@
 #                              regrid_a2a_mod.F90 are included
 #  15 Jan 2014 - R. Yantosca - Now only create *.pdf output
 #  10 Jul 2015 - R. Yantosca - Use ./protex to avoid problems on some systems
+#  18 Nov 2016 - R. Yantosca - Now use protex -sfp to increment chapters
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # List of source code files
-SRC3 :=                     \
-./intro.util                \
-$(wildcard $(UTIL)/*.F)     \
-$(wildcard $(UTIL)/*.F90)
-
+SRC1 :=                     \
+./util_intro.P              \
+./util_grid.P               \
+$(UTIL)/pressure_mod.F      \
+$(UTIL)/grid_mod.F90        \
+$(UTIL)/regrid_a2a_mod.F90  \
+$(UTIL)/bpch2_mod.F         \
+$(UTIL)/transfer_mod.F      \
+$(UTIL)/file_mod.F          \
+$(UTIL)/inquireMod.F90      \
+./util_file.P               \
+$(wildcard $(NC)/*.F*)      \
+$(SRCNC)                    \
+./util_time.P               \
+$(UTIL)/time_mod.F          \
+$(UTIL)/julday_mod.F        \
+./util_units.P              \
+$(UTIL)/unitconv_mod.F90    \
+./util_error.P              \
+$(UTIL)/error_mod.F         \
+$(UTIL)/ifort_errmsg.F      \
+./util_misc.P               \
+$(UTIL)/charpak_mod.F       \
+$(UTIL)/geos_timers_mod.F
 
 # Output file names
-TEX3 := GC_Ref_Vol_2.tex
-DVI3 := GC_Ref_Vol_2.dvi
-PDF3 := GC_Ref_Vol_2.pdf
-
+TEX1 := GC_v11-01_Utility_Modules.tex
+DVI1 := GC_v11-01_Utility_Modules.dvi
+PDF1 := GC_v11-01_Utility_Modules.pdf
 
 # Make commands
 utildoc: 
-	rm -f $(TEX3)
-	./protex -sf $(SRC3) > $(TEX3)
-	latex $(TEX3)
-	latex $(TEX3)
-	latex $(TEX3)
-	dvipdf $(DVI3) $(PDF3)
+	rm -f $(TEX1)
+	./protex -sfp $(SRC1) > $(TEX1)
+	latex $(TEX1)
+	latex $(TEX1)
+	latex $(TEX1)
+	dvipdf $(DVI1) $(PDF1)
 	rm -f *.aux *.dvi *.log *.toc
 
 #EOC
