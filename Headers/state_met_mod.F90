@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: state_met_mod
+! !MODULE: state_met_mod.F90
 !
 ! !DESCRIPTION: Module STATE\_MET\_MOD contains the derived type
 !  used to define the Meteorology State object for GEOS-Chem.
@@ -268,7 +268,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_state_met
+! !IROUTINE: Init_State_Met
 !
 ! !DESCRIPTION: Subroutine INIT\_STATE\_MET allocates all fields of 
 !  the meteorology state object.
@@ -991,7 +991,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_state_met
+! !IROUTINE: Cleanup_State_Met
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_STATE\_MET deallocates all fields 
 !  of the meteorology state object.

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: CMN_SIZE
+! !MODULE: CMN_SIZE_mod.F
 !
 ! !DESCRIPTION: CMN\_SIZE contains size parameters for GEOS-Chem arrays.
 !\\
@@ -766,7 +766,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_cmn_size
+! !IROUTINE: Init_Cmn_Size
 !
 ! !DESCRIPTION: Routine INIT\_CMN\_SIZE initializes the grid dimension values
 !  in module CMN\_SIZE\_mod.F.
@@ -985,7 +985,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_cmn_size
+! !IROUTINE: Cleanup_Cmn_Size
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_CMN\_SIZE deallocates all module arrays.
 !\\

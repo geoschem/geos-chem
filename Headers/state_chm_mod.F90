@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: state_chm_mod
+! !MODULE: state_chm_mod.F90
 !
 ! !DESCRIPTION: Module STATE\_CHM\_MOD contains the derived type
 !  used to define the Chemistry State object for GEOS-Chem.
@@ -138,7 +138,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ind_
+! !IROUTINE: Ind_
 !
 ! !DESCRIPTION: Function IND\_ returns the index of an advected species or 
 !  chemical species contained in the chemistry state object by name.
@@ -266,7 +266,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_state_chm
+! !IROUTINE: Init_State_Chm
 !
 ! !DESCRIPTION: Routine INIT\_STATE\_CHM allocates and initializes the 
 !  pointer fields of the chemistry state object.
@@ -647,7 +647,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_state_chm
+! !IROUTINE: Cleanup_State_Chm
 !
 ! !DESCRIPTION: Routine CLEANUP\_STATE\_CHM deallocates all fields 
 !  of the chemistry state object.

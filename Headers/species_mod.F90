@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: species_mod 
+! !MODULE: species_mod.F90
 !
 ! !DESCRIPTION: Module SPECIES\_MOD contains types and routines to define
 !  the GEOS-Chem species object.

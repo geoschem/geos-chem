@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: cmn_fjx_mod
+! !MODULE: CMN_FJX_mod.F
 !
 ! !DESCRIPTION: Module CMN\_FJX\_MOD contains parameters and global variables
 !  used to interface between Harvard chemistry and UC-Irvine photolysis 
@@ -317,7 +317,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_cmn_fjx
+! !IROUTINE: Init_Cmn_Fjx
 !
 ! !DESCRIPTION: Routine INIT\_CMN\_FJX initializes quantities based on
 !  the grid-independent size parameters.
@@ -410,7 +410,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_cmn_fjx
+! !IROUTINE: Cleanup_Cmn_Fjx
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_CMN\_FJX deallocates all module arrays.
 !\\

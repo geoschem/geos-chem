@@ -70,7 +70,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_species_database
+! !IROUTINE: Init_Species_Database
 !
 ! !DESCRIPTION: Initializes the GEOS-Chem species database object.  You can
 !  add information about new species to this routine.
@@ -4889,7 +4889,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_define_species
+! !IROUTINE: Cleanup_Species_Database
 !
 ! !DESCRIPTION: Finalizes the vector with species information.
 !\\
@@ -4987,7 +4987,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: unique_species_names
+! !IROUTINE: Unique_Species_Names
 !
 ! !DESCRIPTION: Stores the list of unique species names (i.e. removing 
 !  duplicates from the list of advected species and the the list of KPP 
@@ -5194,7 +5194,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CleanUp_Work_Arrays
+! !IROUTINE: Cleanup_Work_Arrays
 !
 ! !DESCRIPTION: Stores the list of unique species names (i.e. removing
 !  duplicates from the list of advected species and the the list of KPP

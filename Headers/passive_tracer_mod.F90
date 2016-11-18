@@ -16,7 +16,7 @@
 !  existing GEOS-Chem simulation type, even though it has only been tested
 !  with the Radon simulation at this point.
 !
-! !EXAMPLE:  
+! !REMARKS:  
 !  Passive tracers are defined in input.geos in the PASSIVE TRACERS menu. For
 !  instance, to use the Radon simulation with two passive tracers ('Rn_ps' and 
 !  'Dummy') with atmospheric lifetimes of 3.8 days and 1 hour, respectively, 
@@ -83,9 +83,6 @@ MODULE PASSIVE_TRACER_MOD
 !------------------------------------------------------------------------------
 !BOC
 !
-! !DEFINED PARAMETERS:
-!
-!
 ! !MODULE VARIABLES:
 !
   INTEGER,                        PUBLIC :: NPASSIVE = 0
@@ -105,7 +102,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: INIT_PASSIVE_TRACER
+! !IROUTINE: Init_Passive_Tracer
 !
 ! !DESCRIPTION: Subroutine INIT\_PASSIVE\_TRACER initializes the passive
 ! tracers arrays.
@@ -128,7 +125,7 @@ CONTAINS
 !
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
-! !REMARKS
+! !REMARKS:
 !
 ! !REVISION HISTORY: 
 !  04 Sep 2015 - C. Keller    - Initial version 
@@ -175,7 +172,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ADD_PASSIVE_TRACER
+! !IROUTINE: Add_Passive_Tracer
 !
 ! !DESCRIPTION: Subroutine ADD\_PASSIVE\_TRACER registers a passive tracer 
 !  based on the passed input arguments.
@@ -202,7 +199,7 @@ CONTAINS
 !
     INTEGER,          INTENT(INOUT)  :: RC          ! Failure or success
 !
-! !REMARKS
+! !REMARKS:
 !
 ! !REVISION HISTORY: 
 !  04 Sep 2015 - C. Keller    - Initial version 
@@ -289,7 +286,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: PASSIVE_TRACER_GETRATE
+! !IROUTINE: Passive_Tracer_Getrate
 !
 ! !DESCRIPTION: Subroutine PASSIVE\_TRACER\_GETRATE returns the unitless decay
 !  rate for the given tracer and chemistry time step. 
@@ -318,7 +315,7 @@ CONTAINS
 !
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
-! !REMARKS
+! !REMARKS:
 !
 ! !REVISION HISTORY: 
 !  04 Sep 2015 - C. Keller    - Initial version 
@@ -380,7 +377,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: PASSIVE_TRACER_INQUIRE
+! !IROUTINE: Passive_Tracer_Inquire
 !
 ! !DESCRIPTION: Function PASSIVE\_TRACER\_INQUIRE is a wrapper routine to 
 !  inquire information about a passive tracer. 
@@ -404,7 +401,7 @@ CONTAINS
     REAL(fp), OPTIONAL, INTENT(  OUT)  :: MW         ! Molecular weight (g/mol) 
     REAL(fp), OPTIONAL, INTENT(  OUT)  :: InitConc   ! Initial concentration (v/v) 
 !
-! !REMARKS
+! !REMARKS:
 !
 ! !REVISION HISTORY: 
 !  04 Sep 2015 - C. Keller    - Initial version 
@@ -452,7 +449,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CLEANUP_PASSIVE_TRACER
+! !IROUTINE: Cleanup_Passive_Tracer
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_PASSIVE\_TRACER finalizes the passive
 ! tracers arrays.
@@ -474,7 +471,7 @@ CONTAINS
 !
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
-! !REMARKS
+! !REMARKS:
 !
 ! !REVISION HISTORY: 
 !  04 Sep 2015 - C. Keller    - Initial version 

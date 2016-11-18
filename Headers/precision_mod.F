@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: precision_mod
+! !MODULE: precision_mod.F
 !
 ! !DESCRIPTION: Module PRECISION\_MOD is used to change the precision of
 !  many variables throughout GEOS-Chem at compile-time.

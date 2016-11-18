@@ -4,7 +4,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: input_opt_mod
+! !MODULE: input_opt_mod.F90
 !
 ! !DESCRIPTION: Module INPUT\_OPT\_MOD contains the derived type for GEOS-Chem
 !  options and logical switches.
@@ -660,7 +660,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_input_opt
+! !IROUTINE: Set_Input_Opt
 !
 ! !DESCRIPTION: Subroutine SET\_INPUT\_OPT intializes all GEOS-Chem
 !  options carried in Input Options derived type object.
@@ -1400,7 +1400,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_input_opt
+! !IROUTINE: Cleanup_Input_Opt
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_INPUT\_OPT deallocates all 
 !  allocatable fields of the Input Options object.

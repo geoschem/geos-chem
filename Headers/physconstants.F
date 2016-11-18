@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: physconstants
+! !MODULE: physconstants.F
 !
 ! !DESCRIPTION: PhysConstants contains GEOS-Chem specific PHYSICAL CONSTANTS
 !  and DERIVED QUANTITIES.
