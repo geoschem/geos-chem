@@ -74,6 +74,11 @@
       INTEGER, PUBLIC :: RXN_H2SO4 = -1   ! SO4 + hv --> SO2 + 2OH
       INTEGER, PUBLIC :: RXN_NO2   = -1   ! NO2 + hv --> NO  + O
 
+      ! Needed for UCX_MOD
+      INTEGER, PUBLIC :: RXN_NO    = -1
+      INTEGER, PUBLIC :: RXN_NO3   = -1
+      INTEGER, PUBLIC :: RXN_N2O   = -1
+
       CONTAINS      
 !EOC
 !------------------------------------------------------------------------------
@@ -2767,6 +2772,18 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
             CASE( 'NO2PHOTONNOO' )
                RXN_NO2 = K
 
+            ! NO + hv -> N + O
+            CASE( 'NOPHOTONNO' )
+               RXN_NO = K
+
+            ! NO3 + hv -> NO2 + O
+            CASE( 'NO3PHOTONNO2O' )
+               RXN_NO3 = K
+
+            ! N2O + hv -> N2 + O
+            CASE( 'N2OPHOTONN2O' )
+               RXN_N2O = K
+
             CASE DEFAULT
                ! Nothing
          END SELECT
@@ -2798,6 +2815,21 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 #if defined( UCX )
       IF ( RXN_H2SO4  < 0 ) THEN
          MSG = 'Could not find rxn SO4 + hv -> SO2 + OH + OH!'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      IF ( RXN_NO3 < 0 ) THEN
+         MSG = 'Could not find rxn NO3 + hv -> NO2 + O'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      IF ( RXN_NO < 0 ) THEN
+         MSG = 'Could not find rxn NO + hv -> O + N'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      IF ( RXN_N2O < 0 ) THEN
+         MSG = 'Could not find rxn N2O + hv -> N2 + O(1D)'
          CALL ERROR_STOP( MSG, LOC )
       ENDIF
 #endif
