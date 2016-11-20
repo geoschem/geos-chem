@@ -945,6 +945,7 @@
       
       ! Pointers
       REAL*8, POINTER :: Spc(:,:,:,:)
+      REAL(fp), POINTER :: MK_TEMP2(:)
 
       !=================================================================
       ! EMISSSULFATETOMAS begins here!
@@ -981,25 +982,22 @@
          IF ( SRTNH4 > 0 ) THEN
             TID = IBINS*(ICOMP-IDIAG) + 1
 
-!%%%OMP PARALLEL DO
-!%%%OMP+DEFAULT( SHARED )
-!%%%OMP+PRIVATE( I, J, L, TMPNH4, MKTEMP )
-!%%%OMP+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, TEMPNH4, MK_TEMP2 )
+!$OMP+SCHEDULE( DYNAMIC )
             DO L=1,LLPAR
             DO J=1,JJPAR
             DO I=1,IIPAR
 
-               ! Take a slice of size IBINS from Spc
-               MK_TEMP = Spc(I,J,L,id_SF1:id_SF1-1+IBINS)
-
-               ! Avoid array tmeporaries in subroutine call (bmy, 1/29/14)
-               CALL NH4BULKTOBIN( MK_TEMP, Spc(I,J,L,id_NH4), TEMPNH4 )
+               MK_TEMP2 => Spc(I,J,L,id_SF1:id_SF1-1+IBINS)
+               CALL NH4BULKTOBIN( MK_TEMP2, Spc(I,J,L,id_NH4), TEMPNH4 )
 
                BINMASS(I,J,L,TID:TID+IBINS-1) = TEMPNH4(1:IBINS)
             Enddo
             ENDDO
             ENDDO
-!%%%OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
          ENDIF
 
@@ -1050,7 +1048,8 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE State_Met_Mod,      ONLY : MetState
       USE TOMAS_MOD,          ONLY : IBINS, AVGMASS, ICOMP
-      USE TOMAS_MOD,          ONLY : Xk,  SUBGRIDCOAG, MNFIX
+      USE TOMAS_MOD,          ONLY : Xk
+      USE TOMAS_MOD,          ONLY : SUBGRIDCOAG, MNFIX
       USE TOMAS_MOD,          ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
       USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
 !
@@ -1061,14 +1060,14 @@
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL*8,  INTENT(INOUT) :: TC2(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
+      REAL(fp), INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp), INTENT(INOUT) :: TC2(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 
 ! Local variables
-      INTEGER                :: I, J, K, L, DOW_LT, NTOP, C
+      INTEGER                :: I, J, K, L, DOW_LT, NTOP, C, Bi
       REAL*8                 :: SO4(LLPAR), DTSRCE  , EFRAC(LLPAR)
       REAL*8                 :: TSO4,       FEMIS
       REAL*8                 :: AREA_CM2
@@ -1101,14 +1100,18 @@
      &           1.462d-04, 4.100d-05, 1.029d-05, 2.311d-06, 4.645d-07/
 #endif
 
-      REAL*8                 :: NDISTINIT(IBINS)
-      REAL*8                 :: NDISTFINAL(IBINS)
-      REAL*8                 :: MADDFINAL(IBINS)
-      REAL*8                 :: NDIST(IBINS),  MDIST(IBINS,ICOMP)
-      REAL*8                 :: NDIST2(IBINS), MDIST2(IBINS,ICOMP)
+      REAL(fp)               :: NDISTINIT(IBINS)
+      REAL(fp)               :: NDISTFINAL(IBINS)
+      REAL(fp)               :: MADDFINAL(IBINS)
+      REAL(fp)               :: NDIST(IBINS),  MDIST(IBINS,ICOMP)
+      REAL(fp)               :: NDIST2(IBINS), MDIST2(IBINS,ICOMP)
       REAL*4                 :: TSCALE, BOXVOL, TEMP, PRES
 
-      REAL*8                 :: N0(LLPAR,IBINS), M0(LLPAR,IBINS)
+!      REAL(fp)               :: N0(LLPAR,IBINS), M0(LLPAR,IBINS)
+      REAL(fp)               :: Ndiag(IBINS), Mdiag(IBINS)
+      REAL(fp)               :: MADDTOTAL !optimization variable for diag
+!      REAL(fp)               :: Avginit(IBINS), Avgfinal(IBINS)
+!      REAL(fp)               :: Avginner(IBINS)
 
       REAL(fp)               :: AREA(IIPAR, JJPAR)
       REAL(fp)               :: AREA3D(IIPAR, JJPAR,2)
@@ -1166,6 +1169,26 @@
       AREA3D(:,:,1) = AREA(:,:)
       AREA3D(:,:,2) = AREA(:,:)
 
+      ! Define subgrid coagulation timescale (win, 10/28/08)
+#if   defined( GRID4x5   )
+            TSCALE = 10.*3600.  ! 10 hours
+#elif defined( GRID2x25  )
+            TSCALE = 5.*3600.
+#elif defined( GRID1x125 )
+            TSCALE = 2.*3600.
+#elif defined( GRID1x1   )
+            TSCALE = 2.*3600.
+#elif defined( GRID05x0666 )
+            TSCALE = 1.*3600.
+#elif defined( GRID025x03125 )
+            !%%% KLUDGE, just copied the 0.5 x 0.666 value
+            !%%% Someone needs to add the right value (bmy, 2/16/12)
+            !%%% 0.5 sounds about right. (sfarina, 11/14/16)
+            TSCALE = 0.5*3600.
+#endif
+            !Prior to 10/28/08 (win)
+            !TSCALE = 10.*3600.
+
       !================================================================
       ! READ IN HEMCO EMISSIONS
       !================================================================
@@ -1196,15 +1219,23 @@
       !=================================================================
       ! Compute SO4 emissions
       !=================================================================
+!%%%%%%OMP+PRIVATE( Avginit, Avginner, Avgfinal, N0, M0)
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS, EFRAC, N0, M0, K )
+!$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS, EFRAC, K )
 !$OMP+PRIVATE( NDISTINIT, NDIST, MDIST, NDISTFINAL, MADDFINAL )
-!$OMP+PRIVATE( NDIST2, MDIST2, C )
-!$OMP+PRIVATE( BOXVOL, TEMP, PRES, TSCALE, pdbug )
+!$OMP+PRIVATE( Ndiag, Mdiag)
+!$OMP+PRIVATE( MADDTOTAL, NDIST2, MDIST2, C , ERRORSWITCH)
+!$OMP+PRIVATE( BOXVOL, TEMP, PRES, pdbug )
 !$OMP+SCHEDULE( DYNAMIC )
+
+
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+         !initialize diagnostics
+         Ndiag(:) = 0.0D0
+         Mdiag(:) = 0.0D0
 
          ! Top level of boundary layer at (I,J)
          NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
@@ -1217,6 +1248,9 @@
          ! Compute total anthro SO4 (surface + 100m) plus biofuel SO4
          TSO4 = 0.d0
          TSO4 = SUM( SO4an(I,J,:) ) + SO4bf(I,J)
+         IF ( TSO4 <  0d0 ) THEN
+            WRITE(*,*) ' Negative Sulfate emis from hemco at IJ=', I, J
+         ENDIF
          IF ( TSO4 == 0d0 ) CYCLE
 
 
@@ -1279,17 +1313,26 @@
          !=============================================================
          IF ( SGCOAG ) THEN
 
-            N0(:,:) = TC1(I,J,:,:)
-            M0(:,:) = TC2(I,J,:,1:IBINS)
+            !save number and mass before emission
+            !N0(:,:) = TC1(I,J,:,:)
+            !M0(:,:) = TC2(I,J,:,1:IBINS)
 
           DO L = 1, LLPAR
+            !only really need to loop L=1,NTOP
             SO4(L) = TSO4 * EFRAC(L) * DTSRCE
             IF ( SO4(L) == 0.d0 ) CYCLE
             DO K = 1, IBINS
-               NDISTINIT(K) = SO4(L) * BFRAC(K) /
-     &                                ( SQRT( XK(K)*XK(K+1) ) )
+               !set number of sulfate particles emitted
+               !as emitted mass * fraction in this bin / avg mass per particle for this bin
+               NDISTINIT(K) = SO4(L) * BFRAC(K) / AVGMASS(K)
+               !sfarina - sqrt is expensive.
+!               NDISTINIT(K) = SO4(L) * BFRAC(K) /
+!     &                                ( SQRT( XK(K)*XK(K+1) ) )
+               !set existing number of particles
                NDIST(K) = TC1(I,J,L,K)
+               !sfarina - what are the chances aerosol water and ammonium are properly equilibrated?
                DO C = 1, ICOMP
+                  !set existing mass of each component
                   MDIST(K,C) = TC2(I,J,L,K+(C-1)*IBINS)
                   IF( IT_IS_NAN( MDIST(K,C) ) ) THEN
                      PRINT *,'+++++++ Found NaN in SRCSF30  +++++++'
@@ -1297,88 +1340,81 @@
                      CALL  ERROR_STOP('SRCSF30 SGCCOAG','sulfate_mod.f')
                   ENDIF
                ENDDO
-               NDISTFINAL(K) = 0
-               MADDFINAL(K)  = 0
+               !initialize emitted sulfate number and mass returned from subgridcoag
+               NDISTFINAL(K) = 0.0D0
+               MADDFINAL(K)  = 0.0D0
             ENDDO
+            !sfarina subgridcoag does its own mnfix. this call might be unnecessary?
             CALL MNFIX( NDIST, MDIST, ERRORSWITCH )
             IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
      &              'before SUBGRIDCOAG at ',I,J,L
             ERRORSWITCH = .FALSE.
 
-            ! Overwrite number and mass before emission for diagnostic
-            ! just in case there was any change by MNFIX (win, 10/27/08)
-            N0(L,:) = NDIST(:)
-            M0(L,:) = MDIST(:,SRTSO4)
+!            !debug
+!            DO K = 1, IBINS
+!               ! Overwrite number and mass before emission for diagnostic
+!               ! just in case there was any change by MNFIX (win, 10/27/08)
+!               N0(L,K) = NDIST(K)
+!               M0(L,K) = MDIST(K,SRTSO4)
+!               Avginit(K) = SUM(MDIST(K,:)) / NDIST(K)
+!            ENDDO
 
-!debug            if (I== ii .and. J==jj .and. L==ll)
-!     &           CALL DEBUGPRINT(NDIST,MDIST,I,J,L,
-!     &           'SRCSF30 Before SUBGRIDCOAG ')
-
-
-      ! Define subgrid coagulation timescale (win, 10/28/08)
-#if   defined( GRID4x5   )
-            TSCALE = 10.*3600.  ! 10 hours
-#elif defined( GRID2x25  )
-            TSCALE = 5.*3600.
-#elif defined( GRID1x125 )
-            TSCALE = 2.*3600.
-#elif defined( GRID1x1   )
-            TSCALE = 2.*3600.
-#elif defined( GRID05x0625 )
-            TSCALE = 1.*3600.  ! Placeholder: the 0.5 x 0.666 value
-#elif defined( GRID05x0666 )
-            TSCALE = 1.*3600.
-#elif defined( GRID025x03125 )
-            !%%% KLUDGE, just copied the 0.5 x 0.666 value
-            !%%% Someone needs to add the right value (bmy, 2/16/12)
-            TSCALE = 1.*3600.
-#endif
-            !Prior to 10/28/08 (win)
-            !TSCALE = 10.*3600.
             BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
             TEMP    = State_Met%T(I,J,L)
             PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa
 
-!            print *, 'Now doing subgrid coag with timescale ',
-!     &           TSCALE/3600.,'hr'
             pdbug=.false.
-!debug            if (I.eq.II.and.J.eq.JJ .and. L==LL) pdbug=.true.
 
             CALL SUBGRIDCOAG( NDISTINIT, NDIST, MDIST, BOXVOL,TEMP,
      &                        PRES, TSCALE, NDISTFINAL, MADDFINAL,pdbug)
             DO K = 1, IBINS
-               NDIST(K) = NDIST(K) + NDISTFINAL(K)
-               MDIST(K,SRTSO4) = MDIST(K,SRTSO4) +
-     &                           NDISTFINAL(K) * (SQRT(XK(K)*XK(K+1)))+
-     &                           MADDFINAL(K)
-!debug               if (I.eq.II.and.J.eq.JJ .and. L==ll) then
-!                  print *,(NDISTFINAL(K) * (SQRT(XK(K)*XK(K+1)))+
-!     &                 MADDFINAL(K) )
-!               endif
-!debug---
-            ENDDO
-            DO K= 1, IBINS
-               NDIST2(K) = NDIST(K)
+               !add number from emissions
+               NDIST2(K) = NDIST(K) + NDISTFINAL(K)
+               !use this number for the diag
+               Ndiag(K)  = Ndiag(K) + NDISTFINAL(K)
+               !sfarina - An example to illustrate what's happening here:
+               !assuming mass doubling
+               !avgmass = .01, .02, .04 (AVGMASS(K) = sqrt(XK(K)*XK(K+1)))
+               !N0 = 100, 50, 25
+               !M0 = 1, 1, 1
+               !emitted SO4 particles: 10, 5, 1 (for a total mass of 0.24)
+               !but with subgrid coagulation, we lose 2 particles from bin 1
+               !onto particles in each of bins 2 and 3, and 1 from bin 2 to bin 3, giving us a final distribution of
+               !Ndistfinal = 6, 4, 1 (for a total mass of 6*.01 + 4*.02 + 1*.04 = 0.18)
+               !but that doesn't conserve mass... those particles are now a little heavier
+               !than they were before subgrid coag, so you have to add that additional mass (maddfinal)
+               !(6*.01)+ (4*.02 + 2*.01) + (1*0.04 + 1*.02 + 2*.01) = 0.24
+
+               MADDTOTAL   = NDISTFINAL(K) * AVGMASS(K)
+     &                     + MADDFINAL(K)
+               !copy mass from all species
                DO C = 1, ICOMP
                   MDIST2(K,C) = MDIST(K,C)
                ENDDO
-            ENDDO
-!debug            if(i==ii.and.j==jj.and.l==ll  )
-!     &          CALL DEBUGPRINT(NDIST2,MDIST2,I,J,L,
-!     &                         'SRCSF30 : After SUBGRIDCOAG')
+               !add mass from emissions as explained above
+               MDIST2(K,SRTSO4) = MDIST2(K,SRTSO4) + MADDTOTAL
+               !save this for the diag
+               Mdiag(K)   = Mdiag(K) + MADDTOTAL
 
+               !sanity check
+               if(NDISTFINAL(K) < 0d0) then
+                CALL  ERROR_STOP('negative number emis','sulfate_mod.f')
+               endif
+               if(MADDTOTAL < 0d0) then
+                CALL  ERROR_STOP('negative mass emis','sulfate_mod.f')
+               endif
+            ENDDO
+
+            !debug - avg particle mass after emission but before mnfix
+!            DO K = 1, IBINS
+!               Avginner(K) = SUM(MDIST2(K,:)) / NDIST2(K)
+!            ENDDO
 
             ERRORSWITCH = .FALSE.
-!debug            if(i==ii.and.j==ii.and.l==ll) errorswitch=.true.
-!      print *, 'mnfix in sulfate_mod:6430'
             CALL MNFIX( NDIST2, MDIST2, ERRORSWITCH )
 
             IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
      &           'after SUBGRIDCOAG at ',I,J,L
-
-!debug            if(i==ii .and.j==jj .and.l==ll)
-!     &          CALL DEBUGPRINT(NDIST2,MDIST2,I,J,L,
-!     &                         'SRCSF30 : After MNFIX')
 
             DO K = 1, IBINS
                TC1(I,J,L,K) = NDIST2(K)
@@ -1386,6 +1422,40 @@
                   TC2(I,J,L,K+(C-1)*IBINS) = MDIST2(K,C)
                ENDDO
             ENDDO
+
+            !debug - avg particle mass final
+!            DO K = 1, IBINS
+!               Avgfinal(K) = SUM(MDIST2(K,:)) / NDIST2(K)
+!            ENDDO
+!
+!            DO K = 1, IBINS
+!            !sfarina debug
+!            if(TC1(I,J,L,K)-N0(L,K) < 0d0) then
+!             write(*,*) '"Negative NK emis" details:'
+!             write(*,*) 'NTOP       ', NTOP
+!             write(*,*) 'S_SO4:     ', S_SO4
+!             write(*,*) 'TSO4:      ', TSO4
+!             write(*,*) 'EFRAC(L):  ', EFRAC(L)
+!             DO Bi=1,IBINS
+!              write(*,*) 'Bin        ',Bi
+!              write(*,*) 'n0, TC1    ', N0(l,bi),  TC1(i,j,l,Bi)
+!              write(*,*) 'ndist1,2   ', NDIST(Bi), NDIST2(Bi)
+!              write(*,*) 'ndistfinal ', NDISTFINAL(Bi)
+!              write(*,*) 'MADDFINAL  ', MADDFINAL(Bi)
+!              write(*,*) 'Avginit    ', Avginit(Bi)
+!              write(*,*) 'Avginner   ', Avginner(Bi)
+!              write(*,*) 'Avgfinal   ', Avgfinal(Bi)
+!              write(*,*) 'M0(so4)    ', M0(l,bi)
+!              DO C=1,ICOMP
+!              write(*,*) 'Component  ', C
+!              write(*,*) 'mdist      ', MDIST(Bi, C)
+!              write(*,*) 'mdist2     ', MDIST2(Bi, C)
+!              write(*,*) 'TC2        ', TC2(i,j,l,(C-1)*IBINS+Bi)
+!              END DO !c
+!             END DO !bi
+!            end if
+!
+!            ENDDO
 
          ENDDO ! L loop
            !==============================================================
@@ -1395,24 +1465,31 @@
            !==============================================================
             IF ( ND59 > 0 ) THEN
                !print*, 'JACK IN ND59 SULFATE'
-               DO L = 1, LLPAR
                DO K = 1, IBINS
-                  if(TC2(I,J,L,K)-M0(L,K) < 0d0)
-     &              print *,'Negative SF emis ',TC2(I,J,L,K)-M0(L,K),
-     &                 'at',I,J,L,K
-                  if(TC1(I,J,L,K)-N0(L,K) < 0d0)
-     &              print *,'Negative NK emis ',TC1(I,J,L,K)-N0(L,K),
-     &                 'at',I,J,L,K
-               !   if(I==ii .and. J==jj) then
-               !      print*, 'TC2: ', TC2(ii,jj,0,:)
-               !      print*, 'M0: ', M0(0,:)
-               !      print*, 'S_SO4: ', S_SO4
-               !   ENDIF
-                  AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) +
-     &                                  (TC2(I,J,L,K)-M0(L,K))*S_SO4
-                  AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) +
-     &                                  TC1(I,J,L,K)-N0(L,K)
-               ENDDO
+!                  if(TC2(I,J,L,K)-M0(L,K) < 0d0)
+!     &              print *,'Negative SF emis ',TC2(I,J,L,K)-M0(L,K),
+!     &                 'at',I,J,L,K
+!                  if(TC1(I,J,L,K)-N0(L,K) < 0d0) then
+!                     print *,'Negative NK emis ',TC1(I,J,L,K)-N0(L,K),
+!     &                 'at',I,J,L,K
+!                     print *,'tc1, N0 ',TC1(I,J,L,K),N0(L,K)
+!                  end if
+!sfarina - I have studied this extensively and determined that negative NK emis
+!as defined here is not an accurate statement.
+!The particle number in a given bin IS reduced by this subroutine, but
+!it is not reduced by emission. Particle number is reduced by mnfix.
+!if the bin is just about to boil over, that added sulfate mass will
+!trigger a big particle shift in mnfix and it will look like a
+!'negative number emission' event as defined by this inequality
+
+!sfarina - changing the definition of this diagnostic to ignore changes to the
+!distribution by mnfix
+!                  AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) +
+!     &                                  (TC2(I,J,L,K)-M0(L,K))*S_SO4
+!                  AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) +
+!     &                                  TC1(I,J,L,K)-N0(L,K)
+                  AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + Mdiag(K)
+                  AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + Ndiag(K)
                ENDDO
             ENDIF
 

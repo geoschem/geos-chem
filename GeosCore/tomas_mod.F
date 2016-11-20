@@ -8066,7 +8066,10 @@ C     determine the mass added to each bin coagulation
       do k=1,ibins-1
          do kk=k+1,ibins
             maddfinal(kk)=maddfinal(kk) + (ndistinit(k)-ndistfinal(k))*
-     &           fracdiaml(k,kk)*sqrt(xk(k)*xk(k+1))
+     &           fracdiaml(k,kk)*AVGMASS(k)
+!sfarina - not the slowest part of subgridcoag, but every little bit helps
+!            maddfinal(kk)=maddfinal(kk) + (ndistinit(k)-ndistfinal(k))*
+!     &           fracdiaml(k,kk)*sqrt(xk(k)*xk(k+1))
          enddo
       enddo
 
