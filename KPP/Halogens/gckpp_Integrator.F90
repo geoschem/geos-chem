@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Integrator.f90
-! Time                 : Thu Nov  3 20:59:34 2016
+! Time                 : Sat Nov 19 16:35:09 2016
 ! Working directory    : /n/home13/seastham/KPP_FlexChem/Run
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -1290,7 +1290,7 @@ SUBROUTINE FunTemplate( T, Y, Ydot )
  USE gckpp_Parameters, ONLY: NVAR, LU_NONZERO
  USE gckpp_Global, ONLY: FIX, RCONST, TIME
  USE gckpp_Function, ONLY: Fun
- USE gckpp_Rates, ONLY: Update_SUN, Update_RCONST
+ !USE gckpp_Rates, ONLY: Update_SUN, Update_RCONST
 !~~~> Input variables
    REAL(kind=dp) :: T, Y(NVAR)
 !~~~> Output variables
@@ -1300,8 +1300,8 @@ SUBROUTINE FunTemplate( T, Y, Ydot )
 
    Told = TIME
    TIME = T
-   CALL Update_SUN()
-   CALL Update_RCONST()
+  ! CALL Update_SUN()
+  ! CALL Update_RCONST()
    CALL Fun( Y, FIX, RCONST, Ydot )
    TIME = Told
 
@@ -1318,7 +1318,7 @@ SUBROUTINE JacTemplate( T, Y, Jcb )
  USE gckpp_Global, ONLY: FIX, RCONST, TIME
  USE gckpp_Jacobian, ONLY: Jac_SP, LU_IROW, LU_ICOL
  USE gckpp_LinearAlgebra
- USE gckpp_Rates, ONLY: Update_SUN, Update_RCONST
+ !USE gckpp_Rates, ONLY: Update_SUN, Update_RCONST
 !~~~> Input variables
     REAL(kind=dp) :: T, Y(NVAR)
 !~~~> Output variables
@@ -1335,8 +1335,8 @@ SUBROUTINE JacTemplate( T, Y, Jcb )
 
     Told = TIME
     TIME = T
-    CALL Update_SUN()
-    CALL Update_RCONST()
+  !  CALL Update_SUN()
+  !  CALL Update_RCONST()
 #ifdef FULL_ALGEBRA    
     CALL Jac_SP(Y, FIX, RCONST, JV)
     DO j=1,NVAR

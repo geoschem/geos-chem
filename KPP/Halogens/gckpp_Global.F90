@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Thu Nov  3 20:59:34 2016
+! Time                 : Sat Nov 19 16:35:09 2016
 ! Working directory    : /n/home13/seastham/KPP_FlexChem/Run
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -39,7 +39,7 @@ MODULE gckpp_Global
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
 !      EQUIVALENCE( C(1),VAR(1) )
-!      EQUIVALENCE( C(789),FIX(1) )
+!      EQUIVALENCE( C(810),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time

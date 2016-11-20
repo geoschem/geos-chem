@@ -69,6 +69,20 @@ MODULE GCKPP_HETRATES
   PRIVATE :: HETHOBr_PSC
   PRIVATE :: HETN2O5_PSC
 #endif
+
+  ! New chlorine/bromine chemistry
+  !PRIVATE :: HETN2O5_SSA
+  !PRIVATE :: HETHBr_SSA
+  !PRIVATE :: HETHCl_SSA
+  !PRIVATE :: HETClNO3Hydro
+  !PRIVATE :: HETBrNO3Hydro
+  !PRIVATE :: HETClNO3Br
+  !PRIVATE :: HETHOBrBr
+  !PRIVATE :: HETHOBrCl
+  !PRIVATE :: HETO3Br
+
+  ! New iodine chemistry
+  PRIVATE :: HETIUptake
 !
 ! !PRIVATE DATA MEMBERS:
 !
@@ -445,6 +459,38 @@ MODULE GCKPP_HETRATES
       HET(ind_HOCl, 2) = HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp)
       HET(ind_HOBr, 3) = HETHOBr_PSC(   0.97E2_fp, 0E+0_fp)
 #endif
+      ! Iodine uptake into sulfate aerosol
+      HET(ind_HI,   1) = HETIUptake(    1.28E2_fp, 1E-1_fp,  8)
+      HET(ind_I2O2, 1) = HETIUptake(    2.86E2_fp, 2E-2_fp,  8)
+      HET(ind_I2O3, 1) = HETIUptake(    3.02E2_fp, 2E-2_fp,  8)
+      HET(ind_I2O4, 1) = HETIUptake(    3.18E2_fp, 2E-2_fp,  8)
+      ! Allow uptake onto stratospheric sulfate as well
+#if defined( UCX )
+      HET(ind_HI,   1) = HET(ind_HI,   1) + &
+                         HETIUptake(    1.28E2_fp, 1E-1_fp, 13)
+      HET(ind_I2O2, 1) = HET(ind_I2O2, 1) + &
+                         HETIUptake(    2.86E2_fp, 2E-2_fp, 13)
+      HET(ind_I2O3, 1) = HET(ind_I2O3, 1) + & 
+                         HETIUptake(    3.02E2_fp, 2E-2_fp, 13)
+      HET(ind_I2O4, 1) = HET(ind_I2O4, 1) + & 
+                         HETIUptake(    3.18E2_fp, 2E-2_fp, 13)
+#endif
+      ! Iodine uptake onto accumulation-mode sea salt
+      HET(ind_HI,   2) = HETIUptake(    1.28E2_fp, 1E-1_fp, 11)
+      HET(ind_HOI,  1) = HETIUptake(    1.44E2_fp, 1E-2_fp, 11)
+      HET(ind_IONO, 1) = HETIUptake(    1.73E2_fp, 2E-2_fp, 11)
+      HET(ind_IONO2,1) = HETIUptake(    1.89E2_fp, 1E-2_fp, 11)
+      HET(ind_I2O2, 2) = HETIUptake(    2.86E2_fp, 2E-2_fp, 11)
+      HET(ind_I2O3, 2) = HETIUptake(    3.02E2_fp, 2E-2_fp, 11)
+      HET(ind_I2O4, 2) = HETIUptake(    3.18E2_fp, 2E-2_fp, 11)
+      ! Iodine uptake onto coarse-mode sea salt
+      HET(ind_HI,   3) = HETIUptake(    1.28E2_fp, 1E-1_fp, 12)
+      HET(ind_HOI,  2) = HETIUptake(    1.44E2_fp, 1E-2_fp, 12)
+      HET(ind_IONO, 2) = HETIUptake(    1.73E2_fp, 2E-2_fp, 12)
+      HET(ind_IONO2,2) = HETIUptake(    1.89E2_fp, 1E-2_fp, 12)
+      HET(ind_I2O2, 3) = HETIUptake(    2.86E2_fp, 2E-2_fp, 12)
+      HET(ind_I2O3, 3) = HETIUptake(    3.02E2_fp, 2E-2_fp, 12)
+      HET(ind_I2O4, 3) = HETIUptake(    3.18E2_fp, 2E-2_fp, 12)
 
       !--------------------------------------------------------------------
       ! Kludging the rates to be equal to one another to avoid having
@@ -646,6 +692,50 @@ MODULE GCKPP_HETRATES
       RETURN
 
     END SUBROUTINE SET_HET
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetiuptake
+!
+! !DESCRIPTION: Set the aerosol uptake rate for various iodine species.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETIUptake( A, B, N ) RESULT( HET_I )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+      ! Which aerosol type are we being adsorbed on to?
+      Integer,  Intent(In) :: N
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: HET_I
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
+      ! Reaction rate for surface of aerosol
+      HET_I = ARSL1K(XAREA(N),XRADI(N),XDENA,B,XTEMP,(A**0.5_FP))
+      
+    END FUNCTION HETIUptake
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
