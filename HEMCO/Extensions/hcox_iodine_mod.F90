@@ -126,6 +126,7 @@ CONTAINS
 
     ! Error handling
     LOGICAL                :: ERR
+    CHARACTER(LEN=255)     :: MSG
 
     !=================================================================
     ! HCOX_Iodine_Run begins here!
@@ -185,8 +186,10 @@ CONTAINS
        IODIDE = 1.46d6 * EXP( (-9134d0/SST) )
 
        ! Get O3 concentration at the surface ( in mol/mol )
-       O3_CONC = (ExtState%O3%Arr%Val(I,J,1d0)/48d0)/ &
-               (ExtState%AIR%Arr%Val(I,J,1d0)/ HcoState%Phys%AIRMW ) * 1d9
+       ! ExtState%O3 is in units of kg/kg dry air
+       O3_CONC = ExtState%O3%Arr%Val(I,J,1)         &
+               * HcoState%Phys%AIRMW / 48.0_dp &
+               * 1.e9_dp
 
        ! Reset to using original Gong (2003) emissions (jaegle 6/30/11)
        !SCALE = 1.0d0
