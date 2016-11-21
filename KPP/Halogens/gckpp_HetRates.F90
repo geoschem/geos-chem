@@ -83,6 +83,7 @@ MODULE GCKPP_HETRATES
 
   ! New iodine chemistry
   PRIVATE :: HETIUptake
+  PRIVATE :: HETISSA
 !
 ! !PRIVATE DATA MEMBERS:
 !
@@ -491,6 +492,10 @@ MODULE GCKPP_HETRATES
       HET(ind_I2O2, 3) = HETIUptake(    2.86E2_fp, 2E-2_fp, 12)
       HET(ind_I2O3, 3) = HETIUptake(    3.02E2_fp, 2E-2_fp, 12)
       HET(ind_I2O4, 3) = HETIUptake(    3.18E2_fp, 2E-2_fp, 12)
+      ! Heterogeneous iodine recycling on sea salt
+      HET(ind_HOI,  3) = HETISSA(       1.44E2_fp, 1E-2_fp)
+      HET(ind_IONO, 3) = HETISSA(       1.73E2_fp, 2E-2_fp)
+      HET(ind_IONO2,3) = HETISSA(       1.89E2_fp, 1E-2_fp)
 
       !--------------------------------------------------------------------
       ! Kludging the rates to be equal to one another to avoid having
@@ -736,6 +741,72 @@ MODULE GCKPP_HETRATES
       HET_I = ARSL1K(XAREA(N),XRADI(N),XDENA,B,XTEMP,(A**0.5_FP))
       
     END FUNCTION HETIUptake
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetissa
+!
+! !DESCRIPTION: Set the heterogenous chemistry rate for IONO, IONO2 and HOI
+!               on the surface of sea salt aerosol.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETISSA( A, B ) RESULT( HET_I )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: HET_I
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  20 Nov 2016 - S. D. Eastham - Adapted HETNO3 for iodine reactions
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
+      ! Initialize
+      HET_I        = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
+      XSTKCF       = 0.0_fp
+
+      ! Loop over aerosol types
+      DO N = 1, NAERO
+
+         XSTKCF = B
+
+         ! Only reacts on SSA
+         IF ((N.eq.11).or.(N.eq.12)) THEN
+            ! Reaction rate for surface of aerosol
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
+         ELSE
+            ADJUSTEDRATE = 0.0e+0_fp
+         ENDIF
+         
+         ! Add to overall reaction rate
+         HET_I = HET_I + ADJUSTEDRATE
+
+      ENDDO
+      
+    END FUNCTION HETISSA
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
