@@ -16,6 +16,7 @@
 !
 ! !USES:
 !
+      USE AEROSOL_MOD, ONLY : OCFPOA, OCFOPOA
       USE HCO_ERROR_MOD     ! For HEMCO error reporting
       USE PhysConstants     ! Physical constants
       USE PRECISION_MOD     ! For GEOS-Chem Precisions
@@ -216,11 +217,6 @@
       ! Molecules OH  per kg OH [molec/kg]
       REAL(fp), PARAMETER   :: XNUMOL_OH  = AVO / 17e-3_fp ! hard-coded MW
       REAL(fp), PARAMETER   :: CM3PERM3   = 1.e+6_fp
-
-      ! OM/OC for POA (hotp 7/26/10)
-      REAL(fp), PARAMETER   :: OCFPOA     = 1.4e+0_fp
-      ! OM/OC=2.1 for OPOA, OCPI, OCPO (hotp 7/26/10)
-      REAL(fp), PARAMETER   :: OCFOPOA    = 1.4e+0_fp * 1.5e+0_fp
 
       ! SOAupdate:(hotp 5/20/10) new mtp
       ! one parent HC removed (only 3 instead of 4 monoterps)
