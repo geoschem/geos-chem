@@ -147,6 +147,8 @@ CONTAINS
 !                              and replace with their constituents.
 !  02 Aug 2016 - M. Sulprizio- Add KppSpcId as argument passed to Spc_Create
 !  11 Aug 2016 - E. Lundgren - Define special background conc for some species
+!  22 Nov 2016 - M. Sulprizio- Move aerosol densities for BC, OC, and SO4 here
+!                              from aerosol_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -414,6 +416,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Density       = 1800.0_fp,                    &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
@@ -2624,6 +2627,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Density       = 1300.0_fp,                    &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
@@ -3111,6 +3115,7 @@ CONTAINS
 #if defined( UCX )
                               Is_Photolysis = T,                            &
 #endif
+                              Density       = 1700.0_fp,                    &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_DvzMinVal  = DvzMinVal,                    &
                               DD_F0         = 0.0_fp,                       &

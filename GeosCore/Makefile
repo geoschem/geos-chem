@@ -439,7 +439,7 @@ carbon_mod.o                : carbon_mod.F                                   \
                               diag_mod.o              drydep_mod.o           \
                               future_emissions_mod.o  pbl_mix_mod.o          \
                               tomas_mod.o             vdiff_pre_mod.o        \
-                              hco_interface_mod.o
+                              hco_interface_mod.o     aerosol_mod.o
 
 chemdr.o                    : chemdr.F                                       \
                               aerosol_mod.o           chemgrid_mod.o         \
@@ -532,7 +532,7 @@ diag41_mod.o                : diag41_mod.F                                   \
                               pbl_mix_mod.o
 
 diag42_mod.o                : diag42_mod.F                                   \
-                              carbon_mod.o            
+                              aerosol_mod.o           carbon_mod.o            
 
 diag48_mod.o                : diag48_mod.F                                   \
                               pbl_mix_mod.o           
