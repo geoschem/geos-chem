@@ -29,12 +29,12 @@
 #if defined( USE_REAL8 )
 
       ! Use 8-byte floating point precision when asked.
-      INTEGER, PARAMETER, PUBLIC :: fp = KIND( 0.d0 )
+      INTEGER, PARAMETER, PUBLIC :: fp = KIND( REAL( 0.0, 8 ) )
 
 #else
 
       ! Use 4-byte floating point by default.
-      INTEGER, PARAMETER, PUBLIC :: fp = KIND( 0.0 )
+      INTEGER, PARAMETER, PUBLIC :: fp = KIND( REAL( 0.0, 4 ) )
 
 #endif
 
@@ -47,16 +47,19 @@
       !=================================================================
 
       ! KIND parameter for 4-byte precision
-      INTEGER, PARAMETER, PUBLIC :: f4 = KIND( 0.0 )
+      INTEGER, PARAMETER, PUBLIC :: f4 = KIND( REAL( 0.0, 4 ) )
       
       ! KIND parameter for 8-byte precision
-      INTEGER, PARAMETER, PUBLIC :: f8 = KIND( 0.d0 )
+      INTEGER, PARAMETER, PUBLIC :: f8 = KIND( REAL( 0.0, 8 ) )
 !
 ! !REMARKS:
 !  This module is designed to help avoid hard-coding precision.
 !
 ! !REVISION HISTORY:
 !  (1 ) Created. (myannetti, 11/04/14)
+!  23 Nov 2016 - R. Yantosca - Now rewrite KIND definitions to prevent 4-byte
+!                              and 8-byte variables from being elevated
+!                              when using -r8 (or equivalent flags)
 !EOP
 !-----------------------------------------------------------------------------
 !BOC

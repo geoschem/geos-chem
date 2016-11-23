@@ -1161,7 +1161,7 @@ ifeq ($(COMPILER),gfortran)
   F90ISO             :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE_ISO)
   LD                 :=$(COMPILE_CMD) $(FFLAGS)
   FREEFORM           := -ffree-form -ffree-line-length-none
-  R8                 := -fdefault-real-8
+  R8                 := -fdefault-real-8 -fdefault-double-8
 
 endif
 
