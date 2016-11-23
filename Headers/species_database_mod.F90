@@ -2256,7 +2256,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Dinitrogen pentoxide',       &
-                              MW_g          = 105.0_fp,                     &
+                              MW_g          = 108.0_fp,                     &
                               BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
