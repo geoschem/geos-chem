@@ -389,9 +389,9 @@ CONTAINS
     N_HgP_CATS            =  0
     State_Chm%N_Hg_CATS   =  0
     State_Chm%Hg_Cat_Name => NULL()
-    State_Chm%Hg0_Id_List      => NULL()
-    State_Chm%Hg2_Id_List      => NULL()
-    State_Chm%HgP_Id_List      => NULL()
+    State_Chm%Hg0_Id_List => NULL()
+    State_Chm%Hg2_Id_List => NULL()
+    State_Chm%HgP_Id_List => NULL()
 
     !=====================================================================
     ! Populate the species database object field
