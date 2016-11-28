@@ -333,6 +333,8 @@ CONTAINS
 !  30 Jun 2016 - M. Sulprizio- Remove nSpecies as an input argument. This is now
 !                              initialized as the size of SpcData.
 !  22 Jul 2016 - E. Lundgren - Initialize spc_units to ''
+!  28 Nov 2016 - R. Yantosca - Only allocate STATE_PSC and KHETI_SLA for UCX
+!                              simulations; set to NULL otherwise
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -382,6 +384,10 @@ CONTAINS
     State_Chm%AeroRadi    => NULL()
     State_Chm%WetAeroArea => NULL()
     State_Chm%WetAeroRadi => NULL()
+
+    ! Fields for UCX mechanism
+    State_Chm%STATE_PSC   => NULL()
+    State_Chm%KHETI_SLA   => NULL()   
 
     ! Hg species indexing
     N_Hg0_CATS            =  0
@@ -461,6 +467,7 @@ CONTAINS
     !=====================================================================
 
     State_Chm%nAero = nAerosol
+    print*, '@@@ state_chm%nAero:', state_chm%naero
 
     ALLOCATE( State_Chm%AeroArea   ( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -481,6 +488,7 @@ CONTAINS
     !=====================================================================
     ! Allocate and initialize fields for UCX mechamism
     !=====================================================================
+#if defined( UCX )
 
     ALLOCATE( State_Chm%STATE_PSC ( IM, JM, LM                     ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -489,6 +497,8 @@ CONTAINS
     ALLOCATE( State_Chm%KHETI_SLA ( IM, JM, LM, 11                 ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%KHETI_SLA = 0.0_fp
+
+#endif
 
     !=======================================================================
     ! Set up the species mapping vectors
