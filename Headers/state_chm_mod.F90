@@ -335,6 +335,8 @@ CONTAINS
 !  22 Jul 2016 - E. Lundgren - Initialize spc_units to ''
 !  28 Nov 2016 - R. Yantosca - Only allocate STATE_PSC and KHETI_SLA for UCX
 !                              simulations; set to NULL otherwise
+!  28 Nov 2016 - R. Yantosca - Only allocate State_Chm%*Aero* fields for
+!                              fullchem and/or aerosol-only simulations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -460,29 +462,33 @@ CONTAINS
 
     ALLOCATE( State_Chm%Species   ( IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%Species = 0e+0_fp
+    State_Chm%Species = 0.0_fp
 
     !=====================================================================
-    ! Allocate and initialize aerosol fields
+    ! Allocate and initialize aerosol area and radius fields
+    ! These are only relevant for fullchem or aerosol-only simulations
     !=====================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-    State_Chm%nAero = nAerosol
+     State_Chm%nAero = nAerosol
 
-    ALLOCATE( State_Chm%AeroArea   ( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%AeroArea = 0e+0_fp
+     ALLOCATE( State_Chm%AeroArea   ( IM, JM, LM, State_Chm%nAero  ), STAT=RC )
+     IF ( RC /= GC_SUCCESS ) RETURN
+     State_Chm%AeroArea    = 0.0_fp
 
-    ALLOCATE( State_Chm%AeroRadi   ( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%AeroRadi = 0e+0_fp
+     ALLOCATE( State_Chm%AeroRadi   ( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
+     IF ( RC /= GC_SUCCESS ) RETURN
+     State_Chm%AeroRadi    = 0.0_fp
 
-    ALLOCATE( State_Chm%WetAeroArea( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%WetAeroArea = 0e+0_fp
+     ALLOCATE( State_Chm%WetAeroArea( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
+     IF ( RC /= GC_SUCCESS ) RETURN
+     State_Chm%WetAeroArea = 0.0_fp
 
-    ALLOCATE( State_Chm%WetAeroRadi( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%WetAeroRadi = 0e+0_fp
+     ALLOCATE( State_Chm%WetAeroRadi( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
+     IF ( RC /= GC_SUCCESS ) RETURN
+     State_Chm%WetAeroRadi = 0.0_fp
+
+    ENDIF
 
     !=====================================================================
     ! Allocate and initialize fields for UCX mechamism
