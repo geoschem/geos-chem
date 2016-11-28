@@ -467,7 +467,6 @@ CONTAINS
     !=====================================================================
 
     State_Chm%nAero = nAerosol
-    print*, '@@@ state_chm%nAero:', state_chm%naero
 
     ALLOCATE( State_Chm%AeroArea   ( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
