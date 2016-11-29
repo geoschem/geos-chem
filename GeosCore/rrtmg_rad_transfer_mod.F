@@ -70,6 +70,7 @@
 !  17 May 2016 - M. Sulprizio- Add extra dimension to MCICA cloud arrays to
 !                              allow for change from IIPAR*JJPAR to IIPAR,JJPAR
 !  27 Jun 2016 - R. Yantosca - Now save species ID's in module variables
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -141,7 +142,7 @@
       USE DIAG_MOD,            ONLY : AD72
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GRID_MOD,            ONLY : GET_YMID
+      USE GC_GRID_MOD,         ONLY : GET_YMID
       USE Input_Opt_Mod,       ONLY : OptInput
       USE PhysConstants,       ONLY : AIRMW, PI, AVO
       USE PRESSURE_MOD,        ONLY : GET_PCENTER,      GET_PEDGE

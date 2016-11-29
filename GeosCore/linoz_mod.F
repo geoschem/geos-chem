@@ -101,6 +101,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  19 Oct 2015 - C. Keller   - TLSTT is now 4D to work on curvilinear grids
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -214,7 +215,7 @@
       USE CHEMGRID_MOD,       ONLY : GET_MAX_CHEMGRID_LEVEL
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE GRID_MOD,           ONLY : GET_AREA_CM2   
+      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2   
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AIRMW, AVO
       USE State_Chm_Mod,      ONLY : ChmState
@@ -560,7 +561,7 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE GRID_MOD,           ONLY : GET_YMID 
+      USE GC_GRID_MOD,        ONLY : GET_YMID 
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PRESSURE_MOD
       USE TIME_MOD,           ONLY : GET_MONTH

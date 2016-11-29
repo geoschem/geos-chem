@@ -53,6 +53,7 @@
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -354,8 +355,8 @@
       USE CMN_DIAG_MOD             ! TINDEX
       USE CMN_SIZE_MOD             ! Size parameters
       USE FILE_MOD,           ONLY : IU_BPCH
-      USE GRID_MOD,           ONLY : GET_XOFFSET
-      USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_XOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_CT_DIAG
       USE TIME_MOD,           ONLY : GET_DIAGb

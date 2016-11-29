@@ -114,6 +114,7 @@
 !  18 Jul 2016 - M. Sulprizio- Remove CFCX and HCFCX everywhere and replace with
 !                              their constituents. Family tracers have been
 !                              eliminated.
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -359,7 +360,7 @@
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : ALLOC_ERR,ERROR_STOP
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -1186,7 +1187,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -2317,7 +2318,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -3604,7 +3605,7 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -6551,7 +6552,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD, ONLY : GET_YMID
 !
 ! !INPUT PARAMETERS:
 !
@@ -6619,7 +6620,7 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GRID_MOD,           ONLY : GET_YEDGE
+      USE GC_GRID_MOD,        ONLY : GET_YEDGE
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : PI_180
       USE State_Chm_Mod,      ONLY : ChmState

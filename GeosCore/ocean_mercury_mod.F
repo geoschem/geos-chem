@@ -134,6 +134,7 @@
 !                              and HgP_Id_List fields of State_Chm
 !  12 Jul 2016 - E. Lundgren - Remove bpch restart file option and associated 
 !                              routines. Now use netcdf in restart_mod.F.
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !******************************************************************************
 !
       USE inquireMod,    ONLY : findFreeLUN
@@ -982,7 +983,7 @@
       USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_RIV
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -2330,7 +2331,7 @@
       USE ErrCode_Mod
       USE Error_Mod,          ONLY : Error_Stop
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE GRID_MOD,           ONLY : GET_XMID, GET_YMID 
+      USE GC_GRID_MOD,        ONLY : GET_XMID, GET_YMID 
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,	      ONLY : ITS_A_LEAPYEAR
@@ -2623,7 +2624,7 @@
 !
       ! Reference to fortran90 modules
       USE CMN_SIZE_MOD             ! Size parameters
-      USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2, GET_XMID, GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState

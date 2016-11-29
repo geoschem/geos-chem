@@ -3,9 +3,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: grid_mod.F90
+! !MODULE: gc_grid_mod.F90
 !
-! !DESCRIPTION: Module GRID\_MOD contains variables and routines which are 
+! !DESCRIPTION: Module GC\_GRID\_MOD contains variables and routines which are 
 !  used to specify the parameters of a GEOS-Chem horizontal grid. Grid 
 !  parameters are computed as 3D arrays, which are required for interfacing
 !  with a GCM.
@@ -13,7 +13,7 @@
 !\\
 ! !INTERFACE: 
 !
-MODULE Grid_Mod
+MODULE GC_Grid_Mod
 ! 
 ! !USES:
 !
@@ -68,6 +68,8 @@ MODULE Grid_Mod
 !                              module can also be used by HEMCO.
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  26 Mar 2015 - R. Yantosca - Removed obsolete, commented-out code
+!  29 Nov 2016 - R. Yantosca - Renamed to gc_grid_mod.F90 to avoid namespace
+!                              conflicts when interfacing GCHP to the BCC model
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1562,9 +1564,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Cleanup_Grid
+! !IROUTINE: Cleanup_GC_Grid
 !
-! !DESCRIPTION: Subroutine CLEANUP\_GRID deallocates all module arrays.
+! !DESCRIPTION: Subroutine CLEANUP\_GC\_GRID deallocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:
@@ -1692,4 +1694,4 @@ CONTAINS
 
   END FUNCTION RoundOff_f8
 !EOC
-END MODULE Grid_Mod
+END MODULE GC_Grid_Mod

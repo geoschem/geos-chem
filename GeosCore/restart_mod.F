@@ -79,6 +79,7 @@
 !                              and set_restart and associated module vars;
 !                              replace all tracer language to species; rename 
 !                              OUTPUT_RESTART_FILE to OUTPUT_GC_RST_PREFIX
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -104,7 +105,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD,           ONLY : AREA_M2
+      USE GC_GRID_MOD,        ONLY : AREA_M2
       USE HCO_Error_Mod
       USE HCO_Diagn_Mod
       USE Input_Opt_Mod,      ONLY : OptInput

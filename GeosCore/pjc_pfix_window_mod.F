@@ -90,6 +90,7 @@
 !  04 Nov 2015 - M. Sulprizio- Rename from pjc_pfix_geos5_window_mod.F to
 !                              pjc_pfix_window_mod.F for use with all nested
 !                              grids
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -1717,7 +1718,7 @@ c     --------------------------------------
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GRID_MOD,     ONLY : GET_AREA_M2, GET_YMID_R
+      USE GC_GRID_MOD,  ONLY : GET_AREA_M2, GET_YMID_R
       USE ERROR_MOD,    ONLY : ALLOC_ERR,   ERROR_STOP
       USE PRESSURE_MOD, ONLY : GET_AP,      GET_BP
 

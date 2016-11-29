@@ -31,8 +31,8 @@
       ! Modules from GeosUtil directory
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD                           
-      USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE GRID_MOD,           ONLY : GET_YOFFSET, GET_XOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,        ONLY : GET_YOFFSET, GET_XOFFSET
       USE TIME_MOD
 
       ! Modules from GeosCore directory
@@ -275,6 +275,7 @@
 !  18 Jul 2016 - R. Yantosca - Bug fix: look up TOMAS species ID's
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  20 Sep 2016 - R. Yantosca - Use .eqv. instead of .eq. to compare LOGICALs
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

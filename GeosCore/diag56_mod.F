@@ -46,6 +46,7 @@
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  02 Apr 2015 - M. Sulprizio- Increase PD56 from 3 to 4 so we can save out the
 !                              lightning cloud top heights from HEMCO.
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -102,7 +103,7 @@
 !
       USE BPCH2_MOD,    ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
       USE FILE_MOD,     ONLY : IU_BPCH
-      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
+      USE GC_GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,     ONLY : GET_CT_A6, GET_CT_A3, GET_CT_I3
       USE TIME_MOD,     ONLY : GET_DIAGb,  GET_DIAGe
 

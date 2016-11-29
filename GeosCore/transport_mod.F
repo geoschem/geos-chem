@@ -84,6 +84,7 @@
 !                              and consolidate netcdf and bpch diagnostic code
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -129,7 +130,7 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID
+      USE GC_GRID_MOD,        ONLY : ITS_A_NESTED_GRID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -860,7 +861,7 @@
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GRID_MOD,             ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE GC_GRID_MOD,          ONLY : GET_XOFFSET,   GET_YOFFSET
       USE Input_Opt_Mod,        ONLY : OptInput
       USE State_Chm_Mod,        ONLY : ChmState
       USE State_Met_Mod,        ONLY : MetState
@@ -1241,7 +1242,7 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GRID_MOD,           ONLY : GET_AREA_M2, GET_YMID_R
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2, GET_YMID_R
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants            ! Re
       USE TIME_MOD,           ONLY : GET_TS_DYN
@@ -1384,8 +1385,8 @@
       USE CMN_SIZE_MOD                  ! Size parameters
       USE ErrCode_Mod
       USE ERROR_MOD,               ONLY : ALLOC_ERR, GC_Error
-      USE GRID_MOD,                ONLY : GET_AREA_M2
-      USE GRID_MOD,                ONLY : GET_YMID_R_W
+      USE GC_GRID_MOD,             ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,             ONLY : GET_YMID_R_W
       USE Input_Opt_Mod,           ONLY : OptInput
       USE PhysConstants                 ! Re
       USE TIME_MOD,                ONLY : GET_TS_DYN

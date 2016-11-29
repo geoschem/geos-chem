@@ -39,7 +39,7 @@
       USE GEOSFP_READ_MOD,         ONLY : CLEANUP_GEOSFP_READ
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
-      USE GRID_MOD,                ONLY : CLEANUP_GRID
+      USE GC_GRID_MOD,             ONLY : CLEANUP_GRID
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE Input_Opt_Mod,           ONLY : OptInput
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
@@ -245,6 +245,7 @@
 !                              up before routine CLEANUP is called.
 !  18 May 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE; it's obsolete
 !  30 Jun 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE_LOOP; it's obsolete
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

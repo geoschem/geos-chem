@@ -71,6 +71,7 @@
 !  21 Dec 2009 - R. Yantosca      - Updated comments
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -98,8 +99,8 @@
 ! !USES:
 !
       USE HDF5
-      USE GRID_MOD, ONLY : GET_XMID
-      USE GRID_MOD, ONLY : GET_YMID
+      USE GC_GRID_MOD, ONLY : GET_XMID
+      USE GC_GRID_MOD, ONLY : GET_YMID
 
       USE CMN_SIZE_MOD    ! Size parameters
 !

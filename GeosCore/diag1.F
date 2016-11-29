@@ -39,7 +39,7 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE HCO_ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -162,6 +162,7 @@
 !  16 Sep 2016 - E. Lundgren - Remove passive species that are per total air
 !                              since moisture fix corrects v/v dry
 !  20 Sep 2016 - E. Lundgren - Simplify met fields included in ND68 (8 total)
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

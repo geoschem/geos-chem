@@ -71,6 +71,7 @@
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
 !  06 Jul 2016 - E. Lundgren - Spc units are now kg/kg dry air in convection
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -104,7 +105,7 @@
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
@@ -1142,7 +1143,7 @@
 #endif
       USE DIAG_MOD,           ONLY : CONVFLUP
       USE ErrCode_Mod
-      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PRESSURE_MOD,       ONLY : GET_BP
       USE Species_Mod,        ONLY : Species

@@ -220,7 +220,7 @@
       USE CMN_O3_MOD	           ! SAVEOH
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
-      USE GRID_MOD,           ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLun
       USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
@@ -308,6 +308,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1762,10 +1763,9 @@
       USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD       ! Size parameters
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GRID_MOD,     ONLY : GET_XOFFSET
-      USE GRID_MOD,     ONLY : GET_YOFFSET
-      USE GRID_MOD,     ONLY : ITS_A_NESTED_GRID
-
+      USE GC_GRID_MOD,  ONLY : GET_XOFFSET
+      USE GC_GRID_MOD,  ONLY : GET_YOFFSET
+      USE GC_GRID_MOD,  ONLY : ITS_A_NESTED_GRID
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1797,6 +1797,7 @@
 !        equal to ND49_JMAX.  This will allow us to save out longitude
 !        or latitude transects.  (cdh, bmy, 11/30/06)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

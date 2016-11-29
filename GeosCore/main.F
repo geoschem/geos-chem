@@ -34,7 +34,7 @@
       USE FILE_MOD              ! For file I/O
       USE GEOS_TIMERS_MOD       ! For GEOS-Chem timers (optional)
       USE GC_Environment_Mod    ! For allocating derived type objects
-      USE GRID_MOD              ! For defining the lons/lats/areas of the grid
+      USE GC_GRID_MOD           ! For defining the lons/lats/areas of the grid
       USE Input_Opt_Mod         ! Derived type for Input Options 
       USE INPUT_MOD             ! For reading settings from "input.geos"
       USE MAPPING_MOD           ! For regridding MODIS LAI
@@ -284,6 +284,7 @@
 !  22 Jun 2016 - R. Yantosca - Add error checks to prevent calling UCX routines
 !                              when we are running specialty simulations
 !  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -54,6 +54,7 @@
 !  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
 !  06 Jan 2016 - E. Lundgren - Use global parameter g0 instead of local GRAV
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !******************************************************************************
 !
       USE PhysConstants, ONLY : g0
@@ -810,7 +811,7 @@
       USE DIAG_MOD,           ONLY : AD38
 #endif
       USE DIAG_MOD,           ONLY : CONVFLUP 
-      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants            ! Universal constants
       USE Species_Mod,        ONLY : Species

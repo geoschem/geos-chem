@@ -111,6 +111,7 @@
 !                              directly add into State_Chm%Species in 
 !                              strat_chm_mod.F90
 !  10 Aug 2016 - M. Sulprizio- Rename from tagged_ox_mod.F to tagged_o3_mod.F
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -176,7 +177,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_DIAG_MOD             ! ND44, ND65, LD65
       USE CMN_SIZE_MOD             ! Size parameters
-      USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_XMID,  GET_YMID
       USE PhysConstants            ! SCALE_HEIGHT
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM

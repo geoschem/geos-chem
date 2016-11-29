@@ -99,6 +99,7 @@
 !  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -949,8 +950,8 @@
       USE CMN_SIZE_MOD             ! Size Parameters
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GRID_MOD,           ONLY : GET_XOFFSET
-      USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_XOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
       USE State_Chm_Mod,      ONLY : ChmState
@@ -1501,9 +1502,9 @@
       USE CMN_SIZE_MOD
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GRID_MOD,     ONLY : GET_XOFFSET
-      USE GRID_MOD,     ONLY : GET_YOFFSET
-      USE GRID_MOD,     ONLY : ITS_A_NESTED_GRID
+      USE GC_GRID_MOD,  ONLY : GET_XOFFSET
+      USE GC_GRID_MOD,  ONLY : GET_YOFFSET
+      USE GC_GRID_MOD,  ONLY : ITS_A_NESTED_GRID
       USE TIME_MOD,     ONLY : GET_TAUb
 !
 ! !INPUT PARAMETERS: 

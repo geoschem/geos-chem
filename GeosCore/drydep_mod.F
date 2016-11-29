@@ -22,7 +22,7 @@
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
 #endif
       USE ERROR_MOD                             ! Error handling routines
-      USE GRID_MOD,       ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
+      USE GC_GRID_MOD,    ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
       USE PBL_MIX_MOD                           ! Boundary layer quantities
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
 #if   defined( TOMAS )
@@ -189,6 +189,7 @@
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !  13 Jul 2016 - R. Yantosca - Remove DRYHg0, DRYHg2, DRYHgP ID flags
 !  13 Jul 2016 - R. Yantosca - Also make NDVZIND a local variable for now
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

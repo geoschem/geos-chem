@@ -45,6 +45,7 @@
 !  11 Apr 2012 - R. Yantosca - Now reference new modis_lai_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -365,7 +366,7 @@
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_LAND
       USE ErrCode_Mod
-      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
@@ -469,7 +470,7 @@
 !
       USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_LAND
-      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE MODIS_LAI_MOD,      ONLY : ISOLAI  => GC_LAI
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH

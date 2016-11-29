@@ -134,6 +134,7 @@
 !                              OH fields, but that is now done by HEMCO
 !  16 Apr 2015 - R. Yantosca - Also remove INIT_DAO and CLEANUP_DAO, since
 !                              these allocated/deallocated the FULLGRID arrays
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -156,7 +157,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD, ONLY : GET_AREA_M2
+      USE GC_GRID_MOD, ONLY : GET_AREA_M2
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -262,7 +263,7 @@
 !
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GRID_MOD,             ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,          ONLY : GET_AREA_M2
       USE Input_Opt_Mod,        ONLY : OptInput
       USE State_Met_Mod,        ONLY : MetState
       USE State_Chm_Mod,        ONLY : ChmState
@@ -810,7 +811,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD,           ONLY : GET_YEDGE
+      USE GC_GRID_MOD,        ONLY : GET_YEDGE
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
 !
@@ -1872,7 +1873,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD,           ONLY : GET_YMID_R
+      USE GC_GRID_MOD,        ONLY : GET_YMID_R
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MINUTE
       USE TIME_MOD,           ONLY : GET_LOCALTIME

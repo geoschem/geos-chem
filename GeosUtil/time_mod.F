@@ -238,6 +238,7 @@
 !                              compatible with the FlexChem implementation
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1999,7 +2000,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD, ONLY : GET_XMID
+      USE GC_GRID_MOD, ONLY : GET_XMID
 !
 ! !INPUT PARAMETERS:
 !
@@ -2248,7 +2249,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD, ONLY : GET_XMID
+      USE GC_GRID_MOD, ONLY : GET_XMID
 !
 ! !INPUT PARAMETERS:
 !

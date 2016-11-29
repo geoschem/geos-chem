@@ -64,6 +64,7 @@
 !  26 Aug 2014 - M. Sulprizio- Remove AD53 array, POPs emissions are now
 !                              tracked by HEMCO
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -139,7 +140,7 @@
 !
       USE BPCH2_MOD,    ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
       USE FILE_MOD,     ONLY : IU_BPCH
-      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
+      USE GC_GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,     ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
       USE TIME_MOD,     ONLY : GET_CT_CHEM ! CDH for sea salt loss rate
 

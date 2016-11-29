@@ -43,6 +43,7 @@
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -127,15 +128,15 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD, ONLY : BPCH2
-      USE BPCH2_MOD, ONLY : GET_HALFPOLAR
-      USE BPCH2_MOD, ONLY : GET_MODELNAME 
-      USE FILE_MOD,  ONLY : IU_BPCH
-      USE GRID_MOD,  ONLY : GET_XOFFSET
-      USE GRID_MOD,  ONLY : GET_YOFFSET
-      USE TIME_MOD,  ONLY : GET_CT_EMIS
-      USE TIME_MOD,  ONLY : GET_DIAGb
-      USE TIME_MOD,  ONLY : GET_DIAGe
+      USE BPCH2_MOD,   ONLY : BPCH2
+      USE BPCH2_MOD,   ONLY : GET_HALFPOLAR
+      USE BPCH2_MOD,   ONLY : GET_MODELNAME 
+      USE FILE_MOD,    ONLY : IU_BPCH
+      USE GC_GRID_MOD, ONLY : GET_XOFFSET
+      USE GC_GRID_MOD, ONLY : GET_YOFFSET
+      USE TIME_MOD,    ONLY : GET_CT_EMIS
+      USE TIME_MOD,    ONLY : GET_DIAGb
+      USE TIME_MOD,    ONLY : GET_DIAGe
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_DIAG_MOD  ! TINDEX

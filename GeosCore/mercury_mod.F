@@ -184,6 +184,7 @@
 !  05 Jan 2016 - E. Lundgren - Now use global dry air gas and Henry's Law consts
 !  31 May 2016 - E. Lundgren - Replace Input_Opt%XNUMOL with AVO / (emMW_g*1e-3)
 !                              where emMW_g is emitted MW from species database
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -353,7 +354,7 @@
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE Species_Mod,        ONLY : Species
@@ -1534,7 +1535,7 @@
       USE DEPO_MERCURY_MOD,   ONLY : RESET_HG_DEP_ARRAYS
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GRID_MOD,           ONLY : GET_XMID, GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_XMID, GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE LAND_MERCURY_MOD,   ONLY : LAND_MERCURY_FLUX, VEGEMIS
       USE LAND_MERCURY_MOD,   ONLY : SOILEMIS, BIOMASSHG
@@ -1778,7 +1779,7 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
@@ -3571,7 +3572,7 @@
       USE GLOBAL_BR_MOD,      ONLY : BR_MERGE,  BR_TROP
       USE GLOBAL_BR_MOD,      ONLY : BR_STRAT,  J_BRO
       USE GLOBAL_BR_MOD,      ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_LOCALTIME 
@@ -3901,9 +3902,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
-      USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
-      USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+      USE GC_GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
+      USE TIME_MOD,    ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+      USE TIME_MOD,    ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 ! 
 ! !REVISION HISTORY: 
 !  16 Dec 2002 - R. Park & R. Yantosca - Initial version
@@ -4172,7 +4173,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GRID_MOD,           ONLY : GET_YMID_R
+      USE GC_GRID_MOD,        ONLY : GET_YMID_R
       USE PhysConstants
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR 
@@ -4456,7 +4457,7 @@
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput

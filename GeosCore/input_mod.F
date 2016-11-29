@@ -152,6 +152,7 @@
 !                              compatible with the FlexChem implementation
 !  28 Jul 2016 - M. Sulprizio- Rename subroutine READ_TRACER_MENU to
 !                              READ_ADVECTED_SPECIES_MENU
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -637,7 +638,7 @@
 !     
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE GRID_MOD,           ONLY : SET_XOFFSET, SET_YOFFSET
+      USE GC_GRID_MOD,        ONLY : SET_XOFFSET, SET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_BEGIN_TIME,   SET_END_TIME 
       USE TIME_MOD,           ONLY : SET_CURRENT_TIME, SET_DIAGb
@@ -1089,8 +1090,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GRID_MOD,           ONLY : COMPUTE_GRID
-      USE GRID_MOD,           ONLY : INIT_GRID
+      USE GC_GRID_MOD,        ONLY : COMPUTE_GRID
+      USE GC_GRID_MOD,        ONLY : INIT_GRID
       USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -7257,7 +7258,7 @@
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID 
+      USE GC_GRID_MOD,        ONLY : ITS_A_NESTED_GRID 
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMDb
       USE TIME_MOD,           ONLY : GET_NYMDe

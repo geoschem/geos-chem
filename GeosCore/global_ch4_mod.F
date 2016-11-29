@@ -105,6 +105,7 @@
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !  16 Jun 2016 - M. Sulprizio- Now define IDTCH4 locally
 !  20 Jun 2016 - R. Yantosca - Rename IDTCH4 to id_CH4 for consistency
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !------------------------------------------------------------------------------
 !BOC
 !     
@@ -347,7 +348,7 @@
       USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
+      USE GC_GRID_MOD,        ONLY : GET_XOFFSET, GET_YOFFSET 
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
@@ -1336,7 +1337,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
@@ -1708,7 +1709,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_XOFFSET, GET_YOFFSET
       USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_MONTH,   GET_YEAR
       USE TIME_MOD,           ONLY : GET_DIAGb,   GET_CT_DYN

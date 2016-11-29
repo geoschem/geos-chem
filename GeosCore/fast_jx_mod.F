@@ -61,6 +61,7 @@
 !  27 Jun 2016 - M. Sulprizio  - Remove FJXFUNC and JV_INDEX routines. We now
 !                                obtain the photolysis rates directly from the
 !                                ZPJ array.
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -106,7 +107,7 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_

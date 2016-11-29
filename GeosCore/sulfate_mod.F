@@ -159,6 +159,7 @@
 !                                for those used in GRAV_SETTLING
 !  05 Jan 2016 - E. Lundgren   - Use global physical parameters
 !  04 Aug 2016 - M. Yannetti   - Replace TCVV with spc db MW and phys constant
+!  29 Nov 2016 - R. Yantosca   - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1503,7 +1504,7 @@
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE ErrCode_Mod
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -7011,9 +7012,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
-      USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
-      USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+      USE GC_GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
+      USE TIME_MOD,    ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+      USE TIME_MOD,    ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 !
 ! !REVISION HISTORY: 
 !  (1 ) Copy code from COSSZA directly for now, so that we don't get NaN

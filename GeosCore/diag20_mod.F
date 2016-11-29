@@ -59,6 +59,7 @@
 !  07 Jul 2015 - R. Yantosca - Added fixes for several minor issues
 !  09 Aug 2016 - M. Sulprizio- Moved code specific to ND20 from obsolete
 !                              diag_pl_mod.F to new module diag20_mod.F
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -387,12 +388,12 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,  ONLY : BPCH2,         GET_HALFPOLAR
-      USE BPCH2_MOD,  ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! LD65
-      USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
-      USE inquireMod, ONLY : findFreeLUN
+      USE BPCH2_MOD,   ONLY : BPCH2,         GET_HALFPOLAR
+      USE BPCH2_MOD,   ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! LD65
+      USE GC_GRID_MOD, ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE inquireMod,  ONLY : findFreeLUN
 ! 
 ! !REMARKS:
 !  WRITE20 assumes that ND65 (P-L diagnostics) have been turned on.

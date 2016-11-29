@@ -5166,7 +5166,7 @@ ccc
 !
       USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR
       USE ErrCode_Mod
-      USE GRID_MOD,              ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,           ONLY : GET_AREA_M2
       USE HCO_INTERFACE_MOD,     ONLY : HcoState, GetHcoID, GetHcoVal
       USE HCO_ERROR_MOD
       USE Input_Opt_Mod,         ONLY : OptInput
@@ -5340,7 +5340,7 @@ ccc
 ! !INTERFACE:
 !
       SUBROUTINE EMISSCARBONTOMAS( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
+     &                             State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -5348,7 +5348,7 @@ ccc
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_XOFFSET, GET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -5867,9 +5867,9 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
-      USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
-      USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+      USE GC_GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
+      USE TIME_MOD,    ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+      USE TIME_MOD,    ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Copy code from COSSZA directly for now, so that we don't get NaN

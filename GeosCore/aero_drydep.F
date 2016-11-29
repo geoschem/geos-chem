@@ -28,7 +28,7 @@
       USE DUST_MOD,           ONLY : SETTLEDUST   
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : g0
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
@@ -79,6 +79,7 @@
 !  17 Jun 2016 - R. Yantosca - Now define species ID's on the first call
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -35,6 +35,7 @@ MODULE FlexChem_Mod
 !                              have been eliminated.
 !  24 Aug 2016 - M. Sulprizio- Rename from flexchem_setup_mod.F90 to
 !                              flexchem_mod.F90
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -84,7 +85,7 @@ CONTAINS
     USE GCKPP_Global
     USE GCKPP_Rates,          ONLY : UPDATE_RCONST, RCONST
     USE GCKPP_Initialize,     ONLY : Init_KPP => Initialize
-    USE GRID_MOD,             ONLY : GET_YMID
+    USE GC_GRID_MOD,          ONLY : GET_YMID
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AVO
     USE PRESSURE_MOD        

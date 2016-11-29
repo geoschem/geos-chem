@@ -31,6 +31,7 @@
 !  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod (not used)
 !  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !******************************************************************************
 !  
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -441,7 +442,7 @@
       USE DIAG_MOD,     ONLY : AD38
 #endif
       USE DIAG_MOD,     ONLY : CONVFLUP
-      USE GRID_MOD,     ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,  ONLY : GET_AREA_M2
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD 

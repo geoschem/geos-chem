@@ -80,6 +80,7 @@ MODULE HCOI_GC_Main_Mod
 !  16 Jun 2016 - J. Sheng    - Add species index retriever
 !  20 Jun 2016 - R. Yantosca - Now define species ID's as module variables
 !                              so that we can define them in HCOI_GC_INIT
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2011,9 +2012,9 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
-    USE GRID_MOD,           ONLY : XMID,  YMID
-    USE GRID_MOD,           ONLY : XEDGE, YEDGE, YSIN
-    USE GRID_MOD,           ONLY : AREA_M2
+    USE GC_GRID_MOD,        ONLY : XMID,  YMID
+    USE GC_GRID_MOD,        ONLY : XEDGE, YEDGE, YSIN
+    USE GC_GRID_MOD,        ONLY : AREA_M2
     USE HCO_ARR_MOD,        ONLY : HCO_ArrInit
     USE HCO_VERTGRID_MOD,   ONLY : HCO_VertGrid_Define
     USE PRESSURE_MOD,       ONLY : GET_AP, GET_BP
@@ -2030,7 +2031,7 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
-!  13 Sep 2013 - C. Keller - Initial Version
+!  13 Sep 2013 - C. Keller   - Initial Version
 !  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  28 Sep 2015 - C. Keller   - Now use HCO_VertGrid_Mod for vertical grid
 !EOP
@@ -2523,7 +2524,7 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD        ! Size parameters
-    USE GRID_MOD,      ONLY : GET_XMID,    GET_YMID_R
+    USE GC_GRID_MOD,   ONLY : GET_XMID,    GET_YMID_R
     USE PhysConstants
     USE TIME_MOD,      ONLY : GET_NHMSb,   GET_ELAPSED_SEC
     USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT

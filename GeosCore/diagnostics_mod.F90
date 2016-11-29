@@ -117,6 +117,7 @@ MODULE Diagnostics_Mod
 !  14 Jan 2016 - E. Lundgren - Add several GEOS-Chem diagnostics
 !  29 Jan 2016 - E. Lundgren - Update diagnostics for recent HEMCO updates
 !  20 Jul 2016 - R. Yantosca - Replace #ifdef DEVEL with #ifdef DIAG_DEVEL
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -147,7 +148,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GRID_MOD,           ONLY : AREA_M2
+    USE GC_GRID_MOD,        ONLY : AREA_M2
     USE HCO_DIAGN_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
