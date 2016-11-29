@@ -756,16 +756,19 @@
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
       ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
-      ! and are converted locally [v/v dry air] for chemistry (ewl, 9/18/15)
+      ! and are converted locally to [kg] for chemistry (ewl, 9/18/15)
       IF ( LSCHEM ) THEN
          CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, 
      &                         State_Met, RC )
       ENDIF
 
-      ! Save initial tracer mixing ratios [kg/kg dry] to disk 
+      ! Save initial tracer mass [kg] to disk for model benchmarking
       ! for Rn-Pb-Be and full-chem benchmark simulations
+      ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
+      ! and are converted locally to [kg] (mps, 11/29/16)
       IF ( LSTDRUN ) THEN 
-         CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.TRUE. )
+         CALL STDRUN( am_I_Root, Input_Opt, State_Met, State_Chm, RC, 
+     &                LBEGIN=.TRUE. )
       ENDIF
  
 !-----------------------------------------------------------------------------
@@ -1909,10 +1912,13 @@
 !     &                        .FALSE.,   RC )
 !#endif
 
-      ! For model benchmarking, save final concentrations of Rn,Pb,Be or Ox.
-      ! Species concentrations enter the subroutine in [kg/kg dry air].
+      ! Save final tracer mass [kg] to disk for model benchmarking
+      ! for Rn-Pb-Be and full-chem benchmark simulations
+      ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
+      ! and are converted locally to [kg] (mps, 11/29/16)
       IF ( LSTDRUN ) THEN 
-         CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.FALSE. )
+         CALL STDRUN( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
+     &                LBEGIN=.FALSE. )
       ENDIF
 
 #if defined( USE_TIMERS )
