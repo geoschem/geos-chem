@@ -186,23 +186,23 @@ CONTAINS
 
     ! Always compute LAI
     ComputeLAI = .true.
-!#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-    CALL Compute_Modis_GCHP( am_I_Root,  ComputeLAI, State_Met, RC )
-!#else
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    CALL Compute_Modis_GCHP( am_I_Root, ComputeLAI, State_Met, RC )
+#else
     CALL Compute_Modis( am_I_Root,  ComputeLAI, Input_Opt,    State_Met,  &
                         doy,  mm,   mapping,    wasModisRead, RC )
-!#endif
+#endif
 
     ! Only compute CHLR if organic marine aerosols are tracers
     IF ( Input_Opt%LMPOA ) THEN
 
        ComputeLAI = .false.
-!#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-       CALL Compute_Modis_GCHP( am_I_Root,  ComputeLAI, State_Met, RC )
-!#else
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+       CALL Compute_Modis_GCHP( am_I_Root, ComputeLAI, State_Met, RC )
+#else
        CALL Compute_Modis( am_I_Root,  ComputeLAI, Input_Opt,    State_Met, &
                            doy,  mm,   mapping,    wasModisRead, RC )
-!#endif
+#endif
     ENDIF
 
   END SUBROUTINE Compute_Modis_LAI
