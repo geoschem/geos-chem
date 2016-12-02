@@ -1268,7 +1268,6 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_NYMD
     USE TIME_MOD,           ONLY : GET_NHMS
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE UnitConv_Mod
 
     IMPLICIT NONE
 !
@@ -1599,7 +1598,7 @@ CONTAINS
     USE Input_Opt_Mod, ONLY : OptInput
     USE State_Chm_Mod, ONLY : ChmState
     USE State_Met_Mod, ONLY : MetState
-    USE UNITCONV_MOD
+    USE UnitConv_Mod
 
     IMPLICIT NONE
 !
