@@ -408,11 +408,24 @@ cdbg  print *, dryd(:)
       X0(:,:) = 0d0
 
       ! Loop over chemically-active grid boxes
-!$OMP PARALLEL DO
-!$OMP+PRIVATE( L, J, I, AREA_CM2, RKT, flux, JC, BIN )
-!$OMP+PRIVATE( ID, X0, X, Y0, Y )
-!$OMP+DEFAULT( SHARED )
-!$OMP+SCHEDULE( DYNAMIC )
+!------------------------------------------------------------------------------
+! Prior to 12/2/16:
+! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! %%% COMMENT OUT THE PARALLEL LOOP IN ORDER TO PASS UNIT TESTS            %%%
+! %%% Because we are saving data from a 3-D parallel loop into the AD44    %%%
+! %%% array (which does not have a vertical dimension), this results in    %%%
+! %%% numerical differences between multi-processor and single-processor   %%%
+! %%% runs.  For now, we shall just comment out this parallel loop until   %%%
+! %%% we can arrive at a better solution.  Maybe also get the TOMAS team   %%%
+! %%% involved in looking at this. (bmy, 12/2/16)                          %%%
+! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! 
+!!$OMP PARALLEL DO
+!!$OMP+PRIVATE( L, J, I, AREA_CM2, RKT, flux, JC, BIN )
+!!$OMP+PRIVATE( ID, X0, X, Y0, Y )
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+SCHEDULE( DYNAMIC )
+!------------------------------------------------------------------------------
       DO L = 1, LLCHEM 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -545,8 +558,20 @@ c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
-
+!------------------------------------------------------------------------------
+! Prior to 12/2/16:
+! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! %%% COMMENT OUT THE PARALLEL LOOP IN ORDER TO PASS UNIT TESTS            %%%
+! %%% Because we are saving data from a 3-D parallel loop into the AD44    %%%
+! %%% array (which does not have a vertical dimension), this results in    %%%
+! %%% numerical differences between multi-processor and single-processor   %%%
+! %%% runs.  For now, we shall just comment out this parallel loop until   %%%
+! %%% we can arrive at a better solution.  Maybe also get the TOMAS team   %%%
+! %%% involved in looking at this. (bmy, 12/2/16)                          %%%
+! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! 
+!!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
 
       IF ( LPRT ) PRINT *,'### Finish AERO_DRYDEP'
 
