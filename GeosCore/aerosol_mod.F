@@ -368,7 +368,11 @@
          Rad_dry    = REAA(1,k_ORG)
          Rad_wet    = REAA(1,k_ORG) + 35e+0_fp *
      &              ( REAA(2,k_ORG) - REAA(1,k_ORG) ) / 50e+0_fp
-         Rho_dry    = State_Chm%SpcData(id_OCPI)%Info%Density
+         IF ( IS_POA ) THEN
+            Rho_dry    = State_Chm%SpcData(id_POA1)%Info%Density
+         ELSE IF ( IS_OCPI ) THEN
+            Rho_dry    = State_Chm%SpcData(id_OCPI)%Info%Density
+         ENDIF
          ORG_GROWTH = 1 + ( ( ( Rad_wet / Rad_dry ) ** 3 - 1 ) *
      &                        ( Rho_wet / Rho_dry ) )
 
@@ -531,9 +535,11 @@
      &                       * OCFOPOA / AIRVOL(I,J,L)
             ENDIF
 
-            ! Hydrophilic OC [kg/m3].
-            OCPI(I,J,L) = Spc(I,J,L,id_OCPI)
-     &                    * OCFOPOA / AIRVOL(I,J,L)
+            ! Hydrophilic OC [kg/m3]
+            IF ( IS_OCPI ) THEN
+               OCPI(I,J,L) = Spc(I,J,L,id_OCPI)
+     &                       * OCFOPOA / AIRVOL(I,J,L)
+            ENDIF
 
             IF ( LSOA ) THEN
 
@@ -1055,6 +1061,7 @@
       LOGICAL             :: LSULF
       LOGICAL             :: LSTRATOD
       LOGICAL             :: LRAD
+      LOGICAL             :: IS_POA, IS_OCPI
       REAL(fp)            :: GF_RH
 
       ! Pointers
@@ -1082,6 +1089,10 @@
       LSULF                = Input_Opt%LSULF
       LSTRATOD             = Input_Opt%LSTRATOD
       LRAD                 = Input_Opt%LRAD
+
+      ! Define logical flags
+      IS_OCPI              = ( id_OCPI > 0 )
+      IS_POA               = ( id_POA1 > 0 .AND. id_POA2 > 0 )
 
       ! Initialize pointers
       BXHEIGHT            => State_Met%BXHEIGHT    ! Grid box height [m]
@@ -1237,7 +1248,11 @@
       !=================================================================
       MSDENS(1) = State_Chm%SpcData(id_SO4)%Info%Density
       MSDENS(2) = State_Chm%SpcData(id_BCPI)%Info%Density
-      MSDENS(3) = State_Chm%SpcData(id_OCPI)%Info%Density
+      IF ( IS_POA ) THEN
+         MSDENS(3) = State_Chm%SpcData(id_POA1)%Info%Density
+      ELSE IF ( IS_OCPI ) THEN
+         MSDENS(3) = State_Chm%SpcData(id_OCPI)%Info%Density
+      ENDIF
       MSDENS(4) = State_Chm%SpcData(id_SALA)%Info%Density
       MSDENS(5) = State_Chm%SpcData(id_SALC)%Info%Density
 #if defined( UCX )
