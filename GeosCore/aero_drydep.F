@@ -408,27 +408,25 @@ cdbg  print *, dryd(:)
       X0(:,:) = 0d0
 
       ! Loop over chemically-active grid boxes
-!------------------------------------------------------------------------------
-! Prior to 12/2/16:
 ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! %%% COMMENT OUT THE PARALLEL LOOP IN ORDER TO PASS UNIT TESTS            %%%
-! %%% Because we are saving data from a 3-D parallel loop into the AD44    %%%
-! %%% array (which does not have a vertical dimension), this results in    %%%
-! %%% numerical differences between multi-processor and single-processor   %%%
-! %%% runs.  For now, we shall just comment out this parallel loop until   %%%
-! %%% we can arrive at a better solution.  Maybe also get the TOMAS team   %%%
-! %%% involved in looking at this. (bmy, 12/2/16)                          %%%
-! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! 
-!!$OMP PARALLEL DO
-!!$OMP+PRIVATE( L, J, I, AREA_CM2, RKT, flux, JC, BIN )
-!!$OMP+PRIVATE( ID, X0, X, Y0, Y )
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+SCHEDULE( DYNAMIC )
-!------------------------------------------------------------------------------
-      DO L = 1, LLCHEM 
-      DO J = 1, JJPAR
+! %%% TEMPORARY FIX: REVERSE ORDER OF LOOPS IN ORDER TO PASS UNIT TESTS    %%%
+! %%%                                                                      %%%
+! %%% Sal Farina wrote: Change the loop order from LJI to IJL or JIL.      %%%
+! %%% This will make the MP code add up the diagnostic in the same order   %%%
+! %%% as SP mode (only the outermost loop gets parallelized). Yes looping  %%%
+! %%% over LJI should be faster than IJL, but (and correct me if i'm       %%%
+! %%% wrong) if we are looping over species inside that loop, all benefits %%%
+! %%% are totally lost anyway. The way Spc / STT is defined, tracerid      %%%
+! %%% should always be the outermost loop...                               %%%
+! %$%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP PARALLEL DO
+!$OMP+PRIVATE( L, J, I, AREA_CM2, RKT, flux, JC, BIN )
+!$OMP+PRIVATE( ID, X0, X, Y0, Y )
+!$OMP+DEFAULT( SHARED )
+!$OMP+SCHEDULE( DYNAMIC )
       DO I = 1, IIPAR
+      DO J = 1, JJPAR
+      DO L = 1, LLCHEM 
 
          ! Initialize for safety's sake
          AREA_CM2 = 0d0
@@ -558,20 +556,7 @@ c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
       ENDDO
       ENDDO
       ENDDO
-!------------------------------------------------------------------------------
-! Prior to 12/2/16:
-! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! %%% COMMENT OUT THE PARALLEL LOOP IN ORDER TO PASS UNIT TESTS            %%%
-! %%% Because we are saving data from a 3-D parallel loop into the AD44    %%%
-! %%% array (which does not have a vertical dimension), this results in    %%%
-! %%% numerical differences between multi-processor and single-processor   %%%
-! %%% runs.  For now, we shall just comment out this parallel loop until   %%%
-! %%% we can arrive at a better solution.  Maybe also get the TOMAS team   %%%
-! %%% involved in looking at this. (bmy, 12/2/16)                          %%%
-! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! 
-!!$OMP END PARALLEL DO
-!------------------------------------------------------------------------------
+!$OMP END PARALLEL DO
 
       IF ( LPRT ) PRINT *,'### Finish AERO_DRYDEP'
 
