@@ -189,6 +189,7 @@
 #  19 Jul 2016 - R. Yantosca - Add more flags for enabling experimental code
 #  20 Sep 2016 - M. Sulprizio- Remove NEST=se option. This grid was never fully
 #                              implemented.
+#  12 Dec 2016 - R. Yantosca - Allow gfortran etc. to compile with TAU_PROF=y
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -859,11 +860,9 @@ endif
 #------------------------------------------------------------------------------
 # TAU Performance Profiling (only works w/ IFORT for now)
 #------------------------------------------------------------------------------
-ifeq ($(COMPILER),ifort)
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(TAU_PROF)" =~ $(REGEXP) ]] && echo true),true)
-    COMPILE_CMD      :=tau_f90.sh
-  endif
+REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(TAU_PROF)" =~ $(REGEXP) ]] && echo true),true)
+  COMPILE_CMD      :=tau_f90.sh
 endif
 
 #------------------------------------------------------------------------------
