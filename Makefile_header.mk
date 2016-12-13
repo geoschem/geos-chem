@@ -190,6 +190,7 @@
 #  20 Sep 2016 - M. Sulprizio- Remove NEST=se option. This grid was never fully
 #                              implemented.
 #  12 Dec 2016 - R. Yantosca - Allow gfortran etc. to compile with TAU_PROF=y
+#  13 Dec 2016 - R. Yantosca - Add GPROF=y to compile for GNU profiler gprof
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -858,11 +859,20 @@ ifdef TAGO3YR
 endif
 
 #------------------------------------------------------------------------------
-# TAU Performance Profiling (only works w/ IFORT for now)
+# Performance profiling
 #------------------------------------------------------------------------------
-REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+
+# Compile with TAU profiler (from ParaTools, Inc)
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TAU_PROF)" =~ $(REGEXP) ]] && echo true),true)
-  COMPILE_CMD      :=tau_f90.sh
+  COMPILE_CMD        :=tau_f90.sh
+endif
+
+# Compile with GNU profiler (gprof)
+IS_GPROF             :=0
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(GPROF)" =~ $(REGEXP) ]] && echo true),true)
+  IS_GPROF           :=1
 endif
 
 #------------------------------------------------------------------------------
@@ -1116,11 +1126,15 @@ ifeq ($(COMPILER),gfortran)
   # Also add traceback option
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
-    #GFORTRAN_BAD#FFLAGS           += -traceback
     FFLAGS           += -fbacktrace
     ifndef DEBUG
        FFLAGS += -g
     endif
+  endif
+
+  # Compile for use with the GNU profiler (gprof), if necessary
+  ifeq ($(IS_GPROF),1) 
+    FFLAGS           += -pg
   endif
 
   # Loosen KPP tolerances upon non-convergence and try again
@@ -1245,6 +1259,11 @@ ifeq ($(COMPILER),ifort)
     FFLAGS           += -traceback
   endif
 
+  # Compile for use with the GNU profiler (gprof), if necessary
+  ifeq ($(IS_GPROF),1) 
+    FFLAGS           += -p
+  endif
+
   # Loosen KPP tolerances upon non-convergence and try again
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
@@ -1340,6 +1359,11 @@ ifeq ($(COMPILER),pgfortran)
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
     FFLAGS           += -traceback
+  endif
+
+  # Compile for use with the GNU profiler (gprof), if necessary
+  ifeq ($(IS_GPROF),1) 
+    FFLAGS           += -pg
   endif
 
   # Loosen KPP tolerances upon non-convergence and try again

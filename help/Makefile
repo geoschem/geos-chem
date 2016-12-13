@@ -143,6 +143,8 @@ help:
 	@echo '                --> Default: TIMERS=0'
 	@echo 'TRACEBACK=y     Print out a list of called routines if the run dies with an error'
 	@echo '                --> Default: TRACEBACK=n'
+	@echo 'GPROF=y         Compiles GEOS-Chem for use with the GNU profiler (aka gprof)'
+	@echo '                --> Default: GPROF=n'
 	@echo 'TAU_PROF=y      Compiles GEOS-Chem for use with the TAU performance profiler'
 	@echo '                --> Default: TAU_PROF=n'
 	@echo 'TAU_SF=___      Specifies the TAU selectfile for removing throttled files' 
