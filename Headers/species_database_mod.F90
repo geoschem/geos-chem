@@ -4073,7 +4073,7 @@ CONTAINS
                 'DUST36', 'DUST37', 'DUST38', 'DUST39', 'DUST40'  )
  
              ! Add TOMAS bin number to full name
-             FullName = 'Hydrophilic organic carbon, size bin ='
+             FullName = 'Mineral dust, size bin ='
              C        = LEN_TRIM( NameAllCaps )
              IF ( C == 5 ) THEN
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
