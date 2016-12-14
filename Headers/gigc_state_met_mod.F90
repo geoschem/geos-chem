@@ -229,17 +229,9 @@ MODULE GIGC_State_Met_Mod
                                             ! offline MODIS monthly values
      REAL(fp), POINTER :: XLAI      (:,:,:) ! MODIS LAI per land type, this mo
      REAL(fp), POINTER :: XCHLR     (:,:,:) ! MODIS CHLR per land type, this mo
-
-! TEMPORARY TO TEST GCHP DRYDEP UPDATES (ewl, 10/12/16)
-     ! Olson fractional coverage per land type (for GCHP)
-     REAL(fp), POINTER :: LandTypeFrac(:,:,:) ! (lat, lon, type)
-  
-     ! LAI per land type avg'd over entire native cell (for GCHP)
-     REAL(fp), POINTER :: XLAI_NATIVE(:,:,:)  ! (lat, lon, type)
-
-     ! Chloropyll-a per land type avg'd over entire cell (for GCHP) 
-     REAL(fp), POINTER :: XCHLR_NATIVE(:,:,:) 
-! END TEMPORARY
+     REAL(fp), POINTER :: LandTypeFrac(:,:,:) ! Olson frac per type (I,J,type)
+     REAL(fp), POINTER :: XLAI_NATIVE(:,:,:)  ! avg LAI per type (I,J,type)
+     REAL(fp), POINTER :: XCHLR_NATIVE(:,:,:) ! avg CHLR per type (I,J,type)
 
   END TYPE MetState
 !
@@ -983,7 +975,6 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%MODISCHLR = 0.0_fp
 
-! TEMPORARY - for GCHP (ewl)
     ALLOCATE( State_Met%LANDTYPEFRAC( IM, JM, NSURFTYPE ), STAT=RC )        
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%LANDTYPEFRAC = 0.0_fp
@@ -1240,11 +1231,8 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%MODISLAI   )) DEALLOCATE( State_Met%MODISLAI   )
     IF ( ASSOCIATED( State_Met%XCHLR      )) DEALLOCATE( State_Met%XCHLR      )
     IF ( ASSOCIATED( State_Met%MODISCHLR  )) DEALLOCATE( State_Met%MODISCHLR  )
-
-! TEMPORARY (ewl, 10/12/16) - for GCHP
-    ! Olson land fraction per type
     IF (ASSOCIATED( State_Met%LANDTYPEFRAC)) DEALLOCATE( State_Met%LANDTYPEFRAC)
-    IF (ASSOCIATED( State_Met%XLAI_NATIVE))  DEALLOCATE( State_Met%XLAI_NATIVE )
+    IF (ASSOCIATED( State_Met%XLAI_NATIVE )) DEALLOCATE( State_Met%XLAI_NATIVE )
     IF (ASSOCIATED( State_Met%XCHLR_NATIVE)) DEALLOCATE( State_Met%XCHLR_NATIVE)
 
    END SUBROUTINE Cleanup_GIGC_State_Met
