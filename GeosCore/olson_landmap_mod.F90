@@ -240,8 +240,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine COMPUTE\_OLSON\_LANDMAP\_GCHP computes the 
 !  GEOS-Chem State_Met variables that are dependent on the Olson Landmap, 
-!  specifically IREG, ILAND, IUSE, and FRCLND, using the Olson Landmap data
-!  regridded by ExtData in MPI-compatible GEOS-Chem.
+!  specifically IREG, ILAND, IUSE, and FRCLND.
 !\\
 !\\
 ! !INTERFACE:
@@ -272,71 +271,65 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER        :: I, J, T
-    INTEGER        :: typeNum, maxFracType(1)
-    REAL*4         :: sumCoverage
+    INTEGER        :: typeCounter, maxFracInd(1), sumIUSE
 
     !======================================================================
     ! Initialize
     !======================================================================
 
-    ! Set fraction land (I,J) to 1000 [mil], which means all land
-    State_Met%FRCLND = 1e+3_fp
     
     ! Loop over all grid cells to set State_Met variables
     DO J = 1, JJPAR
     DO I = 1, IIPAR
 
-       ! Initialize local variables for this cell
-       typeNum = 0           ! # types with non-zero coverage
-       sumCoverage = 0e+0_fp ! total coverage across all types [mil]
-       maxFracType = 0       ! type id with greatest coverage
+       ! Initialize fraction land for this grid cell
+       State_Met%FRCLND(I,J) = 1.e+0_fp ! Initialized as all land
+
+       ! Initialize local variables
+       typeCounter = 0       ! Tally of number of types found in the cell
+       maxFracInd  = 0       ! type index with greatest coverage
+       sumIUSE     = 0       ! total coverage across all types [mil]
 
        ! Loop over all landmap types to set IREG, ILAND, and IUSE
        DO T = 1, NSURFTYPE
 
-          ! If this type as non-zero coverage in this grid box, updates vars
-          IF ( State_Met%LandTypeFrac(I,J,T) > 0.0 ) THEN
+          ! If this type has non-zero coverage in this grid box, update vars
+          IF ( State_Met%LandTypeFrac(I,J,T) > 0.e+0_fp ) THEN
 
              ! Increment number of types in this cell
-             typeNum = typeNum + 1
+             typeCounter = typeCounter + 1
 
              ! Set IREG to number of types
-             State_Met%IREG(I,J) = typeNum
+             State_Met%IREG(I,J) = typeCounter
 
-             ! Store type index in ILAND array for this grid cell
-             State_Met%ILAND(I,J,typeNum) = T
+             ! Store type index in ILAND array for this grid cell.
+             ! Use 0-based index for compatibility with legacy drydep code.
+             State_Met%ILAND(I,J,typeCounter) = T-1
              
-             ! Store fractional coverage [mil] in IUSE array for this grid cell
-             State_Met%IUSE(I,J,typeNum) = State_Met%LandTypeFrac(I,J,T)
+             ! Store fractional coverage in IUSE array for this grid cell.
+             ! Units are [mil] for compatibility with legacy drydep code.
+             State_Met%IUSE(I,J,typeCounter) = State_Met%LandTypeFrac(I,J,T) &
+                                               * 1000
+
+             ! If this type is water, set fraction land
+             IF ( T .eq. 1 ) THEN
+                State_Met%FRCLND(I,J) = 1.e+0_fp                          &
+                                        - State_Met%LandTypeFrac(I,J,T)
+             ENDIF
 
           ENDIF
        ENDDO
 
-       ! Get this cell's type index with maximum single type coverage [mil]
-       maxFracType = MAXLOC(State_Met%IUSE(I, J, 1:State_Met%IREG(I,J)))
-       
-       ! Sum this cell's total fractional coverage across all land types [mil]
-       sumCoverage = SUM ( State_Met%IUSE(I, J, 1:State_Met%IREG(I,J)))
+       ! Get IUSE type index with maximum coverage [mil]
+       maxFracInd  = MAXLOC(State_Met%IUSE(I,J,1:State_Met%IREG(I,J)))
 
-       ! Force total coverage to 1000 by adjusting max single type coverage
-       IF ( sumCoverage /= 1000 ) THEN
-          State_Met%IUSE(I,J,maxFracType) = State_Met%IUSE(I,J,maxFracType) &
-                                            + ( 1000 - sumCoverage )
+       ! Force IUSE to sum to 1000 by updating max value if necessary
+       sumIUSE =  SUM(State_Met%IUSE(I,J,1:State_Met%IREG(I,J)))
+       IF ( sumIUSE /= 1000 ) THEN
+          State_Met%IUSE(I,J,maxFracInd) = State_Met%IUSE(I,J,maxFracInd) &
+                                           + ( 1000 - sumIUSE )
+
        ENDIF
-       
-       ! Loop over all landmap types to set FRCLND
-       DO T = 1, State_Met%IREG(I,J)
-       
-          ! If the current Olson land type is water (index 1), then
-          ! subtract the coverage fraction (State_Met%IUSE) from FRCLND.
-          IF ( State_Met%ILAND(I,J,T) == 1 ) THEN
-             State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J)   &
-                                     - State_Met%IUSE(I,J,T)
-          ENDIF
-       ENDDO
-       
-       ! Normalize FRCLND into a true fraction in range of 0 to 1
-       State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J) / 1e+3_fp
 
     ENDDO
     ENDDO
