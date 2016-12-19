@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Monitor.f90
-! Time                 : Sun Nov 20 17:41:16 2016
-! Working directory    : /n/home13/seastham/KPP_FlexChem/Run
+! Time                 : Sun Dec 11 19:18:16 2016
+! Working directory    : /n/home13/seastham/GCStandard/Code/Code.v11-01g-Iodine/KPP/Halogens
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -247,69 +247,72 @@ MODULE gckpp_Monitor
      'RR616          ','RR617          ','RR618          ', &
      'RR619          ','RR620          ','RR621          ', &
      'RR622          ','RR623          ','RR624          ', &
-     'RR625          ','I2O4           ','BENZ           ', &
-     'TOLU           ','XYLE           ','CH3CCl3        ', &
-     'I2O2           ','CCl4           ','CFC11          ', &
-     'CFC12          ','CFC113         ','CFC114         ', &
-     'CFC115         ','H1301          ','H2402          ', &
-     'PMNN           ','PPN            ','BrNO2          ', &
-     'CH3I           ','I2O3           ','IEPOX          ', &
-     'H1211          ','N2O            ','BRO2           ', &
-     'TRO2           ','XRO2           ','IBr            ', &
-     'INO            ','OCS            ','N              ', &
-     'PAN            ','MAP            ','HI             ', &
+     'RR625          ','RR626          ','RR627          ', &
+     'RR628          ','RR629          ','RR630          ', &
+     'RR631          ','RR632          ','RR633          ', &
+     'I2O4           ','BENZ           ','TOLU           ', &
+     'XYLE           ','CH3CCl3        ','I2O2           ', &
+     'CCl4           ','CFC11          ','CFC12          ', &
+     'CFC113         ','CFC114         ','CFC115         ', &
+     'H1301          ','H2402          ','PPN            ', &
+     'BrNO2          ','CH3I           ','I2O3           ', &
+     'IEPOX          ','PMNN           ','H1211          ', &
+     'N2O            ','BRO2           ','TRO2           ', &
+     'XRO2           ','IBr            ','INO            ', &
+     'ClNO2          ','N              ','PAN            ', &
+     'OCS            ','MAP            ','HI             ', &
      'CHBr3          ','CH2Br2         ','CH2Cl2         ', &
-     'CHCl3          ','Cl2O2          ','ICl            ', &
-     'MPN            ','ETP            ','HCFC22         ', &
-     'RA3P           ','RB3P           ','DMS            ', &
-     'HCFC141b       ','HCFC142b       ','OIO            ', &
-     'HCFC123        ','IONO           ','ClNO2          ', &
-     'CH3Cl          ','CH3Br          ','HNO4           ', &
-     'MAOP           ','ClOO           ','HNO2           ', &
-     'BrCl           ','RP             ','OClO           ', &
-     'PP             ','PRPN           ','SO4            ', &
-     'Br2            ','ALK4           ','ETHLN          ', &
-     'R4P            ','C3H8           ','RIP            ', &
-     'IAP            ','VRP            ','HOI            ', &
-     'ATOOH          ','DHMOB          ','MOBA           ', &
-     'MP             ','MRP            ','N2O5           ' /)
+     'CHCl3          ','ICl            ','MPN            ', &
+     'Cl2O2          ','N2O5           ','RA3P           ', &
+     'RB3P           ','BrCl           ','DMS            ', &
+     'HCFC22         ','HCFC123        ','HCFC141b       ', &
+     'OIO            ','IONO           ','HCFC142b       ', &
+     'ETP            ','CH3Cl          ','CH3Br          ', &
+     'MAOP           ','HNO4           ','Br2            ', &
+     'ClOO           ','RP             ','HNO2           ', &
+     'OClO           ','PP             ','PRPN           ', &
+     'SO4            ','ALK4           ','ETHLN          ', &
+     'R4P            ','RIP            ','VRP            ' /)
   CHARACTER(LEN=15), PARAMETER, DIMENSION(90) :: SPC_NAMES_8 = (/ &
-     'INPN           ','ISNP           ','ISOPNB         ', &
-     'MACRNO2        ','IONO2          ','C2H6           ', &
-     'IEPOXOO        ','ROH            ','MOBAOO         ', &
-     'DIBOO          ','PMN            ','MVKN           ', &
-     'BrNO3          ','H              ','Cl2            ', &
-     'I2             ','ISNOHOO        ','CH4            ', &
-     'ISNOOB         ','ISOPND         ','HOBr           ', &
-     'MVKOO          ','CH3CHOO        ','GLYX           ', &
-     'MAOPO2         ','PROPNN         ','GAOO           ', &
-     'CH2OO          ','A3O2           ','MGLYOO         ', &
-     'MACRN          ','PRN1           ','MGLOO          ', &
-     'PO2            ','B3O2           ','ISNOOA         ', &
-     'MAN2           ','ISOP           ','ACET           ', &
-     'H2O2           ','KO2            ','GLYC           ', &
-     'HC5OO          ','MRO2           ','ClNO3          ', &
-     'R4N1           ','RCO3           ','VRO2           ', &
-     'I              ','IO             ','HNO3           ', &
-     'PRPE           ','ATO2           ','ISN1           ', &
-     'MAO3           ','HOCl           ','ETO2           ', &
-     'HAC            ','RIO2           ','ISOPNBO2       ', &
-     'MGLY           ','ISOPNDO2       ','MACROO         ', &
-     'HC5            ','BrO            ','INO2           ', &
-     'R4O2           ','R4N2           ','RCHO           ', &
-     'MACR           ','CH2O           ','ALD2           ', &
-     'MVK            ','MEK            ','MCO3           ', &
-     'SO2            ','HCl            ','HBr            ', &
-     'NO3            ','NO2            ','H2O            ', &
-     'OH             ','HO2            ','NO             ', &
-     'CO             ','ClO            ','O1D            ', &
-     'O3             ','Br             ','O              ' /)
-  CHARACTER(LEN=15), PARAMETER, DIMENSION(10) :: SPC_NAMES_9 = (/ &
-     'MO2            ','Cl             ','ACTA           ', &
-     'EOH            ','H2             ','HCOOH          ', &
-     'MOH            ','N2             ','O2             ', &
-     'RCOOH          ' /)
-  CHARACTER(LEN=15), PARAMETER, DIMENSION(820) :: SPC_NAMES = (/&
+     'BrNO3          ','C3H8           ','HOI            ', &
+     'IAP            ','ATOOH          ','DHMOB          ', &
+     'MOBA           ','MP             ','MRP            ', &
+     'ISNOHOO        ','ISNP           ','HOBr           ', &
+     'ISOPNB         ','C2H6           ','IONO2          ', &
+     'IEPOXOO        ','MACRNO2        ','ROH            ', &
+     'MOBAOO         ','DIBOO          ','ISNOOB         ', &
+     'PMN            ','Cl2            ','INPN           ', &
+     'MVKN           ','H              ','ClNO3          ', &
+     'I2             ','CH4            ','ISOPND         ', &
+     'CH3CHOO        ','MVKOO          ','MAOPO2         ', &
+     'GLYX           ','PROPNN         ','GAOO           ', &
+     'A3O2           ','MACRN          ','CH2OO          ', &
+     'MGLYOO         ','PRN1           ','MGLOO          ', &
+     'HOCl           ','PO2            ','B3O2           ', &
+     'ISNOOA         ','MAN2           ','HBr            ', &
+     'ISOP           ','H2O2           ','KO2            ', &
+     'HC5OO          ','GLYC           ','MRO2           ', &
+     'RCO3           ','R4N1           ','VRO2           ', &
+     'I              ','ATO2           ','HNO3           ', &
+     'IO             ','PRPE           ','ISN1           ', &
+     'MAO3           ','ETO2           ','HAC            ', &
+     'ISOPNBO2       ','MGLY           ','ISOPNDO2       ', &
+     'RIO2           ','MACROO         ','HC5            ', &
+     'R4O2           ','HCl            ','BrO            ', &
+     'INO2           ','R4N2           ','ACET           ', &
+     'RCHO           ','MACR           ','MVK            ', &
+     'MEK            ','ALD2           ','MCO3           ', &
+     'SO2            ','CO             ','Cl             ', &
+     'OH             ','MO2            ','O              ' /)
+  CHARACTER(LEN=15), PARAMETER, DIMENSION(19) :: SPC_NAMES_9 = (/ &
+     'Br             ','CH2O           ','NO3            ', &
+     'HO2            ','O3             ','NO             ', &
+     'O1D            ','H2O            ','NO2            ', &
+     'ClO            ','ACTA           ','EOH            ', &
+     'H2             ','HCOOH          ','MOH            ', &
+     'N2             ','O2             ','RCOOH          ', &
+     'DUMMY          ' /)
+  CHARACTER(LEN=15), PARAMETER, DIMENSION(829) :: SPC_NAMES = (/&
     SPC_NAMES_0, SPC_NAMES_1, SPC_NAMES_2, SPC_NAMES_3, SPC_NAMES_4, &
     SPC_NAMES_5, SPC_NAMES_6, SPC_NAMES_7, SPC_NAMES_8, SPC_NAMES_9 /)
 
@@ -345,7 +348,7 @@ MODULE gckpp_Monitor
      343,344,345,346,347,348,349,350,351,352,353,354, &
      355,356,357,358,359,360,361,362,363,364,365,366, &
      367,368,369,370,371,372,373,374,375,376,377,378 /)
-  INTEGER, PARAMETER, DIMENSION(265) :: FLUX_MAP_1 = (/ &
+  INTEGER, PARAMETER, DIMENSION(273) :: FLUX_MAP_1 = (/ &
      379,380,381,382,383,384,385,386,387,388,389,390, &
      391,392,393,394,395,396,397,398,399,400,401,402, &
      403,404,405,406,407,408,409,410,411,412,413,414, &
@@ -368,139 +371,139 @@ MODULE gckpp_Monitor
      607,608,609,610,611,612,613,614,615,616,617,618, &
      619,620,621,622,623,624,625,626,627,628,629,630, &
      631,632,633,634,635,636,637,638,639,640,641,642, &
-     643 /)
-  INTEGER, PARAMETER, DIMENSION(625) :: FLUX_MAP = (/&
+     643,644,645,646,647,648,649,650,651 /)
+  INTEGER, PARAMETER, DIMENSION(633) :: FLUX_MAP = (/&
     FLUX_MAP_0, FLUX_MAP_1 /)
 
   INTEGER, DIMENSION(1) :: LOOKAT
   INTEGER, DIMENSION(1) :: MONITOR
   CHARACTER(LEN=15), DIMENSION(1) :: SMASS
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_0 = (/ &
-     '       NO + O3 --> RR1 + NO2 + O2                                                                   ', &
+     '       O3 + NO --> RR1 + NO2 + O2                                                                   ', &
      '       OH + O3 --> RR2 + HO2 + O2                                                                   ', &
      '      HO2 + O3 --> RR3 + OH + 2 O2                                                                  ', &
-     '      NO2 + O3 --> RR4 + NO3 + O2                                                                   ', &
-     '      O3 + MO2 --> RR5 + CH2O + HO2 + O2                                                            ', &
-     '          2 OH --> RR6 + H2O + O                                                                    ', &
+     '      O3 + NO2 --> RR4 + NO3 + O2                                                                   ', &
+     '      MO2 + O3 --> RR5 + CH2O + HO2 + O2                                                            ', &
+     '          2 OH --> RR6 + O + H2O                                                                    ', &
      '          2 OH --> RR7 + H2O2                                                                       ', &
      '      OH + HO2 --> RR8 + H2O + O2                                                                   ', &
-     '     H2O2 + OH --> RR9 + H2O + HO2                                                                  ', &
-     '      HO2 + NO --> RR10 + NO2 + OH                                                                  ', &
+     '     H2O2 + OH --> RR9 + HO2 + H2O                                                                  ', &
+     '      HO2 + NO --> RR10 + OH + NO2                                                                  ', &
      '         2 HO2 --> RR11 + H2O2 + O2                                                                 ', &
-     '       OH + CO --> CO2 + RR12 + HO2                                                                 ', &
-     '      CH4 + OH --> RR13 + H2O + MO2                                                                 ', &
-     '      NO + MO2 --> RR14 + CH2O + NO2 + HO2                                                          ', &
-     '     HO2 + MO2 --> RR15 + MP + O2                                                                   ', &
+     '       CO + OH --> CO2 + RR12 + HO2                                                                 ', &
+     '      CH4 + OH --> RR13 + MO2 + H2O                                                                 ', &
+     '      MO2 + NO --> RR14 + CH2O + HO2 + NO2                                                          ', &
+     '     MO2 + HO2 --> RR15 + MP + O2                                                                   ', &
      '         2 MO2 --> RR16 + CH2O + MOH + O2                                                           ', &
      '         2 MO2 --> RR17 + 2 CH2O + 2 HO2                                                            ', &
-     '       MP + OH --> RR18 + H2O + MO2                                                                 ', &
-     '       MP + OH --> RR19 + CH2O + H2O + OH                                                           ', &
+     '       MP + OH --> RR18 + MO2 + H2O                                                                 ', &
+     '       MP + OH --> RR19 + OH + CH2O + H2O                                                           ', &
      '    ATOOH + OH --> RR20 + ATO2 + H2O                                                                ', &
-     '    ATOOH + OH --> RR21 + MGLY + H2O + OH                                                           ', &
-     '     CH2O + OH --> RR22 + H2O + HO2 + CO                                                            ', &
-     '      NO2 + OH --> RR23 + HNO3                                                                      ', &
+     '    ATOOH + OH --> RR21 + MGLY + OH + H2O                                                           ', &
+     '     OH + CH2O --> RR22 + CO + HO2 + H2O                                                            ', &
+     '      OH + NO2 --> RR23 + HNO3                                                                      ', &
      '     HNO3 + OH --> RR24 + NO3 + H2O                                                                 ', &
      '       OH + NO --> RR25 + HNO2                                                                      ', &
-     '     HNO2 + OH --> RR26 + NO2 + H2O                                                                 ', &
-     '     NO2 + HO2 --> RR27 + HNO4                                                                      ', &
-     '          HNO4 --> RR28 + NO2 + HO2                                                                 ', &
-     '     HNO4 + OH --> RR29 + NO2 + H2O + O2                                                            ', &
-     '     NO3 + HO2 --> RR30 + NO2 + OH + O2                                                             ' /)
+     '     HNO2 + OH --> RR26 + H2O + NO2                                                                 ', &
+     '     HO2 + NO2 --> RR27 + HNO4                                                                      ', &
+     '          HNO4 --> RR28 + HO2 + NO2                                                                 ', &
+     '     HNO4 + OH --> RR29 + H2O + NO2 + O2                                                            ', &
+     '     NO3 + HO2 --> RR30 + OH + NO2 + O2                                                             ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_1 = (/ &
      '      NO3 + NO --> RR31 + 2 NO2                                                                     ', &
-     '      NO3 + OH --> RR32 + NO2 + HO2                                                                 ', &
+     '      OH + NO3 --> RR32 + HO2 + NO2                                                                 ', &
      '     NO3 + NO2 --> RR33 + N2O5                                                                      ', &
      '          N2O5 --> RR34 + NO3 + NO2                                                                 ', &
-     '    OH + HCOOH --> CO2 + RR35 + H2O + HO2                                                           ', &
+     '    OH + HCOOH --> CO2 + RR35 + HO2 + H2O                                                           ', &
      '      OH + MOH --> RR36 + CH2O + HO2                                                                ', &
-     '     NO3 + NO2 --> RR37 + NO2 + NO + O2                                                             ', &
-     '    CH2O + NO3 --> RR38 + HNO3 + HO2 + CO                                                           ', &
-     '     ALD2 + OH --> RR39 + 0.05 CH2O + 0.95 MCO3 + H2O + 0.05 HO2 + 0.05 CO ... etc.                 ', &
+     '     NO3 + NO2 --> RR37 + NO + NO2 + O2                                                             ', &
+     '    CH2O + NO3 --> RR38 + HNO3 + CO + HO2                                                           ', &
+     '     ALD2 + OH --> RR39 + 0.95 MCO3 + 0.05 CO + 0.05 CH2O + 0.05 HO2 + H2O ... etc.                 ', &
      '    ALD2 + NO3 --> RR40 + HNO3 + MCO3                                                               ', &
      '    MCO3 + NO2 --> RR41 + PAN                                                                       ', &
      '           PAN --> RR42 + MCO3 + NO2                                                                ', &
-     '     MCO3 + NO --> CO2 + RR43 + NO2 + MO2                                                           ', &
+     '     MCO3 + NO --> CO2 + RR43 + MO2 + NO2                                                           ', &
      '     C2H6 + OH --> RR44 + ETO2 + H2O                                                                ', &
-     '     ETO2 + NO --> RR45 + ALD2 + NO2 + HO2                                                          ', &
+     '     ETO2 + NO --> RR45 + ALD2 + HO2 + NO2                                                          ', &
      '     C3H8 + OH --> RR46 + B3O2                                                                      ', &
      '     C3H8 + OH --> RR47 + A3O2                                                                      ', &
-     '     A3O2 + NO --> RR48 + RCHO + NO2 + HO2                                                          ', &
-     '      PO2 + NO --> RR49 + CH2O + ALD2 + NO2 + HO2                                                   ', &
+     '     A3O2 + NO --> RR48 + RCHO + HO2 + NO2                                                          ', &
+     '      PO2 + NO --> RR49 + ALD2 + CH2O + HO2 + NO2                                                   ', &
      '     ALK4 + OH --> RR50 + R4O2                                                                      ', &
-     '     R4O2 + NO --> RR51 + 0.05 A3O2 + 0.18 B3O2 + 0.32 ACET + 0.32 ETO2 ... etc.                    ', &
+     '     R4O2 + NO --> RR51 + 0.05 A3O2 + 0.18 B3O2 + 0.32 ETO2 + 0.32 ACET ... etc.                    ', &
      '     R4O2 + NO --> RR52 + R4N2                                                                      ', &
-     '     R4N1 + NO --> RR53 + 0.3 R4O2 + 0.57 RCHO + 0.39 CH2O + 0.75 ALD2 ... etc.                     ', &
-     '     ATO2 + NO --> RR54 + 0.04 R4N2 + 0.96 CH2O + 0.96 MCO3 + 0.96 NO2 ... etc.                     ', &
+     '     R4N1 + NO --> RR53 + 0.3 R4O2 + 0.57 RCHO + 0.75 ALD2 + 0.39 CH2O ... etc.                     ', &
+     '     ATO2 + NO --> RR54 + 0.04 R4N2 + 0.96 MCO3 + 0.96 CH2O + 0.96 NO2 ... etc.                     ', &
      '      KO2 + NO --> RR55 + 0.07 R4N2 + 0.93 ALD2 + 0.93 MCO3 + 0.93 NO2 ... etc.                     ', &
      '     RIO2 + NO --> RR56 + 0.047 ISOPNB + 0.1 DIBOO + 0.07 ISOPND + 0.123 HC5 ... etc.               ', &
-     '          RIO2 --> RR57 + 0.5 GLYX + 0.5 GLYC + 0.5 HAC + 0.5 MGLY + CH2O ... etc.                  ', &
-     '     VRO2 + NO --> RR58 + 0.12 MVKN + 0.53 GLYC + 0.35 MGLY + 0.35 CH2O ... etc.                    ', &
-     '     MRO2 + NO --> RR59 + 0.15 MACRN + 0.728 HAC + 0.122 MGLY + 0.122 CH2O ... etc.                 ', &
-     '          MRO2 --> RR60 + HAC + OH + CO                                                             ' /)
+     '          RIO2 --> RR57 + 0.5 GLYX + 0.5 GLYC + 0.5 HAC + 0.5 MGLY + OH ... etc.                    ', &
+     '     VRO2 + NO --> RR58 + 0.12 MVKN + 0.53 GLYC + 0.35 MGLY + 0.53 MCO3 ... etc.                    ', &
+     '     MRO2 + NO --> RR59 + 0.15 MACRN + 0.728 HAC + 0.122 MGLY + 0.728 CO ... etc.                   ', &
+     '          MRO2 --> RR60 + HAC + CO + OH                                                             ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_2 = (/ &
-     '     MAN2 + NO --> RR61 + 0.5 PROPNN + 0.5 MGLY + 0.5 CH2O + 1.5 NO2 + 0.5 OH ... etc.              ', &
-     '     B3O2 + NO --> RR62 + ACET + NO2 + HO2                                                          ', &
-     '     INO2 + NO --> RR63 + 0.7 ISN1 + 0.23 HC5 + 0.035 MACR + 0.07 CH2O ... etc.                     ', &
-     '    INO2 + NO3 --> RR64 + 0.7 ISN1 + 0.23 HC5 + 0.035 MACR + 0.07 CH2O ... etc.                     ', &
+     '     MAN2 + NO --> RR61 + 0.5 PROPNN + 0.5 MGLY + 0.5 CO + 0.5 OH + 0.5 CH2O ... etc.               ', &
+     '     B3O2 + NO --> RR62 + ACET + HO2 + NO2                                                          ', &
+     '     INO2 + NO --> RR63 + 0.7 ISN1 + 0.23 HC5 + 0.035 MACR + 0.035 MVK ... etc.                     ', &
+     '    INO2 + NO3 --> RR64 + 0.7 ISN1 + 0.23 HC5 + 0.035 MACR + 0.035 MVK ... etc.                     ', &
      '    ISN1 + NO3 --> RR65 + 0.4 ISNOOB + 0.6 ISNOOA + 0.6 HNO3                                        ', &
-     '  ISNOOA + NO3 --> RR66 + R4N2 + NO2 + HO2 + CO                                                     ', &
-     '   ISNOOA + NO --> RR67 + R4N2 + NO2 + HO2 + CO                                                     ', &
+     '  ISNOOA + NO3 --> RR66 + R4N2 + CO + HO2 + NO2                                                     ', &
+     '   ISNOOA + NO --> RR67 + R4N2 + CO + HO2 + NO2                                                     ', &
      '  ISNOOA + NO2 --> RR68 + PMN                                                                       ', &
      '  ISNOOA + HO2 --> RR69 + 0.75 RP + 0.25 O3 + 0.25 RCOOH                                            ', &
      '  ISNOOB + NO3 --> RR70 + GLYX + R4N2 + 2 NO2                                                       ', &
      '   ISNOOB + NO --> RR71 + 0.94 GLYX + 0.94 R4N2 + 1.88 NO2                                          ', &
      '  ISNOOB + HO2 --> RR72 + INPN                                                                      ', &
-     '  ISNOOB + MO2 --> RR73 + 0.7 GLYX + 0.7 R4N2 + 0.75 CH2O + 0.7 NO2 + 0.5 HO2 ... etc.              ', &
-     '     ISN1 + O3 --> RR74 + 0.7 GLYX + 0.3 R4N2 + 0.75 CH2O + 0.7 NO2 + 0.5 HO2 ... etc.              ', &
+     '  ISNOOB + MO2 --> RR73 + 0.7 GLYX + 0.7 R4N2 + 0.75 CH2O + 0.5 HO2 + 0.7 NO2 ... etc.              ', &
+     '     ISN1 + O3 --> RR74 + 0.7 GLYX + 0.3 R4N2 + 0.75 CH2O + 0.5 HO2 + 0.7 NO2 ... etc.              ', &
      '     ISN1 + OH --> RR75 + 0.655 ISNOHOO + 0.345 ISNOOA                                              ', &
      '  ISNOHOO + NO --> RR76 + 0.919 GLYX + 0.934 R4N2 + 0.934 HO2                                       ', &
      ' ISNOHOO + HO2 --> RR77 + INPN                                                                      ', &
      ' ISNOHOO + MO2 --> RR78 + 0.7 GLYX + 0.7 R4N2 + 0.75 CH2O + 1.2 HO2 + 0.25 MOH ... etc.             ', &
      '        2 INO2 --> RR79 + 0.5 ISOPND + 1.2 ISN1 + 0.23 HC5 + 0.035 MACR ... etc.                    ', &
-     '     PRN1 + NO --> RR80 + CH2O + ALD2 + 2 NO2                                                       ', &
+     '     PRN1 + NO --> RR80 + ALD2 + CH2O + 2 NO2                                                       ', &
      '    ALK4 + NO3 --> RR81 + HNO3 + R4O2                                                               ', &
      '     R4N2 + OH --> RR82 + R4N1 + H2O                                                                ', &
-     '     OH + ACTA --> CO2 + RR83 + H2O + MO2                                                           ', &
+     '     OH + ACTA --> CO2 + RR83 + MO2 + H2O                                                           ', &
      '     RCHO + OH --> RR84 + RCO3 + H2O                                                                ', &
      '    RCO3 + NO2 --> RR85 + PPN                                                                       ', &
      '           PPN --> RR86 + RCO3 + NO2                                                                ', &
      '    MAO3 + NO2 --> RR87 + PMN                                                                       ', &
      '           PMN --> RR88 + MAO3 + NO2                                                                ', &
      '     RCO3 + NO --> RR89 + ETO2 + NO2                                                                ', &
-     '     MAO3 + NO --> CO2 + RR90 + 0.5 CH2O + 0.5 MCO3 + NO2 + 0.5 CO + 0.5 MO2 ... etc.               ' /)
+     '     MAO3 + NO --> CO2 + RR90 + 0.5 MCO3 + 0.5 CO + 0.5 MO2 + 0.5 CH2O ... etc.                     ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_3 = (/ &
      '    RCHO + NO3 --> RR91 + RCO3 + HNO3                                                               ', &
      '     ACET + OH --> RR92 + ATO2 + H2O                                                                ', &
      '    A3O2 + MO2 --> RR93 + 0.25 ROH + 0.75 RCHO + 0.75 CH2O + HO2 + 0.25 MOH ... etc.                ', &
-     '     PO2 + MO2 --> RR94 + 0.25 ROH + 0.16 HAC + 0.09 RCHO + 1.25 CH2O + 0.5 ALD2 ... etc.           ', &
+     '     PO2 + MO2 --> RR94 + 0.25 ROH + 0.16 HAC + 0.09 RCHO + 0.5 ALD2 + 1.25 CH2O ... etc.           ', &
      '    R4O2 + HO2 --> RR95 + R4P                                                                       ', &
      '    R4N1 + HO2 --> RR96 + R4N2                                                                      ', &
-     '    ATO2 + HO2 --> RR97 + 0.85 ATOOH + 0.15 CH2O + 0.15 MCO3 + 0.15 OH ... etc.                     ', &
+     '    ATO2 + HO2 --> RR97 + 0.85 ATOOH + 0.15 MCO3 + 0.15 OH + 0.15 CH2O ... etc.                     ', &
      '     KO2 + HO2 --> RR98 + 0.85 ATOOH + 0.15 ALD2 + 0.15 MCO3 + 0.15 OH ... etc.                     ', &
-     '    RIO2 + HO2 --> RR99 + 0.88 RIP + 0.047 MACR + 0.12 CH2O + 0.073 MVK ... etc.                    ', &
+     '    RIO2 + HO2 --> RR99 + 0.88 RIP + 0.047 MACR + 0.073 MVK + 0.12 OH + 0.12 CH2O ... etc.          ', &
      '    VRO2 + HO2 --> RR100 + 0.1 VRP + 0.578 GLYC + 0.102 MGLY + 0.033 RCHO ... etc.                  ', &
      '    MRO2 + HO2 --> RR101 + MRP                                                                      ', &
-     '    MAN2 + HO2 --> RR102 + 0.85 ISNP + 0.075 PROPNN + 0.075 MGLY + 0.075 CH2O ... etc.              ', &
+     '    MAN2 + HO2 --> RR102 + 0.85 ISNP + 0.075 PROPNN + 0.075 MGLY + 0.075 CO ... etc.                ', &
      '    B3O2 + HO2 --> RR103 + RB3P                                                                     ', &
      '    INO2 + HO2 --> RR104 + INPN                                                                     ', &
      '    PRN1 + HO2 --> RR105 + PRPN                                                                     ', &
      '      MEK + OH --> RR106 + KO2 + H2O                                                                ', &
-     '    ETO2 + MO2 --> RR107 + 0.75 CH2O + 0.75 ALD2 + HO2 + 0.25 EOH + 0.25 MOH ... etc.               ', &
+     '    ETO2 + MO2 --> RR107 + 0.75 ALD2 + 0.75 CH2O + HO2 + 0.25 EOH + 0.25 MOH ... etc.               ', &
      '     MEK + NO3 --> RR108 + KO2 + HNO3                                                               ', &
-     '    R4O2 + MO2 --> RR109 + 0.25 ROH + 0.03 A3O2 + 0.09 B3O2 + 0.16 ACET ... etc.                    ', &
-     '    R4N1 + MO2 --> RR110 + 0.25 ROH + 0.15 R4O2 + 0.54 RCHO + 0.95 CH2O ... etc.                    ', &
-     '    ATO2 + MO2 --> RR111 + 0.2 HAC + 0.5 MGLY + 0.5 CH2O + 0.3 MCO3 + 0.3 HO2 ... etc.              ', &
-     '     KO2 + MO2 --> RR112 + 0.25 ROH + 0.75 CH2O + 0.5 ALD2 + 0.25 MEK + 0.5 MCO3 ... etc.           ', &
-     '    RIO2 + MO2 --> RR113 + 0.24 ROH + 0.3 HC5 + 0.18 MACR + 1.22 CH2O + 0.28 MVK ... etc.           ', &
-     '        2 RIO2 --> RR114 + 0.48 ROH + 0.5 HC5 + 0.36 MACR + 0.92 CH2O + 0.56 MVK ... etc.           ', &
+     '    R4O2 + MO2 --> RR109 + 0.25 ROH + 0.03 A3O2 + 0.09 B3O2 + 0.16 ETO2 ... etc.                    ', &
+     '    R4N1 + MO2 --> RR110 + 0.25 ROH + 0.15 R4O2 + 0.54 RCHO + 0.38 ALD2 ... etc.                    ', &
+     '    ATO2 + MO2 --> RR111 + 0.2 HAC + 0.5 MGLY + 0.3 MCO3 + 0.5 CH2O + 0.3 HO2 ... etc.              ', &
+     '     KO2 + MO2 --> RR112 + 0.25 ROH + 0.25 MEK + 0.5 ALD2 + 0.5 MCO3 + 0.75 CH2O ... etc.           ', &
+     '    RIO2 + MO2 --> RR113 + 0.24 ROH + 0.3 HC5 + 0.18 MACR + 0.28 MVK + 1.22 CH2O ... etc.           ', &
+     '        2 RIO2 --> RR114 + 0.48 ROH + 0.5 HC5 + 0.36 MACR + 0.56 MVK + 0.92 CH2O ... etc.           ', &
      '   HC5OO + MO2 --> RR115 + 0.25 ROH + 0.13 GLYC + 0.18 HAC + 0.29 MGLY ... etc.                     ', &
-     '    VRO2 + MO2 --> RR116 + 0.25 ROH + 0.36 GLYC + 0.14 MGLY + 0.89 CH2O ... etc.                    ', &
-     '    MRO2 + MO2 --> RR117 + 0.15 ROH + 0.595 HAC + 0.255 MGLY + 1.255 CH2O ... etc.                  ', &
-     '    MAN2 + MO2 --> RR118 + 0.375 PROPNN + 0.375 MGLY + 0.25 R4N2 + 0.625 CH2O ... etc.              ', &
+     '    VRO2 + MO2 --> RR116 + 0.25 ROH + 0.36 GLYC + 0.14 MGLY + 0.25 MEK ... etc.                     ', &
+     '    MRO2 + MO2 --> RR117 + 0.15 ROH + 0.595 HAC + 0.255 MGLY + 0.595 CO ... etc.                    ', &
+     '    MAN2 + MO2 --> RR118 + 0.375 PROPNN + 0.375 MGLY + 0.25 R4N2 + 0.375 CO ... etc.                ', &
      '    B3O2 + MO2 --> RR119 + 0.25 ROH + 0.75 ACET + 0.75 CH2O + HO2 + 0.25 MOH ... etc.               ', &
      '    INO2 + MO2 --> RR120 + 0.25 ISOPND + 0.6 ISN1 + 0.115 HC5 + 0.018 MACR ... etc.                 ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_4 = (/ &
-     '    PRN1 + MO2 --> RR121 + 0.25 ROH + 0.25 RCHO + 1.25 CH2O + 0.5 ALD2 ... etc.                     ', &
+     '    PRN1 + MO2 --> RR121 + 0.25 ROH + 0.25 RCHO + 0.5 ALD2 + 1.25 CH2O ... etc.                     ', &
      '      OH + EOH --> RR122 + ALD2 + HO2                                                               ', &
      '      ROH + OH --> RR123 + RCHO + HO2                                                               ', &
      '        2 ETO2 --> RR124 + 2 ALD2 + 2 HO2                                                           ', &
@@ -508,41 +511,41 @@ MODULE gckpp_Monitor
      '    ETO2 + HO2 --> RR126 + ETP                                                                      ', &
      '    A3O2 + HO2 --> RR127 + RA3P                                                                     ', &
      '     PO2 + HO2 --> RR128 + PP                                                                       ', &
-     '    MCO3 + HO2 --> RR129 + 0.41 MAP + 0.44 OH + 0.15 O3 + 0.44 MO2 + 0.15 ACTA ... etc.             ', &
+     '    MCO3 + HO2 --> RR129 + 0.41 MAP + 0.44 OH + 0.44 MO2 + 0.15 O3 + 0.15 ACTA ... etc.             ', &
      '    RCO3 + HO2 --> RR130 + 0.41 RP + 0.44 ETO2 + 0.44 OH + 0.15 O3 + 0.15 RCOOH ... etc.            ', &
-     '    MAO3 + HO2 --> RR131 + 0.41 MAOP + 0.59 CH2O + 0.44 OH + 0.39 CO + 0.15 O3 ... etc.             ', &
+     '    MAO3 + HO2 --> RR131 + 0.41 MAOP + 0.39 CO + 0.44 OH + 0.39 MO2 + 0.59 CH2O ... etc.            ', &
      '     PRPE + OH --> RR132 + PO2                                                                      ', &
-     '     PRPE + O3 --> RR133 + 0.1 CH4 + 0.12 CH3CHOO + 0.12 CH2OO + 0.5 CH2O ... etc.                  ', &
-     '      PMN + OH --> RR134 + HAC + NO2 + CO                                                           ', &
-     '      PMN + O3 --> RR135 + CH2O + MCO3 + NO3                                                        ', &
-     '     GLYC + OH --> 0.361 CO2 + RR136 + 0.134 GLYX + 0.732 CH2O + 0.227 OH ... etc.                  ', &
-     '     GLYC + OH --> RR137 + OH + CO + HCOOH                                                          ', &
+     '     PRPE + O3 --> RR133 + 0.1 CH4 + 0.12 CH3CHOO + 0.12 CH2OO + 0.5 ALD2 ... etc.                  ', &
+     '      PMN + OH --> RR134 + HAC + CO + NO2                                                           ', &
+     '      PMN + O3 --> RR135 + MCO3 + CH2O + NO3                                                        ', &
+     '     GLYC + OH --> 0.361 CO2 + RR136 + 0.134 GLYX + 0.505 CO + 0.227 OH ... etc.                    ', &
+     '     GLYC + OH --> RR137 + CO + OH + HCOOH                                                          ', &
      '    PRPE + NO3 --> RR138 + PRN1                                                                     ', &
-     '     GLYX + OH --> RR139 + HO2 + 2 CO                                                               ', &
+     '     GLYX + OH --> RR139 + 2 CO + HO2                                                               ', &
      '     MGLY + OH --> RR140 + MCO3 + CO                                                                ', &
-     '    GLYX + NO3 --> RR141 + HNO3 + HO2 + 2 CO                                                        ', &
+     '    GLYX + NO3 --> RR141 + HNO3 + 2 CO + HO2                                                        ', &
      '    MGLY + NO3 --> RR142 + HNO3 + MCO3 + CO                                                         ', &
      '     ISOP + OH --> LISOPOH + RR143 + RIO2                                                           ', &
      '      MVK + OH --> RR144 + VRO2                                                                     ', &
      '     MACR + OH --> RR145 + 0.47 MRO2 + 0.53 MAO3                                                    ', &
      '      HAC + OH --> RR146 + MGLY + HO2                                                               ', &
-     '      HAC + OH --> 0.5 CO2 + RR147 + OH + 0.5 CO + 0.5 MO2 + 0.5 ACTA + 0.5 HCOOH ... etc.          ', &
-     '   A3O2 + MCO3 --> RR148 + RCHO + HO2 + MO2                                                         ', &
-     '    PO2 + MCO3 --> RR149 + CH2O + ALD2 + HO2 + MO2                                                  ', &
+     '      HAC + OH --> 0.5 CO2 + RR147 + 0.5 CO + OH + 0.5 MO2 + 0.5 ACTA + 0.5 HCOOH ... etc.          ', &
+     '   A3O2 + MCO3 --> RR148 + RCHO + MO2 + HO2                                                         ', &
+     '    PO2 + MCO3 --> RR149 + ALD2 + MO2 + CH2O + HO2                                                  ', &
      '   A3O2 + MCO3 --> RR150 + RCHO + ACTA                                                              ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_5 = (/ &
      '    PO2 + MCO3 --> RR151 + 0.65 HAC + 0.35 RCHO + ACTA                                              ', &
      '     ISOP + O3 --> RR152 + 0.044 MVKOO + 0.12 CH2OO + 0.054 VRO2 + 0.128 PRPE ... etc.              ', &
-     '      MVK + O3 --> RR153 + 0.12 CH2OO + 0.12 MGLOO + 0.5 MGLY + 0.6 CH2O ... etc.                   ', &
-     '     MACR + O3 --> RR154 + 0.211 CH2OO + 0.022 MGLYOO + 0.88 MGLY + 0.12 CH2O ... etc.              ', &
+     '      MVK + O3 --> RR153 + 0.12 CH2OO + 0.12 MGLOO + 0.5 MGLY + 0.1 ALD2 ... etc.                   ', &
+     '     MACR + O3 --> RR154 + 0.211 CH2OO + 0.022 MGLYOO + 0.88 MGLY + 0.099 MCO3 ... etc.             ', &
      '    ISOP + NO3 --> LISOPNO3 + RR155 + INO2                                                          ', &
      '    MACR + NO3 --> RR156 + MAN2                                                                     ', &
      '    MACR + NO3 --> RR157 + HNO3 + MAO3                                                              ', &
      '    RCO3 + MO2 --> RR158 + ETO2 + CH2O + HO2                                                        ', &
-     '    MAO3 + MO2 --> RR159 + 2 CH2O + MCO3 + HO2                                                      ', &
+     '    MAO3 + MO2 --> RR159 + MCO3 + 2 CH2O + HO2                                                      ', &
      '    RCO3 + MO2 --> RR160 + CH2O + RCOOH                                                             ', &
      '    MAO3 + MO2 --> RR161 + CH2O + RCOOH                                                             ', &
-     '     INPN + OH --> RR162 + MEK + NO2 + OH                                                           ', &
+     '     INPN + OH --> RR162 + MEK + OH + NO2                                                           ', &
      '     INPN + OH --> RR163 + 0.36 INO2 + 0.64 R4N2 + 0.64 OH                                          ', &
      '     PRPN + OH --> RR164 + 0.791 PROPNN + 0.209 PRN1 + 0.791 OH                                     ', &
      '      ETP + OH --> RR165 + 0.36 ETO2 + 0.64 ALD2 + 0.64 OH                                          ', &
@@ -565,29 +568,29 @@ MODULE gckpp_Monitor
      '     MAOP + OH --> RR181 + MAOPO2                                                                   ', &
      ' MAOPO2 + MCO3 --> 2 CO2 + RR182 + HAC + OH + MO2                                                   ', &
      ' MAOPO2 + MCO3 --> RR183 + MEK + ACTA                                                               ', &
-     '  MAOPO2 + MO2 --> 0.7 CO2 + RR184 + 0.3 ROH + 0.7 HAC + CH2O + 0.7 OH ... etc.                     ', &
+     '  MAOPO2 + MO2 --> 0.7 CO2 + RR184 + 0.3 ROH + 0.7 HAC + 0.7 OH + CH2O ... etc.                     ', &
      '      2 MAOPO2 --> 2 CO2 + RR185 + 2 HAC + 2 OH                                                     ', &
      '  MAOPO2 + HO2 --> CO2 + RR186 + HAC + 2 OH                                                         ', &
-     '   MAOPO2 + NO --> CO2 + RR187 + HAC + NO2 + OH                                                     ', &
+     '   MAOPO2 + NO --> CO2 + RR187 + HAC + OH + NO2                                                     ', &
      '   MAOPO2 + NO --> RR188 + HNO3                                                                     ', &
      '      MAP + OH --> RR189 + MCO3                                                                     ', &
      '    C2H6 + NO3 --> RR190 + HNO3 + ETO2                                                              ', &
      '      HC5 + O3 --> RR191 + 0.055 GAOO + 0.055 MGLYOO + 0.5 GLYC + 0.5 MGLY ... etc.                 ', &
      '        2 MCO3 --> RR192 + 2 MO2                                                                    ', &
-     '    MCO3 + MO2 --> RR193 + CH2O + HO2 + MO2                                                         ', &
+     '    MCO3 + MO2 --> RR193 + MO2 + CH2O + HO2                                                         ', &
      '    MCO3 + MO2 --> RR194 + CH2O + ACTA                                                              ', &
-     '   R4O2 + MCO3 --> RR195 + 0.05 A3O2 + 0.18 B3O2 + 0.32 ACET + 0.32 ETO2 ... etc.                   ', &
-     '   ATO2 + MCO3 --> RR196 + CH2O + MCO3 + MO2                                                        ', &
+     '   R4O2 + MCO3 --> RR195 + 0.05 A3O2 + 0.18 B3O2 + 0.32 ETO2 + 0.32 ACET ... etc.                   ', &
+     '   ATO2 + MCO3 --> RR196 + MCO3 + MO2 + CH2O                                                        ', &
      '    KO2 + MCO3 --> RR197 + ALD2 + MCO3 + MO2                                                        ', &
-     '   RIO2 + MCO3 --> CO2 + RR198 + 0.113 DIBOO + 0.14 HC5 + 0.294 MACR + 0.747 CH2O ... etc.          ', &
+     '   RIO2 + MCO3 --> CO2 + RR198 + 0.113 DIBOO + 0.14 HC5 + 0.294 MACR + 0.453 MVK ... etc.           ', &
      '  HC5OO + MCO3 --> RR199 + 0.29 DHMOB + 0.17 MOBA + 0.216 GLYX + 0.234 GLYC ... etc.                ', &
-     '   VRO2 + MCO3 --> RR200 + 0.6 GLYC + 0.4 MGLY + 0.4 CH2O + 0.6 MCO3 + 0.4 HO2 ... etc.             ', &
-     '   MRO2 + MCO3 --> RR201 + 0.857 HAC + 0.143 MGLY + 0.143 CH2O + 0.85 HO2 ... etc.                  ', &
-     '   B3O2 + MCO3 --> RR202 + ACET + HO2 + MO2                                                         ', &
-     '   R4N1 + MCO3 --> RR203 + 0.3 R4O2 + 0.57 RCHO + 0.39 CH2O + 0.75 ALD2 ... etc.                    ', &
-     '   MAN2 + MCO3 --> CO2 + RR204 + 0.5 PROPNN + 0.5 MGLY + 0.5 CH2O + 0.5 NO2 ... etc.                ', &
-     '   INO2 + MCO3 --> RR205 + 0.7 ISN1 + 0.23 HC5 + 0.035 MACR + 0.07 CH2O ... etc.                    ', &
-     '   PRN1 + MCO3 --> RR206 + CH2O + ALD2 + NO2 + MO2                                                  ', &
+     '   VRO2 + MCO3 --> RR200 + 0.6 GLYC + 0.4 MGLY + 0.6 MCO3 + MO2 + 0.4 CH2O ... etc.                 ', &
+     '   MRO2 + MCO3 --> RR201 + 0.857 HAC + 0.143 MGLY + 0.857 CO + MO2 + 0.143 CH2O ... etc.            ', &
+     '   B3O2 + MCO3 --> RR202 + ACET + MO2 + HO2                                                         ', &
+     '   R4N1 + MCO3 --> RR203 + 0.3 R4O2 + 0.57 RCHO + 0.75 ALD2 + MO2 + 0.39 CH2O ... etc.              ', &
+     '   MAN2 + MCO3 --> CO2 + RR204 + 0.5 PROPNN + 0.5 MGLY + 0.5 CO + MO2 + 0.5 CH2O ... etc.           ', &
+     '   INO2 + MCO3 --> RR205 + 0.7 ISN1 + 0.23 HC5 + 0.035 MACR + 0.035 MVK ... etc.                    ', &
+     '   PRN1 + MCO3 --> RR206 + ALD2 + MO2 + CH2O + NO2                                                  ', &
      '   R4O2 + MCO3 --> RR207 + MEK + ACTA                                                               ', &
      '   ATO2 + MCO3 --> RR208 + MEK + ACTA                                                               ', &
      '    KO2 + MCO3 --> RR209 + MEK + ACTA                                                               ', &
@@ -601,432 +604,441 @@ MODULE gckpp_Monitor
      '   INO2 + MCO3 --> RR216 + RCHO + NO2 + ACTA                                                        ', &
      '   PRN1 + MCO3 --> RR217 + RCHO + NO2 + ACTA                                                        ', &
      '   B3O2 + MCO3 --> RR218 + ACET + ACTA                                                              ', &
-     '   ETO2 + MCO3 --> RR219 + ALD2 + HO2 + MO2                                                         ', &
+     '   ETO2 + MCO3 --> RR219 + ALD2 + MO2 + HO2                                                         ', &
      '   ETO2 + MCO3 --> RR220 + ALD2 + ACTA                                                              ', &
      '   RCO3 + MCO3 --> RR221 + ETO2 + MO2                                                               ', &
-     '   MAO3 + MCO3 --> RR222 + CH2O + MCO3 + MO2                                                        ', &
+     '   MAO3 + MCO3 --> RR222 + MCO3 + MO2 + CH2O                                                        ', &
      '         2 NO3 --> RR223 + 2 NO2 + O2                                                               ', &
-     '     NO2 + MO2 --> RR224 + MPN                                                                      ', &
-     '           MPN --> RR225 + NO2 + MO2                                                                ', &
-     '   ISOPNB + O3 --> RR226 + 0.61 MVKN + 0.39 MACRN + CH2O + 0.27 OH                                  ', &
+     '     MO2 + NO2 --> RR224 + MPN                                                                      ', &
+     '           MPN --> RR225 + MO2 + NO2                                                                ', &
+     '   ISOPNB + O3 --> RR226 + 0.61 MVKN + 0.39 MACRN + 0.27 OH + CH2O                                  ', &
      '   ISOPND + O3 --> RR227 + 0.5 ETHLN + 0.5 PROPNN + 0.5 GLYC + 0.5 HAC ... etc.                     ', &
-     '           HO2 --> RR228 + O2                                                                       ', &
-     '           NO2 --> RR229 + 0.5 HNO2 + 0.5 HNO3                                                      ', &
-     '           NO3 --> RR230 + HNO3                                                                     ', &
-     '    N2O5 + H2O --> RR231 + 2 HNO3                                                                   ', &
-     '      DMS + OH --> RR232 + CH2O + SO2 + MO2                                                         ', &
-     '      DMS + OH --> 0.25 MSA + RR233 + 0.75 SO2 + MO2                                                ', &
-     '     DMS + NO3 --> RR234 + HNO3 + CH2O + SO2 + MO2                                                  ', &
-     '      SO2 + OH --> RR235 + SO4 + HO2                                                                ', &
-     '       O3 + Br --> RR236 + BrO + O2                                                                 ', &
-     '     BrO + HO2 --> RR237 + HOBr + O2                                                                ', &
-     '      HO2 + Br --> RR238 + HBr + O2                                                                 ', &
-     '      HBr + OH --> RR239 + H2O + Br                                                                 ', &
-     '         2 BrO --> RR240 + 2 Br + O2                                                                ' /)
+     '      DMS + OH --> RR228 + SO2 + MO2 + CH2O                                                         ', &
+     '      DMS + OH --> 0.25 MSA + RR229 + 0.75 SO2 + MO2                                                ', &
+     '     DMS + NO3 --> RR230 + HNO3 + SO2 + MO2 + CH2O                                                  ', &
+     '      SO2 + OH --> RR231 + SO4 + HO2                                                                ', &
+     '       Br + O3 --> RR232 + BrO + O2                                                                 ', &
+     '     BrO + HO2 --> RR233 + HOBr + O2                                                                ', &
+     '      Br + HO2 --> RR234 + HBr + O2                                                                 ', &
+     '      HBr + OH --> RR235 + Br + H2O                                                                 ', &
+     '         2 BrO --> RR236 + 2 Br + O2                                                                ', &
+     '         2 BrO --> RR237 + Br2 + O2                                                                 ', &
+     '      BrO + NO --> RR238 + Br + NO2                                                                 ', &
+     '    BrNO3 + Br --> RR239 + Br2 + NO3                                                                ', &
+     '      Br2 + OH --> RR240 + HOBr + Br                                                                ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_8 = (/ &
-     '         2 BrO --> RR241 + Br2 + O2                                                                 ', &
-     '      BrO + NO --> RR242 + NO2 + Br                                                                 ', &
-     '    BrNO3 + Br --> RR243 + Br2 + NO3                                                                ', &
-     '      Br2 + OH --> RR244 + HOBr + Br                                                                ', &
-     '      HOBr + O --> RR245 + BrO + OH                                                                 ', &
-     '       HBr + O --> RR246 + OH + Br                                                                  ', &
-     '      BrO + OH --> RR247 + HO2 + Br                                                                 ', &
-     '      NO3 + Br --> RR248 + BrO + NO2                                                                ', &
-     '     CH2O + Br --> RR249 + HBr + HO2 + CO                                                           ', &
-     '     ALD2 + Br --> RR250 + MCO3 + HBr + CO                                                          ', &
-     '     ACET + Br --> RR251 + ATO2 + HBr + CO                                                          ', &
-     '     C2H6 + Br --> RR252 + ETO2 + HBr + CO                                                          ', &
-     '     C3H8 + Br --> RR253 + A3O2 + HBr + CO                                                          ', &
-     '      NO2 + Br --> RR254 + BrNO2                                                                    ', &
-     '     BrO + NO2 --> RR255 + BrNO3                                                                    ', &
-     '    CHBr3 + OH --> RR256 + 3 Br                                                                     ', &
-     '   CH2Br2 + OH --> RR257 + 2 Br                                                                     ', &
-     '    CH3Br + OH --> RR258 + H2O + HO2 + Br                                                           ', &
-     '   BrNO3 + H2O --> RR259 + HOBr + HNO3                                                              ', &
-     '          HOBr --> RR260 + 0.5 Br2 + H2O                                                            ', &
-     '           HBr --> RR261 + 0.5 Br2                                                                  ', &
-     '          HOBr --> RR262 + 0.5 Br2 + H2O                                                            ', &
-     '           HBr --> RR263 + 0.5 Br2                                                                  ', &
-     '      HC5 + OH --> RR264 + HC5OO                                                                    ', &
-     '    HC5OO + NO --> RR265 + 0.29 DHMOB + 0.17 MOBA + 0.216 GLYX + 0.234 GLYC ... etc.                ', &
-     '    HC5OO + NO --> RR266 + HNO3                                                                     ', &
-     '   HC5OO + HO2 --> RR267 + 0.1 IAP + 0.9 GLYC + 0.9 MGLY + 0.9 OH + 0.9 HO2 ... etc.                ', &
-     '   ISOPND + OH --> RR268 + ISOPNDO2                                                                 ', &
-     '   ISOPNB + OH --> RR269 + ISOPNBO2                                                                 ', &
-     ' ISOPNDO2 + NO --> RR270 + 0.13 ETHLN + 0.15 PROPNN + 0.07 MACRN + 0.15 GLYC ... etc.               ' /)
+     '      HOBr + O --> RR241 + BrO + OH                                                                 ', &
+     '       HBr + O --> RR242 + OH + Br                                                                  ', &
+     '      BrO + OH --> RR243 + Br + HO2                                                                 ', &
+     '      Br + NO3 --> RR244 + BrO + NO2                                                                ', &
+     '     Br + CH2O --> RR245 + HBr + CO + HO2                                                           ', &
+     '     ALD2 + Br --> RR246 + HBr + MCO3 + CO                                                          ', &
+     '     ACET + Br --> RR247 + HBr + ATO2 + CO                                                          ', &
+     '     C2H6 + Br --> RR248 + HBr + ETO2 + CO                                                          ', &
+     '     C3H8 + Br --> RR249 + A3O2 + HBr + CO                                                          ', &
+     '      Br + NO2 --> RR250 + BrNO2                                                                    ', &
+     '     BrO + NO2 --> RR251 + BrNO3                                                                    ', &
+     '    CHBr3 + OH --> RR252 + 3 Br                                                                     ', &
+     '   CH2Br2 + OH --> RR253 + 2 Br                                                                     ', &
+     '    CH3Br + OH --> RR254 + Br + HO2 + H2O                                                           ', &
+     '      HC5 + OH --> RR255 + HC5OO                                                                    ', &
+     '    HC5OO + NO --> RR256 + 0.29 DHMOB + 0.17 MOBA + 0.216 GLYX + 0.234 GLYC ... etc.                ', &
+     '    HC5OO + NO --> RR257 + HNO3                                                                     ', &
+     '   HC5OO + HO2 --> RR258 + 0.1 IAP + 0.9 GLYC + 0.9 MGLY + 0.9 OH + 0.9 HO2 ... etc.                ', &
+     '   ISOPND + OH --> RR259 + ISOPNDO2                                                                 ', &
+     '   ISOPNB + OH --> RR260 + ISOPNBO2                                                                 ', &
+     ' ISOPNDO2 + NO --> RR261 + 0.13 ETHLN + 0.15 PROPNN + 0.07 MACRN + 0.15 GLYC ... etc.               ', &
+     ' ISOPNDO2 + NO --> RR262 + HNO3                                                                     ', &
+     'ISOPNDO2 + HO2 --> RR263 + 0.065 ETHLN + 0.5 ISNP + 0.075 PROPNN + 0.035 MACRN ... etc.             ', &
+     ' ISOPNBO2 + NO --> RR264 + 0.14 MVKN + 0.26 MACRN + 0.6 GLYC + 0.6 HAC ... etc.                     ', &
+     ' ISOPNBO2 + NO --> RR265 + HNO3                                                                     ', &
+     'ISOPNBO2 + HO2 --> RR266 + 0.5 ISNP + 0.07 MVKN + 0.13 MACRN + 0.3 GLYC ... etc.                    ', &
+     '     ISNP + OH --> RR267 + 0.612 R4N1 + 0.193 ISOPNBO2 + 0.193 ISOPNDO2 ... etc.                    ', &
+     '     MVKN + OH --> 0.35 PYAC + RR268 + 0.65 MGLY + 0.35 CH2O + NO3 + 0.65 HCOOH ... etc.            ', &
+     '    MACRN + OH --> RR269 + MACRNO2                                                                  ', &
+     '  MACRNO2 + NO --> 0.93 CO2 + RR270 + 0.85 HAC + 0.07 MGLY + 0.08 CH2O ... etc.                     ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_9 = (/ &
-     ' ISOPNDO2 + NO --> RR271 + HNO3                                                                     ', &
-     'ISOPNDO2 + HO2 --> RR272 + 0.065 ETHLN + 0.5 ISNP + 0.075 PROPNN + 0.035 MACRN ... etc.             ', &
-     ' ISOPNBO2 + NO --> RR273 + 0.14 MVKN + 0.26 MACRN + 0.6 GLYC + 0.6 HAC ... etc.                     ', &
-     ' ISOPNBO2 + NO --> RR274 + HNO3                                                                     ', &
-     'ISOPNBO2 + HO2 --> RR275 + 0.5 ISNP + 0.07 MVKN + 0.13 MACRN + 0.3 GLYC ... etc.                    ', &
-     '     ISNP + OH --> RR276 + 0.612 R4N1 + 0.193 ISOPNBO2 + 0.193 ISOPNDO2 ... etc.                    ', &
-     '     MVKN + OH --> 0.35 PYAC + RR277 + 0.65 MGLY + 0.35 CH2O + NO3 + 0.65 HCOOH ... etc.            ', &
-     '    MACRN + OH --> RR278 + MACRNO2                                                                  ', &
-     '  MACRNO2 + NO --> 0.93 CO2 + RR279 + 0.85 HAC + 0.07 MGLY + 0.08 CH2O ... etc.                     ', &
-     ' MACRNO2 + HO2 --> 0.93 CO2 + RR280 + 0.85 HAC + 0.07 MGLY + 0.08 CH2O ... etc.                     ', &
-     ' MACRNO2 + NO2 --> RR281 + PMNN                                                                     ', &
-     '          PMNN --> RR282 + MACRNO2 + NO2                                                            ', &
-     '    DHMOB + OH --> RR283 + 0.5 HAC + 0.5 MEK + HO2 + 1.5 CO                                         ', &
-     '    DIBOO + NO --> RR284 + 0.48 GLYX + 0.52 GLYC + 0.48 HAC + 0.52 MGLY ... etc.                    ', &
-     '    DIBOO + NO --> RR285 + HNO3                                                                     ', &
-     '   DIBOO + HO2 --> RR286 + 0.85 R4P + 0.072 GLYX + 0.078 GLYC + 0.072 HAC ... etc.                  ', &
-     '     MOBA + OH --> RR287 + MOBAOO                                                                   ', &
-     '   MOBAOO + NO --> CO2 + RR288 + RCHO + NO2 + HO2                                                   ', &
-     '   MOBAOO + NO --> RR289 + HNO3                                                                     ', &
-     '  MOBAOO + HO2 --> 0.5 CO2 + RR290 + 0.5 R4P + 0.5 RCHO + 0.5 OH + 0.5 HO2 ... etc.                 ', &
-     '     MOBA + O3 --> CO2 + RR291 + MEK + OH + HO2                                                     ', &
-     '    ETHLN + OH --> CO2 + RR292 + CH2O + NO2                                                         ', &
-     '   PROPNN + OH --> RR293 + MGLY + NO2                                                               ', &
-     '    CH2OO + NO --> RR294 + CH2O + NO2                                                               ', &
-     '   CH2OO + NO2 --> RR295 + CH2O + NO3                                                               ', &
-     '   CH2OO + SO2 --> RR296 + SO4 + CH2O                                                               ', &
-     '   CH2OO + H2O --> RR297 + H2O2 + CH2O                                                              ', &
-     '   CH2OO + H2O --> RR298 + HCOOH                                                                    ', &
-     '   MACROO + CO --> RR299 + MACR                                                                     ', &
-     '   MACROO + NO --> RR300 + MACR + NO2                                                               ' /)
+     ' MACRNO2 + HO2 --> 0.93 CO2 + RR271 + 0.85 HAC + 0.07 MGLY + OH + 0.08 CH2O ... etc.                ', &
+     ' MACRNO2 + NO2 --> RR272 + PMNN                                                                     ', &
+     '          PMNN --> RR273 + MACRNO2 + NO2                                                            ', &
+     '    DHMOB + OH --> RR274 + 0.5 HAC + 0.5 MEK + 1.5 CO + HO2                                         ', &
+     '    DIBOO + NO --> RR275 + 0.48 GLYX + 0.52 GLYC + 0.48 HAC + 0.52 MGLY ... etc.                    ', &
+     '    DIBOO + NO --> RR276 + HNO3                                                                     ', &
+     '   DIBOO + HO2 --> RR277 + 0.85 R4P + 0.072 GLYX + 0.078 GLYC + 0.072 HAC ... etc.                  ', &
+     '     MOBA + OH --> RR278 + MOBAOO                                                                   ', &
+     '   MOBAOO + NO --> CO2 + RR279 + RCHO + HO2 + NO2                                                   ', &
+     '   MOBAOO + NO --> RR280 + HNO3                                                                     ', &
+     '  MOBAOO + HO2 --> 0.5 CO2 + RR281 + 0.5 R4P + 0.5 RCHO + 0.5 OH + 0.5 HO2 ... etc.                 ', &
+     '     MOBA + O3 --> CO2 + RR282 + MEK + OH + HO2                                                     ', &
+     '    ETHLN + OH --> CO2 + RR283 + CH2O + NO2                                                         ', &
+     '   PROPNN + OH --> RR284 + MGLY + NO2                                                               ', &
+     '    CH2OO + NO --> RR285 + CH2O + NO2                                                               ', &
+     '   CH2OO + NO2 --> RR286 + CH2O + NO3                                                               ', &
+     '   CH2OO + SO2 --> RR287 + SO4 + CH2O                                                               ', &
+     '   CH2OO + H2O --> RR288 + H2O2 + CH2O                                                              ', &
+     '   CH2OO + H2O --> RR289 + HCOOH                                                                    ', &
+     '   MACROO + CO --> RR290 + MACR                                                                     ', &
+     '   MACROO + NO --> RR291 + MACR + NO2                                                               ', &
+     '  MACROO + NO2 --> RR292 + MACR + NO3                                                               ', &
+     '  MACROO + SO2 --> RR293 + SO4 + MACR                                                               ', &
+     '  MACROO + H2O --> RR294 + MRP                                                                      ', &
+     '  MACROO + H2O --> RR295 + H2O2 + MACR                                                              ', &
+     '    MVKOO + CO --> RR296 + MVK                                                                      ', &
+     '    MVKOO + NO --> RR297 + MVK + NO2                                                                ', &
+     '   MVKOO + NO2 --> RR298 + MVK + NO3                                                                ', &
+     '   MVKOO + SO2 --> RR299 + SO4 + MVK                                                                ', &
+     '   MVKOO + H2O --> RR300 + H2O2 + MVK                                                               ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_10 = (/ &
-     '  MACROO + NO2 --> RR301 + MACR + NO3                                                               ', &
-     '  MACROO + SO2 --> RR302 + SO4 + MACR                                                               ', &
-     '  MACROO + H2O --> RR303 + MRP                                                                      ', &
-     '  MACROO + H2O --> RR304 + H2O2 + MACR                                                              ', &
-     '    MVKOO + CO --> RR305 + MVK                                                                      ', &
-     '    MVKOO + NO --> RR306 + MVK + NO2                                                                ', &
-     '   MVKOO + NO2 --> RR307 + MVK + NO3                                                                ', &
-     '   MVKOO + SO2 --> RR308 + SO4 + MVK                                                                ', &
-     '   MVKOO + H2O --> RR309 + H2O2 + MVK                                                               ', &
-     '   MGLYOO + CO --> RR310 + MGLY                                                                     ', &
-     '   MGLYOO + NO --> RR311 + MGLY + NO2                                                               ', &
-     '  MGLYOO + NO2 --> RR312 + MGLY + NO3                                                               ', &
-     '  MGLYOO + SO2 --> RR313 + SO4 + MGLY                                                               ', &
-     '  MGLYOO + H2O --> RR314 + H2O2 + MGLY                                                              ', &
-     '    MGLOO + CO --> RR315 + MGLY                                                                     ', &
-     '    MGLOO + NO --> RR316 + MGLY + NO2                                                               ', &
-     '   MGLOO + NO2 --> RR317 + MGLY + NO3                                                               ', &
-     '   MGLOO + SO2 --> RR318 + SO4 + MGLY                                                               ', &
-     '   MGLOO + H2O --> RR319 + MCO3 + MO2                                                               ', &
-     '   MGLOO + H2O --> RR320 + H2O2 + MGLY                                                              ', &
-     '  CH3CHOO + CO --> RR321 + ALD2                                                                     ', &
-     '  CH3CHOO + NO --> RR322 + ALD2 + NO2                                                               ', &
-     ' CH3CHOO + NO2 --> RR323 + ALD2 + NO3                                                               ', &
-     ' CH3CHOO + SO2 --> RR324 + SO4 + ALD2                                                               ', &
-     ' CH3CHOO + H2O --> RR325 + H2O2 + ALD2                                                              ', &
-     ' CH3CHOO + H2O --> RR326 + ACTA                                                                     ', &
-     '     GAOO + CO --> RR327 + GLYC                                                                     ', &
-     '     GAOO + NO --> RR328 + GLYC + NO2                                                               ', &
-     '    GAOO + NO2 --> RR329 + GLYC + NO3                                                               ', &
-     '    GAOO + SO2 --> RR330 + SO4 + GLYC                                                               ' /)
+     '   MGLYOO + CO --> RR301 + MGLY                                                                     ', &
+     '   MGLYOO + NO --> RR302 + MGLY + NO2                                                               ', &
+     '  MGLYOO + NO2 --> RR303 + MGLY + NO3                                                               ', &
+     '  MGLYOO + SO2 --> RR304 + SO4 + MGLY                                                               ', &
+     '  MGLYOO + H2O --> RR305 + H2O2 + MGLY                                                              ', &
+     '    MGLOO + CO --> RR306 + MGLY                                                                     ', &
+     '    MGLOO + NO --> RR307 + MGLY + NO2                                                               ', &
+     '   MGLOO + NO2 --> RR308 + MGLY + NO3                                                               ', &
+     '   MGLOO + SO2 --> RR309 + SO4 + MGLY                                                               ', &
+     '   MGLOO + H2O --> RR310 + MCO3 + MO2                                                               ', &
+     '   MGLOO + H2O --> RR311 + H2O2 + MGLY                                                              ', &
+     '  CH3CHOO + CO --> RR312 + ALD2                                                                     ', &
+     '  CH3CHOO + NO --> RR313 + ALD2 + NO2                                                               ', &
+     ' CH3CHOO + NO2 --> RR314 + ALD2 + NO3                                                               ', &
+     ' CH3CHOO + SO2 --> RR315 + SO4 + ALD2                                                               ', &
+     ' CH3CHOO + H2O --> RR316 + H2O2 + ALD2                                                              ', &
+     ' CH3CHOO + H2O --> RR317 + ACTA                                                                     ', &
+     '     GAOO + CO --> RR318 + GLYC                                                                     ', &
+     '     GAOO + NO --> RR319 + GLYC + NO2                                                               ', &
+     '    GAOO + NO2 --> RR320 + GLYC + NO3                                                               ', &
+     '    GAOO + SO2 --> RR321 + SO4 + GLYC                                                               ', &
+     '    GAOO + H2O --> RR322 + H2O2 + GLYC                                                              ', &
+     '    GAOO + H2O --> RR323 + HAC                                                                      ', &
+     '     BENZ + OH --> RR324 + BRO2                                                                     ', &
+     '     TOLU + OH --> RR325 + TRO2                                                                     ', &
+     '     XYLE + OH --> RR326 + XRO2                                                                     ', &
+     '          MONX --> RR327 + 3 CH2O                                                                   ', &
+     '    BRO2 + HO2 --> LBRO2H + RR328                                                                   ', &
+     '     BRO2 + NO --> LBRO2N + RR329                                                                   ', &
+     '    TRO2 + HO2 --> LTRO2H + RR330                                                                   ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_11 = (/ &
-     '    GAOO + H2O --> RR331 + H2O2 + GLYC                                                              ', &
-     '    GAOO + H2O --> RR332 + HAC                                                                      ', &
-     '     BENZ + OH --> RR333 + BRO2                                                                     ', &
-     '     TOLU + OH --> RR334 + TRO2                                                                     ', &
-     '     XYLE + OH --> RR335 + XRO2                                                                     ', &
-     '          MONX --> RR336 + 3 CH2O                                                                   ', &
-     '    BRO2 + HO2 --> LBRO2H + RR337                                                                   ', &
-     '     BRO2 + NO --> LBRO2N + RR338                                                                   ', &
-     '    TRO2 + HO2 --> LTRO2H + RR339                                                                   ', &
-     '     TRO2 + NO --> LTRO2N + RR340                                                                   ', &
-     '    XRO2 + HO2 --> LXRO2H + RR341                                                                   ', &
-     '     XRO2 + NO --> LXRO2N + RR342                                                                   ', &
-     '     H2O + O1D --> RR343 + 2 OH                                                                     ', &
-     '      O1D + N2 --> RR344 + O + N2                                                                   ', &
-     '      O1D + O2 --> RR345 + O + O2                                                                   ', &
-     '      O1D + H2 --> RR346 + H + OH                                                                   ', &
-     '     N2O + O1D --> RR347 + N2 + O2                                                                  ', &
-     '     N2O + O1D --> RR348 + 2 NO                                                                     ', &
-     '     CH4 + O1D --> RR349 + OH + MO2                                                                 ', &
-     '     CH4 + O1D --> RR350 + CH2O + H2                                                                ', &
-     '     CH4 + O1D --> RR351 + H + CH2O + HO2                                                           ', &
-     '        O + O2 --> RR352 + O3                                                                       ', &
-     '        O3 + O --> RR353 + 2 O2                                                                     ', &
-     '       OH + H2 --> RR354 + H + H2O                                                                  ', &
-     '        OH + O --> RR355 + H + O2                                                                   ', &
-     '       HO2 + O --> RR356 + OH + O2                                                                  ', &
-     '      O1D + O3 --> RR357 + 2 O2                                                                     ', &
-     '      O1D + O3 --> RR358 + 2 O + O2                                                                 ', &
-     '       OCS + O --> RR359 + SO2 + CO                                                                 ', &
-     '      OCS + OH --> CO2 + RR360 + SO2                                                                ' /)
+     '     TRO2 + NO --> LTRO2N + RR331                                                                   ', &
+     '    XRO2 + HO2 --> LXRO2H + RR332                                                                   ', &
+     '     XRO2 + NO --> LXRO2N + RR333                                                                   ', &
+     '     O1D + H2O --> RR334 + 2 OH                                                                     ', &
+     '      O1D + N2 --> RR335 + O + N2                                                                   ', &
+     '      O1D + O2 --> RR336 + O + O2                                                                   ', &
+     '      O1D + H2 --> RR337 + H + OH                                                                   ', &
+     '     N2O + O1D --> RR338 + N2 + O2                                                                  ', &
+     '     N2O + O1D --> RR339 + 2 NO                                                                     ', &
+     '     CH4 + O1D --> RR340 + OH + MO2                                                                 ', &
+     '     CH4 + O1D --> RR341 + CH2O + H2                                                                ', &
+     '     CH4 + O1D --> RR342 + H + CH2O + HO2                                                           ', &
+     '        O + O2 --> RR343 + O3                                                                       ', &
+     '        O + O3 --> RR344 + 2 O2                                                                     ', &
+     '       OH + H2 --> RR345 + H + H2O                                                                  ', &
+     '        OH + O --> RR346 + H + O2                                                                   ', &
+     '       O + HO2 --> RR347 + OH + O2                                                                  ', &
+     '      O3 + O1D --> RR348 + 2 O2                                                                     ', &
+     '      O3 + O1D --> RR349 + 2 O + O2                                                                 ', &
+     '       OCS + O --> RR350 + SO2 + CO                                                                 ', &
+     '      OCS + OH --> CO2 + RR351 + SO2                                                                ', &
+     '       O + NO2 --> RR352 + NO + O2                                                                  ', &
+     '       O + NO3 --> RR353 + NO2 + O2                                                                 ', &
+     '        O + NO --> RR354 + NO2                                                                      ', &
+     '       O + NO2 --> RR355 + NO3                                                                      ', &
+     '      H2O2 + O --> RR356 + OH + HO2                                                                 ', &
+     '        H + O2 --> RR357 + HO2                                                                      ', &
+     '        H + O3 --> RR358 + OH + O2                                                                  ', &
+     '       H + HO2 --> RR359 + 2 OH                                                                     ', &
+     '       H + HO2 --> RR360 + O + H2O                                                                  ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_12 = (/ &
-     '       NO2 + O --> RR361 + NO + O2                                                                  ', &
-     '       NO3 + O --> RR362 + NO2 + O2                                                                 ', &
-     '        NO + O --> RR363 + NO2                                                                      ', &
-     '       NO2 + O --> RR364 + NO3                                                                      ', &
-     '      H2O2 + O --> RR365 + OH + HO2                                                                 ', &
-     '        H + O2 --> RR366 + HO2                                                                      ', &
-     '        H + O3 --> RR367 + OH + O2                                                                  ', &
-     '       H + HO2 --> RR368 + 2 OH                                                                     ', &
-     '       H + HO2 --> RR369 + H2O + O                                                                  ', &
-     '       H + HO2 --> RR370 + H2 + O2                                                                  ', &
-     '        N + O2 --> RR371 + NO + O                                                                   ', &
-     '        N + NO --> RR372 + O + N2                                                                   ', &
-     '       N + NO2 --> RR373 + N2O + O                                                                  ', &
-     '       BrO + O --> RR374 + Br + O2                                                                  ', &
-     '      CH2O + O --> RR375 + OH + HO2 + CO                                                            ', &
-     '     HCl + O1D --> RR376 + 0.24 H + 0.09 HCl + 0.67 OH + 0.24 ClO + 0.09 O ... etc.                 ', &
-     '     HBr + O1D --> RR377 + 0.15 H + 0.15 BrO + 0.2 HBr + 0.65 OH + 0.65 Br ... etc.                 ', &
-     '     Cl2 + O1D --> RR378 + 0.25 Cl2 + 0.75 ClO + 0.25 O + 0.75 Cl                                   ', &
-     '    CCl4 + O1D --> RR379 + 0.14 CCl4 + 0.86 ClO + 0.14 O + 2.58 Cl                                  ', &
-     '   CH3Br + O1D --> RR380 + 0.44 BrO + 0.56 Br + MO2                                                 ', &
-     '  CH2Br2 + O1D --> RR381 + 0.05 CH2Br2 + 0.95 BrO + 0.95 Br + 0.05 O                                ', &
-     '   CHBr3 + O1D --> RR382 + 0.32 CHBr3 + 0.68 BrO + 1.36 Br + 0.32 O                                 ', &
-     '  HCFC22 + O1D --> RR383 + 0.28 HCFC22 + 0.55 ClO + 0.28 O + 0.17 Cl                                ', &
-     '   CFC11 + O1D --> RR384 + 0.12 CFC11 + 0.88 ClO + 0.12 O + 1.76 Cl                                 ', &
-     '   CFC12 + O1D --> RR385 + 0.14 CFC12 + 0.86 ClO + 0.14 O + 1.72 Cl                                 ', &
-     '   H1211 + O1D --> RR386 + 0.36 H1211 + 0.31 BrO + 0.33 ClO + 0.33 Br + 0.36 O ... etc.             ', &
-     '   H1301 + O1D --> RR387 + 0.59 H1301 + 0.41 BrO + 0.59 O                                           ', &
-     'HCFC141b + O1D --> RR388 + 0.31 HCFC141b + 0.69 ClO + 0.31 O + 0.69 Cl ... etc.                     ', &
-     'HCFC142b + O1D --> RR389 + 0.26 HCFC142b + 0.74 ClO + 0.26 O                                        ', &
-     ' HCFC123 + O1D --> RR390 + 0.21 HCFC123 + 0.79 ClO + 0.21 O + 0.79 Cl                               ' /)
+     '       H + HO2 --> RR361 + H2 + O2                                                                  ', &
+     '        N + O2 --> RR362 + O + NO                                                                   ', &
+     '        N + NO --> RR363 + O + N2                                                                   ', &
+     '       N + NO2 --> RR364 + N2O + O                                                                  ', &
+     '       BrO + O --> RR365 + Br + O2                                                                  ', &
+     '      O + CH2O --> RR366 + CO + OH + HO2                                                            ', &
+     '     HCl + O1D --> RR367 + 0.24 H + 0.09 HCl + 0.67 Cl + 0.67 OH + 0.09 O ... etc.                  ', &
+     '     HBr + O1D --> RR368 + 0.15 H + 0.2 HBr + 0.15 BrO + 0.65 OH + 0.2 O ... etc.                   ', &
+     '     Cl2 + O1D --> RR369 + 0.25 Cl2 + 0.75 Cl + 0.25 O + 0.75 ClO                                   ', &
+     '    CCl4 + O1D --> RR370 + 0.14 CCl4 + 2.58 Cl + 0.14 O + 0.86 ClO                                  ', &
+     '   CH3Br + O1D --> RR371 + 0.44 BrO + MO2 + 0.56 Br                                                 ', &
+     '  CH2Br2 + O1D --> RR372 + 0.05 CH2Br2 + 0.95 BrO + 0.05 O + 0.95 Br                                ', &
+     '   CHBr3 + O1D --> RR373 + 0.32 CHBr3 + 0.68 BrO + 0.32 O + 1.36 Br                                 ', &
+     '  HCFC22 + O1D --> RR374 + 0.28 HCFC22 + 0.17 Cl + 0.28 O + 0.55 ClO                                ', &
+     '   CFC11 + O1D --> RR375 + 0.12 CFC11 + 1.76 Cl + 0.12 O + 0.88 ClO                                 ', &
+     '   CFC12 + O1D --> RR376 + 0.14 CFC12 + 1.72 Cl + 0.14 O + 0.86 ClO                                 ', &
+     '   H1211 + O1D --> RR377 + 0.36 H1211 + 0.31 BrO + 0.31 Cl + 0.36 O + 0.33 Br ... etc.              ', &
+     '   H1301 + O1D --> RR378 + 0.59 H1301 + 0.41 BrO + 0.59 O                                           ', &
+     'HCFC141b + O1D --> RR379 + 0.31 HCFC141b + 0.69 Cl + 0.31 O + 0.69 ClO ... etc.                     ', &
+     'HCFC142b + O1D --> RR380 + 0.26 HCFC142b + 0.26 O + 0.74 ClO                                        ', &
+     ' HCFC123 + O1D --> RR381 + 0.21 HCFC123 + 0.79 Cl + 0.21 O + 0.79 ClO                               ', &
+     '  CFC113 + O1D --> RR382 + 0.25 CFC113 + 1.5 Cl + 0.25 O + 0.75 ClO                                 ', &
+     '  CFC114 + O1D --> RR383 + 0.25 CFC114 + 0.75 Cl + 0.25 O + 0.75 ClO                                ', &
+     '  CFC115 + O1D --> RR384 + 0.7 CFC115 + 0.7 O + 0.3 ClO                                             ', &
+     '   H2402 + O1D --> RR385 + 0.25 H2402 + 0.75 BrO + 0.25 O + 0.75 Br                                 ', &
+     '      Cl2 + OH --> RR386 + HOCl + Cl                                                                ', &
+     '     MO2 + ClO --> RR387 + ClOO + CH2O + HO2                                                        ', &
+     '      OH + ClO --> RR388 + Cl + HO2                                                                 ', &
+     '      OH + ClO --> RR389 + HCl + O2                                                                 ', &
+     '     OClO + OH --> RR390 + HOCl + O2                                                                ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_13 = (/ &
-     '  CFC113 + O1D --> RR391 + 0.25 CFC113 + 0.75 ClO + 0.25 O + 1.5 Cl                                 ', &
-     '  CFC114 + O1D --> RR392 + 0.25 CFC114 + 0.75 ClO + 0.25 O + 0.75 Cl                                ', &
-     '  CFC115 + O1D --> RR393 + 0.7 CFC115 + 0.3 ClO + 0.7 O                                             ', &
-     '   H2402 + O1D --> RR394 + 0.25 H2402 + 0.75 BrO + 0.75 Br + 0.25 O                                 ', &
-     '      Cl2 + OH --> RR395 + HOCl + Cl                                                                ', &
-     '     ClO + MO2 --> RR396 + ClOO + CH2O + HO2                                                        ', &
-     '      OH + ClO --> RR397 + HO2 + Cl                                                                 ', &
-     '      OH + ClO --> RR398 + HCl + O2                                                                 ', &
-     '     OClO + OH --> RR399 + HOCl + O2                                                                ', &
-     '    Cl2O2 + OH --> RR400 + ClOO + HOCl                                                              ', &
-     '      HCl + OH --> RR401 + H2O + Cl                                                                 ', &
-     '     HOCl + OH --> RR402 + H2O + ClO                                                                ', &
-     '    ClNO2 + OH --> RR403 + HOCl + NO2                                                               ', &
-     '    ClNO3 + OH --> RR404 + HOCl + NO3                                                               ', &
-     '    CH3Cl + OH --> RR405 + H2O + HO2 + Cl                                                           ', &
-     '  CH3CCl3 + OH --> RR406 + H2O + 3 Cl                                                               ', &
-     '   HCFC22 + OH --> RR407 + H2O + Cl                                                                 ', &
-     ' HCFC141b + OH --> RR408 + H2O + 2 Cl                                                               ', &
-     ' HCFC142b + OH --> RR409 + H2O + Cl                                                                 ', &
-     '  HCFC123 + OH --> RR410 + H2O + 2 Cl                                                               ', &
-     '      CH4 + Cl --> RR411 + HCl + MO2                                                                ', &
-     '     CH2O + Cl --> RR412 + HCl + HO2 + CO                                                           ', &
-     '       O3 + Cl --> RR413 + ClO + O2                                                                 ', &
-     '       Cl + H2 --> RR414 + H + HCl                                                                  ', &
-     '     H2O2 + Cl --> RR415 + HCl + HO2                                                                ', &
-     '      HO2 + Cl --> RR416 + HCl + O2                                                                 ', &
-     '      HO2 + Cl --> RR417 + OH + ClO                                                                 ', &
-     '       ClO + O --> RR418 + Cl + O2                                                                  ', &
-     '     HO2 + ClO --> RR419 + HOCl + O2                                                                ', &
-     '      NO + ClO --> RR420 + NO2 + Cl                                                                 ' /)
+     '    Cl2O2 + OH --> RR391 + ClOO + HOCl                                                              ', &
+     '      HCl + OH --> RR392 + Cl + H2O                                                                 ', &
+     '     HOCl + OH --> RR393 + H2O + ClO                                                                ', &
+     '    ClNO2 + OH --> RR394 + HOCl + NO2                                                               ', &
+     '    ClNO3 + OH --> RR395 + HOCl + NO3                                                               ', &
+     '    CH3Cl + OH --> RR396 + Cl + HO2 + H2O                                                           ', &
+     '  CH3CCl3 + OH --> RR397 + 3 Cl + H2O                                                               ', &
+     '   HCFC22 + OH --> RR398 + Cl + H2O                                                                 ', &
+     ' HCFC141b + OH --> RR399 + 2 Cl + H2O                                                               ', &
+     ' HCFC142b + OH --> RR400 + Cl + H2O                                                                 ', &
+     '  HCFC123 + OH --> RR401 + 2 Cl + H2O                                                               ', &
+     '      CH4 + Cl --> RR402 + HCl + MO2                                                                ', &
+     '     Cl + CH2O --> RR403 + HCl + CO + HO2                                                           ', &
+     '       Cl + O3 --> RR404 + ClO + O2                                                                 ', &
+     '       Cl + H2 --> RR405 + H + HCl                                                                  ', &
+     '     H2O2 + Cl --> RR406 + HCl + HO2                                                                ', &
+     '      Cl + HO2 --> RR407 + HCl + O2                                                                 ', &
+     '      Cl + HO2 --> RR408 + OH + ClO                                                                 ', &
+     '       O + ClO --> RR409 + Cl + O2                                                                  ', &
+     '     HO2 + ClO --> RR410 + HOCl + O2                                                                ', &
+     '      NO + ClO --> RR411 + Cl + NO2                                                                 ', &
+     '     NO2 + ClO --> RR412 + ClNO3                                                                    ', &
+     '         2 ClO --> RR413 + Cl2 + O2                                                                 ', &
+     '         2 ClO --> RR414 + ClOO + Cl                                                                ', &
+     '         2 ClO --> RR415 + OClO + Cl                                                                ', &
+     '       Cl + O2 --> RR416 + ClOO                                                                     ', &
+     '          ClOO --> RR417 + Cl + O2                                                                  ', &
+     '         2 ClO --> RR418 + Cl2O2                                                                    ', &
+     '         Cl2O2 --> RR419 + 2 ClO                                                                    ', &
+     '     ClOO + Cl --> RR420 + Cl2 + O2                                                                 ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_14 = (/ &
-     '     NO2 + ClO --> RR421 + ClNO3                                                                    ', &
-     '         2 ClO --> RR422 + Cl2 + O2                                                                 ', &
-     '         2 ClO --> RR423 + ClOO + Cl                                                                ', &
-     '         2 ClO --> RR424 + OClO + Cl                                                                ', &
-     '       Cl + O2 --> RR425 + ClOO                                                                     ', &
-     '          ClOO --> RR426 + Cl + O2                                                                  ', &
-     '         2 ClO --> RR427 + Cl2O2                                                                    ', &
-     '         Cl2O2 --> RR428 + 2 ClO                                                                    ', &
-     '     ClOO + Cl --> RR429 + Cl2 + O2                                                                 ', &
-     '     ClOO + Cl --> RR430 + 2 ClO                                                                    ', &
-     '     BrO + ClO --> RR431 + OClO + Br                                                                ', &
-     '     BrO + ClO --> RR432 + ClOO + Br                                                                ', &
-     '     BrO + ClO --> RR433 + BrCl + O2                                                                ', &
-     '     ClNO3 + O --> RR434 + NO3 + ClO                                                                ', &
-     '    ClNO3 + Cl --> RR435 + Cl2 + NO3                                                                ', &
-     '    CH3Cl + Cl --> RR436 + 2 HCl + HO2 + CO                                                         ', &
-     '    N2O5 + HCl --> RR437 + ClNO2 + HNO3                                                             ', &
-     '   ClNO3 + H2O --> RR438 + HNO3 + HOCl                                                              ', &
-     '   ClNO3 + HCl --> RR439 + Cl2 + HNO3                                                               ', &
-     '   ClNO3 + HBr --> RR440 + BrCl + HNO3                                                              ', &
-     '   BrNO3 + HCl --> RR441 + BrCl + HNO3                                                              ', &
-     '    HOCl + HCl --> RR442 + Cl2 + H2O                                                                ', &
-     '    HOCl + HBr --> RR443 + BrCl + H2O                                                               ', &
-     '    HOBr + HCl --> RR444 + BrCl + H2O                                                               ', &
-     '   CH2Cl2 + OH --> RR445 + HO2 + 2 Cl                                                               ', &
-     '    CHCl3 + OH --> RR446 + HO2 + 3 Cl                                                               ', &
-     '   CH2Cl2 + Cl --> RR447 + HCl + HO2 + CO + 2 Cl                                                    ', &
-     '    CHCl3 + Cl --> RR448 + HCl + HO2 + CO + 3 Cl                                                    ', &
-     '        I + O3 --> RR449 + IO + O2                                                                  ', &
-     '       I + HO2 --> RR450 + HI + O2                                                                  ' /)
+     '     ClOO + Cl --> RR421 + 2 ClO                                                                    ', &
+     '     BrO + ClO --> RR422 + OClO + Br                                                                ', &
+     '     BrO + ClO --> RR423 + ClOO + Br                                                                ', &
+     '     BrO + ClO --> RR424 + BrCl + O2                                                                ', &
+     '     ClNO3 + O --> RR425 + NO3 + ClO                                                                ', &
+     '    ClNO3 + Cl --> RR426 + Cl2 + NO3                                                                ', &
+     '    CH3Cl + Cl --> RR427 + 2 HCl + CO + HO2                                                         ', &
+     '   CH2Cl2 + OH --> RR428 + 2 Cl + HO2                                                               ', &
+     '    CHCl3 + OH --> RR429 + 3 Cl + HO2                                                               ', &
+     '   CH2Cl2 + Cl --> RR430 + HCl + CO + 2 Cl + HO2                                                    ', &
+     '    CHCl3 + Cl --> RR431 + HCl + CO + 3 Cl + HO2                                                    ', &
+     '        I + O3 --> RR432 + IO + O2                                                                  ', &
+     '       I + HO2 --> RR433 + HI + O2                                                                  ', &
+     '       I2 + OH --> RR434 + HOI + I                                                                  ', &
+     '       HI + OH --> RR435 + I + H2O                                                                  ', &
+     '      HOI + OH --> RR436 + IO + H2O                                                                 ', &
+     '      IO + HO2 --> RR437 + HOI + O2                                                                 ', &
+     '       IO + NO --> RR438 + I + NO2                                                                  ', &
+     '          2 IO --> RR439 + OIO + I                                                                  ', &
+     '          2 IO --> RR440 + I2O2                                                                     ', &
+     '          I2O2 --> RR441 + 2 IO                                                                     ', &
+     '          I2O2 --> RR442 + OIO + I                                                                  ', &
+     '     CH3I + OH --> RR443 + I + MO2 + H2O                                                            ', &
+     '        I + NO --> RR444 + INO                                                                      ', &
+     '         2 INO --> RR445 + I2 + 2 NO                                                                ', &
+     '       I + NO2 --> RR446 + IONO                                                                     ', &
+     '          IONO --> RR447 + I + NO2                                                                  ', &
+     '        2 IONO --> RR448 + I2 + 2 NO2                                                               ', &
+     '      I2 + NO3 --> RR449 + IONO2 + I                                                                ', &
+     '      IO + NO2 --> RR450 + IONO2                                                                    ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_15 = (/ &
-     '       I2 + OH --> RR451 + HOI + I                                                                  ', &
-     '       HI + OH --> RR452 + I + H2O                                                                  ', &
-     '      HOI + OH --> RR453 + IO + H2O                                                                 ', &
-     '      IO + HO2 --> RR454 + HOI + O2                                                                 ', &
-     '       IO + NO --> RR455 + I + NO2                                                                  ', &
-     '          2 IO --> RR456 + OIO + I                                                                  ', &
-     '          2 IO --> RR457 + I2O2                                                                     ', &
-     '          I2O2 --> RR458 + 2 IO                                                                     ', &
-     '          I2O2 --> RR459 + OIO + I                                                                  ', &
-     '     CH3I + OH --> RR460 + I + H2O + MO2                                                            ', &
-     '        I + NO --> RR461 + INO                                                                      ', &
-     '         2 INO --> RR462 + I2 + 2 NO                                                                ', &
-     '       I + NO2 --> RR463 + IONO                                                                     ', &
-     '          IONO --> RR464 + I + NO2                                                                  ', &
-     '        2 IONO --> RR465 + I2 + 2 NO2                                                               ', &
-     '      I2 + NO3 --> RR466 + IONO2 + I                                                                ', &
-     '      IO + NO2 --> RR467 + IONO2                                                                    ', &
-     '         IONO2 --> RR468 + IO + NO2                                                                 ', &
-     '     IONO2 + I --> RR469 + I2 + NO3                                                                 ', &
-     '       I + BrO --> RR470 + IO + Br                                                                  ', &
-     '      IO + BrO --> RR471 + I + Br + O2                                                              ', &
-     '      IO + BrO --> RR472 + OIO + Br                                                                 ', &
-     '      OIO + IO --> RR473 + I2O3                                                                     ', &
-     '         2 OIO --> RR474 + I2O4                                                                     ', &
-     '          I2O4 --> RR475 + 2 OIO                                                                    ', &
-     '      OIO + NO --> RR476 + IO + NO2                                                                 ', &
-     '            HI --> ISALA + RR477                                                                    ', &
-     '            HI --> ISALC + RR478                                                                    ', &
-     '            HI --> AERI + RR479                                                                     ', &
-     '         IONO2 --> ISALA + RR480                                                                    ' /)
+     '         IONO2 --> RR451 + IO + NO2                                                                 ', &
+     '     IONO2 + I --> RR452 + I2 + NO3                                                                 ', &
+     '       I + BrO --> RR453 + IO + Br                                                                  ', &
+     '      IO + BrO --> RR454 + I + Br + O2                                                              ', &
+     '      IO + BrO --> RR455 + OIO + Br                                                                 ', &
+     '      OIO + IO --> RR456 + I2O3                                                                     ', &
+     '         2 OIO --> RR457 + I2O4                                                                     ', &
+     '          I2O4 --> RR458 + 2 OIO                                                                    ', &
+     '      OIO + NO --> RR459 + IO + NO2                                                                 ', &
+     '      IO + ClO --> RR460 + OClO + I                                                                 ', &
+     '      IO + ClO --> RR461 + I + Cl + O2                                                              ', &
+     '      IO + ClO --> RR462 + ICl + O2                                                                 ', &
+     '    Cl + HCOOH --> CO2 + RR463 + HCl + H2O                                                          ', &
+     '      Cl + MO2 --> RR464 + CH2O + HO2 + ClO                                                         ', &
+     '       MP + Cl --> RR465 + HCl + MO2                                                                ', &
+     '     C2H6 + Cl --> RR466 + ETO2 + HCl                                                               ', &
+     '     ETO2 + Cl --> RR467 + ALD2 + HO2 + ClO                                                         ', &
+     '      Cl + MOH --> RR468 + HCl + CH2O + HO2                                                         ', &
+     '      Cl + EOH --> RR469 + HCl + ALD2                                                               ', &
+     '     Cl + ACTA --> CO2 + RR470 + HCl + MO2                                                          ', &
+     '     C3H8 + Cl --> RR471 + B3O2 + HCl                                                               ', &
+     '     C3H8 + Cl --> RR472 + A3O2 + HCl                                                               ', &
+     '     ACET + Cl --> RR473 + ATO2 + HCl                                                               ', &
+     '     ISOP + Cl --> RR474 + RIO2 + HCl                                                               ', &
+     '     ALK4 + Cl --> RR475 + R4O2 + HCl                                                               ', &
+     '     PRPE + Cl --> RR476 + PO2 + HCl                                                                ', &
+     '     PRPE + Br --> RR477 + PO2 + HBr                                                                ', &
+     '           HO2 --> RR478 + O2                                                                       ', &
+     '           NO2 --> RR479 + 0.5 HNO2 + 0.5 HNO3                                                      ', &
+     '           NO3 --> RR480 + HNO3                                                                     ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_16 = (/ &
-     '         IONO2 --> ISALC + RR481                                                                    ', &
-     '         IONO2 --> RR482 + 0.15 IBr + 0.85 ICl + HNO3                                               ', &
-     '          I2O2 --> 2 ISALA + RR483                                                                  ', &
-     '          I2O2 --> 2 ISALC + RR484                                                                  ', &
-     '          I2O2 --> 2 AERI + RR485                                                                   ', &
-     '           HOI --> ISALA + RR486                                                                    ', &
-     '           HOI --> ISALC + RR487                                                                    ', &
-     '           HOI --> RR488 + 0.15 IBr + 0.85 ICl                                                      ', &
-     '          IONO --> ISALA + RR489                                                                    ', &
-     '          IONO --> ISALC + RR490                                                                    ', &
-     '          IONO --> RR491 + 0.15 IBr + 0.85 ICl + HNO2                                               ', &
-     '          I2O4 --> 2 ISALA + RR492                                                                  ', &
-     '          I2O4 --> 2 ISALC + RR493                                                                  ', &
-     '          I2O4 --> 2 AERI + RR494                                                                   ', &
-     '          I2O3 --> 2 ISALA + RR495                                                                  ', &
-     '          I2O3 --> 2 ISALC + RR496                                                                  ', &
-     '          I2O3 --> 2 AERI + RR497                                                                   ', &
-     '      IO + ClO --> RR498 + OClO + I                                                                 ', &
-     '      IO + ClO --> RR499 + I + Cl + O2                                                              ', &
-     '      IO + ClO --> RR500 + ICl + O2                                                                 ', &
-     '    Cl + HCOOH --> CO2 + RR501 + HCl + H2O                                                          ', &
-     '      MO2 + Cl --> RR502 + CH2O + HO2 + ClO                                                         ', &
-     '       MP + Cl --> RR503 + HCl + MO2                                                                ', &
-     '     C2H6 + Cl --> RR504 + ETO2 + HCl                                                               ', &
-     '     ETO2 + Cl --> RR505 + ALD2 + HO2 + ClO                                                         ', &
-     '      Cl + MOH --> RR506 + CH2O + HCl + HO2                                                         ', &
-     '      Cl + EOH --> RR507 + ALD2 + HCl                                                               ', &
-     '     Cl + ACTA --> CO2 + RR508 + HCl + MO2                                                          ', &
-     '     C3H8 + Cl --> RR509 + B3O2 + HCl                                                               ', &
-     '     C3H8 + Cl --> RR510 + A3O2 + HCl                                                               ' /)
+     '          N2O5 --> RR481 + 2 HNO3                                                                   ', &
+     '           H2O --> RR482 + DUMMY                                                                    ', &
+     '         BrNO3 --> RR483 + HOBr + HNO3                                                              ', &
+     '           H2O --> RR484 + DUMMY                                                                    ', &
+     '          HOBr --> RR485 + Br2 + H2O                                                                ', &
+     '           HBr --> RR486 + DUMMY                                                                    ', &
+     '          N2O5 --> RR487 + ClNO2 + HNO3                                                             ', &
+     '           HCl --> RR488 + DUMMY                                                                    ', &
+     '         ClNO3 --> RR489 + HOCl + HNO3                                                              ', &
+     '           H2O --> RR490 + DUMMY                                                                    ', &
+     '         ClNO3 --> RR491 + Cl2 + HNO3                                                               ', &
+     '           HCl --> RR492 + DUMMY                                                                    ', &
+     '         ClNO3 --> RR493 + BrCl + HNO3                                                              ', &
+     '           HBr --> RR494 + DUMMY                                                                    ', &
+     '         BrNO3 --> RR495 + BrCl + HNO3                                                              ', &
+     '           HCl --> RR496 + DUMMY                                                                    ', &
+     '          HOCl --> RR497 + Cl2 + H2O                                                                ', &
+     '           HCl --> RR498 + DUMMY                                                                    ', &
+     '          HOCl --> RR499 + BrCl + H2O                                                               ', &
+     '           HBr --> RR500 + DUMMY                                                                    ', &
+     '          HOBr --> RR501 + BrCl + H2O                                                               ', &
+     '           HCl --> RR502 + DUMMY                                                                    ', &
+     '            HI --> ISALA + RR503                                                                    ', &
+     '            HI --> ISALC + RR504                                                                    ', &
+     '            HI --> AERI + RR505                                                                     ', &
+     '         IONO2 --> ISALA + RR506                                                                    ', &
+     '         IONO2 --> ISALC + RR507                                                                    ', &
+     '         IONO2 --> RR508 + 0.15 IBr + 0.85 ICl + HNO3                                               ', &
+     '          I2O2 --> 2 ISALA + RR509                                                                  ', &
+     '          I2O2 --> 2 ISALC + RR510                                                                  ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_17 = (/ &
-     '     ACET + Cl --> RR511 + ATO2 + HCl                                                               ', &
-     '     ISOP + Cl --> RR512 + RIO2 + HCl                                                               ', &
-     '     ALK4 + Cl --> RR513 + R4O2 + HCl                                                               ', &
-     '     PRPE + Cl --> RR514 + PO2 + HCl                                                                ', &
-     '     PRPE + Br --> RR515 + PO2 + HBr                                                                ', &
-     '            O3 --> RR516 + O + O2                                                                   ', &
-     '            O3 --> RR517 + O1D + O2                                                                 ', &
-     '            O2 --> RR518 + 2 O                                                                      ', &
-     '           NO2 --> RR519 + NO + O                                                                   ', &
-     '          H2O2 --> RR520 + 2 OH                                                                     ', &
-     '            MP --> RR521 + CH2O + OH + HO2                                                          ', &
-     '          CH2O --> RR522 + H + HO2 + CO                                                             ', &
-     '          CH2O --> RR523 + CO + H2                                                                  ', &
-     '          HNO3 --> RR524 + NO2 + OH                                                                 ', &
-     '          HNO2 --> RR525 + OH + NO                                                                  ', &
-     '          HNO4 --> RR526 + NO3 + OH                                                                 ', &
-     '          HNO4 --> RR527 + NO2 + HO2                                                                ', &
-     '           NO3 --> RR528 + NO2 + O                                                                  ', &
-     '           NO3 --> RR529 + NO + O2                                                                  ', &
-     '          N2O5 --> RR530 + NO3 + NO2                                                                ', &
-     '          ALD2 --> RR531 + 0.12 MCO3 + HO2 + 0.88 CO + 0.88 MO2                                     ', &
-     '          ALD2 --> RR532 + CH4 + CO                                                                 ', &
-     '           PAN --> RR533 + 0.7 MCO3 + 0.3 NO3 + 0.7 NO2 + 0.3 MO2                                   ', &
-     '          RCHO --> RR534 + ETO2 + HO2 + CO                                                          ', &
-     '          ACET --> RR535 + MCO3 + MO2                                                               ', &
-     '          ACET --> RR536 + CO + 2 MO2                                                               ', &
-     '           MEK --> RR537 + 0.15 RCO3 + 0.85 ETO2 + 0.85 MCO3 + 0.15 MO2 ... etc.                    ', &
-     '          GLYC --> RR538 + 0.9 CH2O + 0.07 OH + 1.73 HO2 + CO + 0.1 MOH ... etc.                    ', &
-     '          GLYX --> RR539 + 2 HO2 + 2 CO                                                             ', &
-     '          GLYX --> RR540 + 2 CO + H2                                                                ' /)
+     '          I2O2 --> 2 AERI + RR511                                                                   ', &
+     '           HOI --> ISALA + RR512                                                                    ', &
+     '           HOI --> ISALC + RR513                                                                    ', &
+     '           HOI --> RR514 + 0.15 IBr + 0.85 ICl                                                      ', &
+     '          IONO --> ISALA + RR515                                                                    ', &
+     '          IONO --> ISALC + RR516                                                                    ', &
+     '          IONO --> RR517 + 0.15 IBr + 0.85 ICl + HNO2                                               ', &
+     '          I2O4 --> 2 ISALA + RR518                                                                  ', &
+     '          I2O4 --> 2 ISALC + RR519                                                                  ', &
+     '          I2O4 --> 2 AERI + RR520                                                                   ', &
+     '          I2O3 --> 2 ISALA + RR521                                                                  ', &
+     '          I2O3 --> 2 ISALC + RR522                                                                  ', &
+     '          I2O3 --> 2 AERI + RR523                                                                   ', &
+     '            O3 --> RR524 + O + O2                                                                   ', &
+     '            O3 --> RR525 + O1D + O2                                                                 ', &
+     '            O2 --> RR526 + 2 O                                                                      ', &
+     '           NO2 --> RR527 + O + NO                                                                   ', &
+     '          H2O2 --> RR528 + 2 OH                                                                     ', &
+     '            MP --> RR529 + OH + CH2O + HO2                                                          ', &
+     '          CH2O --> RR530 + H + CO + HO2                                                             ', &
+     '          CH2O --> RR531 + CO + H2                                                                  ', &
+     '          HNO3 --> RR532 + OH + NO2                                                                 ', &
+     '          HNO2 --> RR533 + OH + NO                                                                  ', &
+     '          HNO4 --> RR534 + OH + NO3                                                                 ', &
+     '          HNO4 --> RR535 + HO2 + NO2                                                                ', &
+     '           NO3 --> RR536 + O + NO2                                                                  ', &
+     '           NO3 --> RR537 + NO + O2                                                                  ', &
+     '          N2O5 --> RR538 + NO3 + NO2                                                                ', &
+     '          ALD2 --> RR539 + 0.12 MCO3 + 0.88 CO + 0.88 MO2 + HO2                                     ', &
+     '          ALD2 --> RR540 + CH4 + CO                                                                 ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_18 = (/ &
-     '          GLYX --> RR541 + CH2O + CO                                                                ', &
-     '          MGLY --> RR542 + MCO3 + HO2 + CO                                                          ', &
-     '           MVK --> RR543 + PRPE + CO                                                                ', &
-     '           MVK --> RR544 + CH2O + MCO3 + HO2 + CO                                                   ', &
-     '           MVK --> RR545 + RCO3 + MO2                                                               ', &
-     '          MACR --> RR546 + CH2O + MCO3 + HO2 + CO                                                   ', &
-     '           HAC --> RR547 + CH2O + MCO3 + HO2                                                        ', &
-     '          INPN --> RR548 + RCHO + NO2 + OH + HO2                                                    ', &
-     '          PRPN --> RR549 + RCHO + NO2 + OH + HO2                                                    ', &
-     '           ETP --> RR550 + ALD2 + OH + HO2                                                          ', &
-     '          RA3P --> RR551 + RCHO + OH + HO2                                                          ', &
-     '          RB3P --> RR552 + ACET + OH + HO2                                                          ', &
-     '           R4P --> RR553 + RCHO + OH + HO2                                                          ', &
-     '            PP --> RR554 + CH2O + ALD2 + OH + HO2                                                   ', &
-     '            RP --> RR555 + ALD2 + OH + HO2                                                          ', &
-     '           RIP --> RR556 + 0.29 HC5 + 0.285 MACR + 0.71 CH2O + 0.425 MVK ... etc.                   ', &
-     '           IAP --> RR557 + 0.26 GLYC + 0.36 HAC + 0.58 MGLY + OH + HO2 ... etc.                     ', &
-     '          ISNP --> RR558 + RCHO + NO2 + OH + HO2                                                    ', &
-     '           VRP --> RR559 + 0.7 GLYC + 0.3 MGLY + 0.3 CH2O + 0.7 MCO3 + OH ... etc.                  ', &
-     '           MRP --> RR560 + HAC + 0.5 CH2O + OH + HO2 + 0.5 CO                                       ', &
-     '          MAOP --> RR561 + CH2O + MCO3 + OH                                                         ', &
-     '          R4N2 --> RR562 + 0.05 A3O2 + 0.18 B3O2 + 0.32 ACET + 0.32 ETO2 ... etc.                   ', &
-     '           MAP --> RR563 + OH + MO2                                                                 ', &
-     '         MACRN --> RR564 + HAC + MGLY + 0.5 CH2O + NO2 + HO2 + 0.5 CO                               ', &
-     '          MVKN --> RR565 + GLYC + MCO3 + NO2                                                        ', &
-     '        ISOPNB --> RR566 + HC5 + NO2 + HO2                                                          ', &
-     '           Br2 --> RR567 + 2 Br                                                                     ', &
-     '           BrO --> RR568 + Br + O                                                                   ', &
-     '          HOBr --> RR569 + OH + Br                                                                  ', &
-     '         BrNO3 --> RR570 + NO3 + Br                                                                 ' /)
+     '           PAN --> RR541 + 0.7 MCO3 + 0.3 MO2 + 0.3 NO3 + 0.7 NO2                                   ', &
+     '          RCHO --> RR542 + ETO2 + CO + HO2                                                          ', &
+     '          ACET --> RR543 + MCO3 + MO2                                                               ', &
+     '          ACET --> RR544 + CO + 2 MO2                                                               ', &
+     '           MEK --> RR545 + 0.15 RCO3 + 0.85 ETO2 + 0.85 MCO3 + 0.15 MO2 ... etc.                    ', &
+     '          GLYC --> RR546 + CO + 0.07 OH + 0.9 CH2O + 1.73 HO2 + 0.1 MOH ... etc.                    ', &
+     '          GLYX --> RR547 + 2 CO + 2 HO2                                                             ', &
+     '          GLYX --> RR548 + 2 CO + H2                                                                ', &
+     '          GLYX --> RR549 + CO + CH2O                                                                ', &
+     '          MGLY --> RR550 + MCO3 + CO + HO2                                                          ', &
+     '           MVK --> RR551 + PRPE + CO                                                                ', &
+     '           MVK --> RR552 + MCO3 + CO + CH2O + HO2                                                   ', &
+     '           MVK --> RR553 + RCO3 + MO2                                                               ', &
+     '          MACR --> RR554 + MCO3 + CO + CH2O + HO2                                                   ', &
+     '           HAC --> RR555 + MCO3 + CH2O + HO2                                                        ', &
+     '          INPN --> RR556 + RCHO + OH + HO2 + NO2                                                    ', &
+     '          PRPN --> RR557 + RCHO + OH + HO2 + NO2                                                    ', &
+     '           ETP --> RR558 + ALD2 + OH + HO2                                                          ', &
+     '          RA3P --> RR559 + RCHO + OH + HO2                                                          ', &
+     '          RB3P --> RR560 + ACET + OH + HO2                                                          ', &
+     '           R4P --> RR561 + RCHO + OH + HO2                                                          ', &
+     '            PP --> RR562 + ALD2 + OH + CH2O + HO2                                                   ', &
+     '            RP --> RR563 + ALD2 + OH + HO2                                                          ', &
+     '           RIP --> RR564 + 0.29 HC5 + 0.285 MACR + 0.425 MVK + OH + 0.71 CH2O ... etc.              ', &
+     '           IAP --> RR565 + 0.26 GLYC + 0.36 HAC + 0.58 MGLY + 0.67 CO + OH ... etc.                 ', &
+     '          ISNP --> RR566 + RCHO + OH + HO2 + NO2                                                    ', &
+     '           VRP --> RR567 + 0.7 GLYC + 0.3 MGLY + 0.7 MCO3 + OH + 0.3 CH2O ... etc.                  ', &
+     '           MRP --> RR568 + HAC + 0.5 CO + OH + 0.5 CH2O + HO2                                       ', &
+     '          MAOP --> RR569 + MCO3 + OH + CH2O                                                         ', &
+     '          R4N2 --> RR570 + 0.05 A3O2 + 0.18 B3O2 + 0.32 ETO2 + 0.32 ACET ... etc.                   ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_19 = (/ &
-     '         BrNO3 --> RR571 + BrO + NO2                                                                ', &
-     '         BrNO2 --> RR572 + NO2 + Br                                                                 ', &
-     '         CHBr3 --> RR573 + 3 Br                                                                     ', &
-     '           MPN --> RR574 + CH2O + NO3 + HO2                                                         ', &
-     '           MPN --> RR575 + NO2 + MO2                                                                ', &
-     '        ISOPND --> RR576 + HC5 + NO2 + HO2                                                          ', &
-     '        PROPNN --> RR577 + CH2O + NO2 + CO + MO2                                                    ', &
-     '         ATOOH --> RR578 + CH2O + MCO3 + OH                                                         ', &
-     '           N2O --> RR579 + O1D + N2                                                                 ', &
-     '           OCS --> RR580 + SO2 + CO                                                                 ', &
-     '           SO4 --> RR581 + SO2 + 2 OH                                                               ', &
-     '            NO --> RR582 + N + O                                                                    ', &
-     '         CH3Br --> RR583 + Br + MO2                                                                 ', &
-     '          BrCl --> RR584 + Br + Cl                                                                  ', &
-     '           Cl2 --> RR585 + 2 Cl                                                                     ', &
-     '           ClO --> RR586 + O + Cl                                                                   ', &
-     '          OClO --> RR587 + ClO + O                                                                  ', &
-     '         Cl2O2 --> RR588 + ClOO + Cl                                                                ', &
-     '         ClNO2 --> RR589 + NO2 + Cl                                                                 ', &
-     '         ClNO3 --> RR590 + NO3 + Cl                                                                 ', &
-     '         ClNO3 --> RR591 + NO2 + ClO                                                                ', &
-     '          HOCl --> RR592 + OH + Cl                                                                  ', &
-     '         CH3Cl --> RR593 + MO2 + Cl                                                                 ', &
-     '       CH3CCl3 --> RR594 + 3 Cl                                                                     ', &
-     '          CCl4 --> RR595 + 4 Cl                                                                     ', &
-     '         CFC11 --> RR596 + 3 Cl                                                                     ', &
-     '         CFC12 --> RR597 + 2 Cl                                                                     ', &
-     '        CFC113 --> RR598 + 3 Cl                                                                     ', &
-     '        CFC114 --> RR599 + 2 Cl                                                                     ', &
-     '        CFC115 --> RR600 + Cl                                                                       ' /)
-  CHARACTER(LEN=100), PARAMETER, DIMENSION(25) :: EQN_NAMES_20 = (/ &
-     '       HCFC123 --> RR601 + 2 Cl                                                                     ', &
-     '      HCFC141b --> RR602 + 2 Cl                                                                     ', &
-     '      HCFC142b --> RR603 + 2 Cl                                                                     ', &
-     '        HCFC22 --> RR604 + 2 Cl                                                                     ', &
-     '         H1301 --> RR605 + Br                                                                       ', &
-     '         H1211 --> RR606 + Br + Cl                                                                  ', &
-     '         H2402 --> RR607 + 2 Br                                                                     ', &
-     '        CH2Br2 --> RR608 + 2 Br                                                                     ', &
-     '          ClOO --> RR609 + Cl + O2                                                                  ', &
-     '            I2 --> RR610 + 2 I                                                                      ', &
-     '           HOI --> RR611 + I + OH                                                                   ', &
-     '            IO --> RR612 + I + O                                                                    ', &
-     '           OIO --> RR613 + I + O2                                                                   ', &
-     '           INO --> RR614 + I + NO                                                                   ', &
-     '          INO2 --> RR615 + I + NO2                                                                  ', &
-     '         IONO2 --> RR616 + I + NO3                                                                  ', &
-     '          I2O2 --> RR617 + OIO + I                                                                  ', &
-     '          CH3I --> RR618 + I                                                                        ', &
-     '         CH2I2 --> RR619 + 2 I                                                                      ', &
-     '        CH2ICl --> RR620 + I + Cl                                                                   ', &
-     '        CH2IBr --> RR621 + I + Br                                                                   ', &
-     '          I2O4 --> RR622 + 2 OIO                                                                    ', &
-     '          I2O3 --> RR623 + OIO + IO                                                                 ', &
-     '           IBr --> RR624 + I + Br                                                                   ', &
-     '           ICl --> RR625 + I + Cl                                                                   ' /)
-  CHARACTER(LEN=100), PARAMETER, DIMENSION(625) :: EQN_NAMES = (/&
+     '           MAP --> RR571 + OH + MO2                                                                 ', &
+     '         MACRN --> RR572 + HAC + MGLY + 0.5 CO + 0.5 CH2O + HO2 + NO2                               ', &
+     '          MVKN --> RR573 + GLYC + MCO3 + NO2                                                        ', &
+     '        ISOPNB --> RR574 + HC5 + HO2 + NO2                                                          ', &
+     '           Br2 --> RR575 + 2 Br                                                                     ', &
+     '           BrO --> RR576 + O + Br                                                                   ', &
+     '          HOBr --> RR577 + OH + Br                                                                  ', &
+     '         BrNO3 --> RR578 + Br + NO3                                                                 ', &
+     '         BrNO3 --> RR579 + BrO + NO2                                                                ', &
+     '         BrNO2 --> RR580 + Br + NO2                                                                 ', &
+     '         CHBr3 --> RR581 + 3 Br                                                                     ', &
+     '           MPN --> RR582 + CH2O + NO3 + HO2                                                         ', &
+     '           MPN --> RR583 + MO2 + NO2                                                                ', &
+     '        ISOPND --> RR584 + HC5 + HO2 + NO2                                                          ', &
+     '        PROPNN --> RR585 + CO + MO2 + CH2O + NO2                                                    ', &
+     '         ATOOH --> RR586 + MCO3 + OH + CH2O                                                         ', &
+     '           N2O --> RR587 + O1D + N2                                                                 ', &
+     '           OCS --> RR588 + SO2 + CO                                                                 ', &
+     '           SO4 --> RR589 + SO2 + 2 OH                                                               ', &
+     '            NO --> RR590 + N + O                                                                    ', &
+     '         CH3Br --> RR591 + MO2 + Br                                                                 ', &
+     '          BrCl --> RR592 + Cl + Br                                                                  ', &
+     '           Cl2 --> RR593 + 2 Cl                                                                     ', &
+     '           ClO --> RR594 + Cl + O                                                                   ', &
+     '          OClO --> RR595 + O + ClO                                                                  ', &
+     '         Cl2O2 --> RR596 + ClOO + Cl                                                                ', &
+     '         ClNO2 --> RR597 + Cl + NO2                                                                 ', &
+     '         ClNO3 --> RR598 + Cl + NO3                                                                 ', &
+     '         ClNO3 --> RR599 + NO2 + ClO                                                                ', &
+     '          HOCl --> RR600 + Cl + OH                                                                  ' /)
+  CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_20 = (/ &
+     '         CH3Cl --> RR601 + Cl + MO2                                                                 ', &
+     '       CH3CCl3 --> RR602 + 3 Cl                                                                     ', &
+     '          CCl4 --> RR603 + 4 Cl                                                                     ', &
+     '         CFC11 --> RR604 + 3 Cl                                                                     ', &
+     '         CFC12 --> RR605 + 2 Cl                                                                     ', &
+     '        CFC113 --> RR606 + 3 Cl                                                                     ', &
+     '        CFC114 --> RR607 + 2 Cl                                                                     ', &
+     '        CFC115 --> RR608 + Cl                                                                       ', &
+     '       HCFC123 --> RR609 + 2 Cl                                                                     ', &
+     '      HCFC141b --> RR610 + 2 Cl                                                                     ', &
+     '      HCFC142b --> RR611 + 2 Cl                                                                     ', &
+     '        HCFC22 --> RR612 + 2 Cl                                                                     ', &
+     '         H1301 --> RR613 + Br                                                                       ', &
+     '         H1211 --> RR614 + Cl + Br                                                                  ', &
+     '         H2402 --> RR615 + 2 Br                                                                     ', &
+     '        CH2Br2 --> RR616 + 2 Br                                                                     ', &
+     '          ClOO --> RR617 + Cl + O2                                                                  ', &
+     '            I2 --> RR618 + 2 I                                                                      ', &
+     '           HOI --> RR619 + I + OH                                                                   ', &
+     '            IO --> RR620 + I + O                                                                    ', &
+     '           OIO --> RR621 + I + O2                                                                   ', &
+     '           INO --> RR622 + I + NO                                                                   ', &
+     '          INO2 --> RR623 + I + NO2                                                                  ', &
+     '         IONO2 --> RR624 + I + NO3                                                                  ', &
+     '          I2O2 --> RR625 + OIO + I                                                                  ', &
+     '          CH3I --> RR626 + I                                                                        ', &
+     '         CH2I2 --> RR627 + 2 I                                                                      ', &
+     '        CH2ICl --> RR628 + I + Cl                                                                   ', &
+     '        CH2IBr --> RR629 + I + Br                                                                   ', &
+     '          I2O4 --> RR630 + 2 OIO                                                                    ' /)
+  CHARACTER(LEN=100), PARAMETER, DIMENSION(3) :: EQN_NAMES_21 = (/ &
+     '          I2O3 --> RR631 + OIO + IO                                                                 ', &
+     '           IBr --> RR632 + I + Br                                                                   ', &
+     '           ICl --> RR633 + I + Cl                                                                   ' /)
+  CHARACTER(LEN=100), PARAMETER, DIMENSION(633) :: EQN_NAMES = (/&
     EQN_NAMES_0, EQN_NAMES_1, EQN_NAMES_2, EQN_NAMES_3, EQN_NAMES_4, &
     EQN_NAMES_5, EQN_NAMES_6, EQN_NAMES_7, EQN_NAMES_8, EQN_NAMES_9, &
     EQN_NAMES_10, EQN_NAMES_11, EQN_NAMES_12, EQN_NAMES_13, EQN_NAMES_14, &
     EQN_NAMES_15, EQN_NAMES_16, EQN_NAMES_17, EQN_NAMES_18, EQN_NAMES_19, &
-    EQN_NAMES_20 /)
+    EQN_NAMES_20, EQN_NAMES_21 /)
 
 ! INLINED global variables
 

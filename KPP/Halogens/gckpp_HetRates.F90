@@ -18,9 +18,9 @@ MODULE GCKPP_HETRATES
   USE CMN_FJX_MOD,        ONLY : NAER
   USE CMN_SIZE_MOD,       ONLY : LLSTRAT
   USE PHYSCONSTANTS,      ONLY : CONSVAP
-  USE ERROR_MOD,          ONLY : ERROR_STOP
-  USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-  USE ERROR_MOD,          ONLY : IS_SAFE_DIV
+  USE Error_Mod,          ONLY : Error_Stop
+  USE Error_Mod,          ONLY : GEOS_Chem_Stop
+  USE Error_Mod,          ONLY : Is_Safe_Div, Safe_Div
   USE gckpp_Precision
   USE gckpp_Parameters
   USE gckpp_Global,       ONLY : HET
@@ -57,6 +57,9 @@ MODULE GCKPP_HETRATES
   PRIVATE :: FYHORO
   PRIVATE :: FYRNO3
   PRIVATE :: ARSL1K
+  PRIVATE :: kIR1Old
+  PRIVATE :: kIR1Ltd
+  PRIVATE :: kIR1R2L
 
 #if defined( UCX )
   ! These functions are only used for UCX-based mechanisms
@@ -69,21 +72,6 @@ MODULE GCKPP_HETRATES
   PRIVATE :: HETHOBr_PSC
   PRIVATE :: HETN2O5_PSC
 #endif
-
-  ! New chlorine/bromine chemistry
-  !PRIVATE :: HETN2O5_SSA
-  !PRIVATE :: HETHBr_SSA
-  !PRIVATE :: HETHCl_SSA
-  !PRIVATE :: HETClNO3Hydro
-  !PRIVATE :: HETBrNO3Hydro
-  !PRIVATE :: HETClNO3Br
-  !PRIVATE :: HETHOBrBr
-  !PRIVATE :: HETHOBrCl
-  !PRIVATE :: HETO3Br
-
-  ! New iodine chemistry
-  PRIVATE :: HETIUptake
-  PRIVATE :: HETISSA
 !
 ! !PRIVATE DATA MEMBERS:
 !
@@ -110,7 +98,7 @@ MODULE GCKPP_HETRATES
 !
 ! !DEFINED PARAMETERS:
 !
-  REAL(fp), PARAMETER :: PSCMINLIFE = 1.e-3_fp
+  REAL(fp), PARAMETER :: hetMinLife = 1.e-3_fp
 !
 ! !REMARKS:
 !  Need 
@@ -200,6 +188,9 @@ MODULE GCKPP_HETRATES
       REAL(fp) :: SPC_ClNO3,    SPC_H2O,  SPC_HBr,  SPC_HCl
       REAL(fp) :: SPC_HOBr,     SPC_HOCl, SPC_N2O5, VPRESH2O
 
+      ! New treatment for educt removal
+      Real(fp),Pointer :: spcVec(:)
+
 #if defined( UCX )
       ! Variables for UCX-based mechanisms
       INTEGER  :: PSCIDX
@@ -279,6 +270,9 @@ MODULE GCKPP_HETRATES
          SPC_SO4    = SC%Species(I,J,L,IND)
       ENDIF
 
+      ! Point spcVec to the species array
+      spcVec => SC%Species(I,J,L,:)
+
       IND = Ind_('HBr')
       IF (IND .le. 0) THEN
          SPC_HBr    = 0.0e+0_fp
@@ -292,87 +286,6 @@ MODULE GCKPP_HETRATES
       ELSE
          SPC_HOBr   = SC%Species(I,J,L,IND)
       ENDIF
-
-#if defined( UCX )
-      IND = Ind_('N2O5')
-      IF (IND .le. 0) THEN
-         SPC_N2O5   = 0.0e+0_fp
-      ELSE
-         SPC_N2O5   = SC%Species(I,J,L,IND)
-      ENDIF
-
-      IND = Ind_('H2O')
-      IF (IND .le. 0) THEN
-         SPC_H2O    = 0.0e+0_fp
-      ELSE
-         SPC_H2O    = SC%Species(I,J,L,IND)
-      ENDIF
-
-      IND = Ind_('HCl')
-      IF (IND .le. 0) THEN
-         SPC_HCl    = 0.0e+0_fp
-      ELSE
-         SPC_HCl    = SC%Species(I,J,L,IND)
-      ENDIF
-
-      IND = Ind_('ClNO3')
-      IF (IND .le. 0) THEN
-         SPC_ClNO3  = 0.0e+0_fp
-      ELSE
-         SPC_ClNO3  = SC%Species(I,J,L,IND)
-      ENDIF
-
-      IND = Ind_('BrNO3')
-      IF (IND .le. 0) THEN
-         SPC_BrNO3  = 0.0e+0_fp
-      ELSE
-         SPC_BrNO3  = SC%Species(I,J,L,IND)
-      ENDIF
-
-      IND = Ind_('HOCl')
-      IF (IND .le. 0) THEN
-         SPC_HOCl   = 0.0e+0_fp
-      ELSE
-         SPC_HOCl   = SC%Species(I,J,L,IND)
-      ENDIF
-
-      !--------------------------------------------------------------------
-      ! Set PSC educt concentrations (SDE 04/24/13)
-      !--------------------------------------------------------------------
-      PSCEDUCTCONC( 1,1) = SPC_N2O5
-      PSCEDUCTCONC( 1,2) = SPC_H2O
-
-      PSCEDUCTCONC( 2,1) = SPC_N2O5
-      PSCEDUCTCONC( 2,2) = SPC_HCl
-
-      PSCEDUCTCONC( 3,1) = SPC_ClNO3
-      PSCEDUCTCONC( 3,2) = SPC_H2O
-
-      PSCEDUCTCONC( 4,1) = SPC_ClNO3
-      PSCEDUCTCONC( 4,2) = SPC_HCl
-
-      PSCEDUCTCONC( 5,1) = SPC_ClNO3
-      PSCEDUCTCONC( 5,2) = SPC_HBr
-
-      PSCEDUCTCONC( 6,1) = SPC_BrNO3
-      PSCEDUCTCONC( 6,2) = SPC_H2O
-
-      PSCEDUCTCONC( 7,1) = SPC_BrNO3
-      PSCEDUCTCONC( 7,2) = SPC_HCl
-
-      PSCEDUCTCONC( 8,1) = SPC_HOCl
-      PSCEDUCTCONC( 8,2) = SPC_HCl
-
-      PSCEDUCTCONC( 9,1) = SPC_HOCl
-      PSCEDUCTCONC( 9,2) = SPC_HBr
-
-      PSCEDUCTCONC(10,1) = SPC_HOBr
-      PSCEDUCTCONC(10,2) = SPC_HCl
-
-      ! This is still pseudo-first-order - ignore
-      PSCEDUCTCONC(11,1) = SPC_HOBr
-      PSCEDUCTCONC(11,2) = SPC_HBr
-#endif
 
       XAREA(1:SC%nAero) = SC%AeroArea(I,J,L,:)
       XRADI(1:SC%nAero) = SC%AeroRadi(I,J,L,:)
@@ -441,258 +354,99 @@ MODULE GCKPP_HETRATES
       !--------------------------------------------------------------------
       ! Calculate and pass het rates to the KPP rate array
       !--------------------------------------------------------------------
-      HET(ind_HO2,  1) = HETHO2(        3.30E1_fp, 2E-1_fp)
-      HET(ind_NO2,  1) = HETNO2(        4.60E1_fp, 1E-4_fp)
-      HET(ind_NO3,  1) = HETNO3(        6.20E1_fp, 1E-1_fp)
-      HET(ind_N2O5, 1) = HETN2O5(       1.08E2_fp, 1E-1_fp)
-      HET(ind_BrNO3,1) = HETBrNO3(      1.42E2_fp, 3E-1_fp)
-      HET(ind_HOBr, 1) = HETHOBr(       0.97E2_fp, 2E-1_fp)
-      HET(ind_HBr,  1) = HETHBr(        0.81E2_fp, 2E-1_fp)
-      HET(ind_HOBr ,2) = HETHOBr_ice(   0.97E2_fp, 1E-1_fp)
-      HET(ind_HBr,  2) = HETHBr_ice(    0.81E2_fp, 1E-1_fp)
+      ! Calculate genuine first-order uptake reactions first
+      HET(ind_HO2,  1, 1) = HETHO2( 3.30E1_fp, 2E-1_fp)
+      HET(ind_NO2,  1, 1) = HETNO2( 4.60E1_fp, 1E-4_fp)
+      HET(ind_NO3,  1, 1) = HETNO3( 6.20E1_fp, 1E-1_fp)
+      ! Now calculate reaction rates where the educt can be consumed.
+      ! kIR1Ltd: Assume that the first reactant is limiting. Assume that the
+      ! second reactant is "abundant" and calculate the overall rate based on
+      ! the uptake rate of the first reactant only
+      Call kIR1Ltd(HET, ind_N2O5,  1, spcVec, ind_('N2O5'),  ind_('H2O'), HETN2O5(       1.08E2_fp, 1E-1_fp))
+      Call kIR1Ltd(HET, ind_BrNO3, 1, spcVec, ind_('BrNO3'), ind_('H2O'), HETBrNO3(      1.42E2_fp, 3E-1_fp), hetMinLife)
 #if defined( UCX )
-      HET(ind_N2O5, 2) = HETN2O5_PSC(   1.08E2_fp, 0E+0_fp)
-      HET(ind_ClNO3,1) = HETClNO3_PSC1( 0.97E2_fp, 0E+0_fp)
-      HET(ind_ClNO3,2) = HETClNO3_PSC2( 0.97E2_fp, 0E+0_fp)
-      HET(ind_ClNO3,3) = HETClNO3_PSC3( 0.97E2_fp, 0E+0_fp)
-      HET(ind_BrNO3,2) = HETBrNO3_PSC(  1.42E2_fp, 0E+0_fp)
-      HET(ind_HOCl, 1) = HETHOCl_PSC1(  0.52E2_fp, 0E+0_fp)
-      HET(ind_HOCl, 2) = HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp)
-      HET(ind_HOBr, 3) = HETHOBr_PSC(   0.97E2_fp, 0E+0_fp)
+      Call kIR1Ltd(HET, ind_N2O5,  2, spcVec, ind_('N2O5'),  ind_('HCl'), HETN2O5_PSC(   1.08E2_fp, 0E+0_fp), hetMinLife)
+      Call kIR1Ltd(HET, ind_ClNO3, 1, spcVec, ind_('ClNO3'), ind_('H2O'), HETClNO3_PSC1( 0.97E2_fp, 0E+0_fp), hetMinLife)
+      Call kIR1Ltd(HET, ind_ClNO3, 2, spcVec, ind_('ClNO3'), ind_('HCl'), HETClNO3_PSC2( 0.97E2_fp, 0E+0_fp), hetMinLife)
+      Call kIR1Ltd(HET, ind_ClNO3, 3, spcVec, ind_('ClNO3'), ind_('HBr'), HETClNO3_PSC3( 0.97E2_fp, 0E+0_fp), hetMinLife)
+      Call kIR1Ltd(HET, ind_BrNO3, 2, spcVec, ind_('BrNO3'), ind_('HCl'), HETBrNO3_PSC(  1.42E2_fp, 0E+0_fp), hetMinLife)
+      Call kIR1Ltd(HET, ind_HOCl,  1, spcVec, ind_('HOCl'),  ind_('HCl'), HETHOCl_PSC1(  0.52E2_fp, 0E+0_fp), hetMinLife)
+      Call kIR1Ltd(HET, ind_HOCl,  2, spcVec, ind_('HOCl'),  ind_('HBr'), HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp), hetMinLife)
+      Call kIR1Ltd(HET, ind_HOBr,  2, spcVec, ind_('HOBr'),  ind_('HCl'), HETHOBr_PSC(   0.97E2_fp, 0E+0_fp), hetMinLife)
 #endif
-      ! Iodine uptake into sulfate aerosol
-      HET(ind_HI,   1) = HETIUptake(    1.28E2_fp, 1E-1_fp,  8)
-      HET(ind_I2O2, 1) = HETIUptake(    2.86E2_fp, 2E-2_fp,  8)
-      HET(ind_I2O3, 1) = HETIUptake(    3.02E2_fp, 2E-2_fp,  8)
-      HET(ind_I2O4, 1) = HETIUptake(    3.18E2_fp, 2E-2_fp,  8)
-      ! Allow uptake onto stratospheric sulfate as well
-#if defined( UCX )
-      HET(ind_HI,   1) = HET(ind_HI,   1) + &
-                         HETIUptake(    1.28E2_fp, 1E-1_fp, 13)
-      HET(ind_I2O2, 1) = HET(ind_I2O2, 1) + &
-                         HETIUptake(    2.86E2_fp, 2E-2_fp, 13)
-      HET(ind_I2O3, 1) = HET(ind_I2O3, 1) + & 
-                         HETIUptake(    3.02E2_fp, 2E-2_fp, 13)
-      HET(ind_I2O4, 1) = HET(ind_I2O4, 1) + & 
-                         HETIUptake(    3.18E2_fp, 2E-2_fp, 13)
-#endif
-      ! Iodine uptake onto accumulation-mode sea salt
-      HET(ind_HI,   2) = HETIUptake(    1.28E2_fp, 1E-1_fp, 11)
-      HET(ind_HOI,  1) = HETIUptake(    1.44E2_fp, 1E-2_fp, 11)
-      HET(ind_IONO, 1) = HETIUptake(    1.73E2_fp, 2E-2_fp, 11)
-      HET(ind_IONO2,1) = HETIUptake(    1.89E2_fp, 1E-2_fp, 11)
-      HET(ind_I2O2, 2) = HETIUptake(    2.86E2_fp, 2E-2_fp, 11)
-      HET(ind_I2O3, 2) = HETIUptake(    3.02E2_fp, 2E-2_fp, 11)
-      HET(ind_I2O4, 2) = HETIUptake(    3.18E2_fp, 2E-2_fp, 11)
-      ! Iodine uptake onto coarse-mode sea salt
-      HET(ind_HI,   3) = HETIUptake(    1.28E2_fp, 1E-1_fp, 12)
-      HET(ind_HOI,  2) = HETIUptake(    1.44E2_fp, 1E-2_fp, 12)
-      HET(ind_IONO, 2) = HETIUptake(    1.73E2_fp, 2E-2_fp, 12)
-      HET(ind_IONO2,2) = HETIUptake(    1.89E2_fp, 1E-2_fp, 12)
-      HET(ind_I2O2, 3) = HETIUptake(    2.86E2_fp, 2E-2_fp, 12)
-      HET(ind_I2O3, 3) = HETIUptake(    3.02E2_fp, 2E-2_fp, 12)
-      HET(ind_I2O4, 3) = HETIUptake(    3.18E2_fp, 2E-2_fp, 12)
-      ! Heterogeneous iodine recycling on sea salt
-      HET(ind_HOI,  3) = HETISSA(       1.44E2_fp, 1E-2_fp)
-      HET(ind_IONO, 3) = HETISSA(       1.73E2_fp, 2E-2_fp)
-      HET(ind_IONO2,3) = HETISSA(       1.89E2_fp, 1E-2_fp)
+      ! kIR1R2L: Either reactant could be limiting. Calculate uptake probability
+      ! for each one separately and then determine the overall rate by assuming
+      ! that the species with the lower total uptake rate is limiting and the
+      ! other is "abundant"
+      Call kIR1R2L(HET, ind_HOBr, 1, spcVec, ind_('HOBr'), ind_('HBr'), HETHOBr( 0.97E2_fp, 2E-1_fp), HETHBr( 0.81E2_fp, 2E-1_fp))
 
-      !--------------------------------------------------------------------
-      ! Kludging the rates to be equal to one another to avoid having
-      ! to keep setting equality in solver. (jpp, 5/10/2011)
-      !--------------------------------------------------------------------
-      IF ( ( HET(ind_HBr,1) > 0 ) .and. ( HET(ind_HOBr,1) > 0 ) ) THEN
+      ! SDE DEBUG
+      If ((I.eq.68).and.(J.eq.35).and.(L.eq.1)) Then
+         Write(6,'(a,3(x,I0.3))') 'Het-chem at', I, J, L
+         Write(6,'(a,3(x,E16.4E4))') 'H2O/HCl/HBr    :', spcVec(ind_('H2O')),spcVec(ind_('HCl')),spcVec(ind_('HBr'))
+         Write(6,'(a,2(x,E16.4E4))') 'HO2       rates:', HET(ind_HO2,    1,1),0.0e+0_fp
+         Write(6,'(a,2(x,E16.4E4))') 'NO2       rates:', HET(ind_NO2,    1,1),0.0e+0_fp
+         Write(6,'(a,2(x,E16.4E4))') 'NO3       rates:', HET(ind_NO3,    1,1),0.0e+0_fp
+         Write(6,'(a,2(x,E16.4E4))') 'N2O5+H2O  rates:', HET(ind_N2O5,   1,1),HET(ind_N2O5,  1,2)
+         Write(6,'(a,2(x,E16.4E4))') 'BrNO3+H2O rates:', HET(ind_BrNO3,  1,1),HET(ind_BrNO3, 1,2)
+         Write(6,'(a,2(x,E16.4E4))') 'N2O5+HCl  rates:', HET(ind_N2O5,   2,1),HET(ind_N2O5,  2,2)
+         Write(6,'(a,2(x,E16.4E4))') 'ClNO3+H2O rates:', HET(ind_ClNO3,  1,1),HET(ind_ClNO3, 1,2)
+         Write(6,'(a,2(x,E16.4E4))') 'ClNO3+HCl rates:', HET(ind_ClNO3,  2,1),HET(ind_ClNO3, 2,2)
+         Write(6,'(a,2(x,E16.4E4))') 'ClNO3+HBr rates:', HET(ind_ClNO3,  3,1),HET(ind_ClNO3, 3,2)
+         Write(6,'(a,2(x,E16.4E4))') 'BrNO3+HCl rates:', HET(ind_BrNO3,  2,1),HET(ind_BrNO3, 2,2)
+         Write(6,'(a,2(x,E16.4E4))') 'HOCl+HCl  rates:', HET(ind_HOCl,   1,1),HET(ind_HOCl,  1,2)
+         Write(6,'(a,2(x,E16.4E4))') 'HOCl+HBr  rates:', HET(ind_HOCl,   2,1),HET(ind_HOCl,  2,2)
+         Write(6,'(a,2(x,E16.4E4))') 'HOBr+HCl  rates:', HET(ind_HOBr,   2,1),HET(ind_HOBr,  2,2)
+         Write(6,'(a,2(x,E16.4E4))') 'HOBr+HBrL rates:', HET(ind_HOBr,   1,1),HET(ind_HOBr,  1,2)
+         Write(6,'(a,2(x,E16.4E4))') 'HOBr+HBrI rates:', HETHOBr_ice(0.97e2_fp,2E-1_fp), HETHBr_ice(0.81E2_fp,2E-1_fp)
+      End If
 
-         ! select the min of the two rates
-         hbr_rtemp  = HET(ind_HBr,1)  * SPC_HBr
-         hobr_rtemp = HET(ind_HOBr,1) * SPC_HOBr
+      ! Add the rate of processing on cold/ice clouds (already limited)
+      HET(ind_HOBr,1,1) = HET(ind_HOBr,1,1) + HETHOBr_ice( 0.97E2_fp, 2E-1_fp )
+      HET(ind_HOBr,1,2) = HET(ind_HOBr,1,2) + HETHBr_ice(  0.81E2_fp, 2E-1_fp )
 
-         ! if HBr rate is larger than HOBr rate
-         IF ( hbr_rtemp > hobr_rtemp ) THEN
+      ! SDE DEBUG - ZERO IT ALL
+      HET(ind_HO2,    1,1)    = 0.0e+0_fp 
+      HET(ind_NO2,    1,1)    = 0.0e+0_fp 
+      HET(ind_NO3,    1,1)    = 0.0e+0_fp 
 
-            SAFEDIV = IS_SAFE_DIV( HET(ind_HOBr,1) * SPC_HOBr, SPC_HBr )
+      HET(ind_N2O5,   1,1)    = 0.0e+0_fp 
+      HET(ind_N2O5,   1,2)    = 0.0e+0_fp 
 
-            IF (SAFEDIV) THEN
-               ! 2. if it is safe, then go ahead
-               HET(ind_HBr,1) = HET(ind_HOBr,1) * SPC_HOBr / SPC_HBr
-            ELSE
-               ! if not, then set rates really small...
-               ! b/c the largest contributor is very small.
-               HET(ind_HBr,1)  = TINY(1.e+0_fp)
-               HET(ind_HOBr,1) = TINY(1.e+0_fp)
-            ENDIF
+      HET(ind_BrNO3,  1,1)    = 0.0e+0_fp 
+      HET(ind_BrNO3,  1,2)    = 0.0e+0_fp 
 
-            ! if HOBr rate is larger than HBr rate
-         ELSE
+      HET(ind_N2O5,   2,1)    = 0.0e+0_fp 
+      HET(ind_N2O5,   2,2)    = 0.0e+0_fp 
 
-            ! 1. is it safe to divide?
-            SAFEDIV = IS_SAFE_DIV( HET(ind_HBr,1) * SPC_HBr, SPC_HOBr )
+      HET(ind_ClNO3,  1,1)    = 0.0e+0_fp 
+      HET(ind_ClNO3,  1,2)    = 0.0e+0_fp 
 
-            IF (SAFEDIV) THEN
-               ! 2. if it is safe, then go ahead
-               HET(ind_HOBr,1) = HET(ind_HBr,1) * SPC_HBr / SPC_HOBr
-            ELSE
-               ! if not, then set rates really small...
-               ! b/c the largest contributor is very small.
-               HET(ind_HBr,1)  = TINY(1.e+0_fp)
-               HET(ind_HOBr,1) = TINY(1.e+0_fp)
-            ENDIF
-         ENDIF
-      ENDIF
+      HET(ind_ClNO3,  2,1)    = 0.0e+0_fp 
+      HET(ind_ClNO3,  2,2)    = 0.0e+0_fp 
 
-      !--------------------------------------------------------------------
-      ! SDE 05/30/13: Limit rates to prevent solver failure for PSC
-      ! het. chem.
-      !--------------------------------------------------------------------
-#if defined( UCX )
-      DO PSCIDX=1,10
+      HET(ind_ClNO3,  3,1)    = 0.0e+0_fp 
+      HET(ind_ClNO3,  3,2)    = 0.0e+0_fp 
 
-         ! Pseudo-first-order reactions - divide by number-conc
-         ! of aerosol-phase educt to yield 2nd-order constant
-         EDUCTCONC = PSCEDUCTCONC(PSCIDX,2)
-         LIMITCONC = PSCEDUCTCONC(PSCIDX,1)
+      HET(ind_BrNO3,  2,1)    = 0.0e+0_fp 
+      HET(ind_BrNO3,  2,2)    = 0.0e+0_fp 
 
-         ! Initialize adjusted rates
-         IF     ( PSCIDX .eq. 1 ) THEN
-            ! N2O5 + H2O
-            ADJUSTEDRATE = HET(ind_N2O5,1)
-         ELSEIF ( PSCIDX .eq. 2 ) THEN
-            ! N2O5 + HCl
-            ADJUSTEDRATE = HET(ind_N2O5,2)
-         ELSEIF ( PSCIDX .eq. 3 ) THEN
-            ! ClNO3 + H2O
-            ADJUSTEDRATE = HET(ind_ClNO3,1)
-         ELSEIF ( PSCIDX .eq. 4 ) THEN
-            ! ClNO3 + HCl
-            ADJUSTEDRATE = HET(ind_ClNO3,2)
-         ELSEIF ( PSCIDX .eq. 5 ) THEN
-            ! ClNO3 + HBr
-            ADJUSTEDRATE = HET(ind_ClNO3,3)
-         ELSEIF ( PSCIDX .eq. 6 ) THEN
-            ! BrNO3 + H2O
-            ADJUSTEDRATE = HET(ind_BrNO3,1)
-         ELSEIF ( PSCIDX .eq. 7 ) THEN
-            ! BrNO3 + HCl
-            ADJUSTEDRATE = HET(ind_BrNO3,2)
-         ELSEIF ( PSCIDX .eq. 8 ) THEN
-            ! HOCl + HCl
-            ADJUSTEDRATE = HET(ind_HOCl,1)
-         ELSEIF ( PSCIDX .eq. 9 ) THEN
-            ! HOCl + HBr
-            ADJUSTEDRATE = HET(ind_HOCl,2)
-         ELSEIF ( PSCIDX .eq. 10) THEN
-            ! HOBr + HCl
-            ADJUSTEDRATE = HET(ind_HOBr,3)
-         ENDIF
+      HET(ind_HOCl,   1,1)    = 0.0e+0_fp 
+      HET(ind_HOCl,   1,2)    = 0.0e+0_fp 
 
-         ! ---SAFETY-CHECK REACTION---
-         ! Definition of 2nd order reaction rate:
-         ! k[A][B] = -d[A]/dt = -d[B]/dt
-         !
-         ! However, here we are using a pseudo-first order
-         ! reaction rate, ki, and assuming that [B] is
-         ! abundant. To get k, we will therefore perform:
-         ! k = ki/[B]
-         !
-         ! This will yield the following when solved:
-         ! -d[A]/dt = ki[A] = -d[B]/dt
-         !
-         ! This has some problems, especially for small [B]!
-         ! To get around this, we run the following checks:
-         !
-         ! 1. The lifetime of [A] is 1/ki. If this is below
-         !    PSCMINLIFE, limit reaction rate to yield the
-         !    specified lifetimedepletion (ki = 1/60)
-         ! 2. The depletion time of [B] is [B]/(ki[A]). If
-         !    this is below PSCMINLIFE, limit reaction rate
-         !    (ki = [B]/(T*[A])
-         ! 3. If [B] is < 100 molec/cm3, or ki/[B] yields
-         !    a Nan, force k = 0.
-         !
-         ! If all these checks are passed, we set k = ki/[B].
-         ! Rxn 11 is first-order - ignore
-         IF ( PSCIDX .eq. 1 ) THEN
+      HET(ind_HOCl,   2,1)    = 0.0e+0_fp 
+      HET(ind_HOCl,   2,2)    = 0.0e+0_fp 
 
-            ! Convert from 1st-order to 2nd-order
-            SAFEDIV = IS_SAFE_DIV(EDUCTCONC,LIMITCONC)
-            IF (SAFEDIV) THEN
-               ! Temporarily store [B]/(T*[A])
-               LIMITCONC = EDUCTCONC/(PSCMINLIFE*LIMITCONC)
-               IF (ADJUSTEDRATE.gt.LIMITCONC) THEN
-                  ADJUSTEDRATE = LIMITCONC
-               ENDIF
-            ELSE
-               ADJUSTEDRATE = 0e+0_fp
-            ENDIF
-            SAFEDIV = IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC)
-            IF ((EDUCTCONC.gt.1.e+2_fp).and. (SAFEDIV)) THEN
-               ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
-            ELSE
-               ADJUSTEDRATE = 0e+0_fp
-            ENDIF
+      HET(ind_HOBr,   1,1)    = 0.0e+0_fp 
+      HET(ind_HOBr,   1,2)    = 0.0e+0_fp 
 
-         ELSEIF ( PSCIDX .ne. 11 ) THEN
-
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
-            ENDIF
-            ! Convert from 1st-order to 2nd-order
-            SAFEDIV = IS_SAFE_DIV(EDUCTCONC,LIMITCONC)
-            IF (SAFEDIV) THEN
-               ! Temporarily store [B]/(T*[A])
-               LIMITCONC = EDUCTCONC/(PSCMINLIFE*LIMITCONC)
-               IF (ADJUSTEDRATE.gt.LIMITCONC) THEN
-                  ADJUSTEDRATE = LIMITCONC
-               ENDIF
-            ELSE
-               ADJUSTEDRATE = 0e+0_fp
-            ENDIF
-            SAFEDIV = IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC)
-            IF ((EDUCTCONC.gt.1.e+2_fp).and. (SAFEDIV)) THEN
-               ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
-            ELSE
-               ADJUSTEDRATE = 0e+0_fp
-            ENDIF
-
-         ENDIF
-
-         ! Copy adjusted rates to HET
-         IF     ( PSCIDX .eq. 1 ) THEN
-            ! N2O5 + H2O
-            HET(ind_N2O5,1) = ADJUSTEDRATE
-         ELSEIF ( PSCIDX .eq. 2 ) THEN
-            ! N2O5 + HCl
-            HET(ind_N2O5,2) = ADJUSTEDRATE
-         ELSEIF ( PSCIDX .eq. 3 ) THEN
-            ! ClNO3 + H2O
-            HET(ind_ClNO3,1) = ADJUSTEDRATE
-         ELSEIF ( PSCIDX .eq. 4 ) THEN
-            ! ClNO3 + HCl
-            HET(ind_ClNO3,2) = ADJUSTEDRATE
-         ELSEIF ( PSCIDX .eq. 5 ) THEN
-            ! ClNO3 + HBr
-            HET(ind_ClNO3,3) = ADJUSTEDRATE
-         ELSEIF ( PSCIDX .eq. 6 ) THEN
-            ! BrNO3 + H2O
-            HET(ind_BrNO3,1) = ADJUSTEDRATE
-         ELSEIF ( PSCIDX .eq. 7 ) THEN
-            ! BrNO3 + HCl
-            HET(ind_BrNO3,2) = ADJUSTEDRATE
-         ELSEIF ( PSCIDX .eq. 8 ) THEN
-            ! HOCl + HCl
-            HET(ind_HOCl,1) = ADJUSTEDRATE
-         ELSEIF ( PSCIDX .eq. 9 ) THEN
-            ! HOCl + HBr
-            HET(ind_HOCl,2) = ADJUSTEDRATE
-         ELSEIF ( PSCIDX .eq. 10) THEN
-            ! HOBr + HCl
-            HET(ind_HOBr,3) = ADJUSTEDRATE
-         ENDIF
-
-      ENDDO
-#endif
+      HET(ind_HOBr,   2,1)    = 0.0e+0_fp 
+      HET(ind_HOBr,   2,2)    = 0.0e+0_fp 
 
       SCF = SCF2
+
+      ! Nullify spcVec
+      Nullify( spcVec )
 
       RETURN
 
@@ -703,25 +457,25 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hetiuptake
+! !IROUTINE: kir1old
 !
-! !DESCRIPTION: Set the aerosol uptake rate for various iodine species.
+! !DESCRIPTION: Determine removal rates for only one species in an uptake reaction.
 !\\
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETIUptake( A, B, N ) RESULT( HET_I )
+    SUBROUTINE kIR1Old( Het, iStoreSpc, iStoreRxn, spcVec, indGas, indEduct, kISource )
 !
 ! !INPUT PARAMETERS: 
 !
       ! Rate coefficients
-      REAL(fp), INTENT(IN) :: A, B
-      ! Which aerosol type are we being adsorbed on to?
-      Integer,  Intent(In) :: N
-!
-! !RETURN VALUE:
-!
-      REAL(fp)             :: HET_I
+      Real(fp), Intent(InOut) :: Het(:,:,:)
+      Real(fp), Intent(In)    :: spcVec(:)
+      Integer,  Intent(In)    :: iStoreSpc
+      Integer,  Intent(In)    :: indGas
+      Integer,  Intent(In)    :: iStoreRxn
+      Integer,  Intent(In)    :: indEduct
+      Real(fp), Intent(In)    :: kISource
 !
 ! !REMARKS:
 !
@@ -735,36 +489,38 @@ MODULE GCKPP_HETRATES
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp) :: XSTKCF, ADJUSTEDRATE
 
-      ! Reaction rate for surface of aerosol
-      HET_I = ARSL1K(XAREA(N),XRADI(N),XDENA,B,XTEMP,(A**0.5_FP))
-      
-    END FUNCTION HETIUptake
+      ! Assume no role for the second reactant
+      Het(iStoreSpc,iStoreRxn,1) = kISource
+      Het(iStoreSpc,iStoreRxn,2) = 0.0e+0_fp
+
+    END SUBROUTINE kIR1Old
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hetissa
+! !IROUTINE: kir1ltd
 !
-! !DESCRIPTION: Set the heterogenous chemistry rate for IONO, IONO2 and HOI
-!               on the surface of sea salt aerosol.
+! !DESCRIPTION: Determine removal rates for both species in an uptake reaction.
 !\\
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETISSA( A, B ) RESULT( HET_I )
+    SUBROUTINE kIR1Ltd( Het, iStoreSpc, iStoreRxn, spcVec, indGas, indEduct, kISource, minLife )
 !
 ! !INPUT PARAMETERS: 
 !
       ! Rate coefficients
-      REAL(fp), INTENT(IN) :: A, B
-!
-! !RETURN VALUE:
-!
-      REAL(fp)             :: HET_I
+      Real(fp), Intent(InOut)        :: Het(:,:,:)
+      Integer,  Intent(In)           :: iStoreSpc
+      Integer,  Intent(In)           :: iStoreRxn
+      Real(fp), Intent(In)           :: spcVec(:)
+      Integer,  Intent(In)           :: indGas
+      Integer,  Intent(In)           :: indEduct
+      Real(fp), Intent(In)           :: kISource
+      Real(fp), Intent(In), Optional :: minLife
 !
 ! !REMARKS:
 !
@@ -772,41 +528,154 @@ MODULE GCKPP_HETRATES
 !  29 Mar 2016 - R. Yantosca - Added ProTeX header
 !  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!  20 Nov 2016 - S. D. Eastham - Adapted HETNO3 for iodine reactions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: N
-      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+      REAL(fp) :: kIGas, kIEduct, concGas, concEduct
+      Real(fp) :: lifeA, lifeB, kIMult
 
-      ! Initialize
-      HET_I        = 0.0_fp
-      ADJUSTEDRATE = 0.0_fp
-      XSTKCF       = 0.0_fp
+      concGas = spcVec(indGas)
+      concEduct = spcVec(indEduct)
 
-      ! Loop over aerosol types
-      DO N = 1, NAERO
+      ! Copy kI as calculated assuming no limitation
+      kIGas = kISource
 
-         XSTKCF = B
+      If (concEduct.lt.100.0e+0_fp) Then
+         kIGas = 0.0e+0_fp
+         kIEduct = 0.0e+0_fp
+      Else
+         ! Safe division here is probably overkill - may remove this
+         If (Is_Safe_Div(concGas*kIGas,concEduct)) Then
+            kIEduct = concGas*kIGas/concEduct
+         Else
+            kIGas = 0.0e+0_fp
+            kIEduct = 0.0e+0_fp
+         End If
+      End If
 
-         ! Only reacts on SSA
-         IF ((N.eq.11).or.(N.eq.12)) THEN
-            ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
-                               (A**0.5_FP))
-         ELSE
-            ADJUSTEDRATE = 0.0e+0_fp
-         ENDIF
-         
-         ! Add to overall reaction rate
-         HET_I = HET_I + ADJUSTEDRATE
+      ! Enforce a minimum lifetime?
+      If (Present(minLife)) Then
+         If ((kIGas.gt.0.0e+0_fp).and.(minLife.gt.0.0e+0_fp)) Then
+            ! Calculate lifetime of each reactant against removal
+            lifeA = Safe_Div(1.0e+0_fp,kIGas,0.0e+0_fp)
+            lifeB = Safe_Div(1.0e+0_fp,kIEduct,0.0e+0_fp)
+            ! Check if either lifetime is "too short"
+            If ((lifeA.lt.lifeB).and.(lifeA.lt.minLife)) Then
+               If (Is_Safe_Div(concGas*kIGas,concEduct)) Then
+                  kIGas = 1.0e+0_fp/minLife
+                  kIEduct = concGas*kIGas/concEduct
+               Else
+                  kIGas = 0.0e+0_fp
+                  kIEduct = 0.0e+0_fp
+               End If
+            ElseIf (lifeB.lt.minLife) Then
+               If (Is_Safe_Div(concEduct*kIEduct,concGas)) Then
+                  kIEduct = 1.0e+0_fp/minLife
+                  kIGas = concEduct*kIEduct/concGas
+               Else
+                  kIEduct = 0.0e+0_fp
+                  kIGas = 0.0e+0_fp
+               End If
+            End If
+         End If    
+      End If    
+ 
+      ! Return
+      Het(iStoreSpc,iStoreRxn,1) = kIGas
+      Het(iStoreSpc,iStoreRxn,2) = kIEduct
 
-      ENDDO
+    END SUBROUTINE kIR1Ltd
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: kir1r2l
+!
+! !DESCRIPTION: Determine removal rates for both species in an uptake reaction
+! without assuming which reactant is limiting.
+!\\
+!\\
+! !INTERFACE:
+!
+    SUBROUTINE kIR1R2L( Het, iStoreSpc, iStoreRxn, spcVec, indGasA, indGasB, kIASource, kIBSource )
+!
+! !USES:
+!
+      !USE Error_Mod, ONLY: Is_Safe_Div
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      Real(fp), Intent(InOut) :: Het(:,:,:)
+      Integer,  Intent(In)    :: iStoreSpc
+      Integer,  Intent(In)    :: iStoreRxn
+      Real(fp), Intent(In)    :: spcVec(:)
+      Integer,  Intent(In)    :: indGasA
+      Integer,  Intent(In)    :: indGasB
+      Real(fp), Intent(In)    :: kIASource
+      Real(fp), Intent(In)    :: kIBSource
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL(fp) :: concGasA, concGasB, kIA, kIB
+      REAL(fp) :: R_GasA, R_GasB
+      Logical  :: nonZeroRate
+
+      ! Get the base concentrations
+      concGasA = spcVec(indGasA)
+      concGasB = spcVec(indGasB)
+
+      ! Copy the first estimates of kI for each species
+      kIA = kIASource
+      kIB = kIBSource
+ 
+      ! Assume for now that the reaction will not proceed
+      nonZeroRate = .False.
+
+      ! Prevent reaction if either concentration is too low
+      If ((concGasA.gt.100.0e+0_fp).and.(concGasB.gt.100.0e+0_fp)) Then
+         ! Calculate the overall rate based on each reactant
+         R_GasA = kIA*concGasA
+         R_GasB = kIB*concGasB
+         If (R_GasA > R_GasB) Then
+            nonZeroRate = Is_Safe_Div( R_GasB, concGasA )
+            If (nonZeroRate) Then
+               kIA = kIB * concGasB / concGasA
+            End If
+         Else
+            nonZeroRate = Is_Safe_Div( R_GasA, concGasB )
+            If (nonZeroRate) Then
+               kIB = kIA * concGasA / concGasB
+            End If
+         End If
+      End If
+
+      ! If no tests were passed, zero out both rates
+      If (.not.nonZeroRate) Then
+         kIA = 0.0e+0_fp
+         kIB = 0.0e+0_fp
+      End If
       
-    END FUNCTION HETISSA
+      ! Assign rates to output
+      Het(iStoreSpc,iStoreRxn,1) = kIA
+      Het(iStoreSpc,iStoreRxn,2) = kIB
+
+    END SUBROUTINE kIR1R2L
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -873,8 +742,8 @@ MODULE GCKPP_HETRATES
          
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
          
@@ -950,8 +819,8 @@ MODULE GCKPP_HETRATES
          
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
          
@@ -1031,8 +900,8 @@ MODULE GCKPP_HETRATES
          
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
          
@@ -1124,8 +993,8 @@ MODULE GCKPP_HETRATES
 
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
 
@@ -1247,8 +1116,8 @@ MODULE GCKPP_HETRATES
          
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
          
@@ -1349,8 +1218,8 @@ MODULE GCKPP_HETRATES
 
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
          
@@ -1442,8 +1311,8 @@ MODULE GCKPP_HETRATES
          
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
          
@@ -2584,8 +2453,8 @@ MODULE GCKPP_HETRATES
 
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
 
@@ -2684,8 +2553,8 @@ MODULE GCKPP_HETRATES
 
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
 
@@ -2783,8 +2652,8 @@ MODULE GCKPP_HETRATES
 
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
 
@@ -2882,8 +2751,8 @@ MODULE GCKPP_HETRATES
 
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
 
@@ -2982,8 +2851,8 @@ MODULE GCKPP_HETRATES
 
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
 
@@ -3081,8 +2950,8 @@ MODULE GCKPP_HETRATES
 
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
 
@@ -3180,8 +3049,8 @@ MODULE GCKPP_HETRATES
 
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
 
@@ -3279,8 +3148,8 @@ MODULE GCKPP_HETRATES
 
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
+            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
+               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
             ENDIF
          ENDIF
 

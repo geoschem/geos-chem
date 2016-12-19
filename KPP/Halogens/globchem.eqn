@@ -370,10 +370,6 @@
 {279} ISOPND + O3 = 0.500PROPNN + 
        0.500ETHLN + 0.270OH + 0.500GLYC + 
        0.500HAC :                                      GCARR(5.30E-17, 0.0E+00, 0.0);
-{285} HO2 = O2 :                                       HET(ind_HO2,1);
-{286} NO2 = 0.500HNO3 + 0.500HNO2 :                    HET(ind_NO2,1);
-{287} NO3 = HNO3 :                                     HET(ind_NO3,1);
-{288} N2O5 + H2O = 2.000HNO3 :                         HET(ind_N2O5,1);
 {289} DMS + OH = SO2 + MO2 + CH2O :                    GCARR(1.20E-11, 0.0E+00, -280.0);
 {290} DMS + OH = 0.750SO2 + 0.250MSA + MO2 :           GC_DMSOH(8.20E-39, 0.0E+00, 5376.0, 1.05E-5, 0.0, 3644.0);
 {291} DMS + NO3 = SO2 + HNO3 + MO2 + CH2O :            GCARR(1.90E-13, 0.0E+00, 530.0);
@@ -401,11 +397,6 @@
 {313} CHBr3 + OH = 3.000Br :                           GCARR(1.35E-12, 0.0E+00, -600.0);
 {314} CH2Br2 + OH = 2.000Br :                          GCARR(2.00E-12, 0.0E+00, -840.0);
 {315} CH3Br + OH = Br + H2O + HO2 :                    GCARR(2.35E-12, 0.0E+00, -1300.0);
-{316} BrNO3 + H2O = HOBr + HNO3 :                      HET(ind_BrNO3,1);
-{317} HOBr = 0.500Br2 + H2O :                          HET(ind_HOBr,1);
-{318} HBr = 0.500Br2 :                                 HET(ind_HBr,1);
-{319} HOBr = 0.500Br2 + H2O :                          HET(ind_HOBr,2);
-{320} HBr = 0.500Br2 :                                 HET(ind_HBr,2);
 {325} HC5 + OH = HC5OO :                               GCARR(3.35E-11, 0.0E+00, 380.0);
 {326} HC5OO + NO = NO2 + 0.216GLYX + 
        0.234MGLY + 0.234GLYC + 0.216HAC + 
@@ -629,14 +620,6 @@
 {498} ClNO3 + O = ClO + NO3 :                          GCARR(3.60E-12, 0.0E+00, -840.0);
 {499} ClNO3 + Cl = Cl2 + NO3 :                         GCARR(6.50E-12, 0.0E+00, 135.0);
 {500} CH3Cl + Cl = CO + 2.000HCl + HO2 :               GCARR(2.17E-11, 0.0E+00, -1130.0);
-{502} N2O5 + HCl = ClNO2 + HNO3 :                      HET(ind_N2O5,2);
-{503} ClNO3 + H2O = HOCl + HNO3 :                      HET(ind_ClNO3,1);
-{504} ClNO3 + HCl = Cl2 + HNO3 :                       HET(ind_ClNO3,2);
-{505} ClNO3 + HBr = BrCl + HNO3 :                      HET(ind_ClNO3,3);
-{506} BrNO3 + HCl = BrCl + HNO3 :                      HET(ind_BrNO3,2);
-{507} HOCl + HCl = Cl2 + H2O :                         HET(ind_HOCl,1);
-{508} HOCl + HBr = BrCl + H2O :                        HET(ind_HOCl,2);
-{509} HOBr + HCl = BrCl + H2O :                        HET(ind_HOBr,3);
 {510} OH + CH2Cl2 = 2.000Cl + HO2 :                    GCARR(2.61E-12, 0.0E+00, -944.0);
 {511} OH + CHCl3 = 3.000Cl + HO2 :                     GCARR(4.69E-12, 0.0E+00, -1134.0);
 {512} CH2Cl2 + Cl = CO + HCl + 2.000Cl + 
@@ -670,27 +653,6 @@
 {539} OIO + OIO = I2O4 :                               GCARR(1.50E-10, 0.0E+00, 0.0);
 {540} I2O4 {+M} = 2.000OIO {+M} :                      GCARR(3.80E-02, 0.0E+00, 0.0)*NUMDEN;
 {541} OIO + NO = IO + NO2 :                            GCARR(1.10E-12, 0.0E+00, 542.0);
-{542} HI = ISALA :                                     HET(ind_HI,1);
-{543} HI = ISALC :                                     HET(ind_HI,2);
-{544} HI = AERI :                                      HET(ind_HI,3);
-{545} IONO2 = ISALA :                                  HET(ind_IONO2,1);
-{546} IONO2 = ISALC :                                  HET(ind_IONO2,2);
-{547} IONO2 = 0.850ICl + 0.150IBr + HNO3 :             HET(ind_IONO2,3);
-{548} I2O2 = 2.000ISALA :                              HET(ind_I2O2,1);
-{549} I2O2 = 2.000ISALC :                              HET(ind_I2O2,2);
-{550} I2O2 = 2.000AERI :                               HET(ind_I2O2,3);
-{551} HOI = ISALA :                                    HET(ind_HOI,1);
-{552} HOI = ISALC :                                    HET(ind_HOI,2);
-{553} HOI = 0.850ICl + 0.150IBr :                      HET(ind_HOI,3);
-{554} IONO = ISALA :                                   HET(ind_IONO,1);
-{555} IONO = ISALC :                                   HET(ind_IONO,2);
-{556} IONO = 0.850ICl + 0.150IBr + HNO2 :              HET(ind_IONO,3);
-{557} I2O4 = 2.000ISALA :                              HET(ind_I2O4,1);
-{558} I2O4 = 2.000ISALC :                              HET(ind_I2O4,2);
-{559} I2O4 = 2.000AERI :                               HET(ind_I2O4,3);
-{560} I2O3 = 2.000ISALA :                              HET(ind_I2O3,1);
-{561} I2O3 = 2.000ISALC :                              HET(ind_I2O3,2);
-{562} I2O3 = 2.000AERI :                               HET(ind_I2O3,3);
 {563} IO + ClO = I + OClO :                            GCARR(2.59E-12, 0.0E+00, 280.0);
 {564} IO + ClO = I + Cl + O2 :                         GCARR(1.18E-12, 0.0E+00, 280.0);
 {565} IO + ClO = ICl + O2 :                            GCARR(9.40E-13, 0.0E+00, 280.0);
@@ -709,6 +671,55 @@
 {578} Cl + ALK4 = HCl + R4O2 :                         GCARR(2.05E-10, 0.0E+00, 0.0);
 {579} Cl + PRPE {+M} = HCl + PO2 {+M} :                GCJPLPR(4.00E-28, 0.0E+00, 0.0, 2.8E-10, 0.0E0, 0.0, 0.6, 0.0, 0.0);
 {580} Br + PRPE = HBr + PO2 :                          GCARR(3.60E-12, 0.0E+00, 0.0);
+// Het-chem: uptake reactions
+{480} HO2 = O2 :                                       HET(ind_HO2,   1, 1);
+{481} NO2 = 0.500HNO3 + 0.500HNO2 :                    HET(ind_NO2,   1, 1);
+{483} NO3 = HNO3 :                                     HET(ind_NO3,   1, 1);
+// Het-chem: 2 reactants
+{485} N2O5 = 2.000HNO3 :                               HET(ind_N2O5,  1, 1);
+{486} H2O = DUMMY :                                    HET(ind_N2O5,  1, 2);
+{487} BrNO3 = HOBr + HNO3 :                            HET(ind_BrNO3, 1, 1);
+{488} H2O = DUMMY :                                    HET(ind_BrNO3, 1, 2);
+{489} HOBr = Br2 + H2O :                               HET(ind_HOBr,  1, 1);
+{490} HBr = DUMMY :                                    HET(ind_HOBr,  1, 2);
+{491} N2O5 = ClNO2 + HNO3 :                            HET(ind_N2O5,  2, 1);
+{492} HCl = DUMMY :                                    HET(ind_N2O5,  2, 2);
+{493} ClNO3 = HOCl + HNO3 :                            HET(ind_ClNO3, 1, 1);
+{494} H2O = DUMMY :                                    HET(ind_ClNO3, 1, 2);
+{495} ClNO3 = Cl2 + HNO3 :                             HET(ind_ClNO3, 2, 1);
+{496} HCl = DUMMY :                                    HET(ind_ClNO3, 2, 2);
+{497} ClNO3 = BrCl + HNO3 :                            HET(ind_ClNO3, 3, 1);
+{498} HBr = DUMMY :                                    HET(ind_ClNO3, 3, 2);
+{499} BrNO3 = BrCl + HNO3 :                            HET(ind_BrNO3, 2, 1);
+{500} HCl = DUMMY :                                    HET(ind_BrNO3, 2, 2);
+{501} HOCl = Cl2 + H2O :                               HET(ind_HOCl,  1, 1);
+{502} HCl = DUMMY :                                    HET(ind_HOCl,  1, 2);
+{503} HOCl = BrCl + H2O :                              HET(ind_HOCl,  2, 1);
+{504} HBr = DUMMY :                                    HET(ind_HOCl,  2, 2);
+{505} HOBr = BrCl + H2O :                              HET(ind_HOBr,  2, 1);
+{506} HCl = DUMMY :                                    HET(ind_HOBr,  2, 2);
+// New het chem
+{542} HI = ISALA :                                     HET(ind_HI,1,1);
+{543} HI = ISALC :                                     HET(ind_HI,2,1);
+{544} HI = AERI :                                      HET(ind_HI,3,1);
+{545} IONO2 = ISALA :                                  HET(ind_IONO2,1,1);
+{546} IONO2 = ISALC :                                  HET(ind_IONO2,2,1);
+{547} IONO2 = 0.850ICl + 0.150IBr + HNO3 :             HET(ind_IONO2,3,1);
+{548} I2O2 = 2.000ISALA :                              HET(ind_I2O2,1,1);
+{549} I2O2 = 2.000ISALC :                              HET(ind_I2O2,2,1);
+{550} I2O2 = 2.000AERI :                               HET(ind_I2O2,3,1);
+{551} HOI = ISALA :                                    HET(ind_HOI,1,1);
+{552} HOI = ISALC :                                    HET(ind_HOI,2,1);
+{553} HOI = 0.850ICl + 0.150IBr :                      HET(ind_HOI,3,1);
+{554} IONO = ISALA :                                   HET(ind_IONO,1,1);
+{555} IONO = ISALC :                                   HET(ind_IONO,2,1);
+{556} IONO = 0.850ICl + 0.150IBr + HNO2 :              HET(ind_IONO,3,1);
+{557} I2O4 = 2.000ISALA :                              HET(ind_I2O4,1,1);
+{558} I2O4 = 2.000ISALC :                              HET(ind_I2O4,2,1);
+{559} I2O4 = 2.000AERI :                               HET(ind_I2O4,3,1);
+{560} I2O3 = 2.000ISALA :                              HET(ind_I2O3,1,1);
+{561} I2O3 = 2.000ISALC :                              HET(ind_I2O3,2,1);
+{562} I2O3 = 2.000AERI :                               HET(ind_I2O3,3,1);
 //
 // photolysis reactions
 //

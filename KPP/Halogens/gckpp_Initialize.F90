@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Initialize.f90
-! Time                 : Sun Nov 20 17:41:16 2016
-! Working directory    : /n/home13/seastham/KPP_FlexChem/Run
+! Time                 : Sun Dec 11 19:18:15 2016
+! Working directory    : /n/home13/seastham/GCStandard/Code/Code.v11-01g-Iodine/KPP/Halogens
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 

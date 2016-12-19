@@ -643,6 +643,53 @@ MODULE GCKPP_HETRATES
 
       SCF = SCF2
 
+      ! SDE DEBUG
+      If ((I.eq.68).and.(J.eq.35).and.(L.eq.1)) Then
+         Write(6,'(a,3(x,I0.3))') 'Het-chem at', I, J, L
+         Write(6,'(a,3(x,E16.4E4))') 'H2O/HCl/HBr    :', SPC_H2O, SPC_HCl, SPC_HBr
+         Write(6,'(a,2(x,E16.4E4))') 'HO2       rates:', HET(ind_HO2,    1),0.0e+0_fp
+         Write(6,'(a,2(x,E16.4E4))') 'NO2       rates:', HET(ind_NO2,    1),0.0e+0_fp
+         Write(6,'(a,2(x,E16.4E4))') 'NO3       rates:', HET(ind_NO3,    1),0.0e+0_fp
+         Write(6,'(a,2(x,E16.4E4))') 'N2O5+H2O  rates:', HET(ind_N2O5,   1)*SPC_H2O, HET(ind_N2O5,   1)
+         Write(6,'(a,2(x,E16.4E4))') 'BrNO3+H2O rates:', HET(ind_BrNO3,  1)*SPC_H2O, HET(ind_BrNO3,  1)
+         Write(6,'(a,2(x,E16.4E4))') 'N2O5+HCl  rates:', HET(ind_N2O5,   2)*SPC_HCl, HET(ind_N2O5,   2)
+         Write(6,'(a,2(x,E16.4E4))') 'ClNO3+H2O rates:', HET(ind_ClNO3,  1)*SPC_H2O, HET(ind_ClNO3,  1)
+         Write(6,'(a,2(x,E16.4E4))') 'ClNO3+HCl rates:', HET(ind_ClNO3,  2)*SPC_HCl, HET(ind_ClNO3,  2)
+         Write(6,'(a,2(x,E16.4E4))') 'ClNO3+HBr rates:', HET(ind_ClNO3,  3)*SPC_HBr, HET(ind_ClNO3,  3)
+         Write(6,'(a,2(x,E16.4E4))') 'BrNO3+HCl rates:', HET(ind_BrNO3,  2)*SPC_HCl, HET(ind_BrNO3,  2)
+         Write(6,'(a,2(x,E16.4E4))') 'HOCl+HCl  rates:', HET(ind_HOCl,   1)*SPC_HCl, HET(ind_HOCl,   1)
+         Write(6,'(a,2(x,E16.4E4))') 'HOCl+HBr  rates:', HET(ind_HOCl,   2)*SPC_HBr, HET(ind_HOCl,   2)
+         Write(6,'(a,2(x,E16.4E4))') 'HOBr+HCl  rates:', HET(ind_HOBr,   3)*SPC_HCl, HET(ind_HOBr,   3)
+         Write(6,'(a,2(x,E16.4E4))') 'HOBr+HBrL rates:', HET(ind_HOBr,   1),HET(ind_HBr,1)
+         Write(6,'(a,2(x,E16.4E4))') 'HOBr+HBrI rates:', kI_HOBr,           kI_HBr
+      End If
+
+      ! SDE DEBUG - ZERO IT ALL
+      !HET(ind_HO2,    1)    = 0.0e+0_fp 
+      !HET(ind_NO2,    1)    = 0.0e+0_fp 
+      !HET(ind_NO3,    1)    = 0.0e+0_fp 
+
+      !!HET(ind_N2O5,   1)    = 0.0e+0_fp 
+      !HET(ind_BrNO3,  1)    = 0.0e+0_fp 
+      !!HET(ind_N2O5,   2)    = 0.0e+0_fp 
+      !!HET(ind_ClNO3,  1)    = 0.0e+0_fp 
+      !!HET(ind_ClNO3,  2)    = 0.0e+0_fp 
+      !!HET(ind_ClNO3,  3)    = 0.0e+0_fp 
+      !!HET(ind_BrNO3,  2)    = 0.0e+0_fp 
+      !!HET(ind_HOCl,   1)    = 0.0e+0_fp 
+      !!HET(ind_HOCl,   2)    = 0.0e+0_fp 
+      !HET(ind_HOBr,   1)    = 0.0e+0_fp 
+      !HET(ind_HOBr,   2)    = 0.0e+0_fp 
+      !!HET(ind_HOBr,   3)    = 0.0e+0_fp 
+      !HET(ind_HBr,    1)    = 0.0e+0_fp 
+      !HET(ind_HBr,    2)    = 0.0e+0_fp 
+
+      !SCF2(:) = 0.0
+
+      If ((I.eq.68).and.(J.eq.35).and.(L.eq.1)) Then
+        Write(6,'(a,E16.4E4)') ' Maxhet: ',MaxVal(Het)
+      End If
+
       RETURN
 
     END SUBROUTINE SET_HET
