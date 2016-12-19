@@ -139,8 +139,9 @@ slowclean:
 realclean:
 	@$(MAKE) -C Standard  clean
 	@$(MAKE) -C Hetv2  clean
-	@$(MAKE) -C Hetv3  clean
+	@$(MAKE) -C BrCl   clean
 	@$(MAKE) -C NoHet  clean
+	@$(MAKE) -C IGas   clean
 	@$(MAKE) -C Halogens  clean
 	@$(MAKE) -C SOA       clean
 	@$(MAKE) -C SOA_SVPOA clean
@@ -150,8 +151,9 @@ realclean:
 slowrealclean:
 	@$(MAKE) -C Standard  slowclean
 	@$(MAKE) -C Hetv2  clean
-	@$(MAKE) -C Hetv3  clean
+	@$(MAKE) -C BrCl   clean
 	@$(MAKE) -C NoHet  clean
+	@$(MAKE) -C IGas      slowclean
 	@$(MAKE) -C Halogens  slowclean
 	@$(MAKE) -C SOA       slowclean
 	@$(MAKE) -C SOA_SVPOA slowclean
