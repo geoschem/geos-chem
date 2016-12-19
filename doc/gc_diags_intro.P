@@ -4,6 +4,6 @@
 !BOI
 ! !TITLE: GEOS-Chem Reference\\3. Diagnostic Modules
 ! !AUTHORS: GEOS-Chem Support Team
-! !DATE: 18 Nov 2016
+! !DATE: 20 Dec 2016
 !EOI
 !------------------------------------------------------------------------------
