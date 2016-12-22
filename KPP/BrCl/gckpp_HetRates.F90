@@ -57,7 +57,7 @@ MODULE GCKPP_HETRATES
   PRIVATE :: HETBrNO3_JS
   PRIVATE :: HETClNO3_JS
   PRIVATE :: HETHOBrBr_JS
-  PRIVATE :: HETHOBrCl_JS
+  PRIVATE :: HETHOBr_HCl_JS
   PRIVATE :: HETClNO3_HBr_JS
 
   ! New subroutines required by the JS functions
@@ -449,17 +449,17 @@ MODULE GCKPP_HETRATES
          kITemp = HETClNO3_JS( XDenA, rLiq, rIce, ALiq, AIce, TempK )
          HET(ind_ClNO3, 1) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('H2O'), kITemp, hetMinLife)
 
-         ! New calculation for HOBr + HBr (old index: hhc06)
+         ! New calculation for HOBr + HBr (TS index: hhc06)
          kITemp = HETHOBrBr_JS( XDenA, rLiq, rIce, ALiq, AIce, VAir, TempK, &
                            hConc_Sul, hConc_LCl, hConc_ICl, brConc_Cld )
          HET(ind_HOBr,  1) = kIIR1Ltd( spcVec, ind_('HOBr'),  ind_('HBr'), kITemp, hetMinLife)
 
-         ! New calculation for HOBr + HCl (old index: hhc03)
-         kITemp = HETHOBrCl_JS( XDenA, rLiq, rIce, ALiq, AIce, VAir, TempK, &
+         ! New calculation for HOBr + HCl (TS index: hhc03)
+         kITemp = HETHOBr_HCl_JS( XDenA, rLiq, rIce, ALiq, AIce, VAir, TempK, &
                            hConc_Sul, hConc_LCl, hConc_ICl, clConc_Cld )
          HET(ind_HOBr,  2) = kIIR1Ltd( spcVec, ind_('HOBr'),  ind_('HCl'), kITemp, hetMinLife)
 
-         ! New calculation for ClNO3 + HCl (old index: [NONE])
+         ! Extended calculation for ClNO3 + HCl
          HET(ind_ClNO3, 2) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('HCl'), HETClNO3_HCl( 0.97E2_fp, 0E+0_fp), hetMinLife)
 
          ! New calculation for ClNO3 + HBr (TS index: hhc09)
@@ -1412,7 +1412,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hethobrcl_js
+! !IROUTINE: hethobr_hcl_js
 !
 ! !DESCRIPTION: Sets the rate of the multiphase reaction HOBr + Cl- in 
 !  sulfate aerosols, on cloud droplets and on PSCs
@@ -1420,7 +1420,7 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETHOBrCl_JS( denAir, rLiq, rIce, ALiq, AIce, VAir, TK, &
+    FUNCTION HETHOBr_HCl_JS( denAir, rLiq, rIce, ALiq, AIce, VAir, TK, &
                            hConc_Sul, hConc_LCl, hConc_ICl, clConc ) RESULT( kISum )
 !
 ! !INPUT PARAMETERS: 
@@ -1511,7 +1511,7 @@ MODULE GCKPP_HETRATES
        End If
     End If
 
-    END FUNCTION HETHOBrCl_JS
+    END FUNCTION HETHOBr_HCl_JS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1950,7 +1950,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hetclno3_HCl
+! !IROUTINE: hetclno3_hcl
 !
 ! !DESCRIPTION: Sets the heterogenous chemistry rate for ClNO3(g) + HCl(l,s)
 ! in polar stratospheric clouds and on tropospheric sulfate.
