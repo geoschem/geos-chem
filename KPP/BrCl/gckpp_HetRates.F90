@@ -66,9 +66,11 @@ MODULE GCKPP_HETRATES
   PRIVATE :: Coth
   PRIVATE :: ReactoDiff_Corr
 
-  ! This is the old ClNO3 + HCl reaction ("PSC2") but expanded to allow reaction
-  ! on tropospheric sulfates
+  ! These are formerly strat-only reactions extended to take place in the
+  ! troposphere on sulfate aerosol
   PRIVATE :: HETClNO3_HCl
+  PRIVATE :: HETHOCl_HBr
+  PRIVATE :: HETHOCl_HCl
 
   ! These are subfunctions to calculate rates on/in clouds
   PRIVATE :: CLD_PARAMS
@@ -466,11 +468,15 @@ MODULE GCKPP_HETRATES
          kITemp = HETClNO3_HBr_JS( xDenA, rLiq, rIce, ALiq, AIce, VAir, TempK, brConc_Cld )
          HET(ind_ClNO3, 3) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('HBr'), kITemp, hetMinLife)
 
+         ! Extend HOCl + HCl and HOCl + HBr to take place in the troposphere
+         HET(ind_HOCl,  1) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HCl'), HETHOCl_HCl(  0.52E2_fp, 0E+0_fp), hetMinLife)
+         HET(ind_HOCl,  2) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HBr'), HETHOCl_HBr(  0.52E2_fp, 0E+0_fp), hetMinLife)
+
          ! Old UCX reactions - only considered in stratospheric cells
          HET(ind_N2O5,  2) = kIIR1Ltd( spcVec, ind_('N2O5'),  ind_('HCl'), HETN2O5_PSC(   1.08E2_fp, 0E+0_fp), hetMinLife)
          HET(ind_BrNO3, 2) = kIIR1Ltd( spcVec, ind_('BrNO3'), ind_('HCl'), HETBrNO3_PSC(  1.42E2_fp, 0E+0_fp), hetMinLife)
-         HET(ind_HOCl,  1) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HCl'), HETHOCl_PSC1(  0.52E2_fp, 0E+0_fp), hetMinLife)
-         HET(ind_HOCl,  2) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HBr'), HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp), hetMinLife)
+         !HET(ind_HOCl,  1) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HCl'), HETHOCl_PSC1(  0.52E2_fp, 0E+0_fp), hetMinLife)
+         !HET(ind_HOCl,  2) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HBr'), HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp), hetMinLife)
 
          ! kIIR1R2L: Either reactant could be limiting. Calculate uptake probability
          ! for each one separately and then determine the overall rate by assuming
@@ -1265,6 +1271,7 @@ MODULE GCKPP_HETRATES
          IF ( N == 8 ) THEN
             ! sulfate aerosol
             XSTKCF = Gamma_ClNO3_Br( xRadi(8), denAir, TK, brConc )
+#if defined( UCX )
          ELSEIF (STRATBOX) THEN
             IF (N.eq.13) THEN
                XSTKCF = KHETI_SLA(5)
@@ -1275,6 +1282,7 @@ MODULE GCKPP_HETRATES
                   XSTKCF = 0.3e+0_fp ! Ice
                ENDIF
             ENDIF
+#endif
          ENDIF
 
          If (XStkCf.gt.0.0e+0_fp) Then
@@ -2031,6 +2039,186 @@ MODULE GCKPP_HETRATES
       END DO
 
     END FUNCTION HETClNO3_HCl
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hethocl_hcl
+!
+! !DESCRIPTION: Set heterogenous chemistry rate for HOCl(g) + HCl(l,s)
+!  in polar stratospheric clouds and on sulfate aerosol.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETHOCl_HCl( A, B ) RESULT( kISum )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: kISum
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
+!                              in calcrate.F
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
+!  22 Dec 2016 - S. D. Eastham - Now active for non-UCX mechanisms
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
+      ! Initialize
+      kISum         = 0.0_fp
+      ADJUSTEDRATE  = 0.0_fp
+      XSTKCF        = 0.0_fp
+
+      ! Loop over aerosol types
+      DO N = 1, NAERO
+
+         XSTKCF        = 0.0_fp
+         If (N.eq.8) Then
+            XSTKCF = 0.8e+0_fp ! Sulfate
+         ! Only consider PSC reactions in strat
+#if defined( UCX )
+         ElseIf (STRATBOX) Then
+            IF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(8)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.1e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.2e+0_fp ! Ice
+               ENDIF
+            ENDIF
+#endif
+         ENDIF
+
+         If (XStkCf.gt.0.0e+0_fp) Then
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            ! Add to overall reaction rate
+            kISum = kISum + AdjustedRate
+
+         End If
+
+      END DO
+
+    END FUNCTION HETHOCl_HCl
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hethocl_hbr
+!
+! !DESCRIPTION: Set heterogenous chemistry rate for HOCl(g) + HBr(l,s)
+!  in polar stratospheric clouds and on sulfate aerosol.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETHOCl_HBr( A, B ) RESULT( kISum )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: kISum
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
+!                              in calcrate.F
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
+!  22 Dec 2016 - S. D. Eastham - Now active for non-UCX mechanisms
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
+      ! Initialize
+      kISum         = 0.0_fp
+      ADJUSTEDRATE  = 0.0_fp
+      XSTKCF        = 0.0_fp
+
+      ! Loop over aerosol types
+      DO N = 1, NAERO
+
+         XSTKCF        = 0.0_fp
+         If (N.eq.8) Then
+            XSTKCF = 0.8e+0_fp ! Sulfate
+         ! Only consider PSC reactions in strat
+#if defined( UCX )
+         ElseIf (STRATBOX) Then
+            IF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(9)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.3e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.3e+0_fp ! Ice
+               ENDIF
+            ENDIF
+#endif
+         ENDIF
+
+         If (XStkCf.gt.0.0e+0_fp) Then
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            ! Add to overall reaction rate
+            kISum = kISum + AdjustedRate
+
+         End If
+
+      END DO
+
+    END FUNCTION HETHOCl_HBr
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
