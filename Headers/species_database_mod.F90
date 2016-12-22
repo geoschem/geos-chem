@@ -157,8 +157,8 @@ CONTAINS
 !
     ! Scalars
     INTEGER             :: C,      N,   nSpecies
-    REAL(fp)            :: Radius, KOA, MW_g,    BackgroundVV   
-    REAL(fp)            :: K0,     CR,  HStar
+    REAL(fp)            :: Radius, KOA, MW_g,    BackgroundVV, HStar
+    REAL(f8)            :: K0,     CR
 
     ! Arrays
     REAL(fp)            :: DvzMinVal(2)
@@ -2837,7 +2837,7 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 9.50e+0_f8,                   &
+                              DD_Hstar_old  = 9.50e+0_fp,                   &
                               Henry_K0      = 9.50e+0_f8,                   &
                               Henry_CR      = 4700.0_f8,                    &
                               WD_RetFactor  = 2.0e-2_fp,                    &
