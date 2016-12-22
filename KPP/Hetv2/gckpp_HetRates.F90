@@ -57,9 +57,8 @@ MODULE GCKPP_HETRATES
   PRIVATE :: FYHORO
   PRIVATE :: FYRNO3
   PRIVATE :: ARSL1K
-  PRIVATE :: kIR1Old
-  PRIVATE :: kIR1Ltd
-  PRIVATE :: kIR1R2L
+  PRIVATE :: kIIR1Ltd
+  PRIVATE :: kIIR1R2L
 
 #if defined( UCX )
   ! These functions are only used for UCX-based mechanisms
@@ -190,6 +189,11 @@ MODULE GCKPP_HETRATES
 
       ! New treatment for educt removal
       Real(fp),Pointer :: spcVec(:)
+
+      ! Debug
+      Integer, Parameter :: IMax=50
+      Integer, Parameter :: JMax=8
+      Integer, Parameter :: LMax=40
 
 #if defined( UCX )
       ! Variables for UCX-based mechanisms
@@ -355,93 +359,103 @@ MODULE GCKPP_HETRATES
       ! Calculate and pass het rates to the KPP rate array
       !--------------------------------------------------------------------
       ! Calculate genuine first-order uptake reactions first
-      HET(ind_HO2,  1, 1) = HETHO2( 3.30E1_fp, 2E-1_fp)
-      HET(ind_NO2,  1, 1) = HETNO2( 4.60E1_fp, 1E-4_fp)
-      HET(ind_NO3,  1, 1) = HETNO3( 6.20E1_fp, 1E-1_fp)
+      HET(ind_HO2,   1) = HETHO2( 3.30E1_fp, 2E-1_fp)
+      HET(ind_NO2,   1) = HETNO2( 4.60E1_fp, 1E-4_fp)
+      HET(ind_NO3,   1) = HETNO3( 6.20E1_fp, 1E-1_fp)
       ! Now calculate reaction rates where the educt can be consumed.
-      ! kIR1Ltd: Assume that the first reactant is limiting. Assume that the
+      ! kIIR1Ltd: Assume that the first reactant is limiting. Assume that the
       ! second reactant is "abundant" and calculate the overall rate based on
       ! the uptake rate of the first reactant only
-      Call kIR1Ltd(HET, ind_N2O5,  1, spcVec, ind_('N2O5'),  ind_('H2O'), HETN2O5(       1.08E2_fp, 1E-1_fp))
-      Call kIR1Ltd(HET, ind_BrNO3, 1, spcVec, ind_('BrNO3'), ind_('H2O'), HETBrNO3(      1.42E2_fp, 3E-1_fp), hetMinLife)
+      HET(ind_N2O5,  1) = kIIR1Ltd( spcVec, ind_('N2O5'),  ind_('H2O'), HETN2O5(       1.08E2_fp, 1E-1_fp))
+      HET(ind_BrNO3, 1) = kIIR1Ltd( spcVec, ind_('BrNO3'), ind_('H2O'), HETBrNO3(      1.42E2_fp, 3E-1_fp), hetMinLife)
 #if defined( UCX )
-      Call kIR1Ltd(HET, ind_N2O5,  2, spcVec, ind_('N2O5'),  ind_('HCl'), HETN2O5_PSC(   1.08E2_fp, 0E+0_fp), hetMinLife)
-      Call kIR1Ltd(HET, ind_ClNO3, 1, spcVec, ind_('ClNO3'), ind_('H2O'), HETClNO3_PSC1( 0.97E2_fp, 0E+0_fp), hetMinLife)
-      Call kIR1Ltd(HET, ind_ClNO3, 2, spcVec, ind_('ClNO3'), ind_('HCl'), HETClNO3_PSC2( 0.97E2_fp, 0E+0_fp), hetMinLife)
-      Call kIR1Ltd(HET, ind_ClNO3, 3, spcVec, ind_('ClNO3'), ind_('HBr'), HETClNO3_PSC3( 0.97E2_fp, 0E+0_fp), hetMinLife)
-      Call kIR1Ltd(HET, ind_BrNO3, 2, spcVec, ind_('BrNO3'), ind_('HCl'), HETBrNO3_PSC(  1.42E2_fp, 0E+0_fp), hetMinLife)
-      Call kIR1Ltd(HET, ind_HOCl,  1, spcVec, ind_('HOCl'),  ind_('HCl'), HETHOCl_PSC1(  0.52E2_fp, 0E+0_fp), hetMinLife)
-      Call kIR1Ltd(HET, ind_HOCl,  2, spcVec, ind_('HOCl'),  ind_('HBr'), HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp), hetMinLife)
-      Call kIR1Ltd(HET, ind_HOBr,  2, spcVec, ind_('HOBr'),  ind_('HCl'), HETHOBr_PSC(   0.97E2_fp, 0E+0_fp), hetMinLife)
+      HET(ind_N2O5,  2) = kIIR1Ltd( spcVec, ind_('N2O5'),  ind_('HCl'), HETN2O5_PSC(   1.08E2_fp, 0E+0_fp), hetMinLife)
+      HET(ind_ClNO3, 1) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('H2O'), HETClNO3_PSC1( 0.97E2_fp, 0E+0_fp), hetMinLife)
+      HET(ind_ClNO3, 2) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('HCl'), HETClNO3_PSC2( 0.97E2_fp, 0E+0_fp), hetMinLife)
+      HET(ind_ClNO3, 3) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('HBr'), HETClNO3_PSC3( 0.97E2_fp, 0E+0_fp), hetMinLife)
+      HET(ind_BrNO3, 2) = kIIR1Ltd( spcVec, ind_('BrNO3'), ind_('HCl'), HETBrNO3_PSC(  1.42E2_fp, 0E+0_fp), hetMinLife)
+      HET(ind_HOCl,  1) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HCl'), HETHOCl_PSC1(  0.52E2_fp, 0E+0_fp), hetMinLife)
+      HET(ind_HOCl,  2) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HBr'), HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp), hetMinLife)
+      HET(ind_HOBr,  2) = kIIR1Ltd( spcVec, ind_('HOBr'),  ind_('HCl'), HETHOBr_PSC(   0.97E2_fp, 0E+0_fp), hetMinLife)
 #endif
-      ! kIR1R2L: Either reactant could be limiting. Calculate uptake probability
+      ! kIIR1R2L: Either reactant could be limiting. Calculate uptake probability
       ! for each one separately and then determine the overall rate by assuming
       ! that the species with the lower total uptake rate is limiting and the
       ! other is "abundant"
-      Call kIR1R2L(HET, ind_HOBr, 1, spcVec, ind_('HOBr'), ind_('HBr'), HETHOBr( 0.97E2_fp, 2E-1_fp), HETHBr( 0.81E2_fp, 2E-1_fp))
+      HET(ind_HOBr,  1) = kIIR1R2L( spcVec, ind_('HOBr'), ind_('HBr'), HETHOBr( 0.97E2_fp, 2E-1_fp), HETHBr( 0.81E2_fp, 2E-1_fp))
 
       ! SDE DEBUG
-      If ((I.eq.68).and.(J.eq.35).and.(L.eq.1)) Then
+      If ((I.eq.IMax).and.(J.eq.JMax).and.(L.eq.LMax)) Then
          Write(6,'(a,3(x,I0.3))') 'Het-chem at', I, J, L
-         Write(6,'(a,3(x,E16.4E4))') 'H2O/HCl/HBr    :', spcVec(ind_('H2O')),spcVec(ind_('HCl')),spcVec(ind_('HBr'))
-         Write(6,'(a,2(x,E16.4E4))') 'HO2       rates:', HET(ind_HO2,    1,1),0.0e+0_fp
-         Write(6,'(a,2(x,E16.4E4))') 'NO2       rates:', HET(ind_NO2,    1,1),0.0e+0_fp
-         Write(6,'(a,2(x,E16.4E4))') 'NO3       rates:', HET(ind_NO3,    1,1),0.0e+0_fp
-         Write(6,'(a,2(x,E16.4E4))') 'N2O5+H2O  rates:', HET(ind_N2O5,   1,1),HET(ind_N2O5,  1,2)
-         Write(6,'(a,2(x,E16.4E4))') 'BrNO3+H2O rates:', HET(ind_BrNO3,  1,1),HET(ind_BrNO3, 1,2)
-         Write(6,'(a,2(x,E16.4E4))') 'N2O5+HCl  rates:', HET(ind_N2O5,   2,1),HET(ind_N2O5,  2,2)
-         Write(6,'(a,2(x,E16.4E4))') 'ClNO3+H2O rates:', HET(ind_ClNO3,  1,1),HET(ind_ClNO3, 1,2)
-         Write(6,'(a,2(x,E16.4E4))') 'ClNO3+HCl rates:', HET(ind_ClNO3,  2,1),HET(ind_ClNO3, 2,2)
-         Write(6,'(a,2(x,E16.4E4))') 'ClNO3+HBr rates:', HET(ind_ClNO3,  3,1),HET(ind_ClNO3, 3,2)
-         Write(6,'(a,2(x,E16.4E4))') 'BrNO3+HCl rates:', HET(ind_BrNO3,  2,1),HET(ind_BrNO3, 2,2)
-         Write(6,'(a,2(x,E16.4E4))') 'HOCl+HCl  rates:', HET(ind_HOCl,   1,1),HET(ind_HOCl,  1,2)
-         Write(6,'(a,2(x,E16.4E4))') 'HOCl+HBr  rates:', HET(ind_HOCl,   2,1),HET(ind_HOCl,  2,2)
-         Write(6,'(a,2(x,E16.4E4))') 'HOBr+HCl  rates:', HET(ind_HOBr,   2,1),HET(ind_HOBr,  2,2)
-         Write(6,'(a,2(x,E16.4E4))') 'HOBr+HBrL rates:', HET(ind_HOBr,   1,1),HET(ind_HOBr,  1,2)
-         Write(6,'(a,2(x,E16.4E4))') 'HOBr+HBrI rates:', HETHOBr_ice(0.97e2_fp,2E-1_fp), HETHBr_ice(0.81E2_fp,2E-1_fp)
+         Write(6,'(a,3(x,E20.8E4))') 'H2O/HCl/HBr    :', spcVec(ind_('H2O')),spcVec(ind_('HCl')),spcVec(ind_('HBr'))
+         Write(6,'(a,2(x,E20.8E4))') 'HO2       rates:', HET(ind_HO2,    1),0.0e+0_fp
+         Write(6,'(a,2(x,E20.8E4))') 'NO2       rates:', HET(ind_NO2,    1),0.0e+0_fp
+         Write(6,'(a,2(x,E20.8E4))') 'NO3       rates:', HET(ind_NO3,    1),0.0e+0_fp
+         Write(6,'(a,2(x,E20.8E4))') 'N2O5+H2O  rates:', HET(ind_N2O5,   1)*spcVec(ind_('H2O')),HET(ind_N2O5,  1)*spcVec(ind_('N2O5'))
+         Write(6,'(a,2(x,E20.8E4))') 'BrNO3+H2O rates:', HET(ind_BrNO3,  1)*spcVec(ind_('H2O')),HET(ind_BrNO3, 1)*spcVec(ind_('BrNO3'))
+         Write(6,'(a,2(x,E20.8E4))') 'N2O5+HCl  rates:', HET(ind_N2O5,   2)*spcVec(ind_('HCl')),HET(ind_N2O5,  2)*spcVec(ind_('N2O5'))
+         Write(6,'(a,2(x,E20.8E4))') 'ClNO3+H2O rates:', HET(ind_ClNO3,  1)*spcVec(ind_('H2O')),HET(ind_ClNO3, 1)*spcVec(ind_('ClNO3'))
+         Write(6,'(a,2(x,E20.8E4))') 'ClNO3+HCl rates:', HET(ind_ClNO3,  2)*spcVec(ind_('HCl')),HET(ind_ClNO3, 2)*spcVec(ind_('ClNO3'))
+         Write(6,'(a,2(x,E20.8E4))') 'ClNO3+HBr rates:', HET(ind_ClNO3,  3)*spcVec(ind_('HBr')),HET(ind_ClNO3, 3)*spcVec(ind_('ClNO3'))
+         Write(6,'(a,2(x,E20.8E4))') 'BrNO3+HCl rates:', HET(ind_BrNO3,  2)*spcVec(ind_('HCl')),HET(ind_BrNO3, 2)*spcVec(ind_('BrNO3'))
+         Write(6,'(a,2(x,E20.8E4))') 'HOCl+HCl  rates:', HET(ind_HOCl,   1)*spcVec(ind_('HCl')),HET(ind_HOCl,  1)*spcVec(ind_('HOCl'))
+         Write(6,'(a,2(x,E20.8E4))') 'HOCl+HBr  rates:', HET(ind_HOCl,   2)*spcVec(ind_('HBr')),HET(ind_HOCl,  2)*spcVec(ind_('HOCl'))
+         Write(6,'(a,2(x,E20.8E4))') 'HOBr+HCl  rates:', HET(ind_HOBr,   2)*spcVec(ind_('HCl')),HET(ind_HOBr,  2)*spcVec(ind_('HOBr'))
+         Write(6,'(a,2(x,E20.8E4))') 'HOBr+HBrL rates:', HET(ind_HOBr,   1)*spcVec(ind_('HBr')),HET(ind_HOBr,  1)*spcVec(ind_('HOBr'))
+         Write(6,'(a,2(x,E20.8E4))') 'HOBr+HBrI rates:', HETHOBr_ice(0.97e2_fp,1E-1_fp), HETHBr_ice(0.81E2_fp,1E-1_fp)
+         !If (OldHBrHOBr) Then
+         !   Write(6,'(a)') ' ==> WARNING: Reverting to 1st-order HBr + HOBr reaction'
+         !End If
       End If
 
       ! Add the rate of processing on cold/ice clouds (already limited)
-      HET(ind_HOBr,1,1) = HET(ind_HOBr,1,1) + HETHOBr_ice( 0.97E2_fp, 2E-1_fp )
-      HET(ind_HOBr,1,2) = HET(ind_HOBr,1,2) + HETHBr_ice(  0.81E2_fp, 2E-1_fp )
+      HET(ind_HOBr, 1) = HET(ind_HOBr,1) + &
+              kIIR1R2L( spcVec, ind_('HOBr'), ind_('HBr'), HETHOBr_ice( 0.97E2_fp, 1E-1_fp), HETHBr_ice( 0.81E2_fp, 1E-1_fp))
+
+      ! SDE DEBUG
+      ! Use the old format of HBr + HOBr
+      !If (OldHBrHOBr) Then
+      !   ! Zero out the old HOBr + HBr rate
+      !   HET(ind_HOBr,  1) = 0.0e+0_fp
+      !   ! Perform the old "rate-limiting" step
+      !   kIA = HETHOBr( 0.97E2_fp, 2E-1_fp)
+      !   kIB = HETHBr( 0.81E2_fp, 2E-1_fp)
+      !   If ((kIA > 0.0e+0_fp) .and. (kIB > 0.0e+0_fp)) Then
+      !      RIA = kIA * spcVec(ind_('HOBr'))
+      !      RIB = kIB * spcVec(ind_('HBr'))
+
+      !      If (RIB > RIA) Then
+      !         If (Is_Safe_Div(RIA,spcVec(ind_('HBr')))) Then
+      !            kIB = RIA / spcVec(ind_('HBr'))
+      !         Else
+      !            kIA = 0.0e+0_fp
+      !            kIB = 0.0e+0_fp
+      !         End If
+      !      Else
+      !         If (Is_Safe_Div(RIB,spcVec(ind_('HOBr')))) Then
+      !            kIA = RIB / spcVec(ind_('HOBr'))
+      !         Else
+      !            kIA = 0.0e+0_fp
+      !            kIB = 0.0e+0_fp
+      !         End If
+      !      End If
+      !   Else
+      !      kIA = 0.0e+0_fp
+      !      kIB = 0.0e+0_fp
+      !   End If
+      !   HET(ind_HOBr,  3) = kIA
+      !   HET(ind_HBr,   3) = kIB
+      !   HET(ind_HOBr,  4) = HETHOBr_ice(0.97e2_fp,1e-1_fp)
+      !   HET(ind_HBr,   4) = HETHBr_ice(0.81e2_fp,1e-1_fp)
+      !Else
+      !   Het(ind_HOBr,3) = 0.0e+0_fp
+      !   Het(ind_HBr, 3) = 0.0e+0_fp
+      !   Het(ind_HOBr,4) = 0.0e+0_fp
+      !   Het(ind_HBr, 4) = 0.0e+0_fp
+      !End If
 
       ! SDE DEBUG - ZERO IT ALL
-      !!HET(ind_HO2,    1,1)    = 0.0e+0_fp 
-      !!HET(ind_NO2,    1,1)    = 0.0e+0_fp 
-      !!HET(ind_NO3,    1,1)    = 0.0e+0_fp 
-
-      !!HET(ind_N2O5,   1,1)    = 0.0e+0_fp 
-      !!HET(ind_N2O5,   1,2)    = 0.0e+0_fp 
-
-      !HET(ind_BrNO3,  1,1)    = 0.0e+0_fp 
-      !HET(ind_BrNO3,  1,2)    = 0.0e+0_fp 
-
-      !!HET(ind_N2O5,   2,1)    = 0.0e+0_fp 
-      !!HET(ind_N2O5,   2,2)    = 0.0e+0_fp 
-
-      !!HET(ind_ClNO3,  1,1)    = 0.0e+0_fp 
-      !!HET(ind_ClNO3,  1,2)    = 0.0e+0_fp 
-
-      !!HET(ind_ClNO3,  2,1)    = 0.0e+0_fp 
-      !!HET(ind_ClNO3,  2,2)    = 0.0e+0_fp 
-
-      !!HET(ind_ClNO3,  3,1)    = 0.0e+0_fp 
-      !!HET(ind_ClNO3,  3,2)    = 0.0e+0_fp 
-
-      !!HET(ind_BrNO3,  2,1)    = 0.0e+0_fp 
-      !!HET(ind_BrNO3,  2,2)    = 0.0e+0_fp 
-
-      !!HET(ind_HOCl,   1,1)    = 0.0e+0_fp 
-      !!HET(ind_HOCl,   1,2)    = 0.0e+0_fp 
-
-      !!HET(ind_HOCl,   2,1)    = 0.0e+0_fp 
-      !!HET(ind_HOCl,   2,2)    = 0.0e+0_fp 
-
-      !HET(ind_HOBr,   1,1)    = 0.0e+0_fp 
-      !HET(ind_HOBr,   1,2)    = 0.0e+0_fp 
-
-      !!HET(ind_HOBr,   2,1)    = 0.0e+0_fp 
-      !!HET(ind_HOBr,   2,2)    = 0.0e+0_fp 
+      !HET(:,:) = 0.0e+0_fp
 
       !SCF2(:) = 0.0
 
@@ -463,70 +477,27 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: kir1old
-!
-! !DESCRIPTION: Determine removal rates for only one species in an uptake reaction.
-!\\
-!\\
-! !INTERFACE:
-!
-    SUBROUTINE kIR1Old( Het, iStoreSpc, iStoreRxn, spcVec, indGas, indEduct, kISource )
-!
-! !INPUT PARAMETERS: 
-!
-      ! Rate coefficients
-      Real(fp), Intent(InOut) :: Het(:,:,:)
-      Real(fp), Intent(In)    :: spcVec(:)
-      Integer,  Intent(In)    :: iStoreSpc
-      Integer,  Intent(In)    :: indGas
-      Integer,  Intent(In)    :: iStoreRxn
-      Integer,  Intent(In)    :: indEduct
-      Real(fp), Intent(In)    :: kISource
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  29 Mar 2016 - R. Yantosca - Added ProTeX header
-!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
-!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-
-      ! Assume no role for the second reactant
-      Het(iStoreSpc,iStoreRxn,1) = kISource
-      Het(iStoreSpc,iStoreRxn,2) = 0.0e+0_fp
-
-    END SUBROUTINE kIR1Old
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: kir1ltd
+! !IROUTINE: kiir1ltd
 !
 ! !DESCRIPTION: Determine removal rates for both species in an uptake reaction.
 !\\
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE kIR1Ltd( Het, iStoreSpc, iStoreRxn, spcVec, indGas, indEduct, kISource, minLife )
+    FUNCTION kIIR1Ltd( spcVec, indGas, indEduct, kISource, minLife ) RESULT( kII )
 !
 ! !INPUT PARAMETERS: 
 !
       ! Rate coefficients
-      Real(fp), Intent(InOut)        :: Het(:,:,:)
-      Integer,  Intent(In)           :: iStoreSpc
-      Integer,  Intent(In)           :: iStoreRxn
       Real(fp), Intent(In)           :: spcVec(:)
       Integer,  Intent(In)           :: indGas
       Integer,  Intent(In)           :: indEduct
       Real(fp), Intent(In)           :: kISource
       Real(fp), Intent(In), Optional :: minLife
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: kII
 !
 ! !REMARKS:
 !
@@ -548,17 +519,22 @@ MODULE GCKPP_HETRATES
 
       ! Copy kI as calculated assuming no limitation
       kIGas = kISource
+      kIEduct = 0.0e+0_fp
+      kII = 0.0e+0_fp
 
       If (concEduct.lt.100.0e+0_fp) Then
          kIGas = 0.0e+0_fp
          kIEduct = 0.0e+0_fp
+         kII = 0.0e+0_fp
       Else
          ! Safe division here is probably overkill - may remove this
          If (Is_Safe_Div(concGas*kIGas,concEduct)) Then
-            kIEduct = concGas*kIGas/concEduct
+            kIEduct = kIGas*concGas/concEduct
+            kII = kIGas/concEduct
          Else
             kIGas = 0.0e+0_fp
             kIEduct = 0.0e+0_fp
+            kII = 0.0e+0_fp
          End If
       End If
 
@@ -572,35 +548,31 @@ MODULE GCKPP_HETRATES
             If ((lifeA.lt.lifeB).and.(lifeA.lt.minLife)) Then
                If (Is_Safe_Div(concGas*kIGas,concEduct)) Then
                   kIGas = 1.0e+0_fp/minLife
-                  kIEduct = concGas*kIGas/concEduct
+                  kII = kIGas/concEduct
                Else
                   kIGas = 0.0e+0_fp
-                  kIEduct = 0.0e+0_fp
+                  kII = 0.0e+0_fp
                End If
             ElseIf (lifeB.lt.minLife) Then
                If (Is_Safe_Div(concEduct*kIEduct,concGas)) Then
                   kIEduct = 1.0e+0_fp/minLife
-                  kIGas = concEduct*kIEduct/concGas
+                  kII = kIEduct/concGas
                Else
                   kIEduct = 0.0e+0_fp
-                  kIGas = 0.0e+0_fp
+                  kII = 0.0e+0_fp
                End If
             End If
          End If    
       End If    
  
-      ! Return
-      Het(iStoreSpc,iStoreRxn,1) = kIGas
-      Het(iStoreSpc,iStoreRxn,2) = kIEduct
-
-    END SUBROUTINE kIR1Ltd
+    END FUNCTION kIIR1Ltd
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: kir1r2l
+! !IROUTINE: kiir1r2l
 !
 ! !DESCRIPTION: Determine removal rates for both species in an uptake reaction
 ! without assuming which reactant is limiting.
@@ -608,7 +580,7 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE kIR1R2L( Het, iStoreSpc, iStoreRxn, spcVec, indGasA, indGasB, kIASource, kIBSource )
+    FUNCTION kIIR1R2L( spcVec, indGasA, indGasB, kIASource, kIBSource ) RESULT( kII )
 !
 ! !USES:
 !
@@ -617,14 +589,16 @@ MODULE GCKPP_HETRATES
 ! !INPUT PARAMETERS: 
 !
       ! Rate coefficients
-      Real(fp), Intent(InOut) :: Het(:,:,:)
-      Integer,  Intent(In)    :: iStoreSpc
-      Integer,  Intent(In)    :: iStoreRxn
       Real(fp), Intent(In)    :: spcVec(:)
       Integer,  Intent(In)    :: indGasA
       Integer,  Intent(In)    :: indGasB
       Real(fp), Intent(In)    :: kIASource
       Real(fp), Intent(In)    :: kIBSource
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: kII
+
 !
 ! !REMARKS:
 !
@@ -652,36 +626,35 @@ MODULE GCKPP_HETRATES
  
       ! Assume for now that the reaction will not proceed
       nonZeroRate = .False.
+      kII = 0.0e+0_fp
 
       ! Prevent reaction if either concentration is too low
-      If ((concGasA.gt.100.0e+0_fp).and.(concGasB.gt.100.0e+0_fp)) Then
+      If ((concGasA.gt.100.0e+0_fp).and.(concGasB.gt.100.0e+0_fp).and.&
+          (kIA.gt.0.0e+0_fp).and.(kIB.gt.0.0e+0_fp)) Then
          ! Calculate the overall rate based on each reactant
          R_GasA = kIA*concGasA
          R_GasB = kIB*concGasB
          If (R_GasA > R_GasB) Then
+            ! Limited by uptake of B
             nonZeroRate = Is_Safe_Div( R_GasB, concGasA )
             If (nonZeroRate) Then
-               kIA = kIB * concGasB / concGasA
+               kII = kIB / concGasA
             End If
          Else
+            ! Limited by uptake of A
             nonZeroRate = Is_Safe_Div( R_GasA, concGasB )
             If (nonZeroRate) Then
-               kIB = kIA * concGasA / concGasB
+               kII = kIA / concGasB
             End If
          End If
       End If
 
       ! If no tests were passed, zero out both rates
       If (.not.nonZeroRate) Then
-         kIA = 0.0e+0_fp
-         kIB = 0.0e+0_fp
+         kII = 0.0e+0_fp
       End If
-      
-      ! Assign rates to output
-      Het(iStoreSpc,iStoreRxn,1) = kIA
-      Het(iStoreSpc,iStoreRxn,2) = kIB
 
-    END SUBROUTINE kIR1R2L
+    END FUNCTION kIIR1R2L
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

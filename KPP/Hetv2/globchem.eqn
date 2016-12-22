@@ -370,10 +370,6 @@
 {279} ISOPND + O3 = 0.500PROPNN + 
        0.500ETHLN + 0.270OH + 0.500GLYC + 
        0.500HAC :                                      GCARR(5.30E-17, 0.0E+00, 0.0);
-{285} HO2 = O2 :                                       HET(ind_HO2,1,1);
-{286} NO2 = 0.500HNO3 + 0.500HNO2 :                    HET(ind_NO2,1,1);
-{287} NO3 = HNO3 :                                     HET(ind_NO3,1,1);
-{288} N2O5 = 2.000HNO3 :                               HET(ind_N2O5,1,1);
 {289} DMS + OH = SO2 + MO2 + CH2O :                    GCARR(1.20E-11, 0.0E+00, -280.0);
 {290} DMS + OH = 0.750SO2 + 0.250MSA + MO2 :           GC_DMSOH(8.20E-39, 0.0E+00, 5376.0, 1.05E-5, 0.0, 3644.0);
 {291} DMS + NO3 = SO2 + HNO3 + MO2 + CH2O :            GCARR(1.90E-13, 0.0E+00, 530.0);
@@ -624,14 +620,6 @@
 {498} ClNO3 + O = ClO + NO3 :                          GCARR(3.60E-12, 0.0E+00, -840.0);
 {499} ClNO3 + Cl = Cl2 + NO3 :                         GCARR(6.50E-12, 0.0E+00, 135.0);
 {500} CH3Cl + Cl = CO + 2.000HCl + HO2 :               GCARR(2.17E-11, 0.0E+00, -1130.0);
-{502} N2O5 = ClNO2 + HNO3 :                            HET(ind_N2O5,2,1);
-{503} ClNO3 = HOCl + HNO3 :                            HET(ind_ClNO3,1,1);
-{504} ClNO3 = Cl2 + HNO3 :                             HET(ind_ClNO3,2,1);
-{505} ClNO3 = BrCl + HNO3 :                            HET(ind_ClNO3,3,1);
-{506} BrNO3 = BrCl + HNO3 :                            HET(ind_BrNO3,2,1);
-{507} HOCl = Cl2 + H2O :                               HET(ind_HOCl,1,1);
-{508} HOCl = BrCl + H2O :                              HET(ind_HOCl,2,1);
-{509} HOBr = BrCl + H2O :                              HET(ind_HOBr,2,1);
 //
 // photolysis reactions
 //
@@ -742,16 +730,17 @@
 {603} CH2Br2 + hv = 2.000Br :                          PHOTOL(55);
 {604} ClOO + hv = Cl + O2 :                            PHOTOL(102);
 // HET REACTIONS
-{605} H2O = O2 :                                       HET(ind_N2O5,1,2);
-{606} BrNO3 = HOBr + HNO3 :                            HET(ind_BrNO3,1,1);
-{607} H2O = O2 :                                       HET(ind_BrNO3,1,2);
-{608} HOBr = 0.500Br2 + H2O :                          HET(ind_HOBr,1,1);
-{609} HBr = 0.500Br2 :                                 HET(ind_HOBr,1,2);
-{610} HCl = O2 :                                       HET(ind_N2O5,2,2);
-{611} H2O = O2 :                                       HET(ind_ClNO3,1,2);
-{612} HCl = O2 :                                       HET(ind_ClNO3,2,2);
-{613} HBr = O2 :                                       HET(ind_ClNO3,3,2);
-{614} HCl = O2 :                                       HET(ind_BrNO3,2,2);
-{615} HCl = O2 :                                       HET(ind_HOCl,1,2);
-{616} HBr = O2 :                                       HET(ind_HOCl,2,2);
-{617} HCl = O2 :                                       HET(ind_HOBr,2,2);
+{605} HO2 = O2 :                                       HET(ind_HO2,1);
+{606} NO2 = 0.500HNO3 + 0.500HNO2 :                    HET(ind_NO2,1);
+{607} NO3 = HNO3 :                                     HET(ind_NO3,1);
+{608} N2O5 + H2O = 2.000HNO3 :                         HET(ind_N2O5,1);
+{609} BrNO3 + H2O = HOBr + HNO3 :                      HET(ind_BrNO3,1);
+{610} HOBr + HBr = Br2 + H2O :                         HET(ind_HOBr,1);
+{614} N2O5 + HCl = ClNO2 + HNO3 :                      HET(ind_N2O5,2);
+{615} ClNO3 + H2O = HOCl + HNO3 :                      HET(ind_ClNO3,1);
+{616} ClNO3 + HCl = Cl2 + HNO3 :                       HET(ind_ClNO3,2);
+{617} ClNO3 + HBr = BrCl + HNO3 :                      HET(ind_ClNO3,3);
+{618} BrNO3 + HCl = BrCl + HNO3 :                      HET(ind_BrNO3,2);
+{619} HOCl + HCl = Cl2 + H2O :                         HET(ind_HOCl,1);
+{620} HOCl + HBr = BrCl + H2O :                        HET(ind_HOCl,2);
+{621} HOBr + HCl = BrCl + H2O :                        HET(ind_HOBr,2);
