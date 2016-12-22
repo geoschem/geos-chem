@@ -57,6 +57,7 @@ MODULE GCKPP_HETRATES
   PRIVATE :: HETBrNO3_JS
   PRIVATE :: HETClNO3_JS
   PRIVATE :: HETHOBrBr_JS
+  PRIVATE :: HETHOBrCl_JS
   PRIVATE :: Gamma_HOBr_X
   PRIVATE :: Coth
   PRIVATE :: ReactoDiff_Corr
@@ -446,7 +447,8 @@ MODULE GCKPP_HETRATES
          HET(ind_HOBr,  1) = kIIR1Ltd( spcVec, ind_('HOBr'),  ind_('HBr'), kITemp, hetMinLife)
 
          ! New calculation for HOBr + HCl (old index: hhc03)
-         kITemp = 0.0e+0_fp
+         kITemp = HETHOBrCl_JS( XDenA, rLiq, rIce, ALiq, AIce, VAir, TempK, &
+                           hConc_Sul, hConc_LCl, hConc_ICl, clConc_Cld )
          HET(ind_HOBr,  2) = kIIR1Ltd( spcVec, ind_('HOBr'),  ind_('HCl'), kITemp, hetMinLife)
 
          ! Old UCX reactions - only considered in stratospheric cells
@@ -456,7 +458,6 @@ MODULE GCKPP_HETRATES
          HET(ind_BrNO3, 2) = kIIR1Ltd( spcVec, ind_('BrNO3'), ind_('HCl'), HETBrNO3_PSC(  1.42E2_fp, 0E+0_fp), hetMinLife)
          HET(ind_HOCl,  1) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HCl'), HETHOCl_PSC1(  0.52E2_fp, 0E+0_fp), hetMinLife)
          HET(ind_HOCl,  2) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HBr'), HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp), hetMinLife)
-         HET(ind_HOBr,  2) = kIIR1Ltd( spcVec, ind_('HOBr'),  ind_('HCl'), HETHOBr_PSC(   0.97E2_fp, 0E+0_fp), hetMinLife)
 
          ! kIIR1R2L: Either reactant could be limiting. Calculate uptake probability
          ! for each one separately and then determine the overall rate by assuming
@@ -469,6 +470,7 @@ MODULE GCKPP_HETRATES
          !HET(ind_BrNO3, 1) = kIIR1Ltd( spcVec, ind_('BrNO3'), ind_('H2O'), HETBrNO3(      1.42E2_fp, 3E-1_fp), hetMinLife)
          !HET(ind_ClNO3, 1) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('H2O'), HETClNO3_PSC1( 0.97E2_fp, 0E+0_fp), hetMinLife)
          !HET(ind_HOBr,  1) = kIIR1R2L( spcVec, ind_('HOBr'), ind_('HBr'), HETHOBr( 0.97E2_fp,2E-1_fp), HETHBr( 0.81E2_fp,2E-1_fp))
+         !HET(ind_HOBr,  2) = kIIR1Ltd( spcVec, ind_('HOBr'),  ind_('HCl'), HETHOBr_PSC(   0.97E2_fp, 0E+0_fp), hetMinLife)
          !! Add the rate of processing on cold/ice clouds (already limited)
          !kIITemp = kIIR1R2L( spcVec, ind_('HOBr'), ind_('HBr'), HETHOBrIce( 0.97E2_fp, 1E-1_fp), HETHBrIce( 0.81E2_fp, 1E-1_fp))
          !HET(ind_HOBr, 1) = HET(ind_HOBr,1) + kIITemp
@@ -1284,6 +1286,112 @@ MODULE GCKPP_HETRATES
     End If
 
     END FUNCTION HETClNO3_JS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hethobrcl_js
+!
+! !DESCRIPTION: Sets the rate of the multiphase reaction HOBr + Cl- in 
+!  sulfate aerosols, on cloud droplets and on PSCs
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETHOBrCl_JS( denAir, rLiq, rIce, ALiq, AIce, VAir, TK, &
+                           hConc_Sul, hConc_LCl, hConc_ICl, clConc ) RESULT( kISum )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL(fp), INTENT(IN) :: denAir      ! Density of air (#/cm3)
+      REAL(fp), INTENT(IN) :: rLiq        ! Radius of liquid cloud droplets (cm)
+      REAL(fp), INTENT(IN) :: rIce        ! Radius of ice cloud crystals (cm)
+      REAL(fp), INTENT(IN) :: ALiq        ! Area of liquid cloud droplets (cm2)
+      REAL(fp), INTENT(IN) :: AIce        ! Area of ice cloud crystals (cm2)
+      REAL(fp), INTENT(IN) :: VAir        ! Box volume (cm3)
+      REAL(fp), INTENT(IN) :: TK          ! Temperature (K)
+      REAL(fp), INTENT(IN) :: hConc_Sul   ! Sulfate H+ concentration
+      REAL(fp), INTENT(IN) :: hConc_LCl   ! Liquid cloud H+ concentration
+      REAL(fp), INTENT(IN) :: hConc_ICl   ! Ice cloud H+ concentration
+      REAL(fp), INTENT(IN) :: clConc      ! Chloride concentration (mol/L)
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: kISum
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  21 Dec 2016 - S. D. Eastham - Generated code based on Johan Schmidt's work
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+      Real(fp), Parameter :: XMolWeight=96.9e+0_fp
+      Real(fp), Parameter :: XSQM=SQRT(XMolWeight)
+      Real(fp) :: SADen
+
+      ! Initialize
+      kISum        = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
+      XSTKCF       = 0.0_fp
+
+      ! Loop over aerosol types
+      DO N = 1, NAERO
+
+         ! Get the aerosol type
+         IF ( N == 8 ) THEN
+            ! sulfate aerosol
+            XSTKCF = Gamma_HOBr_X(xRadi(8), denAir, 1, TK, clConc, hConc_Sul)
+         ELSEIF (N.eq.13) THEN
+            ! SSA/STS
+            XSTKCF = KHETI_SLA(10)
+         ELSEIF (N.eq.14) THEN
+            ! Ice/NAT PSC
+            IF (NATSURFACE) THEN
+               XSTKCF = 0.1e+0_fp ! NAT
+            ELSE
+               XSTKCF = 0.3e+0_fp ! Ice
+            ENDIF
+         ELSE
+            XSTKCF = 0e+0_fp
+         ENDIF
+
+         IF (N.eq.13) THEN
+            ! Calculate for stratospheric liquid aerosol
+            ! Note that XSTKCF is actually a premultiplying
+            ! factor in this case, including c-bar
+            ADJUSTEDRATE = XAREA(N) * XSTKCF
+         ELSE
+            ! Reaction rate for surface of aerosol
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,TK,XSQM)
+         ENDIF
+         
+         ! Add to overall reaction rate
+         kISum = kISum + ADJUSTEDRATE
+      END DO
+
+    ! Hydrolysis on liquid and ice clouds (tropospheric only)
+    If (.not. StratBox) Then
+       If (ALiq.gt.0.0e+0_fp) Then
+          XstkCf = Gamma_HOBr_X(rLiq, denAir, 1, TK, clConc, hConc_LCl)
+          SADen = ALiq/VAir
+          kISum = kISum + Arsl1K(SADen, rLiq, denAir, XStkCf, TK, XSqM)
+       End If
+       If (AIce.gt.0.0e+0_fp) Then
+          XStkCf = Gamma_HOBr_X(rIce, denAir, 1, TK, clConc, hConc_ICl)
+          SADen = AIce/VAir
+          kISum = kISum + Arsl1K(SADen, rIce, denAir, XStkCf, TK, XSqM)
+       End If
+    End If
+
+    END FUNCTION HETHOBrCl_JS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
