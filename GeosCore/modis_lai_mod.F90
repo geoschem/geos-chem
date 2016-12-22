@@ -35,13 +35,11 @@ MODULE Modis_Lai_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-!  PUBLIC  :: Compute_Modis_GCHP
-!#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-  PUBLIC  :: Compute_Modis_GCHP
-!#else
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+  PUBLIC  :: Compute_XLAI_GCHP
+#endif
   PUBLIC  :: Read_Modis
   PUBLIC  :: Compute_Modis
-!#endif
   PRIVATE :: RoundOff
 !
 ! !REMARKS:
@@ -124,6 +122,7 @@ CONTAINS
 !  compute the daily MODIS leaf area indices for GEOS-Chem directly from the 
 !  native grid resolution  (0.25 x 0.25 or 0.5 x 0.5). If marine organic
 !  aerosol tracers are used, then daily MODIS chlorophyll is also computed.
+!  This routine is not used in High Performance GEOS-Chem (GCHP).
 !\\
 !\\
 ! !INTERFACE:
@@ -186,28 +185,20 @@ CONTAINS
 
     ! Always compute LAI
     ComputeLAI = .true.
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-    CALL Compute_Modis_GCHP( am_I_Root, ComputeLAI, State_Met, RC )
-#else
     CALL Compute_Modis( am_I_Root,  ComputeLAI, Input_Opt,    State_Met,  &
                         doy,  mm,   mapping,    wasModisRead, RC )
-#endif
 
     ! Only compute CHLR if organic marine aerosols are tracers
     IF ( Input_Opt%LMPOA ) THEN
 
        ComputeLAI = .false.
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-       CALL Compute_Modis_GCHP( am_I_Root, ComputeLAI, State_Met, RC )
-#else
        CALL Compute_Modis( am_I_Root,  ComputeLAI, Input_Opt,    State_Met, &
                            doy,  mm,   mapping,    wasModisRead, RC )
-#endif
     ENDIF
 
   END SUBROUTINE Compute_Modis_LAI
 !EOC
-!#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -215,16 +206,15 @@ CONTAINS
 !
 ! !IROUTINE: compute_modis_gchp
 !
-! !DESCRIPTION: Subroutine COMPUTE\_MODIS\_GCHP computes MODIS-based leaf
-!  area indices (LAI) or chlorophyll-a (CHLR) per land type and grid cell.
-!  This computation uses offline 0.25x0.25 MODIS LAI/CHLR and Olson landmap 
-!  data regridded to the cubed sphere. Variables set include State_Met%XLAI 
-!  and State_Met%XCHLR.
+! !DESCRIPTION: Subroutine COMPUTE\_LAI\_GCHP computes MODIS-based leaf
+!  area indices (LAI) per land type and grid cell. This computation uses 
+!  offline 0.25x0.25 MODIS LAI/CHLR and Olson landmap data regridded to 
+!  the cubed sphere. Variables set include State_Met%XLAI.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Modis_GCHP( am_I_Root,  ComputeLAI, State_Met, RC )
+  SUBROUTINE Compute_XLAI_GCHP( am_I_Root, State_Met, RC )
 !
 ! !USES:
 !
@@ -234,7 +224,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
-    LOGICAL,         INTENT(IN)  :: ComputeLAI 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -254,8 +243,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, T
+    INTEGER            :: I, J, S, T
     CHARACTER(len=2)   :: landStr
+    REAL(fp)           :: landFrac
     REAL(fp), POINTER  :: XModisPtr(:,:,:) 
     REAL(fp), POINTER  :: XPtr(:,:,:)  
 
@@ -266,43 +256,47 @@ CONTAINS
     ! Assume success
     RC                = GIGC_SUCCESS
 
-    ! Initialize pointers
-    XModisPtr => NULL() ! LAI or CHLR averaged for one land type over GC cell
-                        ! with values for other land types counted as zero
-                        ! (calculated conservatively using ExtData)
-    XPtr      => NULL() ! area-weighted average LAI or CHLR per land type 
-                        ! over GC cell (calculated in this routine using
-                        ! land type fraction calculated using ExtData)
+    ! Loop over all grid cells
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
 
-    ! Assign pointers based on whether computing LAI or CHLR
-    IF ( ComputeLAI ) THEN
-       XModisPtr => State_Met%XLAI_NATIVE
-       XPtr => State_Met%XLAI              
-    ELSE
-       XModisPtr => State_Met%XCHLR_NATIVE 
-       XPtr => State_Met%XCHLR             
-    ENDIF
 
-    ! Loop over all types
-    DO T = 1, NSURFTYPE
+       ! Loop over all surface types present in this grid cell
+       DO S = 1, State_Met%IREG(I,J)
+       
+          ! Set current surface type index
+          T = State_Met%ILAND(I,J,S) + 1
 
-       ! Loop over all horizontal cells to set State_Met%XLAI or 
-       ! State_Met%XCHLR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-          XPtr(I,J,T) = XModisPtr(I,J,T) / State_Met%LandTypeFrac(I,J,T)
+          ! Get fraction of cell with this surface type by retrieving it
+          ! from the land type fraction calculated by ExtData
+          landFrac = State_Met%LandTypeFrac(I,J,T)
+
+          ! Set XLAI to average LAI for this surface type ( as calculated 
+          ! by ExtData using zeros for coverage by other surface types ) 
+          ! divided by the fractional coverage of this surface type.
+          ! The resultant XLAI is the average LAI for only the area 
+          ! with the current surface type, and therefore is larger than 
+          ! XLAI_NATIVE when other surface types exist within the cell.
+          ! 
+          ! NOTE: Unlike XLAI_NATIVE and LandTypeFrac, the 3rd 
+          ! dimension indexes of XLAI are NOT surface types 1-73! Instead,
+          ! It is the surface indexes ILAND-1 and therefore contains 
+          ! zeros beyond the number of surface types present in the cell 
+          ! (IREG). This is for backwards compatibility with GC classic
+          ! legacy drydep code.
+          IF ( landFrac .gt. 1.e-9_fp ) THEN
+             State_Met%XLAI(I,J,S) = State_Met%XLAI_NATIVE(I,J,T) / landFrac
+
+
+          ENDIF
+       
        ENDDO
-       ENDDO
-
+    ENDDO
     ENDDO
 
-    ! Cleanup pointer
-    XModisPtr => NULL()
-    XPtr => NULL()
-
-  END SUBROUTINE Compute_Modis_GCHP
+  END SUBROUTINE Compute_XLAI_GCHP
 !EOC
-!#else
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1010,7 +1004,6 @@ CONTAINS
 
   END SUBROUTINE Find_Lai_Month
 !EOC
-!endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
