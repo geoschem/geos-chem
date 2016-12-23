@@ -205,6 +205,8 @@
      NRO2            =          IGNORE;
      LNRO2H          =          IGNORE;
      LNRO2N          =          IGNORE;
+     BrSALA          =          IGNORE;
+     BrSALC          =          IGNORE;
 
 #DEFFIX
 

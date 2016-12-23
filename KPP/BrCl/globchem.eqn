@@ -750,12 +750,12 @@
 {630} O3 + HBr = HOBr :                                HET(ind_O3,1);
 {633} HCl = O2 :                                       HET(ind_HCl,1);
 {634} HCl = O2 :                                       HET(ind_HCl,2);
-// New het - unused reactions
-//{625} HOBr + BrSALA = Br2 :                            HET(ind_HOBr,4);
-//{626} HOBr + BrSALC = Br2 :                            HET(ind_HOBr,5);
-//{628} ClNO3 + BrSALA = BrCl + HNO3 :                   HET(ind_ClNO3,4);
-//{629} ClNO3 + BrSALC = BrCl + HNO3 :                   HET(ind_ClNO3,5);
-//{631} O3 + BrSALA = HOBr :                             HET(ind_O3,2);
-//{632} O3 + BrSALC = HOBr :                             HET(ind_O3,3);
-//{635} HBr = BrSALA :                                   HET(ind_HBr,1);
-//{636} HBr = BrSALC :                                   HET(ind_HBr,2);
+// New het - reactions involving BrSALX
+{635} HOBr + BrSALA = Br2 :                            HET(ind_HOBr,4);
+{636} HOBr + BrSALC = Br2 :                            HET(ind_HOBr,5);
+{637} ClNO3 + BrSALA = BrCl + HNO3 :                   HET(ind_ClNO3,4);
+{638} ClNO3 + BrSALC = BrCl + HNO3 :                   HET(ind_ClNO3,5);
+{639} O3 + BrSALA = HOBr :                             HET(ind_O3,2);
+{640} O3 + BrSALC = HOBr :                             HET(ind_O3,3);
+{641} HBr = BrSALA :                                   HET(ind_HBr,1);
+{642} HBr = BrSALC :                                   HET(ind_HBr,2);

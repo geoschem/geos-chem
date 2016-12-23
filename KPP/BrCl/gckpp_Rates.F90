@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Wed Dec 21 22:35:39 2016
+! Time                 : Fri Dec 23 14:21:24 2016
 ! Working directory    : /n/home13/seastham/GCStandard/Code/Code.v11-01g-Iodine/KPP/BrCl
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -1022,6 +1022,14 @@ SUBROUTINE Update_RCONST ( )
   RCONST(537) = (HET(ind_O3,1))
   RCONST(538) = (HET(ind_HCl,1))
   RCONST(539) = (HET(ind_HCl,2))
+  RCONST(540) = (HET(ind_HOBr,4))
+  RCONST(541) = (HET(ind_HOBr,5))
+  RCONST(542) = (HET(ind_ClNO3,4))
+  RCONST(543) = (HET(ind_ClNO3,5))
+  RCONST(544) = (HET(ind_O3,2))
+  RCONST(545) = (HET(ind_O3,3))
+  RCONST(546) = (HET(ind_HBr,1))
+  RCONST(547) = (HET(ind_HBr,2))
       
 END SUBROUTINE Update_RCONST
 
