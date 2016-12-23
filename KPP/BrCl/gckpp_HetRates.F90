@@ -3400,6 +3400,12 @@ MODULE GCKPP_HETRATES
       V_tot = (VLiq/VAir) + ((VIce/VAir) / T2L) + &
                SA_SULF * R_SULF / 3.0e0_fp  ! (cm3(liq)/cm3(air)
 
+      If (V_tot.lt.1.0e-20) Then
+         br_conc = 1.0e-20_fp
+         cl_conc = 1.0e-20_fp
+         Return
+      End If
+
       ! Bromide (Assuming ph=4.5)
       CALL COMPUTE_L2G_LOCAL( 7.1e13_fp, -10200.0e0_fp, 0.0e+0_fp, TK, V_tot, L2G)
       F_L = L2G/(1.0e0_fp + L2G)
