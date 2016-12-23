@@ -235,6 +235,8 @@ MODULE GCKPP_HETRATES
       Real(fp)           :: brConc_Base
       Real(fp)           :: brConc_Cld, clConc_Cld
       Real(fp)           :: brConc_SSA, brConc_SSC
+      Real(fp)           :: pHCloud
+      Real(fp)           :: SSAlk(2)
 
       ! Debug
       Integer, Parameter :: IMax=50
@@ -339,6 +341,13 @@ MODULE GCKPP_HETRATES
 
       XAREA(1:SC%nAero) = SC%AeroArea(I,J,L,:)
       XRADI(1:SC%nAero) = SC%AeroRadi(I,J,L,:)
+
+      ! Need these for new halogen chemistry
+      pHCloud = SC%pHCloud(I,J,L)
+      SSAlk(1:2) = SC%SSAlk(I,J,L,1:2)
+      ! DEBUG
+      pHCloud = 0.0e+0_fp
+      SSAlk = 0.0e+0_fp
 
       TEMPK = SM%T(I,J,L)
       XTEMP = sqrt(SM%T(I,J,L))
