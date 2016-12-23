@@ -56,7 +56,7 @@ MODULE GCKPP_HETRATES
   ! These are the new Br/Cl functions from J. Schmidt
   PRIVATE :: HETBrNO3_JS
   PRIVATE :: HETClNO3_JS
-  PRIVATE :: HETHOBrBr_JS
+  PRIVATE :: HETHOBr_HBr_JS
   PRIVATE :: HETHOBr_HCl_JS
   PRIVATE :: HETClNO3_HBr_JS
   PRIVATE :: HETO3_HBr_JS
@@ -454,7 +454,7 @@ MODULE GCKPP_HETRATES
          HET(ind_ClNO3, 1) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('H2O'), kITemp, hetMinLife)
 
          ! New calculation for HOBr + HBr (TS index: hhc06)
-         kITemp = HETHOBrBr_JS( XDenA, rLiq, rIce, ALiq, AIce, VAir, TempK, &
+         kITemp = HETHOBr_HBr_JS( XDenA, rLiq, rIce, ALiq, AIce, VAir, TempK, &
                            hConc_Sul, hConc_LCl, hConc_ICl, brConc_Cld )
          HET(ind_HOBr,  1) = kIIR1Ltd( spcVec, ind_('HOBr'),  ind_('HBr'), kITemp, hetMinLife)
 
@@ -1703,7 +1703,7 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hethobrbr_js
+! !IROUTINE: hethobr_hbr_js
 !
 ! !DESCRIPTION: Sets the rate of the multiphase reaction HOBr + Br- in 
 !  sulfate aerosols, on cloud droplets and on PSCs
@@ -1711,7 +1711,7 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETHOBrBr_JS( denAir, rLiq, rIce, ALiq, AIce, VAir, TK, &
+    FUNCTION HETHOBr_HBr_JS( denAir, rLiq, rIce, ALiq, AIce, VAir, TK, &
                            hConc_Sul, hConc_LCl, hConc_ICl, brConc ) RESULT( kISum )
 !
 ! !INPUT PARAMETERS: 
@@ -1802,7 +1802,7 @@ MODULE GCKPP_HETRATES
        End If
     End If
 
-    END FUNCTION HETHOBrBr_JS
+    END FUNCTION HETHOBr_HBr_JS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
