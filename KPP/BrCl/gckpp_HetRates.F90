@@ -78,6 +78,7 @@ MODULE GCKPP_HETRATES
   PRIVATE :: HETClNO3_HCl
   PRIVATE :: HETHOCl_HBr
   PRIVATE :: HETHOCl_HCl
+  PRIVATE :: HETBrNO3_HCl
 
   ! These are subfunctions to calculate rates on/in clouds and SSA
   PRIVATE :: CLD_PARAMS
@@ -543,9 +544,14 @@ MODULE GCKPP_HETRATES
          kITemp = HETHXUptake_JS( XDenA, xRadi(12), xArea(12), TempK, 2)
          HET(ind_HBr,   2) = kITemp
 
+         ! Extended calculation for BrNO3 + HCl into the troposphere
+         HET(ind_BrNO3, 2) = kIIR1Ltd( spcVec, ind_('BrNO3'), ind_('HCl'), HETBrNO3_HCl(  1.42E2_fp, 0E+0_fp), hetMinLife)
+
          ! Old UCX reactions - only considered in stratospheric cells
+#if defined( UCX )
          HET(ind_N2O5,  2) = kIIR1Ltd( spcVec, ind_('N2O5'),  ind_('HCl'), HETN2O5_PSC(   1.08E2_fp, 0E+0_fp), hetMinLife)
-         HET(ind_BrNO3, 2) = kIIR1Ltd( spcVec, ind_('BrNO3'), ind_('HCl'), HETBrNO3_PSC(  1.42E2_fp, 0E+0_fp), hetMinLife)
+#endif
+         !HET(ind_BrNO3, 2) = kIIR1Ltd( spcVec, ind_('BrNO3'), ind_('HCl'), HETBrNO3_PSC(  1.42E2_fp, 0E+0_fp), hetMinLife)
          !HET(ind_HOCl,  1) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HCl'), HETHOCl_PSC1(  0.52E2_fp, 0E+0_fp), hetMinLife)
          !HET(ind_HOCl,  2) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HBr'), HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp), hetMinLife)
 
@@ -2573,6 +2579,94 @@ MODULE GCKPP_HETRATES
       END DO
 
     END FUNCTION HETClNO3_HCl
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetbrno3_hcl
+!
+! !DESCRIPTION: Set heterogenous chemistry rate for BrNO3(g) + HCl(l,s)
+!  in polar stratospheric clouds and on tropospheric sulfate.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETBrNO3_HCl( A, B ) RESULT( kISum )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE: 
+!
+      REAL(fp)             :: kISum
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
+!                              in calcrate.F
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
+!  24 Dec 2016 - S. D. Eastham - Extended into the troposphere
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL  :: DO_EDUCT
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
+      ! Initialize
+      kISum         = 0.0_fp
+      ADJUSTEDRATE  = 0.0_fp
+      XSTKCF        = 0.0_fp
+
+      ! Loop over aerosol types
+      DO N = 1, NAERO
+
+         ! Default to zero
+         XSTKCF = 0.0e+0_fp
+         IF (N.eq.8) THEN
+            XSTKCF = 0.9e+0_fp ! Sulfate
+         ELSEIF ( STRATBOX ) THEN
+            IF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(7)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.3e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.3e+0_fp ! Ice
+               ENDIF
+            ENDIF
+         ENDIF
+
+         If (XStkCf.gt.0.0e+0_fp) Then
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+
+            ! Add to overall reaction rate
+            kISum = kISum + ADJUSTEDRATE
+         ENDIF
+
+      END DO
+
+    END FUNCTION HETBrNO3_HCl
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
