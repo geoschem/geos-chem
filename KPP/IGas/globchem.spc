@@ -209,6 +209,7 @@
      LNRO2N          =          IGNORE;
      BrSALA          =          IGNORE;
      BrSALC          =          IGNORE;
+     I               =          IGNORE;
      CH3I            =          IGNORE;
      CH2I2           =          IGNORE;
      CH2ICl          =          IGNORE;
