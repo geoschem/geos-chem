@@ -1250,7 +1250,7 @@ MODULE GCKPP_HETRATES
 !
 ! !IROUTINE: hethobr_ss_js
 !
-! !DESCRIPTION: Sets the HOBr + Br- (in sea salt) rate using Johan
+! !DESCRIPTION: Sets the HOBr + Br- or Cl- (in sea salt) rate using Johan
 !  Schmidt's updated code.
 !\\
 !\\
@@ -1773,9 +1773,7 @@ MODULE GCKPP_HETRATES
     If (.not. StratBox) Then
        If (ALiq.gt.0.0e+0_fp) Then
           XstkCf = Gamma_HOBr_X(rLiq, denAir, 1, TK, clConc, hConc_LCl)
-          AdjustedRate = kISum
           kISum = kISum + Arsl1K(ALiq, rLiq, denAir, XStkCf, TK, XSqM)
-          Write(6,'(a,2(x,E14.4E4))') 'CALLED!!',AdjustedRate,kISum
        End If
        If (AIce.gt.0.0e+0_fp) Then
           XStkCf = Gamma_HOBr_X(rIce, denAir, 1, TK, clConc, hConc_ICl)
