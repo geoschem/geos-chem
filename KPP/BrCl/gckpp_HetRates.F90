@@ -1230,6 +1230,9 @@ MODULE GCKPP_HETRATES
          ELSEIF (N.eq.13) THEN
             ! Stratospheric aerosol
             XSTKCF = KHETI_SLA(1)
+         ELSEIF ((N.eq.11).or.(N.eq.12)) THEN
+            ! Sea salt - follows the N2O5 + Cl- channel
+            XSTKCF = 0.0e+0_fp
          ELSE
             ! In UCX, ABSHUMK will have been set by
             ! STT(I,J,L,IDTH2O)
@@ -1271,13 +1274,6 @@ MODULE GCKPP_HETRATES
             ! Reaction rate for surface of aerosol
             ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
                                (A**0.5_FP))
-         ENDIF
-         
-         IF ( DO_EDUCT .and. N > 12 ) THEN
-            ! PSC reaction - prevent excessive reaction rate
-            IF (ADJUSTEDRATE.gt.(1.e+0_fp/hetMinLife)) THEN
-               ADJUSTEDRATE = 1.e+0_fp/hetMinLife
-            ENDIF
          ENDIF
          
          ! Add to overall reaction rate
