@@ -480,6 +480,16 @@ MODULE GCKPP_HETRATES
                            hConc_SSC, brConc_SSC, 2 )
          HET(ind_HOBr,  5) = kIIR1Ltd( spcVec, ind_('HOBr'),  ind_('BrSALC'), kITemp, hetMinLife)
 
+         ! New calculation for HOBr + ClSALA/C (TS index: hhc04/05)
+         ! NOTE: Cl- in salt is assumed to always be in excess, so we assume a
+         ! molarity of 0.5 mol/L. This reaction is also pseudo-first order, so 
+         ! conversion to a second-order rate constant is not necessary.
+         kITemp =          HETHOBr_SS_JS( XDenA, xRadi(11), xArea(11), SSAlk(1), &
+     &                             TempK, hConc_SSA, 0.5e+0_fp, 1 )
+         kITemp = kITemp + HETHOBr_SS_JS( XDenA, xRadi(12), xArea(12), SSAlk(2), &
+     &                             TempK, hConc_SSC, 0.5e+0_fp, 1 )
+         HET(ind_HOBr,  3) = kITemp
+
          ! Extended calculation for ClNO3 + HCl
          HET(ind_ClNO3, 2) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('HCl'), HETClNO3_HCl( 0.97E2_fp, 0E+0_fp), hetMinLife)
 
