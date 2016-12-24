@@ -342,13 +342,6 @@ MODULE GCKPP_HETRATES
       XAREA(1:SC%nAero) = SC%AeroArea(I,J,L,:)
       XRADI(1:SC%nAero) = SC%AeroRadi(I,J,L,:)
 
-      ! Need these for new halogen chemistry
-      pHCloud = SC%pHCloud(I,J,L)
-      SSAlk(1:2) = SC%SSAlk(I,J,L,1:2)
-      ! DEBUG
-      pHCloud = 0.0e+0_fp
-      SSAlk = 0.0e+0_fp
-
       TEMPK = SM%T(I,J,L)
       XTEMP = sqrt(SM%T(I,J,L))
       XDENA = SM%AIRNUMDEN(I,J,L)
@@ -408,19 +401,18 @@ MODULE GCKPP_HETRATES
       useSaltBr = ((.not.fixedSaltBr).and.(ind_('BrSALA') > 0))
       If (useSaltBr) Then
          brConc_Base = 0.0e+0_fp
-         ! Not yet written!
-         !Call Get_Halide_SSAConc(spcVec(ind_('BrSALA')),xArea(11),xRadi(11),brConc_SSA)
-         !Call Get_Halide_SSCConc(spcVec(ind_('BrSALC')),xArea(12),xRadi(12),brConc_SSA)
       Else
          brConc_Base = 1.0e+4_fp
-         brConc_SSA = 0.0e+0_fp
-         brConc_SSC = 0.0e+0_fp
       End If 
 
       ! Get the concentration of Br/Cl in clouds
       Call Get_Halide_CldConc(spcVec(ind_('HBr')),spcVec(ind_('HCl')),&
                               VLiq, VIce, VAir, TempK, xArea(8), xRadi(8),&
                               brConc_Cld, clConc_Cld)
+
+      ! Get the concentration of Br in sea-salt (in excess of any assumed baseline)
+      Call Get_Halide_SSAConc(spcVec(ind_('BrSALA')),xArea(11),xRadi(11),brConc_SSA)
+      Call Get_Halide_SSAConc(spcVec(ind_('BrSALC')),xArea(12),xRadi(12),brConc_SSC)
 
       !--------------------------------------------------------------------
       !  Calculate rates for HOBr + HBr + ice --> Br2
@@ -1245,8 +1237,8 @@ MODULE GCKPP_HETRATES
       REAL(fp), INTENT(IN) :: denAir      ! Density of air (#/cm3)
       REAL(fp), INTENT(IN) :: rLiq        ! Radius of liquid cloud droplets (cm)
       REAL(fp), INTENT(IN) :: rIce        ! Radius of ice cloud crystals (cm)
-      REAL(fp), INTENT(IN) :: ALiq        ! Area of liquid cloud droplets (cm2)
-      REAL(fp), INTENT(IN) :: AIce        ! Area of ice cloud crystals (cm2)
+      REAL(fp), INTENT(IN) :: ALiq        ! Area of liquid cloud droplets (cm2/cm3)
+      REAL(fp), INTENT(IN) :: AIce        ! Area of ice cloud crystals (cm2/cm3)
       REAL(fp), INTENT(IN) :: VAir        ! Box volume (cm3)
       REAL(fp), INTENT(IN) :: TK          ! Temperature (K)
       REAL(fp), INTENT(IN) :: brConc      ! Bromide concentration (mol/L)
@@ -1270,7 +1262,7 @@ MODULE GCKPP_HETRATES
 ! !LOCAL VARIABLES:
 !
       INTEGER  :: N
-      REAL(fp) :: XSTKCF, ADJUSTEDRATE, SADen
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
       Real(fp), Parameter :: XMolWeight=48.0e+0_fp
       Real(fp), Parameter :: XSQM=SQRT(XMolWeight)
 
@@ -1309,13 +1301,11 @@ MODULE GCKPP_HETRATES
     If (.not. StratBox) Then
        If (ALiq.gt.0.0e+0_fp) Then
           XStkCf = Gamma_O3_Br( rLiq, denAir, TK, brConc, O3Conc )
-          SADen = ALiq/VAir
-          kISum = kISum + Arsl1K(SADen, rLiq, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(ALiq, rLiq, denAir, XStkCf, TK, XSqM)
        End If
        If (AIce.gt.0.0e+0_fp) Then
           XStkCf = Gamma_O3_Br( rIce, denAir, TK, brConc, O3Conc )
-          SADen = AIce/VAir
-          kISum = kISum + Arsl1K(SADen, rIce, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(AIce, rIce, denAir, XStkCf, TK, XSqM)
        End If
     End If
 
@@ -1416,8 +1406,8 @@ MODULE GCKPP_HETRATES
       REAL(fp), INTENT(IN) :: denAir      ! Density of air (#/cm3)
       REAL(fp), INTENT(IN) :: rLiq        ! Radius of liquid cloud droplets (cm)
       REAL(fp), INTENT(IN) :: rIce        ! Radius of ice cloud crystals (cm)
-      REAL(fp), INTENT(IN) :: ALiq        ! Area of liquid cloud droplets (cm2)
-      REAL(fp), INTENT(IN) :: AIce        ! Area of ice cloud crystals (cm2)
+      REAL(fp), INTENT(IN) :: ALiq        ! Area of liquid cloud droplets (cm2/cm3)
+      REAL(fp), INTENT(IN) :: AIce        ! Area of ice cloud crystals (cm2/cm3)
       REAL(fp), INTENT(IN) :: VAir        ! Box volume (cm3)
       REAL(fp), INTENT(IN) :: TK          ! Temperature (K)
       REAL(fp), INTENT(IN) :: brConc      ! Bromide concentration (mol/L)
@@ -1440,7 +1430,7 @@ MODULE GCKPP_HETRATES
 ! !LOCAL VARIABLES:
 !
       INTEGER  :: N
-      REAL(fp) :: XSTKCF, ADJUSTEDRATE, SADen
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
       Real(fp), Parameter :: XMolWeight=97.5e+0_fp
       Real(fp), Parameter :: XSQM=SQRT(XMolWeight)
 
@@ -1491,13 +1481,11 @@ MODULE GCKPP_HETRATES
     If (.not. StratBox) Then
        If (ALiq.gt.0.0e+0_fp) Then
           XStkCf = Gamma_ClNO3_Br( rLiq, denAir, TK, brConc )
-          SADen = ALiq/VAir
-          kISum = kISum + Arsl1K(SADen, rLiq, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(ALiq, rLiq, denAir, XStkCf, TK, XSqM)
        End If
        If (AIce.gt.0.0e+0_fp) Then
           XStkCf = Gamma_ClNO3_Br( rIce, denAir, TK, brConc )
-          SADen = AIce/VAir
-          kISum = kISum + Arsl1K(SADen, rIce, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(AIce, rIce, denAir, XStkCf, TK, XSqM)
        End If
     End If
 
@@ -1523,8 +1511,8 @@ MODULE GCKPP_HETRATES
       REAL(fp), INTENT(IN) :: denAir      ! Density of air (#/cm3)
       REAL(fp), INTENT(IN) :: rLiq        ! Radius of liquid cloud droplets (cm)
       REAL(fp), INTENT(IN) :: rIce        ! Radius of ice cloud crystals (cm)
-      REAL(fp), INTENT(IN) :: ALiq        ! Area of liquid cloud droplets (cm2)
-      REAL(fp), INTENT(IN) :: AIce        ! Area of ice cloud crystals (cm2)
+      REAL(fp), INTENT(IN) :: ALiq        ! Area of liquid cloud droplets (cm2/cm3)
+      REAL(fp), INTENT(IN) :: AIce        ! Area of ice cloud crystals (cm2/cm3)
       REAL(fp), INTENT(IN) :: TK          ! Temperature (K)
 !
 ! !RETURN VALUE:
@@ -1622,8 +1610,8 @@ MODULE GCKPP_HETRATES
       REAL(fp), INTENT(IN) :: denAir      ! Density of air (#/cm3)
       REAL(fp), INTENT(IN) :: rLiq        ! Radius of liquid cloud droplets (cm)
       REAL(fp), INTENT(IN) :: rIce        ! Radius of ice cloud crystals (cm)
-      REAL(fp), INTENT(IN) :: ALiq        ! Area of liquid cloud droplets (cm2)
-      REAL(fp), INTENT(IN) :: AIce        ! Area of ice cloud crystals (cm2)
+      REAL(fp), INTENT(IN) :: ALiq        ! Area of liquid cloud droplets (cm2/cm3)
+      REAL(fp), INTENT(IN) :: AIce        ! Area of ice cloud crystals (cm2/cm3)
       REAL(fp), INTENT(IN) :: VAir        ! Box volume (cm3)
       REAL(fp), INTENT(IN) :: TK          ! Temperature (K)
       REAL(fp), INTENT(IN) :: hConc_Sul   ! Sulfate H+ concentration
@@ -1649,7 +1637,6 @@ MODULE GCKPP_HETRATES
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
       Real(fp), Parameter :: XMolWeight=96.9e+0_fp
       Real(fp), Parameter :: XSQM=SQRT(XMolWeight)
-      Real(fp) :: SADen
 
       ! Initialize
       kISum        = 0.0_fp
@@ -1695,13 +1682,13 @@ MODULE GCKPP_HETRATES
     If (.not. StratBox) Then
        If (ALiq.gt.0.0e+0_fp) Then
           XstkCf = Gamma_HOBr_X(rLiq, denAir, 1, TK, clConc, hConc_LCl)
-          SADen = ALiq/VAir
-          kISum = kISum + Arsl1K(SADen, rLiq, denAir, XStkCf, TK, XSqM)
+          AdjustedRate = kISum
+          kISum = kISum + Arsl1K(ALiq, rLiq, denAir, XStkCf, TK, XSqM)
+          Write(6,'(a,2(x,E14.4E4))') 'CALLED!!',AdjustedRate,kISum
        End If
        If (AIce.gt.0.0e+0_fp) Then
           XStkCf = Gamma_HOBr_X(rIce, denAir, 1, TK, clConc, hConc_ICl)
-          SADen = AIce/VAir
-          kISum = kISum + Arsl1K(SADen, rIce, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(AIce, rIce, denAir, XStkCf, TK, XSqM)
        End If
     End If
 
@@ -1728,8 +1715,8 @@ MODULE GCKPP_HETRATES
       REAL(fp), INTENT(IN) :: denAir      ! Density of air (#/cm3)
       REAL(fp), INTENT(IN) :: rLiq        ! Radius of liquid cloud droplets (cm)
       REAL(fp), INTENT(IN) :: rIce        ! Radius of ice cloud crystals (cm)
-      REAL(fp), INTENT(IN) :: ALiq        ! Area of liquid cloud droplets (cm2)
-      REAL(fp), INTENT(IN) :: AIce        ! Area of ice cloud crystals (cm2)
+      REAL(fp), INTENT(IN) :: ALiq        ! Area of liquid cloud droplets (cm2/cm3)
+      REAL(fp), INTENT(IN) :: AIce        ! Area of ice cloud crystals (cm2/cm3)
       REAL(fp), INTENT(IN) :: VAir        ! Box volume (cm3)
       REAL(fp), INTENT(IN) :: TK          ! Temperature (K)
       REAL(fp), INTENT(IN) :: hConc_Sul   ! Sulfate H+ concentration
@@ -1801,13 +1788,11 @@ MODULE GCKPP_HETRATES
     If (.not. StratBox) Then
        If (ALiq.gt.0.0e+0_fp) Then
           XstkCf = Gamma_HOBr_X(rLiq, denAir, 2, TK, brConc, hConc_LCl)
-          SADen = ALiq/VAir
-          kISum = kISum + Arsl1K(SADen, rLiq, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(ALiq, rLiq, denAir, XStkCf, TK, XSqM)
        End If
        If (AIce.gt.0.0e+0_fp) Then
           XStkCf = Gamma_HOBr_X(rIce, denAir, 2, TK, brConc, hConc_ICl)
-          SADen = AIce/VAir
-          kISum = kISum + Arsl1K(SADen, rIce, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(AIce, rIce, denAir, XStkCf, TK, XSqM)
        End If
     End If
 
@@ -2059,8 +2044,8 @@ MODULE GCKPP_HETRATES
       REAL(fp), INTENT(IN) :: denAir      ! Density of air (#/cm3)
       REAL(fp), INTENT(IN) :: rLiq        ! Radius of liquid cloud droplets (cm)
       REAL(fp), INTENT(IN) :: rIce        ! Radius of ice cloud crystals (cm)
-      REAL(fp), INTENT(IN) :: ALiq        ! Area of liquid cloud droplets (cm2)
-      REAL(fp), INTENT(IN) :: AIce        ! Area of ice cloud crystals (cm2)
+      REAL(fp), INTENT(IN) :: ALiq        ! Area of liquid cloud droplets (cm2/cm3)
+      REAL(fp), INTENT(IN) :: AIce        ! Area of ice cloud crystals (cm2/cm3)
       REAL(fp), INTENT(IN) :: TK          ! Temperature (K)
 !
 ! !RETURN VALUE:
@@ -3120,8 +3105,8 @@ MODULE GCKPP_HETRATES
 !
       REAL(fp),       INTENT(OUT) :: rLiq     ! Radius of liquid cloud droplets (cm)
       REAL(fp),       INTENT(OUT) :: rIce     ! Radius of ice cloud crystals (cm)
-      REAL(fp),       INTENT(OUT) :: ALiq     ! Sfc area of liq. cloud (cm2)
-      REAL(fp),       INTENT(OUT) :: AIce     ! Sfc area of ice cloud (cm2)
+      REAL(fp),       INTENT(OUT) :: ALiq     ! Sfc area of liq. cloud (cm2/cm3)
+      REAL(fp),       INTENT(OUT) :: AIce     ! Sfc area of ice cloud (cm2/cm3)
       REAL(fp),       INTENT(OUT) :: VLiq     ! Volume of liq. cloud (cm3/cm3)
       REAL(fp),       INTENT(OUT) :: VIce     ! Volume of ice cloud (cm3/cm3)
 !
@@ -3158,8 +3143,8 @@ MODULE GCKPP_HETRATES
       REAL(fp)            :: SQM        ! Square root of molec. weight [g/mol]
       REAL(fp)            :: STK        ! Square root of temperature   [K]
       REAL(fp)            :: DFKG       ! Gas diffusion coefficient    [cm2/s]
-      REAL(fp)            :: AREA_L     ! Surface area (liquid)        [cm2]
-      REAL(fp)            :: AREA_I     ! Surface area (ice) ) [cm2]
+      REAL(fp)            :: AREA_L     ! Surface area (liquid)        [cm2/cm3]
+      REAL(fp)            :: AREA_I     ! Surface area (ice) )         [cm2/cm3]
       REAL(fp)            :: Vcl, Vci   ! Volume of the cloud (liq and ice) [cm3]
       Real(fp)            :: MX         ! Molar mass                   [kg/mol]
       LOGICAL             :: IS_LAND, IS_ICE, Is_Warm
@@ -3336,7 +3321,8 @@ MODULE GCKPP_HETRATES
          VLiq = 0.e+0_fp
       ENDIF
 
-      ! now calculate the cloud droplet surface area
+      ! now calculate the cloud droplet surface area density
+      ! ALiq and AIce are in cm2/cm3
       ALiq = 3.e+0_fp * (VLiq/VAir) / rLiq ! keep Radius in [cm]
       AIce = 3.e+0_fp * (VIce/VAir) / rIce ! keep Radius in [cm]
 
@@ -3536,8 +3522,8 @@ MODULE GCKPP_HETRATES
       REAL(fp),       Intent(In) :: TK        ! Air temperature [K]
       REAL(fp),       Intent(In) :: rLiq     ! Radius of liquid cloud drops [cm]
       REAL(fp),       Intent(In) :: rIce     ! Radius of ice cloud crystals [cm]
-      REAL(fp),       Intent(In) :: ALiq     ! Surface area (liquid)        [cm2]
-      REAL(fp),       Intent(In) :: AIce     ! Surface area (ice) ) [cm2]
+      REAL(fp),       Intent(In) :: ALiq     ! Surface area (liquid)        [cm2/cm3]
+      REAL(fp),       Intent(In) :: AIce     ! Surface area (ice) )         [cm2/cm3]
       REAL(fp),       Intent(IN) :: MX_gmol   ! Molecular mass of XNO3 [g/mol]
       REAL(fp),       Intent(IN) :: AlphaX    ! XNO3 accomodation coefficient [unitless]
 !
