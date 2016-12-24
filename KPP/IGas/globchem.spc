@@ -180,6 +180,8 @@
      ClNO3           =          IGNORE;
      HCl             =          IGNORE;
      HOCl            =          IGNORE;
+     CHCl3           =          IGNORE;
+     CH2Cl2          =          IGNORE;
      CH3Cl           =          IGNORE;
      CH3CCl3         =          IGNORE;
      CCl4            =          IGNORE;
@@ -205,6 +207,28 @@
      NRO2            =          IGNORE;
      LNRO2H          =          IGNORE;
      LNRO2N          =          IGNORE;
+     BrSALA          =          IGNORE;
+     BrSALC          =          IGNORE;
+     CH3I            =          IGNORE;
+     CH2I2           =          IGNORE;
+     CH2ICl          =          IGNORE;
+     CH2IBr          =          IGNORE;
+     HOI             =          IGNORE;
+     I2              =          IGNORE;
+     IBr             =          IGNORE;
+     ICl             =          IGNORE;
+     IO              =          IGNORE;
+     HI              =          IGNORE;
+     OIO             =          IGNORE;
+     INO             =          IGNORE;
+     IONO            =          IGNORE;
+     IONO2           =          IGNORE;
+     I2O2            =          IGNORE;
+     I2O3            =          IGNORE;
+     I2O4            =          IGNORE;
+     ISALA           =          IGNORE;
+     ISALC           =          IGNORE;
+     AERI            =          IGNORE;
 
 #DEFFIX
 
