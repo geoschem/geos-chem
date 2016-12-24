@@ -60,6 +60,7 @@ MODULE GCKPP_HETRATES
   PRIVATE :: HETHOBr_HCl_JS
   PRIVATE :: HETClNO3_HBr_JS
   PRIVATE :: HETO3_HBr_JS
+  PRIVATE :: HETHOBr_SS_JS
 
   ! New subroutines required by the JS functions
   PRIVATE :: Gamma_ClNO3_Br
@@ -74,9 +75,10 @@ MODULE GCKPP_HETRATES
   PRIVATE :: HETHOCl_HBr
   PRIVATE :: HETHOCl_HCl
 
-  ! These are subfunctions to calculate rates on/in clouds
+  ! These are subfunctions to calculate rates on/in clouds and SSA
   PRIVATE :: CLD_PARAMS
-  PRIVATE :: GET_HALIDE_CLDCONC
+  PRIVATE :: GET_HALIDE_CLDConc
+  Private :: Get_Halide_SSAConc
   PRIVATE :: COMPUTE_L2G_LOCAL
   PRIVATE :: CLD1K_XNO3
   PRIVATE :: FCRO2HO2
@@ -466,6 +468,17 @@ MODULE GCKPP_HETRATES
          kITemp = HETHOBr_HCl_JS( XDenA, rLiq, rIce, ALiq, AIce, VAir, TempK, &
                            hConc_Sul, hConc_LCl, hConc_ICl, clConc_Cld )
          HET(ind_HOBr,  2) = kIIR1Ltd( spcVec, ind_('HOBr'),  ind_('HCl'), kITemp, hetMinLife)
+
+         ! New calculation for HOBr + BrSalA/C (TS index: hhc07/08)
+         ! NOTE: This has not been fully tested, as the initial simulations had
+         ! near-zero BrSALA and BrSALC  
+         kITemp = HETHOBr_SS_JS( XDenA, xRadi(11), xArea(11), SSAlk(1), TempK, &
+                           hConc_SSA, brConc_SSA, 2 )
+         HET(ind_HOBr,  4) = kIIR1Ltd( spcVec, ind_('HOBr'),  ind_('BrSALA'), kITemp, hetMinLife)
+
+         kITemp = HETHOBr_SS_JS( XDenA, xRadi(12), xArea(12), SSAlk(2), TempK, &
+                           hConc_SSC, brConc_SSC, 2 )
+         HET(ind_HOBr,  5) = kIIR1Ltd( spcVec, ind_('HOBr'),  ind_('BrSALC'), kITemp, hetMinLife)
 
          ! Extended calculation for ClNO3 + HCl
          HET(ind_ClNO3, 2) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('HCl'), HETClNO3_HCl( 0.97E2_fp, 0E+0_fp), hetMinLife)
@@ -1219,6 +1232,71 @@ MODULE GCKPP_HETRATES
       END DO
 
     END FUNCTIOn HETN2O5
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hethobr_ss_js
+!
+! !DESCRIPTION: Sets the HOBr + Br- (in sea salt) rate using Johan
+!  Schmidt's updated code.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETHOBr_SS_JS( denAir, rAer, AAer, alkAer, TK, hConc, halConc, X ) &
+                             RESULT( kISum )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL(fp), INTENT(IN) :: denAir      ! Density of air (#/cm3)
+      REAL(fp), INTENT(IN) :: rAer        ! Radius of aerosol (cm)
+      REAL(fp), INTENT(IN) :: AAer        ! Area of aerosol (cm2/cm3)
+      REAL(fp), INTENT(IN) :: alkAer      ! Aerosol alkalinity (?)
+      REAL(fp), INTENT(IN) :: TK          ! Temperature (K)
+      REAL(fp), INTENT(IN) :: hConc       ! H+ concentration (mol/L)
+      REAL(fp), INTENT(IN) :: halConc     ! Halide concentration (mol/L)
+      Integer,  INTENT(IN) :: X           ! 1: Cl-, 2: Br-
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: kISum
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+      Real(fp), Parameter :: XMolWeight=96.9e+0_fp
+      Real(fp), Parameter :: XSQM=SQRT(XMolWeight)
+
+      ! Initialize
+      kISum        = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
+
+      ! Reaction can only proceed on acidic aerosol
+      If (alkAer > 0.05e+0_fp) Then
+         XStkCf = 0.0e+0_fp
+      Else
+         XStkCf = Gamma_HOBr_X(rAer, denAir, X, TK, halConc, hConc)
+      End If
+
+      ! Reaction rate for surface of aerosol
+      kISum = Arsl1K(AAer,rAer,denAir,XStkCf,TK,XSqM)
+
+    END FUNCTION HETHOBr_SS_JS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3421,6 +3499,52 @@ MODULE GCKPP_HETRATES
 
       END SUBROUTINE GET_HALIDE_CLDCONC
 !EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GET_HALIDE_SSACONC
+!
+! !DESCRIPTION: Function GET\_HALIDE\_SSACONC calculates concentration of a halide in
+!               sea salt aerosol.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_HALIDE_SSACONC( n_x, surf_area, r_w, conc_x )
+!
+! !OUTPUT PARAMETER:
+      ! concentration of X- in SALX (mol/L)
+      REAL(fp)                         :: conc_x
+! !INPUT PARAMETERS:
+      ! n_x = X-(ssa) number density (#/cm3), surf_area = AERO surface area conc (cm2/cm3), r_w = AERO wet radius (cm)
+      REAL(fp), INTENT(IN)             :: n_x, surf_area, r_w
+
+!
+! !REVISION HISTORY:
+!  25 Jul 2014 - J. Schmidt - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+!
+      !REAL(fp),  PARAMETER :: con_NA      = 6.0221413e23_fp ! #/mol
+      REAL(fp)             :: V_tot
+
+      V_tot = surf_area * r_w * 0.3333333e0_fp * 1e-3_fp ! L(liq)/cm3(air)
+      If (V_tot .le. 1.0e-20) Then
+         conc_x = 1.0e-20_fp
+         Return
+      Else
+         conc_x =  (n_x / AVO) / V_tot ! mol/L
+         conc_x = MIN(conc_x,5.0e0_fp)
+         conc_x = MAX(conc_x,1.0e-20_fp)
+      End If
+
+      END SUBROUTINE GET_HALIDE_SSACONC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
