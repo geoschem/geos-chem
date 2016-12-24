@@ -549,14 +549,16 @@ MODULE GCKPP_HETRATES
          ! Extended calculation for BrNO3 + HCl into the troposphere
          HET(ind_BrNO3, 2) = kIIR1Ltd( spcVec, ind_('BrNO3'), ind_('HCl'), HETBrNO3_HCl(  1.42E2_fp, 0E+0_fp), hetMinLife)
 
+         ! New/extended calculation of N2O5 + HCl on sulfate
+         kITemp = HETN2O5_HCl( 1.08E2_fp, 0.0e+0_fp ) 
+         HET(ind_N2O5,  2) = kIIR1Ltd( spcVec, ind_('N2O5'), ind_('HCl'), kITemp, hetMinLife) 
+
          ! New calculation - reaction of N2O5 with sea-salt Cl- (assumed to be
          ! in excess, so no kII calculation)
          HET(ind_N2O5,  3) = HETN2O5_SS(1.08E2_fp, 1E-1_fp)
 
          ! Old UCX reactions - only considered in stratospheric cells
-#if defined( UCX )
-         HET(ind_N2O5,  2) = kIIR1Ltd( spcVec, ind_('N2O5'),  ind_('HCl'), HETN2O5_PSC(   1.08E2_fp, 0E+0_fp), hetMinLife)
-#endif
+         !HET(ind_N2O5,  2) = kIIR1Ltd( spcVec, ind_('N2O5'),  ind_('HCl'), HETN2O5_PSC(   1.08E2_fp, 0E+0_fp), hetMinLife)
          !HET(ind_BrNO3, 2) = kIIR1Ltd( spcVec, ind_('BrNO3'), ind_('HCl'), HETBrNO3_PSC(  1.42E2_fp, 0E+0_fp), hetMinLife)
          !HET(ind_HOCl,  1) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HCl'), HETHOCl_PSC1(  0.52E2_fp, 0E+0_fp), hetMinLife)
          !HET(ind_HOCl,  2) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HBr'), HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp), hetMinLife)
@@ -1351,6 +1353,102 @@ MODULE GCKPP_HETRATES
       END DO
 
     END FUNCTION HETN2O5_SS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetn2o5_hcl
+!
+! !DESCRIPTION: Set heterogenous chemistry rate for N2O5(g) + HCl(l,s)
+!  in polar stratospheric clouds and on tropospheric sulfate aerosol.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETN2O5_HCl( A, B ) RESULT( kISum )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: kISum
+!
+! !REMARKS:
+!  This routine is only activated for UCX-based mechanisms.
+!
+! !REVISION HISTORY:
+!  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
+!                              in calcrate.F
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
+!  24 Dec 2016 - S. D. Eastham - Extended into the troposphere. Also now use the
+!                              standard N2O5 calculation to establish gamma for
+!                              sulfate, rather than relying on a fixed factor.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
+      ! Initialize
+      kISum        = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
+      XSTKCF       = 0.0_fp
+
+      ! Loop over aerosol types
+      DO N = 1, NAERO
+
+         ! Assume zero
+         XStkCf = 0.0e+0_fp
+         IF (N.eq.8) THEN
+            ! Fixed gamma?
+            !XSTKCF = 0.1e-4_fp ! Sulfate
+            ! RH dependence
+            XSTKCF = N2O5( N, TEMPK, RELHUM )
+#if defined( UCX )
+         ! Only consider PSC reactions in strat
+         ELSEIF ( STRATBOX ) THEN
+            IF (N.eq.13) THEN
+               XSTKCF = KHETI_SLA(2)
+            ELSEIF (N.eq.14) THEN
+               IF (NATSURFACE) THEN
+                  XSTKCF = 0.003e+0_fp ! NAT
+               ELSE
+                  XSTKCF = 0.03e+0_fp ! Ice
+               ENDIF
+            ENDIF
+#endif
+         ENDIF
+
+         If (XStkCf.gt.0.0e+0_fp) Then
+            IF (N.eq.13) THEN
+               ! Calculate for stratospheric liquid aerosol
+               ! Note that XSTKCF is actually a premultiplying
+               ! factor in this case, including c-bar
+               ADJUSTEDRATE = XAREA(N) * XSTKCF
+            ELSE
+               ! Reaction rate for surface of aerosol
+               ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                                  (A**0.5_FP))
+            ENDIF
+   
+            ! Add to overall reaction rate
+            kISum = kISum + ADJUSTEDRATE
+         End If
+
+      END DO
+
+    END FUNCTION HETN2O5_HCl
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
