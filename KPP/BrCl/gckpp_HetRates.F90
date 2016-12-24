@@ -389,10 +389,13 @@ MODULE GCKPP_HETRATES
       Call Cld_Params( I, J, L, XDenA, VAir, TempK, QLiq, QIce, SM, &
                        rLiq,  ALiq,  VLiq, rIce,  AIce,  VIce )
 
+      ! Retrieve cloud pH and alkalinity
+      pHCloud = SC%pHCloud(I,J,L)
+      SSAlk(1:2) = SC%SSAlk(I,J,L,1:2)
+
       ! Estimate liquid phase pH (H+ concentration)
       hConc_Sul = 10.0**(-0.0e+0_fp) 
-      !hConc_LCl = 10.0**(-1.0e+0_fp*Get_Cloud_pH(I,J,L))
-      hConc_LCl = 0.1 ! DEBUG
+      hConc_LCl = 10.0**(-1.0e+0_fp*pHCloud)
       hConc_ICl = 10.0**(-4.5e+0_fp) 
       hConc_SSA = 10.0**(-5.0e+0_fp) 
       hConc_SSC = 10.0**(-5.0e+0_fp)
