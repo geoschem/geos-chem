@@ -64,6 +64,7 @@ MODULE GCKPP_HETRATES
   PRIVATE :: HETClNO3_SS_JS
   PRIVATE :: HETO3_SS_JS
   PRIVATE :: HETHXUptake_JS
+  PRIVATE :: HETN2O5_SS
 
   ! New subroutines required by the JS functions
   PRIVATE :: Gamma_ClNO3_Br
@@ -449,11 +450,12 @@ MODULE GCKPP_HETRATES
       HET(ind_HO2,   1) = HETHO2( 3.30E1_fp, 2E-1_fp)
       HET(ind_NO2,   1) = HETNO2( 4.60E1_fp, 1E-4_fp)
       HET(ind_NO3,   1) = HETNO3( 6.20E1_fp, 1E-1_fp)
+
       ! Now calculate reaction rates where the educt can be consumed.
       ! kIIR1Ltd: Assume that the first reactant is limiting. Assume that the
       ! second reactant is "abundant" and calculate the overall rate based on
-      ! the uptake rate of the first reactant only
-      HET(ind_N2O5,  1) = kIIR1Ltd( spcVec, ind_('N2O5'),  ind_('H2O'), HETN2O5(       1.08E2_fp, 1E-1_fp))
+      ! the uptake rate of the first reactant only.
+      HET(ind_N2O5,  1) = kIIR1Ltd( spcVec, ind_('N2O5'),  ind_('H2O'), HETN2O5(1.08E2_fp, 1E-1_fp))
 
       ! Br/Cl heterogeneous chemistry
       If (ind_('ClNO3') > 0) Then
@@ -546,6 +548,10 @@ MODULE GCKPP_HETRATES
 
          ! Extended calculation for BrNO3 + HCl into the troposphere
          HET(ind_BrNO3, 2) = kIIR1Ltd( spcVec, ind_('BrNO3'), ind_('HCl'), HETBrNO3_HCl(  1.42E2_fp, 0E+0_fp), hetMinLife)
+
+         ! New calculation - reaction of N2O5 with sea-salt Cl- (assumed to be
+         ! in excess, so no kII calculation)
+         HET(ind_N2O5,  3) = HETN2O5_SS(1.08E2_fp, 1E-1_fp)
 
          ! Old UCX reactions - only considered in stratospheric cells
 #if defined( UCX )
@@ -1282,6 +1288,69 @@ MODULE GCKPP_HETRATES
       END DO
 
     END FUNCTIOn HETN2O5
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetn2o5_ss
+!
+! !DESCRIPTION: Set heterogenous chemistry rate for N2O5 on sea salt. This
+!  reaction follows the N2O5 + Cl- channel, and Cl- is assumed to be in excess.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETN2O5_SS( A, B ) RESULT( kISum )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: kISum
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+!
+! !DEFINED PARAMETERS:
+!
+      ! Initialize
+      kISum        = 0.0_fp
+      ADJUSTEDRATE = 0.0_fp
+      XSTKCF       = 0.0_fp
+
+      ! Directly calculate for sea salt only
+      ! Get GAMMA for N2O5 hydrolysis, which is
+      ! a function of aerosol type, temp, and RH
+      Do N=11,12
+         ! Sea salt - follows the N2O5 + Cl- channel
+         XSTKCF = N2O5( N, TEMPK, RELHUM )
+
+         ! Convert to first-order rate constant
+         ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+                               (A**0.5_FP))
+
+         ! Add to overall reaction rate
+         kISum = kISum + ADJUSTEDRATE
+      END DO
+
+    END FUNCTION HETN2O5_SS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
