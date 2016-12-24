@@ -62,11 +62,13 @@ MODULE GCKPP_HETRATES
   PRIVATE :: HETO3_HBr_JS
   PRIVATE :: HETHOBr_SS_JS
   PRIVATE :: HETClNO3_SS_JS
+  PRIVATE :: HETHXUptake_JS
 
   ! New subroutines required by the JS functions
   PRIVATE :: Gamma_ClNO3_Br
   PRIVATE :: Gamma_O3_Br
   PRIVATE :: Gamma_HOBr_X
+  PRIVATE :: Gamma_HX_Uptake
   PRIVATE :: Coth
   PRIVATE :: ReactoDiff_Corr
 
@@ -515,6 +517,22 @@ MODULE GCKPP_HETRATES
          ! New O3 + Br- calculation
          kITemp = HETO3_HBr_JS( XDenA, rLiq, rIce, ALiq, AIce, VAir, TempK, brConc_Cld, spcVec(ind_('O3')))
          HET(ind_O3,    1) = kIIR1Ltd( spcVec, ind_('O3'),    ind_('HBr'), kITemp, hetMinLife)
+
+         ! New Cl uptake calculations (TS index: hhc15/16)
+         ! Cl is always assumed to be in excess in sea salt, so any HCl "taken
+         ! up" is just removed. This may change in the future. This reaction is
+         ! also first order, so no kII calculation is required
+         kITemp = HETHXUptake_JS( XDenA, xRadi(11), xArea(11), TempK, 1)
+         HET(ind_HCl,   1) = kITemp
+         kITemp = HETHXUptake_JS( XDenA, xRadi(12), xArea(12), TempK, 1)
+         HET(ind_HCl,   2) = kITemp
+
+         ! New Br uptake calculation - forms BrSALX (TS index: hhc17/18)
+         ! First-order reactions, no calculation of kII required
+         kITemp = HETHXUptake_JS( XDenA, xRadi(11), xArea(11), TempK, 2)
+         HET(ind_HBr,   1) = kITemp
+         kITemp = HETHXUptake_JS( XDenA, xRadi(12), xArea(12), TempK, 2)
+         HET(ind_HBr,   2) = kITemp
 
          ! Old UCX reactions - only considered in stratospheric cells
          HET(ind_N2O5,  2) = kIIR1Ltd( spcVec, ind_('N2O5'),  ind_('HCl'), HETN2O5_PSC(   1.08E2_fp, 0E+0_fp), hetMinLife)
@@ -1259,6 +1277,70 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: hethxuptake_js
+!
+! !DESCRIPTION: Sets the uptake rate of HCl and HBr on sea salt using Johan
+!  Schmidt's updated code.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETHXUptake_JS( denAir, rAer, AAer, TK, X ) RESULT( kISum )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL(fp), INTENT(IN) :: denAir      ! Density of air (#/cm3)
+      REAL(fp), INTENT(IN) :: rAer        ! Radius of aerosol (cm)
+      REAL(fp), INTENT(IN) :: AAer        ! Area of aerosol (cm2/cm3)
+      REAL(fp), INTENT(IN) :: TK          ! Temperature (K)
+      INTEGER,  INTENT(IN) :: X           ! 1: Cl-, 2: Br-
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: kISum
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE, XSqM
+      Real(fp), Parameter :: XMolWeightHCl=36.5e+0_fp
+      Real(fp), Parameter :: XSqMHCl=SQRT(XMolWeightHCl)
+      Real(fp), Parameter :: XMolWeightHBr=81.0e+0_fp
+      Real(fp), Parameter :: XSqMHBr=SQRT(XMolWeightHBr)
+
+      ! Initialize
+      kISum        = 0.0_fp
+
+      ! Select between halogens
+      If (X.eq.1) Then
+         XSqM = XSqMHCl
+      ElseIf (X.eq.2) Then
+         XSqM = XSqMHBr
+      End If
+       
+      XStkCf = Gamma_HX_Uptake( rAer, denAir, X, TK )
+
+      ! Reaction rate for surface of aerosol
+      kISum = Arsl1K(AAer,rAer,denAir,XStkCf,TK,XSqM)
+
+    END FUNCTION HETHXUptake_JS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: hetclno3_ss_js
 !
 ! !DESCRIPTION: Sets the ClNO3 + Br- (in sea salt) rate using Johan
@@ -1476,7 +1558,7 @@ MODULE GCKPP_HETRATES
     END FUNCTION HETO3_HBr_JS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1959,6 +2041,53 @@ MODULE GCKPP_HETRATES
     End If
 
     END FUNCTION HETHOBr_HBr_JS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gamma_hx_uptake
+!
+! !DESCRIPTION: Function GAMMA\_HX\_uptake calculates mass accomidation coef.
+!               for uptake of HX (HCl or HBr)
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION Gamma_HX_Uptake( Radius, n_air, X, T )  RESULT( GAM )  
+!
+! !OUTPUT PARAMETER:
+      ! Reactive uptake coefficient (unitless)
+      REAL(fp)                         :: GAM
+! !INPUT PARAMETERS:
+!
+      ! Radius (cm), n_air (#/cm), and X (1 for Cl and 2 for Br)
+      REAL(fp), INTENT(IN)             :: Radius, n_air
+      INTEGER, INTENT(IN)              :: X
+      REAL(fp), INTENT(IN)             :: T
+!
+! !REVISION HISTORY:
+!  24 Sept 2015 - J. Schmidt - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+!
+      REAL(fp)       :: ab, gd, M_X
+
+      ! 1: Cl-, 2: Br-
+      if (X==1) then
+         ab = 4.4e-6_fp * dexp( 2898.0e0_fp / T ) ! ab(RT) = 0.069
+      else
+         ab = 1.3e-8_fp * dexp( 4290.0e0_fp / T ) ! ab(RT) = 0.021
+      end if
+
+      GAM = ab
+
+      END FUNCTION Gamma_HX_Uptake
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3581,7 +3710,7 @@ MODULE GCKPP_HETRATES
       END SUBROUTINE GET_HALIDE_CLDCONC
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
