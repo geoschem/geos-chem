@@ -6962,10 +6962,11 @@
          IDT_EMIT( N_EMIT) = id_CCl4
          TRAC_EMIT(N_EMIT) = 'CCl4'
 
-         ! CH3Cl
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_CH3Cl
-         TRAC_EMIT(N_EMIT) = 'CH3Cl'
+         ! This is now set in emissions_mod along with CH2Cl2 and CHCl3
+         !! CH3Cl
+         !N_EMIT = N_EMIT + 1
+         !IDT_EMIT( N_EMIT) = id_CH3Cl
+         !TRAC_EMIT(N_EMIT) = 'CH3Cl'
 
          ! CH3CCl3
          N_EMIT = N_EMIT + 1

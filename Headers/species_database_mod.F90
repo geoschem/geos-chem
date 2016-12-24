@@ -766,6 +766,40 @@ CONTAINS
 #endif
                               RC            = RC )
 
+          CASE( 'CHCL3' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = 'CHCl3',                      &
+                              FullName      = 'Chloroform',                 &
+                              MW_g          = 119.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'CH2CL2' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = 'CH2Cl2',                     &
+                              FullName      = 'Dichloromethane',            &
+                              MW_g          = 85.0_fp,                      &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
           CASE( 'CH3CL' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &

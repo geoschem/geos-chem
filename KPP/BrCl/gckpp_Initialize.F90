@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Initialize.f90
-! Time                 : Sat Dec 24 11:34:05 2016
+! Time                 : Sat Dec 24 16:39:52 2016
 ! Working directory    : /n/home13/seastham/GCStandard/Code/Code.v11-01g-Iodine/KPP/BrCl
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp

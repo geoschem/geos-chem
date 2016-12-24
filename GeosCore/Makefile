@@ -580,7 +580,7 @@ emissions_mod.o             : emissions_mod.F90                              \
                               co2_mod.o               global_ch4_mod.o       \
                               hcoi_gc_main_mod.o      mercury_mod.o          \
                               sulfate_mod.o           tomas_mod.o            \
-                              ucx_mod.o        
+                              ucx_mod.o               sfcvmr_mod.o
 
 exchange_mod.o              : exchange_mod.F                                 \
 	                      tpcore_bc_mod.o         dao_mod.o              \
@@ -814,6 +814,8 @@ seasalt_mod.o               : seasalt_mod.F           dao_mod.o              \
                               hcoi_gc_main_mod.o      vdiff_pre_mod.o
 
 set_prof_o3.o               : set_prof_o3.F                                   
+
+sfcvmr_mod.o                : sfcvmr_mod.F90          pbl_mix_mod.o           
 
 species_database_mod.o      : species_database_mod.F90
 

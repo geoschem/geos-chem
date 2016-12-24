@@ -374,7 +374,7 @@
 {290} DMS + OH = 0.750SO2 + 0.250MSA + MO2 :           GC_DMSOH(8.20E-39, 0.0E+00, 5376.0, 1.05E-5, 0.0, 3644.0);
 {291} DMS + NO3 = SO2 + HNO3 + MO2 + CH2O :            GCARR(1.90E-13, 0.0E+00, 530.0);
 {292} SO2 + OH {+M} = SO4 + HO2 :                      GCJPLPR(3.30E-31, 4.3E+00, 0.0, 1.6E-12, 0.0, 0.0, 0.6, 0.0, 0.0);
-{293} Br + O3 = BrO + O2 :                             GCARR(1.60E-11, 0.0E+00, -780.0);
+{293} Br + O3 = BrO + O2 :                             GCARR(1.70E-11, 0.0E+00, -800.0);
 {294} BrO + HO2 = HOBr + O2 :                          GCARR(4.50E-12, 0.0E+00, 460.0);
 {295} Br + HO2 = HBr + O2 :                            GCARR(4.80E-12, 0.0E+00, -310.0);
 {296} HBr + OH = Br + H2O :                            GCARR(5.50E-12, 0.0E+00, 200.0);
@@ -588,7 +588,7 @@
 {466} OH + HOCl = H2O + ClO :                          GCARR(3.00E-12, 0.0E+00, -500.0);
 {467} OH + ClNO2 = HOCl + NO2 :                        GCARR(2.40E-12, 0.0E+00, -1250.0);
 {468} OH + ClNO3 = HOCl + NO3 :                        GCARR(1.20E-12, 0.0E+00, -330.0);
-{469} OH + CH3Cl = Cl + HO2 + H2O :                    GCARR(2.40E-12, 0.0E+00, -1250.0);
+{469} OH + CH3Cl = Cl + HO2 + H2O :                    GCARR(3.90E-12, 0.0E+00, -1411.0);
 {470} OH + CH3CCl3 = 3.000Cl + H2O :                   GCARR(1.64E-12, 0.0E+00, -1520.0);
 {471} OH + HCFC22 = Cl + H2O :                         GCARR(1.05E-12, 0.0E+00, -1600.0);
 {472} OH + HCFC141b = 2.000Cl + H2O :                  GCARR(1.25E-12, 0.0E+00, -1600.0);
@@ -619,7 +619,7 @@
 {497} ClO + BrO = BrCl + O2 :                          GCARR(4.10E-13, 0.0E+00, 290.0);
 {498} ClNO3 + O = ClO + NO3 :                          GCARR(3.60E-12, 0.0E+00, -840.0);
 {499} ClNO3 + Cl = Cl2 + NO3 :                         GCARR(6.50E-12, 0.0E+00, 135.0);
-{500} CH3Cl + Cl = CO + 2.000HCl + HO2 :               GCARR(2.17E-11, 0.0E+00, -1130.0);
+{500} CH3Cl + Cl = CO + 2.000HCl + HO2 :               GCARR(1.30E-11, 0.0E+00, -1470.0);
 //
 // photolysis reactions
 //
@@ -761,3 +761,58 @@
 // N2O5 reaction with Cl- in HCl and sea salt
 {643} N2O5 + HCl = ClNO2 + HNO3 :                      HET(ind_N2O5,2);
 {644} N2O5 = ClNO2 + HNO3 :                            HET(ind_N2O5,3);
+// New gas-phase Br/Cl chemistry
+{645} OH + CH2Cl2 = 2.000Cl + HO2 :                    GCARR(2.61E-12, 0.0E+00, -944.0);
+{646} OH + CHCl3 = 3.000Cl + HO2 :                     GCARR(4.69E-12, 0.0E+00, -1134.0);
+{647} CH2Cl2 + Cl = CO + HCl + 2.000Cl + 
+       HO2 :                                           GCARR(1.24E-12, 0.0E+00, -1070.0);
+{648} CHCl3 + Cl = CO + HCl + 3.000Cl + HO2 :          GCARR(3.77E-12, 0.0E+00, -1011.0);
+{649} Cl + HCOOH = HCl + CO2 + H2O :                   GCARR(2.00E-13, 0.0E+00, 0.0);
+{650} Cl + MO2 = ClO + CH2O + HO2 :                    GCARR(1.60E-10, 0.0E+00, 0.0);
+{651} Cl + MP = HCl + MO2 :                            GCARR(5.7E-11, 0.0E+00, 0.0);
+{652} Cl + C2H6 = HCl + ETO2 :                         GCARR(7.2E-11, 0.0E+00, -70.0);
+{653} Cl + ETO2 = ClO + HO2 + ALD2 :                   GCARR(7.4E-11, 0.0E+00, 0.0);
+{654} Cl + MOH = HCl + CH2O + HO2 :                    GCARR(5.5E-11, 0.0E+00, 0.0);
+{655} Cl + EOH = HCl + ALD2 :                          GCARR(9.6E-11, 0.0E+00, 0.0);
+{656} Cl + ACTA = HCl + MO2 + CO2 :                    GCARR(2.8E-14, 0.0E+00, 0.0);
+{657} Cl + C3H8 = HCl + B3O2 :                         GCARR(6.54E-11, 0.0E+00, 0.0);
+{658} Cl + C3H8 = HCl + A3O2 :                         GCARR(7.85E-11, 0.0E+00, -80.0);
+{659} Cl + ACET = HCl + ATO2 :                         GCARR(7.70E-11, 0.0E+00, -1000.0);
+{660} Cl + ISOP = HCl + RIO2 :                         GCARR(7.70E-11, 0.0E+00, 500.0);
+{661} Cl + ALK4 = HCl + R4O2 :                         GCARR(2.05E-10, 0.0E+00, 0.0);
+{662} Cl + PRPE {+M} = HCl + PO2 {+M} :                GCJPLPR(4.00E-28, 0.0E+00, 0.0, 2.8E-10, 0.0E0, 0.0, 0.6, 0.0, 0.0);
+{663} Br + PRPE = HBr + PO2 :                          GCARR(3.60E-12, 0.0E+00, 0.0);
+// Gas-phase iodine chemistry
+//{664} I + NO {+M} = INO {+M} :                         GCJPLPR(1.80E-32, 1.0E+00, 0.0, 1.7E-11, 0.0, 0.0, 0.6, 0.0, 0.0);
+//{665} INO + INO = I2 + 2.000NO :                       GCARR(8.40E-11, 0.0E+00, -2620.0);
+//{666} I + NO2 {+M} = IONO {+M} :                       GCJPLPR(3.00E-31, 1.0E+00, 0.0, 6.6E-11, 0.0, 0.0, 0.6, 0.0, 0.0);
+//{667} IONO {+M} = I + NO2 {+M} :                       GCARR(9.940E+17, 0.0E+00, -11859.0)*NUMDEN;
+//{668} IONO + IONO = I2 + 2.000NO2 :                    GCARR(4.70E-13, 0.0E+00, -1670.0);
+//{669} I2 + NO3 = I + IONO2 :                           GCARR(1.50E-12, 0.0E+00, 0.0);
+//{670} IO + NO2 {+M} = IONO2 {+M} :                     GCJPLPR(7.50E-31, 3.5E+00, 0.0, 7.6E-12, 1.5E0, 0.0, 0.6, 0.0, 0.0);
+//{671} IONO2 {+M} = IO + NO2 {+M} :                     GCJPLPR(1.50E-03, 3.5E+00, -14120.0, 1.52E+16, 1.5E0, -14120.0, 0.6, 0.0, 0.0);
+//{672} IONO2 + I = I2 + NO3 :                           GCARR(9.10E-11, 0.0E+00, -146.0);
+//{673} I + BrO = IO + Br :                              GCARR(1.20E-11, 0.0E+00, 0.0);
+//{674} IO + BrO = Br + I + O2 :                         GCARR(3.00E-12, 0.0E+00, 510.0); 
+//{675} IO + BrO = Br + OIO :                            GCARR(1.20E-11, 0.0E+00, 510.0);
+//{676} IO + OIO {+M} = I2O3 {+M} :                      GCARR(1.50E-10, 0.0E+00, 0.0)*NUMDEN;
+//{677} OIO + OIO = I2O4 :                               GCARR(1.50E-10, 0.0E+00, 0.0);
+//{678} I2O4 {+M} = 2.000OIO {+M} :                      GCARR(3.80E-02, 0.0E+00, 0.0)*NUMDEN;
+//{679} OIO + NO = IO + NO2 :                            GCARR(1.10E-12, 0.0E+00, 542.0);
+//{680} IO + ClO = I + OClO :                            GCARR(2.59E-12, 0.0E+00, 280.0);
+//{681} IO + ClO = I + Cl + O2 :                         GCARR(1.18E-12, 0.0E+00, 280.0);
+//{682} IO + ClO = ICl + O2 :                            GCARR(9.40E-13, 0.0E+00, 280.0);
+//{683} I + O3 = IO + O2 :                               GCARR(2.10E-11, 0.0E+00, -830.0);
+//{684} I + HO2 = HI + O2 :                              GCARR(1.50E-11, 0.0E+00, -1090.0);
+//{685} I2 + OH = HOI + I :                              GCARR(1.80E-10, 0.0E+00, 0.0);
+//{686} HI + OH = I + H2O :                              GCARR(1.60E-11, 0.0E+00, 440.0);
+//{687} HOI + OH = IO + H2O :                            GCARR(5.00E-12, 0.0E+00, 0.0);
+//{688} IO + HO2 = HOI + O2 :                            GCARR(1.41E-11, 0.0E+00, 540.0);
+//{689} IO + NO = I + NO2 :                              GCARR(7.15E-12, 0.0E+00, 0.0);
+//{690} IO + IO = I + OIO :                              GCARR(2.16E-11, 0.0E+00, 180.0);
+//{691} IO + IO {+M} = I2O2 {+M} :                       GCARR(3.24E-11, 0.0E+00, 180.0)*NUMDEN;
+//{692} I2O2 {+M} = 2.000IO {+M} :                       GCARR(1.00E+12, 0.0E+00, -9770.0)*NUMDEN;
+//{693} I2O2 {+M} = OIO + I {+M} :                       GCARR(2.50E+14, 0.0E+00, -9770.0)*NUMDEN;
+//{694} CH3I + OH = H2O + I + MO2 :                      GCARR(2.90E-12, 0.0E+00, -1100.0);
+// New photolysis
+{695} CH2Cl2 + hv = 2.000Cl :                          PHOTOL(45);

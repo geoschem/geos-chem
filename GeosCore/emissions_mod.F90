@@ -136,6 +136,9 @@ CONTAINS
     USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
 #endif
 
+    ! Setting other surface VMRs
+    Use sfcVMR_Mod,         Only : fixSfcVMR
+
     ! Use old mercury code for now (ckeller, 09/23/2014)
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
 
@@ -255,6 +258,12 @@ CONTAINS
                            State_Chm, RC          )
           ENDIF
    
+          ! Set other (non-UCX) fixed VMRs
+          If ( Input_Opt%LEMIS ) Then
+             CALL fixSfcVMR( am_I_Root, Input_Opt, State_Met, & 
+                             State_Chm, RC          )
+          End If
+ 
        ENDIF
     ENDIF ! Phase/=1  
     

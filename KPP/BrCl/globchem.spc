@@ -180,6 +180,8 @@
      ClNO3           =          IGNORE;
      HCl             =          IGNORE;
      HOCl            =          IGNORE;
+     CHCl3           =          IGNORE;
+     CH2Cl2          =          IGNORE;
      CH3Cl           =          IGNORE;
      CH3CCl3         =          IGNORE;
      CCl4            =          IGNORE;
