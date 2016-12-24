@@ -61,6 +61,7 @@ MODULE GCKPP_HETRATES
   PRIVATE :: HETClNO3_HBr_JS
   PRIVATE :: HETO3_HBr_JS
   PRIVATE :: HETHOBr_SS_JS
+  PRIVATE :: HETClNO3_SS_JS
 
   ! New subroutines required by the JS functions
   PRIVATE :: Gamma_ClNO3_Br
@@ -489,6 +490,16 @@ MODULE GCKPP_HETRATES
          kITemp = kITemp + HETHOBr_SS_JS( XDenA, xRadi(12), xArea(12), SSAlk(2), &
                                    TempK, hConc_SSC, 0.5e+0_fp, 1 )
          HET(ind_HOBr,  3) = kITemp
+
+         ! New calculation for ClNO3 + BrSALX (TS index: hhc10/11)
+         ! NOTE: This has not been fully tested, as the initial simulations had
+         ! near-zero BrSALA and BrSALC  
+         kITemp = HETClNO3_SS_JS( XDenA, xRadi(11), xArea(11), SSAlk(1), &
+                                  TempK, brConc_SSA)
+         HET(ind_ClNO3, 4) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('BrSALA'), kITemp, hetMinLife)
+         kITemp = HETClNO3_SS_JS( XDenA, xRadi(12), xArea(12), SSAlk(2), &
+                                  TempK, brConc_SSC)
+         HET(ind_ClNO3, 5) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('BrSALC'), kITemp, hetMinLife)
 
          ! Extended calculation for ClNO3 + HCl
          HET(ind_ClNO3, 2) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('HCl'), HETClNO3_HCl( 0.97E2_fp, 0E+0_fp), hetMinLife)
@@ -1242,6 +1253,68 @@ MODULE GCKPP_HETRATES
       END DO
 
     END FUNCTIOn HETN2O5
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetclno3_ss_js
+!
+! !DESCRIPTION: Sets the ClNO3 + Br- (in sea salt) rate using Johan
+!  Schmidt's updated code.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETClNO3_SS_JS( denAir, rAer, AAer, alkAer, TK, halConc ) &
+                             RESULT( kISum )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL(fp), INTENT(IN) :: denAir      ! Density of air (#/cm3)
+      REAL(fp), INTENT(IN) :: rAer        ! Radius of aerosol (cm)
+      REAL(fp), INTENT(IN) :: AAer        ! Area of aerosol (cm2/cm3)
+      REAL(fp), INTENT(IN) :: alkAer      ! Aerosol alkalinity (?)
+      REAL(fp), INTENT(IN) :: TK          ! Temperature (K)
+      REAL(fp), INTENT(IN) :: halConc     ! Halide concentration (mol/L)
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: kISum
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Mar 2016 - R. Yantosca - Added ProTeX header
+!  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
+!  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
+!  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER  :: N
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+      Real(fp), Parameter :: XMolWeight=97.5e+0_fp
+      Real(fp), Parameter :: XSQM=SQRT(XMolWeight)
+
+      ! Initialize
+      kISum        = 0.0_fp
+
+      ! Reaction can only proceed on acidic aerosol
+      If (alkAer > 0.05e+0_fp) Then
+         XStkCf = 0.0e+0_fp
+      Else
+         XStkCf = Gamma_ClNO3_Br( rAer, denAir, TK, halConc )
+      End If
+
+      ! Reaction rate for surface of aerosol
+      kISum = Arsl1K(AAer,rAer,denAir,XStkCf,TK,XSqM)
+
+    END FUNCTION HETClNO3_SS_JS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
