@@ -736,7 +736,6 @@
 {607} NO3 = HNO3 :                                     HET(ind_NO3,1);
 {608} N2O5 + H2O = 2.000HNO3 :                         HET(ind_N2O5,1);
 {609} BrNO3 + H2O = HOBr + HNO3 :                      HET(ind_BrNO3,1);
-{614} N2O5 + HCl = ClNO2 + HNO3 :                      HET(ind_N2O5,2);
 {615} ClNO3 + H2O = HOCl + HNO3 :                      HET(ind_ClNO3,1);
 {616} ClNO3 + HCl = Cl2 + HNO3 :                       HET(ind_ClNO3,2);
 {618} BrNO3 + HCl = BrCl + HNO3 :                      HET(ind_BrNO3,2);
@@ -759,3 +758,6 @@
 {640} O3 + BrSALC = HOBr :                             HET(ind_O3,3);
 {641} HBr = BrSALA :                                   HET(ind_HBr,1);
 {642} HBr = BrSALC :                                   HET(ind_HBr,2);
+// N2O5 reaction with Cl- in HCl and sea salt
+{643} N2O5 + HCl = ClNO2 + HNO3 :                      HET(ind_N2O5,2);
+{643} N2O5 = ClNO2 + HNO3 :                            HET(ind_N2O5,3);

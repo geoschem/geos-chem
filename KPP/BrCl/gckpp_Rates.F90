@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Fri Dec 23 14:21:24 2016
+! Time                 : Sat Dec 24 11:34:05 2016
 ! Working directory    : /n/home13/seastham/GCStandard/Code/Code.v11-01g-Iodine/KPP/BrCl
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -1009,27 +1009,28 @@ SUBROUTINE Update_RCONST ( )
   RCONST(524) = (HET(ind_NO3,1))
   RCONST(525) = (HET(ind_N2O5,1))
   RCONST(526) = (HET(ind_BrNO3,1))
-  RCONST(527) = (HET(ind_N2O5,2))
-  RCONST(528) = (HET(ind_ClNO3,1))
-  RCONST(529) = (HET(ind_ClNO3,2))
-  RCONST(530) = (HET(ind_BrNO3,2))
-  RCONST(531) = (HET(ind_HOCl,1))
-  RCONST(532) = (HET(ind_HOCl,2))
-  RCONST(533) = (HET(ind_HOBr,1))
-  RCONST(534) = (HET(ind_HOBr,2))
-  RCONST(535) = (HET(ind_HOBr,3))
-  RCONST(536) = (HET(ind_ClNO3,3))
-  RCONST(537) = (HET(ind_O3,1))
-  RCONST(538) = (HET(ind_HCl,1))
-  RCONST(539) = (HET(ind_HCl,2))
-  RCONST(540) = (HET(ind_HOBr,4))
-  RCONST(541) = (HET(ind_HOBr,5))
-  RCONST(542) = (HET(ind_ClNO3,4))
-  RCONST(543) = (HET(ind_ClNO3,5))
-  RCONST(544) = (HET(ind_O3,2))
-  RCONST(545) = (HET(ind_O3,3))
-  RCONST(546) = (HET(ind_HBr,1))
-  RCONST(547) = (HET(ind_HBr,2))
+  RCONST(527) = (HET(ind_ClNO3,1))
+  RCONST(528) = (HET(ind_ClNO3,2))
+  RCONST(529) = (HET(ind_BrNO3,2))
+  RCONST(530) = (HET(ind_HOCl,1))
+  RCONST(531) = (HET(ind_HOCl,2))
+  RCONST(532) = (HET(ind_HOBr,1))
+  RCONST(533) = (HET(ind_HOBr,2))
+  RCONST(534) = (HET(ind_HOBr,3))
+  RCONST(535) = (HET(ind_ClNO3,3))
+  RCONST(536) = (HET(ind_O3,1))
+  RCONST(537) = (HET(ind_HCl,1))
+  RCONST(538) = (HET(ind_HCl,2))
+  RCONST(539) = (HET(ind_HOBr,4))
+  RCONST(540) = (HET(ind_HOBr,5))
+  RCONST(541) = (HET(ind_ClNO3,4))
+  RCONST(542) = (HET(ind_ClNO3,5))
+  RCONST(543) = (HET(ind_O3,2))
+  RCONST(544) = (HET(ind_O3,3))
+  RCONST(545) = (HET(ind_HBr,1))
+  RCONST(546) = (HET(ind_HBr,2))
+  RCONST(547) = (HET(ind_N2O5,2))
+  RCONST(548) = (HET(ind_N2O5,3))
       
 END SUBROUTINE Update_RCONST
 
