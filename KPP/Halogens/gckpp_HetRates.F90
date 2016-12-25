@@ -55,6 +55,7 @@ MODULE GCKPP_HETRATES
 
   ! New iodine heterogeneous chemistry
   PRIVATE :: HETIUptake
+  PRIVATE :: HETIXCycleSSA
 
   ! These are the new Br/Cl functions from J. Schmidt
   PRIVATE :: HETBrNO3_JS
@@ -586,6 +587,11 @@ MODULE GCKPP_HETRATES
          HET(ind_I2O4, 1) = HETIUptake(3.18E2_fp,0.02e+0_fp,8)
          HET(ind_I2O4, 2) = HETIUptake(3.18E2_fp,0.02e+0_fp,11)
          HET(ind_I2O4, 3) = HETIUptake(3.18E2_fp,0.02e+0_fp,12)
+
+         ! Breakdown of iodine compounds on sea-salt
+         HET(ind_IONO, 3) = HETIXCycleSSA(1.73E2_fp,0.02E+0_fp,SSAlk)
+         HET(ind_IONO2,3) = HETIXCycleSSA(1.89E2_fp,0.01E+0_fp,SSAlk)
+         HET(ind_HOI,  3) = HETIXCycleSSA(1.44E2_fp,0.01E+0_fp,SSAlk)
          
       End If
 
@@ -781,6 +787,60 @@ MODULE GCKPP_HETRATES
       End If
 
     END FUNCTION kIIR1R2L
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetixcyclessa
+!
+! !DESCRIPTION: Set the iodine reaction rate on sea salt, assuming a fixed ratio
+! of ICl and IBr (85:15) is produced.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETIXCycleSSA( A, B, SSAlk ) RESULT( kISum )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+      ! Sea salt alkalinity
+      Real(fp), Intent(In) :: SSAlk(2)
+!
+! !RETURN VALUE:
+! 
+      REAL(fp)             :: kISum
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  24 Dec 2016 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE
+      INTEGER  :: N, NAer
+
+      ! Initialize
+      kISum        = 0.0_fp
+
+      Do N=1,2
+         NAer = N + 10
+         ! Only allow reaction on acidic aerosol
+         If (SSAlk(N).le.0.05e+0_fp) Then
+            ! Reaction rate for surface of aerosol
+            AdjustedRate = ARSL1K(XAREA(NAer),XRADI(NAer),XDENA,B,XTEMP,(A**0.5_fp))
+            kISum = kISum + AdjustedRate
+         End If
+      End Do
+      
+    END FUNCTION HETIXCycleSSA
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
