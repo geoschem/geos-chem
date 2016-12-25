@@ -53,6 +53,9 @@ MODULE GCKPP_HETRATES
   PRIVATE :: N2O5
   PRIVATE :: HO2
 
+  ! New iodine heterogeneous chemistry
+  PRIVATE :: HETIUptake
+
   ! These are the new Br/Cl functions from J. Schmidt
   PRIVATE :: HETBrNO3_JS
   PRIVATE :: HETClNO3_JS
@@ -557,99 +560,24 @@ MODULE GCKPP_HETRATES
          ! in excess, so no kII calculation)
          HET(ind_N2O5,  3) = HETN2O5_SS(1.08E2_fp, 1E-1_fp)
 
-         ! Old UCX reactions - only considered in stratospheric cells
-         !HET(ind_N2O5,  2) = kIIR1Ltd( spcVec, ind_('N2O5'),  ind_('HCl'), HETN2O5_PSC(   1.08E2_fp, 0E+0_fp), hetMinLife)
-         !HET(ind_BrNO3, 2) = kIIR1Ltd( spcVec, ind_('BrNO3'), ind_('HCl'), HETBrNO3_PSC(  1.42E2_fp, 0E+0_fp), hetMinLife)
-         !HET(ind_HOCl,  1) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HCl'), HETHOCl_PSC1(  0.52E2_fp, 0E+0_fp), hetMinLife)
-         !HET(ind_HOCl,  2) = kIIR1Ltd( spcVec, ind_('HOCl'),  ind_('HBr'), HETHOCl_PSC2(  0.52E2_fp, 0E+0_fp), hetMinLife)
-
-         ! kIIR1R2L: Either reactant could be limiting. Calculate uptake probability
-         ! for each one separately and then determine the overall rate by assuming
-         ! that the species with the lower total uptake rate is limiting and the
-         ! other is "abundant"
- 
-         ! [[ NOT CURRENTLY USED ]]
-
-         ! Old reactions
-         !HET(ind_BrNO3, 1) = kIIR1Ltd( spcVec, ind_('BrNO3'), ind_('H2O'), HETBrNO3(      1.42E2_fp, 3E-1_fp), hetMinLife)
-         !HET(ind_ClNO3, 1) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('H2O'), HETClNO3_PSC1( 0.97E2_fp, 0E+0_fp), hetMinLife)
-         !HET(ind_ClNO3, 2) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('HCl'), HETClNO3_PSC2( 0.97E2_fp, 0E+0_fp), hetMinLife)
-         !HET(ind_HOBr,  1) = kIIR1R2L( spcVec, ind_('HOBr'), ind_('HBr'), HETHOBr( 0.97E2_fp,2E-1_fp), HETHBr( 0.81E2_fp,2E-1_fp))
-         !HET(ind_HOBr,  2) = kIIR1Ltd( spcVec, ind_('HOBr'),  ind_('HCl'), HETHOBr_PSC(   0.97E2_fp, 0E+0_fp), hetMinLife)
-         !! Add the rate of processing on cold/ice clouds (already limited)
-         !kIITemp = kIIR1R2L( spcVec, ind_('HOBr'), ind_('HBr'), HETHOBrIce( 0.97E2_fp, 1E-1_fp), HETHBrIce( 0.81E2_fp, 1E-1_fp))
-         !HET(ind_HOBr, 1) = HET(ind_HOBr,1) + kIITemp
-         !HET(ind_ClNO3, 3) = kIIR1Ltd( spcVec, ind_('ClNO3'), ind_('HBr'), HETClNO3_PSC3( 0.97E2_fp, 0E+0_fp), hetMinLife)
-
       End If
 
-      ! SDE DEBUG
-      If ((I.eq.IMax).and.(J.eq.JMax).and.(L.eq.LMax)) Then
-         Write(6,'(a,3(x,I0.3))') 'Educt concentrations (molec/cm3) in', I, J, L
-         Write(6,'(a,3(x,E20.8E4))') 'H2O/HCl/HBr:',spcVec(ind_('H2O')),spcVec(ind_('HCl')),spcVec(ind_('HBr'))
-         Write(6,'(a,3(x,I0.3))') 'Het-chem rate constants in', I, J, L
-         Write(6,'(a,1(x,E20.8E4))') 'HO2        :',HET(ind_HO2,  1)
-         Write(6,'(a,1(x,E20.8E4))') 'NO2        :',HET(ind_NO2,  1)
-         Write(6,'(a,1(x,E20.8E4))') 'NO3        :',HET(ind_NO3,  1)
-         Write(6,'(a,1(x,E20.8E4))') 'N2O5+H2O   :',HET(ind_N2O5, 1)
-         Write(6,'(a,1(x,E20.8E4))') 'BrNO3+H2O  :',HET(ind_BrNO3,1)
-         Write(6,'(a,1(x,E20.8E4))') 'N2O5+HCl   :',HET(ind_N2O5, 2)
-         Write(6,'(a,1(x,E20.8E4))') 'ClNO3+H2O  :',HET(ind_ClNO3,1)
-         Write(6,'(a,1(x,E20.8E4))') 'ClNO3+HCl  :',HET(ind_ClNO3,2)
-         Write(6,'(a,1(x,E20.8E4))') 'ClNO3+HBr  :',HET(ind_ClNO3,3)
-         Write(6,'(a,1(x,E20.8E4))') 'BrNO3+HCl  :',HET(ind_BrNO3,2)
-         Write(6,'(a,1(x,E20.8E4))') 'HOCl+HCl   :',HET(ind_HOCl, 1)
-         Write(6,'(a,1(x,E20.8E4))') 'HOCl+HBr   :',HET(ind_HOCl, 2)
-         Write(6,'(a,1(x,E20.8E4))') 'HOBr+HCl   :',HET(ind_HOBr, 2)
-         Write(6,'(a,1(x,E20.8E4))') 'HOBr+HBr   :',HET(ind_HOBr, 1)
+      ! Iodine chemistry
+      If (ind_('I2').gt.0) Then
+         ! Uptake reactions (forming AERI, ISALA and ISALC)
+         HET(ind_HI,  1) = HETIUptake(1.28E2_fp,0.10e+0_fp,8)
+         HET(ind_HI,  2) = HETIUptake(1.28E2_fp,0.10e+0_fp,11)
+         HET(ind_HI,  3) = HETIUptake(1.28E2_fp,0.10e+0_fp,12)
+         HET(ind_I2O2,1) = HETIUptake(2.86E2_fp,0.02e+0_fp,8)
+         HET(ind_I2O2,2) = HETIUptake(2.86E2_fp,0.02e+0_fp,11)
+         HET(ind_I2O2,3) = HETIUptake(2.86E2_fp,0.02e+0_fp,12)
+         HET(ind_I2O3,1) = HETIUptake(3.02E2_fp,0.02e+0_fp,8)
+         HET(ind_I2O3,2) = HETIUptake(3.02E2_fp,0.02e+0_fp,11)
+         HET(ind_I2O3,3) = HETIUptake(3.02E2_fp,0.02e+0_fp,12)
+         HET(ind_I2O4,1) = HETIUptake(3.18E2_fp,0.02e+0_fp,8)
+         HET(ind_I2O4,2) = HETIUptake(3.18E2_fp,0.02e+0_fp,11)
+         HET(ind_I2O4,3) = HETIUptake(3.18E2_fp,0.02e+0_fp,12)
       End If
-
-      ! SDE DEBUG
-      ! Use the old format of HBr + HOBr
-      !If (OldHBrHOBr) Then
-      !   ! Zero out the old HOBr + HBr rate
-      !   HET(ind_HOBr,  1) = 0.0e+0_fp
-      !   ! Perform the old "rate-limiting" step
-      !   kIA = HETHOBr( 0.97E2_fp, 2E-1_fp)
-      !   kIB = HETHBr( 0.81E2_fp, 2E-1_fp)
-      !   If ((kIA > 0.0e+0_fp) .and. (kIB > 0.0e+0_fp)) Then
-      !      RIA = kIA * spcVec(ind_('HOBr'))
-      !      RIB = kIB * spcVec(ind_('HBr'))
-
-      !      If (RIB > RIA) Then
-      !         If (Is_Safe_Div(RIA,spcVec(ind_('HBr')))) Then
-      !            kIB = RIA / spcVec(ind_('HBr'))
-      !         Else
-      !            kIA = 0.0e+0_fp
-      !            kIB = 0.0e+0_fp
-      !         End If
-      !      Else
-      !         If (Is_Safe_Div(RIB,spcVec(ind_('HOBr')))) Then
-      !            kIA = RIB / spcVec(ind_('HOBr'))
-      !         Else
-      !            kIA = 0.0e+0_fp
-      !            kIB = 0.0e+0_fp
-      !         End If
-      !      End If
-      !   Else
-      !      kIA = 0.0e+0_fp
-      !      kIB = 0.0e+0_fp
-      !   End If
-      !   HET(ind_HOBr,  3) = kIA
-      !   HET(ind_HBr,   3) = kIB
-      !   HET(ind_HOBr,  4) = HETHOBrIce(0.97e2_fp,1e-1_fp)
-      !   HET(ind_HBr,   4) = HETHBrIce(0.81e2_fp,1e-1_fp)
-      !Else
-      !   Het(ind_HOBr,3) = 0.0e+0_fp
-      !   Het(ind_HBr, 3) = 0.0e+0_fp
-      !   Het(ind_HOBr,4) = 0.0e+0_fp
-      !   Het(ind_HBr, 4) = 0.0e+0_fp
-      !End If
-
-      ! SDE DEBUG - ZERO IT ALL
-      !HET(:,:) = 0.0e+0_fp
-
-      !SCF2(:) = 0.0
 
       SCF = SCF2
 
@@ -843,6 +771,59 @@ MODULE GCKPP_HETRATES
       End If
 
     END FUNCTION kIIR1R2L
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hetiuptake
+!
+! !DESCRIPTION: Set the uptake rate for iodine species.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION HETIUptake( A, B, N ) RESULT( kISum )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Rate coefficients
+      REAL(fp), INTENT(IN) :: A, B
+      ! Which aerosol?
+      Integer,  Intent(In) :: N
+!
+! !RETURN VALUE:
+! 
+      REAL(fp)             :: kISum
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  24 Dec 2016 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      !REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
+      ! Initialize
+      kISum        = 0.0_fp
+
+      ! Reaction rate for surface of aerosol
+      kISum = ARSL1K(XAREA(N),XRADI(N),XDENA,B,XTEMP,(A**0.5_fp))
+#if defined( UCX )
+      ! Also allow reaction on stratospheric sulfate (N=13) if 
+      ! tropospheric sulfate is requested (N=8)
+      If (N.eq.8) Then
+         kISum = kISum + ARSL1K(XAREA(13),XRADI(13),XDENA,B,XTEMP, &
+                               (A**0.5_fp))
+      End If
+#endif
+      
+    END FUNCTION HETIUptake
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
