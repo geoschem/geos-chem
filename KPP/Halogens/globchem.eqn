@@ -849,4 +849,4 @@
 // Iodine het-chem on sea salt
 {724} INO2 = 0.850ICl + 0.150IBr + HNO3 :              HET(ind_INO2,1);
 {725} IONO2 = 0.850ICl + 0.150IBr + HNO3 :             HET(ind_IONO2,1);
-{726} HOI = 0.850ICl + 0.150IBr :                      HET(ind_IOI,1);
+{726} HOI = 0.850ICl + 0.150IBr :                      HET(ind_HOI,1);

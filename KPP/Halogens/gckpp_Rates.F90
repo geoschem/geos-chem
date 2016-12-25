@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Sat Dec 24 18:29:14 2016
+! Time                 : Sat Dec 24 19:00:47 2016
 ! Working directory    : /n/home13/seastham/GCStandard/Code/Code.v11-01g-Iodine/KPP/Halogens
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -1112,7 +1112,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(627) = (HET(ind_I2O4,3))
   RCONST(628) = (HET(ind_INO2,1))
   RCONST(629) = (HET(ind_IONO2,1))
-  RCONST(630) = (HET(ind_IOI,1))
+  RCONST(630) = (HET(ind_HOI,1))
       
 END SUBROUTINE Update_RCONST
 
