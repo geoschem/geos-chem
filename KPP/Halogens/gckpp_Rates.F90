@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Sat Dec 24 19:00:47 2016
+! Time                 : Sat Dec 24 19:29:12 2016
 ! Working directory    : /n/home13/seastham/GCStandard/Code/Code.v11-01g-Iodine/KPP/Halogens
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -1101,18 +1101,24 @@ SUBROUTINE Update_RCONST ( )
   RCONST(616) = (HET(ind_HI,1))
   RCONST(617) = (HET(ind_HI,2))
   RCONST(618) = (HET(ind_HI,3))
-  RCONST(619) = (HET(ind_I2O2,1))
-  RCONST(620) = (HET(ind_I2O2,2))
-  RCONST(621) = (HET(ind_I2O2,3))
-  RCONST(622) = (HET(ind_I2O3,1))
-  RCONST(623) = (HET(ind_I2O3,2))
-  RCONST(624) = (HET(ind_I2O3,3))
-  RCONST(625) = (HET(ind_I2O4,1))
-  RCONST(626) = (HET(ind_I2O4,2))
-  RCONST(627) = (HET(ind_I2O4,3))
-  RCONST(628) = (HET(ind_INO2,1))
-  RCONST(629) = (HET(ind_IONO2,1))
-  RCONST(630) = (HET(ind_HOI,1))
+  RCONST(619) = (HET(ind_HOI,1))
+  RCONST(620) = (HET(ind_HOI,2))
+  RCONST(621) = (HET(ind_I2O2,1))
+  RCONST(622) = (HET(ind_I2O2,2))
+  RCONST(623) = (HET(ind_I2O2,3))
+  RCONST(624) = (HET(ind_I2O3,1))
+  RCONST(625) = (HET(ind_I2O3,2))
+  RCONST(626) = (HET(ind_I2O3,3))
+  RCONST(627) = (HET(ind_I2O4,1))
+  RCONST(628) = (HET(ind_I2O4,2))
+  RCONST(629) = (HET(ind_I2O4,3))
+  RCONST(630) = (HET(ind_IONO,1))
+  RCONST(631) = (HET(ind_IONO,2))
+  RCONST(632) = (HET(ind_IONO2,1))
+  RCONST(633) = (HET(ind_IONO2,2))
+  RCONST(634) = (HET(ind_IONO,3))
+  RCONST(635) = (HET(ind_IONO2,3))
+  RCONST(636) = (HET(ind_HOI,3))
       
 END SUBROUTINE Update_RCONST
 
