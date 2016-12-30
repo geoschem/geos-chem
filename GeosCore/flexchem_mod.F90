@@ -201,6 +201,7 @@ CONTAINS
     REAL(fp)               :: SCF(3)
 
     ! For prod/loss diagnostic
+    REAL(fp), Allocatable  :: C_FLUX(:)
     REAL(fp)               :: PROD(NVAR)
     REAL(fp)               :: LOSS(NVAR)
     REAL(fp)               :: deltaCheck(2,2) ! debug only
@@ -214,6 +215,9 @@ CONTAINS
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
+
+    ! For online transport calculation
+    Real(fp)               :: tauChem, areaSum
 
     !=================================================================
     ! Do_FlexChem begins here!
@@ -477,6 +481,10 @@ CONTAINS
     ! 0 - adjoint, 1 - no adjoint
     ICNTRL(7) = 1
 
+    ! SDE 2016-12-28: Set ~infinite lifetimes at start
+    State_Chm%tauChem4(:,:,:,:) = 1.0e+20_fp
+    Allocate(C_FLUX(SIZE(FLUX_MAP)))
+
     !=================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
     !=================================================================
@@ -508,6 +516,7 @@ CONTAINS
     !$OMP PRIVATE  ( START, FINISH,   ISTATUS,    RSTATE      ) &
     !$OMP PRIVATE  ( PROD,  LOSS,     DELTACHECK, SpcId       ) &
     !$OMP PRIVATE  ( NAME,  COEF,     IND,        F,     M    ) &
+    !$OMP PRIVATE  ( tauChem                                  ) &
     !$OMP REDUCTION( +:ITIM                                   ) &
     !$OMP REDUCTION( +:RTIM                                   ) &
     !$OMP REDUCTION( +:TOTSTEPS                               ) &
@@ -838,72 +847,94 @@ CONTAINS
        !==============================================================
        ! Prod/loss diagnostic
        !==============================================================
-       IF ( Input_Opt%DO_SAVE_PL ) THEN
+       IF ( Input_Opt%DO_SAVE_PL .or. Input_Opt%FlexTPCore ) THEN
 
           ! Obtain prod/loss rates from KPP [molec/cm3]
-          CALL Flux( C(FLUX_MAP), PROD, LOSS)
+          C_FLUX(:) = C(FLUX_MAP)
+          CALL Flux( C_FLUX, PROD, LOSS)
 
-          ! Loop over # prod/loss families
-          DO F = 1, Input_Opt%NFAM
+          If (Input_Opt%Do_Save_PL) Then
+             ! Loop over # prod/loss families
+             DO F = 1, Input_Opt%NFAM
 
-             ! Loop over members in prod/loss families
-             DO M = 1, Input_Opt%FAM_NMEM(F)
+                ! Loop over members in prod/loss families
+                DO M = 1, Input_Opt%FAM_NMEM(F)
 
-                ! Get information about prod/loss species
-                NAME = Input_Opt%FAM_MEMB(M,F) ! Species name
-                COEF = Input_Opt%FAM_COEF(M,F) ! Species coefficient
-                IND  = Ind_(TRIM(NAME),'K')    ! KPP species ID
+                   ! Get information about prod/loss species
+                   NAME = Input_Opt%FAM_MEMB(M,F) ! Species name
+                   COEF = Input_Opt%FAM_COEF(M,F) ! Species coefficient
+                   IND  = Ind_(TRIM(NAME),'K')    ! KPP species ID
 
-                ! Skip prod/loss species if not found in KPP
-                IF ( IND <= 0 ) THEN
-                   IF ( I == 1 .and. J == 1 .and. L == 1 ) THEN
-                      WRITE(*,'(a8,a66)') TRIM(NAME),               &
-                         ' NOT found in KPP. Skipping prod/loss' // &
-                         ' diagnostic for this species.'
+                   ! Skip prod/loss species if not found in KPP
+                   IF ( IND <= 0 ) THEN
+                      IF ( I == 1 .and. J == 1 .and. L == 1 ) THEN
+                         WRITE(*,'(a8,a66)') TRIM(NAME),               &
+                            ' NOT found in KPP. Skipping prod/loss' // &
+                            ' diagnostic for this species.'
+                      ENDIF
+                      CYCLE
                    ENDIF
-                   CYCLE
-                ENDIF
 
-                ! Check if family type is prod or loss
-                ! and add to AD65 array [molec/cm3/s]
-                IF      ( Input_Opt%FAM_TYPE(F) == 'prod' ) THEN
-                   AD65(I,J,L,F) = AD65(I,J,L,F) + COEF*(PROD(IND)/DT)
-                ELSE IF ( Input_Opt%FAM_TYPE(F) == 'loss' ) THEN
-                   AD65(I,J,L,F) = AD65(I,J,L,F) + COEF*(LOSS(IND)/DT)
-                ENDIF
+                   ! Check if family type is prod or loss
+                   ! and add to AD65 array [molec/cm3/s]
+                   IF      ( Input_Opt%FAM_TYPE(F) == 'prod' ) THEN
+                      AD65(I,J,L,F) = AD65(I,J,L,F) + COEF*(PROD(IND)/DT)
+                   ELSE IF ( Input_Opt%FAM_TYPE(F) == 'loss' ) THEN
+                      AD65(I,J,L,F) = AD65(I,J,L,F) + COEF*(LOSS(IND)/DT)
+                   ENDIF
 
 #if   defined( TOMAS )
-                !-------------------------------------------------------
-                ! FOR TOMAS MICROPHYSICS:
-                !
-                ! Obtain P/L with a unit [kg S] for tracing 
-                ! gas-phase sulfur species production (SO2, SO4, MSA)
-                ! (win, 8/4/09)
-                !-------------------------------------------------------
+                   !-------------------------------------------------------
+                   ! FOR TOMAS MICROPHYSICS:
+                   !
+                   ! Obtain P/L with a unit [kg S] for tracing 
+                   ! gas-phase sulfur species production (SO2, SO4, MSA)
+                   ! (win, 8/4/09)
+                   !-------------------------------------------------------
 
-                ! Calculate H2SO4 production rate [kg s-1] in each
-                ! time step (win, 8/4/09)
-                IF ( Input_Opt%FAM_NAME(F) == 'PSO4' ) THEN 
-                   H2SO4_RATE(I,J,L) = PROD(IND) /             &
-                                       AVO * 98.e-3_fp *       & ! Hard-coded MW
-                                       State_Met%AIRVOL(I,J,L) * &
-                                       1e+6_fp   / DT
-                ENDIF
+                   ! Calculate H2SO4 production rate [kg s-1] in each
+                   ! time step (win, 8/4/09)
+                   IF ( Input_Opt%FAM_NAME(F) == 'PSO4' ) THEN 
+                      H2SO4_RATE(I,J,L) = PROD(IND) /             &
+                                          AVO * 98.e-3_fp *       & ! Hard-coded MW
+                                          State_Met%AIRVOL(I,J,L) * &
+                                          1e+6_fp   / DT
+                   ENDIF
 #endif
+                ENDDO
+
              ENDDO
 
-          ENDDO
-
-          !-----------------------------------------------------------
-          ! Save out P(O3) and L(O3) from the fullchem simulation
-          ! for a future tagged O3 run
-          !-----------------------------------------------------------
-          IF ( Input_Opt%DO_SAVE_O3 ) THEN
-             IND =  Ind_('O3','K')
-             O3_PROD(I,J,L) = PROD(IND) / DT
-             O3_LOSS(I,J,L) = LOSS(IND) / DT
+             !-----------------------------------------------------------
+             ! Save out P(O3) and L(O3) from the fullchem simulation
+             ! for a future tagged O3 run
+             !-----------------------------------------------------------
+             IF ( Input_Opt%DO_SAVE_O3 ) THEN
+                IND =  Ind_('O3','K')
+                O3_PROD(I,J,L) = PROD(IND) / DT
+                O3_LOSS(I,J,L) = LOSS(IND) / DT
+             ENDIF
           ENDIF
 
+          If (Input_Opt%FlexTPCore) Then
+             Do N=1,nVar
+                ! GEOS-Chem species ID
+                SpcID = State_Chm%Map_KppSpc(N)
+
+                ! Skip if this is not a GEOS-Chem species
+                IF ( SpcID .eq. 0 ) CYCLE
+
+                If (abs(LOSS(N)).gt.0.0e+0_fp) Then
+                   tauChem = DT*REAL( C(N), kind=fp )/abs(REAL( LOSS(N), kind=fp ))
+                Else
+                   ! Ignore this cell
+                   Cycle
+                End If
+
+                ! Store the result
+                State_Chm%tauChem4(I,J,L,SpcID) = tauChem
+             End Do
+          End If
        ENDIF
 
        !### Debug output, we can remove it later
@@ -924,6 +955,44 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    If (Allocated(C_FLUX)) Deallocate(C_FLUX)
+
+    If (prtDebug.and.am_I_Root) Then
+       ! Show information for the near-surface
+       L = 10
+       Write( 6, '(a)' ) Repeat( '-', 60 )
+       Write(6,'(a10,a7,2(x,a4),2(x,a16))') 'Species','','iGC','iKPP',&
+          'Max lifetime (s)','Avg lifetime (s)'
+       Write( 6, '(a)' ) Repeat( '-', 60 )
+       Do SpcID=1,State_Chm%nSpecies
+          ! Get info about this species from the species database
+          SpcInfo => State_Chm%SpcData(SpcID)%Info
+          ! KPP species ID
+          N = SpcInfo%KppSpcId
+          If (N.gt.0) Then
+             tauChem = 0.0e+0_fp
+             areaSum = 0.0e+0_fp
+             Do I=1,IIPar
+             Do J=1,JJPar
+                If (State_Chm%tauChem4(I,J,L,SpcID).ge.0.0e+0_fp) Then
+                   tauChem = tauChem + State_Chm%tauChem4(I,J,L,SpcID)*State_Met%Area_M2(I,J,1)
+                   areaSum = areaSum + State_Met%Area_M2(I,J,1)
+                End If
+             End Do
+             End Do
+             If (tauChem.gt.0.0e+0_fp) Then
+                tauChem = tauChem/areaSum
+             Else
+                tauChem = -1.0e+0_fp
+             End If
+             Write(6,'(a10,a7,2(x,I0.4),1(x,E16.4E4))') Trim(SpcInfo%Name), ' LOSS: ',&
+                SpcID,N,tauChem
+          End If
+          SpcInfo => NULL()
+       End Do
+       Write( 6, '(a)' ) Repeat( '-', 60 )
+    End If
 
 #if defined( DEVEL )
     write(*,'(a,F10.3)') 'Flex Rate Time     : ', rtim

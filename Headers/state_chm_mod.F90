@@ -66,6 +66,8 @@ MODULE State_Chm_Mod
      CHARACTER(LEN=14), POINTER :: Spec_Name  (:      ) ! Species names
      REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species [molec/cm3]
      CHARACTER(LEN=20)          :: Spc_Units            ! Species units
+     !REAL(fp),          POINTER :: TauChem    (  :,:,:) ! Max chem. lifetime [s]
+     REAL(fp),          POINTER :: TauChem4   (:,:,:,:) ! Chem. lifetime [s]
 
      ! Aerosol quantities
      INTEGER                    :: nAero                ! # of Aerosol Types
@@ -375,6 +377,8 @@ CONTAINS
     State_Chm%Spec_Name   => NULL()
     State_Chm%Species     => NULL()
     State_Chm%Spc_Units   = ''
+    !State_Chm%TauChem     => NULL()
+    State_Chm%TauChem4    => NULL()
 
     ! Species database
     State_Chm%SpcData     => NULL()
@@ -463,6 +467,14 @@ CONTAINS
     ALLOCATE( State_Chm%Species   ( IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Species = 0e+0_fp
+
+    !ALLOCATE( State_Chm%TauChem   (         LM, State_Chm%nSpecies, 2 ), STAT=RC )
+    !IF ( RC /= GC_SUCCESS ) RETURN
+    !State_Chm%TauChem = -1.0e+0_fp
+
+    ALLOCATE( State_Chm%TauChem4   (IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%TauChem4 = 1.0e+20_fp
 
     !=====================================================================
     ! Allocate and initialize aerosol fields
@@ -742,6 +754,14 @@ CONTAINS
 
     IF ( ASSOCIATED( State_Chm%Species ) ) THEN
        DEALLOCATE( State_Chm%Species )
+    ENDIF
+
+    !IF ( ASSOCIATED( State_Chm%TauChem ) ) THEN
+    !   DEALLOCATE( State_Chm%TauChem )
+    !ENDIF
+
+    IF ( ASSOCIATED( State_Chm%TauChem4 ) ) THEN
+       DEALLOCATE( State_Chm%TauChem4 )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Hg_Cat_Name ) ) THEN

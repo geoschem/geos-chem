@@ -448,6 +448,7 @@ MODULE Input_Opt_Mod
      ! PROD LOSS MENU fields
      !----------------------------------------
      LOGICAL                     :: DO_SAVE_PL
+     LOGICAL                     :: FlexTPCore
      LOGICAL                     :: LFAMILY
      INTEGER                     :: ND65, LD65
      LOGICAL                     :: DO_SAVE_O3
@@ -1235,6 +1236,7 @@ CONTAINS
     ALLOCATE( Input_Opt%FAM_TYPE(           MAX_FAMS ), STAT=RC )
 
     Input_Opt%DO_SAVE_PL             = .FALSE.
+    Input_Opt%FlexTPCore             = .FALSE.
     Input_Opt%LFAMILY                = .FALSE.
     Input_Opt%ND65                   = 0
     Input_Opt%DO_SAVE_O3             = .FALSE.

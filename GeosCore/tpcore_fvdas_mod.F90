@@ -386,6 +386,7 @@ CONTAINS
                            ak,       bk,       u,        v,       ps1,      &
                            ps2,      ps,       q,        iord,    jord,     &
                            kord,     n_adj,    XMASS,    YMASS,   FILL,     &
+                           tauChem,  &
 #if defined( BPCH_DIAG ) || defined( NC_DIAG )
  !%%% Adding DiagnArrays for writing diagnostics to netcdf (ewl, 2/12/15).
  !%%% MASSFLEW, MASSFLNS, and MASSFLUP are cumulative when BPCH=y. 
@@ -459,6 +460,9 @@ CONTAINS
     INTEGER, INTENT(IN)    :: ND26    ! Turns on up/down flux diagnostic 
 
     LOGICAL, INTENT(IN)    :: FILL    ! Fill negatives ?
+
+    ! Maximum chemical lifetime of each tracer, by level (s)
+    Real(fp), Intent(InOut) :: tauChem(:,:,:,:)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -587,10 +591,20 @@ CONTAINS
     ! Add pointer to avoid array temporary in call to FZPPM (bmy, 6/5/13)
     REAL(fp),  POINTER   :: ptr_Q(:,:,:)
 
+    ! Residence time in each cell of the level (s)
+    Real(fp)           :: tauT, tauC, tauR, oldR
+
+    ! The factor by which the transport lifetime must exceed the chemical
+    ! lifetime if advection for a tracer is to be skipped
+    Real(fp), Parameter :: tauFactor=5.0e+0_fp
+    Logical             :: skipAdvect(km,nq)
+    Integer             :: nSkip
+    Real(fp)            :: nSkipRatio
+
     !     ----------------
     !     Begin execution.
     !     ----------------
-    
+ 
     ! Add definition of j1p and j2p for enlarge polar cap. (ccc, 11/20/08)
     j1p = 3
     j2p = jm - j1p + 1
@@ -649,10 +663,12 @@ CONTAINS
        dbk(ik) = bk(ik+1) - bk(ik)
     enddo
       
+    ! Don't advect unless proven otherwise
+    skipAdvect(:,:) = .True.
 
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IK, IQ )
+!$OMP PRIVATE( IK, IQ, TAUT, TAUC, I, J )
     do ik=1,km
 
   ! ====================
@@ -695,6 +711,29 @@ CONTAINS
          j1p, j2p, &
          1, jm, 1, im, 1, jm, 1, im, 1, jm)
     
+     ! Estimate the shortest transport lifetime in each layer
+     ! CFL ~ (u*dt)/(dx)
+     ! Lifetime ~ (dx/u)
+     ! Therefore minimum lifetime = dt / (max CFL)
+     ! For now, ignore the polar cap regions - these will have been averaged anyway
+     !tauT = Max(MaxVal(cx(:,j1p:j2p,ik)),MaxVal(cy(:,j1p:j2p,ik)))
+     ! Cycle over every cell in the layer, and compare the residence time to the
+     ! chemical lifetime. If the residence time is shorter than the chemical
+     ! lifetime in any grid cell, stop checking and allow advection
+     do i=1,im
+     do j=j1p,j2p
+        tauT = Max(abs(cx(i,j,ik)),abs(cy(i,j,ik)))
+        If (tauT.gt.0.0e+0_fp) Then
+           tauT = dt/tauT
+           do iq=1,nq
+              if (.not.skipAdvect(ik,iq)) cycle
+              tauC = tauChem(i,j,ik,iq)
+              skipAdvect(ik,iq) = (tauT > (tauC*tauFactor))
+           end do
+        End If
+     end do
+     end do
+
   ! ====================
     call Calc_Divergence  &
   ! ====================
@@ -774,7 +813,40 @@ CONTAINS
 
     ! Calculate surf. pressure at t+dt. (ccc, 11/20/08)
     ps = ak(1)+sum(delp2,dim=3)
-         
+
+    ! Allow advection 
+    nSkip = nq*km
+    do iq=1,nq
+       ! Uncomment the lines below to go species-by-species
+       do ik=1,km
+          if (.not.skipAdvect(ik,iq)) then
+             !skipAdvect(:,iq) = .False.
+             nSkip = nSkip - 1
+             !exit
+          end if
+       end do
+    end do
+   
+    nSkipRatio = Real(nSkip)/Real(km) 
+    Write(6,'(a,I6)')   ' --> Non-advection instances: ', nSkip
+    Write(6,'(a,F6.1)') ' --> Avg # per model level  : ', nSkipRatio
+
+    ! Code to instead check by level
+    !do iq = 1,nq
+    !   do ik = 1,km
+    !      skipAdvect(ik,iq) = ((tauC.gt.0.0e+0_fp).and.(tauT.gt.0.0e+0_fp) &
+    !                      .and.((tauC*tauFactor).le.tauT))
+    !   end do
+    !end do
+
+    !! SDE DEBUG
+    !! Hard coded to be ozone
+    !iq = 2
+    !Write (6,'(a)') 'Limiting/mean lifetime (days) of O3 vs transport time (hours) (post-fix)'
+    !Do ik = 1, km
+    !   Write(6,'(I0.3,3(x,E14.4E4))') ik, &
+    !        tauChem(ik,iq,1)/86400.0,tauChem(ik,iq,2)/86400.0,tauTransport(ik)/3600.0
+    !End Do
 
 !--------------------------------------------------------
 ! For time optimization : we parallelize over tracers and
@@ -783,7 +855,7 @@ CONTAINS
 !--------------------------------------------------------
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1, ptr_Q )
+!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1, ptr_Q, tauC )
     do iq = 1, nq
 
        do ik = 1, km
@@ -791,7 +863,9 @@ CONTAINS
        !.sds.. convert to "mass"
        dq1(:,:,ik) = q(:,:,ik,iq) * delp1(:,:,ik)
        
-
+       ! Allow advection to be skipped when not necessary
+       ! This only cycles over horizontal advection
+       if (skipAdvect(ik,iq)) cycle
           
      ! ===========================
        call Calc_Advec_Cross_Terms  &

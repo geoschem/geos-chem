@@ -387,6 +387,7 @@
       REAL(fp),  POINTER :: p_MFLNS(:,:,:,:)
       REAL(fp),  POINTER :: p_MFLUP(:,:,:,:)
       REAL(fp),  POINTER :: p_Spc  (:,:,:,:)
+      REAL(fp),  POINTER :: p_Tau  (:,:,:,:)
 
       !=================================================================
       ! GEOS4_GEOS5_GLOBAL_ADV begins here!
@@ -473,6 +474,9 @@
       ! will be converted to [kg/kg moist air] below. (bmy, 7/13/16)
       p_Spc     => State_Chm%Species( :, :, LLPAR:1:-1, 1:nAdvect )
 
+      ! Also get the maximum chemical lifetimes in each layer
+      p_Tau     => State_Chm%tauChem4(:, :, LLPAR:1:-1, 1:nAdvect )
+
       ! Diagnostic arrays are vertically flipped at writeout
 #if defined( BPCH_DIAG )
       ! Point to global diag_mod arrays for bpch
@@ -503,7 +507,8 @@
      &                   p_UWND,   p_VWND,   P_TP1,    P_TP2,
      &                   P_TEMP,   p_Spc,    IORD,     JORD,      
      &                   KORD,     N_ADJ,    p_XMASS,  p_YMASS, 
-     &                   LFILL,    p_MFLEW,  p_MFLNS,  p_MFLUP,
+     &                   LFILL,    p_Tau,    p_MFLEW,  p_MFLNS,
+     &                   p_MFLUP,
      &                   A_M2,     ND24,     ND25,     ND26 )
 
 #if defined( NC_DIAG )
@@ -530,6 +535,7 @@
       p_XMASS => NULL()
       p_YMASS => NULL()
       p_Spc   => NULL()
+      p_Tau   => NULL()
       p_MFLEW => NULL()
       p_MFLNS => NULL()  
       p_MFLUP => NULL()
@@ -681,6 +687,7 @@
       REAL(fp),  POINTER :: p_MFLNS(:,:,:,:)
       REAL(fp),  POINTER :: p_MFLUP(:,:,:,:)
       REAL(fp),  POINTER :: p_Spc  (:,:,:,:)
+      REAL(fp),  POINTER :: p_Tau  (:,:,:,:)
 
       !=================================================================
       ! GCAP_GLOBAL_ADV begins here!
@@ -772,6 +779,9 @@
       ! will be converted to [kg/kg moist air] below. (bmy, 7/13/16)
       p_Spc     => State_Chm%Species( :, :, LLPAR:1:-1, 1:nAdvect )
 
+      ! Also get the maximum chemical lifetimes in each layer
+      p_Tau     => State_Chm%tauChem4(:, :, LLPAR:1:-1, 1:nAdvect )
+
 #if defined( BPCH_DIAG )
       p_MFLEW   => MASSFLEW
       p_MFLNS   => MASSFLNS
@@ -799,8 +809,9 @@
      &                   p_UWND,  p_VWND,  P_TP1,   P_TP2,
      &                   P_TEMP,  p_Spc,   IORD,    JORD,      
      &                   KORD,    N_ADJ,   p_XMASS, p_YMASS, 
-     &                   LFILL,   p_MFLEW, p_MFLNS, p_MFLUP,
-     &                   A_M2,    ND24,    ND25,    ND26 )
+     &                   LFILL,    p_Tau,    p_MFLEW,  p_MFLNS,
+     &                   p_MFLUP,
+     &                   A_M2,     ND24,     ND25,     ND26 )
 
 #if defined( NC_DIAG )
       IF ( Input_Opt%ND24 > 0 ) THEN 
@@ -824,6 +835,7 @@
       p_UWND  => NULL()
       p_VWND  => NULL()
       p_Spc   => NULL()
+      p_Tau   => NULL()
       p_XMASS => NULL()
       p_YMASS => NULL()
       p_MFLEW => NULL()
