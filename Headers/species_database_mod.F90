@@ -1695,6 +1695,71 @@ CONTAINS
 !                              DD_Hstar_old  = 1.0e+14_fp,                  &
 !                              RC            = RC )
 
+          CASE( 'SOAP' )
+             FullName = 'SOA Precursor - lumped species for simplified SOA paramterization'
+
+             !SOAPis not removed because it is a simple parameterization,
+             !not a physical model
+
+             ! Zero Kc (cloud condensate -> precip) rate
+             KcScale = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+
+             ! Turn off rainout only
+             RainEff = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 150.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.00e+0_fp,                   &
+                              Henry_K0      = 0.00e+0_f8,                   &
+                              Henry_CR      = 0.0e+0_f8,                    &
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'SOAS' )
+             FullName = 'SOA Simple - simplified non-volatile SOA parameterization'
+             !Copy data from ISOA
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
+             RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 150.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_HStar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 0.8_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
           CASE( 'ISOA1', 'ISOA2', 'ISOA3' )
              FullName = 'Lumped semivolatile gas products of isoprene oxidation'
 
