@@ -1274,7 +1274,7 @@
          IF ( (Inst%IDTSOAP>0) .AND. (Inst%ExtNrSoa>0) ) THEN
             FLUXSOAP(I,J) = FLUXSOAP(I,J) + EMIS_OTHR * Inst%OTHRTOSOAP
          ENDIF
-         IF ( (IDTSOAS>0) .AND. (ExtNrSoa>0) ) THEN
+         IF ( (Inst%IDTSOAS>0) .AND. (Inst%ExtNrSoa>0) ) THEN
             FLUXSOAS(I,J) = FLUXSOAS(I,J) + EMIS_OTHR * Inst%OTHRTOSOAS
          ENDIF
 
@@ -4259,10 +4259,10 @@
       IF ( am_I_Root ) THEN
          !convert back to direct mass basis just for show
          WRITE(MSG,*) ' --> Isoprene to SOA-Precursor',
-     &       ISOPTOSOAP / 1.134
+     &       Inst%ISOPTOSOAP / 1.134
          CALL HCO_MSG( MSG )
          WRITE(MSG,*) ' --> Isoprene direct to SOA (Simple)',
-     &       ISOPTOSOAS / 1.134
+     &       Inst%ISOPTOSOAS / 1.134
          CALL HCO_MSG( MSG )
       ENDIF
 
@@ -4286,9 +4286,9 @@
          IF ( RC /= HCO_SUCCESS ) RETURN
 
          Optfound = .FALSE.
-         CALL GetExtOpt ( HcoState, Inst%ExtNrMono,
-     &               'Monoterp to SOAP', 
-     &               OptValHp=Inst%MONOTOSOAP, FOUND=Optfound, RC=RC )
+         CALL GetExtOpt ( HcoState%Config, Inst%ExtNrMono,
+     &                 'Monoterp to SOAP', 
+     &                 OptValHp=Inst%MONOTOSOAP, FOUND=Optfound, RC=RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
    
          IF ( Optfound ) THEN
@@ -4300,9 +4300,9 @@
          ENDIF
 
          Optfound = .FALSE.
-         CALL GetExtOpt ( HcoState, Inst%ExtNrMono,
-     &               'Monoterp to SOAS', 
-     &               OptValHp=Inst%MONOTOSOAS, FOUND=Optfound, RC=RC )
+         CALL GetExtOpt ( HcoState%Config, Inst%ExtNrMono,
+     &                 'Monoterp to SOAS', 
+     &                 OptValHp=Inst%MONOTOSOAS, FOUND=Optfound, RC=RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
    
          IF ( Optfound ) THEN
@@ -4402,9 +4402,9 @@
          ENDIF
 
          Optfound = .FALSE.
-         CALL GetExtOpt ( HcoState, Inst%ExtNrSoa, 'Othrterp to SOAP', 
+         CALL GetExtOpt ( HcoState%Config, Inst%ExtNrSoa,
+     &                 'Othrterp to SOAP', 
      &                 OptValHp=Inst%OTHRTOSOAP, FOUND=Optfound, RC=RC )
-         !convert from kgC basis to kg basis (68.117 / 60.054)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
          IF ( Optfound ) THEN
@@ -4416,9 +4416,9 @@
          ENDIF
 
          Optfound = .FALSE.
-         CALL GetExtOpt ( HcoState, Inst%ExtNrSoa, 'Othrterp to SOAS', 
+         CALL GetExtOpt ( HcoState%Config, Inst%ExtNrSoa,
+     &                 'Othrterp to SOAS', 
      &                 OptValHp=Inst%OTHRTOSOAS, FOUND=Optfound, RC=RC )
-         !convert from kgC basis to kg basis (68.117 / 60.054)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
          IF ( Optfound ) THEN

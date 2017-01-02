@@ -470,8 +470,10 @@
       REAL(fp)              :: NEWSOA
       REAL(fp)              :: DTCHEM, SOAP_LIFETIME  ! [=] seconds
 
+      INTEGER   :: L
+
 #if defined ( TOMAS )
-      INTEGER   :: I, J, L
+      INTEGER   :: I, J
       REAL*4    :: BOXVOL, TEMPTMS, PRES 
 #endif
 
@@ -672,7 +674,7 @@
 #else
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( L, NEWSOA, )
+!$OMP+PRIVATE( L, NEWSOA )
          DO L = 1, LLPAR
          !NEWSOA used in a different context than above.
          !above is absolute mass, here is a relative decay factor
