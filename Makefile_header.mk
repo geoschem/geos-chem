@@ -275,6 +275,11 @@ ifndef TIMERS
  TIMERS              :=0
 endif
 
+# %%%%% Turn on traceback (error stack report) by default %%%%%
+ifndef TRACEBACK
+ TRACEBACK           :=yes
+endif
+
 # %%%%% Set default compiler %%%%%
 
 # %%%%% If COMPILER is not defined, default to the $(FC) variable, which %%%%%
