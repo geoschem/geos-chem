@@ -3398,6 +3398,27 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        DO I = 1, NT
           Lct%Dct%Dta%V2(I)%Val(1,1) = Vals(I)
+!==============================================================================
+! KLUDGE BY BOB YANTOSCA (05 Jan 2016)
+!
+! This WRITE statement avoids a seg fault in some Intel Fortran Compiler 
+! versions, such as ifort 12 and ifort 13.  The ADVANCE="no" prevents 
+! carriage returns from being added to the log file, and the '' character
+! will prevent text from creeping across the screen.
+! 
+! NOTE: This section only gets executed during the initialization phase,
+! when we save data not read from netCDF files into the HEMCO data structure.
+! This type of data includes scale factors and mask data specified as vectors
+! in the HEMCO configuration file.  Therefore, this section will only get
+! executed at startup, so the WRITE statment should not add significant
+! overhead to the simulation. 
+!
+! The root issue seems to be an optimization bug in the compiler.
+!==============================================================================
+#if defined( LINUX_IFORT ) 
+          WRITE( 6, '(a)', ADVANCE='no' ) ''
+#endif
+
        ENDDO
 
        ! Data is 1D
