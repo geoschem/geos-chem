@@ -2128,13 +2128,6 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       INTEGER  I, J, K, NK
       CHARACTER*78 TITLE0
       LOGICAL      :: LBRC
-      CHARACTER*20, DIMENSION(7) :: TITLEAAt
-      REAL(fp)     :: QAAt(5,63)
-      REAL(fp)     :: WAAt(5,63)
-      REAL(fp)     :: PAAt(8,5,63)
-      REAL(fp)     :: RAAt(5,63)
-      REAL(fp)     :: SAAt(5,63)
-      INTEGER      :: NAAt
 
       !=================================================================
       ! RD_MIE begins here!
@@ -2165,25 +2158,19 @@ c---TROP-QUICK  (must scale solar flux for W=5)
          enddo
       enddo
 
+      ! Brown carbon option
       IF (LBRC) THEN
-         NAAt=63 
-         do j= 57, NAAt
-            read(NUN,110) TITLEAAt(j)
+
+         ! Overwrite OC entries (36-42 in jv_spec_mie.dat)
+         ! with BR entries at end of file (labeled 57-63)
+         do j= 36, 42
+            read(NUN,110) TITLEAA(j)
             do k=1,NK
-             read(NUN,*) WAAt(k,j),QAAt(k,j),RAAt(k,j),SAAt(k,j),
-     &              (PAAt(i,k,j),i=1,8)
-       
+             read(NUN,*) WAA(k,j),QAA(k,j),RAA(k,j),SAA(k,j),
+     &                                              (PAA(i,k,j),i=1,8)
             enddo
          enddo
        
-         do j= 36, 42
-            TITLEAA(j) = TITLEAAt(j+21)
-            WAA(:,j) = WAAt(:,j+21)
-            QAA(:,j) = QAAt(:,j+21)
-            RAA(:,j) = RAAt(:,j+21)
-            SAA(:,j) = SAAt(:,j+21)
-            PAA(:,:,j) = PAAt(:,:,j+21)
-         enddo
       ENDIF  
       
       close(NUN)
@@ -2192,13 +2179,13 @@ c---TROP-QUICK  (must scale solar flux for W=5)
          write(6,'(a,9f8.1)') ' Aerosol optical: r-eff/rho/Q(@wavel):'
      &             ,(WAA(K,1),K=1,5)
          do J=1,NAA
-            write(6,'(1x,A8,I2,A,9F8.1)')
-     &           TITLEAA(J),J,'  wavel=',(WAA(K,J),K=1,NK)
-            write(6,'(9x,I2,A,9F8.4)') J,'  Qext =',(QAA(K,J),K=1,NK)
+            write(6,'(1x,A)') TRIM(TITLEAA(J))
+            write(6,'(3x,I2,A,9F8.1)') J,'  wavel=',(WAA(K,J),K=1,NK)
+            write(6,'(3x,I2,A,9F8.4)') J,'  Qext =',(QAA(K,J),K=1,NK)
          enddo
       ENDIF
 
-  110 format(3x,a20)
+  110 format(3x,a80)
 
       END SUBROUTINE RD_MIE
 !EOC

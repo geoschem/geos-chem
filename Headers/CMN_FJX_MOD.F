@@ -231,7 +231,7 @@
       INTEGER, DIMENSION(AN_)     :: MIEDX
 
       ! TITLEAA: Title for scattering data
-      CHARACTER*20, DIMENSION(A_) :: TITLEAA
+      CHARACTER*80, DIMENSION(A_) :: TITLEAA
 
       ! Dust and aerosol optical depths
       REAL(fp), ALLOCATABLE :: ODMDUST(:,:,:,:,:)
