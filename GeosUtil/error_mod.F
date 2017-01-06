@@ -627,25 +627,37 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE ERROR_STOP( MESSAGE, LOCATION )
+      SUBROUTINE ERROR_STOP( MESSAGE, LOCATION, INSTRUCTIONS )
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE    ! Error msg to print
-      CHARACTER(LEN=*), INTENT(IN) :: LOCATION   ! Where ERROR_STOP is called
+      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Error msg to print
+      CHARACTER(LEN=*), INTENT(IN) :: LOCATION     ! Where ERROR_STOP is called
+      CHARACTER(LEN=*), OPTIONAL   :: INSTRUCTIONS ! Further instructions 
 !
 ! !REVISION HISTORY:
 !  15 Oct 2002 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  06 Jan 2017 - R. Yantosca - Added optional INSTRUCTIONS argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
 !$OMP CRITICAL
 
-      ! Write msg
+      ! Write the error message
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, '(a)' ) 'GEOS-CHEM ERROR: ' // TRIM( MESSAGE )
+
+      ! If the optional INSTRUCTIONS argument is passed, then print it to
+      ! the stdout stream.  This is useful for instructing the user to
+      ! look for the error in another location (e.g. the HEMCO log file).
+      IF ( PRESENT( INSTRUCTIONS ) ) THEN
+         WRITE( 6, 100 ) TRIM( INSTRUCTIONS )
+ 100     FORMAT( /, a, / )
+      ENDIF
+
+      ! Write the location of the error
       WRITE( 6, '(a)' ) 'STOP at '          // TRIM( LOCATION )
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
