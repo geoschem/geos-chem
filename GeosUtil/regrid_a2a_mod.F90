@@ -1538,6 +1538,10 @@ CONTAINS
     REAL*8               :: minlon, maxlon 
     REAL*8               :: lon1s(im+1)
 
+    ! Ghost correction
+    Logical              :: isGlobal
+    Real*8               :: xSpan
+
     ! Initialize pointers
     lon2 => NULL()
     q2   => NULL()
@@ -1584,7 +1588,11 @@ CONTAINS
     in = n2 - n1
     lon2 => ilon2(n1:n2)
     q2   => iq2(n1:(n2-1),:)
- 
+
+    ! Periodic BC only valid if the variable is "global"
+    xSpan = x1(im+1)-x1(1)
+    isGlobal = ((xSpan.ge.355.0).and.(xSpan.le.365.0))
+
     !===================================================================
     ! check to see if ghosting is necessary
     ! Western edge:
@@ -1636,26 +1644,32 @@ CONTAINS
        !================================================================
       
        qtmp(:) = 0.0d0 
-       qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
        enddo
-       qtmp(im+1)=q1(1,j)
 
-       ! check to see if ghosting is necessary
-       ! Western edge
-       if ( i1 .le. 0 ) then
-          do i=i1,0
-             qtmp(i) = qtmp(im+i)
-          enddo
-       endif
-       
-       ! Eastern edge:
-       if ( i2 .gt. im+1 ) then
-          do i=im+1,i2-1
-             qtmp(i) = qtmp(i-im)
-          enddo
-       endif
+       ! SDE 2017-01-07
+       ! Only have shadow regions if we are on a global grid. Otherwise, we
+       ! should keep the zero boundary conditions.
+       If (isGlobal) Then
+          qtmp(0)=q1(im,j)
+          qtmp(im+1)=q1(1,j)
+
+          ! check to see if ghosting is necessary
+          ! Western edge
+          if ( i1 .le. 0 ) then
+             do i=i1,0
+                qtmp(i) = qtmp(im+i)
+             enddo
+          endif
+          
+          ! Eastern edge:
+          if ( i2 .gt. im+1 ) then
+             do i=im+1,i2-1
+                qtmp(i) = qtmp(i-im)
+             enddo
+          endif
+       End If
         
        i0 = i1
 
@@ -1793,6 +1807,10 @@ CONTAINS
     REAL*4               :: minlon, maxlon 
     REAL*4               :: lon1s(im+1)
 
+    ! Ghost correction
+    Logical              :: isGlobal
+    Real*4               :: xSpan
+
     ! Initialize
     lon2 => NULL()
     q2   => NULL()
@@ -1841,6 +1859,9 @@ CONTAINS
     q2   => iq2(n1:(n2-1),:)
 
     ! shadow variables to selected range
+    ! Periodic BC only valid if the variable is "global"
+    xSpan = x1(im+1)-x1(1)
+    isGlobal = ((xSpan.ge.355.0).and.(xSpan.le.365.0))
  
     !===================================================================
     ! check to see if ghosting is necessary
@@ -1893,26 +1914,32 @@ CONTAINS
        !================================================================
        
        qtmp(:) = 0.0
-       qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
        enddo
-       qtmp(im+1)=q1(1,j)
 
-       ! check to see if ghosting is necessary
-       ! Western edge
-       if ( i1 .le. 0 ) then
-          do i=i1,0
-             qtmp(i) = qtmp(im+i)
-          enddo
-       endif
-       
-       ! Eastern edge:
-       if ( i2 .gt. im+1 ) then
-          do i=im+1,i2-1
-             qtmp(i) = qtmp(i-im)
-          enddo
-       endif
+       ! SDE 2017-01-07
+       ! Only have shadow regions if we are on a global grid. Otherwise, we
+       ! should keep the zero boundary conditions.
+       If (isGlobal) Then
+          qtmp(0)=q1(im,j)
+          qtmp(im+1)=q1(1,j)
+
+          ! check to see if ghosting is necessary
+          ! Western edge
+          if ( i1 .le. 0 ) then
+             do i=i1,0
+                qtmp(i) = qtmp(im+i)
+             enddo
+          endif
+          
+          ! Eastern edge:
+          if ( i2 .gt. im+1 ) then
+             do i=im+1,i2-1
+                qtmp(i) = qtmp(i-im)
+             enddo
+          endif
+       End If
         
        i0 = i1
 
@@ -2049,6 +2076,10 @@ CONTAINS
     REAL*4               :: minlon, maxlon 
     REAL*4               :: lon1s(im+1)
 
+    ! Ghost correction
+    Logical              :: isGlobal
+    Real*8               :: xSpan
+
     ! Initialize
     lon2 => NULL()
     q2   => NULL()
@@ -2095,7 +2126,11 @@ CONTAINS
     in = n2 - n1
     lon2 => ilon2(n1:n2)
     q2   => iq2(n1:(n2-1),:)
-    
+
+    ! Periodic BC only valid if the variable is "global"
+    xSpan = x1(im+1)-x1(1)
+    isGlobal = ((xSpan.ge.355.0).and.(xSpan.le.365.0))
+
     !===================================================================
     ! check to see if ghosting is necessary
     ! Western edge:
@@ -2147,26 +2182,32 @@ CONTAINS
        !================================================================
        
        qtmp(:) = 0.0d0
-       qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
        enddo
-       qtmp(im+1)=q1(1,j)
 
-       ! check to see if ghosting is necessary
-       ! Western edge
-       if ( i1 .le. 0 ) then
-          do i=i1,0
-             qtmp(i) = qtmp(im+i)
-          enddo
-       endif
-       
-       ! Eastern edge:
-       if ( i2 .gt. im+1 ) then
-          do i=im+1,i2-1
-             qtmp(i) = qtmp(i-im)
-          enddo
-       endif
+       ! SDE 2017-01-07
+       ! Only have shadow regions if we are on a global grid. Otherwise, we
+       ! should keep the zero boundary conditions.
+       If (isGlobal) Then
+          qtmp(0)=q1(im,j)
+          qtmp(im+1)=q1(1,j)
+
+          ! check to see if ghosting is necessary
+          ! Western edge
+          if ( i1 .le. 0 ) then
+             do i=i1,0
+                qtmp(i) = qtmp(im+i)
+             enddo
+          endif
+          
+          ! Eastern edge:
+          if ( i2 .gt. im+1 ) then
+             do i=im+1,i2-1
+                qtmp(i) = qtmp(i-im)
+             enddo
+          endif
+       End If
         
        i0 = i1
 
@@ -2304,6 +2345,10 @@ CONTAINS
     REAL*4               :: minlon, maxlon 
     REAL*4               :: lon1s(im+1)
 
+    ! Ghost correction
+    Logical              :: isGlobal
+    Real*4               :: xSpan
+
     ! Initialize
     lon2 => NULL()
     q2   => NULL()
@@ -2350,7 +2395,11 @@ CONTAINS
     in = n2 - n1
     lon2 => ilon2(n1:n2)
     q2   => iq2(n1:(n2-1),:)
-    
+
+    ! Periodic BC only valid if the variable is "global"
+    xSpan = x1(im+1)-x1(1)
+    isGlobal = ((xSpan.ge.355.0).and.(xSpan.le.365.0))
+
     !===================================================================
     ! check to see if ghosting is necessary
     ! Western edge:
@@ -2402,26 +2451,32 @@ CONTAINS
        !================================================================
       
        qtmp(:) = 0.0
-       qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
        enddo
-       qtmp(im+1)=q1(1,j)
 
-       ! check to see if ghosting is necessary
-       ! Western edge
-       if ( i1 .le. 0 ) then
-          do i=i1,0
-             qtmp(i) = qtmp(im+i)
-          enddo
-       endif
-       
-       ! Eastern edge:
-       if ( i2 .gt. im+1 ) then
-          do i=im+1,i2-1
-             qtmp(i) = qtmp(i-im)
-          enddo
-       endif
+       ! SDE 2017-01-07
+       ! Only have shadow regions if we are on a global grid. Otherwise, we
+       ! should keep the zero boundary conditions.
+       If (isGlobal) Then
+          qtmp(0)=q1(im,j)
+          qtmp(im+1)=q1(1,j)
+
+          ! check to see if ghosting is necessary
+          ! Western edge
+          if ( i1 .le. 0 ) then
+             do i=i1,0
+                qtmp(i) = qtmp(im+i)
+             enddo
+          endif
+          
+          ! Eastern edge:
+          if ( i2 .gt. im+1 ) then
+             do i=im+1,i2-1
+                qtmp(i) = qtmp(i-im)
+             enddo
+          endif
+       End If
         
        i0 = i1
 
