@@ -288,6 +288,9 @@
       ! Emission timestep
       DTSRCE = HcoState%TS_EMIS
 
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
       !=================================================================
       ! Species ID setup and error checks (first-time only)
       !=================================================================
