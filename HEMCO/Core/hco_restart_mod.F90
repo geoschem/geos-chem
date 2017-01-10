@@ -733,12 +733,12 @@ CONTAINS
     ! HCO_CopyFromIntnal_ESMF begins here
     ! ================================================================
 
+    ! For MAPL/ESMF error handling (defines Iam and STATUS)
+    __Iam__('HCO_CopyFromIntnal_ESMF (HCOI_ESMF_MOD.F90)')
+
     ! Init
     Ptr2D => NULL()
     Ptr3D => NULL()
-
-    ! For MAPL/ESMF error handling (defines Iam and STATUS)
-    __Iam__('HCO_CopyFromIntnal_ESMF (HCOI_ESMF_MOD.F90)')
 
     ! Get internal state
     CALL MAPL_GetObjectFromGC( HcoState%GridComp, STATE, __RC__ )

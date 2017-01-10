@@ -563,6 +563,7 @@ CONTAINS
 !  22 Sep 2015 - C. Keller - Added arbitrary dimension index.
 !  20 Nov 2015 - C. Keller - Bug fix: now read times if weights need be applied.
 !  23 Nov 2015 - C. Keller - Initialize all temporary arrays to 0.0 when allocating 
+!  09 Jan 2017 - C. Keller - Bug fix: store time-weighted arrays in temporary array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -595,8 +596,11 @@ CONTAINS
 
     ! Temporary arrays
     REAL*4, ALLOCATABLE    :: TMPARR_5D(:,:,:,:,:)
+    REAL*4, ALLOCATABLE    :: WGTARR_5D(:,:,:,:,:)
     REAL*4, ALLOCATABLE    :: TMPARR_4D(:,:,:,:)
+    REAL*4, ALLOCATABLE    :: WGTARR_4D(:,:,:,:)
     REAL*4, ALLOCATABLE    :: TMPARR_3D(:,:,:)
+    REAL*4, ALLOCATABLE    :: WGTARR_3D(:,:,:)
     REAL*4, ALLOCATABLE    :: TMPARR_2D(:,:)
 
     ! Logicals
@@ -726,9 +730,19 @@ CONTAINS
     ! Read 5D array:
     IF ( ndims == 5 ) THEN
 
-       ! Allocate arrays
-       ALLOCATE ( TMPARR_5D( nlon, nlat, nlev, nt, 1 ) )
-       TMPARR_5D = 0.0
+       ! Allocate array. If time weights are applied, the two
+       ! time slices are read into TMPARR_5D and then temporarily
+       ! stored in WGTARR_5D. Same applies to 4D and 3D below.
+       ! (ckeller, 01/09/17)
+       IF ( ApplyWeights ) THEN
+          ALLOCATE ( TMPARR_5D( nlon, nlat, nlev, 1, 1 ) )
+          TMPARR_5D = 0.0
+          ALLOCATE ( WGTARR_5D( nlon, nlat, nlev, nt, 1 ) )
+          WGTARR_5D = 0.0
+       ELSE
+          ALLOCATE ( TMPARR_5D( nlon, nlat, nlev, nt, 1 ) )
+          TMPARR_5D = 0.0
+       ENDIF
 
        ! Set default start/end indeces
        s1 = lon1
@@ -759,18 +773,25 @@ CONTAINS
           st5d = (/ s1, s2, s3, s4, s5 /) 
           ct5d = (/ n1, n2, n3, n4, n5 /)
           CALL NcRd( TMPARR_5D, fId, TRIM(v_name), st5d, ct5d )
+
+          ! Eventually pass time weighted arrays to temporary array  
+          IF ( ApplyWeights ) THEN
+             WGTARR_5D(:,:,:,I,:) = TMPARR_5D(:,:,:,1,:)
+          ENDIF
+
        ENDDO
 
        ! Pass to output array. Eventually apply time weights.
        IF ( ApplyWeights ) THEN
-          ncArr(:,:,:,1) = TMPARR_5D(:,:,:,1,1) * weight1 &
-                         + TMPARR_5D(:,:,:,2,1) * weight2
+          ncArr(:,:,:,1) = WGTARR_5D(:,:,:,1,1) * weight1 &
+                         + WGTARR_5D(:,:,:,2,1) * weight2
        ELSE   
           ncArr(:,:,:,:) = TMPARR_5D(:,:,:,:,1)
        ENDIF
 
        ! Cleanup
        DEALLOCATE(TMPARR_5D)
+       IF(ALLOCATED(WGTARR_5D)) DEALLOCATE(WGTARR_5D)
     ENDIF
 
     !----------------------------------------
@@ -812,8 +833,21 @@ CONTAINS
           n4 = 1
        ENDIF
 
-       ALLOCATE ( TMPARR_4D(n1,n2,n3,n4) )
-       TMPARR_4D = 0.0
+       IF ( ApplyWeights ) THEN
+          ALLOCATE ( WGTARR_4D(n1,n2,n3,n4) )
+          WGTARR_4D = 0.0
+          IF ( tdim == 3 ) THEN
+             ALLOCATE ( TMPARR_4D(n1,n2,1,n4) )
+             TMPARR_4D = 0.0
+          ELSEIF ( tdim == 4 ) THEN
+             ALLOCATE ( TMPARR_4D(n1,n2,n3,1) )
+             TMPARR_4D = 0.0
+          ENDIF
+
+       ELSE
+          ALLOCATE ( TMPARR_4D(n1,n2,n3,n4) )
+          TMPARR_4D = 0.0
+       ENDIF 
 
        ! Read arrays from file
        DO I = 1, nRead
@@ -846,16 +880,24 @@ CONTAINS
           ! Read data from disk
           CALL NcRd( TMPARR_4D, fId, TRIM(v_name), st4d, ct4d )
 
+          ! Eventually pass time weighted arrays to temporary array  
+          IF ( ApplyWeights ) THEN
+             IF ( tdim == 3 ) THEN
+                WGTARR_4D(:,:,I,:) = TMPARR_4D(:,:,1,:)
+             ELSEIF ( tdim == 4 ) THEN
+                WGTARR_4D(:,:,:,I) = TMPARR_4D(:,:,:,1)
+             ENDIF
+          ENDIF
        ENDDO
 
        ! Pass to output array. Eventually apply time weights.
        IF ( ApplyWeights ) THEN
           IF ( tdim == 3 ) THEN 
-             ncArr(:,:,:,1) = TMPARR_4D(:,:,1,:) * weight1 &
-                            + TMPARR_4D(:,:,2,:) * weight2
+             ncArr(:,:,:,1) = WGTARR_4D(:,:,1,:) * weight1 &
+                            + WGTARR_4D(:,:,2,:) * weight2
           ELSEIF ( tdim == 4 ) THEN
-             ncArr(:,:,:,1) = TMPARR_4D(:,:,:,1) * weight1 &
-                            + TMPARR_4D(:,:,:,2) * weight2
+             ncArr(:,:,:,1) = WGTARR_4D(:,:,:,1) * weight1 &
+                            + WGTARR_4D(:,:,:,2) * weight2
           ENDIF
        ELSE
           ncArr(:,:,:,:) = TMPARR_4D(:,:,:,:)
@@ -863,6 +905,7 @@ CONTAINS
 
        ! Cleanup
        DEALLOCATE(TMPARR_4D)
+       IF(ALLOCATED(WGTARR_4D)) DEALLOCATE(WGTARR_4D)
     ENDIF
 
     !----------------------------------------
@@ -895,8 +938,15 @@ CONTAINS
           n3   = 1
        ENDIF
 
-       ALLOCATE ( TMPARR_3D(n1,n2,n3) )
-       TMPARR_3D = 0.0
+       IF ( ApplyWeights ) THEN
+          ALLOCATE ( TMPARR_3D(n1,n2,1) )
+          TMPARR_3D = 0.0
+          ALLOCATE ( WGTARR_3D(n1,n2,n3) )
+          WGTARR_3D = 0.0
+       ELSE
+          ALLOCATE ( TMPARR_3D(n1,n2,n3) )
+          TMPARR_3D = 0.0
+       ENDIF
 
        ! Read arrays from file
        DO I = 1, nRead
@@ -919,12 +969,18 @@ CONTAINS
           st3d = (/ s1, s2, s3 /) 
           ct3d = (/ n1, n2, n3 /)
           CALL NcRd( TMPARR_3D, fId, TRIM(v_name), st3d, ct3d )
+
+          ! Eventually pass time weighted arrays to temporary array  
+          IF ( ApplyWeights ) THEN
+           WGTARR_3D(:,:,I) = TMPARR_3D(:,:,1)
+          ENDIF
+
        ENDDO
 
        ! Pass to output array. Eventually apply time weights.
        IF ( ApplyWeights ) THEN
-          ncArr(:,:,1,1) = TMPARR_3D(:,:,1) * weight1 &
-                         + TMPARR_3D(:,:,2) * weight2
+          ncArr(:,:,1,1) = WGTARR_3D(:,:,1) * weight1 &
+                         + WGTARR_3D(:,:,2) * weight2
        ELSE
           IF ( tdim == 3 ) THEN
              ncArr(:,:,1,:) = TMPARR_3D(:,:,:)
@@ -934,7 +990,8 @@ CONTAINS
        ENDIF
 
        ! Cleanup
-       DEALLOCATE(TMPARR_3D)
+       IF(ALLOCATED(TMPARR_3D)) DEALLOCATE(TMPARR_3D)
+       IF(ALLOCATED(WGTARR_3D)) DEALLOCATE(WGTARR_3D)
     ENDIF
 
     !----------------------------------------
