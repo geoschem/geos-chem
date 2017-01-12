@@ -569,15 +569,6 @@ MODULE GCKPP_HETRATES
          HET(ind_HI,   1) = HETIUptake(1.28E2_fp,0.10e+0_fp,8)
          HET(ind_HI,   2) = HETIUptake(1.28E2_fp,0.10e+0_fp,11)
          HET(ind_HI,   3) = HETIUptake(1.28E2_fp,0.10e+0_fp,12)
-         !HET(ind_HOI,  1) = HETIUptake(1.44E2_fp,0.01e+0_fp,8)
-         HET(ind_HOI,  1) = HETIUptake(1.44E2_fp,0.01e+0_fp,11)
-         HET(ind_HOI,  2) = HETIUptake(1.44E2_fp,0.01e+0_fp,12)
-         !HET(ind_IONO, 1) = HETIUptake(1.73E2_fp,0.01e+0_fp,8)
-         HET(ind_IONO, 1) = HETIUptake(1.73E2_fp,0.01e+0_fp,11)
-         HET(ind_IONO, 2) = HETIUptake(1.73E2_fp,0.01e+0_fp,12)
-         !HET(ind_IONO2,1) = HETIUptake(1.89E2_fp,0.02e+0_fp,8)
-         HET(ind_IONO2,1) = HETIUptake(1.89E2_fp,0.02e+0_fp,11)
-         HET(ind_IONO2,2) = HETIUptake(1.89E2_fp,0.02e+0_fp,12)
          HET(ind_I2O2, 1) = HETIUptake(2.86E2_fp,0.02e+0_fp,8)
          HET(ind_I2O2, 2) = HETIUptake(2.86E2_fp,0.02e+0_fp,11)
          HET(ind_I2O2, 3) = HETIUptake(2.86E2_fp,0.02e+0_fp,12)
@@ -587,6 +578,21 @@ MODULE GCKPP_HETRATES
          HET(ind_I2O4, 1) = HETIUptake(3.18E2_fp,0.02e+0_fp,8)
          HET(ind_I2O4, 2) = HETIUptake(3.18E2_fp,0.02e+0_fp,11)
          HET(ind_I2O4, 3) = HETIUptake(3.18E2_fp,0.02e+0_fp,12)
+
+         ! These uptake reactions require non-acidic aerosol
+         ! Fine sea salt first
+         If (SSAlk(1).gt.0.05) Then
+            HET(ind_HOI,  1) = HETIUptake(1.44E2_fp,0.01e+0_fp,11)
+            HET(ind_IONO, 1) = HETIUptake(1.73E2_fp,0.02e+0_fp,11)
+            HET(ind_IONO2,1) = HETIUptake(1.89E2_fp,0.01e+0_fp,11)
+         End If
+
+         ! Now coarse sea salt
+         If (SSAlk(2).gt.0.05) Then
+            HET(ind_HOI,  2) = HETIUptake(1.44E2_fp,0.01e+0_fp,12)
+            HET(ind_IONO, 2) = HETIUptake(1.73E2_fp,0.02e+0_fp,12)
+            HET(ind_IONO2,2) = HETIUptake(1.89E2_fp,0.01e+0_fp,12)
+         End If
 
          ! Breakdown of iodine compounds on sea-salt
          HET(ind_IONO, 3) = HETIXCycleSSA(1.73E2_fp,0.02E+0_fp,SSAlk)
