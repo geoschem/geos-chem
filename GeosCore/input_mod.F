@@ -3182,7 +3182,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LFILL, LTRAN, LTau
+      LOGICAL            :: LFILL, LTRAN
       INTEGER            :: N,     IORD,    JORD,    KORD
       INTEGER            :: J1,    KS,      MAX_DYN
       INTEGER            :: TS_DYN
@@ -3208,10 +3208,6 @@
       ! Turn on transport?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:1' )
       READ( SUBSTRS(1:N), * ) LTRAN
-
-      ! Determine advected species online?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:2' )
-      READ( SUBSTRS(1:N), * ) LTau
 
       ! Fill negative values
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:3' )
@@ -3253,7 +3249,6 @@
       ! Set fields of Input Options object
       !=================================================================
       Input_Opt%LTRAN       = LTRAN
-      Input_Opt%FlexTPCore  = LTau
       Input_Opt%LFILL       = LFILL
       Input_Opt%TPCORE_IORD = IORD
       Input_Opt%TPCORE_JORD = JORD
@@ -3329,7 +3324,6 @@
          WRITE( 6, '(/,a)' ) 'TRANSPORT MENU'
          WRITE( 6, '(  a)' ) '--------------'
          WRITE( 6, 100     ) 'Turn on transport?          : ', LTRAN
-         WRITE( 6, 100     ) 'Advect using tau comparison?: ', LTau
          WRITE( 6, 100     ) 'Let TPCORE Fill negatives?  : ', LFILL
          WRITE( 6, 110     ) 'IORD, JORD, KORD for TPCORE?: ', IORD, 
      &                                                   JORD, KORD
