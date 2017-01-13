@@ -1278,6 +1278,7 @@
      &                   LM        = LLPAR,         ! # of levs on this CPU
      &                   RC        = RC         )   ! Success or failure?
 
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
       ! Compute the horiziontal grid properties
       CALL Compute_Grid( am_I_Root = am_I_Root,     ! Are we on the root CPU?
      &                   I1        = 1,             ! Min lon index, this CPU
@@ -1293,7 +1294,7 @@
      &                   I_LO      = I_LO,          ! Min global lon index
      &                   J_LO      = J_LO,          ! Min global lat index
      &                   RC        = RC         )   ! Success or failure?
-
+#endif
 
       END SUBROUTINE INITIALIZE_GEOS_GRID
 !EOC
