@@ -2108,6 +2108,15 @@
 #endif
 
       !-------------------------------------------------
+      ! Print msg if OpenMP is turned off for debug
+      !-------------------------------------------------
+#if   !defined( OMP ) 
+      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+      WRITE( 6, '(a)' ) '# OPENMP TURNED OFF FOR TESTING!!!    #'
+      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+#endif
+
+      !-------------------------------------------------
       ! Print msg if DEVEL is turned on for testing
       !-------------------------------------------------
 #if   defined( DEVEL ) 
