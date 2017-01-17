@@ -478,6 +478,13 @@ ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   IS_CHEM_SET        :=1
 endif
 
+# %%%%% Test if CHEM=Custom %%%%%
+REGEXP               :=(^[Cc][Uu][Ss][Tt][Oo][Mm])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=Custom
+  IS_CHEM_SET        :=1
+endif
+
 # %%%%%  Default setting: CHEM=standard (aka benchmark) %%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # NOTE: For clarify in the future, the default setting should be to not set
