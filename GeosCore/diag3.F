@@ -3747,12 +3747,18 @@
 !
 !  ND43: Chemical production of OH and NO
 !
-!   # : Field : Description             : Units   : Scale Factor
+!   # : Field  : Description                : Units   : Scale Factor
 !  ---------------------------------------------------------------------------
-!  (1)  OH    : OH  Chemical Diagnostic : mol/cm3 : CTOH
-!  (3)  HO2   : HO2 Chemical Diagnostic : v/v     : CTHO2
-!  (4)  O1D   : O2D Chemical Diagnostic : v/v     : CTO1D
-!  (5)  O3P   : O3P Chemical Diagnostic : v/v     : CTO3P
+!  (1)  OH     : OH     Chemical Diagnostic : molec/cm3 : CTOH
+!  (3)  HO2    : HO2    Chemical Diagnostic : v/v       : CTHO2
+!  (4)  O1D    : O2D    Chemical Diagnostic : molec/cm3 : CTO1D
+!  (5)  O3P    : O3P    Chemical Diagnostic : molec/cm3 : CTO3P
+!  (6)  LBRO2H : LBRO2H Chemical Diagnostic : molec/cm3 : CTO3P
+!  (7)  LBRO2N : LBRO2N Chemical Diagnostic : molec/cm3 : CTO3P
+!  (8)  LTRO2H : LTRO2H Chemical Diagnostic : molec/cm3 : CTO3P
+!  (9)  LTRO2N : LTRO2N Chemical Diagnostic : molec/cm3 : CTO3P
+!  (10) LXRO2H : LxRO2H Chemical Diagnostic : molec/cm3 : CTO3P
+!  (11) LxRO2N : LXRO2N Chemical Diagnostic : molec/cm3 : CTO3P
 !
 !
 !  NOTES:
@@ -3777,9 +3783,8 @@
             N  = TINDEX(43,M)
             NN = N 
 
-            ! default units
-            UNIT = 'v/v'
-
+            ! Default units
+            UNIT = 'molec/cm3'
 
             SELECT CASE ( N )
 
@@ -3787,7 +3792,7 @@
                CASE ( 1 )
                   WHERE( CTOH /= 0 )
                      ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     $                    FLOAT( CTOH )
+     &                    FLOAT( CTOH )
                   ELSEWHERE
                      ARRAY(:,:,1:LD43) = 0.
                   ENDWHERE
@@ -3798,29 +3803,35 @@
                CASE ( 3 )
                   WHERE( CTHO2 /= 0 )
                      ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     $                    FLOAT( CTHO2 )
+     &                    FLOAT( CTHO2 )
                   ELSEWHERE
                      ARRAY(:,:,1:LD43) = 0.
                   ENDWHERE
+
+                  UNIT = 'v/v'
 
 #if defined( UCX )
                ! O1D
                CASE ( 4 )
                   WHERE( CTO1D /= 0 )
                      ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     $                    FLOAT( CTO1D )
+     &                    FLOAT( CTO1D )
                   ELSEWHERE
                      ARRAY(:,:,1:LD43) = 0.
                   ENDWHERE
+
+                  UNIT = 'molec/cm3'
 
                ! O3P
                CASE ( 5 )
                   WHERE( CTO3P /= 0 )
                      ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     $                    FLOAT( CTO3P )
+     &                    FLOAT( CTO3P )
                   ELSEWHERE
                      ARRAY(:,:,1:LD43) = 0.
                   ENDWHERE
+
+                  UNIT = 'molec/cm3'
 #endif
 
                CASE ( 6 )
