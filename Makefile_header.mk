@@ -247,9 +247,15 @@ ERR_DIAG             :="Select one diagnostic output type: NC_DIAG=y or BPCH_DIA
 # Compiler settings
 #------------------------------------------------------------------------------
 
-# %%%%% OpenMP parallelization default) %%%%%
+# %%%%% OpenMP parallelization (on by default) %%%%%
 ifndef OMP
   OMP                :=yes
+endif
+
+# Option to turn off OpenMP for testing
+REGEXP               :=(^[Nn]|^[Oo])
+ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DNO_OMP
 endif
 
 # %%%%% Set the HPC variable if we are building for use w/ ESMF/MPI %%%%
