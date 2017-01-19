@@ -2827,13 +2827,13 @@
 !******************************************************************************
 !  ND29: CO source diagnostics
 !
-!   #  Field  : Description             : Units     : Scale factor
+!   #  Field  : Description             : Units       : Scale factor
 !  --------------------------------------------------------------------------
-!  (1) COanth : CO from Anthro Sources  : mol/cm2/s : SCALESRCE
-!  (2) CObb   : CO from Biomass Burning : mol/cm2/s : SCALESRCE
-!  (3) CObf   : CO from Biofuel Burning : mol/cm2/s : SCALESRCE
-!  (4) COmeth : CO from Methanol        : mol/cm2/s : SCALESRCE
-!  (5) COmono : CO from Monoterpenes    : mol/cm2/s : SCALESRCE
+!  (1) COanth : CO from Anthro Sources  : molec/cm2/s : SCALESRCE
+!  (2) CObb   : CO from Biomass Burning : molec/cm2/s : SCALESRCE
+!  (3) CObf   : CO from Biofuel Burning : molec/cm2/s : SCALESRCE
+!  (4) COmeth : CO from Methanol        : molec/cm2/s : SCALESRCE
+!  (5) COmono : CO from Monoterpenes    : molec/cm2/s : SCALESRCE
 !
 !  NOTES:
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -2846,10 +2846,7 @@
 
          ! Diagnostic category and units
          CATEGORY = 'CO--SRCE'
-
-         ! Unit is molec/cm2/s, but for compatibility with older
-         ! GC versions, use the string "mol/cm2/s". (bmy, 8/29/14)
-         UNIT     = 'mol/cm2/s'  
+         UNIT     = 'molec/cm2/s'
 
          SpcInfo => State_Chm%SpcData(id_CO)%Info
 
@@ -3425,8 +3422,8 @@
 !
 !   #   Field  : Description                     : Units         : S. Factor
 !  ---------------------------------------------------------------------------
-!  (1 ) NOx    : NOx                             : mol/cm2/s     : SCALE3
-!  (4 ) CO     : CO                              : mol/cm2/s     : SCALE3
+!  (1 ) NOx    : NOx                             : molec/cm2/s   : SCALE3
+!  (4 ) CO     : CO                              : molec/cm2/s   : SCALE3
 !  (5 ) ALK4   : Alkanes(>C4)                    : atoms C/cm2/s : SCALE3
 !  (9 ) ACET   : Acetone                         : atoms C/cm2/s : SCALE3
 !  (10) MEK    : Ketones(>C3)                    : atoms C/cm2/s : SCALE3
@@ -5792,9 +5789,9 @@
 !******************************************************************************
 !  ND65: Production/Loss of specified chemical families
 !
-!   # : Field   : Description                 : Units     : Scale Factor
+!   # : Field   : Description                 : Units       : Scale Factor
 !  ---------------------------------------------------------------------------
-!  (1) PORL-L=$ : Chemical family P-L rates   : mol/cm3/s : SCALECHEM
+!  (1) PORL-L=$ : Chemical family P-L rates   : molec/cm3/s : SCALECHEM
 !
 !  NOTES:
 !  (1 ) Make sure the units for NSRCX == 6 (single tracer O3) P-L 
@@ -5829,7 +5826,7 @@
 
             ELSE
                NN     = N
-               UNIT   = 'mol/cm3/s'
+               UNIT   = 'molec/cm3/s'
 
                WHERE( CTO3_24h(:,:,1:LD65) /= 0 )
                   ARRAY(:,:,1:LD65) = AD65(:,:,1:LD65,N) /
