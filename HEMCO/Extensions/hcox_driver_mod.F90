@@ -200,7 +200,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN 
 #if defined( TOMAS )
     CALL HCOX_TOMAS_DustDead_Init( amIRoot, HcoState, 'TOMAS_DustDead', &
-    	 		     	      ExtState,  RC )
+                   ExtState,  RC )
     IF ( RC /= HCO_SUCCESS ) RETURN 
 #endif 
     !-----------------------------------------------------------------------

@@ -3065,7 +3065,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
-                                COL       = HcoDiagnIDManual,  &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN 
