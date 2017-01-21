@@ -1243,26 +1243,14 @@
          SpcInfo => State_Chm%SpcData(N)%Info
          MW_g    = State_Chm%SpcData(N)%Info%emMW_g
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            Temp3D(I,J,L) = State_Chm%Species(I,J,L,N) *
+         ! Convert kg/kg to mol/mol
+         Temp3D = State_Chm%Species(I,J,L,N) *
      &                      AIRMW / MW_g
-
-            ! Apply minimum value threshold where output concentration
-            ! is very low
-            IF ( Temp3D(I,J,L) < SMALL_NUM ) THEN
-               Temp3D(I,J,L) = SMALL_NUM
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
+         
+         ! Apply minimum value threshold where output concentration
+         ! is very low
+         WHERE (Temp3D < SMALL_NUM) Temp3D = SMALL_NUM
+ 
          ! Point to the array
          Ptr3D => Temp3D
          

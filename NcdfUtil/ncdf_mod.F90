@@ -3322,7 +3322,7 @@ CONTAINS
 !
   SUBROUTINE NC_VAR_DEF ( fId, lonId, latId, levId, TimeId, &
                           VarName, VarLongName, VarUnit,    &
-                          DataType, VarCt )
+                          DataType, VarCt, DefMode )
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -3334,7 +3334,8 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   ) :: VarName
     CHARACTER(LEN=*), INTENT(IN   ) :: VarLongName
     CHARACTER(LEN=*), INTENT(IN   ) :: VarUnit
-    INTEGER,          INTENT(IN   ) :: DataType     ! 1=Int, 4=float, 8=double 
+    INTEGER,          INTENT(IN   ) :: DataType     ! 1=Int, 4=float, 8=double
+    LOGICAL, OPTIONAL,INTENT(IN   ) :: DefMode
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3350,6 +3351,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
+!  21 Jan 2017 - C. Holmes   - Added optional DefMode argument to avoid excessive switching between define and data modes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3359,14 +3361,19 @@ CONTAINS
     INTEGER, ALLOCATABLE :: VarDims(:) 
     INTEGER              :: nDim, Pos
     INTEGER              :: NF_TYPE
+    LOGICAL              :: isDefMode
 
     !--------------------------------
     ! DEFINE VARIABLE 
     !--------------------------------
+  
+    ! Assume file is not in define mode unless explicitly told otherwise
+    isDefMode = .False.
+    if (present(DefMode)) isDefMode = DefMode
 
-    ! Reopen definition section
-    CALL NcBegin_Def( fId )
-
+    ! Reopen definition section, if necessary
+    if (.not. isDefMode) CALL NcBegin_Def( fId )
+    
     ! Increate variable counter
     VarCt = VarCt + 1
     
@@ -3417,8 +3424,8 @@ CONTAINS
     CALL NcDef_Var_Attributes( fId, VarCt, 'long_name', TRIM(VarLongName) )
     CALL NcDef_Var_Attributes( fId, VarCt, 'units',     TRIM(VarUnit    ) )
 
-    ! Close definition section
-    CALL NcEnd_Def( fId )
+    ! Close definition section, if necessary
+    if (.not. isDefMode) CALL NcEnd_Def( fId )
 
   END SUBROUTINE NC_VAR_DEF
 !EOC
