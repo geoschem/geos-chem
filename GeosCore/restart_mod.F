@@ -1124,7 +1124,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Local Variables      
-      INTEGER              :: I, J, L, M, N, HCRC
+      INTEGER              :: M, N, HCRC
       INTEGER              :: GC_RST_Collection
       REAL(fp)             :: MW_g
       REAL(fp)             :: SMALL_NUM
@@ -1244,7 +1244,7 @@
          MW_g    = State_Chm%SpcData(N)%Info%emMW_g
 
          ! Convert kg/kg to mol/mol
-         Temp3D = State_Chm%Species(I,J,L,N) *
+         Temp3D = State_Chm%Species(:,:,:,N) *
      &                      AIRMW / MW_g
          
          ! Apply minimum value threshold where output concentration
