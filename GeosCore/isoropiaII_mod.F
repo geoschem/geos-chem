@@ -101,6 +101,22 @@
       ! HEMCO pointers
       REAL(sp), POINTER    :: HNO3(:,:,:) => NULL()
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Add a C-preprocessor switch to skip calling ISORROPIA if the pressure
+!%%% and/or temperature lie outside of the range that will produce a stable
+!%%% solution.  This will eliminate the random noise observed in the
+!%%% ISORROPIA output.
+!%%%
+!%%% Leaving this feature deactivated will replicate the prior behavior in 
+!%%% v11-01 and earlier GEOS-Chem versions.  This will become the default
+!%%% setting in a future version, but give the user the choice to activate
+!%%% or deactivate this for now.
+!%%% 
+!%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
+!%%%
+!#define SKIP_IF_P_AND_T_ARE_OUT_OF_RANGE 1
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -177,6 +193,9 @@
 !  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
 !                               species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca  - Remove temporary tracer-removal code
+!  25 Jan 2017 - S. Eastham   - Can skip calling ISORROPIA if P and T are not 
+!                               in the proper range to yield a valid solution.
+!                               (Activate this with the #ifdef block above.)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -501,9 +520,40 @@
          WI(7)    = MAX( TK,   CONMIN )
          WI(8)    = MAX( TMG,  CONMIN )
 
+#if defined( SKIP_IF_P_AND_T_ARE_OUT_OF_RANGE )
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%% If the C-preprocessor switch is activated then check if
+         !%%% pressure and temperature are in the range that will result
+         !%%% in a stable solution.  If not, then we will skip calling
+         !%%% ISORROPIA to avoid random noise in the output.
+         !%%%
+         !%%% NOTE: Turning this feature on will result in differences
+         !%%% with respect to prior GEOS-Chem versions.  So we'll give
+         !%%% the user the option to activate it or not.  At some point
+         !%%% in the future this will become the default setting.
+         !%%%
+         !%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
          ! SDE 2017-01-18: Recommendation from Shannon Capps
          ! Skip equilibrium if T < 250 K or P < 200 hPa
          OutOfBounds = ((P_Pa.lt.200.0e+2_f8).or.(TEMPI.lt.250.0e+0_f8))
+
+#else
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%% Always call ISORROPIA, regardless of the values of pressure
+         !%%% and temperature.  This will match the prior behavior of
+         !%%% when comparing to v11-01 and earlier versions.
+         !%%%
+         !%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         ! Never skip calling ISORROPIA
+         OutOfBounds = .FALSE.
+
+#endif
 
          IF ( OutOfBounds ) THEN
 
