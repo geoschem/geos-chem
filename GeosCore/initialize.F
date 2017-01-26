@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: initialize
+! !ROUTINE: initialize.F
 !
 ! !DESCRIPTION: Subroutine INITIALIZE does the following:
 !

@@ -3,9 +3,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: grid_mod
+! !MODULE: gc_grid_mod.F90
 !
-! !DESCRIPTION: Module GRID\_MOD contains variables and routines which are 
+! !DESCRIPTION: Module GC\_GRID\_MOD contains variables and routines which are 
 !  used to specify the parameters of a GEOS-Chem horizontal grid. Grid 
 !  parameters are computed as 3D arrays, which are required for interfacing
 !  with a GCM.
@@ -13,7 +13,7 @@
 !\\
 ! !INTERFACE: 
 !
-MODULE Grid_Mod
+MODULE GC_Grid_Mod
 ! 
 ! !USES:
 !
@@ -68,6 +68,8 @@ MODULE Grid_Mod
 !                              module can also be used by HEMCO.
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  26 Mar 2015 - R. Yantosca - Removed obsolete, commented-out code
+!  29 Nov 2016 - R. Yantosca - Renamed to gc_grid_mod.F90 to avoid namespace
+!                              conflicts when interfacing GCHP to the BCC model
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -98,7 +100,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: compute_grid
+! !IROUTINE: Compute_Grid
 !
 ! !DESCRIPTION: Subroutine COMPUTE\_GRID is the wrapper routine to 
 ! initializes the longitude, latitude and surface area arrays. 
@@ -800,7 +802,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_xoffset
+! !IROUTINE: Set_Xoffset
 !
 ! !DESCRIPTION: Function SET\_XOFFSET initializes the nested-grid longitude 
 !  offset variable I0.
@@ -828,7 +830,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_yoffset
+! !IROUTINE: Set_Yoffset
 !
 ! !DESCRIPTION: Function SET\_YOFFSET initializes the nested-grid latitude 
 !  offset variable J0.
@@ -857,7 +859,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_xoffset
+! !IROUTINE: Get_Xoffset
 !
 ! !DESCRIPTION: Function GET\_XOFFSET returns the nested-grid longitude 
 !  offset to the calling program.
@@ -903,7 +905,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_xoffset
+! !IROUTINE: Get_Yoffset
 !
 ! !DESCRIPTION: Function GET\_XOFFSET returns the nested-grid longitude 
 !  offset to the calling program.
@@ -949,7 +951,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_xmid
+! !IROUTINE: Get_Xmid
 !
 ! !DESCRIPTION: Function GET\_XMID returns the longitude in degrees at the 
 !  center of a GEOS-Chem grid box.
@@ -988,7 +990,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_xedge
+! !IROUTINE: Get_Xedge
 !
 ! !DESCRIPTION: Function GET\_XEDGE returns the longitude in degrees at the 
 !  western edge of a GEOS-Chem grid box.
@@ -1027,7 +1029,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ymid
+! !IROUTINE: Get_Ymid
 !
 ! !DESCRIPTION: Function GET\_YMID returns the latitude in degrees at the 
 !  center of a GEOS-Chem grid box.
@@ -1062,7 +1064,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_yedge
+! !IROUTINE: Get_Yedge
 !
 ! !DESCRIPTION: Function GET\_YEDGE returns the latitude in degrees at the 
 !  southern edge of a GEOS-Chem grid box.
@@ -1098,7 +1100,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ymid_r
+! !IROUTINE: Get_Ymid_R
 !
 ! !DESCRIPTION: Function GET\_YMID\_R returns the latitude in radians at 
 !  the center of a GEOS-Chem grid box.
@@ -1133,7 +1135,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ymid_r_w
+! !IROUTINE: Get_Ymid_R_W
 !
 ! !DESCRIPTION: Function GET\_YMID3\_R\_W returns the latitude in radians at 
 !  the center of a GEOS-Chem grid box for the GEOS-5 nested grid.
@@ -1180,7 +1182,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_yedge_r
+! !IROUTINE: Get_Yedge_R
 !
 ! !DESCRIPTION: Function GET\_YEDGE\_R returns the latitude in radians at 
 !  the southern edge of a GEOS-Chem grid box.
@@ -1215,7 +1217,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ysin
+! !IROUTINE: Get_Ysin
 !
 ! !DESCRIPTION: Function GET\_YSIN returns the sine of the southern edge 
 ! of a GEOS-Chem grid box. 
@@ -1250,7 +1252,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_area_m2
+! !IROUTINE: Get_Area_m2
 !
 ! !DESCRIPTION: Function GET\_AREA\_M2 returns the surface area [m2] of a 
 !  GEOS-Chem grid box.  
@@ -1285,7 +1287,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_area_cm2
+! !IROUTINE: Get_Area_cm2
 !
 ! !DESCRIPTION: Function GET\_AREA\_CM2 returns the surface area [cm2] of a 
 !  GEOS-Chem grid box.  Works for nested grids too.
@@ -1320,7 +1322,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_bounding_box
+! !IROUTINE: Get_Bounding_Box
 !
 ! !DESCRIPTION: Subroutine GET\_BOUNDING\_BOX returns the indices which 
 !  specify the lower left (LL) and upper right (UR) corners of a rectangular 
@@ -1429,7 +1431,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_a_nested_grid
+! !IROUTINE: Its_A_Nested_Grid
 !
 ! !DESCRIPTION: Function GET\_AREA\_CM2 returns the surface area [cm2] of a 
 !  GEOS-Chem grid box.  Works for nested grids too.
@@ -1457,7 +1459,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_grid
+! !IROUTINE: Init_Grid
 !
 ! !DESCRIPTION: Subroutine INIT\_GRID initializes variables and allocates
 !  module arrays.
@@ -1562,9 +1564,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_grid
+! !IROUTINE: Cleanup_GC_Grid
 !
-! !DESCRIPTION: Subroutine CLEANUP\_GRID deallocates all module arrays.
+! !DESCRIPTION: Subroutine CLEANUP\_GC\_GRID deallocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:
@@ -1692,4 +1694,4 @@ CONTAINS
 
   END FUNCTION RoundOff_f8
 !EOC
-END MODULE Grid_Mod
+END MODULE GC_Grid_Mod

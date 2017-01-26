@@ -1,10 +1,8 @@
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
-!BOP
-! !MODULE: Individual GEOS-Chem subroutines
-! !DESCRIPTION: Here follows a list of GEOS-Chem subroutines which do not
-!  belong to any Fortran-90 module.  Most of these are legacy routines
-!  that will eventually be removed.
-!EOP
+!BOS
+! !SECTION: HEMCO "Core" modules
+! !DESCRIPTION: These contain routines that perform core HEMCO functions, such as establishing the data structures used to store the emissions data, etc.
+!EOS
 !------------------------------------------------------------------------------

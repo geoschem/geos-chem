@@ -1,0 +1,8 @@
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOS
+! !SECTION: HEMCO "Extensions" modules
+! !DESCRIPTION: These modules define the HEMCO Extensions.  These are emissions that rely on environmental variables (e.g. temperature, pressure, sunlight, boundary layer height, etc.) supplied by GEOS-Chem.
+!EOS
+!------------------------------------------------------------------------------

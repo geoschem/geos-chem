@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gc_environment_mod
+! !MODULE: gc_environment_mod.F90
 !
 ! !DESCRIPTION: Module GC\_ENVIRONMENT\_MOD establishes the runtime 
 !  environment for the GEOS-Chem.  It is designed to receive model parameter

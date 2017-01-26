@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: state_met_mod
+! !MODULE: state_met_mod.F90
 !
 ! !DESCRIPTION: Module STATE\_MET\_MOD contains the derived type
 !  used to define the Meteorology State object for GEOS-Chem.
@@ -268,7 +268,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_state_met
+! !IROUTINE: Init_State_Met
 !
 ! !DESCRIPTION: Subroutine INIT\_STATE\_MET allocates all fields of 
 !  the meteorology state object.
@@ -319,6 +319,7 @@ CONTAINS
 !  06 Nov 2014 - R. Yantosca - Now make all fields (IM,JM,LM) instead of 
 !                              (LM,JM,IM), to facilitate use w/in GEOS-5 GCM
 !  05 Oct 2016 - R. Yantosca - Swapped order of HKETA and HKBETA allocation
+!  28 Nov 2016 - R. Yantosca - Nullify fields that may or may not be allocated
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -329,6 +330,69 @@ CONTAINS
 
     ! Assume success
     RC = GC_SUCCESS
+
+    !=======================================================================
+    ! The following fields of State_Met may or may not get allocated
+    ! depending on the met field being used, or if we are using GEOS-Chem
+    ! in the ESMF/HPC configuration.  Make sure to nullify these fields
+    ! in order to prevent issues with unintialized fields.  In particular,
+    ! the GNU Fortran compiler may cause simulations to die with an error 
+    ! when encountering uninitialized fields of State_Met.
+    ! 
+    ! We do not have to nullify the fields that always get allocated,
+    ! since they will be defined for each GEOS-Chem simulation. 
+    ! (bmy, 11/28/16) 
+    !=======================================================================
+    State_Met%CNV_FRC  => NULL()
+    State_Met%DETRAINE => NULL()
+    State_Met%DETRAINN => NULL()
+    State_Met%DNDE     => NULL()
+    State_Met%DNDN     => NULL()
+    State_Met%ENTRAIN  => NULL()
+    State_Met%FRSEAICE => NULL()
+    State_Met%FRSNO    => NULL()
+    State_Met%HKETA    => NULL()
+    State_Met%HKBETA   => NULL()
+    State_Met%LWI_GISS => NULL()
+    State_Met%MOLENGTH => NULL()
+    State_Met%OICE     => NULL()
+    State_Met%PFICU    => NULL()
+    State_Met%PFILSAN  => NULL()
+    State_Met%PFLCU    => NULL()
+    State_Met%PFLLSAN  => NULL()
+    State_Met%PRECANV  => NULL()
+    State_Met%PRECLSC  => NULL()
+    State_Met%REEVAPCN => NULL()
+    State_Met%REEVAPLS => NULL()
+    State_Met%RH1      => NULL()
+    State_Met%RH2      => NULL()
+    State_Met%SEAICE00 => NULL()
+    State_Met%SEAICE10 => NULL()
+    State_Met%SEAICE20 => NULL()
+    State_Met%SEAICE30 => NULL()
+    State_Met%SEAICE40 => NULL()
+    State_Met%SEAICE50 => NULL()
+    State_Met%SEAICE60 => NULL()
+    State_Met%SEAICE70 => NULL()
+    State_Met%SEAICE80 => NULL()
+    State_Met%SEAICE90 => NULL()
+    State_Met%SNICE    => NULL()
+    State_Met%SNOW     => NULL()
+    State_Met%SNOW     => NULL()
+    State_Met%SPHU1    => NULL()
+    State_Met%SPHU2    => NULL()
+    State_Met%TMPU1    => NULL()
+    State_Met%TMPU2    => NULL()
+    State_Met%TO31     => NULL()
+    State_Met%TO32     => NULL()
+    State_Met%TROPP1   => NULL()
+    State_Met%TROPP2   => NULL()
+    State_Met%TTO3     => NULL()
+    State_Met%UPDE     => NULL()
+    State_Met%UPDN     => NULL()
+    State_Met%ZMEU     => NULL()
+    State_Met%ZMMD     => NULL()
+    State_Met%ZMMU     => NULL()
 
     !=======================================================================
     ! Allocate 2-D Fields
@@ -488,10 +552,6 @@ CONTAINS
     ALLOCATE( State_Met%SUNCOSmid ( IM, JM ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%SUNCOSmid = 0.0_fp
-
-!    ALLOCATE( State_Met%SUNCOSmid5( IM, JM ), STAT=RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!    State_Met%SUNCOSmid5 = 0.0_fp
 
     ALLOCATE( State_Met%SWGDN     ( IM, JM ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -694,7 +754,6 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN           
     State_Met%AIRVOL   = 0.0_fp
                                                
-!    ALLOCATE( State_Met%AREA_M2   ( IM, JM, LM   ), STAT=RC )
     ALLOCATE( State_Met%AREA_M2   ( IM, JM, 1    ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN           
     State_Met%AREA_M2  = 0.0_fp
@@ -991,7 +1050,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_state_met
+! !IROUTINE: Cleanup_State_Met
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_STATE\_MET deallocates all fields 
 !  of the meteorology state object.

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: co2_mod
+! !MODULE: co2_mod.F
 !     
 ! !DESCRIPTION: Module CO2\_MOD contains variables and routines used for the 
 !  CO2 simulation.  A tagged CO2 simulation capability has now been added.
@@ -287,6 +287,9 @@
 
       ! Emission timestep
       DTSRCE = HcoState%TS_EMIS
+
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
 
       !=================================================================
       ! Species ID setup and error checks (first-time only)

@@ -9,13 +9,15 @@
 ! file reference time by a given value. Time stamps shifts can be provided as
 ! optional fifth element to the time stamp attribute in the HEMCO configuration
 ! file. 
+!\\
+!\\
 ! For instance, consider the case where 3-hourly averages are provided in 
 ! individual files with centered time stamps, e.g.: file.yyyymmdd\_0130z.nc, 
-! file.yyyymmdd_0430z.nc, ..., file.yyymmdd_2230z.nc
+! file.yyyymmdd\_0430z.nc, ..., file.yyymmdd\_2230z.nc
 ! To read these files *at the beginning* of their time intervals, the time
 ! stamp can be shifted by 90 minutes, e.g. the file name, variable, and time
 ! attribute section reads:
-! ... file.$yyyy$mm$dd_$hh$mnz.nc VARNAME 2000-2016/1-12/1-31/0-23/+90minutes ... 
+! ... file.\$yyyy$mm$dd\_\$hh\$mnz.nc VARNAME 2000-2016/1-12/1-31/0-23/+90minutes ... 
 !\\
 !\\
 ! At time 00z, HEMCO will then read file 0130z and keep using this file until
@@ -28,7 +30,6 @@
 ! in filedata variable tshift) and shifts the desired reference time as needed. 
 !\\
 !\\
-!
 ! !INTERFACE: 
 !
 MODULE HCO_TIMESHIFT_MOD
@@ -63,7 +64,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: TimeShift_Set
+! !IROUTINE: TimeShift_Set
 !
 ! !DESCRIPTION: Subroutine TimeShift\_Set sets the time shift values. The
 ! time shift attribute tshift contains two entries: the first entry denotes
@@ -177,7 +178,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: TimeShift_Apply
+! !IROUTINE: TimeShift_Apply
 !
 ! !DESCRIPTION: Subroutine TimeShift\_Apply shifts the reference time
 ! (provided through arguments yr, mt, dy, hr, and mn, by the time shift

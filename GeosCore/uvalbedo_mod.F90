@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: uvalbedo_mod.F90
+! !MODULE: uvalbedo_mod.F90
 !
 ! !DESCRIPTION: Module UVALBEDO\_MOD contains variables and routines for 
 !  reading the UV Albedo data.  This data is required by the FAST-JX photolysis

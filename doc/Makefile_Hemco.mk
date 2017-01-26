@@ -24,77 +24,34 @@
 #  08 Jul 2014 - R. Yantosca - Initial version
 #  21 Jul 2014 - R. Yantosca - Now look for HEMCO modules in subdirectories
 #  10 Jul 2015 - R. Yantosca - Use ./protex to avoid problems on some systems
+#  18 Nov 2016 - R. Yantosca - Now use protex -spf to update chapters
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # List of source code files (order is important)
-SRC5 :=                            \
-./intro.hemco			   \
-$(HCO)/hco_arr_mod.F90		   \
-$(HCO)/hco_calc_mod.F90		   \
-$(HCO)/hco_chartools_mod.F90	   \
-$(HCO)/hco_clock_mod.F90	   \
-$(HCO)/hco_config_mod.F90	   \
-$(HCO)/hco_datacont_mod.F90	   \
-$(HCO)/hco_diagn_mod.F90	   \
-$(HCO)/hco_driver_mod.F90	   \
-$(HCO)/hco_emislist_mod.F90	   \
-$(HCO)/hco_error_mod.F90	   \
-$(HCO)/hco_extlist_mod.F90	   \
-$(HCO)/hco_filedata_mod.F90	   \
-$(HCO)/hco_fluxarr_mod.F90	   \
-$(HCO)/hco_geotools_mod.F90	   \
-$(HCO)/hco_interp_mod.F90          \
-$(HCO)/hco_logfile_mod.F90         \
-$(HCO)/hco_readlist_mod.F90	   \
-$(HCO)/hco_restart_mod.F90         \
-$(HCO)/hco_state_mod.F90	   \
-$(HCO)/hco_tidx_mod.F90		   \
-$(HCO)/hco_unit_mod.F90		   \
-$(HCO)/hcoio_dataread_mod.F90	   \
-$(HCOI)/hcoi_esmf_mod.F90          \
-$(HCOI)/hcoi_standalone_mod.F90	   \
-$(CORE)/hcoi_gc_diagn_mod.F90	   \
-$(CORE)/hcoi_gc_main_mod.F90	   \
-$(HCOX)/hcox_aerocom_mod.F90       \
-$(HCOX)/hcox_ch4wetland_mod.F90    \
-$(HCOX)/hcox_custom_mod.F90	   \
-$(HCOX)/hcox_driver_mod.F90	   \
-$(HCOX)/hcox_dustdead_mod.F	   \
-$(HCOX)/hcox_dustginoux_mod.F90	   \
-$(HCOX)/hcox_finn_mod.F90          \
-$(HCOX)/hcox_finn_include.H        \
-$(HCOX)/hcox_gc_POPs_mod.F90       \
-$(HCOX)/hcox_gc_RnPbBe_mod.F90	   \
-$(HCOX)/hcox_gfed_mod.F90	   \
-$(HCOX)/hcox_gfed_include_gfed3.H  \
-$(HCOX)/hcox_gfed_include_gfed4.H  \
-$(HCOX)/hcox_lightnox_mod.F90	   \
-$(HCOX)/hcox_megan_mod.F	   \
-$(HCOX)/hcox_paranox_mod.F90	   \
-$(HCOX)/hcox_seaflux_mod.F90	   \
-$(HCOX)/hcox_seasalt_mod.F90	   \
-$(HCOX)/hcox_soilnox_mod.F90	   \
-$(HCOX)/hcox_state_mod.F90	   \
-$(HCOX)/hcox_tomas_dustdead_mod.F  \
-$(HCOX)/hcox_tomas_seasalt_mod.F90 \
-$(HCOX)/drydep_toolbox_mod.F90	   \
-$(HCOX)/ocean_toolbox_mod.F90
+SRC4 :=                            \
+./hemco_intro.P                    \
+./hemco_core.P                     \
+$(wildcard $(HCO)/Core/*.F*)       \
+./hemco_extensions.P               \
+$(wildcard $(HCO)/Extensions/*.F*) \
+./hemco_interfaces.P               \
+$(wildcard $(HCO)/Interfaces/*.F*)
 
 # Output file names
-TEX5 := GC_Ref_Vol_5.tex
-DVI5 := GC_Ref_Vol_5.dvi
-PDF5 := GC_Ref_Vol_5.pdf
+TEX4 := GC_v11-01_HEMCO_Modules.tex
+DVI4 := GC_v11-01_HEMCO_Modules.dvi
+PDF4 := GC_v11-01_HEMCO_Modules.pdf
 
 # Make commands
 hemcodoc: 
-	rm -f $(TEX5)
-	./protex -sf $(SRC5) > $(TEX5)
-	latex $(TEX5)
-	latex $(TEX5)
-	latex $(TEX5)
-	dvipdf $(DVI5) $(PDF5)
+	rm -f $(TEX4)
+	./protex -sfp $(SRC4) > $(TEX4)
+	latex $(TEX4)
+	latex $(TEX4)
+	latex $(TEX4)
+	dvipdf $(DVI4) $(PDF4)
 	rm -f *.aux *.dvi *.log *.toc
 
 #EOC

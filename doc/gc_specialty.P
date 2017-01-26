@@ -1,9 +1,8 @@
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
-!BOI
-! !TITLE: GEOS-Chem Reference, Volume 3:\\"Core" Modules and Routines
-! !AUTHORS: GEOS-Chem Support Team
-! !DATE: 10 Jul 2015
-!EOI
+!BOS
+! !SECTION: Specialty simulation modules
+! !DESCRIPTION: These modules contain routines used by the GEOS-Chem "specialty" simulations.
+!EOS
 !------------------------------------------------------------------------------

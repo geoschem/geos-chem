@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: pressure_mod
+! !MODULE: pressure_mod.F90
 !
 ! !DESCRIPTION: Module PRESSURE\_MOD contains variables and routines which 
 !  specify the grid box pressures for both hybrid or pure-sigma models.  
@@ -134,7 +134,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ap
+! !IROUTINE: Get_Ap
 !
 ! !DESCRIPTION: Function GET\_AP returns the "A" term [hPa] for the 
 !  hybrid ETA coordinate.
@@ -172,7 +172,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_bp
+! !IROUTINE: Get_Bp
 !
 ! !DESCRIPTION: Function GET\_BP returns the "B" term [unitless] for the 
 !  hybrid ETA coordinate.
@@ -210,11 +210,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_floating_pressures
+! !IROUTINE: Set_Floating_Pressures
 !
-! !DESCRIPTION: Subroutine SET\_FLOATING\_PRESSURE initializes the 
-!  dry and wet floating pressure fields PFLT_DRY and PFLT_WET with the 
-!  "true" surface pressures PSC2_DRY and PSC2_WET, stored in State_Met.
+! !DESCRIPTION: Subroutine SET\_FLOATING\_PRESSURES initializes the 
+!  dry and wet floating pressure fields PFLT\_DRY and PFLT\_WET with the 
+!  "true" surface pressures PSC2\_DRY and PSC2\_WET, stored in State\_Met.
 !\\
 !\\
 ! !INTERFACE:
@@ -317,7 +317,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_pedge
+! !IROUTINE: Get_Pedge
 !
 ! !DESCRIPTION: Function GET\_PEDGE returns the pressure at the bottom edge 
 !  of level L.  L=1 is the surface, L=LLPAR+1 is the atm top.
@@ -399,7 +399,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_pcenter
+! !IROUTINE: Get_Pcenter
 !
 ! !DESCRIPTION: Function GET\_PCENTER returns the pressure at the vertical
 !  midpoint of level L.
@@ -443,7 +443,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_pedge_fullgrid
+! !IROUTINE: Get_Pedge_Fullgrid
 !
 ! !DESCRIPTION: Function GET\_PEDGE\_FULLGRID returns the pressure at the
 !  bottom edge of level L of the unreduced vertical grid.  L=1 is the surface, 
@@ -501,7 +501,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_pedge_dry
+! !IROUTINE: Get_Pedge_Dry
 !
 ! !DESCRIPTION: Function GET\_PEDGE\_DRY returns the pressure at the 
 !  bottom edge of level L, reconstructed using the dry surface pressure. 
@@ -555,7 +555,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_delp_dry
+! !IROUTINE: Get_Delp_Dry
 !
 ! !DESCRIPTION: Function GET\_DELP\_DRY returns the delta dry pressure 
 !  between the bottom edge of level L and top edge of level L+1, 
@@ -616,7 +616,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_pressure
+! !IROUTINE: Init_Pressure
 !
 ! !DESCRIPTION: Subroutine INIT\_PRESSURE allocates and initializes the AP 
 !  and BP arrays.  It must be called in "main.f", after SIGE is defined.  
@@ -1135,7 +1135,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_pressure
+! !IROUTINE: Cleanup_Pressure
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_PRESSURE deallocates all allocated arrays 
 !  at the end of a GEOS-Chem model run.
@@ -1170,7 +1170,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: accept_external_pedge
+! !IROUTINE: Accept_External_Pedge
 !
 ! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_PEDGE sets the GEOS-Chem
 !  pressure edge variable with the values obtained from an external GCM

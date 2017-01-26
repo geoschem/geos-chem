@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: ohsave
+! !ROUTINE: ohsave.F
 !
 ! !DESCRIPTION: Subroutine OHSAVE stores the concentrations of OH and HO2 
 !  for the ND43 diagnostic.

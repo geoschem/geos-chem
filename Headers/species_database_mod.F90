@@ -70,7 +70,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_species_database
+! !IROUTINE: Init_Species_Database
 !
 ! !DESCRIPTION: Initializes the GEOS-Chem species database object.  You can
 !  add information about new species to this routine.
@@ -147,6 +147,8 @@ CONTAINS
 !                              and replace with their constituents.
 !  02 Aug 2016 - M. Sulprizio- Add KppSpcId as argument passed to Spc_Create
 !  11 Aug 2016 - E. Lundgren - Define special background conc for some species
+!  22 Nov 2016 - M. Sulprizio- Move aerosol densities for BC, OC, and SO4 here
+!                              from aerosol_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -155,8 +157,8 @@ CONTAINS
 !
     ! Scalars
     INTEGER             :: C,      N,   nSpecies
-    REAL(fp)            :: Radius, KOA, MW_g,    BackgroundVV   
-    REAL(fp)            :: K0,     CR,  HStar
+    REAL(fp)            :: Radius, KOA, MW_g,    BackgroundVV, HStar
+    REAL(f8)            :: K0,     CR
 
     ! Arrays
     REAL(fp)            :: DvzMinVal(2)
@@ -414,6 +416,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Density       = 1800.0_fp,                    &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
@@ -1929,7 +1932,7 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxyacetyl nitrate',       &
+                              FullName      = 'Methyl Ethyl Ketone',        &
                               MW_g          = 72.11_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 4.0_fp,                       &
@@ -2253,7 +2256,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Dinitrogen pentoxide',       &
-                              MW_g          = 105.0_fp,                     &
+                              MW_g          = 108.0_fp,                     &
                               BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2624,6 +2627,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Density       = 1300.0_fp,                    &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
@@ -2807,6 +2811,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Density       = 1300.0_fp,                    &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
@@ -2832,7 +2837,7 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 9.50e+0_f8,                   &
+                              DD_Hstar_old  = 9.50e+0_fp,                   &
                               Henry_K0      = 9.50e+0_f8,                   &
                               Henry_CR      = 4700.0_f8,                    &
                               WD_RetFactor  = 2.0e-2_fp,                    &
@@ -3111,6 +3116,7 @@ CONTAINS
 #if defined( UCX )
                               Is_Photolysis = T,                            &
 #endif
+                              Density       = 1700.0_fp,                    &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_DvzMinVal  = DvzMinVal,                    &
                               DD_F0         = 0.0_fp,                       &
@@ -4067,7 +4073,7 @@ CONTAINS
                 'DUST36', 'DUST37', 'DUST38', 'DUST39', 'DUST40'  )
  
              ! Add TOMAS bin number to full name
-             FullName = 'Hydrophilic organic carbon, size bin ='
+             FullName = 'Mineral dust, size bin ='
              C        = LEN_TRIM( NameAllCaps )
              IF ( C == 5 ) THEN
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
@@ -4889,7 +4895,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_define_species
+! !IROUTINE: Cleanup_Species_Database
 !
 ! !DESCRIPTION: Finalizes the vector with species information.
 !\\
@@ -4987,7 +4993,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: unique_species_names
+! !IROUTINE: Unique_Species_Names
 !
 ! !DESCRIPTION: Stores the list of unique species names (i.e. removing 
 !  duplicates from the list of advected species and the the list of KPP 
@@ -5194,7 +5200,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CleanUp_Work_Arrays
+! !IROUTINE: Cleanup_Work_Arrays
 !
 ! !DESCRIPTION: Stores the list of unique species names (i.e. removing
 !  duplicates from the list of advected species and the the list of KPP

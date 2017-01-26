@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: merra_i6_mod
+! !MODULE: merra_i6_mod.F90
 !
 ! !DESCRIPTION: Module MERRA\_I6\_MOD contains subroutines for reading the 
 !  6-hour instantaneous (aka "I6") fields from the MERRA data archive.

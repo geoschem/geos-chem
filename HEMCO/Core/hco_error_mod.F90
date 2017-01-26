@@ -73,15 +73,15 @@ MODULE HCO_Error_Mod
 ! !MODULE VARIABLES:
 !
   ! Double and single precision definitions
-  INTEGER, PARAMETER, PUBLIC  :: dp = kind(0.d0)     ! double precision
-  INTEGER, PARAMETER, PUBLIC  :: sp = kind(0.0)      ! single precision
+  INTEGER, PARAMETER, PUBLIC  :: dp = KIND( REAL( 0.0, 8 ) ) ! Double (r8)
+  INTEGER, PARAMETER, PUBLIC  :: sp = KIND( REAL( 0.0, 4 ) ) ! Single (r4)
 #if defined( USE_REAL8 )
-  INTEGER, PARAMETER, PUBLIC  :: hp = kind(0.d0)     ! HEMCO precision r8
+  INTEGER, PARAMETER, PUBLIC  :: hp = KIND( REAL( 0.0, 8 ) ) ! HEMCO prec r8
 #else
-  INTEGER, PARAMETER, PUBLIC  :: hp = kind(0.0)      ! HEMCO precision r4
+  INTEGER, PARAMETER, PUBLIC  :: hp = KIND( REAL( 0.0, 4 ) ) ! HEMCO prec r4
 #endif
-  INTEGER, PARAMETER, PUBLIC  :: i4 = 4              ! FourByteInt 
-  INTEGER, PARAMETER, PUBLIC  :: i8 = 8              ! EightByteInt
+  INTEGER, PARAMETER, PUBLIC  :: i4 = 4                      ! FourByteInt 
+  INTEGER, PARAMETER, PUBLIC  :: i8 = 8                      ! EightByteInt
 
   ! Error success/failure definitions
   INTEGER, PARAMETER, PUBLIC  :: HCO_SUCCESS = 0
@@ -121,6 +121,9 @@ MODULE HCO_Error_Mod
 !  03 Mar 2015 - C. Keller   - Added HCO_CFLAG_* and HCO_DCTTYPE_*
 !  15 Feb 2016 - C. Keller   - Update to v2.0: error variables now 
 !                              organized in derived type HcoErr.
+!  23 Nov 2016 - R. Yantosca - Now rewrite KIND definitions to prevent 4-byte
+!                              and 8-byte variables from being elevated
+!                              when using -r8 (or equivalent flags)
 !EOP
 !------------------------------------------------------------------------------
 !BOC

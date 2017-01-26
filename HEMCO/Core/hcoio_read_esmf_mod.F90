@@ -9,6 +9,7 @@
 !  data reading within the ESMF framework. 
 !\\
 !\\
+! !INTERFACE:
 !
 MODULE HCOIO_Read_ESMF_mod
 !

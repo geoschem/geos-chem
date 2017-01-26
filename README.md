@@ -1,24 +1,16 @@
-# GEOS-Chem Bleeding Edge #
+README -- Describes contents of GEOS-Chem repository
+20 Dec 2016
+GEOS-Chem Support Team
+geos-chem-support@as.harvard.edu
 
-This repository is the development repository of GEOS-Chem (aka the "Bleeding Edge" repo).  It is intended to share the latest code updates among developers.  It often contains untested and/or unbenchmarked code, so you should not use this to start a new GEOS-Chem project.  
 
-## Mirrors ##
+This repository contains the source code for GEOS-Chem v11-01 (provisionally released on 20 Dec 2016).
 
-The GEOS-Chem Bleeding Edge repo is also mirrored at:
+Please see the following resources for more information:
 
-* git://git.as.harvard.edu/bmy/GC_Bleeding_Edge
-
-So you can use this link if you have trouble downloading from BitBucket.
-
-## Publicly-released GEOS-Chem version
-
-If you would like to obtain the latest stable, publicly-released GEOS-Chem version (instead of the Bleeding Edge repo), you can obtain this from one of these links:
-
-* http://bitbucket.org/gcst/geos-chem
-* git://git.as.harvard.edu/bmy/GEOS-Chem
-
-## Documentation ##
-
-See http://manual.geos-chem.org for more information about using GEOS-Chem.
-
--- The GEOS-Chem Support Team (geos-chem-support [at] as.harvard.edu), 23 Jun 2015
+1. http://manual.geos-chem.org  (Contains download instructions)
+2. http://wiki.geos-chem.org/GEOS-Chem_v11-01
+3. http://wiki.geos-chem.org/GEOS-Chem_v11-01_benchmark_history
+4. http://wiki.geos-chem.org/HEMCO
+5. http://wiki.geos-chem.org/GEOS-Chem-Unit-Tester
+6. http://wiki.geos-chem.org/Creating_GEOS-Chem_run_directories

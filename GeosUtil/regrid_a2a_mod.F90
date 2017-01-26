@@ -109,7 +109,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: do_regrid_a2a
+! !IROUTINE: Do_Regrid_A2A
 !
 ! !DESCRIPTION: Subroutine DO\_REGRID\_A2A regrids 2-D data in the
 !  horizontal direction.  This is a wrapper for the MAP\_A2A routine.
@@ -380,7 +380,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Map_A2A_R4R4
+! !IROUTINE: Map_A2A_r4r4
 !
 ! !DESCRIPTION: Subroutine MAP\_A2A\_R4R4 is a horizontal arbitrary grid 
 !  to arbitrary grid conservative high-order mapping regridding routine 
@@ -784,7 +784,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ymap_r8r8
+! !IROUTINE: Ymap_r8r8
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
 !  arbitrary resolution to another.  Both the input and output arguments
@@ -952,7 +952,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ymap_r4r8
+! !IROUTINE: Ymap_r4r8
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
 !  arbitrary resolution to another.  The input argument has REAL*4 precision
@@ -1121,7 +1121,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ymap_r8r4
+! !IROUTINE: Ymap_r8r4
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
 !  arbitrary resolution to another.  The input argument has REAL*8 precision
@@ -1290,7 +1290,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ymap_r4r4
+! !IROUTINE: Ymap_r4r4
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
 !  arbitrary resolution to another.  Both the input and output arguments
@@ -1458,7 +1458,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: xmap_r8r8
+! !IROUTINE: Xmap_r8r8
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an 
 !  arbitrary resolution to another.  Both the input and output arguments
@@ -1538,6 +1538,10 @@ CONTAINS
     REAL*8               :: minlon, maxlon 
     REAL*8               :: lon1s(im+1)
 
+    ! Ghost correction
+    Logical              :: isGlobal
+    Real*8               :: xSpan
+
     ! Initialize pointers
     lon2 => NULL()
     q2   => NULL()
@@ -1584,7 +1588,11 @@ CONTAINS
     in = n2 - n1
     lon2 => ilon2(n1:n2)
     q2   => iq2(n1:(n2-1),:)
- 
+
+    ! Periodic BC only valid if the variable is "global"
+    xSpan = x1(im+1)-x1(1)
+    isGlobal = ((xSpan.ge.355.0).and.(xSpan.le.365.0))
+
     !===================================================================
     ! check to see if ghosting is necessary
     ! Western edge:
@@ -1636,26 +1644,32 @@ CONTAINS
        !================================================================
       
        qtmp(:) = 0.0d0 
-       qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
        enddo
-       qtmp(im+1)=q1(1,j)
 
-       ! check to see if ghosting is necessary
-       ! Western edge
-       if ( i1 .le. 0 ) then
-          do i=i1,0
-             qtmp(i) = qtmp(im+i)
-          enddo
-       endif
-       
-       ! Eastern edge:
-       if ( i2 .gt. im+1 ) then
-          do i=im+1,i2-1
-             qtmp(i) = qtmp(i-im)
-          enddo
-       endif
+       ! SDE 2017-01-07
+       ! Only have shadow regions if we are on a global grid. Otherwise, we
+       ! should keep the zero boundary conditions.
+       If (isGlobal) Then
+          qtmp(0)=q1(im,j)
+          qtmp(im+1)=q1(1,j)
+
+          ! check to see if ghosting is necessary
+          ! Western edge
+          if ( i1 .le. 0 ) then
+             do i=i1,0
+                qtmp(i) = qtmp(im+i)
+             enddo
+          endif
+          
+          ! Eastern edge:
+          if ( i2 .gt. im+1 ) then
+             do i=im+1,i2-1
+                qtmp(i) = qtmp(i-im)
+             enddo
+          endif
+       End If
         
        i0 = i1
 
@@ -1713,7 +1727,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: xmap_r4r4
+! !IROUTINE: Xmap_r4r4
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an 
 !  arbitrary resolution to another.  Both the input and output arguments
@@ -1793,6 +1807,10 @@ CONTAINS
     REAL*4               :: minlon, maxlon 
     REAL*4               :: lon1s(im+1)
 
+    ! Ghost correction
+    Logical              :: isGlobal
+    Real*4               :: xSpan
+
     ! Initialize
     lon2 => NULL()
     q2   => NULL()
@@ -1841,6 +1859,9 @@ CONTAINS
     q2   => iq2(n1:(n2-1),:)
 
     ! shadow variables to selected range
+    ! Periodic BC only valid if the variable is "global"
+    xSpan = x1(im+1)-x1(1)
+    isGlobal = ((xSpan.ge.355.0).and.(xSpan.le.365.0))
  
     !===================================================================
     ! check to see if ghosting is necessary
@@ -1893,26 +1914,32 @@ CONTAINS
        !================================================================
        
        qtmp(:) = 0.0
-       qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
        enddo
-       qtmp(im+1)=q1(1,j)
 
-       ! check to see if ghosting is necessary
-       ! Western edge
-       if ( i1 .le. 0 ) then
-          do i=i1,0
-             qtmp(i) = qtmp(im+i)
-          enddo
-       endif
-       
-       ! Eastern edge:
-       if ( i2 .gt. im+1 ) then
-          do i=im+1,i2-1
-             qtmp(i) = qtmp(i-im)
-          enddo
-       endif
+       ! SDE 2017-01-07
+       ! Only have shadow regions if we are on a global grid. Otherwise, we
+       ! should keep the zero boundary conditions.
+       If (isGlobal) Then
+          qtmp(0)=q1(im,j)
+          qtmp(im+1)=q1(1,j)
+
+          ! check to see if ghosting is necessary
+          ! Western edge
+          if ( i1 .le. 0 ) then
+             do i=i1,0
+                qtmp(i) = qtmp(im+i)
+             enddo
+          endif
+          
+          ! Eastern edge:
+          if ( i2 .gt. im+1 ) then
+             do i=im+1,i2-1
+                qtmp(i) = qtmp(i-im)
+             enddo
+          endif
+       End If
         
        i0 = i1
 
@@ -1970,7 +1997,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: xmap_r4r8
+! !IROUTINE: Xmap_r4r8
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an 
 !  arbitrary resolution to another.  The input argument has REAL*4 precision
@@ -2049,6 +2076,10 @@ CONTAINS
     REAL*4               :: minlon, maxlon 
     REAL*4               :: lon1s(im+1)
 
+    ! Ghost correction
+    Logical              :: isGlobal
+    Real*8               :: xSpan
+
     ! Initialize
     lon2 => NULL()
     q2   => NULL()
@@ -2095,7 +2126,11 @@ CONTAINS
     in = n2 - n1
     lon2 => ilon2(n1:n2)
     q2   => iq2(n1:(n2-1),:)
-    
+
+    ! Periodic BC only valid if the variable is "global"
+    xSpan = x1(im+1)-x1(1)
+    isGlobal = ((xSpan.ge.355.0).and.(xSpan.le.365.0))
+
     !===================================================================
     ! check to see if ghosting is necessary
     ! Western edge:
@@ -2147,26 +2182,32 @@ CONTAINS
        !================================================================
        
        qtmp(:) = 0.0d0
-       qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
        enddo
-       qtmp(im+1)=q1(1,j)
 
-       ! check to see if ghosting is necessary
-       ! Western edge
-       if ( i1 .le. 0 ) then
-          do i=i1,0
-             qtmp(i) = qtmp(im+i)
-          enddo
-       endif
-       
-       ! Eastern edge:
-       if ( i2 .gt. im+1 ) then
-          do i=im+1,i2-1
-             qtmp(i) = qtmp(i-im)
-          enddo
-       endif
+       ! SDE 2017-01-07
+       ! Only have shadow regions if we are on a global grid. Otherwise, we
+       ! should keep the zero boundary conditions.
+       If (isGlobal) Then
+          qtmp(0)=q1(im,j)
+          qtmp(im+1)=q1(1,j)
+
+          ! check to see if ghosting is necessary
+          ! Western edge
+          if ( i1 .le. 0 ) then
+             do i=i1,0
+                qtmp(i) = qtmp(im+i)
+             enddo
+          endif
+          
+          ! Eastern edge:
+          if ( i2 .gt. im+1 ) then
+             do i=im+1,i2-1
+                qtmp(i) = qtmp(i-im)
+             enddo
+          endif
+       End If
         
        i0 = i1
 
@@ -2224,7 +2265,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: xmap_r8r4
+! !IROUTINE: Xmap_r8r4
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an 
 !  arbitrary resolution to another.  The input argument has REAL*8 precision
@@ -2304,6 +2345,10 @@ CONTAINS
     REAL*4               :: minlon, maxlon 
     REAL*4               :: lon1s(im+1)
 
+    ! Ghost correction
+    Logical              :: isGlobal
+    Real*4               :: xSpan
+
     ! Initialize
     lon2 => NULL()
     q2   => NULL()
@@ -2350,7 +2395,11 @@ CONTAINS
     in = n2 - n1
     lon2 => ilon2(n1:n2)
     q2   => iq2(n1:(n2-1),:)
-    
+
+    ! Periodic BC only valid if the variable is "global"
+    xSpan = x1(im+1)-x1(1)
+    isGlobal = ((xSpan.ge.355.0).and.(xSpan.le.365.0))
+
     !===================================================================
     ! check to see if ghosting is necessary
     ! Western edge:
@@ -2402,26 +2451,32 @@ CONTAINS
        !================================================================
       
        qtmp(:) = 0.0
-       qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
        enddo
-       qtmp(im+1)=q1(1,j)
 
-       ! check to see if ghosting is necessary
-       ! Western edge
-       if ( i1 .le. 0 ) then
-          do i=i1,0
-             qtmp(i) = qtmp(im+i)
-          enddo
-       endif
-       
-       ! Eastern edge:
-       if ( i2 .gt. im+1 ) then
-          do i=im+1,i2-1
-             qtmp(i) = qtmp(i-im)
-          enddo
-       endif
+       ! SDE 2017-01-07
+       ! Only have shadow regions if we are on a global grid. Otherwise, we
+       ! should keep the zero boundary conditions.
+       If (isGlobal) Then
+          qtmp(0)=q1(im,j)
+          qtmp(im+1)=q1(1,j)
+
+          ! check to see if ghosting is necessary
+          ! Western edge
+          if ( i1 .le. 0 ) then
+             do i=i1,0
+                qtmp(i) = qtmp(im+i)
+             enddo
+          endif
+          
+          ! Eastern edge:
+          if ( i2 .gt. im+1 ) then
+             do i=im+1,i2-1
+                qtmp(i) = qtmp(i-im)
+             enddo
+          endif
+       End If
         
        i0 = i1
 
@@ -2479,7 +2534,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_input_grid
+! !IROUTINE: Read_Input_Grid
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a netCDF
 !  file.  This routine was automatically generated by the Perl script

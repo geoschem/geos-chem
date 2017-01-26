@@ -189,6 +189,8 @@
 #  19 Jul 2016 - R. Yantosca - Add more flags for enabling experimental code
 #  20 Sep 2016 - M. Sulprizio- Remove NEST=se option. This grid was never fully
 #                              implemented.
+#  12 Dec 2016 - R. Yantosca - Allow gfortran etc. to compile with TAU_PROF=y
+#  13 Dec 2016 - R. Yantosca - Add GPROF=y to compile for GNU profiler gprof
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -245,9 +247,15 @@ ERR_DIAG             :="Select one diagnostic output type: NC_DIAG=y or BPCH_DIA
 # Compiler settings
 #------------------------------------------------------------------------------
 
-# %%%%% OpenMP parallelization default) %%%%%
+# %%%%% OpenMP parallelization (on by default) %%%%%
 ifndef OMP
   OMP                :=yes
+endif
+
+# Option to turn off OpenMP for testing
+REGEXP               :=(^[Nn]|^[Oo])
+ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DNO_OMP
 endif
 
 # %%%%% Set the HPC variable if we are building for use w/ ESMF/MPI %%%%
@@ -271,6 +279,11 @@ endif
 # %%%%% Default to Timers disabled %%%%%
 ifndef TIMERS
  TIMERS              :=0
+endif
+
+# %%%%% Turn on traceback (error stack report) by default %%%%%
+ifndef TRACEBACK
+ TRACEBACK           :=yes
 endif
 
 # %%%%% Set default compiler %%%%%
@@ -468,6 +481,13 @@ endif
 REGEXP               :=(^[Tt][Rr][Oo][Pp][Cc][Hh][Ee][Mm])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   KPP_CHEM           :=Tropchem
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=Custom %%%%%
+REGEXP               :=(^[Cc][Uu][Ss][Tt][Oo][Mm])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=Custom
   IS_CHEM_SET        :=1
 endif
 
@@ -857,13 +877,20 @@ ifdef TAGO3YR
 endif
 
 #------------------------------------------------------------------------------
-# TAU Performance Profiling (only works w/ IFORT for now)
+# Performance profiling
 #------------------------------------------------------------------------------
-ifeq ($(COMPILER),ifort)
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(TAU_PROF)" =~ $(REGEXP) ]] && echo true),true)
-    COMPILE_CMD      :=tau_f90.sh
-  endif
+
+# Compile with TAU profiler (from ParaTools, Inc)
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(TAU_PROF)" =~ $(REGEXP) ]] && echo true),true)
+  COMPILE_CMD        :=tau_f90.sh
+endif
+
+# Compile with GNU profiler (gprof)
+IS_GPROF             :=0
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(GPROF)" =~ $(REGEXP) ]] && echo true),true)
+  IS_GPROF           :=1
 endif
 
 #------------------------------------------------------------------------------
@@ -1117,11 +1144,15 @@ ifeq ($(COMPILER),gfortran)
   # Also add traceback option
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
-    #GFORTRAN_BAD#FFLAGS           += -traceback
     FFLAGS           += -fbacktrace
     ifndef DEBUG
        FFLAGS += -g
     endif
+  endif
+
+  # Compile for use with the GNU profiler (gprof), if necessary
+  ifeq ($(IS_GPROF),1) 
+    FFLAGS           += -pg
   endif
 
   # Loosen KPP tolerances upon non-convergence and try again
@@ -1161,7 +1192,7 @@ ifeq ($(COMPILER),gfortran)
   F90ISO             :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE_ISO)
   LD                 :=$(COMPILE_CMD) $(FFLAGS)
   FREEFORM           := -ffree-form -ffree-line-length-none
-  R8                 := -fdefault-real-8
+  R8                 := -fdefault-real-8 -fdefault-double-8
 
 endif
 
@@ -1244,6 +1275,11 @@ ifeq ($(COMPILER),ifort)
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
     FFLAGS           += -traceback
+  endif
+
+  # Compile for use with the GNU profiler (gprof), if necessary
+  ifeq ($(IS_GPROF),1) 
+    FFLAGS           += -p
   endif
 
   # Loosen KPP tolerances upon non-convergence and try again
@@ -1341,6 +1377,11 @@ ifeq ($(COMPILER),pgfortran)
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
     FFLAGS           += -traceback
+  endif
+
+  # Compile for use with the GNU profiler (gprof), if necessary
+  ifeq ($(IS_GPROF),1) 
+    FFLAGS           += -pg
   endif
 
   # Loosen KPP tolerances upon non-convergence and try again

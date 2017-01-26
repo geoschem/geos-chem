@@ -112,7 +112,7 @@ CONTAINS
     USE HCOX_CH4WetLand_MOD,    ONLY : HCOX_CH4WETLAND_Init
     USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Init
 #if defined( TOMAS )
-    USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Init
+    USE HCOX_TOMAS_Jeagle_Mod,   ONLY : HCOX_TOMAS_Jeagle_Init
     USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Init  
 #endif
 !
@@ -140,6 +140,7 @@ CONTAINS
 !  07 Jul 2014 - R. Yantosca - Now init GEOS-Chem Rn-Pb-Be emissions module
 !  20 Aug 2014 - M. Sulprizio- Now init GEOS-Chem POPs emissions module
 !  01 Oct 2014 - R. Yantosca - Now init TOMAS sea salt emissions module
+!  01 Nov 2016 - M. Sulprizio- Rename TOMAS sea salt to TOMAS Jeagle (J. Kodros)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -265,8 +266,8 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! TOMAS sectional sea salt aerosol emissions
     !-----------------------------------------------------------------------
-    CALL HCOX_TOMAS_SeaSalt_Init( amIRoot, HcoState, 'TOMAS_SeaSalt',  &
-                                           ExtState,  RC              ) 
+    CALL HCOX_TOMAS_Jeagle_Init( amIRoot, HcoState, 'TOMAS_Jeagle',  &
+                                          ExtState,  RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 #endif
 
@@ -334,7 +335,7 @@ CONTAINS
     USE HCOX_CH4WetLand_mod,    ONLY : HCOX_CH4Wetland_Run
     USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Run
 #if defined( TOMAS )
-    USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Run
+    USE HCOX_TOMAS_Jeagle_Mod,   ONLY : HCOX_TOMAS_Jeagle_Run
     USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Run
 #endif
 !
@@ -359,6 +360,7 @@ CONTAINS
 !  07 Jul 2014 - R. Yantosca - Now Run GEOS-Chem Rn-Pb-Be emissions module
 !  20 Aug 2014 - M. Sulprizio- Now run GEOS-Chem POPs emissions module
 !  01 Oct 2014 - R. Yantosca - Now run TOMAS sea salt emissions module
+!  01 Nov 2016 - M. Sulprizio- Rename TOMAS sea salt to TOMAS Jeagle (J. Kodros)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -510,8 +512,8 @@ CONTAINS
     ! TOMAS sectional sea salt emissions
     !-----------------------------------------------------------------------
 #if defined( TOMAS )
-    IF ( ExtState%TOMAS_SeaSalt ) THEN
-       CALL HCOX_TOMAS_SeaSalt_Run( amIRoot, ExtState, HcoState, RC )
+    IF ( ExtState%TOMAS_Jeagle ) THEN
+       CALL HCOX_TOMAS_Jeagle_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 #endif
@@ -577,7 +579,7 @@ CONTAINS
     USE HCOX_CH4WetLand_Mod,    ONLY : HCOX_CH4Wetland_Final
     USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Final
 #if defined( TOMAS )
-    USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Final
+    USE HCOX_TOMAS_Jeagle_Mod,   ONLY : HCOX_TOMAS_Jeagle_Final
     USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Final
 #endif
 !
@@ -598,6 +600,7 @@ CONTAINS
 !  01 Oct 2014 - R. Yantosca - Now finalize TOMAS sea salt emissions module
 !  09 Mar 2015 - C. Keller   - Now pass HcoState since it is needed by some
 !                              finalization calls.
+!  01 Nov 2016 - M. Sulprizio- Rename TOMAS sea salt to TOMAS Jeagle (J. Kodros)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -621,7 +624,7 @@ CONTAINS
        IF ( ExtState%LightNOx > 0  ) CALL HCOX_LIGHTNOX_Final( ExtState )
        IF ( ExtState%DustDead > 0  ) CALL HCOX_DustDead_Final( ExtState )
 #if defined( TOMAS)
-       IF ( ExtState%TOMAS_DustDead )  CALL HCOX_TOMAS_DustDead_Final()
+       IF ( ExtState%TOMAS_DustDead )  CALL HCOX_TOMAS_DustDead_Final(ExtState)
 #endif
        IF ( ExtState%DustGinoux    ) CALL HCOX_DustGinoux_Final()
        IF ( ExtState%SeaSalt       ) CALL HCOX_SeaSalt_Final()
@@ -634,7 +637,7 @@ CONTAINS
        IF ( ExtState%Wetland_CH4>0 ) CALL HCOX_CH4Wetland_Final( ExtState )
        IF ( ExtState%AeroCom > 0   ) CALL HCOX_AeroCom_Final( ExtState )
 #if defined( TOMAS )
-       IF ( ExtState%TOMAS_SeaSalt ) CALL HCOX_TOMAS_SeaSalt_Final()
+       IF ( ExtState%TOMAS_Jeagle  ) CALL HCOX_TOMAS_Jeagle_Final()
 #endif       
 
        ! Deallocate ExtState object

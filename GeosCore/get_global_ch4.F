@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_global_ch4
+! !MODULE: get_global_ch4.F
 !
 ! !DESCRIPTION: Subroutine GET\_GLOBAL\_CH4 computes the latitudinal gradient 
 !  in CH4 corresponding to year.

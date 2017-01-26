@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: pops_mod
+! !MODULE: pops_mod.F
 !
 ! !DESCRIPTION: Module POPS\_MOD contains variables and routines for the 
 !  GEOS-Chem peristent organic pollutants (POPs) simulation. 
@@ -41,6 +41,7 @@
 !  23 Dec 2015 - E. Lundgren   - Use global physical constants
 !  22 Jun 2016 - R. Yantosca   - Rename species ID flags from IDT* to id_*
 !  22 Jun 2016 - R. Yantosca   - Rename species drydep flags from DRY* to dd_*
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -377,7 +378,7 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE State_Chm_Mod,      ONLY : ChmState
@@ -1669,10 +1670,10 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
-      USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
-      USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE GC_GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
+      USE TIME_MOD,    ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+      USE TIME_MOD,    ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 !
 ! !REVISION HISTORY: 
 !  20 Sep 2010 - N.E. Selin  - Initial Version for POPS_MOD

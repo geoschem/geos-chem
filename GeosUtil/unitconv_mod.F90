@@ -118,7 +118,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convert_units
+! !IROUTINE: Convert_Units
 !
 ! !DESCRIPTION: Subroutine Convert\_Units is a wrapper function to convert
 !  the tracer input array to a desired unit. This routine is currently only
@@ -257,7 +257,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertspc_kgkgdry_to_vvdry
+! !IROUTINE: ConvertSpc_kgkgdry_to_vvdry
 !
 ! !DESCRIPTION: Subroutine ConvertSpc\_KgKgDry\_to\_VVDry converts the 
 !  units of species concentrations from mass mixing ratio (KGKG) [kg/kg] to 
@@ -375,7 +375,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertspc_vvdry_to_kgkgdry
+! !IROUTINE: ConvertSpc_vvdry_to_kgkgdry
 !
 ! !DESCRIPTION: Subroutine ConvertSpc\_VVDry\_to\_KgKgDry converts the 
 !  units of species concentrations from volume ratio (VR) [vol/vol] (same 
@@ -494,7 +494,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertspc_kgkgdry_to_kgm2
+! !IROUTINE: ConvertSpc_kgkgdry_to_kgm2
 !
 ! !DESCRIPTION: Subroutine ConvertSpc\_kgkgdry\_to\_kgm2 converts the units of 
 !  a 3D array from dry mass mixing ratio [kg/kg dry air] to area density 
@@ -600,7 +600,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertspc_kgm2_to_kgkgdry
+! !IROUTINE: ConvertSpc_kgm2_to_kgkgdry
 !
 ! !DESCRIPTION: Subroutine ConvertSpc\_Kgm2\_to\_kgkgdry converts the units of 
 !  species concentrations from area density [kg/m2] to dry mass mixing ratio 
@@ -707,7 +707,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertspc_kgkgdry_to_mnd
+! !IROUTINE: ConvertSpc_kgkgdry_to_mnd
 !
 ! !DESCRIPTION: Subroutine ConvertSpc\_KgKgDry\_to\_MND converts the units of 
 !  species concentrations from dry mass mixing ratio [kg/kg dry air] to 
@@ -839,7 +839,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertspc_mnd_to_kgkgdry
+! !IROUTINE: ConvertSpc_mnd_to_kgkgdry
 !
 ! !DESCRIPTION: Subroutine ConvertSpc\_MND\_to\_KgKgDry converts the units of 
 !  species concentrations from molecular number density (MND) [molecules/cm3]
@@ -974,7 +974,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertspc_vvdry_to_kg
+! !IROUTINE: ConvertSpc_vvdry_to_kg
 !
 ! !DESCRIPTION: Subroutine ConvertSpc\_VVDry\_to\_Kg converts the units of 
 !  species concentrations from dry volume mixing ratio 
@@ -1101,7 +1101,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertspc_kg_to_vvdry
+! !IROUTINE: ConvertSpc_kg_to_vvdry
 !
 ! !DESCRIPTION: Subroutine ConvertSpc\_Kg\_to\_VVDry converts the units of 
 !  species concentrations from species mass per grid box [kg] to dry volume 
@@ -1227,7 +1227,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertspc_kgkgdry_to_kg
+! !IROUTINE: ConvertSpc_kgkgdry_to_kg
 !
 ! !DESCRIPTION: Subroutine ConvertSpc\_KgKgDry\_to\_Kg converts the units of 
 !  species concentrations from dry mass mixing ratio 
@@ -1337,7 +1337,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertspc_kg_to_kgkgdry
+! !IROUTINE: ConvertSpc_kg_to_kgkgdry
 !
 ! !DESCRIPTION: Subroutine ConvertSpc\_Kg\_to\_KgKgDry converts the units of 
 !  species concentrations from species mass per grid box [kg] to dry mass 
@@ -1446,7 +1446,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertspc_mnd_to_kg
+! !IROUTINE: ConvertSpc_mnd_to_kg
 !
 ! !DESCRIPTION: Subroutine ConvertSpc\_MND\_to\_Kg converts the units of 
 !  species concentrations from molecular number density (MND) 
@@ -1582,7 +1582,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertspc_kg_to_mnd
+! !IROUTINE: ConvertSpc_kg_to_mnd
 !
 ! !DESCRIPTION: Subroutine ConvertSpc\_Kg\_to\_MND converts the units of 
 !  species concentrations from mass per grid box [kg] to molecular 
@@ -1714,7 +1714,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertbox_kgkgdry_to_kg
+! !IROUTINE: ConvertBox_kgkgdry_to_kg
 !
 ! !DESCRIPTION: Subroutine ConvertBox\_KgKgDry\_to\_Kg converts the units of 
 !  species concentrations from dry mass mixing ratio [kg tracer/kg dry air]
@@ -1790,7 +1790,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertbox_kg_to_kgkgdry
+! !IROUTINE: ConvertBox_kg_to_kgkgdry
 !
 ! !DESCRIPTION: Subroutine ConvertBox\_Kg\_to\_KgKgDry converts the units of 
 !  species concentrations from species mass per grid box [kg] to mass 
@@ -1866,7 +1866,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertbox_kgm2_to_kg
+! !IROUTINE: ConvertBox_kgm2_to_kg
 !
 ! !DESCRIPTION: Subroutine ConvertBox\_Kgm2\_to\_Kg converts the units of area 
 !  density [kg/m2] to mass [kg] for a single grid box. This routine is
@@ -1940,7 +1940,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convertbox_kg_to_kgm2
+! !IROUTINE: ConvertBox_kg_to_kgm2
 !
 ! !DESCRIPTION: Subroutine ConvertBox\_Kg\_to\_kgm2 converts the units of 
 ! mass [kg] to area density [kg/m2] for a single grid box.  This routine is

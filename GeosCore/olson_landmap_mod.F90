@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: olson_landmap_mod
+! !MODULE: olson_landmap_mod.F90
 !
 ! !DESCRIPTION: Module OLSON\_LANDMAP\_MOD reads the Olson land map and
 !  computes the IREG, ILAND, and IUSE arrays.  This module was written to
@@ -20,7 +20,7 @@ MODULE Olson_LandMap_Mod
 !
   USE CMN_SIZE_MOD                      ! Size parameters
   USE ERROR_MOD                         ! Error checking routines
-  USE GRID_MOD                          ! Horizontal grid definition
+  USE GC_GRID_MOD                       ! Horizontal grid definition
   USE MAPPING_MOD                       ! Mapping weights & areas
   USE PhysConstants                     ! Physical constants
   USE PRECISION_MOD                     ! For GEOS-Chem Precision (fp)
@@ -151,6 +151,7 @@ MODULE Olson_LandMap_Mod
 !  20 Mar 2014 - R. Yantosca - Speed up Olson computation by skipping boxes
 !  24 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,8 +162,8 @@ MODULE Olson_LandMap_Mod
   INTEGER              :: I_OLSON       ! # of lons (0.5 x 0.5)
   INTEGER              :: J_OLSON       ! # of lats (0.5 x 0.5)
   INTEGER              :: N_OLSON       ! Number of Olson land types 
-  REAL(fp)               :: D_LON         ! Delta longitude, Olson grid [degrees]
-  REAL(fp)               :: D_LAT         ! Delta latitude,  Olson grid [degrees]
+  REAL(fp)             :: D_LON         ! Delta longitude, Olson grid [degrees]
+  REAL(fp)             :: D_LAT         ! Delta latitude,  Olson grid [degrees]
 
   ! Arrays
   REAL*4,  ALLOCATABLE :: lon  (:    )  ! Lon centers, Olson grid [degrees]

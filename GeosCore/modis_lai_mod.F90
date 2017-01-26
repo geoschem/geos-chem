@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: modis_lai_mod
+! !MODULE: modis_lai_mod.F90
 !
 ! !DESCRIPTION: Module MODIS\_LAI\_MOD reads the MODIS LAI and CHLR data at 
 !  native resolution (either 0.25 x 0.25 or 0.5 x 0.5, in netCDF format) and 

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag51_mod 
+! !MODULE: diag51_mod.F
 !
 ! !DESCRIPTION: Module DIAG51\_MOD contains variables and routines to 
 !  generate save timeseries data where the local time is between two 
@@ -146,6 +146,7 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  15 Apr 2015 - M. Sulprizio- Comment out emission diagnostics for now. These
 !                              are now handled by the HEMCO.
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2057,9 +2058,9 @@
       USE CMN_SIZE_MOD
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GRID_MOD,     ONLY : GET_XOFFSET
-      USE GRID_MOD,     ONLY : GET_YOFFSET
-      USE GRID_MOD,     ONLY : ITS_A_NESTED_GRID
+      USE GC_GRID_MOD,  ONLY : GET_XOFFSET
+      USE GC_GRID_MOD,  ONLY : GET_YOFFSET
+      USE GC_GRID_MOD,  ONLY : ITS_A_NESTED_GRID
       USE TIME_MOD,     ONLY : GET_TAUb
 !
 ! !INPUT PARAMETERS: 

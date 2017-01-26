@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: depo_mercury_mod
+! !MODULE: depo_mercury_mod.F
 !
 ! !DESCRIPTION: Module DEPO\_MERCURY\_MOD contains routines to handle
 !  deposition fluxes for mercury. 
@@ -73,6 +73,7 @@
 !  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig.
 !                              29/11/11)
 !  26 Apr 2016 - R. Yantosca - Make N_Hg_CATS IDTHg0, IDTHg2 module variables
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -488,7 +489,7 @@
       USE BPCH2_MOD
       USE CMN_SIZE_MOD              ! Size parameters
       USE ErrCode_Mod
-      USE GRID_MOD,            ONLY : GET_XOFFSET, GET_YOFFSET
+      USE GC_GRID_MOD,         ONLY : GET_XOFFSET, GET_YOFFSET
       USE Input_Opt_Mod,       ONLY : OptInput
       USE inquireMod,          ONLY : findFreeLUN
       USE TIME_MOD,            ONLY : EXPAND_DATE

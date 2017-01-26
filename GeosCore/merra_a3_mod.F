@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: merra_a3_mod
+! !MODULE: merra_a3_mod.F90
 !
 ! !DESCRIPTION: Module MERRA\_A3\_MOD contains subroutines for reading the 
 !  3-hour time averaged (aka "A3") fields from the MERRA data archive.

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag20_mod
+! !MODULE: diag20_mod.F
 !
 ! !DESCRIPTION: Module DIAG20\_MOD contains variables and routines which are 
 !  used to compute the production and loss of O3 for use in the tagged O3
@@ -23,8 +23,8 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL(fp), ALLOCATABLE, PUBLIC :: O3_PROD(:,:,:) ! O3 prod [molec/cm3/s]
-      REAL(fp), ALLOCATABLE, PUBLIC :: O3_LOSS(:,:,:) ! O3 loss [molec/cm3/s]
+      REAL(fp), ALLOCATABLE, PUBLIC :: POx(:,:,:) ! Ox prod [molec/cm3/s]
+      REAL(fp), ALLOCATABLE, PUBLIC :: LOx(:,:,:) ! Ox loss [molec/cm3/s]
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -59,6 +59,7 @@
 !  07 Jul 2015 - R. Yantosca - Added fixes for several minor issues
 !  09 Aug 2016 - M. Sulprizio- Moved code specific to ND20 from obsolete
 !                              diag_pl_mod.F to new module diag20_mod.F
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -137,13 +138,8 @@
 !      Turn on P/L (ND65) diag?: T
 !      # of levels for ND65    : 47
 !      Save O3 P/L (ND20)?     : T
-!      Number of P/L families  : 2 (or more, if saving out other families)
-!      1st  chemical family    : PO3: O3
-!      2nd  chemical family    : LO3: O3
 !                                                                             .
-!  Now that we no longer use family tracers, the PO3 and LO3 diagnostic
-!  families should just contain the O3 tracer.  Otherwise the loss rates may
-!  appear smaller than they should be.
+!  POx and LOx values for ND20 are obtained from KPP in flexchem_mod.F.
 !
 !  ##########################################################################
 !  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
@@ -181,8 +177,8 @@
 !  31 May 2016 - E. Lundgren - Use molec wt from species database rather than
 !                              Input_Opt%XNUMOL 
 !  09 Aug 2016 - M. Sulprizio- Move routine from diag_pl_mod.F to diag20_mod.F;
-!                              Obtain prod/loss rates from KPP via O3_PROD and
-!                              O3_LOSS arrays set in flex_chemdr.F
+!                              Obtain prod/loss rates from KPP via the POx and
+!                              LOx arrays set in flex_chemdr.F
 !  10 Aug 2016 - M. Sulprizio- Remove State_Chm%Tracers from LOx calculation and
 !                              replace with State_chm%Species. Convert from
 !                              molec/cm3 to molec using BOXVL.
@@ -199,7 +195,7 @@
       ! Scalars
       LOGICAL           :: DO_WRITE
       INTEGER           :: I, J, L, N
-      REAL(fp)          :: P_O3, L_O3
+      REAL(fp)          :: P_Ox, L_Ox
       REAL(fp)          :: LT, O3_MW_G
       REAL(fp)          :: BOXVL
 
@@ -246,25 +242,25 @@
       O3_MW_G = State_Chm%SpcData(id_O3)%Info%emMW_g ! g/mol
 
       !=================================================================
-      ! Archive P(O3) and L(O3) over the course of an entire day
+      ! Archive P(Ox) and L(Ox) over the course of an entire day
       !=================================================================
 
       ! Echo info
       STAMP = TIMESTAMP_STRING()
       IF ( am_I_Root ) WRITE( 6, 120 ) STAMP
- 120  FORMAT( '     - DIAG20: Archiving P(O3) & L(O3) at ', a )
+ 120  FORMAT( '     - DIAG20: Archiving P(Ox) & L(Ox) at ', a )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, P_O3, L_O3, LT, BOXVL )
+!$OMP+PRIVATE( I, J, L, P_Ox, L_Ox, LT, BOXVL )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LD65
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Zero P(O3), L(O3) variables for safety's sake
-         P_O3  = 0e+0_fp
-         L_O3  = 0e+0_fp
+         ! Zero P(Ox), L(Ox) variables for safety's sake
+         P_Ox  = 0e+0_fp
+         L_Ox  = 0e+0_fp
 
          ! If this is a grid box where we have done chemistry, then ...
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
@@ -289,35 +285,35 @@
             ! Production
             !-----------------------------------------------------------
 
-            ! Convert P(O3) from [molec/cm3/s] to [kg/cm3/s]
-            P_O3           = O3_PROD(I,J,L) / AVO * 1.e-3_fp *
+            ! Convert P(Ox) from [molec/cm3/s] to [kg/cm3/s]
+            P_Ox           = POx(I,J,L) / AVO * 1.e-3_fp *
      &                       O3_MW_G
 
             ! Convert to [kg/m3/s], for HEMCO (bmy, 7/7/15)
-            P_O3           = P_O3 * 1e+6_fp
+            P_Ox           = P_Ox * 1e+6_fp
 
-            ! Store P(O3) [kg/m3/s] in PL24H array
-            PL24H(I,J,L,1) = PL24H(I,J,L,1) + P_O3
+            ! Store P(Ox) [kg/m3/s] in PL24H array
+            PL24H(I,J,L,1) = PL24H(I,J,L,1) + P_Ox
 
             !-----------------------------------------------------------
             ! Loss
             !-----------------------------------------------------------
 
             ! Grid box volume [cm3]
-            BOXVL           = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+            BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
-            ! Convert O3 from [molec/cm3] to [molec]
-            L_O3           = State_Chm%Species(I,J,L,id_O3) * BOXVL
+            ! Convert Ox from [molec/cm3] to [molec]
+            L_Ox           = State_Chm%Species(I,J,L,id_O3) * BOXVL
 
-            ! Divide L(O3) [molec/cm3/s] by O3 mass [molec] 
-            ! in order to get L(O3) in [1/cm3/s]
-            L_O3           = O3_LOSS(I,J,L) / L_O3
+            ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
+            ! in order to get L(Ox) in [1/cm3/s]
+            L_Ox           = LOx(I,J,L) / L_Ox
 
             ! Convert to [1/m3/s], for HEMCO (bmy, 7/7/15)
-            L_O3           = L_O3 * 1.e+6_fp
+            L_Ox           = L_Ox * 1.e+6_fp
 
-            ! Store L(O3) [1/m3/s] in PL24H array
-            PL24H(I,J,L,2) = PL24H(I,J,L,2) + L_O3
+            ! Store L(Ox) [1/m3/s] in PL24H array
+            PL24H(I,J,L,2) = PL24H(I,J,L,2) + L_Ox
            
          ENDIF
  
@@ -363,7 +359,7 @@
          IF ( am_I_Root ) WRITE( 6, 110 ) TRIM( FILENAME )
  110     FORMAT( '     - DIAG20: Writing ', a )
 
-         ! Write P(O3) and L(O3) to disk
+         ! Write P(Ox) and L(Ox) to disk
          CALL WRITE20()
 
          ! Reset variables for the next diagnostic interval
@@ -392,12 +388,12 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,  ONLY : BPCH2,         GET_HALFPOLAR
-      USE BPCH2_MOD,  ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! LD65
-      USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
-      USE inquireMod, ONLY : findFreeLUN
+      USE BPCH2_MOD,   ONLY : BPCH2,         GET_HALFPOLAR
+      USE BPCH2_MOD,   ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! LD65
+      USE GC_GRID_MOD, ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE inquireMod,  ONLY : findFreeLUN
 ! 
 ! !REMARKS:
 !  WRITE20 assumes that ND65 (P-L diagnostics) have been turned on.
@@ -447,7 +443,7 @@
       IU_ND20   = findFreeLUN()
 
       ! Define various parameters for the BPCH file
-      TITLE     = 'GEOS-CHEM archived P(O3) and L(O3) rates for Tag O3'
+      TITLE     = 'GEOS-CHEM archived P(Ox) and L(Ox) rates for Tag O3'
       CATEGORY  = 'PORL-L=$'
       RESERVED  = ''
       LONRES    = DISIZE
@@ -462,19 +458,19 @@
       CALL OPEN_BPCH2_FOR_WRITE( IU_ND20, FILENAME, TITLE )
 
       !=================================================================
-      ! Save P(O3) to disk
+      ! Save P(Ox) to disk
       !=================================================================
 
       ! Zero for safety's sake
       ARRAY = 0e0
 
-      ! Cast P(O3) to REAL*4
+      ! Cast P(Ox) to REAL*4
       ARRAY(:,:,1:LD65) = PL24H(:,:,1:LD65,1)
 
       ! Now save out as kg/m3/s, compatible with HEMCO (bmy, 7/8/15)
       UNIT = 'kg/m3/s'
 
-      ! Save P(O3) to BPCH file
+      ! Save P(Ox) to BPCH file
       CALL BPCH2( IU_ND20,   MODELNAME, LONRES,    LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY,  1,           
      &            UNIT,      TAU0,      TAU1,      RESERVED,  
@@ -482,19 +478,19 @@
      &            JFIRST,    LFIRST,    ARRAY(:,:,1:LD65)  )
 
       !=================================================================
-      ! Save L(O3) to disk
+      ! Save L(Ox) to disk
       !=================================================================
 
       ! Zero for safety's sake
       ARRAY = 0e0
 
-      ! Cast L(O3) to REAL*4
+      ! Cast L(Ox) to REAL*4
       ARRAY(:,:,1:LD65) = PL24H(:,:,1:LD65,2)
 
       ! Now save out as 1/m3/s, compatible with HEMCO (bmy, 7/8/15)
       UNIT = '1/m3/s'
 
-      ! Save L(O3) to BPCH file
+      ! Save L(Ox) to BPCH file
       CALL BPCH2( IU_ND20,   MODELNAME, LONRES,    LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY,  2,           
      &            UNIT,      TAU0,      TAU1,      RESERVED,  
@@ -635,13 +631,13 @@
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'PL24H' )
       PL24H = 0e+0_fp
 
-      ALLOCATE( O3_PROD( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'O3_PROD' )
-      O3_PROD = 0e+0_fp
+      ALLOCATE( POx( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'POx' )
+      POx = 0e+0_fp
 
-      ALLOCATE( O3_LOSS( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'O3_LOSS' )
-      O3_LOSS = 0e+0_fp
+      ALLOCATE( LOx( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'LOx' )
+      LOx = 0e+0_fp
 
       END SUBROUTINE INIT_DIAG20
 !EOC
@@ -669,8 +665,8 @@
       !=================================================================
       IF ( ALLOCATED( COUNT     ) ) DEALLOCATE( COUNT     )
       IF ( ALLOCATED( PL24H     ) ) DEALLOCATE( PL24H     )
-      IF ( ALLOCATED( O3_PROD   ) ) DEALLOCATE( O3_PROD   )
-      IF ( ALLOCATED( O3_LOSS   ) ) DEALLOCATE( O3_LOSS   )
+      IF ( ALLOCATED( POx       ) ) DEALLOCATE( POx       )
+      IF ( ALLOCATED( LOx       ) ) DEALLOCATE( LOx       )
 
       END SUBROUTINE CLEANUP_DIAG20
 !EOC

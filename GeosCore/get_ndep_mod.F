@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: get_ndep_mod
+! !MODULE: get_ndep_mod.F
 !     
 ! !DESCRIPTION: Module GET\_NDEP\_MOD contains routines for computing the
 ! accumulated nitrogen dry and wet deposition between emission time steps. 

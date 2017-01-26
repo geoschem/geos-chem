@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: chemgrid_mod
+! !MODULE: chemgrid_mod.F
 !
 ! !DESCRIPTION: Module CHEMGRID\_MOD contains routines and variables for 
 !  reading and returning vertical layer limits.

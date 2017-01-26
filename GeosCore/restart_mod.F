@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: restart_mod
+! !MODULE: restart_mod.F
 !
 ! !DESCRIPTION: Module RESTART\_MOD contains variables and routines which 
 !  are used to read and write restart files for GEOS-Chem species in units
@@ -79,6 +79,7 @@
 !                              and set_restart and associated module vars;
 !                              replace all tracer language to species; rename 
 !                              OUTPUT_RESTART_FILE to OUTPUT_GC_RST_PREFIX
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -104,7 +105,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD,           ONLY : AREA_M2
+      USE GC_GRID_MOD,        ONLY : AREA_M2
       USE HCO_Error_Mod
       USE HCO_Diagn_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -1123,7 +1124,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Local Variables      
-      INTEGER              :: I, J, L, M, N, HCRC
+      INTEGER              :: M, N, HCRC
       INTEGER              :: GC_RST_Collection
       REAL(fp)             :: MW_g
       REAL(fp)             :: SMALL_NUM
@@ -1242,26 +1243,14 @@
          SpcInfo => State_Chm%SpcData(N)%Info
          MW_g    = State_Chm%SpcData(N)%Info%emMW_g
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            Temp3D(I,J,L) = State_Chm%Species(I,J,L,N) *
+         ! Convert kg/kg to mol/mol
+         Temp3D = State_Chm%Species(:,:,:,N) *
      &                      AIRMW / MW_g
-
-            ! Apply minimum value threshold where output concentration
-            ! is very low
-            IF ( Temp3D(I,J,L) < SMALL_NUM ) THEN
-               Temp3D(I,J,L) = SMALL_NUM
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
+         
+         ! Apply minimum value threshold where output concentration
+         ! is very low
+         WHERE (Temp3D < SMALL_NUM) Temp3D = SMALL_NUM
+ 
          ! Point to the array
          Ptr3D => Temp3D
          

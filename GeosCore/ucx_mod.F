@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: ucx_mod
+! !MODULE: ucx_mod.F
 !     
 ! !DESCRIPTION: Module UCX\_MOD contains routines and variables which
 !  are associated with the addition of full stratospheric chemistry to
@@ -114,6 +114,7 @@
 !  18 Jul 2016 - M. Sulprizio- Remove CFCX and HCFCX everywhere and replace with
 !                              their constituents. Family tracers have been
 !                              eliminated.
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -325,7 +326,7 @@
       INTEGER :: id_CH3CCl3, id_CH4,      id_Cl,     id_Cl2,   id_Cl2O2
       INTEGER :: id_ClNO2,   id_ClNO3,    id_ClO,    id_ClOO,  id_H1211
       INTEGER :: id_H1301,   id_H2,       id_H2402,  id_H2O,   id_HBr
-      INTEGER :: id_HCFC22,  id_HCl,      id_HNO2,   id_HNO3
+      INTEGER :: id_HCFC22,  id_HCl,      id_HNO2,   id_HNO3,  id_N
       INTEGER :: id_HNO4,    id_HOBr,     id_HOCl,   id_N2O,   id_N2O5
       INTEGER :: id_NIT,     id_NO,       id_NO2,    id_NO3,   id_O3
       INTEGER :: id_OClO,    id_OCS,      id_PAN,    id_SO2,   id_SO4
@@ -359,7 +360,7 @@
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : ALLOC_ERR,ERROR_STOP
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -1186,7 +1187,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -1197,6 +1198,9 @@
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TIME_MOD,           ONLY : GET_MINUTE
+      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
+      USE CMN_FJX_MOD,        ONLY : ZPJ
+      USE FAST_JX_MOD,        ONLY : RXN_NO, RXN_NO2, RXN_NO3, RXN_N2O
 !
 ! !INPUT PARAMETERS:
 !
@@ -1246,6 +1250,8 @@
 
       ! Intermediate variables
       REAL(fp) :: LOCALNOX, LOCALN2O, LOCALO3, LOCALO1D, LOCALO3P
+      REAL(fp) :: OLD_NO3, OLD_NO2, OLD_NO, OLD_N, OLD_N2O
+      REAL(fp) :: NEW_NO3, NEW_NO2, NEW_NO, NEW_N, NEW_N2O
       REAL(fp) :: FRACNO, FRACNO2, FRACNO3, FRACN
       REAL(fp) :: NOXRATE, N2ORATE, KGNOX, KGN2O
       REAL(fp) :: NO_ALPHA, NO_BETA, NO_GAMMA, NO_EPSILON
@@ -1267,7 +1273,6 @@
       REAL(f8) :: DTCHEM_HR
 
       ! Timing information
-      INTEGER       :: NDAY
       INTEGER, SAVE :: LASTMONTH=0
 
       ! Grid indexing
@@ -1277,12 +1282,6 @@
 
       ! Local daylight fraction
       REAL(fp)             :: DAYFRAC
-      REAL(fp)             :: SOL_ME, SOL_FE, SOL_LS, SOL_DEC
-      REAL(fp)             :: SOL_ECC2, SOL_B, SOL_C, SOL_TEST
-      REAL(fp)             :: TSTART, TEND, TMIN, TMAX
-      REAL(f8)             :: GMTSTART
-      REAL(fp), PARAMETER  :: SOL_ECC=0.016
-      INTEGER              :: NDYEAR, AS
       LOGICAL              :: CYCLEBOX
       CHARACTER(LEN=255)   :: DBGMSG
 
@@ -1291,6 +1290,9 @@
 
       ! Pointers
       REAL(fp), POINTER    :: Spc (:,:,:,:)
+
+      ! Required for updated chemistry
+      Integer            :: LMinPhot
 
       !=================================================================
       ! UCX_NOX begins here!
@@ -1311,28 +1313,6 @@
       ! Get chemistry step length in seconds
       DTCHEM = GET_TS_CHEM()*60.e+0_f8
       DTCHEM_HR = DTCHEM/3600.e+0_f8
-
-      IF (ITS_A_LEAPYEAR()) THEN
-         NDYEAR = 366
-      ELSE
-         NDYEAR = 365
-      ENDIF
-
-      NDAY = GET_DAY_OF_YEAR()
-
-      ! Calculate timestep start and end (GMT)
-      GMTSTART = REAL(GET_HOUR()) + (REAL(GET_MINUTE())/60.e+0_f8)
-      GMTSTART = GMTSTART - (DTCHEM_HR/2.e+0_f8)
-
-      ! Eccentricity^2
-      SOL_ECC2 = SOL_ECC*SOL_ECC
-
-      ! Calculate solar declination
-      SOL_ME = 2.e+0_fp*PI*(REAL(NDAY)/REAL(NDYEAR)-0.009589)
-      SOL_FE = SOL_ME + (2.*SOL_ECC*SIN(SOL_ME)) + 
-     &         (1.25e+0_fp*SOL_ECC2*SIN(2.e+0_fp*SOL_ME))
-      SOL_LS = SOL_FE - (77.240e+0_fp*PI/180.e+0_fp)
-      SOL_DEC = ASIN(SIN(23.44*PI/180.e+0_fp)*SIN(SOL_LS))
 
       ! Reset NOx/N2O mass counters
       MESONOX_DELTA = 0e+0_fp
@@ -1361,71 +1341,29 @@
       ! Main parallel DO loop over lon, lat, alt
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,        J,        MIDLAT,   SOL_B         ) 
-!$OMP+PRIVATE( SOL_C,    TSTART,   TEND,     MESON2O_DELTA )
-!$OMP+PRIVATE( DAYFRAC,  L,        DN2O,     CYCLEBOX      )
-!$OMP+PRIVATE( TMAX,     RRATE,    T3K,      TINV          )
+!$OMP+PRIVATE( I,        J,        L                       ) 
+!$OMP+PRIVATE( DAYFRAC,            DN2O,     CYCLEBOX      )
+!$OMP+PRIVATE(           RRATE,    T3K,      TINV          )
 !$OMP+PRIVATE( NDAIR,    XAIR,     KGNOX,    KGN2O         )
 !$OMP+PRIVATE( LOCALNOX, LOCALN2O, LOCALO3,  LOCALO3P      )
 !$OMP+PRIVATE( LOCALO1D, NO_ALPHA, NO_BETA,  NO_GAMMA      )
 !$OMP+PRIVATE( FRACNO2,  FRACNO3,  FRACNO,   FRACN         )
-!$OMP+PRIVATE( NOXRATE,  N2ORATE,  DNOX,     MESONOX_DELTA )
-!$OMP+PRIVATE( SOL_TEST, TMIN                              )
+!$OMP+PRIVATE( NOXRATE,  N2ORATE,  DNOX                    )
+!$OMP+PRIVATE( OLD_NO3,  OLD_NO2,  OLD_NO,   OLD_N         )
+!$OMP+PRIVATE( NEW_NO3,  NEW_NO2,  NEW_NO,   NEW_N         )
+!$OMP+PRIVATE( OLD_N2O,  NEW_N2O,  LMinPhot                )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Grid box longitude/latitude [degrees]
-         MIDLAT = PI*GET_YMID( I, J, 1 )/180.e+0_fp
-         SOL_B = TAN(SOL_DEC)*TAN(MIDLAT)
-         SOL_C = COS(SOL_DEC)*COS(MIDLAT)
-         !SOLFUNC  = 1.e+0_fp-(0.034e+0_fp*cos(dble(NDAY-172)*2.e+0_fp*PI/365.e+0_fp))
-         TSTART = GET_LOCALTIME(I,J,1,GMTSTART)
-         TEND = TSTART + DTCHEM_HR
-         !DAYFRAC = SOLFUNC
-         CYCLEBOX = .FALSE.
-         ! Are the pre-calculated J-rates zero (ie in darkness)?
-         CYCLEBOX = (ANY(NOX_J(I,J,L,:).lt.TINY(1e+0_fp)))
-         IF (ITS_IN_THE_CHEMGRID(I,J,L,State_Met).or.CYCLEBOX) THEN
-            CYCLE
-         ENDIF
          ! Calculate daylight fraction
-         SOL_TEST = (-SOL_B) 
-     &            - SQRT( ZMID(I,J,L) * ( ZMID(I,J,L) + 2.e+0_fp*RE )
-     &            / ( ( ZMID(I,J,L) +RE ) * ( ZMID(I,J,L) +RE ) ) )
-     &            / SOL_C
-         IF (SOL_TEST.ge.0.9998e+0_fp) THEN
-            DAYFRAC = 0.e+0_fp
-            CYCLEBOX=.TRUE.
-            TMIN = 0e+0_fp
-            TMAX = 0e+0_fp
-         ELSEIF (SOL_TEST.le.-0.998e+0_fp) THEN
-            DAYFRAC = 1.e+0_fp
-            TMIN = TSTART
-            TMAX = TEND
-            CYCLEBOX=.FALSE.
-         ELSE
-            DAYFRAC = ACOS(SOL_TEST)/PI
-            ! Determine how much of the current timestep is within daylight
-            TMIN = 12.e+0_fp*(1.e+0_fp-DAYFRAC)
-            TMAX = 12.e+0_fp*(1.e+0_fp+DAYFRAC)
-            IF ((TMIN.ge.TEND).or.(TMAX.le.TSTART)) THEN
-               ! In darkness
-               DAYFRAC = 0.e+0_fp
-               CYCLEBOX = .TRUE.
-            ELSEIF ((TSTART.gt.TMIN).and.(TEND.lt.TMAX)) THEN
-               ! Full daylight
-               DAYFRAC = 1.e+0_fp
-            ELSE
-               ! Partial daylight
-               TMIN = MAX(TSTART,TMIN)
-               TMAX = MIN(TEND,TMAX)
-               DAYFRAC = (TMAX-TMIN)/DTCHEM_HR
-            ENDIF
-         ENDIF
-         IF (CYCLEBOX) THEN
-            CYCLE
-         ENDIF
+         DAYFRAC = State_Met%SUNCOSmid(I,J)
+         LMINPHOT  = GET_CHEMGRID_LEVEL( I, J, State_Met)
+         CycleBox = (L.le.LMinPhot)
+
+         ! Are the pre-calculated J-rates zero (ie in darkness)?
+         IF (CYCLEBOX) CYCLE
+
          ! Reset reaction rates
          RRATE = 0e+0_fp
 
@@ -1438,109 +1376,169 @@
          NDAIR = State_Met%PMID_DRY(I,J,L)*1.d-4*AVO/(RSTARG*T3K)
          XAIR  = NDAIR / State_Met%AD(I,J,L)
 
-         ! Calculate local NOx, N2O and O3 number density
-         KGNOX = Spc(I,J,L,id_NO)
-         ! Add local NO2
-         ! KGNOX = KGNOX + ( Spc(I,J,L,id_NO2) *
-         ! & ( AIRMW / State_Chm%SpcData(id_NO)%Info%emMW_g ) / 
-         ! & ( AIRMW / State_Chm%SpcData(id_NO2)%Info%emMW_g ) )
+         ! Get total mass of N2O
+         kgN2O = Spc(I,J,L,id_N2O)
 
-         KGN2O = Spc(I,J,L,id_N2O)
-         LOCALNOX = KGNOX *  ( AIRMW /  
-     &              State_Chm%SpcData(id_NO)%Info%emMW_g ) * XAIR
-         LOCALN2O = KGN2O * ( AIRMW / 
-     &              State_Chm%SpcData(id_N2O)%Info%emMW_g ) * XAIR
+         ! Get local concentrations in molec/cm3
+         OLD_N   = Spc(I,J,L,id_N) * 
+     &    (AIRMW / State_Chm%SpcData(id_N)%Info%emMW_g) * XAIR
+         OLD_NO   = Spc(I,J,L,id_NO) * 
+     &    (AIRMW / State_Chm%SpcData(id_NO)%Info%emMW_g) * XAIR
+         OLD_NO2   = Spc(I,J,L,id_NO2) * 
+     &    (AIRMW / State_Chm%SpcData(id_NO2)%Info%emMW_g) * XAIR
+         OLD_NO3   = Spc(I,J,L,id_NO3) * 
+     &    (AIRMW / State_Chm%SpcData(id_NO3)%Info%emMW_g) * XAIR
+         OLD_N2O   = kgN2O * 
+     &    (AIRMW / State_Chm%SpcData(id_N2O)%Info%emMW_g) * XAIR
+
+         ! Total concentrations
+         localNOx = OLD_N + OLD_NO + OLD_NO2 + OLD_NO3
+         localN2O = OLD_N2O
+
+         ! Get ozone from model
          LOCALO3  = Spc(I,J,L,id_O3) *  ( AIRMW / 
      &              State_Chm%SpcData(id_O3)%Info%emMW_g ) * XAIR
 
-         ! Retrieve local O3P/O1D mixing ratios and relevant
-         ! j-rates from interpolated 2D arrays
-         LOCALO3P = NOX_O(I,J,L,1)*NDAIR*DAYFRAC
-         LOCALO1D = NOX_O(I,J,L,2)*NDAIR*DAYFRAC
-
-         ! Calculate reaction rates
-         ! 1:  NO2 + O -> NO + O2
-         RRATE(1)  = 5.1e-12_fp*exp(210.e+0_fp*TINV)
+         ! These reactions are relevant during both day and night-time
+         ! chemistry
          ! 2:  NO + O3 -> NO2 + O2
          RRATE(2)  = 3.0e-12_fp*exp(-1500.e+0_fp*TINV)
          ! 3:  NO2 + O3 -> NO3 + O2
          RRATE(3)  = 1.2e-13_fp*exp(-2450.e+0_fp*TINV)
-         ! 4:  NO2 + hv -> NO + O1D
-         RRATE(k_JNO2) = NOX_J(I,J,L,JNO2IDX)*DAYFRAC
-         ! 5:  NO3 + hv -> NO2 + O
-         RRATE(k_JNO3) = NOX_J(I,J,L,JNO3IDX)*DAYFRAC
-         ! 6:  NO + hv -> N + O
-         RRATE(k_JNO ) = NOX_J(I,J,L,JNOIDX)*DAYFRAC
-         ! 7:  N + NO2 -> N2O + O
-         RRATE(7)  = 5.8e-12_fp*exp(220.e+0_fp*TINV)
-         ! 8:  N + NO -> N2 + O
-         RRATE(8)  = 2.1e-11_fp*exp(100.e+0_fp*TINV)
-         ! 9:  N + O2 -> NO + O
-         RRATE(9)  = 1.5e-11_fp*exp(-3600.e+0_fp*TINV)
-         ! 10:  N2O + O1D -> N2 + O2
-         RRATE(10) = 4.63e-11_fp*exp(20.e+0_fp*TINV)
-         ! 11:  N2O + O1D -> 2NO
-         RRATE(11) = 7.25e-11_fp*exp(20.e+0_fp*TINV)
-         ! 12:  N2O + hv -> N2 + O1D
-         RRATE(k_JN2O) = NOX_J(I,J,L,JN2OIDX)*DAYFRAC
 
-         ! Partition NOx into N, NO, NO2 and NO3 based on PSSA
-         ! Two cases: Daytime/nighttime
-         NO_ALPHA =          RRATE(k_JNO)/
-     &                  (RRATE(9)*0.21e+0_fp*NDAIR)
-         NO_BETA  = (RRATE(k_JNO2)+(RRATE(1)*LOCALO3P))/
-     &                     (RRATE(2)*LOCALO3)
-         NO_GAMMA =        (RRATE(3)*LOCALO3)/
-     &                         RRATE(k_JNO3)
+         ! During night time, assume everything is NO2 and
+         ! that there is no significant production or loss.
+         ! The only exception is NO3, which is assumed to 
+         ! remain unchanged
+         If (DayFrac.lt.1.0e-10_fp) Then
+            ! Simple assumption: all N and NO go to NO2
+            ! NO3 remains unchanged
+            DN2O = 0.0e+0_fp
+            DNOx = 0.0e+0_fp
+            ! Complex assumption: all N goes to NO
+            ! Night-time chemistry is slow; assume zero
+            ! O1D or O3P.
+            ! Simplified reactions - allow slow conversion of NO -> NO2
+            ! and NO2 -> NO3. Ignore all others. This can be solved
+            ! analytically (decay chain)
+            NEW_N   = 0.0e+0_fp
+            NEW_NO  = (OLD_NO + OLD_N)*dexp(-dtChem*RRATE(2)*localO3)
+            NEW_NO2 = OLD_NO2*dexp(-dtChem*RRATE(3)*localO3) + 
+     &              ((OLD_NO + OLD_N)/((RRATE(3)/RRATE(2))-1.0e+0_fp))
+     &              *(dexp(-dtChem*RRATE(2)*localO3) - 
+     &                dexp(-dtChem*RRATE(3)*localO3))
+            NEW_NO3 = OLD_NO3 + (OLD_NO2 + OLD_NO + OLD_N) - 
+     &                          (NEW_NO2 + NEW_NO + NEW_N)
+            FRACN   = 0.0e+0_fp
+            FRACNO  = NEW_NO/localNOx
+            FRACNO2 = NEW_NO2/localNOx
+            FRACNO3 = NEW_NO3/localNOx
+         Else
+            ! Calculate remaining rate constants
+            ! 1:  NO2 + O -> NO + O2
+            RRATE(1)  = 5.1e-12_fp*exp(210.e+0_fp*TINV)
+            ! 4:  NO2 + hv -> NO + O1D
+            !RRATE(k_JNO2) = NOX_J(I,J,L,JNO2IDX)*DAYFRAC
+            RRATE(k_JNO2) = ZPJ(LMINPHOT,RXN_NO2,I,J)
+            ! 5:  NO3 + hv -> NO2 + O
+            !RRATE(k_JNO3) = NOX_J(I,J,L,JNO3IDX)*DAYFRAC
+            RRATE(k_JNO3) = ZPJ(LMINPHOT,RXN_NO3,I,J)
+            ! 6:  NO + hv -> N + O
+            !RRATE(k_JNO ) = NOX_J(I,J,L,JNOIDX)*DAYFRAC
+            RRATE(k_JNO) = ZPJ(LMINPHOT,RXN_NO,I,J)
+            ! 7:  N + NO2 -> N2O + O
+            RRATE(7)  = 5.8e-12_fp*exp(220.e+0_fp*TINV)
+            ! 8:  N + NO -> N2 + O
+            RRATE(8)  = 2.1e-11_fp*exp(100.e+0_fp*TINV)
+            ! 9:  N + O2 -> NO + O
+            RRATE(9)  = 1.5e-11_fp*exp(-3600.e+0_fp*TINV)
+            ! 10:  N2O + O1D -> N2 + O2
+            RRATE(10) = 4.63e-11_fp*exp(20.e+0_fp*TINV)
+            ! 11:  N2O + O1D -> 2NO
+            RRATE(11) = 7.25e-11_fp*exp(20.e+0_fp*TINV)
+            ! 12:  N2O + hv -> N2 + O1D
+            !RRATE(k_JN2O) = NOX_J(I,J,L,JN2OIDX)*DAYFRAC
+            RRATE(k_JN2O) = ZPJ(LMINPHOT,RXN_N2O,I,J)
 
-         ! Calculate the partition fractions
-         FRACNO2 = 1.e+0_fp/(1.e+0_fp+NO_GAMMA+(NO_BETA*
-     &            (1.e+0_fp+NO_ALPHA)))
-         FRACNO3 = NO_GAMMA * FRACNO2
-         FRACNO  = NO_BETA  * FRACNO2
-         FRACN   = NO_ALPHA * FRACNO
+            ! Sanity check
+            Where(RRate.lt.0.0e+0_fp) RRate = 0.0e+0_fp
 
-         ! Estimate net production rates for NOx and N2O
-         NOXRATE = 2.e+0_fp*((RRATE(11)*LOCALN2O*LOCALO1D) -
-     &    (((RRATE(7)*FRACN*FRACNO2)+(RRATE(8)*FRACN*FRACNO))
-     &                                   *LOCALNOX*LOCALNOX))
-         N2ORATE = (RRATE(7)*FRACN*FRACNO2*LOCALNOX*LOCALNOX) - 
-     &   ((RRATE(k_JN2O)+((RRATE(10)+RRATE(11))*LOCALO1D))*LOCALN2O)
-        
-         ! Calculate fractional loss and apply to species
-         ! Explicit Euler method (fast)
-         DNOX = NOXRATE * DTCHEM / ( ( AIRMW / 
-     &          State_Chm%SpcData(id_NO)%Info%emMW_g) * XAIR )
-         IF ((DNOX*-1e+0_fp).gt.KGNOX) THEN
-            DNOX = -1e+0_fp*KGNOX
-            KGNOX = 0e+0_fp
-            LOCALNOX = 0e+0_fp
-         ELSE
-            KGNOX = KGNOX + DNOX
-            LOCALNOX = LOCALNOX + (NOXRATE*DTCHEM)
-         ENDIF
-         ! Separate into NO and NO2...
-         !Spc(I,J,L,id_NO)  = (LOCALNOX*(FRACN  +FRACNO ))/(AIRMW/
-         ! &                   State_Chm%SpcData(id_NO)%Info%emMW_g) *XAIR)
-         !Spc(I,J,L,id_NO2) = (LOCALNOX*(FRACNO3+FRACNO2))/(AIRMW/
-         ! &                   State_Chm%SpcData(id_NO)%Info%emMW_g)*XAIR)
-         ! NOTE: should id_NO be id_NO2 in latter equation above?
-         Spc(I,J,L,id_NO) = KGNOX
+            ! Retrieve local O3P/O1D mixing ratios and relevant
+            ! j-rates from interpolated 2D arrays
+            LOCALO3P = NOX_O(I,J,L,1)*NDAIR*DAYFRAC
+            LOCALO1D = NOX_O(I,J,L,2)*NDAIR*DAYFRAC
+
+            ! Partition NOx into N, NO, NO2 and NO3 based on PSSA
+            ! Two cases: Daytime/nighttime
+            NO_ALPHA =          RRATE(k_JNO)/
+     &                     (RRATE(9)*0.21e+0_fp*NDAIR)
+            NO_BETA  = (RRATE(k_JNO2)+(RRATE(1)*LOCALO3P))/
+     &                        (RRATE(2)*LOCALO3)
+            NO_GAMMA =        (RRATE(3)*LOCALO3)/
+     &                            RRATE(k_JNO3)
+
+            ! Calculate the partition fractions
+            FRACNO2 = 1.e+0_fp/(1.e+0_fp+NO_GAMMA+(NO_BETA*
+     &               (1.e+0_fp+NO_ALPHA)))
+            FRACNO3 = NO_GAMMA * FRACNO2
+            FRACNO  = NO_BETA  * FRACNO2
+            FRACN   = NO_ALPHA * FRACNO
+
+            ! Estimate net production rates for NOx and N2O
+            NOXRATE = 2.e+0_fp*((RRATE(11)*LOCALN2O*LOCALO1D) -
+     &       (((RRATE(7)*FRACN*FRACNO2)+(RRATE(8)*FRACN*FRACNO))
+     &                                      *LOCALNOX*LOCALNOX))
+            N2ORATE = (RRATE(7)*FRACN*FRACNO2*LOCALNOX*LOCALNOX) - 
+     &      ((RRATE(k_JN2O)+((RRATE(10)+RRATE(11))*LOCALO1D))*LOCALN2O)
+
+            ! Calculate NOx in kg NO at the beginning        
+            kgNOx = localNOx / (AIRMW /  
+     &                 State_Chm%SpcData(id_NO )%Info%emMW_g*XAIR)
+
+            ! Calculate total change in NOx and N2O
+            ! Explicit Euler method (fast)
+            DNOX = NOXRATE * DTCHEM / ( ( AIRMW / 
+     &             State_Chm%SpcData(id_NO)%Info%emMW_g) * XAIR )
+            DN2O = N2ORATE * DTCHEM / ( AIRMW / 
+     &             State_Chm%SpcData(id_N2O)%Info%emMW_g * XAIR )
+
+            ! Safety check - ensure NOx and N2O are positive
+            IF ((DNOX*-1e+0_fp).gt.KGNOX) THEN
+               DNOX = -1e+0_fp*KGNOX
+               KGNOX = 0e+0_fp
+               LOCALNOX = 0e+0_fp
+            ELSE
+               KGNOX = KGNOX + DNOX
+               LOCALNOX = LOCALNOX + (NOXRATE*DTCHEM)
+            ENDIF
+            IF ((DN2O*-1e+0_fp).gt.KGN2O) THEN
+               DN2O = -1e+0_fp*KGN2O
+               KGN2O = 0e+0_fp
+            ELSE
+               KGN2O = KGN2O + DN2O
+            ENDIF
+         EndIf ! DayFrac < 0
+
+         ! Convert to kg
+         NEW_N   = localNOx*fracN  /(AIRMW/
+     &                State_Chm%SpcData(id_N  )%Info%emMW_g * XAIR)
+         NEW_NO  = localNOx*fracNO /(AIRMW/
+     &                State_Chm%SpcData(id_NO )%Info%emMW_g * XAIR)
+         NEW_NO2 = localNOx*fracNO2/(AIRMW/
+     &                State_Chm%SpcData(id_NO2)%Info%emMW_g * XAIR)
+         NEW_NO3 = localNOx*fracNO3/(AIRMW/
+     &                State_Chm%SpcData(id_NO3)%Info%emMW_g * XAIR)
+         NEW_N2O = kgN2O
+
+         Spc(I,J,L,id_N)   = NEW_N 
+         Spc(I,J,L,id_NO)  = NEW_NO 
+         Spc(I,J,L,id_NO2) = NEW_NO2 
+         Spc(I,J,L,id_NO3) = NEW_NO3 
+         Spc(I,J,L,id_N2O) = NEW_N2O
 
          MESONOX_DELTA = MESONOX_DELTA + DNOX
-
-         DN2O = N2ORATE * DTCHEM / ( AIRMW / 
-     &          State_Chm%SpcData(id_N2O)%Info%emMW_g * XAIR )
-         IF ((DN2O*-1e+0_fp).gt.KGN2O) THEN
-            DN2O = -1e+0_fp*KGN2O
-            KGN2O = 0e+0_fp
-         ELSE
-            KGN2O = KGN2O + DN2O
-         ENDIF
-         Spc(I,J,L,id_N2O) = KGN2O
-
          MESON2O_DELTA = MESON2O_DELTA + DN2O
-         
+
       ENDDO ! J
       ENDDO ! I
       ENDDO ! L
@@ -1550,8 +1548,8 @@
          ! Print mean NOx tendency in mesosphere
          DBGMSG = ' ### UCX_NOX: Mesospheric NOx processed'
          CALL DEBUG_MSG(TRIM(DBGMSG))
-         WRITE(DBGMSG,'(a,2(1x,F10.5),a)') ' ### Time (start/step):',
-     &       GMTSTART, DTCHEM_HR, ' hours'
+         WRITE(DBGMSG,'(a,1(1x,F10.5),a)') ' ### Timestep:         ',
+     &                 DTCHEM_HR, ' hours'
          CALL DEBUG_MSG(TRIM(DBGMSG))
          WRITE(DBGMSG,'(a,1x,E10.4,1x,a)') ' ### NOx direct delta: ',
      &       MESONOX_DELTA, ' kg'
@@ -2320,7 +2318,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -3548,7 +3546,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: SO4_PHOTFRAC
+! !IROUTINE: so4_photfrac
 !
 ! !DESCRIPTION: FUNCTION SO4\_PHOTFRAC returns the fraction of H2SO4 which 
 !  is available for photolysis.
@@ -3607,7 +3605,7 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -6554,7 +6552,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD, ONLY : GET_YMID
 !
 ! !INPUT PARAMETERS:
 !
@@ -6622,7 +6620,7 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GRID_MOD,           ONLY : GET_YEDGE
+      USE GC_GRID_MOD,        ONLY : GET_YEDGE
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : PI_180
       USE State_Chm_Mod,      ONLY : ChmState
@@ -6754,6 +6752,7 @@
       id_N2O     = Ind_('N2O'       )
       id_N2O5    = Ind_('N2O5'      )
       id_NIT     = Ind_('NIT'       )
+      id_N       = Ind_('N'         )
       id_NO      = Ind_('NO'        )
       id_NO2     = Ind_('NO2'       )
       id_NO3     = Ind_('NO3'       )
@@ -6764,6 +6763,7 @@
       id_SO2     = Ind_('SO2'       )
       id_SO4     = Ind_('SO4'       )
       id_CLOCK   = Ind_('CLOCK'     )
+      id_N       = Ind_('N'         )
 
       ! Print info
       IF ( am_I_Root ) THEN

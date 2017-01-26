@@ -1,9 +1,8 @@
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
-!BOI
-! !TITLE: GEOS-Chem Reference, Volume 4:\\Global Terrestrial Mercury Model
-! !AUTHORS: GEOS-Chem Support Team
-! !DATE: 10 Jul 2015
-!EOI
+!BOS
+! !SECTION: Date and time utility modules
+! !DESCRIPTION: These modules contain routines to compute the model date and time.
+!EOS
 !------------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: dust_mod
+! !MODULE: dust_mod.F
 !
 ! !DESCRIPTION: Module DUST\_MOD contains routines for computing dust aerosol 
 !  emissions, chemistry, and optical depths.
@@ -73,6 +73,7 @@
 !  16 Jun 2016 - J. Kaiser   - Move tracerIDs into variable names
 !  20 Jun 2016 - R. Yantosca - Rename IDT* species ID's to id_*
 !  20 Jun 2016 - R. Yantosca - Now only define species ID's in the INIT phase
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -289,7 +290,7 @@
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
       USE State_Chm_Mod,      ONLY : ChmState
@@ -649,7 +650,7 @@
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE ErrCode_Mod
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants
       USE State_Chm_Mod,      ONLY : ChmState

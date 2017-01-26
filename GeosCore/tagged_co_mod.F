@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: tagged_co_mod
+! !MODULE: tagged_co_mod.F
 !
 ! !DESCRIPTION: Module TAGGED\_CO\_MOD contains variables and routines 
 !  used for the  geographically tagged CO simulation.
@@ -121,7 +121,8 @@
 !                              GMI strat P(CO) and L(CO) directly from HEMCO
 !  21 Mar 2016 - R. Yantosca - Removed GET_PCO_LCO_STRAT, it was obsolete
 !  21 Mar 2016 - R. Yantosca - Get rid of READ_PCO_LCO_STRAT, it's obsolete
-!  28 Jun 2016 - R. Yantosca - Add extra error checks; remove EMACET array
+!  28 Jun 2016 - R. Yantosca - Add extra error checks; remove EMACET array\
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -168,7 +169,7 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : CHECK_VALUE
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_Error_Mod
       USE HCO_Interface_Mod,  ONLY : HcoState, GetHcoID
@@ -999,7 +1000,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GRID_MOD, ONLY : GET_YMID_R
+      USE GC_GRID_MOD, ONLY : GET_YMID_R
       USE TIME_MOD, ONLY : ITS_A_NEW_DAY, GET_MINUTE,      GET_HOUR
       USE TIME_MOD, ONLY : GET_TS_CHEM,   GET_DAY_OF_YEAR, GET_LOCALTIME
 ! 

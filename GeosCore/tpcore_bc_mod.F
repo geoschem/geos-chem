@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: tpcore_bc_mod
+! !MODULE: tpcore_bc_mod.F
 !
 ! !DESCRIPTION: Module TPCORE\_BC\_MOD contains modules and variables 
 !  which are needed to save and read TPCORE nested-grid boundary conditions 
@@ -157,6 +157,7 @@
 !                              confusion and error
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -226,7 +227,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: set_clean_bc 
 !
 ! !DESCRIPTION: Subroutine SET\_CLEAN\_BC initializes the CLEAN\_BC logical 
 !  flag.  CLEAN\_BC decides whether or not we will zero the nested-grid 
@@ -1303,7 +1304,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GRID_MOD,      ONLY : GET_XMID, GET_YMID
+      USE GC_GRID_MOD,  ONLY : GET_XMID, GET_YMID
 !
 ! !REMARKS:
 !  NOTE: This routine was originally written for the 1 x 1 nested grid,
@@ -1448,9 +1449,6 @@
 !
       FUNCTION GET_4x5_BC( I_1x1, J_1x1, L_1x1, N_1x1 ) RESULT( VALUE )
 !
-! !USES:
-!
-!
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: I_1x1   ! Nested-grid lon    index
@@ -1539,10 +1537,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
-!
-! !INPUT PARAMETERS: 
-!
+      USE GC_GRID_MOD, ONLY : GET_XMID, GET_YMID
 !
 ! !RETURN VALUE:
 !
@@ -1813,8 +1808,8 @@
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
-      USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID
+      USE GC_GRID_MOD,        ONLY : GET_XOFFSET, GET_YOFFSET 
+      USE GC_GRID_MOD,        ONLY : ITS_A_NESTED_GRID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
 !

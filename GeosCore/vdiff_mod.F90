@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: vdiff_mod
+! !MODULE: vdiff_mod.F90
 !
 ! !DESCRIPTION: Module VDIFF\_MOD includes all routines for the non-local PBL
 !  mixing scheme.
@@ -139,6 +139,7 @@ MODULE VDIFF_MOD
 !  07 Jan 2016 - E. Lundgren - Replace hard-coded physical params w/ global and
 !                              remove unused parameters
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1838,7 +1839,7 @@ contains
     USE DRYDEP_MOD,         ONLY : DEPSAV
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
-    USE GRID_MOD,           ONLY : GET_AREA_M2
+    USE GC_GRID_MOD,        ONLY : GET_AREA_M2
     USE Input_Opt_Mod,      ONLY : OptInput
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE OCEAN_MERCURY_MOD,  ONLY : Fg !hma

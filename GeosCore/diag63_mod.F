@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag63_mod
+! !MODULE: diag63_mod.F
 !
 ! !DESCRIPTION: Module DIAG63\_MOD contains variables and routines to save 
 !  out the fraction of NOx remaining and integrated OPE to disk
@@ -44,6 +44,7 @@
 !                              Diag59 is used by TOMAS. Fix this throughout.
 !  06 Aug 2012 - R. Yantosca - Now make IU_ND63 a local module variable
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -117,7 +118,7 @@
       USE CMN_O3_MOD	      ! Pure O3, SAVENO2
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : SAFE_DIV, ERROR_STOP
-      USE GRID_MOD,           ONLY : GET_XOFFSET,     GET_YOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_XOFFSET,     GET_YOFFSET
       USE HCO_DIAGN_MOD
       USE HCO_ERROR_MOD
       USE HCO_TYPES_MOD,      ONLY : DiagnCont
@@ -545,9 +546,9 @@
       USE BPCH2_MOD,   ONLY : GET_MODELNAME
       USE BPCH2_MOD,   ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD      ! Size parameters
-      USE GRID_MOD,    ONLY : GET_XOFFSET
-      USE GRID_MOD,    ONLY : GET_YOFFSET
-      USE GRID_MOD,    ONLY : ITS_A_NESTED_GRID
+      USE GC_GRID_MOD, ONLY : GET_XOFFSET
+      USE GC_GRID_MOD, ONLY : GET_YOFFSET
+      USE GC_GRID_MOD, ONLY : ITS_A_NESTED_GRID
       USE ERROR_MOD,   ONLY : ERROR_STOP
 !
 ! !INPUT PARAMETERS: 
@@ -570,7 +571,7 @@
 ! 
 ! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version based on INIT_DIAG49
-!  07 Feb 2012 - M. Payer    - Added ProTeX headers 
+!  07 Feb 2012 - M. Payer    - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC

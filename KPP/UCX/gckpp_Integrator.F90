@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Integrator.f90
-! Time                 : Wed Jul 13 11:44:30 2016
+! Time                 : Wed Nov 30 14:50:58 2016
 ! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/UCX
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -87,7 +87,7 @@ SUBROUTINE INTEGRATE( TIN, TOUT, &
    ISTATUS(:) = 0
    RSTATUS(:) = 0.0_dp
 
-    !~~~> fine-tune the integrator:
+   !~~~> fine-tune the integrator:
    ICNTRL(1) = 0	! 0 - non-autonomous, 1 - autonomous
    ICNTRL(2) = 0	! 0 - vector tolerances, 1 - scalars
 
@@ -649,6 +649,7 @@ Stage: DO istage = 1, ros_S
 
    END DO UntilAccepted
 
+   
    END DO TimeLoop
 
 !~~~> Succesful exit

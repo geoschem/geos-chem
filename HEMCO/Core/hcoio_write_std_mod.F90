@@ -129,6 +129,9 @@ CONTAINS
 !  20 Jan 2016 - C. Keller   - Added options DiagnRefTime and DiagnNoLevDim.
 !  03 Mar 2016 - M. Sulprizio- Change netCDF format to netCDF-4
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  21 Jan 2017 - C. Holmes   - Write all variable metadata in define mode, then
+!                              switch to data mode just once. Much faster
+!                              writing. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,7 +164,7 @@ CONTAINS
     INTEGER                   :: lymd, lhms 
     INTEGER                   :: refYYYY, refMM, refDD, refh, refm, refs
     LOGICAL                   :: EOI, DoWrite, PrevTime, FOUND
-    LOGICAL                   :: NoLevDim 
+    LOGICAL                   :: NoLevDim, DefMode
  
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_WRITE_STD (hcoio_write_std_mod.F90)' 
 
@@ -329,7 +332,7 @@ CONTAINS
     IF ( NoLevDim ) THEN
        CALL NC_CREATE( ncFile, title, nLon,  nLat,    -1,  nTime,  &
                        fId,    lonId, latId, levId, timeId, VarCt, &
-                       CREATE_NC4=.TRUE. ) 
+                       CREATE_NC4=.TRUE. )
     ELSE
        CALL NC_CREATE( ncFile, title, nLon,  nLat,  nLev,  nTime,  &
                        fId,    lonId, latId, levId, timeId, VarCt, &
@@ -447,6 +450,19 @@ CONTAINS
     ! Write diagnostics 
     !-----------------------------------------------------------------
 
+    ! Run this section twice, first in define mode for metadata, then in data mode to write variables
+    DO I=1,2
+
+    IF (I==1) THEN
+       ! Open netCDF define mode
+       CALL NcBegin_Def( fID ) 
+       DefMode=.TRUE.
+    ELSE
+       ! Close netCDF define mode
+       CALL NcEnd_Def( fID )   
+       DefMode=.False.
+    ENDIF
+    
     ! Loop over all diagnostics in diagnostics list 
     ThisDiagn => NULL()
     DO WHILE ( .TRUE. )
@@ -480,41 +496,45 @@ CONTAINS
           RETURN 
        ENDIF
 
-       ! Write out in single precision
-       CALL NC_VAR_DEF ( fId, lonId, latId, levIdTmp, timeId, &
-            TRIM(myName), TRIM(myName), TRIM(myUnit), SP, VarCt )
+       IF (DefMode) THEN
+          ! Define variables in define mode
 
-       ! Additional tracer attributes: long_name and _FillValue
-       CALL NcBegin_Def( fID ) ! Reopen netCDF define mode
-       CALL NcDef_var_attributes( fID, VarCt, "long_name",        &
-            TRIM(ThisDiagn%long_name) )
-       CALL NcDef_var_attributes( fID, VarCt, "averaging_method", &
-            TRIM(ThisDiagn%AvgName  ) )
-       CALL NcDef_var_attributes( fID, VarCt, "_FillValue",       &
-            FillValue )
-       CALL NcEnd_Def( fID )   ! Close netCDF define mode
+          ! Write out in single precision
+          CALL NC_VAR_DEF ( fId, lonId, latId, levIdTmp, timeId, &
+               TRIM(myName), TRIM(myName), TRIM(myUnit), SP, VarCt, DefMode )
 
-       ! Mirror data and write to file. The mirroring is required in
-       ! order to add the time dimension. Otherwise, the data would
-       ! have no time information!
-       IF ( ThisDiagn%SpaceDim == 3 ) THEN
-          IF ( ASSOCIATED(ThisDiagn%Arr3D) ) THEN
-             Arr4D(:,:,:,1) = ThisDiagn%Arr3D%Val
-          ENDIF
-          CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr4D=Arr4D )
+          ! Additional tracer attributes: long_name and _FillValue
+          CALL NcDef_var_attributes( fID, VarCt, "long_name",        &
+               TRIM(ThisDiagn%long_name) )
+          CALL NcDef_var_attributes( fID, VarCt, "averaging_method", &
+               TRIM(ThisDiagn%AvgName  ) )
+          CALL NcDef_var_attributes( fID, VarCt, "_FillValue",       &
+               FillValue )
        ELSE
-          IF ( ASSOCIATED(ThisDiagn%Arr2D) ) THEN
-             Arr3D(:,:,1) = ThisDiagn%Arr2D%Val 
+          ! Write variables in data mode 
+
+          ! Mirror data and write to file. The mirroring is required in
+          ! order to add the time dimension. Otherwise, the data would
+          ! have no time information!
+          IF ( ThisDiagn%SpaceDim == 3 ) THEN
+             IF ( ASSOCIATED(ThisDiagn%Arr3D) ) THEN
+                Arr4D(:,:,:,1) = ThisDiagn%Arr3D%Val
+             ENDIF
+             CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr4D=Arr4D )
+          ELSE
+             IF ( ASSOCIATED(ThisDiagn%Arr2D) ) THEN
+                Arr3D(:,:,1) = ThisDiagn%Arr2D%Val 
+             ENDIF
+             CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr3D=Arr3D )
           ENDIF
-          CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr3D=Arr3D )
-       ENDIF
 
-       ! verbose
-       IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. PS==1 ) THEN
-          MSG = '--- Added diagnostics: '//TRIM(myName)
-          CALL HCO_MSG(HcoState%Config%Err,MSG)
+          ! verbose
+          IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. PS==1 ) THEN
+             MSG = '--- Added diagnostics: '//TRIM(myName)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
+          ENDIF
        ENDIF
-
+    ENDDO
     ENDDO
 
     !-----------------------------------------------------------------

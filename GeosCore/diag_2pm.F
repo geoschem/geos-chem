@@ -4,7 +4,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: diag_2pm
+! !MODULE: diag_2pm.F
 !
 ! !DESCRIPTION: Subroutine DIAG\_2PM constructs the diagnostic flag arrays:
 !

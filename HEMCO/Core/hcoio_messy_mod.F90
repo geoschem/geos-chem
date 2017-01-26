@@ -59,7 +59,7 @@ MODULE HCOIO_MESSY_MOD
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_MESSY_REGRID
+! !IROUTINE: Hco_Messy_Regrid
 !
 ! !DESCRIPTION: This is the wrapper routine to regrid a 4D input array
 ! NcArr (x,y,z,t) onto the HEMCO emissions grid (defined in HcoState)
@@ -511,11 +511,11 @@ MODULE HCOIO_MESSY_MOD
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: AXIS_CREATE
+! !IROUTINE: Axis_Create
 !
 ! !DESCRIPTION: Subroutine AXIS\_CREATE creates a MESSy axis type 
 ! from the grid defined by mid points Lon, Lat, Lev. Lev must be in
-! (unitless) sigma coordinates: sigma(i,j,l) = p(i,j,l) / p_surface(i,j)
+! (unitless) sigma coordinates: sigma(i,j,l) = p(i,j,l) / p\_surface(i,j)
 !\\
 !\\
 ! !INTERFACE:
@@ -779,7 +779,7 @@ MODULE HCOIO_MESSY_MOD
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: AXIS_DELETE
+! !IROUTINE: Axis_Delete
 !
 ! !DESCRIPTION: Subroutine AXIS\_DELETE deletes the specified MESSy
 ! axis.
@@ -832,7 +832,7 @@ MODULE HCOIO_MESSY_MOD
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO2MESSY
+! !IROUTINE: Hco2Messy
 !
 ! !DESCRIPTION: Subroutine HCO2MESSY converts a HEMCO data array into a 
 ! messy array-structure.
@@ -956,7 +956,7 @@ MODULE HCOIO_MESSY_MOD
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: MESSY2HCO
+! !IROUTINE: Messy2Hco
 !
 ! !DESCRIPTION: Subroutine MESSY2HCO converts a MESSy array structure 
 ! into a HEMCO data array. This is basically the reverse function of

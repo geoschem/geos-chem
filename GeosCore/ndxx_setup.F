@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: ndxx_setup
+! !ROUTINE: ndxx_setup.F
 !
 ! !DESCRIPTION: Subroutine NDXX\_SETUP dynamically allocates memory for 
 !  certain diagnostic arrays that  are declared allocatable in "diag\_mod.f". 

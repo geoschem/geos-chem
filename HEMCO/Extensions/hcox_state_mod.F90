@@ -113,8 +113,8 @@ MODULE HCOX_STATE_MOD
      LOGICAL                   :: GC_RnPbBe      ! GEOS-Chem Rn-Pb-Be simulation
      LOGICAL                   :: GC_POPs        ! GEOS-Chem POPs simulation
      INTEGER                   :: Wetland_CH4    ! Methane emiss from wetlands
-     LOGICAL                   :: TOMAS_SeaSalt  ! TOMAS sectional sea salt
-     LOGICAL                   :: TOMAS_DustDead ! TOMAS sectional Dead Dust
+     LOGICAL                   :: TOMAS_Jeagle   ! TOMAS Jeagle sea salt
+     INTEGER                   :: TOMAS_DustDead ! TOMAS sectional Dead Dust
      INTEGER                   :: AeroCom        ! AeroCom volcano 
 
      !----------------------------------------------------------------------
@@ -224,6 +224,7 @@ MODULE HCOX_STATE_MOD
 !  03 Mar 2016 - C. Keller   - Added CNV_FRC
 !  20 Apr 2016 - M. Sulprizio- Change JO1D pointer to JOH to reflect that it now
 !                              points to the effective O3 + hv -> 2OH rates
+!  01 Nov 2016 - M. Sulprizio- Rename TOMAS sea salt to TOMAS Jeagle (J. Kodros)
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -314,7 +315,7 @@ CONTAINS
     ExtState%GC_RnPbBe      = .FALSE.
     ExtState%GC_POPs        = .FALSE.
     ExtState%Wetland_CH4    = -1 
-    ExtState%TOMAS_SeaSalt  = .FALSE.
+    ExtState%TOMAS_Jeagle   = .FALSE.
     ExtState%TOMAS_DustDead = .FALSE.
     ExtState%AeroCom        = -1
 

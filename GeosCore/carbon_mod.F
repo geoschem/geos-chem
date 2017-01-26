@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: carbon_mod
+! !MODULE: carbon_mod.F
 !     
 ! !DESCRIPTION: Module CARBON\_MOD contains arrays and routines for performing
 !  a carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
@@ -16,6 +16,7 @@
 !
 ! !USES:
 !
+      USE AEROSOL_MOD, ONLY : OCFPOA, OCFOPOA
       USE HCO_ERROR_MOD     ! For HEMCO error reporting
       USE PhysConstants     ! Physical constants
       USE PRECISION_MOD     ! For GEOS-Chem Precisions
@@ -216,11 +217,6 @@
       ! Molecules OH  per kg OH [molec/kg]
       REAL(fp), PARAMETER   :: XNUMOL_OH  = AVO / 17e-3_fp ! hard-coded MW
       REAL(fp), PARAMETER   :: CM3PERM3   = 1.e+6_fp
-
-      ! OM/OC for POA (hotp 7/26/10)
-      REAL(fp), PARAMETER   :: OCFPOA     = 1.4e+0_fp
-      ! OM/OC=2.1 for OPOA, OCPI, OCPO (hotp 7/26/10)
-      REAL(fp), PARAMETER   :: OCFOPOA    = 1.4e+0_fp * 1.5e+0_fp
 
       ! SOAupdate:(hotp 5/20/10) new mtp
       ! one parent HC removed (only 3 instead of 4 monoterps)
@@ -5170,7 +5166,7 @@ ccc
 !
       USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR
       USE ErrCode_Mod
-      USE GRID_MOD,              ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,           ONLY : GET_AREA_M2
       USE HCO_INTERFACE_MOD,     ONLY : HcoState, GetHcoID, GetHcoVal
       USE HCO_ERROR_MOD
       USE Input_Opt_Mod,         ONLY : OptInput
@@ -5344,7 +5340,7 @@ ccc
 ! !INTERFACE:
 !
       SUBROUTINE EMISSCARBONTOMAS( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
+     &                             State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -5352,7 +5348,7 @@ ccc
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_XOFFSET, GET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -5871,9 +5867,9 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
-      USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
-      USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+      USE GC_GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
+      USE TIME_MOD,    ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+      USE TIME_MOD,    ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Copy code from COSSZA directly for now, so that we don't get NaN

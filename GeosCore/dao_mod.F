@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: dao_mod
+! !MODULE: dao_mod.F
 !
 ! !DESCRIPTION: Module DAO\_MOD contains both arrays that hold DAO met fields, 
 !  as well as subroutines that compute, interpolate, or otherwise process 
@@ -134,6 +134,7 @@
 !                              OH fields, but that is now done by HEMCO
 !  16 Apr 2015 - R. Yantosca - Also remove INIT_DAO and CLEANUP_DAO, since
 !                              these allocated/deallocated the FULLGRID arrays
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -156,7 +157,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD, ONLY : GET_AREA_M2
+      USE GC_GRID_MOD, ONLY : GET_AREA_M2
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -262,7 +263,7 @@
 !
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GRID_MOD,             ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,          ONLY : GET_AREA_M2
       USE Input_Opt_Mod,        ONLY : OptInput
       USE State_Met_Mod,        ONLY : MetState
       USE State_Chm_Mod,        ONLY : ChmState
@@ -816,7 +817,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD,           ONLY : GET_YEDGE
+      USE GC_GRID_MOD,        ONLY : GET_YEDGE
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
 !
@@ -1161,8 +1162,8 @@
 ! !IROUTINE: set_dry_surface_pressure
 !
 ! !DESCRIPTION: Subroutine SET\_DRY\_SURFACE\_PRESSURE sets the dry
-!  surface pressures PS1_DRY or PS2_DRY by removing the water vapor from
-!  the column constructed with MET pressure fields PS1_WET or PS2_WET. 
+!  surface pressures PS1\_DRY or PS2\_DRY by removing the water vapor from
+!  the column constructed with MET pressure fields PS1\_WET or PS2\_WET. 
 !\\
 !\\
 ! !INTERFACE:
@@ -1878,7 +1879,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD,           ONLY : GET_YMID_R
+      USE GC_GRID_MOD,        ONLY : GET_YMID_R
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MINUTE
       USE TIME_MOD,           ONLY : GET_LOCALTIME

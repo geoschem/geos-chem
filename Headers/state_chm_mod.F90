@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: state_chm_mod
+! !MODULE: state_chm_mod.F90
 !
 ! !DESCRIPTION: Module STATE\_CHM\_MOD contains the derived type
 !  used to define the Chemistry State object for GEOS-Chem.
@@ -138,7 +138,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ind_
+! !IROUTINE: Ind_
 !
 ! !DESCRIPTION: Function IND\_ returns the index of an advected species or 
 !  chemical species contained in the chemistry state object by name.
@@ -266,7 +266,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_state_chm
+! !IROUTINE: Init_State_Chm
 !
 ! !DESCRIPTION: Routine INIT\_STATE\_CHM allocates and initializes the 
 !  pointer fields of the chemistry state object.
@@ -333,6 +333,10 @@ CONTAINS
 !  30 Jun 2016 - M. Sulprizio- Remove nSpecies as an input argument. This is now
 !                              initialized as the size of SpcData.
 !  22 Jul 2016 - E. Lundgren - Initialize spc_units to ''
+!  28 Nov 2016 - R. Yantosca - Only allocate STATE_PSC and KHETI_SLA for UCX
+!                              simulations; set to NULL otherwise
+!  28 Nov 2016 - R. Yantosca - Only allocate State_Chm%*Aero* fields for
+!                              fullchem and/or aerosol-only simulations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -383,15 +387,19 @@ CONTAINS
     State_Chm%WetAeroArea => NULL()
     State_Chm%WetAeroRadi => NULL()
 
+    ! Fields for UCX mechanism
+    State_Chm%STATE_PSC   => NULL()
+    State_Chm%KHETI_SLA   => NULL()   
+
     ! Hg species indexing
     N_Hg0_CATS            =  0
     N_Hg2_CATS            =  0
     N_HgP_CATS            =  0
     State_Chm%N_Hg_CATS   =  0
     State_Chm%Hg_Cat_Name => NULL()
-    State_Chm%Hg0_Id_List      => NULL()
-    State_Chm%Hg2_Id_List      => NULL()
-    State_Chm%HgP_Id_List      => NULL()
+    State_Chm%Hg0_Id_List => NULL()
+    State_Chm%Hg2_Id_List => NULL()
+    State_Chm%HgP_Id_List => NULL()
 
     !=====================================================================
     ! Populate the species database object field
@@ -454,33 +462,38 @@ CONTAINS
 
     ALLOCATE( State_Chm%Species   ( IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%Species = 0e+0_fp
+    State_Chm%Species = 0.0_fp
 
     !=====================================================================
-    ! Allocate and initialize aerosol fields
+    ! Allocate and initialize aerosol area and radius fields
+    ! These are only relevant for fullchem or aerosol-only simulations
     !=====================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-    State_Chm%nAero = nAerosol
+     State_Chm%nAero = nAerosol
 
-    ALLOCATE( State_Chm%AeroArea   ( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%AeroArea = 0e+0_fp
+     ALLOCATE( State_Chm%AeroArea   ( IM, JM, LM, State_Chm%nAero  ), STAT=RC )
+     IF ( RC /= GC_SUCCESS ) RETURN
+     State_Chm%AeroArea    = 0.0_fp
 
-    ALLOCATE( State_Chm%AeroRadi   ( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%AeroRadi = 0e+0_fp
+     ALLOCATE( State_Chm%AeroRadi   ( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
+     IF ( RC /= GC_SUCCESS ) RETURN
+     State_Chm%AeroRadi    = 0.0_fp
 
-    ALLOCATE( State_Chm%WetAeroArea( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%WetAeroArea = 0e+0_fp
+     ALLOCATE( State_Chm%WetAeroArea( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
+     IF ( RC /= GC_SUCCESS ) RETURN
+     State_Chm%WetAeroArea = 0.0_fp
 
-    ALLOCATE( State_Chm%WetAeroRadi( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%WetAeroRadi = 0e+0_fp
+     ALLOCATE( State_Chm%WetAeroRadi( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
+     IF ( RC /= GC_SUCCESS ) RETURN
+     State_Chm%WetAeroRadi = 0.0_fp
+
+    ENDIF
 
     !=====================================================================
     ! Allocate and initialize fields for UCX mechamism
     !=====================================================================
+#if defined( UCX )
 
     ALLOCATE( State_Chm%STATE_PSC ( IM, JM, LM                     ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -489,6 +502,8 @@ CONTAINS
     ALLOCATE( State_Chm%KHETI_SLA ( IM, JM, LM, 11                 ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%KHETI_SLA = 0.0_fp
+
+#endif
 
     !=======================================================================
     ! Set up the species mapping vectors
@@ -647,7 +662,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_state_chm
+! !IROUTINE: Cleanup_State_Chm
 !
 ! !DESCRIPTION: Routine CLEANUP\_STATE\_CHM deallocates all fields 
 !  of the chemistry state object.

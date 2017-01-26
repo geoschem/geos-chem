@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: julday_mod
+! !MODULE: julday_mod.F
 !
 ! !DESCRIPTION: Module JULDAY\_MOD contains routines used to convert from 
 !  month/day/year to Astronomical Julian Date and back again.
@@ -48,7 +48,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: julday  
+! !IROUTINE: JulDay  
 !
 ! !DESCRIPTION: Function JULDAY returns the astronomical Julian day. 
 !\\
@@ -155,7 +155,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: mint
+! !IROUTINE: Mint
 !
 ! !DESCRIPTION: Function MINT is the modified integer function.
 !\\
@@ -198,7 +198,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: caldate
+! !IROUTINE: CalDate
 !
 ! !DESCRIPTION: Subroutine CALDATE converts an astronomical Julian day to 
 !  the YYYYMMDD and HHMMSS format.

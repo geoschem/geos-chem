@@ -28,7 +28,7 @@
       USE DUST_MOD,           ONLY : SETTLEDUST   
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : g0
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
@@ -79,6 +79,7 @@
 !  17 Jun 2016 - R. Yantosca - Now define species ID's on the first call
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -407,14 +408,25 @@ cdbg  print *, dryd(:)
       X0(:,:) = 0d0
 
       ! Loop over chemically-active grid boxes
+! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! %%% TEMPORARY FIX: REVERSE ORDER OF LOOPS IN ORDER TO PASS UNIT TESTS    %%%
+! %%%                                                                      %%%
+! %%% Sal Farina wrote: Change the loop order from LJI to IJL or JIL.      %%%
+! %%% This will make the MP code add up the diagnostic in the same order   %%%
+! %%% as SP mode (only the outermost loop gets parallelized). Yes looping  %%%
+! %%% over LJI should be faster than IJL, but (and correct me if i'm       %%%
+! %%% wrong) if we are looping over species inside that loop, all benefits %%%
+! %%% are totally lost anyway. The way Spc / STT is defined, tracerid      %%%
+! %%% should always be the outermost loop...                               %%%
+! %$%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( L, J, I, AREA_CM2, RKT, flux, JC, BIN )
 !$OMP+PRIVATE( ID, X0, X, Y0, Y )
 !$OMP+DEFAULT( SHARED )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLCHEM 
-      DO J = 1, JJPAR
       DO I = 1, IIPAR
+      DO J = 1, JJPAR
+      DO L = 1, LLCHEM 
 
          ! Initialize for safety's sake
          AREA_CM2 = 0d0
@@ -545,7 +557,6 @@ c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
 
       IF ( LPRT ) PRINT *,'### Finish AERO_DRYDEP'
 

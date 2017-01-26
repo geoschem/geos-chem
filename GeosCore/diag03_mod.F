@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag03_mod
+! !MODULE: diag03_mod.F
 !
 ! !DESCRIPTION:  Module DIAG03\_MOD contains arrays and routines for archiving 
 !  the ND03 diagnostic -- Hg emissions, mass, and production.
@@ -78,6 +78,7 @@
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  10 Aug 2015 - J. Fisher   - Add polar Br/BrO/O3 diagnostics
 !  11 Aug 2015 - J. Fisher   - Add snow, deposition diagnostics
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,8 +162,8 @@
       USE CMN_DIAG_MOD
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IU_BPCH
-      USE GRID_MOD,           ONLY : GET_XOFFSET
-      USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_XOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_CT_EMIS

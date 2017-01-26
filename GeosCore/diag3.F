@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: diag3
+! !MODULE: diag3.F
 !
 ! !DESCRIPTION: Subroutine DIAG3 prints out diagnostics to the BINARY PUNCH
 !  format file.
@@ -31,8 +31,8 @@
       ! Modules from GeosUtil directory
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD                           
-      USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE GRID_MOD,           ONLY : GET_YOFFSET, GET_XOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,        ONLY : GET_YOFFSET, GET_XOFFSET
       USE TIME_MOD
 
       ! Modules from GeosCore directory
@@ -275,6 +275,7 @@
 !  18 Jul 2016 - R. Yantosca - Bug fix: look up TOMAS species ID's
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  20 Sep 2016 - R. Yantosca - Use .eqv. instead of .eq. to compare LOGICALs
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2826,13 +2827,13 @@
 !******************************************************************************
 !  ND29: CO source diagnostics
 !
-!   #  Field  : Description             : Units     : Scale factor
+!   #  Field  : Description             : Units       : Scale factor
 !  --------------------------------------------------------------------------
-!  (1) COanth : CO from Anthro Sources  : mol/cm2/s : SCALESRCE
-!  (2) CObb   : CO from Biomass Burning : mol/cm2/s : SCALESRCE
-!  (3) CObf   : CO from Biofuel Burning : mol/cm2/s : SCALESRCE
-!  (4) COmeth : CO from Methanol        : mol/cm2/s : SCALESRCE
-!  (5) COmono : CO from Monoterpenes    : mol/cm2/s : SCALESRCE
+!  (1) COanth : CO from Anthro Sources  : molec/cm2/s : SCALESRCE
+!  (2) CObb   : CO from Biomass Burning : molec/cm2/s : SCALESRCE
+!  (3) CObf   : CO from Biofuel Burning : molec/cm2/s : SCALESRCE
+!  (4) COmeth : CO from Methanol        : molec/cm2/s : SCALESRCE
+!  (5) COmono : CO from Monoterpenes    : molec/cm2/s : SCALESRCE
 !
 !  NOTES:
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -2845,10 +2846,7 @@
 
          ! Diagnostic category and units
          CATEGORY = 'CO--SRCE'
-
-         ! Unit is molec/cm2/s, but for compatibility with older
-         ! GC versions, use the string "mol/cm2/s". (bmy, 8/29/14)
-         UNIT     = 'mol/cm2/s'  
+         UNIT     = 'molec/cm2/s'
 
          SpcInfo => State_Chm%SpcData(id_CO)%Info
 
@@ -3424,8 +3422,8 @@
 !
 !   #   Field  : Description                     : Units         : S. Factor
 !  ---------------------------------------------------------------------------
-!  (1 ) NOx    : NOx                             : mol/cm2/s     : SCALE3
-!  (4 ) CO     : CO                              : mol/cm2/s     : SCALE3
+!  (1 ) NOx    : NOx                             : molec/cm2/s   : SCALE3
+!  (4 ) CO     : CO                              : molec/cm2/s   : SCALE3
 !  (5 ) ALK4   : Alkanes(>C4)                    : atoms C/cm2/s : SCALE3
 !  (9 ) ACET   : Acetone                         : atoms C/cm2/s : SCALE3
 !  (10) MEK    : Ketones(>C3)                    : atoms C/cm2/s : SCALE3
@@ -3746,12 +3744,18 @@
 !
 !  ND43: Chemical production of OH and NO
 !
-!   # : Field : Description             : Units   : Scale Factor
+!   # : Field  : Description                : Units   : Scale Factor
 !  ---------------------------------------------------------------------------
-!  (1)  OH    : OH  Chemical Diagnostic : mol/cm3 : CTOH
-!  (3)  HO2   : HO2 Chemical Diagnostic : v/v     : CTHO2
-!  (4)  O1D   : O2D Chemical Diagnostic : v/v     : CTO1D
-!  (5)  O3P   : O3P Chemical Diagnostic : v/v     : CTO3P
+!  (1)  OH     : OH     Chemical Diagnostic : molec/cm3 : CTOH
+!  (3)  HO2    : HO2    Chemical Diagnostic : v/v       : CTHO2
+!  (4)  O1D    : O2D    Chemical Diagnostic : molec/cm3 : CTO1D
+!  (5)  O3P    : O3P    Chemical Diagnostic : molec/cm3 : CTO3P
+!  (6)  LBRO2H : LBRO2H Chemical Diagnostic : molec/cm3 : CTO3P
+!  (7)  LBRO2N : LBRO2N Chemical Diagnostic : molec/cm3 : CTO3P
+!  (8)  LTRO2H : LTRO2H Chemical Diagnostic : molec/cm3 : CTO3P
+!  (9)  LTRO2N : LTRO2N Chemical Diagnostic : molec/cm3 : CTO3P
+!  (10) LXRO2H : LxRO2H Chemical Diagnostic : molec/cm3 : CTO3P
+!  (11) LxRO2N : LXRO2N Chemical Diagnostic : molec/cm3 : CTO3P
 !
 !
 !  NOTES:
@@ -3776,9 +3780,8 @@
             N  = TINDEX(43,M)
             NN = N 
 
-            ! default units
-            UNIT = 'v/v'
-
+            ! Default units
+            UNIT = 'molec/cm3'
 
             SELECT CASE ( N )
 
@@ -3786,7 +3789,7 @@
                CASE ( 1 )
                   WHERE( CTOH /= 0 )
                      ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     $                    FLOAT( CTOH )
+     &                    FLOAT( CTOH )
                   ELSEWHERE
                      ARRAY(:,:,1:LD43) = 0.
                   ENDWHERE
@@ -3797,29 +3800,35 @@
                CASE ( 3 )
                   WHERE( CTHO2 /= 0 )
                      ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     $                    FLOAT( CTHO2 )
+     &                    FLOAT( CTHO2 )
                   ELSEWHERE
                      ARRAY(:,:,1:LD43) = 0.
                   ENDWHERE
+
+                  UNIT = 'v/v'
 
 #if defined( UCX )
                ! O1D
                CASE ( 4 )
                   WHERE( CTO1D /= 0 )
                      ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     $                    FLOAT( CTO1D )
+     &                    FLOAT( CTO1D )
                   ELSEWHERE
                      ARRAY(:,:,1:LD43) = 0.
                   ENDWHERE
+
+                  UNIT = 'molec/cm3'
 
                ! O3P
                CASE ( 5 )
                   WHERE( CTO3P /= 0 )
                      ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     $                    FLOAT( CTO3P )
+     &                    FLOAT( CTO3P )
                   ELSEWHERE
                      ARRAY(:,:,1:LD43) = 0.
                   ENDWHERE
+
+                  UNIT = 'molec/cm3'
 #endif
 
                CASE ( 6 )
@@ -5780,9 +5789,9 @@
 !******************************************************************************
 !  ND65: Production/Loss of specified chemical families
 !
-!   # : Field   : Description                 : Units     : Scale Factor
+!   # : Field   : Description                 : Units       : Scale Factor
 !  ---------------------------------------------------------------------------
-!  (1) PORL-L=$ : Chemical family P-L rates   : mol/cm3/s : SCALECHEM
+!  (1) PORL-L=$ : Chemical family P-L rates   : molec/cm3/s : SCALECHEM
 !
 !  NOTES:
 !  (1 ) Make sure the units for NSRCX == 6 (single tracer O3) P-L 
@@ -5803,17 +5812,8 @@
          ! Loop over ND65 families
          DO N = 1, Input_Opt%NFAM
 
-            ! Don't add TRCOFFSET for single tracer Ox
-            ! Also select proper unit string
-            IF ( Input_Opt%ITS_A_CH3I_SIM ) THEN
-               NN          = N
-               UNIT        = 'kg/s'
-
-               DO L = 1, LD65
-                  ARRAY(:,:,L) = AD65(:,:,L,N)
-               ENDDO
-
-            ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+            ! Select proper unit string
+            IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
                NN          = N
                UNIT        = 'kg/s'
                
@@ -5824,17 +5824,9 @@
                   ARRAY(:,:,1:LD65) = 0.
                ENDWHERE
 
-            ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-               NN          = N
-               UNIT        = 'mol/cm3/s'
-
-               DO L = 1, LD65
-                  ARRAY(:,:,L) = AD65(:,:,L,N) / SCALECHEM
-               ENDDO
-
             ELSE
                NN     = N
-               UNIT   = 'mol/cm3/s'
+               UNIT   = 'molec/cm3/s'
 
                WHERE( CTO3_24h(:,:,1:LD65) /= 0 )
                   ARRAY(:,:,1:LD65) = AD65(:,:,1:LD65,N) /

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: RnPbBe_mod
+! !MODULE: RnPbBe_mod.F
 !
 ! !DESCRIPTION: Module RnPbBe\_MOD contains variables and routines used 
 !  for the 222Rn-210Pb-7Be simulation. (hyl, swu, bmy, 6/14/01, 8/4/06)

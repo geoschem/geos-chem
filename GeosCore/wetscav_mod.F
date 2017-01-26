@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: wetscav_mod
+! !MODULE: wetscav_mod.F
 !     
 ! !DESCRIPTION: Module WETSCAV\_MOD contains routines and variables used in 
 !  the wet scavenging of species in cloud updrafts, rainout, and washout. 
@@ -2066,6 +2066,7 @@
 !  16 Oct 2015 - E. Lundgren - Use ThisSpc%WD_Is_H2SO4 to treat H2SO4 as aerosol
 !                              for wetdep, and consolidate ifelse blocks
 !  27 Jul 2016 - E. Lundgren - Now expect dry mixing ratio not total
+!  22 Dec 2016 - R. Yantosca - Bug fix: K0, CR, pKa have to be REAL(f8)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2078,7 +2079,7 @@
       LOGICAL                :: UNITCHANGE_KGM2 ! flag for STT units kg/m2 
 #endif
       REAL(fp)               :: L2G, DZ, SO2LOSS
-      REAL(fp)               :: K0,  CR, pKa
+      REAL(f8)               :: K0,  CR, pKa
 
       ! Pointers
       TYPE(Species), POINTER :: SpcInfo

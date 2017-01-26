@@ -1,0 +1,8 @@
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOS
+! !SECTION: Convection and scavenging modules
+! !DESCRIPTION: These modules contain routines to perform the convective transport and to scavenge soluble species out of the atmosphere.
+!EOS
+!------------------------------------------------------------------------------m]

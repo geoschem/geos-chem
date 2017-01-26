@@ -80,6 +80,7 @@ MODULE HCOI_GC_Main_Mod
 !  16 Jun 2016 - J. Sheng    - Add species index retriever
 !  20 Jun 2016 - R. Yantosca - Now define species ID's as module variables
 !                              so that we can define them in HCOI_GC_INIT
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -195,15 +196,21 @@ CONTAINS
 !  04 Apr 2016 - C. Keller   - Now accept optional input argument HcoConfig.
 !  16 Jun 2016 - J. Sheng    - Add species index retriever
 !  20 Jun 2016 - R. Yantosca - Now initialize all species ID's here
+!  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     LOGICAL                         :: LSTRAT,  FOUND
     INTEGER                         :: nHcoSpc, HMRC
-    CHARACTER(LEN=255)              :: OptName, LOC, MSG
+
+    ! Strings
+    CHARACTER(LEN=255)              :: OptName, LOC, MSG, INS
+
+    ! Pointers
     TYPE(ConfigObj), POINTER        :: iHcoConfig => NULL()
 
     !=================================================================
@@ -211,7 +218,8 @@ CONTAINS
     !=================================================================
 
     ! Error handling 
-    LOC = 'HCOI_GC_Init (hcoi_gc_main_mod.F90)'
+    LOC  = 'HCOI_GC_Init (GeosCore/hcoi_gc_main_mod.F90)'
+    INS  = 'HEMCO ERROR: Please check the HEMCO log file for error messages!'
 
     ! Set return code flag to HCO success. This value should be
     ! preserved throughout all HCO calls, otherwise an error
@@ -248,23 +256,23 @@ CONTAINS
 
     ! Phase 1: read settings and switches
     CALL Config_ReadFile( am_I_Root, iHcoConfig, Input_Opt%HcoConfigFile, 1, HMRC )
-    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Config_ReadFile', LOC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Config_ReadFile', LOC, INS )
 
     ! Check settings
     CALL CheckSettings( am_I_Root, iHcoConfig, Input_Opt, &
                         State_Met, State_Chm, HMRC )
-    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'CheckSettings', LOC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'CheckSettings', LOC, INS )
 
     ! Phase 2: read fields
     CALL Config_ReadFile( am_I_Root, iHcoConfig, Input_Opt%HcoConfigFile, 2, HMRC )
-    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Config_ReadFile', LOC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Config_ReadFile', LOC, INS )
 
     !=================================================================
     ! Open logfile 
     !=================================================================
     IF ( am_I_Root ) THEN
        CALL HCO_LOGFILE_OPEN( iHcoConfig%Err, RC=HMRC ) 
-       IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Open Logfile', LOC )
+       IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Open Logfile', LOC, INS )
     ENDIF
 
     !=================================================================
@@ -282,26 +290,26 @@ CONTAINS
     CALL SetHcoSpecies ( am_I_Root, Input_Opt, State_Chm,  &
                          HcoState,  nHcoSpc, 1, HMRC ) 
 !    CALL Get_nHcoSpc( am_I_Root, Input_Opt, nHcoSpc, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'SetHcoSpecies-1', LOC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP ( 'SetHcoSpecies-1', LOC, INS )
 
     !-----------------------------------------------------------------
     ! Now that number of HEMCO species are known, initialize HEMCO
     ! state object. Links the HEMCO configuration file object 
     ! iHcoConfig to HcoState%Config.
     CALL HcoState_Init( am_I_Root, HcoState, iHcoConfig, nHcoSpc, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HcoState_Init', LOC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP ( 'HcoState_Init', LOC )
 
     !-----------------------------------------------------------------
     ! Register species. This will define all species properties
     ! (names, molecular weights, etc.) of the HEMCO species.
     CALL SetHcoSpecies ( am_I_Root, Input_Opt, State_Chm,  &
                          HcoState,  nHcoSpc, 2, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'SetHcoSpecies-2', LOC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP ( 'SetHcoSpecies-2', LOC, INS )
 
     !-----------------------------------------------------------------
     ! Set grid. 
     CALL Set_Grid( am_I_Root, State_Met, HcoState, RC )
-    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Set_Grid', LOC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Set_Grid', LOC, INS )
 
     !=================================================================
     ! Set misc. parameter
@@ -337,7 +345,7 @@ CONTAINS
     ! HEMCO emissions diagnostics collection.
     !=================================================================
     CALL HCO_Init( am_I_Root, HcoState, HMRC )
-    IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC, INS )
 
     ! Save # of defined dust species in HcoState
     HcoState%nDust                     =  Input_Opt%N_DUST_BINS
@@ -365,7 +373,7 @@ CONTAINS
     ! met fields used by each extension.
     !=================================================================
     CALL HCOX_Init( am_I_Root, HcoState, ExtState, HMRC )
-    IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC, INS )
 
     !-----------------------------------------------------------------
     ! Update and check logical switches in Input_Opt 
@@ -378,7 +386,7 @@ CONTAINS
     IF ( ExtState%DustGinoux ) THEN
        IF ( .not. Input_Opt%LDUST ) THEN
           MSG = 'DustGinoux is on in HEMCO but LDUST=F in input.geos'
-          CALL ERROR_STOP( MSG, LOC )
+          CALL ERROR_STOP( MSG, LOC, INS )
        ENDIF
        Input_Opt%LDEAD      = .FALSE.
     ENDIF
@@ -387,7 +395,7 @@ CONTAINS
     IF ( ExtState%DustDead > 0 ) THEN
        IF ( .not. Input_Opt%LDUST ) THEN
           MSG = 'DustDead is on in HEMCO but LDUST=F in input.geos'
-          CALL ERROR_STOP( MSG, LOC )
+          CALL ERROR_STOP( MSG, LOC, INS )
        ENDIF
        Input_Opt%LDEAD      = .TRUE.
     ENDIF
@@ -396,7 +404,7 @@ CONTAINS
     IF ( ExtState%DustAlk ) THEN
        IF ( .not. Input_Opt%LDSTUP ) THEN
           MSG = 'DustAlk is on in HEMCO but LDSTUP=F in input.geos'
-          CALL ERROR_STOP( MSG, LOC )
+          CALL ERROR_STOP( MSG, LOC, INS )
        ENDIF
     ENDIF
 
@@ -404,7 +412,7 @@ CONTAINS
     IF ( ExtState%MarinePOA ) THEN
        IF ( .not. Input_Opt%LMPOA ) THEN
           MSG = 'MarinePOA is on in HEMCO but LMPOA=F in input.geos'
-          CALL ERROR_STOP( MSG, LOC )
+          CALL ERROR_STOP( MSG, LOC, INS )
        ENDIF
     ENDIF
 
@@ -442,7 +450,7 @@ CONTAINS
 
        ! Exit if any of the diagnostics could not be initialized
        IF ( HMRC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'HCOI_GC_DIAGN_INIT', LOC )
+          CALL ERROR_STOP( 'HCOI_GC_DIAGN_INIT', LOC, INS )
        ENDIF
     ENDIF
 
@@ -512,21 +520,31 @@ CONTAINS
 !  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
 !  13 Jan 2015 - C. Keller   - Now check if it's time for emissions. Added
 !                              call to HcoClock_EmissionsDone.
-!  06 Mar 2015 - R. Yantosca - Now create splash page for HEMCO
+!  06 Mar 2015 - R. Yantosca - Now create splash page for HEMC
+!  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL, SAVE                   :: FIRST = .TRUE.
-    INTEGER                         :: HMRC 
-    LOGICAL                         :: IsEmisTime
-    CHARACTER(LEN=255), PARAMETER   :: LOC='HCOI_GC_RUN (hcoi_gc_main_mod.F90)'
+    ! SAVEd scalars
+    LOGICAL, SAVE      :: FIRST = .TRUE.
+
+    ! Scalars
+    INTEGER            :: HMRC 
+    LOGICAL            :: IsEmisTime
+
+    ! Strings
+    CHARACTER(LEN=255) :: LOC, INS
 
     !=======================================================================
     ! HCOI_GC_RUN begins here!
     !=======================================================================
+
+    ! Error handling
+    LOC  = 'HCOI_GC_RUN (GeosCore/hcoi_gc_main_mod.F90)'
+    INS  = 'HEMCO ERROR: Please check the HEMCO log file for error messages!'
 
     ! Set return code flag to HCO success. This value should be
     ! preserved throughout all HCO calls, otherwise an error
@@ -549,7 +567,7 @@ CONTAINS
     ! This is now done in main.F 
     !=======================================================================
     CALL SetHcoTime ( am_I_Root, EmisTime, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'SetHcoTime', LOC )
+    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'SetHcoTime', LOC, INS )
 
     !=======================================================================
     ! See if it's time for emissions. Don't just use the EmisTime flag in
@@ -567,7 +585,7 @@ CONTAINS
     IF ( IsEmisTime .AND. Phase /= 1 ) THEN
        CALL HCO_FluxarrReset ( HcoState, HMRC )
        IF ( HMRC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP('ResetArrays', LOC )
+          CALL ERROR_STOP('ResetArrays', LOC, INS )
           RETURN 
        ENDIF
     ENDIF
@@ -577,7 +595,7 @@ CONTAINS
     !=======================================================================
     CALL GridEdge_Set ( am_I_Root, State_Met, HcoState, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP('GridEdge_Update', LOC )
+       CALL ERROR_STOP('GridEdge_Update', LOC, INS )
        RETURN 
     ENDIF
  
@@ -605,7 +623,7 @@ CONTAINS
     !=======================================================================
     CALL HCO_RUN ( am_I_Root, HcoState, Phase, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP('HCO_RUN', LOC )
+       CALL ERROR_STOP('HCO_RUN', LOC, INS )
        RETURN 
     ENDIF
 
@@ -625,7 +643,7 @@ CONTAINS
        CALL ExtState_SetFields( am_I_Root, State_Met, State_Chm, &
                                 HcoState,  ExtState,  RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          CALL ERROR_STOP('ExtState_SetFields', LOC )
+          CALL ERROR_STOP('ExtState_SetFields', LOC, INS )
           RETURN 
        ENDIF 
    
@@ -639,7 +657,7 @@ CONTAINS
        !=======================================================================
        CALL HCOX_RUN ( am_I_Root, HcoState, ExtState, HMRC )
        IF ( HMRC/= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP('HCOX_RUN', LOC )
+          CALL ERROR_STOP('HCOX_RUN', LOC, INS )
           RETURN
        ENDIF
    
@@ -651,7 +669,7 @@ CONTAINS
        !=======================================================================
        IF ( DoDiagn ) THEN
           CALL HcoDiagn_AutoUpdate ( am_I_Root, HcoState, HMRC )
-          IF( HMRC /= HCO_SUCCESS) CALL ERROR_STOP ( 'DIAGN_UPDATE', LOC )
+          IF( HMRC /= HCO_SUCCESS) CALL ERROR_STOP ( 'DIAGN_UPDATE', LOC, INS )
        ENDIF
    
        !=======================================================================
@@ -713,15 +731,18 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                         :: HMRC
-    CHARACTER(LEN=255)              :: LOC
+    ! Scalars
+    INTEGER             :: HMRC
+
+    ! Strings
+    CHARACTER(LEN=255)  :: LOC, INS
 
     !=================================================================
     ! HCOI_GC_FINAL begins here!
     !=================================================================
 
     ! Init
-    LOC = 'HCOI_GC_Final (hcoi_gc_main_mod.F90)'
+    LOC = 'HCOI_GC_Final (GeosCore/hcoi_gc_main_mod.F90)'
 
     ! Cleanup HCO core. 
     CALL HCO_FINAL( am_I_Root, HcoState, ERROR, HMRC )
@@ -781,6 +802,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  01 Apr 2015 - C. Keller   - Initial version 
+!  06 Jan 2017 - R. Yantosca - Now tell user to check HEMCO log for err msgs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -788,24 +810,25 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                         :: HMRC
-    CHARACTER(LEN=255)              :: MSG, LOC
+    CHARACTER(LEN=255)              :: MSG, LOC, INS
 
     !=================================================================
     ! HCOI_GC_WriteDiagn begins here!
     !=================================================================
 
-    ! Init
-    LOC = 'HCOI_GC_WriteDiagn (hcoi_gc_main_mod.F90)'
+    ! Error handling
+    LOC = 'HCOI_GC_WriteDiagn (GeosCore/hcoi_gc_main_mod.F90)'
+    INS = 'HEMCO ERROR: Please check the HEMCO log file for error messages!'
 
     ! Make sure HEMCO time is in sync 
     CALL SetHcoTime ( am_I_Root, .FALSE., HMRC )
-    IF( HMRC /= HCO_SUCCESS) CALL ERROR_STOP ( 'SetHcoTime', LOC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP ( 'SetHcoTime', LOC, INS )
 
     ! Write diagnostics
     CALL HcoDiagn_Write( am_I_Root, HcoState, RESTART, HMRC )
-    IF(HMRC/=HCO_SUCCESS) THEN
+    IF ( HMRC/=HCO_SUCCESS ) THEN
        WRITE(MSG,*) 'Error writing HEMCO diagnostics' 
-       CALL ERROR_STOP ( MSG, LOC )
+       CALL ERROR_STOP ( MSG, LOC, INS )
     ENDIF
 
     ! Return w/ success
@@ -863,15 +886,22 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER            :: AS
-    CHARACTER(LEN=255) :: LOC = 'ExtState_InitTargets (hcoi_gc_main_mod.F90)'
+
+    ! Strings
+    CHARACTER(LEN=255) :: LOC, INS
 
     !=================================================================
     ! ExtState_InitTargets begins here
     !=================================================================
 
     ! Init
-    RC = GC_SUCCESS
+    RC  = GC_SUCCESS
+
+    ! Error handling
+    LOC = 'ExtState_InitTargets (GeosCore/hcoi_gc_main_mod.F90)'
+    INS = 'HEMCO ERROR: Please check the HEMCO log file for error messages!'
 
     ! ----------------------------------------------------------------
     ! HCO_SZAFACT is not defined in Met_State.  Hence need to 
@@ -883,17 +913,17 @@ CONTAINS
     IF ( ExtState%SZAFACT%DoUse ) THEN 
 
        ALLOCATE( SUMCOSZA( IIPAR, JJPAR ), STAT=AS )
-       IF ( AS/=0 ) CALL ERROR_STOP ( 'SUMCOSZA', LOC )
+       IF ( AS/=0 ) CALL ERROR_STOP ( 'SUMCOSZA', LOC, INS )
        SUMCOSZA = 0.0e0_fp
 
        ALLOCATE( HCO_SZAFACT( IIPAR, JJPAR      ),STAT=AS)
-       IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_SZAFACT', LOC )
+       IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_SZAFACT', LOC, INS )
        HCO_SZAFACT = 0e0_hp
     ENDIF
 
     IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN 
        ALLOCATE(HCO_FRAC_OF_PBL(IIPAR,JJPAR,LLPAR),STAT=AS)
-       IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_FRAC_OF_PBL', LOC )
+       IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_FRAC_OF_PBL', LOC, INS )
        HCO_FRAC_OF_PBL = 0.0_hp
     ENDIF
 
@@ -906,13 +936,13 @@ CONTAINS
     ! ----------------------------------------------------------------
     IF ( ExtState%JNO2%DoUse ) THEN 
        ALLOCATE( JNO2(IIPAR,JJPAR),STAT=AS)
-       IF ( AS/=0 ) CALL ERROR_STOP ( 'JNO2', LOC )
+       IF ( AS/=0 ) CALL ERROR_STOP ( 'JNO2', LOC, INS )
        JNO2 = 0.0e0_hp
     ENDIF
 
     IF ( ExtState%JOH%DoUse ) THEN 
        ALLOCATE( JOH(IIPAR,JJPAR),STAT=AS)
-       IF ( AS/=0 ) CALL ERROR_STOP ( 'JOH', LOC )
+       IF ( AS/=0 ) CALL ERROR_STOP ( 'JOH', LOC, INS )
        JOH = 0.0e0_hp
     ENDIF
 
@@ -925,7 +955,7 @@ CONTAINS
     IF ( ExtState%TROPP%DoUse ) THEN
        CALL HCO_ArrAssert( ExtState%TROPP%Arr, IIPAR, JJPAR, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'Allocate ExtState%TROPP', LOC )
+          CALL ERROR_STOP( 'Allocate ExtState%TROPP', LOC, INS )
        ENDIF
     ENDIF
 
@@ -934,7 +964,7 @@ CONTAINS
     IF ( ExtState%SPHU%DoUse ) THEN
        CALL HCO_ArrAssert( ExtState%SPHU%Arr, IIPAR, JJPAR, 1, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'Allocate ExtState%SPHU', LOC )
+          CALL ERROR_STOP( 'Allocate ExtState%SPHU', LOC, INS )
        ENDIF
     ENDIF
 
@@ -943,7 +973,7 @@ CONTAINS
     IF ( ExtState%SUNCOS%DoUse ) THEN
        CALL HCO_ArrAssert( ExtState%SUNCOS%Arr, IIPAR, JJPAR, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'Allocate ExtState%SUNCOS', LOC )
+          CALL ERROR_STOP( 'Allocate ExtState%SUNCOS', LOC, INS )
        ENDIF
     ENDIF
 
@@ -1040,16 +1070,24 @@ CONTAINS
 !  02 May 2016 - R. Yantosca  - Now define IDTPOPG locally
 !  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
 !                               species ID from State_Chm%Map_Advect.
+!  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
+    ! Pointers
     REAL(hp), POINTER  :: Trgt3D(:,:,:) => NULL()
+
+    ! SAVEd scalars
     LOGICAL, SAVE      :: FIRST = .TRUE.
+
+    ! Scalars
     INTEGER            :: HCRC
-    CHARACTER(LEN=255) :: LOC = 'ExtState_SetFields (hcoi_gc_main_mod.F90)'
+
+    ! Strings
+    CHARACTER(LEN=255) :: LOC, INS
 
     !=================================================================
     ! ExtState_SetFields begins here
@@ -1057,6 +1095,10 @@ CONTAINS
 
     ! Init
     RC = GC_FAILURE
+
+    ! Error handling
+    LOC = 'ExtState_SetFields (GeosCore/hcoi_gc_main_mod.F90)'
+    INS = 'HEMCO ERROR: Please check the HEMCO log file for error messages!'
 
     ! ----------------------------------------------------------------
     ! Pointers to local module arrays 
@@ -1333,7 +1375,7 @@ CONTAINS
     IF ( FIRST ) THEN
        CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP ( 'Error in HCO_SetExtState_ESMF!', LOC )
+          CALL ERROR_STOP ( 'Error in HCO_SetExtState_ESMF!', LOC, INS )
        ENDIF
     ENDIF
 #endif
@@ -1401,23 +1443,29 @@ CONTAINS
 !  27 Jun 2016 - M. Sulprizio- Obtain photolysis rate directly from ZPJ array
 !                              and remove reference to FJXFUNC and obsolete
 !                              SMVGEAR variables like NKSO4PHOT, NAMEGAS, etc.
+!  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER                       :: I, J, L
+    ! Scalars
+    INTEGER            :: I, J, L
 
-    CHARACTER(LEN=255), PARAMETER :: &
-       LOC = 'ExtState_UpdateFields (hcoi_gc_main_mod.F90)'
+    ! Strings
+    CHARACTER(LEN=255) :: LOC, INS
 
     !=================================================================
     ! ExtState_UpdateFields begins here
     !=================================================================
 
     ! Init
-    RC = GC_SUCCESS
+    RC   = GC_SUCCESS
+
+    ! Error handling
+    LOC  = 'ExtState_UpdateFields (GeosCore/hcoi_gc_main_mod.F90)'
+    INS  = 'HEMCO ERROR: Please check the HEMCO log file for error messages!'
 
     ! TROPP: convert from hPa to Pa
     IF ( ExtState%TROPP%DoUse ) THEN
@@ -1433,7 +1481,7 @@ CONTAINS
     IF ( ExtState%SUNCOS%DoUse ) THEN
        CALL HCO_GetSUNCOS( am_I_Root, HcoState, ExtState%SUNCOS%Arr%Val, 0, RC ) 
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'Error in HCO_GetSUNCOS', LOC )
+          CALL ERROR_STOP( 'Error in HCO_GetSUNCOS', LOC, INS )
        ENDIF
     ENDIF
 
@@ -1550,6 +1598,7 @@ CONTAINS
 !  06 Jun 2016 - R. Yantosca - PSFC now points to PEDGE(:,:,1)
 !  06 Jun 2016 - R. Yantosca - Now add error traps
 !  26 Oct 2016 - R. Yantosca - Now improve error traps for PBLM
+!  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1557,10 +1606,10 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     ! Integer
-    INTEGER             :: I, J
+    INTEGER           :: I, J
 
     ! Strings
-    CHARACTER(LEN=80) :: MSG, LOC
+    CHARACTER(LEN=80) :: MSG, LOC, INS
 
     ! Pointers
     REAL(hp), POINTER :: PBLM    (:,:  )    ! PBL height           [m ] 
@@ -1575,7 +1624,11 @@ CONTAINS
     !=======================================================================
 
     ! Assume success
-    RC       =  HCO_SUCCESS
+    RC   =  HCO_SUCCESS
+
+    ! Error handling
+    LOC  = 'CheckSettings (GeosCore/hcoi_gc_main_mod.F90)'
+    INS  = 'HEMCO ERROR: Please check the HEMCO log file for error messages!'
 
     ! Allocate the PEDGE array, which holds level edge pressures [Pa]
     ! NOTE: Hco_CalcVertGrid expects pointer-based arguments, so we must
@@ -1584,7 +1637,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        MSG = 'ERROR allocating the PEDGE pointer-based array!'
        LOC = 'GridEdge_Set (GeosCore/hcoi_gc_main_mod.F90)'
-       CALL ERROR_STOP( MSG, LOC )
+       CALL ERROR_STOP( MSG, LOC, INS )
     ENDIF
 
     ! Edge and surface pressures [Pa]
@@ -1603,7 +1656,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        MSG = 'ERROR returning from HCO_CalcVertGrid!'
        LOC = 'GridEdge_Set (GeosCore/hcoi_gc_main_mod.F90)'
-       CALL ERROR_STOP( MSG, LOC )
+       CALL ERROR_STOP( MSG, LOC, INS )
     ENDIF
 
     ! Set PBL heights
@@ -1611,7 +1664,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        MSG = 'ERROR allocating the PBLM pointer-based array!'
        LOC = 'GridEdge_Set (GeosCore/hcoi_gc_main_mod.F90)'
-       CALL ERROR_STOP( MSG, LOC )
+       CALL ERROR_STOP( MSG, LOC, INS )
     ENDIF
 
 !$OMP PARALLEL DO                                                 &
@@ -1630,7 +1683,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        MSG = 'ERROR returning from HCO_SetPBLm!'
        LOC = 'GridEdge_Set (GeosCore/hcoi_gc_main_mod.F90)'
-       CALL ERROR_STOP( MSG, LOC )
+       CALL ERROR_STOP( MSG, LOC, INS )
     ENDIF
 
     ! Nullify local pointers
@@ -1724,8 +1777,7 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN= 31)     :: ThisName
-    CHARACTER(LEN=255)     :: MSG
-    CHARACTER(LEN=255)     :: LOC = 'SetHcoSpecies (hcoi_gc_main_mod.F90)'
+    CHARACTER(LEN=255)     :: MSG, LOC
 
     ! Pointers
     TYPE(Species), POINTER :: SpcInfo
@@ -1733,6 +1785,9 @@ CONTAINS
     !=================================================================
     ! SetHcoSpecies begins here
     !=================================================================
+
+    ! Error handling
+    LOC = 'SetHcoSpecies (GeosCore/hcoi_gc_main_mod.F90)'
 
     !-----------------------------------------------------------------
     ! For most simulations (e.g. full-chem simulation, most of the
@@ -2011,9 +2066,9 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
-    USE GRID_MOD,           ONLY : XMID,  YMID
-    USE GRID_MOD,           ONLY : XEDGE, YEDGE, YSIN
-    USE GRID_MOD,           ONLY : AREA_M2
+    USE GC_GRID_MOD,        ONLY : XMID,  YMID
+    USE GC_GRID_MOD,        ONLY : XEDGE, YEDGE, YSIN
+    USE GC_GRID_MOD,        ONLY : AREA_M2
     USE HCO_ARR_MOD,        ONLY : HCO_ArrInit
     USE HCO_VERTGRID_MOD,   ONLY : HCO_VertGrid_Define
     USE PRESSURE_MOD,       ONLY : GET_AP, GET_BP
@@ -2030,7 +2085,7 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
-!  13 Sep 2013 - C. Keller - Initial Version
+!  13 Sep 2013 - C. Keller   - Initial Version
 !  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  28 Sep 2015 - C. Keller   - Now use HCO_VertGrid_Mod for vertical grid
 !EOP
@@ -2151,17 +2206,25 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    ! Local variables
-    INTEGER                       :: ExtNr
-    LOGICAL                       :: LTMP
-    LOGICAL                       :: FOUND
-    CHARACTER(LEN= 31)            :: OptName
-    CHARACTER(LEN=255)            :: MSG
-    CHARACTER(LEN=255), PARAMETER :: LOC = 'CheckSettings (hcoi_gc_main_mod.F90'
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: ExtNr
+    LOGICAL            :: LTMP
+    LOGICAL            :: FOUND
+
+    ! Strings
+    CHARACTER(LEN= 31) :: OptName
+    CHARACTER(LEN=255) :: MSG, LOC, INS
 
     !=======================================================================
     ! CheckSettings begins here
     !=======================================================================
+
+    ! Error handling
+    LOC  = 'CheckSettings (GeosCore/hcoi_gc_main_mod.F90)'
+    INS  = 'HEMCO ERROR: Please check the HEMCO log file for error messages!'
 
     !-----------------------------------------------------------------------
     ! If emissions shall not be used, reset all extension numbers to -999. 
@@ -2171,7 +2234,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( .NOT. Input_Opt%LEMIS ) THEN
        CALL SetExtNr( am_I_Root, HcoConfig, -999, RC=RC )
-       IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'SetExtNr', LOC )
+       IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'SetExtNr', LOC, INS )
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -2190,7 +2253,7 @@ CONTAINS
     CALL GetExtOpt( HcoConfig, -999, '+UValbedo+',  OptValBool=LTMP, &
                     FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt +UValbedo+', LOC )
+       CALL ERROR_STOP( 'GetExtOpt +UValbedo+', LOC, INS )
     ENDIF
 
     IF ( FOUND ) THEN
@@ -2202,7 +2265,7 @@ CONTAINS
                 'must not be disabled if chemistry is turned on. '    // &
                 'If you don`t set that setting explicitly, it will '  // &
                 'be set automatically during run-time (recommended)'
-          CALL ERROR_STOP( MSG, LOC ) 
+          CALL ERROR_STOP( MSG, LOC, INS ) 
        ENDIF
 
     ELSE
@@ -2222,7 +2285,7 @@ CONTAINS
        ENDIF
        CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'AddExtOpt +UValbedo+', LOC )
+          CALL ERROR_STOP( 'AddExtOpt +UValbedo+', LOC, INS )
        ENDIF
 
     ENDIF 
@@ -2233,13 +2296,9 @@ CONTAINS
     CALL GetExtOpt( HcoConfig, -999, '+STATE_PSC+', OptValBool=LTMP, &
                     FOUND=FOUND,     RC=RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt +STATE_PSC+', LOC )
+       CALL ERROR_STOP( 'GetExtOpt +STATE_PSC+', LOC, INS )
     ENDIF
     IF ( FOUND ) THEN
-!-----------------------------------------------------------------------------
-! Prior to 9/19/16:
-!       IF ( Input_Opt%LUCX /= LTMP ) THEN
-!-----------------------------------------------------------------------------
        IF ( Input_Opt%LUCX .neqv. LTMP ) THEN
           WRITE(*,*) ' '
           WRITE(*,*) 'Setting +STATE_PSC+ in the HEMCO configuration'
@@ -2255,7 +2314,7 @@ CONTAINS
        ENDIF
        CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC ) 
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'AddExtOpt +STATE_PSC+', LOC )
+          CALL ERROR_STOP( 'AddExtOpt +STATE_PSC+', LOC, INS )
        ENDIF
     ENDIF 
 
@@ -2272,18 +2331,13 @@ CONTAINS
     CALL GetExtOpt( HcoConfig, -999, '+LinStratChem+', OptValBool=LTMP, &
                     FOUND=FOUND,     RC=RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt +LinStratChem+', LOC )
+       CALL ERROR_STOP( 'GetExtOpt +LinStratChem+', LOC, INS )
     ENDIF
 
     IF ( FOUND ) THEN
 
        ! Print a warning if this collection is defined in the HEMCO config
        ! file, but is set to an value inconsistent with input.geos file.
-       !
-!-----------------------------------------------------------------------------
-! Prior to 9/19/16:
-!       IF ( Input_Opt%LSCHEM /= LTMP ) THEN
-!-----------------------------------------------------------------------------
        IF ( Input_Opt%LSCHEM .neqv. LTMP ) THEN
           WRITE(*,*) ' '
           WRITE(*,*) 'Setting +LinStratChem+ in the HEMCO configuration'
@@ -2304,7 +2358,7 @@ CONTAINS
        ENDIF
        CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC ) 
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'AddExtOpt +LinStratChem+', LOC )
+          CALL ERROR_STOP( 'AddExtOpt +LinStratChem+', LOC, INS )
        ENDIF
 
     ENDIF 
@@ -2325,7 +2379,7 @@ CONTAINS
     CALL GetExtOpt( HcoConfig, -999, '+TOMS_SBUV_O3+', OptValBool=LTMP, &
                     FOUND=FOUND,     RC=RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt +TOMS_SBUV_O3+', LOC )
+       CALL ERROR_STOP( 'GetExtOpt +TOMS_SBUV_O3+', LOC, INS )
     ENDIF
 
 #if defined( GEOS_FP ) || defined( MERRA2 )
@@ -2341,7 +2395,7 @@ CONTAINS
     ENDIF
     CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC ) 
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'AddExtOpt GEOS-FP +TOMS_SBUV_O3+', LOC )
+       CALL ERROR_STOP( 'AddExtOpt GEOS-FP +TOMS_SBUV_O3+', LOC, INS )
     ENDIF
 
 #else
@@ -2350,11 +2404,6 @@ CONTAINS
 
        ! Print a warning if this collection is defined in the HEMCO config
        ! file, but is set to a value inconsistent with input.geos file.
-!-----------------------------------------------------------------------------
-! Prior to 9/19/16:
-!       IF ( Input_Opt%LCHEM /= LTMP .and.                           &
-!            .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
-!-----------------------------------------------------------------------------
        IF ( Input_Opt%LCHEM .neqv. LTMP .and.                       &
             .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
           WRITE(*,*) ' '
@@ -2384,7 +2433,7 @@ CONTAINS
        ENDIF
        CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'AddExtOpt +TOMS_SBUV_O3+', LOC )
+          CALL ERROR_STOP( 'AddExtOpt +TOMS_SBUV_O3+', LOC, INS )
        ENDIF
     ENDIF 
 
@@ -2400,7 +2449,7 @@ CONTAINS
     CALL GetExtOpt( HcoConfig, -999, '+OCEAN_Hg+', OptValBool=LTMP, &
                     FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt +OCEAN_Hg+', LOC )
+       CALL ERROR_STOP( 'GetExtOpt +OCEAN_Hg+', LOC, INS )
     ENDIF
 
     IF ( FOUND ) THEN
@@ -2412,7 +2461,7 @@ CONTAINS
                 'must not be disabled if chemistry is turned on. '    // &
                 'If you don`t set that setting explicitly, it will '  // &
                 'be set automatically during run-time (recommended)'
-          CALL ERROR_STOP( MSG, LOC ) 
+          CALL ERROR_STOP( MSG, LOC, INS ) 
        ENDIF
        
     ELSE
@@ -2431,7 +2480,7 @@ CONTAINS
        ENDIF
        CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'AddExtOpt +OCEAN_Hg+', LOC )
+          CALL ERROR_STOP( 'AddExtOpt +OCEAN_Hg+', LOC, INS )
        ENDIF
 
     ENDIF 
@@ -2523,7 +2572,7 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD        ! Size parameters
-    USE GRID_MOD,      ONLY : GET_XMID,    GET_YMID_R
+    USE GC_GRID_MOD,   ONLY : GET_XMID,    GET_YMID_R
     USE PhysConstants
     USE TIME_MOD,      ONLY : GET_NHMSb,   GET_ELAPSED_SEC
     USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT

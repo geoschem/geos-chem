@@ -32,8 +32,8 @@
 
 
 # List of source code files (order is important)
-SRC2 :=                          \
-./intro.make                     \
+SRC5 :=                          \
+make_intro.P                     \
 $(ROOT)/Makefile                 \
 $(ROOT)/Makefile_header.mk       \
 $(HCO)/Makefile                  \
@@ -51,27 +51,26 @@ $(KPP)/Standard/Makefile         \
 $(KPP)/Tropchem/Makefile         \
 $(KPP)/UCX/Makefile              \
 $(DOC)/Makefile                  \
-$(DOC)/Makefile_SrcDoc.mk        \
 $(DOC)/Makefile_UtilDoc.mk       \
-$(DOC)/Makefile_GtmmDoc.mk       \
+$(DOC)/Makefile_SrcDoc.mk        \
+$(DOC)/Makefile_DiagsDoc.mk      \
 $(DOC)/Makefile_MakeDoc.mk       \
+$(DOC)/Makefile_Hemco.mk         \
 $(HELP)/Makefile
 
-
 # Output file names
-TEX2 := GC_Ref_Vol_1.tex
-DVI2 := GC_Ref_Vol_1.dvi
-PDF2 := GC_Ref_Vol_1.pdf
-
+TEX5 :=GC_v11-01_Makefiles.tex
+DVI5 :=GC_v11-01_Makefiles.dvi
+PDF5 :=GC_v11-01_Makefiles.pdf
 
 # Make command
 makedoc: 
-	rm -f $(TEX2)
-	./protex -sfS $(SRC2) > $(TEX2)
-	latex $(TEX2)
-	latex $(TEX2)
-	latex $(TEX2)
-	dvipdf $(DVI2) $(PDF2)
+	rm -f $(TEX5)
+	./protex -sfS $(SRC5) > $(TEX5)
+	latex $(TEX5)
+	latex $(TEX5)
+	latex $(TEX5)
+	dvipdf $(DVI5) $(PDF5)
 	rm -f *.aux *.dvi *.log *.toc
 
 #EOC

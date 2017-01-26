@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: merra2_read_mod
+! !MODULE: merra2_read_mod.F90
 !
 ! !DESCRIPTION: Module MERRA2\_READ\_MOD contains subroutines for reading the 
 !  MERRA2 data from disk (in netCDF format).
@@ -90,7 +90,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_resolution_string
+! !IROUTINE: Get_Resolution_String
 !
 ! !DESCRIPTION: Function Get\_Resolution\_String returns the proper filename 
 !  extension for the GEOS-Chem horizontal grid resolution.  This is used to
@@ -148,7 +148,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: check_dimensions
+! !IROUTINE: Check_Dimensions
 !
 ! !DESCRIPTION: Subroutine CHECK\_DIMENSIONS checks to see if dimensions read 
 !  from the netCDF file match the defined GEOS-Chem dimensions.  If not, then 
@@ -236,7 +236,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: merra2_read_cn
+! !IROUTINE: Merra2_Read_cn
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a MERRA2
 !  met fields file containing constant (CN) data.  
@@ -381,7 +381,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: merra2_read_a1
+! !IROUTINE: Merra2_Read_a1
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a MERRA2
 !  met fields file containing 1-hr time-averaged (A1) data.  
@@ -831,7 +831,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: merra2_read_a3
+! !IROUTINE: Merra2_Read_a3
 !
 ! !DESCRIPTION: Convenience wrapper for the following routines which read
 !  3-hour time averaged data from disk:
@@ -917,7 +917,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: merra2_read_a3cld
+! !IROUTINE: Merra2_Read_a3cld
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a MERRA2
 !  met fields file containing 3-hr time-averaged (A3) data (cloud fields).
@@ -1097,7 +1097,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: merra2_read_a3dyn
+! !IROUTINE: Merra2_Read_a3dyn
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a MERRA2
 !  met fields file containing 3-hr time-averaged (A3) data (dynamics fields).
@@ -1279,7 +1279,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: merra2_read_a3mstc
+! !IROUTINE: Merra2_Read_a3mstc
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a MERRA2
 !  met fields file containing 3-hr time-averaged (A3) data (moist fields,
@@ -1440,7 +1440,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: merra2_read_a3mste
+! !IROUTINE: Merra2_Read_a3mste
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a MERRA2
 !  met fields file containing 3-hr time-averaged (A3) data (moist fields,
@@ -1629,7 +1629,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Merra2_read_I3_1
+! !IROUTINE: Merra2_Read_I3_1
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a MERRA2
 !  met fields file containing 3-hr instantaneous (I3) data.
@@ -1850,7 +1850,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Merra2_read_I3_2
+! !IROUTINE: Merra2_Read_I3_2
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a MERRA2
 !  met fields file containing 3-hr instantaneous (I3) data.
@@ -2065,7 +2065,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_merra2_read
+! !IROUTINE: Cleanup_Merra2_Read
 !
 ! !DESCRIPTION: Closes any open netCDF files at the end of a simulation.
 !  This can occur if the simulation ends at a time other than 00:00 GMT.

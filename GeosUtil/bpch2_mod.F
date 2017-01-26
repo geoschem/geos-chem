@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: bpch2_mod
+! !MODULE: bpch2_mod.F
 !
 ! !DESCRIPTION: Module BPCH2\_MOD contains the routines used to read data 
 !  from and write data to binary punch (BPCH) file format (v. 2.0).
@@ -106,7 +106,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: open_bpch2_for_read
+! !IROUTINE: Open_Bpch2_For_Read
 !
 ! !DESCRIPTION: Subroutine OPEN\_BPCH2\_FOR\_READ opens a binary punch file 
 !  (version 2.0 format) for reading only.  Also reads FTI and TITLE strings. 
@@ -209,7 +209,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: open_bpch2_for_write
+! !IROUTINE: Open_Bpch2_For_Write
 !
 ! !DESCRIPTION: Subroutine OPEN\_BPCH2\_FOR\_WRITE opens a binary punch file
 !  (version 2.0) for writing.
@@ -287,7 +287,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: bpch2_hdr
+! !IROUTINE: Bpch2_hdr
 !
 ! !DESCRIPTION: Subroutine BPCH2\_HDR writes a header at the top of the binary
 !  punch file, version 2.0.
@@ -346,7 +346,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: bpch2
+! !IROUTINE: Bpch2
 !
 ! !DESCRIPTION: Subroutine BPCH2 writes binary punch file (version 2.0) to 
 !  disk.  Information about the model grid is also stored with each data block.
@@ -450,7 +450,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_bpch2
+! !IROUTINE: Read_Bpch2
 !
 ! !DESCRIPTION: Subroutine READ\_BPCH2 reads a binary punch file (v. 2.0) 
 !  and extracts a data block that matches the given category, tracer, and 
@@ -679,7 +679,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_modelname
+! !IROUTINE: Get_Modelname
 !
 ! !DESCRIPTION: Function GET\_MODELNAME returns the proper value of MODELNAME 
 !  for current GEOS or GCAP met field type.  MODELNAME is written to the 
@@ -770,7 +770,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_name_ext
+! !IROUTINE: Get_Name_Ext
 !
 ! !DESCRIPTION: Function GET\_NAME\_EXT returns the proper filename extension 
 !  the current GEOS-Chem met field type (e.g. "geos3", "geos4", "geos5", or 
@@ -841,7 +841,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_name_ext_2d
+! !IROUTINE: Get_Name_Ext_2d
 !
 ! !DESCRIPTION: Function GET\_NAME\_EXT\_2D returns the proper filename 
 !  extension for CTM model name for files which do not contain any vertical 
@@ -905,7 +905,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_res_ext
+! !IROUTINE: Get_Res_Ext
 !
 ! !DESCRIPTION: Function GET\_RES\_EXT returns the proper filename extension 
 !  for the GEOS-Chem horizontal grid resolution (e.g. "1x1", "2x25", "4x5").
@@ -973,7 +973,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_halfpolar
+! !IROUTINE: Get_Halfpolar
 !
 ! !DESCRIPTION: Function GET\_HALFPOLAR returns 1 if the current grid has 
 !  half-sized polar boxes (e.g. GEOS), or zero otherwise (e.g. GCAP).  
@@ -1015,7 +1015,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_tau0_6a
+! !IROUTINE: Get_Tau0_6a
 !
 ! !DESCRIPTION: Function GET\_TAU0\_6A returns the corresponding TAU0 value 
 !  for the first day of a given MONTH of a given YEAR.  This is necessary to 

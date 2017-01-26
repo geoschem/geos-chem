@@ -182,6 +182,7 @@
 !                              XNUMOLAIR now defined in CMN_GTCM_MOD
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with spec db and physical const
 !  20 Sep 2016 - R. Yantosca - Define species flags here
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -191,7 +192,7 @@
       USE CMN_O3_MOD               ! SAVEOH, XNUMOLAIR
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GRID_MOD,           ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR

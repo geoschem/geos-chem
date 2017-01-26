@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: chemistry_mod
+! !MODULE: chemistry_mod.F
 !
 ! !DESCRIPTION: Module CHEMISTRY\_MOD is used to call the proper chemistry 
 !  subroutine for the various GEOS-Chem simulations. 
@@ -866,7 +866,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CHEM_PASSIVE_TRACER
+! !IROUTINE: chem_passive_tracer
 !
 ! !DESCRIPTION: Subroutine RUN\_PASSIVE\_TRACER performs loss chemistry 
 !  on all passive tracers.
@@ -967,7 +967,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: INIT_CHEMISTRY
+! !IROUTINE: init_chemistry
 !
 ! !DESCRIPTION: Subroutine INIT\_CHEMISTRY initializes chemistry
 ! variables.

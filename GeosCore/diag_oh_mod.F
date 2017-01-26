@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag_oh_mod
+! !MODULE: diag_oh_mod.F
 !
 ! !DESCRIPTION: Module DIAG\_OH\_MOD contains routines and variables to 
 !  archive OH mass and air mass concentrations.  These are then used to print 
