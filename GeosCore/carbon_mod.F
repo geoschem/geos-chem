@@ -623,7 +623,7 @@
 #if   defined( TOMAS )
       CALL CHECKMN( 0,         0,         0, 
      &              Input_Opt, State_Met, State_Chm, 
-     &              'kg',      'CHECKMN from chemcarbon')
+     &              'CHECKMN from chemcarbon', RC)
       ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
       IF ( id_ECIL1 > 0 .and. id_ECOB1 > 0 ) THEN
          CALL AGING_CARB( Spc(:,:,:,id_ECIL1:id_ECIL1+IBINS-1), 
@@ -647,7 +647,7 @@
 #if defined ( TOMAS )
       CALL CHECKMN( 0,         0,         0, 
      &              Input_Opt, State_Met, State_Chm, 
-     &              'kg',      'CHECKMN from chemcarbon')
+     &              'CHECKMN from chemcarbon', RC)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES )
@@ -660,9 +660,9 @@
             TEMPTMS = State_Met%T(I,J,L)
             PRES    = GET_PCENTER(I,j,L)*100.0 ! in Pa
             IF ( NEWSOA > 0.d0 ) THEN
-            !sfarina16: SOAP -> size Resolved TOMAS SOA
-               CALL SOACOND( NEWSOA, I, J, L,
-     &               BOXVOL, TEMPTMS, PRES, State_Chm )
+               !sfarina16: SOAP -> size Resolved TOMAS SOA
+               CALL SOACOND( am_I_Root, NEWSOA, I, J, L,
+     &               BOXVOL, TEMPTMS, PRES, State_Chm, RC)
             ENDIF
             Spc(I,J,L,id_SOAS) = Spc(I,J,L,id_SOAS) + NEWSOA
             Spc(I,J,L,id_SOAP) = Spc(I,J,L,id_SOAP) - NEWSOA
@@ -5739,13 +5739,13 @@ ccc
       DO I = 1, IIPAR
       CALL CHECKMN( I,         J,         1, 
      &              Input_Opt, State_Met, State_Chm, 
-     &              'kg',  'CHECKMN from emisscarbontomas')
+     &              'CHECKMN from emisscarbontomas', RC)
          IF ( TERP_ORGC(I,J) > 0.d0 ) THEN
          BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3
          TEMPTMS = State_Met%T(I,J,1)
          PRES    = GET_PCENTER(I,J,1)*100.0 ! in Pa
-         CALL SOACOND( TERP_ORGC(I,J), I, J, 1,
-     &               BOXVOL, TEMPTMS, PRES, State_Chm )
+         CALL SOACOND( am_I_Root, TERP_ORGC(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES, State_Chm, RC )
          END IF
       END DO
       END DO
