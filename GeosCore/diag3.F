@@ -6085,12 +6085,16 @@
 !******************************************************************************
 !  ND68: Grid box diagnostics
 !
-!   # : Field   : Description                       : Units : Scale factor
+!   # : Field   : Description                       : Units    : Scale factor
 !  --------------------------------------------------------------------------
-!  (1) BXHEIGHT : Grid box height                   : m     : SCALEDYN
-!  (2) AD       : Air mass in grid box              : kg    : SCALEDYN
-!  (3) AVGW     : Mixing ratio of water vapor       : v/v   : SCALEDYN
-!  (4) N(AIR)   : Number density of air             : m^-3  : SCALEDYN
+!  (1) BXHEIGHT : Grid box height                   : m        : SCALEDYN
+!  (2) AD       : Air mass in grid box              : kg       : SCALEDYN
+!  (3) AVGW     : Mixing ratio of water vapor       : v/v      : SCALEDYN
+!  (4) AIRNUMDEN: Dry air number density            : molec/m3 : SCALEDYN
+!  (5) T        : Temperature                       : K        : SCALEDYN
+!  (6) PMID     : Arithmetic mean pressure          : hPa      : SCALEDYN
+!  (7) PEDGE    : Level pressure (bottom edge)      : hPa      : SCALEDYN
+!  (8) RH       : Relative humidity                 : %        : SCALEDYN
 !
 !  NOTES:
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.

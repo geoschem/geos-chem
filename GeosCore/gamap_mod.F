@@ -1732,8 +1732,7 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD,       ONLY : PD64
-      USE CMN_DIAG_MOD,       ONLY : PD72R
+      USE CMN_DIAG_MOD,       ONLY : PD64, PD68, PD72R
       USE CMN_FJX_MOD,        ONLY : NSPECRADMENU, STRWVSELECT
       USE DIAG03_MOD,         ONLY : ND03, PD03, PD03_PL
       USE DIAG04_MOD,         ONLY : ND04
@@ -7309,7 +7308,7 @@
       IF ( ND68 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
-         NTRAC(68) = 13
+         NTRAC(68) = PD68
 
          ! Loop over tracers
          DO T = 1, NTRAC(68)
@@ -7329,45 +7328,25 @@
                   FNAME(T,68) = 'Mixing ratio of H2O vapor'
                   UNIT (T,68) = 'v/v'
                CASE( 4 )
-                  NAME (T,68) = 'N(AIR)'
-                  FNAME(T,68) = 'Number density of air'
-                  UNIT (T,68) = 'molec/m3'
+                  NAME (T,68) = 'AIRNUMDEN'
+                  FNAME(T,68) = 'Dry air number density'
+                  UNIT (T,68) = 'molec air/m3'
                CASE( 5 )
-                  NAME (T,68) = 'MAIRDEN'
-                  FNAME(T,68) = 'Moist air mass density'
-                  UNIT (T,68) = 'kg/m3'
-               CASE( 6 )
                   NAME (T,68) = 'T'
                   FNAME(T,68) = 'Temperature'
                   UNIT (T,68) = 'K'
-               CASE( 7 )
-                  NAME (T,68) = 'TV'
-                  FNAME(T,68) = 'Virtual temperature'
-                  UNIT (T,68) = 'K'
-               CASE( 8 )
+               CASE( 6 )
                   NAME (T,68) = 'PMID'
-                  FNAME(T,68) = 'Pressure at L = average P'
+                  FNAME(T,68) = 'Pressure at average pressure level'
                   UNIT (T,68) = 'hPa'
-               CASE( 9 )
-                  NAME (T,68) = 'PMEAN'
-                  FNAME(T,68) = 'Pressure at L = wghted-mean P'
-                  UNIT (T,68) = 'hPa'
-               CASE( 10 )
+               CASE( 7 )
                   NAME (T,68) = 'PEDGE'
                   FNAME(T,68) = 'Pressure at grid box lower edge'
                   UNIT (T,68) = 'hPa'
-               CASE( 11 )
+               CASE( 8 )
                   NAME (T,68) = 'RH'
                   FNAME(T,68) = 'Relative humidity'
-                  UNIT (T,68) = 'percent'
-               CASE( 12 )
-                  NAME (T,68) = 'PMID_DRY'
-                  FNAME(T,68) = 'Dry pressure at average P level'
-                  UNIT (T,68) = 'hPa'
-               CASE( 13 )
-                  NAME (T,68) = 'PMEAN_DRY'
-                  FNAME(T,68) = 'Dry pressure at wghted-mean P level'
-                  UNIT (T,68) = 'hPa'
+                  UNIT (T,68) = '%'
                CASE DEFAULT
                   ! Nothing
             END SELECT
