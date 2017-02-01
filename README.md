@@ -1,10 +1,11 @@
 README -- Describes contents of GEOS-Chem repository
-20 Dec 2016
+
+01 Feb 2017
 GEOS-Chem Support Team
 geos-chem-support@as.harvard.edu
 
 
-This repository contains the source code for GEOS-Chem v11-01 (provisionally released on 20 Dec 2016).
+This repository contains the source code for GEOS-Chem v11-01.
 
 Please see the following resources for more information:
 
