@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: olson_landmap_mod
+! !MODULE: olson_landmap_mod.F90
 !
 ! !DESCRIPTION: Module OLSON\_LANDMAP\_MOD reads the Olson land map and
 !  computes the IREG, ILAND, IUSE, and FRCLND State_Met arrays. 
@@ -15,12 +15,11 @@ MODULE Olson_LandMap_Mod
 !
 ! !USES:
 !
-  USE PHYSCONSTANTS                     ! Physical constants
   USE CMN_SIZE_MOD                      ! Size parameters
   USE ERROR_MOD                         ! Error checking routines
-  USE GRID_MOD                          ! Horizontal grid definition
+  USE GC_GRID_MOD                       ! Horizontal grid definition
   USE MAPPING_MOD                       ! Mapping weights & areas
-
+  USE PhysConstants                     ! Physical constants
   USE PRECISION_MOD                     ! For GEOS-Chem Precision (fp)
 
   IMPLICIT NONE
@@ -210,6 +209,7 @@ MODULE Olson_LandMap_Mod
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  18 Oct 2016 - E. Lundgren - Add GCHP routine for computing landmap variables
 !  02 Nov 2016 - E. Lundgren - Remove N_OLSON since same as global NSURFTYPE
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -249,7 +249,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -355,8 +355,8 @@ CONTAINS
 ! !USES:
 !
 
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
     USE m_netcdf_io_open
     USE m_netcdf_io_read
     USE m_netcdf_io_readattr
@@ -598,7 +598,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !

@@ -20,4 +20,4 @@ GIGC
 *.inst.*
 *.continue.*
 *.ppk
-holding
+*.log

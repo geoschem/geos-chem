@@ -1,0 +1,8 @@
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOS
+! !SECTION: Error handling routines
+! !DESCRIPTION: These modules contain routines for (1) error checking values and (2) for stopping GEOS-Chem when a fatal error occurs.
+!EOS
+!------------------------------------------------------------------------------

@@ -3,11 +3,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: benchmark_mod
+! !MODULE: benchmark_mod.F
 !
 ! !DESCRIPTION: Module BENCHMARK\_MOD contains routines to save out initial 
-!  and final tracer mass mixing ratios which are needed for GEOS-Chem 1-month 
-!  benchmark simulations
+!  and final species masses which are needed for GEOS-Chem 1-month benchmark
+!  simulations
 !\\
 !\\
 ! !INTERFACE: 
@@ -27,8 +27,8 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      CHARACTER(LEN=255), PUBLIC :: INITIAL_FILE ! File w/ initial tracer mass
-      CHARACTER(LEN=255), PUBLIC :: FINAL_FILE   ! File w/ final   tracer mass
+      CHARACTER(LEN=255), PUBLIC :: INITIAL_FILE ! File w/ initial species mass
+      CHARACTER(LEN=255), PUBLIC :: FINAL_FILE   ! File w/ final   species mass
 !
 ! !REVISION HISTORY:
 !  (1 ) Now expand date & time tokens in filenames (bmy, 1/31/05)
@@ -38,6 +38,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  05 Nov 2014 - M. Yannetti - PRECISION_MOD Changed REAL*8 to REAL(fp)
 !  19 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
+!  29 Nov 2016 - M. Sulprizio- Convert species locally from kg/kg to kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -50,14 +51,15 @@
 !
 ! !ROUTINE: stdrun
 !
-! !DESCRIPTION: Subroutine STDRUN dumps the mass maxing ratio of either O3 
-!  [kg/kg] or 222Rn, 210Pb, and 7Be [kg/kg] at the start \& end of each run.  
-!  This is necessary for GEOS-CHEM benchmarking.
+! !DESCRIPTION: Subroutine STDRUN dumps the mass of either O3 [kg] or 222Rn,
+!  210Pb, and 7Be [kg] at the start \& end of each run.  This is necessary 
+!  for GEOS-CHEM benchmarking.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE STDRUN( Input_Opt, State_Chm, LBEGIN )
+      SUBROUTINE STDRUN( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
+     &                   LBEGIN )
 !
 ! !USES:
 !
@@ -66,22 +68,37 @@
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
       USE BPCH2_MOD,          ONLY : GET_MODELNAME
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : GC_ERROR
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD
       USE TIME_MOD,           ONLY : GET_NHMS
       USE TIME_MOD,           ONLY : GET_TAU
-      USE TRACERID_MOD,       ONLY : IDTO3
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
-      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
-      LOGICAL,        INTENT(IN) :: LBEGIN      ! =T denotes start of run
-                                                ! =F denotes end of run
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: LBEGIN      ! =T denotes start of run
+                                                   ! =F denotes end of run
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+
 ! 
 ! !REVISION HISTORY: 
 !  12 Aug 2002 - R. Yantosca - Initial version
@@ -104,6 +121,11 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  17 Dec 2014 - R. Yantosca - Now use State_Chm%TRACERS instead of STT
 !  19 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
+!  16 Jun 2016 - R. Yantosca - Now use Ind_ to get species ID for O3
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  29 Nov 2016 - M. Sulprizio- Convert species locally from kg/kg to kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -111,6 +133,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: IU_FILE
+      INTEGER             :: id_O3,    NA,       nAdvect
       INTEGER             :: N,        NYMD,     NHMS
       INTEGER, PARAMETER  :: IFIRST=1, JFIRST=1, LFIRST=1
       INTEGER, PARAMETER  :: CENTER180=1
@@ -127,6 +150,9 @@
       ! STDRUN begins here!
       !=================================================================
 
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
       ! Return if we are not doing either a radon or fullchem stdrun
       IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and. 
      &     ( .not. Input_Opt%ITS_A_RnPbBe_SIM   ) ) RETURN
@@ -138,7 +164,7 @@
       MODELNAME = GET_MODELNAME()
       HALFPOLAR = GET_HALFPOLAR()
       CATEGORY  = 'TCMASS-$'
-      UNIT      = 'kg/kg'
+      UNIT      = 'kg'
       RESERVED  = ''      
       LONRES    = DISIZE
       LATRES    = DJSIZE
@@ -146,19 +172,29 @@
       NHMS      = GET_NHMS()
       TAU       = GET_TAU()
 
+      ! Get species ID for O3
+      id_O3     = Ind_('O3')
+
       ! Define filename for beginning or end of benchmark run
       IF ( LBEGIN ) THEN
-         TITLE    = 'GEOS-CHEM Benchmark: Initial Tracer Mass Mixing'
-     &               // ' Ratio'
+         TITLE    = 'GEOS-CHEM Benchmark: Initial Species Mass'
          FILENAME = INITIAL_FILE
       ELSE
-         TITLE    = 'GEOS-CHEM Benchmark: Final Tracer Mass Mixing'
-     &              // ' Ratio'
+         TITLE    = 'GEOS-CHEM Benchmark: Final Species Mass'
          FILENAME = FINAL_FILE
       ENDIF
            
       ! Expand any date tokens in the filename
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
+
+      ! Convert species from [kg/kg dry air] to [kg]
+      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm,
+     &                               RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC,
+     &                 'Routine STDRUN in benchmark_mod.F')
+         RETURN
+      ENDIF
 
       !=================================================================
       ! Save the mass of 222Rn, 210Pb, 7Be to a file
@@ -168,11 +204,14 @@
          ! Open binary punch file for writing
          CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
 
-         ! Loop over tracers
-         DO N = 1, Input_Opt%N_TRACERS
+         ! Loop over only the advected species
+         DO NA = 1, nAdvect
+
+            ! Get the species ID from the advected species ID
+            N = State_Chm%Map_Advect(NA)
 
             ! Save Rn, Pb, Be as REAL*4
-            ARRAY(:,:,:) = State_Chm%TRACERS(:,:,:,N)
+            ARRAY(:,:,:) = State_Chm%Species(:,:,:,N)
 
             ! Write Rn, Pb, Be to binary punch file
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
@@ -186,17 +225,17 @@
       !=================================================================
       ! Save the mass of O3 to a file
       !=================================================================
-      ELSE IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. IDTO3 > 0 ) THEN
+      ELSE IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. id_O3 > 0 ) THEN
 
          ! Open binary punch file for writing
          CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
         
          ! Save O3 as REAL*4
-         ARRAY(:,:,:) = State_Chm%TRACERS(:,:,:,IDTO3)
+         ARRAY(:,:,:) = State_Chm%Species(:,:,:,id_O3)
 
          ! Write O3 to binary punch file
          CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY,  IDTO3,
+     &               HALFPOLAR, CENTER180, CATEGORY,  id_O3,
      &               UNIT,      TAU,       TAU,       RESERVED,
      &               IIPAR,     JJPAR,     LLPAR,     IFIRST,
      &               JFIRST,    LFIRST,    ARRAY(:,:,:) )
@@ -205,6 +244,15 @@
 
       ! Close file
       CLOSE( IU_FILE )
+
+      ! Convert species back to [kg/kg dry air]
+      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm,
+     &                               RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC,
+     &                 'Routine STDRUN in benchmark_mod.F')
+         RETURN
+      ENDIF
 
       END SUBROUTINE STDRUN
 !EOC

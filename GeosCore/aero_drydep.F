@@ -9,7 +9,7 @@
 ! !DESCRIPTION: Subroutine AERO\_DRYDEP removes size-resolved aerosol number 
 !  and mass by dry deposition.  The deposition velocities are calcualted from 
 !  drydep_mod.f and only aerosol number NK1-NK30 are really treated as dry 
-!  depositing tracers while each of the mass species are depositing accordingly
+!  depositing species while each of the mass species are depositing accordingly
 !  with number.
 !\\
 !\\
@@ -20,25 +20,24 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE PHYSCONSTANTS,      ONLY : g0
-      USE DIAG_MOD,           ONLY : AD44
-      USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, NTRAIND 
-      USE DUST_MOD,           ONLY : SETTLEDUST   
-      USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTNK1, IDTH2SO4
-      USE TOMAS_MOD
-
-      USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE DIAG_MOD,           ONLY : AD44
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE DUST_MOD,           ONLY : SETTLEDUST   
+      USE ErrCode_Mod
+      USE ERROR_MOD
+      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : g0
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PRECISION_MOD
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TOMAS_MOD
 
       IMPLICIT NONE
 !
@@ -72,59 +71,79 @@
 !                              Remove dependency on pressure_mod.
 !  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC to AERO_DIADEN 
 !                              to enable unit conversion if needed
+!  12 May 2016 - M. Sulprizio- Remove IJLOOP and changed SIZ_DIA and SIZ_DEN
+!                              array dimensions from (IIPAR*JJPAR,IBINS) to
+!                              (IIPAR,JJPAR,IBINS)
+!  07 Jun 2016 - E. Lundgren - Remove XNUMOL; use species database MW instead
+!  16 Jun 2016 - R. Silvern  - Now use Ind_ function to define species IDs
+!  17 Jun 2016 - R. Yantosca - Now define species ID's on the first call
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, J, L, N, JC, BIN, ID, IJLOOP
-      REAL(fp)               :: DTCHEM,  AREA_CM2, FLUX
-      REAL(fp)               :: X, X0(IBINS, ICOMP-IDIAG+1)
-      REAL(fp)               :: Y, Y0, RKT
-      REAL(fp)               :: NU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp)               :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp)               :: SIZ_DIA(IIPAR*JJPAR,IBINS)
-      REAL(fp)               :: SIZ_DEN(IIPAR*JJPAR,IBINS)
-      REAL(fp)               :: DEN,   DP,    PDP,  TEMP,  P
-      REAL(fp)               :: CONST, SLIP,  VISC, DELZ,  DELZ1
-      REAL(fp)               :: TOT1,  TOT2
-      REAL(fp)               :: TC(LLPAR),  TC0(LLPAR)
-      INTEGER,SAVE           :: DRYD(IBINS)
-      LOGICAL,SAVE           :: FIRST = .TRUE.
-      INTEGER,SAVE           :: H2SO4ID
-      LOGICAL                :: DOSETTLING = .TRUE.
 
-      ! Settling velocity of particle (m/s)
-      REAL(fp)                :: VTS(LLPAR)  
-      
-      !debug
-      integer   :: ii, jj , ix, jx, bb, ll
-      data ii,jj, ix, jx, bb, ll /55, 29, 55, 29, 1, 1 /
+      ! SAVEd scalars 
+      LOGICAL,  SAVE     :: DOSETTLING = .TRUE.
+      LOGICAL,  SAVE     :: FIRST      = .TRUE.
+      INTEGER,  SAVE     :: H2SO4ID
+      INTEGER,  SAVE     :: id_H2SO4
+      INTEGER,  SAVE     :: id_NK1
+
+      ! Scalars
+      LOGICAL            :: LPRT
+      INTEGER            :: nDryDep
+      INTEGER            :: I,      J,        L
+      INTEGER            :: N,      JC,       BIN,   ID
+      REAL(fp)           :: DTCHEM, AREA_CM2, FLUX,  X,    Y
+      REAL(fp)           :: Y0,     RKT,      DEN,   DP,   PDP
+      REAL(fp)           :: TEMP,   P,        CONST, SLIP, VISC
+      REAL(fp)           :: DELZ,   DELZ1,    TOT1,  TOT2
+
+      ! Strings
       CHARACTER(LEN=255) :: LOC, MSG
 
-      ! For fields from Input_Opt
-      LOGICAL         :: LPRT
-      INTEGER         :: N_TRACERS
-      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
+      ! Arrays
+      REAL(fp)           :: TC     (            LLPAR      )
+      REAL(fp)           :: TC0    (            LLPAR      )
+      REAL(fp)           :: VTS    (            LLPAR      ) ! Settling V [m/s]
+      REAL(fp)           :: NU0    (IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)           :: DU0    (IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)           :: SIZ_DIA(IIPAR,JJPAR,      IBINS)
+      REAL(fp)           :: SIZ_DEN(IIPAR,JJPAR,      IBINS)
+      REAL(fp)           :: X0     (IBINS,ICOMP-IDIAG+1    )
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
-      REAL(fp), POINTER :: BXHEIGHT(:,:,:)
-      REAL(fp), POINTER :: T(:,:,:)
+      REAL(fp), POINTER  :: Spc     (:,:,:,:)
+      REAL(fp), POINTER  :: BXHEIGHT(:,:,:  )
+      REAL(fp), POINTER  :: T       (:,:,:  )
+
+      ! SAVEd arrays
+      INTEGER,  SAVE     :: DRYD(IBINS)
+
+!      !debug
+!     integer   :: ii, jj , ix, jx, bb, ll
+!     data ii,jj, ix, jx, bb, ll /55, 29, 55, 29, 1, 1 /
 
       !=================================================================
       ! AERO_DRYDEP begins here!
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC        = GC_SUCCESS
 
-      ! Check that tracer units are in [kg] (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+      ! Number of dry-deposited species
+      nDryDep   = State_Chm%nDryDep
+
+      ! Check that species units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
       ! DTCHEM is the chemistry timestep in seconds
@@ -132,40 +151,61 @@
 
       ! Get logical values from Input_Opt
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Initialize pointers
-      STT      => State_Chm%TRACERS
+      Spc      => State_Chm%Species
       BXHEIGHT => State_Met%BXHEIGHT
       T        => State_Met%T
 
-      ! First identify if the size-resolved aerosol tracers have their
-      ! deposition velocity calculated.
-      ! dryd is an array that keeps the drydep tracer ID.  So if the 
-      ! aerosol component has dryd = 0, that means it was not included 
-      ! as a dry depositting tracer.
-      IF(FIRST) THEN
-      DRYD = 0
-      DO BIN = 1, IBINS
-         DO N = 1, NUMDEP
-            !just want to match only once (win, 5/24/06)
-            IF ( BIN == 1 .and. NTRAIND(N)==IDTH2SO4) H2SO4ID = N
-cdbg            print *, 'DRYDEP Species:',N
-            IF ( NTRAIND(N) == ( IDTNK1-1+BIN ) )THEN
-cdbg               print *,'Match tracer:',IDTNK1-1+bin,'Bin',bin
-               DRYD( BIN ) = N
-               GOTO 100
-            ENDIF            
+      ! First-time setup
+      IF ( FIRST ) THEN
+
+         ! Define species ID flags
+         id_H2SO4 = Ind_('H2SO4')
+         id_NK1   = Ind_('NK1'  )
+
+         ! Make sure species are defined
+         IF ( id_H2SO4 < 0 ) THEN
+            MSG = 'H2SO4 is not a defined species!'
+            LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
+            CALL ERROR_STOP( MSG, LOC )
+         ENDIF
+         IF ( id_NK1 < 0 ) THEN
+            MSG = 'NK1 is not a defined species!'
+            LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
+            CALL ERROR_STOP( MSG, LOC )
+         ENDIF
+
+         ! First identify if the size-resolved aerosol species have their
+         ! deposition velocity calculated.
+         ! dryd is an array that keeps the drydep species ID.  So if the 
+         ! aerosol component has dryd = 0, that means it was not included 
+         ! as a dry depositting species.
+         DRYD = 0
+         DO BIN = 1, IBINS
+            DO N   = 1, nDryDep
+               !just want to match only once (win, 5/24/06)
+               IF ( BIN == 1 .and.
+     &              State_Chm%Map_DryDep(N)==id_H2SO4 ) THEN
+                  H2SO4ID = N
+cdbg              print *, 'DRYDEP Species:',N
+               ENDIF
+               IF ( State_Chm%Map_DryDep(N) == ( id_NK1-1+BIN ) )THEN
+cdbg              print *,'Match species:',IDTNK1-1+bin,'Bin',bin
+                  DRYD( BIN ) = N
+                  GOTO 100
+               ENDIF
+            ENDDO
+ 100        CONTINUE
          ENDDO
- 100     CONTINUE
-      ENDDO
-      FIRST = .FALSE.
-      ENDIF !First
 
+         ! Reset first-time falg
+         FIRST = .FALSE.
 
-cdbg      print *,'dryd(30)'
-cdbg      print *, dryd(:)
+      ENDIF
+
+cdbg  print *,'dryd(30)'
+cdbg  print *, dryd(:)
 
       !---------- GRAVITATIONAL SETTLING -------------
       !
@@ -196,13 +236,13 @@ cdbg      print *, dryd(:)
       ! SIZ_DIA [=] m  and SIZ_DEN [=] kg/m3
       CALL AERO_DIADEN( am_I_Root, 1,       Input_Opt, State_Met,
      &                  State_Chm, SIZ_DIA, SIZ_DEN,   RC         )
-      IF ( RC /= GIGC_SUCCESS ) THEN
+      IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP('CALL AERO_DIADEN',
      &                   'AERO_DRYDEP in aero_drydep.F')
       ENDIF
 
 !$OMP PARALLEL DO
-!$OMP+PRIVATE( BIN, I, J, IJLOOP, DP, DEN, CONST, L, P, TEMP )
+!$OMP+PRIVATE( BIN, I, J, DP, DEN, CONST, L, P, TEMP )
 !$OMP+PRIVATE( PDP, SLIP, VISC, VTS, JC, ID, TC0, TC )
 !$OMP+PRIVATE( DELZ, DELZ1, AREA_CM2, TOT1, TOT2, FLUX )
 !$OMP+DEFAULT( SHARED )
@@ -211,11 +251,8 @@ cdbg      print *, dryd(:)
       DO J = 1, JJPAR
       DO BIN = 1, IBINS
 
-         ! 1-D grid box index
-         IJLOOP      = ( (J-1) * IIPAR ) + I
-
-         DP  = SIZ_DIA(IJLOOP, BIN) * 1.d6 ![=] um
-         DEN = SIZ_DEN(IJLOOP, BIN) ![=] kg/m3
+         DP    = SIZ_DIA(I,J,BIN) * 1.d6 ![=] um
+         DEN   = SIZ_DEN(I,J,BIN) ![=] kg/m3
          CONST = DEN *  (DP*1.d-6)**2.d0 * g0 / 18.d0  
 
 !debug            if(i==ix .and. j==jx .and. bin==bb) then
@@ -273,7 +310,7 @@ cdbg      print *, dryd(:)
 
 
          DO JC = 1, ICOMP-IDIAG+1
-            ID = IDTNK1 - 1 + BIN + ( IBINS * (JC-1) )
+            ID = id_NK1 - 1 + BIN + ( IBINS * (JC-1) )
 
 !debug            if(i==ix .and. j==jx .and. l==ll) then
 !               write(200,*)'BIN , TC0,  TC, , VTS(L), JC=',JC
@@ -283,7 +320,7 @@ cdbg      print *, dryd(:)
             ! Method is to solve bidiagonal matrix 
             ! which is implicit and first order accurate in Z
             DO L = 1, LLPAR
-               TC0(L) = STT(I,J,L,ID)
+               TC0(L) = Spc(I,J,L,ID)
                TC(L)  = TC0(L)
             ENDDO
 
@@ -301,7 +338,7 @@ cdbg      print *, dryd(:)
             ENDDO
 
             DO L = 1, LLPAR
-               STT(I,J,L,ID) = TC(L)
+               Spc(I,J,L,ID) = TC(L)
 
 !debug            if(i==ix .and. j==jx .and. l==ll ) 
 !     &              print *, BIN, TC0(L), TC(L), VTS(L)              
@@ -330,14 +367,15 @@ cdbg      print *, dryd(:)
 
                ! Convert dust flux from [kg/s] to [#/cm2/s]
                FLUX = ( TOT1 - TOT2 ) / DTCHEM
-               FLUX = FLUX * XNUMOL(ID) / AREA_CM2 
+               FLUX = FLUX * State_Chm%SpcData(ID)%Info%emMW_g * 
+     &                1.e-3_fp / AREA_CM2 
            
                ! Save in AD44
                IF( JC == 1 ) THEN 
                   AD44(I,J,DRYD(BIN),1) = AD44(I,J,DRYD(BIN),1) + FLUX
                ELSE
-                  AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1) =  
-     &                 AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1) + FLUX
+                  AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) =  
+     &                 AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) + FLUX
                ENDIF
                  
             ENDIF
@@ -370,14 +408,25 @@ cdbg      print *, dryd(:)
       X0(:,:) = 0d0
 
       ! Loop over chemically-active grid boxes
+! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! %%% TEMPORARY FIX: REVERSE ORDER OF LOOPS IN ORDER TO PASS UNIT TESTS    %%%
+! %%%                                                                      %%%
+! %%% Sal Farina wrote: Change the loop order from LJI to IJL or JIL.      %%%
+! %%% This will make the MP code add up the diagnostic in the same order   %%%
+! %%% as SP mode (only the outermost loop gets parallelized). Yes looping  %%%
+! %%% over LJI should be faster than IJL, but (and correct me if i'm       %%%
+! %%% wrong) if we are looping over species inside that loop, all benefits %%%
+! %%% are totally lost anyway. The way Spc / STT is defined, tracerid      %%%
+! %%% should always be the outermost loop...                               %%%
+! %$%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( L, J, I, AREA_CM2, RKT, flux, JC, BIN )
 !$OMP+PRIVATE( ID, X0, X, Y0, Y )
 !$OMP+DEFAULT( SHARED )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLCHEM 
-      DO J = 1, JJPAR
       DO I = 1, IIPAR
+      DO J = 1, JJPAR
+      DO L = 1, LLCHEM 
 
          ! Initialize for safety's sake
          AREA_CM2 = 0d0
@@ -390,15 +439,15 @@ cdbg      print *, dryd(:)
          ! Save the initial 30-bin number and icomp-1 mass component
          DO JC = 1, ICOMP-IDIAG+1
             DO BIN = 1, IBINS
-               ID = IDTNK1 - 1 + BIN + ( IBINS * (JC-1) )
-               X0(BIN,JC) = STT(I,J,L,ID)
+               ID = id_NK1 - 1 + BIN + ( IBINS * (JC-1) )
+               X0(BIN,JC) = Spc(I,J,L,ID)
             ENDDO
          ENDDO
 !debug            if(i==ii .and. j==jj .and. L==1) 
-c     &          print *,'L    STT(',I,J,'L',bb,')   DIF    ',
+c     &          print *,'L    Spc(',I,J,'L',bb,')   DIF    ',
 c     &           'FLUX  AD44' 
 c            if(i==ix .and. j==jx .and. L==1) 
-c     &          print *,'L    STT(',I,J,'L',bb,')   DIF    ',
+c     &          print *,'L    Spc(',I,J,'L',bb,')   DIF    ',
 c     &           'FLUX  AD44' 
 !debug-----
  
@@ -407,7 +456,7 @@ c     &           'FLUX  AD44'
          DO JC = 1, ICOMP-IDIAG+1
          DO BIN = 1, IBINS
             X = 0d0
-            ID = IDTNK1 - 1 + BIN + (( JC-1 )* IBINS)
+            ID = id_NK1 - 1 + BIN + (( JC-1 )* IBINS)
 
 ! ******************************************************************************
 ! NOTE: I'm not sure if this is now covered by dry-deposition in mixing_mod.F90
@@ -438,34 +487,36 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
                ! Convert from [kg/timestep] to [molec/cm2/s] 
                ! Store in AD44
                FLUX = X0(BIN,JC) - X
-               FLUX = FLUX * XNUMOL(ID)/ AREA_CM2/ DTCHEM
+               FLUX = FLUX * State_Chm%SpcData(ID)%Info%emMW_g * 
+     &                1.e-3_fp / AREA_CM2 / DTCHEM
+
                IF ( JC == 1 ) THEN 
                   AD44(I,J,DRYD(BIN),1) = AD44(I,J,DRYD(BIN),1)+ FLUX   
                ELSE
-                  AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1) =  
-     &                 AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1) + FLUX
+                  AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) =  
+     &                 AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) + FLUX
                ENDIF
                
             ENDIF
 !debug
 c            if(i==ii .and. j==jj .and. 
 c     &           bin==bb .and. JC==1) 
-c     &           print *,'>',L, STT(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
+c     &           print *,'>',L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
 c     &           AD44(I,J,DRYD(BIN),1)
 c            if(i==ii .and. j==jj .and. 
 c     &           bin==bb .and. JC==2) 
-c     &           print *,'>',L, STT(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
-c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
+c     &           print *,'>',L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
+c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
 !debug            if(i==ix .and. j==jx .and. 
 c     &           bin==bb .and. JC==ICOMP) 
-c     &          print *, L, STT(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
-c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
+c     &          print *, L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
+c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
 !debug------
 #endif
 
 
-            ! Swap X back into STT array
-            STT(I,J,L,ID) = X
+            ! Swap X back into Spc array
+            Spc(I,J,L,ID) = X
 
 
          ENDDO
@@ -475,7 +526,7 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
 ! NOTE: I'm not sure if this is now covered by dry-deposition in mixing_mod.F90
 ! (ckeller, 3/5/15)
          !Dry deposit H2SO4 gas (win, 5/24/06)
-         Y0 = STT(I,J,L,IDTH2SO4)
+         Y0 = Spc(I,J,L,id_H2SO4)
          RKT = DEPSAV(I,J,H2SO4ID)* GET_FRAC_UNDER_PBLTOP( I, J, L)
          Y = Y0 * EXP(-RKT)
 ! ******************************************************************************
@@ -491,34 +542,35 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
             ! Convert from [kg/timestep] to [molec/cm2/s] 
             ! Store in AD44
             FLUX = Y0 - Y
-            FLUX = FLUX * XNUMOL(IDTH2SO4)/ AREA_CM2/ DTCHEM
+            FLUX = FLUX * State_Chm%SpcData(id_H2SO4)%Info%emMW_g *
+     &             1.e-3_fp / AREA_CM2 / DTCHEM
+
             AD44(I,J,H2SO4ID,1) = AD44(I,J,H2SO4ID,1) + FLUX   
 
          ENDIF
 #endif
 
-         !Swap final H2SO4 back into STT array
-         STT(I,J,L,IDTH2SO4) = Y         
+         !Swap final H2SO4 back into Spc array
+         Spc(I,J,L,id_H2SO4) = Y
 
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
-
       IF ( LPRT ) PRINT *,'### Finish AERO_DRYDEP'
 
       ! Free pointers
-      NULLIFY( STT      )
-      NULLIFY( BXHEIGHT )
-      NULLIFY( T        )
+      Spc      => NULL()
+      BXHEIGHT => NULL()
+      T        => NULL()
 
-      ! Check that tracer units are still in [kg] (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units at end of routine: ' 
-     &            // TRIM(State_Chm%Trac_Units)
+      ! Check that species units are still in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect species units at end of routine: ' 
+     &            // TRIM(State_Chm%Spc_Units)
          LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
       ! Return to calling program

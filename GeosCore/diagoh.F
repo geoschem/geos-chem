@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: diagoh
+! !ROUTINE: diagoh.F
 !
 ! !DESCRIPTION: Subroutine DIAGOH saves chemical diagnostic quantities for 
 !  the ND43 chemical diagnostics.  

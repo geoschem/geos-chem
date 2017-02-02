@@ -125,7 +125,8 @@ CONTAINS
     !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
     CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Reals,1) ) THEN
-       CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
+       WRITE(*,*) 'Too many substrings - error in ', TRIM(LOC)
+       RC = HCO_FAIL 
        RETURN
     ENDIF
 
@@ -209,7 +210,8 @@ CONTAINS
     !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
     CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Reals,1) ) THEN
-       CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
+       WRITE(*,*) 'Too many substrings - error in ', TRIM(LOC)
+       RC = HCO_FAIL 
        RETURN
     ENDIF
 
@@ -300,7 +302,8 @@ CONTAINS
     !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
     CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Ints,1) ) THEN
-       CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
+       WRITE(*,*) 'Too many substrings - error in ', TRIM(LOC)
+       RC = HCO_FAIL 
        RETURN
     ENDIF
 
@@ -390,39 +393,42 @@ CONTAINS
 ! !IROUTINE: HCO_CharParse
 !
 ! !DESCRIPTION: Routine HCO\_CharParse parses the provided character string 
-! by searching for tokens such as $ROOT, $YYYY, etc., within the string and 
+! by searching for tokens such as \$ROOT, \$YYYY, etc., within the string and 
 ! replacing those values by the intendend characters. 
 !\\
 !\\
 ! The following list shows the 'default' HEMCO tokens. These are available
-! in any HEMCO simulation. Tokens $ROOT, $MET, and $RES are internally 
+! in any HEMCO simulation. Tokens \$ROOT, \$MET, and \$RES are internally 
 ! stored as a HEMCO option in module hco\_extlist\_mod.F90 (see subroutine
 ! HCO\_SetDefaultToken). 
-!\begin{itemize}
-!\item \$ROOT: will be replaced by the root path specified in the settings
+! \begin{itemize}
+! \item \$ROOT: will be replaced by the root path specified in the settings
 ! section of the configuration file.
-!\item \$MET: will be replaced by the met-field token. 
-!\item \$RES: will be replaced by the resolution token. 
-!\item \$YYYY: will be replaced by the (4-digit) year according to the 
+! \item \$MET: will be replaced by the met-field token. 
+! \item \$RES: will be replaced by the resolution token. 
+! \item \$YYYY: will be replaced by the (4-digit) year according to the 
 ! source time settings set in the configuration file.
-!\item \$MM: will be replaced by the (2-digit) month according to the
+! \item \$MM: will be replaced by the (2-digit) month according to the
 ! source time settings set in the configuration file.
-!\item \$DD: will be replaced by the (2-digit) day according to the
+! \item \$DD: will be replaced by the (2-digit) day according to the
 ! source time settings set in the configuration file.
-!\item \$HH: will be replaced by the (2-digit) hour according to the
+! \item \$HH: will be replaced by the (2-digit) hour according to the
 ! source time settings set in the configuration file.
-!\item \$MN: will be replaced by the (2-digit) minute.
-!\end{itemize}
+! \item \$MN: will be replaced by the (2-digit) minute.
+! \end{itemize}
+!
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CharParse ( str, yyyy, mm, dd, hh, mn, RC )
+  SUBROUTINE HCO_CharParse ( HcoConfig, str, yyyy, mm, dd, hh, mn, RC )
 !
 ! !USES:
 !
     USE HCO_ExtList_Mod, ONLY  : HCO_GetOpt, HCO_Root
+    USE HCO_Types_Mod,   ONLY  : ConfigObj
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(ConfigObj),  POINTER        :: HcoConfig 
     INTEGER,          INTENT(IN   )  :: yyyy  ! replace $YYYY with this value 
     INTEGER,          INTENT(IN   )  :: mm    ! replace $MM with this value 
     INTEGER,          INTENT(IN   )  :: dd    ! replace $DD with this value
@@ -461,7 +467,7 @@ CONTAINS
     !=================================================================
 
     ! Get characters
-    SEP = HCO_GetOpt('Separator')
+    SEP = HCO_GetOpt(HcoConfig%ExtList,'Separator')
 
     ! Check for year token
     !-------------------------------------------------------------------
@@ -577,7 +583,7 @@ CONTAINS
        AFTER = str((IDX+OFF):LN)
 
        ! Updated string
-       str = TRIM(BEFORE) // TRIM(HCO_ROOT()) // TRIM(AFTER)
+       str = TRIM(BEFORE) // TRIM(HCO_ROOT(HcoConfig)) // TRIM(AFTER)
     ENDIF
 
     ! Check for any other token
@@ -640,7 +646,9 @@ CONTAINS
        ENDIF
 
        ! Update string
-       str = TRIM(BEFORE) // TRIM(HCO_GetOpt(TOKEN)) // TRIM(AFTER)
+       str = TRIM(BEFORE) // &
+             TRIM(HCO_GetOpt(HcoConfig%ExtList,TOKEN)) // &
+             TRIM(AFTER)
 
     ENDDO 
 

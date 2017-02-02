@@ -112,7 +112,7 @@ CONTAINS
     USE HCOX_CH4WetLand_MOD,    ONLY : HCOX_CH4WETLAND_Init
     USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Init
 #if defined( TOMAS )
-    USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Init
+    USE HCOX_TOMAS_Jeagle_Mod,   ONLY : HCOX_TOMAS_Jeagle_Init
     USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Init  
 #endif
 !
@@ -140,6 +140,7 @@ CONTAINS
 !  07 Jul 2014 - R. Yantosca - Now init GEOS-Chem Rn-Pb-Be emissions module
 !  20 Aug 2014 - M. Sulprizio- Now init GEOS-Chem POPs emissions module
 !  01 Oct 2014 - R. Yantosca - Now init TOMAS sea salt emissions module
+!  01 Nov 2016 - M. Sulprizio- Rename TOMAS sea salt to TOMAS Jeagle (J. Kodros)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -153,7 +154,7 @@ CONTAINS
     !=======================================================================
 
     ! Error handling 
-    CALL HCO_ENTER ('HCOX_INIT (hcox_driver_mod.F90)', RC )
+    CALL HCO_ENTER(HcoState%Config%Err,'HCOX_INIT (hcox_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=======================================================================
@@ -265,8 +266,8 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! TOMAS sectional sea salt aerosol emissions
     !-----------------------------------------------------------------------
-    CALL HCOX_TOMAS_SeaSalt_Init( amIRoot, HcoState, 'TOMAS_SeaSalt',  &
-                                           ExtState,  RC              ) 
+    CALL HCOX_TOMAS_Jeagle_Init( amIRoot, HcoState, 'TOMAS_Jeagle',  &
+                                          ExtState,  RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 #endif
 
@@ -279,9 +280,9 @@ CONTAINS
     !=======================================================================
 
     ! Cannot have both DustDead and DustGinoux turned on!
-    IF ( ExtState%DustDead .AND. ExtState%DustGinoux ) THEN
+    IF ( ExtState%DustDead > 0 .AND. ExtState%DustGinoux ) THEN
        MSG = 'Ginoux and DEAD dust emissions switched on!'
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
 
@@ -294,7 +295,7 @@ CONTAINS
     !=======================================================================
     ! Leave w/ success
     !=======================================================================
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_Init
 !EOC
@@ -334,7 +335,7 @@ CONTAINS
     USE HCOX_CH4WetLand_mod,    ONLY : HCOX_CH4Wetland_Run
     USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Run
 #if defined( TOMAS )
-    USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Run
+    USE HCOX_TOMAS_Jeagle_Mod,   ONLY : HCOX_TOMAS_Jeagle_Run
     USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Run
 #endif
 !
@@ -359,6 +360,7 @@ CONTAINS
 !  07 Jul 2014 - R. Yantosca - Now Run GEOS-Chem Rn-Pb-Be emissions module
 !  20 Aug 2014 - M. Sulprizio- Now run GEOS-Chem POPs emissions module
 !  01 Oct 2014 - R. Yantosca - Now run TOMAS sea salt emissions module
+!  01 Nov 2016 - M. Sulprizio- Rename TOMAS sea salt to TOMAS Jeagle (J. Kodros)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -373,16 +375,16 @@ CONTAINS
     !=======================================================================
 
     ! For error handling
-    CALL HCO_ENTER ('HCOX_RUN (hcox_driver_mod.F90)', RC )
+    CALL HCO_ENTER(HcoState%Config%Err,'HCOX_RUN (hcox_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Is it time for emissions?
-    CALL HcoClock_Get ( IsEmisTime=IsEmisTime, RC=RC )
+    CALL HcoClock_Get ( amIRoot, HcoState%Clock, IsEmisTime=IsEmisTime, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Can leave here if it's not time for emissions
     IF ( .NOT. IsEmisTime ) THEN
-       CALL HCO_LEAVE ( RC )
+       CALL HCO_LEAVE( HcoState%Config%Err,RC )
        RETURN
     ENDIF
 
@@ -413,7 +415,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Lightning NOx  
     !-----------------------------------------------------------------------
-    IF ( ExtState%LightNOx ) THEN
+    IF ( ExtState%LightNOx > 0 ) THEN
        CALL HCOX_LightNox_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -421,7 +423,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! SoilNOx  
     !-----------------------------------------------------------------------
-    IF ( ExtState%SoilNOx ) THEN
+    IF ( ExtState%SoilNOx > 0 ) THEN
        CALL HCOX_SoilNox_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -429,7 +431,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Dust emissions (DEAD model) 
     !-----------------------------------------------------------------------
-    IF ( ExtState%DustDead ) THEN
+    IF ( ExtState%DustDead > 0 ) THEN
        CALL HCOX_DustDead_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -461,7 +463,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! MEGAN biogenic emissions 
     !-----------------------------------------------------------------------
-    IF ( ExtState%Megan ) THEN
+    IF ( ExtState%Megan > 0 ) THEN
        CALL HCOX_Megan_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -501,7 +503,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! CH4 wetland emissions 
     !-----------------------------------------------------------------------
-    IF ( ExtState%Wetland_CH4 ) THEN
+    IF ( ExtState%Wetland_CH4 > 0 ) THEN
        CALL HCOX_CH4Wetland_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -510,8 +512,8 @@ CONTAINS
     ! TOMAS sectional sea salt emissions
     !-----------------------------------------------------------------------
 #if defined( TOMAS )
-    IF ( ExtState%TOMAS_SeaSalt ) THEN
-       CALL HCOX_TOMAS_SeaSalt_Run( amIRoot, ExtState, HcoState, RC )
+    IF ( ExtState%TOMAS_Jeagle ) THEN
+       CALL HCOX_TOMAS_Jeagle_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 #endif
@@ -519,7 +521,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! AeroCom volcano emissions 
     !-----------------------------------------------------------------------
-    IF ( ExtState%AeroCom ) THEN
+    IF ( ExtState%AeroCom > 0 ) THEN
        CALL HCOX_AeroCom_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -540,7 +542,7 @@ CONTAINS
     !=======================================================================
     ! Return w/ success 
     !=======================================================================
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_Run
 !EOC
@@ -577,7 +579,7 @@ CONTAINS
     USE HCOX_CH4WetLand_Mod,    ONLY : HCOX_CH4Wetland_Final
     USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Final
 #if defined( TOMAS )
-    USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Final
+    USE HCOX_TOMAS_Jeagle_Mod,   ONLY : HCOX_TOMAS_Jeagle_Final
     USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Final
 #endif
 !
@@ -598,6 +600,7 @@ CONTAINS
 !  01 Oct 2014 - R. Yantosca - Now finalize TOMAS sea salt emissions module
 !  09 Mar 2015 - C. Keller   - Now pass HcoState since it is needed by some
 !                              finalization calls.
+!  01 Nov 2016 - M. Sulprizio- Rename TOMAS sea salt to TOMAS Jeagle (J. Kodros)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -618,23 +621,23 @@ CONTAINS
        IF ( ExtState%Custom        ) CALL HCOX_Custom_Final()
        IF ( ExtState%SeaFlux       ) CALL HCOX_SeaFlux_Final()
        IF ( ExtState%ParaNOx       ) CALL HCOX_PARANOX_Final(am_I_Root,HcoState,RC)
-       IF ( ExtState%LightNOx      ) CALL HCOX_LIGHTNOX_Final()
-       IF ( ExtState%DustDead      ) CALL HCOX_DustDead_Final()
+       IF ( ExtState%LightNOx > 0  ) CALL HCOX_LIGHTNOX_Final( ExtState )
+       IF ( ExtState%DustDead > 0  ) CALL HCOX_DustDead_Final( ExtState )
 #if defined( TOMAS)
-       IF ( ExtState%TOMAS_DustDead )  CALL HCOX_TOMAS_DustDead_Final()
+       IF ( ExtState%TOMAS_DustDead )  CALL HCOX_TOMAS_DustDead_Final(ExtState)
 #endif
        IF ( ExtState%DustGinoux    ) CALL HCOX_DustGinoux_Final()
        IF ( ExtState%SeaSalt       ) CALL HCOX_SeaSalt_Final()
-       IF ( ExtState%Megan         ) CALL HCOX_Megan_Final(am_I_Root,HcoState,RC)
+       IF ( ExtState%Megan  > 0    ) CALL HCOX_Megan_Final(am_I_Root,HcoState,ExtState,RC)
        IF ( ExtState%GFED          ) CALL HCOX_GFED_Final()
-       IF ( ExtState%SoilNOx       ) CALL HCOX_SoilNox_Final(am_I_Root,HcoState,RC)
+       IF ( ExtState%SoilNOx > 0   ) CALL HCOX_SoilNox_Final(am_I_Root,HcoState,ExtState,RC)
        IF ( ExtState%FINN          ) CALL HcoX_FINN_Final
        IF ( ExtState%GC_RnPbBe     ) CALL HCOX_GC_RnPbBe_Final()
        IF ( ExtState%GC_POPs       ) CALL HCOX_GC_POPs_Final()
-       IF ( ExtState%Wetland_CH4   ) CALL HCOX_CH4Wetland_Final()
-       IF ( ExtState%AeroCom       ) CALL HCOX_AeroCom_Final()
+       IF ( ExtState%Wetland_CH4>0 ) CALL HCOX_CH4Wetland_Final( ExtState )
+       IF ( ExtState%AeroCom > 0   ) CALL HCOX_AeroCom_Final( ExtState )
 #if defined( TOMAS )
-       IF ( ExtState%TOMAS_SeaSalt ) CALL HCOX_TOMAS_SeaSalt_Final()
+       IF ( ExtState%TOMAS_Jeagle  ) CALL HCOX_TOMAS_Jeagle_Final()
 #endif       
 
        ! Deallocate ExtState object
@@ -715,38 +718,38 @@ CONTAINS
 
        ALLOCATE( DGN_LAI(I,J), STAT=AS )
        IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR( 'Diagnostics allocation error 1', RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Diagnostics allocation error 1', RC, THISLOC=LOC )
           RETURN
        ENDIF
 !       ALLOCATE( DGN_GWET(I,J), STAT=AS )
 !       IF ( AS /= 0 ) THEN
-!          CALL HCO_ERROR( 'Diagnostics allocation error 1', RC, THISLOC=LOC )
+!          CALL HCO_ERROR( HcoState%Config%Err, 'Diagnostics allocation error 1', RC, THISLOC=LOC )
 !          RETURN
 !       ENDIF
 !       ALLOCATE( DGN_T2M(I,J), DGN_V10M(I,J), DGN_U10M(I,J), STAT=AS )
 !       IF ( AS /= 0 ) THEN
-!          CALL HCO_ERROR( 'Diagnostics allocation error 2', RC, THISLOC=LOC )
+!          CALL HCO_ERROR( HcoState%Config%Err, 'Diagnostics allocation error 2', RC, THISLOC=LOC )
 !          RETURN
 !       ENDIF
 !       ALLOCATE( DGN_PARDR(I,J), DGN_PARDF(I,J), DGN_SZAFACT(I,J), STAT=AS )
 !       IF ( AS /= 0 ) THEN
-!          CALL HCO_ERROR( 'Diagnostics allocation error 3', RC, THISLOC=LOC )
+!          CALL HCO_ERROR( HcoState%Config%Err, 'Diagnostics allocation error 3', RC, THISLOC=LOC )
 !          RETURN
 !       ENDIF
 !       ALLOCATE( DGN_CLDFRC(I,J), DGN_ALBD(I,J), DGN_WLI(I,J), STAT=AS )
 !       IF ( AS /= 0 ) THEN
-!          CALL HCO_ERROR( 'Diagnostics allocation error 4', RC, THISLOC=LOC )
+!          CALL HCO_ERROR( HcoState%Config%Err, 'Diagnostics allocation error 4', RC, THISLOC=LOC )
 !          RETURN
 !       ENDIF
 !       ALLOCATE( DGN_TROPP(I,J), STAT=AS )
 !       IF ( AS /= 0 ) THEN
-!          CALL HCO_ERROR( 'Diagnostics allocation error 5', RC, THISLOC=LOC )
+!          CALL HCO_ERROR( HcoState%Config%Err, 'Diagnostics allocation error 5', RC, THISLOC=LOC )
 !          RETURN
 !       ENDIF
 
        ALLOCATE( DGN_SUNCOS(I,J), DGN_DRYTOTN(I,J), DGN_WETTOTN(I,J), STAT=AS )
        IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR( 'Diagnostics allocation error 6', RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Diagnostics allocation error 6', RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -835,7 +838,6 @@ CONTAINS
 ! !USES:
 !
     USE HCO_DIAGN_MOD, ONLY : Diagn_Create 
-    USE HCO_DIAGN_MOD, ONLY : HcoDiagnIDDefault 
 !
 ! !INPUT PARAMETERS:
 !
@@ -853,7 +855,7 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 
-    CALL Diagn_Create ( am_I_Root,                      &
+    CALL Diagn_Create ( am_I_Root, &
                         HcoState   = HcoState,          & 
                         cName      = TRIM(DgnName),     &
                         ExtNr      = -1,                &
@@ -864,7 +866,7 @@ CONTAINS
                         OutUnit    = '1',               &
                         AutoFill   = 0,                 &
                         Trgt2D     = Trgt2D,            &
-                        COL        = HcoDiagnIDDefault, &
+                        COL = HcoState%Diagn%HcoDiagnIDDefault, &
                         RC         = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

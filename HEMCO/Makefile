@@ -37,6 +37,7 @@ DOC  :=$(ROOT)/doc
 HCO  :=$(SRC)/Core
 HCOI :=$(SRC)/Interfaces
 HCOX :=$(SRC)/Extensions
+HCOR :=$(SRC)/StandAlone_Run
 HELP :=$(ROOT)/Help
 LIB  :=$(ROOT)/lib
 MOD  :=$(ROOT)/mod
@@ -103,6 +104,7 @@ debug:
 	@echo "HCO        : $(HCO)"
 	@echo "HCOI       : $(HCOI)"
 	@echo "HCOX       : $(HCOX)"
+	@echo "HCOR       : $(HCOR)"
 	@echo "HELP       : $(HELP)"
 	@echo "DOC        : $(DOC)"
 	@echo "LIB        : $(LIB)"
@@ -129,6 +131,3 @@ debug:
 help:
 	@$(MAKE) -C $(HELP) help
 #EOC
-
-
-

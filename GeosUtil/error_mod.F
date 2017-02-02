@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: error_mod
+! !MODULE: error_mod.F90
 !
 ! !DESCRIPTION: Module ERROR\_MOD contains error checking routines.
 !\\
@@ -14,10 +14,9 @@
 ! 
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -30,7 +29,7 @@
       PUBLIC  :: ALLOC_ERR
       PUBLIC  :: CHECK_VALUE
       PUBLIC  :: DEBUG_MSG
-      PUBLIC  :: GIGC_ERROR
+      PUBLIC  :: GC_ERROR
       PUBLIC  :: ERROR_STOP
       PUBLIC  :: GEOS_CHEM_STOP
       PUBLIC  :: IS_SAFE_DIV
@@ -43,6 +42,9 @@
       PUBLIC  :: SAFE_LOG10
       PUBLIC  :: INIT_ERROR
       PUBLIC  :: CLEANUP_ERROR
+      PUBLIC  :: PRINT_GLOBAL_SPECIES_KG
+      PUBLIC  :: CHECK_SPC
+      PUBLIC  :: CHECK_SPC_NESTED
 
       ! Interface for NaN-check routines
       INTERFACE IT_IS_NAN
@@ -135,6 +137,9 @@
 !  13 Aug 2015 - E. Lundgren - Add GIGC_ERROR which sets RC to GIGC_FAILURE
 !                              and print msg and location to log
 !  22 Jan 2016 - R. Yantosca - Remove SPARC, IBM #ifdefs
+!  17 Aug 2016 - M. Sulprizio- Move CHECK_SPC and CHECK_SPC_NESTED here from
+!                              obsolete tracer_mod.F
+!  16 Sep 2016 - E. Lundgren - Add routine to print global species mass to log
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -151,7 +156,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nan_float
+! !IROUTINE: Nan_Float
 !
 ! !DESCRIPTION: Function NAN\_FLOAT returns TRUE if a REAL*4 number is equal 
 !  to the IEEE NaN (Not-a-Number) flag.  Returns FALSE otherwise.
@@ -198,7 +203,7 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( LINUX_IFORT )
+#if defined( LINUX_IFORT ) || defined( LINUX_GFORTRAN )
       IT_IS_A_NAN = ISNAN( VALUE )    
 #elif defined( LINUX_PGI )
       IT_IS_A_NAN = IEEE_IS_NAN( VALUE )
@@ -212,7 +217,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nan_dble
+! !IROUTINE: Nan_Dble
 !
 ! !DESCRIPTION: Function NAN\_DBLE returns TRUE if a REAL(fp) number is equal 
 !  to the IEEE NaN (Not-a-Number) flag.  Returns FALSE otherwise.
@@ -259,7 +264,7 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-#if defined( LINUX_IFORT )
+#if defined( LINUX_IFORT ) || defined( LINUX_GFORTRAN )
       IT_IS_A_NAN = ISNAN( VALUE )      
 #elif defined( LINUX_PGI )
       IT_IS_A_NAN = IEEE_IS_NAN( VALUE )
@@ -273,7 +278,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: finite_float
+! !IROUTINE: Finite_Float
 !
 ! !DESCRIPTION: Function FINITE\_FLOAT returns FALSE if a REAL*4 number is 
 !  equal to the IEEE Infinity flag.  Returns TRUE otherwise.
@@ -322,7 +327,13 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( LINUX_IFORT )
+#if   defined( LINUX_GFORTRAN )
+
+      IT_IS_A_FINITE = ((.not.ISNAN(VALUE)) .and. 
+     &                  (VALUE.lt.HUGE(1.0e0)) .and.
+     &                  (VALUE.gt.(-1.0e0*HUGE(1.0e0))))
+
+#elif defined( LINUX_IFORT )
 
       ! Local variables (parameters copied from "fordef.for")
       INTEGER, PARAMETER :: SNAN=0, QNAN=1, POS_INF=2, NEG_INF=3
@@ -336,7 +347,7 @@
       IT_IS_A_FINITE = ( FPC /= POS_INF .and. FPC /= NEG_INF .and. 
      &                   FPC /= SNAN    .and. FPC /= QNAN          )
 
-#elif  defined( LINUX_PGI )
+#elif defined( LINUX_PGI )
 
       ! PGI compiler
       IT_IS_A_FINITE = IEEE_IS_FINITE( VALUE )
@@ -351,7 +362,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: finite_dble
+! !IROUTINE: Finite_Dble
 !
 ! !DESCRIPTION: Function FINITE\_FLOAT returns FALSE if a REAL(fp) number is 
 !  equal to the IEEE Infinity flag.  Returns TRUE otherwise.
@@ -399,7 +410,13 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( LINUX_IFORT )
+#if   defined( LINUX_GFORTRAN )
+
+      IT_IS_A_FINITE = ((.not.ISNAN(VALUE)) .and. 
+     &                  (VALUE.lt.HUGE(1.d0)) .and.
+     &                  (VALUE.gt.(-1.0d0*HUGE(1.d0))))
+
+#elif defined( LINUX_IFORT )
 
       ! Local variables (parameters copied from "fordef.for")
       INTEGER, PARAMETER :: SNAN=0, QNAN=1, POS_INF=2, NEG_INF=3
@@ -428,7 +445,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: check_real_value
+! !IROUTINE: Check_Real_Value
 !
 ! !DESCRIPTION: Subroutine CHECK\_REAL\_VALUE checks to make sure a REAL*4 
 !  value is not NaN or Infinity. This is a wrapper for the interfaces
@@ -489,7 +506,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: check_dble_value
+! !IROUTINE: Check_Dble_Value
 !
 ! !DESCRIPTION: Subroutine CHECK\_DBLE\_VALUE checks to make sure a REAL*4 
 !  value is not NaN or Infinity. This is a wrapper for the interfaces
@@ -550,16 +567,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GIGC_Error
+! !IROUTINE: GC_Error
 !
-! !DESCRIPTION: Subroutine GIGC\_Error prints an error message and sets RC to 
-! GIGC\_FAILURE. Note that this routine does not stop a run, but it will cause 
-! a stop at a higher level if you add a catch for RC /= GIGC_SUCCESS. 
+! !DESCRIPTION: Subroutine GC\_Error prints an error message and sets RC to 
+!  GC\_FAILURE. Note that this routine does not stop a run, but it will cause 
+!  a stop at a higher level if you add a catch for RC /= GC\_SUCCESS. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GIGC_Error( ErrMsg, RC, ThisLoc )
+      SUBROUTINE GC_Error( ErrMsg, RC, ThisLoc )
 !
 ! !INPUT PARAMETERS:
 !
@@ -572,13 +589,14 @@
 !
 ! !REVISION HISTORY:
 !  13 Aug 2015 - E. Lundgren - Initial version, based on C. Keller's HCO_ERROR
+!  16 Aug 2016 - M. Sulprizio- Rename from GIGC_ERROR to GC_ERROR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CHARACTER(LEN=255) :: MSG
 
       !======================================================================
-      ! GIGC_ERROR begins here 
+      ! GC_ERROR begins here 
       !======================================================================
 
       ! Print error message to log
@@ -592,16 +610,16 @@
       ENDIF
       
       ! Return with error
-      RC = GIGC_FAILURE 
+      RC = GC_FAILURE 
 
-      END SUBROUTINE GIGC_Error
+      END SUBROUTINE GC_Error
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: error_stop
+! !IROUTINE: Error_Stop
 !
 ! !DESCRIPTION: Subroutine ERROR\_STOP is a wrapper for GEOS\_CHEM\_STOP.  It 
 !  prints an error message then calls GEOS\_CHEM\_STOP to free memory and quit.
@@ -609,25 +627,37 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE ERROR_STOP( MESSAGE, LOCATION )
+      SUBROUTINE ERROR_STOP( MESSAGE, LOCATION, INSTRUCTIONS )
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE    ! Error msg to print
-      CHARACTER(LEN=*), INTENT(IN) :: LOCATION   ! Where ERROR_STOP is called
+      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Error msg to print
+      CHARACTER(LEN=*), INTENT(IN) :: LOCATION     ! Where ERROR_STOP is called
+      CHARACTER(LEN=*), OPTIONAL   :: INSTRUCTIONS ! Further instructions 
 !
 ! !REVISION HISTORY:
 !  15 Oct 2002 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  06 Jan 2017 - R. Yantosca - Added optional INSTRUCTIONS argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
 !$OMP CRITICAL
 
-      ! Write msg
+      ! Write the error message
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, '(a)' ) 'GEOS-CHEM ERROR: ' // TRIM( MESSAGE )
+
+      ! If the optional INSTRUCTIONS argument is passed, then print it to
+      ! the stdout stream.  This is useful for instructing the user to
+      ! look for the error in another location (e.g. the HEMCO log file).
+      IF ( PRESENT( INSTRUCTIONS ) ) THEN
+         WRITE( 6, 100 ) TRIM( INSTRUCTIONS )
+ 100     FORMAT( /, a, / )
+      ENDIF
+
+      ! Write the location of the error
       WRITE( 6, '(a)' ) 'STOP at '          // TRIM( LOCATION )
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
@@ -644,7 +674,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: geos_chem_stop
+! !IROUTINE: Geos_Chem_Stop
 !
 ! !DESCRIPTION: Subroutine GEOS\_CHEM\_STOP calls CLEANUP to deallocate all 
 !  module arrays and then stops the run.
@@ -656,8 +686,8 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE GEOS_TIMERS_MOD
 #if defined( ESMF_ )
       !-----------------------------------------------------------------
@@ -690,7 +720,6 @@
       LOGICAL :: am_I_Root   ! Is this the root CPU? 
 
 #if defined( ESMF_ )
-
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
@@ -707,8 +736,6 @@
       CALL GEOS_Timer_PrintAll( am_I_Root, RC )  
 #endif
 
-      STATUS = -1
-      VERIFY_(STATUS)
 
 #else
       ! Only write to stdout if we are on the root CPU
@@ -745,7 +772,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: alloc_err
+! !IROUTINE: Alloc_Err
 !
 ! !DESCRIPTION: Subroutine ALLOC\_ERR prints an error message if there is not 
 !  enough memory to allocate a particular allocatable array.
@@ -823,7 +850,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: debug_msg
+! !IROUTINE: Debug_Msg
 !
 ! !DESCRIPTION: Subroutine DEBUG\_MSG prints a message to the stdout buffer 
 !  and flushes.  This is useful for determining the exact location where 
@@ -866,7 +893,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: safe_div
+! !IROUTINE: Safe_Div
 !
 ! !DESCRIPTION: Function SAFE\_DIV performs "safe division", that is to 
 !  prevent overflow, underlow, NaN, or infinity errors.  An alternate value 
@@ -954,7 +981,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: is_safe_div_r4
+! !IROUTINE: Is_Safe_Div_r4
 !
 ! !DESCRIPTION: Function IS\_SAFE\_DIV tests for "safe division", that is 
 !  check if the division will overflow/underflow or hold NaN.  .FALSE. is 
@@ -1024,7 +1051,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: is_safe_div_r8
+! !IROUTINE: Is_Safe_Div_r8
 !
 ! !DESCRIPTION: Function IS\_SAFE\_DIV tests for "safe division", that is 
 !  check if the division will overflow/underflow or hold NaN.  .FALSE. is 
@@ -1094,7 +1121,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: safe_exp
+! !IROUTINE: Safe_Exp
 !
 ! !DESCRIPTION: Function SAFE\_EXP performs a "safe exponential", that is to 
 !  prevent overflow, underlow, NaN, or infinity errors when taking the
@@ -1133,7 +1160,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: is_safe_exp
+! !IROUTINE: Is_Safe_Exp
 !
 ! !DESCRIPTION: Function IS\_SAFE\_EXP returns TRUE if it is safe to take
 !  the value EXP( x ) without encountering a floating point exception.  FALSE
@@ -1185,7 +1212,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: safe_log
+! !IROUTINE: Safe_Log
 !
 ! !DESCRIPTION: Function SAFE\_LOG performs a "safe natural logarithm", that 
 !  is to prevent overflow, underlow, NaN, or infinity errors when taking the
@@ -1227,7 +1254,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: safe_log10
+! !IROUTINE: Safe_Log10
 !
 ! !DESCRIPTION: Function SAFE\_LOG10 performs a "safe log10", that 
 !  is to prevent overflow, underlow, NaN, or infinity errors when taking the
@@ -1269,7 +1296,265 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_error
+! !IROUTINE: Check_Spc
+!
+! !DESCRIPTION: Subroutine CHECK\_SPC checks the species array for negative
+!  values, NaN values, or Infinity values.  If any of these are found, the code
+!  will stop with an error message.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHECK_SPC( State_Chm, Input_Opt, LOCATION )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN) :: LOCATION
+      TYPE(ChmState),   INTENT(IN) :: State_Chm   ! Chemistry State object
+      TYPE(OptInput),   INTENT(IN) :: Input_Opt   ! Input Options object
+! 
+! !REVISION HISTORY:
+!  (1 ) CHECK_STT uses the interfaces defined above -- these will do the
+!        proper error checking for either SGI or DEC/Compaq platforms.
+!        (bmy, 3/8/01)
+!  (2 ) Now call GEOS_CHEM_STOP to shutdown safely.  Now use logicals LNAN,
+!        LNEG, LINF to flag if we have error conditions, and then stop the
+!        run outside of the parallel DO-loop. (bmy, 11/27/02)
+!  (3 ) Bug fix in FORMAT statement: replace missing commas (bmy, 3/23/03)
+!  (4 ) Moved from "error_mod.f" to "tracer_mod.f" (bmy, 7/15/04)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  17 Aug 2016 - M. Sulprizio- Rename from CHECK_STT to CHECK_SPC and
+!                              move from tracer_mod.F to error_mod.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL           :: LNEG, LNAN, LINF
+      INTEGER           :: I,    J,    L,   N,  NA
+      
+      ! Pointers
+      REAL(fp), POINTER :: Spc(:,:,:,:)
+
+      !=================================================================
+      ! CHECK_SPC begins here!
+      !=================================================================
+
+      ! Point to GEOS-Chem species [kg/kg]
+      Spc => State_Chm%Species
+
+      ! Initialize
+      LNEG = .FALSE.
+      LNAN = .FALSE.
+      LINF = .FALSE.
+
+      ! Loop over the advected species
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, NA )
+      DO NA = 1, State_Chm%nAdvect
+         
+         ! Advected species ID
+         N = State_Chm%Map_Advect(NA)
+
+         ! Loop over grid boxes
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            !---------------------------
+            ! Check for Negatives
+            !---------------------------
+            Spc(I,J,L,N) = ABS(Spc(I,J,L,N))
+            IF ( Spc(I,J,L,N) < 0e+0_fp ) THEN 
+!$OMP CRITICAL
+               LNEG = .TRUE.
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+               PRINT*, Spc(I,J,L,N)
+!$OMP END CRITICAL
+
+            !---------------------------
+            ! Check for NaN's
+            !---------------------------
+            ELSE IF ( IT_IS_NAN( Spc(I,J,L,N) ) ) THEN
+!$OMP CRITICAL
+               LNAN = .TRUE.
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+!$OMP END CRITICAL
+
+            !----------------------------
+            ! Check Spc's for Infinities
+            !----------------------------
+            ELSE IF ( .not. IT_IS_FINITE( Spc(I,J,L,N) ) ) THEN
+!$OMP CRITICAL
+               LINF = .TRUE.
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+!$OMP END CRITICAL            
+
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Free pointer
+      Spc => NULL()
+
+      !=================================================================
+      ! Stop the run if any of LNEG, LNAN, LINF is true
+      !=================================================================
+      IF ( LNEG .or. LNAN .or. LINF ) THEN
+         WRITE( 6, 120 ) TRIM( LOCATION ), LNEG, LNAN, LINF
+         CALL GEOS_CHEM_STOP
+      ENDIF
+
+      !=================================================================
+      ! FORMAT statements
+      !=================================================================
+ 100  FORMAT( 'CHECK_SPC: SPC(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
+ 120  FORMAT( 'CHECK_SPC: STOP at ', a , 3L2 )
+
+      END SUBROUTINE CHECK_SPC
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Check_Spc_Nested
+!
+! !DESCRIPTION: Subroutine CHECK\_SPC\_NESTED checks the species array for
+!  negative values, NaN values, or Infinity values.  If any of these are found,
+!  the species will be set to a specified value.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHECK_SPC_NESTED( State_Chm, Input_Opt, LOCATION )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE State_Chm_Mod, ONLY : ChmState
+      USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN)    :: LOCATION
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !REVISION HISTORY:
+!  05 Mar 2012 - M. Payer    - Initial version based on CHECK_STT and updates
+!                              for nested grid by Yuxuan Wang.
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!  26 Oct 2015 - M. Sulprizio- Rename from CHECK_STT_05x0666 to CHECK_STT_NESTED
+!                              for use with all nested grids
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  17 Aug 2016 - M. Sulprizio- Rename from CHECK_STT_NESTED to CHECK_SPC_NESTED
+!                              and move from tracer_mod.F to error_mod.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: I, J, L, N, NA
+      
+      ! Pointers
+      REAL(fp), POINTER :: Spc(:,:,:,:)
+
+      !=================================================================
+      ! CHECK_SPC_NESTED begins here!
+      !=================================================================
+
+      ! Point to chemical species array [kg/kg]
+      Spc => State_Chm%Species
+
+      ! Loop over advected species
+      ! Loop over grid boxes
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, NA )
+      DO NA = 1, State_Chm%nAdvect
+
+         ! Advected species ID
+         N = State_Chm%Map_Advect(NA)
+
+         ! Loop over grid boxes
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            !---------------------------
+            ! Check for Negatives
+            !---------------------------
+            IF ( Spc(I,J,L,N) < 0e+0_fp ) THEN 
+!$OMP CRITICAL
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+               PRINT*, 'Neg Spc ' // TRIM( LOCATION ) //
+     &                 '. SET Spc TO BE ZERO.'
+               Spc(I,J,L,N) = 0e+0_fp
+!$OMP END CRITICAL
+
+            !---------------------------
+            ! Check for NaN's
+            !---------------------------
+            ELSE IF ( IT_IS_NAN( Spc(I,J,L,N) ) ) THEN 
+!$OMP CRITICAL
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+               PRINT*, 'NaN Spc ' // TRIM( LOCATION ) //
+     &              '. SET Spc TO BE LOWER LEVEL.'
+               Spc(I,J,L,N) = Spc(I,J,L-1,N)
+!$OMP END CRITICAL
+
+            !----------------------------
+            ! Check Spc's for Infinities
+            !----------------------------
+            ELSE IF ( .not. IT_IS_FINITE( Spc(I,J,L,N) ) ) THEN
+!$OMP CRITICAL
+               WRITE( 6, 100 ) I, J, L, N, Spc(I,J,L,N)
+               PRINT*, 'Inf Spc ' // TRIM( LOCATION ) //
+     &                 '. SET Spc TO BE LOWER LEVEL.'
+               Spc(I,J,L,N) =  Spc(I,J,L-1,N)
+!$OMP END CRITICAL
+
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Free pointer
+      Spc => NULL()
+
+ 100  FORMAT( ' Spc(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
+
+      END SUBROUTINE CHECK_SPC_NESTED
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_Error
 !
 ! !DESCRIPTION: Subroutine INIT\_ERROR stores shadow copies of am\_I\_Root
 !  and Input\_Opt.  We need store shadow copies of these variables within
@@ -1303,7 +1588,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Assume success
-      RC               =  GIGC_SUCCESS
+      RC               =  GC_SUCCESS
 
       ! Store a shadow copy of am_I_Root
       SHADOW_am_I_Root =  am_I_Root
@@ -1318,7 +1603,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_error
+! !IROUTINE: Cleanup_Error
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_ERROR finalizes all module variables.
 !\\
@@ -1336,5 +1621,74 @@
       NULLIFY( SHADOW_Input_Opt )
 
       END SUBROUTINE CLEANUP_ERROR
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Print_Global_Species_Kg
+!
+! !DESCRIPTION: Subroutine Print\_Global\_Species\_Kg sums up the total 
+!   global species mass for species \#1 and prints it to log along with
+!   a user-defined location
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Print_Global_Species_Kg( State_Chm, State_Met, LOC )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE State_Chm_Mod, ONLY : ChmState
+      USE State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN)    :: LOC
+      TYPE(ChmState),   INTENT(IN)    :: State_Chm 
+      TYPE(MetState),   INTENT(IN)    :: State_Met 
+! 
+! !REMARKS:
+!  This routine is for debugging purposes to trace where species
+!  mass is not conserved 
+!
+! !REVISION HISTORY: 
+!  22 Jun 2016 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!     
+      INTEGER      :: I, J, L
+      REAL(fp)     :: Species_Kg(IIPAR,JJPAR,LLPAR)
+      REAL(fp)     :: Sum_Species_Kg
+
+      !================================================================
+      ! Print_Global_Species_Kg begins here!
+      !================================================================
+      PRINT *, " "
+      PRINT *, TRIM( LOC )
+      Sum_Species_Kg = 0.e+0_fp
+      Species_Kg      = 0.e+0_fp
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         Species_Kg(I,J,L) =
+     &            State_Chm%Species(I,J,L,1) * State_Met%AD(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      Sum_Species_Kg = SUM( Species_Kg(:,:,:) )
+      PRINT *, "Global species Kg: ", Sum_Species_Kg      
+      PRINT *, " "
+
+      END SUBROUTINE Print_Global_Species_Kg
 !EOC
       END MODULE ERROR_MOD

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: cleanup
+! !MODULE: cleanup.F
 !
 ! !DESCRIPTION: Subroutine CLEANUP deallocates the memory assigned to 
 !  dynamically allocatable arrays just before exiting a GEOS-Chem simulation.
@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP( am_I_Root, Input_Opt, ERROR, RC )
+      SUBROUTINE CLEANUP( am_I_Root, ERROR, RC )
 !
 ! !USES:
 !
@@ -20,25 +20,28 @@
       USE CARBON_MOD,              ONLY : CLEANUP_CARBON
       USE CHEMGRID_MOD,            ONLY : CLEANUP_CHEMGRID
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
-      USE COMODE_MOD,              ONLY : CLEANUP_COMODE
-      USE GCKPP_COMODE_MOD,        ONLY : CLEANUP_GCKPP_COMODE
+      USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
+      USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
+      USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
       USE DIAG04_MOD,              ONLY : CLEANUP_DIAG04
+      USE DIAG20_MOD,              ONLY : CLEANUP_DIAG20
       USE DIAG41_MOD,              ONLY : CLEANUP_DIAG41
       USE DIAG50_MOD,              ONLY : CLEANUP_DIAG50
       USE DIAG51_MOD,              ONLY : CLEANUP_DIAG51
       USE DIAG53_MOD,              ONLY : CLEANUP_DIAG53 !(clf, 3/11/11)
       USE DIAG_OH_MOD,             ONLY : CLEANUP_DIAG_OH
-      USE DIAG_PL_MOD,             ONLY : CLEANUP_DIAG_PL
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
       USE DUST_MOD,                ONLY : CLEANUP_DUST
       USE ERROR_MOD,               ONLY : DEBUG_MSG
+      USE FLEXCHEM_MOD,            ONLY : CLEANUP_FLEXCHEM
       USE GEOSFP_READ_MOD,         ONLY : CLEANUP_GEOSFP_READ
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
-      USE GRID_MOD,                ONLY : CLEANUP_GRID
+      USE GC_GRID_MOD,             ONLY : CLEANUP_GRID
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
+      USE Input_Opt_Mod,           ONLY : OptInput
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
@@ -51,6 +54,7 @@
       USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
       USE PRESSURE_MOD,            ONLY : CLEANUP_PRESSURE
+      USE Regrid_A2A_Mod,          ONLY : Cleanup_Map_A2a
       USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
       USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
       USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
@@ -61,23 +65,14 @@
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_WINDOW_MOD,       ONLY : EXIT_TPCORE_WINDOW
-      USE UCX_MOD,                 ONLY : CLEANUP_UCX
-      USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
-#if   defined( APM )
-      USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
-#endif
-
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
-      USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
-      USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
-      USE COMODE_LOOP_Mod,         ONLY : Cleanup_COMODE_LOOP
+      USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
-      USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
-      USE GIGC_Input_Opt_Mod,      ONLY : OptInput
-      USE Regrid_A2A_Mod,          ONLY : Cleanup_Map_A2a
-      
+      USE PASSIVE_TRACEr_MOD,      ONLY : Cleanup_Passive_Tracer
+      USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
+
       ! HEMCO
 !#if !defined(ESMF_) 
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
@@ -100,7 +95,6 @@
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object 
       LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error? 
 !
 ! !OUTPUT PARAMETERS:
@@ -247,6 +241,11 @@
 !  16 Mar 2015 - R. Yantosca - Remove call to CLEANUP_HCN_CH3CN
 !  25 Mar 2015 - C. Keller   - Now cleanup UCX before emissisions.
 !  16 Apr 2015 - R. Yantosca - Remove call to CLEANUP_DAO; it's obsolete
+!  24 Mar 2016 - C. Keller   - Remove input arg Input_Opt; this is cleaned
+!                              up before routine CLEANUP is called.
+!  18 May 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE; it's obsolete
+!  30 Jun 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE_LOOP; it's obsolete
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -255,7 +254,9 @@
       !=================================================================
 
       ! Echo info
-      WRITE( 6, 100 ) 
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) 
+      ENDIF
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
       ! UCX needs to be cleaned up before emissions, because the UCX 
@@ -265,13 +266,14 @@
 
 #if defined( NC_DIAG )
       ! Cleanup the netCDF diagnostics structure
-      CALL DIAGNOSTICS_FINAL( am_I_Root, Input_Opt, RC )
+      ! Input_Opt is cleaned up before CLEANUP. Remove as argument.
+      ! (ckeller, 3/28/16)
+      !!!CALL DIAGNOSTICS_FINAL( am_I_Root, Input_Opt, RC )
+      CALL DIAGNOSTICS_FINAL( am_I_Root, RC )
 #endif
 
       ! Cleanup HEMCO
-      IF ( Input_Opt%LEMIS ) THEN
-         CALL EMISSIONS_FINAL ( am_I_Root, ERROR )
-      ENDIF
+      CALL EMISSIONS_FINAL ( am_I_Root, ERROR )
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_AEROSOL()
@@ -279,19 +281,18 @@
       CALL CLEANUP_CARBON()
       CALL CLEANUP_CHEMGRID()
       CALL CLEANUP_CO2()
-      CALL CLEANUP_COMODE()
-      CALL CLEANUP_GCKPP_COMODE()
       CALL CLEANUP_DIAG()
       CALL CLEANUP_DIAG03()
       CALL CLEANUP_DIAG04()
+      CALL CLEANUP_DIAG20()
       CALL CLEANUP_DIAG41()
       CALL CLEANUP_DIAG50()
       CALL CLEANUP_DIAG51()
       CALL CLEANUP_DIAG53()
       CALL CLEANUP_DIAG_OH()
-      CALL CLEANUP_DIAG_PL()
       CALL CLEANUP_DRYDEP()
       CALL CLEANUP_DUST()
+      CALL CLEANUP_FLEXCHEM()
       CALL CLEANUP_GLOBAL_CH4()
       CALL CLEANUP_GRID()
       CALL CLEANUP_HDF()
@@ -317,10 +318,6 @@
       CALL CLEANUP_TOMS()
       CALL CLEANUP_WETSCAV()
 
-#if   defined( APM )
-      CALL CLEANUP_WETSCAVBIN()  ! Cleanup arrays for APM wet scavenging
-#endif
-
 #if   defined( TOMAS )
       CALL CLEANUP_TOMAS()
 #endif
@@ -341,7 +338,6 @@
       CALL Cleanup_CMN_O3     ( am_I_Root, RC )
       CALL Cleanup_CMN_SIZE   ( am_I_Root, RC )
       CALL Cleanup_Get_Ndep   ( am_I_Root, RC )
-      CALL Cleanup_COMODE_LOOP( am_I_Root, RC )
       CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
       CALL Cleanup_CMN_FJX    ( am_I_Root, RC )
 

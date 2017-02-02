@@ -23,9 +23,9 @@ MODULE HCO_Interp_Mod
 !
 ! !USES:
 !
+  USE HCO_Types_Mod
   USE HCO_Error_Mod
   USE HCO_State_Mod,       ONLY : Hco_State
-  USE HCO_DataCont_Mod,    ONLY : ListCont
 
   IMPLICIT NONE
   PRIVATE
@@ -141,6 +141,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Feb 2015 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -149,16 +150,16 @@ CONTAINS
 !
     INTEGER                 :: nLonEdge, nLatEdge
     INTEGER                 :: NX, NY, NZ, NLEV, NTIME, NCELLS
-    INTEGER                 :: I, J, L, T, AS
+    INTEGER                 :: I, J, L, T, AS, I2
     INTEGER                 :: nIndex
     REAL(sp), ALLOCATABLE   :: LonEdgeI(:)
     REAL(sp), ALLOCATABLE   :: LatEdgeI(:)
     REAL(sp)                :: LonEdgeO(HcoState%NX+1)
     REAL(sp)                :: LatEdgeO(HcoState%NY+1)
 
-    REAL(sp), POINTER       :: ORIG_2D(:,:)     => NULL()
-    REAL(sp), POINTER       :: REGR_2D(:,:)     => NULL()
-    REAL(sp), POINTER       :: REGR_4D(:,:,:,:) => NULL()
+    REAL(sp), POINTER       :: ORIG_2D(:,:)
+    REAL(sp), POINTER       :: REGR_2D(:,:)
+    REAL(sp), POINTER       :: REGR_4D(:,:,:,:)
 
     REAL(sp), ALLOCATABLE, TARGET :: FRACS(:,:,:,:)
     REAL(hp), ALLOCATABLE         :: REGFRACS(:,:,:,:) 
@@ -176,8 +177,13 @@ CONTAINS
     ! REGRID_MAPA2A begins here
     !=================================================================
 
+    ! Init
+    ORIG_2D => NULL()
+    REGR_2D => NULL()
+    REGR_4D => NULL()
+
     ! Check for verbose mode
-    verb = HCO_IsVerb( 3 )
+    verb = HCO_IsVerb(HcoState%Config%Err,  3 )
 
     ! get longitude / latitude sizes
     nLonEdge = SIZE(LonE,1)
@@ -284,9 +290,9 @@ CONTAINS
        ! Verbose mode
        IF ( verb ) THEN
           MSG = 'Do index based regridding for field ' // TRIM(Lct%Dct%cName)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) '   - Number of indeces: ', NINDEX
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
     ELSE
@@ -300,7 +306,8 @@ CONTAINS
 
     ! 2D data is directly passed to the data container 
     IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
-       CALL FileData_ArrCheck( Lct%Dct%Dta, HcoState%NX, HcoState%NY, NTIME, RC ) 
+       CALL FileData_ArrCheck( HcoState%Config, Lct%Dct%Dta, &
+                               HcoState%NX, HcoState%NY, NTIME, RC ) 
        IF ( RC /= 0 ) RETURN
     ENDIF
    
@@ -385,10 +392,29 @@ CONTAINS
           ENDIF
 
           ! REGR_4D are the remapped fractions.
-          WHERE ( REGFRACS > MAXFRACS ) 
-             MAXFRACS = REGR_4D
-             INDECES  = IVAL
-          END WHERE 
+          DO T  = 1, NTIME
+          DO L  = 1, NLEV
+          DO J  = 1, HcoState%NY
+          DO I2 = 1, HcoState%NX
+             IF ( REGFRACS(I2,J,L,T) > MAXFRACS(I2,J,L,T) ) THEN
+                MAXFRACS(I2,J,L,T) = REGR_4D(I2,J,L,T)
+                INDECES (I2,J,L,T) = IVAL
+             ENDIf
+          ENDDO
+          ENDDO
+          ENDDO
+          ENDDO
+
+!------------------------------------------------------------------------------
+! Prior to 9/29/16:
+!          ! This code is preblematic in Gfortran.  Replace it with the
+!          ! explicit DO loops above.  Leave this here for reference.
+!          ! (sde, bmy, 9/21/16)
+!          WHERE ( REGFRACS > MAXFRACS ) 
+!             MAXFRACS = REGR_4D
+!             INDECES  = IVAL
+!          END WHERE 
+!------------------------------------------------------------------------------
        ENDIF
 
     ENDDO !I
@@ -617,14 +643,15 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER ('ModelLev_Interpolate (hco_interp_mod.F90)' , RC )
+    CALL HCO_ENTER (HcoState%Config%Err,&
+                   'ModelLev_Interpolate (hco_interp_mod.F90)' , RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check for verbose mode
-    verb = HCO_IsVerb( 3 ) 
+    verb = HCO_IsVerb(HcoState%Config%Err,  3 ) 
     IF ( verb ) THEN
        MSG = 'Vertically interpolate model levels: '//TRIM(Lct%Dct%cName)
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
 
     ! Get HEMCO grid dimensions
@@ -640,13 +667,13 @@ CONTAINS
     IF ( SIZE(REGR_4D,1) /= nx ) THEN
        WRITE(MSG,*) 'x dimension mismatch ', TRIM(Lct%Dct%cName), &
           ': ', nx, SIZE(REGR_4D,1)
-       CALL HCO_ERROR( MSG, RC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
        RETURN
     ENDIF
     IF ( SIZE(REGR_4D,2) /= ny ) THEN
        WRITE(MSG,*) 'y dimension mismatch ', TRIM(Lct%Dct%cName), &
           ': ', ny, SIZE(REGR_4D,2)
-       CALL HCO_ERROR( MSG, RC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
        RETURN
     ENDIF
 
@@ -664,7 +691,7 @@ CONTAINS
     !===================================================================
     IF ( ( nlev == nz ) .OR. ( nlev == nz+1 ) ) THEN
 
-       CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nlev, nt, RC )
+       CALL FileData_ArrCheck( HcoState%Config, Lct%Dct%Dta, nx, ny, nlev, nt, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        DO T = 1, nt
@@ -672,9 +699,9 @@ CONTAINS
        ENDDO
 
        ! Verbose
-       IF ( HCO_IsVerb(3) ) THEN
+       IF ( HCO_IsVerb(HcoState%Config%Err, 3) ) THEN
           MSG = '# of input levels = # of output levels - passed as is.'
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
        ! Done!
@@ -753,12 +780,12 @@ CONTAINS
           ELSE
              WRITE(MSG,*) 'Cannot remap onto native GEOS-4 grid: ', &
                 TRIM(Lct%Dct%cName), ' - No. of input data levels: ', nlev
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
 
           ! Make sure output array is allocated
-          CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nout, nt, RC )
+          CALL FileData_ArrCheck( HcoState%Config, Lct%Dct%Dta, nx, ny, nout, nt, RC )
 
           ! Do for every time slice
           DO T = 1, nt
@@ -772,7 +799,7 @@ CONTAINS
              ! For GEOS-5 to GEOS-4 conversion, need to remap lowest
              ! 29 GEOS-5 levels onto lowest 12 GEOS-4 levels.
              ELSE
-                CALL GEOS5_TO_GEOS4_LOWLEV( Lct, REGR_4D, G5T4, T, RC )
+                CALL GEOS5_TO_GEOS4_LOWLEV( HcoState, Lct, REGR_4D, G5T4, T, RC )
                 IF ( RC /= HCO_SUCCESS ) RETURN
              ENDIF
 
@@ -858,9 +885,9 @@ CONTAINS
           ENDDO !T
 
           ! Verbose
-          IF ( HCO_IsVerb(3) ) THEN
+          IF ( HCO_IsVerb(HcoState%Config%Err, 3) ) THEN
              WRITE(MSG,*) 'Mapped ', nlev, ' levels onto native GEOS-4 levels.'
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
 
           ! Done!
@@ -924,12 +951,12 @@ CONTAINS
           ELSE
              WRITE(MSG,*) 'Cannot remap onto reduced GEOS-4 grid: ', &
                 TRIM(Lct%Dct%cName), ' - No. of input data levels: ', nlev
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
 
           ! Make sure output array is allocated
-          CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nout, nt, RC )
+          CALL FileData_ArrCheck( HcoState%Config, Lct%Dct%Dta, nx, ny, nout, nt, RC )
 
           ! Do for every time slice
           DO T = 1, nt
@@ -943,7 +970,7 @@ CONTAINS
              ! For GEOS-5 to GEOS-4 conversion, need to remap lowest
              ! 29 GEOS-5 levels onto lowest 12 GEOS-4 levels.
              ELSE
-                CALL GEOS5_TO_GEOS4_LOWLEV( Lct, REGR_4D, G5T4, T, RC )
+                CALL GEOS5_TO_GEOS4_LOWLEV( HcoState, Lct, REGR_4D, G5T4, T, RC )
                 IF ( RC /= HCO_SUCCESS ) RETURN
              ENDIF
 
@@ -1033,9 +1060,9 @@ CONTAINS
           ENDDO ! T
 
           ! Verbose
-          IF ( HCO_IsVerb(3) ) THEN
+          IF ( HCO_IsVerb(HcoState%Config%Err, 3) ) THEN
              WRITE(MSG,*) 'Mapped ', nlev, ' levels onto reduced GEOS-4 levels.'
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
 
           ! Done!
@@ -1074,7 +1101,7 @@ CONTAINS
           ENDIF
 
           ! Make sure output array is allocated
-          CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nout, nt, RC )
+          CALL FileData_ArrCheck( HcoState%Config, Lct%Dct%Dta, nx, ny, nout, nt, RC )
 
           ! Do for every time slice
           DO T = 1, nt
@@ -1105,9 +1132,9 @@ CONTAINS
           ENDDO ! T
 
           ! Verbose
-          IF ( HCO_IsVerb(3) ) THEN
+          IF ( HCO_IsVerb(HcoState%Config%Err, 3) ) THEN
              WRITE(MSG,*) 'Mapped ', nlev, ' levels onto native GEOS-5 levels.'
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
 
           ! Done!
@@ -1132,7 +1159,7 @@ CONTAINS
           ELSEIF ( nlev > 47 ) THEN
              MSG = 'Can only remap from native onto reduced GEOS-5 if '// &
                    'input data has exactly 72 or 73 levels: '//TRIM(Lct%Dct%cName)
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ELSE
              nout = nlev
@@ -1140,7 +1167,7 @@ CONTAINS
           ENDIF
 
           ! Make sure output array is allocated
-          CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nout, nt, RC )
+          CALL FileData_ArrCheck( HcoState%Config, Lct%Dct%Dta, nx, ny, nout, nt, RC )
 
           ! Do for every time slice
           DO T = 1, nt
@@ -1178,9 +1205,9 @@ CONTAINS
           ENDDO ! T
 
           ! Verbose
-          IF ( HCO_IsVerb(3) ) THEN
+          IF ( HCO_IsVerb(HcoState%Config%Err, 3) ) THEN
              WRITE(MSG,*) 'Mapped ', nlev, ' levels onto reduced GEOS-5 levels.'
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
 
           ! Done!
@@ -1193,7 +1220,7 @@ CONTAINS
     ! For all other cases, do not do any vertical regridding 
     !===================================================================
     IF ( .NOT. DONE ) THEN
-       CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nlev, nt, RC )
+       CALL FileData_ArrCheck( HcoState%Config, Lct%Dct%Dta, nx, ny, nlev, nt, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        DO T = 1, nt
@@ -1201,10 +1228,10 @@ CONTAINS
        ENDDO
 
        ! Verbose
-       IF ( HCO_IsVerb(3) ) THEN
+       IF ( HCO_IsVerb(HcoState%Config%Err, 3) ) THEN
           WRITE(MSG,*) 'Could not find vertical interpolation key - ', &
                        'kept the original ', nlev, ' levels.'
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
        ! Done!
@@ -1215,22 +1242,22 @@ CONTAINS
     ! Error check / verbose mode
     !===================================================================
     IF ( DONE ) THEN
-      IF ( HCO_IsVerb(2) ) THEN
+      IF ( HCO_IsVerb(HcoState%Config%Err, 2) ) THEN
           WRITE(MSG,*) 'Did vertical regridding for ',TRIM(Lct%Dct%cName),':'
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Number of original levels: ', nlev 
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Number of output levels: ', SIZE(Lct%Dct%Dta%V3(1)%Val,3) 
-          CALL HCO_MSG(MSG,SEP2='-')
+          CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
        ENDIF
     ELSE
        WRITE(MSG,*) 'Vertical regridding failed: ',TRIM(Lct%Dct%cName)
-       CALL HCO_ERROR( MSG, RC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
        RETURN
     ENDIF
 
     ! Return w/ success
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE ( HcoState%Config%Err, RC )
 
   END SUBROUTINE ModelLev_Interpolate
 !EOC
@@ -1270,10 +1297,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS5_TO_GEOS4_LOWLEV( Lct, REGR_4D, NZ, T, RC )
+  SUBROUTINE GEOS5_TO_GEOS4_LOWLEV( HcoState, Lct, REGR_4D, NZ, T, RC )
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(HCO_State),  POINTER        :: HcoState          ! HEMCO state object
     REAL(sp),         POINTER        :: REGR_4D(:,:,:,:)  ! 4D input data
     INTEGER,          INTENT(IN)     :: T                 ! Time index
     INTEGER,          INTENT(IN)     :: NZ                ! # of vertical levels to remap. Must be 28 or 29
@@ -1301,7 +1329,7 @@ CONTAINS
     ! Check number of levels to be used 
     IF ( NZ /= 28 .AND. NZ /= 29 ) THEN
        MSG = 'Cannot map GEOS-5 onto GEOS-4 data, number of levels must be 28 or 29: '//TRIM(Lct%Dct%cName)
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
@@ -1309,7 +1337,7 @@ CONTAINS
     IF ( SIZE(REGR_4D,3) < NZ ) THEN
        WRITE(MSG,*) 'Cannot map GEOS-5 onto GEOS-4 data, original data has not enough levels: ', &
           TRIM(Lct%Dct%cName), ' --> ', SIZE(REGR_4D,3), ' smaller than ', NZ
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF 
 
@@ -1489,17 +1517,21 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Dec 2014 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
     INTEGER               :: I, NZ, ILEV, TOPLEV
     REAL(hp)              :: THICK
-    REAL(hp), POINTER     :: EDG(:) => NULL()
+    REAL(hp), POINTER     :: EDG(:)
     REAL(hp), ALLOCATABLE :: WGT(:)
 
     !=================================================================
     ! COLLAPSE begins here
     !=================================================================
+
+    ! Init
+    EDG => NULL()
 
     ! Reset
     Lct%Dct%Dta%V3(T)%Val(:,:,OutLev) = 0.0_hp

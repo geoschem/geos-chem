@@ -19,7 +19,7 @@ MODULE HCO_EMISLIST_MOD
 ! !USES:
 !
   USE HCO_ERROR_MOD
-  USE HCO_DATACONT_MOD, ONLY : DataCont, ListCont
+  USE HCO_TYPES_MOD
   USE HCO_STATE_MOD,    ONLY : HCO_State
 
   IMPLICIT NONE
@@ -28,8 +28,6 @@ MODULE HCO_EMISLIST_MOD
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: HCO_GetPtr
-  PUBLIC  :: EmisList_Cleanup
-  PUBLIC  :: EmisList_NextCont
   PUBLIC  :: EmisList_Pass
 !  PUBLIC  :: EmisList_Update
 !
@@ -48,12 +46,6 @@ MODULE HCO_EMISLIST_MOD
 !
 ! !PRIVATE TYPES:
 !
-  ! EmisList is the emissions linked list
-  TYPE(ListCont), POINTER    :: EmisList   => NULL()
-
-  ! # of containers in EmisList
-  INTEGER                    :: nnEmisCont =  0       
-
   INTERFACE HCO_GetPtr 
      MODULE PROCEDURE HCO_GetPtr_2D
      MODULE PROCEDURE HCO_GetPtr_3D
@@ -97,13 +89,14 @@ CONTAINS
 !  02 Feb 2015 - C. Keller - Moved tIDx_Assign call to hco_readlist_mod
 !                            so that this module can also be used by
 !                            hco_clock_mod.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL ARGUMENTS:
 !
-    TYPE(ListCont), POINTER                 :: Lct => NULL()
+    TYPE(ListCont), POINTER                 :: Lct
     LOGICAL                                 :: FOUND, VERBOSE, NEW 
     CHARACTER(LEN=255)                      :: MSG
     CHARACTER(LEN= 31)                      :: TempRes
@@ -113,19 +106,23 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    CALL HCO_ENTER ('EmisList_Add (HCO_EMISLL_MOD.F90)', RC )
+    CALL HCO_ENTER ( HcoState%Config%Err, &
+                     'EmisList_Add (HCO_EMISLL_MOD.F90)', RC )
     IF(RC /= HCO_SUCCESS) RETURN
 
     ! Set verbose flag
-    VERBOSE = HCO_IsVerb( 2 ) 
+    VERBOSE = HCO_IsVerb( HcoState%Config%Err, 2 ) 
+
+    ! Init
+    Lct => NULL()
 
     ! ----------------------------------------------------------------
     ! Nothing to do if it's not a new container, i.e. if container 
     ! already exists in EmisList. 
     ! ----------------------------------------------------------------
-    CALL ListCont_Find ( EmisList, Dct%cID, 0, FOUND, Lct )
+    CALL ListCont_Find ( HcoState%EmisList, Dct%cID, 0, FOUND, Lct )
     IF ( FOUND ) THEN
-       CALL HCO_LEAVE ( RC )
+       CALL HCO_LEAVE ( HcoState%Config%Err, RC )
        RETURN
     ENDIF
 
@@ -135,13 +132,16 @@ CONTAINS
     ! ----------------------------------------------------------------
     ALLOCATE ( Lct ) 
     Lct%NextCont => NULL()
+    IF ( .not. ASSOCIATED( Dct ) ) THEN
+       PRINT*, '#### DCT is not associated!'
+    ENDIF
     Lct%Dct      => Dct
 
     ! ----------------------------------------------------------------
     ! Add the new container to EmisList. The container will be placed
     ! according to data type, species ID, hierarchy, and category. 
     ! ----------------------------------------------------------------
-    CALL Add2EmisList ( am_I_Root, Lct, RC )
+    CALL Add2EmisList ( am_I_Root, HcoState, Lct, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
@@ -149,12 +149,12 @@ CONTAINS
     ! ----------------------------------------------------------------
     IF ( VERBOSE ) THEN
        MSG = 'Container added to EmisList:'
-       CALL HCO_MSG(MSG)
-       CALL HCO_PrintDataCont( Lct%Dct, 3 )
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+       CALL HCO_PrintDataCont( HcoState, Lct%Dct, 3 )
     ENDIF
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE ( HcoState%Config%Err, RC )
 
   END SUBROUTINE EmisList_Add
 !EOC
@@ -173,16 +173,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Add2EmisList( am_I_Root, Lct, RC )
+  SUBROUTINE Add2EmisList( am_I_Root, HcoState, Lct, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN   ) :: am_I_Root
-    TYPE(ListCont), POINTER       :: Lct   
+    LOGICAL,         INTENT(IN   ) :: am_I_Root
+    TYPE(HCO_State), POINTER       :: HcoState   ! HEMCO state
+    TYPE(ListCont),  POINTER       :: Lct   
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC
+    INTEGER,         INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY:
 !  06 Dec 2012 - C. Keller - Initial version
@@ -204,30 +205,30 @@ CONTAINS
     !======================================================================
 
     ! Enter 
-    CALL HCO_ENTER ( 'Add2EmisList', RC )
+    CALL HCO_ENTER ( HcoState%Config%Err, 'Add2EmisList', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Update number of containers in EmisList 
-    nnEmisCont = nnEmisCont + 1
+    HcoState%nnEmisCont = HcoState%nnEmisCont + 1
 
     ! Flag the content of this container as being used in EmisList
     Lct%Dct%Dta%IsInList = .TRUE.
 
     ! If this is the first container, we can simply place it at the
     ! beginning of the list.
-    IF ( nnEmisCont == 1 ) THEN
-       EmisList => Lct
-       CALL HCO_LEAVE(RC)
+    IF ( HcoState%nnEmisCont == 1 ) THEN
+       HcoState%EmisList => Lct
+       CALL HCO_LEAVE( HcoState%Config%Err, RC )
        RETURN ! Leave routine
     ENDIF
 
     ! Special case where the linked list consists of scale factors
     ! only: In this case, we can place the new container at the 
     ! beginning no matter of its content! 
-    IF ( EmisList%Dct%DctType /= HCO_DCTTYPE_BASE ) THEN
-       Lct%NextCont => EmisList 
-       EmisList     => Lct
-       CALL HCO_LEAVE( RC )
+    IF ( HcoState%EmisList%Dct%DctType /= HCO_DCTTYPE_BASE ) THEN
+       Lct%NextCont      => HcoState%EmisList 
+       HcoState%EmisList => Lct
+       CALL HCO_LEAVE( HcoState%Config%Err, RC )
        RETURN 
     ENDIF
 
@@ -239,10 +240,10 @@ CONTAINS
     ! Containers are listed with increasing species ID. If the current
     ! container has lower speciesID than the first container, just add
     ! it at the beginning of the list.     
-    IF ( (NEWSPC > 0) .AND. (NEWSPC < EmisList%Dct%HcoID) ) THEN
-       Lct%NextCont => EmisList
-       EmisList     => Lct
-       CALL HCO_LEAVE(RC)
+    IF ( (NEWSPC > 0) .AND. (NEWSPC < HcoState%EmisList%Dct%HcoID) ) THEN
+       Lct%NextCont      => HcoState%EmisList
+       HcoState%EmisList => Lct
+       CALL HCO_LEAVE( HcoState%Config%Err, RC )
        RETURN 
     ENDIF
 
@@ -250,13 +251,13 @@ CONTAINS
     ! as the first container in the list: If this container has
     ! lower category, or same category and lower hierarchy, place 
     ! it before the first container in the list:
-    IF ( NEWSPC == EmisList%Dct%HcoID ) THEN
-       IF ( (EmisList%Dct%Cat  >  NEWCAT) .OR.  &
-            (EmisList%Dct%Cat  == NEWCAT  .AND. &
-            EmisList%Dct%Hier >  NEWHIR)        ) THEN
-          Lct%NextCont => EmisList
-          EmisList     => Lct
-          CALL HCO_LEAVE(RC)
+    IF ( NEWSPC == HcoState%EmisList%Dct%HcoID ) THEN
+       IF ( (HcoState%EmisList%Dct%Cat  >  NEWCAT) .OR.  &
+            (HcoState%EmisList%Dct%Cat  == NEWCAT  .AND. &
+             HcoState%EmisList%Dct%Hier >  NEWHIR)        ) THEN
+          Lct%NextCont      => HcoState%EmisList
+          HcoState%EmisList => Lct
+          CALL HCO_LEAVE( HcoState%Config%Err, RC )
           RETURN 
        ENDIF
     ENDIF
@@ -264,7 +265,7 @@ CONTAINS
     ! TmpLct is the temporary working pointer, looping through
     ! the entire EmisList until the correct place for the new
     ! container is found.
-    TmpLct => EmisList
+    TmpLct => HcoState%EmisList
 
     ! If the new container contains base data (i.e. data type is 1) 
     ! we have to move the TmpLct pointer to the position where the 
@@ -325,53 +326,9 @@ CONTAINS
 
     ! Cleanup and leave
     TmpLct => NULL()
-    CALL HCO_LEAVE( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err, RC )
 
   END SUBROUTINE Add2EmisList
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: EmisList_Cleanup 
-!
-! !DESCRIPTION: Subroutine EmisList\_Cleanup cleans up EmisList. If 
-! RemoveDct is set to true, all data containers associated to the 
-! EmisList elements will be removed as well. Otherwise, only the data 
-! container pointers will be removed, i.e. nullified.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE EmisList_Cleanup( RemoveDct )
-!
-! !USES:
-!
-    USE HCO_DATACONT_MOD,  ONLY : ListCont_Cleanup
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN)  :: RemoveDct
-!
-! !REVISION HISTORY:
-!  04 Dec 2012 - C. Keller: Initialization
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-     
-    !======================================================================
-    ! EmisList_Cleanup begins here!
-    !======================================================================
-
-    ! Cleanup EmisList
-    CALL ListCont_Cleanup ( EmisList, RemoveDct )
-    EmisList => NULL()
-
-    ! Reset number of container in EmisList
-    nnEmisCont = 0
-
-  END SUBROUTINE EmisList_Cleanup
 !EOC
 !!------------------------------------------------------------------------------
 !!                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -427,7 +384,7 @@ CONTAINS
 !    ! ================================================================
 !
 !    ! Enter
-!    CALL HCO_ENTER ( 'EmisList_Update', RC )
+!    CALL HCO_ENTER ( HcoState%Config%Err, 'EmisList_Update', RC )
 !    IF ( RC /= HCO_SUCCESS ) RETURN
 !
 !    ! Loop over all containers in ReadList
@@ -447,7 +404,7 @@ CONTAINS
 !    ENDDO
 !
 !    ! Leave w/ success
-!    CALL HCO_LEAVE ( RC )
+!    CALL HCO_LEAVE ( HcoState%Config%Err, RC )
 !
 !  END SUBROUTINE EmisList_Update
 !!EOC
@@ -492,6 +449,7 @@ CONTAINS
 !                            home container.
 !  23 Dec 2014 - C. Keller - Don't cleanup container anymore. This is
 !                            now handled in ReadList_Read.
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -499,7 +457,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(ListCont),  POINTER  :: TargetLct => NULL()
+    TYPE(ListCont),  POINTER  :: TargetLct
 
     ! Scalars
     INTEGER                   :: I, J, L, T
@@ -511,11 +469,15 @@ CONTAINS
     ! ================================================================
 
     ! Enter
-    CALL HCO_ENTER ('EmisList_Pass (hco_emislist_mod.F90)', RC )
+    CALL HCO_ENTER ( HcoState%Config%Err, &
+                     'EmisList_Pass (hco_emislist_mod.F90)', RC )
     IF(RC /= HCO_SUCCESS) RETURN
 
+    ! Init
+    TargetLct => NULL()
+
     ! Verbose mode
-    verb = HCO_IsVerb( 2 )
+    verb = HCO_IsVerb( HcoState%Config%Err, 2 )
 
     ! Initialize Add flag. This fill only be set to FALSE
     ! if the data of the current container is added to the data of 
@@ -543,12 +505,12 @@ CONTAINS
     IF ( Lct%Dct%targetID /= Lct%Dct%cID ) THEN
 
        ! TargetLct points to the container holding the target array 
-       CALL ListCont_Find( EmisList, Lct%Dct%targetID, &
+       CALL ListCont_Find( HcoState%EmisList, Lct%Dct%targetID, &
                            0, FOUND, TargetLct )
        IF ( .NOT. FOUND ) THEN
           MSG = 'Cannot add emissions to target array: error in ' // &
                TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR( MSG, RC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
           RETURN
        ENDIF
 
@@ -563,7 +525,7 @@ CONTAINS
              WRITE(MSG,*) 'Do not add data of ', TRIM(Lct%Dct%cName), &
                   ' to ', TRIM(TargetLct%Dct%cName), ' because this', &
                   ' is not the file data home container!'
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
 
        ! Similarly, do not add data to target container if the target
@@ -575,7 +537,7 @@ CONTAINS
              WRITE(MSG,*) 'Do not add data of ', TRIM(Lct%Dct%cName), &
                   ' to ', TRIM(TargetLct%Dct%cName), ' because the', &
                   ' target is being shared with other fields!'
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
 
        ELSE
@@ -583,54 +545,56 @@ CONTAINS
           ! Check extension number 
           IF ( Lct%Dct%ExtNr /= TargetLct%Dct%ExtNr ) THEN
              MSG = 'Wrong ext. number: ' // TRIM(Lct%Dct%cName)
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
    
           ! Check data type 
           IF ( Lct%Dct%DctType /= TargetLct%Dct%DctType ) THEN
              MSG = 'Wrong data type: ' // TRIM(Lct%Dct%cName)
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
    
           ! Check species ID
           IF ( Lct%Dct%HcoID /= TargetLct%Dct%HcoID ) THEN
              MSG = 'Wrong species ID: ' // TRIM(Lct%Dct%cName)
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
    
           ! Check for array dimensions
           IF ( Lct%Dct%Dta%SpaceDim /= TargetLct%Dct%Dta%SpaceDim ) THEN
              MSG = 'Wrong space dimension: ' // TRIM(Lct%Dct%cName)
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
           IF ( Lct%Dct%Dta%nt /= TargetLct%Dct%Dta%nt ) THEN 
              MSG = 'Wrong time dim: ' // TRIM(Lct%Dct%cName)
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
           IF ( Lct%Dct%Dta%SpaceDim <= 2) THEN
              I = SIZE(Lct%Dct%Dta%V2(1)%Val,1)
              J = SIZE(Lct%Dct%Dta%V2(1)%Val,2)
-             CALL FileData_ArrCheck( TargetLct%Dct%Dta, I, J, &
+             CALL FileData_ArrCheck( HcoState%Config, &
+                                     TargetLct%Dct%Dta, I, J, &
                                      Lct%Dct%Dta%nt, RC )
              IF ( RC /= 0 ) THEN
                 MSG = 'Wrong 2D array: ' // TRIM(Lct%Dct%cName)
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
                 RETURN
              ENDIF
           ELSE
              I = SIZE(Lct%Dct%Dta%V3(1)%Val,1)
              J = SIZE(Lct%Dct%Dta%V3(1)%Val,2)
              L = SIZE(Lct%Dct%Dta%V3(1)%Val,3)
-             CALL FileData_ArrCheck( TargetLct%Dct%Dta, I, J, L, &
+             CALL FileData_ArrCheck( HcoState%Config, &
+                                     TargetLct%Dct%Dta, I, J, L, &
                                      Lct%Dct%Dta%nt, RC )
              IF ( RC /= 0 ) THEN
                 MSG = 'Wrong 3D array: ' // TRIM(Lct%Dct%cName)
-                CALL HCO_MSG(MSG)
+                CALL HCO_MSG(HcoState%Config%Err,MSG)
                 RETURN
              ENDIF
           ENDIF
@@ -638,21 +602,21 @@ CONTAINS
           ! Check operator 
           IF ( Lct%Dct%Oper /= TargetLct%Dct%Oper ) THEN
              MSG = 'Wrong operator: ' // TRIM(Lct%Dct%cName)
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
    
           ! Check category 
           IF ( Lct%Dct%Cat /= TargetLct%Dct%Cat ) THEN
              MSG = 'Wrong category: ' // TRIM(Lct%Dct%cName)
-             CALL HCO_ERROR ( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
    
           ! Check hierarchy 
           IF ( Lct%Dct%Hier /= TargetLct%Dct%Hier ) THEN
              MSG = 'Wrong hierarchy: ' // TRIM(Lct%Dct%cName)
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
    
@@ -661,7 +625,7 @@ CONTAINS
                Lct%Dct%Oper    == 3                       ) THEN
              MSG = 'Cannot add masks if operator is 3: ' // &
                   TRIM(Lct%Dct%cName)
-             CALL HCO_ERROR( MSG, RC )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
    
@@ -679,7 +643,7 @@ CONTAINS
           IF ( verb ) THEN
              WRITE(MSG,*) 'Added data of ',   TRIM(Lct%Dct%cName), &
                   ' to ', TRIM(TargetLct%Dct%cName)
-             CALL HCO_MSG(MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
    
           ! This container does not need to be added to the emissions
@@ -710,7 +674,7 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! Return 
     ! ----------------------------------------------------------------
-    CALL HCO_LEAVE( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err, RC )
 
   END SUBROUTINE EmisList_Pass
 !EOC
@@ -737,7 +701,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetPtr_3D( am_I_Root, DctName, Ptr3D, RC, TIDX, FOUND, FILLED )
+  SUBROUTINE HCO_GetPtr_3D( am_I_Root, HcoState, DctName, Ptr3D, &
+                            RC, TIDX, FOUND, FILLED )
 !
 ! !USES:
 !
@@ -746,6 +711,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )         :: am_I_Root      ! root CPU?
+    TYPE(HCO_State),  POINTER               :: HcoState       ! HEMCO state obj
     CHARACTER(LEN=*), INTENT(IN   )         :: DctName        ! container name
     INTEGER,          INTENT(IN), OPTIONAL  :: TIDX           ! time index
 !                                                             ! (default=1)
@@ -762,6 +728,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  04 Sep 2013 - C. Keller    - Initialization
 !  19 May 2015 - C. Keller    - Added argument FILLED
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -774,7 +741,7 @@ CONTAINS
     CHARACTER(LEN=255)         :: MSG, LOC
 
     ! Pointers
-    TYPE(ListCont), POINTER    :: Lct => NULL()
+    TYPE(ListCont), POINTER    :: Lct
 
     !=================================================================
     ! HCO_GetPtr_3D BEGINS HERE
@@ -782,6 +749,9 @@ CONTAINS
 
     ! Enter
     LOC = 'HCO_GetPtr_3D (hco_emislist_mod.F90)'
+
+    ! Init
+    Lct => NULL()
 
     ! Define time index to use
     IF ( PRESENT(TIDX) ) THEN
@@ -794,7 +764,7 @@ CONTAINS
     IF ( PRESENT(FILLED) ) FILLED = .FALSE. 
 
     ! Search for container in emissions linked list
-    CALL ListCont_Find ( EmisList, TRIM(DctName), FND, Lct )
+    CALL ListCont_Find ( HcoState%EmisList, TRIM(DctName), FND, Lct )
     IF ( PRESENT(FOUND) ) FOUND = FND
 
     ! Check if found. If optional argument FOUND is defined, don't 
@@ -807,7 +777,7 @@ CONTAINS
           RETURN
        ELSE
           MSG = 'Container not found: ' // TRIM(DctName)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
     ENDIF
@@ -815,14 +785,14 @@ CONTAINS
     ! Check spatial dimension 
     IF ( Lct%Dct%Dta%SpaceDim /= 3 ) THEN
        MSG = 'Container is not 3D: ' // TRIM(DctName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
     ! Check time dimension 
     IF ( Lct%Dct%Dta%nt < T ) THEN
        MSG = 'not enough time slices: ' // TRIM(DctName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
@@ -834,7 +804,7 @@ CONTAINS
           Ptr3D  => NULL()
        ELSE
           MSG = 'Container data not filled: ' // TRIM(DctName)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
     ENDIF
@@ -858,7 +828,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetPtr_2D( am_I_Root, DctName, Ptr2D, RC, TIDX, FOUND, FILLED )
+  SUBROUTINE HCO_GetPtr_2D( am_I_Root, HcoState, DctName, Ptr2D, &
+                            RC, TIDX, FOUND, FILLED )
 !
 ! !USES:
 !
@@ -867,6 +838,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )         :: am_I_Root   ! root CPU?
+    TYPE(HCO_State),  POINTER               :: HcoState    ! HEMCO state obj
     CHARACTER(LEN=*), INTENT(IN   )         :: DctName     ! container name
     INTEGER,          INTENT(IN), OPTIONAL  :: TIDX        ! time index
 !                                                          ! (default=1)
@@ -883,6 +855,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  04 Sep 2013 - C. Keller    - Initialization
 !  19 May 2015 - C. Keller    - Added argument FILLED
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -895,7 +868,7 @@ CONTAINS
     CHARACTER(LEN=255)         :: MSG, LOC
 
     ! Pointers
-    TYPE(ListCont), POINTER    :: Lct     => NULL()
+    TYPE(ListCont), POINTER    :: Lct
 
     !=================================================================
     ! HCO_GetPtr_2D BEGINS HERE
@@ -903,6 +876,7 @@ CONTAINS
 
     ! Enter
     LOC = 'HCO_GetPtr_2D (hco_emislist_mod.F90)'
+    Lct => NULL()
 
     ! Define time index to use
     IF ( PRESENT(TIDX) )THEN
@@ -915,7 +889,7 @@ CONTAINS
     IF ( PRESENT(FILLED) ) FILLED = .FALSE. 
 
     ! Search for container in emissions linked list
-    CALL ListCont_Find( EmisList, TRIM(DctName), FND, Lct )
+    CALL ListCont_Find( HcoState%EmisList, TRIM(DctName), FND, Lct )
     IF ( PRESENT(FOUND) ) FOUND = FND
 
     ! Check if found. If optional argument FOUND is defined, don't 
@@ -928,7 +902,7 @@ CONTAINS
           RETURN
        ELSE
           MSG = 'Container not found: ' // TRIM(DctName)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
     ENDIF
@@ -937,14 +911,14 @@ CONTAINS
     IF ( (Lct%Dct%Dta%SpaceDim/=2) .AND. &
          (Lct%Dct%Dta%SpaceDim/=1)        ) THEN
        MSG = 'Container is not 2D: ' // TRIM(DctName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
     ! Check time dimension 
     IF ( Lct%Dct%Dta%nt < T ) THEN
        MSG = 'not enough time slices: ' // TRIM(DctName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
@@ -956,7 +930,7 @@ CONTAINS
           Ptr2D  => NULL()
        ELSE
           MSG = 'Container data not filled: ' // TRIM(DctName)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
     ENDIF
@@ -965,44 +939,5 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_GetPtr_2D
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: EmisList_NextCont
-!
-! !DESCRIPTION: Subroutine EmisList\_NextCont is a simple wrapper routine 
-! to get the next/first pointer of EmisList. See ListCont\_NextCont 
-! for more details. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE EmisList_NextCont( Lct, FLAG ) 
-!
-! !USES:
-!
-    USE HCO_DATACONT_MOD,  ONLY : ListCont_NextCont
-!
-! !OUTPUT PARAMETERS:
-!
-    TYPE(ListCont),   POINTER       :: Lct
-    INTEGER,          INTENT(INOUT) :: FLAG
-!
-! !REVISION HISTORY: 
-!  04 Sep 2013 - C. Keller    - Initialization
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    !=================================================================
-    ! EmisList_NextCont BEGINS HERE
-    !=================================================================
-
-    CALL ListCont_NextCont( EmisList, Lct, FLAG )
-
-  END SUBROUTINE EmisList_NextCont
 !EOC
 END MODULE HCO_EMISLIST_MOD

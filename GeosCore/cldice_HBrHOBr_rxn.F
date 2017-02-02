@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cldice_hbrhobr_rxn
+! !MODULE: cldice_hbrhobr_rxn.F
 !
 ! !DESCRIPTION: Subroutine CLDICE\_HBrHOBr\_RXN calculates the rate constants
 ! for HBr and HOBr pseudo-reactions with ice.
@@ -19,8 +19,8 @@
 !
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV, IT_IS_NAN
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRECISION_MOD     ! For GEOS-Chem Precision (fp)
+      USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
+      USE State_Met_Mod,      ONLY : MetState
 
 
       IMPLICIT NONE

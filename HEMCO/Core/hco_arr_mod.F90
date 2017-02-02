@@ -702,7 +702,8 @@ CONTAINS
     IF ( nx>0 ) THEN
        ALLOCATE(Val(nx,ny),STAT=AS)
        IF(AS/=0) THEN
-          CALL HCO_ERROR ( 'Arr2D value allocation error', RC )
+          WRITE(*,*) 'Arr2D value allocation error'
+          RC = HCO_FAIL
           RETURN
        ENDIF
        Val(:,:) = 0.0_sp
@@ -762,7 +763,8 @@ CONTAINS
     IF ( nx>0 ) THEN
        ALLOCATE(Val(nx,ny),STAT=AS)
        IF(AS/=0) THEN
-          CALL HCO_ERROR ( 'Arr2D value allocation error', RC )
+          WRITE(*,*) 'Arr2D value allocation error'
+          RC = HCO_FAIL
           RETURN
        ENDIF
        Val(:,:) = 0.0_dp
@@ -822,7 +824,8 @@ CONTAINS
     IF ( nx > 0 ) THEN
        ALLOCATE(Val(nx,ny),STAT=AS)
        IF(AS/=0) THEN
-          CALL HCO_ERROR ( 'Arr2D value allocation error', RC )
+          WRITE(*,*) 'Arr2D value allocation error'
+          RC = HCO_FAIL
           RETURN
        ENDIF
        Val(:,:) = 0 
@@ -883,7 +886,8 @@ CONTAINS
     IF ( nx>0 ) THEN
        ALLOCATE(Val(nx,ny,nz),STAT=AS)
        IF(AS/=0) THEN
-          CALL HCO_ERROR ( 'Arr3D value allocation error', RC )
+          WRITE(*,*) 'Arr3D value allocation error'
+          RC = HCO_FAIL
           RETURN
        ENDIF
        Val(:,:,:) = 0.0_dp
@@ -944,7 +948,8 @@ CONTAINS
     IF ( nx>0 ) THEN
        ALLOCATE(Val(nx,ny,nz),STAT=AS)
        IF(AS/=0) THEN
-          CALL HCO_ERROR ( 'Arr3D value allocation error', RC )
+          WRITE(*,*) 'Arr3D value allocation error'
+          RC = HCO_FAIL
           RETURN
        ENDIF
        Val(:,:,:) = 0.0_sp

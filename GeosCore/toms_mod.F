@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: toms_mod
+! !MODULE: toms_mod.F
 !
 ! !DESCRIPTION: Module TOMS\_MOD contains variables and routines for reading 
 !  the TOMS/SBUV O3 column data from disk (for use w/ the FAST-J photolysis 
@@ -16,7 +16,7 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD                    ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -82,6 +82,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  16 Mar 2015 - R. Yantosca - Retire bpch input; now read TOMS via HEMCO
+!  03 Nov 2016 - B. Henderson- Added fix for weird O3 in GEOS-5 simulations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -90,9 +91,12 @@
 !
       ! Arrays
       REAL(fp), PRIVATE, ALLOCATABLE :: TO3_DAILY(:,:)
+      REAL(f4), PRIVATE, ALLOCATABLE :: STOMS(:,:)               
 
       ! Pointers to fields in the HEMCO data structure
       REAL(f4), PRIVATE, POINTER     :: TOMS(:,:)               
+      REAL(f4), PRIVATE, POINTER     :: TOMS1(:,:)               
+      REAL(f4), PRIVATE, POINTER     :: TOMS2(:,:)               
       REAL(f4), PRIVATE, POINTER     :: DTOMS1(:,:)             
       REAL(f4), PRIVATE, POINTER     :: DTOMS2(:,:)     
 
@@ -115,10 +119,11 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE Error_Mod,          ONLY : Error_Stop
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE HCO_Interface_Mod,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -219,25 +224,41 @@
       !-----------------------------------------------------------------
       ! Read TOMS O3 columns [dobsons]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'TOMS_O3_COL', TOMS, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS_O3_COL', TOMS, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to TOMS1_O3_COL', LOC )
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Read TOMS O3 columns first day [dobsons]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS1_O3_COL', TOMS1, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to TOMS1_O3_COL', LOC )
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Read TOMS O3 columns last day [dobsons]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS2_O3_COL', TOMS2, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to TOMS2_O3_COL', LOC )
       ENDIF
 
       !-----------------------------------------------------------------
       ! Read d(TOMS)/dt, 1st half of the month [dobsons/day]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'DTOMS1_O3_COL', DTOMS1, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'DTOMS1_O3_COL', DTOMS1, RC)
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to DTOMS1_O3_COL', LOC )
       ENDIF
 
       !-----------------------------------------------------------------
       ! Read d(TOMS)/dt, 2nd half of the month [dobsons/day]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'DTOMS2_O3_COL', DTOMS2, RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
+      CALL HCO_GetPtr( am_I_Root, HcoState,'DTOMS2_O3_COL', DTOMS2, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to DTOMS2_O3_COL', LOC )
       ENDIF
 
       END SUBROUTINE READ_TOMS
@@ -392,41 +413,26 @@
          ! Here we are returning the default FAST-J overhead O3
          ! climatology with the TOMS/SBUV O3 columns (where data exists)
          !---------------------------------------------------------------
-         IF ( DAY <= 15 ) THEN 
-
-            ! Interpolate O3 to current day (w/in 1st half of month)
+            ! Calc difference
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( I, J )
 !$OMP+DEFAULT( SHARED )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               IF ( TOMS(I,J)   > -999e+0_f4  .AND. 
-     &              DTOMS1(I,J) > -999e+0_f4 ) THEN  
-                  TO3_DAILY(I,J) = TOMS(I,J) 
-     &                           + DTOMS1(I,J) * ( DAY - 15 )
-               ENDIF            
+                 STOMS(I,J) = (TOMS2(I,J)-TOMS1(I,J))/30.0_fp
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
-
-         ELSE
-  
             ! Interpolate O3 to current day (w/in 2nd half of month)
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( I, J )
 !$OMP+DEFAULT( SHARED )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               IF ( TOMS(I,J)   > -999e+0_f4  .AND. 
-     &              DTOMS2(I,J) > -999e+0_f4 ) THEN  
-                  TO3_DAILY(I,J) = TOMS(I,J) 
-     &                           + DTOMS2(I,J) * ( DAY - 15 )
-               ENDIF
+                TO3_DAILY(I,J) = TOMS1(I,J) + (DAY - 1) * STOMS(I,J)
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
-
-         ENDIF
 
       ENDIF
 
@@ -437,7 +443,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_overhead_O3
+! !IROUTINE: get_overhead_o3
 !
 ! !DESCRIPTION: Function GET\_OVERHEAD\_O3 returns the total overhead O3
 !  column [DU] (which is taken either from TOMS/SBUV or directly from the
@@ -484,10 +490,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD  
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -504,6 +510,7 @@
 !  06 Mar 2012 - R. Yantosca - Now allocate TO3_DAILY
 !  16 Mar 2015 - R. Yantosca - TOMS, DTOMS1, DTOMS2 are now pointers
 !  16 Mar 2015 - R. Yantosca - Add Input_Opt, RC arguments for std interface
+!  03 Nov 2016 - B. Henderson- Add extra fields to fix OH issue for GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -515,13 +522,22 @@
       !=================================================================
 
       ! Allocate arrays
-      IF (.not. ALLOCATED( TO3_DAILY) )
-     &     ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) CALL ALLOC_ERR( 'TO3_DAILY' )
-      TO3_DAILY = 0e+0_fp
+      IF ( .not. ALLOCATED( TO3_DAILY ) ) THEN
+         ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=RC )        
+         IF ( RC /= GC_SUCCESS ) CALL ALLOC_ERR( 'TO3_DAILY' )
+         TO3_DAILY = 0.0_fp
+      ENDIF
 
+      IF ( .not. ALLOCATED( STOMS ) ) THEN
+         ALLOCATE( STOMS( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= GC_SUCCESS ) CALL ALLOC_ERR( 'STOMS' )
+         STOMS = 0e+0_fp
+      ENDIF
+         
       ! Initialize pointers
       TOMS   => NULL()
+      TOMS1  => NULL()
+      TOMS2  => NULL()
       DTOMS1 => NULL()
       DTOMS2 => NULL()
 
@@ -545,6 +561,7 @@
 !  14 Jul 2003 - R. Yantosca - Initial version
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  06 Mar 2012 - R. Yantosca - Now deallocate TO3_DAILY
+!  03 Nov 2016 - R. Yantosca - Deallocate and nullify extra fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -554,9 +571,12 @@
 
       ! Free arrays
       IF ( ALLOCATED( TO3_DAILY ) ) DEALLOCATE( TO3_DAILY )
+      IF ( ALLOCATED( STOMS     ) ) DEALLOCATE( STOMS )
 
       ! Free pointers
       TOMS   => NULL()
+      TOMS1  => NULL()
+      TOMS2  => NULL()
       DTOMS1 => NULL()
       DTOMS2 => NULL()
 

@@ -109,8 +109,10 @@ MODULE HCO_Diagn_Mod
 ! !USES:
 !
   USE HCO_Error_Mod
+  USE HCO_Types_Mod
   USE HCO_Arr_Mod
   USE HCO_Clock_Mod 
+  USE HCO_State_Mod, ONLY : HCO_State
 
   IMPLICIT NONE
   PRIVATE
@@ -137,6 +139,8 @@ MODULE HCO_Diagn_Mod
   PUBLIC  :: DiagnFileOpen
   PUBLIC  :: DiagnFileGetNext
   PUBLIC  :: DiagnFileClose
+  PUBLIC  :: DiagnBundle_Cleanup
+  PUBLIC  :: DiagnBundle_Init
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -149,10 +153,20 @@ MODULE HCO_Diagn_Mod
   PRIVATE :: DiagnCollection_DefineID 
   PRIVATE :: DiagnCollection_Find
   PRIVATE :: Diagn_UpdateDriver
+  PRIVATE :: Diagn_UpdateSp0d
+  PRIVATE :: Diagn_UpdateSp2d
+  PRIVATE :: Diagn_UpdateSp3d
+  PRIVATE :: Diagn_UpdateDp0d
+  PRIVATE :: Diagn_UpdateDp2d
+  PRIVATE :: Diagn_UpdateDp3d
 
   INTERFACE Diagn_Update
-     MODULE PROCEDURE Diagn_UpdateSP 
-     MODULE PROCEDURE Diagn_UpdateDP 
+     MODULE PROCEDURE Diagn_UpdateSp0d
+     MODULE PROCEDURE Diagn_UpdateSp2d
+     MODULE PROCEDURE Diagn_UpdateSp3d
+     MODULE PROCEDURE Diagn_UpdateDp0d
+     MODULE PROCEDURE Diagn_UpdateDp2d
+     MODULE PROCEDURE Diagn_UpdateDp3d
   END INTERFACE
 !
 ! !REVISION HISTORY:
@@ -168,94 +182,14 @@ MODULE HCO_Diagn_Mod
 !                              control the file output time stamp (beginning, 
 !                              middle, end of diagnostics interval).
 !  25 Jan 2016 - R. Yantosca - Added bug fixes for pgfortran compiler
+!  19 Sep 2016 - R. Yantosca - Add extra overloaded functions to the 
+!                              Diagn_Update interface to avoid Gfortran errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-  !------------------------------------------------------------------------
-  ! DiagnCont: Diagnostics container derived type declaration
-  !------------------------------------------------------------------------
-  TYPE, PUBLIC :: DiagnCont
-     CHARACTER(LEN= 31)          :: cName          ! Cont. name
-     CHARACTER(LEN=255)          :: long_name      ! ncdf long_name attribute 
-     INTEGER                     :: cID            ! Cont. ID
-     INTEGER                     :: ExtNr          ! Extension #
-     INTEGER                     :: Cat            ! Category 
-     INTEGER                     :: Hier           ! Hierarchy
-     INTEGER                     :: HcoID          ! HEMCO species ID
-     INTEGER                     :: AutoFill       ! fill automatically? 
-     INTEGER                     :: SpaceDim       ! Space dimension (1-3) 
-     REAL(sp)                    :: Scalar         ! 1D scalar 
-     TYPE(Arr2D_SP),     POINTER :: Arr2D          ! 2D array
-     TYPE(Arr3D_SP),     POINTER :: Arr3D          ! 3D array
-     REAL(sp)                    :: Total          ! Diagnostics total 
-     LOGICAL                     :: DtaIsPtr       ! Is data just a pointer?
-     INTEGER                     :: LevIdx         ! Level index to be used 
-     CHARACTER(LEN= 31)          :: OutUnit        ! Output unit 
-     INTEGER                     :: AreaFlag       ! 2=per area, 3=per volume, 0 otherwise 
-     REAL(hp)                    :: AreaScal       ! Scale factor for area
-     REAL(hp)                    :: MassScal       ! Scale factor for mass
-     REAL(hp)                    :: ScaleFact      ! Uniform scale factor 
-     INTEGER                     :: TimeAvg        ! Scale flag for time unit 
-     INTEGER                     :: Counter        ! time steps since 
-                                                   ! last output
-     CHARACTER(LEN= 31)          :: AvgName        ! Output averaging operation 
-     INTEGER                     :: AvgFlag        ! Averaging flag for 
-                                                   !  non-standard units
-     INTEGER                     :: LastUpdateID   ! Last update time
-     INTEGER                     :: nnGetCalls     ! # of Diagn_Get calls w/o update 
-     LOGICAL                     :: IsOutFormat    ! Data is in output format?
-     INTEGER                     :: CollectionID   ! Collection diagnostics belongs to
-     TYPE(DiagnCont),    POINTER :: NextCont       ! Ptr to next item in list
-  END TYPE DiagnCont
-
-  !------------------------------------------------------------------------
-  ! Diagnostcs collection derived type.
-  ! DiagnList      : Linked list with all diagnostics container of
-  !                  this collection.
-  ! nnDiag         : Number of diagnostics in this collection.
-  ! AF_LevelDefined: Set to true if there is at least one autofill 
-  !                  diagnostics at the given level (1-4).
-  ! PREFIX         : Prefix to be used for diagnostics output file name.
-  ! NX, NY, NZ     : Grid dimensions.
-  ! TS             : Time step. This is only of relevance for emission 
-  !                  diagnostics that are internally converted from
-  !                  kg/m2/s to kg/m2.
-  ! AREA_M2        : Surface grid box areas. May be required for unit 
-  !                  conversions.
-  !------------------------------------------------------------------------
-  TYPE DiagnCollection
-     TYPE(DiagnCont),       POINTER :: DiagnList          => NULL()
-     INTEGER                        :: nnDiagn            =  0
-     LOGICAL                        :: AF_LevelDefined(4) =  .FALSE.
-     INTEGER                        :: CollectionID       = -1
-     CHARACTER(LEN=255)             :: PREFIX             =  ''
-     INTEGER                        :: NX                 =  0
-     INTEGER                        :: NY                 =  0
-     INTEGER                        :: NZ                 =  0
-     INTEGER                        :: deltaYMD           =  0
-     INTEGER                        :: deltaHMS           =  0
-     INTEGER                        :: lastYMD            = -1
-     INTEGER                        :: lastHMS            = -1
-     INTEGER                        :: OutTimeStamp       = -1
-     REAL(sp)                       :: TS                 =  0       ! Time step
-     REAL(hp),              POINTER :: AREA_M2(:,:)       => NULL()
-     TYPE(DiagnCollection), POINTER :: NextCollection     => NULL()
-  END TYPE DiagnCollection
-
-  ! Pointer to beginning of collections linked list 
-  TYPE(DiagnCollection),  POINTER :: Collections => NULL()
-
-  ! HEMCO diagnostic collection IDs. Used to identify collections. Its values
-  ! will be set upon creation of the collection. 
-  INTEGER, PUBLIC     :: HcoDiagnIDDefault = -999 
-  INTEGER, PUBLIC     :: HcoDiagnIDRestart = -999
-  INTEGER, PUBLIC     :: HcoDiagnIDManual  = -999
-
-  ! Total number of collections in collection linked list
-  INTEGER             :: nnCollections     = 0
 !
 ! !DEFINED PARAMETERS:
 !
@@ -313,6 +247,7 @@ CONTAINS
 !  19 Dec 2013 - C. Keller   - Initial version 
 !  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -321,17 +256,19 @@ CONTAINS
 !
     CHARACTER(LEN=255)        :: MSG, LOC
     INTEGER                   :: I, tmpID
-    REAL(hp), POINTER         :: Arr3D(:,:,:) => NULL()
-    REAL(hp), POINTER         :: Arr2D(:,:)   => NULL()
+    REAL(hp), POINTER         :: Arr3D(:,:,:)
+    REAL(hp), POINTER         :: Arr2D(:,:)
 
     !=================================================================
     ! HCODIAGN_AUTOUPDATE begins here!
     !=================================================================
     
     ! Init 
-    LOC = 'HCODIAGN_AUTOUPDATE (hco_diagn_mod.F90)'
-    RC  = HCO_SUCCESS
-    
+    LOC   = 'HCODIAGN_AUTOUPDATE (hco_diagn_mod.F90)'
+    RC    =  HCO_SUCCESS
+    Arr3D => NULL()
+    Arr2D => NULL()
+
     ! ================================================================
     ! AutoFill diagnostics: only write diagnostics at species level
     ! (level 1). Higher level diagnostics have been written in the
@@ -341,15 +278,15 @@ CONTAINS
        IF ( ASSOCIATED(HcoState%Spc(I)%Emis) ) THEN
           IF ( ASSOCIATED(HcoState%Spc(I)%Emis%Val) ) THEN
              Arr3D => HcoState%Spc(I)%Emis%Val
-             CALL Diagn_Update( am_I_Root,            &
-                                ExtNr    = -1,        &
-                                Cat      = -1,        &
-                                Hier     = -1,        &
-                                HcoID    = I,         &
-                                AutoFill = 1,         &
-                                Array3D  = Arr3D,     &
-                                COL      = -1,        &
-                                RC       = RC          ) 
+             CALL Diagn_Update( am_I_Root, HcoState,    &
+                                ExtNr      = -1,        &
+                                Cat        = -1,        &
+                                Hier       = -1,        &
+                                HcoID      = I,         &
+                                AutoFill   = 1,         &
+                                Array3D    = Arr3D,     &
+                                COL        = -1,        &
+                                RC         = RC          ) 
              IF ( RC/= HCO_SUCCESS ) RETURN 
              Arr3D => NULL() 
           ENDIF
@@ -421,23 +358,27 @@ CONTAINS
     ! Init 
     LOC = 'HCODIAGN_INIT (hco_diagn_mod.F90)'
 
+    ! Initialize diagnostics bundle
+    CALL DiagnBundle_Init ( HcoState%Diagn )
+
     ! ------------------------------------------------------------------
     ! Default diagnostics
     ! ------------------------------------------------------------------
-    CALL DiagnCollection_GetDefaultDelta ( am_I_Root, deltaYMD, deltaHMS, RC )
+    CALL DiagnCollection_GetDefaultDelta ( am_I_Root, HcoState, &
+                                           deltaYMD,  deltaHMS, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Try to get prefix from configuration file
-    CALL GetExtOpt ( CoreNr, 'DiagnPrefix', OptValChar=DiagnPrefix, &
-                     FOUND=FOUND, RC=RC )
+    CALL GetExtOpt ( HcoState%Config, CoreNr, 'DiagnPrefix', &
+                     OptValChar=DiagnPrefix, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN
        DiagnPrefix = 'HEMCO_Diagnostics'
     ENDIF
 
     ! Output time stamp location
-    CALL GetExtOpt ( CoreNr, 'DiagnTimeStamp', OptValChar=OutTimeStampChar, &
-                     FOUND=FOUND, RC=RC )
+    CALL GetExtOpt ( HcoState%Config, CoreNr, 'DiagnTimeStamp', &
+                     OptValChar=OutTimeStampChar, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN
        OutTimeStamp = HcoDiagnEnd
@@ -455,12 +396,12 @@ CONTAINS
        ELSE
           WRITE(MSG,*) 'Unrecognized output time stamp location: ', &
              TRIM(OutTimeStampChar), ' - will use default (end)'
-          CALL HCO_WARNING(MSG,RC,THISLOC=LOC,WARNLEV=1)
+          CALL HCO_WARNING(HcoState%Config%Err,MSG,RC,THISLOC=LOC,WARNLEV=1)
           OutTimeStamp = HcoDiagnEnd
        ENDIF 
     ENDIF
 
-    CALL DiagnCollection_Create( am_I_Root,                                &
+    CALL DiagnCollection_Create( am_I_Root, HcoState%Diagn,                &
                                  NX           = HcoState%NX,               &
                                  NY           = HcoState%NY,               &
                                  NZ           = HcoState%NZ,               &
@@ -476,7 +417,7 @@ CONTAINS
 
     ! Pass this collection ID to fixed variable for easy further 
     ! reference to this collection
-    HcoDiagnIDDefault = CollectionID
+    HcoState%Diagn%HcoDiagnIDDefault = CollectionID
  
     ! ------------------------------------------------------------------
     ! HEMCO restart 
@@ -488,7 +429,7 @@ CONTAINS
     deltaYMD = 99999999
     deltaHMS = 999999
 #endif
-    CALL DiagnCollection_Create( am_I_Root,                                &
+    CALL DiagnCollection_Create( am_I_Root, HcoState%Diagn,                &
                                  NX           = HcoState%NX,               &
                                  NY           = HcoState%NY,               &
                                  NZ           = HcoState%NZ,               &
@@ -504,7 +445,7 @@ CONTAINS
 
     ! Pass this collection ID to fixed variable for easy further 
     ! reference to this collection
-    HcoDiagnIDRestart = CollectionID
+    HcoState%Diagn%HcoDiagnIDRestart = CollectionID
  
     ! ------------------------------------------------------------------
     ! Manual diagnostics
@@ -516,7 +457,7 @@ CONTAINS
     deltaYMD = -1
     deltaHMS = -1
 #endif
-    CALL DiagnCollection_Create( am_I_Root,                             &
+    CALL DiagnCollection_Create( am_I_Root, HcoState%Diagn,             &
                                  NX        = HcoState%NX,               &
                                  NY        = HcoState%NY,               &
                                  NZ        = HcoState%NZ,               &
@@ -531,7 +472,7 @@ CONTAINS
  
     ! Pass this collection ID to fixed variable for easy further 
     ! reference to this collection
-    HcoDiagnIDManual  = CollectionID
+    HcoState%Diagn%HcoDiagnIDManual  = CollectionID
 
     ! ------------------------------------------------------------------
     ! Now that collections are defined, add diagnostics specified in the
@@ -596,7 +537,7 @@ CONTAINS
     USE inquireMod,        ONLY : findFreeLUN
     USE HCO_STATE_MOD,     ONLY : HCO_GetHcoID
     USE HCO_STATE_MOD,     ONLY : HCO_State
-    USE HCO_ExtList_Mod,   ONLY : CoreNr, GetExtOpt
+    USE HCO_EXTLIST_MOD,   ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -609,17 +550,19 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  10 Apr 2015 - C. Keller   - Initial version 
+!  21 Feb 2016 - C. Keller   - Added default diagnostics (optional)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER             :: N,      LUN
-    LOGICAL             :: EOF
-    CHARACTER(LEN=31)   :: cName,  SpcName, OutUnit
-    INTEGER             :: HcoID,  ExtNr,   Cat, Hier, SpaceDim
-    CHARACTER(LEN=255)  :: LOC,    MSG
+    INTEGER                    :: N,      LUN
+    LOGICAL                    :: EOF,    FOUND,   DefaultSet
+    CHARACTER(LEN=31)          :: SpcName, OutUnit
+    CHARACTER(LEN=63)          :: cName,  dLname, dSname 
+    INTEGER                    :: HcoID,  ExtNr,   Cat, Hier, SpaceDim
+    CHARACTER(LEN=255)         :: lName,  LOC,     MSG
 
     !=================================================================
     ! Diagn_DefineFromConfig begins here!
@@ -629,7 +572,7 @@ CONTAINS
     LOC = 'Diagn_DefineFromConfig (hco_diagn_mod.F90)'
 
     ! Load DiagnFile into buffer
-    CALL DiagnFileOpen( am_I_Root, LUN, RC )
+    CALL DiagnFileOpen( am_I_Root, HcoState%Config, LUN, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! If defined, sequentially get all entries 
@@ -639,8 +582,9 @@ CONTAINS
        DO
 
           ! Get next line
-          CALL DiagnFileGetNext( am_I_Root, LUN, cName, &
-             SpcName, ExtNr, Cat, Hier, SpaceDim, OutUnit, EOF, RC ) 
+          CALL DiagnFileGetNext( am_I_Root, HcoState%Config, LUN, cName, &
+             SpcName, ExtNr, Cat, Hier, SpaceDim, OutUnit, EOF, RC, &
+             lName=lName ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Leave here if end of file
@@ -654,9 +598,9 @@ CONTAINS
           ! ------------------------------------------------------------------
           ! Add it to the HEMCO diagnostics collection
           ! ------------------------------------------------------------------
-          CALL Diagn_Create( am_I_Root,                     &
-                             HcoState  = HcoState,          &
+          CALL Diagn_Create( am_I_Root,  HcoState,          &
                              cName     = cName,             &
+                             long_name = lName,             &
                              HcoID     = HcoID,             &  
                              ExtNr     = ExtNr,             &  
                              Cat       = Cat,               &  
@@ -664,7 +608,7 @@ CONTAINS
                              SpaceDim  = SpaceDim,          &  
                              OutUnit   = OutUnit,           &  
                              AutoFill  = 1,                 &  
-                             COL       = HcoDiagnIDDefault, &
+                             COL       = HcoState%Diagn%HcoDiagnIDDefault, &
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN
   
@@ -674,6 +618,56 @@ CONTAINS
        CALL DiagnFileClose ( LUN )
 
     ENDIF ! LUN > 0
+
+    ! ---------------------------------------------------------------------
+    ! Eventually prepare a diagnostics for every HEMCO species.
+    ! This is optional and controlled by HEMCO setting DefaultDiagnSet.
+    ! ---------------------------------------------------------------------
+    CALL GetExtOpt( HcoState%Config, -999, 'DefaultDiagnOn', &
+                    OptValBool=DefaultSet, FOUND=FOUND, RC=RC )
+    IF ( .NOT. FOUND ) DefaultSet = .FALSE.
+    IF ( DefaultSet ) THEN 
+
+       ! Search for default diagnostics variable prefix
+       CALL GetExtOpt( HcoState%Config, -999, 'DefaultDiagnSname', &
+                       OptValChar=dSname, FOUND=FOUND, RC=RC )
+       IF ( .NOT. FOUND ) dSname = 'HEMCO_EMIS_'
+
+       CALL GetExtOpt( HcoState%Config, -999, 'DefaultDiagnLname', &
+                       OptValChar=dLname, FOUND=FOUND, RC=RC )
+       IF ( .NOT. FOUND ) dLname = 'HEMCO_emissions_of_species_'
+
+       ! Search for default diagnostics dimension
+       CALL GetExtOpt( HcoState%Config, -999, 'DefaultDiagnDim', &
+                       OptValInt=SpaceDim, FOUND=FOUND, RC=RC )
+       IF ( .NOT. FOUND ) SpaceDim = 3
+       SpaceDim = MAX(MIN(SpaceDim,3),2)
+
+       ! Get units
+       CALL GetExtOpt( HcoState%Config, -999, 'DefaultDiagnUnit', &
+                       OptValChar=OutUnit, FOUND=FOUND, RC=RC )
+       IF ( .NOT. FOUND ) OutUnit = 'kg m-2 s-1'
+
+       ! Loop over all species and create diagnostics 
+       DO N = 1, HcoState%nSpc
+          cName = TRIM(dSname)//TRIM(HcoState%Spc(N)%SpcName)
+          lName = TRIM(dLname)//TRIM(HcoState%Spc(N)%SpcName)
+
+          CALL Diagn_Create( am_I_Root,  HcoState,                         &
+                             cName     = cName,                            &
+                             long_name = lName,                            &
+                             HcoID     = HcoState%Spc(N)%HcoID,            &
+                             ExtNr     = -1,                               &
+                             Cat       = -1,                               &  
+                             Hier      = -1,                               &  
+                             SpaceDim  = SpaceDim,                         &
+                             OutUnit   = OutUnit,                          &
+                             AutoFill  = 1,                                &
+                             COL       = HcoState%Diagn%HcoDiagnIDDefault, &
+                             RC        = RC                                 )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDDO
+    ENDIF
  
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -742,7 +736,7 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_Create( am_I_Root, cName,      HcoState,   &
+  SUBROUTINE Diagn_Create( am_I_Root, HcoState,   cName,      &
                            ExtNr,     Cat,        Hier,       &
                            HcoID,     SpaceDim,   OutUnit,    &  
                            OutOper,   LevIdx,     AutoFill,   &
@@ -761,6 +755,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root     ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState      ! HEMCO state obj.
     CHARACTER(LEN=*), INTENT(IN   )           :: cName         ! Diagnostics name 
     CHARACTER(LEN=*), INTENT(IN   )           :: OutUnit       ! Output units
     INTEGER,          INTENT(IN   ), OPTIONAL :: SpaceDim      ! Spatial dimension 
@@ -768,7 +763,6 @@ CONTAINS
     INTEGER,          INTENT(IN   ), OPTIONAL :: Cat           ! Category 
     INTEGER,          INTENT(IN   ), OPTIONAL :: Hier          ! Hierarchy 
     INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID         ! HEMCO species ID 
-    TYPE(HCO_State),  POINTER,       OPTIONAL :: HcoState      ! HEMCO state obj.
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: OutOper       ! Output operation 
     INTEGER,          INTENT(IN   ), OPTIONAL :: LevIdx        ! Level index to use 
     INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill      ! 1=fill auto.;0=don't
@@ -791,6 +785,7 @@ CONTAINS
 !  19 Dec 2013 - C. Keller - Initialization
 !  05 Mar 2015 - C. Keller - container ID can now be set by the user
 !  31 Mar 2015 - C. Keller - added argument OkIfExist
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -798,9 +793,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(DiagnCont),       POINTER :: ThisDiagn => NULL()
-    TYPE(DiagnCont),       POINTER :: TmpDiagn  => NULL()
-    TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
+    TYPE(DiagnCont),       POINTER :: ThisDiagn
+    TYPE(DiagnCont),       POINTER :: TmpDiagn
+    TYPE(DiagnCollection), POINTER :: ThisColl
 
     ! Scalars
     CHARACTER(LEN=255)             :: LOC, MSG
@@ -813,18 +808,23 @@ CONTAINS
     ! Diagn_Create begins here!
     !======================================================================
 
+    ! Nullify
+    ThisDiagn => NULL()
+    TmpDiagn  => NULL()
+    ThisColl  => NULL()
+
     ! Init
     LOC = 'Diagn_Create (hco_diagn_mod.F90)'
-    CALL DiagnCollection_DefineID( PS, RC, COL=COL, &
-                                   InUse=FOUND, ThisColl=ThisColl )
-
+    CALL DiagnCollection_DefineID( HcoState%Diagn, PS, RC, COL=COL, &
+                                   HcoState=HcoState, InUse=FOUND, ThisColl=ThisColl )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Error if collection does not exist
     IF ( .NOT. FOUND ) THEN
        WRITE(MSG,*) 'Cannot create diagnostics ', TRIM(cName), &
                     ' - collection does not exist: ', PS
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+       RETURN
     ENDIF
 
     !----------------------------------------------------------------------
@@ -833,20 +833,20 @@ CONTAINS
     IF ( PRESENT(OkIfExist) ) THEN
        IF ( OkIfExist ) THEN
           IF ( PRESENT(cID) ) THEN
-             CALL DiagnCont_Find( cID, -1, -1, -1, -1, &
+             CALL DiagnCont_Find( HcoState%Diagn, cID, -1, -1, -1, -1, &
                            '', -1, FOUND, TmpDiagn, COL=PS )
           ELSE
-             CALL DiagnCont_Find( -1, -1, -1, -1, -1, &
-                           TRIM(cName), -1, FOUND, TmpDiagn, COL=PS )
+             CALL DiagnCont_Find( HcoState%Diagn, -1, -1, -1, -1, -1, &
+                           TRIM(ADJUSTL(cName)), -1, FOUND, TmpDiagn, COL=PS )
           ENDIF
           TmpDiagn => NULL()
 
           ! Exit if found
           IF ( FOUND ) THEN
-             IF ( HCO_IsVerb(2) ) THEN
+             IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 WRITE(MSG,*) 'Diagnostics already exists - ', &
-                             'will not added again: ', TRIM(cName) 
-                CALL HCO_MSG ( MSG )
+                             'will not be added again: ', TRIM(cName) 
+                CALL HCO_MSG ( HcoState%Config%Err, MSG )
              ENDIF
              RC = HCO_SUCCESS
              RETURN
@@ -863,7 +863,7 @@ CONTAINS
     !----------------------------------------------------------------------
     ! Pass input variables
     !----------------------------------------------------------------------
-    ThisDiagn%cName   = cName
+    ThisDiagn%cName   = ADJUSTL(cName)
     ThisDiagn%OutUnit = TRIM(OutUnit)
 
     ! Optional arguments. If not provided, use default values set in
@@ -880,7 +880,7 @@ CONTAINS
     IF ( PRESENT(long_name) ) THEN
        ThisDiagn%long_name = TRIM(long_name)
     ELSE
-       ThisDiagn%long_name = TRIM(cName)
+       ThisDiagn%long_name = TRIM(ADJUSTL(cName))
     ENDIF
 
     !----------------------------------------------------------------------
@@ -888,11 +888,13 @@ CONTAINS
     ! unit conversions, etc. (data will just be returned as is). 
     !----------------------------------------------------------------------
     IF ( PRESENT(Trgt2D) ) THEN
-       CALL DiagnCont_Link_2D( am_I_Root, ThisDiagn, ThisColl, Trgt2D, RC )
+       CALL DiagnCont_Link_2D( am_I_Root, ThisDiagn, ThisColl, Trgt2D, RC, & 
+                               HcoState=HcoState ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( PRESENT(Trgt3D) ) THEN
-       CALL DiagnCont_Link_3D( am_I_Root, ThisDiagn, ThisColl, Trgt3D, RC ) 
+       CALL DiagnCont_Link_3D( am_I_Root, ThisDiagn, ThisColl, Trgt3D, RC, & 
+                               HcoState=HcoState ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
@@ -936,12 +938,14 @@ CONTAINS
        IF ( ThisDiagn%DtaIsPtr ) THEN
           MSG = 'Cannot use scale factor on diagnostics that '// &
                 'are pointers to other data: '//TRIM(cName)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+          RETURN
        ENDIF
        IF ( TRIM(OutOper) == 'CumulSum' ) THEN
           MSG = 'Cannot use scale factor on diagnostics that '// &
                 'are cumulative sums: '//TRIM(cName)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%config%Err, MSG, RC, THISLOC=LOC )
+          RETURN
        ENDIF
        ThisDiagn%ScaleFact = ScaleFact
     ENDIF
@@ -975,7 +979,8 @@ CONTAINS
              MSG = TRIM(MSG) // '. Allowed are `Mean`, `Sum`, '// &
                    '`CumulSum`, `Instantaneous`.'
              MSG = TRIM(MSG) // ' (' // TRIM(cName) // ')'
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR( HcoState%config%Err, MSG, RC, THISLOC=LOC )
+             RETURN
           ENDIF
  
        ! If OutOper is not set, determine scale factors from output unit:
@@ -993,23 +998,16 @@ CONTAINS
           IF ( .NOT. PRESENT(MW_g)       .OR. &
                .NOT. PRESENT(EmMW_g)     .OR. &
                .NOT. PRESENT(MolecRatio)       ) THEN
-             IF ( .NOT. PRESENT(HcoState) ) THEN
-                MSG = 'Not all species properties (MW, EmMW, MolecRatio) '// &
-                      'defined for diagnostics '//TRIM(cName)//'. Please '// &
-                      'specify OutOper, HcoState or species properties!.'
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-             ELSE
-                MWg   = HcoState%Spc(HcoID)%MW_g
-                EmMWg = HcoState%Spc(HcoID)%EmMW_g
-                MolR  = HcoState%Spc(HcoID)%MolecRatio
-             ENDIF
+             MWg   = HcoState%Spc(HcoID)%MW_g
+             EmMWg = HcoState%Spc(HcoID)%EmMW_g
+             MolR  = HcoState%Spc(HcoID)%MolecRatio
           ELSE
                 MWg   = MW_g
                 EmMWg = EmMW_g
                 MolR  = MolecRatio
           ENDIF 
 
-          CALL HCO_UNIT_GetMassScal(                              &
+          CALL HCO_UNIT_GetMassScal( HcoState%Config,             &
                     unt         = OutUnit,                        &
                     MW_IN       = MWg,                            &
                     MW_OUT      = EmMWg,                          &
@@ -1017,7 +1015,7 @@ CONTAINS
                     Scal        = Scal                             )
           IF ( Scal <= 0.0_hp ) THEN
              MSG = 'Cannot find mass scale factor for unit '//TRIM(OutUnit)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR( HcoState%config%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
           ThisDiagn%MassScal = 1.0_hp / Scal
@@ -1074,7 +1072,7 @@ CONTAINS
           ! Error otherwise
           ELSE
              MSG = 'Cannot determine time normalization: '//TRIM(OutUnit)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR( HcoState%config%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF  
        ENDIF ! OutOper not set
@@ -1083,12 +1081,15 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Make sure that there is no other diagnostics with this name 
     !-----------------------------------------------------------------------
-    CALL DiagnCont_Find( -1, -1, -1, -1, -1, &
-                        Trim(cName), -1, FOUND, TmpDiagn, COL=PS )
+    CALL DiagnCont_Find( HcoState%Diagn, -1, -1, -1, -1, -1, &
+                        Trim(ADJUSTL(cName)), -1, FOUND, TmpDiagn, COL=PS )
     IF ( FOUND ) THEN
-       MSG = 'There is already a diagnostics with this name: ' // TRIM(cName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
+!       MSG = 'There is already a diagnostics with this name: ' // TRIM(cName)
+!       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+!       RETURN
+       ThisDiagn%cName = trim(cName) // '_a'
+       MSG = 'Changed Diagn name to ' // trim(ThisDiagn%cName)
+       CALL HCO_MSG ( HcoState%Config%Err, MSG )
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -1100,12 +1101,13 @@ CONTAINS
 
           ! Check if there is already a diagnostics with this container ID.
           TmpDiagn => NULL()
-          CALL DiagnCont_Find( cID, -1, -1, -1, -1, '', -1, FOUND, TmpDiagn, COL=PS )
+          CALL DiagnCont_Find( HcoState%Diagn, cID, -1, -1, -1, -1, &
+                               '', -1, FOUND, TmpDiagn, COL=PS )
           IF ( FOUND ) THEN
              WRITE(MSG,*) 'Diagnostics ', TRIM(TmpDiagn%cName), ' already has ID ', &
                 cID, ' - cannot create diagnostics ', TRIM(cName)
              
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             CALL HCO_ERROR( HcoState%config%Err, MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
 
@@ -1131,10 +1133,9 @@ CONTAINS
     ThisColl%nnDiagn = ThisColl%nnDiagn + 1
 
     ! Verbose mode
-    IF ( HCO_IsVerb( 1 ) ) THEN
+    IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
        WRITE(MSG,*) 'Successfully added diagnostics to collection ' , PS
-       CALL HCO_MSG ( MSG )
-       CALL Diagn_Print( ThisDiagn, 3 )
+       CALL HCO_MSG ( HcoState%Config%Err, MSG )
     ENDIF
 
     ! Cleanup
@@ -1151,146 +1152,430 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: Diagn_UpdateSp
+! !ROUTINE: Diagn_UpdateSp0d
 !
-! !DESCRIPTION: Subroutine Diagn\_UpdateSp is the wrapper routine to update 
-! the diagnostics for single precision arrays. It invokes the main diagnostics
-! update routine with the appropriate arguments. 
+! !DESCRIPTION: Subroutine Diagn\_UpdateSp0d is the wrapper routine to update 
+! the diagnostics for single precision scalar values.  It invokes the main 
+! diagnostics update routine with the appropriate arguments. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateSP( am_I_Root, cID,      cName,                   &
-                           ExtNr,     Cat,        Hier,       HcoID,       &
-                           AutoFill,  Scalar,     Array2D,    Array3D,     &
-                           Total,     PosOnly,    COL,        MinDiagnLev, &
-                           RC                                               )
+  SUBROUTINE Diagn_UpdateSp0d( am_I_Root,   HcoState, cID,   cName,   ExtNr, &
+                               Cat,         Hier,   HcoID,   AutoFill,       &
+                               Scalar,      Total,  PosOnly, COL,            &
+                               MinDiagnLev, RC                         )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root         ! Root CPU?
-    INTEGER,          INTENT(IN   ), OPTIONAL :: cID               ! Assigned 
-                                                                   !  container ID
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName             ! Diagnostics 
-                                                                   !  name
-    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr             ! Extension #
-    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat               ! Category 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier              ! Hierarchy 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID             ! HEMCO species
-                                                                   !  ID number 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill          ! 1=yes; 0=no; 
-                                                                   ! -1=either 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Scalar            ! 1D scalar 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Array2D   (:,:)   ! 2D array 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Array3D   (:,:,:) ! 3D array 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Total             ! Total 
-    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
-                                                                   !  >= 0?
-    INTEGER,          INTENT(IN   ), OPTIONAL :: COL               ! Collection Nr.
-    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev       ! minimum diagn level 
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned 
+                                                                !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! Diagnostics 
+                                                                !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr          ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat            ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier           ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID          ! HEMCO species
+                                                                !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 1=yes; 0=no; 
+                                                                ! -1=either 
+    REAL(sp),         INTENT(IN   )           :: Scalar         ! 0D scalar 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Total          ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly        ! Use only vals
+                                                                !  >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev    ! minimum diagn level 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)           :: RC                ! Return code 
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
 !
 ! !REVISION HISTORY:
 !  20 Apr 2015 - C. Keller - Initialization
+!  19 Sep 2016 - R. Yantosca - Rewritten for Gfortran: remove Scalar and
+!                              Array3d (put those in other overloaded methods)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     ! Call down to driver routine
-    CALL Diagn_UpdateDriver( am_I_Root, & 
-                       cID = cID, & 
-                       cName = cName, & 
-                       ExtNr = ExtNr, & 
-                       Cat = Cat, & 
-                       Hier = Hier, & 
-                       HcoID = HcoID, & 
-                       AutoFill = AutoFill, & 
-                       Scalar_SP = Scalar, & 
-                       Array2D_SP = Array2D, & 
-                       Array3D_SP = Array3D, & 
-                       Total_SP   = Total,   & 
-                       PosOnly = PosOnly, & 
-                       COL = COL, & 
-                       MinDiagnLev = MinDiagnLev, & 
-                       RC = RC )
+    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       & 
+                             cID         = cID,         & 
+                             cName       = cName,       & 
+                             ExtNr       = ExtNr,       &  
+                             Cat         = Cat,         & 
+                             Hier        = Hier,        & 
+                             HcoID       = HcoID,       & 
+                             AutoFill    = AutoFill,    & 
+                             Scalar_SP   = Scalar,      &
+                             Total_SP    = Total,       & 
+                             PosOnly     = PosOnly,     &  
+                             COL         = COL,         & 
+                             MinDiagnLev = MinDiagnLev, & 
+                             RC          = RC )
 
-  END SUBROUTINE Diagn_UpdateSp
+  END SUBROUTINE Diagn_UpdateSp0d
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: Diagn_UpdateDp
+! !ROUTINE: Diagn_UpdateSp2d
 !
-! !DESCRIPTION: Subroutine Diagn\_UpdateDp is the wrapper routine to update 
-! the diagnostics for double precision arrays. It invokes the main diagnostics
-! update routine with the appropriate arguments. 
+! !DESCRIPTION: Subroutine Diagn\_UpdateSp2d is the wrapper routine to update 
+! the diagnostics for single precision 2-D arrays.  It invokes the main 
+! diagnostics update routine with the appropriate arguments. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateDP( am_I_Root, cID,      cName,                   &
-                           ExtNr,     Cat,        Hier,       HcoID,       &
-                           AutoFill,  Scalar,     Array2D,    Array3D,     &
-                           Total,     PosOnly,    COL,        MinDiagnLev, &
-                           RC                                               )
+  SUBROUTINE Diagn_UpdateSp2d( am_I_Root,   HcoState, cID,   cName,   ExtNr,     &
+                               Cat,         Hier,  HcoID,   AutoFill,  &
+                               Array2D,     Total, PosOnly, COL,       &
+                               MinDiagnLev, RC                        )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root         ! Root CPU?
-    INTEGER,          INTENT(IN   ), OPTIONAL :: cID               ! Assigned 
-                                                                   !  container ID
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName             ! Diagnostics 
-                                                                   !  name
-    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr             ! Extension #
-    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat               ! Category 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier              ! Hierarchy 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID             ! HEMCO species
-                                                                   !  ID number 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill          ! 1=yes; 0=no; 
-                                                                   ! -1=either 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Scalar            ! 1D scalar 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Array2D   (:,:)   ! 2D array 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Array3D   (:,:,:) ! 3D array 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Total             ! Total 
-    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
-                                                                   !  >= 0?
-    INTEGER,          INTENT(IN   ), OPTIONAL :: COL               ! Collection Nr.
-    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev       ! minimum diagn level 
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned 
+                                                                !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! Diagnostics 
+                                                                !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr          ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat            ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier           ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID          ! HEMCO species
+                                                                !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 1=yes; 0=no; 
+                                                                ! -1=either 
+    REAL(sp),         INTENT(IN   )           :: Array2D(:,:)   ! 2D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Total          ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly        ! Use only vals
+                                                                !  >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev    ! minimum diagn level 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)           :: RC                ! Return code 
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
 !
 ! !REVISION HISTORY:
 !  20 Apr 2015 - C. Keller - Initialization
+!  19 Sep 2016 - R. Yantosca - Rewritten for Gfortran: remove Scalar and
+!                              Array3d (put those in other overloaded methods)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     ! Call down to driver routine
-    CALL Diagn_UpdateDriver( am_I_Root, & 
-                       cID = cID, & 
-                       cName = cName, & 
-                       ExtNr = ExtNr, & 
-                       Cat = Cat, & 
-                       Hier = Hier, & 
-                       HcoID = HcoID, & 
-                       AutoFill = AutoFill, & 
-                       Scalar = Scalar, & 
-                       Array2D = Array2D, & 
-                       Array3D = Array3D, & 
-                       Total   = Total,   & 
-                       PosOnly = PosOnly, & 
-                       COL = COL, & 
-                       MinDiagnLev = MinDiagnLev, & 
-                       RC = RC )
+    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       & 
+                             cID         = cID,         & 
+                             cName       = cName,       & 
+                             ExtNr       = ExtNr,       &  
+                             Cat         = Cat,         & 
+                             Hier        = Hier,        & 
+                             HcoID       = HcoID,       & 
+                             AutoFill    = AutoFill,    & 
+                             Array2D_SP  = Array2D,     & 
+                             Total_SP    = Total,       & 
+                             PosOnly     = PosOnly,     &  
+                             COL         = COL,         & 
+                             MinDiagnLev = MinDiagnLev, & 
+                             RC          = RC )
 
-  END SUBROUTINE Diagn_UpdateDp
+  END SUBROUTINE Diagn_UpdateSp2d
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: Diagn_UpdateSp3d
+!
+! !DESCRIPTION: Subroutine Diagn\_UpdateSp is the wrapper routine to update 
+! the diagnostics for single precision 3-D arrays. It invokes the main 
+! diagnostics update routine with the appropriate arguments. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_UpdateSp3d( am_I_Root,   HcoState, cID,   cName,   ExtNr,     &   
+                               Cat,         Hier,  HcoID,   AutoFill,  &
+                               Array3D,     Total, PosOnly, COL,       &
+                               MinDiagnLev, RC                        )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned 
+                                                                !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! Diagnostics 
+                                                                !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr          ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat            ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier           ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID          ! HEMCO species
+                                                                !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 1=yes; 0=no; 
+                                                                ! -1=either 
+    REAL(sp),         INTENT(IN   )           :: Array3D(:,:,:) ! 3D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Total          ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly        ! Use only vals
+                                                                !  >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev    ! minimum diagn level 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
+!
+! !REVISION HISTORY:
+!  20 Apr 2015 - C. Keller - Initialization
+!  19 Sep 2016 - R. Yantosca - Rewritten for Gfortran: remove Scalar and
+!                              Array2d (put those in other overloaded methods)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Call down to driver routine
+    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       & 
+                             cID         = cID,         & 
+                             cName       = cName,       & 
+                             ExtNr       = ExtNr,       & 
+                             Cat         = Cat,         & 
+                             Hier        = Hier,        & 
+                             HcoID       = HcoID,       & 
+                             AutoFill    = AutoFill,    & 
+                             Array3D_SP  = Array3D,     & 
+                             Total_SP    = Total,       & 
+                             PosOnly     = PosOnly,     & 
+                             COL         = COL,         & 
+                             MinDiagnLev = MinDiagnLev, & 
+                             RC          = RC )
+
+  END SUBROUTINE Diagn_UpdateSp3d
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: Diagn_UpdateDp0d
+!
+! !DESCRIPTION: Subroutine Diagn\_UpdateSp0d is the wrapper routine to update 
+! the diagnostics for double-precision scalar values.  It invokes the main 
+! diagnostics update routine with the appropriate arguments. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_UpdateDp0d( am_I_Root,   HcoState, cID,   cName,   ExtNr,     & 
+                               Cat,         Hier,  HcoID,   AutoFill,  &
+                               Scalar,      Total, PosOnly, COL,       &
+                               MinDiagnLev, RC                        )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned 
+                                                                !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! Diagnostics 
+                                                                !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr          ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat            ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier           ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID          ! HEMCO species
+                                                                !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 1=yes; 0=no; 
+                                                                ! -1=either 
+    REAL(dp),         INTENT(IN   )           :: Scalar         ! 1D scalar 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Total          ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly        ! Use only vals
+                                                                !  >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev    ! minimum diagn level 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
+!
+! !REVISION HISTORY:
+!  20 Apr 2015 - C. Keller   - Initialization
+!  19 Sep 2016 - R. Yantosca - Rewritten for Gfortran: remove Array2d and
+!                              Array3d (put those in other overloaded methods)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Call down to driver routine
+    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       & 
+                             cID         = cID,         & 
+                             cName       = cName,       & 
+                             ExtNr       = ExtNr,       &  
+                             Cat         = Cat,         & 
+                             Hier        = Hier,        & 
+                             HcoID       = HcoID,       & 
+                             AutoFill    = AutoFill,    & 
+                             Scalar      = Scalar,      & 
+                             Total       = Total,       & 
+                             PosOnly     = PosOnly,     &  
+                             COL         = COL,         & 
+                             MinDiagnLev = MinDiagnLev, & 
+                             RC          = RC )
+
+  END SUBROUTINE Diagn_UpdateDp0d
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: Diagn_UpdateDp2d
+!
+! !DESCRIPTION: Subroutine Diagn\_UpdateSp2d is the wrapper routine to update 
+! the diagnostics for single precision 2D arrays.  It invokes the main 
+! diagnostics update routine with the appropriate arguments. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_UpdateDp2d( am_I_Root,   HcoState, cID,   cName,   ExtNr,     & 
+                               Cat,         Hier,  HcoID,   AutoFill,  &
+                               Array2D,     Total, PosOnly, COL,       &
+                               MinDiagnLev, RC                        )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned 
+                                                                !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! Diagnostics 
+                                                                !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr          ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat            ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier           ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID          ! HEMCO species
+                                                                !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 1=yes; 0=no; 
+                                                                ! -1=either 
+    REAL(dp),         INTENT(IN   )           :: Array2D(:,:)   ! 2D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Total          ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly        ! Use only vals
+                                                                !  >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev    ! minimum diagn level 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
+!
+! !REVISION HISTORY: 
+!  20 Apr 2015 - C. Keller   - Initialization
+!  19 Sep 2016 - R. Yantosca - Rewritten for Gfortran: remove Scalar and
+!                              Array3d (put those in other overloaded methods)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Call down to driver routine
+    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       & 
+                             cID         = cID,         & 
+                             cName       = cName,       & 
+                             ExtNr       = ExtNr,       &  
+                             Cat         = Cat,         & 
+                             Hier        = Hier,        & 
+                             HcoID       = HcoID,       & 
+                             AutoFill    = AutoFill,    & 
+                             Array2D     = Array2D,     & 
+                             Total       = Total,       & 
+                             PosOnly     = PosOnly,     &  
+                             COL         = COL,         & 
+                             MinDiagnLev = MinDiagnLev, & 
+                             RC          = RC )
+
+  END SUBROUTINE Diagn_UpdateDp2d
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: Diagn_UpdateDp3d
+!
+! !DESCRIPTION: Subroutine Diagn\_UpdateSp3d is the wrapper routine to update 
+! the diagnostics for single precision arrays. It invokes the main diagnostics
+! update routine with the appropriate arguments. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_UpdateDp3d( am_I_Root,   HcoState, cID,   cName,   ExtNr, &   
+                               Cat,         Hier,  HcoID,   AutoFill,        &
+                               Array3D,     Total, PosOnly, COL,             &
+                               MinDiagnLev, RC                        )
+!
+! !USES:
+!
+    USE HCO_State_Mod, ONLY : HCO_State
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned 
+                                                                !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! Diagnostics 
+                                                                !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr          ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat            ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier           ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID          ! HEMCO species
+                                                                !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 1=yes; 0=no; 
+                                                                ! -1=either 
+    REAL(dp),         INTENT(IN   )           :: Array3D(:,:,:) ! 3D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Total          ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly        ! Use only vals
+                                                                !  >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev    ! minimum diagn level 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
+!
+! !REVISION HISTORY:
+!  20 Apr 2015 - C. Keller   - Initialization
+!  19 Sep 2016 - R. Yantosca - Rewritten for Gfortran: remove Scalar and
+!                              Array2d (put those in other overloaded methods)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Call down to driver routine
+    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       & 
+                             cID         = cID,         & 
+                             cName       = cName,       & 
+                             ExtNr       = ExtNr,       & 
+                             Cat         = Cat,         & 
+                             Hier        = Hier,        & 
+                             HcoID       = HcoID,       & 
+                             AutoFill    = AutoFill,    & 
+                             Array3D     = Array3D,     & 
+                             Total       = Total,       & 
+                             PosOnly     = PosOnly,     & 
+                             COL         = COL,         & 
+                             MinDiagnLev = MinDiagnLev, & 
+                             RC          = RC )
+
+  END SUBROUTINE Diagn_UpdateDp3d
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1349,21 +1634,22 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateDriver( am_I_Root, cID,        cName,                   &
+  SUBROUTINE Diagn_UpdateDriver( am_I_Root, HcoState,   cID,        cName,       &
                                  ExtNr,     Cat,        Hier,       HcoID,       &
                                  AutoFill,  Scalar,     Array2D,    Array3D,     &
                                  Total,     Scalar_SP,  Array2D_SP, Array3D_SP,  &
-                                 Total_SP,  PosOnly,    COL,        MinDiagnLev, &
+                                 Total_SP,  Scalar_HP,  Array2D_HP, Array3D_HP, &
+                                 Total_HP,  PosOnly,    COL,        MinDiagnLev, &
                                  RC                                               )
 !
 ! !USES:
 !
-    USE HCO_State_Mod, ONLY : HCO_State
     USE HCO_Arr_Mod,   ONLY : HCO_ArrAssert
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )                   :: am_I_Root         ! Root CPU?
+    TYPE(HCO_State),  POINTER                         :: HcoState          ! HEMCO state obj
     INTEGER,          INTENT(IN   ), OPTIONAL         :: cID               ! container ID 
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL         :: cName             ! Dgn name
     INTEGER,          INTENT(IN   ), OPTIONAL         :: ExtNr             ! Extension #
@@ -1380,6 +1666,10 @@ CONTAINS
     REAL(sp),         INTENT(IN   ), OPTIONAL, TARGET :: Array2D_SP(:,:)   ! 2D array 
     REAL(sp),         INTENT(IN   ), OPTIONAL, TARGET :: Array3D_SP(:,:,:) ! 3D array 
     REAL(sp),         INTENT(IN   ), OPTIONAL         :: Total_SP          ! Total 
+    REAL(hp),         INTENT(IN   ), OPTIONAL         :: Scalar_HP         ! 1D scalar 
+    REAL(hp),         INTENT(IN   ), OPTIONAL, TARGET :: Array2D_HP(:,:)   ! 2D array 
+    REAL(hp),         INTENT(IN   ), OPTIONAL, TARGET :: Array3D_HP(:,:,:) ! 3D array 
+    REAL(hp),         INTENT(IN   ), OPTIONAL         :: Total_HP          ! Total 
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: PosOnly           ! Use only vals
                                                                            ! >= 0?
     INTEGER,          INTENT(IN   ), OPTIONAL         :: COL               ! Collection Nr.
@@ -1395,6 +1685,7 @@ CONTAINS
 !  11 Mar 2015 - C. Keller - Now allow scanning of all diagnostic collections
 !  13 Mar 2015 - C. Keller - Bug fix: only prompt warning if it's a new timestep
 !  17 Jun 2015 - C. Keller - Added argument MinDiagnLev
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1402,18 +1693,18 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(DiagnCollection), POINTER :: ThisColl      => NULL()
-    TYPE(DiagnCont),       POINTER :: ThisDiagn     => NULL()
-    REAL(sp),              POINTER :: Arr2D (:,:)   => NULL()
-    REAL(sp),              POINTER :: Tmp2D (:,:)   => NULL()
-    REAL(sp),              POINTER :: Arr3D (:,:,:) => NULL()
+    TYPE(DiagnCollection), POINTER :: ThisColl
+    TYPE(DiagnCont),       POINTER :: ThisDiagn
+    REAL(sp),              POINTER :: Arr2D (:,:)
+    REAL(sp),              POINTER :: Tmp2D (:,:)
+    REAL(sp),              POINTER :: Arr3D (:,:,:)
     REAL(sp)                       :: TmpScalar
 
     ! Scalars
     CHARACTER(LEN=255)             :: LOC, MSG
     REAL(hp)                       :: Fact
     REAL(hp)                       :: Tmp
-    CHARACTER(LEN=31)              :: DgnName
+    CHARACTER(LEN=63)              :: DgnName
     INTEGER                        :: I, J, L, PS, AS
     INTEGER                        :: DgncID,  DgnExtNr, DgnCat
     INTEGER                        :: iHier,   iExt,     iCat
@@ -1430,12 +1721,17 @@ CONTAINS
     !======================================================================
 
     ! Init
-    LOC = 'Diagn_UpdateDriver (hco_diagn_mod.F90)'
-    RC  = HCO_SUCCESS
+    LOC       =  'Diagn_UpdateDriver (hco_diagn_mod.F90)'
+    RC        =  HCO_SUCCESS
+    ThisColl  => NULL()
+    ThisDiagn => NULL()
+    Arr2D     => NULL()
+    Tmp2D     => NULL()
+    Arr3D     => NULL()
 
     ! Get collection number. 
-    CALL DiagnCollection_DefineID( PS, RC, COL=COL, DEF=-1, &
-           OKIfAll=.TRUE., InUse=InUse, ThisColl=ThisColl )
+    CALL DiagnCollection_DefineID( HcoState%Diagn, PS, RC, COL=COL, DEF=-1, &
+           OKIfAll=.TRUE., InUse=InUse, ThisColl=ThisColl, HcoState=HcoState )
     IF ( RC /= HCO_SUCCESS ) RETURN
  
     ! Check if we need to scan through all collections. This is only the
@@ -1462,7 +1758,7 @@ CONTAINS
     DgnHcoID = -1
     OnlyPos  = .FALSE.
     AutoFlag = -1
-    IF ( PRESENT(cName   ) ) DgnName  = cName
+    IF ( PRESENT(cName   ) ) DgnName  = ADJUSTL(cName)
     IF ( PRESENT(cID     ) ) DgncID   = cID  
     IF ( PRESENT(ExtNr   ) ) DgnExtNr = ExtNr
     IF ( PRESENT(Cat     ) ) DgnCat   = Cat  
@@ -1472,7 +1768,7 @@ CONTAINS
     IF ( PRESENT(AutoFill) ) AutoFlag = AutoFill
 
     ! Get the update time ID.
-    CALL HcoClock_Get( nSteps = ThisUpdateID, RC=RC )
+    CALL HcoClock_Get( am_I_Root, HcoState%Clock, nSteps=ThisUpdateID, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Count # of containers that are updated
@@ -1540,7 +1836,8 @@ CONTAINS
           ! If ThisDiagn is empty (first call), the search will start
           ! at the first diagnostics container. Otherwise, the search
           ! will resume from this diagnostics container.
-          CALL DiagnCont_Find( DgncID,    iExt,     iCat,     iHier,   &
+          CALL DiagnCont_Find( HcoState%Diagn, &
+                               DgncID,    iExt,     iCat,     iHier,   &
                                DgnHcoID,  DgnName,  AutoFlag, Found,   &
                                ThisDiagn, RESUME=.TRUE., COL=ThisColl%CollectionID )
    
@@ -1563,7 +1860,7 @@ CONTAINS
              MSG = 'You try to update a container that holds a '  // &
                   'pointer to data - this should never happen! ' // &
                   TRIM(ThisDiagn%cName)
-             CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+             CALL HCO_WARNING( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
              CYCLE 
           ENDIF
      
@@ -1610,10 +1907,19 @@ CONTAINS
              ! 3D array
              IF ( PRESENT(Array3D_SP) ) THEN
                 Arr3D => Array3D_SP
+             ELSEIF ( PRESENT(Array3D_HP) ) THEN
+                ALLOCATE( Arr3D(ThisColl%NX,ThisColl%NY,ThisColl%NZ),STAT=AS)
+                IF ( AS /= 0 ) THEN
+                   CALL HCO_ERROR( HcoState%Config%Err,&
+                                   'Allocation error Arr3D', RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
+                Arr3D = Array3D_HP
              ELSEIF( PRESENT(Array3D) ) THEN
                 ALLOCATE( Arr3D(ThisColl%NX,ThisColl%NY,ThisColl%NZ),STAT=AS)
                 IF ( AS /= 0 ) THEN
-                   CALL HCO_ERROR( 'Allocation error Arr3D', RC, THISLOC=LOC )
+                   CALL HCO_ERROR( HcoState%Config%Err,&
+                                   'Allocation error Arr3D', RC, THISLOC=LOC )
                    RETURN
                 ENDIF
                 Arr3D = Array3D
@@ -1622,10 +1928,19 @@ CONTAINS
              ! 2D array 
              IF ( PRESENT(Array2D_SP) ) THEN
                 Arr2D => Array2D_SP
+             ELSEIF ( PRESENT(Array2D_HP) ) THEN
+                ALLOCATE( Arr2D(ThisColl%NX,ThisColl%NY),STAT=AS)
+                IF ( AS /= 0 ) THEN
+                   CALL HCO_ERROR( HcoState%Config%Err,&
+                                   'Allocation error Arr2D', RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
+                Arr2D = Array2D_HP
              ELSEIF( PRESENT(Array2D) ) THEN
                 ALLOCATE( Arr2D(ThisColl%NX,ThisColl%NY),STAT=AS)
                 IF ( AS /= 0 ) THEN
-                   CALL HCO_ERROR( 'Allocation error Arr2D', RC, THISLOC=LOC )
+                   CALL HCO_ERROR( HcoState%Config%Err,&
+                                   'Allocation error Arr2D', RC, THISLOC=LOC )
                    RETURN
                 ENDIF
                 Arr2D = Array2D
@@ -1646,7 +1961,7 @@ CONTAINS
           IF ( ThisDiagn%SpaceDim == 3 ) THEN
       
              ! Make sure dimensions agree and diagnostics array is allocated
-             IF ( PRESENT(Array3D_SP) .OR. PRESENT(Array3D) ) THEN
+             IF ( PRESENT(Array3D_SP) .OR. PRESENT(Array3D) .OR. PRESENT(Array3D_HP) ) THEN
       
                 ! By default, write into single precision array 
                 CALL HCO_ArrAssert( ThisDiagn%Arr3D, ThisColl%NX,   &
@@ -1680,8 +1995,8 @@ CONTAINS
           !----------------------------------------------------------------------
           ELSEIF ( ThisDiagn%SpaceDim == 2 ) THEN
      
-             IF ( PRESENT(Array3D_SP) .OR. PRESENT(Array3D) .OR. & 
-                  PRESENT(Array2D_SP) .OR. PRESENT(Array2D)       ) THEN
+             IF ( PRESENT(Array3D_SP) .OR. PRESENT(Array3D) .OR. PRESENT(Array3D_HP) .OR. & 
+                  PRESENT(Array2D_SP) .OR. PRESENT(Array2D) .OR. PRESENT(Array2D_HP)      ) THEN
  
                 ! Make sure dimensions agree and diagnostics array is allocated
                 CALL HCO_ArrAssert( ThisDiagn%Arr2D, ThisColl%NX, &
@@ -1704,13 +2019,13 @@ CONTAINS
                 IsAssoc = .TRUE.
          
                 ! Convert 3D array to 2D if necessary - only use first level!!
-                IF ( PRESENT(Array2D) .OR. PRESENT(Array2D_SP) ) THEN
+                IF ( PRESENT(Array2D) .OR. PRESENT(Array2D_SP) .OR. PRESENT(Array2D_HP) ) THEN
                    IF ( .NOT. ASSOCIATED(Arr2D) ) THEN
                       IsAssoc = .FALSE.
                    ELSE
                       Tmp2D => Arr2D
                    ENDIF
-                ELSEIF ( PRESENT(Array3D) .OR. PRESENT(Array3D_SP) ) THEN
+                ELSEIF ( PRESENT(Array3D) .OR. PRESENT(Array3D_SP) .OR. PRESENT(Array3D_HP) ) THEN
                    IF ( .NOT. ASSOCIATED(Arr3D) ) THEN
                       IsAssoc = .FALSE.
                    ELSE
@@ -1722,7 +2037,7 @@ CONTAINS
                    ENDIF
                 ELSE
                    MSG = 'No array passed for updating ' // TRIM(ThisDiagn%cName)
-                   CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+                   CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
                    RETURN
                 ENDIF
          
@@ -1780,7 +2095,7 @@ CONTAINS
           ELSEIF ( ThisDiagn%SpaceDim == 1 ) THEN
       
              ! Make sure dimensions agree and diagnostics array is allocated
-             IF ( PRESENT(Scalar_SP) .OR. PRESENT(Scalar) ) THEN
+             IF ( PRESENT(Scalar_SP) .OR. PRESENT(Scalar) .OR. PRESENT(Scalar_HP) ) THEN
    
                 ! Pass array to diagnostics: ignore existing data if counter 
                 ! is zero, add to it otherwise.
@@ -1810,6 +2125,9 @@ CONTAINS
           IF ( PRESENT(Total_SP) ) THEN
              ThisDiagn%Total = ThisDiagn%Total + Total_SP
           ENDIF
+          IF ( PRESENT(Total_HP) ) THEN
+             ThisDiagn%Total = ThisDiagn%Total + Total_HP
+          ENDIF
       
           !----------------------------------------------------------------------
           ! Update counter ==> Do only if last update time is not equal to 
@@ -1829,10 +2147,10 @@ CONTAINS
           ThisDiagn%nnGetCalls  = 0
 
           ! Verbose mode 
-          IF ( HCO_IsVerb( 2 ) ) THEN
+          IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
              WRITE(MSG,'(a,a,a,I3,a)') 'Successfully updated diagnostics: ', &
                 TRIM(ThisDiagn%cName), ' (counter:', ThisDiagn%Counter, ')'
-             CALL HCO_MSG ( MSG )
+             CALL HCO_MSG ( HcoState%Config%Err, MSG )
           ENDIF
        ENDDO ! loop over containers in collection
    
@@ -1848,11 +2166,15 @@ CONTAINS
     ! Cleanup
     IF (PRESENT(Array3D_SP) ) THEN
        Arr3D => NULL()
+    ELSEIF (PRESENT(Array3D_HP) ) THEN
+       IF ( ASSOCIATED(Arr3D) ) DEALLOCATE(Arr3D)
     ELSEIF (PRESENT(Array3D) ) THEN
        IF ( ASSOCIATED(Arr3D) ) DEALLOCATE(Arr3D)
     ENDIF
     IF (PRESENT(Array2D_SP) ) THEN
        Arr2D => NULL()
+    ELSEIF (PRESENT(Array2D_HP) ) THEN
+       IF ( ASSOCIATED(Arr2D) ) DEALLOCATE(Arr2D)
     ELSEIF (PRESENT(Array2D) ) THEN
        IF ( ASSOCIATED(Arr2D) ) DEALLOCATE(Arr2D)
     ENDIF
@@ -1902,14 +2224,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_Get( am_I_Root, EndOfIntvOnly, DgnCont, &
+  SUBROUTINE Diagn_Get( am_I_Root, HcoState,               &
+                        EndOfIntvOnly,            DgnCont, &
                         FLAG,      RC,            cName,   &
                         cID,       AutoFill,      COL,     &
                         SkipZeroCount                       )
 !
-! !INPUT PARAMETERS::
+! !USES:
+!
+    USE HCO_STATE_MOD,   ONLY : HCO_State
+!
+! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root       ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState        ! HEMCO state obj 
     LOGICAL,          INTENT(IN   )           :: EndOfIntvOnly   ! End of 
                                                                  ! interval 
                                                                  ! only? 
@@ -1934,13 +2262,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
+    TYPE(DiagnCollection), POINTER :: ThisColl
     INTEGER                        :: PS, AF
     LOGICAL                        :: TimeToWrite
     LOGICAL                        :: FOUND, CF
@@ -1951,12 +2280,14 @@ CONTAINS
     !======================================================================
 
     ! Init
-    FLAG   = HCO_FAIL
-    RC     = HCO_SUCCESS
-    CF     = .FALSE.
+    FLAG     =  HCO_FAIL
+    RC       =  HCO_SUCCESS
+    CF       = .FALSE.
+    ThisColl => NULL()
 
     ! Get collection number
-    CALL DiagnCollection_DefineID( PS, RC, COL=COL, ThisColl=ThisColl )
+    CALL DiagnCollection_DefineID( HcoState%Diagn, PS, RC, COL=COL, &
+                                   ThisColl=ThisColl, HcoState=HcoState )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set AutoFill flag
@@ -1968,7 +2299,7 @@ CONTAINS
     IF ( PRESENT(SkipZeroCount) ) SKIPZERO = SkipZeroCount
 
     IF ( EndOfIntvOnly ) THEN
-       TimeToWrite =  DiagnCollection_IsTimeToWrite( PS )
+       TimeToWrite =  DiagnCollection_IsTimeToWrite( am_I_Root, HcoState, PS )
        IF ( .NOT. TimeToWrite ) THEN
           DgnCont => NULL()
           RETURN
@@ -1978,8 +2309,8 @@ CONTAINS
     ! If container name is given, search for diagnostics with 
     ! the given name. 
     IF ( PRESENT( cName ) ) THEN
-
-       CALL DiagnCont_Find( -1, -1, -1, -1, -1, cName, &
+       CALL DiagnCont_Find( HcoState%Diagn, &
+                            -1, -1, -1, -1, -1, cName, &
                             AF, FOUND, DgnCont, COL=PS )
 
        IF ( .NOT. FOUND ) THEN
@@ -1999,7 +2330,8 @@ CONTAINS
     ! If container id is given, search for diagnostics with 
     ! the given container ID.
     IF ( PRESENT( cID ) .AND. .NOT. CF ) THEN
-       CALL DiagnCont_Find( cID, -1, -1, -1, -1, '', &
+       CALL DiagnCont_Find( HcoState%Diagn, &
+                            cID, -1, -1, -1, -1, '', &
                             AF, FOUND, DgnCont, COL=PS )
        IF ( .NOT. FOUND ) THEN
           DgnCont => NULL()
@@ -2037,7 +2369,7 @@ CONTAINS
 
     ! Before returning container, make sure its data is ready for output.
     IF ( ASSOCIATED (DgnCont ) ) THEN
-       CALL DiagnCont_PrepareOutput ( DgnCont, RC ) 
+       CALL DiagnCont_PrepareOutput ( am_I_Root, HcoState, DgnCont, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
        FLAG = HCO_SUCCESS
 
@@ -2065,12 +2397,13 @@ CONTAINS
 !\\ 
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_TotalGet( am_I_Root, cName, cID,   COL, &
+  SUBROUTINE Diagn_TotalGet( am_I_Root, Diagn, cName, cID,   COL, &
                              FOUND,     Total, Reset, RC    ) 
 !
 ! !INPUT PARAMETERS::
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(DiagnBundle),POINTER                 :: Diagn          ! Diagn bundle obj
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! container name
     INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! container ID
     INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr. 
@@ -2087,13 +2420,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Mar 2015 - C. Keller: Initialization
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(DiagnCont),  POINTER  :: DgnCont => NULL() 
+    TYPE(DiagnCont),  POINTER  :: DgnCont
     INTEGER                    :: PS
     LOGICAL                    :: FND
 
@@ -2102,28 +2436,29 @@ CONTAINS
     !======================================================================
 
     ! Init
-    RC    = HCO_FAIL
-    Total = 0.0_sp
-    FND   = .FALSE.
+    RC      = HCO_FAIL
+    Total   = 0.0_sp
+    DgnCont => NULL() 
+    FND     = .FALSE.
     IF ( PRESENT(FOUND) ) THEN
        FOUND = .FALSE.
     ENDIF
 
     ! Get collection number
-    CALL DiagnCollection_DefineID( PS, RC, COL=COL )
+    CALL DiagnCollection_DefineID( Diagn, PS, RC, COL=COL )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! If container name is given, search for diagnostics with 
     ! the given name. 
     IF ( PRESENT( cName ) ) THEN
-       CALL DiagnCont_Find( -1, -1, -1, -1, -1, cName, &
+       CALL DiagnCont_Find( Diagn, -1, -1, -1, -1, -1, cName, &
                             -1, FND, DgnCont, COL=PS )
     ENDIF
    
     ! If container id is given, search for diagnostics with 
     ! the given container ID.
     IF ( PRESENT( cID ) .AND. .NOT. FND ) THEN
-       CALL DiagnCont_Find( cID, -1, -1, -1, -1, '', &
+       CALL DiagnCont_Find( Diagn, cID, -1, -1, -1, -1, '', &
                             -1, FND, DgnCont, COL=PS )
     ENDIF
 
@@ -2171,6 +2506,7 @@ CONTAINS
 !  19 Dec 2013 - C. Keller   - Initialization
 !  25 Jan 2016 - R. Yantosca - Bug fix for pgfortran compiler: Test if the
 !                              TMPCONT object is associated before deallocating
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2178,14 +2514,15 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    TYPE(DiagnCont), POINTER  :: TmpCont => NULL()
-    TYPE(DiagnCont), POINTER  :: NxtCont => NULL()
+    TYPE(DiagnCont), POINTER  :: TmpCont
+    TYPE(DiagnCont), POINTER  :: NxtCont
 
     !======================================================================
     ! Diagn_Cleanup begins here!
     !======================================================================
 
     ! Walk through entire list and remove all containers
+    NxtCont => NULL()
     TmpCont => DiagnList
     DO WHILE ( ASSOCIATED( TmpCont ) ) 
 
@@ -2194,12 +2531,6 @@ CONTAINS
 
        ! Clean up this container 
        CALL DiagnCont_Cleanup( TmpCont )
-!-------------------------------------------------------------------------
-! Prior to 1/25/16:
-! Make sure that TMPCONT is associated before deallocating.
-! The pgfortran compiler will choke on this (bmy, 1/25/16)
-!       DEALLOCATE ( TmpCont )
-!-------------------------------------------------------------------------
        IF ( ASSOCIATED( TmpCont ) ) DEALLOCATE ( TmpCont )
 
        ! Advance
@@ -2225,10 +2556,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION Diagn_AutoFillLevelDefined( Level, COL ) RESULT ( IsDefined )
+  FUNCTION Diagn_AutoFillLevelDefined( Diagn, Level, COL ) RESULT ( IsDefined )
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(DiagnBundle),POINTER     :: Diagn     ! Diagn bundle obj
     INTEGER, INTENT(IN)           :: Level     ! Level of interest
     INTEGER, INTENT(IN), OPTIONAL :: COL       ! Collection Nr.
 !
@@ -2238,13 +2570,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
+    TYPE(DiagnCollection), POINTER :: ThisColl
     INTEGER                        :: I, RC, PS
     LOGICAL                        :: InUse
 
@@ -2254,9 +2587,10 @@ CONTAINS
 
     ! Initialize
     IsDefined = .FALSE.
+    ThisColl  => NULL()
 
     ! Get collection number
-    CALL DiagnCollection_DefineID( PS, RC, COL=COL, DEF=-1, &
+    CALL DiagnCollection_DefineID( Diagn, PS, RC, COL=COL, DEF=-1, &
             OKIfAll=.TRUE., InUse=InUse, ThisColl=ThisColl )
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -2297,17 +2631,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_Get( COL,          InUse,    Prefix,            &
-                                  nnDiagn,      DeltaYMD,                    &
-                                  LastYMD,      DeltaHMS, LastHMS,           &
-                                  OutTimeStamp, RC                             )
+  SUBROUTINE DiagnCollection_Get( Diagn,        COL,               &
+                                  InUse,        Prefix,            &
+                                  nnDiagn,      DeltaYMD,          &
+                                  LastYMD,      DeltaHMS, LastHMS, &
+                                  OutTimeStamp, RC                  )
 !
 ! !INPUT ARGUMENTS:
-!
+!     
     INTEGER,          INTENT(IN), OPTIONAL :: COL       ! Collection Nr.
 !
 ! !OUTPUT PARAMETERS:
 !
+    TYPE(DiagnBundle),POINTER               :: Diagn
     LOGICAL,          INTENT(OUT), OPTIONAL :: InUse 
     CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: Prefix
     INTEGER,          INTENT(OUT), OPTIONAL :: nnDiagn 
@@ -2323,13 +2659,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
+    TYPE(DiagnCollection), POINTER :: ThisColl
     INTEGER                        :: PS
     LOGICAL                        :: FOUND
 
@@ -2338,6 +2675,7 @@ CONTAINS
     !======================================================================
 
     ! Init
+    ThisColl => NULL()
     IF ( PRESENT(Prefix      ) ) Prefix       = ''
     IF ( PRESENT(InUse       ) ) InUse        = .FALSE. 
     IF ( PRESENT(nnDiagn     ) ) nnDiagn      = 0 
@@ -2348,7 +2686,7 @@ CONTAINS
     IF ( PRESENT(OutTimeStamp) ) OutTimeStamp = -1 
 
     ! Get collection number
-    CALL DiagnCollection_DefineID( PS, RC, COL=COL, InUse=FOUND, ThisColl=ThisColl )
+    CALL DiagnCollection_DefineID( Diagn, PS, RC, COL=COL, InUse=FOUND, ThisColl=ThisColl )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     IF ( PRESENT(InUse) ) THEN
@@ -2387,10 +2725,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_Set( COL, InUse, LastYMD, LastHMS, RC )
+  SUBROUTINE DiagnCollection_Set( Diagn, COL, InUse, LastYMD, LastHMS, RC )
 !
 ! !INPUT ARGUMENTS:
 !
+    TYPE(DiagnBundle),POINTER              :: Diagn     ! Diagn bundle 
     INTEGER,          INTENT(IN), OPTIONAL :: COL       ! Collection Nr.
 !
 ! !OUTPUT PARAMETERS:
@@ -2405,13 +2744,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
+    TYPE(DiagnCollection), POINTER :: ThisColl
     INTEGER                        :: PS
     LOGICAL                        :: FOUND
 
@@ -2420,10 +2760,11 @@ CONTAINS
     !======================================================================
 
     ! Init
+    ThisColl => NULL()
     IF ( PRESENT(InUse    ) ) InUse     = .FALSE. 
 
     ! Get collection number
-    CALL DiagnCollection_DefineID( PS, RC, COL=COL, InUse=FOUND, ThisColl=ThisColl )
+    CALL DiagnCollection_DefineID( Diagn, PS, RC, COL=COL, InUse=FOUND, ThisColl=ThisColl )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     IF ( PRESENT(InUse) ) THEN
@@ -2587,27 +2928,33 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCont_PrepareOutput ( DgnCont, RC )
+  SUBROUTINE DiagnCont_PrepareOutput ( am_I_Root, HcoState, DgnCont, RC )
 !
 ! !USES:
 !
     USE HCO_State_Mod, ONLY : HCO_State
     USE HCO_Arr_Mod,   ONLY : HCO_ArrAssert
 !
+! !INPUT PARAMETERS:
+!
+    LOGICAL,           INTENT(IN   ) :: am_I_Root ! Root CPU?
+    TYPE(HCO_State),   POINTER       :: HcoState  ! HEMCO state obj
+!
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(DiagnCont),   POINTER       :: DgnCont  ! diagnostics container 
-    INTEGER,           INTENT(INOUT) :: RC       ! Return code 
+    TYPE(DiagnCont),   POINTER       :: DgnCont   ! diagnostics container 
+    INTEGER,           INTENT(INOUT) :: RC        ! Return code 
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
+    TYPE(DiagnCollection), POINTER :: ThisColl
     LOGICAL                        :: FOUND
     INTEGER                        :: I, J, YYYY, MM
     REAL(hp)                       :: norm1, mult1, DPY, totscal
@@ -2622,6 +2969,7 @@ CONTAINS
     ! Init
     RC  = HCO_SUCCESS
     LOC = 'DiagnCont_PrepareOutput (hco_diagn_mod.F90) '
+    ThisColl => NULL()
     
     !-----------------------------------------------------------------------
     ! Don't do anything for pointer data and/or if data is already in 
@@ -2633,14 +2981,15 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get pointer to this collection
     !-----------------------------------------------------------------------
-    CALL DiagnCollection_Find( DgnCont%CollectionID, FOUND, RC, ThisColl=ThisColl )
+    CALL DiagnCollection_Find( HcoState%Diagn, DgnCont%CollectionID, &
+                               FOUND, RC, ThisColl=ThisColl )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! This should never happen
     IF ( .NOT. FOUND .OR. .NOT. ASSOCIATED(ThisColl) ) THEN
        WRITE(MSG,*) 'Diagnostics ', TRIM(DgnCont%cName), ' has invalid ', &
                     'collection ID of ', DgnCont%CollectionID
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
@@ -2670,7 +3019,7 @@ CONTAINS
        ! Prompt warning
        MSG = 'Diagnostics counter is zero - return empty array: ' // &
              TRIM(DgnCont%cName)
-       CALL HCO_WARNING( MSG, RC, THISLOC=LOC, WARNLEV=1 )    
+       CALL HCO_WARNING( HcoState%Config%Err, MSG, RC, THISLOC=LOC, WARNLEV=1 )    
        RETURN
     ENDIF 
 
@@ -2706,7 +3055,8 @@ CONTAINS
     ELSE
 
        ! Get current month and year
-       CALL HcoClock_Get( cYYYY = YYYY, cMM = MM, RC=RC )
+       CALL HcoClock_Get( am_I_Root, HcoState%Clock, &
+                          cYYYY=YYYY, cMM=MM, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Days per year
@@ -2740,7 +3090,7 @@ CONTAINS
        ELSE
           WRITE(MSG,*) 'Illegal time averaging of ', DgnCont%TimeAvg, &
                        ' for diagnostics ', TRIM(DgnCont%cName)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -2749,7 +3099,7 @@ CONTAINS
     ! Error trap
     IF ( norm1 <= 0.0_hp ) THEN
        MSG = 'Illegal normalization factor: ' // TRIM(DgnCont%cName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
@@ -2849,11 +3199,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCont_Find ( cID,   ExtNr,    Cat,   Hier,   HcoID, &
+  SUBROUTINE DiagnCont_Find ( Diagn, cID,      ExtNr, Cat,    Hier,   HcoID, &
                               cName, AutoFill, FOUND, OutCnt, Resume, COL )
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(DiagnBundle), POINTEr      :: Diagn    ! diagn bundle
     INTEGER,           INTENT(IN)   :: cID      ! wanted cont. ID
     INTEGER,           INTENT(IN)   :: ExtNr    ! wanted ExtNr
     INTEGER,           INTENT(IN)   :: Cat      ! wanted category
@@ -2876,6 +3227,7 @@ CONTAINS
 !  19 Dec 2013 - C. Keller: Initialization
 !  25 Sep 2014 - C. Keller: Added Resume flag
 !  09 Apr 2015 - C. Keller: Can now search all collections
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2883,8 +3235,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                            :: RC, PS
-    TYPE(DiagnCont),       POINTER     :: CurrCnt  => NULL() 
-    TYPE(DiagnCollection), POINTER     :: ThisColl => NULL() 
+    TYPE(DiagnCont),       POINTER     :: CurrCnt
+    TYPE(DiagnCollection), POINTER     :: ThisColl
     LOGICAL                            :: IsMatch, InUse, Rsm
  
     !======================================================================
@@ -2892,11 +3244,14 @@ CONTAINS
     !======================================================================
 
     ! Initialize
-    FOUND  = .FALSE.
+    FOUND    = .FALSE.
+    CurrCnt  => NULL() 
+    ThisColl => NULL()
 
     ! Get collection number
-    CALL DiagnCollection_DefineID( PS, RC, COL=COL, Def=-1, InUse=InUse, &
-                                   OkIfAll=.TRUE., ThisColl=ThisColl )
+    CALL DiagnCollection_DefineID( Diagn, PS, RC, COL=COL, Def=-1, &
+                      InUse=InUse, OkIfAll=.TRUE., ThisColl=ThisColl )
+                                   
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave if collection not in use
@@ -3013,7 +3368,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCont_Link_2D( am_I_Root, DgnCont, ThisColl, Trgt2D, RC )
+  SUBROUTINE DiagnCont_Link_2D( am_I_Root, DgnCont, ThisColl, Trgt2D, RC, HcoState )
 !
 ! !USES:
 !
@@ -3022,6 +3377,7 @@ CONTAINS
 ! !INPUT ARGUMENTS:
 !
     LOGICAL,               INTENT(IN   )          :: am_I_Root   ! Root CPU?
+    TYPE(HCO_STATE),       POINTER, OPTIONAL      :: HcoState    ! HEMCO state obj
     REAL(sp),              INTENT(IN   ), TARGET  :: Trgt2D(:,:) ! 2D target data 
     TYPE(DiagnCollection), POINTER                :: ThisColl    ! Collection
 !
@@ -3052,19 +3408,31 @@ CONTAINS
     IF ( DgnCont%AutoFill == 1 ) THEN
        MSG = 'Target diagnostics has AutoFill flag of 1 - reset to 0: ' & 
            // TRIM(DgnCont%cName)
-       CALL HCO_WARNING( MSG, RC, THISLOC=LOC, WARNLEV=2 )
+       IF ( PRESENT(HcoState) ) THEN
+          CALL HCO_WARNING( HcoState%Config%Err, MSG, RC, THISLOC=LOC, WARNLEV=2 )
+       ELSE
+          WRITE(*,*) 'HEMCO WARNING: ', TRIM(MSG) 
+       ENDIF
        DgnCont%AutoFill = 0
     ENDIF
     IF ( DgnCont%SpaceDim /= 2 ) THEN
        MSG = 'Diagnostics is not 2D: ' // TRIM(DgnCont%cName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       IF ( PRESENT(HcoState) ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+       ELSE
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       ENDIF
        RETURN
     ENDIF
 
     IF ( SIZE(Trgt2D,1) /= ThisColl%NX .OR. &
          SIZE(Trgt2D,2) /= ThisColl%NY       ) THEN
        MSG = 'Incorrect target array size: ' // TRIM(DgnCont%cName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       IF ( PRESENT(HcoState) ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+       ELSE
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       ENDIF
        RETURN
     ENDIF
 
@@ -3100,7 +3468,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCont_Link_3D( am_I_Root, DgnCont, ThisColl, Trgt3D, RC )
+  SUBROUTINE DiagnCont_Link_3D( am_I_Root, DgnCont, ThisColl, Trgt3D, RC, HcoState )
 !
 ! !USES:
 !
@@ -3109,6 +3477,7 @@ CONTAINS
 ! !INPUT PARAEMTERS:
 !
     LOGICAL,               INTENT(IN   )         :: am_I_Root     ! Root CPU?
+    TYPE(HCO_STATE),       POINTER,  OPTIONAL    :: HcoState      ! HEMCO state obj
     REAL(sp),              INTENT(IN   ), TARGET :: Trgt3D(:,:,:) ! 3D target data 
     TYPE(DiagnCollection), POINTER               :: ThisColl      ! Collection
 !
@@ -3139,18 +3508,30 @@ CONTAINS
     ! be set to AutoFill
     IF ( DgnCont%AutoFill == 1 ) THEN
        MSG = 'Cannot link AutoFill container: ' // TRIM(DgnCont%cName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       IF ( PRESENT(HcoState) ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+       ELSE
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       ENDIF
        RETURN
     ENDIF
     IF ( DgnCont%AutoFill == 1 ) THEN
        MSG = 'Target diagnostics has autofill flag of 1 - reset to 0: ' & 
            // TRIM(DgnCont%cName)
-       CALL HCO_WARNING( MSG, RC, THISLOC=LOC, WARNLEV=2 )
+       IF ( PRESENT(HcoState) ) THEN
+          CALL HCO_WARNING( HcoState%Config%Err, MSG, RC, THISLOC=LOC, WARNLEV=2 )
+       ELSE
+          WRITE(*,*) 'HEMCO WARNING: ', TRIM(MSG)
+       ENDIF
        DgnCont%AutoFill = 0
     ENDIF
     IF ( DgnCont%SpaceDim /= 3 ) THEN
        MSG = 'Diagnostics is not 3D: ' // TRIM(DgnCont%cName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       IF ( PRESENT(HcoState) ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+       ELSE
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       ENDIF
        RETURN
     ENDIF
 
@@ -3159,7 +3540,11 @@ CONTAINS
          SIZE(Trgt3D,2) /= ThisColl%NY .OR. &
          SIZE(Trgt3D,3) /= ThisColl%NZ       ) THEN
        MSG = 'Incorrect target array size: ' // TRIM(DgnCont%cName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       IF ( PRESENT(HcoState) ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+       ELSE
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       ENDIF
        RETURN
     ENDIF
    
@@ -3195,22 +3580,28 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_Print ( Dgn, VerbNr )
+  SUBROUTINE Diagn_Print ( HcoState, Dgn, VerbNr )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,  ONLY : HCO_STATE
 !
 ! !INPUT ARGUMENTS:
 !
+    TYPE(HCO_STATE),       POINTER    :: HcoState 
     TYPE(DiagnCont),       POINTER    :: Dgn
     INTEGER,               INTENT(IN) :: VerbNr  
 !
 ! !REVISION HISTORY:
 !  01 Aug 2014 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !ARGUMENTS:
 !
-    TYPE(DiagnCollection), POINTER    :: ThisColl => NULL()
+    TYPE(DiagnCollection), POINTER    :: ThisColl
     CHARACTER(LEN=255)                :: MSG 
     INTEGER                           :: RC, PS, nx, ny, nz
     REAL(sp)                          :: sm
@@ -3219,9 +3610,12 @@ CONTAINS
     ! Diagn_Print begins here
     ! ================================================================
 
+    ! Initialize
+    ThisColl => NULL()
+
     ! Get collection number
-    CALL DiagnCollection_DefineID( PS, RC, &
-       COL=Dgn%CollectionID, ThisColl=ThisColl )
+    CALL DiagnCollection_DefineID( HcoState%Diagn, PS, RC, &
+       COL=Dgn%CollectionID, ThisColl=ThisColl, HcoState=HcoState )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     sm = 0.0_sp
@@ -3245,36 +3639,36 @@ CONTAINS
 
     ! Always print name 
     MSG = 'Container ' // TRIM(Dgn%cName)
-    CALL HCO_MSG(MSG)
+    CALL HCO_MSG(HcoState%Config%Err,MSG)
 
     ! Eventually add details
-    IF ( HCO_IsVerb( VerbNr ) ) THEN
+    IF ( HCO_IsVerb( HcoState%Config%Err, VerbNr ) ) THEN
 
        ! General information
        WRITE(MSG,*) '   --> Collection         : ', Dgn%CollectionID
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG( HcoState%Config%Err, MSG)
        WRITE(MSG,*) '   --> Diagn ID           : ', Dgn%cID
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG( HcoState%Config%Err, MSG)
        WRITE(MSG,*) '   --> Extension Nr       : ', Dgn%ExtNr
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG( HcoState%Config%Err, MSG)
        WRITE(MSG,*) '   --> Category           : ', Dgn%Cat
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG( HcoState%Config%Err, MSG)
        WRITE(MSG,*) '   --> Hierarchy          : ', Dgn%Hier
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG( HcoState%Config%Err, MSG)
        WRITE(MSG,*) '   --> HEMCO species ID   : ', Dgn%HcoID
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG( HcoState%Config%Err, MSG)
        WRITE(MSG,*) '   --> Autofill?            ', Dgn%AutoFill
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG( HcoState%Config%Err, MSG)
        WRITE(MSG,*) '   --> Space dimension    : ', Dgn%SpaceDim
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG( HcoState%Config%Err, MSG)
        WRITE(MSG,*) '   --> Used level index   : ', Dgn%LevIdx 
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG( HcoState%Config%Err, MSG)
        WRITE(MSG,*) '   --> Output unit        : ', TRIM(Dgn%OutUnit)
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG( HcoState%Config%Err, MSG)
        WRITE(MSG,*) '   --> Uniform scaling    : ', Dgn%ScaleFact
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG( HcoState%Config%Err, MSG)
        WRITE(MSG,*) '   --> Current array sum  : ', sm
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG( HcoState%Config%Err, MSG)
     ENDIF
 
     ! Cleanup
@@ -3301,17 +3695,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_Create ( am_I_Root, NX,      NY, NZ,       &
+  SUBROUTINE DiagnCollection_Create ( am_I_Root, Diagn,  NX, NY, NZ,    &
                                       TS,   AM2, PREFIX,                &
                                       deltaYMD, deltaHMS, OutTimeStamp, &
-                                      RC,       COL )
+                                      RC,       COL, HcoState )
 !
 ! !USES:
 !
+    USE HCO_STATE_MOD,  ONLY : HCO_STATE
 !
 ! !INPUT ARGUMENTS:
 !
     LOGICAL,            INTENT(IN)           :: am_I_Root    ! Root CPU?
+    TYPE(DiagnBundle),  POINTER              :: Diagn        ! Diagn bundle
     INTEGER,            INTENT(IN)           :: NX           ! # of lons
     INTEGER,            INTENT(IN)           :: NY           ! # of lats
     INTEGER,            INTENT(IN)           :: NZ           ! # of levels
@@ -3321,6 +3717,7 @@ CONTAINS
     INTEGER,            INTENT(IN), OPTIONAL :: deltaYMD     ! Output frequency
     INTEGER,            INTENT(IN), OPTIONAL :: deltaHMS     ! Output frequency
     INTEGER,            INTENT(IN), OPTIONAL :: OutTimeStamp ! Output time stamp 
+    TYPE(HCO_State),    POINTER,    OPTIONAL :: HcoState     ! HEMCO state obj
 !
 ! !OUTPUT ARGUMENTS:
 !
@@ -3362,12 +3759,12 @@ CONTAINS
     NewCollection%PREFIX = TRIM(PREFIX)
 
     ! Add to collections list. Put at the beginning
-    NewCollection%NextCollection => Collections
-    Collections                  => NewCollection
+    NewCollection%NextCollection => Diagn%Collections
+    Diagn%Collections            => NewCollection
 
     ! Define this collection ID
-    nnCollections              = nnCollections + 1
-    NewCollection%CollectionID = nnCollections
+    Diagn%nnCollections        = Diagn%nnCollections + 1
+    NewCollection%CollectionID = Diagn%nnCollections
     COL                        = NewCollection%CollectionID 
 
     ! New output frequency
@@ -3386,7 +3783,11 @@ CONTAINS
              TRIM(NewCollection%PREFIX), ' the specified output time ',  &
              'stamp of ', OutTimeStamp, ' is invalid, must be one of: ', &
              HcoDiagnStart, HcoDiagnMid, HcoDiagnEnd
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          IF ( PRESENT(HcoState) ) THEN
+             CALL HCO_ERROR(HcoState%Config%Err,MSG,RC,THISLOC=LOC)
+          ELSE
+             CALL HCO_ERROR(MSG,RC,THISLOC=LOC)
+          ENDIF 
           RETURN
        ENDIF
     ELSE
@@ -3394,16 +3795,18 @@ CONTAINS
     ENDIF
 
     ! verbose
-    IF ( HCO_IsVerb( 1 ) ) THEN
-       MSG = 'Created diagnostics collection: '
-       CALL HCO_MSG(MSG)
-       WRITE(MSG,'(a21,i2)') ' - Collection ID  : ', COL 
-       CALL HCO_MSG(MSG)
-       WRITE(MSG,'(a21,a)' ) ' - PREFIX         : ', TRIM(NewCollection%PREFIX)
-       CALL HCO_MSG(MSG)
-       WRITE(MSG,'(a21,i8,a1,i6)' ) ' - Output interval: ', NewCollection%DeltaYMD, &
-                                    ' ',                    NewCollection%DeltaHMS
-       CALL HCO_MSG(MSG)
+    IF ( PRESENT(HcoState) ) THEN
+       IF ( HCO_IsVerb( HcoState%Config%Err, 1 ) ) THEN
+          MSG = 'Created diagnostics collection: '
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
+          WRITE(MSG,'(a21,i2)') ' - Collection ID  : ', COL 
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
+          WRITE(MSG,'(a21,a)' ) ' - PREFIX         : ', TRIM(NewCollection%PREFIX)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
+          WRITE(MSG,'(a21,i8,a1,i6)' ) ' - Output interval: ', NewCollection%DeltaYMD, &
+                                       ' ',                    NewCollection%DeltaHMS
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
+       ENDIF
     ENDIF
 
     ! Return w/ success
@@ -3424,18 +3827,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_Cleanup
+  SUBROUTINE DiagnCollection_Cleanup ( Diagn )
 !
 ! !INPUT ARGUMENTS:
 !
+    TYPE(DiagnBundle), POINTER       :: Diagn
 !
 ! !REVISION HISTORY:
 !  08 Jan 2015 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !ARGUMENTS:
+! !LOCAL VARIABLES:
 !
     TYPE(DiagnCollection), POINTER ::  ThisColl => NULL()
     TYPE(DiagnCollection), POINTER ::  NextColl => NULL()
@@ -3445,7 +3850,8 @@ CONTAINS
     ! ================================================================
 
     ! Do for every collection in list
-    ThisColl => Collections
+    ThisColl => Diagn%Collections
+    NextColl => NULL()
 
     DO WHILE ( ASSOCIATED(ThisColl) ) 
 
@@ -3475,7 +3881,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_DefineID ( PS, RC, COL, DEF, OkIfAll, InUse, ThisColl ) 
+  SUBROUTINE DiagnCollection_DefineID ( Diagn, PS, RC, COL, DEF, OkIfAll, &
+                                        InUse, ThisColl, HcoState ) 
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,     ONLY : HCO_STATE
 !
 ! !INPUT ARGUMENTS:
 !
@@ -3485,6 +3896,8 @@ CONTAINS
 !
 ! !INPUT/OUTPUT ARGUMENTS:
 !
+    TYPE(DiagnBundle),     POINTER                 :: Diagn      ! Diagn bundle obj
+    TYPE(HCO_STATE),       POINTER,       OPTIONAL :: HcoState   ! HEMCO state obj
     INTEGER,               INTENT(INOUT)           :: PS         ! Assigned collection number 
     INTEGER,               INTENT(INOUT)           :: RC         ! Return code 
     LOGICAL,               INTENT(  OUT), OPTIONAL :: InUse      ! Is this in use? 
@@ -3521,7 +3934,7 @@ CONTAINS
     IF ( PRESENT(DEF) ) THEN
        PS = DEF
     ELSE
-       PS = HcoDiagnIDDefault
+       PS = Diagn%HcoDiagnIDDefault
     ENDIF 
     IF ( PRESENT(COL) ) PS = COL
  
@@ -3529,12 +3942,16 @@ CONTAINS
     IF ( PS == -1 ) THEN
        IF ( AllOK ) THEN
           IF ( PRESENT(InUse)    ) InUse    =  .TRUE.
-          IF ( PRESENT(ThisColl) ) ThisColl => Collections
+          IF ( PRESENT(ThisColl) ) ThisColl => Diagn%Collections
           RC = HCO_SUCCESS
           RETURN
        ELSE
           WRITE(MSG,*) 'Not allowed to select all collections ', PS
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          IF ( PRESENT(HcoState) ) THEN
+             CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+          ELSE
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          ENDIF
           RETURN
        ENDIF
 
@@ -3542,7 +3959,7 @@ CONTAINS
     ELSE
 
        ! Try to find collection
-       CALL DiagnCollection_Find( PS, FOUND, RC, ThisColl=ThisColl )
+       CALL DiagnCollection_Find( Diagn, PS, FOUND, RC, ThisColl=ThisColl )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Eventually fill argumnet
@@ -3551,8 +3968,11 @@ CONTAINS
 
        ELSEIF ( .NOT. FOUND ) THEN
           WRITE(MSG,*) 'Diagnostics collection not defined: ', PS
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
+          IF ( PRESENT(HcoState) ) THEN
+             CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+          ELSE
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          ENDIF
        ENDIF
     ENDIF
 
@@ -3574,7 +3994,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_Find ( PS, FOUND, RC, ThisColl ) 
+  SUBROUTINE DiagnCollection_Find ( Diagn, PS, FOUND, RC, ThisColl ) 
 !
 ! !INPUT PARAMETERS:
 !
@@ -3582,6 +4002,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(DiagnBundle),     POINTER                :: Diagn    ! Diagn bundle obj
     LOGICAL,               INTENT(  OUT)          :: FOUND    ! Collection exists?
     INTEGER,               INTENT(INOUT)          :: RC       ! Return code 
     TYPE(DiagnCollection), POINTER,      OPTIONAL :: ThisColl ! Pointer to collection 
@@ -3589,24 +4010,28 @@ CONTAINS
 ! !REVISION HISTORY:
 !  01 Apr 2015 - C. Keller   - Initial version
 !  10 Jul 2015 - R. Yantosca - Fixed minor issues in ProTeX header
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !ARGUMENTS:
 !
-    TYPE(DiagnCollection), POINTER :: TmpColl => NULL()
+    TYPE(DiagnCollection), POINTER :: TmpColl
     CHARACTER(LEN=255), PARAMETER  :: LOC = 'DiagnCollection_Find (hco_diagn_mod.F90)'
 
     ! ================================================================
     ! DiagnCollection_Find begins here
     ! ================================================================
 
+    ! Init
+    TmpColl => NULL()
+
     ! Check if it's negative
     FOUND = .FALSE.
 
     ! Loop over all collections
-    TmpColl => Collections
+    TmpColl => Diagn%Collections
     DO WHILE ( ASSOCIATED(TmpColl) ) 
 
        ! Check if this is the collection of interest
@@ -3646,7 +4071,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_GetDefaultDelta ( am_I_Root, deltaYMD, deltaHMS, RC )
+  SUBROUTINE DiagnCollection_GetDefaultDelta ( am_I_Root, HcoState, &
+                                               deltaYMD,  deltaHMS, RC )
 !
 ! !USES:
 !
@@ -3657,6 +4083,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root ! Root CPU?
+    TYPE(HCO_STATE),  POINTER                 :: HcoState  ! HEMCO state obj
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3686,8 +4113,9 @@ CONTAINS
     ! Try to get name of diagnostics file
 
     ! Output frequency. Try to read from configuration file. 
-    CALL GetExtOpt ( CoreNr, 'DiagnFreq', OptValChar=WriteFreq, &
-                     FOUND=FOUND, RC=RC )
+    CALL GetExtOpt ( HcoState%Config, CoreNr, 'DiagnFreq', &
+                     OptValChar=WriteFreq, FOUND=FOUND, RC=RC )
+                    
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Determine output frequency from given output frequency
@@ -3737,7 +4165,7 @@ CONTAINS
                 TRIM(WriteFreq) // '. The output frequency must be one of '  // &
                 '`Hourly`, `Daily`, `Monthly`, `Annually`, `Always`, `End`,' // &
                 ' or the explicit YYYYMMDD HHMMSS interval (15 characters).'
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC)
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC)
           RETURN
        ENDIF
 
@@ -3773,14 +4201,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION DiagnCollection_IsTimeToWrite( PS ) Result ( TimeToWrite )
+  FUNCTION DiagnCollection_IsTimeToWrite( am_I_Root, HcoState, PS ) &
+     RESULT ( TimeToWrite )
 !
 ! !USES:
 !
+    USE HCO_STATE_MOD,   ONLY : HCO_State
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN   )     :: PS   ! Diagnostics collection
+    LOGICAL, INTENT(IN   )     :: am_I_Root   ! Root CPU? 
+    INTEGER, INTENT(IN   )     :: PS          ! Diagnostics collection
+    TYPE(HCO_State), POINTER   :: HcoState    ! HEMCO state obj 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3802,6 +4234,7 @@ CONTAINS
     INTEGER             :: delta
     INTEGER             :: dymd, lymd, dhms, lhms 
     INTEGER             :: RC
+    LOGICAL             :: IsLast
     CHARACTER(LEN=255)  :: LOC = 'DiagnCollection_IsTimeToWrite (hco_diagn_mod.F90)' 
 
     !=================================================================
@@ -3810,24 +4243,29 @@ CONTAINS
 
     ! Init
     TimeToWrite = .FALSE.
-   
-    ! Get current simulation date
-    CALL HcoClock_Get(sYYYY=YYYY,sMM=MM,sDD=DD,sH=h,sM=m,sS=s,RC=RC)
+  
+    ! Get collection time interval
+    CALL DiagnCollection_Get( HcoState%Diagn, PS, DeltaYMD=dymd, &
+                   LastYMD=lymd, DeltaHMS=dhms, LastHMS=lhms, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL DiagnCollection_Get( PS, DeltaYMD=dymd, LastYMD=lymd, &
-                                  DeltaHMS=dhms, LastHMS=lhms, RC=RC )
+    ! Get current simulation date
+    CALL HcoClock_Get(am_I_Root, HcoState%Clock, IsLast=IsLast, &
+                      sYYYY=YYYY,sMM=MM,sDD=DD,sH=h,sM=m,sS=s,RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Check for last time step
+    IF ( IsLast .AND. dymd == 99999999 .AND. dhms == 999999 ) THEN
+       TimeToWrite = .TRUE.
+    ENDIF
 
     ! Check if we need to write this collection now
     IF ( .NOT. TimeToWrite .AND. dhms > 0 .AND. lhms >= 0 ) THEN
-
        ! lh is the last hour of writeout
        lh = FLOOR( MOD(lhms*1.d0, 1000000.0d0 ) / 1.0d4 )
        IF ( h == 0 .AND. lh > 0 ) h = 24 
        delta = ( h * 10000 + m * 100 + s ) - lhms
        IF ( delta >= dhms ) TimeToWrite = .TRUE.
-
     ENDIF
 
     IF ( .NOT. TimeToWrite .AND. dymd > 0 .AND. lymd >= 0 ) THEN
@@ -3850,13 +4288,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION DiagnCollection_LastTimesSet( PS ) Result ( LastTimesSet )
+  FUNCTION DiagnCollection_LastTimesSet( Diagn, PS ) Result ( LastTimesSet )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(DiagnBundle), POINTER :: Diagn
     INTEGER, INTENT(IN   )     :: PS   ! Diagnostics collection
 !
 ! !OUTPUT PARAMETERS:
@@ -3882,7 +4321,7 @@ CONTAINS
     ! Init
     LastTimesSet = .FALSE.
  
-    CALL DiagnCollection_Get( PS, LastYMD=lymd, LastHMS=lhms, RC=RC )
+    CALL DiagnCollection_Get( Diagn, PS, LastYMD=lymd, LastHMS=lhms, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Last time stamp is defined if either of the values is greater equal zero.
@@ -3902,7 +4341,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnFileOpen( am_I_Root, LUN, RC )
+  SUBROUTINE DiagnFileOpen( am_I_Root, HcoConfig, LUN, RC )
 !
 ! !USES:
 !
@@ -3915,6 +4354,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(ConfigObj),  POINTER                 :: HcoConfig   ! HEMCO config obj 
     INTEGER,          INTENT(INOUT)           :: RC          ! Failure or success
 !
 ! !OUTPUT PARAMETERS:
@@ -3942,8 +4382,9 @@ CONTAINS
     LUN = -1    
 
     ! Try to get name of diagnostics file
-    CALL GetExtOpt ( CoreNr, 'DiagnFile', OptValChar=DiagnFile, &
-                     FOUND=FOUND, RC=RC )
+    CALL GetExtOpt ( HcoConfig, CoreNr, 'DiagnFile', &
+                     OptValChar=DiagnFile, FOUND=FOUND, RC=RC )
+                     
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Read file and define diagnostics for each entry
@@ -3955,7 +4396,7 @@ CONTAINS
        INQUIRE( FILE=TRIM(DiagnFile), EXIST=EXISTS )
        IF ( .NOT. EXISTS ) THEN
           MSG = 'Cannot read file - it does not exist: ' // TRIM(DiagnFile)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -3963,7 +4404,7 @@ CONTAINS
        OPEN ( LUN, FILE=TRIM( DiagnFile ), STATUS='OLD', IOSTAT=IOS )
        IF ( IOS /= 0 ) THEN
           MSG = 'Error opening ' // TRIM(DiagnFile)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF 
 
@@ -3988,10 +4429,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnFileGetNext( am_I_Root, LUN,      cName,   &
-                               SpcName,   ExtNr,    Cat,     &
-                               Hier,      SpaceDim, OutUnit, & 
-                               EOF,       RC ) 
+  SUBROUTINE DiagnFileGetNext( am_I_Root, HcoConfig, LUN, cName, &
+                               SpcName,   ExtNr,     Cat,        &
+                               Hier,      SpaceDim,  OutUnit,    & 
+                               EOF,       RC,        lName,      &
+                               UnitName                           ) 
 !
 ! !USES:
 !
@@ -4005,6 +4447,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(ConfigObj),  POINTER                 :: HcoConfig
     LOGICAL,          INTENT(INOUT)           :: EOF
     INTEGER,          INTENT(INOUT)           :: RC          ! Failure or success
 !
@@ -4017,9 +4460,12 @@ CONTAINS
     INTEGER,          INTENT(  OUT)           :: Hier
     INTEGER,          INTENT(  OUT)           :: SpaceDim 
     CHARACTER(LEN=*), INTENT(  OUT)           :: OutUnit
+    CHARACTER(LEN=*), INTENT(  OUT), OPTIONAL :: lName
+    CHARACTER(LEN=*), INTENT(  OUT), OPTIONAL :: UnitName
 !
 ! !REVISION HISTORY: 
 !  10 Apr 2015 - C. Keller   - Initial version 
+!  23 Feb 2016 - C. Keller   - Added lName and UnitName arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4061,7 +4507,7 @@ CONTAINS
        ! There must be at least 7 entries
        IF ( N < 7 ) THEN 
           MSG = 'Diagnostics entries must have 7 elements: '// TRIM(LINE)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -4077,6 +4523,24 @@ CONTAINS
 
        ! Read output unit
        OutUnit = TRIM(SUBSTR(7))
+
+       ! Eventually get long name
+       IF ( PRESENT(lname) ) THEN
+          IF ( N > 7 ) THEN
+             lName = TRIM(SUBSTR(8))
+          ELSE
+             lName = TRIM(cName)
+          ENDIF
+       ENDIF
+
+       ! Eventually get unit name
+       IF ( PRESENT(UnitName) ) THEN
+          IF ( N > 8 ) THEN
+             UnitName = TRIM(SUBSTR(9))
+          ELSE
+             UnitName = TRIM(OutUnit)
+          ENDIF
+       ENDIF
 
     ENDIF !EOF
 
@@ -4111,5 +4575,72 @@ CONTAINS
     CLOSE ( LUN ) 
 
   END SUBROUTINE DiagnFileClose
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagnBundle_Init
+!
+! !DESCRIPTION: Creates an empty diagnostics bundle
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagnBundle_Init ( Diagn ) 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DiagnBundle), POINTER                :: Diagn
+!
+! !REVISION HISTORY: 
+!  17 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    IF ( .NOT. ASSOCIATED(Diagn) ) THEN
+       ALLOCATE(Diagn)
+       Diagn%Collections => NULL()
+       Diagn%HcoDiagnIDDefault = -999 
+       Diagn%HcoDiagnIDRestart = -999
+       Diagn%HcoDiagnIDManual  = -999
+       Diagn%nnCollections     = 0
+    ENDIF
+
+  END SUBROUTINE DiagnBundle_Init
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagnBundle_Cleanup
+!
+! !DESCRIPTION: Cleans up a diagnostics bundle
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagnBundle_Cleanup ( Diagn ) 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DiagnBundle), POINTER                :: Diagn
+!
+! !REVISION HISTORY: 
+!  17 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    IF ( ASSOCIATED(Diagn) ) THEN
+       CALL DiagnCollection_Cleanup ( Diagn ) 
+       DEALLOCATE(Diagn)
+       Diagn => NULL() 
+    ENDIF
+
+  END SUBROUTINE DiagnBundle_Cleanup
 !EOC
 END MODULE HCO_Diagn_Mod

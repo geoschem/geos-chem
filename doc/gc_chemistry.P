@@ -1,0 +1,8 @@
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOS
+! !SECTION: Emisions and chemistry modules
+! !DESCRIPTION: These modules contain routines to (1) call HEMCO to compute emissions rates and (2) feed them into the FlexChem/KPP chemstry solver.
+!EOS
+!------------------------------------------------------------------------------m]

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: i6_read_mod
+! !MODULE: i6_read_mod.F
 !
 ! !DESCRIPTION: Module I6\_READ\_MOD contains routines that unzip, open, and 
 !  read the GEOS-Chem I6 (instantaneous 6-hour) met fields from disk. 
@@ -15,9 +15,8 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -96,7 +95,7 @@
       USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -257,7 +256,7 @@
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR, FILE_EXISTS
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -465,8 +464,8 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -499,26 +498,26 @@
 #if   defined( GEOS_4 )
 
       !=================================================================
-      ! GEOS-4: read LWI, PS1, SLP      
+      ! GEOS-4: read LWI, PS1_WET, SLP      
       !=================================================================
       CALL READ_I6( NYMD      = NYMD, 
      &              NHMS      = NHMS, 
      &              Input_Opt = Input_Opt, 
      &              LWI       = State_Met%LWI,   
-     &              PS        = State_Met%PS1,  
+     &              PS        = State_Met%PS1_WET,  
      &              SLP       = State_Met%SLP, 
      &              TROPP     = State_Met%TROPP1 )
 
 #elif defined( GEOS_5 )
 
       !=================================================================
-      ! GEOS-5: read LWI, PS1, SLP, TO3, TTO3
+      ! GEOS-5: read LWI, PS1_WET, SLP, TO3, TTO3
       !=================================================================
       CALL READ_I6( NYMD      = NYMD, 
      &              NHMS      = NHMS,
      &              Input_Opt = Input_Opt, 
      &              LWI       = State_Met%LWI,   
-     &              PS        = State_Met%PS1,  
+     &              PS        = State_Met%PS1_WET,  
      &              SLP       = State_Met%SLP, 
      &              TO3       = State_Met%TO31, 
      &              TTO3      = State_Met%TTO3 )
@@ -526,12 +525,12 @@
 #elif defined( GCAP )
 
       !=================================================================
-      ! GCAP: read PS1, SLP
+      ! GCAP: read PS1_WET, SLP
       !=================================================================
       CALL READ_I6( NYMD      = NYMD, 
      &              NHMS      = NHMS, 
      &              Input_Opt = Input_Opt,
-     &              PS        = State_Met%PS1, 
+     &              PS        = State_Met%PS1_WET, 
      &              SLP       = State_Met%SLP )
 
 #endif
@@ -556,8 +555,8 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -589,26 +588,26 @@
 #if   defined( GEOS_4 )
 
       !=================================================================
-      ! GEOS-4: read LWI, PS2, SLP
+      ! GEOS-4: read LWI, PS2_WET, SLP
       !=================================================================
       CALL READ_I6( NYMD      = NYMD, 
      &              NHMS      = NHMS, 
      &              Input_Opt = Input_Opt,
      &              LWI       = State_Met%LWI,   
-     &              PS        = State_Met%PS2, 
+     &              PS        = State_Met%PS2_WET, 
      &              SLP       = State_Met%SLP, 
      &              TROPP     = State_Met%TROPP2 )
 
 #elif defined( GEOS_5 )
 
       !=================================================================
-      ! GEOS-5: read LWI, PS2, SLP, TO3, TTO3
+      ! GEOS-5: read LWI, PS2_WET, SLP, TO3, TTO3
       !=================================================================
       CALL READ_I6( NYMD      = NYMD, 
      &              NHMS      = NHMS, 
      &              Input_Opt = Input_Opt,
      &              LWI       = State_Met%LWI,   
-     &              PS        = State_Met%PS2,   
+     &              PS        = State_Met%PS2_WET,   
      &              SLP       = State_Met%SLP, 
      &              TO3       = State_Met%TO32, 
      &              TTO3      = State_Met%TTO3 )
@@ -616,12 +615,12 @@
 #elif defined( GCAP )
 
       !=================================================================
-      ! GCAP: read PS1, SLP
+      ! GCAP: read PS2_WET, SLP
       !=================================================================
       CALL READ_I6( NYMD      = NYMD, 
      &              NHMS      = NHMS,
      &              Input_Opt = Input_Opt, 
-     &              PS        = State_Met%PS2, 
+     &              PS        = State_Met%PS2_WET, 
      &              SLP       = State_Met%SLP )
 
 #endif
@@ -761,11 +760,10 @@
       USE DIAG_MOD,           ONLY : AD67
 #endif
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_I6
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-
 !
 ! !INPUT PARAMETERS: 
 !

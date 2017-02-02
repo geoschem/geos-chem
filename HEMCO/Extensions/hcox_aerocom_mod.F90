@@ -74,20 +74,27 @@ MODULE HCOX_AeroCom_Mod
 !
 ! !MODULE VARIABLES:
 !
-  INTEGER                         :: ExtNr     = -1   ! Extension number
-  INTEGER                         :: CatErupt  = -1   ! Category of eruptive emissions
-  INTEGER                         :: CatDegas  = -1   ! Category of degassing emissions
-  INTEGER                         :: nSpc      =  0   ! # of species
-  INTEGER                         :: nVolc     =  0   ! # of volcanoes in buffer 
-  INTEGER,  ALLOCATABLE           :: SpcIDs(:)        ! HEMCO species IDs
-  REAL(sp), ALLOCATABLE           :: SpcScl(:)        ! Species scale factors
-  REAL(sp), ALLOCATABLE           :: VolcSlf(:)       ! Sulface emissions [kg S/s]
-  REAL(sp), ALLOCATABLE           :: VolcElv(:)       ! Elevation [m]
-  REAL(sp), ALLOCATABLE           :: VolcCld(:)       ! Cloud column height [m]
-  INTEGER,  ALLOCATABLE           :: VolcIdx(:)       ! Lon grid index 
-  INTEGER,  ALLOCATABLE           :: VolcJdx(:)       ! Lat grid index 
-  CHARACTER(LEN=255)              :: FileName         ! Volcano file name
-  CHARACTER(LEN=61), ALLOCATABLE  :: SpcScalFldNme(:) ! Names of scale factor fields
+  TYPE :: MyInst
+   INTEGER                         :: Instance
+   INTEGER                         :: ExtNr     = -1   ! Extension number
+   INTEGER                         :: CatErupt  = -1   ! Category of eruptive emissions
+   INTEGER                         :: CatDegas  = -1   ! Category of degassing emissions
+   INTEGER                         :: nSpc      =  0   ! # of species
+   INTEGER                         :: nVolc     =  0   ! # of volcanoes in buffer 
+   INTEGER,  ALLOCATABLE           :: SpcIDs(:)        ! HEMCO species IDs
+   REAL(sp), ALLOCATABLE           :: SpcScl(:)        ! Species scale factors
+   REAL(sp), ALLOCATABLE           :: VolcSlf(:)       ! Sulface emissions [kg S/s]
+   REAL(sp), ALLOCATABLE           :: VolcElv(:)       ! Elevation [m]
+   REAL(sp), ALLOCATABLE           :: VolcCld(:)       ! Cloud column height [m]
+   INTEGER,  ALLOCATABLE           :: VolcIdx(:)       ! Lon grid index 
+   INTEGER,  ALLOCATABLE           :: VolcJdx(:)       ! Lat grid index 
+   CHARACTER(LEN=255)              :: FileName         ! Volcano file name
+   CHARACTER(LEN=61), ALLOCATABLE  :: SpcScalFldNme(:) ! Names of scale factor fields
+   TYPE(MyInst), POINTER           :: NextInst => NULL()
+  END TYPE MyInst
+
+  ! Pointer to instances
+  TYPE(MyInst), POINTER            :: AllInst => NULL()
 
   ! AeroCom data is in kgS. Will be converted to kg emitted species.
   ! MW_S is the molecular weight of sulfur 
@@ -128,60 +135,76 @@ CONTAINS
 !  
 !
 ! !REVISION HISTORY:
-!  04 Jun 2015 - C. Keller   - Initial version 
+!  04 Jun 2015 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER             :: N
-    REAL(sp)            :: SO2degas(HcoState%NX,HcoState%NY,HcoState%NZ) ! degassing
-    REAL(sp)            :: SO2erupt(HcoState%NX,HcoState%NY,HcoState%NZ) ! eruptive
-    REAL(sp)            :: iFlx    (HcoState%NX,HcoState%NY,HcoState%NZ)
-    LOGICAL             :: ERR
-    CHARACTER(LEN=255)  :: MSG
+    INTEGER               :: N
+    REAL(sp)              :: SO2degas(HcoState%NX,HcoState%NY,HcoState%NZ) ! degassing
+    REAL(sp)              :: SO2erupt(HcoState%NX,HcoState%NY,HcoState%NZ) ! eruptive
+    REAL(sp)              :: iFlx    (HcoState%NX,HcoState%NY,HcoState%NZ)
+    LOGICAL               :: ERR
+    TYPE(MyInst), POINTER :: Inst
+    CHARACTER(LEN=255)    :: MSG
 
     !=================================================================
     ! HCOX_AEROCOM_RUN begins here!
     !=================================================================
 
     ! Sanity check: return if extension not turned on
-    IF ( .NOT. ExtState%AeroCom ) RETURN
+    IF ( ExtState%AeroCom <= 0 ) RETURN
 
     ! Enter
-    CALL HCO_ENTER ( 'HCOX_AeroCom_Run (hcox_aerocom_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_AeroCom_Run (hcox_aerocom_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Nullify
+    Inst => NULL()
+
+    ! Get instance
+    CALL InstGet ( ExtState%AeroCom, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN 
+       WRITE(MSG,*) 'Cannot find AeroCom instance Nr. ', ExtState%AeroCom
+       CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
+       RETURN
+    ENDIF
 
     ! Read/update the volcano data (will be done only if this is a new
     ! day) 
-    CALL ReadVolcTable ( am_I_Root, HcoState, ExtState, RC )
+    CALL ReadVolcTable ( am_I_Root, HcoState, ExtState, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ! Emit volcanos into SO2degas and SO2erupt
-    CALL EmitVolc ( am_I_Root, HcoState, ExtState, SO2degas, SO2erupt, RC )
+    CALL EmitVolc ( am_I_Root, HcoState, ExtState, Inst, SO2degas, SO2erupt, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add eruptive and degassing emissions to emission arrays & diagnostics 
-    DO N = 1, nSpc
-       iFlx = SO2degas * SpcScl(N) 
-       CALL HCOX_SCALE( am_I_Root, HcoState, iFlx, TRIM(SpcScalFldNme(N)), RC )
+    DO N = 1, Inst%nSpc
+       iFlx = SO2degas * Inst%SpcScl(N) 
+       CALL HCOX_SCALE( am_I_Root, HcoState, iFlx, TRIM(Inst%SpcScalFldNme(N)), RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EmisAdd( am_I_Root, HcoState,    iFlx, SpcIDs(N), &
-                         RC,        ExtNr=ExtNr, Cat=CatDegas, MinDiagnLev=2 )
+       CALL HCO_EmisAdd( am_I_Root, HcoState,    iFlx, Inst%SpcIDs(N), &
+                         RC,        ExtNr=Inst%ExtNr, Cat=Inst%CatDegas, MinDiagnLev=2 )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       iFlx = SO2erupt * SpcScl(N) 
-       CALL HCOX_SCALE( am_I_Root, HcoState, iFlx, TRIM(SpcScalFldNme(N)), RC )
+       iFlx = SO2erupt * Inst%SpcScl(N) 
+       CALL HCOX_SCALE( am_I_Root, HcoState, iFlx, TRIM(Inst%SpcScalFldNme(N)), RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EmisAdd( am_I_Root, HcoState,    iFlx, SpcIDs(N), &
-                         RC,        ExtNr=ExtNr, Cat=CatErupt, MinDiagnLev=2 )
+       CALL HCO_EmisAdd( am_I_Root, HcoState,    iFlx, Inst%SpcIDs(N), &
+                         RC,        ExtNr=Inst%ExtNr, Cat=Inst%CatErupt, MinDiagnLev=2 )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDDO !N
 
+    ! Cleanup
+    Inst => NULL()
+
     ! Return w/ success
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE( HcoState%Config%Err, RC )
 
   END SUBROUTINE HCOX_AeroCom_Run
 !EOC
@@ -227,8 +250,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    TYPE(MyInst), POINTER          :: Inst => NULL()
     REAL(sp)                       :: ValSp
-    INTEGER                        :: N, Dum
+    INTEGER                        :: ExtNr, N, Dum
     LOGICAL                        :: FOUND
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
     CHARACTER(LEN=255)             :: MSG 
@@ -238,87 +262,96 @@ CONTAINS
     !=================================================================
 
     ! Extension Nr.
-    ExtNr = GetExtNr( TRIM(ExtName) )
+    ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
 
     ! Enter
-    CALL HCO_ENTER ( 'HCOX_AeroCom_Init (hcox_aerocom_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_AeroCom_Init (hcox_aerocom_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Create AeroCom instance for this simulation
+    CALL InstCreate ( ExtNr, ExtState%AeroCom, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create AeroCom instance', RC )
+       RETURN
+    ENDIF
+
     ! Get species IDs. 
-    CALL HCO_GetExtHcoID( HcoState, ExtNr, SpcIDs, SpcNames, nSpc, RC )
+    CALL HCO_GetExtHcoID( HcoState, ExtNr, Inst%SpcIDs, SpcNames, Inst%nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! There must be at least one species
-    IF ( nSpc == 0 ) THEN
-       CALL HCO_ERROR ( 'No AeroCom species specified', RC )
+    IF ( Inst%nSpc == 0 ) THEN
+       CALL HCO_ERROR ( HcoState%Config%Err, 'No AeroCom species specified', RC )
        RETURN
     ENDIF
 
     ! Determine scale factor to be applied to each species. This is 1.00 
     ! by default, but can be set in the HEMCO configuration file via setting
     ! Scaling_<SpcName>. 
-    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Scaling', 1.0_sp, SpcScl, RC )
+    CALL GetExtSpcVal( HcoState%Config, ExtNr, Inst%nSpc, &
+                       SpcNames, 'Scaling', 1.0_sp, Inst%SpcScl, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get species mask fields
-    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
+    CALL GetExtSpcVal( HcoState%Config, ExtNr, Inst%nSpc, &
+                       SpcNames, 'ScaleField', HCOX_NOSCALE, Inst%SpcScalFldNme, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add conversion factor from kg S to kg of emitted species
-    DO N = 1, nSpc
-       SpcScl(N) = SpcScl(N) * HcoState%Spc(SpcIDs(N))%EmMW_g &
-                 * HcoState%Spc(SpcIDs(N))%MolecRatio / MW_S
+    DO N = 1, Inst%nSpc
+       Inst%SpcScl(N) = Inst%SpcScl(N) * HcoState%Spc(Inst%SpcIDs(N))%EmMW_g &
+                      * HcoState%Spc(Inst%SpcIDs(N))%MolecRatio / MW_S
     ENDDO
 
     ! Get location of volcano table. This must be provided.
-    CALL GetExtOpt( ExtNr, 'AeroCom_Table', OptValChar=FileName, &
-                    FOUND=FOUND, RC=RC )
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'AeroCom_Table', &
+                    OptValChar=Inst%FileName, FOUND=FOUND, RC=RC )
+                    
     IF ( RC /= HCO_SUCCESS .OR. .NOT. FOUND ) THEN
        MSG = 'Cannot properly read AeroCom table file name. Please provide ' // &
              'the AeroCom table as a setting to the AeroCom extension. The ' // &
              'name of this setting must be `AeroCom_Table`.'
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC )
        RETURN
     ENDIF
 
     ! See if eruptive and degassing hierarchies are given
-    CatErupt = 51
-    CatDegas = 52
-    CALL GetExtOpt( ExtNr, 'Cat_Degassing', OptValInt=Dum, &
-                    FOUND=FOUND, RC=RC )
+    Inst%CatErupt = 51
+    Inst%CatDegas = 52
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Cat_Degassing', & 
+                    OptValInt=Dum, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( FOUND ) CatDegas = Dum
-    CALL GetExtOpt( ExtNr, 'Cat_Eruptive', OptValInt=Dum, &
-                    FOUND=FOUND, RC=RC )
+    IF ( FOUND ) Inst%CatDegas = Dum
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Cat_Eruptive', &
+                    OptValInt=Dum, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( FOUND ) CatErupt = Dum
+    IF ( FOUND ) Inst%CatErupt = Dum
 
     ! Verbose mode
     IF ( am_I_Root ) THEN
        MSG = 'Use emissions extension `AeroCom_Volcano`:'
-       CALL HCO_MSG( MSG )
+       CALL HCO_MSG( HcoState%Config%Err,  MSG )
 
        MSG = ' - use the following species (Name, HcoID, Scaling relative to kgS):'
-       CALL HCO_MSG(MSG)
-       DO N = 1, nSpc
-          WRITE(MSG,*) TRIM(SpcNames(N)), ', ', SpcIDs(N), ', ', SpcScl(N)
-          CALL HCO_MSG(MSG)
-          WRITE(MSG,*) 'Apply scale field: ', TRIM(SpcScalFldNme(N))
+       CALL HCO_MSG( HcoState%Config%Err, MSG)
+       DO N = 1, Inst%nSpc
+          WRITE(MSG,*) TRIM(SpcNames(N)), ', ', Inst%SpcIDs(N), ', ', Inst%SpcScl(N)
+          CALL HCO_MSG( HcoState%Config%Err, MSG)
+          WRITE(MSG,*) 'Apply scale field: ', TRIM(Inst%SpcScalFldNme(N))
+          CALL HCO_MSG( HcoState%Config%Err, MSG)
        ENDDO
-       WRITE(MSG,*) ' - Emit eruptive emissions as category ', CatErupt
-       CALL HCO_MSG( MSG )
-       WRITE(MSG,*) ' - Emit degassing emissions as category ', CatDegas
-       CALL HCO_MSG( MSG )
+       WRITE(MSG,*) ' - Emit eruptive emissions as category ', Inst%CatErupt
+       CALL HCO_MSG( HcoState%Config%Err,  MSG )
+       WRITE(MSG,*) ' - Emit degassing emissions as category ', Inst%CatDegas
+       CALL HCO_MSG( HcoState%Config%Err,  MSG )
     ENDIF
 
-    ! Activate this extension
-    ExtState%AeroCom = .TRUE.
-
     ! Cleanup 
+    Inst => NULL()
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
 
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err, RC ) 
 
   END SUBROUTINE HCOX_AeroCom_Init
 !EOC
@@ -335,25 +368,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_AeroCom_Final
+  SUBROUTINE HCOX_AeroCom_Final ( ExtState )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
 !
 ! !REVISION HISTORY:
 !  04 Jun 2015 - C. Keller   - Initial version 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
     !=================================================================
     ! HCOX_AEROCOM_FINAL begins here!
     !=================================================================
-    IF ( ALLOCATED(VolcSlf      ) ) DEALLOCATE ( VolcSlf       )
-    IF ( ALLOCATED(VolcElv      ) ) DEALLOCATE ( VolcElv       )
-    IF ( ALLOCATED(VolcCld      ) ) DEALLOCATE ( VolcCld       )
-    IF ( ALLOCATED(VolcIdx      ) ) DEALLOCATE ( VolcIdx       )
-    IF ( ALLOCATED(VolcJdx      ) ) DEALLOCATE ( VolcJdx       )
-    IF ( ALLOCATED(SpcIDs       ) ) DEALLOCATE ( SpcIDs        )
-    IF ( ALLOCATED(SpcScl       ) ) DEALLOCATE ( SpcScl        )
-    IF ( ALLOCATED(SpcScalFldNme) ) DEALLOCATE ( SpcScalFldNme )
+    CALL InstRemove ( ExtState%AeroCom )
 
   END SUBROUTINE HCOX_AeroCom_Final
 !EOC
@@ -370,7 +399,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadVolcTable ( am_I_Root, HcoState, ExtState, RC ) 
+  SUBROUTINE ReadVolcTable ( am_I_Root, HcoState, ExtState, Inst, RC ) 
 !
 ! !USES:
 !
@@ -389,6 +418,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(HCO_State),  POINTER       :: HcoState   ! Hemco state 
+    TYPE(MyInst),     POINTER       :: Inst
     INTEGER,          INTENT(INOUT) :: RC 
 
 ! !REVISION HISTORY:
@@ -401,7 +431,7 @@ CONTAINS
 !
     INTEGER               :: YYYY, MM, DD
     INTEGER               :: N, LUN, IOS, AS
-    INTEGER               :: nCol
+    INTEGER               :: nVolc, nCol
     REAL(sp)              :: Dum(10)
     REAL(hp), ALLOCATABLE :: VolcLon(:)      ! Volcano longitude [deg E]
     REAL(hp), ALLOCATABLE :: VolcLat(:)      ! Volcano latitude  [deg N]
@@ -415,28 +445,28 @@ CONTAINS
     !=================================================================
 
     ! Do only if it's a new day...
-    IF ( HcoClock_NewDay( EmisTime=.TRUE. ) ) THEN
+    IF ( HcoClock_NewDay( HcoState%Clock, EmisTime=.TRUE. ) ) THEN
 
        ! Get current year, month, day
-       CALL HcoClock_Get ( cYYYY=YYYY, cMM=MM, cDD=DD, RC=RC )
+       CALL HcoClock_Get ( am_I_Root, HcoState%Clock, cYYYY=YYYY, cMM=MM, cDD=DD, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Get file name
-       ThisFile = FileName
-       CALL HCO_CharParse( ThisFile, YYYY, MM, DD, 0, 0, RC )
+       ThisFile = Inst%FileName
+       CALL HCO_CharParse( HcoState%Config, ThisFile, YYYY, MM, DD, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
  
        ! Verbose
        IF ( am_I_Root ) THEN
           MSG = 'AeroCom: reading ' // TRIM(ThisFile)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG( HcoState%Config%Err, MSG)
        ENDIF
  
        ! Check if file exists
        INQUIRE ( FILE=TRIM(ThisFile), EXIST=FileExist )
        IF ( .NOT. FileExist ) THEN
           MSG = 'Cannot find ' // TRIM(ThisFile)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err,  MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -445,7 +475,7 @@ CONTAINS
        OPEN ( LUN, FILE=TRIM(ThisFile), STATUS='OLD', IOSTAT=IOS )
        IF ( IOS /= 0 ) THEN
           MSG = 'Error reading ' // TRIM(ThisFile)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err,  MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -464,36 +494,42 @@ CONTAINS
        ENDDO 
 
        ! Verbose
-       IF ( HCO_IsVerb(2) ) THEN
+       IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
           WRITE(MSG,*) 'Number of volcanoes: ', nVolc 
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG( HcoState%Config%Err, MSG)
        ENDIF
  
        ! Allocate arrays
        IF ( nVolc > 0 ) THEN
           ! Eventually deallocate previously allocated data
-          IF ( ALLOCATED(VolcSlf) ) DEALLOCATE(VolcSlf)
-          IF ( ALLOCATED(VolcElv) ) DEALLOCATE(VolcElv)
-          IF ( ALLOCATED(VolcCld) ) DEALLOCATE(VolcCld)
-          IF ( ALLOCATED(VolcIdx) ) DEALLOCATE(VolcIdx)
-          IF ( ALLOCATED(VolcJdx) ) DEALLOCATE(VolcJdx)
+          IF ( ALLOCATED(Inst%VolcSlf) ) DEALLOCATE(Inst%VolcSlf)
+          IF ( ALLOCATED(Inst%VolcElv) ) DEALLOCATE(Inst%VolcElv)
+          IF ( ALLOCATED(Inst%VolcCld) ) DEALLOCATE(Inst%VolcCld)
+          IF ( ALLOCATED(Inst%VolcIdx) ) DEALLOCATE(Inst%VolcIdx)
+          IF ( ALLOCATED(Inst%VolcJdx) ) DEALLOCATE(Inst%VolcJdx)
 
-          ALLOCATE(VolcLon(nVolc), VolcLat(nVolc), VolcSlf(nVolc), &
-                   VolcElv(nVolc), VolcCld(nVolc), VolcIdx(nVolc), &
-                   VolcJdx(nVolc), STAT=AS )
+          ALLOCATE(     VolcLon(nVolc), &
+                        VolcLat(nVolc), &
+                   Inst%VolcSlf(nVolc), &
+                   Inst%VolcElv(nVolc), &
+                   Inst%VolcCld(nVolc), &
+                   Inst%VolcIdx(nVolc), &
+                   Inst%VolcJdx(nVolc), &
+                   STAT=AS )
           IF ( AS /= 0 ) THEN
-             CALL HCO_ERROR ( 'Volc allocation error', RC, THISLOC=LOC )
+             CALL HCO_ERROR ( HcoState%Config%Err, &
+                              'Volc allocation error', RC, THISLOC=LOC )
              RETURN
           ENDIF
-          VolcLon = 0.0_hp
-          VolcLat = 0.0_hp
-          VolcSlf = 0.0_sp
-          VolcElv = 0.0_sp
-          VolcCld = 0.0_sp
+               VolcLon = 0.0_hp
+               VolcLat = 0.0_hp
+          Inst%VolcSlf = 0.0_sp
+          Inst%VolcElv = 0.0_sp
+          Inst%VolcCld = 0.0_sp
 
        ELSE
           WRITE(MSG,*) 'No volcano data found for year/mm/dd: ', YYYY, MM, DD
-          CALL HCO_WARNING(MSG,RC,WARNLEV=1,THISLOC=LOC)
+          CALL HCO_WARNING(HcoState%Config%Err,MSG,RC,WARNLEV=1,THISLOC=LOC)
        ENDIF
     
        ! Now read records
@@ -515,11 +551,13 @@ CONTAINS
                 WRITE(MSG,*) 'N exceeds nVolc: ', N, nVolc, &
                              ' - This error occurred when reading ', &
                              TRIM(ThisFile), '. This line: ', TRIM(ThisLine)
-                CALL HCO_ERROR ( MSG, RC, THISLOC = LOC )
+                CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
                 RETURN
              ENDIF   
      
-             CALL HCO_CharSplit( TRIM(ThisLine), ' ', HCO_GetOpt('Wildcard'), Dum, nCol, RC )
+             CALL HCO_CharSplit( TRIM(ThisLine), ' ', &
+                                 HCO_GetOpt(HcoState%Config%ExtList,'Wildcard'), &
+                                 Dum, nCol, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
 
              ! Expect 5 values
@@ -527,23 +565,23 @@ CONTAINS
                 WRITE(MSG,*) 'Cannot parse line ', TRIM(ThisLine), &
                              'Expected five entries, separated by space ', &
                              'character, instead found ', nCol
-                CALL HCO_ERROR ( MSG, RC, THISLOC = LOC )
+                CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
                 RETURN
              ENDIF
 
              ! Now pass to vectors 
-             VolcLat(N) = Dum(1)
-             VolcLon(N) = Dum(2) 
-             VolcSlf(N) = Dum(3)
-             VolcElv(N) = Dum(4)
-             VolcCld(N) = Dum(5)
+                  VolcLat(N) = Dum(1)
+                  VolcLon(N) = Dum(2) 
+             Inst%VolcSlf(N) = Dum(3)
+             Inst%VolcElv(N) = Dum(4)
+             Inst%VolcCld(N) = Dum(5)
           ENDDO
 
           ! At this point, we should have read exactly nVolc entries!
           IF ( N /= nVolc ) THEN
              WRITE(MSG,*) 'N /= nVolc: ', N, nVolc, &
                           ' - This error occurred when reading ', TRIM(ThisFile)
-             CALL HCO_ERROR ( MSG, RC, THISLOC = LOC )
+             CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
              RETURN
           ENDIF 
 
@@ -554,10 +592,13 @@ CONTAINS
 
        ! Get grid box indeces for each location
        IF ( nVolc > 0 ) THEN
-          CALL HCO_GetHorzIJIndex( am_I_Root, HcoState, nVolc, &
-                                   VolcLon,   VolcLat,  VolcIdx, VolcJdx, RC )
+          CALL HCO_GetHorzIJIndex( am_I_Root, HcoState, nVolc, VolcLon, &
+                                   VolcLat, Inst%VolcIdx, Inst%VolcJdx, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
+
+       ! Save # of volcanoes in archive
+       Inst%nVolc = nVolc
 
     ENDIF ! new day
 
@@ -583,7 +624,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EmitVolc ( am_I_Root, HcoState, ExtState, SO2d, SO2e, RC ) 
+  SUBROUTINE EmitVolc ( am_I_Root, HcoState, ExtState, Inst, SO2d, SO2e, RC ) 
 !
 ! !USES:
 !
@@ -596,6 +637,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(HCO_State),  POINTER       :: HcoState   ! Hemco state 
+    TYPE(MyInst),     POINTER       :: Inst
     INTEGER,          INTENT(INOUT) :: RC 
 !
 ! !OUTPUT PARAMETERS:
@@ -632,25 +674,28 @@ CONTAINS
 
     ! Make sure all required grid quantities are defined
     IF ( .NOT. ASSOCIATED(HcoState%Grid%AREA_M2%Val) ) THEN
-       CALL HCO_ERROR ( 'Grid box areas not defined', RC, THISLOC=LOC )
+       CALL HCO_ERROR ( HcoState%Config%Err, &
+                       'Grid box areas not defined', RC, THISLOC=LOC )
        RETURN
     ENDIF
     IF ( .NOT. ASSOCIATED(HcoState%Grid%ZSFC%Val) ) THEN
-       CALL HCO_ERROR ( 'surface heights not defined', RC, THISLOC=LOC )
+       CALL HCO_ERROR ( HcoState%Config%Err, &
+                       'Surface heights not defined', RC, THISLOC=LOC )
        RETURN
     ENDIF
     IF ( .NOT. ASSOCIATED(HcoState%Grid%BXHEIGHT_M%Val) ) THEN
-       CALL HCO_ERROR ( 'Grid box heights not defined', RC, THISLOC=LOC )
+       CALL HCO_ERROR ( HcoState%Config%Err, &
+                       'Grid box heights not defined', RC, THISLOC=LOC )
        RETURN
     ENDIF
  
     ! Do for every volcano
-    IF ( nVolc > 0 ) THEN
-       DO N = 1, nVolc
+    IF ( Inst%nVolc > 0 ) THEN
+       DO N = 1, Inst%nVolc
 
           ! Grid box index for this volcano
-          I = VolcIdx(N)
-          J = VolcJdx(N)
+          I = Inst%VolcIdx(N)
+          J = Inst%VolcJdx(N)
 
           ! Skip if outside of domain
           IF( I < 1 .OR. J < 1 ) CYCLE
@@ -662,12 +707,12 @@ CONTAINS
           z1 = HcoState%Grid%ZSFC%Val(I,J)
 
           ! Get total emitted kgS/m2/s. Data in table is in kgS/s.
-          nSo2 = VolcSlf(N) / HcoState%Grid%AREA_M2%Val(I,J)
+          nSo2 = Inst%VolcSlf(N) / HcoState%Grid%AREA_M2%Val(I,J)
 
           ! Elevation of volcano base and volcano cloud top height [m]
           ! Make sure that the bottom / top are at least at surface level
-          zBot = MAX(VolcElv(N),z1)
-          zTop = MAX(VolcCld(N),z1)
+          zBot = MAX(Inst%VolcElv(N),z1)
+          zTop = MAX(Inst%VolcCld(N),z1)
 
           ! If volcano is eruptive, zBot /= zTop. In this case, evenly 
           ! distribute emissions in top 1/3 of the plume
@@ -735,11 +780,11 @@ CONTAINS
           ENDDO
 
           ! testing 
-          !IF ( HCO_IsVerb(3) ) THEN
+          !IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
           !   WRITE(MSG,*) 'Total eruptive  emissions of volcano ', N, ' [kgS/s]: ', volcE
-          !   CALL HCO_MSG(MSG)
+          !   CALL HCO_MSG(HcoState%Config%Err,MSG)
           !   WRITE(MSG,*) 'Total degassing emissions of volcano ', N, ' [kgS/s]: ', volcD
-          !   CALL HCO_MSG(MSG)
+          !   CALL HCO_MSG(HcoState%Config%Err,MSG)
           !ENDIF
 
           ! total 
@@ -750,16 +795,208 @@ CONTAINS
     ENDIF
 
     ! verbose
-    IF ( HCO_IsVerb(3) ) THEN
+    IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
        WRITE(MSG,*) 'Total eruptive  emissions [kgS/s]: ', totE 
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) 'Total degassing emissions [kgS/s]: ', totD
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS 
 
   END SUBROUTINE EmitVolc 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstGet 
+!
+! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER                             :: Instance
+    TYPE(MyInst),     POINTER           :: Inst
+    INTEGER                             :: RC
+    TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(MyInst),     POINTER    :: PrvInst
+
+    !=================================================================
+    ! InstGet begins here!
+    !=================================================================
+ 
+    ! Get instance. Also archive previous instance.
+    PrvInst => NULL() 
+    Inst    => AllInst
+    DO WHILE ( ASSOCIATED(Inst) ) 
+       IF ( Inst%Instance == Instance ) EXIT
+       PrvInst => Inst
+       Inst    => Inst%NextInst
+    END DO
+    IF ( .NOT. ASSOCIATED( Inst ) ) THEN
+       RC = HCO_FAIL
+       RETURN
+    ENDIF
+
+    ! Pass output arguments
+    IF ( PRESENT(PrevInst) ) PrevInst => PrvInst
+
+    ! Cleanup & Return
+    PrvInst => NULL()
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE InstGet 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstCreate 
+!
+! !DESCRIPTION: Subroutine InstCreate creates a new instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,       INTENT(IN)       :: ExtNr
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(  OUT)    :: Instance
+    TYPE(MyInst),  POINTER          :: Inst
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(INOUT)    :: RC 
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(MyInst), POINTER          :: TmpInst
+    INTEGER                        :: nnInst
+
+    !=================================================================
+    ! InstCreate begins here!
+    !=================================================================
+
+    ! ----------------------------------------------------------------
+    ! Generic instance initialization 
+    ! ----------------------------------------------------------------
+
+    ! Initialize
+    Inst => NULL()
+
+    ! Get number of already existing instances
+    TmpInst => AllInst
+    nnInst = 0
+    DO WHILE ( ASSOCIATED(TmpInst) )
+       nnInst  =  nnInst + 1
+       TmpInst => TmpInst%NextInst
+    END DO
+
+    ! Create new instance
+    ALLOCATE(Inst)
+    Inst%Instance = nnInst + 1
+    Inst%ExtNr    = ExtNr 
+
+    ! Attach to instance list
+    Inst%NextInst => AllInst
+    AllInst       => Inst
+
+    ! Update output instance
+    Instance = Inst%Instance
+
+    ! ----------------------------------------------------------------
+    ! Type specific initialization statements follow below
+    ! ----------------------------------------------------------------
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE InstCreate
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstRemove 
+!
+! !DESCRIPTION: Subroutine InstRemove creates a new instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstRemove ( Instance ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER                         :: Instance 
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER                     :: RC
+    TYPE(MyInst), POINTER       :: PrevInst
+    TYPE(MyInst), POINTER       :: Inst
+
+    !=================================================================
+    ! InstRemove begins here!
+    !=================================================================
+
+    ! Init 
+    PrevInst => NULL()
+    Inst     => NULL()
+    
+    ! Get instance. Also archive previous instance.
+    CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
+
+    ! Instance-specific deallocation
+    IF ( ASSOCIATED(Inst) ) THEN 
+       IF ( ALLOCATED(Inst%VolcSlf      ) ) DEALLOCATE ( Inst%VolcSlf       )
+       IF ( ALLOCATED(Inst%VolcElv      ) ) DEALLOCATE ( Inst%VolcElv       )
+       IF ( ALLOCATED(Inst%VolcCld      ) ) DEALLOCATE ( Inst%VolcCld       )
+       IF ( ALLOCATED(Inst%VolcIdx      ) ) DEALLOCATE ( Inst%VolcIdx       )
+       IF ( ALLOCATED(Inst%VolcJdx      ) ) DEALLOCATE ( Inst%VolcJdx       )
+       IF ( ALLOCATED(Inst%SpcIDs       ) ) DEALLOCATE ( Inst%SpcIDs        )
+       IF ( ALLOCATED(Inst%SpcScl       ) ) DEALLOCATE ( Inst%SpcScl        )
+       IF ( ALLOCATED(Inst%SpcScalFldNme) ) DEALLOCATE ( Inst%SpcScalFldNme )
+   
+       ! Pop off instance from list
+       IF ( ASSOCIATED(PrevInst) ) THEN
+          PrevInst%NextInst => Inst%NextInst
+       ELSE
+          AllInst => Inst%NextInst
+       ENDIF
+       DEALLOCATE(Inst)
+       Inst => NULL() 
+    ENDIF
+   
+   END SUBROUTINE InstRemove
 !EOC
 END MODULE HCOX_AeroCom_Mod

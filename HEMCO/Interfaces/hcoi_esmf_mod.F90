@@ -15,6 +15,7 @@ MODULE HCOI_ESMF_MOD
 ! !USES:
 !      
   USE HCO_ERROR_MOD
+  USE HCO_Types_Mod
 
 #if defined (ESMF_)
 #include "MAPL_Generic.h"
@@ -30,16 +31,33 @@ MODULE HCOI_ESMF_MOD
   ! ESMF environment only:
   PUBLIC :: HCO_SetServices 
   PUBLIC :: HCO_SetExtState_ESMF
+  PUBLIC :: HCO_Imp2Ext
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !      
   PRIVATE :: Diagn2Exp
+  PRIVATE :: HCO_Imp2Ext2R
+  PRIVATE :: HCO_Imp2Ext2S
+  PRIVATE :: HCO_Imp2Ext2I
+  PRIVATE :: HCO_Imp2Ext3R
+  PRIVATE :: HCO_Imp2Ext3S
 !
 ! !REVISION HISTORY:
 !  10 Oct 2014 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !MODULE INTERFACES:
+!
+  INTERFACE HCO_Imp2Ext
+     MODULE PROCEDURE HCO_Imp2Ext2R
+     MODULE PROCEDURE HCO_Imp2Ext2S
+     MODULE PROCEDURE HCO_Imp2Ext2I
+     MODULE PROCEDURE HCO_Imp2Ext3R
+     MODULE PROCEDURE HCO_Imp2Ext3S
+  END INTERFACE HCO_Imp2Ext
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -74,13 +92,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCO_SetServices( am_I_Root, GC, ConfigFile, RC )
+      SUBROUTINE HCO_SetServices( am_I_Root,  GC, HcoConfig, &
+                                  ConfigFile, RC )
 !
 ! !USES:
 !
-      USE HCO_DATACONT_MOD, ONLY : ListCont
-      USE HCO_CONFIG_MOD,   ONLY : Config_ReadFile, GetNextCont
-      USE HCO_CONFIG_MOD,   ONLY : Config_ScalIDinUse
+      USE HCO_TYPES_MOD,    ONLY : ListCont
+      USE HCO_DATACONT_MOD, ONLY : ListCont_NextCont
+      USE HCO_CONFIG_MOD,   ONLY : Config_ReadFile
+      USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
       USE HCO_CONFIG_MOD,   ONLY : Config_GetnSpecies
       USE HCO_CONFIG_MOD,   ONLY : Config_GetSpecNames
       USE HCO_DIAGN_MOD,    ONLY : DiagnFileOpen
@@ -89,14 +109,17 @@ CONTAINS
 !
 ! !ARGUMENTS:
 !
-      LOGICAL,             INTENT(IN   )   :: am_I_Root
-      TYPE(ESMF_GridComp), INTENT(INOUT)   :: GC
-      CHARACTER(LEN=*),    INTENT(IN   )   :: ConfigFile
-      INTEGER,             INTENT(  OUT)   :: RC
+      LOGICAL,             INTENT(IN   )             :: am_I_Root
+      TYPE(ESMF_GridComp), INTENT(INOUT)             :: GC
+      TYPE(ConfigObj),     POINTER                   :: HcoConfig
+      CHARACTER(LEN=*),    INTENT(IN   )             :: ConfigFile
+      INTEGER,             INTENT(  OUT)             :: RC
 !
 ! !REVISION HISTORY:
 !  29 Aug 2013 - C. Keller - Initial version.
 !  10 Sep 2015 - C. Keller - Added RESTART=MAPL_RestartSkip.
+!  21 Feb 2016 - C. Keller - Update to v2.0, added default diagnostics (optional)
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -106,11 +129,14 @@ CONTAINS
       INTEGER                    :: LUN, ExtNr, Cat, Hier, SpaceDim
       INTEGER                    :: DIMS, VLOC
       INTEGER                    :: I, FLAG, nSpc, nDiagn
+      INTEGER                    :: DefaultDim
       LOGICAL                    :: EOF
+      LOGICAL                    :: FOUND, DefaultSet
       CHARACTER(LEN=31)          :: cName, SpcName, OutUnit 
-      CHARACTER(LEN=63)          :: SNAME, LNAME, UNITS
-      CHARACTER(LEN=63), POINTER :: Spc(:)   => NULL() 
-      TYPE(ListCont),    POINTER :: CurrCont => NULL()
+      CHARACTER(LEN=63)          :: DefaultSNAME, DefaultLNAME, DefaultUnit
+      CHARACTER(LEN=63)          :: SNAME, LNAME, UnitName 
+      CHARACTER(LEN=63), POINTER :: Spc(:)
+      TYPE(ListCont),    POINTER :: CurrCont
 
       ! ================================================================
       ! HCO_SetServices begins here
@@ -119,11 +145,15 @@ CONTAINS
       ! For MAPL/ESMF error handling (defines Iam and STATUS)
       __Iam__('HCO_SetServices (HCOI_ESMF_MOD.F90)')
 
+      ! Init
+      Spc      => NULL() 
+      CurrCont => NULL()
+
       ! ---------------------------------------------------------------------
       ! Read file into buffer
       ! ---------------------------------------------------------------------
 
-      CALL Config_ReadFile( am_I_Root, TRIM(ConfigFile), 0, STATUS )
+      CALL Config_ReadFile( am_I_Root, HcoConfig, TRIM(ConfigFile), 0, STATUS )
       ASSERT_(STATUS==HCO_SUCCESS)
 
       ! ---------------------------------------------------------------------
@@ -132,16 +162,16 @@ CONTAINS
 
       ! Loop over all lines and set services according to input file content
       CurrCont => NULL()
-      CALL GetNextCont ( CurrCont, FLAG )
+      CALL ListCont_NextCont ( HcoConfig%ConfigList, CurrCont, FLAG )
       DO WHILE ( FLAG == HCO_SUCCESS )
 
          ! Skip containers that are not defined
          IF ( .NOT. ASSOCIATED(CurrCont%Dct) ) THEN
-            CALL GetNextCont ( CurrCont, FLAG )
+            CALL ListCont_NextCont ( HcoConfig%ConfigList, CurrCont, FLAG )
             CYCLE
          ENDIF
          IF ( .NOT. ASSOCIATED(CurrCont%Dct%Dta) ) THEN
-            CALL GetNextCont ( CurrCont, FLAG )
+            CALL ListCont_NextCont ( HcoConfig%ConfigList, CurrCont, FLAG )
             CYCLE
          ENDIF
 
@@ -202,7 +232,7 @@ CONTAINS
          ENDIF
 
          ! Advance to next container
-         CALL GetNextCont ( CurrCont, FLAG )
+         CALL ListCont_NextCont ( HcoConfig%ConfigList, CurrCont, FLAG )
 
       ENDDO
 
@@ -212,7 +242,7 @@ CONTAINS
       ! ---------------------------------------------------------------------
       ! Try to open diagnostics definition file 
       ! ---------------------------------------------------------------------
-      CALL DiagnFileOpen( am_I_Root, LUN, RC )
+      CALL DiagnFileOpen( am_I_Root, HcoConfig, LUN, RC )
       ASSERT_(RC == HCO_SUCCESS )
 
       ! ---------------------------------------------------------------------
@@ -224,8 +254,9 @@ CONTAINS
          DO 
 
             ! Get next line
-            CALL DiagnFileGetNext( am_I_Root, LUN, cName, &
-               SpcName, ExtNr, Cat, Hier, SpaceDim, OutUnit, EOF, RC ) 
+            CALL DiagnFileGetNext( am_I_Root, HcoConfig, LUN, cName, &
+               SpcName, ExtNr, Cat, Hier, SpaceDim, OutUnit, EOF, RC, &
+               lName=lName, UnitName=UnitName ) 
             IF ( RC /= HCO_SUCCESS ) RETURN
 
             ! Leave here if end of file
@@ -239,12 +270,17 @@ CONTAINS
                DIMS = MAPL_DimsHorzOnly
                VLOC = MAPL_VLocationNone
             ENDIF
-  
+ 
+            ! Remove any underscores in unit name by spaces
+            DO I = 1, LEN(TRIM(ADJUSTL(UnitName)))
+               IF ( UnitName(I:I) == '_' ) UnitName(I:I) = ' '
+            ENDDO 
+ 
             ! Add to export state 
             CALL MAPL_AddExportSpec(GC,       &
                SHORT_NAME         = cName,    &
-               LONG_NAME          = cName,    &
-               UNITS              = OutUnit,  &
+               LONG_NAME          = lName,    &
+               UNITS              = UnitName, &
                DIMS               = DIMS,     &
                VLOCATION          = VLOC,     &
                RC                 = STATUS     )
@@ -257,24 +293,48 @@ CONTAINS
 
          ! Close file
          CALL DiagnFileClose ( LUN )
+      ENDIF
 
       ! ---------------------------------------------------------------------
-      ! If DiagnFile is is not found, prepare a diagnostics export for every
-      ! potential HEMCO species
+      ! Eventually prepare a diagnostics export for every potential HEMCO
+      ! species. This is optional and controlled by HEMCO setting 
+      ! DefaultDiagnSet.
       ! ---------------------------------------------------------------------
-      ELSE
-         nSpc = Config_GetnSpecies( )
-         CALL Config_GetSpecNames( Spc, nSpc, RC )
+      CALL GetExtOpt( HcoConfig, -999, 'DefaultDiagnOn', &
+                      OptValBool=DefaultSet, FOUND=FOUND, RC=RC )
+      IF ( .NOT. FOUND ) DefaultSet = .FALSE.
+      IF ( DefaultSet ) THEN 
+
+         ! Search for default diagnostics variable prefix
+         CALL GetExtOpt( HcoConfig, -999, 'DefaultDiagnSname', &
+                         OptValChar=DefaultSNAME, FOUND=FOUND, RC=RC )
+         IF ( .NOT. FOUND ) DefaultSNAME = 'HEMCO_EMIS_'
+
+         CALL GetExtOpt( HcoConfig, -999, 'DefaultDiagnLname', &
+                         OptValChar=DefaultLNAME, FOUND=FOUND, RC=RC )
+         IF ( .NOT. FOUND ) DefaultLNAME = 'HEMCO_emissions_of_species_'
+
+         ! Search for default diagnostics dimension
+         CALL GetExtOpt( HcoConfig, -999, 'DefaultDiagnDim', &
+                         OptValInt=DefaultDim, FOUND=FOUND, RC=RC )
+         IF ( .NOT. FOUND ) DefaultDim = 3
+         DefaultDim = MAX(MIN(DefaultDim,3),2)
+
+         ! Get units
+         CALL GetExtOpt( HcoConfig, -999, 'DefaultDiagnUnit', &
+                         OptValChar=DefaultUnit, FOUND=FOUND, RC=RC )
+         IF ( .NOT. FOUND ) DefaultUnit = 'kg m-2 s-1'
+
+         ! Get # of species and species names
+         nSpc = Config_GetnSpecies( HcoConfig )
+         CALL Config_GetSpecNames( HcoConfig, Spc, nSpc, RC )
          ASSERT_(RC == HCO_SUCCESS) 
-
-         ! All units in kg/m2/s
-         UNITS = 'kg m-2 s-1'
 
          ! Loop over all species and add to export state
          DO I = 1, nSpc
-            SNAME = 'EMIS_'//TRIM(Spc(I))
-            LNAME = 'HEMCO_emissions_'//TRIM(Spc(I))
-            CALL Diagn2Exp( GC, SNAME, LNAME, UNITS, 2, __RC__ )
+            SNAME = TRIM(DefaultSNAME)//TRIM(Spc(I))
+            LNAME = TRIM(DefaultLNAME)//TRIM(Spc(I))
+            CALL Diagn2Exp( GC, SNAME, LNAME, DefaultUnit, DefaultDim, __RC__ )
          ENDDO
       ENDIF
 
@@ -394,10 +454,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                      :: STAT
-      TYPE(ESMF_STATE), POINTER    :: IMPORT       => NULL()
-      REAL,             POINTER    :: Ptr3D(:,:,:) => NULL()
-      REAL,             POINTER    :: Ptr2D(:,:)   => NULL()
 
       ! ================================================================
       ! HCO_SetExtState_ESMF begins here
@@ -406,37 +462,398 @@ CONTAINS
       ! For MAPL/ESMF error handling (defines Iam and STATUS)
       __Iam__('HCO_SetExtState_ESMF (HCOI_ESMF_MOD.F90)')
 
-      ! Assume failure until otherwise
-      RC = HCO_FAIL
-
-      ! Point to ESMF IMPORT object
-      IMPORT => HcoState%IMPORT
-      IF ( .NOT. ASSOCIATED(IMPORT) ) RETURN 
-
       ! Get pointers to fields
-      CALL MAPL_GetPointer( IMPORT, Ptr3D, 'BYNCY', notFoundOK=.TRUE., __RC__ )
-      IF ( ASSOCIATED(Ptr3D) ) THEN
-         ExtState%BYNCY%Arr%Val => Ptr3D(:,:,HcoState%NZ:1:-1)
-      ENDIF
-      Ptr3D => NULL()
-
-      ! Not needed at the moment
-!      CALL MAPL_GetPointer( IMPORT, Ptr3D, 'RCCODE', notFoundOK=.TRUE., __RC__ )
-!      IF ( ASSOCIATED(Ptr3D) ) THEN
-!         ExtState%RCCODE%Arr%Val => Ptr3D(:,:,HcoState%NZ:1:-1)
-!      ENDIF
-!      Ptr3D => NULL()
-
-!      CALL MAPL_GetPointer( IMPORT, Ptr2D, 'CNV_TOPP', notFoundOK=.TRUE., __RC__ )
-!      IF ( ASSOCIATED(Ptr2D) ) THEN
-!         ExtState%CNV_TOPP%Arr%Val => Ptr2D
-!      ENDIF
-      Ptr2D => NULL()
+      CALL HCO_Imp2Ext ( am_I_Root, HcoState, ExtState%BYNCY   ,    'BYNCY', __RC__ )
 
       ! Return success
       RC = HCO_SUCCESS 
 
       END SUBROUTINE HCO_SetExtState_ESMF 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_Imp2Ext2S 
+!
+! !DESCRIPTION: Subroutine HCO\_Imp2Ext copies fields from the import state to
+! the HEMCO ExtState object.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE HCO_Imp2Ext2S( am_I_Root, HcoState, ExtDat, FldName, RC )
+!
+! !USES:
+!
+      USE HCO_ARR_MOD,     ONLY : HCO_ArrAssert
+      USE HCO_STATE_MOD,   ONLY : Hco_State
+      USE HCOX_STATE_MOD,  ONLY : ExtDat_2S
+!
+! !ARGUMENTS:
+!
+      LOGICAL,             INTENT(IN   )   :: am_I_Root
+      CHARACTER(LEN=*),    INTENT(IN   )   :: FldName
+      TYPE(HCO_State),     POINTER         :: HcoState
+      TYPE(ExtDat_2S),     POINTER         :: ExtDat
+      INTEGER,             INTENT(INOUT)   :: RC
+!
+! !REVISION HISTORY:
+!  08 Feb 2016 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL,             POINTER    :: Ptr2D(:,:)   => NULL()
+      INTEGER                      :: STAT
+
+      ! ================================================================
+      ! HCO_Imp2Ext2S begins here
+      ! ================================================================
+
+      ! For MAPL/ESMF error handling (defines Iam and STATUS)
+      __Iam__('HCO_Imp2Ext2S (HCOI_ESMF_MOD.F90)')
+
+      ! Only do if being used...
+      IF ( ExtDat%DoUse ) THEN
+ 
+         ASSERT_( ASSOCIATED(HcoState%IMPORT) ) 
+         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr2D, TRIM(FldName), __RC__ )
+         CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, STAT )
+         ASSERT_(STAT==HCO_SUCCESS) 
+         ExtDat%Arr%Val = 0.0
+         IF ( ASSOCIATED( Ptr2D ) ) THEN
+            WHERE( Ptr2D /= MAPL_UNDEF )
+               ExtDat%Arr%Val = Ptr2D
+            END WHERE
+         ENDIF
+         Ptr2D => NULL()
+      ENDIF ! DoUse
+
+      ! Verbose
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+      ENDIF
+
+      ! Return success
+      RETURN_(ESMF_SUCCESS)      
+
+      END SUBROUTINE HCO_Imp2Ext2S
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_Imp2Ext3S
+!
+! !DESCRIPTION: Subroutine HCO\_Imp2Ext copies fields from the import state to
+! the HEMCO ExtState object.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE HCO_Imp2Ext3S( am_I_Root, HcoState, ExtDat, FldName, RC )
+!
+! !USES:
+!
+      USE HCO_ARR_MOD,     ONLY : HCO_ArrAssert
+      USE HCO_STATE_MOD,   ONLY : Hco_State
+      USE HCOX_STATE_MOD,  ONLY : ExtDat_3S
+!
+! !ARGUMENTS:
+!
+      LOGICAL,             INTENT(IN   )   :: am_I_Root
+      CHARACTER(LEN=*),    INTENT(IN   )   :: FldName
+      TYPE(HCO_State),     POINTER         :: HcoState
+      TYPE(ExtDat_3S),     POINTER         :: ExtDat
+      INTEGER,             INTENT(INOUT)   :: RC
+!
+! !REVISION HISTORY:
+!  08 Feb 2016 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL,             POINTER    :: Ptr3D(:,:,:)   => NULL()
+      INTEGER                      :: L, NZ, OFF, STAT
+
+      ! ================================================================
+      ! HCO_Imp2Ext3S begins here
+      ! ================================================================
+
+      ! For MAPL/ESMF error handling (defines Iam and STATUS)
+      __Iam__('HCO_Imp2Ext3S (HCOI_ESMF_MOD.F90)')
+
+      ! Only do if being used...
+      IF ( ExtDat%DoUse ) THEN
+ 
+         ASSERT_( ASSOCIATED(HcoState%IMPORT) ) 
+         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr3D, TRIM(FldName), __RC__ )
+         ASSERT_( ASSOCIATED(Ptr3D) ) 
+
+         ! Make sure the array in ExtDat is allocated and has the right size
+         NZ = SIZE(Ptr3D,3)
+         CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, NZ, STAT )
+         ASSERT_(STAT==HCO_SUCCESS) 
+
+         ! Pass field to ExtDat
+         OFF = LBOUND(Ptr3D,3)
+         DO L = 1, NZ
+            WHERE ( Ptr3D(:,:,NZ-L+OFF) == MAPL_UNDEF )
+               ExtDat%Arr%Val(:,:,L) = 0.0
+            ELSEWHERE
+               ExtDat%Arr%Val(:,:,L) = Ptr3D(:,:,NZ-L+OFF)
+            END WHERE
+         ENDDO
+         Ptr3D => NULL()
+      ENDIF ! DoUse
+
+      ! Verbose
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+      ENDIF
+
+      ! Return success
+      RETURN_(ESMF_SUCCESS)      
+
+      END SUBROUTINE HCO_Imp2Ext3S 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_Imp2Ext2R 
+!
+! !DESCRIPTION: Subroutine HCO\_Imp2Ext copies fields from the import state to
+! the HEMCO ExtState object.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE HCO_Imp2Ext2R( am_I_Root, HcoState, ExtDat, FldName, RC )
+!
+! !USES:
+!
+      USE HCO_STATE_MOD,   ONLY : Hco_State
+      USE HCOX_STATE_MOD,  ONLY : ExtDat_2R
+      USE HCO_ARR_MOD,     ONLY : HCO_ArrAssert
+!
+! !ARGUMENTS:
+!
+      LOGICAL,             INTENT(IN   )   :: am_I_Root
+      CHARACTER(LEN=*),    INTENT(IN   )   :: FldName
+      TYPE(HCO_State),     POINTER         :: HcoState
+      TYPE(ExtDat_2R),     POINTER         :: ExtDat
+      INTEGER,             INTENT(INOUT)   :: RC
+!
+! !REVISION HISTORY:
+!  08 Feb 2016 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                      :: STAT
+      REAL,             POINTER    :: Ptr2D(:,:)   => NULL()
+
+      ! ================================================================
+      ! HCO_Imp2Ext2R begins here
+      ! ================================================================
+
+      ! For MAPL/ESMF error handling (defines Iam and STATUS)
+      __Iam__('HCO_Imp2Ext2R (HCOI_ESMF_MOD.F90)')
+
+      ! Only do if being used...
+      IF ( ExtDat%DoUse ) THEN
+ 
+         ASSERT_( ASSOCIATED(HcoState%IMPORT) ) 
+         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr2D, TRIM(FldName), __RC__ )
+
+         CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, STAT )
+         ASSERT_(STAT==HCO_SUCCESS) 
+
+         ExtDat%Arr%Val = 0.0
+         IF ( ASSOCIATED( Ptr2D ) ) THEN
+            WHERE( Ptr2D /= MAPL_UNDEF )
+               ExtDat%Arr%Val = Ptr2D
+            END WHERE
+         ENDIF
+         Ptr2D => NULL()
+      ENDIF ! DoUse
+
+      ! Verbose
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+      ENDIF
+
+      ! Return success
+      RETURN_(ESMF_SUCCESS)      
+
+      END SUBROUTINE HCO_Imp2Ext2R
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_Imp2Ext3R 
+!
+! !DESCRIPTION: Subroutine HCO\_Imp2Ext copies fields from the import state to
+! the HEMCO ExtState object.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE HCO_Imp2Ext3R( am_I_Root, HcoState, ExtDat, FldName, RC )
+!
+! !USES:
+!
+      USE HCO_STATE_MOD,   ONLY : Hco_State
+      USE HCOX_STATE_MOD,  ONLY : ExtDat_3R
+      USE HCO_ARR_MOD,     ONLY : HCO_ArrAssert
+!
+! !ARGUMENTS:
+!
+      LOGICAL,             INTENT(IN   )   :: am_I_Root
+      CHARACTER(LEN=*),    INTENT(IN   )   :: FldName
+      TYPE(HCO_State),     POINTER         :: HcoState
+      TYPE(ExtDat_3R),     POINTER         :: ExtDat
+      INTEGER,             INTENT(INOUT)   :: RC
+!
+! !REVISION HISTORY:
+!  08 Feb 2016 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                      :: L, NZ, OFF, STAT
+      REAL,             POINTER    :: Ptr3D(:,:,:) => NULL()
+
+      ! ================================================================
+      ! HCO_Imp2Ext3R begins here
+      ! ================================================================
+
+      ! For MAPL/ESMF error handling (defines Iam and STATUS)
+      __Iam__('HCO_Imp2Ext3R (HCOI_ESMF_MOD.F90)')
+
+      ! Only do if being used...
+      IF ( ExtDat%DoUse ) THEN
+ 
+         ASSERT_( ASSOCIATED(HcoState%IMPORT) ) 
+         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr3D, TRIM(FldName), __RC__ )
+         ASSERT_( ASSOCIATED(Ptr3D) )
+
+         ! Make sure the array in ExtDat is allocated and has the right size
+         NZ = SIZE(Ptr3D,3)
+         CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, NZ, STAT )
+         ASSERT_(STAT==HCO_SUCCESS) 
+
+         ! Pass field to ExtDat
+         OFF = LBOUND(Ptr3D,3)
+         DO L = 1, NZ
+            WHERE ( Ptr3D(:,:,NZ-L+OFF) == MAPL_UNDEF )
+               ExtDat%Arr%Val(:,:,L) = 0.0
+            ELSEWHERE
+               ExtDat%Arr%Val(:,:,L) = Ptr3D(:,:,NZ-L+OFF)
+            END WHERE
+         ENDDO
+         Ptr3D => NULL()
+      ENDIF ! DoUse
+
+      ! Verbose
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+      ENDIF
+
+      ! Return success
+      RETURN_(ESMF_SUCCESS)      
+
+      END SUBROUTINE HCO_Imp2Ext3R
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_Imp2Ext2I 
+!
+! !DESCRIPTION: Subroutine HCO\_Imp2Ext copies fields from the import state to
+! the HEMCO ExtState object.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE HCO_Imp2Ext2I( am_I_Root, HcoState, ExtDat, FldName, RC )
+!
+! !USES:
+!
+      USE HCO_STATE_MOD,   ONLY : Hco_State
+      USE HCOX_STATE_MOD,  ONLY : ExtDat_2I
+      USE HCO_ARR_MOD,     ONLY : HCO_ArrAssert
+!
+! !ARGUMENTS:
+!
+      LOGICAL,             INTENT(IN   )   :: am_I_Root
+      CHARACTER(LEN=*),    INTENT(IN   )   :: FldName
+      TYPE(HCO_State),     POINTER         :: HcoState
+      TYPE(ExtDat_2I),     POINTER         :: ExtDat
+      INTEGER,             INTENT(INOUT)   :: RC
+!
+! !REVISION HISTORY:
+!  08 Feb 2016 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                      :: STAT
+      REAL,             POINTER    :: Ptr2D(:,:)   => NULL()
+
+      ! ================================================================
+      ! HCO_Imp2Ext2I begins here
+      ! ================================================================
+
+      ! For MAPL/ESMF error handling (defines Iam and STATUS)
+      __Iam__('HCO_Imp2Ext2I (HCOI_ESMF_MOD.F90)')
+
+      ! Only do if being used...
+      IF ( ExtDat%DoUse ) THEN
+ 
+         ASSERT_( ASSOCIATED(HcoState%IMPORT) ) 
+         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr2D, TRIM(FldName), __RC__ )
+
+         CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, STAT )
+         ASSERT_(STAT==HCO_SUCCESS) 
+ 
+         ExtDat%Arr%Val = 0.0
+         IF ( ASSOCIATED( Ptr2D ) ) THEN
+            WHERE( Ptr2D /= MAPL_UNDEF )
+               ExtDat%Arr%Val = Ptr2D
+            END WHERE
+         ENDIF
+         Ptr2D => NULL()
+      ENDIF ! DoUse
+
+      ! Verbose
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+      ENDIF
+
+      ! Return success
+      RETURN_(ESMF_SUCCESS)      
+
+      END SUBROUTINE HCO_Imp2Ext2I
 !EOC
 #endif
 END MODULE HCOI_ESMF_MOD

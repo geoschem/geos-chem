@@ -17,6 +17,7 @@ MODULE HCO_VertGrid_Mod
 !
   USE HCO_Error_Mod
   USE HCO_Arr_Mod
+  USE HCO_Types_Mod, ONLY : VertGrid
 
   IMPLICIT NONE
   PRIVATE
@@ -112,14 +113,6 @@ MODULE HCO_VertGrid_Mod
 !
 ! PUBLIC TYPES:
 ! 
-  !=========================================================================
-  ! VertGrid: Description of vertical grid 
-  !=========================================================================
-  TYPE, PUBLIC :: VertGrid
-     INTEGER                 :: ZTYPE           ! Grid type
-     REAL(hp),       POINTER :: Ap(:) => NULL() ! Hybrid sigma Ap values
-     REAL(hp),       POINTER :: Bp(:) => NULL() ! Hybrid sigma Bp values
-  END TYPE VertGrid
 !
 ! !REVISION HISTORY:
 !  28 Sep 2015 - C. Keller   - Initialization
@@ -191,7 +184,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_VertGrid_Define( am_I_Root, zGrid, nz, Ap, Bp, RC ) 
+  SUBROUTINE HCO_VertGrid_Define( am_I_Root, HcoConfig, zGrid, nz, Ap, Bp, RC ) 
+!
+! !USES:
+!
+    USE HCO_TYPES_MOD,    ONLY : ConfigObj 
 !
 ! !INPUT PARAMETERS:
 !
@@ -202,6 +199,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(ConfigObj),POINTER                  :: HcoConfig ! HEMCO config obj 
     TYPE(VertGrid), POINTER                  :: zGrid     ! vertical grid 
     INTEGER,        INTENT(INOUT)            :: RC        ! Return code 
 !
@@ -224,7 +222,7 @@ CONTAINS
     ! Allocate AP and BP
     ALLOCATE(zGrid%Ap(nz+1), zGrid%Bp(nz+1), STAT=AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate Ap / Bp', RC, THISLOC=LOC ) 
+       CALL HCO_ERROR( HcoConfig%Err, 'Cannot allocate Ap / Bp', RC, THISLOC=LOC ) 
        RETURN
     ENDIF
     zGrid%Ap = 0.0_hp
@@ -237,7 +235,7 @@ CONTAINS
        IF ( nz > 72 ) THEN
           WRITE(MSG,*) 'Vertical grid has more than 72 vertical levels', &
                        '- please provide Ap values in configuration file.'
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC ) 
+          CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC ) 
           RETURN
        ELSEIF ( nz > 47 ) THEN
           zGrid%Ap(:) = Ap72(1:(nz+1))
@@ -253,7 +251,7 @@ CONTAINS
        IF ( nz > 72 ) THEN
           WRITE(MSG,*) 'Vertical grid has more than 72 vertical levels', & 
                        '- please provide Bp values in configuration file.'
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC ) 
+          CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC ) 
           RETURN
        ELSEIF ( nz > 47 ) THEN
           zGrid%Bp(:) = Bp72(1:(nz+1))
@@ -263,13 +261,13 @@ CONTAINS
     ENDIF
 
     ! Verbose
-    IF ( am_I_Root .AND. HCO_IsVerb(1) ) THEN
+    IF ( am_I_Root .AND. HCO_IsVerb(HcoConfig%Err,1) ) THEN
        WRITE(MSG,*) ' HEMCO vertical sigma-hybrid coordinates: '
-       CALL HCO_MSG(MSG,SEP1='-')
+       CALL HCO_MSG(HcoConfig%Err,MSG,SEP1='-')
        WRITE(MSG,*) 'Ap [Pa] (first and last): ', zGrid%Ap(1), zGrid%Ap(nz+1)
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,*) 'Bp [unitless] (first and last): ', zGrid%Bp(1), zGrid%Bp(nz+1)
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoConfig%Err,MSG)
     ENDIF
 
     ! Return w/ success

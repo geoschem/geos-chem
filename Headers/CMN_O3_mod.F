@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: CMN_O3_mod
+! !MODULE: CMN_O3_mod.F
 !
 ! !DESCRIPTION: Common blocks for anthro emissions (via SMVGEAR!)
 !\\
@@ -65,7 +65,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_cmn_o3
+! !IROUTINE: Init_Cmn_O3
 !
 ! !DESCRIPTION: Subroutine INIT\_CMN\_O3 allocates all module arrays.
 !\\
@@ -76,7 +76,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -100,7 +100,7 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Allocate arrays
       ALLOCATE( SAVEOH ( IIPAR, JJPAR, LLPAR ), STAT=RC )
@@ -121,7 +121,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_cmn_o3
+! !IROUTINE: Cleanup_Cmn_O3
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_CMN\_O3 allocates all module arrays.
 !\\
@@ -132,7 +132,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -152,7 +152,7 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
       
       ! Deallocate arrays
       IF ( ALLOCATED( SAVEOH  ) ) DEALLOCATE( SAVEOH  )

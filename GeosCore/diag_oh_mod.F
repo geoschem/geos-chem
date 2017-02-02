@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag_oh_mod
+! !MODULE: diag_oh_mod.F
 !
 ! !DESCRIPTION: Module DIAG\_OH\_MOD contains routines and variables to 
 !  archive OH mass and air mass concentrations.  These are then used to print 
@@ -53,6 +53,9 @@
       REAL(fp), ALLOCATABLE :: CH4_TROPMASS(:,:,:)
       REAL(fp), ALLOCATABLE :: CH4_EMIS(:,:,:)
       
+      ! Species ID flags (formerly in tracerid_mod.F)
+      INTEGER               :: id_OH
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -68,28 +71,38 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DIAG_OH()
+      SUBROUTINE DO_DIAG_OH( State_Met, State_Chm )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,     ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
-      USE COMODE_LOOP_MOD
-      USE TRACERID_MOD,   ONLY : IDOH
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY:
 !  07 Jul 2004 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  19 Dec 2014 - R. Yantosca - Use REAL*8 variables to avoid precision loss
 !  19 Dec 2014 - R. Yantosca - Remove FIRST & XLOSS; they aren't used anymore
+!  18 Dec 2015 - M. Sulprizio- Remove references to CSPEC and get OH directly
+!                              from State_Chm%Species
+!  21 Dec 2015 - M. Sulprizio- Get air density and box volume directly from
+!                              State_Met object
+!  23 Jun 2016 - R. Yantosca - Remove references to tracerid_mod.F, now
+!                              store species ID in module variable id_OH
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: I,          J
-      INTEGER  :: L,          JLOOP
+      INTEGER  :: I, J, L
       REAL(f8) :: AIRDENS_8,  VOLUME_8
       REAL(f8) :: XOHMASS,    XAIRMASS
 
@@ -103,36 +116,36 @@
       ! Loop over boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, JLOOP, XAIRMASS, XOHMASS, AIRDENS_8, VOLUME_8 )
+!$OMP+PRIVATE( I, J, L, XAIRMASS, XOHMASS, AIRDENS_8, VOLUME_8 )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, NPVERT
-      DO J = 1, NLAT
-      DO I = 1, NLONG
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! 1-D grid box index
-         JLOOP = JLOP(I,J,L)
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
-         ! Cycle if this isn't a valid SMVGEAR gridbox
-         IF ( JLOOP > 0 ) THEN
-         
-            ! Cast from REAL*8 to avoid underflow
-            AIRDENS_8       = AIRDENS(JLOOP)
-            VOLUME_8        = VOLUME(JLOOP)
+         ! Dry air density [molec/cm3]
+         ! Cast to REAL*8 to avoid underflow
+         AIRDENS_8       = State_Met%AIRNUMDEN(I,J,L)
 
-            ! Sum air mass term into AIR_MASS array
-            XAIRMASS        = AIRDENS_8         * VOLUME_8
-            AIR_MASS(I,J,L) = AIR_MASS(I,J,L)   + XAIRMASS
+         ! Box volume [cm3]
+         ! Cast to REAL*8 to avoid underflow
+         VOLUME_8        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
-            ! Sum OH mass term into OH_MASS array
-            XOHMASS         = CSPEC(JLOOP,IDOH) * XAIRMASS
-            OH_MASS(I,J,L)  = OH_MASS(I,J,L)    + XOHMASS
+         ! Sum air mass term into AIR_MASS array
+         XAIRMASS        = AIRDENS_8         * VOLUME_8
+         AIR_MASS(I,J,L) = AIR_MASS(I,J,L)   + XAIRMASS
 
-         ENDIF
+         ! Sum OH mass term into OH_MASS array
+         XOHMASS         = State_Chm%Species(I,J,L,id_OH) * XAIRMASS
+         OH_MASS(I,J,L)  = OH_MASS(I,J,L)    + XOHMASS
+
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-         
+
       END SUBROUTINE DO_DIAG_OH
 !EOC
 !------------------------------------------------------------------------------
@@ -206,8 +219,8 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -236,6 +249,7 @@
       REAL(fp) :: OHCONC, LIFETIME
       
       LOGICAL  :: LPRT
+
       !=================================================================
       ! PRINT_DIAG_OH begins here!
       !=================================================================
@@ -243,7 +257,7 @@
       LPRT = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! Assume success
-      RC         = GIGC_SUCCESS
+      RC         = GC_SUCCESS
 
       ! Return if this diagnostic is turned off
       IF ( .not. DO_SAVE_OH ) RETURN
@@ -357,7 +371,7 @@
       END SUBROUTINE PRINT_DIAG_OH
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  GEOS-Chem Global Chemicial Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -373,9 +387,11 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT VARIABLES:
 !
@@ -392,6 +408,9 @@
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  23 Jun 2014 - R. Yantosca - Removed reference to logical_mod.F
 !  23 Jun 2014 - R. Yantosca - Removed reference to tracer_mod.F
+!  23 Jun 2016 - R. Yantosca - Now use Ind_() function for species ID's
+!  23 Jun 2016 - R. Yantosca - Now define species ID for OH in the INIT phase
+!  23 Jun 2016 - R. Yantosca - Bug fix: exit unless it's a fullchem or CH4 sim
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -406,7 +425,7 @@
 
       ! Initialize
       DO_SAVE_OH = .FALSE.
-
+         
       ! Return if we are not doing chemistry
       IF ( .not. Input_Opt%LCHEM ) RETURN
 
@@ -418,11 +437,24 @@
          LMAX       = LLCHEM
          DO_SAVE_OH = .TRUE.
 
+         ! Find the OH species ID (formerly in tracerid_mod.F)
+         id_OH      = Ind_('OH')
+
+         IF ( id_OH < 0 ) THEN
+            CALL ERROR_STOP( 'OH is an undefined species !',
+     &                       'INIT_DIAG_OH (GeosCore/diag_oh_mod.F)' )
+         ENDIF
+
       ELSE IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
 
          ! CH4: all levels
          LMAX       = LLPAR
          DO_SAVE_OH = .TRUE.
+
+      ELSE
+
+         ! Exit for other simulations that don't use OH
+         RETURN
 
       ENDIF
 

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: mapping_mod
+! !MODULE: mapping_mod.F90
 !
 ! !DESCRIPTION: Module MAPPING\_MOD contains a derived-type object to compute
 !  and save the mapping weight (i.e. fraction of each "fine" grid box that
@@ -19,9 +19,7 @@ MODULE Mapping_Mod
 !
   USE CMN_SIZE_MOD                    ! Size parameters
   USE ERROR_MOD                       ! Error handling routines
-
   USE PRECISION_MOD                   ! For GEOS-Chem Precision (fp)
-
 
   IMPLICIT NONE
   PRIVATE
@@ -86,8 +84,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !

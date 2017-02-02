@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: ohsave
+! !ROUTINE: ohsave.F
 !
 ! !DESCRIPTION: Subroutine OHSAVE stores the concentrations of OH and HO2 
 !  for the ND43 diagnostic.
@@ -11,33 +11,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OHSAVE( SAVEOH, SAVEHO2, SAVEO1D, SAVEO3P )
+      SUBROUTINE OHSAVE( State_Met, State_Chm )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE CMN_O3_MOD,         ONLY : SAVEOH, SAVEHO2, SAVEO1D, SAVEO3P
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,      ONLY : AIRDENS, CSPEC, JLOP
-      USE COMODE_LOOP_MOD
-      USE TRACERID_MOD,    ONLY : IDOH, IDHO2
-      USE TRACERID_MOD,    ONLY : IDO1D, IDO3P
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
+      USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 !
-! !OUTPUT PARAMETERS:
+! !INPUT PARAMETERS: 
 !
-      ! Array of OH  concentrations [molec/cm3]
-      REAL(fp), INTENT(OUT) :: SAVEOH(IIPAR,JJPAR,LLPAR)
-
-      ! Array of HO2 concentrations [v/v]
-      REAL(fp), INTENT(OUT) :: SAVEHO2(IIPAR,JJPAR,LLPAR)
-
-      ! Array of O1D concentrations (molec/cm3)
-      REAL(fp), INTENT(OUT) :: SAVEO1D(IIPAR,JJPAR,LLPAR)
-
-      ! Array of O3P concentrations (molec/cm3)
-      REAL(fp), INTENT(OUT) :: SAVEO3P(IIPAR,JJPAR,LLPAR)
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  27 Feb 2002 - R. Yantosca - Initial version
@@ -66,20 +57,26 @@
 !  31 May 2013 - R. Yantosca - Extra cleanup, remove N_TRACERS, XNUMOL, STT
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
+!  16 Jun 2016 - J. Sheng    - Add index retriever
+!  20 Jun 2016 - R. Yantosca - Now only define species ID's on the first call
+!  20 Jun 2016 - R. Yantosca - Add checks to prevent array-OOB errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, JLOOP   ! (bmy, 7/20/04)
+      ! Scalars
+      INTEGER :: I, J, L
+
+      ! SAVEd scalars
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER, SAVE :: id_OH, id_HO2, id_O1D, id_O3P
+      LOGICAL, SAVE :: ok_OH, ok_HO2, ok_O1D, ok_O3P
 
       !=================================================================
       ! OHSAVE begins here!
-      !
-      ! Save info on ozone, OH, and NO concentrations
-      ! for consistency with the old method of doing O3, we'll archive
-      ! the fraction O3/Ox, and the fraction NO/NOx
       !=================================================================
 
       ! Reset because of variable tropopause.  Ensure that data for boxes 
@@ -90,37 +87,62 @@
       SAVEO1D = 0e+0_fp
       SAVEO3P = 0e+0_fp
 
+      ! First-time setup
+      IF ( FIRST ) THEN 
+
+         ! Only define species Id's on the first call (bmy, 6/20/16)
+         id_OH  = Ind_('OH' )
+         id_HO2 = Ind_('HO2')
+         id_O1D = Ind_('O1D')
+         id_O3P = Ind_('O'  )
+
+         ! Set logicals to denote if each species is defined
+         ok_OH  = ( id_OH  > 0 )
+         ok_HO2 = ( id_HO2 > 0 )
+         ok_O1D = ( id_O1D > 0 )
+         ok_O3P = ( id_O3P > 0 )
+
+         ! Reset first-time flag
+         FIRST  = .FALSE.
+      ENDIF
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, JLOOP )
+!$OMP+PRIVATE( I, J, L )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO 370 L = 1, NPVERT
-      DO 360 J = 1, NLAT
-      DO 350 I = 1, NLONG
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! 1-D grid box index
-         JLOOP = JLOP(I,J,L)
-
-         ! Cycle if this isn't a valid SMVGEAR gridbox
-         IF ( JLOOP == 0 ) GOTO 350
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! OH concentration [molec/cm3]
-         SAVEOH(I,J,L)  = CSPEC(JLOOP,IDOH)
+         IF ( ok_OH ) THEN
+            SAVEOH(I,J,L)  = State_Chm%Species(I,J,L,id_OH)
+         ENDIF
 
          ! HO2 concentration [v/v] 
-         SAVEHO2(I,J,L) = CSPEC(JLOOP,IDHO2) / AIRDENS(JLOOP)  
+         IF ( ok_HO2 ) THEN
+            SAVEHO2(I,J,L) = State_Chm%Species(I,J,L,id_HO2) /
+     &                       State_Met%AIRNUMDEN(I,J,L)
+         ENDIF
 
 #if defined( UCX )
          ! O1D concentration [molec/cm3]
-         SAVEO1D(I,J,L) = CSPEC(JLOOP,IDO1D)
+         IF ( ok_O1D ) THEN
+            SAVEO1D(I,J,L) = State_Chm%Species(I,J,L,id_O1D)
+         ENDIF
 
          ! O3P concentration [molec/cm3]
-         SAVEO3P(I,J,L) = CSPEC(JLOOP,IDO3P)
+         IF ( ok_O3P ) THEN
+            SAVEO3P(I,J,L) = State_Chm%Species(I,J,L,id_O3P)
+         ENDIF
 #endif
 
- 350  CONTINUE
- 360  CONTINUE
- 370  CONTINUE
+      ENDDO
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
 
       END SUBROUTINE OHSAVE

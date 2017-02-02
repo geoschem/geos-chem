@@ -70,6 +70,7 @@
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
 #  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #  22 Jan 2016 - R. Yantosca - Remove linux_err.o
+#  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90, etc.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -175,7 +176,7 @@ error_mod.o       : error_mod.F           \
 file_mod.o        : file_mod.F            \
                     error_mod.o
 
-grid_mod.o        : grid_mod.F90          \
+gc_grid_mod.o     : gc_grid_mod.F90       \
                     error_mod.o
 
 henry_mod.o       : henry_mod.F
@@ -196,7 +197,7 @@ regrid_a2a_mod.o  : regrid_a2a_mod.F90
 time_mod.o        : time_mod.F            \
                     charpak_mod.o         \
                     error_mod.o           \
-                    grid_mod.o            \
+                    gc_grid_mod.o         \
                     julday_mod.o 
 
 transfer_mod.o    : transfer_mod.F        \
@@ -212,7 +213,7 @@ geos_timers_mod.o : geos_timers_mod.F
 # in the HDF5 include path (bmy, 12/21/09)
 hdf_mod.o         : hdf_mod.F             \
                     error_mod.o           \
-                    grid_mod.o
+                    gc_grid_mod.o
 
 ifeq ($(HDF5),yes)
 	$(F90) -DUSE_HDF5 -I$(HDF_INC) -c $<

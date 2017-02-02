@@ -70,6 +70,7 @@ CONTAINS
     USE HCO_Calc_Mod,     ONLY : HCO_CalcEmis
     USE HCO_ReadList_Mod, ONLY : ReadList_Read 
     USE HCO_Clock_Mod,    ONLY : HcoClock_Get
+    USE HCO_Clock_Mod,    ONLY : HcoClock_First
     USE HCO_Clock_Mod,    ONLY : HcoClock_InitTzPtr
     USE HCOIO_DIAGN_MOD,  ONLY : HcoDiagn_Write
 !
@@ -100,20 +101,19 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL       :: IsEmisTime
-    LOGICAL, SAVE :: FIRST = .TRUE.
 
     !=================================================================
     ! HCO_RUN begins here!
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER( 'HCO_RUN (hco_driver_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCO_RUN (hco_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !--------------------------------------------------------------
     ! 1. Check if it's time for emissions 
     !--------------------------------------------------------------
-    CALL HcoClock_Get ( IsEmisTime=IsEmisTime, RC=RC )
+    CALL HcoClock_Get ( am_I_Root, HcoState%Clock, IsEmisTime=IsEmisTime, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !--------------------------------------------------------------
@@ -146,9 +146,8 @@ CONTAINS
        ! initialization routine HCO_INIT) because the HEMCO configuration
        ! file has to be read in its entirety before the timezone data
        ! is loaded into a data container. (bmy, 2/23/15)
-       IF ( FIRST ) THEN
-          CALL HcoClock_InitTzPtr( am_I_Root, RC )
-          FIRST = .FALSE.
+       IF ( HcoClock_First(HcoState%Clock,.FALSE.) ) THEN
+          CALL HcoClock_InitTzPtr( am_I_Root, HcoState, RC )
        ENDIF
 
     ENDIF
@@ -172,7 +171,7 @@ CONTAINS
     ENDIF
 
     ! Leave w/ success
-    CALL HCO_LEAVE( RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err, RC ) 
 
   END SUBROUTINE HCO_Run
 !EOC
@@ -199,8 +198,6 @@ CONTAINS
     USE HCO_Diagn_Mod,    ONLY : HcoDiagn_Init
     USE HCO_tIdx_Mod,     ONLY : tIDx_Init
     USE HCO_Clock_Mod,    ONLY : HcoClock_Init
-    USE HCO_ReadList_Mod, ONLY : ReadList_Init
-    USE HCO_ReadList_Mod, ONLY : ReadList_Read
     USE HCO_Config_Mod,   ONLY : SetReadList 
 !
 ! !INPUT PARAMETERS:
@@ -229,7 +226,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_Enter( 'HCO_INIT (hco_driver_mod.F90)', RC )
+    CALL HCO_Enter( HcoState%Config%Err, 'HCO_INIT (hco_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Initialize time slice pointers 
@@ -237,22 +234,20 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Initialize HEMCO Clock
-    CALL HcoClock_Init( HcoState, RC )
+    HcoState%Clock => NULL()
+    CALL HcoClock_Init( am_I_Root, HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Initialize the HEMCO diagnostics
     CALL HcoDiagn_Init( am_I_Root, HcoState, RC )
- 
-    ! Initialize the HEMCO ReadList. This has to be done before
-    ! the call to SetReadList below. 
-    CALL ReadList_Init() 
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set ReadList based upon the content of the configuration file. 
     CALL SetReadList ( am_I_Root, HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE ( HcoState%Config%Err, RC ) 
 
   END SUBROUTINE HCO_Init
 !EOC
@@ -272,13 +267,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EmisList_Mod,  ONLY : EmisList_Cleanup
     USE HCO_Clock_Mod,     ONLY : HcoClock_Cleanup
     USE HCO_tIdx_Mod,      ONLY : tIDx_Cleanup
-    USE HCO_ReadList_Mod,  ONLY : ReadList_Cleanup
-    USE HCO_Config_Mod,    ONLY : Config_Cleanup
     USE HCO_DataCont_Mod,  ONLY : cIDList_Cleanup
-    USE HCO_DataCont_Mod,  ONLY : Reset_nnDataCont
+    USE HCO_ReadList_Mod,  ONLY : ReadList_Cleanup
+    USE HCO_DataCont_Mod,  ONLY : ListCont_Cleanup
     USE HCO_ExtList_Mod,   ONLY : ExtFinal
     USE HCOIO_DIAGN_MOD,   ONLY : HcoDiagn_Write
 !
@@ -317,19 +310,20 @@ CONTAINS
        CALL  HcoDiagn_Write( am_I_Root, HcoState, .TRUE.,  RC )
     ENDIF
 
-    CALL cIDList_Cleanup  (         ) 
-    CALL HcoClock_Cleanup (         )
-    CALL tIDx_Cleanup     (         )
-    CALL EmisList_Cleanup ( .FALSE. )
-    CALL ReadList_Cleanup ( .FALSE. )
-    CALL Config_Cleanup   ( .TRUE.  )
-    CALL Reset_nnDataCont
- 
+    CALL cIDList_Cleanup  ( HcoState                           ) 
+    CALL HcoClock_Cleanup ( HcoState%Clock                     )
+    CALL tIDx_Cleanup     ( HcoState%AlltIDx                   )
+    CALL ReadList_Cleanup ( HcoState%ReadLists,        .FALSE. )
+    CALL ListCont_Cleanup ( HcoState%EmisList,         .FALSE. )
+    CALL ListCont_Cleanup ( HcoState%Config%ConfigList, .TRUE. )
+    HcoState%nnEmisCont = 0
+    HcoState%SetReadListCalled = .FALSE.
+
     ! Cleanup the extension list object
-    CALL ExtFinal         (         )
+    CALL ExtFinal         ( HcoState%Config%ExtList )
 
     ! Close the logfile and cleanup error object. 
-    CALL HCO_Error_Final  (         )
+    CALL HCO_Error_Final  ( HcoState%Config%Err )
 
     ! Return w/ success
     RC = HCO_SUCCESS

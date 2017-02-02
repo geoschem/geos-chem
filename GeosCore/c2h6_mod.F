@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: c2h6_mod
+! !MODULE: c2h6_mod.F
 !
 ! !DESCRIPTION: Module C2H6\_MOD contains variables and routines used for the
 !  tagged C2H6 (ethane) simulation. (xyp, qli, bmy, 7/28/01, 4/5/06)
@@ -16,7 +16,7 @@
 ! !USES:
 !
       USE PRECISION_MOD
-      USE PHYSCONSTANTS, ONLY : AVO
+      USE PhysConstants, ONLY : AVO
 
       IMPLICIT NONE
       PRIVATE
@@ -108,12 +108,13 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE Error_Mod,          ONLY : Error_Stop
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE HCO_Interface_Mod,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
 
 ! !INPUT PARAMETERS:
@@ -146,7 +147,10 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  06 Nov 2014 - M. Yannetti - Converted REAL*8 to REAL(fp)
-
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  10 Aug 2016 - R. Yantosca - Removed temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,27 +162,26 @@
       INTEGER, SAVE      :: LASTMONTH = -99
 
       ! Scalars
-      LOGICAL            :: LSPLIT
-      INTEGER            :: N_TRACERS, MONTH
-      INTEGER            :: I, J, L, N
+      INTEGER            :: nAdvect
+      INTEGER            :: MONTH
+      INTEGER            :: I, J, L, N, NA
       REAL(fp)           :: DTCHEM, KRATE
 
       ! Strings
-      CHARACTER(LEN=255) :: LOC = 'CHEMPOPS (pops_mod.F)'
+      CHARACTER(LEN=255) :: LOC = 'CHEMC2H6 (c2h6_mod.F)'
 
       ! Pointers
-      REAL(fp), POINTER  :: STT(:,:,:,:) => NULL()
+      REAL(fp), POINTER  :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHEMC2H6 begins here! 
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC      = GC_SUCCESS
 
-      ! Get fields from Input_Opt
-      LSPLIT    = Input_Opt%LSPLIT
-      N_TRACERS = Input_Opt%N_TRACERS
+      ! Nubmer of advected species
+      nAdvect = State_Chm%nAdvect
 
       IF ( FIRSTCHEM ) THEN
          FIRSTCHEM = .FALSE.  ! save for future use?
@@ -187,12 +190,11 @@
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Poiont to chemical species
+      Spc    => State_Chm%Species
 
       ! Get current month
-      MONTH = GET_MONTH()
+      MONTH  = GET_MONTH()
 
       !=================================================================
       ! Read in the tropospheric OH fields of the (LMN)th month
@@ -200,9 +202,12 @@
       !=================================================================
       IF ( MONTH /= LASTMONTH ) THEN
          
+         !%%% NOTE: THIS MAY ONLY NEED TO BE DONE ON THE FIRST CALL! %%%
+         !%%% (bmy, 6/30/16)                                         %%%
+
          ! Get a pointer to the HEMCO data structure (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,  RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', OH,  RC )
+         IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
          ENDIF
 
@@ -230,17 +235,20 @@
          KRATE = 8.7e-12_fp * EXP( -1070.0e+0_fp / State_Met%T(I,J,L) )
 
          ! Apply loss to total C2H6 (tracer #1)
-         STT(I,J,L,1) = STT(I,J,L,1) *
+         Spc(I,J,L,1) = Spc(I,J,L,1) *
      &                  ( 1e+0_fp - KRATE * OH(I,J,L) * DTCHEM )
 
          ! If we are running w/ tagged tracers,
          ! then also apply the loss to each of these
-         IF ( LSPLIT ) THEN 
-            DO N = 2, N_TRACERS
+         IF ( Input_Opt%LSPLIT ) THEN 
+            DO NA = 2, nAdvect
             
+               ! Advected species ID
+               N            = State_Chm%Map_Advect(NA)
+
                ! Subtract loss of C2H6 by OH and store in STT [kg C2H6]
                ! Loss = k * [C2H6] * [OH] * dt
-               STT(I,J,L,N) = STT(I,J,L,N) *
+               Spc(I,J,L,N) = Spc(I,J,L,N) *
      &                        ( 1e+0_fp - KRATE * OH(I,J,L) * DTCHEM )
             ENDDO
          ENDIF
@@ -251,7 +259,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      Spc => NULL()
 
       END SUBROUTINE CHEMC2H6
 !EOC
@@ -273,8 +281,8 @@
 !
 ! !USES:
 !
-      USE TRACERID_MOD, ONLY : IDTC2H6
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD
+      USE State_Chm_Mod,      ONLY :  Ind_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -284,7 +292,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                :: C2H6_ANTHRO
+      REAL(fp)              :: C2H6_ANTHRO
 ! 
 ! !REVISION HISTORY: 
 !  22 Mar 2012 - M. Payer    - Initial version adapted from GET_RETRO_ANTHRO
@@ -295,7 +303,7 @@
       !  GET_C2H6_ANTHRO begins here
       !=================================================================
 
-      IF ( N == IDTC2H6 ) THEN
+      IF ( N == Ind_('C2H6') ) THEN
          C2H6_ANTHRO = NGASC2H6(I,J)
       ENDIF
 
@@ -319,9 +327,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -333,7 +341,7 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?! 
 !
 ! !REMARKS:
-!  This routine is now called from GIGC_INIT_EXTRA (in GeosCore/input_mod.F).
+!  This routine is now called from GC_INIT_EXTRA (in GeosCore/input_mod.F).
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
@@ -350,7 +358,7 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Allocate NGASC2H6 array
       ALLOCATE( NGASC2H6( IIPAR, JJPAR ), STAT=RC )

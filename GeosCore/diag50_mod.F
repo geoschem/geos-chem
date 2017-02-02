@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag50_mod 
+! !MODULE: diag50_mod.F
 !
 ! !DESCRIPTION: Module DIAG50\_MOD contains variables and routines to 
 !  generate 24-hour average timeseries data.
@@ -40,7 +40,7 @@
 ! !REMARKS:
 !  ND50 tracer numbers:
 !  ============================================================================
-!  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
+!  1 - nAdvect   : GEOS-CHEM advected species               [v/v      ]
 !  151           : OH concentration                         [molec/cm3]
 !  152           : NOy concentration                        [v/v      ]
 !  153           : Relative Humidity                        [%        ]
@@ -99,6 +99,7 @@
 !  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -180,11 +181,11 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -220,7 +221,7 @@
       ! Write data to disk at the end of the day
       IF ( ITS_TIME_FOR_WRITE_DIAG50() .and. 
      &     Input_Opt%DO_DIAG_WRITE    ) THEN
-         CALL WRITE_DIAG50( am_I_Root, Input_Opt, RC )
+         CALL WRITE_DIAG50( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
 
       END SUBROUTINE DIAG50
@@ -243,23 +244,19 @@
 !
 ! !USES:
 !
-      USE COMODE_MOD,         ONLY : JLOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
-      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
-      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
-      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
-      USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
-
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE COMODE_LOOP_MOD          ! NPVERT
       USE CMN_O3_MOD               ! SAVEOH
-      USE PHYSCONSTANTS            ! SCALE_HEIGHT, XNUMOLAIR
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
 !
 ! !INPUT PARAMETERS:
 !
@@ -314,17 +311,33 @@
 !  26 Feb 2014 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod
 !  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
+!  17 May 2016 - M. Sulprizio- Add IS_CHEM logical for incrementing COUNT_CHEM3D
+!  16 Jun 2016 - K. Yu       - Now define species ID's with the Ind_ function
+!  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
+!  22 Jun 2016 - M. Yannetti - Replace TCVV with spec db and physical const
+!  28 Jun 2016 - M. Sulprizio- Replace NPVERT with LLPAR to remove dependence
+!                              on comode_loop_mod.F
+!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!                              species ID from State_Chm%Map_Advect.
+!  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! SAVEd scalars
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL, SAVE       :: IS_FULLCHEM, IS_SEASALT
-      LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy,    IS_OPTD, IS_SLP
+      LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy,  IS_OPTD, IS_SLP
+      INTEGER, SAVE       :: id_HNO3,     id_HNO4, id_N2O5, id_NO
+      INTEGER, SAVE       :: id_PAN,      id_PMN,  id_PPN,  id_O3
+      INTEGER, SAVE       :: id_R4N2,     id_SALA, id_SALC, id_NO2
+
+      ! Scalars
+      LOGICAL             :: IS_CHEM
       LOGICAL             :: LINTERP
-      INTEGER             :: H, I, J, K, L, M, N
+      INTEGER             :: H, I, J, K, L, M, N, nAdvect
       INTEGER             :: PBLINT,  R, X, Y, W
       INTEGER             :: ISPC
       REAL(fp)            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
@@ -333,43 +346,58 @@
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER             :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
 
-      ! For fields from Input_Opt
-      INTEGER             :: N_TRACERS
-      REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
-
       ! Pointers
-      REAL(fp), POINTER     :: STT(:,:,:,:)
-!      REAL(fp), POINTER     :: AD(:,:,:)
+      REAL(fp), POINTER     :: Spc(:,:,:,:)
 
       !=================================================================
       ! ACCUMULATE_DIAG50 begins here!
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
-      ! Copy values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
 
       ! Initialize pointers
-      STT      => State_Chm%Tracers
-!      AD       => State_Met%AD
+      Spc      => State_Chm%Species
 
-      ! Set logical flags
+      ! First-time setup
       IF ( FIRST ) THEN
+
+         ! Define species ID flags
+         id_HNO3 = Ind_('HNO3')
+         id_HNO4 = Ind_('HNO4')
+         id_N2O5 = Ind_('N2O5')
+         id_NO   = Ind_('NO'  )
+         id_PAN  = Ind_('PAN' )
+         id_PMN  = Ind_('PMN' )
+         id_PPN  = Ind_('PPN' )
+         id_O3   = Ind_('O3'  )
+         id_R4N2 = Ind_('R4N2')
+         id_SALA = Ind_('SALA')
+         id_SALC = Ind_('SALC')
+         id_NO2  = Ind_('NO2' )
+
+         ! Set logical flags
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
          IS_SLP      = ASSOCIATED( State_Met%SLP     )
          IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
-         IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. IDTNO   > 0 .and.
-     &                   IDTNO2  > 0 .and. IDTPAN  > 0 .and.
-     &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
-     &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
-     &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
+         IS_SEASALT  = ( id_SALA > 0 .and. id_SALC > 0 )
+         IS_NOy      = ( IS_FULLCHEM .and. id_NO   > 0 .and.
+     &                   id_NO2  > 0 .and. id_PAN  > 0 .and.
+     &                   id_HNO3 > 0 .and. id_PMN  > 0 .and.
+     &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
+     &                   id_N2O5 > 0 .and. id_HNO4 > 0 ) 
+
+         ! Reset first-time flag
          FIRST       = .FALSE.
       ENDIF
+
+      ! Is it a chemistry timestep?
+      IS_CHEM = ( MOD( GET_ELAPSED_MIN()-GET_TS_DYN(), 
+     &                 GET_TS_CHEM() ) == 0 )
 
       ! Echo time information to the screen
       STAMP = TIMESTAMP_STRING()
@@ -393,15 +421,15 @@
          LINTERP=.TRUE.
       ENDIF
 
-      ! Also increment 3-D counter for boxes in the tropopause
-      IF ( IS_FULLCHEM ) THEN
+      ! Also increment 3-D counter for boxes in the chemistry grid
+      IF ( IS_FULLCHEM .and. IS_CHEM ) THEN
          
          ! Loop over levels
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( X, Y, K, I, J, L )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO K = 1, MIN(ND50_NL, NPVERT)
+         DO K = 1, MIN(ND50_NL, LLPAR)
             L = LOFF + K
 
          ! Loop over latitudes 
@@ -412,12 +440,8 @@
          DO X = 1, ND50_NI
             I = GET_I( X )
 
-            ! Only increment if we were in the trop at the previous chemistry
-            ! time step. We can't use ITS_IN_THE_TROP because it might not
-            ! be a chemistry time step. Use JLOP instead:
-            ! JLOP  = 0 if outside chemistry grid
-            ! JLOP /= 0 if in chemistry grid
-            IF ( JLOP( I, J, L ) > 0 ) THEN
+            ! Only increment if we were in the chemistry grid
+            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + 1
             ENDIF
 
@@ -433,7 +457,7 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALEAODnm ) 
+!$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALEAODnm )
 !$OMP+SCHEDULE( DYNAMIC )
       DO W = 1, ND50_N_TRACERS
 
@@ -453,15 +477,14 @@
             I = GET_I( X )
 
             ! Archive by simulation 
-            IF ( N <= N_TRACERS ) THEN
+            IF ( N <= nAdvect ) THEN
 
                !--------------------------------------
-               ! GEOS-CHEM TRACERS [v/v]
+               ! GEOS-CHEM advected species [v/v]
                !--------------------------------------
-!               Q(X,Y,K,W) = Q(X,Y,K,W) + ( STT(I,J,L,N) * 
-!     &                      TCVV(N)    /   AD(I,J,L) )
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( STT(I,J,L,N) * 
-     &                      TCVV(N) )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( Spc(I,J,L,N) * 
+     &                      ( AIRMW 
+     &                      / State_Chm%SpcData(N)%Info%emMW_g ) )
 
             ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
 
@@ -480,85 +503,50 @@
                ! Temp variable for accumulation
                TMP = 0e+0_fp
             
-!              ! NO
-!              TMP = TMP + ( TCVV(IDTNO)         * 
-!    &                       STT(I,J,L,IDTNO)    / 
-!    &                       AD(I,J,L) )
-!
-!              ! NO2
-!              TMP = TMP + ( TCVV(IDTNO2)        * 
-!    &                       STT(I,J,L,IDTNO2)   / 
-!    &                       AD(I,J,L) )
-!              ! PAN
-!              TMP = TMP + ( TCVV(IDTPAN)        * 
-!    &                       STT(I,J,L,IDTPAN)   / 
-!    &                       AD(I,J,L) )
-!
-!              ! HNO3
-!              TMP = TMP + ( TCVV(IDTHNO3)       * 
-!    &                       STT(I,J,L,IDTHNO3)  / 
-!    &                       AD(I,J,L) )
-!           
-!              ! PMN
-!              TMP = TMP + ( TCVV(IDTPMN)        * 
-!    &                       STT(I,J,L,IDTPMN)   / 
-!    &                       AD(I,J,L) )
-!
-!              ! PPN
-!              TMP = TMP + ( TCVV(IDTPPN)        * 
-!    &                       STT(I,J,L,IDTPPN)   / 
-!    &                       AD(I,J,L) )
-!
-!              ! R4N2
-!              TMP = TMP + ( TCVV(IDTR4N2)       * 
-!    &                       STT(I,J,L,IDTR4N2)  / 
-!    &                       AD(I,J,L) )
-!           
-!              ! N2O5
-!              TMP = TMP + ( 2d0 * TCVV(IDTN2O5) * 
-!    &                       STT(I,J,L,IDTN2O5)  / 
-!    &                       AD(I,J,L) )
-!                       
-!              ! HNO4
-!              TMP = TMP + ( TCVV(IDTHNO4)       * 
-!    &                       STT(I,J,L,IDTHNO4)  / 
-!    &                       AD(I,J,L) )
-
                ! NO
-               TMP = TMP + ( TCVV(IDTNO)         * 
-     &                       STT(I,J,L,IDTNO) )  
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_NO)%Info%emMW_g )         
+     &                       * Spc(I,J,L,id_NO) )  
 
                ! NO2
-               TMP = TMP + ( TCVV(IDTNO2)        * 
-     &                       STT(I,J,L,IDTNO2) )
+               TMP = TMP + ( ( AIRMW 
+     &                / State_Chm%SpcData(id_NO2)%Info%emMW_g )         
+     &                       * Spc(I,J,L,id_NO2) )
                ! PAN
-               TMP = TMP + ( TCVV(IDTPAN)        * 
-     &                       STT(I,J,L,IDTPAN) )
+               TMP = TMP + ( ( AIRMW 
+     &                / State_Chm%SpcData(id_PAN)%Info%emMW_g )         
+     &                       * Spc(I,J,L,id_PAN) )
 
                ! HNO3
-               TMP = TMP + ( TCVV(IDTHNO3)       * 
-     &                       STT(I,J,L,IDTHNO3) )
+               TMP = TMP + ( ( AIRMW 
+     &                / State_Chm%SpcData(id_HNO3)%Info%emMW_g )        
+     &                       * Spc(I,J,L,id_HNO3) )
             
                ! PMN
-               TMP = TMP + ( TCVV(IDTPMN)        * 
-     &                       STT(I,J,L,IDTPMN) )
+               TMP = TMP + ( ( AIRMW 
+     &                / State_Chm%SpcData(id_PMN)%Info%emMW_g )         
+     &                       * Spc(I,J,L,id_PMN) )
 
                ! PPN
-               TMP = TMP + ( TCVV(IDTPPN)        * 
-     &                       STT(I,J,L,IDTPPN) )
+               TMP = TMP + ( ( AIRMW 
+     &                / State_Chm%SpcData(id_PPN)%Info%emMW_g )         
+     &                       * Spc(I,J,L,id_PPN) )
  
                ! R4N2
-               TMP = TMP + ( TCVV(IDTR4N2)       * 
-     &                       STT(I,J,L,IDTR4N2) )
+               TMP = TMP + ( ( AIRMW 
+     &                / State_Chm%SpcData(id_R4N2)%Info%emMW_g )        
+     &                       * Spc(I,J,L,id_R4N2) )
             
                ! N2O5
-               TMP = TMP + ( 2d0 * TCVV(IDTN2O5) * 
-     &                       STT(I,J,L,IDTN2O5) )
+               TMP = TMP + ( 2d0 * ( AIRMW 
+     &                / State_Chm%SpcData(id_N2O5)%Info%emMW_g )  
+     &                       * Spc(I,J,L,id_N2O5) )
                         
                ! HNO4
-               TMP = TMP + ( TCVV(IDTHNO4)       * 
-     &                       STT(I,J,L,IDTHNO4) )
-
+               TMP = TMP + ( ( AIRMW 
+     &                / State_Chm%SpcData(id_HNO4)%Info%emMW_g )       
+     &                       * Spc(I,J,L,id_HNO4) )
+ 
                ! Accumulate into Q
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
 
@@ -606,14 +594,11 @@
                !--------------------------------------
                ! TOTAL SEASALT TRACER [v/v]
                !--------------------------------------
-!               Q(X,Y,K,W) = Q(X,Y,K,W) +
-!     &                      ( STT(I,J,L,IDTSALA) + 
-!     &                        STT(I,J,L,IDTSALC) ) *
-!     &                        TCVV(IDTSALA)  / AD(I,J,L)
                Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &                      ( STT(I,J,L,IDTSALA) + 
-     &                        STT(I,J,L,IDTSALC) ) *
-     &                        TCVV(IDTSALA)
+     &                      ( Spc(I,J,L,id_SALA) + 
+     &                        Spc(I,J,L,id_SALC) ) *
+     &                        ( AIRMW 
+     &                       / State_Chm%SpcData(id_SALA)%Info%emMW_g )
 
             ELSE IF ( N == 159 ) THEN
 
@@ -883,8 +868,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointers
-      NULLIFY( STT )
-!      NULLIFY( AD  )
+      Spc => NULL()
 
       END SUBROUTINE ACCUMULATE_DIAG50
 !EOC
@@ -955,7 +939,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG50( am_I_Root, Input_Opt, RC )
+      SUBROUTINE WRITE_DIAG50( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -963,12 +947,14 @@
       USE BPCH2_MOD,          ONLY : GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
+      USE CMN_SIZE_MOD             ! Size Parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_XOFFSET
-      USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_XOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_YOFFSET
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD_DIAG
       USE TIME_MOD,           ONLY : GET_NHMS
@@ -984,13 +970,15 @@
       USE HDF5,               ONLY : HID_T
       INTEGER(HID_T)              :: IU_ND50_HDF
 #endif
-
-      USE CMN_SIZE_MOD  ! Size Parameters
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1031,7 +1019,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: DIVISOR(ND50_NI,ND50_NJ,ND50_NL)
-      INTEGER            :: I,    J,     L,   W, N  
+      INTEGER            :: I,    J,     L,   W, N, nAdvect
       INTEGER            :: GMNL, GMTRC, IOS, X, Y, K, NHMS
       CHARACTER(LEN=16)  :: STAMP
       CHARACTER(LEN=40)  :: CATEGORY
@@ -1040,18 +1028,19 @@
 
       ! For fields from Input_Opt
       LOGICAL            :: LND50_HDF
-      INTEGER            :: N_TRACERS
 
       !=================================================================
       ! WRITE_DIAG50 begins here!
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
+
+      ! Nubmer of advected species
+      nAdvect   = State_Chm%nAdvect
 
       ! Copy values from Input_Opt
       LND50_HDF = Input_Opt%LND50_HDF
-      N_TRACERS = Input_Opt%N_TRACERS
 
       ! Replace time & date tokens in the filename
       FILENAME = ND50_OUTPUT_FILE
@@ -1134,10 +1123,10 @@
          N = ND50_TRACERS(W)
 
          ! Save by simulation
-         IF ( N <= N_TRACERS ) THEN
+         IF ( N <= nAdvect ) THEN
 
             !---------------------
-            ! GEOS-CHEM tracers
+            ! GEOS-CHEM species
             !---------------------
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''              ! Let GAMAP pick unit
@@ -1508,16 +1497,15 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,  ONLY : GET_MODELNAME
-      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE GRID_MOD,   ONLY : GET_XOFFSET
-      USE GRID_MOD,   ONLY : GET_YOFFSET
-      USE GRID_MOD,   ONLY : ITS_A_NESTED_GRID
-      USE TIME_MOD,   ONLY : GET_TAUb
-  
+      USE BPCH2_MOD,    ONLY : GET_MODELNAME
+      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,    ONLY : ALLOC_ERR
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE GC_GRID_MOD,  ONLY : GET_XOFFSET
+      USE GC_GRID_MOD,  ONLY : GET_YOFFSET
+      USE GC_GRID_MOD,  ONLY : ITS_A_NESTED_GRID
+      USE TIME_MOD,     ONLY : GET_TAUb
 !
 ! !INPUT PARAMETERS: 
 !

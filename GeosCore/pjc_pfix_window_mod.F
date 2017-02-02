@@ -90,6 +90,7 @@
 !  04 Nov 2015 - M. Sulprizio- Rename from pjc_pfix_geos5_window_mod.F to
 !                              pjc_pfix_window_mod.F for use with all nested
 !                              grids
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -193,7 +194,7 @@
 !******************************************************************************
 !
       USE CMN_SIZE_MOD    ! Size parameters
-      USE PHYSCONSTANTS   ! Physical constants
+      USE PhysConstants   ! Physical constants
 
       IMPLICIT NONE
 
@@ -396,7 +397,7 @@
 !******************************************************************************
 !
       USE CMN_SIZE_MOD
-      USE PHYSCONSTANTS
+      USE PhysConstants
 
       implicit none
 
@@ -1168,7 +1169,7 @@ c     --------------------------------------
 !******************************************************************************
 !
       USE CMN_SIZE_MOD ! Size parameters
-      USE PHYSCONSTANTS! Re, PI
+      USE PhysConstants! Re, PI
  
       implicit none
 
@@ -1361,7 +1362,7 @@ c     --------------------------------------
 !******************************************************************************
 !
       USE CMN_SIZE_MOD ! Size parameters
-      USE PHYSCONSTANTS! Re, Pi
+      USE PhysConstants! Re, Pi
 
       implicit none
 
@@ -1717,12 +1718,12 @@ c     --------------------------------------
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GRID_MOD,     ONLY : GET_AREA_M2, GET_YMID_R
+      USE GC_GRID_MOD,  ONLY : GET_AREA_M2, GET_YMID_R
       USE ERROR_MOD,    ONLY : ALLOC_ERR,   ERROR_STOP
       USE PRESSURE_MOD, ONLY : GET_AP,      GET_BP
 
       USE CMN_SIZE_MOD  ! Size parameters
-      USE PHYSCONSTANTS ! Re, PI, etc...
+      USE PhysConstants ! Re, PI, etc...
 
       ! Local variables
       INTEGER :: AS, I, J, L

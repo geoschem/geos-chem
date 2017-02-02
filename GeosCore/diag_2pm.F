@@ -4,7 +4,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: diag_2pm
+! !MODULE: diag_2pm.F
 !
 ! !DESCRIPTION: Subroutine DIAG\_2PM constructs the diagnostic flag arrays:
 !
@@ -29,6 +29,8 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE CMN_DIAG_MOD             ! HR_OH1, HR_OH2, etc.
+      USE CMN_SIZE_MOD             ! Size parameters
       USE DIAG_MOD,           ONLY : LTJV,  CTJV
       USE DIAG_MOD,           ONLY : LTOH,  CTOH
 #if defined( BPCH_DIAG )
@@ -44,17 +46,13 @@
       USE DIAG_MOD,           ONLY : CTLBRO2H, CTLBRO2N
       USE DIAG_MOD,           ONLY : CTLTRO2H, CTLTRO2N
       USE DIAG_MOD,           ONLY : CTLXRO2H, CTLXRO2N
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_DIAG
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,           ONLY : GET_TS_DIAG
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! HR_OH1, HR_OH2, etc.
-
-      USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 !

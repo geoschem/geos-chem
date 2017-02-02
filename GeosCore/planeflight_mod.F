@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: planeflight_mod
+! !MODULE: planeflight_mod.F
 !
 ! !DESCRIPTION: Module PLANEFLIGHT\_MOD contains variables and routines which 
 !  are used to "fly" a plane through the GEOS-Chem model simulation.  This is 
@@ -16,16 +16,20 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: ARCHIVE_RXNS_FOR_PF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 5/12/16:
+! This routine does not work with the FlexChem implementation. We need to
+! rewrite this code to get the necessary information from KPP (mps, 5/12/16)
+!      PUBLIC  :: ARCHIVE_RXNS_FOR_PF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       PUBLIC  :: CLEANUP_PLANEFLIGHT
       PUBLIC  :: PLANEFLIGHT
       PUBLIC  :: SETUP_PLANEFLIGHT
@@ -84,6 +88,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -96,7 +101,7 @@
       ! DO_PF       : Turn on the planeflight diagnostic? (T/F)
       ! MAXVARS     : Maximum # of variables allowed
       ! MAXPOINTS   : Maximum # of flight track points allowed
-      ! MAXREAC     : Maximum # of SMVGEAR reactions allowed
+      ! MAXREAC     : Maximum # of reactions allowed
       ! MAXRO2      : Maximum # of RO2 constituents allowed
       ! NPOINTS     : Number of flight track points 
       ! PPOINT      : Pointer to last measured output
@@ -110,11 +115,11 @@
       ! NPVAR       : # of var's to be saved at each flight point
       ! PVAR        : Array of variable indices
       ! PNAME       : Array of variable names corresponding to PVAR
-      ! NPREAC      : # of variables that are really SMVGEAR rxns
-      ! PREAC       : Array of SMVGEAR rxn index numbers
+      ! NPREAC      : # of variables that are really rxns
+      ! PREAC       : Array of rxn index numbers
       ! PRRATE      : Array of rxn rates for each entry in PREAC
       ! NRO2        : # number of RO2 constituents
-      ! PRO2        : Array of SMVGEAR species that are RO2 const's
+      ! PRO2        : Array of species that are RO2 const's
       ! INFILENAME  : Name of input file defining the flight track
       ! OUTFILENAME : Name of output file 
       !=================================================================
@@ -151,10 +156,10 @@
       INTEGER,           ALLOCATABLE :: PVAR(:) 
       CHARACTER(LEN=10), ALLOCATABLE :: PNAME(:)              
       
-      ! For specifying SMVGEAR rxns to save at each flight point
+      ! For specifying rxns to save at each flight point
       INTEGER                        :: NPREAC        
       INTEGER,           ALLOCATABLE :: PREAC(:) 
-      REAL(fp),            ALLOCATABLE :: PRRATE(:,:) 
+      REAL(fp),          ALLOCATABLE :: PRRATE(:,:,:,:) 
 
       ! For specifying RO2 constituents at each flight point
       INTEGER                        :: NPRO2
@@ -195,14 +200,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, RC )
+      SUBROUTINE SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, State_Chm,
+     &                              RC )
 !
 ! !USES:
 !
+      USE ErrCode_Mod
       USE FILE_MOD,           ONLY : FILE_EXISTS
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput 
+      USE Input_Opt_Mod,      ONLY : OptInput 
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD
       USE TIME_MOD,           ONLY : GET_NHMS
@@ -211,18 +218,13 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  For SMVGEAR or KPP simulations, the call to SETUP_PLANEFLIGHT is made from 
-!  routine "chemdr.f", after the "chem.dat" file is read.  This is necessary 
-!  since we have to reference the SMVGEAR rxn rate and species numbers.
-!                                                                             .
-!  For offline simulations, the call to SETUP_PLANEFLIGHT can be made
-!  at the start of the GEOS-Chem run (in "ndxx_setup.f" or similar routine).
 ! 
 ! !REVISION HISTORY: 
 !  30 Jul 2002 - M. Evans    - Initial version
@@ -314,7 +316,8 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'setup_planeflight:1')
 
       ! Read variables to be output -- sort into PVAR array by type
-      CALL READ_VARIABLES( am_I_Root, Input_Opt, IU_FILE, RC )
+      CALL READ_VARIABLES( am_I_Root, Input_Opt, State_Chm,
+     &                     IU_FILE,   RC )
 
       ! Read information about each point (date/time/lon/lat/alt)
       CALL READ_POINTS( am_I_Root, Input_Opt, IU_FILE, RC)
@@ -326,19 +329,19 @@
       PPOINT = 1
 
       !=================================================================
-      ! Find the species # for all components of RO2 (SMVGEAR only)
+      ! Find the species # for all components of RO2 (fullchem only)
       !=================================================================
-      CALL RO2_SETUP( am_I_Root, Input_Opt, RC )
+      CALL RO2_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
 
       !=================================================================
-      ! Find the species # for all components of NOY (SMVGEAR only)
+      ! Find the species # for all components of NOY (fullchem only)
       !=================================================================
-      CALL NOY_SETUP( am_I_Root, Input_Opt, RC )
+      CALL NOY_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
 
       !=================================================================
-      ! Find the species # for all components of AN (SMVGEAR only)
+      ! Find the species # for all components of AN (fullchem only)
       !=================================================================
-      CALL AN_SETUP( am_I_Root, Input_Opt, RC )
+      CALL AN_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
     
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -391,28 +394,30 @@
 ! !IROUTINE: read_variables
 !
 ! !DESCRIPTION: Subroutine READ\_VARIABLES reads the list of variables 
-!  (SMVGEAR/KPP chemical species, SMVGEAR/KPP rxn rates, GMAO met fields, or 
-!  GEOS-Chem tracers) to be printed out and sorts the information into the 
-!  appropriate module variables.
+!  (chemical species, rxn rates, GMAO met fields, or GEOS-Chem species) to be
+!  printed out and sorts the information into the appropriate module variables.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_VARIABLES( am_I_Root, Input_Opt, IU_FILE, RC )
+      SUBROUTINE READ_VARIABLES( am_I_Root, Input_Opt, State_Chm,
+     &                           IU_FILE,   RC )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD                   ! Size parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,   ONLY : IOERROR
-      USE CMN_SIZE_MOD                   ! Size parameters
-      USE COMODE_LOOP_MOD                ! NAMEGAS, NSPEC
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm  ! Chemistry State object
       INTEGER,        INTENT(IN)  :: IU_FILE    ! Logical unit # for ASCII read
 !
 ! !OUTPUT PARAMETERS:
@@ -442,6 +447,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  20 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with SpcInfo%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -449,22 +456,27 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL             :: IS_FULLCHEM
-      INTEGER             :: M, N, NUM, R, IK, IOS, N_TRACERS
+      INTEGER             :: M, N, NUM, R, IK, IOS, nAdvect
       CHARACTER(LEN=255)  :: LINE
+
+      ! Objects
+      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! READ_VARIABLES begins here!
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
-
-      ! Reset NCS to NCSURBAN for safety's sake (dbm, bmy, 10/16/06)
-      NCS = NCSURBAN
+      RC = GC_SUCCESS
 
       ! Get fields from Input_Opt
-      N_TRACERS   = Input_Opt%N_TRACERS
       IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
+
+      ! Number of advected species
+      nAdvect     = State_Chm%nAdvect
+
+      ! Initialize pointer
+      SpcInfo => NULL()
 
       ! Read four lines of header
       DO N = 1, 4 
@@ -518,7 +530,7 @@
                READ( LINE(5:14), '(i10)' ) NUM
 
                ! Make sure the tracer # is valid!
-               IF ( NUM < 0 .or. NUM > N_TRACERS ) THEN                   
+               IF ( NUM < 0 .or. NUM > nAdvect ) THEN                   
                   IF ( am_I_Root ) THEN
                      WRITE( 6, 100 ) TRIM( LINE )
  100                 FORMAT( 'TRACER ', i4, ' is out of range!' )
@@ -543,7 +555,7 @@
                READ( LINE(5:14), '(i10)' ) NUM
 
                ! Make sure the tracer # is valid!
-               IF ( NUM < 0 .or. NUM > N_TRACERS ) THEN                   
+               IF ( NUM < 0 .or. NUM > nAdvect ) THEN                   
                   WRITE( 6, 100 ) TRIM( LINE )
                   WRITE( 6, '(a)' ) 'STOP in SETUP_PLANEFLIGHT!'
                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -612,88 +624,101 @@
                IF ( LINE == 'HG2_FRACG'  ) PVAR(N) = 4001
                IF ( LINE == 'HG2_FRACP'  ) PVAR(N) = 4002
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 6/20/16:
+! This diagnostic does not work with the FlexChem implementation. We need to
+! rewrite it to get the necessary information from KPP (mps, 6/20/16)
+!            !===========================================================
+!            ! Rxn rate: listed as "REA_001", etc.
+!            ! PVAR offset: 10000
+!            !===========================================================
+!            CASE ( 'REA_' )
+!
+!               ! Skip if not full-chemistry
+!               IF ( IS_FULLCHEM ) THEN 
+!               
+!                  ! Increment rxn counter
+!                  R = R + 1
+!
+!                  IF ( TRIM( LINE ) == 'REA_O1D' ) THEN
+!
+!                     ! O1D is a special rxn, give it offset of 20000
+!                     PVAR(N)  = 20000
+!                     PREAC(R) = 20000
+!
+!                  ELSE IF ( TRIM( LINE ) == 'REA_N2O5' ) THEN
+!
+!                     ! N2O5 hydrolysis is another special rxn
+!                     ! give it an offset of 21000
+!                     PVAR(N)  = 21000
+!                     PREAC(R) = 21000
+!
+!                  ELSE
+!                     !==================================================
+!                     ! NOTE: the reaction numbers listed in smv2.log 
+!                     ! aren't really used to index rxns.  The 
+!                     ! rxns get reordered.  Find the right rxn number, 
+!                     ! which is stored in NOLDFNEW.  We assume only one 
+!                     ! chemistry scheme. (mje, bmy, 8/1/03)
+!                     !==================================================
+!
+!                     ! Extract tracer # from the string
+!                     READ( LINE(5:14), '(i10)' ) NUM
+!
+!                     ! Initialize
+!                     PVAR(N)  = -999
+!                     PREAC(R) = -999
+!
+!                     ! Search for proper rxn number
+!                     DO IK = 1, NMTRATE 
+!
+!                        ! Offset other reaction rates by 10000
+!                        IF ( NOLDFNEW(IK,1) == NUM ) THEN 
+!                           PVAR(N)  = 10000 + IK
+!                           PREAC(R) = 10000 + IK
+!                           EXIT
+!                        ENDIF
+!                     ENDDO
+!
+!                     ! Stop w/ error 
+!                     IF ( PVAR(N) == -999 ) THEN 
+!                        IF ( am_I_Root ) THEN
+!                           WRITE (6,*) 'Cant match up reaction number'
+!                           WRITE (6,*) NUM
+!                           WRITE (6,*) 'Is it the second line of the'
+!                           WRITE (6,*) 'Three body reaction'
+!                           WRITE (6,*) 'Stopping'
+!                        ENDIF
+!                        CALL GEOS_CHEM_STOP
+!                     ENDIF
+!                  ENDIF
+!               ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+              
             !===========================================================
-            ! SMVGEAR rxn rate: listed as "REA_001", etc.
-            ! PVAR offset: 10000
-            !===========================================================
-            CASE ( 'REA_' )
-
-               ! Skip if not SMVGEAR!
-               IF ( IS_FULLCHEM ) THEN 
-               
-                  ! Increment rxn counter
-                  R = R + 1
-
-                  IF ( TRIM( LINE ) == 'REA_O1D' ) THEN
-
-                     ! O1D is a special rxn, give it offset of 20000
-                     PVAR(N)  = 20000
-                     PREAC(R) = 20000
-
-                  ELSE IF ( TRIM( LINE ) == 'REA_N2O5' ) THEN
-
-                     ! N2O5 hydrolysis is another special rxn
-                     ! give it an offset of 21000
-                     PVAR(N)  = 21000
-                     PREAC(R) = 21000
-
-                  ELSE
-                     !==================================================
-                     ! NOTE: the reaction numbers listed in smv2.log 
-                     ! aren't really used to index SMVGEAR II rxns.  The 
-                     ! rxns get reordered.  Find the right rxn number, 
-                     ! which is stored in NOLDFNEW.  We assume only one 
-                     ! chemistry scheme. (mje, bmy, 8/1/03)
-                     !==================================================
-
-                     ! Extract tracer # from the string
-                     READ( LINE(5:14), '(i10)' ) NUM
-
-                     ! Initialize
-                     PVAR(N)  = -999
-                     PREAC(R) = -999
-
-                     ! Search for proper rxn number
-                     DO IK = 1, NMTRATE 
-
-                        ! Offset other reaction rates by 10000
-                        IF ( NOLDFNEW(IK,1) == NUM ) THEN 
-                           PVAR(N)  = 10000 + IK
-                           PREAC(R) = 10000 + IK
-                           EXIT
-                        ENDIF
-                     ENDDO
-
-                     ! Stop w/ error 
-                     IF ( PVAR(N) == -999 ) THEN 
-                        IF ( am_I_Root ) THEN
-                           WRITE (6,*) 'Cant match up reaction number'
-                           WRITE (6,*) NUM
-                           WRITE (6,*) 'Is it the second line of the'
-                           WRITE (6,*) 'Three body reaction'
-                           WRITE (6,*) 'Stopping'
-                        ENDIF
-                        CALL GEOS_CHEM_STOP
-                     ENDIF
-                  ENDIF
-               ENDIF
-               
-            !===========================================================
-            ! SMVGEAR chem species: listed as "O3", "C2H6", etc.
+            ! Species: listed as "O3", "C2H6", etc.
             ! PVAR offset: 0
             !===========================================================
             CASE DEFAULT
 
-               ! Skip if not SMVGEAR!
+               ! Skip if not full-chemistry
                IF ( IS_FULLCHEM ) THEN
 
-                  ! Loop over all SMVGEAR species -- 
+                  ! Loop over all species
                   ! match w/ species as read from disk
-                  DO M = 1, NSPEC(NCS)
-                     IF ( TRIM( NAMEGAS(M) ) == TRIM( LINE ) ) THEN
+                  DO M = 1, State_Chm%nSpecies
+
+                     ! Get info about this species from the species database
+                     SpcInfo => State_Chm%SpcData(M)%Info
+
+                     IF ( TRIM( SpcInfo%Name ) == TRIM( LINE ) ) THEN
                         PVAR(N) = M
                         EXIT
                      ENDIF
+
+                     ! Free pointer
+                     SpcInfo => NULL()
+
                   ENDDO
 
                   ! Special flag for RO2 species
@@ -744,10 +769,10 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_TAU0
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -914,26 +939,28 @@
 !
 ! !IROUTINE: ro2_setup
 !
-! !DESCRIPTION: Subroutine RO2\_SETUP saves the SMVGEAR species indices of RO2 
+! !DESCRIPTION: Subroutine RO2\_SETUP saves the species indices of RO2 
 !  constituents in the PRO2 array.  Also computes the count NPRO2. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RO2_SETUP( am_I_Root, Input_Opt, RC )
+      SUBROUTINE RO2_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -951,6 +978,8 @@
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  20 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with SpcInfo%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -959,25 +988,32 @@
 !
       INTEGER :: M
 
+      ! Objects
+      TYPE(Species), POINTER :: SpcInfo
+
       !=================================================================
       ! RO2_SETUP begins here!
       !=================================================================
     
       ! Initialize 
-      NPRO2 = 0
+      NPRO2   =  0
+      SpcInfo => NULL()
 
-      ! We only need to proceed for SMVGEAR chemistry       
+      ! We only need to proceed for full-chemistry simulations
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
       
       !=================================================================
-      ! Loop over all SMVGEAR species, test for RO2 components
+      ! Loop over all species, test for RO2 components
       !=================================================================
-      DO M = 1, NSPEC(NCS)
+      DO M = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the species database
+         SpcInfo => State_Chm%SpcData(M)%Info
 
          ! If we have found an RO2 compoent, add its species # to
          ! the PRO2 global array, and increment counter
          ! NOTE: PO3 was a bug, that should have been PO2 (tmf, 2/10/09) 
-         SELECT CASE( TRIM( NAMEGAS(M) ) )
+         SELECT CASE( TRIM( SpcInfo%Name ) )
 
             CASE ( 'HO2',  'MO2',  'A3O2', 'ATO2', 'B3O2', 
      &             'ETO2', 'GCO3', 'IAO2', 'KO2',  'MAO3', 
@@ -995,6 +1031,9 @@
                ! Nothing
 
          END SELECT
+
+         ! Free pointer
+         SpcInfo => NULL()
 
       ENDDO
 
@@ -1021,26 +1060,28 @@
 !
 ! !IROUTINE: noy_setup
 !
-! !DESCRIPTION: Subroutine NOY\_SETUP saves the SMVGEAR species indices of NOy 
+! !DESCRIPTION: Subroutine NOY\_SETUP saves the species indices of NOy 
 !  constituents in the PNOY array.  Also computes the count NPNOY. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE NOY_SETUP( am_I_Root, Input_Opt, RC )
+      SUBROUTINE NOY_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1051,6 +1092,8 @@
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  20 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with SpcInfo%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1059,22 +1102,29 @@
 !
       INTEGER :: M
 
+      ! Objects
+      TYPE(Species), POINTER :: SpcInfo
+
       !=================================================================
       ! NOY_SETUP begins here!
       !=================================================================
     
       ! Initialize 
-      NPNOY = 0
+      NPNOY   =  0
+      SpcInfo => NULL()
 
-      ! We only need to proceed for SMVGEAR chemistry       
+      ! We only need to proceed for full-chemistry simulations
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
       
       !=================================================================
-      ! Loop over all SMVGEAR species, test for NOY components
+      ! Loop over all species, test for NOY components
       !=================================================================
-      DO M = 1, NSPEC(NCS)
+      DO M = 1, State_Chm%nSpecies
 
-         SELECT CASE( TRIM( NAMEGAS(M) ) )
+         ! Get info about this species from the species database
+         SpcInfo => State_Chm%SpcData(M)%Info
+
+         SELECT CASE( TRIM( SpcInfo%Name ) )
 
            CASE ( 'NO', 'NO2', 'NO3', 'HNO2', 'HNO4', 'HNO3',
      &            'PAN', 'PYPAN', 'PMN', 'PPN')
@@ -1094,6 +1144,9 @@
                ! Nothing
 
          END SELECT
+
+         ! Free pointer
+         SpcInfo => NULL()
 
       ENDDO
 
@@ -1120,26 +1173,28 @@
 !
 ! !IROUTINE: an_setup
 !
-! !DESCRIPTION: Subroutine AN\_SETUP saves the SMVGEAR species indices of AN 
+! !DESCRIPTION: Subroutine AN\_SETUP saves the species indices of AN 
 !  constituents in the P\_AN array.  Also computes the count NPAN.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AN_SETUP( am_I_Root, Input_Opt, RC )
+      SUBROUTINE AN_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1150,6 +1205,8 @@
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  20 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with SpcInfo%Name from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1158,24 +1215,31 @@
 !
       INTEGER :: M
 
+      ! Objects
+      TYPE(Species), POINTER :: SpcInfo
+
       !=================================================================
       ! AN_SETUP begins here!
       !=================================================================
     
       ! Initialize 
-      NPAN = 0
+      NPAN    =  0
+      SpcInfo => NULL()
 
-      ! We only need to proceed for SMVGEAR chemistry       
+      ! We only need to proceed for full-chemistry simulations
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
       
       !=================================================================
-      ! Loop over all SMVGEAR species, test for AN components
+      ! Loop over all species, test for AN components
       !=================================================================
-      DO M = 1, NSPEC(NCS)
+      DO M = 1, State_Chm%nSpecies
+
+         ! Get info about this species from the species database
+         SpcInfo => State_Chm%SpcData(M)%Info
 
          ! If we have found an AN component, add its species # to
          ! the AN global array, and increment counter
-         SELECT CASE( TRIM( NAMEGAS(M) ) )
+         SELECT CASE( TRIM( SpcInfo%Name ) )
 
            CASE ( 'ISOPNB', 'ISOPND', 'MVKN',  'MACRN',
      &            'ISN2',   'MNO3',   'ISNO3', 'R4N2',
@@ -1188,6 +1252,9 @@
                ! Nothing
 
          END SELECT
+
+         ! Free pointer
+         SpcInfo => NULL()
 
       ENDDO
 
@@ -1226,24 +1293,23 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_TAU0
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE CMN_DIAG_MOD,       ONLY : NDUST, NAER
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE PHYSCONSTANTS,      ONLY : BOLTZ
-      USE COMODE_LOOP_MOD          ! CSPEC, etc.
-      USE COMODE_MOD,         ONLY : AIRDENS,        CSPEC,       JLOP
-      USE COMODE_MOD,         ONLY : T3,             VOLUME,      ABSHUM
-      USE COMODE_MOD,         ONLY : TAREA
+      USE CMN_SIZE_MOD
 #if   defined( TOMAS )
       USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
 #endif
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE OCEAN_MERCURY_MOD,  ONLY : Fg !eds 10/27/11
       USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
+      USE PhysConstants,      ONLY : CONSVAP, AIRMW
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -1293,6 +1359,12 @@
 !                              Remove dependency on pressure_mod. 
 !  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
+!  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
+!  21 Apr 2016 - M. Sulprizio- Get CONSVAP from PhysConstants instead of
+!                              computing locally
+!  17 May 2016 - M. Sulprizio- Remove PCHEM, IJLOOP and use IS_FULLCHEM instead
+!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV with spec db
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1300,13 +1372,12 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
-      LOGICAL             :: PCHEM, LINTERP
-      INTEGER             :: I, IP, IRHN, J, L, JLOOP, M, N, R, RH, V
+      LOGICAL             :: IS_FULLCHEM, LINTERP
+      INTEGER             :: I, IP, IRHN, J, L, M, N, R, RH, V
       INTEGER             :: LL     !eds
       INTEGER             :: LPLANE, IWV, ISPC, K
       REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL(fp)            :: VARI(NPVAR)
-      REAL(fp)            :: CONSVAP
 
       ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC 
       INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
@@ -1315,9 +1386,7 @@
       INTEGER             :: YEAR, MONTH, DAY, HOUR, MINUTE 
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1332,7 +1401,10 @@
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
+
+      ! Get fields from Input_Opt
+      IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
 
       ! Return if there is no flighttrack data for today
       IF ( .not. DO_PF ) RETURN
@@ -1403,11 +1475,9 @@
  100        FORMAT( '     - PLANEFLIGHT: Archived ',a5,1x,i8.8,1x,i4.4 )
 
             ! Return grid box indices for the chemistry region
-            ! NOTE: PCHEM and JLOOP are only defined for SMVGEAR runs!
-            CALL TEST_VALID( M, PCHEM, JLOOP, I, J, L, 
-     &                       Input_Opt, State_Met )
+            CALL TEST_VALID( M, I, J, L, Input_Opt, State_Met )
 
-            ! Initialize SMVGEAR reaction counter
+            ! Initialize reaction counter
             R = 0
 
             ! Loop over all variables to save out
@@ -1417,15 +1487,16 @@
                SELECT CASE ( PVAR(V) )
 
                   !-------------------------
-                  ! SMVGEAR species
+                  ! Chemical species
                   !-------------------------
                   !997 and 998 are now special flags for NOy and AN
                   CASE ( 1:996) !( 1:998 )
 
-                     ! Only archive where SMVGEAR chem is done
+                     ! Only archive where chemistry is done
                      ! Save as mixing ratio [v/v]
-                     IF ( JLOOP /= 0 ) THEN
-                        VARI(V) = CSPEC(JLOOP,PVAR(V)) / AIRDENS(JLOOP)
+                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+                        VARI(V) = State_Chm%Species(I,J,L,PVAR(V)) / 
+     &                            State_Met%AIRNUMDEN(I,J,L)
                      ENDIF
 
                   ! FP 04/01/2010
@@ -1434,16 +1505,20 @@
                   !-------------------------   
                   CASE ( 997 )
 
-                     ! Only archive where SMVGEAR chem is done
+                     ! Only archive where chemistry is done
                      ! Sum all AN contributions, save as [v/v]
                      VARI(V) = 0e+0_fp
 
-                     IF ( JLOOP /= 0 ) THEN 
+                     IF ( IS_FULLCHEM .and. 
+     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+
                         DO N = 1, NPNOY
-                           VARI(V) = VARI(V) + CSPEC(JLOOP,PNOY(N))
+                           VARI(V) = VARI(V) +
+     &                               State_Chm%Species(I,J,L,PNOY(N))
                         ENDDO
 
-                        VARI(V) = VARI(V) / AIRDENS(JLOOP)
+                        VARI(V) = VARI(V) / State_Met%AIRNUMDEN(I,J,L)
+
                      ENDIF
 
                   ! FP 04/01/2010
@@ -1452,16 +1527,20 @@
                   !-------------------------   
                   CASE ( 998 )
 
-                     ! Only archive where SMVGEAR chem is done
+                     ! Only archive where chemistry is done
                      ! Sum all AN contributions, save as [v/v]
                      VARI(V) = 0e+0_fp
-                     IF ( JLOOP /= 0 ) THEN 
+
+                     IF ( IS_FULLCHEM .and. 
+     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
 
                         DO N = 1, NPAN
-                           VARI(V) = VARI(V) + CSPEC(JLOOP,P_AN(N))
+                           VARI(V) = VARI(V) +
+     &                               State_Chm%Species(I,J,L,P_AN(N))
                         ENDDO
 
-                        VARI(V) = VARI(V) / AIRDENS(JLOOP)
+                        VARI(V) = VARI(V) / State_Met%AIRNUMDEN(I,J,L)
+
                      ENDIF
 
                   !-------------------------
@@ -1469,17 +1548,21 @@
                   !-------------------------   
                   CASE ( 999 )
 
-                     ! Only archive where SMVGEAR chem is done
+                     ! Only archive where chemistry is done
                      ! Sum all RO2 contributions, save as [v/v]
                      VARI(V) = 0e+0_fp
                            
-                        IF ( JLOOP /= 0 ) THEN
-                           DO N = 1, NPRO2
-                              VARI(V) = VARI(V) + CSPEC(JLOOP,PRO2(N))
-                           ENDDO
+                     IF ( IS_FULLCHEM .and. 
+     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+
+                        DO N = 1, NPRO2
+                           VARI(V) = VARI(V) +
+     &                               State_Chm%Species(I,J,L,PRO2(N))
+                        ENDDO
                            
-                           VARI(V) = VARI(V) / AIRDENS(JLOOP)
-                        ENDIF
+                        VARI(V) = VARI(V) / State_Met%AIRNUMDEN(I,J,L)
+
+                     ENDIF
 
                   !--------------------------
                   ! GMAO temperature [K]
@@ -1492,40 +1575,37 @@
                   !--------------------------
                   CASE ( 1002 ) 
                      
-                     ! Only archive where SMVGEAR chem is done
+                     ! Only archive where chemistry is done
                      ! Code skalooched from "calcrate.f"
-                        IF ( JLOOP /= 0 ) THEN
-                           TK       = T3(JLOOP)
-                           CONSEXP  = 17.2693882e+0_fp * 
-     &                                (TK - 273.16e+0_fp) / 
-     &                                (TK - 35.86e+0_fp)
-
-                           ! Define condensation vapor pressure locally.
-                           ! Use BOLTZ [J/K] from PHYSCONSTANTS rather than 
-                           ! BOLTG [ergs/K] in comode_loop_mod (ewl, 1/4/16)
-                           CONSVAP  = 6.1078e+03_fp  
-     &                                / ( BOLTZ * 1e+7_fp)
+                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+                        VARI(V)  = State_Met%AVGW(I,J,L) *
+     &                             State_Met%AIRNUMDEN(I,J,L)
+                        TK       = State_Met%T(I,J,L)
+                        CONSEXP  = 17.2693882e+0_fp * 
+     &                             (TK - 273.16e+0_fp) / 
+     &                             (TK - 35.86e+0_fp)
                            
-                           VPRESH2O = CONSVAP * EXP(CONSEXP) * 1e+0_fp 
-     &                              / TK
+                        VPRESH2O = CONSVAP * EXP(CONSEXP) * 1e+0_fp 
+     &                             / TK
                            
-                           VARI(V)  = ABSHUM(JLOOP) * 
-     &                                VPRESH2O      / AIRDENS(JLOOP)
-                        ENDIF
+                        VARI(V)  = VARI(V) * VPRESH2O /
+     &                             State_Met%AIRNUMDEN(I,J,L)
+                     ENDIF
 
                   !--------------------------
                   ! GMAO aerosol sfc area
                   !--------------------------
                   CASE ( 1003 )
 
-                     ! Only archive where SMVGEAR chem is done
-                        VARI(V) = 0e+0_fp
+                     ! Only archive where chemistry is done
+                     VARI(V) = 0e+0_fp
 
-                        IF ( JLOOP /= 0 ) THEN
-                           DO N = 1, NDUST + NAER
-                              VARI(V) = VARI(V) + TAREA(JLOOP,N)
-                           ENDDO
-                        ENDIF
+                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+                        DO N = 1, NDUST + NAER
+                           VARI(V) = VARI(V) +
+     &                               State_Chm%AeroArea(I,J,L,N)
+                        ENDDO
+                     ENDIF
 
                   !--------------------------
                   ! GMAO sfc pressure [hPa]
@@ -1595,8 +1675,6 @@
                   !--------------------------
                   CASE ( 2001:2005 )
                   
-                   ! Only archive where SMVGEAR chem is done
-                  
                    ! Remove MISSING flag
                    VARI(V) = 0e+0_fp
                   
@@ -1661,8 +1739,6 @@
                   !--------------------------
                   CASE ( 3001:3005 )
                   
-                   IF ( PCHEM ) THEN
-
                    ! Remove MISSING flag
                    VARI(V) = 0e+0_fp
                   
@@ -1729,8 +1805,6 @@
                      ENDDO
                     ENDIF
 
-                   ENDIF
-
                   !--------------------------
                   ! Hg(II) partitioning eds 10/27/11
                   !--------------------------
@@ -1740,36 +1814,41 @@
                   CASE ( 4002 )
                      VARI(V) = OMMFP(I,J,LL) !L+1 sample 4/24/12
 
-                  !--------------------------
-                  ! SMVGEAR reaction rates
-                  !--------------------------
-                  CASE ( 10000:99999 )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 5/12/16:
+! This diagnostic does not work with the FlexChem implementation. We need to
+! rewrite ARCHIVE_RXNS_FOR_PF to get the necessary information from KPP
+! (mps, 5/12/16)
+!                  !--------------------------
+!                  ! Reaction rates
+!                  !--------------------------
+!                  CASE ( 10000:99999 )
+!
+!                     ! Increment reaction count
+!                     R = R + 1
+!
+!                     ! Only archive where chemistry is done 
+!                     VARI(V) = PRRATE(I,J,L,R)
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-                     ! Increment reaction count
-                     R = R + 1
-
-                     ! Only archive where SMVGEAR chem is done 
-                     IF ( JLOOP /= 0 ) VARI(V) = PRRATE(JLOOP,R)
-
                   !--------------------------
-                  ! GEOS-CHEM tracers [v/v]
+                  ! GEOS-CHEM species [v/v]
                   !--------------------------
                   CASE( 100000:199999 )
 
                      ! Remove offset from PVAR
                      N = PVAR(V) - 100000
 
-                     ! Initialize GEOS-Chem tracer array [kg] from
-                     ! Chemistry State object (mpayer, 12/6/12)
-                     STT => State_Chm%Tracers
+                     Spc => State_Chm%Species
                      
                      ! Convert from [kg/kg] --> [v/v] (ewl, 8/11/15)
-                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N)
+                     VARI(V) = Spc(I,J,L,N) * ( AIRMW / 
+     &                         State_Chm%SpcData(N)%Info%emMW_g )
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 
                      ! Free pointer
-                     NULLIFY( STT )
+                     NULLIFY( Spc )
 
 #if   defined( TOMAS )
                   !-------------------------------
@@ -1820,33 +1899,29 @@
 ! !IROUTINE: test_valid
 !
 ! !DESCRIPTION: Subroutine TEST\_VALID tests to see if we are w/in the 
-!  tropopause, which is where SMVGEAR chemistry is done.
+!  tropopause, which is where chemistry is done.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TEST_VALID( IND, PCHEM, JLOOP, I, J, L, 
-     &                       Input_Opt, State_Met ) 
+      SUBROUTINE TEST_VALID( IND, I, J, L, Input_Opt, State_Met ) 
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : JLOP
-      USE GRID_MOD,           ONLY : GET_XOFFSET
-      USE GRID_MOD,           ONLY : GET_YOFFSET
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GC_GRID_MOD,        ONLY : GET_XOFFSET
+      USE GC_GRID_MOD,        ONLY : GET_YOFFSET
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN) :: IND         ! # of the flight track point
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      LOGICAL, INTENT(OUT) :: PCHEM   ! =T if chemistry is done here
-      INTEGER, INTENT(OUT) :: JLOOP   ! 1-D grid box index for SMVGEAR/KPP
       INTEGER, INTENT(OUT) :: I       ! GEOS-Chem longitude index
       INTEGER, INTENT(OUT) :: J       ! GEOS-Chem latitude index
       INTEGER, INTENT(OUT) :: L       ! GEOS-Chem level index
@@ -1869,6 +1944,7 @@
 !                              based on nested regions
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
+!  17 May 2016 - M. Sulprizio- Remove PCHEM and JLOOP arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1915,24 +1991,6 @@
 
       ! Error check: L must be 1 or higher
       IF ( L == 0 ) L = 1
-
-      !=================================================================
-      ! We only do full-chemistry in the troposphere
-      !=================================================================
-      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-  
-         ! JLOOP indicates if a box is in chemgrid (/=0) or not. 
-         JLOOP = JLOP(I,J,L)
-         PCHEM = .TRUE.
-
-      ELSE
-
-         ! For non-SMVGEAR runs, JLOOP has no meaning so we give the
-         ! false value
-         JLOOP = 0
-         PCHEM = .FALSE.
-
-      ENDIF
 
       END SUBROUTINE TEST_VALID
 !EOC
@@ -2006,143 +2064,148 @@
 
       END SUBROUTINE WRITE_VARS_TO_FILE
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 5/12/16:
+! This routine does not work with the FlexChem implementation. We need to
+! rewrite this code to get the necessary information from KPP (mps, 5/12/16)
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: archive_rxns_for_PF
+!!
+!! !DESCRIPTION: Subroutine ARCHIVE\_RXNS\_FOR\_PF is called from "calcrate.f" 
+!!  to pass reaction rates from the SMVGEAR solver for the planeflight 
+!!  diagnostic. 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE ARCHIVE_RXNS_FOR_PF( JO1D, N2O5 )
+!!
+!! !USES:
+!!
+!      USE COMODE_MOD, ONLY : IXSAVE
+!      USE COMODE_MOD, ONLY : IYSAVE
+!      USE COMODE_MOD, ONLY : IZSAVE
+!      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
 !
-! !IROUTINE: archive_rxns_for_PF
+!      USE CMN_SIZE_MOD                     ! Size parameters
+!      USE COMODE_LOOP_MOD                  ! RRATE, JLOOPLO, KBLOOP
+!      USE CMN_DIAG_MOD                     ! ND40 switch
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      REAL(fp), INTENT(IN)  :: JO1D(KBLOOP)  ! JO1D photolysis rate [1/s]
+!      REAL(fp), INTENT(IN)  :: N2O5(KBLOOP)  ! N2O5 hydrolysis rate [molec/cm3/s]
+!! 
+!! !REVISION HISTORY: 
+!!  08 Jul 2002 - M. Evans    - Initial version
+!!  (1 ) Now avoid overflow/underflow errors in PRATE (bmy, 7/8/02)
+!!  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
+!!        allocated memory before stopping the run (bmy, 10/15/02)
+!!  (3 ) Renamed PRATE to PRRATE to avoid conflict w/ SMVGEAR II (bmy, 4/1/03)
+!!  (4 ) Now also pass N2O5 hydrolysis rxn rate array via the arg list.  
+!!        Also bug fix: replace TMP with RATE in under/overflow checking
+!!        for JO1D and N2O5. (bmy, 8/8/03)      
+!!  (5 ) Bug fix: Replace with DO_PF since this variable is reset to either T 
+!!        or F each day depending on whether there is plane flight data 
+!!        available (bmy, 5/20/05)
+!!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER            :: KLOOP, JLOOP, V, R, I, J, L 
+!      REAL(fp)             :: RATE
+!!
+!! !DEFINED PARAMETERS:
+!!
+!      ! Smallest, largest REAL*4 #'s representable on this machine
+!      REAL*4, PARAMETER  :: SMALLEST=TINY(1e0), LARGEST=HUGE(1e0)
 !
-! !DESCRIPTION: Subroutine ARCHIVE\_RXNS\_FOR\_PF is called from "calcrate.f" 
-!  to pass reaction rates from the SMVGEAR solver for the planeflight 
-!  diagnostic. 
-!\\
-!\\
-! !INTERFACE:
+!      !=================================================================
+!      ! ARCHIVE_RXNS_FOR_PF begins here!
+!      !=================================================================
+!      IF ( DO_PF ) THEN
 !
-      SUBROUTINE ARCHIVE_RXNS_FOR_PF( JO1D, N2O5 )
+!         ! Loop over SMVGEAR reactions
+!         DO R = 1, NPREAC
 !
-! !USES:
+!            ! Test SMVGEAR rxn number
+!            SELECT CASE ( PREAC(R) ) 
 !
-      USE COMODE_MOD, ONLY : IXSAVE
-      USE COMODE_MOD, ONLY : IYSAVE
-      USE COMODE_MOD, ONLY : IZSAVE
-      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
-
-      USE CMN_SIZE_MOD                     ! Size parameters
-      USE COMODE_LOOP_MOD                  ! RRATE, JLOOPLO, KBLOOP
-      USE CMN_DIAG_MOD                     ! ND40 switch
+!               !-----------------------
+!               ! All except JO1D, N2O5
+!               !-----------------------
+!               CASE( 10000:19999 )
+!                         
+!                  ! Store rate in PRRATE
+!                  DO KLOOP = 1, KTLOOP
+!                     JLOOP = JLOOPLO + KLOOP
+!                     RATE  = RRATE(KLOOP,PREAC(R)-10000)
 !
-! !INPUT PARAMETERS: 
+!                     ! Avoid overflow/underflow
+!                     IF ( RATE < SMALLEST ) RATE = 0e0
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST
 !
-      REAL(fp), INTENT(IN)  :: JO1D(KBLOOP)  ! JO1D photolysis rate [1/s]
-      REAL(fp), INTENT(IN)  :: N2O5(KBLOOP)  ! N2O5 hydrolysis rate [molec/cm3/s]
-! 
-! !REVISION HISTORY: 
-!  08 Jul 2002 - M. Evans    - Initial version
-!  (1 ) Now avoid overflow/underflow errors in PRATE (bmy, 7/8/02)
-!  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
-!        allocated memory before stopping the run (bmy, 10/15/02)
-!  (3 ) Renamed PRATE to PRRATE to avoid conflict w/ SMVGEAR II (bmy, 4/1/03)
-!  (4 ) Now also pass N2O5 hydrolysis rxn rate array via the arg list.  
-!        Also bug fix: replace TMP with RATE in under/overflow checking
-!        for JO1D and N2O5. (bmy, 8/8/03)      
-!  (5 ) Bug fix: Replace with DO_PF since this variable is reset to either T 
-!        or F each day depending on whether there is plane flight data 
-!        available (bmy, 5/20/05)
-!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!                     PRRATE(JLOOP,R) = RATE
+!                  ENDDO
 !
-! !LOCAL VARIABLES:
+!               !-----------------------
+!               ! JO1D photolysis rxn 
+!               !-----------------------
+!               CASE ( 20000 )
 !
-      INTEGER            :: KLOOP, JLOOP, V, R, I, J, L 
-      REAL(fp)             :: RATE
+!                  ! Store rate in PRATE
+!                  DO KLOOP = 1, KTLOOP
+!                     JLOOP = JLOOPLO + KLOOP
+!                     RATE  = JO1D(KLOOP)
 !
-! !DEFINED PARAMETERS:
+!                     ! Avoid overflow/underflow
+!                     IF ( RATE < SMALLEST ) RATE = 0e0
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
 !
-      ! Smallest, largest REAL*4 #'s representable on this machine
-      REAL*4, PARAMETER  :: SMALLEST=TINY(1e0), LARGEST=HUGE(1e0)
-
-      !=================================================================
-      ! ARCHIVE_RXNS_FOR_PF begins here!
-      !=================================================================
-      IF ( DO_PF ) THEN
-
-         ! Loop over SMVGEAR reactions
-         DO R = 1, NPREAC
-
-            ! Test SMVGEAR rxn number
-            SELECT CASE ( PREAC(R) ) 
-
-               !-----------------------
-               ! All except JO1D, N2O5
-               !-----------------------
-               CASE( 10000:19999 )
-                         
-                  ! Store rate in PRRATE
-                  DO KLOOP = 1, KTLOOP
-                     JLOOP = JLOOPLO + KLOOP
-                     RATE  = RRATE(KLOOP,PREAC(R)-10000)
-
-                     ! Avoid overflow/underflow
-                     IF ( RATE < SMALLEST ) RATE = 0e0
-                     IF ( RATE > LARGEST  ) RATE = LARGEST
-
-                     PRRATE(JLOOP,R) = RATE
-                  ENDDO
-
-               !-----------------------
-               ! JO1D photolysis rxn 
-               !-----------------------
-               CASE ( 20000 )
-
-                  ! Store rate in PRATE
-                  DO KLOOP = 1, KTLOOP
-                     JLOOP = JLOOPLO + KLOOP
-                     RATE  = JO1D(KLOOP)
-
-                     ! Avoid overflow/underflow
-                     IF ( RATE < SMALLEST ) RATE = 0e0
-                     IF ( RATE > LARGEST  ) RATE = LARGEST 
-
-                     PRRATE(JLOOP,R) = RATE
-                  ENDDO
-                 
-               !-----------------------
-               ! N2O5 hydrolysis rxn
-               !-----------------------
-               CASE ( 21000 ) 
-
-                  ! Store rate in PRATE
-                  DO KLOOP = 1, KTLOOP
-                     JLOOP = JLOOPLO + KLOOP
-                     RATE  = N2O5(KLOOP)
-
-                     ! Avoid overflow/underflow
-                     IF ( RATE < SMALLEST ) RATE = 0e0
-                     IF ( RATE > LARGEST  ) RATE = LARGEST 
-
-                     PRRATE(JLOOP,R) = RATE
-                  ENDDO
-
-               !-----------------------
-               ! Error: invalid rxn
-               !-----------------------
-               CASE DEFAULT
-                  WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-                  WRITE( 6, '(a)' ) 'ERROR -- Invalid SMVGEAR rxn #!'
-                  WRITE( 6, '(a)' ) 'STOP in ARCHIVE_RXNS_FOR_PF!'
-                  WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-                  CALL GEOS_CHEM_STOP
-
-            END SELECT
-         ENDDO
-      ENDIF
-
-      END SUBROUTINE ARCHIVE_RXNS_FOR_PF
-!EOC
+!                     PRRATE(JLOOP,R) = RATE
+!                  ENDDO
+!                 
+!               !-----------------------
+!               ! N2O5 hydrolysis rxn
+!               !-----------------------
+!               CASE ( 21000 ) 
+!
+!                  ! Store rate in PRATE
+!                  DO KLOOP = 1, KTLOOP
+!                     JLOOP = JLOOPLO + KLOOP
+!                     RATE  = N2O5(KLOOP)
+!
+!                     ! Avoid overflow/underflow
+!                     IF ( RATE < SMALLEST ) RATE = 0e0
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+!
+!                     PRRATE(JLOOP,R) = RATE
+!                  ENDDO
+!
+!               !-----------------------
+!               ! Error: invalid rxn
+!               !-----------------------
+!               CASE DEFAULT
+!                  WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!                  WRITE( 6, '(a)' ) 'ERROR -- Invalid SMVGEAR rxn #!'
+!                  WRITE( 6, '(a)' ) 'STOP in ARCHIVE_RXNS_FOR_PF!'
+!                  WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!                  CALL GEOS_CHEM_STOP
+!
+!            END SELECT
+!         ENDDO
+!      ENDIF
+!
+!      END SUBROUTINE ARCHIVE_RXNS_FOR_PF
+!!EOC
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2195,11 +2258,10 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD    ! Size Parameters
       USE ERROR_MOD, ONLY : ALLOC_ERR
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,  ONLY : IOERROR
-      USE CMN_SIZE_MOD    ! Size Parameters
-      USE COMODE_LOOP_MOD ! ITLOOP
 !
 ! !INPUT PARAMETERS:
 !
@@ -2217,6 +2279,8 @@
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  20 Jun 2016 - M. Sulprizio- Change PRRATE array dimensions from
+!                              (ITLOOP,NPREAC) to (IIPAR,JJPAR,LLPAR,NPREAC)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2275,7 +2339,7 @@
       READ( IU_FILE, '(a)', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_planeflight:4' )
 
-      ! Initialize SMVGEAR reaction counter
+      ! Initialize chemistry reaction counter
       NPREAC = 0
 
       ! Skip past the species declarations
@@ -2283,7 +2347,7 @@
          READ( IU_FILE, '(a)', IOSTAT=IOS ) LINE
          IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_FILE,'init_planeflight:5')
 
-         ! Increment number of SMVGEAR reactions found
+         ! Increment number of chemistry reactions found
          IF ( INDEX( LINE, 'REA_' ) > 0 ) NPREAC = NPREAC + 1
       ENDDO
 
@@ -2348,7 +2412,8 @@
          ALLOCATE( PREAC( MAX( NPREAC, 1 ) ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREAC' )
 
-         ALLOCATE( PRRATE( ITLOOP, MAX( NPREAC, 1 ) ), STAT=AS )
+         ALLOCATE( PRRATE( IIPAR, JJPAR, LLPAR, MAX( NPREAC, 1 ) ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRRATE' )
 
          !--------------------------

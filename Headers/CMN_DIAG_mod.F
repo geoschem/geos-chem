@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: CMN_DIAG_mod
+! !MODULE: CMN_DIAG_mod.F
 !
 ! !DESCRIPTION: Module CMN\_DIAG\_mod contains size parameters and global
 !  variables for the GEOS-Chem diagnostic arrays.  This is mostly historical 
@@ -17,7 +17,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_FJX_MOD, ONLY : W_
+      USE CMN_FJX_MOD,   ONLY : W_
       USE PRECISION_MOD, ONLY : fpp => fp    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -25,66 +25,6 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      !=================================================================
-      ! Maximum sizes of diagnostic arrays
-      !
-      ! Changed PD66 to 6  (bmy, 9/8/00)
-      ! Changed PD21 to 10 (bmy, 9/30/00)
-      ! Changed PD67 to 18 (bmy, 10/11/00)
-      ! Changed PD46 to 4  (bmy, 1/2/01)
-      ! Changed PD29 to 5  (bmy, 1/2/01)
-      ! Changed PD11 to 7  (bmy, 9/4/01)
-      ! Changed PD32 to 0  (bmy, 2/14/02)
-      ! Changed PD21 to 20 (bmy, 2/27/02)
-      ! Changed PD43 to 4  (bmy, 3/4/02) 
-      ! Changed PD05 to 10 (bmy, 10/18/02)
-      ! Changed PD44 to 30 (bmy, 11/19/02) 
-      ! Changed PD43 to 5  
-      ! Changed PD67 to 22 (bmy, 6/23/03)
-      ! Changed PD66 to 5  (bmy, 6/23/03)
-      ! Changed PD03 to 5  (bmy, 8/20/03)
-      ! Changed PD37 to 10 (bmy, 1/21/04)
-      ! Changed PD06 to NDSTBIN (bmy, 4/5/04)
-      ! Changed PD07 to 7  (bmy, 4/5/04)
-      ! Changed PD08 to 2  (bmy, 4/20/04)
-      ! Changed PD07 to 12 (bmy, 7/15/04)
-      ! Changed PD21 to 26 (bmy, 1/5/05)
-      ! Removed PD03 -- now in "diag03_mod.f" (bmy, 1/21/05)
-      ! Removed PD41 -- now in "diag41_mod.f" (bmy, 1/21/05)
-      ! Now set PD09 to 6 (bmy, 6/27/05)
-      ! Removed PD04 -- now in "diag04_mod.f" (bmy, 7/26/05)
-      ! Now set PD30 to 1 (bmy, 8/18/05)
-      ! Now set PD46 to 6 (tmf, 1/20/09)
-      ! Now set PD10 to 20 (phs, 9/18/07)
-      ! Changed PD17 to 8 (tmf, 1/7/09)
-      ! Changed PD18 to 8 (tmf, 1/7/09)
-      ! Changed PD22 to 8 (tmf, 1/7/09)
-      ! Changed PD37 to 35 (tmf, 1/7/09)
-      ! Changed PD38 to 35 (tmf, 1/7/09)
-      ! Changed PD39 to 35 (tmf, 1/7/09)
-      ! Changed PD44 to 41 (tmf, 1/7/09)
-      ! Now set PD52 to 1 (jaegle 2/26/09)
-      ! Increase PD46 from 6 to 13 (mpb, ccc, 11/19/09)
-      ! increase PD21 from 20 to 27 (clh, 05/06/10)
-      ! changed PD44 (drydep) to 53 (jpp, 6/13/09)
-      ! changed PD39 (wetdep) to 38 (jpp, 7/08/09)
-      ! Now set PD46 to 16 (jpp, 6/7/09)
-      ! Changed PD11 from 7 to 5 (efischer, mpayer, 3/19/12)
-      ! SOAupdate: PD46 increased from 16 to 20 (hotp 3/1/10)
-      ! Changed PD22 from 14 to 22 for strat-chem (SDE 04/13/13)
-      ! Changed PD21 from 27 to 33 for strat aerosols (SDE 04/17/13)
-      ! Changed PD43 from 5 to 7 for O1D/O3P (SDE 2013-07-15)
-      ! Added PD64 and set to W_ from FAST-JX (SDE 2013-10-25)
-      ! Changed PD22 from 22 to 23 for ACET (mps, 4/25/14)
-      ! Changed PD22 from 23 to 28 for ALD2, MVK, MACR, HAC, GLYC (mps, 5/27/14)
-      ! Changed PD21 to be dynamically related to NAER and NDUST (dar, 3/6/15)
-      ! Change PD68 from 4 to 13 to include new State_Met AirQnts (ewl, 4/30/15)
-      ! Change PD08 from 2 to 4 to include MOPO and MOPI (ewl, 7/7/15)
-      ! Change PD44 from 53 to 55 to include MOPO and MOPI (ewl, 7/7/15)
-      ! Changed PD05 from 10 to 14 (tdf, 03/02/09)
-      !=================================================================
-      INTEGER, PARAMETER :: PD01=3            
-      INTEGER, PARAMETER :: PD02=3
       INTEGER, PARAMETER :: PD05=14
       INTEGER, PARAMETER :: PD06=NDSTBIN
       ! +3 for SEAC4RS SOA tracers (jaf, 6/25/13)
@@ -93,47 +33,14 @@
       INTEGER, PARAMETER :: PD09=6
       INTEGER, PARAMETER :: PD10=20            
       INTEGER, PARAMETER :: PD11=5
-      INTEGER, PARAMETER :: PD12=0     
-      INTEGER, PARAMETER :: PD13=1            
-      INTEGER, PARAMETER :: PD14=NNPAR       
-      INTEGER, PARAMETER :: PD15=NNPAR      
       INTEGER, PARAMETER :: PD16=2  
       INTEGER, PARAMETER :: PD17=8           
       INTEGER, PARAMETER :: PD18=8
-      INTEGER, PARAMETER :: PD19=0            
-      INTEGER, PARAMETER :: PD20=0 
       INTEGER, PARAMETER :: PD21=5+(NRHAER+NDUST)*3+(NRHAER*2)+
      &                           (NSTRATAER*3)
       INTEGER, PARAMETER :: PD22=28
-      INTEGER, PARAMETER :: PD23=0           
-      INTEGER, PARAMETER :: PD24=NNPAR        
-      INTEGER, PARAMETER :: PD25=NNPAR       
-      INTEGER, PARAMETER :: PD26=NNPAR
-      INTEGER, PARAMETER :: PD27=1            
-      INTEGER, PARAMETER :: PD28=0           
-      INTEGER, PARAMETER :: PD29=5
-      INTEGER, PARAMETER :: PD30=1           
-      INTEGER, PARAMETER :: PD31=1           
-      INTEGER, PARAMETER :: PD32=1
-      INTEGER, PARAMETER :: PD33=NNPAR        
-      INTEGER, PARAMETER :: PD34=2           
-      INTEGER, PARAMETER :: PD35=NNPAR 
-      INTEGER, PARAMETER :: PD36=NNPAR        
-      INTEGER, PARAMETER :: PD37=35        
-      INTEGER, PARAMETER :: PD38=35 
-      INTEGER, PARAMETER :: PD39=38      !jpp replaced 35
       INTEGER, PARAMETER :: PD40=4       
       INTEGER, PARAMETER :: PD43=7  
-      INTEGER, PARAMETER :: PD44=55     
-      INTEGER, PARAMETER :: PD45=NNPAR+1      
-      INTEGER, PARAMETER :: PD46=26
-      INTEGER, PARAMETER :: PD47=NNPAR+1
-      INTEGER, PARAMETER :: PD48=2            
-      INTEGER, PARAMETER :: PD49=0                
-      INTEGER, PARAMETER :: PD50=0            
-      INTEGER, PARAMETER :: PD51=0           
-      INTEGER, PARAMETER :: PD52=1          
-      INTEGER, PARAMETER :: PD54=0           
       INTEGER, PARAMETER :: PD55=3
       ! Potential temperature diagnostic (hotp 7/31/09)
       INTEGER, PARAMETER :: PD57=1           
@@ -149,16 +56,12 @@
       INTEGER, PARAMETER :: PD60=1
       INTEGER, PARAMETER :: PD61=0
 #endif
-      INTEGER, PARAMETER :: PD62=NNPAR        
-      INTEGER, PARAMETER :: PD63=0           
       INTEGER, PARAMETER :: PD64=W_
       INTEGER            :: PD65
       INTEGER, PARAMETER :: PD66=6           
       INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
-      INTEGER, PARAMETER :: PD68=13     
+      INTEGER, PARAMETER :: PD68=8     
       INTEGER, PARAMETER :: PD69=1
-      INTEGER, PARAMETER :: PD70=0
-      INTEGER, PARAMETER :: PD71=NNPAR+1
 
       !number of rad flux and optics output types
       !8 flux and 3*3=9 optics
@@ -181,8 +84,6 @@
 #endif
 #if   defined( TOMAS )
       INTEGER, PARAMETER :: MAX_TRACER = NNPAR+1   ! For TOMAS (win, 1/25/10)
-#elif defined( APM ) 
-      INTEGER, PARAMETER :: MAX_TRACER = NNPAR+100 ! For APM (G. Luo 3/8/11)
 #else
       INTEGER, PARAMETER :: MAX_TRACER = NNPAR+6   ! For non-TOMAS simulations 
 #endif
@@ -243,8 +144,12 @@
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%%  NOTE: THIS MODULE IS DEPRECATED.  MANY OF THE QUANTITIES STORED  %%%
 !  %%%  in CMN_DIAG_MOD ARE NOW INCLUDED IN THE INPUT OPTIONS OBJECT,    %%%
-!  %%%  BASED ON THE DERIVED TYPE IN Headers/gigc_input_opt_mod.F90.     %%%
+!  %%%  BASED ON THE DERIVED TYPE IN Headers/input_opt_mod.F90.          %%%
 !  %%%  (bmy, 11/19/12)                                                  %%%
+!  %%%                                                                   %%%
+!  %%%  ALSO NOTE: IN GEOS-CHEM v11-01, WE WILL BE RETIRING THE BPCH     %%%
+!  %%%  DIAGNOSTICS.  MANY OF THESE PARAMETERS CAN THEN BE REMOVED.      %%%
+!  %%%  (bmy, 6/24/16)                                                   %%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
@@ -292,6 +197,9 @@
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND72 to ND72 to
 !                              avoid conflicts with hourly max ppbv diagnostic.
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
+!  21 Jul 2016 - R. Yantosca - Remove instances of NNPAR & obsolete parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -302,7 +210,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_cmn_diag
+! !IROUTINE: Init_Cmn_Diag
 !
 ! !DESCRIPTION: Subroutine INIT\_CMN\_DIAG initializes quantities based on
 !  the grid-independent size parameters.
@@ -314,7 +222,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -330,7 +238,7 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Assume success
-      RC   = GIGC_SUCCESS
+      RC   = GC_SUCCESS
 
       ! Set PD65 (for backwards compatibility, for now)
       PD65 = LLPAR*MAXFAM 

@@ -1,0 +1,8 @@
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOS
+! !SECTION: HEMCO "Interfaces" modules
+! !DESCRIPTION: These modules contain routines that are used to connect HEMCO to other models, or to use HEMCO in standalone mode.
+!EOS
+!------------------------------------------------------------------------------

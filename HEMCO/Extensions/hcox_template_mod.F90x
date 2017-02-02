@@ -1,0 +1,488 @@
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: hcox_template_mod.F90
+!
+! !DESCRIPTION: Module hcox\_template\_mod.F90 is a HEMCO extension template.
+! It serves as a starting point for a new emission extension within HEMCO. 
+! Specifically, it provides the framework to use multiple 'instances' of the
+! extension at the same time. 
+!\\
+!\\
+! !INTERFACE:
+!
+MODULE HCOX_<yourname>_mod 
+!
+! !USES:
+!
+  USE HCO_Error_MOD
+  USE HCO_Diagn_MOD
+  USE HCOX_TOOLS_MOD
+  USE HCOX_State_MOD, ONLY : Ext_State
+  USE HCO_State_MOD,  ONLY : HCO_State 
+
+  IMPLICIT NONE
+  PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+  PUBLIC :: HCOX_<yourmame>_Run
+  PUBLIC :: HCOX_<yourname>_Init
+  PUBLIC :: HCOX_<yourname>_Final
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+! !REVISION HISTORY:
+!  19 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !MODULE VARIABLES:
+!
+  ! MyInst is the extension-specific derived type. It should hold all module
+  ! variables and arrays that are required to compute the emissions. 
+  ! For instance, if the extension relies on an input field read through the 
+  ! HEMCO configuration file (e.g. MY_INPUT_FIELD), the data array pointer
+  ! to that field should be listed within the instance and NOT outside of it.
+  ! This ensures that the same extension can be invoked in various instances,
+  ! all of them potentially pointing to different data fields. 
+  TYPE :: MyInst
+   INTEGER                         :: Instance
+   INTEGER                         :: ExtNr     = -1   ! Extension number
+   INTEGER                         :: nSpc      =  0   ! # of species
+   INTEGER,  ALLOCATABLE           :: SpcIDs(:)        ! HEMCO species IDs
+   REAL(sp), ALLOCATABLE           :: SpcScl(:)        ! Species scale factors
+   CHARACTER(LEN=31), ALLOCATABLE  :: SpcNames(:)
+   CHARACTER(LEN=61), ALLOCATABLE  :: SpcScalFldNme(:) ! Names of scale factor fields
+   TYPE(MyInst), POINTER           :: NextInst => NULL()
+
+    !=================================================================
+    ! Module specific variables/arrays/data pointers come below 
+    !=================================================================
+
+  END TYPE MyInst
+
+  ! Pointer to all instances
+  TYPE(MyInst), POINTER            :: AllInst => NULL()
+
+CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOX_<yourname>_Run
+!
+! !DESCRIPTION: Write a description here
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOX_<yourname>_Run( am_I_Root, ExtState, HcoState, RC )
+!
+! !USES:
+!
+    USE HCO_FluxArr_Mod,  ONLY : HCO_EmisAdd
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+    TYPE(Ext_State), POINTER       :: ExtState    ! Module options
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HCO_State), POINTER       :: HcoState    ! Hemco state 
+    INTEGER,         INTENT(INOUT) :: RC          ! Success or failure
+!
+! !REMARKS:
+!  
+!
+! !REVISION HISTORY:
+!  19 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(MyInst), POINTER :: Inst => NULL()
+    CHARACTER(LEN=255)    :: MSG
+
+    !=================================================================
+    ! HCOX_<yourname>_RUN begins here!
+    !=================================================================
+
+    ! Enter
+    CALL HCO_ENTER( HcoState%Config%Err, & 
+       'HCOX_<yourname>_Run (hcox_<yourname>_mod.F90)', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Get pointer to this instance. Varible Inst contains all module 
+    ! variables for the current instance. The instance number is
+    ! ExtState%<yourname>. 
+    CALL InstGet ( ExtState%<yourname>, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN 
+       WRITE(MSG,*) 'Cannot find <yourname> instance Nr. ', ExtState%<yourname>
+       CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
+       RETURN
+    ENDIF
+
+    !=================================================================
+    ! Module code comes below 
+    !=================================================================
+
+
+    ! Cleanup
+    Inst => NULL()
+
+    ! Return w/ success
+    CALL HCO_LEAVE( HcoState%Config%Err, RC )
+
+  END SUBROUTINE HCOX_AeroCom_Run
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOX_<yourname>_Init
+!
+! !DESCRIPTION: Write a description here
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOX_<yourname>_Init( am_I_Root, HcoState, ExtName, &
+                                   ExtState,  RC                  )
+!
+! !USES:
+!
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE HCO_ExtList_Mod,    ONLY : GetExtOpt
+    USE HCO_ExtList_Mod,    ONLY : GetExtSpcVal
+    USE HCO_STATE_MOD,      ONLY : HCO_GetExtHcoID
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   ) :: am_I_Root
+    CHARACTER(LEN=*), INTENT(IN   ) :: ExtName    ! Extension name
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HCO_State),  POINTER       :: HcoState   ! Hemco state 
+    INTEGER,          INTENT(INOUT) :: RC 
+
+! !REVISION HISTORY:
+!  04 Jun 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(MyInst), POINTER          :: Inst => NULL()
+    INTEGER                        :: ExtNr, N
+    CHARACTER(LEN=255)             :: MSG 
+
+    !=================================================================
+    ! HCOX_<yourname>_INIT begins here!
+    !=================================================================
+
+    ! Extension Nr.
+    ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
+    IF ( ExtNr <= 0 ) RETURN
+
+    ! Enter
+    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_<yourname>_Init (hcox_<yourname>_mod.F90)', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Create instance for this simulation. Link instance number to the ExtState object
+    ! for future reference to the instance. See InstCreate for more details.
+    CALL InstCreate ( ExtNr, ExtState%<yourname>, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create <yourname> instance', RC )
+       RETURN
+    ENDIF
+
+    ! Get species IDs. 
+    CALL HCO_GetExtHcoID( HcoState, ExtNr, Inst%SpcIDs, Inst%SpcNames, Inst%nSpc, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! There must be at least one species
+    IF ( Inst%nSpc == 0 ) THEN
+       CALL HCO_ERROR ( HcoState%Config%Err, 'No <yourname> species specified', RC )
+       RETURN
+    ENDIF
+
+    ! Determine scale factor to be applied to each species. This is 1.00 
+    ! by default, but can be set in the HEMCO configuration file via setting
+    ! Scaling_<SpcName>. 
+    CALL GetExtSpcVal( HcoState%Config, ExtNr, Inst%nSpc, &
+                       Inst%SpcNames, 'Scaling', 1.0_sp, Inst%SpcScl, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Get species mask fields
+    CALL GetExtSpcVal( HcoState%Config, ExtNr, Inst%nSpc, &
+                       Inst%SpcNames, 'ScaleField', HCOX_NOSCALE, Inst%SpcScalFldNme, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Add conversion factor from kg S to kg of emitted species
+    DO N = 1, Inst%nSpc
+       Inst%SpcScl(N) = Inst%SpcScl(N) * HcoState%Spc(Inst%SpcIDs(N))%EmMW_g &
+                      * HcoState%Spc(Inst%SpcIDs(N))%MolecRatio / MW_S
+    ENDDO
+
+    ! Verbose mode
+    IF ( am_I_Root ) THEN
+       MSG = 'Use emissions extension <yourname>:'
+       CALL HCO_MSG( HcoState%Config%Err,  MSG )
+
+       MSG = ' - use the following species (Name, HcoID, Scaling):'
+       CALL HCO_MSG( HcoState%Config%Err, MSG)
+       DO N = 1, Inst%nSpc
+          WRITE(MSG,*) TRIM(Inst%SpcNames(N)), ', ', Inst%SpcIDs(N), ', ', Inst%SpcScl(N)
+          CALL HCO_MSG( HcoState%Config%Err, MSG)
+          WRITE(MSG,*) 'Apply scale field: ', TRIM(Inst%SpcScalFldNme(N))
+          CALL HCO_MSG( HcoState%Config%Err, MSG)
+       ENDDO
+    ENDIF
+
+    !=================================================================
+    ! Module code comes below 
+    !=================================================================
+
+
+    ! Cleanup 
+    Inst => NULL()
+    CALL HCO_LEAVE( HcoState%Config%Err, RC ) 
+
+  END SUBROUTINE HCOX_<yourname>_Init
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOX_<yourname>_Final
+!
+! !DESCRIPTION: Write a description here
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOX_AeroCom_Final ( ExtState )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
+!
+! !REVISION HISTORY:
+!  04 Jun 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    !=================================================================
+    ! HCOX_<yourname>_FINAL begins here!
+    !=================================================================
+    CALL InstRemove ( ExtState%<yourname> )
+
+  END SUBROUTINE HCOX_<yourname>_Final
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstGet 
+!
+! !DESCRIPTION: Subroutine InstGet returns a pointer to the desired instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER                             :: Instance
+    TYPE(MyInst),     POINTER           :: Inst
+    INTEGER                             :: RC
+    TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(MyInst),     POINTER    :: PrvInst
+
+    !=================================================================
+    ! InstGet begins here!
+    !=================================================================
+ 
+    ! Get instance. Also archive previous instance.
+    PrvInst => NULL() 
+    Inst    => AllInst
+    DO WHILE ( ASSOCIATED(Inst) ) 
+       IF ( Inst%Instance == Instance ) EXIT
+       PrvInst => Inst
+       Inst    => Inst%NextInst
+    END DO
+    IF ( .NOT. ASSOCIATED( Inst ) ) THEN
+       RC = HCO_FAIL
+       RETURN
+    ENDIF
+
+    ! Pass output arguments
+    IF ( PRESENT(PrevInst) ) PrevInst => PrvInst
+
+    ! Cleanup & Return
+    PrvInst => NULL()
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE InstGet 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstCreate 
+!
+! !DESCRIPTION: Subroutine InstCreate adds a new instance to the list of
+!  instances, assigns a unique instance number to this new instance, and
+!  archives this instance number to output argument Instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,       INTENT(IN)       :: ExtNr
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(  OUT)    :: Instance
+    TYPE(MyInst),  POINTER          :: Inst
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(INOUT)    :: RC 
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(MyInst), POINTER          :: TmpInst  => NULL()
+    INTEGER                        :: nnInst
+
+    !=================================================================
+    ! InstCreate begins here!
+    !=================================================================
+
+    ! ----------------------------------------------------------------
+    ! Generic instance initialization 
+    ! ----------------------------------------------------------------
+
+    ! Initialize
+    Inst => NULL()
+
+    ! Get number of already existing instances
+    TmpInst => AllInst
+    nnInst = 0
+    DO WHILE ( ASSOCIATED(TmpInst) )
+       nnInst  =  nnInst + 1
+       TmpInst => TmpInst%NextInst
+    END DO
+
+    ! Create new instance
+    ALLOCATE(Inst)
+    Inst%Instance = nnInst + 1
+    Inst%ExtNr    = ExtNr 
+
+    ! Attach to instance list
+    Inst%NextInst => AllInst
+    AllInst       => Inst
+
+    ! Update output instance
+    Instance = Inst%Instance
+
+    ! ----------------------------------------------------------------
+    ! Type specific initialization statements follow below
+    ! ----------------------------------------------------------------
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE InstCreate
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstRemove 
+!
+! !DESCRIPTION: Subroutine InstRemove removes an instance from the list of 
+! instances.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstRemove ( Instance ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER                         :: Instance 
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER                     :: RC
+    TYPE(MyInst), POINTER       :: PrevInst => NULL()
+    TYPE(MyInst), POINTER       :: Inst     => NULL()
+
+    !=================================================================
+    ! InstRemove begins here!
+    !=================================================================
+ 
+    ! Get instance. Also archive previous instance.
+    CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
+
+    ! Instance-specific deallocation
+    IF ( ASSOCIATED(Inst) ) THEN 
+       IF ( ALLOCATED(Inst%SpcIDs       ) ) DEALLOCATE ( Inst%SpcIDs        )
+       IF ( ALLOCATED(Inst%SpcScl       ) ) DEALLOCATE ( Inst%SpcScl        )
+       IF ( ALLOCATED(Inst%SpcNames     ) ) DEALLOCATE ( Inst%SpcNames      )
+       IF ( ALLOCATED(Inst%SpcScalFldNme) ) DEALLOCATE ( Inst%SpcScalFldNme )
+
+       ! ----------------------------------------------------------------
+       ! Type specific initialization statements follow below
+       ! ----------------------------------------------------------------
+
+
+       ! ----------------------------------------------------------------
+       ! Pop off instance from list
+       ! ----------------------------------------------------------------
+       IF ( ASSOCIATED(PrevInst) ) THEN
+          PrevInst%NextInst => Inst%NextInst
+       ELSE
+          AllInst => Inst%NextInst
+       ENDIF
+       DEALLOCATE(Inst)
+       Inst => NULL() 
+    ENDIF
+   
+   END SUBROUTINE InstRemove
+!EOC
+END MODULE HCOX_yourname_Mod

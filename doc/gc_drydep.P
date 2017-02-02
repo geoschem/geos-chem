@@ -1,0 +1,8 @@
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOS
+! !SECTION: Dry deposition modules
+! !DESCRIPTION: These modules contain routines to remove species from the atmosphere by dry deposition.  Related modules compute the land cover that is used by the dry depostion routines.
+!EOS
+!------------------------------------------------------------------------------m]

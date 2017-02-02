@@ -185,6 +185,12 @@
 #                              replaces the RRTMG_CLEAN variabe
 #  10 Feb 2016 - E. Lundgren - Add BPCH restart file input and output switches
 #  11 Feb 2016 - E. Lundgren - Change BPCH to BPCH_DIAG, NETCDF to NC_DIAG
+#  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
+#  19 Jul 2016 - R. Yantosca - Add more flags for enabling experimental code
+#  20 Sep 2016 - M. Sulprizio- Remove NEST=se option. This grid was never fully
+#                              implemented.
+#  12 Dec 2016 - R. Yantosca - Allow gfortran etc. to compile with TAU_PROF=y
+#  13 Dec 2016 - R. Yantosca - Add GPROF=y to compile for GNU profiler gprof
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -199,7 +205,10 @@
 SHELL                :=/bin/bash
 
 # Error message for bad COMPILER input
-ERR_CMPLR            :="Select a compiler: COMPILER=ifort, COMPILER=pgi"
+ERR_CMPLR            :="Select a compiler: COMPILER=ifort, COMPILER=pgi, COMPILER=gfortran"
+
+# Error message for unknown compiler/OS combintation
+ERR_OSCOMP           :="Makefile_header.mk not set up for this compiler/OS combination"
 
 # Error message for bad MET input
 ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp, MET=merra2)"
@@ -208,17 +217,13 @@ ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=
 ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=05x0625, GRID=025x03125"
 
 # Error message for bad NEST input
-ERR_NEST             :="Select a nested grid: NEST=ch, NEST=eu, NEST=na NEST=se, NEST=cu"
+ERR_NEST             :="Select a nested grid: NEST=as, NEST=ch, NEST=eu, NEST=na, NEST=cu"
 
 # Error message for bad two-way coupled model input (yanyy,6/18/14)
-ERR_COUPLECH         :="Select a coupled grid for Asia         : COUPLECH=2x25ch, COUPLECH=4x5ch"
+ERR_COUPLECH         :="Select a coupled grid for China/SE Asia: COUPLECH=2x25ch, COUPLECH=4x5ch"
 ERR_COUPLENA         :="Select a coupled grid for North America: COUPLENA=2x25na, COUPLENA=4x5na"
 ERR_COUPLEEU         :="Select a coupled grid for Europe       : COUPLEEU=2x25eu, COUPLEEU=4x5eu"
-ERR_COUPLESE         :="Select a coupled grid for SE Asia      : COUPLESE=2x25se, COUPLEEU=4x5se"
 ERR_COUPLE           :="Select a coupled choice: COUPLE=yes"
-
-# Error message for bad GIGC config
-ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
 
 # Error message for bad GIGC config
 ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
@@ -242,9 +247,15 @@ ERR_DIAG             :="Select one diagnostic output type: NC_DIAG=y or BPCH_DIA
 # Compiler settings
 #------------------------------------------------------------------------------
 
-# %%%%% OpenMP parallelization default) %%%%%
+# %%%%% OpenMP parallelization (on by default) %%%%%
 ifndef OMP
   OMP                :=yes
+endif
+
+# Option to turn off OpenMP for testing
+REGEXP               :=(^[Nn]|^[Oo])
+ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DNO_OMP
 endif
 
 # %%%%% Set the HPC variable if we are building for use w/ ESMF/MPI %%%%
@@ -274,14 +285,9 @@ ifndef TIMERS
  TIMERS              :=0
 endif
 
-# %%%%% Default to bpch input restart file disabled %%%%%
-ifndef BPCH_RST_IN
- BPCH_RST_IN         :=no
-endif
-
-# %%%%% Default to bpch output restart file disabled %%%%%
-ifndef BPCH_RST_OUT
- BPCH_RST_OUT        :=no
+# %%%%% Turn on traceback (error stack report) by default %%%%%
+ifndef TRACEBACK
+ TRACEBACK           :=yes
 endif
 
 # %%%%% Set default compiler %%%%%
@@ -290,6 +296,13 @@ endif
 # %%%%% is set in your .bashrc, or when you load the compiler module     %%%%%
 ifndef COMPILER
   COMPILER           :=$(FC)
+endif
+
+# %%%%% Test if GNU Fortran Compiler is selected %%%%%
+REGEXP               :=(^[Gg][Ff][Oo][Rr][Tt][Rr][Aa][Nn])
+ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
+  COMPILE_CMD        :=$(FC)
+  USER_DEFS          += -DLINUX_GFORTRAN
 endif
 
 # %%%%% Test if Intel Fortran Compiler is selected %%%%%
@@ -315,56 +328,72 @@ ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
 endif
 
 # %%%%% ERROR CHECK!  Make sure our COMPILER selection is valid! %%%%%
-REGEXP               :=((-DLINUX_)?IFORT|PGI)
+REGEXP               :=((-DLINUX_)?IFORT|PGI|GFORTRAN)
 ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
   $(error $(ERR_CMPLR))
+endif
+
+#------------------------------------------------------------------------------
+# Special flags for enabling experimental or development code
+#------------------------------------------------------------------------------
+
+# %%%%% DEVEL: Enable user-added experimental code %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(DEVEL)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DDEVEL
+endif
+
+# %%%%% DIAG_DEVEL: Enable experimental code specific to HEMCO %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(DIAG_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DDIAG_DEVEL
+  NC_DIAG            :=yes
+  BPCH_DIAG          :=no
+endif
+
+# %%%%% HCO_DEVEL: Enable experimental code specific to HEMCO %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(HCO_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DHCO_DEVEL
+endif
+
+# %%%%% HPC_DEVEL: Enable experimental code specific to GCHP %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(HPC_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DHPC_DEVEL
+endif
+
+# %%%%% Turn on tendencies computation  %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(USE_TEND)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DUSE_TEND
+  NC_DIAG            :=yes
+  BPCH_DIAG          :=no
 endif
 
 #------------------------------------------------------------------------------
 # GEOS-Chem HP settings
 #------------------------------------------------------------------------------
 
-# %%%%% DEVEL %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(DEVEL)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DDEVEL
-endif
-
 # %%%%% ESMF %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(ESMF)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DESMF_
   NO_GRID_NEEDED     :=1
 endif
 
 # %%%%% EXTERNAL_GRID %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(EXTERNAL_GRID)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DEXTERNAL_GRID
   NO_GRID_NEEDED     :=1
 endif
 
 # %%%%% EXTERNAL_FORCING %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DEXTERNAL_FORCING
   NO_GRID_NEEDED     :=1
-endif
-
-#------------------------------------------------------------------------------
-# Restart settings
-#------------------------------------------------------------------------------
-
-# %%%%% BPCH_RST_IN (for using bpch restart file as input ) %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(BPCH_RST_IN)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DBPCH_RST_IN
-endif
-
-# %%%%% BPCH_RST_OUT (for using bpch restart file as output ) %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(BPCH_RST_OUT)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DBPCH_RST_OUT
 endif
 
 #------------------------------------------------------------------------------
@@ -384,24 +413,43 @@ ifndef BPCH_DIAG
   endif
 endif
 
-# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is selected %%%%%
-ifeq ($(BPCH_DIAG),y)
-  ifeq ($(NC_DIAG),y)
-    $(error $(ERR_DIAG))
-  endif
-endif 
-
 # %%%%% BPCH (for using old BPCH diagnostic output) %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DBPCH_DIAG
+  IS_BPCH_DIAG       :=1
 endif
 
 # %%%%% NETCDF (for using new netCDF diagnostic output) %%%%%
-REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DNC_DIAG
+  IS_NC_DIAG         :=1
 endif
+
+# %%%%% Test if bpch diagnostics are activated %%%%%
+REGEXP               :=-DBPCH_DIAG
+ifeq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
+  IS_BPCH_DIAG       :=1
+else
+  IS_BPCH_DIAG       :=0
+endif
+
+# %%%%% Test if netCDF diagnostics are activated %%%%%
+REGEXP               :=-DNC_DIAG
+ifeq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
+  IS_NC_DIAG         :=1
+else
+  IS_NC_DIAG         :=0
+endif
+
+# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is %%%%%
+# %%%%% selected.  Now use a numeric test which is more robust.    %%%%%
+ifeq ($(IS_BPCH_DIAG),1)
+  ifeq ($(IS_NC_DIAG),1)
+    $(error $(ERR_DIAG))
+  endif
+endif 
 
 #------------------------------------------------------------------------------
 # KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
@@ -437,20 +485,33 @@ endif
 # %%%%% Test if CHEM=NOx_Ox_HC_Aer_Br %%%%%
 REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Aa][Ee][Rr]_[Bb][Rr])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=NOx_Ox_HC_Aer_Br
+  KPP_CHEM           :=Tropchem
   IS_CHEM_SET        :=1
 endif
 
 # %%%%% Test if CHEM=tropchem (synonym for NOx_Ox_HC_Aer_Br) %%%%%
 REGEXP               :=(^[Tt][Rr][Oo][Pp][Cc][Hh][Ee][Mm])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=NOx_Ox_HC_Aer_Br
+  KPP_CHEM           :=Tropchem
   IS_CHEM_SET        :=1
 endif
 
-# %%%%%  Default setting: CHEM=benchmark %%%%%
+# %%%%% Test if CHEM=Custom %%%%%
+REGEXP               :=(^[Cc][Uu][Ss][Tt][Oo][Mm])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=Custom
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%%  Default setting: CHEM=standard (aka benchmark) %%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# NOTE: For clarify in the future, the default setting should be to not set
+# KPP_CHEM or IS_CHEM_SET if the CHEM compiler option is not passed. The default
+# option would be reserved for specialty simulations that do not require the KPP
+# code to be compiled. (mps, 4/22/16)
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ifeq ($(IS_CHEM_SET),0)
-  KPP_CHEM           :=benchmark
+  KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
 endif
 
@@ -614,7 +675,7 @@ ifndef NO_GRID_NEEDED
   REGEXP             :=(^05.0625|^0\.5.0\.625)
   ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
 
-    # Ensure that MET=geos-fp
+    # Ensure that MET=merra2
     REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2)|(^[Mm][Ee][Rr][Rr][Aa].2)
     ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
       $(error When GRID=05x0625, you can only use MET=merra2)
@@ -633,7 +694,7 @@ ifndef NO_GRID_NEEDED
   REGEXP             :=(^025.03125|^0\.25.0\.3125)
   ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
 
-    # Ensure that MET=geos-fp
+    # Ensure that MET=geosfp
     REGEXP           :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
     ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
       $(error When GRID=025x03125, you can only use MET=geos-fp)
@@ -664,6 +725,17 @@ ifndef NO_GRID_NEEDED
     USER_DEFS        += -DNESTED_CH
   endif
 
+  # %%%%% Asia (AS) %%%%%
+  REGEXP             :=(^[Aa][Ss])
+  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
+    # Ensure that GRID=05x0625
+    REGEXP           :=(^05.0625|^0\.5.0\.625)
+    ifneq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
+      $(error NEST=as can only be used with GRID=05x0625)
+    endif
+    USER_DEFS        += -DNESTED_AS
+  endif
+
   # %%%%% Europe (EU) %%%%%
   REGEXP             :=(^[Ee][Uu])
   ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
@@ -676,12 +748,6 @@ ifndef NO_GRID_NEEDED
     USER_DEFS        += -DNESTED_NA
   endif
 
-  # %%%%% SE Asia (SE) %%%%%
-  REGEXP             :=(^[Ss][Ee])
-  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DNESTED_SE
-  endif
-
   # %%%%% Custom (CU) %%%%%
   REGEXP             :=(^[Cc][Uu])
   ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
@@ -690,7 +756,7 @@ ifndef NO_GRID_NEEDED
 
   # %%%%% ERROR CHECK!  Make sure our NEST selection is valid! %%%%%
   ifdef NEST_NEEDED
-    REGEXP           :=((\-DNESTED_)?CH|NA|EU|SE|CU)
+    REGEXP           :=((\-DNESTED_)?AS|CH|EU|NA|CU)
     ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
       $(error $(ERR_NEST))
     endif
@@ -823,13 +889,20 @@ ifdef TAGO3YR
 endif
 
 #------------------------------------------------------------------------------
-# TAU Performance Profiling (only works w/ IFORT for now)
+# Performance profiling
 #------------------------------------------------------------------------------
-ifeq ($(COMPILER),ifort)
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(TAU_PROF)" =~ $(REGEXP) ]] && echo true),true)
-    COMPILE_CMD      :=tau_f90.sh
-  endif
+
+# Compile with TAU profiler (from ParaTools, Inc)
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(TAU_PROF)" =~ $(REGEXP) ]] && echo true),true)
+  COMPILE_CMD        :=tau_f90.sh
+endif
+
+# Compile with GNU profiler (gprof)
+IS_GPROF             :=0
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(GPROF)" =~ $(REGEXP) ]] && echo true),true)
+  IS_GPROF           :=1
 endif
 
 #------------------------------------------------------------------------------
@@ -973,6 +1046,170 @@ endif
 
 ###############################################################################
 ###                                                                         ###
+###  Define settings for the GNU FORTRAN COMPILER (aka gfortran)            ###
+###                                                                         ###
+###############################################################################
+
+ifeq ($(COMPILER),gfortran) 
+
+  # Get the GNU Fortran version
+  VERSIONTEXT        :=$(shell $(FC) --version)
+  VERSION            :=$(word 4, $(VERSIONTEXT))
+  VERSION            :=$(subst .,,$(VERSION))
+  NEWER_THAN_447     :=$(shell perl -e "print ($(VERSION) gt 447)")
+
+  # Base set of compiler flags
+  FFLAGS             :=-cpp -w -std=legacy -fautomatic -fno-align-commons
+  FFLAGS             += -fconvert=big-endian
+  FFLAGS             += -fno-range-check
+
+  # OPTIONAL: Add the GNU Fortran -march option, which compiles for a
+  # specific computer architecture.  This may cause issues on some types
+  # of CPUs (e.g. Intel), so we have left this as an optional argument.
+  ifdef M_ARCH
+    FFLAGS           += -march=$(M_ARCH)
+  endif
+
+  # Default optimization level for all routines (-O3)
+  ifndef OPT
+    # Options of interest
+    #  -limf                Intel math libraries - machine must have them
+    #  -O3                  Highest safe optimization level
+    #  -march=native        Make the binary machine-specific. If in doubt, 
+    #                        use a specific architecture, eg...
+    #  -march=corei7-avx    Binary uses optimizations for 
+    #                        Intel Sandy-Bridge Xeon (e.g. E5-2680)
+    #  -mfpmath=sse         Use SSE extensions
+    #  -funroll-loops       Enable loop unrolling
+    OPT              := -O3 -funroll-loops
+    #OPT              := -O3 -march=corei7-avx -mfpmath=sse -funroll-loops
+  endif
+
+  # Pick compiler options for debug run or regular run 
+  REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
+    #-fcheck=all would be more comprehensive but would force bounds checking
+    FFLAGS           += -g -gdwarf-2 -gstrict-dwarf -O0
+    FFLAGS           += -Wall -Wextra -Wconversion
+    FFLAGS           += -Warray-temporaries -fcheck-array-temporaries
+    TRACEBACK        := yes
+    USER_DEFS        += -DDEBUG
+  else
+    FFLAGS           += $(OPT)
+  endif
+
+  # Prevent any optimizations that would change numerical results
+  #GFORTRAN_BAD#FFLAGS             += -fp-model source
+
+  # Turn on OpenMP parallelization
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -fopenmp
+  endif
+
+  # Get Operating System (Linux = Linux; Darwin = MacOSX)
+  ifndef UNAME
+    UNAME            :=$(shell uname)
+  endif
+
+  # OSX compilation options
+  ifeq ($(UNAME),Darwin)
+    # This has not yet been tested
+    $(error $(ERR_OSCOMP))
+  #  FFLAGS           += -Wl,-stack_size,0x2cb410000  # 12 GB of stack space
+  #  ifdef DEBUG
+  #    FFLAGS         += -g0 -debug -save-temps -fpic -Wl,-no_pie
+  #  endif
+  endif
+
+  # Add options for medium memory model.  This is to prevent G-C from 
+  # running out of memory at hi-res, especially when using netCDF I/O.
+  ifneq ($(UNAME),Darwin)
+    #GFORTRAN_BAD#FFLAGS           += -mcmodel=medium -shared-intel
+    FFLAGS           += -mcmodel=medium
+  endif
+
+  # Turn on checking for floating-point exceptions
+  # These are approximately equivalent to -fpe0 -ftrapuv in IFORT
+  # NOTE: GNU Fortran 4.4.7 does not allow for -finit-real-snan, so
+  # we will only add this flag for versions newer than 4.4.7
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(FPE)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -ffpe-trap=invalid,zero,overflow
+    ifeq ($(NEWER_THAN_447),1)
+      FFLAGS           += -finit-real=snan
+    endif
+  endif
+  ifeq ($(shell [[ "$(FPEX)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -ffpe-trap=invalid,zero,overflow
+    ifeq ($(NEWER_THAN_447),1)
+      FFLAGS           += -finit-real=snan
+    endif
+  endif
+
+  # Add option for "array out of bounds" checking
+  REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(BOUNDS)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -fbounds-check
+  endif
+
+  # Also add traceback option
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -fbacktrace
+    ifndef DEBUG
+       FFLAGS += -g
+    endif
+  endif
+
+  # Compile for use with the GNU profiler (gprof), if necessary
+  ifeq ($(IS_GPROF),1) 
+    FFLAGS           += -pg
+  endif
+
+  # Loosen KPP tolerances upon non-convergence and try again
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DKPP_SOLVE_ALWAYS
+  endif
+
+  # Add flexible precision declaration
+  ifeq ($(PRECISION),8)
+    USER_DEFS        += -DUSE_REAL8
+  endif
+
+  # Add timers declaration
+  ifeq ($(TIMERS),1)
+    USER_DEFS        += -DUSE_TIMERS
+  endif
+
+  # Append the user options in USER_DEFS to FFLAGS
+  FFLAGS             += $(USER_DEFS)
+
+  # Include options (i.e. for finding *.h, *.mod files)
+  INCLUDE :=-J$(MOD) $(NC_INC_CMD)
+
+  # Do not append the ESMF/MAPL/FVDYCORE includes for ISORROPIA, because it 
+  # will not compile.  ISORROPIA is slated for removal shortly. (bmy, 11/21/14)
+  INCLUDE_ISO        :=$(INCLUDE)
+
+  # Append the ESMF/MAPL/FVDYCORE include commands
+  ifeq ($(HPC),yes)
+    INCLUDE          += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC) $(FV_INC)
+  endif
+
+  # Set the standard compiler variables
+  CC                 :=
+  F90                :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE)
+  F90ISO             :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE_ISO)
+  LD                 :=$(COMPILE_CMD) $(FFLAGS)
+  FREEFORM           := -ffree-form -ffree-line-length-none
+  R8                 := -fdefault-real-8 -fdefault-double-8
+
+endif
+
+###############################################################################
+###                                                                         ###
 ###  Define settings for the INTEL FORTRAN COMPILER (aka ifort)             ###
 ###                                                                         ###
 ###############################################################################
@@ -1050,6 +1287,11 @@ ifeq ($(COMPILER),ifort)
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
     FFLAGS           += -traceback
+  endif
+
+  # Compile for use with the GNU profiler (gprof), if necessary
+  ifeq ($(IS_GPROF),1) 
+    FFLAGS           += -p
   endif
 
   # Loosen KPP tolerances upon non-convergence and try again
@@ -1147,6 +1389,11 @@ ifeq ($(COMPILER),pgfortran)
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
     FFLAGS           += -traceback
+  endif
+
+  # Compile for use with the GNU profiler (gprof), if necessary
+  ifeq ($(IS_GPROF),1) 
+    FFLAGS           += -pg
   endif
 
   # Loosen KPP tolerances upon non-convergence and try again
@@ -1266,3 +1513,7 @@ export TIMERS
 #	@@echo "USERDEFS    : $(USER_DEFS)"
 #	@@echo "NC_INC_CMD  : $(NC_INC_CMD)"
 #	@@echo "NC_LINK_CMD : $(NC_LINK_CMD)"
+#	@@echo "NC_DIAG     : $(NC_DIAG)"
+#	@@echo "IS_NC_DIAG  : $(IS_NC_DIAG)"	
+#	@@echo "BPCH_DIAG   : $(BPCH_DIAG)"
+#	@@echo "IS_BPCH_DIAG: $(IS_BPCH_DIAG)"

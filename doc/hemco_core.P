@@ -1,0 +1,8 @@
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOS
+! !SECTION: HEMCO "Core" modules
+! !DESCRIPTION: These contain routines that perform core HEMCO functions, such as establishing the data structures used to store the emissions data, etc.
+!EOS
+!------------------------------------------------------------------------------

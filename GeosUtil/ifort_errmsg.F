@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: ifort_errmsg
+! !ROUTINE: ifort_errmsg.F
 !
 ! !DESCRIPTION: Function IFORT\_ERRMSG returns an error message string that 
 !  corresponds to an I/O error number obtained via the IOSTAT or STAT 

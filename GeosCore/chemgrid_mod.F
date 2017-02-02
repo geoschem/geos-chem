@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: chemgrid_mod
+! !MODULE: chemgrid_mod.F
 !
 ! !DESCRIPTION: Module CHEMGRID\_MOD contains routines and variables for 
 !  reading and returning vertical layer limits.
@@ -26,7 +26,6 @@
 !
       PUBLIC  :: CLEANUP_CHEMGRID
       PUBLIC  :: CHECK_VAR_TROP
-      PUBLIC  :: COPY_FULL_CHEMGRID
       PUBLIC  :: DIAG_TROPOPAUSE
       PUBLIC  :: GET_MIN_CHEMGRID_LEVEL
       PUBLIC  :: GET_MAX_CHEMGRID_LEVEL
@@ -42,7 +41,6 @@
       PUBLIC  :: ITS_IN_THE_CHEMGRID
       PUBLIC  :: ITS_IN_THE_NOCHEMGRID
       PUBLIC  :: READ_TROPOPAUSE
-      PUBLIC  :: SAVE_FULL_CHEMGRID
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -89,163 +87,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: copy_full_chemgrid
-!
-! !DESCRIPTION: Subroutine COPY\_FULL\_CHEMGRID takes the saved full chemistry
-!  grid and copies chemical species into the current grid that will be used 
-!  in SMVGEAR for this timestep.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE COPY_FULL_CHEMGRID( State_Chm )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC
-      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE, IZSAVE
-      USE COMODE_LOOP_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
-!
-! !REMARKS:
-!  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
-!  JLOOP WILL NOT ALWAYS REFER TO THE SAME (I,J,L) BOX
-! 
-! !REVISION HISTORY: 
-!  14 Sep 2006 - P. Le Sager - Initial version
-!  (1 ) Very similar to a get_properties of an object. Should probably
-!        be in COMODE_MOD.F, and called GET_SPECIES_CONCENTRATION (phs)
-!  (2 ) Bug fix: set NCS=NCSURBAN for safety's sake (bmy, 4/25/07)
-!  09 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  21 Feb 2014 - M. Sulprizio- Now pass State_Chm object via the arg list
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: JGAS, JLOOP, IX, IY, IZ
-      INTEGER :: LOCATION(4)
-
-      !=================================================================
-      ! COPY_FULL_CHEMGRID begins here!
-      !=================================================================
-
-      ! Reset NCS to NCSURBAN for safety's sake (bmy, 4/25/07)
-      NCS = NCSURBAN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( JGAS, JLOOP, IX, IY, IZ )
-
-      ! Loop over species (active + inactive)
-      DO JGAS  = 1, NTSPEC(NCS)
-
-         ! Loop over 1-D grid boxes
-         DO JLOOP = 1, NTLOOP
-
-            ! 3-D array indices
-            IX = IXSAVE(JLOOP)
-            IY = IYSAVE(JLOOP)
-            IZ = IZSAVE(JLOOP)
-
-            ! Copy from 3-D array
-            CSPEC(JLOOP,JGAS) = State_Chm%Species(IX,IY,IZ,JGAS)
-
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE COPY_FULL_CHEMGRID
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: save_full_chemgrid
-!
-! !DESCRIPTION: Subroutine SAVE\_FULL\_CHEMGRID takes the current chemistry
-!  grid copies chemical species into the full grid that will be used in 
-!  SMVGEAR for this timestep.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SAVE_FULL_CHEMGRID( State_Chm )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC
-      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE, IZSAVE
-      USE COMODE_LOOP_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-!
-! !OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !REMARKS:
-!  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
-!  JLOOP WILL NOT ALWAYS REFER TO THE SAME (I,J,L) BOX
-! 
-! !REVISION HISTORY: 
-!  14 Sep 2006 - P. Le Sager - Initial version
-!  (1 ) Very similar to a set_properties of an object. Should probably
-!        be in COMODE_MOD.F, and called SAVE_SPECIES_CONCENTRATION (phs)
-!  (2 ) Bug fix: set NCS=NCSURBAN for safety's sake! (bmy, 4/25/07)
-!  09 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  21 Feb 2014 - M. Sulprizio- Now pass State_Chm object via the arg list
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: JGAS, JLOOP, IX, IY, IZ
-
-      !=================================================================
-      ! SAVE_FULL_CHEMGRID begins here!
-      !=================================================================
-
-      ! Reset NCS to NCSURBAN for safety's sake (bmy, 4/25/07)
-      NCS = NCSURBAN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( JGAS, JLOOP, IX, IY, IZ )
-
-      ! Loop over species (active + inactive)
-      DO JGAS = 1, NTSPEC(NCS)
-
-         ! Loop over 1-D grid boxes
-         DO JLOOP = 1, NTLOOP
-
-            ! 3-D array indices
-            IX = IXSAVE(JLOOP)
-            IY = IYSAVE(JLOOP)
-            IZ = IZSAVE(JLOOP)
-
-            ! Save in 3-D array
-            State_Chm%Species(IX,IY,IZ,JGAS) = CSPEC(JLOOP,JGAS)
-
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE SAVE_FULL_CHEMGRID
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: check_var_trop
 !
 ! !DESCRIPTION: Subroutine CHECK\_VAR\_TROP checks that the entire variable 
@@ -261,7 +102,7 @@
 !
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -301,7 +142,7 @@
          WRITE( 6, '(a)' ) 'CHECK_VAR_TROP: LLTROP is set too low!' 
          WRITE( 6, 10   ) LMAX, LLTROP
  10      FORMAT( 'MAX TROPOSPHERE LEVEL = ', i3, ' and LLTROP = ', i3 )
-         WRITE( 6, '(a)' ) 'STOP in TROPOPAUSE_MOD.F!!!'
+         WRITE( 6, '(a)' ) 'STOP in CHECK_VAR_TROP.F!!!'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          CALL GEOS_CHEM_STOP
       ENDIF
@@ -327,9 +168,9 @@
 !
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE m_netcdf_io_open
       USE m_netcdf_io_read
       USE m_netcdf_io_readattr
@@ -411,7 +252,7 @@
       !=================================================================
       
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       !=================================================================
       ! Open and read data from the netCDF file
@@ -695,7 +536,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -750,7 +591,7 @@
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
@@ -854,7 +695,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -923,7 +764,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -974,7 +815,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1068,7 +909,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE CMN_SIZE_MOD,       Only : LLCHEM
 !
 ! !INPUT PARAMETERS: 
@@ -1123,7 +964,7 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1175,10 +1016,11 @@
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD55
 #endif
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState    
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState    
 #if defined( NC_DIAG )
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE Error_Mod,          ONLY : Error_Stop
       USE HCO_Diagn_Mod,      ONLY : Diagn_Update
       USE HCO_Error_Mod
@@ -1242,6 +1084,8 @@
 !                              State_Met%PEDGE and State_Met%PMID.
 !                              Remove dependency on pressure_mod.
 !  21 Jan 2016 - E. Lundgren - Update diagnostic for netcdf output using HEMCO
+
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1268,7 +1112,7 @@
       REAL(fp), TARGET  :: TRPAUSE_L(IIPAR,JJPAR)
       REAL(fp), TARGET  :: TRPAUSE_P(IIPAR,JJPAR)
       REAL(fp), TARGET  :: TRPAUSE_H(IIPAR,JJPAR)
-      REAL(fp), POINTER :: Ptr2D(:,:) => NULL()
+      REAL(fp), POINTER :: Ptr2D(:,:)
 #endif
 
       !=======================================================================
@@ -1276,7 +1120,7 @@
       !=======================================================================
 
       ! Assume successful return
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Exit if diagnostic is not turned on
 #if defined( BPCH_DIAG )
@@ -1286,6 +1130,9 @@
       ! If outputting NetCDF, temporarily using ND68 as indicator since
       ! tropopause will be output as part of Met diagnostic group
       IF ( Input_Opt%ND68 <= 0 ) RETURN
+      
+      ! Nullify pointers
+      Ptr2d => NULL()
 #endif
       
 #if defined( GCAP)
@@ -1430,7 +1277,7 @@
                Ptr2D => TRPAUSE_P
          END SELECT
 
-         CALL Diagn_Update( am_I_Root,                                
+         CALL Diagn_Update( am_I_Root, HcoState, 
      &                      cName     = TRIM( DiagnName ),            
      &                      Array2D   = Ptr2D,                        
      &                      RC        = HCRC )
@@ -1468,9 +1315,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1498,7 +1345,7 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC        =  GC_SUCCESS
 
       ! Shadow Input_Opt%LVARTROP in a module variable
       LVARTROP = Input_Opt%LVARTROP

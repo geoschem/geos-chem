@@ -36,6 +36,7 @@
 #  09 Jul 2014 - R. Yantosca - Now build HEMCO documentation
 #  21 Jul 2014 - R. Yantosca - Now look for HEMCO modules in subdirectories
 #  10 Jul 2015 - R. Yantosca - Added GCRT directory
+#  18 Nov 2016 - R. Yantosca - Updated for v11-01
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -55,12 +56,11 @@ DOC   :=$(ROOT)/doc
 ESMF  :=$(ROOT)/ESMF
 GCRT  :=$(ROOT)/GCRT
 GTMM  :=$(ROOT)/GTMM
-HCO   :=$(ROOT)/HEMCO/Core
-HCOI  :=$(ROOT)/HEMCO/Interfaces
-HCOX  :=$(ROOT)/HEMCO/Extensions
+HCO   :=$(ROOT)/HEMCO/
 HDR   :=$(ROOT)/Headers
 HELP  :=$(ROOT)/help
 ISO   :=$(ROOT)/ISOROPIA
+NC    :=$(ROOT)/NcdfUtil
 KPP   :=$(ROOT)/KPP
 UTIL  :=$(ROOT)/GeosUtil
 
@@ -75,7 +75,7 @@ include $(ROOT)/Makefile_header.mk
 
 .PHONY: doc docclean help
 
-doc: srcdoc utildoc gtmmdoc makedoc hemcodoc
+doc: utildoc srcdoc diagsdoc hemcodoc makedoc
 
 clean:
 	@echo "===> Making clean in directory: doc <==="
@@ -90,19 +90,20 @@ help:
 ###                                                                         ###
 ###############################################################################
 
-# Commands to build the source code documentation
+## Commands to build the utility module documentation
+include ./Makefile_UtilDoc.mk
+
+# Commands to build the "core" modules documentation
 include ./Makefile_SrcDoc.mk
 
-# Commands to build the utility module documentation
-include ./Makefile_UtilDoc.mk
+# Commands to build the diagnostic modules documentation
+include ./Makefile_DiagsDoc.mk
+
+# Commands to build the HEMCO documentation
+include ./Makefile_Hemco.mk
 
 # Commands to build the makefile documentation
 include ./Makefile_MakeDoc.mk
 
-# Commands to build the GTMM documentation
-include ./Makefile_GtmmDoc.mk
-
-# Commands to build the GTMM documentation
-include ./Makefile_Hemco.mk
 
 #EOC

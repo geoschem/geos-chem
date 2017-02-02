@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: file_mod
+! !MODULE: file_mod.F
 !
 ! !DESCRIPTION: Module FILE\_MOD contains file unit numbers, as well as file 
 !  I/O routines for GEOS-Chem.  FILE\_MOD keeps all of the I/O unit numbers 
@@ -89,7 +89,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ioerror
+! !IROUTINE: IoError
 !
 ! !DESCRIPTION: Subroutine IOERROR prints out I/O error messages.  
 !  The error number, file unit, location, and a brief description will 
@@ -243,7 +243,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: file_ex_c
+! !IROUTINE: File_Ex_C
 !
 ! !DESCRIPTION: Function FILE\_EX\_C returns TRUE if FILENAME exists or FALSE 
 !  otherwise.  This is handled in a platform-independent way.  The argument 
@@ -314,7 +314,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: file_ex_i
+! !IROUTINE: File_Ex_I
 !
 ! !DESCRIPTION: Function FILE\_EX\_I returns TRUE if FILENAME exists or FALSE 
 !  otherwise.  This is handled in a platform-independent way.  The argument 
@@ -354,7 +354,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: close_files
+! !IROUTINE: Close_Files
 !
 ! !DESCRIPTION: Subroutine CLOSE\_FILES closes files used by GEOS-Chem.  This 
 !  should be called only from the end of the "main.f" program. 
@@ -389,7 +389,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: line_buffer
+! !IROUTINE: Line_Buffer
 !
 ! !DESCRIPTION: Manually sets a Fortran file to line-buffered output,
 !  with a buffer size of 80 characters.  This is necessary in order to 

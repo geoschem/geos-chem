@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: Pjc_Pfix_Mod
+! !MODULE: pjc_pfix_mod.F
 !
 ! !DESCRIPTION: Module Pjc\_Pfix\_Mod contains routines which implements the 
 !  Philip Cameron-Smith pressure fixer for the new fvDAS transport 
@@ -53,6 +53,7 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -180,7 +181,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD    ! Size parameters
-      USE PHYSCONSTANTS   ! Physical constants
+      USE PhysConstants   ! Physical constants
 !
 ! !INPUT PARAMETERS: 
 !
@@ -422,7 +423,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD   ! Size parameters
-      USE PHYSCONSTANTS  ! Physical constants
+      USE PhysConstants  ! Physical constants
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1200,7 +1201,7 @@ c     --------------------------------------
 ! !USES:
 !
       USE CMN_SIZE_MOD ! Size parameters
-      USE PHYSCONSTANTS! Re, PI
+      USE PhysConstants! Re, PI
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1380,7 +1381,7 @@ c     --------------------------------------
 ! !USES:
 !
       USE CMN_SIZE_MOD ! Size parameters
-      USE PHYSCONSTANTS! Re, Pi
+      USE PhysConstants! Re, Pi
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1913,12 +1914,12 @@ c     --------------------------------------
 ! !USES:
 !
       ! References to F90 modules
-      USE GRID_MOD,     ONLY : GET_AREA_M2, GET_YMID_R
+      USE GC_GRID_MOD,  ONLY : GET_AREA_M2, GET_YMID_R
       USE ERROR_MOD,    ONLY : ALLOC_ERR,   ERROR_STOP
       USE PRESSURE_MOD, ONLY : GET_AP,      GET_BP
 
       USE CMN_SIZE_MOD  ! Size parameters
-      USE PHYSCONSTANTS ! Re, PI, etc...
+      USE PhysConstants ! Re, PI, etc...
 ! 
 !
 ! !AUTHOR:

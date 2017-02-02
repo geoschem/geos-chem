@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: geosfp_read_mod
+! !MODULE: geosfp_read_mod.F90
 !
 ! !DESCRIPTION: Module GEOSFP\_READ\_MOD contains subroutines for reading the 
 !  GEOS-FP data from disk (in netCDF format).
@@ -23,7 +23,6 @@ MODULE GeosFp_Read_Mod
 
   ! GEOS-Chem modules
   USE CMN_SIZE_MOD                        ! Size parameters
-  USE PHYSCONSTANTS                       ! Physical constants
 #if defined( BPCH_DIAG )
   USE CMN_DIAG_MOD                        ! Diagnostic arrays & counters
   USE DIAG_MOD,      ONLY : AD21          ! Array for ND21 diagnostic  
@@ -31,6 +30,7 @@ MODULE GeosFp_Read_Mod
   USE DIAG_MOD,      ONLY : AD67          ! Array for ND67 diagnostic
 #endif
   USE ERROR_MOD,     ONLY : ERROR_STOP    ! Stop w/ error message
+  USE PhysConstants                       ! Physical constants
   USE TIME_MOD                            ! Date & time routines
   USE TRANSFER_MOD                        ! Routines for casting 
 
@@ -98,7 +98,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_resolution_string
+! !IROUTINE: Get_Resolution_String
 !
 ! !DESCRIPTION: Function Get\_Resolution\_String returns the proper filename 
 !  extension for the GEOS-Chem horizontal grid resolution.  This is used to
@@ -117,7 +117,6 @@ CONTAINS
 !  10 Feb 2012 - R. Yantosca - Initial version
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocssor switch
-!  14 Jan 2014 - R. Yantosca - Now add NESTED_SE option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -146,9 +145,6 @@ CONTAINS
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
     resString = '025x03125.NA.nc'
 
-#elif defined( GRID025x03125 ) && defined( NESTED_SE )
-    resString = '025x03125.SE.nc'
-
 #elif defined( GRID025x03125 )
     resString = '025x03125.nc'
 
@@ -161,7 +157,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: check_dimensions
+! !IROUTINE: Check_Dimensions
 !
 ! !DESCRIPTION: Subroutine CHECK\_DIMENSIONS checks to see if dimensions read 
 !  from the netCDF file match the defined GEOS-Chem dimensions.  If not, then 
@@ -249,7 +245,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: geosfp_read_cn
+! !IROUTINE: GeosFp_Read_cn
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
 !  met fields file containing constant (CN) data.  
@@ -261,8 +257,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -404,7 +400,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: geosfp_read_a1
+! !IROUTINE: GeosFp_Read_a1
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
 !  met fields file containing 1-hr time-averaged (A1) data.  
@@ -416,8 +412,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -511,6 +507,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A1 (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 10000 ) + 1
 
@@ -525,9 +524,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN 
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A1 (geosfp_read_mod.F90)"
 
        ! replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -858,7 +854,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: geosfp_read_a3
+! !IROUTINE: GeosFp_Read_a3
 !
 ! !DESCRIPTION: Convenience wrapper for the following routines which read
 !  3-hour time averaged data from disk:
@@ -875,8 +871,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -946,7 +942,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: geosfp_read_a3cld
+! !IROUTINE: GeosFp_Read_a3cld
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
 !  met fields file containing 3-hr time-averaged (A3) data (cloud fields).
@@ -958,8 +954,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1021,6 +1017,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A3cld (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1035,9 +1034,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A3cld (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1137,7 +1133,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: geosfp_read_a3dyn
+! !IROUTINE: GeosFp_Read_a3dyn
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
 !  met fields file containing 3-hr time-averaged (A3) data (dynamics fields).
@@ -1149,8 +1145,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput  
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput  
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1213,6 +1209,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A3dyn (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1220,16 +1219,13 @@ CONTAINS
     IF ( time_index < 1 .or. time_index > 8 ) THEN
        WRITE( 6, 100 ) time_index
  100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL ERROR_STOP( errMsg, 'GEOS57_READ_A1 (geos57_read_mod.F90)' )
+       CALL ERROR_STOP( errMsg, caller )
     ENDIF
 
     !======================================================================
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A3dyn (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1333,7 +1329,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: geosfp_read_a3mstc
+! !IROUTINE: GeosFp_Read_a3mstc
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
 !  met fields file containing 3-hr time-averaged (A3) data (moist fields,
@@ -1346,8 +1342,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1406,6 +1402,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A3mstC (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1420,9 +1419,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A3mstC (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1504,7 +1500,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: geosfp_read_a3mste
+! !IROUTINE: GeosFp_Read_a3mste
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
 !  met fields file containing 3-hr time-averaged (A3) data (moist fields,
@@ -1517,8 +1513,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1579,6 +1575,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_A3mstE (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1593,9 +1592,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_A3mstE (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1702,7 +1698,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: geosfp_read_I3_1
+! !IROUTINE: GeosFp_Read_I3_1
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
 !  met fields file containing 3-hr instantaneous (I3) data.
@@ -1714,8 +1710,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1784,6 +1780,9 @@ CONTAINS
     ! Select the proper time slice
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_I3_1 (geosfp_read_mod.F90)"
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
@@ -1798,9 +1797,6 @@ CONTAINS
     ! Open the netCDF file only when necessary
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_I3_1 (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -1846,7 +1842,7 @@ CONTAINS
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fI3_1, TRIM(v_name), st3d, ct3d )
-    State_Met%PS1 = Q2
+    State_Met%PS1_WET = Q2
 
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)
@@ -1934,7 +1930,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: geosfp_read_I3_2
+! !IROUTINE: GeosFp_Read_I3_2
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
 !  met fields file containing 3-hr instantaneous (I3) data.
@@ -1946,8 +1942,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1981,6 +1977,7 @@ CONTAINS
 !  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_2 for offline simulations
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  20 Sep 2016 - R. Yantosca - Bug fix: FIRST must be declared as LOGICAL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1999,7 +1996,7 @@ CONTAINS
     CHARACTER(LEN=255) :: caller                   ! Name of this routine
 
     ! SAVEd scalars
-    INTEGER, SAVE      :: first = .TRUE.           ! First time reading data?
+    LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                     
     ! Arrays                                 
     INTEGER            :: st3d(3), ct3d(3)         ! Start & count indices
@@ -2010,6 +2007,9 @@ CONTAINS
     !======================================================================
     ! Select the proper time slice
     !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller  = "GEOSFP_READ_I3_2 (geosfp_read_mod.F90)"
 
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
@@ -2025,9 +2025,6 @@ CONTAINS
     ! Open the netCDF file
     !======================================================================
     IF ( time_index == 1 .or. first ) THEN
-
-       ! Name of this routine (for error printout)
-       caller  = "GEOSFP_READ_I3_2 (geosfp_read_mod.F90)"
 
        ! Replace time & date tokens in the file name
        dir     = TRIM( Input_Opt%GEOS_FP_DIR )
@@ -2073,7 +2070,7 @@ CONTAINS
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fI3_2, TRIM(v_name), st3d, ct3d )
-    State_Met%PS2 = Q2
+    State_Met%PS2_WET = Q2
 
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)
@@ -2152,7 +2149,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_geosfp_read
+! !IROUTINE: Cleanup_GeosFp_Read
 !
 ! !DESCRIPTION: Closes any open netCDF files at the end of a simulation.
 !  This can occur if the simulation ends at a time other than 00:00 GMT.

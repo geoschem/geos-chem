@@ -1,0 +1,8 @@
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOS
+! !SECTION: Grid utility modules
+! !DESCRIPTION: These modules define the horizontal and vertical grids used by GEOS-Chem.  They also contain lookup functions to return information about these grids.
+!EOS
+!------------------------------------------------------------------------------

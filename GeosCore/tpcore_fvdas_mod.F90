@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: Tpcore_FvDas_Mod
+! !MODULE: tpcore_fvdas_mod.F90
 !
 ! !DESCRIPTION: \subsection*{Overview}
 !  Module Tpcore\_Fvdas\_Mod contains routines for the TPCORE
@@ -222,7 +222,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE PHYSCONSTANTS
+    USE PhysConstants
 !
 ! !INPUT PARAMETERS: 
 !
@@ -397,7 +397,7 @@ CONTAINS
 ! !USES:
 !
     ! Include files w/ physical constants and met values
-    USE PHYSCONSTANTS
+    USE PhysConstants
 !
 ! !INPUT PARAMETERS: 
 !

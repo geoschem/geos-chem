@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: cmn_fjx_mod
+! !MODULE: CMN_FJX_mod.F
 !
 ! !DESCRIPTION: Module CMN\_FJX\_MOD contains parameters and global variables
 !  used to interface between Harvard chemistry and UC-Irvine photolysis 
@@ -231,7 +231,7 @@
       INTEGER, DIMENSION(AN_)     :: MIEDX
 
       ! TITLEAA: Title for scattering data
-      CHARACTER*20, DIMENSION(A_) :: TITLEAA
+      CHARACTER*80, DIMENSION(A_) :: TITLEAA
 
       ! Dust and aerosol optical depths
       REAL(fp), ALLOCATABLE :: ODMDUST(:,:,:,:,:)
@@ -317,7 +317,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_cmn_fjx
+! !IROUTINE: Init_Cmn_Fjx
 !
 ! !DESCRIPTION: Routine INIT\_CMN\_FJX initializes quantities based on
 !  the grid-independent size parameters.
@@ -329,7 +329,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
 ! 
@@ -366,15 +366,15 @@
                                     ! not get to ATAUMN)
 
       ALLOCATE( ZPJ( LLPAR, JVN_, IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
       ZPJ = 0e+0_fp
 
       ALLOCATE( ODMDUST( IIPAR, JJPAR, LLPAR, NWVAA, NDUST), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
       ODMDUST = 0e+0_fp
 
       ALLOCATE( ODAER( IIPAR, JJPAR, LLPAR, NWVAA, NAER), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
       ODAER = 0e+0_fp
 
       !-----------------------------------------------------------------------
@@ -382,26 +382,26 @@
       !-----------------------------------------------------------------------
 
       ALLOCATE( IRHARR(IIPAR,JJPAR,LLPAR), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
       IRHARR = 0d0
 
 #if defined( RRTMG )
       ! +2 to split SNA into SU, NI and AM
       ALLOCATE( RTODAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+2+NDUST), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
       RTODAER = 0d0
 
       ALLOCATE( RTSSAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+2+NDUST), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
       RTSSAER = 0d0
 
       ALLOCATE( RTASYMAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+2+NDUST),STAT=RC)
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
       RTASYMAER = 0d0
 #endif
 
       ! Return w/ success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE Init_CMN_FJX
 !EOC
@@ -410,7 +410,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_cmn_fjx
+! !IROUTINE: Cleanup_Cmn_Fjx
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_CMN\_FJX deallocates all module arrays.
 !\\
@@ -421,7 +421,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -450,7 +450,7 @@
 #endif
 
       ! Return successfully
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE Cleanup_CMN_FJX
 !EOC

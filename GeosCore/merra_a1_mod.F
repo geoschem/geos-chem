@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: merra_a1_mod
+! !MODULE: merra_a1_mod.F90
 !
 ! !DESCRIPTION: Module MERRA\_A1\_MOD contains subroutines for reading the 
 !  1-hour time averaged (aka "A1") fields from the MERRA data archive.
@@ -15,9 +15,8 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -152,7 +151,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : FILE_EXISTS
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -291,8 +290,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -422,7 +421,7 @@
       USE DIAG_MOD,           ONLY : AD67
 #endif
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_A1
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
 !

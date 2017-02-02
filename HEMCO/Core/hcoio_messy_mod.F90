@@ -12,13 +12,12 @@
 ! rectilinear (regular lon-lat) grids but can be extended to support curvilinear 
 ! grids.
 !\\
-! !REFERENCES: 
+! REFERENCES: 
 ! \begin{itemize}
 ! \item Joeckel, P. Technical note: Recursive rediscretisation of geo-
 ! scientific data in the Modular Earth Submodel System (MESSy), ACP, 6,
 ! 3557--3562, 2006.
 ! \end{itemize}
-!\\
 ! !INTERFACE: 
 !
 MODULE HCOIO_MESSY_MOD
@@ -26,8 +25,8 @@ MODULE HCOIO_MESSY_MOD
 ! !USES:
 !
   USE HCO_ERROR_MOD
+  USE HCO_TYPES_MOD,        ONLY : ListCont
   USE HCO_STATE_MOD,        ONLY : Hco_State
-  USE HCO_DATACONT_MOD,     ONLY : ListCont
   USE MESSY_NCREGRID_BASE,  ONLY : NARRAY, AXIS
 
   IMPLICIT NONE
@@ -60,7 +59,7 @@ MODULE HCOIO_MESSY_MOD
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_MESSY_REGRID
+! !IROUTINE: Hco_Messy_Regrid
 !
 ! !DESCRIPTION: This is the wrapper routine to regrid a 4D input array
 ! NcArr (x,y,z,t) onto the HEMCO emissions grid (defined in HcoState)
@@ -122,25 +121,26 @@ MODULE HCOIO_MESSY_MOD
 !
 ! !REVISION HISTORY:
 !  27 Jun 2014 - C. Keller - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 ! 
 ! !ROUTINE ARGUMENTS:
 !
-    TYPE(narray), POINTER         :: narr_src(:)      => NULL()
-    TYPE(narray), POINTER         :: narr_dst(:)      => NULL()
-    TYPE(axis),   POINTER         :: axis_src(:)      => NULL()
-    TYPE(axis),   POINTER         :: axis_dst(:)      => NULL()
-    INTEGER,      POINTER         :: rg_type(:)       => NULL()
-    INTEGER,      POINTER         :: rcnt   (:)       => NULL()
-    REAL(dp),     POINTER         :: sovl   (:)       => NULL()
-    REAL(dp),     POINTER         :: dovl   (:)       => NULL()
-    REAL(hp),     POINTER         :: lon    (:)       => NULL()
-    REAL(hp),     POINTER         :: lat    (:)       => NULL()
-    REAL(hp),     POINTER         :: sigma  (:,:,:)   => NULL()
-    REAL(sp),     POINTER         :: ArrIn  (:,:,:,:) => NULL()
-    REAL(sp),     POINTER         :: ArrOut (:,:,:,:) => NULL()
+    TYPE(narray), POINTER         :: narr_src(:)
+    TYPE(narray), POINTER         :: narr_dst(:)
+    TYPE(axis),   POINTER         :: axis_src(:)
+    TYPE(axis),   POINTER         :: axis_dst(:)
+    INTEGER,      POINTER         :: rg_type(:)
+    INTEGER,      POINTER         :: rcnt   (:)
+    REAL(dp),     POINTER         :: sovl   (:)
+    REAL(dp),     POINTER         :: dovl   (:)
+    REAL(hp),     POINTER         :: lon    (:)
+    REAL(hp),     POINTER         :: lat    (:)
+    REAL(hp),     POINTER         :: sigma  (:,:,:)
+    REAL(sp),     POINTER         :: ArrIn  (:,:,:,:)
+    REAL(sp),     POINTER         :: ArrOut (:,:,:,:)
     REAL(hp), ALLOCATABLE, TARGET :: sigout (:,:,:) 
     REAL(hp)                      :: sigMin
     INTEGER                       :: NZIN, NZOUT, NTIME
@@ -156,11 +156,26 @@ MODULE HCOIO_MESSY_MOD
 
     ! For error handling
     LOC = 'HCO_MESSY_REGRID (HCOI_MESSY_MOD.F90)'
-    CALL HCO_ENTER ( LOC, RC )
+    CALL HCO_ENTER ( HcoState%Config%Err, LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Init
+    narr_src => NULL()
+    narr_dst => NULL()
+    axis_src => NULL()
+    axis_dst => NULL()
+    rg_type  => NULL()
+    rcnt     => NULL()
+    sovl     => NULL()
+    dovl     => NULL()
+    lon      => NULL()
+    lat      => NULL()
+    sigma    => NULL()
+    ArrIn    => NULL()
+    ArrOut   => NULL()
+
     ! verbose?
-    verb = HCO_IsVerb(3) 
+    verb = HCO_IsVerb(HcoState%Config%Err,3) 
 
     ! Horizontal dimension of input data
     NXIN = SIZE(NcArr,1)
@@ -177,7 +192,7 @@ MODULE HCOIO_MESSY_MOD
     IF ( Lct%Dct%Dta%SpaceDim /= 2 .AND. &
          Lct%Dct%Dta%SpaceDim /= 3         ) THEN
        MSG = 'Can only regrid 2D or 3D data: ' // TRIM(Lct%Dct%cName)
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC )
        RETURN 
     ENDIF
 
@@ -231,7 +246,7 @@ MODULE HCOIO_MESSY_MOD
        IF ( .NOT. ASSOCIATED(LevEdge) .AND. .NOT. IsModelLev ) THEN
           MSG = 'Cannot regrid '//TRIM(Lct%Dct%cName)//'. Either level '//&
                 'edges must be provided or data must be on model levels.'
-          CALL HCO_ERROR ( MSG, RC )
+          CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC )
           RETURN
        ENDIF
     ENDIF
@@ -244,7 +259,7 @@ MODULE HCOIO_MESSY_MOD
        ! pressure @ i,j: sigma(i,j,l) = p(i,j,l) / ps(i,j)
        ALLOCATE(sigout(HcoState%NX,HcoState%NY,HcoState%NZ+1),STAT=AS)
        IF ( AS/= 0 ) THEN
-          CALL HCO_ERROR( 'Cannot allocate sigout', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate sigout', RC )
           RETURN
        ENDIF
        DO l = 1, HcoState%NZ+1
@@ -274,22 +289,24 @@ MODULE HCOIO_MESSY_MOD
     ! verbose mode 
     IF ( verb ) THEN
        MSG = 'Do MESSy regridding: ' // TRIM(Lct%Dct%cName)
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) ' - SameGrid     ? ', SameGrid
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) ' - Model levels ? ', IsModelLev
-       CALL HCO_MSG(MSG)
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
 
     !-----------------------------------------------------------------
     ! Make sure output array is defined & allocated
     !-----------------------------------------------------------------
     IF ( Lct%Dct%Dta%SpaceDim == 2 ) THEN
-       CALL FileData_ArrCheck( Lct%Dct%Dta, HcoState%NX, HcoState%NY, &
+       CALL FileData_ArrCheck( HcoState%Config, &
+                               Lct%Dct%Dta, HcoState%NX, HcoState%NY, &
                                NTIME,       RC                         )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ELSEIF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
-       CALL FileData_ArrCheck( Lct%Dct%Dta, HcoState%NX, HcoState%NY, &
+       CALL FileData_ArrCheck( HcoState%Config, &
+                               Lct%Dct%Dta, HcoState%NX, HcoState%NY, &
                                NZOUT,       NTIME,       RC            ) 
        IF ( RC /= HCO_SUCCESS ) RETURN   
     ENDIF
@@ -300,7 +317,7 @@ MODULE HCOIO_MESSY_MOD
     IF ( SameGrid ) THEN
        MSG = 'Input grid seems to match output grid. ' // &
              'No regridding is performed: ' // TRIM(Lct%Dct%cName)
-       CALL HCO_WARNING( MSG, RC )
+       CALL HCO_WARNING( HcoState%Config%Err, MSG, RC )
 
        ! For every time slice...
        DO I = 1, NTIME
@@ -318,7 +335,7 @@ MODULE HCOIO_MESSY_MOD
        ENDDO
 
        ! All done! 
-       CALL HCO_LEAVE ( RC )
+       CALL HCO_LEAVE ( HcoState%Config%Err, RC )
        RETURN
     ENDIF
 
@@ -376,13 +393,13 @@ MODULE HCOIO_MESSY_MOD
        rg_type(:) = RG_IDX
        IF ( verb ) THEN
           MSG = ' - Remap as index data.'
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
     ELSE
        rg_type(:) = RG_INT 
        IF ( verb ) THEN
           MSG = ' - Remap as concentration data.'
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
     ENDIF
 
@@ -398,7 +415,7 @@ MODULE HCOIO_MESSY_MOD
        NCALLS = NZIN
        ALLOCATE(ArrOut(HcoState%NX,HcoState%NY,NZIN,NTIME),STAT=AS)
        IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate ArrOut', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate ArrOut', RC )
           RETURN
        ENDIF
        ArrOut = 0.0_sp
@@ -418,7 +435,7 @@ MODULE HCOIO_MESSY_MOD
        ! Map input array onto MESSy array. Different time slices are
        ! stored as individual vector elements of narr_src.
        !-----------------------------------------------------------------
-       CALL HCO2MESSY( am_I_Root, ArrIn, narr_src, axis_src, RC )
+       CALL HCO2MESSY( am_I_Root, HcoState, ArrIn, narr_src, axis_src, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        !-----------------------------------------------------------------
@@ -453,7 +470,7 @@ MODULE HCOIO_MESSY_MOD
     !-----------------------------------------------------------------
     DEALLOCATE( sovl, dovl, rcnt, STAT=AS)
     IF(AS/=0) THEN
-       CALL HCO_ERROR('DEALLOCATION ERROR 1', RC )
+       CALL HCO_ERROR(HcoState%Config%Err,'DEALLOCATION ERROR 1', RC )
        RETURN
     ENDIF
     NULLIFY(sovl, dovl, rcnt)
@@ -463,7 +480,7 @@ MODULE HCOIO_MESSY_MOD
     ENDDO
     DEALLOCATE(narr_dst, STAT=AS)
     IF(AS/=0) THEN
-       CALL HCO_ERROR('DEALLOCATION ERROR 3', RC )
+       CALL HCO_ERROR(HcoState%Config%Err,'DEALLOCATION ERROR 3', RC )
        RETURN
     ENDIF
     NULLIFY(narr_dst)
@@ -473,7 +490,7 @@ MODULE HCOIO_MESSY_MOD
     ENDDO    
     DEALLOCATE(narr_src, STAT=AS)
     IF(AS/=0) THEN
-       CALL HCO_ERROR('DEALLOCATION ERROR 2', RC )
+       CALL HCO_ERROR(HcoState%Config%Err,'DEALLOCATION ERROR 2', RC )
        RETURN
     ENDIF
     NULLIFY(narr_src)
@@ -485,7 +502,7 @@ MODULE HCOIO_MESSY_MOD
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE ( HcoState%Config%Err, RC )
 
   END SUBROUTINE HCO_MESSY_REGRID
 !EOC
@@ -494,11 +511,11 @@ MODULE HCOIO_MESSY_MOD
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: AXIS_CREATE
+! !IROUTINE: Axis_Create
 !
 ! !DESCRIPTION: Subroutine AXIS\_CREATE creates a MESSy axis type 
 ! from the grid defined by mid points Lon, Lat, Lev. Lev must be in
-! (unitless) sigma coordinates: sigma(i,j,l) = p(i,j,l) / p_surface(i,j)
+! (unitless) sigma coordinates: sigma(i,j,l) = p(i,j,l) / p\_surface(i,j)
 !\\
 !\\
 ! !INTERFACE:
@@ -545,7 +562,7 @@ MODULE HCOIO_MESSY_MOD
 
     ! For error handling
     LOC = 'AXIS_CREATE (HCOI_MESSY_MOD.F90)'
-    CALL HCO_ENTER ( LOC, RC )
+    CALL HCO_ENTER ( HcoState%Config%Err, LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
@@ -570,7 +587,7 @@ MODULE HCOIO_MESSY_MOD
     ! ALLOCATE AXIS
     ALLOCATE(ax(N), STAT=status)
     IF ( status /= 0 ) THEN
-       CALL HCO_ERROR ( 'Cannot allocate axis', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate axis', RC )
        RETURN
     ENDIF
     DO I=1, N
@@ -595,7 +612,7 @@ MODULE HCOIO_MESSY_MOD
        ax(N)%ndp    = 1          ! LONGITUDE IS ...
        ALLOCATE(ax(N)%dep(1), STAT=status)
        IF ( status/= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate lon dependencies', RC )
+          CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate lon dependencies', RC )
           RETURN
        ENDIF
        ax(N)%dep(1) = N          ! ... INDEPENDENT
@@ -604,14 +621,14 @@ MODULE HCOIO_MESSY_MOD
        ax(N)%dat%n = 1          ! 1 dimension
        ALLOCATE(ax(N)%dat%dim(ax(N)%dat%n), STAT=status)
        IF ( status/= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate lon dimensions', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate lon dimensions', RC )
           RETURN
        ENDIF
        ax(N)%dat%dim(:) = XLON
     
        ALLOCATE(ax(N)%dat%vd(XLON),STAT=status)
        IF ( status/= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate lon axis', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate lon axis', RC )
           RETURN
        ENDIF
        ax(N)%dat%vd(:) = lon 
@@ -633,7 +650,7 @@ MODULE HCOIO_MESSY_MOD
        ax(N)%ndp    = 1          ! LATITUDE IS ...
        ALLOCATE(ax(N)%dep(1), STAT=status)
        IF ( status/= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate lat dependencies', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate lat dependencies', RC )
           RETURN
        ENDIF
        ax(N)%dep(1) = N          ! ... INDEPENDENT
@@ -642,14 +659,14 @@ MODULE HCOIO_MESSY_MOD
        ax(N)%dat%n = 1          ! 1 dimension
        ALLOCATE(ax(N)%dat%dim(ax(N)%dat%n), STAT=status)
        IF ( status/= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate lat dimensions', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate lat dimensions', RC )
           RETURN
        ENDIF
        ax(N)%dat%dim(:) = YLAT
 
        ALLOCATE(ax(N)%dat%vd(YLAT),STAT=status)
        IF ( status/= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate lat axis', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate lat axis', RC )
           RETURN
        ENDIF
        ax(N)%dat%vd(:) = lat 
@@ -698,7 +715,7 @@ MODULE HCOIO_MESSY_MOD
        ax(N)%ndp = ndp 
        ALLOCATE(ax(N)%dep(ax(N)%ndp), STAT=status)
        IF ( status /= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate lev dependencies', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate lev dependencies', RC )
           RETURN
        ENDIF
     
@@ -707,7 +724,7 @@ MODULE HCOIO_MESSY_MOD
        ax(N)%dat%n = ndp
        ALLOCATE(ax(N)%dat%dim(ax(N)%dat%n), STAT=status)
        IF ( status/= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate lat dimensions', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate lat dimensions', RC )
           RETURN
        ENDIF      
        
@@ -734,7 +751,7 @@ MODULE HCOIO_MESSY_MOD
 
        ALLOCATE(ax(N)%dat%vd(nlev),STAT=status)
        IF ( status/= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate lat axis', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate lat axis', RC )
           RETURN
        ENDIF
        
@@ -753,7 +770,7 @@ MODULE HCOIO_MESSY_MOD
                 
     END IF !lev
 
-    CALL HCO_LEAVE ( RC )
+    CALL HCO_LEAVE ( HcoState%config%Err, RC )
 
   END SUBROUTINE AXIS_CREATE
 !EOC
@@ -762,7 +779,7 @@ MODULE HCOIO_MESSY_MOD
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: AXIS_DELETE
+! !IROUTINE: Axis_Delete
 !
 ! !DESCRIPTION: Subroutine AXIS\_DELETE deletes the specified MESSy
 ! axis.
@@ -815,7 +832,7 @@ MODULE HCOIO_MESSY_MOD
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO2MESSY
+! !IROUTINE: Hco2Messy
 !
 ! !DESCRIPTION: Subroutine HCO2MESSY converts a HEMCO data array into a 
 ! messy array-structure.
@@ -823,7 +840,7 @@ MODULE HCOIO_MESSY_MOD
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO2MESSY( am_I_Root, InArr, narr, ax, RC )
+  SUBROUTINE HCO2MESSY( am_I_Root, HcoState, InArr, narr, ax, RC )
 !
 ! !USES:
 !
@@ -831,6 +848,7 @@ MODULE HCOIO_MESSY_MOD
 ! !INPUT/OUTPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root
+    TYPE(HCO_State),  POINTER        :: HcoState
     REAL(sp),         POINTER        :: InArr(:,:,:,:)
     TYPE(narray),     POINTER        :: narr(:)
     TYPE(axis),       POINTER        :: ax(:)
@@ -869,7 +887,7 @@ MODULE HCOIO_MESSY_MOD
     ! create 
     ALLOCATE(narr(NT),STAT=status)
     IF(status/=0) THEN
-       CALL HCO_ERROR( 'narr allocation error', RC, THISLOC=LOC )
+       CALL HCO_ERROR( HcoState%Config%Err, 'narr allocation error', RC, THISLOC=LOC )
        RETURN
     ENDIF
 
@@ -880,7 +898,7 @@ MODULE HCOIO_MESSY_MOD
        narr(T)%n = size(ax)
        ALLOCATE(narr(T)%dim(narr(T)%n),STAT=status)
        IF(status/=0) THEN
-          CALL HCO_ERROR( 'Cannot allocate array dims', RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate array dims', RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -895,7 +913,7 @@ MODULE HCOIO_MESSY_MOD
 
        ALLOCATE(narr(T)%vd(NCELLS),STAT=status)
        IF(status/=0) THEN
-          CALL HCO_ERROR( 'Cannot allocate array', RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate array', RC, THISLOC=LOC )
           RETURN
        ENDIF 
     ENDDO !T
@@ -938,7 +956,7 @@ MODULE HCOIO_MESSY_MOD
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: MESSY2HCO
+! !IROUTINE: Messy2Hco
 !
 ! !DESCRIPTION: Subroutine MESSY2HCO converts a MESSy array structure 
 ! into a HEMCO data array. This is basically the reverse function of
@@ -1013,7 +1031,8 @@ MODULE HCOIO_MESSY_MOD
             ( SIZE(Ptr4D,4) /= NT )       ) THEN
           WRITE(MSG,*) 'Temporary pointer has wrong dimensions: ', &
                        TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR ( MSG, RC, THISLOC='MESSY2HCO (hcoio_messy_mod.F90)' )
+          CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, &
+                           THISLOC='MESSY2HCO (hcoio_messy_mod.F90)' )
           RETURN
        ENDIF
     ENDIF

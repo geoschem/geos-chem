@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: ucx_mod
+! !MODULE: ucx_mod.F
 !     
 ! !DESCRIPTION: Module UCX\_MOD contains routines and variables which
 !  are associated with the addition of full stratospheric chemistry to
@@ -17,10 +17,11 @@
 !
 ! !USES:
 !
-      USE PHYSCONSTANTS        ! Physical parameters
-      USE inquireMod,   ONLY : findFreeLUN
-      USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,     ONLY : DEBUG_MSG
+      USE inquireMod,    ONLY : findFreeLUN
+      USE PhysConstants       ! Physical constants
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
 !#if !defined(ESMF_)
       ! NcdfUtil modules for netCDF I/O
@@ -29,8 +30,6 @@
       USE m_netcdf_io_read                    ! netCDF data reads
       USE m_netcdf_io_close                   ! netCDF close
 !#endif
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 !#if !defined(ESMF_)
@@ -48,7 +47,6 @@
                           PUBLIC :: T_STS ! Max temperature of STS formation (K)
       REAL(fp),           PUBLIC :: T_NAT_SUPERCOOL ! NAT supercooling (K)
       REAL(fp),           PUBLIC :: P_ICE_SUPERSAT ! Ice supersaturation (-)
-                          PUBLIC :: KHETI_SLA ! Reaction cofactors for SLA
                           PUBLIC :: NDENS_AER ! See below
       INTEGER,            PUBLIC :: CFCYEAR ! Year for CFC emissions
 !
@@ -66,7 +64,6 @@
       PUBLIC  :: GET_STRAT_OPT
       PUBLIC  :: KG_STRAT_AER
       PUBLIC  :: RHO_STRAT_AER
-      PUBLIC  :: CHECK_NAT
       PUBLIC  :: INIT_UCX
       PUBLIC  :: DIAGINIT_UCX
       PUBLIC  :: CLEANUP_UCX
@@ -106,6 +103,18 @@
 !  08 May 2015 - C. Keller     - Added WRITE_STATE_PSC
 !  05 Jan 2016 - E. Lundgren   - Use global physical parameters AVO, PI, AIRMW, 
 !                                RE, RSTARG, and ATM
+!  28 Jan 2016 - M. Sulprizio  - STATE_PSC and KHETI_SLA are now fields in
+!                                State_Chm instead of public arrays. These need
+!                                to be added to the derived type object to be
+!                                accessed in gckpp_HetRates.F90.
+!  28 Jan 2016 - M. Sulprizio  - Move routine CHECK_NAT to gckpp_HetRates.F90
+!  21 Jun 2016 - R. Yantosca   - Now store species ID flags as module variables
+!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!                              compatible with the FlexChem implementation
+!  18 Jul 2016 - M. Sulprizio- Remove CFCX and HCFCX everywhere and replace with
+!                              their constituents. Family tracers have been
+!                              eliminated.
+!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -151,9 +160,9 @@
       !
       ! Scalars
       !
-      ! TRAC_IDX           : Tracer index for output
-      ! N_EMIT             : Number of tracers to emit
-      ! MAX_EMIT           : Limit on tracer emission count
+      ! TRAC_IDX           : Species index for output
+      ! N_EMIT             : Number of species to emit
+      ! MAX_EMIT           : Limit on species emission count
       ! SFC_MONTH          : Current month
       ! OFFSETYEAR         : Number of year-ends since simulation start
       ! MONTH_STR_INT      : Current month
@@ -169,14 +178,14 @@
       ! ISR_N2O5           : N2O5 MW (inverse sqrt) (kg/kmol)^-0.5
       ! ISR_HOCl           : HOCl MW (inverse sqrt) (kg/kmol)^-0.5
       ! ISR_HOBr           : HOBr MW (inverse sqrt) (kg/kmol)^-0.5
-      ! CLOCKMR            : Current base MR for the clock tracer
+      ! CLOCKMR            : Current base MR for the clock species
       !
       ! Arrays
       !
       ! UCX_MR             : AER 2D mixing ratios (v/v)
       ! UCX_PLEVS          : Pressure levels of 2D data (hPa)
       ! UCX_LATS           : Latitude edges of 2D data (deg)
-      ! IDT_EMIT           : IDs of emitted tracers
+      ! IDT_EMIT           : IDs of emitted species
       ! GRID_EMIT          : Surface CFC mixing ratios
       ! SFC_MONTH          : Month of last read-in
       ! RAD_AER            : Strat. aerosol radius (cm)
@@ -184,8 +193,6 @@
       ! SAD_AER            : Aerosol surface area density (cm2/cm3)
       ! NDENS_AER          : Aerosol number density (#/m3)
       ! RHO_AER            : Aerosol mass density (kg/m3 aerosol)
-      ! STATE_PSC          : Gridbox PSC type (see Kirner et al)
-      ! KHETI_SLA          : Liquid aerosol reaction cofactors
       ! AERFRAC            : Mass fraction of species in liquid aerosols
       ! AERFRACIND         : Indices of liquid aerosol species
       ! NOX_O              : Monthly mean noontime O3P/O1D for NOx calcs
@@ -196,12 +203,12 @@
       !
       ! TRAC_FILE          : Input filename
       ! MONTH_STR          : Current month
-      ! TRAC_SET           : Tracer name to be overwritten
-      ! TRAC_EMIT          ! Tracer names for emission
+      ! TRAC_SET           : Species name to be overwritten
+      ! TRAC_EMIT          ! Species names for emission
       !
       ! Logicals
       ! 
-      ! TRAC_ADD            : Add to (rather than overwrite) tracer
+      ! TRAC_ADD            : Add to (rather than overwrite) species
       ! STRAT2DCH4          : Use 2D estimates of stratospheric CH4?
       ! 
       !=================================================================
@@ -240,9 +247,6 @@
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: SAD_AER
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: NDENS_AER
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: RHO_AER
-      !INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
-      REAL(f4),DIMENSION(:,:,:),POINTER       :: STATE_PSC => NULL()
-      REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: KHETI_SLA
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: AERFRAC
       INTEGER,DIMENSION(:),ALLOCATABLE      :: AERFRACIND
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: NOX_O
@@ -252,7 +256,7 @@
       ! Strings
       CHARACTER(LEN=255)                :: TRAC_FILE
       CHARACTER(LEN=2)                  :: MONTH_STR
-      CHARACTER(LEN=255)                :: TRAC_SET 
+      CHARACTER(LEN=255)                :: TRAC_SET
       CHARACTER*20,DIMENSION(50)        :: TRAC_EMIT
 
       ! Logicals
@@ -312,6 +316,25 @@
       INTEGER                     :: JJNOXCOEFF
 
       !=================================================================
+      ! Species ID flags
+      ! These are now defined in INIT_UCX and used where needed.
+      ! (sde, bmy, 6/21/16)
+      !=================================================================
+      INTEGER :: id_BCPI,    id_Br,       id_Br2,    id_BrCl,  id_BrNO2
+      INTEGER :: id_BrNO3,   id_BrO,      id_CCl4,   id_CFC11, id_CFC12 
+      INTEGER :: id_CH3Br,   id_CHBr3,    id_CH2Br2, id_CH3Cl
+      INTEGER :: id_CH3CCl3, id_CH4,      id_Cl,     id_Cl2,   id_Cl2O2
+      INTEGER :: id_ClNO2,   id_ClNO3,    id_ClO,    id_ClOO,  id_H1211
+      INTEGER :: id_H1301,   id_H2,       id_H2402,  id_H2O,   id_HBr
+      INTEGER :: id_HCFC22,  id_HCl,      id_HNO2,   id_HNO3,  id_N
+      INTEGER :: id_HNO4,    id_HOBr,     id_HOCl,   id_N2O,   id_N2O5
+      INTEGER :: id_NIT,     id_NO,       id_NO2,    id_NO3,   id_O3
+      INTEGER :: id_OClO,    id_OCS,      id_PAN,    id_SO2,   id_SO4
+      INTEGER :: id_CFC113,  id_CFC114,   id_CFC115
+      INTEGER :: id_HCFC123, id_HCFC141b, id_HCFC142b
+      INTEGER :: id_CLOCK
+
+      !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
       CONTAINS
@@ -325,7 +348,7 @@
 ! !IROUTINE: set_initial_mixratios
 !
 ! !DESCRIPTION: Subroutine SET\_INITIAL\_MIXRATIOS is a public interface.
-!  Concentrations of tracers are read from 2D estimates made using the
+!  Concentrations of species are read from 2D estimates made using the
 !  AER 2D model.
 !\\
 !\\
@@ -337,13 +360,12 @@
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : ALLOC_ERR,ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
-      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -351,12 +373,12 @@
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS: ! ewl note: can't be just output for trc removal
 !
-      TYPE(ChmState), INTENT(OUT) :: State_Chm   ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REMARKS:
-!  Concentrations of each of the following tracers are read from
+!  Concentrations of each of the following species are read from
 !  2D estimates made using the AER 2D model:
 !                                                                             .
 !     (# ) TRC                 = Constituents         < Controlled by
@@ -406,6 +428,13 @@
 !  24 Nov 2014 - C. Keller     - Update for stratospheric NOy (as suggested by 
 !                                Seb Eastham)
 !  16 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
+!  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
+!  21 Jun 2016 - R. Yantosca   - Now use module variables for species ID's
+!  21 Jun 2016 - R. Yantosca   - Add error checks to make sure that each
+!                                species ID flag has a valid value before
+!                                calling APPLY_2DRATIO routine
+!  22 Jun 2016 - M. Yannetti   - Replace TCVV with spc db MW and phys constant
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -413,15 +442,16 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: AS, N, I, J, L
-      REAL(fp)             :: PLAST, PCURR, PNEXT
-      REAL(fp)             :: YLAT
+      REAL(fp)           :: PLAST, PCURR, PNEXT
+      REAL(fp)           :: YLAT
       CHARACTER(LEN=255) :: MSG
       LOGICAL            :: USE2DDATA
-      REAL(fp)             :: C3090S, C0030S, C0030N, C3090N
+      REAL(fp)           :: C3090S, C0030S, C0030N, C3090N
       INTEGER            :: CH4_YEAR, INIT_MO
-      REAL(fp)             :: SCALEFAC
+      REAL(fp)           :: SCALEFAC
       INTEGER            :: FUTURE_LINE
       INTEGER            :: BASIS_LINE
+      REAL(fp)           :: MW_g
 
       ! Local variables for quantities from Input_Opt
       LOGICAL            :: LPRT
@@ -435,11 +465,10 @@
       LOGICAL            :: LSETBRSTRAT
       LOGICAL            :: LSETNOYSTRAT
 !      LOGICAL            :: LBASICEMIS
-      INTEGER            :: N_TRACERS
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
+      Real(fp)           :: MWTemp
 
       ! Pointers
-      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: Spc (:,:,:,:)
 
       !=================================================================
       ! SET_INITIAL_MIXRATIOS begins here!
@@ -457,13 +486,11 @@
       LSETBRSTRAT  = Input_Opt%LSETBRSTRAT
       LSETNOYSTRAT = Input_Opt%LSETNOYSTRAT
 !      LBASICEMIS   = Input_Opt%LBASICEMIS
-      N_TRACERS    = Input_Opt%N_TRACERS
-      TCVV         = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Set module variable
 
-      ! Initialize GEOS-Chem tracer array [kg/kg]
-      STT => State_Chm%Tracers
+      ! Initialize GEOS-Chem species array [kg/kg]
+      Spc => State_Chm%Species
 
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -481,6 +508,9 @@
       ! Get current month string
       MONTH_STR_INT = GET_MONTH()
       WRITE( MONTH_STR, '(i0.2)' ) MONTH_STR_INT
+
+      ! Error trap: make sure CFCYEAR is properly initialized
+      IF ( CFCYEAR < 0 ) CFCYEAR = GET_YEAR()
 
       ! Are we using 2D data?
       ! Don't use LBASICEMIS in check below (ckeller, 05/12/14)
@@ -521,57 +551,94 @@
             ! Scaling data only available for CH3Br
             SCALEFAC = 1.e+0_fp
 
-            TRAC_IDX = IDTBr2
-            TRAC_SET = 'BR2'
-            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-         
-            TRAC_IDX = IDTBr
-            TRAC_SET = 'BR'
-            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-         
-            TRAC_IDX = IDTBrO
-            TRAC_SET = 'BRO'
-            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-         
-            TRAC_IDX = IDTHOBr
-            TRAC_SET = 'HOBR'
-            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-         
-            TRAC_IDX = IDTHBr
-            TRAC_SET = 'HBR'
-            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-     
-            TRAC_IDX = IDTBrNO2
-            TRAC_SET = 'BRNO2'
-            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-     
-            TRAC_IDX = IDTBrNO3
-            TRAC_SET = 'BRNO3'
-            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-     
-            TRAC_IDX = IDTCHBr3 
-            TRAC_SET = 'CHBR3'
-            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-     
-            TRAC_IDX = IDTCH2Br2
-            TRAC_SET = 'CH2BR2'
-            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-     
-            TRAC_IDX = IDTCH3Br
-            TRAC_SET  = 'CH3BR'
-            SCALEFAC = MONTREAL_SCALEFAC('CH3Br',
-     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            !==============================================================
+            ! NOTE: Species ID flags are now module variables, and
+            ! are defined during the INIT phase in INIT_UCX_MOD.
+            !
+            ! Also note, we have added error checks to prevent calling
+            ! APPLY_2DTRAC if a species is undefined (bmy, 6/21/16)
+            !==============================================================
+            IF ( id_Br2 > 0 ) THEN
+               TRAC_IDX = id_Br2
+               TRAC_SET = 'BR2'
+               CALL APPLY_2DTRAC( .FALSE.,    LSETBRSTRAT, 
+     &                            .FALSE.,    SCALEFAC,
+     &                             Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_Br > 0 ) THEN
+               TRAC_IDX = id_Br
+               TRAC_SET = 'BR'
+               CALL APPLY_2DTRAC( .FALSE.,   LSETBRSTRAT, 
+     &                            .FALSE.,   SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_BrO > 0 ) THEN
+               TRAC_IDX = id_BrO
+               TRAC_SET = 'BRO'
+               CALL APPLY_2DTRAC( .FALSE.,   LSETBRSTRAT, 
+     &                            .FALSE.,   SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_HOBr > 0 ) THEN
+               TRAC_IDX = id_HOBr
+               TRAC_SET = 'HOBR'
+               CALL APPLY_2DTRAC( .FALSE.,   LSETBRSTRAT, 
+     &                            .FALSE.,   SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF (  id_HBr > 0 ) THEN
+               TRAC_IDX = id_HBr
+               TRAC_SET = 'HBR'
+               CALL APPLY_2DTRAC( .FALSE.,   LSETBRSTRAT, 
+     &                            .FALSE.,   SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_BrNO2 > 0 ) THEN 
+               TRAC_IDX = id_BrNO2
+               TRAC_SET = 'BRNO2'
+               CALL APPLY_2DTRAC( .FALSE.,   LSETBRSTRAT, 
+     &                            .FALSE.,   SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_BrNO3 > 0 ) THEN
+               TRAC_IDX = id_BrNO3 
+               TRAC_SET = 'BRNO3'
+               CALL APPLY_2DTRAC( .FALSE.,   LSETBRSTRAT, 
+     &                            .FALSE.,   SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_CHBr3 > 0 ) THEN
+               TRAC_IDX = id_CHBr3
+               TRAC_SET = 'CHBR3'
+               CALL APPLY_2DTRAC( .FALSE.,    LSETBRSTRAT, 
+     &                            .FALSE.,    SCALEFAC,
+     &                             Input_Opt, State_Met, State_Chm )
+            ENDIF
+              
+            IF ( id_CH2Br2 > 0 ) THEN 
+               TRAC_IDX = id_CH2Br2
+               TRAC_SET = 'CH2BR2'
+               CALL APPLY_2DTRAC( .FALSE.,   LSETBRSTRAT, 
+     &                            .FALSE.,   SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_CH3Br > 0 ) THEN
+               TRAC_IDX = id_CH3Br
+               TRAC_SET = 'CH3BR'
+               SCALEFAC = MONTREAL_SCALEFAC('CH3Br',
+     &              CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+               CALL APPLY_2DTRAC(.FALSE.,   LSETBRSTRAT,
+     &                           .FALSE.,   SCALEFAC,
+     &                           Input_Opt, State_Met, State_Chm )
+            ENDIF
          ENDIF
 
          ! Stratospheric NOy (update ckeller, 11/25/14)
@@ -588,50 +655,66 @@
             ! No Montreal scaling
             SCALEFAC = 1.e+0_fp
 
-            TRAC_IDX = IDTNO
-            TRAC_SET = 'NO'
-            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_NO > 0 ) THEN
+               TRAC_IDX = id_NO
+               TRAC_SET = 'NO'
+               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
 
-            TRAC_IDX = IDTNO2
-            TRAC_SET = 'NO2'
-            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
- 
-            ! Unstable product of ETO2 + NO2 gets lumped into NO2 for now
-            TRAC_SET = 'ETHO2NO2'
-            CALL APPLY_2DTRAC( .TRUE., .TRUE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_NO2 > 0 ) THEN
+               TRAC_IDX = id_NO2
+               TRAC_SET = 'NO2'
+               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
 
-            TRAC_IDX = IDTNO3
-            TRAC_SET = 'NO3'
-            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+               ! Unstable product of ETO2 + NO2 gets lumped into NO2 for now
+               TRAC_SET = 'ETHO2NO2'
+               CALL APPLY_2DTRAC( .TRUE., .TRUE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
 
-            TRAC_IDX = IDTN2O5
-            TRAC_SET = 'N2O5'
-            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_NO3 > 0 ) THEN 
+               TRAC_IDX = id_NO3
+               TRAC_SET = 'NO3'
+               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
 
-            TRAC_IDX = IDTHNO2
-            TRAC_SET = 'HONO'
-            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_N2O5 > 0 ) THEN
+               TRAC_IDX = id_N2O5
+               TRAC_SET = 'N2O5'
+               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
 
-            TRAC_IDX = IDTHNO3
-            TRAC_SET = 'HNO3'
-            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_HNO2 > 0 ) THEN
+               TRAC_IDX = id_HNO2
+               TRAC_SET = 'HONO'
+               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                             Input_Opt, State_Met, State_Chm )
+            ENDIF
 
-            TRAC_IDX = IDTHNO4
-            TRAC_SET = 'HO2NO2'
-            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_HNO3 > 0 ) THEN
+               TRAC_IDX = id_HNO3
+               TRAC_SET = 'HNO3'
+               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
 
-            TRAC_IDX = IDTPAN
-            TRAC_SET = 'PAN'
-            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_HNO4 > 0 ) THEN
+               TRAC_IDX = id_HNO4
+               TRAC_SET = 'HO2NO2'
+               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_PAN > 0 ) THEN
+               TRAC_IDX = id_PAN
+               TRAC_SET = 'PAN'
+               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
          ENDIF
 
          ! Br-Cl (special case)
@@ -644,10 +727,13 @@
             ! No Montreal scaling
             SCALEFAC = 1.e+0_fp
 
-            TRAC_IDX = IDTBrCl
-            TRAC_SET  = 'BRCL'
-            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_BrCl > 0 ) THEN
+               TRAC_IDX = id_BrCl
+               TRAC_SET = 'BRCL'
+               CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, 
+     &                            .FALSE., SCALEFAC,
+     &                             Input_Opt, State_Met, State_Chm )
+            ENDIF
      
          ENDIF
 
@@ -665,70 +751,103 @@
             ! No Montreal scaling for non-long-lived-species
             SCALEFAC = 1e+0_fp
 
-            TRAC_IDX = IDTCl
-            TRAC_SET = 'CL'
-            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTClO
-            TRAC_SET = 'CLO'
-            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTClNO2
-            TRAC_SET = 'CLNO2'
-            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTClNO3
-            TRAC_SET = 'CLNO3'
-            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTHOCl
-            TRAC_SET = 'HOCL'
-            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTOClO
-            TRAC_SET = 'OCLO'
-            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTClOO
-            TRAC_SET = 'CLOO'
-            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-     
-            TRAC_IDX = IDTCl2
-            TRAC_SET = 'CL2'
-            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTCl2O2
-            TRAC_SET = 'CL2O2'
-            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-     
-            TRAC_IDX = IDTHCl
-            TRAC_SET = 'HCL'
-            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-     
+            IF ( id_Cl > 0 ) THEN
+               TRAC_IDX = id_Cl
+               TRAC_SET = 'CL'
+               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_ClO > 0 ) THEN
+               TRAC_IDX = id_ClO
+               TRAC_SET = 'CLO'
+               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_ClNO2 > 0 ) THEN
+               TRAC_IDX = id_ClNO2
+               TRAC_SET = 'CLNO2'
+               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_ClNO3 > 0 ) THEN
+               TRAC_IDX = id_ClNO3
+               TRAC_SET = 'CLNO3'
+               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_HOCl > 0 ) THEN
+               TRAC_IDX = id_HOCl
+               TRAC_SET = 'HOCL'
+               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_OClO > 0 ) THEN
+               TRAC_IDX = id_OClO
+               TRAC_SET = 'OCLO'
+               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_ClOO > 0 ) THEN
+               TRAC_IDX = id_ClOO
+               TRAC_SET = 'CLOO'
+               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_Cl2 > 0 ) THEN
+               TRAC_IDX = id_Cl2
+               TRAC_SET = 'CL2'
+               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_Cl2O2 > 0 ) THEN
+               TRAC_IDX = id_Cl2O2
+               TRAC_SET = 'CL2O2'
+               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_HCl > 0 ) THEN
+               TRAC_IDX = id_HCl
+               TRAC_SET = 'HCL'
+               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
             ! Handle chloroalkanes      
-            TRAC_IDX = IDTCH3Cl
-            TRAC_SET = 'CH3CL'
-            SCALEFAC = MONTREAL_SCALEFAC('CH3Cl',
-     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+            IF ( id_CH3Cl > 0 ) THEN
+               TRAC_IDX = id_CH3Cl
+               TRAC_SET = 'CH3CL'
+               SCALEFAC = MONTREAL_SCALEFAC('CH3Cl',
+     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_CH3CCl3 > 0 ) THEN
+               TRAC_IDX = id_CH3CCl3
+               TRAC_SET = 'CH3CCL3'
+               SCALEFAC = MONTREAL_SCALEFAC('CH3CCl3',
+     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
-     
-            TRAC_IDX = IDTCH3CCl3
-            TRAC_SET = 'CH3CCL3'
-            SCALEFAC = MONTREAL_SCALEFAC('CH3CCl3',
-     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-     
-            TRAC_IDX = IDTCCl4
-            TRAC_SET = 'CCL4'
-            SCALEFAC = MONTREAL_SCALEFAC('CCl4',
-     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_CCl4 > 0 ) THEN
+               TRAC_IDX = id_CCl4
+               TRAC_SET = 'CCL4'
+               SCALEFAC = MONTREAL_SCALEFAC('CCl4',
+     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+     &                           Input_Opt, State_Met, State_Chm )
+            ENDIF
          ENDIf
          
          ! CFCs, HCFCs and Halons
@@ -740,92 +859,126 @@
                WRITE(6,*) '|R-113    |R-114    |R-115    |'
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
-            ! H-1211, 1301 and 2402
-            TRAC_IDX = IDTH1211
-            TRAC_SET = 'CBRCLF2'
-            SCALEFAC = MONTREAL_SCALEFAC('H1211',
-     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTH1301
-            TRAC_SET = 'CBRF3'
-            SCALEFAC = MONTREAL_SCALEFAC('H1301',
-     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-            TRAC_IDX = IDTH2402
-            TRAC_SET = 'C2BR2F4'
 
-            IF (UCXNETCDF) THEN
-               SCALEFAC = MONTREAL_SCALEFAC('C2BR2F4',
+            ! H-1211, 1301 and 2402
+            IF ( id_H1211 > 0 ) THEN
+               TRAC_IDX = id_H1211
+               TRAC_SET = 'CBRCLF2'
+               SCALEFAC = MONTREAL_SCALEFAC('H1211',
      &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            ELSE
-!               SCALEFAC=GET_MONTREAL('C2BR2F4',CFCYEAR+OFFSETYEAR-1949)/
-!     &                  GET_MONTREAL('C2BR2F4',INITMR_BASIS-1949)
-               SCALEFAC = SFCMR_GET('C2BR2F4',CFCYEAR+OFFSETYEAR,1)
-     &                  / SFCMR_GET('C2BR2F4',INITMR_BASIS,1)
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+     &                           Input_Opt, State_Met, State_Chm )
             ENDIF
 
-            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_H1301 > 0 ) THEN
+               TRAC_IDX = id_H1301
+               TRAC_SET = 'CBRF3'
+               SCALEFAC = MONTREAL_SCALEFAC('H1301',
+     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+     &                           Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_H2402 > 0 ) THEN
+               TRAC_IDX = id_H2402
+               TRAC_SET = 'C2BR2F4'
+
+               IF (UCXNETCDF) THEN
+                  SCALEFAC = MONTREAL_SCALEFAC('C2BR2F4',
+     &                       CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+               ELSE
+!                  SCALEFAC=GET_MONTREAL('C2BR2F4',CFCYEAR+OFFSETYEAR-1949)/
+!     &                     GET_MONTREAL('C2BR2F4',INITMR_BASIS-1949)
+                  SCALEFAC = SFCMR_GET('C2BR2F4',CFCYEAR+OFFSETYEAR,1)
+     &                     / SFCMR_GET('C2BR2F4',INITMR_BASIS,1)
+               ENDIF
+
+               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
      
             ! CFC  11, 12, and [113/114/115]
-            TRAC_IDX = IDTCFC11
-            TRAC_SET = 'CFCL3'
-            SCALEFAC = MONTREAL_SCALEFAC('CFC11',
-     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_CFC11 > 0 ) THEN
+               TRAC_IDX = id_CFC11
+               TRAC_SET = 'CFCL3'
+               SCALEFAC = MONTREAL_SCALEFAC('CFC11',
+     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
 
-            TRAC_IDX = IDTCFC12
-            TRAC_SET = 'CF2CL2'
-            SCALEFAC = MONTREAL_SCALEFAC('CFC12',
-     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_CFC12 > 0 ) THEN
+               TRAC_IDX = id_CFC12
+               TRAC_SET = 'CF2CL2'
+               SCALEFAC = MONTREAL_SCALEFAC('CFC12',
+     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
 
-            TRAC_IDX = IDTCFCX
-            TRAC_SET = 'C2CL3F3'
-            SCALEFAC = MONTREAL_SCALEFAC('CFC113',
-     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_CFC113 > 0 ) THEN
+               TRAC_IDX = id_CFC113
+               TRAC_SET = 'C2CL3F3'
+               SCALEFAC = MONTREAL_SCALEFAC('CFC113',
+     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
 
-            TRAC_SET = 'C2CL2F4'
-            SCALEFAC = MONTREAL_SCALEFAC('CFC114',
-     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-            TRAC_SET = 'C2CLF5'
-            SCALEFAC = MONTREAL_SCALEFAC('CFC115',
-     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-     
+            IF ( id_CFC114 > 0 ) THEN
+               TRAC_IDX = id_CFC114
+               TRAC_SET = 'C2CL2F4'
+               SCALEFAC = MONTREAL_SCALEFAC('CFC114',
+     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_CFC115 > 0 ) THEN
+               TRAC_IDX = id_CFC115
+               TRAC_SET = 'C2CLF5'
+               SCALEFAC = MONTREAL_SCALEFAC('CFC115',
+     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
             ! HCFC 22, 123, 141b and 142b
-            TRAC_IDX = IDTHCFC22
-            TRAC_SET = 'CHCLF2'
-            SCALEFAC = MONTREAL_SCALEFAC('HCFC22',
-     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_HCFC22 > 0 ) THEN
+               TRAC_IDX = id_HCFC22
+               TRAC_SET = 'CHCLF2'
+               SCALEFAC = MONTREAL_SCALEFAC('HCFC22',
+     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
 
-            TRAC_IDX = IDTHCFCX
-            TRAC_SET = 'C2HF3CL2'
-            ! Take scaling factor for HCFC22 (no data for 123)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-            TRAC_SET = 'C2H3FCL2'
-            SCALEFAC = MONTREAL_SCALEFAC('HCFC141b',
-     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_HCFC123 > 0 ) THEN
+               TRAC_IDX = id_HCFC123
+               TRAC_SET = 'C2HF3CL2'
 
-            TRAC_SET = 'C2H3F2CL'
-            SCALEFAC = MONTREAL_SCALEFAC('HCFC142b',
-     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+               ! Take scaling factor for HCFC22 (no data for 123)
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_HCFC141b > 0 ) THEN
+               TRAC_IDX = id_HCFC141b
+               TRAC_SET = 'C2H3FCL2'
+               SCALEFAC = MONTREAL_SCALEFAC('HCFC141b',
+     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
+
+            IF ( id_HCFC142b > 0 ) THEN
+               TRAC_IDX = id_HCFC142b
+               TRAC_SET = 'C2H3F2CL'
+               SCALEFAC = MONTREAL_SCALEFAC('HCFC142b',
+     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
          ENDIF
 
          IF (LSETOCS) THEN
@@ -833,14 +986,17 @@
                WRITE(6,*) '|OCS      |         |         |'
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
-            TRAC_IDX = IDTOCS
-            TRAC_SET = 'OCS'
 
-            ! No Montreal scaling
-            SCALEFAC = 1.e+0_fp
+            IF ( id_OCS > 0 ) THEN
+               TRAC_IDX = id_OCS
+               TRAC_SET = 'OCS'
 
-            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+               ! No Montreal scaling
+               SCALEFAC = 1.e+0_fp
+
+               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
          ENDIF
 
          IF (LSETH2SO4) THEN
@@ -851,11 +1007,13 @@
             ! No Montreal scaling
             SCALEFAC = 1.e+0_fp
 
-            TRAC_IDX = IDTSO4
-            ! Actually H2SO4 aerosol
-            TRAC_SET = 'SO4'
-            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
+            IF ( id_SO4 > 0 ) THEN
+               TRAC_IDX = id_SO4
+               ! Actually H2SO4 aerosol
+               TRAC_SET = 'SO4'
+               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                            Input_Opt, State_Met, State_Chm )
+            ENDIF
          ENDIF
       ENDIF ! USE2DDATA
 
@@ -866,12 +1024,14 @@
             IF ( LPRT ) CALL DEBUG_MSG( '### UCX: Forcing 2D N2O' )
          ENDIF
 
-         TRAC_IDX = IDTN2O
-         TRAC_SET = 'N2O'
-         SCALEFAC = MONTREAL_SCALEFAC('N2O',
-     &              CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-         CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                      Input_Opt, State_Met, State_Chm )
+         IF ( id_N2O > 0 ) THEN
+            TRAC_IDX = id_N2O
+            TRAC_SET = 'N2O'
+            SCALEFAC = MONTREAL_SCALEFAC('N2O',
+     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+         ENDIF
       ENDIF
 
       ! CH4 taken from the existing GEOS-Chem input data,
@@ -890,10 +1050,12 @@
 
          ! Convert from [vv] to [kg CH4/kg air]
          ! (ewl, 3/16/15) 
-         C3090S = C3090S / TCVV(IDTCH4)
-         C0030S = C0030S / TCVV(IDTCH4)
-         C0030N = C0030N / TCVV(IDTCH4)
-         C3090N = C3090N / TCVV(IDTCH4)
+         TRAC_IDX = id_CH4
+         MW_g = State_Chm%SpcData(TRAC_IDX)%Info%emMW_g 
+         C3090S = C3090S / ( AIRMW / MW_g )
+         C0030S = C0030S / ( AIRMW / MW_g )
+         C0030N = C0030N / ( AIRMW / MW_g )
+         C3090N = C3090N / ( AIRMW / MW_g )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -906,15 +1068,15 @@
             YLAT  = GET_YMID( I,J,L )
 
             ! Set CH4 according to latitude
-            ! STT now in [kg/kg] (ewl, 3/16/15)
+            ! Spc now in [kg/kg] (ewl, 3/16/15)
             IF ( YLAT < -30e+0_fp ) THEN
-               STT(I,J,L,IDTCH4) = C3090S
+               Spc(I,J,L,TRAC_IDX) = C3090S
             ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
-               STT(I,J,L,IDTCH4) = C0030S
+               Spc(I,J,L,TRAC_IDX) = C0030S
             ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
-               STT(I,J,L,IDTCH4) = C0030N
+               Spc(I,J,L,TRAC_IDX) = C0030N
             ELSE
-               STT(I,J,L,IDTCH4) = C3090N
+               Spc(I,J,L,TRAC_IDX) = C3090N
             ENDIF
          ENDDO
          ENDDO
@@ -930,7 +1092,6 @@
             SCALEFAC = 1.e+0_fp
 
             ! Code to set strat using AER 2D data
-            TRAC_IDX = IDTCH4
             TRAC_SET = 'CH4'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
@@ -938,7 +1099,7 @@
       ENDIF
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
  
       END SUBROUTINE SET_INITIAL_MIXRATIOS
 !EOC
@@ -1026,10 +1187,10 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_MONTH
@@ -1037,7 +1198,9 @@
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TIME_MOD,           ONLY : GET_MINUTE
-      USE TRACERID_MOD,       ONLY : IDTNO, IDTN2O, IDTO3
+      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
+      USE CMN_FJX_MOD,        ONLY : ZPJ
+      USE FAST_JX_MOD,        ONLY : RXN_NO, RXN_NO2, RXN_NO3, RXN_N2O
 !
 ! !INPUT PARAMETERS:
 !
@@ -1057,6 +1220,11 @@
 !  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
 !                                air pressure, with State_Met%PMID_DRY.
 !                                Remove dependency on PRESSURE_MOD.
+!  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
+!  21 Jun 2016 - R. Yantosca   - Use the module variables for species ID flags
+!  22 Jun 2016 - M. Yannetti   - Replace TCVV with spc db MW and phys constant
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
+!  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1082,6 +1250,8 @@
 
       ! Intermediate variables
       REAL(fp) :: LOCALNOX, LOCALN2O, LOCALO3, LOCALO1D, LOCALO3P
+      REAL(fp) :: OLD_NO3, OLD_NO2, OLD_NO, OLD_N, OLD_N2O
+      REAL(fp) :: NEW_NO3, NEW_NO2, NEW_NO, NEW_N, NEW_N2O
       REAL(fp) :: FRACNO, FRACNO2, FRACNO3, FRACN
       REAL(fp) :: NOXRATE, N2ORATE, KGNOX, KGN2O
       REAL(fp) :: NO_ALPHA, NO_BETA, NO_GAMMA, NO_EPSILON
@@ -1103,7 +1273,6 @@
       REAL(f8) :: DTCHEM_HR
 
       ! Timing information
-      INTEGER       :: NDAY
       INTEGER, SAVE :: LASTMONTH=0
 
       ! Grid indexing
@@ -1113,22 +1282,17 @@
 
       ! Local daylight fraction
       REAL(fp)             :: DAYFRAC
-      REAL(fp)             :: SOL_ME, SOL_FE, SOL_LS, SOL_DEC
-      REAL(fp)             :: SOL_ECC2, SOL_B, SOL_C, SOL_TEST
-      REAL(fp)             :: TSTART, TEND, TMIN, TMAX
-      REAL(f8)             :: GMTSTART
-      REAL(fp), PARAMETER  :: SOL_ECC=0.016
-      INTEGER            :: NDYEAR, AS
-      LOGICAL            :: CYCLEBOX
-      CHARACTER(LEN=255) :: DBGMSG
+      LOGICAL              :: CYCLEBOX
+      CHARACTER(LEN=255)   :: DBGMSG
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL            :: LPRT
-      INTEGER            :: N_TRACERS
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
+      LOGICAL              :: LPRT
 
       ! Pointers
-      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER    :: Spc (:,:,:,:)
+
+      ! Required for updated chemistry
+      Integer            :: LMinPhot
 
       !=================================================================
       ! UCX_NOX begins here!
@@ -1136,11 +1300,9 @@
 
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg]
-      STT => State_Chm%Tracers
+      ! Initialize GEOS-Chem species array [kg]
+      Spc => State_Chm%Species
 
       ! Retrieve monthly mean data if necessary
       IF (LASTMONTH.ne.GET_MONTH()) THEN
@@ -1151,28 +1313,6 @@
       ! Get chemistry step length in seconds
       DTCHEM = GET_TS_CHEM()*60.e+0_f8
       DTCHEM_HR = DTCHEM/3600.e+0_f8
-
-      IF (ITS_A_LEAPYEAR()) THEN
-         NDYEAR = 366
-      ELSE
-         NDYEAR = 365
-      ENDIF
-
-      NDAY = GET_DAY_OF_YEAR()
-
-      ! Calculate timestep start and end (GMT)
-      GMTSTART = REAL(GET_HOUR()) + (REAL(GET_MINUTE())/60.e+0_f8)
-      GMTSTART = GMTSTART - (DTCHEM_HR/2.e+0_f8)
-
-      ! Eccentricity^2
-      SOL_ECC2 = SOL_ECC*SOL_ECC
-
-      ! Calculate solar declination
-      SOL_ME = 2.e+0_fp*PI*(REAL(NDAY)/REAL(NDYEAR)-0.009589)
-      SOL_FE = SOL_ME + (2.*SOL_ECC*SIN(SOL_ME)) + 
-     &         (1.25e+0_fp*SOL_ECC2*SIN(2.e+0_fp*SOL_ME))
-      SOL_LS = SOL_FE - (77.240e+0_fp*PI/180.e+0_fp)
-      SOL_DEC = ASIN(SIN(23.44*PI/180.e+0_fp)*SIN(SOL_LS))
 
       ! Reset NOx/N2O mass counters
       MESONOX_DELTA = 0e+0_fp
@@ -1201,71 +1341,29 @@
       ! Main parallel DO loop over lon, lat, alt
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,        J,        MIDLAT,   SOL_B         ) 
-!$OMP+PRIVATE( SOL_C,    TSTART,   TEND,     MESON2O_DELTA )
-!$OMP+PRIVATE( DAYFRAC,  L,        DN2O,     CYCLEBOX      )
-!$OMP+PRIVATE( TMAX,     RRATE,    T3K,      TINV          )
+!$OMP+PRIVATE( I,        J,        L                       ) 
+!$OMP+PRIVATE( DAYFRAC,            DN2O,     CYCLEBOX      )
+!$OMP+PRIVATE(           RRATE,    T3K,      TINV          )
 !$OMP+PRIVATE( NDAIR,    XAIR,     KGNOX,    KGN2O         )
 !$OMP+PRIVATE( LOCALNOX, LOCALN2O, LOCALO3,  LOCALO3P      )
 !$OMP+PRIVATE( LOCALO1D, NO_ALPHA, NO_BETA,  NO_GAMMA      )
 !$OMP+PRIVATE( FRACNO2,  FRACNO3,  FRACNO,   FRACN         )
-!$OMP+PRIVATE( NOXRATE,  N2ORATE,  DNOX,     MESONOX_DELTA )
-!$OMP+PRIVATE( SOL_TEST, TMIN                              )
+!$OMP+PRIVATE( NOXRATE,  N2ORATE,  DNOX                    )
+!$OMP+PRIVATE( OLD_NO3,  OLD_NO2,  OLD_NO,   OLD_N         )
+!$OMP+PRIVATE( NEW_NO3,  NEW_NO2,  NEW_NO,   NEW_N         )
+!$OMP+PRIVATE( OLD_N2O,  NEW_N2O,  LMinPhot                )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Grid box longitude/latitude [degrees]
-         MIDLAT = PI*GET_YMID( I, J, 1 )/180.e+0_fp
-         SOL_B = TAN(SOL_DEC)*TAN(MIDLAT)
-         SOL_C = COS(SOL_DEC)*COS(MIDLAT)
-         !SOLFUNC  = 1.e+0_fp-(0.034e+0_fp*cos(dble(NDAY-172)*2.e+0_fp*PI/365.e+0_fp))
-         TSTART = GET_LOCALTIME(I,J,1,GMTSTART)
-         TEND = TSTART + DTCHEM_HR
-         !DAYFRAC = SOLFUNC
-         CYCLEBOX = .FALSE.
-         ! Are the pre-calculated J-rates zero (ie in darkness)?
-         CYCLEBOX = (ANY(NOX_J(I,J,L,:).lt.TINY(1e+0_fp)))
-         IF (ITS_IN_THE_CHEMGRID(I,J,L,State_Met).or.CYCLEBOX) THEN
-            CYCLE
-         ENDIF
          ! Calculate daylight fraction
-         SOL_TEST = (-SOL_B) 
-     &            - SQRT( ZMID(I,J,L) * ( ZMID(I,J,L) + 2.e+0_fp*RE )
-     &            / ( ( ZMID(I,J,L) +RE ) * ( ZMID(I,J,L) +RE ) ) )
-     &            / SOL_C
-         IF (SOL_TEST.ge.0.9998e+0_fp) THEN
-            DAYFRAC = 0.e+0_fp
-            CYCLEBOX=.TRUE.
-            TMIN = 0e+0_fp
-            TMAX = 0e+0_fp
-         ELSEIF (SOL_TEST.le.-0.998e+0_fp) THEN
-            DAYFRAC = 1.e+0_fp
-            TMIN = TSTART
-            TMAX = TEND
-            CYCLEBOX=.FALSE.
-         ELSE
-            DAYFRAC = ACOS(SOL_TEST)/PI
-            ! Determine how much of the current timestep is within daylight
-            TMIN = 12.e+0_fp*(1.e+0_fp-DAYFRAC)
-            TMAX = 12.e+0_fp*(1.e+0_fp+DAYFRAC)
-            IF ((TMIN.ge.TEND).or.(TMAX.le.TSTART)) THEN
-               ! In darkness
-               DAYFRAC = 0.e+0_fp
-               CYCLEBOX = .TRUE.
-            ELSEIF ((TSTART.gt.TMIN).and.(TEND.lt.TMAX)) THEN
-               ! Full daylight
-               DAYFRAC = 1.e+0_fp
-            ELSE
-               ! Partial daylight
-               TMIN = MAX(TSTART,TMIN)
-               TMAX = MIN(TEND,TMAX)
-               DAYFRAC = (TMAX-TMIN)/DTCHEM_HR
-            ENDIF
-         ENDIF
-         IF (CYCLEBOX) THEN
-            CYCLE
-         ENDIF
+         DAYFRAC = State_Met%SUNCOSmid(I,J)
+         LMINPHOT  = GET_CHEMGRID_LEVEL( I, J, State_Met)
+         CycleBox = (L.le.LMinPhot)
+
+         ! Are the pre-calculated J-rates zero (ie in darkness)?
+         IF (CYCLEBOX) CYCLE
+
          ! Reset reaction rates
          RRATE = 0e+0_fp
 
@@ -1278,91 +1376,169 @@
          NDAIR = State_Met%PMID_DRY(I,J,L)*1.d-4*AVO/(RSTARG*T3K)
          XAIR  = NDAIR / State_Met%AD(I,J,L)
 
-         ! Calculate local NOx, N2O and O3 number density
-         KGNOX = STT(I,J,L,IDTNO)
-         KGN2O = STT(I,J,L,IDTN2O)
-         LOCALNOX = KGNOX*TCVV(IDTNO)*XAIR
-         LOCALN2O = KGN2O*TCVV(IDTN2O)*XAIR
-         LOCALO3  = STT(I,J,L,IDTO3)*TCVV(IDTO3)*XAIR
+         ! Get total mass of N2O
+         kgN2O = Spc(I,J,L,id_N2O)
 
-         ! Retrieve local O3P/O1D mixing ratios and relevant
-         ! j-rates from interpolated 2D arrays
-         LOCALO3P = NOX_O(I,J,L,1)*NDAIR*DAYFRAC
-         LOCALO1D = NOX_O(I,J,L,2)*NDAIR*DAYFRAC
+         ! Get local concentrations in molec/cm3
+         OLD_N   = Spc(I,J,L,id_N) * 
+     &    (AIRMW / State_Chm%SpcData(id_N)%Info%emMW_g) * XAIR
+         OLD_NO   = Spc(I,J,L,id_NO) * 
+     &    (AIRMW / State_Chm%SpcData(id_NO)%Info%emMW_g) * XAIR
+         OLD_NO2   = Spc(I,J,L,id_NO2) * 
+     &    (AIRMW / State_Chm%SpcData(id_NO2)%Info%emMW_g) * XAIR
+         OLD_NO3   = Spc(I,J,L,id_NO3) * 
+     &    (AIRMW / State_Chm%SpcData(id_NO3)%Info%emMW_g) * XAIR
+         OLD_N2O   = kgN2O * 
+     &    (AIRMW / State_Chm%SpcData(id_N2O)%Info%emMW_g) * XAIR
 
-         ! Calculate reaction rates
-         ! 1:  NO2 + O -> NO + O2
-         RRATE(1)  = 5.1e-12_fp*exp(210.e+0_fp*TINV)
+         ! Total concentrations
+         localNOx = OLD_N + OLD_NO + OLD_NO2 + OLD_NO3
+         localN2O = OLD_N2O
+
+         ! Get ozone from model
+         LOCALO3  = Spc(I,J,L,id_O3) *  ( AIRMW / 
+     &              State_Chm%SpcData(id_O3)%Info%emMW_g ) * XAIR
+
+         ! These reactions are relevant during both day and night-time
+         ! chemistry
          ! 2:  NO + O3 -> NO2 + O2
          RRATE(2)  = 3.0e-12_fp*exp(-1500.e+0_fp*TINV)
          ! 3:  NO2 + O3 -> NO3 + O2
          RRATE(3)  = 1.2e-13_fp*exp(-2450.e+0_fp*TINV)
-         ! 4:  NO2 + hv -> NO + O1D
-         RRATE(k_JNO2) = NOX_J(I,J,L,JNO2IDX)*DAYFRAC
-         ! 5:  NO3 + hv -> NO2 + O
-         RRATE(k_JNO3) = NOX_J(I,J,L,JNO3IDX)*DAYFRAC
-         ! 6:  NO + hv -> N + O
-         RRATE(k_JNO ) = NOX_J(I,J,L,JNOIDX)*DAYFRAC
-         ! 7:  N + NO2 -> N2O + O
-         RRATE(7)  = 5.8e-12_fp*exp(220.e+0_fp*TINV)
-         ! 8:  N + NO -> N2 + O
-         RRATE(8)  = 2.1e-11_fp*exp(100.e+0_fp*TINV)
-         ! 9:  N + O2 -> NO + O
-         RRATE(9)  = 1.5e-11_fp*exp(-3600.e+0_fp*TINV)
-         ! 10:  N2O + O1D -> N2 + O2
-         RRATE(10) = 4.63e-11_fp*exp(20.e+0_fp*TINV)
-         ! 11:  N2O + O1D -> 2NO
-         RRATE(11) = 7.25e-11_fp*exp(20.e+0_fp*TINV)
-         ! 12:  N2O + hv -> N2 + O1D
-         RRATE(k_JN2O) = NOX_J(I,J,L,JN2OIDX)*DAYFRAC
 
-         ! Partition NOx into N, NO, NO2 and NO3 based on PSSA
-         ! Two cases: Daytime/nighttime
-         NO_ALPHA =          RRATE(k_JNO)/
-     &                  (RRATE(9)*0.21e+0_fp*NDAIR)
-         NO_BETA  = (RRATE(k_JNO2)+(RRATE(1)*LOCALO3P))/
-     &                     (RRATE(2)*LOCALO3)
-         NO_GAMMA =        (RRATE(3)*LOCALO3)/
-     &                         RRATE(k_JNO3)
+         ! During night time, assume everything is NO2 and
+         ! that there is no significant production or loss.
+         ! The only exception is NO3, which is assumed to 
+         ! remain unchanged
+         If (DayFrac.lt.1.0e-10_fp) Then
+            ! Simple assumption: all N and NO go to NO2
+            ! NO3 remains unchanged
+            DN2O = 0.0e+0_fp
+            DNOx = 0.0e+0_fp
+            ! Complex assumption: all N goes to NO
+            ! Night-time chemistry is slow; assume zero
+            ! O1D or O3P.
+            ! Simplified reactions - allow slow conversion of NO -> NO2
+            ! and NO2 -> NO3. Ignore all others. This can be solved
+            ! analytically (decay chain)
+            NEW_N   = 0.0e+0_fp
+            NEW_NO  = (OLD_NO + OLD_N)*dexp(-dtChem*RRATE(2)*localO3)
+            NEW_NO2 = OLD_NO2*dexp(-dtChem*RRATE(3)*localO3) + 
+     &              ((OLD_NO + OLD_N)/((RRATE(3)/RRATE(2))-1.0e+0_fp))
+     &              *(dexp(-dtChem*RRATE(2)*localO3) - 
+     &                dexp(-dtChem*RRATE(3)*localO3))
+            NEW_NO3 = OLD_NO3 + (OLD_NO2 + OLD_NO + OLD_N) - 
+     &                          (NEW_NO2 + NEW_NO + NEW_N)
+            FRACN   = 0.0e+0_fp
+            FRACNO  = NEW_NO/localNOx
+            FRACNO2 = NEW_NO2/localNOx
+            FRACNO3 = NEW_NO3/localNOx
+         Else
+            ! Calculate remaining rate constants
+            ! 1:  NO2 + O -> NO + O2
+            RRATE(1)  = 5.1e-12_fp*exp(210.e+0_fp*TINV)
+            ! 4:  NO2 + hv -> NO + O1D
+            !RRATE(k_JNO2) = NOX_J(I,J,L,JNO2IDX)*DAYFRAC
+            RRATE(k_JNO2) = ZPJ(LMINPHOT,RXN_NO2,I,J)
+            ! 5:  NO3 + hv -> NO2 + O
+            !RRATE(k_JNO3) = NOX_J(I,J,L,JNO3IDX)*DAYFRAC
+            RRATE(k_JNO3) = ZPJ(LMINPHOT,RXN_NO3,I,J)
+            ! 6:  NO + hv -> N + O
+            !RRATE(k_JNO ) = NOX_J(I,J,L,JNOIDX)*DAYFRAC
+            RRATE(k_JNO) = ZPJ(LMINPHOT,RXN_NO,I,J)
+            ! 7:  N + NO2 -> N2O + O
+            RRATE(7)  = 5.8e-12_fp*exp(220.e+0_fp*TINV)
+            ! 8:  N + NO -> N2 + O
+            RRATE(8)  = 2.1e-11_fp*exp(100.e+0_fp*TINV)
+            ! 9:  N + O2 -> NO + O
+            RRATE(9)  = 1.5e-11_fp*exp(-3600.e+0_fp*TINV)
+            ! 10:  N2O + O1D -> N2 + O2
+            RRATE(10) = 4.63e-11_fp*exp(20.e+0_fp*TINV)
+            ! 11:  N2O + O1D -> 2NO
+            RRATE(11) = 7.25e-11_fp*exp(20.e+0_fp*TINV)
+            ! 12:  N2O + hv -> N2 + O1D
+            !RRATE(k_JN2O) = NOX_J(I,J,L,JN2OIDX)*DAYFRAC
+            RRATE(k_JN2O) = ZPJ(LMINPHOT,RXN_N2O,I,J)
 
-         ! Calculate the partition fractions
-         FRACNO2 = 1.e+0_fp/(1.e+0_fp+NO_GAMMA+(NO_BETA*
-     &            (1.e+0_fp+NO_ALPHA)))
-         FRACNO3 = NO_GAMMA * FRACNO2
-         FRACNO  = NO_BETA  * FRACNO2
-         FRACN   = NO_ALPHA * FRACNO
+            ! Sanity check
+            Where(RRate.lt.0.0e+0_fp) RRate = 0.0e+0_fp
 
-         ! Estimate net production rates for NOx and N2O
-         NOXRATE = 2.e+0_fp*((RRATE(11)*LOCALN2O*LOCALO1D) -
-     &    (((RRATE(7)*FRACN*FRACNO2)+(RRATE(8)*FRACN*FRACNO))
-     &                                   *LOCALNOX*LOCALNOX))
-         N2ORATE = (RRATE(7)*FRACN*FRACNO2*LOCALNOX*LOCALNOX) - 
-     &   ((RRATE(k_JN2O)+((RRATE(10)+RRATE(11))*LOCALO1D))*LOCALN2O)
-        
-         ! Calculate fractional loss and apply to tracer
-         ! Explicit Euler method (fast)
-         DNOX = NOXRATE * DTCHEM / (TCVV(IDTNO)*XAIR)
-         IF ((DNOX*-1e+0_fp).gt.KGNOX) THEN
-            DNOX = -1e+0_fp*KGNOX
-            KGNOX = 0e+0_fp
-         ELSE
-            KGNOX = KGNOX + DNOX
-         ENDIF
-         STT(I,J,L,IDTNO) = KGNOX
+            ! Retrieve local O3P/O1D mixing ratios and relevant
+            ! j-rates from interpolated 2D arrays
+            LOCALO3P = NOX_O(I,J,L,1)*NDAIR*DAYFRAC
+            LOCALO1D = NOX_O(I,J,L,2)*NDAIR*DAYFRAC
+
+            ! Partition NOx into N, NO, NO2 and NO3 based on PSSA
+            ! Two cases: Daytime/nighttime
+            NO_ALPHA =          RRATE(k_JNO)/
+     &                     (RRATE(9)*0.21e+0_fp*NDAIR)
+            NO_BETA  = (RRATE(k_JNO2)+(RRATE(1)*LOCALO3P))/
+     &                        (RRATE(2)*LOCALO3)
+            NO_GAMMA =        (RRATE(3)*LOCALO3)/
+     &                            RRATE(k_JNO3)
+
+            ! Calculate the partition fractions
+            FRACNO2 = 1.e+0_fp/(1.e+0_fp+NO_GAMMA+(NO_BETA*
+     &               (1.e+0_fp+NO_ALPHA)))
+            FRACNO3 = NO_GAMMA * FRACNO2
+            FRACNO  = NO_BETA  * FRACNO2
+            FRACN   = NO_ALPHA * FRACNO
+
+            ! Estimate net production rates for NOx and N2O
+            NOXRATE = 2.e+0_fp*((RRATE(11)*LOCALN2O*LOCALO1D) -
+     &       (((RRATE(7)*FRACN*FRACNO2)+(RRATE(8)*FRACN*FRACNO))
+     &                                      *LOCALNOX*LOCALNOX))
+            N2ORATE = (RRATE(7)*FRACN*FRACNO2*LOCALNOX*LOCALNOX) - 
+     &      ((RRATE(k_JN2O)+((RRATE(10)+RRATE(11))*LOCALO1D))*LOCALN2O)
+
+            ! Calculate NOx in kg NO at the beginning        
+            kgNOx = localNOx / (AIRMW /  
+     &                 State_Chm%SpcData(id_NO )%Info%emMW_g*XAIR)
+
+            ! Calculate total change in NOx and N2O
+            ! Explicit Euler method (fast)
+            DNOX = NOXRATE * DTCHEM / ( ( AIRMW / 
+     &             State_Chm%SpcData(id_NO)%Info%emMW_g) * XAIR )
+            DN2O = N2ORATE * DTCHEM / ( AIRMW / 
+     &             State_Chm%SpcData(id_N2O)%Info%emMW_g * XAIR )
+
+            ! Safety check - ensure NOx and N2O are positive
+            IF ((DNOX*-1e+0_fp).gt.KGNOX) THEN
+               DNOX = -1e+0_fp*KGNOX
+               KGNOX = 0e+0_fp
+               LOCALNOX = 0e+0_fp
+            ELSE
+               KGNOX = KGNOX + DNOX
+               LOCALNOX = LOCALNOX + (NOXRATE*DTCHEM)
+            ENDIF
+            IF ((DN2O*-1e+0_fp).gt.KGN2O) THEN
+               DN2O = -1e+0_fp*KGN2O
+               KGN2O = 0e+0_fp
+            ELSE
+               KGN2O = KGN2O + DN2O
+            ENDIF
+         EndIf ! DayFrac < 0
+
+         ! Convert to kg
+         NEW_N   = localNOx*fracN  /(AIRMW/
+     &                State_Chm%SpcData(id_N  )%Info%emMW_g * XAIR)
+         NEW_NO  = localNOx*fracNO /(AIRMW/
+     &                State_Chm%SpcData(id_NO )%Info%emMW_g * XAIR)
+         NEW_NO2 = localNOx*fracNO2/(AIRMW/
+     &                State_Chm%SpcData(id_NO2)%Info%emMW_g * XAIR)
+         NEW_NO3 = localNOx*fracNO3/(AIRMW/
+     &                State_Chm%SpcData(id_NO3)%Info%emMW_g * XAIR)
+         NEW_N2O = kgN2O
+
+         Spc(I,J,L,id_N)   = NEW_N 
+         Spc(I,J,L,id_NO)  = NEW_NO 
+         Spc(I,J,L,id_NO2) = NEW_NO2 
+         Spc(I,J,L,id_NO3) = NEW_NO3 
+         Spc(I,J,L,id_N2O) = NEW_N2O
 
          MESONOX_DELTA = MESONOX_DELTA + DNOX
-
-         DN2O = N2ORATE * DTCHEM / (TCVV(IDTN2O)*XAIR)
-         IF ((DN2O*-1e+0_fp).gt.KGN2O) THEN
-            DN2O = -1e+0_fp*KGN2O
-            KGN2O = 0e+0_fp
-         ELSE
-            KGN2O = KGN2O + DN2O
-         ENDIF
-         STT(I,J,L,IDTN2O) = KGN2O
-
          MESON2O_DELTA = MESON2O_DELTA + DN2O
-         
+
       ENDDO ! J
       ENDDO ! I
       ENDDO ! L
@@ -1372,8 +1548,8 @@
          ! Print mean NOx tendency in mesosphere
          DBGMSG = ' ### UCX_NOX: Mesospheric NOx processed'
          CALL DEBUG_MSG(TRIM(DBGMSG))
-         WRITE(DBGMSG,'(a,2(1x,F10.5),a)') ' ### Time (start/step):',
-     &       GMTSTART, DTCHEM_HR, ' hours'
+         WRITE(DBGMSG,'(a,1(1x,F10.5),a)') ' ### Timestep:         ',
+     &                 DTCHEM_HR, ' hours'
          CALL DEBUG_MSG(TRIM(DBGMSG))
          WRITE(DBGMSG,'(a,1x,E10.4,1x,a)') ' ### NOx direct delta: ',
      &       MESONOX_DELTA, ' kg'
@@ -1384,7 +1560,7 @@
       ENDIF
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
 
       END SUBROUTINE UCX_NOX
 !EOC
@@ -1411,8 +1587,8 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1735,9 +1911,9 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1765,6 +1941,9 @@
 !                                air pressure, with State_Met%PMID and
 !                                remove dependency on PRESSURE_MOD.
 !  19 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
+!  25 Jul 2016 - M. Yannetti   - Pass State_Chem as argument to access spc db;
+!                                Replace TCVV with spc db MW and phys constant
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1774,11 +1953,11 @@
       INTEGER            :: IOS
       INTEGER            :: ILEV
       INTEGER            :: I, J, L
-      REAL(fp)             :: PCENTER
-      REAL(fp)             :: TRACMR,TRACMASS
+      REAL(fp)           :: PCENTER
+      REAL(fp)           :: TRACMR,TRACMASS
       INTEGER            :: VERTCOUNT
       LOGICAL            :: FOUNDLEV,EXTRAP
-      REAL(fp)             :: TRACMULT
+      REAL(fp)           :: TRACMULT
       LOGICAL            :: SET_CELL
       INTEGER            :: IU_FILE
       INTEGER            :: L_MAX
@@ -1788,11 +1967,9 @@
 
       ! Local variables for quantities from Input_Opt
       LOGICAL            :: LPRT
-      INTEGER            :: N_TRACERS
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: Spc(:,:,:,:)
 
       !=================================================================
       ! APPLY_2DTRAC begins here!
@@ -1800,11 +1977,9 @@
 
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV = Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg/kg]
-      STT => State_Chm%Tracers
+      ! Initialize GEOS-Chem species array [kg/kg]
+      Spc => State_Chm%Species
 
       ! Filename
       TRAC_FILE = TRIM(AVG_FILE_ROOT)//TRIM(TRAC_SET )
@@ -1888,6 +2063,12 @@
 110   FORMAT(121E10.3)
 #elif defined( GRID05x0666 )   && defined( NESTED_EU )
 110   FORMAT(81E10.3)
+#elif defined( GRID05x0625 )   && defined( NESTED_AS )
+110   FORMAT(133E10.3)
+#elif defined( GRID05x0625 )   && defined( NESTED_NA )
+110   FORMAT(121E10.3)
+#elif defined( GRID05x0625 )   && defined( NESTED_EU )
+110   FORMAT(81E10.3)
 #elif defined( GRID025x03125 ) && defined( NESTED_CH )
 110   FORMAT(161E10.3)
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
@@ -1906,7 +2087,7 @@
          L_MAX = LLPAR
       ENDIF
 
-      ! Scan through STT, element by element
+      ! Scan through Spc, element by element
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,        J,       L,        VERTCOUNT, EXTRAP   )
@@ -1952,16 +2133,17 @@
      &               (UCX_MR(J,VERTCOUNT+1)-UCX_MR(J,VERTCOUNT))
                   TRACMR = UCX_MR(J,VERTCOUNT+1) - TRACMR
                ENDIF
-               ! Send to STT (currently kg/box)
+               ! Send to Spc (currently kg/box)
                IF (SET_CELL) THEN
 
                   ! Convert from [ppbv] to [kg/kg] (ewl, 3/19/15)
-                  TRACMASS = SCALEFAC * TRACMR / TCVV(TRAC_IDX)
+                  TRACMASS = SCALEFAC * TRACMR / ( AIRMW / 
+     &                       State_Chm%SpcData(TRAC_IDX)%Info%emMW_g )
 
                   IF (TRAC_ADD) THEN
-                     STT(I,J,L,TRAC_IDX) = STT(I,J,L,TRAC_IDX)+TRACMASS
+                     Spc(I,J,L,TRAC_IDX) = Spc(I,J,L,TRAC_IDX)+TRACMASS
                   ELSE
-                     STT(I,J,L,TRAC_IDX) = TRACMASS
+                     Spc(I,J,L,TRAC_IDX) = TRACMASS
                   ENDIF
                 ENDIF
             ENDDO
@@ -1970,7 +2152,7 @@
 !$OMP END PARALLEL DO
  
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
 
       ! Return to calling program
       END SUBROUTINE APPLY_2DTRAC
@@ -1993,12 +2175,13 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,              ONLY : GIGC_Error
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,     ONLY : OptInput     
-      USE GIGC_State_Chm_Mod,     ONLY : ChmState
-      USE GIGC_State_Met_Mod,     ONLY : MetState
-      USE TIME_MOD,               ONLY : GET_MONTH
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : GC_Error
+      USE Input_Opt_Mod,      ONLY : OptInput     
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -2021,6 +2204,11 @@
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
 !  10 Sep 2015 - E. Lundgren   - Tracer units are now kg/kg dry air (prev v/v)
+!  25 Jul 2016 - M. Yannetti   - Pass State_Chm as arg for spc db access;
+!                                Replace TCVV with spc db MW and phys constant
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
+!  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2034,34 +2222,35 @@
 
       ! Local variables for quantities from Input_Opt
       LOGICAL              :: LPRT
-      INTEGER              :: N_TRACERS
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER     :: Spc (:,:,:,:)
 
       !=================================================================
       ! EMISS_BASIC begins here!
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Check that tracer units are in kg/kg dry air (ewl, 9/10/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-         CALL GIGC_Error( 'Incorrect tracer units: ' //
-     &                    State_Chm%Trac_Units, RC, 
-     &                    'Routine EMISS_BASIC in ucx_mod.F' )
+      ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+         CALL GC_Error( 'Incorrect species units: ' //
+     &                  State_Chm%Spc_Units, RC, 
+     &                  'Routine EMISS_BASIC in ucx_mod.F' )
          RETURN
       ENDIF
 
-      ! Initialize GEOS-Chem tracer array [kg/kg dry]
-      STT => State_Chm%Tracers
+      ! Initialize GEOS-Chem species array [kg/kg dry]
+      Spc => State_Chm%Species
+
+      ! Error trap: make sure CFCYEAR is defined. In ESMF mode, CFCYEAR
+      ! may become initialized to zero because the simulation year is not
+      ! yet know during initialization (ckeller, 1/20/16).
+      IF ( CFCYEAR <= 0 ) CFCYEAR = GET_YEAR()
 
        ! If not correct hour block and day read in new fields
        IF (SFC_MONTH/=GET_MONTH()) THEN
@@ -2084,19 +2273,20 @@
 !$OMP+SCHEDULE( DYNAMIC )
        DO N = 1, N_EMIT
 
-          ! Get the tracer # of the emitted species
+          ! Get the species # of the emitted species
           N_EMITTED = IDT_EMIT(N)
 
-          ! Convert units if the tracer is valied
+          ! Convert units if the species is valied
           IF ( N_EMITTED /= 0 ) THEN
-        
+
              ! Loop over surface grmid boxes
              DO J = 1, JJPAR
              DO I = 1, IIPAR
            
                 ! Set kg/kg dry air using vol/vol (ewl, 9/10/15)
-                STT(I,J,1,N_EMITTED) = GRID_EMIT(J,N)
-     &                               / TCVV(N_EMITTED)
+                Spc(I,J,1,N_EMITTED) = GRID_EMIT(J,N)
+     &                        / ( AIRMW /
+     &                        State_Chm%SpcData(N_EMITTED)%Info%emMW_g ) 
 
              ENDDO
              ENDDO
@@ -2105,7 +2295,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
 
       IF ( LPRT ) CALL DEBUG_MSG( '### UCX: Emissions complete' )
 
@@ -2128,9 +2318,8 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTHCFCX
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD,        ONLY : GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2168,30 +2357,26 @@
          DO N=1,N_EMIT
             LOCAL_NAME = TRIM(TRAC_EMIT(N))
             SELECT CASE (LOCAL_NAME)
-               CASE ('CFCX')
-                  ! Add 3 CFCs
+               CASE ('CFC113')
                   LOCAL_NAME = TRIM('CFC113')
                   CALL SET_MONTREAL_NCDF(LOCAL_NAME,
      &                    TARG_YR_NC,TARG_MO_NC,N)
+               CASE ('CFC114')
                   LOCAL_NAME = TRIM('CFC114')
                   CALL SET_MONTREAL_NCDF(LOCAL_NAME,
      &                    TARG_YR_NC,TARG_MO_NC,N)
+               CASE ('CFC115')
                   LOCAL_NAME = TRIM('CFC115')
                   CALL SET_MONTREAL_NCDF(LOCAL_NAME,
      &                    TARG_YR_NC,TARG_MO_NC,N)
-               CASE ('HCFCX')
-                  ! Add 2 HCFCs
+               CASE ('HCFC141b')
                   LOCAL_NAME = TRIM('HCFC141b')
                   CALL SET_MONTREAL_NCDF(LOCAL_NAME,
      &                    TARG_YR_NC,TARG_MO_NC,N)
+               CASE ('HCFC142b')
                   LOCAL_NAME = TRIM('HCFC142b')
                   CALL SET_MONTREAL_NCDF(LOCAL_NAME,
      &                    TARG_YR_NC,TARG_MO_NC,N)
-                  ! Also need HCFC123 - no Montreal data
-                  ! Use surface-level MR from 2D data instead
-                  !TRAC_IDX = IDTHCFCX
-                  !TRAC_SET  = 'C2HF3CL2'
-                  !CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.TRUE.)
                   ! Ignore HCFC123 for the moment
                CASE ('H2402')
                   ! Limited data available for H2402
@@ -2236,29 +2421,25 @@
          ! Determine which line needs to be read in
          TARG_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + SFC_MONTH
 
-         ! Loop over tracer IDs pegged for emissions
+         ! Loop over species IDs pegged for emissions
          DO N=1,N_EMIT
             LOCAL_NAME = TRIM(TRAC_EMIT(N))
             SELECT CASE (LOCAL_NAME)
-               CASE ('CFCX')
-                  ! Add 3 CFCs
+               CASE ('CFC113')
                   LOCAL_NAME = TRIM('CFC113')
                   CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               CASE ('CFC114')
                   LOCAL_NAME = TRIM('CFC114')
                   CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               CASE ('CFC115')
                   LOCAL_NAME = TRIM('CFC115')
                   CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
-               CASE ('HCFCX')
-                  ! Add 2 HCFCs
+               CASE ('HCFC141b')
                   LOCAL_NAME = TRIM('HCFC141b')
                   CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               CASE ('HCFC142b')
                   LOCAL_NAME = TRIM('HCFC142b')
                   CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
-                  ! Also need HCFC123 - no Montreal data
-                  ! Use surface-level MR from 2D data instead
-                  !TRAC_IDX = IDTHCFCX
-                  !TRAC_SET  = 'C2HF3CL2'
-                  !CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.TRUE.)
                   ! Ignore HCFC123 for the moment
                CASE ('H2402')
                   ! Limited data available for H2402
@@ -2507,17 +2688,15 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND44
       USE CMN_FJX_MOD,        ONLY : RAA, IND999
-      USE COMODE_MOD,         ONLY : JLOP,WERADIUS,ERADIUS
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : IT_IS_NAN,ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTNIT,IDTBCPI,IDTH2O,IDTHNO3
 !
 ! !INPUT PARAMETERS:
 !
@@ -2540,8 +2719,15 @@
 !                              State_Met%PMID and State_Met%PEDGE
 !  24 Feb 2014 - E. Lundgren - Remove dependency on PRESSURE_MOD
 !  24 Feb 2014 - E. Lundgren - Use State_Met%DELP in place of PEDGE difference
-!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
-!                                now done from DO_CHEMISTRY (chemistry_mod.F)  
+!  08 Apr 2015 - R. Yantosca - Remove call to READ_PSC_FILE, this is
+!                              now done from DO_CHEMISTRY (chemistry_mod.F) 
+!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on KLOOP. WERADIUS,
+!                              is now a pointer that point to 3D fields in
+!                              in State_Chm.
+!  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with species
+!                              database emMW_g (emitted species g/mol)
+!  16 Jun 2016 - S.D.Eastham - Remove references to tracerid_mod.F
+!  15 Jul 2016 - E. Lundgren - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2555,8 +2741,8 @@
       REAL(fp)               :: CONST,  SLIP,  VISC,     FAC1
       REAL(fp)               :: FAC2,   FLUX,  AREA_CM2, RHB
       REAL(fp)               :: RCM
-      REAL(fp)               :: TOT1,   TOT2
-      INTEGER                :: KLOOP, K
+      REAL(fp)               :: TOT1,   TOT2,  NIT_MW_G, HNO3_MW_G
+      INTEGER                :: K
       LOGICAL                :: NATCOL
      
       ! Specific to each class
@@ -2568,11 +2754,7 @@
       REAL(fp)               :: sp_Lambda, sp_Num
 
       ! Parameters
-#if defined( APM )
-      REAL(fp), PARAMETER    :: BCDEN = 1800.e+0_fp
-#else
       REAL(fp), PARAMETER    :: BCDEN = 1000.e+0_fp ! density (kg/m3)
-#endif
 
       ! Indexing
       INTEGER, PARAMETER     :: IBC  = 1
@@ -2610,29 +2792,31 @@
       ! Local variables for quantities from Input_Opt
       LOGICAL                :: LPRT
       LOGICAL                :: LGRAVSTRAT
-      INTEGER                :: N_TRACERS
-      REAL(fp)               :: XNUMOL(Input_Opt%N_TRACERS)
-      REAL(fp)               :: TRACER_MW_G(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER      :: STT(:,:,:,:)
+      REAL(fp), POINTER      :: Spc (:,:,:,:)
+      REAL(f4), POINTER      :: STATE_PSC(:,:,:)
+      REAL(fp), POINTER      :: WERADIUS(:,:,:,:)
 
       !=================================================================
       ! SETTLE_STRAT_AER begins here!
       !=================================================================
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT
       LPRT        = Input_Opt%LPRT
       LGRAVSTRAT  = Input_Opt%LGRAVSTRAT
-      N_TRACERS   = Input_Opt%N_TRACERS
-      XNUMOL      = Input_Opt%XNUMOL
-      TRACER_MW_G = Input_Opt%TRACER_MW_G(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg]
-      STT => State_Chm%Tracers
+      ! Copy fields from species database
+      NIT_MW_G    = State_Chm%SpcData(id_NIT)%Info%emMW_g  ! g/mol
+      HNO3_MW_G   = State_Chm%SpcData(id_HNO3)%Info%emMW_g ! g/mol
+
+      ! Initialize pointers
+      Spc       => State_Chm%Species     ! Chemical species [kg]       
+      STATE_PSC => State_Chm%STATE_PSC   ! PSC type (Kirner et al. 2011, GMD)
+      WERADIUS  => State_Chm%WetAeroRadi ! Aerosol Radius [cm]
 
       ! Return if gravitational settling disabled
       IF (.not. LGRAVSTRAT) RETURN
@@ -2669,7 +2853,7 @@
 !$OMP+PRIVATE( J,            I,            L,          VTS        )
 !$OMP+PRIVATE( VNAT,         NATCOL,       BXMIN,      MINALT     )
 !$OMP+PRIVATE( MAXALT,       VFALLMAX,     TEMP,       P          )
-!$OMP+PRIVATE( RUNCALC,      KLOOP,        RWET,       RHO        )
+!$OMP+PRIVATE( RUNCALC,      RWET,         RHO                    )
 !$OMP+PRIVATE( SP_NUM,       SP_LAMBDA,    VISC,       IAERO      )
 !$OMP+PRIVATE( DP,           PDP,          CONST,      SLIP       )
 !$OMP+PRIVATE( DELZ,         CONST_V,      PHASEMASS,  K          )
@@ -2719,8 +2903,7 @@
             IF (RUNCALC) THEN
                ! Need to translate for BC radii
                IF (ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) THEN
-                  KLOOP = JLOP(I,J,L)  
-                  RWET(IBC) = WERADIUS(KLOOP,2)*1.e-2_fp
+                  RWET(IBC) = WERADIUS(I,J,L,2)*1.e-2_fp
                ELSE
                   ! Use defaults, assume dry (!)
                   RWET(IBC) = RAA(IND999,29) * 1.0e-6_fp
@@ -2829,12 +3012,12 @@
          ! Only want to sediment fraction of species currently
          ! in the aerosol
          DO K = 1,7
-            ! Only process transported tracers
+            ! Only process transported species
             IDTCURRENT = AERFRACIND(K)
             IF (IDTCURRENT.ne.0) THEN
                ! Calculate local phase partitioning
                ! Total upper gridbox mass
-               PHASEMASS(3,2) = STT(I,J,L,IDTCURRENT)
+               PHASEMASS(3,2) = Spc(I,J,L,IDTCURRENT)
                ! Aerosol-phase upper gridbox mass
                PHASEMASS(2,2) = AERFRAC(I,J,L,K)*PHASEMASS(3,2)
                ! Gas-phase upper gridbox mass
@@ -2855,10 +3038,10 @@
                ENDIF
 
                ! Store result
-               STT(I,J,L,IDTCURRENT) = PHASEMASS(3,2)
+               Spc(I,J,L,IDTCURRENT) = PHASEMASS(3,2)
             ENDIF
          ENDDO
-         STT(I,J,L,IDTBCPI)= STT(I,J,L,IDTBCPI)* CONST_V(IBC) 
+         Spc(I,J,L,id_BCPI)= Spc(I,J,L,id_BCPI)* CONST_V(IBC) 
 
          DO L = LLPAR-1,1,-1
             IF (ITS_IN_THE_TROP(I,J,L+1,State_Met)) CYCLE
@@ -2869,14 +3052,14 @@
                IDTCURRENT = AERFRACIND(K)
                IF (IDTCURRENT.ne.0) THEN
                   ! Total upper gridbox mass
-                  PHASEMASS(3,2) = STT(I,J,L+1,IDTCURRENT)
+                  PHASEMASS(3,2) = Spc(I,J,L+1,IDTCURRENT)
                   ! Aerosol-phase upper gridbox mass
                   PHASEMASS(2,2) = AERFRAC(I,J,L+1,K)*PHASEMASS(3,2)
                   ! Gas-phase upper gridbox mass
                   PHASEMASS(1,2) = PHASEMASS(3,2) - PHASEMASS(2,2)
                   
                   ! Total lower gridbox mass
-                  PHASEMASS(3,1) = STT(I,J,L,IDTCURRENT)
+                  PHASEMASS(3,1) = Spc(I,J,L,IDTCURRENT)
                   ! Aerosol-phase lower gridbox mass
                   PHASEMASS(2,1) = AERFRAC(I,J,L,K)*PHASEMASS(3,1)
                   ! Gas-phase lower gridbox mass
@@ -2899,13 +3082,13 @@
                   ENDIF
 
                   ! Store result
-                  STT(I,J,L,IDTCURRENT) = PHASEMASS(3,1)
+                  Spc(I,J,L,IDTCURRENT) = PHASEMASS(3,1)
                ENDIF
             ENDDO
-            STT(I,J,L,IDTBCPI) = 1.e+0_fp/(1.e+0_fp+DTCHEM
+            Spc(I,J,L,id_BCPI) = 1.e+0_fp/(1.e+0_fp+DTCHEM
      &              * VTS(L,IBC) / DELZ)
-     &              * (STT(I,J,L,IDTBCPI)+DTCHEM*VTS(L+1,IBC)/DELZ1
-     &              * STT(I,J,L+1,IDTBCPI)) 
+     &              * (Spc(I,J,L,id_BCPI)+DTCHEM*VTS(L+1,IBC)/DELZ1
+     &              * Spc(I,J,L+1,id_BCPI)) 
          ENDDO
 
          ! Now perform trapezoidal scheme for particulates
@@ -2931,18 +3114,17 @@
                ! XPSC is the number of molecules tied up in solid particles
                ! per m3 in a grid box
                L = STARTPT
-               !IF (STATE_PSC(I,J,L).lt.2) THEN
                IF (STATE_PSC(I,J,L) < 2.0e+0_f4 ) THEN
                   XNO3_0 = 0e+0_fp
                   XNAT_0 = 0e+0_fp
                   XICE_0 = 0e+0_fp
                ELSE
-                  XNO3_0 = STT(I,J,L,IDTNIT) * AIRMW / 
-     &                     (TRACER_MW_G(IDTNIT)*State_Met%AD(I,J,L))
+                  XNO3_0 = Spc(I,J,L,id_NIT) * AIRMW / 
+     &                     ( NIT_MW_G * State_Met%AD(I,J,L) )
                   XNAT_0 = XNO3_0! * 4.e+0_fp
                   XICE_0 = (KG_AER(I,J,L,I_SPA)-
-     &                     ((NATMW/TRACER_MW_G(IDTNIT))*
-     &                     STT(I,J,L,IDTNIT)))*AIRMW/(ICEMW*
+     &                     ( ( NATMW / NIT_MW_G ) *
+     &                     Spc(I,J,L,id_NIT)))*AIRMW/(ICEMW*
      &                     State_Met%AD(I,J,L))
                ENDIF
                XPSC_0   = XNAT_0 + XICE_0
@@ -2950,21 +3132,20 @@
                INVAIR_0 = AIRMW/State_Met%AD(I,J,L)
                IF (L .lt. (LLPAR-1)) THEN
                   INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+1)
-                  !IF (STATE_PSC(I,J,L+1).lt.2) THEN
                   IF (STATE_PSC(I,J,L+1) < 2.0e+0_f4 ) THEN
                      XNO3_ABOVE = 0e+0_fp
                      XNAT_ABOVE = 0e+0_fp
                      XICE_ABOVE = 0e+0_fp
                   ELSE
-                     XNO3_ABOVE = STT(I,J,L+1,IDTNIT) * INVAIR_ABOVE / 
-     &                                   (TRACER_MW_G(IDTNIT))
+                     XNO3_ABOVE = Spc(I,J,L+1,id_NIT) * INVAIR_ABOVE / 
+     &                            NIT_MW_G
                      ! NAT = HNO3.3H2O = 4 molecules
                      XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
-!                     XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-STT(I,J,L+1,IDTNIT))
+!                     XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-Spc(I,J,L+1,id_NIT))
 !     &                                          *INVAIR_ABOVE/ICEMW
                      XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-
-     &                   ((NATMW/TRACER_MW_G(IDTNIT))*
-     &                   STT(I,J,L+1,IDTNIT)))*INVAIR_ABOVE/ICEMW
+     &                   ( ( NATMW / NIT_MW_G ) *
+     &                   Spc(I,J,L+1,id_NIT)))*INVAIR_ABOVE/ICEMW
                   ENDIF
                   XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
                   P_ABOVE    = 100.0e+0_fp * State_Met%PMID(I,J,L+1)
@@ -3008,14 +3189,13 @@
                   
                   IF (L.lt.(LLPAR-1)) THEN
                      INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+2)
-                     !IF (STATE_PSC(I,J,L+2).ge.2) THEN
                      IF (STATE_PSC(I,J,L+2) >= 2.0e+0_f4 ) THEN
-                        XNO3_ABOVE = STT(I,J,L+2,IDTNIT)*INVAIR_ABOVE/ 
-     &                                TRACER_MW_G(IDTNIT)
+                        XNO3_ABOVE = Spc(I,J,L+2,id_NIT)*INVAIR_ABOVE/ 
+     &                               NIT_MW_G
                         XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
                         XICE_ABOVE = (KG_AER(I,J,L+2,I_SPA)-
-     &                      ((NATMW/TRACER_MW_G(IDTNIT))*
-     &                      STT(I,J,L+2,IDTNIT)))*INVAIR_ABOVE/ICEMW
+     &                      ( ( NATMW / NIT_MW_G )*
+     &                      Spc(I,J,L+2,id_NIT)))*INVAIR_ABOVE/ICEMW
                      ELSE
                         XNO3_ABOVE = 0e+0_fp
                         XNAT_ABOVE = 0e+0_fp
@@ -3128,20 +3308,20 @@
                   SEDICE = MAX(0.0e+0_fp,SEDICE)
                   
                   ! Convert v/v to kg/box
-                  SEDNO3 = SEDNO3*TRACER_MW_G(IDTNIT)/INVAIR_0
+                  SEDNO3 = SEDNO3 * NIT_MW_G / INVAIR_0
                   SEDICE = SEDICE*ICEMW/INVAIR_0
                   
-                  SEDNO3 = MIN(SEDNO3,STT(I,J,L+1,IDTNIT))
-                  STT(I,J,L,IDTNIT) = STT(I,J,L,IDTNIT) + SEDNO3
-                  STT(I,J,L+1,IDTNIT)=STT(I,J,L+1,IDTNIT)-SEDNO3
+                  SEDNO3 = MIN(SEDNO3,Spc(I,J,L+1,id_NIT))
+                  Spc(I,J,L,id_NIT) = Spc(I,J,L,id_NIT) + SEDNO3
+                  Spc(I,J,L+1,id_NIT)=Spc(I,J,L+1,id_NIT)-SEDNO3
 
                   ! Settle the ice out too
-                  SEDH2O = MIN(SEDICE,STT(I,J,L+1,IDTH2O))
-                  STT(I,J,L,IDTH2O) = STT(I,J,L,IDTH2O) + SEDH2O
-                  STT(I,J,L+1,IDTH2O)=STT(I,J,L+1,IDTH2O)-SEDH2O
+                  SEDH2O = MIN(SEDICE,Spc(I,J,L+1,id_H2O))
+                  Spc(I,J,L,id_H2O) = Spc(I,J,L,id_H2O) + SEDH2O
+                  Spc(I,J,L+1,id_H2O)=Spc(I,J,L+1,id_H2O)-SEDH2O
 
                   ! Now correct aerosol totals
-                  SEDNAT = SEDNO3*NATMW/TRACER_MW_G(IDTNIT)
+                  SEDNAT = SEDNO3 * NATMW / NIT_MW_G
                   SEDPSC = SEDNAT + SEDICE
                   SEDPSC = MIN(SEDPSC,KG_AER(I,J,L+1,I_SPA))
                   KG_AER(I,J,L,I_SPA) = KG_AER(I,J,L,I_SPA) + SEDPSC
@@ -3149,23 +3329,22 @@
                   
                   ! Store for debug
                   IF (LPRT) THEN
-                     FRACLOSS = SEDH2O/STT(I,J,L+1,IDTH2O)
+                     FRACLOSS = SEDH2O/Spc(I,J,L+1,id_H2O)
                      IF (FRACLOSS .gt. MAXLOSS) THEN
                         MAXLOSS = FRACLOSS
                         D_ICE0 = XICE_0*ICEMW/INVAIR_0
                         D_ICE1 = D_ICE0 - SEDICE
-                        D_H2O1 = STT(I,J,L+1,IDTH2O)
+                        D_H2O1 = Spc(I,J,L+1,id_H2O)
                         D_H2O0 = D_H2O1 + SEDH2O
-                        D_NAT1 = STT(I,J,L+1,IDTNIT)*NATMW/
-     &                                      TRACER_MW_G(IDTNIT)
+                        D_NAT1 = Spc(I,J,L+1,id_NIT) * NATMW / NIT_MW_G
                         D_NAT0 = D_NAT1 + SEDNAT
-                        D_HNO3 = STT(I,J,L+1,IDTHNO3)
+                        D_HNO3 = Spc(I,J,L+1,id_HNO3)
                         D_RMAX = RAD_AER(I,J,L+1,I_SPA)
                         D_VMAX = VNAT(L+1)
                         D_SEDQ = SEDQUANT
                         D_PSED = PSED0
                         D_XH2O = D_H2O0*INVAIR_0/ICEMW
-                        D_XHNO3= D_HNO3*INVAIR_0/TRACER_MW_G(IDTHNO3)
+                        D_XHNO3= D_HNO3*INVAIR_0 / HNO3_MW_G
                         D_XNAT = D_NAT0*INVAIR_0/NATMW
                         D_PPA  = P_0
                         D_TK   = TEMP
@@ -3179,9 +3358,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      ! Free pointer
-      NULLIFY( STT )
 
       IF (LPRT) THEN
          CALL DEBUG_MSG( '### UCX: after SETTLE_STRAT_AER' )
@@ -3204,8 +3380,12 @@
      &                         D_SEDQ, D_PSED
       ENDIF
 
+      ! Free pointers
+      Spc       => NULL()
+      STATE_PSC => NULL() 
+      WERADIUS  => NULL()
+
       END SUBROUTINE SETTLE_STRAT_AER
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -3225,10 +3405,9 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTSO4
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3246,6 +3425,9 @@
 !  24 Feb 2015 - E. Lundgren   - Replace GET_PCENTER with State_Met%PMID_DRY
 !  24 Feb 2015 - E. Lundgren   - Remove dependency on PRESSURE_MOD
 !  26 Mar 2015 - E. Lundgren   - Now use moist and dry air partial pressures
+!  31 May 2016 - E. Lundgren   - Replace Input_Opt%TRACER_MW_G with species
+!                                database emMW_g (emitted species g/mol)
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3253,30 +3435,29 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE      :: FIRST=.TRUE.
-      REAL(fp),PARAMETER   :: GF_THRESHOLD = 0.0e+0_fp
-      REAL(fp),PARAMETER   :: GF_RANGE     = 1.0e-8_fp
-      REAL(fp),PARAMETER   :: GF_DELTAHBYR = 10156.e+0_fp
-      REAL(fp),PARAMETER   :: GF_T0        = 360.e+0_fp
-      REAL(fp),PARAMETER   :: GF_TC        = 905.e+0_fp
-      REAL(fp),SAVE        :: GF_LOGP0
-      REAL(fp),SAVE        :: GF_BFACTOR
-      REAL(fp),SAVE        :: GF_ATMCONV
-      REAL(fp),SAVE        :: GF_INVT0
-      REAL(fp)             :: GF_INVT,GF_LOGPSULFATE,GF_CFACTOR
-      REAL(fp)             :: GF_AFACTOR
-      REAL(fp)             :: GF_PP,GF_PVAP,GF_DIFF
+      REAL(fp),PARAMETER :: GF_THRESHOLD = 0.0e+0_fp
+      REAL(fp),PARAMETER :: GF_RANGE     = 1.0e-8_fp
+      REAL(fp),PARAMETER :: GF_DELTAHBYR = 10156.e+0_fp
+      REAL(fp),PARAMETER :: GF_T0        = 360.e+0_fp
+      REAL(fp),PARAMETER :: GF_TC        = 905.e+0_fp
+      REAL(fp),SAVE      :: GF_LOGP0
+      REAL(fp),SAVE      :: GF_BFACTOR
+      REAL(fp),SAVE      :: GF_ATMCONV
+      REAL(fp),SAVE      :: GF_INVT0
+      REAL(fp)           :: GF_INVT,GF_LOGPSULFATE,GF_CFACTOR
+      REAL(fp)           :: GF_AFACTOR
+      REAL(fp)           :: GF_PP,GF_PVAP,GF_DIFF
 
       INTEGER            :: I, J, L
-      REAL(fp)             :: PCENTER, PCENTER_P, TCENTER, H2SO4SUM 
-      REAL(fp)             :: INVAIR
+      REAL(fp)           :: PCENTER, PCENTER_P, TCENTER, H2SO4SUM 
+      REAL(fp)           :: INVAIR
+      REAL(fp)           :: SO4_MW_G
 
       ! Local variables for quantities from Input_Opt
       LOGICAL            :: LPRT
-      INTEGER            :: N_TRACERS
-      REAL(fp)             :: TRACER_MW_G(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: Spc (:,:,:,:)
 
       !=================================================================
       ! CALC_H2SO4_GAS begins here!
@@ -3284,11 +3465,12 @@
 
       ! Copy fields from INPUT_OPT
       LPRT        = Input_Opt%LPRT
-      N_TRACERS   = Input_Opt%N_TRACERS
-      TRACER_MW_G = Input_Opt%TRACER_MW_G(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg]
-      STT => State_Chm%Tracers
+      ! Copy fields from species database
+      SO4_MW_G    = State_Chm%SpcData(id_SO4)%Info%emMW_g ! g/mol
+
+      ! Initialize GEOS-Chem species array [kg]
+      Spc => State_Chm%Species
 
       IF (FIRST) THEN
          FIRST = .FALSE.
@@ -3326,7 +3508,7 @@
             ! Don't want to interfere with tropospheric aerosols
             AERFRAC(I,J,L,1) = 1e+0_fp
          ELSE
-            H2SO4SUM = STT(I,J,L,IDTSO4  )*INVAIR/TRACER_MW_G(IDTSO4  )
+            H2SO4SUM = Spc(I,J,L,id_SO4) * INVAIR / SO4_MW_G
             ! Use approximation from Kumala (1990)
             ! Use dry air partial pressure (ewl, 3/26/15)
             GF_PP = H2SO4SUM*PCENTER_P
@@ -3352,7 +3534,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
 
       IF ( LPRT ) CALL DEBUG_MSG( '### UCX: H2SO4 partitioned' )
 
@@ -3364,7 +3546,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: SO4_PHOTFRAC
+! !IROUTINE: so4_photfrac
 !
 ! !DESCRIPTION: FUNCTION SO4\_PHOTFRAC returns the fraction of H2SO4 which 
 !  is available for photolysis.
@@ -3419,19 +3601,14 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
-      USE COMODE_MOD,         ONLY : CSPEC,JLOP
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      !USE GRID_MOD,           ONLY : GET_YEDGE
-      USE GRID_MOD,           ONLY : GET_YMID
-      USE TRACERID_MOD,       ONLY : IDTSO4, IDTH2O
-      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTNIT, IDTBrNO3, IDTHBr
-      USE TRACERID_MOD,       ONLY : IDTHOBr, IDTHCl, IDTClNO3, IDTHOCl
+      USE GC_GRID_MOD,        ONLY : GET_YMID
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3458,7 +3635,13 @@
 !                                air pressure, with State_Met%PMID_DRY and
 !                                remove dependency on PRESSURE_MOD.
 !  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
-!                                now done from DO_CHEMISTRY (chemistry_mod.F)  
+!                                now done from DO_CHEMISTRY (chemistry_mod.F) 
+!  31 May 2016 - E. Lundgren   - Replace Input_Opt%TRACER_MW_G with emMW_g
+!                                from species database (emitted species g/mol) 
+!  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
+!  21 Jun 2016 - R. Yantosca   - Now use module variables for species ID flags
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
+!  11 Aug 2016 - R. Yantosca   - Remove temporary tracer removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3472,7 +3655,7 @@
       REAL(fp),PARAMETER      :: PSC_PMIN   =   5.0e+2_fp
 
       ! Allow PSC formation outsize Kirner limits?
-      LOGICAL,PARAMETER     :: PSC_FULL   =.FALSE.
+      LOGICAL,PARAMETER       :: PSC_FULL   =.FALSE.
 
       ! Saturation and nucleation properties of HNO3
       REAL(fp), PARAMETER     :: TSATHNO3_A = -2.7836e+0_fp
@@ -3538,44 +3721,56 @@
 
       ! Local properties
       REAL(fp), DIMENSION(11) :: GAMMA_BOX
-      INTEGER               :: STATE_LOCAL
+      INTEGER                 :: STATE_LOCAL
 
       ! Loop variables
-      INTEGER               :: I, J, L, K, JLOOP
+      INTEGER                 :: I, J, L, K
 
       ! SDE 2013-07-07: Debug variables
-      REAL(fp)                 :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
-      REAL(fp)                 :: D_MAXN, D_FRACN,D_PP,   D_PS
+      REAL(fp)                :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
+      REAL(fp)                :: D_MAXN, D_FRACN,D_PP,   D_PS
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL                :: prtDebug
-      LOGICAL                :: LPRT
-      LOGICAL                :: LHOMNUCNAT
-      LOGICAL                :: LSOLIDPSC
-      LOGICAL                :: LACTIVEH2O
-      INTEGER                :: N_TRACERS
-      REAL(fp)                 :: TRACER_MW_G(Input_Opt%N_TRACERS)
+      LOGICAL                 :: prtDebug
+      LOGICAL                 :: LPRT
+      LOGICAL                 :: LHOMNUCNAT
+      LOGICAL                 :: LSOLIDPSC
+      LOGICAL                 :: LACTIVEH2O
+
+      ! Local variables for quantities from species database
+      REAL(fp)                :: NIT_MW_G, HNO3_MW_G, H2O_MW_G
 
       ! Pointers
-      REAL(fp), POINTER        :: STT(:,:,:,:)
+      REAL(fp), POINTER       :: Spc (:,:,:,:)
+      REAL(fp), POINTER       :: KHETI_SLA(:,:,:,:)
+      REAL(f4), POINTER       :: STATE_PSC(:,:,:)
 
       !=================================================================
       ! CALC_STRAT_AER begins here!
       !=================================================================
 
       ! Assume success
-      RC       = GIGC_SUCCESS
+      RC       = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT
       LPRT        = Input_Opt%LPRT
       LHOMNUCNAT  = Input_Opt%LHOMNUCNAT
       LSOLIDPSC   = Input_Opt%LSOLIDPSC
       LACTIVEH2O  = Input_Opt%LACTIVEH2O
-      N_TRACERS   = Input_Opt%N_TRACERS
-      TRACER_MW_G = Input_Opt%TRACER_MW_G(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg]
-      STT => State_Chm%Tracers
+      ! Copy fields from species database
+      NIT_MW_G  = State_Chm%SpcData(id_NIT)%Info%emMW_g   ! g/mol
+      HNO3_MW_G = State_Chm%SpcData(id_HNO3)%Info%emMW_g  ! g/mol
+      H2O_MW_G  = State_Chm%SpcData(id_H2O)%Info%emMW_g   ! g/mol
+
+      ! Initialize GEOS-Chem species array [kg]
+      Spc => State_Chm%Species
+
+      ! Initialize sticking coefficients for PSC reactions on SLA
+      KHETI_SLA => State_Chm%KHETI_SLA
+
+      ! Initialize gridbox PSC type (see Kirner et al. 2011, GMD)
+      STATE_PSC => State_Chm%STATE_PSC
 
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
@@ -3603,7 +3798,7 @@
 !$OMP+PRIVATE( K,            IS_POLAR,           IS_STRAT      )
 !$OMP+PRIVATE( PCENTER,      PCENTER_PA,         DENAIR        )
 !$OMP+PRIVATE( INVAIR,       PSATHNO3,           PSATH2O       )
-!$OMP+PRIVATE( JLOOP,        VOL_NAT,            VOL_ICE       )
+!$OMP+PRIVATE( VOL_NAT,      VOL_ICE                           )
 !$OMP+PRIVATE( VOL_SLA,      PSATHNO3_SUPERCOOL, TCENTER       )
 !$OMP+PRIVATE( TINV,         IS_VALID                          )
 !$OMP+PRIVATE( RAD_AER_BOX,  RHO_AER_BOX                       )
@@ -3682,7 +3877,6 @@
                HOBr_BOX_L   = 0.0e+0_fp
                HOBr_BOX_G   = 0.0e+0_fp
 
-               !STATE_LOCAL  = STATE_PSC(I,J,L)
                STATE_LOCAL  = NINT(STATE_PSC(I,J,L))
 
                ! Calculate local air density
@@ -3690,18 +3884,14 @@
                INVAIR = AIRMW / State_Met%AD(I,J,L)
 
                ! Get available NO3 mass
-               KG_NO3 = (STT(I,J,L,IDTHNO3)*
-     &                   TRACER_MW_G(IDTNIT)/TRACER_MW_G(IDTHNO3)) + 
-     &                   STT(I,J,L,IDTNIT)
+               KG_NO3 = ( Spc(I,J,L,id_HNO3) * NIT_MW_G / HNO3_MW_g ) +
+     &                    Spc(I,J,L,id_NIT)
 
                ! Calculate HNO3 mixing ratio
-               HNO3SUM = STT(I,J,L,IDTHNO3)*INVAIR/
-     &                    TRACER_MW_G(IDTHNO3)
-               HNO3SUM = HNO3SUM + STT(I,J,L,IDTNIT)*INVAIR/
-     &                    TRACER_MW_G(IDTNIT)
+               HNO3SUM = Spc(I,J,L,id_HNO3) * INVAIR / HNO3_MW_G
+               HNO3SUM = HNO3SUM + Spc(I,J,L,id_NIT) * INVAIR / NIT_MW_G
 
-               H2OSUM = STT(I,J,L,IDTH2O)*INVAIR/
-     &                   TRACER_MW_G(IDTH2O)
+               H2OSUM = Spc(I,J,L,id_H2O) * INVAIR / H2O_MW_G
 
                ! Calculate partial pressures (Pa)
                HNO3PP = PCENTER_PA * HNO3SUM
@@ -3778,7 +3968,6 @@
                ENDIF
 
                ! Store state
-               !STATE_PSC(I,J,L) = STATE_LOCAL
                STATE_PSC(I,J,L) = REAL(STATE_LOCAL,f4)
 
                ! Only continue if we want online solid PSCs
@@ -3900,12 +4089,14 @@
 
                ! Repartition NIT and HNO3 in strat/meso
                IF (LSOLIDPSC.and.IS_STRAT) THEN
+
                   ! Convert NAT from kg NAT to kg NO3
-                  STT(I,J,L,IDTNIT) = KG_NAT*TRACER_MW_G(IDTNIT)/NATMW
+                  Spc(I,J,L,id_NIT) = KG_NAT * NIT_MW_G / NATMW
+
                   ! Remove (kg NO3 as NAT) from total kg NO3
                   ! then convert to kg HNO3
-                  STT(I,J,L,IDTHNO3) = (KG_NO3-STT(I,J,L,IDTNIT))
-     &                  *TRACER_MW_G(IDTHNO3)/TRACER_MW_G(IDTNIT) 
+                  Spc(I,J,L,id_HNO3) = (KG_NO3-Spc(I,J,L,id_NIT))
+     &                  * HNO3_MW_G / NIT_MW_G 
                ENDIF
 
                ! Now start liquid aerosol consideration
@@ -3916,20 +4107,20 @@
                H2O_BOX_L = 0e+0_fp
 
                ! Calculate mixing ratios of other relevant species
-               H2SO4SUM = STT(I,J,L,IDTSO4  )*INVAIR/
-     &                  TRACER_MW_G(IDTSO4  )
-               BrNO3SUM = STT(I,J,L,IDTBrNO3)*INVAIR/
-     &                  TRACER_MW_G(IDTBrNO3)
-               ClNO3SUM = STT(I,J,L,IDTClNO3)*INVAIR/
-     &                  TRACER_MW_G(IDTClNO3)
-               HOClSUM  = STT(I,J,L,IDTHOCl )*INVAIR/
-     &                  TRACER_MW_G(IDTHOCl )
-               HClSUM   = STT(I,J,L,IDTHCl  )*INVAIR/
-     &                  TRACER_MW_G(IDTHCl  )
-               HOBrSUM  = STT(I,J,L,IDTHOBr )*INVAIR/
-     &                  TRACER_MW_G(IDTHOBr )
-               HBrSUM   = STT(I,J,L,IDTHBr  )*INVAIR/
-     &                  TRACER_MW_G(IDTHBr  )
+               H2SO4SUM = Spc(I,J,L,id_SO4) * INVAIR /
+     &                    State_Chm%SpcData(id_SO4)%Info%emMW_g
+               BrNO3SUM = Spc(I,J,L,id_BrNO3) * INVAIR /
+     &                    State_Chm%SpcData(id_BrNO3)%Info%emMW_g
+               ClNO3SUM = Spc(I,J,L,id_ClNO3) * INVAIR /
+     &                    State_Chm%SpcData(id_ClNO3)%Info%emMW_g
+               HOClSUM  = Spc(I,J,L,id_HOCl) * INVAIR /
+     &                    State_Chm%SpcData(id_HOCl)%Info%emMW_g
+               HClSUM   = Spc(I,J,L,id_HCl) * INVAIR /
+     &                    State_Chm%SpcData(id_HCl)%Info%emMW_g
+               HOBrSUM  = Spc(I,J,L,id_HOBr) * INVAIR /
+     &                    State_Chm%SpcData(id_HOBr)%Info%emMW_g
+               HBrSUM   = Spc(I,J,L,id_HBr) * INVAIR /
+     &                    State_Chm%SpcData(id_HBr)%Info%emMW_g
 
                ! H2SO4 gas fraction calculated earlier throughout grid
                ! Consider gaseoues H2SO4 to be unavailable for SLA
@@ -4150,8 +4341,8 @@
      &                               D_TK                    
       ENDIF
 
-      ! Free pointer
-      NULLIFY( STT )
+      ! Free pointers
+      NULLIFY( Spc, STATE_PSC, KHETI_SLA )
 
       END SUBROUTINE CALC_STRAT_AER
 !EOC
@@ -4315,71 +4506,6 @@
       ENDIF
 
       END SUBROUTINE GET_STRAT_OPT
-!EOC
-!------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: check_nat
-!
-! !DESCRIPTION: Subroutine CHECK\_NAT determines whether the solid PSC is 
-!  composed of ice or NAT (needed for heterogeneous chemistry), or indeed
-!  if there is any direct PSC calculation at all. This is important for
-!  determining whether to use the JPP or Kirner scheme for ice cloud radii.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CHECK_NAT( am_I_Root, I, J, L, IS_NAT, IS_PSC, 
-     &                      IS_STRAT, Input_Opt, State_Met, State_Chm )
-!
-! !USES:
-!
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTNIT
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Root CPU?
-      INTEGER,        INTENT(IN)  :: I,J,L      ! Grid indices
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input options
-      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
-      TYPE(ChmState), INTENT(IN)  :: State_Chm  ! Chemistry State object
-!
-! !OUTPUT VARIABLES:
-!
-      LOGICAL,        INTENT(OUT) :: IS_NAT     ! Is surface NAT?
-      LOGICAL,        INTENT(OUT) :: IS_PSC     ! Are there solid PSCs?
-      LOGICAL,        INTENT(OUT) :: IS_STRAT   ! Are we in the strat?
-!
-! !REVISION HISTORY: 
-!  17 Apr 2013 - S. D. Eastham - Initial version
-!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
-!                                objects via the arg list
-!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
-!                                now done from DO_CHEMISTRY (chemistry_mod.F) 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-      !=================================================================
-      ! CHECK_NAT begins here!
-      !=================================================================
-
-      IS_STRAT = ITS_IN_THE_STRAT(I,J,L,State_Met)
-
-      IS_PSC   = ( ( Input_Opt%LPSCCHEM ) .and.
-!     &             ( STATE_PSC(I,J,L) .ge. 2 ) .and. ( IS_STRAT ) )
-     &             ( STATE_PSC(I,J,L) >= 2.0_f4 ) .and. ( IS_STRAT ) )
-
-      IS_NAT   = ( ( IS_PSC ) .and.
-     &         ( State_Chm%Tracers(I,J,L,IDTNIT) .gt. TINY(1e+0_fp) ) )
-
-      END SUBROUTINE CHECK_NAT
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -5273,18 +5399,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PSC_FILE( am_I_Root, RC )
+      SUBROUTINE READ_PSC_FILE( am_I_Root, State_Chm, RC )
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartGet
-      USE HCO_STATE_MOD,      ONLY : HCO_State
       USE HCO_CLOCK_MOD,      ONLY : HcoClock_First 
       USE HCO_CLOCK_MOD,      ONLY : HcoClock_Rewind
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5292,6 +5418,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       INTEGER,        INTENT(INOUT) :: RC
 ! 
 ! !REVISION HISTORY: 
@@ -5302,6 +5429,7 @@
 !  14 Jan 2015 - C. Keller     - Now read from HEMCO
 !   4 Mar 2015 - R. Yantosca   - Declare pointer args to HCO_GetPtr w/ REAL(f4)
 !  25 Mar 2015 - C. Keller     - Now use HEMCO restart module
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5314,35 +5442,32 @@
       ! Strings
       CHARACTER(LEN=255) :: MSG
      
-      ! Pointer to HEMCO state obj.
-      TYPE(HCO_State), POINTER  :: HcoState => NULL()
-
       !=================================================================
       ! READ_PSC_FILE begins here!
       !=================================================================
 
       ! Assume success until otherwise 
-      RC = GIGC_SUCCESS 
- 
-      ! Only read on first call or after rewind
-      IF ( .NOT. HcoClock_First ( .FALSE. ) .AND. 
-     &     .NOT. HcoClock_Rewind( .FALSE. )      ) THEN
-         RETURN
+      RC = GC_SUCCESS 
+
+      ! Make sure HEMCO state is defined
+      IF ( .NOT. ASSOCIATED ( HcoState ) ) THEN
+         MSG = 'HEMCO state object not associated!'
+         CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
       ENDIF
  
-      ! Get HEMCO state obj.
-      CALL GetHcoState( HcoState )
+      ! Only read on first call or after rewind
+      IF ( .NOT. HcoClock_First ( HcoState%Clock, .FALSE. ) .AND. 
+     &     .NOT. HcoClock_Rewind( HcoState%Clock, .FALSE. )      ) THEN
+         RETURN
+      ENDIF
 
       ! Get restart variable
       CALL HCO_RestartGet( am_I_Root, HcoState, 'STATE_PSC',  
-     &                     STATE_PSC, RC, FILLED=IT_EXISTS ) 
+     &                     State_Chm%STATE_PSC, RC, FILLED=IT_EXISTS ) 
       IF ( RC /= HCO_SUCCESS ) THEN
          MSG = 'Cannot get PSC restart variable'
          CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
       ENDIF
-
-      ! Cleanup
-      HcoState => NULL()
 
       ! On first call, prompt some messages
 
@@ -5368,7 +5493,7 @@
 !
 ! !IROUTINE: set_clock_trac
 !
-! !DESCRIPTION: Subroutine SET\_CLOCK\_TRAC sets the clock tracer mixing 
+! !DESCRIPTION: Subroutine SET\_CLOCK\_TRAC sets the clock species mixing 
 !  ratio within the bottom five grid levels, increasing by a fixed rate of
 !  0.5 ppbv/day
 !\\
@@ -5380,8 +5505,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTCLOCK
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -5401,7 +5525,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: I,J,L,LCLOCK
+      INTEGER             :: I,J,L,LCLOCK
       REAL(fp), PARAMETER :: INCRATE = 0.5e-9_fp ! vv/day increase
       
       !=================================================================
@@ -5409,7 +5533,7 @@
       !=================================================================
 
       IF (CLOCKMR.lt.TINY(1e+0_fp)) THEN
-         ! Reset clock tracer everywhere
+         ! Reset clock species everywhere
          LCLOCK = LLPAR
       ELSE
          ! Only set bottom 5 levels
@@ -5422,7 +5546,7 @@
       DO L=1,LCLOCK
       DO J=1,JJPAR
       DO I=1,IIPAR
-         State_Chm%Tracers(I,J,L,IDTCLOCK) = CLOCKMR
+         State_Chm%Species(I,J,L,id_CLOCK) = CLOCKMR
       ENDDO ! L
       ENDDO ! I
       ENDDO ! J
@@ -5440,7 +5564,7 @@
 !
 ! !IROUTINE: set_h2o_trac
 !
-! !DESCRIPTION: Subroutine SET\_H2O\_TRAC sets the H2O tracer throughout 
+! !DESCRIPTION: Subroutine SET\_H2O\_TRAC sets the H2O species throughout 
 !  the selected domain (either troposphere only or the full grid).
 !\\
 !\\
@@ -5453,14 +5577,13 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_SIZE_MOD
-      USE ERROR_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE DAO_MOD,            ONLY : AIRQNT
-      USE TRACERID_MOD,       ONLY : IDTH2O
-      USE GIGC_ErrCode_Mod
-      USE UNITCONV_MOD 
+      USE ErrCode_Mod
+      USE ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE UnitConv_Mod 
 !
 ! !INPUT PARAMETERS:
 !      
@@ -5492,6 +5615,9 @@
 !                                1973 and call AirQnt if moisture vars
 !                                are updated using H2O tracer concentration
 !  28 Oct 2015 - E. Lundgren   - Tracer units are now kg/kg dry air
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
+!  18 Jul 2016 - E. Lundgren   - Remove dependency on grid box mass
+!  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5499,7 +5625,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: I,J,L
-
       LOGICAL           :: READ_SPHU
       REAL(fp)          :: SPHU_kgkg, H2OVV_moist, Ev_mid
       REAL(fp)          :: Esat, EsatA, EsatB, EsatC, EsatD
@@ -5525,31 +5650,31 @@
       REAL(fp), PARAMETER   :: ESATP9  = -2.949076e+3_fp
       
       ! Pointers
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER     :: Spc (:,:,:,:)
 
       !=================================================================
       ! SET_H2O_TRAC begins here!
       !=================================================================
 
       ! Assume success
-      RC  = GIGC_SUCCESS   
+      RC  = GC_SUCCESS   
 
       ! Copy fields from INPUT_OPT
       LACTIVEH2O = Input_Opt%LACTIVEH2O
 
-      ! Check that tracer concentration units are as expected
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+      ! Check that species concentration units are as expected
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+         MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
          LOC = 'UCX_MOD: SET_H2O_TRAC'
-         CALL GIGC_Error( TRIM(MSG), RC, TRIM(LOC) )
+         CALL GC_Error( TRIM(MSG), RC, TRIM(LOC) )
       ENDIF
 
-      ! Initialize GEOS-Chem tracer array [kg/kg dry]
-      STT => State_Chm%Tracers
+      ! Initialize GEOS-Chem species array [kg/kg dry]
+      Spc => State_Chm%Species
 
       ! If specific humidity will be updated, set previous humidity to
       ! to current humidity prior to change. This is used to preserve
-      ! tracer mass in mixing ratio update following moisture change
+      ! species mass in mixing ratio update following moisture change
       ! (ewl, 10/29/15)
       IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
          State_Met%SPHU_prev = State_Met%SPHU
@@ -5567,20 +5692,22 @@
          READ_SPHU = ( ITS_IN_THE_TROP( I, J, L, State_Met ) .or.
      &                 SETSTRAT .or. ( .not. LACTIVEH2O )  )
 
+
          IF ( READ_SPHU ) THEN
+
+            ! Calculate specific humidity [g H2O/kg total air] as [kg/kg] 
+            SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.e-3_fp
             
-            ! Set H2O tracer concentration [kg/kg dry] using SPHU 
-            ! (ewl, 11/4/15)
-            STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
-     &                          ( State_Met%ADMOIST(I,J,L)
-     &                            / State_Met%AD(I,J,L) )
+            ! Set H2O species concentration [kg/kg dry] using SPHU [kg/kg]
+            ! without using box mass (ewl, 7/18/16)
+            Spc(I,J,L,id_H2O) = SPHU_kgkg / ( 1.0e+0_fp - SPHU_kgkg )
 
          ELSE
 
-            ! Calculate specific humidity [g/kg total air] from 
-            ! transported H2O [kg/kg dry] (ewl, 9/17/15)
-            SPHU_kgkg = STT(I,J,L,IDTH2O) * State_Met%AD(I,J,L)
-     &                  / State_Met%ADMOIST(I,J,L)
+            ! Calculate specific humidity in [kg H2O / kg total air] 
+            ! using transported H2O [kg/kg dry] (ewl, 7/18/16)
+            SPHU_kgkg =  Spc(I,J,L,id_H2O) / 
+     &                  ( 1.0e+0_fp + Spc(I,J,L,id_H2O) ) 
 
             ! Set previous humidity to current humidity prior to update
             ! (ewl, 10/28/15)
@@ -5618,14 +5745,14 @@
 !$OMP END PARALLEL DO
 
       ! If humidity was updated, update all moist-dependent air quantities
-      ! and tracer mixing ratio with the new moisture content (ewl, 4/29/15) 
+      ! and species mixing ratio with the new moisture content (ewl, 4/29/15) 
       IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
          CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
      &                update_mixing_ratio=.TRUE. )
       ENDIF
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( Spc )
 
       END SUBROUTINE SET_H2O_TRAC
 !
@@ -5649,14 +5776,12 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
-      USE COMODE_LOOP_MOD,    ONLY : IRM, NKSO4PHOT, NCSGAS
-      USE COMODE_LOOP_MOD,    ONLY : DEFPRAT, NAMEGAS, NRATES
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE CMN_FJX_MOD,        ONLY : ZPJ
+      USE FAST_JX_MOD,        ONLY : RXN_H2SO4
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTSO2,IDTSO4
-      USE FAST_JX_MOD,        ONLY : FJXFUNC
 !
 ! !INPUT PARAMETERS:
 !
@@ -5676,6 +5801,13 @@
 !  14 Feb 2014 - R. Yantosca   - Reorder DO loops for efficiency
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
+!  31 May 2016 - E. Lundgren   - Replace Input_Opt%TRACER_MW_G with species
+!                                database emMW_g (emitted species g/mol)
+!  21 Jun 2016 - R. Yantosca   - Remove reference to tracerid_mod.F
+!  27 Jun 2016 - M. Sulprizio  - Obtain photolysis rate directly from ZPJ array
+!                                and remove reference to FJXFUNC and obsolete
+!                                SMVGEAR variables like NKSO4PHOT, NAMEGAS, etc.
+!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5683,61 +5815,41 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER               :: I, J, L, IJWINDOW
-      REAL(fp)                :: GMU,SO4_IN,PHOTDELTA,DTCHEM
-      REAL(fp)                :: SO4_DELTA
+      REAL(fp)              :: GMU,SO4_IN,PHOTDELTA,DTCHEM
+      REAL(fp)              :: SO2_MW_G, SO4_MW_g, SO4_DELTA
       LOGICAL               :: DAYCOLUMN
       INTEGER               :: LMINPHOT
-      INTEGER,SAVE          :: LOCAL_NKSO4PHOT
-      CHARACTER(fp),SAVE      :: LOCAL_NAME
-      INTEGER,SAVE          :: LOCAL_IPHOT
-      INTEGER,SAVE          :: IFNC,IBRCH
-      REAL(fp),SAVE           :: RELWT
+      REAL(fp)              :: RELWT
       LOGICAL,SAVE          :: FIRST=.TRUE.
       INTEGER               :: ICS
 
       ! Local variables for quantities from Input_Opt
-      INTEGER               :: N_TRACERS
-      REAL(fp)                :: TRACER_MW_G(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER       :: STT(:,:,:,:)
+      REAL(fp), POINTER     :: Spc (:,:,:,:)
 
       !=================================================================
       ! UCX_H2SO4PHOT begins here!
       !=================================================================
 
-      ! Copy fields from INPUT_OPT
-      N_TRACERS  = Input_Opt%N_TRACERS
-      TRACER_MW_G = Input_Opt%TRACER_MW_G(1:N_TRACERS)
+      ! Copy fields from species database
+      SO2_MW_G = State_Chm%SpcData(id_SO2)%Info%emMW_g ! g/mol
+      SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%emMW_g ! g/mol
+      RELWT    = SO2_MW_G / SO4_MW_G
 
-      ! Initialize GEOS-Chem tracer array [kg]
-      STT => State_Chm%Tracers
-
-      IF (FIRST) THEN
-         FIRST = .FALSE.
-         DO ICS = 1,NCSGAS
-            IF (NKSO4PHOT(ICS).ne.0) THEN
-               LOCAL_NKSO4PHOT = NKSO4PHOT(ICS)
-               LOCAL_NAME = NAMEGAS(IRM(1,LOCAL_NKSO4PHOT,ICS))
-               LOCAL_IPHOT = LOCAL_NKSO4PHOT - NRATES(ICS)
-               IFNC = DEFPRAT(LOCAL_NKSO4PHOT,ICS) + 0.01e+0_fp
-               IBRCH = 10.e+0_fp*(DEFPRAT(LOCAL_NKSO4PHOT,ICS)-IFNC) + 0.5e+0_fp
-               RELWT = TRACER_MW_G(IDTSO2)/TRACER_MW_G(IDTSO4)
-            ENDIF
-         ENDDO 
-      ENDIF
+      ! Initialize GEOS-Chem species array [kg]
+      Spc => State_Chm%Species
 
       ! Allow for the possibility of variable timestep
       DTCHEM = GET_TS_CHEM()*60.e+0_fp
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IJWINDOW, DAYCOLUMN, GMU )
+!$OMP+PRIVATE( I, J, L, DAYCOLUMN, GMU )
 !$OMP+PRIVATE( LMINPHOT, PHOTDELTA, SO4_IN, SO4_DELTA )
       DO J=1,JJPAR
       DO I=1,IIPAR
 
-         IJWINDOW  = (J-1)*IIPAR + I
          GMU       = State_Met%SUNCOSmid(I,J)
          DAYCOLUMN = (GMU.gt.0e+0_fp)
 
@@ -5745,19 +5857,18 @@
             LMINPHOT  = GET_CHEMGRID_LEVEL( I, J, State_Met)
 
             ! Retrieve photolysis rate as a fraction of gaseous SO4
-            PHOTDELTA = FJXFUNC( I, J, LMINPHOT, LOCAL_IPHOT,
-     &                           IBRCH, LOCAL_NAME) * DTCHEM
+            PHOTDELTA = ZPJ(LMINPHOT,RXN_H2SO4,I,J) * DTCHEM
             PHOTDELTA = MIN(1.e+0_fp,PHOTDELTA)
 
             DO L=LMINPHOT+1,LLPAR
                ! Apply photolysis to SO4
                ! First retrieve gaseous fraction
-               SO4_IN = STT(I,J,L,IDTSO4)*SO4_PHOTFRAC(I,J,L)
+               SO4_IN = Spc(I,J,L,id_SO4)*SO4_PHOTFRAC(I,J,L)
                SO4_DELTA = PHOTDELTA*SO4_IN
                ! Remove from SO4
-               STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) - SO4_DELTA
+               Spc(I,J,L,id_SO4) = Spc(I,J,L,id_SO4) - SO4_DELTA
                ! Add to SO2. Note change in molar mass
-               STT(I,J,L,IDTSO2) = STT(I,J,L,IDTSO2) + (SO4_DELTA*RELWT)
+               Spc(I,J,L,id_SO2) = Spc(I,J,L,id_SO2) + (SO4_DELTA*RELWT)
             ENDDO
 
          ENDIF
@@ -5766,8 +5877,10 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( Spc )
+
       END SUBROUTINE UCX_H2SO4PHOT
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -5788,7 +5901,7 @@
 ! !USES:
 !
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE Input_Opt_Mod,        ONLY : OptInput
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : GET_YEAR
 !
@@ -5909,9 +6022,9 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -5947,16 +6060,19 @@
          ID = IDT_EMIT(I)
          SELECT CASE (TRIM(TRAC_EMIT(I)))
 
-            CASE ('CFCX')
+            CASE ('CFC113')
                LOCAL_NAME = TRIM('CFC113')
                CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+            CASE ('CFC114')
                LOCAL_NAME = TRIM('CFC114')
                CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+            CASE ('CFC115')
                LOCAL_NAME = TRIM('CFC115')
                CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
-            CASE ('HCFCX')
+            CASE ('HCFC141b')
                LOCAL_NAME = TRIM('HCFC141b')
                CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+            CASE ('HCFC142b')
                LOCAL_NAME = TRIM('HCFC142b')
                CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
             CASE ('H2402')
@@ -6004,10 +6120,10 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -6271,10 +6387,10 @@
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -6392,6 +6508,12 @@
 110   FORMAT(121E10.3)
 #elif defined( GRID05x0666 )   && defined( NESTED_EU )
 110   FORMAT(81E10.3)
+#elif defined( GRID05x0625 )   && defined( NESTED_AS )
+110   FORMAT(133E10.3)
+#elif defined( GRID05x0625 )   && defined( NESTED_NA )
+110   FORMAT(121E10.3)
+#elif defined( GRID05x0625 )   && defined( NESTED_EU )
+110   FORMAT(81E10.3)
 #elif defined( GRID025x03125 ) && defined( NESTED_CH )
 110   FORMAT(161E10.3)
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
@@ -6430,7 +6552,7 @@
 !
 ! !USES:
 !
-      USE GRID_MOD,           ONLY : GET_YMID
+      USE GC_GRID_MOD, ONLY : GET_YMID
 !
 ! !INPUT PARAMETERS:
 !
@@ -6491,66 +6613,68 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_UCX( am_I_Root, Input_Opt )
-      !SUBROUTINE INIT_UCX( am_I_Root, Input_Opt, YYYYMMDD, HHMMSS )
+      SUBROUTINE INIT_UCX( am_I_Root, Input_Opt, State_Chm )
 !
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_YEDGE
+      USE GC_GRID_MOD,        ONLY : GET_YEDGE
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : PI_180
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
       USE TIME_MOD,           ONLY : GET_YEAR
-      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-!      INTEGER,        INTENT(IN) :: YYYYMMDD    ! YYYY/MM/DD GMT date
-!      INTEGER,        INTENT(IN) :: HHMMSS      ! hh:mm:ss   GMT time
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
-!
-! !OUTPUT VARIABLES:
-!
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY: 
 !  04 Apr 2013 - S. D. Eastham - Initial version
+!  21 Jun 2016 - R. Yantosca   - Now declare species ID's during INIT phase
+!  21 Jun 2016 - R. Yantosca   - Remove reference to tracerid_mod.F
+!  24 Jun 2016 - R. Yantosca   - Bug fix: get advected species index for H2 
+!  20 Sep 2016 - R. Yantosca   - Now avoid using SIND, convert the argument
+!                                to radians and use the SIN function instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N, AS
-      LOGICAL :: USE2DDATA
+      INTEGER            :: N, AS
+      LOGICAL            :: USE2DDATA
       CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC
       INTEGER            :: JIN, JOUT
-      REAL(fp)             :: JMIN_IN, JMAX_IN, JDIF_IN
-      REAL(fp)             :: JMIN_OUT,JMAX_OUT,JDIF_OUT
-      REAL(fp)             :: JMIN_TMP,JMAX_TMP,JDIF_TMP
-      REAL(fp)             :: JRATIO
-      REAL(fp)             :: DEG_SUM
+      REAL(fp)           :: JMIN_IN, JMAX_IN, JDIF_IN
+      REAL(fp)           :: JMIN_OUT,JMAX_OUT,JDIF_OUT
+      REAL(fp)           :: JMIN_TMP,JMAX_TMP,JDIF_TMP
+      REAL(fp)           :: JRATIO
+      REAL(fp)           :: DEG_SUM
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL :: LPRT
-      LOGICAL :: LUCX
-      LOGICAL :: LFUTURECFC
-      LOGICAL :: LCH4SBC
-      LOGICAL :: LCFCEMIS
-      LOGICAL :: LCLEMIS
-      LOGICAL :: LOCSEMIS
-      LOGICAL :: LN2OEMIS
-      LOGICAL :: LBREMIS
-      LOGICAL :: LSETOCS
-      LOGICAL :: LSETCFC
-      LOGICAL :: LSETCL
-      LOGICAL :: LSETBR
-      LOGICAL :: LSETH2SO4
-      LOGICAL :: LSETBRSTRAT
-      LOGICAL :: LSETNOYSTRAT
-      LOGICAL :: LSETN2O
-!      LOGICAL :: LBASICEMIS
+      LOGICAL            :: LPRT
+      LOGICAL            :: LUCX
+      LOGICAL            :: LFUTURECFC
+      LOGICAL            :: LCH4SBC
+      LOGICAL            :: LCFCEMIS
+      LOGICAL            :: LCLEMIS
+      LOGICAL            :: LOCSEMIS
+      LOGICAL            :: LN2OEMIS
+      LOGICAL            :: LBREMIS
+      LOGICAL            :: LSETOCS
+      LOGICAL            :: LSETCFC
+      LOGICAL            :: LSETCL
+      LOGICAL            :: LSETBR
+      LOGICAL            :: LSETH2SO4
+      LOGICAL            :: LSETBRSTRAT
+      LOGICAL            :: LSETNOYSTRAT
+      LOGICAL            :: LSETN2O
+!      LOGICAL            :: LBASICEMIS
 
       ! Return code
       INTEGER :: RC
@@ -6582,6 +6706,66 @@
       ! Set module variable doPrint for use in internal functions
       doPrint      = LPRT .AND. am_I_Root
 
+      ! Initialize species ID flags
+      id_BCPI    = Ind_('BCPI'      )
+      id_Br      = Ind_('Br'        )
+      id_Br2     = Ind_('Br2'       )
+      id_BrCl    = Ind_('BrCl'      )
+      id_BrNO2   = Ind_('BrNO2'     )
+      id_BrNO3   = Ind_('BrNO3'     )
+      id_BrO     = Ind_('BrO'       )
+      id_CCl4    = Ind_('CCl4'      )
+      id_CFC11   = Ind_('CFC11'     )
+      id_CFC12   = Ind_('CFC12'     )
+      id_CFC113  = Ind_('CFC113'    )
+      id_CFC114  = Ind_('CFC114'    )
+      id_CFC115  = Ind_('CFC115'    )
+      id_CH3Br   = Ind_('CH3Br'     )
+      id_CHBr3   = Ind_('CHBr3 '    )
+      id_CH2Br2  = Ind_('CH2Br2'    )
+      id_CH3Cl   = Ind_('CH3Cl'     )
+      id_CH3CCl3 = Ind_('CH3CCl3'   )
+      id_CH4     = Ind_('CH4'       )
+      id_Cl      = Ind_('Cl'        )
+      id_Cl2     = Ind_('Cl2'       )
+      id_Cl2O2   = Ind_('Cl2O2'     )
+      id_ClNO2   = Ind_('ClNO2'     )
+      id_ClNO3   = Ind_('ClNO3'     )
+      id_ClO     = Ind_('ClO'       )
+      id_ClOO    = Ind_('ClOO'      )
+      id_H1211   = Ind_('H1211'     )
+      id_H1301   = Ind_('H1301'     )
+      id_H2      = Ind_('H2',    'A') ! Need advected species index for H2
+      id_H2402   = Ind_('H2402'     )
+      id_H2O     = Ind_('H2O'       )
+      id_HBr     = Ind_('HBr'       )
+      id_HCFC22  = Ind_('HCFC22'    )
+      id_HCFC123 = Ind_('HCFC123'   )
+      id_HCFC141b= Ind_('HCFC141b'  )
+      id_HCFC142b= Ind_('HCFC142b'  )
+      id_HCl     = Ind_('HCl'       )
+      id_HNO2    = Ind_('HNO2'      )
+      id_HNO3    = Ind_('HNO3'      )
+      id_HNO4    = Ind_('HNO4'      )
+      id_HOBr    = Ind_('HOBr'      )
+      id_HOCl    = Ind_('HOCl'      )
+      id_N2O     = Ind_('N2O'       )
+      id_N2O5    = Ind_('N2O5'      )
+      id_NIT     = Ind_('NIT'       )
+      id_N       = Ind_('N'         )
+      id_NO      = Ind_('NO'        )
+      id_NO2     = Ind_('NO2'       )
+      id_NO3     = Ind_('NO3'       )
+      id_O3      = Ind_('O3'        )
+      id_OClO    = Ind_('OClO'      )
+      id_OCS     = Ind_('OCS'       )
+      id_PAN     = Ind_('PAN'       )
+      id_SO2     = Ind_('SO2'       )
+      id_SO4     = Ind_('SO4'       )
+      id_CLOCK   = Ind_('CLOCK'     )
+      id_N       = Ind_('N'         )
+
+      ! Print info
       IF ( am_I_Root ) THEN
          WRITE( 6,'(a)') REPEAT( '=', 79 )
          WRITE( 6,'(a)') 'U N I F I E D   C H E M I S T R Y'
@@ -6719,7 +6903,7 @@
       ! radius (m)
       SLA_VR = (0.357e-6_fp)*(10.e+0_fp**(12.e+0_fp*0.249))
 
-      ! Set clock tracer mixing ratio to zero
+      ! Set clock species mixing ratio to zero
       CLOCKMR = 0e+0_fp
 
       ! Set "current" month to impossible value
@@ -6729,92 +6913,104 @@
          CFCYEAR = GET_YEAR()
       ENDIF
 
-      ! Determine which tracers are to be emitted
+      ! Determine which species are to be emitted
       N_EMIT = 0
       IDT_EMIT = 0
 
       IF (LCH4SBC) THEN
          ! Simple CH4 fixed surface emissions
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCH4
+         IDT_EMIT( N_EMIT) = id_CH4
          TRAC_EMIT(N_EMIT) = 'CH4'
       ENDIF 
 
       IF (LCFCEMIS) THEN
          ! R-11/12/113/114/115
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCFC11
+         IDT_EMIT( N_EMIT) = id_CFC11
          TRAC_EMIT(N_EMIT) = 'CFC11'
 
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCFC12
+         IDT_EMIT( N_EMIT) = id_CFC12
          TRAC_EMIT(N_EMIT) = 'CFC12'
 
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCFCX
-         TRAC_EMIT(N_EMIT) = 'CFCX'
+         IDT_EMIT( N_EMIT) = id_CFC113
+         TRAC_EMIT(N_EMIT) = 'CFC113'
+
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = id_CFC114
+         TRAC_EMIT(N_EMIT) = 'CFC114'
+
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = id_CFC115
+         TRAC_EMIT(N_EMIT) = 'CFC115'
 
          ! HCFC-22/123/141b/142b
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTHCFC22
+         IDT_EMIT( N_EMIT) = id_HCFC22
          TRAC_EMIT(N_EMIT) = 'HCFC22'
 
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTHCFCX
-         TRAC_EMIT(N_EMIT) = 'HCFCX'
+         IDT_EMIT( N_EMIT) = id_HCFC141b
+         TRAC_EMIT(N_EMIT) = 'HCFC141b'
+
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = id_HCFC142b
+         TRAC_EMIT(N_EMIT) = 'HCFC142b'
 
          ! Halons (H-1301/2402/1211)
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTH1301
+         IDT_EMIT( N_EMIT) = id_H1301
          TRAC_EMIT(N_EMIT) = 'H1301'
 
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTH1211
+         IDT_EMIT( N_EMIT) = id_H1211
          TRAC_EMIT(N_EMIT) = 'H1211'
 
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTH2402
+         IDT_EMIT( N_EMIT) = id_H2402
          TRAC_EMIT(N_EMIT) = 'H2402'
       ENDIF
 
       IF (LCLEMIS) THEN
          ! CCl4
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCCl4
+         IDT_EMIT( N_EMIT) = id_CCl4
          TRAC_EMIT(N_EMIT) = 'CCl4'
 
          ! CH3Cl
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCH3Cl
+         IDT_EMIT( N_EMIT) = id_CH3Cl
          TRAC_EMIT(N_EMIT) = 'CH3Cl'
 
          ! CH3CCl3
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCH3CCl3
+         IDT_EMIT( N_EMIT) = id_CH3CCl3
          TRAC_EMIT(N_EMIT) = 'CH3CCl3'
       ENDIF
 
       IF (LOCSEMIS) THEN
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTOCS
+         IDT_EMIT( N_EMIT) = id_OCS
          TRAC_EMIT(N_EMIT) = 'OCS'
       ENDIF
 
       IF (LN2OEMIS) THEN
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTN2O
+         IDT_EMIT( N_EMIT) = id_N2O
          TRAC_EMIT(N_EMIT) = 'N2O'
       ENDIF 
 
       IF (LBREMIS) THEN
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCH3Br
+         IDT_EMIT( N_EMIT) = id_CH3Br
          TRAC_EMIT(N_EMIT) = 'CH3Br'
       ENDIF
 
-      IF (IDTH2.gt.0) THEN
+      IF (id_H2.gt.0) THEN
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTH2
+         IDT_EMIT( N_EMIT) = id_H2
          TRAC_EMIT(N_EMIT) = 'H2'
       ENDIF
 
@@ -6824,7 +7020,7 @@
          GRID_EMIT = 0e+0_fp
       ENDIF
 
-      ! Clear other tracer names for safety
+      ! Clear other species names for safety
       DO N=(N_EMIT+1),MAX_EMIT
          TRAC_EMIT(N) = ''
          IDT_EMIT(N) = 0
@@ -6859,13 +7055,8 @@
       ALLOCATE( RHO_AER( IIPAR, JJPAR, LLPAR, NSTRATAER ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RHO_AER' )
       RHO_AER = 0e+0_fp
-      
-      ALLOCATE( STATE_PSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
-      !STATE_PSC = 0e+0_fp
-      STATE_PSC     = 0.0e+0_f4
-      
-      ! Mass fraction of tracers contained in liquid aerosol
+            
+      ! Mass fraction of species contained in liquid aerosol
       ! Indices: 1 - SO4
       !          2 - HNO3
       !          3 - HCl
@@ -6879,19 +7070,14 @@
 
       ALLOCATE( AERFRACIND( 7 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AERFRACIND' )
-      AERFRACIND(1) = IDTSO4
-      AERFRACIND(2) = IDTHNO3
-      AERFRACIND(3) = IDTHCl
-      AERFRACIND(4) = IDTHOCl
-      AERFRACIND(5) = IDTHBr
-      AERFRACIND(6) = IDTHOBr
-      AERFRACIND(7) = IDTH2O
+      AERFRACIND(1) = id_SO4
+      AERFRACIND(2) = id_HNO3
+      AERFRACIND(3) = id_HCl
+      AERFRACIND(4) = id_HOCl
+      AERFRACIND(5) = id_HBr
+      AERFRACIND(6) = id_HOBr
+      AERFRACIND(7) = id_H2O
     
-      ! Sticking coefficients for PSC reactions on SLA 
-      ALLOCATE( KHETI_SLA( IIPAR, JJPAR, LLPAR, 11 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'KHETI_SLA' )
-      KHETI_SLA = 0e+0_fp
-     
       ! H2SO4 photolysis rate at the top of the chemgrid
       ALLOCATE( SO4_TOPPHOT( IIPAR,JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_TOPPHOT' )
@@ -6907,7 +7093,8 @@
       DO JOUT=1,JJPAR
          JMIN_OUT = JMAX_OUT
          JMAX_OUT = GET_YEDGE(1,JOUT+1,1)
-         JDIF_OUT = SIND(JMAX_OUT)-SIND(JMIN_OUT)
+         JDIF_OUT = SIN( JMAX_OUT * PI_180 )
+     &            - SIN( JMIN_OUT * PI_180 )
          DEG_SUM = 0e+0_fp
          DO JIN=1,UCX_NLAT
             JMIN_IN = UCX_LATS(JIN)
@@ -6915,7 +7102,8 @@
             IF ((JMAX_OUT.ge.JMIN_IN).and.(JMIN_OUT.le.JMAX_IN)) THEN
                JMAX_TMP = MIN(JMAX_IN,JMAX_OUT)
                JMIN_TMP = MAX(JMIN_IN,JMIN_OUT)
-               JDIF_TMP = SIND(JMAX_TMP)-SIND(JMIN_TMP)
+               JDIF_TMP = SIN( JMAX_TMP * PI_180 )
+     &                  - SIN( JMIN_TMP * PI_180 )
                IF (IS_SAFE_DIV(JDIF_TMP,JDIF_OUT)) THEN
                   JRATIO = JDIF_TMP/JDIF_OUT
                   UCX_REGRID(JOUT,JIN) = JRATIO
@@ -6960,7 +7148,7 @@
       ENDIF
 
       ! Initialize diagnostics
-      CALL DIAGINIT_UCX ( am_I_Root, Input_Opt, RC )
+      CALL DIAGINIT_UCX ( am_I_Root, Input_Opt, State_Chm, RC )
 
       END SUBROUTINE INIT_UCX
 !EOC
@@ -6977,22 +7165,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAGINIT_UCX( am_I_Root, Input_Opt, RC )
+      SUBROUTINE DIAGINIT_UCX( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartDefine
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -7001,10 +7190,10 @@
 ! !REVISION HISTORY: 
 !  14 Jan 2015 - C. Keller     - Initial version
 !  25 Mar 2015 - C. Keller     - Now use HEMCO restart module
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      TYPE(HCO_State), POINTER :: HcoState => NULL()
       CHARACTER(LEN=255)       :: MSG
       CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_UCX (ucx_mod.F)' 
 
@@ -7013,10 +7202,9 @@
       !=================================================================
 
       ! Define restart quantity    
-      CALL GetHcoState( HcoState ) 
       CALL HCO_RestartDefine ( am_I_Root, HcoState, 
-     &                       'STATE_PSC', STATE_PSC, 'count', RC )
-      HcoState => NULL() 
+     &                       'STATE_PSC', State_Chm%STATE_PSC, 
+     &                           'count', RC )
 
       IF ( RC /= HCO_SUCCESS ) THEN
          MSG = 'Cannot define STATE_PSC restart'
@@ -7024,7 +7212,7 @@
       ENDIF
 
       ! Return w/ success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE DIAGINIT_UCX
 !EOC
@@ -7046,48 +7234,51 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_STATE_PSC ( am_I_Root, RC )
+      SUBROUTINE WRITE_STATE_PSC ( am_I_Root, State_Chm, RC )
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
       USE HCO_ERROR_MOD
-      USE HCO_RESTART_MOD,  ONLY : HCO_RestartWrite
-      USE HCO_STATE_MOD,    ONLY : HCO_STATE
-      USE HCOI_GC_MAIN_MOD, ONLY : GetHcoState
+      USE HCO_RESTART_MOD,   ONLY : HCO_RestartWrite
+      USE HCO_INTERFACE_MOD, ONLY : HcoState
+      USE State_Chm_Mod,     ONLY : ChmState
 ! 
 ! !INPUT ARGUMENTS:
 !
-      LOGICAL, INTENT(IN)     :: am_I_Root
+      LOGICAL,        INTENT(IN)    :: am_I_Root
 ! 
 ! !INPUT/OUTPUT ARGUMENTS:
 !
-      INTEGER, INTENT(INOUT)  :: RC
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      INTEGER,        INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY: 
-!  08 May 2015 - C. Keller     - Initial version
+!  08 May 2015 - C. Keller   - Initial version
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      TYPE(HCO_STATE), POINTER  :: HcoState => NULL()
+!
+! !LOCAL VARIABLES:
+!
 
       !=================================================================
       ! WRITE_STATE_PSC begins here!
       !=================================================================
-
+      
       ! Eventually write PSC_STATE to restart. 
-      CALL GetHcoState ( HcoState )
-
       CALL HCO_RestartWrite( am_I_Root,   HcoState, 
-     &                       'STATE_PSC', STATE_PSC, RC )
-      HcoState => NULL()
+     &                       'STATE_PSC', State_Chm%STATE_PSC, RC )
+
+      ! Error check
       IF ( RC /= HCO_SUCCESS ) THEN
-         RC = GIGC_FAILURE
+         RC = GC_FAILURE
          RETURN
       ENDIF
 
       ! Return w/ success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
 
       END SUBROUTINE WRITE_STATE_PSC 
 !EOC
@@ -7126,12 +7317,9 @@
       IF ( ALLOCATED( SAD_AER    ) ) DEALLOCATE( SAD_AER    )
       IF ( ALLOCATED( KG_AER     ) ) DEALLOCATE( KG_AER     )
       IF ( ALLOCATED( RHO_AER    ) ) DEALLOCATE( RHO_AER    )
-      !IF ( ALLOCATED( STATE_PSC  ) ) DEALLOCATE( STATE_PSC  )
-      IF ( ASSOCIATED( STATE_PSC ) ) DEALLOCATE( STATE_PSC  )
       IF ( ALLOCATED( NDENS_AER  ) ) DEALLOCATE( NDENS_AER  )
       IF ( ALLOCATED( AERFRAC    ) ) DEALLOCATE( AERFRAC    )
       IF ( ALLOCATED( AERFRACIND ) ) DEALLOCATE( AERFRACIND )
-      IF ( ALLOCATED( KHETI_SLA  ) ) DEALLOCATE( KHETI_SLA  )
       IF ( ALLOCATED( UCX_MR     ) ) DEALLOCATE( UCX_MR     )
       IF ( ALLOCATED( UCX_MR_IN  ) ) DEALLOCATE( UCX_MR_IN  )
       IF ( ALLOCATED( UCX_REGRID ) ) DEALLOCATE( UCX_REGRID )

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: get_ndep_mod
+! !MODULE: get_ndep_mod.F
 !     
 ! !DESCRIPTION: Module GET\_NDEP\_MOD contains routines for computing the
 ! accumulated nitrogen dry and wet deposition between emission time steps. 
@@ -33,8 +33,8 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! Soil NOx deposited N arrays
-      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: DRY_TOTN     (:,:) ! Drydep'd N
-      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: WET_TOTN     (:,:) ! Wetdep'd N
+      REAL(fp), PUBLIC, POINTER   :: DRY_TOTN (:,:) => NULL() ! Drydep'd N
+      REAL(fp), PUBLIC, POINTER   :: WET_TOTN (:,:) => NULL() ! Wetdep'd N
 ! 
 ! !PUBLIC MEMBER FUNCTIONS:
 !      
@@ -54,6 +54,8 @@
 !                              GET_DEP_N, SOURCE_DRYN, and SOURCE_WETN. These
 !                              are now handled in hcox_soilnox_mod.F90.
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  16 Jun 2016 - C. Miller   - Now define species ID flags with Ind_
+!  17 Jun 2016 - R. Yantosca - Add species ID flags as module variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -64,6 +66,18 @@
       REAL(fp), PARAMETER :: CONVNH4  = 0.777 ! MWN/MWNH4
       REAL(fp), PARAMETER :: CONVNH3  = 0.823 ! MWN/MWNH3
       REAL(fp), PARAMETER :: CONVNIT  = 0.226 ! MWN/MWNIT
+!
+! !LOCAL VARAIABLES:
+!     
+      ! Species ID flags (formerly in tracerid_mod.F)
+      INTEGER             :: id_HNO3
+      INTEGER             :: id_NH3
+      INTEGER             :: id_NH4
+      INTEGER             :: id_NH4aq
+      INTEGER             :: id_NIT
+      INTEGER             :: id_NITs
+      INTEGER             :: id_NO2
+      INTEGER             :: id_PAN
 
       CONTAINS
 !EOC
@@ -84,9 +98,7 @@
 !
 ! !USES:
 !
-      USE TRACERID_MOD, ONLY : IDTNH4,  IDTNIT, IDTNH4aq 
-      USE TRACERID_MOD, ONLY : IDTHNO3, IDTNH3, IDTNITs
-      USE TRACERID_MOD, ONLY : IDTNO2,  IDTPAN
+      USE State_Chm_Mod,      only : Ind_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -94,21 +106,23 @@
       INTEGER, INTENT(IN)   :: J          ! J
       INTEGER, INTENT(IN)   :: L          ! Level
       INTEGER, INTENT(IN)   :: NN         ! Dry Dep Tracer # 
-      REAL(fp), INTENT(IN)   :: TDRYFX     ! Dry dep flux [molec/cm2/s] 
+      REAL(fp), INTENT(IN)  :: TDRYFX     ! Dry dep flux [molec/cm2/s] 
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
 !  14 Mar 2013 - M. Payer    - Replace NOx with NO2 as part of removal of
 !                              NOx-Ox partitioning
+!  16 Jun 2016 - C. Miller   - Now use 
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-
-      ! ckeller (14/04/02)
-      IF ( NN == IDTNO2 .OR. NN == IDTPAN .OR. NN == IDTHNO3  .OR.
-     &     NN == IDTNH3 .OR. NN == IDTNH4 .OR. NN == IDTNH4aq .OR. 
-     &     NN == IDTNIT .OR. NN == IDTNITs                        ) THEN
+      ! Update the reservoir if it's a nitrogen species
+      IF ( NN == id_NO2  .OR. NN == id_PAN     .OR. 
+     &     NN == id_HNO3 .OR. NN == id_NH3     .OR.
+     &     NN == id_NH4  .OR. NN == id_NH4aq   .OR.
+     &     NN == id_NIT  .OR. NN == id_NITs  ) THEN
          DRY_TOTN(I,J) = DRY_TOTN(I,J) + TDRYFX
       ENDIF
 
@@ -131,16 +145,15 @@
 !
 ! !USES:
 !
-      USE TRACERID_MOD, ONLY : IDTNH4,    IDTNIT, IDTNH4aq 
-      USE TRACERID_MOD, ONLY : IDTHNO3,   IDTNH3, IDTNITs
+      USE State_Chm_Mod,      Only : Ind_
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)   :: I          ! I
-      INTEGER, INTENT(IN)   :: J          ! J
-      INTEGER, INTENT(IN)   :: L          ! Level
-      INTEGER, INTENT(IN)   :: NN         ! Wet Dep Tracer # 
-      REAL(fp) , INTENT(IN)   :: TWETFX     ! Wet dep flux [kg/s] 
+      INTEGER,  INTENT(IN) :: I          ! I
+      INTEGER,  INTENT(IN) :: J          ! J
+      INTEGER,  INTENT(IN) :: L          ! Level
+      INTEGER,  INTENT(IN) :: NN         ! Wet Dep Tracer # 
+      REAL(fp), INTENT(IN) :: TWETFX     ! Wet dep flux [kg/s] 
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
@@ -153,12 +166,12 @@
 
       ! ckeller (14/04/02)
       SCAL = 0e+0_fp
-      IF ( NN == IDTHNO3  ) SCAL = CONVHNO3 
-      IF ( NN == IDTNH3   ) SCAL = CONVNH3
-      IF ( NN == IDTNH4   ) SCAL = CONVNH4
-      IF ( NN == IDTNH4aq ) SCAL = CONVNH4
-      IF ( NN == IDTNIT   ) SCAL = CONVNIT
-      IF ( NN == IDTNITs  ) SCAL = CONVNIT
+      IF ( NN == id_HNO3  ) SCAL = CONVHNO3 
+      IF ( NN == id_NH3   ) SCAL = CONVNH3
+      IF ( NN == id_NH4   ) SCAL = CONVNH4
+      IF ( NN == id_NH4aq ) SCAL = CONVNH4
+      IF ( NN == id_NIT   ) SCAL = CONVNIT
+      IF ( NN == id_NITs  ) SCAL = CONVNIT
 
       IF ( SCAL > 0e+0_fp ) THEN
          WET_TOTN(I,J) = WET_TOTN(I,J) + ( TWETFX * SCAL )
@@ -210,7 +223,8 @@
 ! !USES:
 !
       USE CMN_SIZE_Mod
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS: 
 !
@@ -232,12 +246,22 @@
 !------------------------------------------------------------------------------
 !BOC
 
+      ! Define species ID flags
+      id_HNO3  = Ind_('HNO3' )
+      id_NH3   = Ind_('NH3'  )
+      id_NH4   = Ind_('NH4'  )
+      id_NH4aq = Ind_('NH4aq')
+      id_NIT   = Ind_('NIT'  )
+      id_NITs  = Ind_('NITs' )
+      id_NO2   = Ind_('NO2'  )
+      id_PAN   = Ind_('PAN'  )
+
       ! Allocate arrays
       ALLOCATE( WET_TOTN     ( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
 
       ALLOCATE( DRY_TOTN     ( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
 
       ! Zero arrays
       WET_TOTN      = 0e+0_fp
@@ -261,7 +285,7 @@
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -278,11 +302,11 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC = GC_SUCCESS
       
       ! Deallocate arrays
-      IF ( ALLOCATED( DRY_TOTN      ) ) DEALLOCATE( DRY_TOTN      )
-      IF ( ALLOCATED( WET_TOTN      ) ) DEALLOCATE( WET_TOTN      )
+      IF ( ASSOCIATED( DRY_TOTN      ) ) DEALLOCATE( DRY_TOTN      )
+      IF ( ASSOCIATED( WET_TOTN      ) ) DEALLOCATE( WET_TOTN      )
 
       END SUBROUTINE Cleanup_Get_Ndep
 !EOC

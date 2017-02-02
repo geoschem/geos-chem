@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: modis_lai_mod
+! !MODULE: modis_lai_mod.F90
 !
 ! !DESCRIPTION: Module MODIS\_LAI\_MOD reads the MODIS LAI and CHLR data at 
 !  native resolution and then regrids them to the GEOS-Chem resolution on the
@@ -17,13 +17,17 @@ MODULE Modis_Lai_Mod
 !
   USE CMN_SIZE_Mod                                ! Size parameters
   USE Error_Mod                                   ! Error checking routines
+  USE PRECISION_MOD                               ! For GEOS-Chem Precision (fp)
   USE Mapping_Mod                                 ! Mapping weights & areas
   USE Time_Mod                                    ! EXPAND_DATE
 
-  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-
   IMPLICIT NONE
   PRIVATE
+!
+! !PUBLIC DATA MEMBERS:
+!
+   REAL(fp),  PUBLIC, POINTER             :: GC_LAI(:,:)  ! DailyLAI, G-C grid
+   REAL(fp),  PUBLIC, POINTER             :: GC_CHLR(:,:) ! DailyCHLR, G-C grid
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -133,9 +137,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE State_Met_Mod, ONLY : MetState
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput 
 !
 ! !INPUT PARAMETERS:
 !
@@ -181,7 +185,7 @@ CONTAINS
     LOGICAL             :: ComputeLAI       ! T = compute LAI, F = compute CHLR
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Always compute LAI
     ComputeLAI = .true.
@@ -204,9 +208,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: compute_modis_gchp
+! !IROUTINE: compute_xlai_gchp
 !
-! !DESCRIPTION: Subroutine COMPUTE\_LAI\_GCHP computes MODIS-based leaf
+! !DESCRIPTION: Subroutine COMPUTE\_XLAI\_GCHP computes MODIS-based leaf
 !  area indices (LAI) per land type and grid cell. This computation uses 
 !  offline 0.25x0.25 MODIS LAI/CHLR and Olson landmap data regridded to 
 !  the cubed sphere. Variables set include State_Met%XLAI.
@@ -218,8 +222,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE ErrCode_Mod
+    USE State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -234,6 +238,7 @@ CONTAINS
     INTEGER,         INTENT(OUT) :: RC            ! Success or failure?
 !
 ! !REMARKS:
+!
 !
 ! !REVISION HISTORY: 
 !  18 Oct 2016 - E. Lundgren - Initial version
@@ -254,7 +259,7 @@ CONTAINS
     !======================================================================
 
     ! Assume success
-    RC                = GIGC_SUCCESS
+    RC                = GC_SUCCESS
 
     ! Loop over all grid cells
     DO J = 1, JJPAR
@@ -320,9 +325,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -348,6 +353,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  07 Jul 2015 - E. Lundgren - Initial version, contains old Compute_Modis_Lai
 !                              code plus modifications to compute CHLR
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -357,7 +363,7 @@ CONTAINS
     LOGICAL, SAVE :: FIRST = .TRUE.
 
     ! Scalars
-    INTEGER   :: I,      J,     IMUL,     ITD,   IJLOOP
+    INTEGER   :: I,      J,     IMUL,     ITD
     INTEGER   :: C,      II,    JJ,       type,  K,      numRound
     REAL(fp)  :: mapWt,  area,  sumArea,  DMON,  DITD,   DIMUL
 
@@ -368,12 +374,12 @@ CONTAINS
     REAL(fp)  :: tempModisNm(0:NSURFTYPE-1)
 
     ! Pointers
-    REAL(fp), POINTER  :: GC_PTR(:,:)       => NULL()
-    REAL*4,   POINTER  :: MODIS_PTR(:,:)    => NULL()
-    REAL*4,   POINTER  :: MODIS_PTR_CM(:,:) => NULL()
-    REAL*4,   POINTER  :: MODIS_PTR_NM(:,:) => NULL()
-    REAL(fp), POINTER  :: XTMP(:,:,:)       => NULL()
-    REAL(fp), POINTER  :: XTMP2(:,:,:)      => NULL()
+    REAL(fp), POINTER  :: GC_PTR(:,:)
+    REAL*4,   POINTER  :: MODIS_PTR(:,:)
+    REAL*4,   POINTER  :: MODIS_PTR_CM(:,:)
+    REAL*4,   POINTER  :: MODIS_PTR_NM(:,:)
+    REAL(fp), POINTER  :: XTMP(:,:,:)
+    REAL(fp), POINTER  :: XTMP2(:,:,:)
 
     !======================================================================
     ! Interpolate the data on the MODIS grid to current day
@@ -381,7 +387,7 @@ CONTAINS
     !======================================================================
     
     ! Assume success
-    RC                = GIGC_SUCCESS
+    RC                = GC_SUCCESS
 
     ! Assign pointers and precision based on whether computing LAI or CHLR
     IF ( ComputeLAI ) THEN
@@ -444,7 +450,7 @@ CONTAINS
     !$OMP PARALLEL DO                                                 &
     !$OMP DEFAULT( SHARED                                           ) &
     !$OMP PRIVATE( I,           J,           tempArea, tempModis    ) &
-    !$OMP PRIVATE( tempModisCm, tempModisNm, sumArea,  IJLOOP       ) &
+    !$OMP PRIVATE( tempModisCm, tempModisNm, sumArea                ) &
     !$OMP PRIVATE( C,           II,          JJ,       type         ) & 
     !$OMP PRIVATE( area,        K                                   )      
     DO J = 1, JJPAR
@@ -456,7 +462,6 @@ CONTAINS
        tempModisCm          = 0e+0_fp
        tempModisNm          = 0e+0_fp
        sumArea              = mapping(I,J)%sumarea
-       IJLOOP               = ( (J-1) * IIPAR ) + I
        GC_PTR(I,J)          = 0e+0_fp
 
        !-------------------------------------------------------------------
@@ -609,8 +614,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput 
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput 
    
 !
 ! !INPUT PARAMETERS:
@@ -645,7 +650,7 @@ CONTAINS
     LOGICAL              :: ReadLAI         ! T = read LAI, F = read CHLR
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Set filename template for LAI
     IF ( Input_Opt%USE_OLSON_2001 ) THEN
@@ -699,8 +704,8 @@ CONTAINS
     USE m_netcdf_io_read                         ! netCDF read
     USE m_netcdf_io_readattr                     ! netCDF attribute reads
     USE m_netcdf_io_close                        ! netCDF file close
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput 
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput 
    
 #   include "netcdf.inc"                         ! netCDF settings & parameters
 !
@@ -760,7 +765,7 @@ CONTAINS
     !======================================================================
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Assign pointers etc. based on whether reading LAI or CHLR
     IF ( ReadLAI ) THEN
@@ -1083,8 +1088,8 @@ CONTAINS
 !
 ! !USES:
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !

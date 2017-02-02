@@ -4,7 +4,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: ncdf_mod
+! !MODULE: ncdf_mod.F90
 !
 ! !DESCRIPTION: Module NCDF\_MOD contains routines to read data from
 ! netCDF files. 
@@ -29,6 +29,7 @@ MODULE NCDF_MOD
   
   IMPLICIT NONE
   PRIVATE
+# include "netcdf.inc"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -54,9 +55,18 @@ MODULE NCDF_MOD
   PRIVATE :: GET_TAU0
   PRIVATE :: NC_WRITE_3D
   PRIVATE :: NC_WRITE_4D
-  PRIVATE :: NC_VAR_WRITE_INT
-  PRIVATE :: NC_VAR_WRITE_R4
-  PRIVATE :: NC_VAR_WRITE_R8
+  PRIVATE :: NC_VAR_WRITE_INT_1D
+  PRIVATE :: NC_VAR_WRITE_INT_2D
+  PRIVATE :: NC_VAR_WRITE_INT_3D
+  PRIVATE :: NC_VAR_WRITE_INT_4D
+  PRIVATE :: NC_VAR_WRITE_R4_1D
+  PRIVATE :: NC_VAR_WRITE_R4_2D
+  PRIVATE :: NC_VAR_WRITE_R4_3D
+  PRIVATE :: NC_VAR_WRITE_R4_4D
+  PRIVATE :: NC_VAR_WRITE_R8_1D
+  PRIVATE :: NC_VAR_WRITE_R8_2D
+  PRIVATE :: NC_VAR_WRITE_R8_3D
+  PRIVATE :: NC_VAR_WRITE_R8_4D
   PRIVATE :: NC_READ_VAR_SP
   PRIVATE :: NC_READ_VAR_DP
   PRIVATE :: NC_GET_GRID_EDGES_SP
@@ -74,6 +84,11 @@ MODULE NCDF_MOD
 !  13 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  10 Jul 2014 - R. Yantosca - Add GET_TAU0 as a PRIVATE local routine
 !  12 Dec 2014 - C. Keller   - Added NC_ISMODELLEVEL 
+!  19 Sep 2016 - R. Yantosca - Rewrite NC_VAR_WRITE overloaded functions to
+!                              remove optional args (which chokes Gfortran)
+!  19 Sep 2016 - R. Yantosca - Now include netcdf.inc once at top of module
+!  19 Sep 2016 - R. Yantosca - Remove extra IMPLICIT NONE statements, we only
+!                              need to declare it once at the top of module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -101,9 +116,18 @@ MODULE NCDF_MOD
   END INTERFACE NC_GET_SIGMA_LEVELS
 
   INTERFACE NC_VAR_WRITE
-     MODULE PROCEDURE NC_VAR_WRITE_INT
-     MODULE PROCEDURE NC_VAR_WRITE_R4
-     MODULE PROCEDURE NC_VAR_WRITE_R8
+     MODULE PROCEDURE NC_VAR_WRITE_INT_1D
+     MODULE PROCEDURE NC_VAR_WRITE_INT_2D
+     MODULE PROCEDURE NC_VAR_WRITE_INT_3D
+     MODULE PROCEDURE NC_VAR_WRITE_INT_4D
+     MODULE PROCEDURE NC_VAR_WRITE_R4_1D
+     MODULE PROCEDURE NC_VAR_WRITE_R4_2D
+     MODULE PROCEDURE NC_VAR_WRITE_R4_3D
+     MODULE PROCEDURE NC_VAR_WRITE_R4_4D
+     MODULE PROCEDURE NC_VAR_WRITE_R8_1D
+     MODULE PROCEDURE NC_VAR_WRITE_R8_2D
+     MODULE PROCEDURE NC_VAR_WRITE_R8_3D
+     MODULE PROCEDURE NC_VAR_WRITE_R8_4D
   END INTERFACE NC_VAR_WRITE
 
 CONTAINS
@@ -114,7 +138,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_open
+! !IROUTINE: Nc_Open
 !
 ! !DESCRIPTION: Simple wrapper routine to open the given netCDF file. 
 !\\
@@ -152,7 +176,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_close
+! !IROUTINE: Nc_Close
 !
 ! !DESCRIPTION: Simple wrapper routine to close the given lun. 
 !\\
@@ -185,7 +209,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_read_time
+! !IROUTINE: Nc_Read_Time
 !
 ! !DESCRIPTION: Subroutine NC\_READ\_TIME reads the time variable of the
 ! given fID and returns the time slices and unit. 
@@ -283,7 +307,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_read_var_sp
+! !IROUTINE: Nc_Read_Var_Sp
 !
 ! !DESCRIPTION: Subroutine NC\_READ\_VAR\_SP reads the given variable from the
 ! given fID and returns the corresponding variable values and units. 
@@ -324,7 +348,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_read_var_dp
+! !IROUTINE: Nc_Read_Var_Dp
 !
 ! !DESCRIPTION: Subroutine NC\_READ\_VAR\_DP reads the given variable from the
 ! given fID and returns the corresponding variable values and units. 
@@ -365,7 +389,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_read_var_core
+! !IROUTINE: Nc_Read_Var_Core
 !
 ! !DESCRIPTION: Subroutine NC\_READ\_VAR\_CORE reads the given variable from the
 ! given fID and returns the corresponding variable values and units. 
@@ -464,7 +488,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Routine NC\_READ\_ARR reads variable ncVar into a 4-D array 
+! !IROUTINE: Nc_Read_Arr
+!
+! !DESCRIPTION: Routine NC\_READ\_ARR reads variable ncVar into a 4-D array 
 ! (lon,lat,lev,time). Domain boundaries can be provided by input arguments
 ! lon1,lon2, lat1,lat2, lev1,lev2, and time1,time2. The level and time bounds
 ! are optional and can be set to zero (lev1=0 and/or time1=0) for data with
@@ -482,13 +508,13 @@ CONTAINS
 !\\
 !\\
 ! If the passed variable contains attribute names `offset` and/or 
-! `scale_factor`, those operations will be applied to the data array
+! `scale\_factor`, those operations will be applied to the data array
 ! before returning it.
 !\\
 !\\
 ! Missing values in the netCDF file are replaced with value 'MissVal'
-! (default = 0). Currently, the routine identifies attributes 'missing_value'
-! and '_FillValue' as missing values.
+! (default = 0). Currently, the routine identifies attributes 'missing\_value'
+! and '\_FillValue' as missing values.
 !\\
 !\\
 ! !INTERFACE:
@@ -501,9 +527,6 @@ CONTAINS
 ! !USES:
 !
     USE CHARPAK_MOD, ONLY : TRANLC
-
-    IMPLICIT NONE
-#   include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !   
@@ -540,6 +563,7 @@ CONTAINS
 !  22 Sep 2015 - C. Keller - Added arbitrary dimension index.
 !  20 Nov 2015 - C. Keller - Bug fix: now read times if weights need be applied.
 !  23 Nov 2015 - C. Keller - Initialize all temporary arrays to 0.0 when allocating 
+!  09 Jan 2017 - C. Keller - Bug fix: store time-weighted arrays in temporary array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -572,8 +596,11 @@ CONTAINS
 
     ! Temporary arrays
     REAL*4, ALLOCATABLE    :: TMPARR_5D(:,:,:,:,:)
+    REAL*4, ALLOCATABLE    :: WGTARR_5D(:,:,:,:,:)
     REAL*4, ALLOCATABLE    :: TMPARR_4D(:,:,:,:)
+    REAL*4, ALLOCATABLE    :: WGTARR_4D(:,:,:,:)
     REAL*4, ALLOCATABLE    :: TMPARR_3D(:,:,:)
+    REAL*4, ALLOCATABLE    :: WGTARR_3D(:,:,:)
     REAL*4, ALLOCATABLE    :: TMPARR_2D(:,:)
 
     ! Logicals
@@ -703,9 +730,19 @@ CONTAINS
     ! Read 5D array:
     IF ( ndims == 5 ) THEN
 
-       ! Allocate arrays
-       ALLOCATE ( TMPARR_5D( nlon, nlat, nlev, nt, 1 ) )
-       TMPARR_5D = 0.0
+       ! Allocate array. If time weights are applied, the two
+       ! time slices are read into TMPARR_5D and then temporarily
+       ! stored in WGTARR_5D. Same applies to 4D and 3D below.
+       ! (ckeller, 01/09/17)
+       IF ( ApplyWeights ) THEN
+          ALLOCATE ( TMPARR_5D( nlon, nlat, nlev, 1, 1 ) )
+          TMPARR_5D = 0.0
+          ALLOCATE ( WGTARR_5D( nlon, nlat, nlev, nt, 1 ) )
+          WGTARR_5D = 0.0
+       ELSE
+          ALLOCATE ( TMPARR_5D( nlon, nlat, nlev, nt, 1 ) )
+          TMPARR_5D = 0.0
+       ENDIF
 
        ! Set default start/end indeces
        s1 = lon1
@@ -736,18 +773,25 @@ CONTAINS
           st5d = (/ s1, s2, s3, s4, s5 /) 
           ct5d = (/ n1, n2, n3, n4, n5 /)
           CALL NcRd( TMPARR_5D, fId, TRIM(v_name), st5d, ct5d )
+
+          ! Eventually pass time weighted arrays to temporary array  
+          IF ( ApplyWeights ) THEN
+             WGTARR_5D(:,:,:,I,:) = TMPARR_5D(:,:,:,1,:)
+          ENDIF
+
        ENDDO
 
        ! Pass to output array. Eventually apply time weights.
        IF ( ApplyWeights ) THEN
-          ncArr(:,:,:,1) = TMPARR_5D(:,:,:,1,1) * weight1 &
-                         + TMPARR_5D(:,:,:,2,1) * weight2
+          ncArr(:,:,:,1) = WGTARR_5D(:,:,:,1,1) * weight1 &
+                         + WGTARR_5D(:,:,:,2,1) * weight2
        ELSE   
           ncArr(:,:,:,:) = TMPARR_5D(:,:,:,:,1)
        ENDIF
 
        ! Cleanup
        DEALLOCATE(TMPARR_5D)
+       IF(ALLOCATED(WGTARR_5D)) DEALLOCATE(WGTARR_5D)
     ENDIF
 
     !----------------------------------------
@@ -789,8 +833,21 @@ CONTAINS
           n4 = 1
        ENDIF
 
-       ALLOCATE ( TMPARR_4D(n1,n2,n3,n4) )
-       TMPARR_4D = 0.0
+       IF ( ApplyWeights ) THEN
+          ALLOCATE ( WGTARR_4D(n1,n2,n3,n4) )
+          WGTARR_4D = 0.0
+          IF ( tdim == 3 ) THEN
+             ALLOCATE ( TMPARR_4D(n1,n2,1,n4) )
+             TMPARR_4D = 0.0
+          ELSEIF ( tdim == 4 ) THEN
+             ALLOCATE ( TMPARR_4D(n1,n2,n3,1) )
+             TMPARR_4D = 0.0
+          ENDIF
+
+       ELSE
+          ALLOCATE ( TMPARR_4D(n1,n2,n3,n4) )
+          TMPARR_4D = 0.0
+       ENDIF 
 
        ! Read arrays from file
        DO I = 1, nRead
@@ -823,16 +880,24 @@ CONTAINS
           ! Read data from disk
           CALL NcRd( TMPARR_4D, fId, TRIM(v_name), st4d, ct4d )
 
+          ! Eventually pass time weighted arrays to temporary array  
+          IF ( ApplyWeights ) THEN
+             IF ( tdim == 3 ) THEN
+                WGTARR_4D(:,:,I,:) = TMPARR_4D(:,:,1,:)
+             ELSEIF ( tdim == 4 ) THEN
+                WGTARR_4D(:,:,:,I) = TMPARR_4D(:,:,:,1)
+             ENDIF
+          ENDIF
        ENDDO
 
        ! Pass to output array. Eventually apply time weights.
        IF ( ApplyWeights ) THEN
           IF ( tdim == 3 ) THEN 
-             ncArr(:,:,:,1) = TMPARR_4D(:,:,1,:) * weight1 &
-                            + TMPARR_4D(:,:,2,:) * weight2
+             ncArr(:,:,:,1) = WGTARR_4D(:,:,1,:) * weight1 &
+                            + WGTARR_4D(:,:,2,:) * weight2
           ELSEIF ( tdim == 4 ) THEN
-             ncArr(:,:,:,1) = TMPARR_4D(:,:,:,1) * weight1 &
-                            + TMPARR_4D(:,:,:,2) * weight2
+             ncArr(:,:,:,1) = WGTARR_4D(:,:,:,1) * weight1 &
+                            + WGTARR_4D(:,:,:,2) * weight2
           ENDIF
        ELSE
           ncArr(:,:,:,:) = TMPARR_4D(:,:,:,:)
@@ -840,6 +905,7 @@ CONTAINS
 
        ! Cleanup
        DEALLOCATE(TMPARR_4D)
+       IF(ALLOCATED(WGTARR_4D)) DEALLOCATE(WGTARR_4D)
     ENDIF
 
     !----------------------------------------
@@ -872,8 +938,15 @@ CONTAINS
           n3   = 1
        ENDIF
 
-       ALLOCATE ( TMPARR_3D(n1,n2,n3) )
-       TMPARR_3D = 0.0
+       IF ( ApplyWeights ) THEN
+          ALLOCATE ( TMPARR_3D(n1,n2,1) )
+          TMPARR_3D = 0.0
+          ALLOCATE ( WGTARR_3D(n1,n2,n3) )
+          WGTARR_3D = 0.0
+       ELSE
+          ALLOCATE ( TMPARR_3D(n1,n2,n3) )
+          TMPARR_3D = 0.0
+       ENDIF
 
        ! Read arrays from file
        DO I = 1, nRead
@@ -896,12 +969,18 @@ CONTAINS
           st3d = (/ s1, s2, s3 /) 
           ct3d = (/ n1, n2, n3 /)
           CALL NcRd( TMPARR_3D, fId, TRIM(v_name), st3d, ct3d )
+
+          ! Eventually pass time weighted arrays to temporary array  
+          IF ( ApplyWeights ) THEN
+           WGTARR_3D(:,:,I) = TMPARR_3D(:,:,1)
+          ENDIF
+
        ENDDO
 
        ! Pass to output array. Eventually apply time weights.
        IF ( ApplyWeights ) THEN
-          ncArr(:,:,1,1) = TMPARR_3D(:,:,1) * weight1 &
-                         + TMPARR_3D(:,:,2) * weight2
+          ncArr(:,:,1,1) = WGTARR_3D(:,:,1) * weight1 &
+                         + WGTARR_3D(:,:,2) * weight2
        ELSE
           IF ( tdim == 3 ) THEN
              ncArr(:,:,1,:) = TMPARR_3D(:,:,:)
@@ -911,7 +990,8 @@ CONTAINS
        ENDIF
 
        ! Cleanup
-       DEALLOCATE(TMPARR_3D)
+       IF(ALLOCATED(TMPARR_3D)) DEALLOCATE(TMPARR_3D)
+       IF(ALLOCATED(WGTARR_3D)) DEALLOCATE(WGTARR_3D)
     ENDIF
 
     !----------------------------------------
@@ -1029,7 +1109,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_read_time_yyyymmddhh
+! !IROUTINE: Nc_Read_Time_yyyymmddhh
 !
 ! !DESCRIPTION: Returns a vector containing the datetimes (YYYYMMDDhh) of 
 ! all time slices in the netCDF file.
@@ -1062,6 +1142,7 @@ CONTAINS
 !  27 Jul 2012 - C. Keller - Initial version
 !  09 Oct 2014 - C. Keller - Now also support 'minutes since ...'
 !  05 Nov 2014 - C. Keller - Bug fix if reference datetime is in minutes.
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1069,7 +1150,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=255)  :: ncUnit
-    INTEGER, POINTER    :: tVec(:) => NULL()
+    INTEGER, POINTER    :: tVec(:)
     INTEGER             :: refYr, refMt, refDy, refHr, refMn, refSc
     INTEGER             :: T, YYYYMMDD, hhmmss 
     REAL*8              :: realrefDy, refJulday, tJulday
@@ -1080,6 +1161,7 @@ CONTAINS
 
     ! Init values
     RC = 0
+    tVec => NULL()
     IF ( PRESENT(TimeUnit) ) TimeUnit = ''
     IF ( PRESENT(refYear ) ) refYear  = 0
 
@@ -1147,7 +1229,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_refdatetime 
+! !IROUTINE: Nc_Get_RefDateTime 
 !
 ! !DESCRIPTION: Returns the reference datetime (tYr / tMt / tDy / tHr / 
 ! tMn ) of the provided time unit. For now, supported formats are 
@@ -1267,7 +1349,7 @@ CONTAINS
     ENDDO
     L2 = I-1
 
-    READ( tUnit(L1:L2),'(i)', IOSTAT=STAT ) tYr 
+    READ( tUnit(L1:L2),'(i4)', IOSTAT=STAT ) tYr 
     IF ( STAT /= 0 ) THEN
        PRINT *, 'Invalid year in ' // TRIM(tUnit)
        RC = -999; RETURN
@@ -1279,7 +1361,7 @@ CONTAINS
        IF(tUnit(I:I) == '-') EXIT 
     ENDDO
     L2 = I-1
-    READ( tUnit(L1:L2), '(i)', IOSTAT=STAT ) tMt 
+    READ( tUnit(L1:L2), '(i2)', IOSTAT=STAT ) tMt 
     IF ( STAT /= 0 ) THEN
        PRINT *, 'Invalid month in ' // TRIM(tUnit)
        RC = -999; RETURN
@@ -1291,7 +1373,7 @@ CONTAINS
        IF(tUnit(I:I) == ' ') EXIT 
     ENDDO
     L2 = I-1
-    READ( tUnit(L1:L2), '(i)', IOSTAT=STAT ) tDy
+    READ( tUnit(L1:L2), '(i2)', IOSTAT=STAT ) tDy
     IF ( STAT /= 0 ) THEN
        PRINT *, 'Invalid day in ' // TRIM(tUnit)
        RC = -999; RETURN
@@ -1306,7 +1388,7 @@ CONTAINS
           IF(tUnit(I:I) == ':') EXIT 
        ENDDO
        L2 = I-1
-       READ( tUnit(L1:L2), '(i)', IOSTAT=STAT ) tHr 
+       READ( tUnit(L1:L2), '(i2)', IOSTAT=STAT ) tHr 
        IF ( STAT /= 0 ) THEN
           PRINT *, 'Invalid hour in ', TRIM(tUnit)
           RC = -999; RETURN
@@ -1326,7 +1408,7 @@ CONTAINS
           IF(tUnit(I:I) == ':') EXIT 
        ENDDO
        L2 = I-1
-       READ( tUnit(L1:L2), '(i)', IOSTAT=STAT ) tMn
+       READ( tUnit(L1:L2), '(i2)', IOSTAT=STAT ) tMn
        IF ( STAT /= 0 ) THEN
           PRINT *, 'Invalid minute in ', TRIM(tUnit)
           RC = -999; RETURN
@@ -1346,7 +1428,7 @@ CONTAINS
           IF(tUnit(I:I) == ':') EXIT 
        ENDDO
        L2 = I-1
-       READ( tUnit(L1:L2), '(i)', IOSTAT=STAT ) tSc
+       READ( tUnit(L1:L2), '(i2)', IOSTAT=STAT ) tSc
        IF ( STAT /= 0 ) THEN
           PRINT *, 'Invalid second in ', TRIM(tUnit)
           RC = -999; RETURN
@@ -1368,7 +1450,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_tidx
+! !IROUTINE: Get_Tidx
 !
 ! !DESCRIPTION: Routine GET\_TIDX returns the index with the specified time
 ! for a given time vector. 
@@ -1530,14 +1612,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: timeunit_check
+! !IROUTINE: TimeUnit_Check
 !
 ! !DESCRIPTION: Makes a validity check of the passed unit string.
 ! Supported formats are "days since YYYY-MM-DD" (TIMETYPE=1) and 
-! "hours since YYYY-MM-DD HH:MM:SS" (TIMETYPE=2).\\
+! "hours since YYYY-MM-DD HH:MM:SS" (TIMETYPE=2).
+!\\
+!\\
 ! The output argument TOFFSET gives the offset of the ncdf reference 
 ! time relative to Geos-Chem reference time (in hours).
-!
 !\\
 !\\
 ! !INTERFACE:
@@ -1634,7 +1717,7 @@ CONTAINS
 
     ! Read reference year, i.e. first four integers
     L2 = L1 + 3
-    READ( TIMEUNIT(L1:L2),'(i)', IOSTAT=STAT ) YYYY
+    READ( TIMEUNIT(L1:L2),'(i4)', IOSTAT=STAT ) YYYY
     IF ( STAT /= 0 ) THEN
        PRINT *, 'Invalid year in ', TRIM(TIMEUNIT), &
             ' in file'             , TRIM(FILENAME)
@@ -1645,11 +1728,11 @@ CONTAINS
     ! two characters, i.e. 1 is 01, etc.
     L1 = L2 + 2
     L2 = L1 + 1
-    READ( TIMEUNIT(L1:L2), '(i)', IOSTAT=STAT ) MM
+    READ( TIMEUNIT(L1:L2), '(i2)', IOSTAT=STAT ) MM
     ! Also check for the case where the month is only one character:
     IF ( STAT /= 0 ) THEN
        L2 = L1
-       READ( TIMEUNIT(L1:L2), '(i)', IOSTAT=STAT ) MM
+       READ( TIMEUNIT(L1:L2), '(i2)', IOSTAT=STAT ) MM
        IF ( STAT /= 0 ) THEN
           PRINT *, 'Invalid month in ', TRIM(TIMEUNIT), &
                    ' in file'         , TRIM(FILENAME)
@@ -1661,11 +1744,11 @@ CONTAINS
     ! characters, i.e. 1 is 01, etc.
     L1 = L2 + 2
     L2 = L1 + 1
-    READ( TIMEUNIT(L1:L2), '(i)', IOSTAT=STAT ) DD
+    READ( TIMEUNIT(L1:L2), '(i2)', IOSTAT=STAT ) DD
     ! Also check for the case where the day is only one character:
     IF ( STAT /= 0 ) THEN
        L2 = L1
-       READ( TIMEUNIT(L1:L2), '(i)', IOSTAT=STAT ) DD
+       READ( TIMEUNIT(L1:L2), '(i2)', IOSTAT=STAT ) DD
        IF ( STAT /= 0 ) THEN
           PRINT *, 'Invalid day in ', TRIM(TIMEUNIT), &
                    ' in file'       , TRIM(FILENAME)
@@ -1679,10 +1762,10 @@ CONTAINS
        ! Reference hour
        L1 = L2 + 2
        L2 = L1 + 1
-       READ( TIMEUNIT(L1:L2), '(i)', IOSTAT=STAT ) HH
+       READ( TIMEUNIT(L1:L2), '(i2)', IOSTAT=STAT ) HH
        IF ( STAT /= 0 ) THEN
           L2 = L1
-          READ( TIMEUNIT(L1:L2), '(i)', IOSTAT=STAT ) HH
+          READ( TIMEUNIT(L1:L2), '(i2)', IOSTAT=STAT ) HH
           IF ( STAT /= 0 ) THEN
              PRINT *, 'Invalid hour in ', TRIM(TIMEUNIT), &
                       ' in file'            , TRIM(FILENAME)
@@ -1722,7 +1805,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_grid_edges_sp
+! !IROUTINE: Nc_Get_Grid_Edges_Sp
 !
 ! !DESCRIPTION: Routine to get the longitude or latitude edges. If the edge 
 ! cannot be read from the netCDF file, they are calculated from the provided
@@ -1772,7 +1855,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_grid_edges_dp
+! !IROUTINE: Nc_Get_Grid_Edges_Dp
 !
 ! !DESCRIPTION: Routine to get the longitude or latitude edges. If the edge 
 ! cannot be read from the netCDF file, they are calculated from the provided
@@ -1822,7 +1905,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_grid_edges_c 
+! !IROUTINE: Nc_Get_Grid_Edges_C 
 !
 ! !DESCRIPTION: Routine to get the longitude or latitude edges. If the edge 
 ! cannot be read from the netCDF file, they are calculated from the provided
@@ -1834,12 +1917,6 @@ CONTAINS
 !
   SUBROUTINE NC_GET_GRID_EDGES_C( fID, AXIS, NMID, NEDGE, RC, &
                                   MID4, MID8, EDGE4, EDGE8 )
-!
-! !USES:
-!
-    IMPLICIT NONE
-
-#   include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !
@@ -2030,7 +2107,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_sigma_levels_sp
+! !IROUTINE: Nc_Get_Sigma_Levels_Sp
 !
 ! !DESCRIPTION: Wrapper routine to get the sigma levels in single precision. 
 !\\
@@ -2039,10 +2116,6 @@ CONTAINS
 !
   SUBROUTINE NC_GET_SIGMA_LEVELS_SP( fID,  ncFile, levName, lon1, lon2, lat1, &
                                      lat2, lev1,   lev2,    time, SigLev, dir, RC )
-!
-! !USES:
-!
-    IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
@@ -2081,7 +2154,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_sigma_levels_dp
+! !IROUTINE: Nc_Get_Sigma_Levels_Dp
 !
 ! !DESCRIPTION: Wrapper routine to get the sigma levels in double precision. 
 !\\
@@ -2090,10 +2163,6 @@ CONTAINS
 !
   SUBROUTINE NC_GET_SIGMA_LEVELS_DP( fID,  ncFile, levName, lon1, lon2, lat1, &
                                      lat2, lev1,   lev2,    time, SigLev, dir, RC )
-!
-! !USES:
-!
-    IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
@@ -2132,18 +2201,18 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_sigma_levels
+! !IROUTINE: Nc_Get_Sigma_Levels_C
 !
 ! !DESCRIPTION: Routine to get the sigma levels from the netCDF file
 ! within the given grid bounds and for the given time index. This routine
 ! attempts to construct the 3D sigma values from provided variable levName.
 ! The vertical coordinate system is determined based upon the variable 
-! attribute "standard_name".
+! attribute "standard\_name".
 !\\
 !\\
 ! For now, only hybrid sigma coordinate systems are supported, and the 
-! standard_name attribute must follow CF conventions and be set to
-! "atmosphere_hybrid_sigma_pressure_coordinate".
+! standard\_name attribute must follow CF conventions and be set to
+! "atmosphere\_hybrid\_sigma\_pressure\_coordinate".
 !\\
 !\\
 ! !INTERFACE:
@@ -2151,12 +2220,6 @@ CONTAINS
   SUBROUTINE NC_GET_SIGMA_LEVELS_C( fID,  ncFile, levName, lon1, lon2, lat1, &
                                     lat2, lev1,   lev2,    time, dir,  RC,   & 
                                     SigLev4, SigLev8 )
-!
-! !USES:
-!
-    IMPLICIT NONE
-
-#   include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !
@@ -2255,7 +2318,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_sig_from_hybrid
+! !IROUTINE: Nc_Get_Sig_From_Hybrid
 !
 ! !DESCRIPTION: Calculates the sigma level field for a hybrid sigma coordinate
 ! system:
@@ -2269,7 +2332,7 @@ CONTAINS
 ! where sigma are the sigma levels, ap and bp are the hybrid sigma coordinates,
 ! p0 is the constant reference pressure, and ps is the surface pressure. The
 ! variable names of ap, p0, bp, and ps are taken from level attribute 
-! `formula_terms`.
+! `formula\_terms`.
 !\\
 !\\
 ! The direction of the vertical coordinate system is determined from attribute
@@ -2279,39 +2342,33 @@ CONTAINS
 ! downward coordinates (level 1 is top of atmosphere).
 !\\
 !\\
-! Example of valid netCDF meta-data: The attributes `standard_name` and
-! `formula_terms` are required, as is the 3D surface pressure field.\\
-! \\
+! !REMARKS:
+! Example of valid netCDF meta-data: The attributes `standard\_name` and
+! `formula\_terms` are required, as is the 3D surface pressure field.
+!
 ! double lev(lev) ;\\
-!	lev:standard_name = "atmosphere_hybrid_sigma_pressure_coordinate" ;\\
-!	lev:units = "level" ;\\
-!	lev:positive = "down" ;\\
-!	lev:formula_terms = "ap: hyam b: hybm ps: PS" ;\\
-!double hyam(nhym) ;\\
-!	hyam:long_name = "hybrid A coefficient at layer midpoints" ;\\
-!	hyam:units = "hPa" ;\\
-!double hybm(nhym) ;\\
-!	hybm:long_name = "hybrid B coefficient at layer midpoints" ;\\
-!	hybm:units = "1" ;\\
-!double time(time) ;\\
-!	time:standard_name = "time" ;\\
-!	time:units = "days since 2000-01-01 00:00:00" ;\\
-!	time:calendar = "standard" ;\\
-!double PS(time, lat, lon) ;\\
-!	PS:long_name = "surface pressure" ;\\
-!	PS:units = "hPa" ;\\
-!\\
-!\\
+!        lev:standard_name = "atmosphere_hybrid_sigma_pressure_coordinate" ;\\
+!        lev:units = "level" ;\\
+!        lev:positive = "down" ;\\
+!        lev:formula_terms = "ap: hyam b: hybm ps: PS" ;\\
+! double hyam(nhym) ;\\
+!        hyam:long_name = "hybrid A coefficient at layer midpoints" ;\\
+!        hyam:units = "hPa" ;\\
+! double hybm(nhym) ;\\
+!        hybm:long_name = "hybrid B coefficient at layer midpoints" ;\\
+!        hybm:units = "1" ;\\
+! double time(time) ;\\
+!        time:standard_name = "time" ;\\
+!        time:units = "days since 2000-01-01 00:00:00" ;\\
+!        time:calendar = "standard" ;\\
+! double PS(time, lat, lon) ;\\
+!        PS:long_name = "surface pressure" ;\\
+!        PS:units = "hPa" ;\\
+!
 ! !INTERFACE:
 !
   SUBROUTINE NC_GET_SIG_FROM_HYBRID ( fID,  levName, lon1, lon2, lat1, lat2, &
                                       lev1, lev2,    time, dir,  RC,   sigLev4, sigLev8 )
-!
-! !USES:
-!
-    IMPLICIT NONE
-
-#   include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !
@@ -2334,6 +2391,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Oct 2014 - C. Keller   - Initial version
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2345,9 +2403,9 @@ CONTAINS
     INTEGER              :: nlevs
     INTEGER              :: st1d(1), ct1d(1) 
     LOGICAL              :: ok
-    REAL*4, POINTER      :: a(:)        => NULL()
-    REAL*4, POINTER      :: b(:)        => NULL()
-    REAL*4, POINTER      :: ps(:,:,:,:) => NULL()
+    REAL*4, POINTER      :: a(:)
+    REAL*4, POINTER      :: b(:)
+    REAL*4, POINTER      :: ps(:,:,:,:)
     REAL*8               :: p0
     CHARACTER(LEN=255)   :: formula, ThisUnit
     CHARACTER(LEN=255)   :: aname, bname, psname, p0name
@@ -2360,6 +2418,9 @@ CONTAINS
 
     ! Init
     p0 = -999.d0
+    a  => NULL()
+    b  => NULL()
+    ps => NULL()
 
     ! Get desired grid dimensions.
     nlon = lon2 - lon1 + 1
@@ -2559,12 +2620,6 @@ CONTAINS
 !
   SUBROUTINE GetVarFromFormula ( formula, inname, outname, RC )
 !
-! !USES:
-!
-    IMPLICIT NONE
-
-#   include "netcdf.inc"
-!
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN   ) :: formula 
@@ -2623,7 +2678,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_write_3d
+! !IROUTINE: Nc_Write_3d
 !
 ! !DESCRIPTION: Routine to write time slices of 2D fields into netCDF. 
 !\\
@@ -2633,12 +2688,6 @@ CONTAINS
   SUBROUTINE NC_WRITE_3D( ncFile,  I,  J,    T,  N,   lon, lat, &
                           time,    timeUnit, ncVars,  ncUnits,  &
                           ncLongs, ncShorts, ncArrays            )
-!
-! !USES:
-!
-    IMPLICIT NONE
-
-#   include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !
@@ -2700,7 +2749,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_write_4d
+! !IROUTINE: Nc_Write_4d
 !
 ! !DESCRIPTION: Routine to write time slices of 3D fields into netCDF. 
 !\\
@@ -2710,12 +2759,6 @@ CONTAINS
   SUBROUTINE NC_WRITE_4D (ncFile,  I, J, L, T, N, lon, lat, lev, &
                           time,    timeUnit, ncVars,  ncUnits,   &
                           ncLongs, ncShorts, ncArrays             )
-!
-! !USES:
-!
-    IMPLICIT NONE
-
-#   include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !
@@ -2778,7 +2821,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_define 
+! !IROUTINE: Nc_Define 
 !
 ! !DESCRIPTION: Routine to define the variables and attributes of a netCDF
 !  file.  
@@ -2788,12 +2831,6 @@ CONTAINS
 !
   SUBROUTINE NC_DEFINE ( ncFile,  nLon,    nLat,    nLev,    nTime,&
                          timeUnit, ncVars,  ncUnits, ncLongs, ncShorts, fId )
-!
-! !USES:
-!
-    IMPLICIT NONE
-    
-#     include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -3039,7 +3076,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_write_dims
+! !IROUTINE: Nc_Write_Dims
 !
 ! !DESCRIPTION: Routine to write dimension arrays to a netCDF file.  
 !\\
@@ -3047,12 +3084,6 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE NC_WRITE_DIMS( fID, lon, lat, time, lev ) 
-!
-! !USES:
-!
-    IMPLICIT NONE
-
-#   include "netcdf.inc"
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3131,7 +3162,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_write_data_3d
+! !IROUTINE: Nc_Nrite_Data_3d
 !
 ! !DESCRIPTION: Routine to write a 3-D array to a netCDF file.  
 !\\
@@ -3139,12 +3170,6 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE NC_WRITE_DATA_3D ( fID, ncVar, Array )
-!
-! !USES:
-!
-    IMPLICIT NONE
-
-#   include "netcdf.inc"
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3190,7 +3215,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_write_data_4d
+! !IROUTINE: Nc_Write_Data_4d
 !
 ! !DESCRIPTION: Routine to write a 4-D array to a netCDF file.  
 !\\
@@ -3198,12 +3223,6 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE NC_WRITE_DATA_4D ( fID, ncVar, Array )
-!
-! !USES:
-!
-    IMPLICIT NONE
-
-#   include "netcdf.inc"
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3250,9 +3269,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_create
+! !IROUTINE: Nc_Create
 !
-! !DESCRIPTION: creates a new netCDF file. 
+! !DESCRIPTION: Creates a new netCDF file. 
 !\\
 !\\
 ! !INTERFACE:
@@ -3260,12 +3279,6 @@ CONTAINS
   SUBROUTINE NC_CREATE( NcFile, title, nLon,  nLat,  nLev,   &
                         nTime,  fId,   lonID, latId, levId,  &
                         timeId, VarCt, CREATE_NC4 )
-!
-! !USES:
-!
-    IMPLICIT NONE
-
-#   include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !
@@ -3357,22 +3370,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_def
+! !IROUTINE: Nc_Var_Def
 !
-! !DESCRIPTION: defines a new variable. 
+! !DESCRIPTION: Defines a new variable. 
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE NC_VAR_DEF ( fId, lonId, latId, levId, TimeId, &
                           VarName, VarLongName, VarUnit,    &
-                          DataType, VarCt )
-!
-! !USES:
-!
-    IMPLICIT NONE
-
-#   include "netcdf.inc"
+                          DataType, VarCt, DefMode )
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -3384,7 +3391,8 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   ) :: VarName
     CHARACTER(LEN=*), INTENT(IN   ) :: VarLongName
     CHARACTER(LEN=*), INTENT(IN   ) :: VarUnit
-    INTEGER,          INTENT(IN   ) :: DataType     ! 1=Int, 4=float, 8=double 
+    INTEGER,          INTENT(IN   ) :: DataType     ! 1=Int, 4=float, 8=double
+    LOGICAL, OPTIONAL,INTENT(IN   ) :: DefMode
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3400,6 +3408,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
+!  21 Jan 2017 - C. Holmes   - Added optional DefMode argument to avoid excessive switching between define and data modes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3409,14 +3418,19 @@ CONTAINS
     INTEGER, ALLOCATABLE :: VarDims(:) 
     INTEGER              :: nDim, Pos
     INTEGER              :: NF_TYPE
+    LOGICAL              :: isDefMode
 
     !--------------------------------
     ! DEFINE VARIABLE 
     !--------------------------------
+  
+    ! Assume file is not in define mode unless explicitly told otherwise
+    isDefMode = .False.
+    if (present(DefMode)) isDefMode = DefMode
 
-    ! Reopen definition section
-    CALL NcBegin_Def( fId )
-
+    ! Reopen definition section, if necessary
+    if (.not. isDefMode) CALL NcBegin_Def( fId )
+    
     ! Increate variable counter
     VarCt = VarCt + 1
     
@@ -3467,8 +3481,8 @@ CONTAINS
     CALL NcDef_Var_Attributes( fId, VarCt, 'long_name', TRIM(VarLongName) )
     CALL NcDef_Var_Attributes( fId, VarCt, 'units',     TRIM(VarUnit    ) )
 
-    ! Close definition section
-    CALL NcEnd_Def( fId )
+    ! Close definition section, if necessary
+    if (.not. isDefMode) CALL NcEnd_Def( fId )
 
   END SUBROUTINE NC_VAR_DEF
 !EOC
@@ -3478,29 +3492,20 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_r8
+! !IROUTINE: Nc_Var_Write_R8_1d
 !
-! !DESCRIPTION: Writes data of a double precision variable. 
+! !DESCRIPTION: Writes data of a 1-D double precision variable.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_VAR_WRITE_R8 ( fId, VarName, Arr1D, Arr2D, Arr3D, Arr4D )
-!
-! !USES:
-!
-    IMPLICIT NONE
-
-#   include "netcdf.inc"
+  SUBROUTINE NC_VAR_WRITE_R8_1D( fId, VarName, Arr1D )
 !
 ! !INPUT PARAMETERS:
 ! 
-    INTEGER,          INTENT(IN)          :: fId            ! file ID 
-    CHARACTER(LEN=*), INTENT(IN)          :: VarName        ! variable name      
-    REAL(kind=8),     POINTER,   OPTIONAL :: Arr1D(:)       ! array to be written
-    REAL(kind=8),     POINTER,   OPTIONAL :: Arr2D(:,:)     ! array to be written 
-    REAL(kind=8),     POINTER,   OPTIONAL :: Arr3D(:,:,:)   ! array to be written 
-    REAL(kind=8),     POINTER,   OPTIONAL :: Arr4D(:,:,:,:) ! array to be written 
+    INTEGER,          INTENT(IN)  :: fId           ! file ID 
+    CHARACTER(LEN=*), INTENT(IN)  :: VarName       ! variable name      
+    REAL(kind=8),     POINTER     :: Arr1D(:)      ! array to be written
 !
 ! !REMARKS:
 !  Assumes that you have:
@@ -3513,6 +3518,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
 !  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
+!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R8_1D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3521,53 +3527,19 @@ CONTAINS
 !
     ! Arrays
     INTEGER :: St1d(1), Ct1d(1)
-    INTEGER :: St2d(2), Ct2d(2)
-    INTEGER :: St3d(3), Ct3d(3)
-    INTEGER :: St4d(4), Ct4d(4)
-
-    ! Scalars
-    INTEGER :: I, nDim
 
     !--------------------------------
     ! WRITE DATA 
     !--------------------------------
    
-    ! 1D data 
-    if ( present(Arr1d) ) then
-       nDim    = 1
-       St1d(1) = 1
-       Ct1d(1) = size(Arr1d,1)
-       CALL NcWr( Arr1d, fId, trim(VarName), St1d, Ct1d )
+    ! Set start & count arrays
+    St1d(1) = 1
+    Ct1d(1) = SIZE( Arr1d, 1 )
 
-    ! 2D data 
-    elseif ( present(arr2d) ) then
-       nDim = 2
-       do i=1,nDim
-          St2d(i) = 1
-          Ct2d(i) = size(Arr2d,i)
-       enddo
-       CALL NcWr( Arr2d, fId, trim(VarName), St2d, Ct2d )
+    ! Write to netCDF file
+    CALL NcWr( Arr1d, fId, VarName, St1d, Ct1d )
 
-    ! 3D data
-    elseif ( present(arr3d) ) then
-       nDim = 3
-       do i=1,nDim
-          St3d(i) = 1
-          Ct3d(i) = size(Arr3d,i)
-       enddo
-       CALL NcWr( Arr3d, fId, trim(VarName), St3d, Ct3d )
-
-    ! 4D data
-    elseif ( present(arr4d) ) then
-       nDim = 4
-       do i=1,nDim
-          St4d(i) = 1
-          Ct4d(i) = size(Arr4d,i)
-       enddo
-       CALL NcWr( Arr4d, fId, trim(VarName), St4d, Ct4d )
-    endif
-
-  END SUBROUTINE NC_VAR_WRITE_R8
+  END SUBROUTINE NC_VAR_WRITE_R8_1D
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
@@ -3575,29 +3547,203 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_r4
+! !IROUTINE: Nc_Var_Write_R8_2d
+!
+! !DESCRIPTION: Writes data of a 2-D double precision variable. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_R8_2D( fId, VarName, Arr2D )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN) :: fId            ! file ID 
+    CHARACTER(LEN=*), INTENT(IN) :: VarName        ! variable name
+    REAL(kind=8),     POINTER    :: Arr2D(:,:)     ! array to be written 
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  15 Jun 2012 - C. Keller   - Initial version
+!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
+!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R8_2D
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Arrays
+    INTEGER :: St2d(2), Ct2d(2)
+
+    ! Scalars
+    INTEGER :: I,       nDim
+
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    ! Set start & count arrays
+    nDim = 2
+    DO I =1, nDim
+       St2d(I) = 1
+       Ct2d(I) = SIZE( Arr2d, I )
+    ENDDO
+
+    ! Write to netCDF file
+    CALL NcWr( Arr2d, fId, VarName, St2d, Ct2d )
+
+  END SUBROUTINE NC_VAR_WRITE_R8_2D
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Var_Write_R8_3D
+!
+! !DESCRIPTION: Writes data of a 3-D double precision variable. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_R8_3D( fId, VarName, Arr3D )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN) :: fId            ! file ID 
+    CHARACTER(LEN=*), INTENT(IN) :: VarName        ! variable name      
+    REAL(kind=8),     POINTER    :: Arr3D(:,:,:)   ! array to be written 
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  15 Jun 2012 - C. Keller   - Initial version
+!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
+!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R8_3D
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Arrays
+    INTEGER :: St3d(3), Ct3d(3)
+
+    ! Scalars
+    INTEGER :: I,       nDim
+
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    ! Set start & count arrays
+    nDim = 3
+    DO I = 1, nDim
+       St3d(I) = 1
+       Ct3d(I) = SIZE( Arr3d, I )
+    ENDDO
+
+    ! Write data to netCDF file
+    CALL NcWr( Arr3d, fId, VarName, St3d, Ct3d )
+
+  END SUBROUTINE NC_VAR_WRITE_R8_3D
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Var_Write_r8_4d
+!
+! !DESCRIPTION: Writes data of a 4-D double precision variable. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_R8_4D( fId, VarName, Arr4D )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN) :: fId            ! file ID 
+    CHARACTER(LEN=*), INTENT(IN) :: VarName        ! variable name      
+    REAL(kind=8),     POINTER    :: Arr4D(:,:,:,:) ! array to be written 
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  15 Jun 2012 - C. Keller   - Initial version
+!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
+!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R8_4D
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Arrays
+    INTEGER :: St4d(4), Ct4d(4)
+
+    ! Scalars
+    INTEGER :: I,       nDim
+
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    ! Set start & count arrays
+    nDim = 4
+    DO I = 1, nDim
+       St4d(I) = 1
+       Ct4d(I) = SIZE( Arr4d, I )
+    ENDDO
+
+    ! Write to netCDF file
+    CALL NcWr( Arr4d, fId, VarName, St4d, Ct4d )
+
+  END SUBROUTINE NC_VAR_WRITE_R8_4D
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Var_Write_r4_1d
 !
 ! !DESCRIPTION: Writes data of a single precision variable. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_VAR_WRITE_R4 ( fId, VarName, Arr1D, Arr2D, Arr3D, Arr4D )
-!
-! !USES:
-!
-    IMPLICIT NONE
-
-#   include "netcdf.inc"
+  SUBROUTINE NC_VAR_WRITE_R4_1D( fId, VarName, Arr1D )
 !
 ! !INPUT PARAMETERS:
 ! 
-    INTEGER,          INTENT(IN)           :: fId            ! file ID 
-    CHARACTER(LEN=*), INTENT(IN)           :: VarName        ! variable name      
-    REAL(kind=4),     POINTER,   OPTIONAL  :: Arr1D(:)       ! array to be written 
-    REAL(kind=4),     POINTER,   OPTIONAL  :: Arr2D(:,:)     ! array to be written
-    REAL(kind=4),     POINTER,   OPTIONAL  :: Arr3D(:,:,:)   ! array to be written 
-    REAL(kind=4),     POINTER,   OPTIONAL  :: Arr4D(:,:,:,:) ! array to be written 
+    INTEGER,          INTENT(IN) :: fId            ! file ID 
+    CHARACTER(LEN=*), INTENT(IN) :: VarName        ! variable name      
+    REAL(kind=4),     POINTER    :: Arr1D(:)       ! array to be written 
 !
 ! !REMARKS:
 !  Assumes that you have:
@@ -3610,6 +3756,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
 !  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
+!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R4_1D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3618,53 +3765,19 @@ CONTAINS
 !
     ! Arrays
     INTEGER :: St1d(1), Ct1d(1)
-    INTEGER :: St2d(2), Ct2d(2)
-    INTEGER :: St3d(3), Ct3d(3)
-    INTEGER :: St4d(4), Ct4d(4)
-
-    ! Scalars
-    INTEGER :: I, nDim
 
     !--------------------------------
     ! WRITE DATA 
     !--------------------------------
    
-    ! 1D data 
-    if ( present(Arr1d) ) then
-       nDim    = 1
-       St1d(1) = 1
-       Ct1d(1) = size(Arr1d,1)
-       CALL NcWr( Arr1d, fId, trim(VarName), St1d, Ct1d )
+    ! Set start & count arrays
+    St1d(1) = 1
+    Ct1d(1) = SIZE( Arr1d, 1 )
 
-    ! 2D data 
-    elseif ( present(arr2d) ) then
-       nDim = 2
-       do i=1,nDim
-          St2d(i) = 1
-          Ct2d(i) = size(Arr2d,i)
-       enddo
-       CALL NcWr( Arr2d, fId, trim(VarName), St2d, Ct2d )
-
-    ! 3D data
-    elseif ( present(arr3d) ) then
-       nDim = 3
-       do i=1,nDim
-          St3d(i) = 1
-          Ct3d(i) = size(Arr3d,i)
-       enddo
-       CALL NcWr( Arr3d, fId, trim(VarName), St3d, Ct3d )
-
-    ! 4D data
-    elseif ( present(arr4d) ) then
-       nDim = 4
-       do i=1,nDim
-          St4d(i) = 1
-          Ct4d(i) = size(Arr4d,i)
-       enddo
-       CALL NcWr( Arr4d, fId, trim(VarName), St4d, Ct4d )
-    endif
+    ! Write to netCDF file
+    CALL NcWr( Arr1d, fId, VarName, St1d, Ct1d )
  
-  END SUBROUTINE NC_VAR_WRITE_R4
+  END SUBROUTINE NC_VAR_WRITE_R4_1D
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
@@ -3672,29 +3785,20 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_var_write_int
+! !IROUTINE: Nc_Var_Write_r4_2D
 !
-! !DESCRIPTION: writes data of an integer variable. 
+! !DESCRIPTION: Writes data of a 2-D single precision variable. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_VAR_WRITE_INT ( fId, VarName, Arr1D, Arr2D, Arr3D, Arr4D )
+  SUBROUTINE NC_VAR_WRITE_R4_2D( fId, VarName, Arr2D )
 !
-! !USES:
-!
-    IMPLICIT NONE
-
-#   include "netcdf.inc"
-!
-! !OUTPUT PARAMETERS:
+! !INPUT PARAMETERS:
 ! 
-    INTEGER,          INTENT(IN)           :: fId            ! file ID 
-    CHARACTER(LEN=*), INTENT(IN)           :: VarName        ! variable name      
-    INTEGER,          POINTER,   OPTIONAL  :: Arr1D(:)       ! array to be written 
-    INTEGER,          POINTER,   OPTIONAL  :: Arr2D(:,:)     ! array to be written 
-    INTEGER,          POINTER,   OPTIONAL  :: Arr3D(:,:,:)   ! array to be written 
-    INTEGER,          POINTER,   OPTIONAL  :: Arr4D(:,:,:,:) ! array to be written 
+    INTEGER,          INTENT(IN) :: fId            ! file ID 
+    CHARACTER(LEN=*), INTENT(IN) :: VarName        ! variable name      
+    REAL(kind=4),     POINTER    :: Arr2D(:,:)     ! array to be written
 !
 ! !REMARKS:
 !  Assumes that you have:
@@ -3707,6 +3811,189 @@ CONTAINS
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
 !  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
+!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R4_2D
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Arrays
+    INTEGER :: St2d(2), Ct2d(2)
+
+    ! Scalars
+    INTEGER :: I,       nDim
+
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    ! Set start & count arrays
+    nDim = 2
+    DO I = 1, nDim
+       St2d(I) = 1
+       Ct2d(I) = SIZE( Arr2d, I )
+    ENDDO
+
+    ! Write to netCDF file
+    CALL NcWr( Arr2d, fId, VarName, St2d, Ct2d )
+ 
+  END SUBROUTINE NC_VAR_WRITE_R4_2D
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Var_Write_r4_3d
+!
+! !DESCRIPTION: Writes data of a 3-D single precision variable. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_R4_3D( fId, VarName, Arr3D )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN)  :: fId            ! file ID 
+    CHARACTER(LEN=*), INTENT(IN)  :: VarName        ! variable name      
+    REAL(kind=4),     POINTER     :: Arr3D(:,:,:)   ! array to be written 
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  15 Jun 2012 - C. Keller   - Initial version
+!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
+!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R4_3D
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Arrays
+    INTEGER :: St3d(3), Ct3d(3)
+
+    ! Scalars
+    INTEGER :: I, nDim
+
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    ! Set start & count arrays
+    nDim = 3
+    DO I = 1, nDim
+       St3d(I) = 1
+       Ct3d(I) = SIZE( Arr3d, I )
+    ENDDO
+
+    ! Write to netCDF file
+    CALL NcWr( Arr3d, fId, VarName, St3d, Ct3d )
+
+  END SUBROUTINE NC_VAR_WRITE_R4_3D
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Var_Write_r4_4d
+!
+! !DESCRIPTION: Writes data of a 4-D single precision variable. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_R4_4D( fId, VarName, Arr4D )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN) :: fId            ! file ID 
+    CHARACTER(LEN=*), INTENT(IN) :: VarName        ! variable name      
+    REAL(kind=4),     POINTER    :: Arr4D(:,:,:,:) ! array to be written 
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  15 Jun 2012 - C. Keller   - Initial version
+!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
+!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_R4_1D
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Arrays
+    INTEGER :: St4d(4), Ct4d(4)
+
+    ! Scalars
+    INTEGER :: I,       nDim
+
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    nDim = 4
+    DO I = 1, nDim
+       St4d(I) = 1
+       Ct4d(I) = SIZE( Arr4d, I )
+    ENDDO
+
+    ! Write to netCDF file
+    CALL NcWr( Arr4d, fId, VarName, St4d, Ct4d )
+
+  END SUBROUTINE NC_VAR_WRITE_R4_4D
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Var_Write_int_1d
+!
+! !DESCRIPTION: Writes data of an 1-D integer variable. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_INT_1D( fId, VarName, Arr1D )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN) :: fId            ! file ID 
+    CHARACTER(LEN=*), INTENT(IN) :: VarName        ! variable name      
+    INTEGER,          POINTER    :: Arr1D(:)       ! array to be written 
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  15 Jun 2012 - C. Keller   - Initial version
+!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
+!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_INT_1D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3715,8 +4002,182 @@ CONTAINS
 !
     ! Arrays
     INTEGER :: St1d(1), Ct1d(1)
+
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    ! Set start & count arrays
+    St1d(1) = 1
+    Ct1d(1) = SIZE( Arr1d, 1 )
+
+    ! Write to netCDF file
+    CALL NcWr( Arr1d, fId, VarName, St1d, Ct1d )
+
+  END SUBROUTINE NC_VAR_WRITE_INT_1D
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Var_Write_int_2d
+!
+! !DESCRIPTION: writes data of an 2-D integer variable. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_INT_2D( fId, VarName, Arr2D )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN) :: fId            ! file ID 
+    CHARACTER(LEN=*), INTENT(IN) :: VarName        ! variable name      
+    INTEGER,          POINTER    :: Arr2D(:,:)     ! array to be written 
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  15 Jun 2012 - C. Keller   - Initial version
+!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
+!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_INT_2D
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Arrays
     INTEGER :: St2d(2), Ct2d(2)
+
+    ! Scalars
+    INTEGER :: I,       nDim
+
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    ! Set start & count arrays
+    nDim = 2
+    DO I = 1, nDim
+       St2d(I) = 1
+       Ct2d(I) = SIZE( Arr2d, I )
+    ENDDO
+ 
+    ! Write to netCDF file
+    CALL NcWr( Arr2d, fId, VarName, St2d, Ct2d )
+
+  END SUBROUTINE NC_VAR_WRITE_INT_2D
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Var_Write_int_3d
+!
+! !DESCRIPTION: writes data of an 3-D integer variable. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_INT_3D( fId, VarName, Arr3D )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN) :: fId            ! file ID 
+    CHARACTER(LEN=*), INTENT(IN) :: VarName        ! variable name      
+    INTEGER,          POINTER    :: Arr3D(:,:,:)   ! array to be written 
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  15 Jun 2012 - C. Keller   - Initial version
+!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
+!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_INT_3D
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Arrays
     INTEGER :: St3d(3), Ct3d(3)
+
+    ! Scalars
+    INTEGER :: I,       nDim
+
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    ! Set start & count arrays
+    nDim = 3
+    DO I = 1, nDim
+       St3d(I) = 1
+       Ct3d(I) = SIZE( Arr3d, I )
+    ENDDO
+
+    ! Write to netCDF file
+    CALL NcWr( Arr3d, fId, trim(VarName), St3d, Ct3d )
+
+  END SUBROUTINE NC_VAR_WRITE_INT_3D
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Var_Write_int_4d
+!
+! !DESCRIPTION: writes data of an 4-Dinteger variable. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_INT_4D( fId, VarName, Arr4D )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN) :: fId            ! file ID 
+    CHARACTER(LEN=*), INTENT(IN) :: VarName        ! variable name      
+    INTEGER,          POINTER    :: Arr4D(:,:,:,:) ! array to be written 
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  15 Jun 2012 - C. Keller   - Initial version
+!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
+!  19 Sep 2016 - R. Yantosca - Renamed to NC_VAR_WRITE_INT_1D
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Arrays
     INTEGER :: St4d(4), Ct4d(4)
 
     ! Scalars
@@ -3726,49 +4187,24 @@ CONTAINS
     ! WRITE DATA 
     !--------------------------------
    
-    ! 1D data 
-    if ( present(Arr1d) ) then
-       nDim    = 1
-       St1d(1) = 1
-       Ct1d(1) = size(Arr1d,1)
-       CALL NcWr( Arr1d, fId, trim(VarName), St1d, Ct1d )
+    ! Set start & count arrays
+    nDim = 4
+    DO I = 1, nDim
+       St4d(I) = 1
+       Ct4d(I) = SIZE( Arr4d, I )
+    ENDDO
 
-    ! 2D data 
-    elseif ( present(arr2d) ) then
-       nDim = 2
-       do i=1,nDim
-          St2d(i) = 1
-          Ct2d(i) = size(Arr2d,i)
-       enddo
-       CALL NcWr( Arr2d, fId, trim(VarName), St2d, Ct2d )
+    ! Write to netCDF file
+    CALL NcWr( Arr4d, fId, VarName, St4d, Ct4d )
 
-    ! 3D data
-    elseif ( present(arr3d) ) then
-       nDim = 3
-       do i=1,nDim
-          St3d(i) = 1
-          Ct3d(i) = size(Arr3d,i)
-       enddo
-       CALL NcWr( Arr3d, fId, trim(VarName), St3d, Ct3d )
-
-    ! 4D data
-    elseif ( present(arr4d) ) then
-       nDim = 4
-       do i=1,nDim
-          St4d(i) = 1
-          Ct4d(i) = size(Arr4d,i)
-       enddo
-       CALL NcWr( Arr4d, fId, trim(VarName), St4d, Ct4d )
-    endif
-
-  END SUBROUTINE NC_VAR_WRITE_INT
+  END SUBROUTINE NC_VAR_WRITE_INT_4D
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_tau0_6a
+! !IROUTINE: Get_Tau0_6a
 !
 ! !DESCRIPTION: Function GET\_TAU0\_6A returns the corresponding TAU0 value 
 !  for the first day of a given MONTH of a given YEAR.  This is necessary to 
@@ -3882,7 +4318,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_ismodellevels 
+! !IROUTINE: Nc_IsModelLevels 
 !
 ! !DESCRIPTION: Function NC\_ISMODELLEVELS returns true if (and only if) the 
 !  long name of the level variable name of the given file ID contains the 
