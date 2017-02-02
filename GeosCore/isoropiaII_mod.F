@@ -101,6 +101,22 @@
       ! HEMCO pointers
       REAL(sp), POINTER    :: HNO3(:,:,:) => NULL()
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Add a C-preprocessor switch to skip calling ISORROPIA if the pressure
+!%%% and/or temperature lie outside of the range that will produce a stable
+!%%% solution.  This will eliminate the random noise observed in the
+!%%% ISORROPIA output.
+!%%%
+!%%% Leaving this feature deactivated will replicate the prior behavior in 
+!%%% v11-01 and earlier GEOS-Chem versions.  This will become the default
+!%%% setting in a future version, but give the user the choice to activate
+!%%% or deactivate this for now.
+!%%% 
+!%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
+!%%%
+!#define SKIP_IF_P_AND_T_ARE_OUT_OF_RANGE 1
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -136,6 +152,8 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+
+      USE IsorropiaII_Main_Mod,Only : Isoropia
 !
 ! !INPUT PARAMETERS:
 !
@@ -175,6 +193,9 @@
 !  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
 !                               species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca  - Remove temporary tracer-removal code
+!  25 Jan 2017 - S. Eastham   - Can skip calling ISORROPIA if P and T are not 
+!                               in the proper range to yield a valid solution.
+!                               (Activate this with the #ifdef block above.)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -202,7 +223,7 @@
       ! Scalars
       INTEGER                  :: I,    J,    L,    N
       REAL(fp)                 :: ANO3, GNO3
-      REAL(f8)                 :: RHI,  TEMPI
+      REAL(f8)                 :: RHI,  TEMPI, P_Pa
       REAL(fp)                 :: TCA,  TMG,  TK,   HNO3_DEN
       REAL(fp)                 :: TNA,  TCL,  TNH3, TNH4
       REAL(fp)                 :: TNIT, TNO3, TSO4, VOL
@@ -235,6 +256,9 @@
 
       ! For getting fields from HEMCO 
       LOGICAL                  :: aIR
+
+      ! Are we out of the range of valid inputs?
+      Logical                  :: OutOfBounds
 
       !=================================================================
       ! DO_ISOROPIAII begins here!
@@ -334,16 +358,16 @@
       ! ISOROPIA routine ISOROPIAIICODE.f which describes
       ! the input/output args)
       !=================================================================
-
-      ! AEROPH: add HPLUSTEMP as private (hotp 8/11/09)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,    J,      L,       N,      WI,   WT,  GAS,  TEMPI )
-!$OMP+PRIVATE( RHI,  VOL,    TSO4,    TNH3,   TNA,  TCL, ANO3, GNO3  )
-!$OMP+PRIVATE( TCA,  TMG,    TK,      CNTRL,  SCASI                  )
-!$OMP+PRIVATE( TNO3, AERLIQ, AERSLD,  OTHER,  TNH4, TNIT             )
-!$OMP+PRIVATE( HPLUSTEMP,    NUM_SAV, DEN_SAV, HNO3_DEN              )
-!$OMP+SCHEDULE( DYNAMIC )
+!$OMP+PRIVATE( I,       J,        L,          N,         WI      )
+!$OMP+PRIVATE( WT,      GAS,      TEMPI,      RHI,       VOL     )    
+!$OMP+PRIVATE( TSO4,    TNH3,     TNA,        TCL,       ANO3    )
+!$OMP+PRIVATE( GNO3,    TCA,      TMG,        TK,        CNTRL   )
+!$OMP+PRIVATE( SCASI,   P_PA,     TNO3,       AERLIQ,    AERSLD  )
+!$OMP+PRIVATE( OTHER,   TNH4,     TNIT,       HPLUSTEMP, NUM_SAV )
+!$OMP+PRIVATE( DEN_SAV, HNO3_DEN, OutOfBounds                    )
+!$OMP+SCHEDULE( DYNAMIC, 1 )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -364,6 +388,9 @@
 
          ! Temperature [K]
          TEMPI    = State_Met%T(I,J,L)
+
+         ! Pressure [Pa]
+         P_Pa    = State_Met%PMid(I,J,L)*100.0e+0_f8
 
          ! Relative humidity [unitless]
          RHI      = State_Met%RH(I,J,L) * 1.e-2_fp
@@ -465,6 +492,9 @@
             TNO3  = GET_HNO3( I, J, L, State_Met ) * 1.e-6_fp / 
      &              63.e+0_fp
 
+            ANO3 = 0.0e+0_fp
+            GNO3 = TNO3
+
          ENDIF
 
          !---------------------------------
@@ -490,21 +520,83 @@
          WI(7)    = MAX( TK,   CONMIN )
          WI(8)    = MAX( TMG,  CONMIN )
 
-         ! Perform aerosol thermodynamic equilibrium 
-         ! ISOROPIA can be found in ISOROPIAIICODE.f
-         ! inputs are WI, RHI, TEMPI, CNTRL
-         CALL ISOROPIA (WI,    RHI,  TEMPI,  CNTRL, 
-     &                  WT,    GAS,  AERLIQ, AERSLD,
-     &                  SCASI, OTHER)
+#if defined( SKIP_IF_P_AND_T_ARE_OUT_OF_RANGE )
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%% If the C-preprocessor switch is activated then check if
+         !%%% pressure and temperature are in the range that will result
+         !%%% in a stable solution.  If not, then we will skip calling
+         !%%% ISORROPIA to avoid random noise in the output.
+         !%%%
+         !%%% NOTE: Turning this feature on will result in differences
+         !%%% with respect to prior GEOS-Chem versions.  So we'll give
+         !%%% the user the option to activate it or not.  At some point
+         !%%% in the future this will become the default setting.
+         !%%%
+         !%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         ! SDE 2017-01-18: Recommendation from Shannon Capps
+         ! Skip equilibrium if T < 250 K or P < 200 hPa
+         OutOfBounds = ((P_Pa.lt.200.0e+2_f8).or.(TEMPI.lt.250.0e+0_f8))
+
+#else
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%% Always call ISORROPIA, regardless of the values of pressure
+         !%%% and temperature.  This will match the prior behavior of
+         !%%% when comparing to v11-01 and earlier versions.
+         !%%%
+         !%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         ! Never skip calling ISORROPIA
+         OutOfBounds = .FALSE.
+
+#endif
+
+         IF ( OutOfBounds ) THEN
+
+            ! %%% Skip equilibrium %%%
+            ! Just keep things the way they are 
+            ! and spoof the other outputs
+            WT(:)     = WI(:)
+            AERLIQ(:) = 0.0e+0_f8
+            AERSLD(:) = 0.0e+0_f8
+            GAS(:)    = 0.0e+0_f8
+            OTHER(:)  = 0.0e+0_f8
+
+            ! Separate NH3 and NH4
+            TNH3 = Spc(I,J,L,id_NH3) * 1.e+3_fp / (17.e+0_fp * VOL )
+            TNH4 = Spc(I,J,L,id_NH4) * 1.e+3_fp / (18.e+0_fp * VOL )
+
+         ELSE
+
+            ! %%% Perform aerosol thermodynamic equilibrium %%%
+            ! ISOROPIA can be found in ISOROPIAIICODE.F
+            ! inputs are WI, RHI, TEMPI, CNTRL
+            CALL ISOROPIA( WI,    RHI,  TEMPI,  CNTRL, 
+     &                     WT,    GAS,  AERLIQ, AERSLD,
+     &                     SCASI, OTHER                 )
+
+            ! Retrieve concentrations in mol/m3
+            TSO4 = WT(2)
+            TNH3 = GAS(1)
+            TNH4 = WT(3) - GAS(1)
+            GNO3 = GAS(2)
+            TNO3 = WT(4)
+            ANO3 = TNO3 - GNO3
+
+         ENDIF
         
          !---------------------------------
          ! Save back into tracer array
          !---------------------------------
          ! Convert ISOROPIA output from [mole/m3] to [kg]
-         TSO4 = MAX( 96.e-3_fp * VOL *   WT(2),            CONMIN )
-         TNH3 = MAX( 17.e-3_fp * VOL *   GAS(1),           CONMIN )
-         TNH4 = MAX( 18.e-3_fp * VOL * ( WT(3) - GAS(1) ), CONMIN )
-         TNIT = MAX( 62.e-3_fp * VOL * ( WT(4) - GAS(2) ), CONMIN )
+         TSO4 = MAX( 96.e-3_fp * VOL * TSO4, CONMIN )
+         TNH3 = MAX( 17.e-3_fp * VOL * TNH3, CONMIN )
+         TNH4 = MAX( 18.e-3_fp * VOL * TNH4, CONMIN )
+         TNIT = MAX( 62.e-3_fp * VOL * ANO3, CONMIN )
 
          ! Save tracers back into Spc array [kg]
          ! no longer save TSO4 back into Spc. SO4 is all aerosol phase
@@ -523,7 +615,7 @@
 
             ! HNO3 [mole/m3] is in GAS(2); convert & store in Spc [kg]
             Spc(I,J,L,id_HNO3)
-     &           = MAX( 63.e-3_fp * VOL * GAS(2), CONMIN )
+     &           = MAX( 63.e-3_fp * VOL * GNO3, CONMIN )
 
             ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
             HNO3_DEN           = Spc(I,J,L,id_HNO3)
@@ -537,14 +629,14 @@
             ! Convert total inorganic nitrate from [mole/m3] to [ug/m3] 
             ! and save for next time
             ! WT(4) is in [mole/m3] -- unit conv is necessary!
-            CALL SET_HNO3( I, J, L, 63.e+6_f8 * WT(4) )
+            CALL SET_HNO3( I, J, L, 63.e+6_f8 * TNO3 )
 
             ! Save for use in sulfate_mod (SEASALT_CHEM) for offline
             ! aerosol simulations (bec, 4/15/05)
-            GAS_HNO3(I,J,L) = GAS(2)
+            GAS_HNO3(I,J,L) = GNO3
 
             ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
-            HNO3_DEN        = GAS(2) * VOL * 63e-3_fp
+            HNO3_DEN        = GNO3 * VOL * 63e-3_fp
 
          ENDIF
 
