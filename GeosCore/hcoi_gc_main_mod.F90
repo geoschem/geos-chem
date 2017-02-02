@@ -1034,6 +1034,11 @@ CONTAINS
     USE Get_Ndep_Mod,          ONLY : DRY_TOTN
     USE Get_Ndep_Mod,          ONLY : WET_TOTN
 
+#if !defined(ESMF_)
+    USE MODIS_LAI_MOD,         ONLY : GC_LAI
+#endif
+    USE MODIS_LAI_MOD,         ONLY : GC_CHLR
+
 #if defined(ESMF_)
     USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
 #endif
