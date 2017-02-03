@@ -571,6 +571,7 @@
      &              HKBETA     = State_Met%HKBETA,   
      &              HKETA      = State_Met%HKETA,   
      &              MOISTQ     = State_Met%MOISTQ, 
+     &              OMEGA      = State_Met%OMEGA,
      &              OPTDEPTH   = State_Met%OPTD, 
      &              Q          = State_Met%SPHU,        
      &              T          = State_Met%T,           
@@ -598,6 +599,7 @@
      &              DQVDTMST   = State_Met%DQVDTMST,
      &              DTRAIN     = State_Met%DTRAIN,     
      &              MOISTQ     = State_Met%MOISTQ,      
+     &              OMEGA      = State_Met%OMEGA,
      &              OPTDEPTH   = State_Met%OPTD, 
      &              PV         = State_Met%PV,              
      &              RH         = State_Met%RH,             
@@ -626,6 +628,7 @@
      &              DNDN       = State_Met%DNDN,         
      &              ENTRAIN    = State_Met%ENTRAIN,    
      &              MOISTQ     = State_Met%MOISTQ,
+     &              OMEGA      = State_Met%OMEGA,
      &              OPTDEPTH   = State_Met%OPTD,    
      &              Q          = State_Met%SPHU,            
      &              T          = State_Met%T,                
@@ -836,11 +839,11 @@
      &                    DQIDTMST,  DQLDTMST,  DQRCON,    DQRLSC,      
      &                    DQVDTMST,  DTRAIN,    ENTRAIN,   HKBETA,    
      &                    HKETA,     MFXC,      MFYC,      MFZ,
-     &                    MOISTQ,    OPTDEPTH,  PLE,       PV,
-     &                    Q,         QI,        QL,        RH,        
-     &                    T,         TAUCLI,    TAUCLW,    U,         
-     &                    UPDE,      UPDN,      V,         ZMEU,      
-     &                    ZMMD,      ZMMU )
+     &                    MOISTQ,    OMEGA,     OPTDEPTH,  PLE,
+     &                    PV,        Q,         QI,        QL,
+     &                    RH,        T,         TAUCLI,    TAUCLW,
+     &                    U,         UPDE,      UPDN,      V,
+     &                    ZMEU,      ZMMD,      ZMMU )
 !
 ! !USES:
 !
@@ -889,6 +892,7 @@
       REAL(fp), INTENT(OUT), OPTIONAL :: MFYC(IIPAR,JJPAR,LLPAR)
       REAL(fp), INTENT(OUT), OPTIONAL :: MFZ(IIPAR,JJPAR,LLPAR+1)
       REAL(fp), INTENT(OUT), OPTIONAL :: MOISTQ(IIPAR,JJPAR,LLPAR) 
+      REAL(fp), INTENT(OUT), OPTIONAL :: OMEGA(IIPAR,JJPAR,LLPAR)
       REAL(fp), INTENT(OUT), OPTIONAL :: OPTDEPTH(IIPAR,JJPAR,LLPAR)
       REAL(fp), INTENT(OUT), OPTIONAL :: PLE(IIPAR,JJPAR,LLPAR+1)
       REAL(fp), INTENT(OUT), OPTIONAL :: PV(IIPAR,JJPAR,LLPAR)
@@ -929,6 +933,7 @@
 !  (21) MFYC     : (3-D) GEOS-5 N-S mass flux                  [Pa*m2/s]
 !  (22) MFZ      : (3-D) GEOS-5 up/down mass flux              [kg/m2/s]
 !  (23) MOISTQ   : (3-D) DAO water vapor tendency d            [g/kg/day]
+!  (24) OMEGA    : (3-D) Vertical velocity                     [Pa/s]
 !  (24) OPTDEPTH : (3-D) GEOS grid box optical depth           [unitless]
 !  (25) PLE      : (3-D) GEOS-5 pressure edges                 [hPa]
 !  (26) PV       : (3-D) GEOS-5 potential vorticity            [kg*m2/kg/s]
@@ -981,6 +986,7 @@
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
 !  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
 !  02 Feb 2016 - E. Lundgren - Block of diagnostics with if defined BPCH
+!  03 Feb 2017 - M. Sulprizio- Add OMEGA as output field (Q. Chen)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1055,7 +1061,6 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:3' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-!                  CALL TRANSFER_A6( D, CLDTOT )
                   CALL TRANSFER_3D( D, CLDTOT )
                   NFOUND = NFOUND +1 
                ENDIF
@@ -1290,9 +1295,20 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:21' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-!                  IF ( PRESENT( MOISTQ ) ) CALL TRANSFER_A6( D, MOISTQ )
                   IF ( PRESENT( MOISTQ ) ) CALL TRANSFER_3D( D, MOISTQ )
                   NFOUND = NFOUND + 1 
+               ENDIF
+
+            !--------------------------------------
+            ! OMEGA: Vertical velocity
+            !--------------------------------------
+            CASE ( 'OMEGA' )
+               READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, D
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:21b' )
+
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( OMEGA ) ) CALL TRANSFER_3D( D, OMEGA )
+                  NFOUND = NFOUND + 1
                ENDIF
 
             !--------------------------------------
@@ -1304,7 +1320,6 @@
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( OPTDEPTH ) ) THEN
-!                     CALL TRANSFER_A6( D, OPTDEPTH )
                      CALL TRANSFER_3D( D, OPTDEPTH )
                   ENDIF
                   NFOUND = NFOUND + 1 
@@ -1531,18 +1546,6 @@
                   NFOUND = NFOUND + 1 
                ENDIF
 
-            !--------------------------------------
-            ! Extra GEOS-5 fields
-            ! Skip over these now; add later
-            !--------------------------------------
-            CASE ( 'OMEGA' ) 
-               READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, D
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:40' )
-
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  NFOUND = NFOUND + 1 
-               ENDIF
-
             ! Field not found -- skip over
             CASE DEFAULT
                WRITE ( 6, '(a)' ) 'Searching for next A-6 field!'
@@ -1692,6 +1695,7 @@
       ! (4 ) SPHU   : 6-h average Specific humidity   [g H20/kg air]   
       ! (5 ) CLDMAS : Convective Mass Flux            [kg/m2/s] 
       ! (6 ) DTRAIN : Detrainment mass flux           [kg/m2/s]
+      ! (7 ) OMEGA  : Updraft velocity                [Pa/s]
       !=================================================================
       IF ( ND66 > 0 ) THEN
          IF ( PRESENT( U ) ) THEN 
@@ -1739,6 +1743,11 @@
          IF ( PRESENT( DTRAIN ) ) THEN 
             AD66(:,:,1:LD66,6) = AD66(:,:,1:LD66,6) + DTRAIN(:,:,1:LD66)
          ENDIF  
+
+         ! GEOS-5 OMEGA
+         IF ( PRESENT( OMEGA ) ) THEN
+            AD66(:,:,1:LD66,7) = AD66(:,:,1:LD66,7) + OMEGA(:,:,1:LD66)
+         ENDIF
       ENDIF
 
       !=================================================================
