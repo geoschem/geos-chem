@@ -385,6 +385,7 @@
       REAL(fp)  :: PMEAN, PMEAN_DRY  
       REAL(fp)  :: EsatA, EsatB, EsatC, EsatD
       REAL(fp)  :: AREA_M2, SPHU_kgkg, SPHU_kgkg_prev, AVGW_moist
+      LOGICAL   :: UpdtMR
 
       ! Error handling
       CHARACTER(LEN=255) :: MSG, LOC
@@ -417,6 +418,10 @@
 
       ! Assume success
       RC = GC_SUCCESS
+
+      ! Shadow variable for mixing ratio update
+      UpdtMR = .TRUE.
+      IF ( PRESENT(update_mixing_ratio) ) UpdtMR = update_mixing_ratio
 
       !=============================================================
       ! Update air quantities
@@ -759,8 +764,9 @@
       ! NOTE: The only places where mixing ratio is not currently updated
       ! following air quantity change is during GEOS-Chem initialization and  
       ! in transport after the pressure fixer is applied 
-      IF ( .not. PRESENT( update_mixing_ratio )  
-     &               .or. update_mixing_ratio ) THEN
+      IF ( UpdtMR ) THEN
+!      IF ( .not. PRESENT( update_mixing_ratio )  
+!     &               .or. update_mixing_ratio ) THEN
 
          ! The concentration update formula works only for dry mixing ratios
          ! (kg/kg or v/v) so check if units are correct

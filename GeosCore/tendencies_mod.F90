@@ -312,9 +312,9 @@ CONTAINS
 
     IF ( .NOT. FOUND ) THEN 
 
-       ! Eventually set local # of advected species
+       ! Eventually set local # of species
        IF ( nSpc <= 0 ) THEN
-          nSpc = State_Chm%nAdvect
+          nSpc = State_Chm%nSpecies
        ENDIF
 
        ! Initialize class
@@ -722,8 +722,8 @@ CONTAINS
        ! Convert from kg/kg dry to v/v dry
        Ptr3D = 0.0_f4
        Ptr3D = State_Chm%Species(:,:,:,I) &
-             * ( AIRMW / State_Chm%SpcData(I)%Info%emMW_g ) &
-             / State_Met%AD(:,:,:)
+             * ( AIRMW / State_Chm%SpcData(I)%Info%emMW_g )
+!!!             / State_Met%AD(:,:,:)
 
        ! Cleanup
        Ptr3D => NULL()
@@ -871,9 +871,9 @@ CONTAINS
 
           ! TMP is the current concentration in v/v
           ! Convert from kg/kg dry to v/v dry
-          TMP = ( ( State_Chm%Species(:,:,:,I)                   &
-                  * ( AIRMW / State_Chm%SpcData(I)%Info%emMW_g ) &
-                  / State_Met%AD(:,:,:) ) &
+          TMP = State_Chm%Species(:,:,:,I)                   &
+              * ( AIRMW / State_Chm%SpcData(I)%Info%emMW_g )
+!!!              / State_Met%AD(:,:,:) ) &
 
           ! Calculate tendency 
           Tend = ( TMP - Ptr3D ) / REAL(DT,f4)
@@ -881,7 +881,7 @@ CONTAINS
 
        ! Update diagnostics array
        CALL Diagn_Update( am_I_Root, HcoState, cName=DiagnName, &
-               Array3D_SP=Tend, COL=Input_Opt%DIAG_COLLECTION, RC=RC )
+               Array3D=Tend, COL=Input_Opt%DIAG_COLLECTION, RC=RC )
                           
        IF ( RC /= HCO_SUCCESS ) THEN 
           WRITE(MSG,*) 'Error in updating diagnostics with ID ', cID
