@@ -272,12 +272,6 @@
       ! Assume success
       RC       = GC_SUCCESS
 
-      ! We need to add the '.rc' extension to the input.geos file
-      ! so taht GEOS-5 will copy it to the proper run directory.
-#if defined( ESMF_ )
-      FILENAME = TRIM(FILENAME)//'.rc'
-#endif
-
       ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:1' )

@@ -875,15 +875,15 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
-    write(*,'(a,F10.3)') 'Flex Rate Time     : ', rtim
-    write(*,'(a,F10.3)') 'Flex Intg Time     : ', itim
-    write(*,'(a,I9)'   ) 'Flex Function Calls: ', totfuncs
-    write(*,'(a,I9)'   ) 'Flex Jacobian Calls: ', totjacob
-    write(*,'(a,I9)'   ) 'Flex Total Steps   : ', totsteps
-    write(*,'(a,I9)'   ) 'Flex Rejected Steps: ', totrejec
-    write(*,'(a,I9)'   ) 'Flex LU Decompos.  : ', totnumLU
-#endif
+!#if defined( DEVEL )
+!    write(*,'(a,F10.3)') 'Flex Rate Time     : ', rtim
+!    write(*,'(a,F10.3)') 'Flex Intg Time     : ', itim
+!    write(*,'(a,I9)'   ) 'Flex Function Calls: ', totfuncs
+!    write(*,'(a,I9)'   ) 'Flex Jacobian Calls: ', totjacob
+!    write(*,'(a,I9)'   ) 'Flex Total Steps   : ', totsteps
+!    write(*,'(a,I9)'   ) 'Flex Rejected Steps: ', totrejec
+!    write(*,'(a,I9)'   ) 'Flex LU Decompos.  : ', totnumLU
+!#endif
 
     !=================================================================
     ! Call OHSAVE which saves info on OH AND HO2 concentrations

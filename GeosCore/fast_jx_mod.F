@@ -1725,10 +1725,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       ! Read in fast-J X-sections (spectral data)
       FILENAME = 'FJX_spec.dat'
-#if defined( ESMF_ )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *.rc
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
 
       ! Echo info
       IF ( am_I_Root ) THEN
@@ -1749,10 +1745,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       ! Read in 5-wavelength scattering data
       FILENAME = 'jv_spec_mie.dat'
-#if defined( ESMF_ )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *.rc
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
 
       ! Echo info
       IF ( am_I_Root ) THEN
@@ -1778,10 +1770,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in photolysis rates used in chemistry code and mapping onto FJX J's
       ! CTM call:  read in J-values names and link to fast-JX names
       FILENAME = 'FJX_j2j.dat'
-#if defined( ESMF_ )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *.rc
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
 
       ! Echo info
       IF ( am_I_Root ) THEN
@@ -2299,10 +2287,6 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       DO k = 1, NSPAA
 
        THISFILE = SPECFIL(k)
-#if defined( ESMF_ )
-       ! For the ESMF interface to GEOS-5 GCM, we need to append *.rc
-       THISFILE = TRIM( THISFILE ) // '.rc'
-#endif
 
        ! open file
        OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=IOS )
