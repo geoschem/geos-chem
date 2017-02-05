@@ -451,7 +451,8 @@ chemdr.o                    : chemdr.F                                       \
                               diagnostics_mod.o
 
 chemgrid_mod.o              : chemgrid_mod.F                                 \
-                              dao_mod.o               diag_mod.o
+                              dao_mod.o               diag_mod.o             \
+                              hco_interface_mod.o
 
 chemistry_mod.o             : chemistry_mod.F                                \
                               aerosol_mod.o           isoropiaII_mod.o       \
@@ -704,7 +705,7 @@ input_mod.o                 : input_mod.F                                    \
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               chemgrid_mod.o          hco_interface_mod.o
 
-land_mercury_mod.o          : land_mercury_mod.F                             \
+land_mercury_mod.o          : land_mercury_mod.F      modis_lai_mod.o        \
                               dao_mod.o               depo_mercury_mod.o     \
                               hco_interface_mod.o
 
