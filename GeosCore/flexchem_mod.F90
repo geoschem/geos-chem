@@ -160,7 +160,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, J, L, N, F, M, SpcID
+    INTEGER                :: I, J, L, N, F, SpcID, KppID
     INTEGER                :: MONTH, YEAR
     INTEGER                :: WAVELENGTH
     INTEGER                :: HCRC
@@ -202,12 +202,6 @@ CONTAINS
     ! To avoid array temporaries in call to SET_HET (bmy, 3/28/16)
     REAL(fp)               :: SCOEFF(IIPAR,JJPAR,LLPAR,3)
     REAL(fp)               :: SCF(3)
-
-    ! For prod/loss diagnostic
-    REAL(fp)               :: FAM(NFAM)
-    INTEGER                :: IND
-    INTEGER                :: COEF
-    CHARACTER(LEN=14)      :: NAME
 
     ! For testing only, may be removed later (mps, 4/26/16)
     LOGICAL                :: DO_HETCHEM
@@ -512,8 +506,7 @@ CONTAINS
     !$OMP PRIVATE  ( I,     J,        L,          N,     YLAT ) &
     !$OMP PRIVATE  ( SCF,   SO4_FRAC, IERR,       RCNTRL      ) &
     !$OMP PRIVATE  ( START, FINISH,   ISTATUS,    RSTATE      ) &
-    !$OMP PRIVATE  ( FAM,   SpcId                             ) &
-    !$OMP PRIVATE  ( NAME,  COEF,     IND,        F,     M    ) &
+    !$OMP PRIVATE  ( SpcID, KppID,    F                       ) &
     !$OMP REDUCTION( +:ITIM                                   ) &
     !$OMP REDUCTION( +:RTIM                                   ) &
     !$OMP REDUCTION( +:TOTSTEPS                               ) &
@@ -651,12 +644,27 @@ CONTAINS
 
           ! Initialize KPP species concentration array
           IF ( SpcID .eq. 0) THEN
-             C(N) = 0d0
+             C(N) = 0.0_dp
           ELSE
              C(N) = State_Chm%Species(I,J,L,SpcID)
           ENDIF
 
        ENDDO
+
+       IF ( Input_Opt%DO_SAVE_PL ) THEN
+
+          ! Loop over # prod/loss families
+          DO F = 1, NFAM
+
+             ! Determine dummy species index in KPP
+             KppID = Ind_(TRIM(FAM_NAMES(F)),'K')
+
+             ! Initialize prod/loss rates
+             IF ( KppID > 0 ) C(KppID) = 0.0_dp
+
+          ENDDO
+
+       ENDIF
 
        C(ind_ACTA)  = 0.0_dp
        C(ind_EOH)   = 0.0_dp
@@ -821,20 +829,22 @@ CONTAINS
        ENDDO
 
        !==============================================================
-       ! Prod/loss diagnostic
+       ! Obtain prod/loss rates from KPP [molec/cm3]
        !==============================================================
        IF ( Input_Opt%DO_SAVE_PL ) THEN
-
-          ! Obtain prod/loss rates from KPP [molec/cm3]
-          CALL ComputeFamilies( VAR, FAM )
 
           ! Loop over # prod/loss families
           DO F = 1, NFAM
 
+             ! Determine dummy species index in KPP
+             KppID = Ind_(TRIM(FAM_NAMES(F)),'K')
+
              !--------------------------------------------------------
              ! Add to AD65 array [molec/cm3/s]
              !--------------------------------------------------------
-             AD65(I,J,L,F) = AD65(I,J,L,F) + FAM(F) / DT
+             IF ( KppID > 0 ) THEN
+                AD65(I,J,L,F) = AD65(I,J,L,F) + VAR(KppID) / DT
+             ENDIF
 
              !--------------------------------------------------------
              ! Save out P(Ox) and L(Ox) from the fullchem simulation
@@ -842,10 +852,10 @@ CONTAINS
              !--------------------------------------------------------
              IF ( Input_Opt%DO_SAVE_O3 ) THEN
                 IF ( TRIM(FAM_NAMES(F)) == 'POx' ) THEN
-                   POx(I,J,L) = FAM(F) / DT
+                   POx(I,J,L) = VAR(KppID) / DT
                 ENDIF
                 IF ( TRIM(FAM_NAMES(F)) == 'LOx' ) THEN
-                   LOx(I,J,L) = FAM(F) / DT
+                   LOx(I,J,L) = VAR(KppID) / DT
                 ENDIF
              ENDIF
 
@@ -861,7 +871,8 @@ CONTAINS
              ! Calculate H2SO4 production rate [kg s-1] in each
              ! time step (win, 8/4/09)
              IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN 
-                H2SO4_RATE(I,J,L) = FAM(F) / AVO * 98.e-3_fp * & ! Hard-coded MW
+                ! Hard-coded MW
+                H2SO4_RATE(I,J,L) = VAR(KppID) / AVO * 98.e-3_fp * &
                                     State_Met%AIRVOL(I,J,L)  * &
                                     1e+6_fp / DT
              ENDIF
