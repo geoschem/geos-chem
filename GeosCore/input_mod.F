@@ -4547,24 +4547,24 @@
       !----------------------------------------------------------
       ! NETCDF diagnostic output type (eventually read from file)
       !----------------------------------------------------------
-      Input_Opt%TRANSPORT_OUTPUT_TYPE    = 'Mean'
-      Input_Opt%WETSCAV_OUTPUT_TYPE      = 'Mean'
-      Input_Opt%DRYDEP_OUTPUT_TYPE       = 'Mean'
-      Input_Opt%SPECIES_CONC_OUTPUT_TYPE  = 'Mean'
-      Input_Opt%SPECIES_EMIS_OUTPUT_TYPE  = 'Mean'
-      Input_Opt%MET_OUTPUT_TYPE          = 'Mean'
+      Input_Opt%TRANSPORT_OUTPUT_TYPE    = 'Instantaneous'
+      Input_Opt%WETSCAV_OUTPUT_TYPE      = 'Instantaneous'
+      Input_Opt%DRYDEP_OUTPUT_TYPE       = 'Instantaneous'
+      Input_Opt%SPECIES_CONC_OUTPUT_TYPE  = 'Instantaneous'
+      Input_Opt%SPECIES_EMIS_OUTPUT_TYPE  = 'Instantaneous'
+      Input_Opt%MET_OUTPUT_TYPE          = 'Instantaneous'
 
       ! placeholders pending grouping of diagnostics
-      Input_Opt%ND01_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND02_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND12_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND14_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND15_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND16_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND17_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND18_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND19_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND30_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND01_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND02_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND12_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND14_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND15_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND16_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND17_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND18_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND19_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND30_OUTPUT_TYPE         = 'Instantaneous'
 
 #endif
 
