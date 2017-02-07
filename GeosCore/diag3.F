@@ -5858,6 +5858,7 @@
 !  (4)  SPHU   : GMAO Specific Humidity            : g/kg    : SCALE_I6 or _A6
 !  (5)  CLDMAS : GMAO Cloud Mass Flux              : kg/m2/s : SCALE_A6 or _A6
 !  (6)  DTRAIN : GMAO Detrainment flux             : kg/m2/s : SCALE_A6
+!  (7)  OMEGA  : GMAO Vertical velocity            : Pa/s    : SCALE_A6
 !
 !  NOTES:
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -5867,7 +5868,8 @@
 !       the scale factors accordingly.  Also delete KZZ. (bmy, 6/23/03)
 !  (4) Modified for GEOS-5 and GCAP (bmy, 6/9/05)
 !  20 Aug 2010 - R. Yantosca - Modified for MERRA
-!   8 Feb 2012 - R. Yantosca - Modified for GEOS-FP
+!  08 Feb 2012 - R. Yantosca - Modified for GEOS-FP
+!  03 Feb 2017 - M. Sulprizio- Add OMEGA (Q. Chen)
 !******************************************************************************
 !
       IF ( ND66 > 0 ) THEN
@@ -5914,6 +5916,11 @@
                CASE( 5, 6 )
                   SCALEX = SCALE_ND66 
                   UNIT   = 'kg/m2/s'
+
+               ! OMEGA
+               CASE( 7 )
+                  SCALEX = SCALE_ND66
+                  UNIT   = 'Pa/s'
 
                CASE DEFAULT
                   CYCLE

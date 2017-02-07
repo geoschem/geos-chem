@@ -5611,6 +5611,11 @@
 !  05 Sep 2013 - M. Sulprizio- Now pass met fields using the State_Met object
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  22 Jun 2016 - M. Yannetti - Pass State_Chm as arg for spc db access
+!  03 Feb 2017 - M. Sulprizio- Add fixes for sulfate production provided by
+!                              Qianjie Chen:
+!                               - Bug fix: NDss should be #/cm3, not #/m3
+!                               - Compute updraft velocity W from met fields
+!                               - Only compute SR when W>0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5641,6 +5646,7 @@
       REAL(fp), POINTER     :: AD(:,:,:)
       REAL(fp), POINTER     :: AIRDEN(:,:,:)
       REAL(fp), POINTER     :: AIRVOL(:,:,:)
+      REAL(fp), POINTER     :: OMEGA(:,:,:)
       REAL(fp), POINTER     :: U(:,:,:)
       REAL(fp), POINTER     :: V(:,:,:)
 
@@ -5652,6 +5658,7 @@
       AD     => State_Met%AD
       AIRDEN => State_Met%AIRDEN
       AIRVOL => State_Met%AIRVOL
+      OMEGA  => State_Met%OMEGA
       U      => State_Met%U
       V      => State_Met%V
 
@@ -5685,7 +5692,7 @@
       NDss = ( (3.e+0_fp/4.e+0_fp) * CNss ) / 
      &       (PI * SS_DEN * RG_S**3.e+0_fp * 
      &       exp( (9.e+0_fp/2.e+0_fp) * 
-     &       (LOG(SIG_S)) ** 2.e+0_fp ) )
+     &       (LOG(SIG_S)) ** 2.e+0_fp ) ) * 1.e-6_fp
 
       ! Total coarse mode number concentration [#/cm3]
       CN = NDss ! sea-salt 
@@ -5730,7 +5737,9 @@
       ENDIF
 
       ! Updraft velocity over the oceans [cm/s]
-      W = 500e+0_fp
+      ! 500 cm/s is too high. Get W from the met field. (qjc, 04/10/16)
+      !W = 500e+0_fp
+      W = -OMEGA(I,J,L) / ( AIRDEN(I,J,L) * g0 ) * 100e+0_fp
 
       ! Compute H (integration time interval * air parcel velocity) [m]
       ! DTCHEM is the chemistry timestep in seconds
@@ -5748,23 +5757,32 @@
      &       ( ( (alpha_CN * CN) + (alpha_W * W) + (alpha_SO4 * SO4) +
      &           sum_gas ) * H )
 
-      ! additional sulfate production that can be attributed to
-      ! ozone [ug/m3/timestep]
-      SR = DSVI - B 
+      ! Only calculate SR when air parcel rises, in consistence with
+      ! Yuen et al. (1996) (qjc, 04/10/16)
+      IF ( W > 0e+0_fp ) THEN
 
-      ! Convert SR from [ug/m3/timestep] to [v/v/timestep]
-      SR = SR * ( AIRMW / MW_SO4 ) * 1.e-9_fp / AIRDEN(I,J,L)
-	
-      ! Don't allow SR to be negative
-      SR = MAX( SR, 0.e+0_fp )
+         ! additional sulfate production that can be attributed to
+         ! ozone [ug/m3/timestep]
+         SR = DSVI - B 
 
-      ! Don't produce more SO4 than SO2 available after AQCHEM_SO2
-      SR = MIN( SR, SO2_sr )
+         ! Convert SR from [ug/m3/timestep] to [v/v/timestep]
+         SR = SR * ( AIRMW / MW_SO4 ) * 1.e-9_fp / AIRDEN(I,J,L)
+
+         ! Don't allow SR to be negative
+         SR = MAX( SR, 0.e+0_fp )
+
+         ! Don't produce more SO4 than SO2 available after AQCHEM_SO2
+         SR = MIN( SR, SO2_sr )
+
+      ELSE
+         SR = 0.e+0_fp
+      ENDIF
 
       ! Free pointers
       AD     => NULL()
       AIRDEN => NULL()
       AIRVOL => NULL()
+      OMEGA  => NULL()
       U      => NULL()
       V      => NULL()
 

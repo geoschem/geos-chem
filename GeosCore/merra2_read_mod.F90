@@ -1131,6 +1131,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  12 Aug 2015 - R. Yantosca - Initial version, based on geosfp_read_mod.F90
 !  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  03 Feb 2017 - M. Sulprizio- Activate reading OMEGA fields from file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1219,10 +1220,10 @@ CONTAINS
     CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
     CALL Transfer_3d( Q, State_Met%DTRAIN )
 
-    !! Read OMEGA  from file
-    !v_name = "OMEGA"
-    !CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
-    !CALL Transfer_3d( Q, State_Met%OMEGA )
+    ! Read OMEGA
+    v_name = "OMEGA"
+    CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q, State_Met%OMEGA )
 
     ! Read RH
     v_name = "RH"
@@ -1252,11 +1253,12 @@ CONTAINS
     State_Met%RH = State_Met%RH * 100d0
 
 #if defined( BPCH_DIAG )
-    ! ND66 diagnostic: U, V, DTRAIN met fields
+    ! ND66 diagnostic: U, V, DTRAIN, OMEGA met fields
     IF ( ND66 > 0 ) THEN
        AD66(:,:,1:LD66,1) = AD66(:,:,1:LD66,1) + State_Met%U     (:,:,1:LD66)
        AD66(:,:,1:LD66,2) = AD66(:,:,1:LD66,2) + State_Met%V     (:,:,1:LD66)
        AD66(:,:,1:LD66,6) = AD66(:,:,1:LD66,6) + State_Met%DTRAIN(:,:,1:LD66)
+       AD66(:,:,1:LD66,7) = AD66(:,:,1:LD66,7) + State_Met%OMEGA (:,:,1:LD66)
     ENDIF
 
     ! ND67 diagnostic: CLDTOPS
