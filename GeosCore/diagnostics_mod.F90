@@ -260,10 +260,10 @@ CONTAINS
                                  TS           = TS,              &
                                  AM2          = AM2,             &
                                  PREFIX       = DGN,             &
-                                 deltaYMD     = deltaYMD,        &
-                                 deltaHMS     = deltaHMS,        &
-                                 !deltaYMD     = 00000000,        &
-                                 !deltaHMS     = 010000,          &
+                                 !deltaYMD     = deltaYMD,        &
+                                 !deltaHMS     = deltaHMS,        &
+                                 deltaYMD     = 00000000,        &
+                                 deltaHMS     = 010000,          &
                                  COL          = CollectionID,    &
                                  OutTimeStamp = HcoDiagnEnd,     &
                                  RC           = RC                )
@@ -1048,7 +1048,7 @@ CONTAINS
           !----------------------------------------------------------------
     
           ! Diagnostic container name and id
-          DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name )
+          DiagnName = 'SPC_' // TRIM( SpcInfo%Name )
           cId = cId + 1
     
           ! Create container
