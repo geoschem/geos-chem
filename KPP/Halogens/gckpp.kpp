@@ -4,6 +4,7 @@
 #HESSIAN off
 #MEX off
 #STOICMAT off 
+#FLUX on
 
 #INCLUDE globchem.spc
 #INCLUDE globchem.eqn
@@ -304,7 +305,7 @@
 #ENDINLINE
 
 #INLINE F90_GLOBAL
-      REAL(kind=dp) :: HET(NSPEC,3), PHOTOL(1000)
+      REAL(kind=dp) :: HET(NSPEC,5), PHOTOL(1000)
       REAL(kind=dp) :: NUMDEN, H2O, PRESS
 
 !-----------------------------------------------------------------------
