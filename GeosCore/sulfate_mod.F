@@ -6344,7 +6344,6 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
 !
 ! !INPUT PARAMETERS:
 !
@@ -6419,19 +6418,13 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL           :: LDSTUP
-      INTEGER           :: I,   J,    L,    N
-      INTEGER           :: IBIN ! tdf
-      REAL(fp)          :: NIT, NITs, NIT0, NIT0s, F_UNDER_TOP
-      REAL(fp)          :: PNITd           ! tdf 04/07/08
+      INTEGER           :: I, IBIN, J, L, N
+      REAL(fp)          :: PNITd
 
       ! Arrays
-      REAL(fp)          :: NITd (NDSTBIN)  ! tdf 04/07/08
-      REAL(fp)          :: NIT0d(NDSTBIN)  ! tdf 04/07/08
-
-      ! Following are index arrays to hold pointers to DEPVEL and Spc
-      ! tdf 04/07/08
       INTEGER           :: IDTRC(NDSTBIN)
+      REAL(fp)          :: NITd (NDSTBIN)
+      REAL(fp)          :: NIT0d(NDSTBIN)
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
@@ -6441,23 +6434,34 @@
       !=================================================================
 
       ! Return if tracers are not defined
-      IF ( id_NIT < 0 .or. id_NITs < 0 ) RETURN
+      IF ( id_NITs < 0 ) RETURN
+
+      ! If we are doing a dust uptake simulation, 
+      ! return if dust uptake tracers are undefined
+      IF ( Input_Opt%LDSTUP ) THEN
+         IF ( id_NITd1 < 0 .or. id_NITd2 < 0   .or.
+     &        id_NITd3 < 0 .or. id_NITd4 < 0 ) RETURN
+
+      ENDIF
 
       ! Assume success
-      RC  = GC_SUCCESS
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      LDSTUP    = Input_Opt%LDSTUP
+      RC       = GC_SUCCESS
 
       ! Point to chemical species array [v/v dry]
-      Spc => State_Chm%Species
+      Spc      => State_Chm%Species
+
+      ! Assign pointers to Spc arrays for loop over dust size bins,
+      ! since this can be done outside the parallel DO loop.
+      ! These will be set to a missing value (-1) if undefined.
+      IDTRC(1) = id_NITd1
+      IDTRC(2) = id_NITd2
+      IDTRC(3) = id_NITd3
+      IDTRC(4) = id_NITd4
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, NIT0, NIT0s, NIT, NITs, F_UNDER_TOP )
-!$OMP+PRIVATE( NITd, NIT0d                                  )! tdf 04/07/08
-!$OMP+PRIVATE( IBIN, PNITd, IDTRC                           )
-!$OMP+SCHEDULE( DYNAMIC )
+!$OMP+PRIVATE( I, J, L, NITd, NIT0d, IBIN, PNITd )
+!$OMP+SCHEDULE( DYNAMIC, 1 )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -6465,75 +6469,43 @@
          ! Skip non-chemistry boxes
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
-         ! Initial NITRATE [v/v]
-         NIT0  = Spc(I,J,L,id_NIT)
+         !==============================================================
+         ! NITs chemistry
+         !==============================================================
 
-         ! Initial NITRATE w/in seasalt [v/v]
-         NIT0s = Spc(I,J,L,id_NITs)
+         ! Add NIT prod from HNO3 uptake on fine sea-salt [v/v/timestep]
+         ! to the NITs concentration in the Spc array [v/v dry]
+         Spc(I,J,L,id_NITs) = Spc(I,J,L,id_NITs) + PNITs(I,J,L)
 
-         IF ( LDSTUP ) THEN
-            ! Initial NITRATE w/in dust bins [v/v]   ! tdf 04/07/08
+         !==============================================================
+         ! NITd chemistry (cf. Duncan Fairlie)
+         !==============================================================
+         IF ( Input_Opt%LDSTUP ) THEN
+
+            ! Initialize variables
+            NITd     = 0.0_fp
+
+            ! Initial NITRATE w/in dust bins [v/v]
             NIT0d(1) = Spc(I,J,L,id_NITd1)
             NIT0d(2) = Spc(I,J,L,id_NITd2)
             NIT0d(3) = Spc(I,J,L,id_NITd3)
             NIT0d(4) = Spc(I,J,L,id_NITd4)
-         ENDIF
 
-         ! Initialize variables
-         NIT   = 0e+0_fp
-         NITs  = 0e+0_fp
-         NITd  = 0e+0_fp  !tdf 04/07/08
-
-         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
-         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )     
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( F_UNDER_TOP > 0e+0_fp ) THEN 
-
-            !===========================================================
-            ! NITs chemistry
-            !===========================================================
-
-            ! NIT prod from HNO3 uptake on fine sea-salt [v/v/timestep]
-            NITs = NIT0s + PNITs(I,J,L)
-
-            ! Store final concentration in Spc [v/v]
-            Spc(I,J,L,id_NITs) = NITs
-            
-         ENDIF
-
-         !tdf
-         IF ( LDSTUP ) THEN
-
-            !===========================================================
-            ! NITd chemistry                              ! tdf 04/07/08
-            !===========================================================
-
-            ! Assign pointers to Spc arrays for loop over dust size bins
-            !tdf
-            IDTRC(1) = id_NITd1
-            IDTRC(2) = id_NITd2
-            IDTRC(3) = id_NITd3
-            IDTRC(4) = id_NITd4
-
-            ! tdf Loop over size bins
+            ! Loop over size bins
             DO IBIN = 1, NDSTBIN
 
-               ! Initial amount of nitrate on dust size bin IBIN
-               NIT0 = NIT0d(IBIN)
-
                ! Production of nitrate on dust [v/v/timestep]
-               PNITd = PNIT_dust(I,J,L,IBIN)
+               PNITd                  = PNIT_dust(I,J,L,IBIN)
 
                ! NIT prod from HNO3 uptake on dust [v/v/timestep]
-               NITd(IBIN) = NIT0 + PNITd
+               NITd(IBIN)             = NIT0d(IBIN) + PNITd
 
                ! Store final concentration in Spc [v/v]
                Spc(I,J,L,IDTRC(IBIN)) = NITd(IBIN)
 
             ENDDO
 
-         ENDIF    !tdf end of if ( LDSTUP) condition
+         ENDIF
 
       ENDDO
       ENDDO
