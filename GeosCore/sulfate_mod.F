@@ -3619,111 +3619,81 @@
 !                              species ID from State_Chm%Map_Advect.
 !  11 Oct 2016 - R. Yantosca - Bug fix: make sure that MW_HNO3 is defined
 !                              for aerosol-only sims (where id_HNO3 < 0)
+!  10 Feb 2017 - R. Yantosca - Remove species molecular weights from
+!                              conversions from v/v to equivalents & back
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER :: MINDAT    = 1.0e-20_fp 
-      REAL(fp),  PARAMETER :: TCVV_HNO3 = AIRMW / 63.0e+0_fp ! Hard-coded MW 
+      REAL(fp), PARAMETER :: MINDAT    = 1.0e-20_fp 
 !
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: IT_IS_A_FULLCHEM_SIM
-      REAL(fp)           :: SO2_chem,    DTCHEM
-      REAL(fp)           :: EQ_1_C,      EQ_2_C
-      REAL(fp)           :: SO4E,        SO2_new,    SO4F
-      REAL(fp)           :: SO2_eq,      N_FLUX_A,   N_FLUX_C
-      REAL(fp)           :: END_ALK,     L5A,        L5C
-      REAL(fp)           :: EQ1,         EQ2,        TITR_SO2
-      REAL(fp)           :: TITR_HNO3,   NIT_vv,     NITs_vv
-      REAL(fp)           :: NIT0,        NITS0
-      REAL(fp)           :: F_SO2,       FALK_A_SO2, FALK_C_SO2
-      REAL(fp)           :: EQ_BEG,      F_SO2_A,    F_SO2_C
-      REAL(fp)           :: ALKA,        ALKC,       TOTAL_ACID_FLUX
-      REAL(fp)           :: HNO3_EQ,     TOT_FLUX_A, TOT_FLUX_C
-      REAL(fp)           :: FALK_A_HNO3, HNO3_vv
-      REAL(fp)           :: FALK_C_HNO3, F_HNO3_A,   F_HNO3_C
-      REAL(fp)           :: EQ_1_N,      EQ_2_N,     F_HNO3
-      REAL(fp)           :: HNO3_SSA,    HNO3_SSC,   N_FLUX
-      REAL(fp)           :: HNO3_EQ_C,   L6A,        L6C   
-      REAL(fp)           :: C_FLUX_A,    C_FLUX_C,   C_FLUX
-      REAL(fp)           :: HNO3_ss,     HNO3_kg,    MW_SO2
-      REAL(fp)           :: MW_SO4,      MW_SO4S,    MW_HNO3
-      REAL(fp)           :: MW_NITS
-      !REAL(fp)           :: MW_SAL1,     MW_SAL2  ! for salinity/alkalinity
-
-      ! Pointers
-      REAL(fp), POINTER  :: Spc(:,:,:,:)
-      REAL(fp), POINTER  :: AD(:,:,:)
-      REAL(fp), POINTER  :: AIRVOL(:,:,:)
+      REAL(fp)            :: SO2_chem,    DTCHEM
+      REAL(fp)            :: EQ_1_C,      EQ_2_C
+      REAL(fp)            :: SO4E,        SO2_new,    SO4F
+      REAL(fp)            :: SO2_eq,      N_FLUX_A,   N_FLUX_C
+      REAL(fp)            :: END_ALK,     L5A,        L5C
+      REAL(fp)            :: EQ1,         EQ2,        TITR_SO2
+      REAL(fp)            :: TITR_HNO3,   NIT_vv,     NITs_vv
+      REAL(fp)            :: NIT0,        NITS0
+      REAL(fp)            :: F_SO2,       FALK_A_SO2, FALK_C_SO2
+      REAL(fp)            :: EQ_BEG,      F_SO2_A,    F_SO2_C
+      REAL(fp)            :: ALKA,        ALKC,       TOTAL_ACID_FLUX
+      REAL(fp)            :: HNO3_EQ,     TOT_FLUX_A, TOT_FLUX_C
+      REAL(fp)            :: FALK_A_HNO3, HNO3_vv
+      REAL(fp)            :: FALK_C_HNO3, F_HNO3_A,   F_HNO3_C
+      REAL(fp)            :: EQ_1_N,      EQ_2_N,     F_HNO3
+      REAL(fp)            :: HNO3_SSA,    HNO3_SSC,   N_FLUX
+      REAL(fp)            :: HNO3_EQ_C,   L6A,        L6C   
+      REAL(fp)            :: C_FLUX_A,    C_FLUX_C,   C_FLUX
+      REAL(fp)            :: HNO3_ss,     HNO3_kg
+      !REAL(fp)            :: MW_SAL1,     MW_SAL2  ! for salinity/alkalinity
+      REAL(fp) :: TMPVAL
+      
+      ! Pointers          
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
+      REAL(fp), POINTER   :: AD(:,:,:)
+      REAL(fp), POINTER   :: AIRVOL(:,:,:)
 
       !=================================================================
       ! SEASALT_CHEM begins here!
       !=================================================================
 
       ! Assume success
-      RC                   = GC_SUCCESS
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+      RC      = GC_SUCCESS
 
       ! Initialize pointers
-      Spc                 => State_Chm%Species
-      AD                  => State_Met%AD
-      AIRVOL              => State_Met%AIRVOL
-
-      ! Set molecular weights locally
-      MW_SO2  = State_Chm%SpcData(id_SO2)%Info%emMW_g
-      MW_SO4  = State_Chm%SpcData(id_SO4)%Info%emMW_g
-      MW_SO4S = State_Chm%SpcData(id_SO4S)%Info%emMW_g
-      MW_NITS = State_Chm%SpcData(id_NITS)%Info%emMW_g
+      Spc     => State_Chm%Species
+      AD      => State_Met%AD
+      AIRVOL  => State_Met%AIRVOL
 
       ! Uncomment if transporting salinity/alkalinity as needed
       !MW_SAL1 =  State_Chm%SpcData(id_SAL1)%Info%emMW_g
       !MW_SAL2 =  State_Chm%SpcData(id_SAL2)%Info%emMW_g
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM  = GET_TS_CHEM() * 60e+0_fp
 
-      ! Convert SO2 [v/v] to  [eq/gridbox]
-      !tdf Note 0.064 is Mw of SO2 in kg
-      !    so RHS of SO2_eq is 2. * moles(SO2) / gridbox
-      SO2_eq = ( 2.e+0_fp * SO2_cd  * AD(I,J,L) ) / 
-     &         ( ( AIRMW / MW_SO2 ) * 0.064e+0_fp )
+      ! Convert SO2 [v/v] to [eq/gridbox]
+      ! Remove species molecular weights from equation (bmy, 2/10/17)
+      SO2_eq  = ( ( 2.0_fp * SO2_cd * AD(I,J,L) ) / AIRMW  ) * 1000.0_fp
+      SO2_eq  = MAX( SO2_eq, MINDAT )
 
-      SO2_eq = MAX( SO2_eq, MINDAT )
-
-      ! Get the molecular weight of HNO3 from the species database
-      ! if it is defined, otherwise set it manually (bmy, 10/11/16)
-      IF ( id_HNO3 > 0 ) THEN
-         MW_HNO3 = State_Chm%SpcData(id_HNO3)%Info%emMW_g
-      ELSE
-         MW_HNO3 = 63.0_fp
-      ENDIF
-
-      IF ( IT_IS_A_FULLCHEM_SIM ) THEN
-
- 	 ! Convert HNO3 [v/v] to [equivalents]
+      ! Get the HNO3 concentration [v/v], either from the species 
+      ! array (fullchem sims) or from HEMCO (aerosol-only sims)
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
          HNO3_vv = Spc(I,J,L,id_HNO3)
-
-         !tdf Note 28.97/63.0 = Mw(air)/Mw(HNO3)
-         !    so RHS of HNO3_eq is  moles(HNO3) / gridbox
-         HNO3_eq = HNO3_vv * AD(I,J,L) / ( AIRMW / 63e+0_fp ) ! Hard-coded MW
-     &           / 63.e-3_fp
-
       ELSE
-         
-         ! HNO3 is in v/v (from HEMCO)
          HNO3_vv = HNO3(I,J,L)
-
-         ! Convert HNO3 [v/v] to [equivalents]
-         HNO3_eq = HNO3_vv * AD(I,J,L) / ( AIRMW / 63e+0_fp ) ! Hard-coded MW
-     &           / 63.e-3_fp
-
       ENDIF
+
+      ! Convert HNO3 [v/v] to [equivalents]
+      ! Remove species molecular weights from equation (bmy, 2/10/17)
+      HNO3_eq = ( ( HNO3_vv * AD(I,J,L) ) / AIRMW ) * 1000.0_fp
 
       !-----------
       ! SO2
@@ -3735,8 +3705,8 @@
       F_SO2_A  = MAX( F_SO2_A, 1.e-32_fp )
 
       ! Convert to [eq/timestep] 
-      C_FLUX_A = 2.e+0_fp * F_SO2_A * AD(I,J,L) / ( AIRMW / MW_SO2 )
-     &         / 0.064e+0_fp
+      ! Remove species molecular weight from equation (bmy, 2/10/17)
+      C_FLUX_A = ( 2.0_fp * F_SO2_A * AD(I,J,L) / AIRMW ) * 1000.0_fp
 
       ! Available flux of SO2 to coarse sea salt aerosols [v/v/timestep]
       L5C      = EXP( - Kt2 * DTCHEM )
@@ -3744,8 +3714,8 @@
       F_SO2_C  = MAX( F_SO2_C, 1.0e-32_fp )
 
       ! Convert to [eq/timestep] 
-      C_FLUX_C = 2.e+0_fp * F_SO2_C * AD(I,J,L) / (AIRMW / MW_SO2 )
-     &         / 0.064e+0_fp
+      ! Remove species molecular weight from equation (bmy, 2/10/17)
+      C_FLUX_C = ( 2.0_fp * F_SO2_C * AD(I,J,L) / AIRMW ) * 1000.0_fp
 
       ! Total flux of SO2 [v/v/timestep]
       F_SO2    = F_SO2_A + F_SO2_C 
@@ -3763,17 +3733,17 @@
       F_HNO3_A = MAX( F_HNO3_A, 1.0e-32_fp )
 
       ! Convert to [eq/timestep] 
-      N_FLUX_A = F_HNO3_A * AD(I,J,L) / ( AIRMW / 63e+0_fp ) 
-     &         / 0.063e+0_fp
+      ! Remove species molecular weight from equation (bmy, 2/10/17)
+      N_FLUX_A = ( F_HNO3_A * AD(I,J,L) / AIRMW ) * 1000.0_fp
 
       ! Available flux of HNO3 to coarse sea salt aerosols [v/v/timestep]
       L6C = EXP( - Kt2N * DTCHEM )
       F_HNO3_C = HNO3_vv * ( 1.e+0_fp - L6C )
       F_HNO3_C = MAX( F_HNO3_C, 1.0e-32_fp )
 
-      ! convert to [eq/timestep] 
-      N_FLUX_C = F_HNO3_C * AD(I,J,L) / ( AIRMW / 63e+0_fp ) 
-     &         / 0.063e+0_fp
+      ! convert to [eq/timestep]
+      ! Remove species molecular weight from equation (bmy, 2/10/17)
+      N_FLUX_C = ( F_HNO3_C * AD(I,J,L) / AIRMW ) * 1000.0_fp
 
       ! Total flux of HNO3
       F_HNO3 = F_HNO3_A + F_HNO3_C ![v/v/timestep]
@@ -3898,18 +3868,21 @@
       !IF ( ND09 > 0 ) AD09(I,J,L,2) = AD09(I,J,L,2) + TITR_SO2
       !-------------------------------------------------------------------
 
-      !Modified SO2 [eq] converted back to [v/v]
-      SO2_ss       = SO2_chem * 0.064 * (AIRMW / MW_SO2 ) /
-     &               AD(I,J,L) / 2.0e+0_fp
+      ! Modified SO2 [eq] converted back to [v/v]
+      ! Remove species molecular weights from equation (bmy, 2/10/17)
+      SO2_ss       = ( SO2_chem * AIRMW / AD(I,J,L) ) / 2000.0_fp
       SO2_ss       = MAX( SO2_ss, MINDAT )
 
-      !SO4E produced converted from [eq/timestep] to [v/v/timestep] 
-      PSO4E        = SO4E * 0.096 * ( AIRMW / MW_SO4 ) /
-     &               AD(I,J,L) / 2.0e+0_fp
+      ! SO4E produced converted from [eq/timestep] to [v/v/timestep] 
+      ! Remove species molecular weights from equation (bmy, 2/10/17)
+      PSO4E        = ( SO4E * AIRMW / AD(I,J,L) ) / 2000.0_fp
 
-      !SO4F produced converted from [eq/timestep] to [v/v/timestep] 
-      PSO4F        = SO4F * 0.096 * ( AIRMW / MW_SO4S ) /
-     &               AD(I,J,L) / 2.0e+0_fp
+      ! SO4F produced converted from [eq/timestep] to [v/v/timestep] 
+      ! Remove species molecular weights from equation (bmy, 2/10/17)
+      !
+      ! NOTE: This new equation will correct the prior 3X overestimate 
+      ! caused  by switching the MW of SO4S from 96 to 31.4 (bmy, 2/10/17)
+      PSO4F        = ( SO4F * AIRMW / AD(I,J,L) ) / 2000.0_fp
 
       ! Alkalinity titrated by HNO3
       HNO3_SSA     = MIN(N_FLUX_A, HNO3_EQ, EQ_1_N)
@@ -3929,16 +3902,18 @@
       ! HNO3 lost [eq/timestep] converted back to [v/v/timestep]
       IF ( id_HNO3 > 0 ) THEN
 
-         ! Coupled sim: id_HNO3 is defined, so use it
-         HNO3_ss = HNO3_SSC * 0.063 * ( AIRMW / MW_HNO3 ) 
-     &             / AD(I,J,L)
+         ! Fullchem simulations:  Get HNO3 from the species array
+         ! Remove species molecular weights from equation (bmy, 2/10/17)
+         HNO3_ss = ( HNO3_SSC * AIRMW / AD(I,J,L) ) / 1000.0_fp
+
+         ! Store back into the species array
          Spc(I,J,L,id_HNO3) = MAX( HNO3_vv - HNO3_ss, MINDAT )
 
       ELSE
 
-         ! Offline aerosol sim: id_HNO3 isn't defined, use TCVV_HNO3
-         HNO3_ss = TITR_HNO3 * 0.063 * ( AIRMW / MW_HNO3 ) 
-     &             / AD(I,J,L)
+         ! Aerosol-only simulations: Use TITR_HNO3
+         ! Remove species molecular weight from equation (bmy, 2/10/17)
+         HNO3_ss = ( TITR_HNO3 * AIRMW / AD(I,J,L) ) / 1000.0_fp
 
       ENDIF
 
@@ -3950,8 +3925,12 @@
       ENDIF
 
       ! NITS produced converted from [eq/timestep] to [v/v/timestep] 
-      PNITs(I,J,L) = HNO3_SSC * 0.063 * ( AIRMW / MW_NITS ) / AD(I,J,L)
-	 
+      ! Remove species molecular weight from equation (bmy, 2/10/17)
+      !
+      ! NOTE: This new equation will correct the prior 2X overestimate 
+      ! caused  by switching the MW of NITs from 62 to 31.4 (bmy, 2/10/17)
+      PNITs(I,J,L) = ( HNO3_SSC * AIRMW / AD(I,J,L) ) / 1000.0_fp
+
       ! Modified accum alkalinity 
       ALKA         = EQ1 - (SO4E + HNO3_SSA)
       ALKA         = MAX( ALKA, MINDAT )
