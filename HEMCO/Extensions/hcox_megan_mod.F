@@ -1423,13 +1423,6 @@
             RETURN 
          ENDIF
 
-         ! Also archive the BIOGENIC_SOAP diagnostic
-         DiagnName =  'BIOGENIC_SOAP'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr,
-     &      cName=TRIM(DiagnName), Array2D=FLUXSOAP, RC=RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN
-         Arr2D => NULL()
-
       ENDIF
 
       IF (  Inst%IDTSOAS > 0 ) THEN

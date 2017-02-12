@@ -103,6 +103,7 @@ MODULE HCOX_GFED_MOD
 !  03 Jun 2015 - C. Keller / P. Kasibhatla - GFED-4 update: now use GFED-4
 !                                            specific emission factors and DM data.
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
+!  11 Feb 2017 - S. Farina   - Increase N_SPEC to 27 (SOAP)
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -115,7 +116,7 @@ MODULE HCOX_GFED_MOD
   ! N_SPEC  : Max. number of species
   !=================================================================
   INTEGER,           PARAMETER :: N_EMFAC = 6
-  INTEGER,           PARAMETER :: N_SPEC  = 26
+  INTEGER,           PARAMETER :: N_SPEC  = 27
 !
 ! !PRIVATE TYPES:
 !
@@ -169,6 +170,7 @@ MODULE HCOX_GFED_MOD
   REAL(sp)                       :: OCPIfrac 
   REAL(sp)                       :: BCPIfrac
   REAL(sp)                       :: POG1frac
+  REAL(sp)                       :: SOAPfrac
 
   !=================================================================
   ! DATA ARRAY POINTERS 
@@ -411,6 +413,8 @@ CONTAINS
              SpcArr = SpcArr * POG1frac
           CASE ( 'POG2' )
              SpcArr = SpcArr * (1.0_sp - POG1frac)
+          CASE ( 'SOAP' )
+             SpcArr = SpcArr * SOAPfrac
        END SELECT
 
        ! Check for masking
@@ -580,12 +584,22 @@ CONTAINS
        POG1frac = ValSp
     ENDIF
 
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'CO to SOAP', &
+                     OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) THEN
+       SOAPfrac = 0.0
+    ELSE
+       SOAPfrac = ValSp
+    ENDIF
+
     ! Error check: OCPIfrac, BCPIfrac, and POG1frac must be between 0 and 1
     IF ( OCPIfrac < 0.0_sp .OR. OCPIfrac > 1.0_sp .OR. &
          BCPIfrac < 0.0_sp .OR. BCPIfrac > 1.0_sp .OR. &
+         SOAPfrac < 0.0_sp .OR. SOAPfrac > 1.0_sp .OR. &
          POG1frac < 0.0_sp .OR. POG1frac > 1.0_sp     ) THEN
        WRITE(MSG,*) 'fractions must be between 0-1: ', &
-          OCPIfrac, BCPIfrac, POG1frac
+          OCPIfrac, BCPIfrac, POG1frac, SOAPfrac
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
@@ -671,6 +685,8 @@ CONTAINS
        CALL HCO_MSG(HcoState%Config%Err,MSG )
        WRITE(MSG,*) '   - POG1 fraction           : ', POG1frac
        CALL HCO_MSG(HcoState%Config%Err,MSG )
+       WRITE(MSG,*) '   - SOAP fraction           : ', SOAPfrac
+       CALL HCO_MSG(HcoState%Config%Err,MSG )
     ENDIF
 
     ! Get HEMCO species IDs of all species specified in configuration file
@@ -745,6 +761,11 @@ CONTAINS
        IF ( TRIM(SpcName) == 'POG1' ) SpcName = 'OC'
        IF ( TRIM(SpcName) == 'POG2' ) SpcName = 'OC'
        IF ( TRIM(SpcName) == 'NAP'  ) SpcName = 'CO'
+
+       ! adjust SOAP scale factor by CO scale factor (SOAP co-emitted with CO)
+       IF ( TRIM(SpcName) == 'CO' ) THEN
+         SOAPfrac = SOAPfrac * SpcScal(N)
+       END IF
 
        ! Search for matching GFED species by name
        Matched = .FALSE.

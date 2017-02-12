@@ -3045,7 +3045,7 @@ CONTAINS
        IF ( ND07 > 0 ) THEN
 #endif
          !-------------------------------------------------------------------
-         ! %%%%% diag for direct emission of SOAS Biogenic OC for TOMAS %%%%%
+         ! %%%%% diag for direct emission of SOAS OC for TOMAS          %%%%%
          ! %%%%% this is optional for non-tomas simulations             %%%%%
          ! %%%%% this is not optional for tomas simulations             %%%%%
          !-------------------------------------------------------------------
