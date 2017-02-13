@@ -833,7 +833,11 @@
          ! SWGDN is also available for MERRA but we do not use it
          ! here to preserve the legacy method (ewl, 9/23/15)
 #if defined ( GEOS_FP ) || defined ( MERRA2 )
-         RADIAT(I,J) = State_Met%SWGDN(I,J) 
+         RADIAT(I,J) = State_Met%SWGDN(I,J)
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+         ! Met SWGDN read in and stored as RADSWG by GCHP
+         RADIAT(I,J) = State_Met%RADSWG(I,J)
+#endif
 #else
          RADIAT(I,J) = State_Met%RADSWG(I,J) 
 #endif
