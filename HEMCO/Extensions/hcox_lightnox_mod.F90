@@ -139,6 +139,9 @@ MODULE HCOX_LightNOx_Mod
 !                              factors via HEMCO configuration file. 
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !  02 Dec 2016 - M. Sulprizio- Update WEST_NS_DIV from 23d0 to 35d0 (K. Travis)
+!  16 Feb 2017 - L. Murray   - Updated BETA factors for all GEOS-FP/MERRA-2 products 
+!                              fields available by v11-01 release (through Dec. 2016),
+!                              and latest version of LIS/OTD satellite climatology.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1619,22 +1622,25 @@ CONTAINS
     ! averaging over different resolutions. (ltm, 09/24/07, 11/14/08)
     !=================================================================
 #if   defined( GRID2x25     ) 
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8650d0
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.923657d0
 
 #elif defined( GRID4x5       )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8658d0
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.923657d0
 
 #elif defined( GRID1x125     )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8655d0
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.923657d0
 
 #elif defined( GRID05x0666   ) && defined( NESTED_CH )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 8.7549280d0
 
 #elif defined( GRID05x0666   ) && defined( NESTED_NA )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9685368d0
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.5223294d0
 
 #elif defined( GRID025x03125 ) && defined( NESTED_CH )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 4.6591586d0
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 4.7702971d0
+
+#elif defined( GRID025x03125 ) && defined( NESTED_EU )
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 1.3197752d0
 
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
@@ -1702,12 +1708,11 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Oct 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2014-12-10).
+    ! April 2012 - Dec 2016. Will need to be updated as more
+    ! met fields become available (ltm, 2017-02-16).
     IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
-         ( cYr .eq. 2013                   ) .or. &
-         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 82.373293d0
+         ( cYr .ge. 2013 .and. cYr .le. 2016 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 85.23730d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
@@ -1717,12 +1722,11 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Oct 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2014-12-10).
+    ! April 2012 - Dec 2016. Will need to be updated as more
+    ! met fields become available (ltm, 2017-02-16).
     IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
-         ( cYr .eq. 2013                   ) .or. &
-         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 260.40253d0
+         ( cYr .ge. 2013 .and. cYr .le. 2016 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 268.90068d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )
@@ -1732,26 +1736,39 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! Jan 2013 - Dec 2013. Will need to be updated as more
-    ! met fields become available (ltm, 2014-10-22).
-    IF ( ( cYr .eq. 2013 .and. cMt .ge. 1  )   .or. &
-         ( cYr .eq. 2013 .and. cMt .le. 12 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 1052.6366d0
+    ! April 2012 - Dec 2016. Will need to be updated as more
+    ! met fields become available (ltm, 2017-02-16).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .ge. 2013 .and. cYr .le. 2016 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 1047.36239d0
+    ENDIF
+
+#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_EU )
+
+    !---------------------------------------
+    ! GEOS-FP: Nested Europe simulation
+    !---------------------------------------
+
+    ! Constrained with simulated "climatology" for
+    ! April 2012 - Dec 2016. Will need to be updated as more
+    ! met fields become available (ltm, 2017-02-16).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .ge. 2013 .and. cYr .le. 2016 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 95.08015d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA )
 
     !---------------------------------------
-    ! GEOS-FP: Nested SEAC4RS simulation
+    ! GEOS-FP: Nested North America simulation
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Oct 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2015-01-13).
+    ! April 2012 - Dec 2016. Will need to be updated as more
+    ! met fields become available (ltm, 2017-02-16).
     IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
-         ( cYr .eq. 2013                   ) .or. &
-         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 720.10258d0
+         ( cYr .ge. 2013 .and. cYr .le. 2016 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 782.12690d0
     ENDIF
 
 #elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_NA )
@@ -1783,9 +1800,9 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! Jan 2009 - Dec 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2016-07-19).
-    BETA = ANN_AVG_FLASHRATE / 319.85d0
+    ! full LIS/OTD observational period (May 1995-Dec 2013). 
+    ! Does not need to be updated (ltm, 2017-02-16).
+    BETA = ANN_AVG_FLASHRATE / 322.99041d0
 
 #elif defined( MERRA2 ) && defined( GRID4x5 )
 
@@ -1794,9 +1811,10 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! Jan 2009 - Dec 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2016-03-01).
-    BETA = ANN_AVG_FLASHRATE / 99.585661d0
+    ! Jan 2008 - Dec 2015. Will need to be updated as more
+    ! met fields become available, ideally will eventually
+    ! include May 1995-Dec 2007 (ltm, 2017-02-16).
+    BETA = ANN_AVG_FLASHRATE / 102.42234d0
 
 #elif defined( MERRA ) && defined( GRID2x25 )
 
