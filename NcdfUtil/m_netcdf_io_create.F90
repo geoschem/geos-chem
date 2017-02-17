@@ -67,13 +67,15 @@ CONTAINS
 !
 ! !REMARKS:
 !  If the netCDF4 library is used, then the NF_CLOBBER flag will write
-!  a classic (i.e. netCDF3) file.  Use NF_64_BIT_OFFSET to create a
-!  netCDF 4 file. (bmy, 11/7/11)
+!  a classic (i.e. netCDF3) file.  Use OR(NF_NETCDF4,NF_CLASSIC_MODEL) to 
+!  create netCDF-4 file that supports compression and uses "classic" netcdf data model
+!  (no groups, no user-defined types)
 !
 ! !REVISION HISTORY:
 !  Initial code.
 !  07 Nov 2011 - R. Yantosca - Also give the option to create a netCDF4 file
 !                              by passing the optional WRITE_NC4 argument
+!  17 Feb 2017 - C. Holmes   - Use netCDF-4 classic model for netCDF-4 files
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -92,7 +94,7 @@ CONTAINS
     ENDIF
 
     IF ( TMP_NC4 ) THEN
-       ierr = Nf_Create (filname, NF_64BIT_OFFSET, ncid)  ! netCDF4 file
+       ierr = Nf_Create (filname, OR(NF_NETCDF4,NF_CLASSIC_MODEL), ncid)  ! netCDF4 file, classic model
     ELSE
        ierr = Nf_Create (filname, NF_CLOBBER, ncid)       ! netCDF3 file
     ENDIF
