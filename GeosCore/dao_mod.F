@@ -1181,6 +1181,7 @@
 !
 ! !REVISION HISTORY:
 !  03 May 2002 - E. Lundgren - Initial version (M. Lee, JPL) 
+!  18 Feb 2017 - S. D. Eastham - Updated to include TOA pressure
 ! 
 ! !REMARKS:
 !  This subroutine is an adaptation of the GEOS-Chem moisture fix 
@@ -1233,8 +1234,8 @@
          ! Throw an error (to be added)
       ENDIF
 
-      ! Reset dry surface pressure to zero
-      PS_DRY = 0.0e+0_fp
+      ! Reset dry surface pressure to TOA value
+      PS_DRY = GET_AP(LLPAR+1)
 
       ! Calculate dry surface pressure from GMAO wet pressure as the 
       ! column sum of wet delta pressures with humidity removed
