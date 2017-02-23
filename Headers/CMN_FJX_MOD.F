@@ -90,7 +90,9 @@
       INTEGER, PARAMETER ::  WX_   = 18
 
       ! X_   = dim = max no. of X-section data sets (input data)
-      INTEGER, PARAMETER ::  X_    = 72
+      ! SDE 2016-11-04: Increased from 72 to 120 for new halogen
+      ! chemistry (iodine cross-sections)
+      INTEGER, PARAMETER ::  X_    = 120
 
       ! A_   = dim = no. of Aerosol/cloud Mie sets (input data)
       INTEGER, PARAMETER ::  A_    = 56

@@ -58,10 +58,14 @@ MODULE HCOX_SeaSalt_Mod
   INTEGER             :: IDTMOPO           ! marine organic aerosol - phobic
   INTEGER             :: IDTMOPI           ! marine organic aerosol - philic
   INTEGER             :: IDTBr2            ! Br2 model species ID
+  INTEGER             :: IDTBrSALA         ! Br- in accum. sea salt aerosol
+  INTEGER             :: IDTBrSALC         ! Br- in coarse sea salt aerosol
   LOGICAL             :: CalcBr2           ! Calculate Br2 SSA emissions?
+  LOGICAL             :: CalcBrSalt        ! Calculate Br- content?
 
   ! Scale factors
   REAL*8              :: Br2Scale          ! Br2 scale factor 
+  REAL*8              :: BrContent         ! Ratio of Br- to dry SSA (mass)
   REAL*8              :: WindScale         ! Wind adjustment factor
 
   ! Module variables
@@ -175,11 +179,13 @@ CONTAINS
     REAL*8                 :: A_M2
     REAL*8                 :: W10M
     REAL                   :: FLUX
-    REAL(hp), TARGET       :: FLUXSALA(HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET       :: FLUXSALC(HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET       :: FLUXBr2 (HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET       :: FLUXMOPO(HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET       :: FLUXMOPI(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXSALA  (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXSALC  (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXBr2   (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXBrSalA(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXBrSalC(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXMOPO  (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXMOPI  (HcoState%NX,HcoState%NY)
 
     ! New variables (jaegle 5/11/11)
     REAL*8                 :: SST, SCALE
@@ -206,11 +212,13 @@ CONTAINS
     ERR = .FALSE.
 
     ! Init values
-    FLUXSALA = 0.0_hp
-    FLUXSALC = 0.0_hp
-    FLUXBr2  = 0.0_hp
-    FLUXMOPO = 0.0_hp
-    FLUXMOPI = 0.0_hp
+    FLUXSALA   = 0.0_hp
+    FLUXSALC   = 0.0_hp
+    FLUXBr2    = 0.0_hp
+    FLUXBrSalA = 0.0_hp
+    FLUXBrSalC = 0.0_hp
+    FLUXMOPO   = 0.0_hp
+    FLUXMOPI   = 0.0_hp
 
     !=================================================================
     ! Emission is integrated over a given size range for each bin
@@ -448,6 +456,31 @@ CONTAINS
 
     ENDIF
 
+    ! Bromine incorporated into sea salt 
+    IF ( CalcBrSalt ) THEN
+
+       ! Scale BrSalX emissions to SalX
+       FluxBrSalA = BrContent * FluxSalA
+       FluxBrSalC = BrContent * FluxSalC
+
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXBrSalA, IDTBrSalA, & 
+                         RC,        ExtNr=ExtNrSS )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXBrSalA', RC )
+          RETURN 
+       ENDIF
+
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXBrSalC, IDTBrSalC, & 
+                         RC,        ExtNr=ExtNrSS )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXBrSalC', RC )
+          RETURN 
+       ENDIF
+
+    ENDIF
+
     ! MOPO 
     IF ( IDTMOPO > 0 ) THEN
 
@@ -574,6 +607,19 @@ CONTAINS
        Br2Scale = 1.0d0
     ENDIF
 
+    Call GetExtOpt ( HcoState%Config, ExtNrSS, 'Model sea salt Br-', &
+    	 	     OptValBool=CalcBrSalt, RC=RC )
+    IF ( CalcBrSalt ) THEN
+       minLen = minLen+2
+       CALL GetExtOpt( HcoState%Config, ExtNrSS, 'Br- mass ratio', &
+       	    OptValDp=BrContent, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ELSE
+       IDTBrSALA = -1
+       IDTBrSALC = -1
+       BrContent = 0.0d0
+    ENDIF
+
     ! Get HEMCO species IDs
     CALL HCO_GetExtHcoID( HcoState,   ExtNrSS, HcoIDsSS,     &
                           SpcNamesSS, nSpcSS,  RC           )
@@ -586,6 +632,8 @@ CONTAINS
     IDTSALA = HcoIDsSS(1) 
     IDTSALC = HcoIDsSS(2)
     IF ( CalcBr2 ) IDTBR2 = HcoIDsSS(3)
+    IF ( CalcBrSalt ) IDTBrSALA = HcoIDsSS(minLen-1)
+    IF ( CalcBrSalt ) IDTBrSALC = HcoIDsSS(minLen)
     
     ! Get the marine organic aerosol species defined for MarinePOA option
     IF ( ExtNrMPOA > 0 ) THEN
@@ -614,6 +662,9 @@ CONTAINS
 
     ! Final Br2 flag
     CalcBr2 = ( CalcBr2 .AND. IDTBR2 > 0 )
+
+    ! Final BrSalt flag
+    CalcBrSalt = ( CalcBrSalt .and. IDTBrSALA > 0 .and. IDTBrSALC > 0 )
 
     ! The source function calculated with GEOS-4 2x2.5 wind speeds
     ! is too high compared to GEOS-5 at the same resolution. The 10m
@@ -659,6 +710,14 @@ CONTAINS
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Br2 scale factor: ', Br2Scale
           CALL HCO_MSG(HcoState%Config%Err,MSG)
+       ENDIF
+
+       IF ( CalcBrSalt ) THEN
+          WRITE(MSG,*) 'BrSALA: ', TRIM(SpcNamesSS(minLen-1)), IDTBrSALA
+          WRITE(MSG,*) 'BrSALC: ', TRIM(SpcNamesSS(minLen)), IDTBrSALC
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Br- mass content: ', BrContent
+          CALL HCO_MSG(MSG)
        ENDIF
 
        IF ( ExtNrMPOA > 0 ) THEN

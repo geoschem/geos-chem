@@ -456,6 +456,41 @@ ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   IS_CHEM_SET        :=1
 endif
 
+# %%%%% Test if CHEM=Halogens %%%%%
+REGEXP               :=(^[Hh][Aa][Ll][Oo][Gg][Ee][Nn][Ss])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=Halogens
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=BrCl %%%%%
+REGEXP               :=(^[Bb][Rr][Cc][Ll])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=BrCl
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=IGas %%%%%
+REGEXP               :=(^[Ii][Gg][Aa][Ss])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=IGas
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=Hetv2 %%%%%
+REGEXP               :=(^[Hh][Ee][Tt][Vv]2)
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=Hetv2
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=NoHet %%%%%
+REGEXP               :=(^[Nn][Oo][Hh][Ee][Tt])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=NoHet
+  IS_CHEM_SET        :=1
+endif
+
 # %%%%% Test if CHEM=SOA %%%%%
 REGEXP               :=(^[Ss][Oo][Aa])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)

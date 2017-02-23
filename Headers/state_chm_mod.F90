@@ -74,6 +74,10 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: WetAeroArea(:,:,:,:) ! Aerosol Area [cm2/cm3]
      REAL(fp),          POINTER :: WetAeroRadi(:,:,:,:) ! Aerosol Radius [cm]
 
+     ! pH and alkalinity
+     Real(fp),          POINTER :: pHCloud    (:,:,:  ) ! Cloud pH [-]
+     Real(fp),          POINTER :: SSAlk      (:,:,:,:) ! Sea-salt alkalinity [-]
+
 #if defined( ESMF_ )
      ! Chemical rates & rate parameters
      INTEGER,           POINTER :: JLOP       (:,:,:  ) ! 1-D SMVGEAR index
@@ -391,6 +395,10 @@ CONTAINS
     State_Chm%STATE_PSC   => NULL()
     State_Chm%KHETI_SLA   => NULL()   
 
+    ! pH/alkalinity
+    State_Chm%pHCloud     => NULL()
+    State_Chm%SSAlk       => NULL()
+
     ! Hg species indexing
     N_Hg0_CATS            =  0
     N_Hg2_CATS            =  0
@@ -489,6 +497,18 @@ CONTAINS
      State_Chm%WetAeroRadi = 0.0_fp
 
     ENDIF
+
+    !=====================================================================
+    ! Allocate and initialize fields for halogen chemistry
+    !=====================================================================
+    
+    ALLOCATE( State_Chm%pHCloud    ( IM, JM, LM                    ), STAT=RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%pHCloud = 0e+0_fp
+
+    ALLOCATE( State_Chm%SSAlk      ( IM, JM, LM, 2                 ), STAT=RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%SSAlk = 0e+0_fp
 
     !=====================================================================
     ! Allocate and initialize fields for UCX mechamism
@@ -769,6 +789,14 @@ CONTAINS
 
     IF ( ASSOCIATED(State_Chm%WetAeroRadi) ) THEN
        DEALLOCATE(State_Chm%WetAeroRadi)
+    ENDIF
+
+    IF ( ASSOCIATED(State_Chm%pHCloud) ) THEN
+       DEALLOCATE(State_Chm%pHCloud)
+    ENDIF
+
+    IF ( ASSOCIATED(State_Chm%SSAlk) ) THEN
+       DEALLOCATE(State_Chm%SSAlk)
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%STATE_PSC ) ) THEN

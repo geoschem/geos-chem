@@ -498,7 +498,7 @@
      &                   p_UWND,   p_VWND,   P_TP1,    P_TP2,
      &                   P_TEMP,   p_Spc,    IORD,     JORD,      
      &                   KORD,     N_ADJ,    p_XMASS,  p_YMASS, 
-     &                   LFILL,    p_MFLEW,  p_MFLNS,  p_MFLUP,
+     &                   LFILL,    p_MFLEW,  p_MFLNS,  p_MFLUP, 
      &                   A_M2,     ND24,     ND25,     ND26 )
 
 #if defined( NC_DIAG )
@@ -786,8 +786,8 @@
      &                   p_UWND,  p_VWND,  P_TP1,   P_TP2,
      &                   P_TEMP,  p_Spc,   IORD,    JORD,      
      &                   KORD,    N_ADJ,   p_XMASS, p_YMASS, 
-     &                   LFILL,   p_MFLEW, p_MFLNS, p_MFLUP,
-     &                   A_M2,    ND24,    ND25,    ND26 )
+     &                   LFILL,   p_MFLEW,  p_MFLNS,p_MFLUP,
+     &                   A_M2,     ND24,     ND25,     ND26 )
 
 #if defined( NC_DIAG )
       IF ( Input_Opt%ND24 > 0 ) THEN 

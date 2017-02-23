@@ -377,6 +377,12 @@
             CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
 #endif
 
+            ! Dry-run sulfate chem to get cloud pH
+            If (LSulf) Then
+               CALL CHEMSULFATE( am_I_Root,
+     &           Input_Opt, State_Met, State_Chm, .False., RC )
+            End If
+
             ! Call gas-phase chemistry
             CALL Do_FlexChem
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -433,8 +439,8 @@
             IF ( LSULF ) THEN
 
                ! Do sulfate chemistry
-               CALL CHEMSULFATE
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL CHEMSULFATE( am_I_Root,
+     &           Input_Opt, State_Met, State_Chm, .True., RC )
 
                ! Check units (ewl, 10/5/15)
                IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -564,7 +570,8 @@
  
                ! Do sulfate chemistry
                CALL CHEMSULFATE
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+     &            ( am_I_Root, Input_Opt, State_Met, 
+     &              State_Chm, .True., RC )
 
             ENDIF
 
