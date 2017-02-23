@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Monitor.f90
-! Time                 : Wed Feb 22 17:13:56 2017
+! Time                 : Thu Feb 23 16:15:40 2017
 ! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/UCX
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -140,7 +140,7 @@ MODULE gckpp_Monitor
      '     A3O2 + NO --> POx + RCHO + NO2 + HO2                                                           ', & ! index 48
      '      PO2 + NO --> POx + ALD2 + CH2O + NO2 + HO2                                                    ', & ! index 49
      '     ALK4 + OH --> R4O2                                                                             ', & ! index 50
-     '     R4O2 + NO --> POx + 0.05 A3O2 + 0.32 ACET + 0.18 B3O2 + 0.32 ETO2 + 0.13 RCHO + 0.19 MEK + 0.32', & ! index 51
+     '     R4O2 + NO --> POx + 0.05 A3O2 + 0.32 ACET + 0.18 B3O2 + 0.32 ETO2 + 0.14 RCHO + 0.19 MEK + 0.32', & ! index 51
      '     R4O2 + NO --> POx + R4N2                                                                       ', & ! index 52
      '     R4N1 + NO --> POx + 0.3 R4O2 + 0.57 RCHO + 0.75 ALD2 + 0.39 CH2O + 2 NO2                       ', & ! index 53
      '     ATO2 + NO --> POx + 0.04 R4N2 + 0.96 MCO3 + 0.96 CH2O + 0.96 NO2                               ', & ! index 54

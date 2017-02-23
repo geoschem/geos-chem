@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Jacobian.f90
-! Time                 : Wed Feb 22 17:12:17 2017
+! Time                 : Thu Feb 23 16:15:27 2017
 ! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/Tropchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -3882,7 +3882,7 @@ SUBROUTINE Jac_SP ( V, F, RCT, JVS )
 ! JVS(1229) = Jac_FULL(112,105)
   JVS(1229) = 0
 ! JVS(1230) = Jac_FULL(112,107)
-  JVS(1230) = 0.13*B(95)+0.07*B(206)+0.13*B(373)
+  JVS(1230) = 0.14*B(95)+0.07*B(206)+0.13*B(373)
 ! JVS(1231) = Jac_FULL(112,109)
   JVS(1231) = 0.13*B(676)
 ! JVS(1232) = Jac_FULL(112,110)
@@ -3900,7 +3900,7 @@ SUBROUTINE Jac_SP ( V, F, RCT, JVS )
 ! JVS(1238) = Jac_FULL(112,116)
   JVS(1238) = 0
 ! JVS(1239) = Jac_FULL(112,117)
-  JVS(1239) = B(90)+0.13*B(96)+0.57*B(100)+0.09*B(497)+B(542)
+  JVS(1239) = B(90)+0.14*B(96)+0.57*B(100)+0.09*B(497)+B(542)
 ! JVS(1240) = Jac_FULL(112,118)
   JVS(1240) = 0.75*B(175)+0.09*B(177)+0.07*B(207)+0.54*B(209)+0.25*B(230)
 ! JVS(1241) = Jac_FULL(112,119)
@@ -4619,7 +4619,7 @@ SUBROUTINE Jac_SP ( V, F, RCT, JVS )
 ! JVS(1590) = Jac_FULL(118,106)
   JVS(1590) = 0.5*B(279)
 ! JVS(1591) = Jac_FULL(118,107)
-  JVS(1591) = 0.18*B(95)-0.91*B(206)+B(373)
+  JVS(1591) = 0.19*B(95)-0.91*B(206)+B(373)
 ! JVS(1592) = Jac_FULL(118,108)
   JVS(1592) = 0.88*B(645)
 ! JVS(1593) = Jac_FULL(118,109)
@@ -4639,7 +4639,7 @@ SUBROUTINE Jac_SP ( V, F, RCT, JVS )
 ! JVS(1600) = Jac_FULL(118,116)
   JVS(1600) = -B(430)
 ! JVS(1601) = Jac_FULL(118,117)
-  JVS(1601) = -B(26)+B(79)+0.18*B(96)+0.5*B(169)
+  JVS(1601) = -B(26)+B(79)+0.19*B(96)+0.5*B(169)
 ! JVS(1602) = Jac_FULL(118,118)
   JVS(1602) = -B(10)-B(27)-B(29)-2*B(30)-2*B(31)-B(138)-B(148)-B(175)-B(177)-B(203)-0.91*B(207)-B(209)-B(211)-B(213)&
                 &-B(215)-B(218)-B(220)-B(222)-B(224)-B(226)-B(228)-B(230)-B(302)-B(304)-B(306)-B(308)-B(354)-B(371)-B(431)
