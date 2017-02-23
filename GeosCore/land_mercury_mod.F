@@ -471,7 +471,6 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_LAND
       USE GC_GRID_MOD,        ONLY : GET_AREA_M2
-      USE MODIS_LAI_MOD,      ONLY : ISOLAI  => GC_LAI
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
        USE TIME_MOD,           ONLY : GET_TS_EMIS

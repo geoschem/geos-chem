@@ -223,7 +223,6 @@
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLun
-      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
       USE PhysConstants            ! XTRA2, XNUMOLAIR
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE State_Chm_Mod,      ONLY : ChmState

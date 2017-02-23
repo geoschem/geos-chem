@@ -24,11 +24,6 @@ MODULE Modis_Lai_Mod
   IMPLICIT NONE
   PRIVATE
 !
-! !PUBLIC DATA MEMBERS:
-!
-   REAL(fp),  PUBLIC, POINTER             :: GC_LAI(:,:)  ! DailyLAI, G-C grid
-   REAL(fp),  PUBLIC, POINTER             :: GC_CHLR(:,:) ! DailyCHLR, G-C grid
-!
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: Init_Modis_Lai
@@ -261,10 +256,13 @@ CONTAINS
     ! Assume success
     RC                = GC_SUCCESS
 
+    ! Initialize LAI variables
+    State_Met%XLAI = 0.0_fp
+    State_Met%MODISLAI = 0.0_fp
+
     ! Loop over all grid cells
     DO J = 1, JJPAR
     DO I = 1, IIPAR
-
 
        ! Loop over all surface types present in this grid cell
        DO S = 1, State_Met%IREG(I,J)
@@ -291,11 +289,14 @@ CONTAINS
           ! legacy drydep code.
           IF ( landFrac .gt. 1.e-9_fp ) THEN
              State_Met%XLAI(I,J,S) = State_Met%XLAI_NATIVE(I,J,T) / landFrac
-
-
           ENDIF
        
        ENDDO
+
+       ! Calculate average LAI for this grid cell across all land types
+       State_Met%MODISLAI(I,J) =    &
+                SUM( State_Met%XLAI_NATIVE(I,J,1:State_Met%IREG(I,J)) )
+
     ENDDO
     ENDDO
 
