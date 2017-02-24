@@ -7628,7 +7628,11 @@
       K = TS_EMIS
       L = TS_CHEM
 
-      IF ( .not. LTRAN                  ) I = 999999 
+      ! SDE 2017-02-24: Always use LTRAN on the assumption that it will
+      ! be used as a "heartbeat". This ensures that chemistry always
+      ! takes place at the same time, regardless of whether or not
+      ! transport is enabled.
+      !IF ( .not. LTRAN                  ) I = 999999 
       IF ( .not. LCONV .and..not. LTURB ) J = 999999
       IF ( .not. LDRYD .and..not. LEMIS ) K = 999999
       IF ( .not. LCHEM                  ) L = 999999
