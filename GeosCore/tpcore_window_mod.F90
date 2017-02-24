@@ -299,7 +299,7 @@ CONTAINS
 
  pi = 4. * atan(1.)
 
-#if   defined( GEOS5 )
+#if   defined( GEOS_5 )
  dlon = 2.*pi / float(540)       !(dan)
 #elif defined( GEOS_FP )
  dlon = 2.*pi / float(1152)      !(dan)
