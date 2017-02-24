@@ -8176,8 +8176,8 @@
       !=================================================================
       ! Error check SEASALT AEROSOLS
       !=================================================================
-      I = MAX( Ind_('SALA','A','A'), 0 ) 
-     &  + MAX( Ind_('SALC','A','A'), 0 )
+      I = MAX( Ind_('SALA','A'), 0 ) 
+     &  + MAX( Ind_('SALC','A'), 0 )
 
       IF ( Input_Opt%LSSALT ) THEN
          IF ( I == 0 ) THEN
