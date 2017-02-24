@@ -1923,14 +1923,14 @@
       ENDIF
 
       ! Halt with error if none of the TOMAS aerosol species are defined
-      I = MAX( Ind_('NK1'  ), 0 )
-     &  + MAX( Ind_('SF1'  ), 0 ) 
-     &  + MAX( Ind_('SS1'  ), 0 )
-     &  + MAX( Ind_('ECOB1'), 0 ) 
-     &  + MAX( Ind_('ECIL1'), 0 )  
-     &  + MAX( Ind_('OCOB1'), 0 ) 
-     &  + MAX( Ind_('OCIL1'), 0 )
-     &  + MAX( Ind_('DUST1'), 0 )
+      I = MAX( Ind_('NK1'  ,'A'), 0 )
+     &  + MAX( Ind_('SF1'  ,'A'), 0 ) 
+     &  + MAX( Ind_('SS1'  ,'A'), 0 )
+     &  + MAX( Ind_('ECOB1','A'), 0 ) 
+     &  + MAX( Ind_('ECIL1','A'), 0 )  
+     &  + MAX( Ind_('OCOB1','A'), 0 ) 
+     &  + MAX( Ind_('OCIL1','A'), 0 )
+     &  + MAX( Ind_('DUST1','A'), 0 )
 
       IF ( I == 0 ) THEN 
          MSG = 'None of the TOMAS aerosols are defined!'
@@ -1944,10 +1944,10 @@
       ENDIF
 
       ! Halt with error if carbonaceous aerosols are not defined
-      I = MAX( Ind_('ECOB1'), 0 ) 
-     &  + MAX( Ind_('ECIL1'), 0 ) 
-     &  + MAX( Ind_('OCOB1'), 0 ) 
-     &  + MAX( Ind_('OCIL1'), 0 )
+      I = MAX( Ind_('ECOB1','A'), 0 ) 
+     &  + MAX( Ind_('ECIL1','A'), 0 ) 
+     &  + MAX( Ind_('OCOB1','A'), 0 ) 
+     &  + MAX( Ind_('OCIL1','A'), 0 )
 
       IF ( I > 0 .and. (.not. Input_Opt%LCARB ) ) THEN
          MSG = 'Need LCARB on for TOMAS-carb to work (for now)'
@@ -8176,8 +8176,8 @@
       !=================================================================
       ! Error check SEASALT AEROSOLS
       !=================================================================
-      I = MAX( Ind_('SALA'), 0 ) 
-     &  + MAX( Ind_('SALC'), 0 )
+      I = MAX( Ind_('SALA','A','A'), 0 ) 
+     &  + MAX( Ind_('SALC','A','A'), 0 )
 
       IF ( Input_Opt%LSSALT ) THEN
          IF ( I == 0 ) THEN
@@ -8194,8 +8194,8 @@
       !=================================================================
       ! Error check MARINE ORGANIC AEROSOLS
       !=================================================================
-      I = MAX( Ind_('MOPO'), 0 )  
-     &  + MAX( Ind_('MOPI'), 0 )
+      I = MAX( Ind_('MOPO','A'), 0 )  
+     &  + MAX( Ind_('MOPI','A'), 0 )
 
       IF ( Input_Opt%LMPOA ) THEN
          IF ( .not. Input_Opt%LSSALT ) THEN
@@ -8216,14 +8216,14 @@
       !=================================================================
       ! Error check SULFUR AEROSOLS
       !=================================================================
-      I = MAX( Ind_('DMS' ), 0 )
-     &  + MAX( Ind_('SO2' ), 0 )
-     &  + MAX( Ind_('SO4' ), 0 )
-     &  + MAX( Ind_('SO4s'), 0 )
-     &  + MAX( Ind_('MSA' ), 0 )
-     &  + MAX( Ind_('NH3' ), 0 )
-     &  + MAX( Ind_('NH4' ), 0 )
-     &  + MAX( Ind_('NITs'), 0 ) 
+      I = MAX( Ind_('DMS' ,'A'), 0 )
+     &  + MAX( Ind_('SO2' ,'A'), 0 )
+     &  + MAX( Ind_('SO4' ,'A'), 0 )
+     &  + MAX( Ind_('SO4s','A'), 0 )
+     &  + MAX( Ind_('MSA' ,'A'), 0 )
+     &  + MAX( Ind_('NH3' ,'A'), 0 )
+     &  + MAX( Ind_('NH4' ,'A'), 0 )
+     &  + MAX( Ind_('NITs','A'), 0 ) 
 
       IF ( Input_Opt%LSULF ) THEN
 
@@ -8253,11 +8253,11 @@
       !=================================================================
       ! Error check CRYST /AQ AEROSOLS
       !=================================================================
-      I = MAX( Ind_('AS'   ), 0 )
-     &  + MAX( Ind_('AHS'  ), 0 )
-     &  + MAX( Ind_('LET'  ), 0 )
-     &  + MAX( Ind_('NH4aq'), 0 )
-     &  + MAX( Ind_('SO4aq'), 0 )
+      I = MAX( Ind_('AS'   ,'A'), 0 )
+     &  + MAX( Ind_('AHS'  ,'A'), 0 )
+     &  + MAX( Ind_('LET'  ,'A'), 0 )
+     &  + MAX( Ind_('NH4aq','A'), 0 )
+     &  + MAX( Ind_('SO4aq','A'), 0 )
 
       IF ( Input_Opt%LCRYST ) THEN
          IF ( I == 0 ) THEN
@@ -8276,11 +8276,11 @@
       !=================================================================
 
       ! SOAupdate: Add POA (hotp 10/11/09)
-      I = MAX( Ind_('BCPO'), 0 )
-     &  + MAX( Ind_('BCPI'), 0 )
-     &  + MAX( Ind_('OCPO'), 0 )
-     &  + MAX( Ind_('OCPI'), 0 )
-     &  + MAX( Ind_('POA1'), 0 )
+      I = MAX( Ind_('BCPO','A'), 0 )
+     &  + MAX( Ind_('BCPI','A'), 0 )
+     &  + MAX( Ind_('OCPO','A'), 0 )
+     &  + MAX( Ind_('OCPI','A'), 0 )
+     &  + MAX( Ind_('POA1','A'), 0 )
 
       IF ( Input_Opt%LCARB ) THEN
          IF ( I == 0 ) THEN
@@ -8303,8 +8303,8 @@
       ! OCPI and OCPO are the non-volatile POA species
       ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA species
       ! You can't have both!
-      I = MAX( Ind_('OCPI'), 0 )  
-     &  + MAX( Ind_('OCPO'), 0 )
+      I = MAX( Ind_('OCPI','A'), 0 )  
+     &  + MAX( Ind_('OCPO','A'), 0 )
 
       IF ( Ind_('POA1') > 0 ) THEN
          IF ( I > 0 ) THEN
@@ -8327,14 +8327,14 @@
       !   POA POG OPOA OPOG SOA BTX NAP (semivol + orig trad + IVOC )
       ! NAP emissions are set in input.geos
       ! LSVPOA is just a check (doesn't do anything hotp 7/21/10)
-      I = MAX( Ind_('POA1' ), 0 )
-     &  + MAX( Ind_('POA2' ), 0 )
-     &  + MAX( Ind_('POG1' ), 0 )
-     &  + MAX( Ind_('POG2' ), 0 )
-     &  + MAX( Ind_('OPOA1'), 0 )
-     &  + MAX( Ind_('OPOA2'), 0 )
-     &  + MAX( Ind_('OPOG1'), 0 )
-     &  + MAX( Ind_('OPOG2'), 0 )
+      I = MAX( Ind_('POA1' ,'A'), 0 )
+     &  + MAX( Ind_('POA2' ,'A'), 0 )
+     &  + MAX( Ind_('POG1' ,'A'), 0 )
+     &  + MAX( Ind_('POG2' ,'A'), 0 )
+     &  + MAX( Ind_('OPOA1','A'), 0 )
+     &  + MAX( Ind_('OPOA2','A'), 0 )
+     &  + MAX( Ind_('OPOG1','A'), 0 )
+     &  + MAX( Ind_('OPOG2','A'), 0 )
 
       IF ( Input_Opt%LSVPOA ) THEN
          IF ( I < 8 ) THEN
@@ -8352,24 +8352,24 @@
       !=================================================================
 
       ! SOAupdate: update for new mtp (hotp 5/24/10)
-      I = MAX( Ind_('MTPA' ), 0 )
-     &  + MAX( Ind_('LIMO' ), 0 )
-     &  + MAX( Ind_('MTPO' ), 0 )
-     &  + MAX( Ind_('BENZ' ), 0 )
-     &  + MAX( Ind_('TOLU' ), 0 )
-     &  + MAX( Ind_('XYLE' ), 0 )
-     &  + MAX( Ind_('TSOA1'), 0 )
-     &  + MAX( Ind_('TSOA2'), 0 )
-     &  + MAX( Ind_('TSOA3'), 0 )
-     &  + MAX( Ind_('ISOA1'), 0 )
-     &  + MAX( Ind_('ISOA2'), 0 )
-     &  + MAX( Ind_('ISOA3'), 0 )
-     &  + MAX( Ind_('ASOA1'), 0 )
-     &  + MAX( Ind_('ASOA2'), 0 )
-     &  + MAX( Ind_('ASOA3'), 0 )
-     &  + MAX( Ind_('ASOAN'), 0 )
-     &  + MAX( Ind_('SOAG' ), 0 )
-     &  + MAX( Ind_('SOAM' ), 0 )
+      I = MAX( Ind_('MTPA' ,'A'), 0 )
+     &  + MAX( Ind_('LIMO' ,'A'), 0 )
+     &  + MAX( Ind_('MTPO' ,'A'), 0 )
+     &  + MAX( Ind_('BENZ' ,'A'), 0 )
+     &  + MAX( Ind_('TOLU' ,'A'), 0 )
+     &  + MAX( Ind_('XYLE' ,'A'), 0 )
+     &  + MAX( Ind_('TSOA1','A'), 0 )
+     &  + MAX( Ind_('TSOA2','A'), 0 )
+     &  + MAX( Ind_('TSOA3','A'), 0 )
+     &  + MAX( Ind_('ISOA1','A'), 0 )
+     &  + MAX( Ind_('ISOA2','A'), 0 )
+     &  + MAX( Ind_('ISOA3','A'), 0 )
+     &  + MAX( Ind_('ASOA1','A'), 0 )
+     &  + MAX( Ind_('ASOA2','A'), 0 )
+     &  + MAX( Ind_('ASOA3','A'), 0 )
+     &  + MAX( Ind_('ASOAN','A'), 0 )
+     &  + MAX( Ind_('SOAG' ,'A'), 0 )
+     &  + MAX( Ind_('SOAM' ,'A'), 0 )
 
       IF ( Input_Opt%LSOA ) THEN
          IF ( I == 0 ) THEN
@@ -8390,13 +8390,13 @@
 ! JKODROS - Uncomment this if the dust fixes are back working. 
 #if defined( TOMAS )
       ! For TOMAS only: If DUST1 is present, the other dust species are too
-      I = MAX( Ind_('DUST1'), 0 )
+      I = MAX( Ind_('DUST1','A'), 0 )
 #else
       ! Non-TOMAS simulations: Need all DST1-DST4 species
-      I = MAX( Ind_('DST1'), 0 )
-     &  + MAX( Ind_('DST2'), 0 )
-     &  + MAX( Ind_('DST3'), 0 )
-     &  + MAX( Ind_('DST4'), 0 )
+      I = MAX( Ind_('DST1','A'), 0 )
+     &  + MAX( Ind_('DST2','A'), 0 )
+     &  + MAX( Ind_('DST3','A'), 0 )
+     &  + MAX( Ind_('DST4','A'), 0 )
 #endif
 
       IF ( Input_Opt%LDUST ) THEN
@@ -8416,18 +8416,18 @@
       !             DUST SULFATE    AEROSOLS
       !             DUST ALKALINITY AEROSOLS
       !=================================================================
-      I = MAX( Ind_('NITd1'  ), 0 ) 
-     &  + MAX( Ind_('NITd2'  ), 0 ) 
-     &  + MAX( Ind_('NITd3'  ), 0 )
-     &  + MAX( Ind_('NITd4'  ), 0 ) 
-     &  + MAX( Ind_('SO4d1'  ), 0 ) 
-     &  + MAX( Ind_('SO4d2'  ), 0 )
-     &  + MAX( Ind_('SO4d3'  ), 0 ) 
-     &  + MAX( Ind_('SO4d4'  ), 0 ) 
-     &  + MAX( Ind_('DSTAL1' ), 0 )
-     &  + MAX( Ind_('DSTAL2' ), 0 ) 
-     &  + MAX( Ind_('DSTAL3' ), 0 ) 
-     &  + MAX( Ind_('DSTAL4' ), 0 )
+      I = MAX( Ind_('NITd1'  ,'A'), 0 ) 
+     &  + MAX( Ind_('NITd2'  ,'A'), 0 ) 
+     &  + MAX( Ind_('NITd3'  ,'A'), 0 )
+     &  + MAX( Ind_('NITd4'  ,'A'), 0 ) 
+     &  + MAX( Ind_('SO4d1'  ,'A'), 0 ) 
+     &  + MAX( Ind_('SO4d2'  ,'A'), 0 )
+     &  + MAX( Ind_('SO4d3'  ,'A'), 0 ) 
+     &  + MAX( Ind_('SO4d4'  ,'A'), 0 ) 
+     &  + MAX( Ind_('DSTAL1' ,'A'), 0 )
+     &  + MAX( Ind_('DSTAL2' ,'A'), 0 ) 
+     &  + MAX( Ind_('DSTAL3' ,'A'), 0 ) 
+     &  + MAX( Ind_('DSTAL4' ,'A'), 0 )
 
       IF ( Input_Opt%LDSTUP ) THEN
          IF ( I < 12 ) THEN
@@ -8444,8 +8444,8 @@
       !=================================================================
       ! Error check SEASALT AEROSOLS
       !=================================================================
-      I = MAX( Ind_('SALA'), 0 ) 
-     &  + MAX( Ind_('SALC'), 0 )
+      I = MAX( Ind_('SALA','A'), 0 ) 
+     &  + MAX( Ind_('SALC','A'), 0 )
 
       IF ( Input_Opt%LSSALT ) THEN
          IF ( I == 0 ) THEN
