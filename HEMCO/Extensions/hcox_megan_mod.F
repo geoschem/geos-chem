@@ -4286,7 +4286,7 @@
    
          IF ( Optfound ) THEN
             !convert from carbon basis to mass basis
-            Inst%MONOTOSOAP = Inst%MONOTOSOAP * 1.134
+            Inst%MONOTOSOAP = Inst%MONOTOSOAP! * 1.134
          ELSE
             !set to zero if not specified
             Inst%MONOTOSOAP = 0.0
@@ -4300,7 +4300,7 @@
    
          IF ( Optfound ) THEN
             !convert from carbon basis to mass basis
-            Inst%MONOTOSOAS = Inst%MONOTOSOAS * 1.134
+            Inst%MONOTOSOAS = Inst%MONOTOSOAS! * 1.134
          ELSE
             !set to zero if not specified
             Inst%MONOTOSOAS = 0.0
