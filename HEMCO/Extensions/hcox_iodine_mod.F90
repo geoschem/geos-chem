@@ -367,19 +367,14 @@ CONTAINS
     CALL GetExtOpt ( HcoState%Config, ExtNr, 'Emit HOI', OptValBool=CalcHOI, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    # 
+    # Set minimum length and update if CalcI2/CalcHOI==True
     minLen = 0
-    WRITE(*,*) 'tms debug 1', CalcI2, CalcHOI, minLen
-
     IF ( CalcI2 ) THEN
        minLen = minLen +1
     ENDIF
     IF ( CalcHOI ) THEN
        minLen = minLen +1
     ENDIF    
-
-    WRITE(*,*) 'tms debug 2', CalcI2, CalcHOI, minLen
-
     ! Get HEMCO species IDs
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -389,12 +384,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    WRITE(*,*) 'tms debug 3', IDTI2, IDTHOI, HcoIDs
-    WRITE(*,*) 'tms debug 3.1', nSpc, SpcNames
     IDTHOI = HcoIDs(1)
     IDTI2 = HcoIDs(2)
-    WRITE(*,*) 'tms debug 4', IDTI2, IDTHOI, HcoIDs
-    WRITE(*,*) 'tms debug 3.1', nSpc, SpcNames
 
     ! Final I2/HOI flag
     CalcI2 = ( CalcI2 .AND. IDTI2 > 0 )
@@ -404,9 +395,6 @@ CONTAINS
     IF ( am_I_Root ) THEN
        MSG = 'Use inorganic iodine emissions (extension module)'
        CALL HCO_MSG( MSG, SEP1='-' )
-
-       WRITE(*,*) 'tms debug 5', IDTI2, IDTHOI, HcoIDs   
-       WRITE(*,*) 'tms debug 5.1',TRIM(SpcNames(1)), TRIM(SpcNames(2))
 
        IF ( CalcHOI ) THEN
           WRITE(MSG,*) 'HOI: ', TRIM(SpcNames(1)), IDTHOI
@@ -418,54 +406,6 @@ CONTAINS
           CALL HCO_MSG(MSG)
        ENDIF
     ENDIF
-
-    !=======================================================================
-    ! Create diagnostics. The number densities of both modes are always
-    ! written into a diagnostics so that they can be used by other routines
-    ! and from outside of HEMCO. These two diagnostics just hold a pointer
-    ! to the respective density arrays filled by the run method of this
-    ! module.
-    !=======================================================================
-!    CALL Diagn_Create ( am_I_Root,                          &
-!                        HcoState   = HcoState,              & 
-!                        cName      = 'SEASALT_DENS_FINE',   &
-!                        ExtNr      = ExtNr,                 &
-!                        Cat        = -1,                    &
-!                        Hier       = -1,                    &
-!                        HcoID      = IDTSALA,               &
-!                        SpaceDim   = 2,                     &
-!                        OutUnit    = 'number_dens',         &
-!                        AutoFill   = 0,                     &
-!                        Trgt2D     = NDENS_SALA,            &
-!                        COL        = HcoDiagnIDManual,      &
-!                        RC         = RC                      )
-!    IF ( RC /= HCO_SUCCESS ) RETURN
-
-!   CALL Diagn_Create ( am_I_Root,                                 &
-!                       cName    = 'PARANOX_HNO3_DEPOSITION_FLUX', &
-!                       Trgt2D   = DEPHNO3,                        &
-!                       SpaceDim = 2,                              &
-!                       OutUnit  = 'kg/m2/s',                      &
-!                       COL      = HcoDiagnIDManual,               &
-!                       RC       = RC                               )
-!   IF ( RC /= HCO_SUCCESS ) RETURN
-
-
-!    CALL Diagn_Create ( am_I_Root,                          &
-!                        HcoState   = HcoState,              & 
-!                        cName      = 'HOI',   &
-!                        ExtNr      = ExtNr,                 &
-!                        Cat        = -1,                    &
-!                        Hier       = -1,                    &
-!                        HcoID      = IDT,                   &
-!                        SpaceDim   = 2,                     &
-!                        OutUnit    = 'number_dens',         &
-!                        AutoFill   = 0,                     &
-!                        Trgt2D     = NDENS_SALA,            &
-!                        COL        = HcoDiagnIDManual,      &
-!                        RC         = RC                      )
-!    IF ( RC /= HCO_SUCCESS ) RETURN
-
 
     !=======================================================================
     ! Activate this module and the fields of ExtState that it uses
