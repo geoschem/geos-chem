@@ -237,6 +237,7 @@
 !                              here from diag42_mod.F
 !  22 Nov 2016 - M. Sulprizio- Add online calculation of aerosol growth factors
 !                              at 35% RH
+!  07 Feb 2017 - M. Sulprizio- Apply STP correction factor to PM2.5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -276,6 +277,8 @@
       ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
       REAL(fp), POINTER   :: AIRVOL(:,:,:)
+      REAL(fp), POINTER   :: PMID(:,:,:)
+      REAL(fp), POINTER   :: T(:,:,:)
 
       !=================================================================
       ! AEROSOL_CONC begins here!
@@ -338,6 +341,8 @@
       ! Initialize pointers
       Spc    => State_Chm%Species
       AIRVOL => State_Met%AIRVOL
+      PMID   => State_Met%PMID
+      T      => State_Met%T
 
       !=================================================================
       ! Compute growth factors at 35% RH
@@ -826,6 +831,10 @@
      &               + SOILDUST(I,J,L,5) * 0.38              ! 38% of DST2
      &               + SOAG(I,J,L)
      &               + SOAM(I,J,L)
+
+         ! Apply STP correction factor based on ideal gas law
+         PM25(I,J,L) = PM25(I,J,L) * ( 1013.25e+0_fp / PMID(I,J,L) ) *
+     &                 ( T(I,J,L) / 298.e+0_fp )
 
       ENDDO
       ENDDO

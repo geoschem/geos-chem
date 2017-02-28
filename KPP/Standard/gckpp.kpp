@@ -161,13 +161,13 @@ PSO4 : SO4;
     R0 = R0 * (1.E+0_dp + 0.6e+0_dp*9.871E7_dp*PRESS)
 
     ! new OH+CO rate from JPL2006.
-    KLO1=5.9E-33_dp*(300._dp/TEMP)**(1.4E+0_dp) 
+    KLO1=5.9E-33_dp*(300._dp/TEMP)**(1.E+0_dp) 
     KHI1=1.1E-12_dp*(300._dp/TEMP)**(-1.3E0_dp)
     XYRAT1=KLO1*NUMDEN/KHI1
     BLOG1=LOG10(XYRAT1)
     FEXP1=1.E+0_dp/(1.E+0_dp+BLOG1*BLOG1)
     KCO1=KLO1*NUMDEN*0.6**FEXP1/(1.e+0_dp+XYRAT1)
-    KLO2=1.5E-13_dp*(300._dp/TEMP)**(-0.6E+0_dp)
+    KLO2=1.5E-13_dp*(300._dp/TEMP)**(0.E+0_dp)
     KHI2=2.1e+09_dp *(300._dp/TEMP)**(-6.1E+0_dp)
     XYRAT2=KLO2*NUMDEN/KHI2
     BLOG2=LOG10(XYRAT2)

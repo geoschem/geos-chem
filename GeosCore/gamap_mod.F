@@ -7216,7 +7216,7 @@
       IF ( ND66 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
-         NTRAC(66) = 6
+         NTRAC(66) = 7
 
          ! Loop over tracers
          DO T = 1, NTRAC(66)
@@ -7249,6 +7249,9 @@
                CASE( 6 )
                   NAME(T,66) = 'DTRAIN'
                   UNIT(T,66) = 'kg/m2/s'
+               CASE( 7 )
+                  NAME(T,66) = 'OMEGA'
+                  UNIT(T,66) = 'Pa/s'
                CASE DEFAULT
                   ! Nothing
             END SELECT

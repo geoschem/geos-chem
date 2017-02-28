@@ -141,6 +141,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: HKETA     (:,:,:) ! Hack conv mass flux [kg/m2/s]
      REAL(fp), POINTER :: MOISTQ    (:,:,:) ! Tendency in sp. humidity 
                                             ! [kg/kg tot air/s]
+     REAL(fp), POINTER :: OMEGA     (:,:,:) ! Updraft velocity [Pa/s]
      REAL(fp), POINTER :: OPTD      (:,:,:) ! Visible optical depth [1]
      REAL(fp), POINTER :: PEDGE     (:,:,:) ! Wet air press @ level edges [hPa]
      REAL(fp), POINTER :: PFICU     (:,:,:) ! Dwn flux ice prec:conv [kg/m2/s]
@@ -258,6 +259,7 @@ MODULE State_Met_Mod
 !  16 Aug 2016 - M. Sulprizio- Rename from gigc_state_chm_mod.F90 to
 !                              state_chm_mod.F90. The "gigc" nomenclature is
 !                              no longer used.
+!  03 Feb 2017 - M. Sulprizio- Add OMEGA for use in sulfate_mod.F (Q. Chen)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -818,6 +820,10 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN           
     State_Met%MOISTQ   = 0.0_fp
 
+    ALLOCATE( State_Met%OMEGA     ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%OMEGA    = 0.0_fp
+
     ALLOCATE( State_Met%OPTD      ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN           
     State_Met%OPTD     = 0.0_fp
@@ -1178,6 +1184,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%MOISTMW    )) NULLIFY( State_Met%MOISTMW    )
     IF ( ASSOCIATED( State_Met%DTRAIN     )) NULLIFY( State_Met%DTRAIN     )
     IF ( ASSOCIATED( State_Met%MOISTQ     )) NULLIFY( State_Met%MOISTQ     )
+    IF ( ASSOCIATED( State_Met%OMEGA      )) NULLIFY( State_Met%OMEGA      )
     IF ( ASSOCIATED( State_Met%OPTD       )) NULLIFY( State_Met%OPTD       )
     IF ( ASSOCIATED( State_Met%PEDGE      )) NULLIFY( State_Met%PEDGE      )
     IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) NULLIFY( State_Met%PEDGE_DRY  )
@@ -1229,6 +1236,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%DQVDTMST   )) DEALLOCATE( State_Met%DQVDTMST   )
     IF ( ASSOCIATED( State_Met%DTRAIN     )) DEALLOCATE( State_Met%DTRAIN     )
     IF ( ASSOCIATED( State_Met%MOISTQ     )) DEALLOCATE( State_Met%MOISTQ     )
+    IF ( ASSOCIATED( State_Met%OMEGA      )) DEALLOCATE( State_Met%OMEGA      )
     IF ( ASSOCIATED( State_Met%OPTD       )) DEALLOCATE( State_Met%OPTD       )
     IF ( ASSOCIATED( State_Met%PEDGE      )) DEALLOCATE( State_Met%PEDGE      )
     IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) DEALLOCATE( State_Met%PEDGE_DRY  )

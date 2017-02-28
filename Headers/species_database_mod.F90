@@ -149,6 +149,8 @@ CONTAINS
 !  11 Aug 2016 - E. Lundgren - Define special background conc for some species
 !  22 Nov 2016 - M. Sulprizio- Move aerosol densities for BC, OC, and SO4 here
 !                              from aerosol_mod.F
+!  23 Feb 2017 - M. Sulprizio- Change MolecRatio for ALK4 from 4 to 4.3
+!                              (B. Henderson)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -328,7 +330,7 @@ CONTAINS
                               FullName      = 'Lumped >= C4 Alkanes',       &
                               MW_g          = 58.12_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 4.0_fp,                       &
+                              MolecRatio    = 4.3_fp,                       &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &

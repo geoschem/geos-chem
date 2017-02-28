@@ -63,6 +63,7 @@ PROGRAM TestNcdfUtil
 !  24 Jan 2012 - R. Yantosca - Modified to write COARDS-compliant output
 !  31 Jan 2012 - R. Yantosca - Bug fix in error checks for attributes
 !  14 Jun 2012 - R. Yantosca - Now tests 2D character read/write
+!  10 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -81,7 +82,7 @@ PROGRAM TestNcdfUtil
   INTEGER            :: I                        ! Loop index
   INTEGER            :: longdeg, latdeg          ! For longdat, latdat
   REAL*8             :: longDat(ILONG)           ! Longitude data
-  REAL*8             :: latDat (ILONG)           ! Latitude data
+  REAL*8             :: latDat (ILAT )           ! Latitude data
   REAL*8             :: levDat (IVERT)           ! Altitude data
   INTEGER            :: timeDat(ITIME)           ! Time data
 
@@ -658,7 +659,6 @@ CONTAINS
        rc = -1
     ENDIF
     CALL Check( 'Reading DESC:long_name back from netCDF file', rc, pCt, tCt )
-
 
     !=========================================================================
     ! Read global attributes

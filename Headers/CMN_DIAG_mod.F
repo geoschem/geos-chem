@@ -58,7 +58,7 @@
 #endif
       INTEGER, PARAMETER :: PD64=W_
       INTEGER            :: PD65
-      INTEGER, PARAMETER :: PD66=6           
+      INTEGER, PARAMETER :: PD66=7
       INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
       INTEGER, PARAMETER :: PD68=8     
       INTEGER, PARAMETER :: PD69=1

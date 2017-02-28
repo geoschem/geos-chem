@@ -1141,6 +1141,7 @@
       INTEGER IOLSON,II,IW
       INTEGER K,LDT
       REAL(f8)  RCLX,RIXX    !,BIOFIT
+      REAL(f8)  phih_zo, phih_cz
 
 #if   defined( TOMAS )
       ! For TOMAS aerosol (win, 7/15/09)
@@ -1265,22 +1266,22 @@
       ! Add parallel DO-loop (bmy, 2/22/05)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( CZ,     TEMPK,  TEMPC,  K,      VD             )
-!$OMP+PRIVATE( LDT,    RSURFC, C1,     XNU,    RT,     IOLSON )
-!$OMP+PRIVATE( II,     RI,     RLU,    RAC,    RGSS,   RGSO   )
-!$OMP+PRIVATE( RCLS,   RCLO,   RAD0,   RIX,    GFACT,  GFACI  )
-!$OMP+PRIVATE( RDC,    XMWH2O, RIXX,   RLUXX,  RGSX,   RCLX   )
-!$OMP+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
-!$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
-!$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
-!$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
-!$OMP+PRIVATE( DIAM,   DEN,    XLAI_FP, SUNCOS_FP, CFRAC_FP   )
-!$OMP+PRIVATe( SpcId,  SpcInfo                                )
+!$OMP+PRIVATE( CZ,     TEMPK,   TEMPC,   K,      VD             )
+!$OMP+PRIVATE( LDT,    RSURFC,  C1,      XNU,    RT,     IOLSON )
+!$OMP+PRIVATE( II,     RI,      RLU,     RAC,    RGSS,   RGSO   )
+!$OMP+PRIVATE( RCLS,   RCLO,    RAD0,    RIX,    GFACT,  GFACI  )
+!$OMP+PRIVATE( RDC,    XMWH2O,  RIXX,    RLUXX,  RGSX,   RCLX   )
+!$OMP+PRIVATE( DTMP1,  DTMP2,   DTMP3,   DTMP4,  VDS,    CZH    )
+!$OMP+PRIVATE( CKUSTR, REYNO,   CORR1,   CORR2,  Z0OBK,  RA     )
+!$OMP+PRIVATE( DUMMY1, DUMMY2,  DUMMY3,  DUMMY4, DAIR,   RB     )
+!$OMP+PRIVATE( C1X,    VK,      I,       J,      IW             )
+!$OMP+PRIVATE( DIAM,   DEN,     XLAI_FP, SUNCOS_FP, CFRAC_FP    )
+!$OMP+PRIVATE( SpcId,  SpcInfo, phih_zo, phih_cz                )
 #if defined( TOMAS )
-!$OMP+PRIVATE( BIN                                            )
+!$OMP+PRIVATE( BIN                                              )
 #endif
 #if defined( GCAP )
-!$OMP+PRIVATE( ZO                                             )
+!$OMP+PRIVATE( ZO                                               )
 #endif
 
       DO J = 1, JJPAR
@@ -1858,17 +1859,56 @@
                   DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
                   DUMMY4 = ABS((DUMMY2 - 1.e+0_f8)/(DUMMY2 + 1.e+0_f8))
                   RA = 1.e+0_f8 * (1.e+0_f8/CKUSTR) * LOG(DUMMY3/DUMMY4)
-               ELSEIF((CORR1.GE.0.0e+0_f8).AND.(CORR1.LE.1.0e+0_f8)) 
-     &          THEN
-                  !coef_a=1.e+0_f8
-                  !coef_b=5.e+0_f8
-                  RA = (1D0/CKUSTR) *
-     &          (1.e+0_f8*LOG(CORR1/Z0OBK) + 5.e+0_f8*(CORR1-Z0OBK))
-               ELSE ! CORR1 .GT. 1.0D0
-                  !coef_a=5e+0_f8
-                  !coef_b=1.e+0_f8
-                  RA = (1D0/CKUSTR) *
-     &          (5.e+0_f8*LOG(CORR1/Z0OBK) + 1.e+0_f8*(CORR1-Z0OBK))
+!------------------------------------------------------------------------------
+! Prior to 2/18/17:
+!               ELSEIF((CORR1.GE.0.0e+0_f8).AND.(CORR1.LE.1.0e+0_f8)) 
+!     &          THEN
+!                  !coef_a=1.e+0_f8
+!                  !coef_b=5.e+0_f8
+!                  RA = (1D0/CKUSTR) *
+!     &          (1.e+0_f8*LOG(CORR1/Z0OBK) + 5.e+0_f8*(CORR1-Z0OBK))
+!               ELSE ! CORR1 .GT. 1.0D0
+!                  !coef_a=5e+0_f8
+!                  !coef_b=1.e+0_f8
+!                  RA = (1D0/CKUSTR) *
+!     &          (5.e+0_f8*LOG(CORR1/Z0OBK) + 1.e+0_f8*(CORR1-Z0OBK))
+!------------------------------------------------------------------------------
+               !==============================================================
+               ! Brian Boys (briboys@gmail.com) wrote:
+               !
+               ! I discovered a bug in the subroutine DEPVEL. For the 
+               ! calculation of aerodynamic resistance RA under very stable 
+               ! atmospheric conditions (line 1811), the integration of the 
+               ! stability function phi_h (aka dimensionless vertical  
+               ! temperature gradient) from the roughness length to grid box 
+               ! center doesn't take into account the discontinuity occurring 
+               ! at z/L = 1 where phi_h switches from 1 + 5(z/L) to 5 + z/L 
+               ! (Holtslag, 1993). The result is too high of a value for the 
+               ! integral of phi_h and subsequently RA.
+               !
+               ! A straightforward solution is to calculate RA under stable 
+               ! conditions (L>0) using an integral form of the stability 
+               ! function, such as equation (12) of Holtslag, 1988. I 
+               ! implemented these changes here.
+               !
+               ! RA bug fix, eqn (12) in Holtslag,1988)
+               !
+               !  -- 18 Feb 2017
+               !==============================================================
+               ELSE IF ( CORR1 .GE. 0.0_f8 ) THEN  
+
+	          phih_cz = -0.7_f8 * CORR1 
+     &                    -  0.75_f8 * ( CORR1 - 5.0_f8 / 0.35_f8 )
+     &                    *  EXP( -0.35_f8 * CORR1 ) 
+     &                    -  0.75_f8 * 5.0_f8 / 0.35_f8
+
+	          phih_zo = -0.7_f8 * Z0OBK 
+     &                    -  0.75_f8 * ( Z0OBK - 5.0_f8 / 0.35_f8 )
+     &                    *  EXP( -0.35_f8 * Z0OBK ) 
+     &                    -  0.75_f8 * 5.0_f8 / 0.35_f8
+
+                  RA      = ( 1.0_f8 / CKUSTR ) 
+     &                    * ( LOG( CORR1 / Z0OBK ) - phih_cz + phih_zo )    
                ENDIF
 
             ENDIF

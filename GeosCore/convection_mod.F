@@ -341,6 +341,9 @@
       FSOL      = 0e+0_fp                         ! Zero the FSOL array
 
       ! Loop over advected species
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( NA, N, p_FSOL, RC )
       DO NA = 1, nAdvect
          
          ! Species ID
@@ -357,6 +360,7 @@
          p_FSOL => NULL()
 
       ENDDO
+!$OMP END PARALLEL DO
 
       !-----------------------------------------------------------------
       ! Do convection column by column
