@@ -281,15 +281,40 @@ CONTAINS
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
+                              Is_Wetdep     = T,                            &
                               Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 1.30e-01_f8 * To_M_atm,       &
                               Henry_CR      = 5900.0_f8,                    &
 #else                                                                       
-                              DD_Hstar_old  = 1.5e+1_fp,                    &
+                              DD_Hstar_old  = 1.1e+1_fp,                    &
+                              Henry_K0      = 1.1e+1_f8,                    &
+                              Henry_CR      = 6300.0_f8,                    &
 #endif                                      
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'APINE' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'alpha-Pinene',               &
+                              MW_g          = 136.234_fp,                   &
+                              EmMW_g        = 12.0_fp,                      &
+                              MolecRatio    = 10.0_fp,                      &
+                              Is_Advected   = T,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+#if defined( NEW_HENRY_CONSTANTS )
+!------------------------------------------------------------------------------
+! Need to add new values for methylglyoxal (mps, 01/03/17)
+!                              Henry_K0      = 1.20e-5_f8 * To_M_atm,        &
+!                              Henry_CR      = 3100.0_f8,                    &
+!------------------------------------------------------------------------------
+#endif
                               RC            = RC )
 
           CASE( 'ALK4' )
@@ -1253,6 +1278,34 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
+          CASE( 'EOH' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Ethanol',                    &
+                              MW_g          = 46.07_fp,                     &
+                              EmMW_g        = 12.0_fp,                      &
+                              MolecRatio    = 2.0_fp,                       &
+                              Is_Advected   = T,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )
+!------------------------------------------------------------------------------
+! Need to add new values for ethanol (mps, 01/03/17)
+!                              Henry_K0      = 1.30e-01_f8 * To_M_atm,       &
+!                              Henry_CR      = 5900.0_f8,                    &
+!------------------------------------------------------------------------------
+#else
+                              DD_Hstar_old  = 1.9e+2_fp,                    &
+                              Henry_K0      = 1.9e+2_f8,                    &
+                              Henry_CR      = 6600.0_f8,                    &
+#endif
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
           CASE( 'GLYC' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1341,7 +1394,7 @@ CONTAINS
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
+                              Is_Wetdep     = T,                            &
                               Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
@@ -1349,7 +1402,10 @@ CONTAINS
                               Henry_CR      = 0.0_f8,                       &
 #else									    
                               DD_Hstar_old  = 2.90e+3_fp,                   &
+                              Henry_K0      = 2.927e+3_f8,                  &
+                              Henry_CR      = 0.0_f8,                       &
 #endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
           CASE( 'H1211' )
@@ -1945,6 +2001,33 @@ CONTAINS
                               Henry_K0      = 2.90e+02_f8 * To_M_atm,       &
                               Henry_CR      = 5700.0_f8,                    &
 #endif                                      
+                              RC            = RC )
+
+          CASE( 'MGLY' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Methylglyoxal',              &
+                              MW_g          = 72.0_fp,                      &
+                              Is_Advected   = T,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )
+!------------------------------------------------------------------------------
+! Need to add new values for methylglyoxal (mps, 01/03/17)
+!                              Henry_K0      = 1.30e-01_f8 * To_M_atm,       &
+!                              Henry_CR      = 5900.0_f8,                    &
+!------------------------------------------------------------------------------
+#else
+                              DD_Hstar_old  = 3.7e+3_fp,                    &
+                              Henry_K0      = 3.7e+3_f8,                    &
+                              Henry_CR      = 7500.0_f8,                    &
+#endif
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+
                               RC            = RC )
 
           CASE( 'MOBA' )
@@ -4468,21 +4551,6 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'GLYX' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
-
-          CASE( 'MGLY' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &

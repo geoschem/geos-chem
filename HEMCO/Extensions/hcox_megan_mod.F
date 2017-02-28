@@ -184,6 +184,8 @@
 !  05 Nov 2015 - C. Keller   - Reorganize restart variables to running averages.
 !  08 Dec 2015 - C. Keller   - Now treat previous' day LAI as running avg, too.
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
+!  05 Oct 2015 - M. Sulprizio- Activate MEGAN ethanol emissions for PAN updates
+!                              from E. Fischer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -211,6 +213,7 @@
          INTEGER                 :: IDTPRPE
          INTEGER                 :: IDTC2H4
          INTEGER                 :: IDTALD2
+         INTEGER                 :: IDTEOH
          INTEGER                 :: IDTOCPI
          INTEGER                 :: IDTLIMO
          INTEGER                 :: IDTMTPA
@@ -811,6 +814,22 @@
             FLUXALD2(I,J) = EMIS_ALD2
          ENDIF
 
+         ! ---------------------------------------------------
+         ! MEGAN Ethanol
+         IF ( Inst%IDTEOH > 0 ) THEN
+            CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
+     &                                Inst, I, J, 'ETOH', EMIS_ETOH, RC)
+            IF ( RC /= HCO_SUCCESS ) THEN 
+               CALL HCO_ERROR( HcoState%Config%Err, 
+     &                        'GET_MEGAN_EMISSIONS_ETOH', RC )
+               ERR = .TRUE.
+               EXIT
+            ENDIF
+
+            ! Add to tracer tendency array [kg C/m2/s]
+            FLUXETOH(I,J) = EMIS_ETOH
+         ENDIF
+
          !--------------------------------------------------------------------
          ! Other MEGAN biogenics
          ! Calls included here for future incorporation or
@@ -829,19 +848,6 @@
 !            EXIT
 !         ENDIF 
 !         FLUXMOHX(I,J) = EMIS_MOHX
-
-         ! ---------------------------------------------------
-         ! MEGAN Ethanol
-         ! Uncomment this to compute biogenic ethanol emissions
-!         CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
-!     &                             Inst, I, J, 'ETOH', EMIS_ETOH, RC )
-!         IF ( RC /= HCO_SUCCESS ) THEN 
-!            CALL HCO_ERROR( HcoState%Config%Err, 
-!     &                        'GET_MEGAN_EMISSIONS_ETOH', RC )
-!            ERR = .TRUE.
-!            EXIT
-!         ENDIF
-!         FLUXETOH(I,J) = EMIS_ETOH
 
          ! ---------------------------------------------------
          ! MEGAN Formic acid
@@ -1367,6 +1373,20 @@
       ENDIF
 
       ! ----------------------------------------------------------------
+      ! ETHANOL
+      IF ( Inst%IDTEOH > 0 ) THEN
+
+         ! Add flux to emission array
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXETOH, Inst%IDTEOH,
+     &                     RC,        ExtNr=Inst%ExtNr )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( HcoState%Config%Err,
+     &                  'HCO_EmisAdd error: FLUXETOH', RC )
+            RETURN 
+         ENDIF
+      ENDIF
+
+      ! ----------------------------------------------------------------
       ! ACETONE 
       IF ( Inst%IDTACET > 0 ) THEN
 
@@ -1639,21 +1659,13 @@
       ! Calls included here for future incorporation or
       ! specialized simulations. (dbm, 12/2012)
       !
-      ! These diagnostics will be zero because FLUXMOHX,
-      !  FLUXETOH, FLUXFAXX, and FLUXAAXX are commented out
-      !  above (mps, 2/19/15)
+      ! These diagnostics will be zero because FLUXMOHX, FLUXFAXX,
+      !  and FLUXAAXX are commented out above (mps, 2/19/15)
       ! ----------------------------------------------------------------
       ! Methanol
       DiagnName =  'BIOGENIC_MOHX'
       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, 
      &   cName=TRIM(DiagnName), Array2D=FLUXMOHX, RC=RC)
-      IF ( RC /= HCO_SUCCESS ) RETURN 
-
-      ! ----------------------------------------------------------------
-      ! Ethanol
-      DiagnName =  'BIOGENIC_ETOH'
-      CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, 
-     &   cName=TRIM(DiagnName), Array2D=FLUXETOH, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
 
       ! ----------------------------------------------------------------
@@ -4145,6 +4157,7 @@
       Inst%IDTPRPE = -1
       Inst%IDTC2H4 = -1
       Inst%IDTALD2 = -1
+      Inst%IDTEOH  = -1
       DO I = 1, nSpc
          SELECT CASE ( TRIM(SpcNames(I)) )
             CASE( 'ISOP' )
@@ -4163,6 +4176,10 @@
                Inst%IDTALD2 = HcoIDs(I)
                WRITE(MSG,*) '   ALD2       = ',
      &                      TRIM(SpcNames(I)),Inst%IDTALD2
+            CASE( 'EOH' )
+               Inst%IDTALD2 = HcoIDs(I)
+               WRITE(MSG,*) '   EOH        = ',
+     &                      TRIM(SpcNames(I)),Inst%IDTEOH
             CASE( 'C2H4' )
                Inst%IDTC2H4 = HcoIDs(I)
                WRITE(MSG,*) '   Ethene     = ',

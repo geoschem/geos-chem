@@ -373,6 +373,7 @@
       INTEGER, SAVE            :: id_DUST1, id_NK1,   id_SF1,   id_SS1
       INTEGER, SAVE            :: id_ECIL1, id_ECOB1, id_OCIL1, id_OCOB1
       INTEGER, SAVE            :: id_CH2BR2
+      INTEGER, SAVE            :: id_EOH
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -480,6 +481,7 @@
          id_ECOB1     = Ind_('ECOB1'   )
          id_OCIL1     = Ind_('OCIL1'   )
          id_OCOB1     = Ind_('OCOB1'   )
+         id_EOH       = Ind_('EOH'     )
 
          ! NOTE: CH4 can be an advected species (in CH4 or UCX-based sims),
          ! or a non-advected species (tropchem, soa, soa-svpoa).  We only
@@ -4125,34 +4127,37 @@
 !******************************************************************************
 !  ND46: Biogenic source diagnostic
 !
-!   # : Field  : Description          : Units         : Scale Factor
+!   # : Field  : Description                : Units         : Scale Factor
 !  ---------------------------------------------------------------------------
-!  (1 ) ISOP   : Isoprene             : atoms C/cm2/s : SCALESRCE
-!  (2 ) ACET   : Acetone              : atoms C/cm2/s : SCALESRCE
-!  (3 ) PRPE   : Propene              : atoms C/cm2/s : SCALESRCE
-!  (4 ) MONX   : Total Monoterpenes   : atoms C/cm2/s : SCALESRCE
-!  (5 ) MBOX   : Methyl Butenol       : atoms C/cm2/s : SCALESRCE
-!  (6 ) C2H4   : Ethene               : atoms C/cm2/s : SCALESRCE
-!  (7 ) APIN   : Alpha pinene         : atoms C/cm2/s : SCALESRCE
-!  (8 ) BPIN   : Beta pinene          : atoms C/cm2/s : SCALESRCE
-!  (9 ) LIMO   : Limonene             : atoms C/cm2/s : SCALESRCE
-!  (10) SABI   : Sabinene             : atoms C/cm2/s : SCALESRCE
-!  (11) MYRC   : Mycrene              : atoms C/cm2/s : SCALESRCE
-!  (12) CARE   : 3-Carene             : atoms C/cm2/s : SCALESRCE
-!  (13) OCIM   : Ocimene              : atoms C/cm2/s : SCALESRCE
-!  (14) FAXX   : Formic acid          :   molec/cm2/s : SCALESRCE
-!  (15) AAXX   : Acetic acid          :   molec/cm2/s : SCALESRCE
-!  (16) ALD2   : Acetaldehyde         : atoms C/cm2/s : SCALESRCE
-!  (17) OMON   : Other monoterp       : atoms C/cm2/s : SCALESRCE
-!  (18) MOHX   : Methanol             :   molec/cm2/s : SCALESRCE
-!  (19) ETOH   : Ethanol              : atoms C/cm2/s : SCALESRCE
-!  (20) FARN   : Farnesene            : atoms C/cm2/s : SCALESRCE
-!  (21) BCAR   : b-caryophyllene      : atoms C/cm2/s : SCALESRCE
-!  (22) OSQT   : Other sesquiterpenes : atoms C/cm2/s : SCALESRCE
-!  (23) CHBr3  : Bromoform            :       kg/m2/s : SCALESRCE
-!  (24) CH2Br2 : Dibromomethane       :       kg/m2/s : SCALESRCE
-!  (25) Br2    : Molec. Bromine       :       kg/m2/s : SCALESRCE
-!  (26) CH4    : Methane              :   molec/cm2/s : SCALE3
+!  (1 ) ISOP   : Isoprene                   : atoms C/cm2/s : SCALESRCE
+!  (2 ) ACET   : Acetone                    : atoms C/cm2/s : SCALESRCE
+!  (3 ) PRPE   : Propene                    : atoms C/cm2/s : SCALESRCE
+!  (4 ) MONX   : Total Monoterpenes         : atoms C/cm2/s : SCALESRCE
+!  (5 ) MBOX   : Methyl Butenol             : atoms C/cm2/s : SCALESRCE
+!  (6 ) C2H4   : Ethene                     : atoms C/cm2/s : SCALESRCE
+!  (7 ) APIN   : Alpha pinene               : atoms C/cm2/s : SCALESRCE
+!  (8 ) BPIN   : Beta pinene                : atoms C/cm2/s : SCALESRCE
+!  (9 ) LIMO   : Limonene                   : atoms C/cm2/s : SCALESRCE
+!  (10) SABI   : Sabinene                   : atoms C/cm2/s : SCALESRCE
+!  (11) MYRC   : Mycrene                    : atoms C/cm2/s : SCALESRCE
+!  (12) CARE   : 3-Carene                   : atoms C/cm2/s : SCALESRCE
+!  (13) OCIM   : Ocimene                    : atoms C/cm2/s : SCALESRCE
+!  (14) FAXX   : Formic acid                :   molec/cm2/s : SCALESRCE
+!  (15) AAXX   : Acetic acid                :   molec/cm2/s : SCALESRCE
+!  (16) ALD2   : Acetaldehyde               : atoms C/cm2/s : SCALESRCE
+!  (17) OMON   : Other monoterp             : atoms C/cm2/s : SCALESRCE
+!  (18) MOHX   : Methanol                   :   molec/cm2/s : SCALESRCE
+!  (19) ETOH   : Ethanol                    : atoms C/cm2/s : SCALESRCE
+!  (20) FARN   : Farnesene                  : atoms C/cm2/s : SCALESRCE
+!  (21) BCAR   : b-caryophyllene            : atoms C/cm2/s : SCALESRCE
+!  (22) OSQT   : Other sesquiterpenes       : atoms C/cm2/s : SCALESRCE
+!  (23) CHBr3  : Bromoform                  :       kg/m2/s : SCALESRCE
+!  (24) CH2Br2 : Dibromomethane             :       kg/m2/s : SCALESRCE
+!  (25) Br2    : Molec. Bromine             :       kg/m2/s : SCALESRCE
+!  (26) CH4    : Methane                    :   molec/cm2/s : SCALE3
+!  (27) ALD2   : ALD2 from senescing plants : atoms C/cm2/s : SCALESRCE
+!  (28) EOH    : EOH  from senescing plants : atoms C/cm2/s : SCALESRCE
+!  (29) ALD2   : ALD2 ocean emissions       : atoms C/cm2/s : SCALESRCE
 !
 !  NOTES:
 !  (1) ND46 now uses allocatable array AD46 instead of AIJ (bmy, 3/16/00)
@@ -4479,14 +4484,16 @@
          !-----------------------------------------------------------
          !%%%%% ETHANOL %%%%%
          !-----------------------------------------------------------
-         DiagnName = 'BIOGENIC_ETOH'
-         UNIT      = 'atoms C/cm2/s'
-         N         = 19
-         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( id_EOH > 0 ) THEN
+            DiagnName = 'BIOGENIC_ETOH'
+            UNIT      = 'atoms C/cm2/s'
+            N         = 19
+            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+            FACTOR    = GPERKG / MWC * AVO / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &           UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !-----------------------------------------------------------
          !%%%%% FARNESENE %%%%%
@@ -4655,6 +4662,50 @@
 
             ! Free pointer
             SpcInfo => NULL()
+         ENDIF
+
+         !-----------------------------------------------------------
+         !%%%%% ACETALDEHYDE FROM SENESCING PLANTS %%%%%
+         !-----------------------------------------------------------
+         IF ( id_ALD2 > 0 ) THEN
+            DiagnName = 'ALD2_SENESCING'
+            UNIT      = 'atoms C/cm2/s'
+            N         = 27
+            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+            SpcInfo => State_Chm%SpcData(id_ALD2)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp * CM2PERM2 )
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
+         !-----------------------------------------------------------
+         !%%%%% ETHANOL FROM SENESCING PLANTS %%%%%
+         !-----------------------------------------------------------
+         IF ( id_EOH > 0 ) THEN
+            DiagnName = 'EOH_SENESCING'
+            UNIT      = 'atoms C/cm2/s'
+            N         = 28
+            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+            FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
+         !-----------------------------------------------------------
+         !%%%%% ACETALDEHYDE OCEAN SOURCE %%%%%
+         !-----------------------------------------------------------
+         IF ( id_ALD2 > 0 ) THEN
+            DiagnName = 'ALD2_OCEAN_SOURCE'
+            UNIT      = 'atoms C/cm2/s'
+            N         = 29
+            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+            SpcInfo => State_Chm%SpcData(id_ALD2)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp * CM2PERM2 )
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
       ENDIF

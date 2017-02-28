@@ -383,19 +383,6 @@ CONTAINS
     ! Get parameterization type for Schmidt number in water 
     SCW     = OcSpecs(OcID)%SCWPAR
 
-    ! Molecular weight [g/mol]
-    ! Use real species molecular weight and not the emitted 
-    ! molecular weight. The molecular weight is only needed to
-    ! calculate the air-side Schmidt number, which should be 
-    ! using the actual species MW.
-    MW = HcoState%Spc(HcoID)%MW_g
-
-    ! Liquid molar volume at boiling point [cm3/mol]
-    VB = OcSpecs(OcID)%LiqVol
-
-    ! Get parameterization type for Schmidt number in water 
-    SCW = OcSpecs(OcID)%SCWPAR
-
     ! Model surface layer
     L       = 1
 
@@ -607,8 +594,9 @@ CONTAINS
 !
 ! \begin{enumerate}
 ! \item Parameterization as in Johnson, 2010 (default).
-! \item Parameteriaztion for DMS according to Saltzman et al., 1993.
-! \item Parameteriaztion for Acetone as in former acetone\_mod.F in GC. 
+! \item Parameterization for DMS according to Saltzman et al., 1993.
+! \item Parameterization for Acetone as in former acetone\_mod.F in GC. 
+! \item Parameterization for ALD2 
 ! \end{enumerate}
 
 ! The oceanic surface concentrations of all species are obtained from
@@ -683,7 +671,7 @@ CONTAINS
     ! ---------------------------------------------------------------------- 
     
     ! # of species for which air-sea exchange will be calculated
-    nOcSpc = 3
+    nOcSpc = 4
 
     ! Initialize vector w/ species information
     ALLOCATE ( OcSpecs(nOcSpc) ) 
@@ -741,6 +729,21 @@ CONTAINS
     OcSpecs(I)%OcSpcName  = 'ACET'
     OcSpecs(I)%OcDataName = 'ACET_SEAWATER'
     OcSpecs(I)%LiqVol     = 3d0*7d0 + 6d0*7d0 + 1d0*7d0 + 1d0*7d0 ! Johnson, 2010
+    OcSpecs(I)%SCWPAR     = 1
+
+    ! ----------------------------------------------------------------------
+    ! Acetaldehyde:
+    ! ----------------------------------------------------------------------
+
+    I = I + 1
+    IF ( I > nOcSpc ) THEN
+       CALL HCO_ERROR ( ERR, RC )
+       RETURN
+    ENDIF
+
+    OcSpecs(I)%OcSpcName  = 'ALD2'
+    OcSpecs(I)%OcDataName = 'ALD2_SEAWATER'
+    OcSpecs(I)%LiqVol     = 2d0*7d0 + 4d0*7d0 + 1d0*7d0 + 1d0*7d0 ! Johnson, 2010
     OcSpecs(I)%SCWPAR     = 1
 
     ! ----------------------------------------------------------------------

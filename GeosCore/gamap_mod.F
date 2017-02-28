@@ -134,12 +134,12 @@
       INTEGER :: id_ACET,  id_ALD2,  id_ALK4,  id_ASOA1 
       INTEGER :: id_BCPI,  id_BCPO,  id_BENZ,  id_C2H2  
       INTEGER :: id_C2H4,  id_C2H6,  id_C3H8,  id_CH2O  
-      INTEGER :: id_CH4,   id_CO,    id_GLYC,  id_GLYX  
-      INTEGER :: id_HAC,   id_ISOA1, id_LIMO
-      INTEGER :: id_MEK,   id_MGLY,  id_MTPA
-      INTEGER :: id_MTPO,  id_NAP,   id_NH3,   id_NK1   
-      INTEGER :: id_NO,    id_OCPI,  id_OCPO,  id_OPOA1 
-      INTEGER :: id_OPOG1, id_POA1,  id_PRPE  
+      INTEGER :: id_CH4,   id_CO,    id_EOH,   id_GLYC
+      INTEGER :: id_GLYX,  id_HAC,   id_ISOA1, id_LIMO
+      INTEGER :: id_MEK,   id_MGLY,  id_MTPA,  id_MTPO
+      INTEGER :: id_NAP,   id_NH3,   id_NK1,   id_NO
+      INTEGER :: id_OCPI,  id_OCPO,  id_OPOA1, id_OPOG1
+      INTEGER :: id_PAN,   id_POA1,  id_PRPE  
       INTEGER :: id_SOAG,  id_SOAM,  id_SO2,   id_TSOA1 
       INTEGER :: id_TOLU,  id_XYLE  
 
@@ -5550,6 +5550,28 @@
             UNIT (T,28) = 'molec/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
+         IF ( id_PAN > 0 ) THEN !(evf, 9/15/11)
+            T           = T + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'PAN'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = id_PAN + ( SPACING * 45 )
+            MWT  (T,28) = 121e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( id_HNO3 > 0 ) THEN !(evf, 9/15/11)
+            T           = T + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'HNO3'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = id_HNO3 + ( SPACING * 45 )
+            MWT  (T,28) = 121e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
          IF ( id_CO > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
@@ -5601,7 +5623,7 @@
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
             INDEX(T,28) = id_ALD2 + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
-            MOLC (T,28) = 3
+            MOLC (T,28) = 2 ! evf, bug fix, was 3 (10/31/2011)
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
@@ -5817,6 +5839,30 @@
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'atoms C/cm2/s' 
+            SCALE(T,28) = 1e0
+         ENDIF
+         !evf, 1/13/2012, eoh
+         IF ( id_EOH > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'EOH'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = id_EOH + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 2
+            UNIT (T,28) = 'atomsC/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         !evf, 8/14/2012, APINE
+         IF ( id_APINE > 0 ) THEN  ! Change to MTPA (mps, 2/24/17)
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'APINE'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = id_APINE + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 10
+            UNIT (T,28) = 'atomsC/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
       ENDIF
@@ -6380,7 +6426,7 @@
       !-------------------------------------      
       IF ( ND46 > 0 .or. DO_TIMESERIES ) THEN 
 
-         NTRAC(46) = 26
+         NTRAC(46) = 29
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
@@ -6476,40 +6522,51 @@
                !jpp, 9/6/07
                CASE( 23)
                   INDEX(T,46)  = T + ( SPACING * 21 )
-                  NAME  (T,46) = 'CHBr3'
-                  FNAME (T,46) = 'Ocean bromoform emissions'
-                  UNIT  (T,46) = 'kg/m2/s'
-                  MWT   (T,46) = 2.53e-1   !in [kg/mol]
+                  NAME (T,46) = 'CHBr3'
+                  FNAME(T,46) = 'Ocean bromoform emissions'
+                  UNIT (T,46) = 'kg/m2/s'
+                  MWT  (T,46) = 2.53e-1   !in [kg/mol]
                   SCALE(T,46) = 1e0
                CASE( 24)
-                  INDEX (T,46)  = T + ( SPACING * 21 )
-                  NAME  (T,46) = 'CH2Br2'
-                  FNAME (T,46) = 'Ocean dibromomethane emissions'
-                  UNIT  (T,46) = 'kg/m2/s'
-                  MWT   (T,46) = 1.74e-1   !in [kg/mol]
-                  SCALE (T,46) = 1e0
+                  INDEX(T,46)  = T + ( SPACING * 21 )
+                  NAME (T,46) = 'CH2Br2'
+                  FNAME(T,46) = 'Ocean dibromomethane emissions'
+                  UNIT (T,46) = 'kg/m2/s'
+                  MWT  (T,46) = 1.74e-1   !in [kg/mol]
+                  SCALE(T,46) = 1e0
                CASE( 25)
-                  INDEX (T,46)  = T + ( SPACING * 21 )
-                  NAME  (T,46) = 'SSBr2'
-                  FNAME (T,46) = 'sea-salt Br2 emissions'
-                  UNIT  (T,46) = 'kg/m2/s'
-                  MWT   (T,46) = 1.60e-1   !in [kg/mol]
-                  SCALE (T,46) = 1e0
+                  INDEX(T,46)  = T + ( SPACING * 21 )
+                  NAME (T,46) = 'SSBr2'
+                  FNAME(T,46) = 'sea-salt Br2 emissions'
+                  UNIT (T,46) = 'kg/m2/s'
+                  MWT  (T,46) = 1.60e-1   !in [kg/mol]
+                  SCALE(T,46) = 1e0
                CASE( 26)
-                  INDEX (T,46) = T + ( SPACING * 21 )
-                  NAME  (T,46) = 'CH4'
-                  FNAME (T,46) = 'CH4 emissions'
-                  UNIT  (T,46) = 'molec/cm2/s'
-                  MWT   (T,46) = 16e-3
-                  MOLC  (T,46) = 1
-                  SCALE (T,46) = 1e0
+                  INDEX(T,46) = T + ( SPACING * 21 )
+                  NAME (T,46) = 'CH4'
+                  FNAME(T,46) = 'CH4 emissions'
+                  UNIT (T,46) = 'molec/cm2/s'
+                  MWT  (T,46) = 16e-3
+                  MOLC (T,46) = 1
+                  SCALE(T,46) = 1e0
+               ! added ald2 and eoh, evf 10/31/11
+               CASE( 27)
+                  NAME (T,46) = 'ALD2sen'
+                  MOLC (T,46) = 2
+               CASE( 28)
+                  NAME (T,46) = 'EOHsene'
+                  MOLC (T,46) = 2
+               CASE( 29)
+                  NAME (T,46) = 'ALD2osr'
+                  MOLC (T,46) = 2
                CASE DEFAULT
                   ! Nothing
             END SELECT
 
             !jpp, 9/6/07: preventing these default quantities
             !             from overwriting CHBr3's info.
-            IF ( T < 23 .and. T /= 14 .and. T /= 15 .and. T /= 18 ) THEN
+            IF ( T /= 14 .and. T /= 15 .and. T /= 18 .and. T /= 23 .and.
+     &           T /= 24 .and. T /= 25 .and. T /= 26) THEN
                ! Define the rest of the quantities
                INDEX(T,46) = T + ( SPACING * 21 )
                FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
@@ -7636,9 +7693,11 @@
       id_CH2O  = Ind_('CH2O' )
       id_CH4   = Ind_('CH4'  )
       id_CO    = Ind_('CO'   )
+      id_EOH   = Ind_('EOH'  )
       id_GLYC  = Ind_('GLYC' )
       id_GLYX  = Ind_('GLYX' )
       id_HAC   = Ind_('HAC'  )
+      id_HNO3  = Ind_('HNO3' )
       id_ISOA1 = Ind_('ISOA1')
       id_LIMO  = Ind_('LIMO' )
       id_MEK   = Ind_('MEK'  ) 
@@ -7653,6 +7712,7 @@
       id_OCPO  = Ind_('OCPO' )
       id_OPOA1 = Ind_('OPOA1')
       id_OPOG1 = Ind_('OPOG1')
+      id_PAN   = Ind_('PAN'  )
       id_POA1  = Ind_('POA1' )
       id_PRPE  = Ind_('PRPE' )
       id_SOAG  = Ind_('SOAG' )

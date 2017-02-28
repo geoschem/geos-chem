@@ -9,10 +9,6 @@
 ! GFED biomass burning emissions in HEMCO. This can be GFED-3 or GFED-4,
 ! depending on the input data selected in the HEMCO configuration file. 
 !
-! !NOTES:
-!
-! !REFERENCES:
-!
 ! !INTERFACE: 
 !
 MODULE HCOX_GFED_MOD
@@ -411,6 +407,16 @@ CONTAINS
              SpcArr = SpcArr * POG1frac
           CASE ( 'POG2' )
              SpcArr = SpcArr * (1.0_sp - POG1frac)
+          ! Put 40% of NOx Biomass emissions into PAN
+          ! and 20% into HNO3 (evf, 9/9/11, 9/15/11)
+          ! Sensitivity study with Hudman 2007 recommendation
+          ! of 80% of NOX as PAN. (evf, 4/25/12)
+          CASE ( 'NO' )
+             SpcArr = SpcArr * 0.40_sp
+          CASE ( 'PAN' )
+             SpcArr = SpcArr * 0.40_sp
+          CASE ( 'HNO3' )
+             SpcArr = SpcArr * 0.20_sp
        END SELECT
 
        ! Check for masking
@@ -745,6 +751,8 @@ CONTAINS
        IF ( TRIM(SpcName) == 'POG1' ) SpcName = 'OC'
        IF ( TRIM(SpcName) == 'POG2' ) SpcName = 'OC'
        IF ( TRIM(SpcName) == 'NAP'  ) SpcName = 'CO'
+       IF ( TRIM(SpcName) == 'PAN'  ) SpcName = 'NO'
+       IF ( TRIM(SpcName) == 'HNO3' ) SpcName = 'NO'
 
        ! Search for matching GFED species by name
        Matched = .FALSE.

@@ -553,13 +553,10 @@
       INTEGER               :: LLCHEM_FIX
 
       !=================================================================
-      ! TRACER & EMISSION SPECIES PARAMETERS
+      ! SPECIES PARAMETERS
       !
-      ! NNPAR   = max number of tracers
-      ! NEMPARA = max number of anthropogenic emission species
-      ! NEMPARB = max number of biogenic      emission species
+      ! NNPAR   = max number of advected species
       !=================================================================
-      ! increase NNPAR and NEMPARA an extra amount (hotp 7/31/09)
 #if   defined( TOMAS )
 # if    defined( TOMAS40 )
       INTEGER,    PARAMETER :: NNPAR   = 430   ! For TOMAS40 (sfarina 6/11/13)
