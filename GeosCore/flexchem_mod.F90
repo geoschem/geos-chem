@@ -863,27 +863,40 @@ CONTAINS
                 ENDIF
              ENDIF
 
-#if defined( TOMAS )
-             !-------------------------------------------------------
-             ! FOR TOMAS MICROPHYSICS:
-             !
-             ! Obtain P/L with a unit [kg S] for tracing 
-             ! gas-phase sulfur species production (SO2, SO4, MSA)
-             ! (win, 8/4/09)
-             !-------------------------------------------------------
-
-             ! Calculate H2SO4 production rate [kg s-1] in each
-             ! time step (win, 8/4/09)
-             IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN 
-                ! Hard-coded MW
-                H2SO4_RATE(I,J,L) = VAR(KppID) / AVO * 98.e-3_fp * &
-                                    State_Met%AIRVOL(I,J,L)  * &
-                                    1e+6_fp / DT
-             ENDIF
-#endif
           ENDDO
-
        ENDIF
+
+#if defined( TOMAS )
+       !always calculate rate for TOMAS
+       DO F = 1, NFAM
+
+          ! Determine dummy species index in KPP
+          KppID = Ind_(TRIM(FAM_NAMES(F)),'K')
+          !-------------------------------------------------------
+          ! FOR TOMAS MICROPHYSICS:
+          !
+          ! Obtain P/L with a unit [kg S] for tracing
+          ! gas-phase sulfur species production (SO2, SO4, MSA)
+          ! (win, 8/4/09)
+          !-------------------------------------------------------
+
+          ! Calculate H2SO4 production rate [kg s-1] in each
+          ! time step (win, 8/4/09)
+          IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN
+             ! Hard-coded MW
+             H2SO4_RATE(I,J,L) = VAR(KppID) / AVO * 98.e-3_fp * &
+                                 State_Met%AIRVOL(I,J,L)  * &
+                                 1e+6_fp / DT
+
+            IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
+              write(*,*) "H2SO4_RATE negative in flexchem_mod.F90!!", &
+                 I, J, L, "was:", H2SO4_RATE(I,J,L), "  setting to 0.0d0"
+              H2SO4_RATE(I,J,L) = 0.0d0
+            ENDIF
+          ENDIF
+       ENDDO
+#endif
+
 
     ENDDO
     ENDDO
