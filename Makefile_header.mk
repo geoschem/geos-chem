@@ -191,6 +191,7 @@
 #                              implemented.
 #  12 Dec 2016 - R. Yantosca - Allow gfortran etc. to compile with TAU_PROF=y
 #  13 Dec 2016 - R. Yantosca - Add GPROF=y to compile for GNU profiler gprof
+#  01 Mar 2017 - R. Yantosca - Bug fix: Make sure NO_REDUCED=no works
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -584,11 +585,11 @@ ifndef NO_MET_NEEDED
 
   # %%%%% REDUCED VERTICAL GRID (default, unless specified otherwise) %%%%
   ifndef NO_REDUCED
+    NO_REDUCED       :=no
+  endif
+  REGEXP              :=(^[Nn]|^[Nn][Oo])
+  ifeq ($(shell [[ "$(NO_REDUCED)" =~ $(REGEXP) ]] && echo true),true)
     USER_DEFS        += -DGRIDREDUCED
-  else
-    REGEXP           :=(^[Yy]|^[Yy][Ee][Ss])
-    ifeq ($(shell [[ "$(NO_REDUCED)" =~ $(REGEXP) ]] && echo true),true)
-    endif
   endif
 
   # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
@@ -1459,8 +1460,8 @@ endif
 ###                                                                         ###
 ###  Export global variables so that the main Makefile will see these       ###
 ###                                                                         ###
-###############################################################################
- 
+##############################6#################################################
+
 export CC
 export F90
 export F90ISO
@@ -1498,10 +1499,11 @@ export TIMERS
 #	@@echo "CC          : $(CC)"
 #	@@echo "INCLUDE     : $(INCLUDE)"
 #	@@echo "LINK        : $(LINK)"
-#	@@echo "USERDEFS    : $(USER_DEFS)"
+#	@@echo "USER_DEFS   : $(USER_DEFS)"
 #	@@echo "NC_INC_CMD  : $(NC_INC_CMD)"
 #	@@echo "NC_LINK_CMD : $(NC_LINK_CMD)"
 #	@@echo "NC_DIAG     : $(NC_DIAG)"
 #	@@echo "IS_NC_DIAG  : $(IS_NC_DIAG)"	
 #	@@echo "BPCH_DIAG   : $(BPCH_DIAG)"
 #	@@echo "IS_BPCH_DIAG: $(IS_BPCH_DIAG)"
+#	@@echo "NO_REDUCED  : $(NO_REDUCED)"
