@@ -53,9 +53,9 @@ CONTAINS
     include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
-!!  ncid    : opened netCDF file id
+!   ncid    : opened netCDF file id
 !   filname : name of netCDF file to open for writing
-    integer          , intent(in)   ::  ncid
+    integer          , intent(in)   :: ncid
     character (len=*), intent(in)   :: filname
     LOGICAL, OPTIONAL, INTENT(IN)   :: WRITE_NC4
 !
@@ -76,6 +76,8 @@ CONTAINS
 !  07 Nov 2011 - R. Yantosca - Also give the option to create a netCDF4 file
 !                              by passing the optional WRITE_NC4 argument
 !  17 Feb 2017 - C. Holmes   - Use netCDF-4 classic model for netCDF-4 files
+!  01 Mar 2017 - R. Yantosca - Add an #ifdef to enable netCDF4 compression
+!                              only if the library has nf_def_var_deflate
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -83,6 +85,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
     character (len=128) :: err_msg
     integer             :: ierr
+    INTEGER             :: mode
     LOGICAL             :: TMP_NC4
 !
     ! Save the value of the optional WRITE_NC4 variable in
@@ -94,7 +97,13 @@ CONTAINS
     ENDIF
 
     IF ( TMP_NC4 ) THEN
-       ierr = Nf_Create (filname, OR(NF_NETCDF4,NF_CLASSIC_MODEL), ncid)  ! netCDF4 file, classic model
+#if defined( NC_HAS_COMPRESSION ) 
+       mode = IOR( NF_NETCDF4, NF_CLASSIC_MODEL )         ! netCDF4 file
+       ierr = Nf_Create (filname, mode, ncid)             !  w/ compression
+#else
+       ierr = Nf_Create (filname, NF_64BIT_OFFSET, ncid)  ! netCDF4 file
+                                                          !  w/o compression
+#endif
     ELSE
        ierr = Nf_Create (filname, NF_CLOBBER, ncid)       ! netCDF3 file
     ENDIF

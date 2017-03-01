@@ -181,8 +181,9 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  Initial code.
-!  17 Feb 2017 - C. Holmes - Enable netCDF-4 compression
-!
+!  17 Feb 2017 - C. Holmes   - Enable netCDF-4 compression
+!  01 Mar 2017 - R. Yantosca - Add an #ifdef to enable netCDF4 compression
+!                              only if the library has nf_def_var_deflate
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -203,28 +204,40 @@ CONTAINS
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
     END IF
 
+#if defined( NC_HAS_COMPRESSION )
+    !=====================================================================
     ! If the optional "compress" variable is used and set to TRUE, 
-    ! then enable variable compression  
+    ! then enable variable compression (cdh, 0/17/17) 
+    !
+    ! NOTE: We need to block this out with an #ifdef because some
+    ! netCDF installations might lack the nf_def_var_deflate function
+    ! which would cause a compile-time error. (bmy, 3/1/17)
+    !=====================================================================
     if (present(Compress)) then
-    if (Compress) then
-       ! Set compression
-       ierr = nf_def_var_deflate( ncid, var_id, shuffle, deflate, deflate_level )
 
-       ! Check for errors. 
-       ! No message will be generated if the error is simply that the file is not netCDF-4
-       ! (i.e. netCDF-3 don't support compression)
-       IF ( (ierr.ne.NF_NOERR) .and. (ierr.ne.NF_ENOTNC4)) THEN
+       if (Compress) then
+   
+          ! Set compression
+          ierr = nf_def_var_deflate( ncid, var_id,  shuffle,       &
+                                           deflate, deflate_level )
 
-          ! Errors enabling compression will not halt the program
-          doStop = .False.
+          ! Check for errors. 
+          ! No message will be generated if the error is simply that the 
+          ! file is not netCDF-4
+          ! (i.e. netCDF-3 don't support compression)
+          IF ( (ierr.ne.NF_NOERR) .and. (ierr.ne.NF_ENOTNC4)) THEN
 
-          ! Print error
-          err_msg = 'Nf_Def_Var_Deflate: can not compress variable : '// Trim (name)
-          CALL Do_Err_Out (err_msg, doStop, 0, 0, 0, 0, 0.0d0, 0.0d0)
-       END IF
+             ! Errors enabling compression will not halt the program
+             doStop = .False.
 
+             ! Print error
+             err_msg = 'Nf_Def_Var_Deflate: can not compress variable : '// Trim (name)
+             CALL Do_Err_Out (err_msg, doStop, 0, 0, 0, 0, 0.0d0, 0.0d0)
+          END IF
+
+       endif
     endif
-    endif
+#endif
 
   END SUBROUTINE NcDef_variable
 !EOC

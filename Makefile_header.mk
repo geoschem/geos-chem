@@ -191,6 +191,8 @@
 #                              implemented.
 #  12 Dec 2016 - R. Yantosca - Allow gfortran etc. to compile with TAU_PROF=y
 #  13 Dec 2016 - R. Yantosca - Add GPROF=y to compile for GNU profiler gprof
+#  01 Mar 2017 - R. Yantosca - Set -DNC_HAS_COMPRESSION if the netCDF library
+#                              can write compressed data to disk
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -1010,6 +1012,28 @@ LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)
 # Create linker command to create the HEMCO standalone executable
 LINK_HCO             :=-L$(LIB) -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders
 LINK_HCO             :=$(LINK_HCO) -lNcUtils $(NC_LINK_CMD)
+
+###############################################################################
+###                                                                         ###
+###  Test if the netCDF library was built with compression enabled          ###
+###                                                                         ###
+###############################################################################
+
+# Test if the "nf_def_var_deflate" function is defined in netcdf.inc
+# Look for netcdf.inc where the netCDF-Fortran library is located
+ifdef GC_F_INCLUDE
+  GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_F_INCLUDE)/netcdf.inc))
+else
+  GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_INCLUDE)/netcdf.inc))
+endif
+
+# Look for the second word of the combined search results
+WORD                 :=$(word 2,"$(GREP)")
+
+# If it matches "nf_def_var_deflate", then define Cpp flag NC_HAS_COMPRESSION 
+ifeq ($(WORD),nf_def_var_deflate)
+  USER_DEFS          += -DNC_HAS_COMPRESSION
+endif
 
 ###############################################################################
 ###                                                                         ###
