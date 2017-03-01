@@ -2005,6 +2005,7 @@
 !  19 Mar 2012 - R. Yantosca - Now echo info for 0.25 x 0.3125 runs
 !  19 Mar 2012 - R. Yantosca - Now echo info if ISORROPIA is turned off
 !  22 Oct 2012 - R. Yantosca - Now echo info if -DDEVEL is used
+!  01 Mar 2017 - R. Yantosca - Now echo info if netCDF can do compression
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2125,13 +2126,23 @@
       WRITE( 6, '(a)' ) REPEAT( '#', 34 )
 #endif
 
+      !-------------------------------------------------
+      ! Print msg if DEVEL is turned on for testing
+      !-------------------------------------------------
+#if   defined( NC_HAS_COMPRESSION )
+      WRITE( 6, '(a)' ) REPEAT( '#', 55 )
+      WRITE( 6, 100 ) 
+ 100  FORMAT( '# This netCDF library build supports file compression #')
+      WRITE( 6, '(a)' ) REPEAT( '#', 55 )
+      
+#endif
       
       !-------------------------------------------------
       ! System time stamp
       !-------------------------------------------------
       STAMP = SYSTEM_TIMESTAMP()
-      WRITE( 6, 100 ) STAMP
- 100  FORMAT( /, '===> SIMULATION START TIME: ', a, ' <===', / )
+      WRITE( 6, 110 ) STAMP
+ 110  FORMAT( /, '===> SIMULATION START TIME: ', a, ' <===', / )
 
       END SUBROUTINE DISPLAY_GRID_AND_MODEL
 !EOC

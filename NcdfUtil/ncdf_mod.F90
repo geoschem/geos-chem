@@ -3379,7 +3379,7 @@ CONTAINS
 !
   SUBROUTINE NC_VAR_DEF ( fId, lonId, latId, levId, TimeId, &
                           VarName, VarLongName, VarUnit,    &
-                          DataType, VarCt, DefMode )
+                          DataType, VarCt, DefMode, Compress )
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -3393,6 +3393,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   ) :: VarUnit
     INTEGER,          INTENT(IN   ) :: DataType     ! 1=Int, 4=float, 8=double
     LOGICAL, OPTIONAL,INTENT(IN   ) :: DefMode
+    LOGICAL, OPTIONAL,INTENT(IN   ) :: Compress
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3409,6 +3410,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
 !  21 Jan 2017 - C. Holmes   - Added optional DefMode argument to avoid excessive switching between define and data modes
+!  18 Feb 2017 - C. Holmes   - Enable netCDF-4 compression
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3474,7 +3476,7 @@ CONTAINS
  
     ! Define variable
     CALL NcDef_Variable( fId,  TRIM(VarName), NF_TYPE,   &
-                         nDim, VarDims,       VarCt       )
+                         nDim, VarDims,       VarCt,     Compress  )
     deallocate( VarDims )
 
     ! Define variable atttibutes

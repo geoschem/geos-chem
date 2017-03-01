@@ -132,6 +132,7 @@ CONTAINS
 !  21 Jan 2017 - C. Holmes   - Write all variable metadata in define mode, then
 !                              switch to data mode just once. Much faster
 !                              writing. 
+!  17 Feb 2017 - C. Holmes   - Enable netCDF-4 compression
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -345,7 +346,7 @@ CONTAINS
 
     ! Add longitude 
     CALL NC_VAR_DEF ( fId, lonId, -1, -1, -1, &
-                      'lon', 'Longitude', 'degrees_east', Prc, VarCt )
+                      'lon', 'Longitude', 'degrees_east', Prc, VarCt, Compress=.True. )
     ALLOCATE( Arr1D( nLon ) )
     Arr1D = HcoState%Grid%XMID%Val(:,1)
     CALL NC_VAR_WRITE ( fId, 'lon', Arr1D=Arr1D )
@@ -353,7 +354,7 @@ CONTAINS
     
     ! Add latitude
     CALL NC_VAR_DEF ( fId, -1, latId, -1, -1, &
-                      'lat', 'Latitude', 'degrees_north', Prc, VarCt )
+                      'lat', 'Latitude', 'degrees_north', Prc, VarCt, Compress=.True. )
     ALLOCATE( Arr1D( nLat ) )
     Arr1D = HcoState%Grid%YMID%Val(1,:)
     CALL NC_VAR_WRITE ( fId, 'lat', Arr1D=Arr1D )
@@ -362,7 +363,7 @@ CONTAINS
     ! Add level 
     IF ( .NOT. NoLevDim ) THEN
        CALL NC_VAR_DEF ( fId, -1, levId, -1, -1, &
-                         'lev', 'GEOS-Chem level', 'unitless', Prc, VarCt )
+                         'lev', 'GEOS-Chem level', 'unitless', Prc, VarCt, Compress=.True. )
        allocate(Arr1D(nLev))
        DO I = 1, nLev
           Arr1D(I) = REAL(I)
@@ -370,7 +371,7 @@ CONTAINS
        CALL NC_VAR_WRITE ( fId, 'lev', Arr1D=Arr1D )
        deallocate(Arr1D)
 !    CALL NC_VAR_DEF ( fId, -1, levId, -1, -1, &
-!                      'lev', 'GEOS-Chem level', 'unitless', 1, VarCt )
+!                      'lev', 'GEOS-Chem level', 'unitless', 1, VarCt, Compress=.True. )
 !    allocate(Int1D(nLev))
 !    DO I = 1, nLev
 !       Int1D(I) = I
@@ -433,7 +434,7 @@ CONTAINS
     allocate(nctime(1)) 
     nctime(1) = JD_DELTA_RND
     CALL NC_VAR_DEF ( fId, -1, -1, -1, timeId, &
-                      'time', 'Time', TRIM(timeunit), 4, VarCt )
+                      'time', 'Time', TRIM(timeunit), 4, VarCt, Compress=.True. )
     CALL NC_VAR_WRITE ( fId, 'time', Arr1D=nctime )
     deallocate(nctime)
 
@@ -443,7 +444,7 @@ CONTAINS
     myName = 'AREA'
     myUnit = 'm2'
     CALL NC_VAR_DEF ( fId, lonId, latId, -1, -1, &
-                      TRIM(myName), 'Grid box area', TRIM(myUnit), Prc, VarCt )
+                      TRIM(myName), 'Grid box area', TRIM(myUnit), Prc, VarCt, Compress=.True. )
     CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr2D=HcoState%Grid%Area_M2%Val )
 
     !-----------------------------------------------------------------
@@ -501,7 +502,8 @@ CONTAINS
 
           ! Write out in single precision
           CALL NC_VAR_DEF ( fId, lonId, latId, levIdTmp, timeId, &
-               TRIM(myName), TRIM(myName), TRIM(myUnit), SP, VarCt, DefMode )
+               TRIM(myName), TRIM(myName), TRIM(myUnit), SP, VarCt, &
+               DefMode, Compress=.True. )
 
           ! Additional tracer attributes: long_name and _FillValue
           CALL NcDef_var_attributes( fID, VarCt, "long_name",        &

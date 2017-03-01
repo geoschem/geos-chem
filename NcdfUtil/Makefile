@@ -206,7 +206,7 @@ test: ncdfcheck
 
 clean:
 	@echo "===> Making clean in directory: NcdfUtil <==="
-	@rm -f *.o *.mod *.x *.a $(EXE)
+	@rm -f *.o *.mod *.x *.a *.nc $(EXE)
 
 slowclean:
 	@echo "===> Making slowclean in directory: NcdfUtil <==="
