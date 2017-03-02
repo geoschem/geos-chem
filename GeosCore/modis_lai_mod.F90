@@ -294,8 +294,7 @@ CONTAINS
        ENDDO
 
        ! Calculate average LAI for this grid cell across all land types
-       State_Met%MODISLAI(I,J) =    &
-                SUM( State_Met%XLAI_NATIVE(I,J,1:State_Met%IREG(I,J)) )
+       State_Met%MODISLAI(I,J) = SUM( State_Met%XLAI_NATIVE(I,J,:) )
 
     ENDDO
     ENDDO
