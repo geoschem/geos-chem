@@ -3429,7 +3429,7 @@
       IF ( CT1 /= 2 ) THEN 
          MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &         'must be read in first!'
-         CALL ERROR_STOP( MSG, 'READ_TRANSPORT_MENU ("input_mod.f")' )
+         CALL ERROR_STOP( MSG, 'READ_CONVECTION_MENU ("input_mod.f")' )
       ENDIF
 
       ! Turn on convection?
