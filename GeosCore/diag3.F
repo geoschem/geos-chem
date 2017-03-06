@@ -2189,7 +2189,8 @@
 !  (3  ) JH2O2 : H2O2  J-Value                 : s-1   : SCALE_JV
 !  (4  ) JCH2O : CH2O  J-Value                 : s-1   : SCALE_JV
 !  (5  ) JO3   : O3    J-Value                 : s-1   : SCALE_JV
-!  (6  ) POH   : OH-source from O3 photolysis  : s-1   : SCALE_JV
+!  (6  ) JO3P  : O3P   J-value (Standard,UCX)  : s-1   : SCALE_JV
+!        POH   : OH    from O3 (Tropchem,SOA)  : s-1   : SCALE_JV
 !  (7  ) JGLYX : GLYX  J-Value                 : s-1   : SCALE
 !  (8  ) JMGLY : MGLY  J-Value                 : s-1   : SCALE
 !  (9  ) BrO   : BrO   J-Value                 : s-1   : SCALE_JV
@@ -2238,12 +2239,12 @@
             NN = N
 
             !-----------------------------------------------------------------
-            ! NOTE: We can no longer select "all" in "input.geos", but we
-            ! must specify the tracer #'s for ND22 explicitly:
+            ! NOTE: We can no longer select "all" in input.geos, but we
+            ! must specify the species #'s for ND22 explicitly as listed below:
             !
             ! Fullchem:
             ! 1           = NO
-            ! 2           = O3 & OH (trop-only); O3_O1D & O3_O3P (UCX)
+            ! 2           = O3_O1D & O3_O3P (Standard,UCX); O3 & OH (Trop,SOA)
             ! 7           = HNO3
             ! 8           = H2O2
             ! 9           = ACET
@@ -2257,18 +2258,18 @@
             ! 49          = BrNO2
             ! 50          = BrNO3
             ! 51          = CHBr3
-            ! 58          = HAC
-            ! 59          = GLYC
-            ! 64          = NO2
-            ! 65          = NO3
-            ! 67          = N2O   (UCX simulation only)
-            ! 72          = CCl4  (UCX simulation only)
-            ! 73          = CH3Cl (UCX simulation only)
-            ! 77          = CFC11 (UCX simulation only)
-            ! 78          = CFC12 (UCX simulation only)
-            ! -1          = O2    (UCX simulation only)
-            ! 94          = GLYX  (dicarbonyl simulation only)
-            ! 95          = MGLY  (dicarbonyl simulation only)
+            ! 59          = HAC
+            ! 60          = GLYC
+            ! 66          = NO2
+            ! 67          = NO3
+            ! 69          = N2O   (Standard, UCX simulations only)
+            ! 74          = CCl4  (Standard, UCX simulations only)
+            ! 75          = CH3Cl (Standard, UCX simulations only)
+            ! 83          = CFC11 (Standard, UCX simulations only)
+            ! 84          = CFC12 (Standard, UCX simulations only)
+            ! -1          = O2    (Standard, UCX simulations only)
+            ! N/A         = GLYX  (dicarbonyl simulation only) *needs updating*
+            ! N/A         = MGLY  (dicarbonyl simulation only) *needs updating*
             !
             ! HCN simulation:
             ! 1           = HCN
