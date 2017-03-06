@@ -468,14 +468,25 @@ CONTAINS
          !==============================================================
 
          ! Local time [hours] at box (I,J) at the midpt of the chem timestep
-         CALL HcoClock_GetLocal ( HcoState, I, J, cH=LHR, RC=RC )
+         !CALL HcoClock_GetLocal ( HcoState, I, J, cH=LHR, RC=RC )
+         ! Temporarily use LHR to store the longitude
+         LHR = HcoState%Grid%XMid%Val(I,J)
+         ! Force it to be between -180 and +180
+         Do While (LHR < -180.0e+0_hp)
+            LHR = LHR + 180.0e+0_hp
+         End Do
+         Do While (LHR >  180.0e+0_hp)
+            LHR = LHR - 180.0e+0_hp
+         End Do
+         LHR = HOUR + (LHR/15.0e+0_hp)
+         
          IF ( RC /= HCO_SUCCESS ) THEN
             ERR = .TRUE.
             EXIT
          ENDIF
 
          ! Adjust for time shift
-         LHR = LHR + DT
+         !LHR = LHR + DT
          IF ( LHR <   0.0_hp ) LHR = LHR + 24.0_hp
          IF ( LHR >= 24.0_hp ) LHR = LHR - 24.0_hp
 
