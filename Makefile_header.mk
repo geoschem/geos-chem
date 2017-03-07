@@ -208,7 +208,7 @@
 SHELL                :=/bin/bash
 
 # Error message for bad COMPILER input
-ERR_CMPLR            :="Select a compiler: COMPILER=ifort, COMPILER=pgi, COMPILER=gfortran"
+ERR_CMPLR            :="Unknown Fortran compiler!  Must be one of ifort, gfortran, pgfortran|pgi|pgf90.  Check the FC environment variable in your .bashrc or .cshrc file."
 
 # Error message for unknown compiler/OS combintation
 ERR_OSCOMP           :="Makefile_header.mk not set up for this compiler/OS combination"
@@ -299,22 +299,25 @@ endif
 
 # %%%%% Test if GNU Fortran Compiler is selected %%%%%
 REGEXP               :=(^[Gg][Ff][Oo][Rr][Tt][Rr][Aa][Nn])
-ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
   COMPILE_CMD        :=$(FC)
+  THE_COMPILER       :=gfortran
   USER_DEFS          += -DLINUX_GFORTRAN
 endif
 
 # %%%%% Test if Intel Fortran Compiler is selected %%%%%
 REGEXP               :=(^[Ii][Ff][Oo][Rr][Tt])
-ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
   COMPILE_CMD        :=$(FC)
+  THE_COMPILER       :=ifort
   USER_DEFS          += -DLINUX_IFORT
 endif
 
 # %%%%% Test if PGI Fortran compiler is selected  %%%%%
 REGEXP               :=(^[Pp][Gg])
-ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
   COMPILE_CMD        :=$(FC)
+  THE_COMPILER       :=pgfortran
   USER_DEFS          += -DLINUX_PGI
 endif
 
@@ -1063,7 +1066,7 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(COMPILER),gfortran) 
+ifeq ($(THE_COMPILER),gfortran) 
 
   # Get the GNU Fortran version
   VERSIONTEXT        :=$(shell $(FC) --version)
@@ -1227,7 +1230,7 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(COMPILER),ifort) 
+ifeq ($(THE_COMPILER),ifort) 
 
   # Base set of compiler flags
   FFLAGS             :=-cpp -w -auto -noalign -convert big_endian
@@ -1357,7 +1360,7 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(COMPILER),pgfortran) 
+ifeq ($(THE_COMPILER),pgfortran) 
 
   # Base set of compiler flags
   FFLAGS             :=-Kieee -byteswapio -Mpreprocess -m64
