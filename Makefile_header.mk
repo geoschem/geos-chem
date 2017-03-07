@@ -194,6 +194,8 @@
 #  01 Mar 2017 - R. Yantosca - Bug fix: Make sure NO_REDUCED=no works
 #  01 Mar 2017 - R. Yantosca - Set -DNC_HAS_COMPRESSION if the netCDF library
 #                              can write compressed data to disk
+#  07 Mar 2017 - R. Yantosca - Replace makefile variable COMPILER with
+#                              COMPILER_FAMILY; also works if FC=mpif90
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -208,7 +210,7 @@
 SHELL                :=/bin/bash
 
 # Error message for bad COMPILER input
-ERR_CMPLR            :="Unknown Fortran compiler!  Must be one of ifort, gfortran, pgfortran|pgi|pgf90.  Check the FC environment variable in your .bashrc or .cshrc file."
+ERR_CMPLR            :="Unknown Fortran compiler!  Must be one of ifort, gfortran, pgfortran|pgi|pgf90, or mpifort|mpif90.  Check the FC environment variable in your .bashrc or .cshrc file."
 
 # Error message for unknown compiler/OS combintation
 ERR_OSCOMP           :="Makefile_header.mk not set up for this compiler/OS combination"
@@ -291,37 +293,47 @@ endif
 
 # %%%%% Set default compiler %%%%%
 
-# %%%%% If COMPILER is not defined, default to the $(FC) variable, which %%%%%
-# %%%%% is set in your .bashrc, or when you load the compiler module     %%%%%
-ifndef COMPILER
-  COMPILER           :=$(FC)
-endif
-
-# %%%%% Test if GNU Fortran Compiler is selected %%%%%
-REGEXP               :=(^[Gg][Ff][Oo][Rr][Tt][Rr][Aa][Nn])
+# %%%%% Test if mpif90/mpifort is selected (for now assume ifort) %%%%%
+REGEXP               :=(^[Mm][Pp][Ii])
 ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
   COMPILE_CMD        :=$(FC)
-  THE_COMPILER       :=gfortran
-  USER_DEFS          += -DLINUX_GFORTRAN
+  COMPILER_FAMILY    :=Intel
+  USER_DEFS          += -DLINUX_IFORT
 endif
 
 # %%%%% Test if Intel Fortran Compiler is selected %%%%%
 REGEXP               :=(^[Ii][Ff][Oo][Rr][Tt])
 ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
-  COMPILE_CMD        :=$(FC)
-  THE_COMPILER       :=ifort
+  ifeq ($(HPC),yes) 
+    COMPILE_CMD      :=mpif90
+  else
+    COMPILE_CMD      :=$(FC)
+  endif
+  COMPILER_FAMILY    :=Intel
   USER_DEFS          += -DLINUX_IFORT
+endif
+
+# %%%%% Test if GNU Fortran Compiler is selected %%%%%
+REGEXP               :=(^[Gg][Ff][Oo][Rr][Tt][Rr][Aa][Nn])
+ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
+  ifeq ($(HPC),yes) 
+    COMPILE_CMD      :=mpif90
+  else
+    COMPILE_CMD      :=$(FC)
+  endif
+  COMPILER_FAMILY    :=GNU
+  USER_DEFS          += -DLINUX_GFORTRAN
 endif
 
 # %%%%% Test if PGI Fortran compiler is selected  %%%%%
 REGEXP               :=(^[Pp][Gg])
 ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
   COMPILE_CMD        :=$(FC)
-  THE_COMPILER       :=pgfortran
+  COMPILER_FAMILY    :=PGI
   USER_DEFS          += -DLINUX_PGI
 endif
 
-# %%%%% ERROR CHECK!  Make sure our COMPILER selection is valid! %%%%%
+# %%%%% ERROR CHECK!  Make sure our compiler selection is valid! %%%%%
 REGEXP               :=((-DLINUX_)?IFORT|PGI|GFORTRAN)
 ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
   $(error $(ERR_CMPLR))
@@ -1066,7 +1078,7 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(THE_COMPILER),gfortran) 
+ifeq ($(COMPILER_FAMILY),GNU) 
 
   # Get the GNU Fortran version
   VERSIONTEXT        :=$(shell $(FC) --version)
@@ -1230,7 +1242,7 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(THE_COMPILER),ifort) 
+ifeq ($(COMPILER_FAMILY),Intel) 
 
   # Base set of compiler flags
   FFLAGS             :=-cpp -w -auto -noalign -convert big_endian
@@ -1360,7 +1372,7 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(THE_COMPILER),pgfortran) 
+ifeq ($(COMPILER_FAMILY),PGI) 
 
   # Base set of compiler flags
   FFLAGS             :=-Kieee -byteswapio -Mpreprocess -m64
@@ -1519,18 +1531,19 @@ export TIMERS
 
 #headerinfo:
 #	@@echo '####### in Makefile_header.mk ########'
-#	@@echo "COMPILER    : $(COMPILER)"
-#	@@echo "DEBUG       : $(DEBUG)"
-#	@@echo "BOUNDS      : $(BOUNDS)"
-#	@@echo "F90         : $(F90)"
-#	@@echo "CC          : $(CC)"
-#	@@echo "INCLUDE     : $(INCLUDE)"
-#	@@echo "LINK        : $(LINK)"
-#	@@echo "USER_DEFS   : $(USER_DEFS)"
-#	@@echo "NC_INC_CMD  : $(NC_INC_CMD)"
-#	@@echo "NC_LINK_CMD : $(NC_LINK_CMD)"
-#	@@echo "NC_DIAG     : $(NC_DIAG)"
-#	@@echo "IS_NC_DIAG  : $(IS_NC_DIAG)"	
-#	@@echo "BPCH_DIAG   : $(BPCH_DIAG)"
-#	@@echo "IS_BPCH_DIAG: $(IS_BPCH_DIAG)"
-#	@@echo "NO_REDUCED  : $(NO_REDUCED)"
+#	@@echo "COMPILER_FAMILY : $(COMPILER_FAMILY)"
+#	@@echo "COMPILE_CMD     : $(COMPILE_CMD)"
+#	@@echo "DEBUG           : $(DEBUG)"
+#	@@echo "BOUNDS          : $(BOUNDS)"
+#	@@echo "F90             : $(F90)"
+#	@@echo "CC              : $(CC)"
+#	@@echo "INCLUDE         : $(INCLUDE)"
+#	@@echo "LINK            : $(LINK)"
+#	@@echo "USER_DEFS       : $(USER_DEFS)"
+#	@@echo "NC_INC_CMD      : $(NC_INC_CMD)"
+#	@@echo "NC_LINK_CMD     : $(NC_LINK_CMD)"
+#	@@echo "NC_DIAG         : $(NC_DIAG)"
+#	@@echo "IS_NC_DIAG      : $(IS_NC_DIAG)"	
+#	@@echo "BPCH_DIAG       : $(BPCH_DIAG)"
+#	@@echo "IS_BPCH_DIAG    : $(IS_BPCH_DIAG)"
+#	@@echo "NO_REDUCED      : $(NO_REDUCED)"
