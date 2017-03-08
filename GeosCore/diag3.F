@@ -4488,11 +4488,15 @@
             DiagnName = 'BIOGENIC_ETOH'
             UNIT      = 'atoms C/cm2/s'
             N         = 19
+            SpcInfo => State_Chm%SpcData(id_eoh)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-            FACTOR    = GPERKG / MWC * AVO / CM2PERM2
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &           UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+            ! Free pointer
+            SpcInfo => NULL()
          ENDIF
 
          !-----------------------------------------------------------
@@ -4671,12 +4675,15 @@
             DiagnName = 'ALD2_SENESCING'
             UNIT      = 'atoms C/cm2/s'
             N         = 27
+            SpcInfo  => State_Chm%SpcData(id_ALD2)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-            SpcInfo => State_Chm%SpcData(id_ALD2)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp * CM2PERM2 )
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+            ! Free pointer
+            SpcInfo => NULL()
          ENDIF
 
          !-----------------------------------------------------------
@@ -4686,11 +4693,15 @@
             DiagnName = 'EOH_SENESCING'
             UNIT      = 'atoms C/cm2/s'
             N         = 28
+            SpcInfo  => State_Chm%SpcData(id_EOH)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-            FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+            ! Free pointer
+            SpcInfo => NULL()
          ENDIF
 
          !-----------------------------------------------------------
@@ -4700,12 +4711,15 @@
             DiagnName = 'ALD2_OCEAN_SOURCE'
             UNIT      = 'atoms C/cm2/s'
             N         = 29
+            SpcInfo  => State_Chm%SpcData(id_ALD2)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-            SpcInfo => State_Chm%SpcData(id_ALD2)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp * CM2PERM2 )
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+            ! Free pointer
+            SpcInfo => NULL()
          ENDIF
 
       ENDIF

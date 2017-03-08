@@ -3003,6 +3003,8 @@ CONTAINS
 !  22 Apr 2015 - M. Sulprizio- Now save out hydrocarbons in units kgC/m2/s
 !  02 Jun 2016 - R. Yantosca - Bug fix: only save seasalt Br2 diagnostics
 !                              for full-chemistry or aerosol-only simulations
+!  01 Mar 2017 - M. Sulprizio- Add ALD2 senescing, EOH senescing, and ALD2 from
+!                              ocean source
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3464,8 +3466,7 @@ CONTAINS
     ! These diagnostics use the SeaSalt extension
     !=======================================================================
     IF ( ( ND46 > 0                     )   .and. &
-         ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.  &
-           Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+         ( Input_Opt%ITS_A_FULLCHEM_SIM ) ) THEN
 
        ! Extension # of SeaSalt
        ExtNr = GetExtNr( HcoState%Config%ExtList, 'SeaSalt')
@@ -3508,6 +3509,108 @@ CONTAINS
              IF ( RC /= HCO_SUCCESS ) RETURN 
           ENDIF
        ENDIF
+    ENDIF
+
+    !=======================================================================
+    ! These diagnostics are from the base emissions
+    !=======================================================================
+    IF ( ( ND46 > 0                     )   .and. &
+         ( Input_Opt%ITS_A_FULLCHEM_SIM ) ) THEN
+
+       !----------------------------------------
+       ! %%%%% ALD2 from senescing plants %%%%%
+       !----------------------------------------
+
+       ! HEMCO species ID
+       HcoID = HCO_GetHcoID( 'ALD2', HcoState )
+
+       ! Create diagnostic container
+       IF ( HcoID > 0 ) THEN
+          ExtNr     = 0
+          DiagnName = 'ALD2_SENESCING'
+          CALL Diagn_Create( am_I_Root,                     & 
+                             HcoState  = HcoState,          &
+                             cName     = TRIM( DiagnName ), &
+                             ExtNr     = ExtNr,             &
+                             Cat       = CATEGORY_BIOGENIC, &
+                             Hier      = -1,                &
+                             HcoID     = HcoID,             &
+                             SpaceDim  = 2,                 &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'atoms C/cm2/s',   &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                             AutoFill  = 1,                 &
+                             RC        = RC                  )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+       ENDIF
+
+       !----------------------------------------
+       ! %%%%% EOH from senescing plants %%%%%
+       !----------------------------------------
+
+       ! HEMCO species ID
+       HcoID = HCO_GetHcoID( 'EOH', HcoState )
+
+       ! Create diagnostic container
+       IF ( HcoID > 0 ) THEN
+          ExtNr     = 0
+          DiagnName = 'EOH_SENESCING'
+          CALL Diagn_Create( am_I_Root,                     & 
+                             HcoState  = HcoState,          &
+                             cName     = TRIM( DiagnName ), &
+                             ExtNr     = ExtNr,             &
+                             Cat       = CATEGORY_BIOGENIC, &
+                             Hier      = -1,                &
+                             HcoID     = HcoID,             &
+                             SpaceDim  = 2,                 &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'atoms C/cm2/s',   &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                             AutoFill  = 1,                 &
+                             RC        = RC                  )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+       ENDIF
+
+    ENDIF
+
+    !=======================================================================
+    ! These diagnostics use the SeaFlux extension
+    !=======================================================================
+    IF ( ( ND46 > 0                     )   .and. &
+         ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.  &
+           Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+
+       !----------------------------------------
+       ! %%%%% ALD2 from ocean source %%%%%
+       !----------------------------------------
+       ExtNr = GetExtNr( HcoState%Config%ExtList, 'SeaFlux')
+       IF ( ExtNr <= 0 ) THEN
+          CALL HCO_Error ( 'SeaFlux extension not enabled', RC, THISLOC=LOC )
+          RETURN      
+       ENDIF
+
+       ! HEMCO species ID
+       HcoID = HCO_GetHcoID( 'ALD2', HcoState )
+
+       ! Create diagnostic container
+       IF ( HcoID > 0 ) THEN
+          DiagnName = 'ALD2_OCEAN_SOURCE'
+          CALL Diagn_Create( am_I_Root,                     & 
+                             HcoState  = HcoState,          &
+                             cName     = TRIM( DiagnName ), &
+                             ExtNr     = ExtNr,             &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = HcoID,             &
+                             SpaceDim  = 2,                 &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'atoms C/cm2/s',   &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                             AutoFill  = 1,                 &
+                             RC        = RC                  )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+       ENDIF
+
     ENDIF
 
   END SUBROUTINE Diagn_Biogenic
