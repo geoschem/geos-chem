@@ -399,7 +399,7 @@
 {310} BrO + NO2 {+M} = BrNO3 {+M} :                    GCJPLPR(5.40E-31, 3.1E+00, 0.0, 6.5E-12, 2.9, 0.0, 0.6, 0.0, 0.0); {JPL 15-10}
 {311} CHBr3 + OH = 3.000Br :                           GCARR(9.00E-13, 0.0E+00, -360.0); {JPL 15-10}
 {312} CH2Br2 + OH = 2.000Br :                          GCARR(2.00E-12, 0.0E+00, -840.0);
-{313} CH3Br + OH = Br :                                GCARR(2.35E-12, 0.0E+00, -1300.0);
+{313} CH3Br + OH = Br :                                GCARR(1.42E-12, 0.0E+00, -1150.0);
 {314} BrNO3 = HOBr + HNO3 :                            HET(ind_BrNO3,1);
 {315} HOBr = 0.500Br2 + H2O :                          HET(ind_HOBr,1);
 {316} HBr = 0.500Br2 :                                 HET(ind_HBr,1);

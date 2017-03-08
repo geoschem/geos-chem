@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Thu Feb 23 16:15:40 2017
+! Time                 : Wed Mar  8 15:22:13 2017
 ! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/UCX
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -740,7 +740,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(255) = (GCJPLPR(5.40E-31,3.1E+00,0.0,6.5E-12,2.9,0.0,0.6,0.0,0.0))
   RCONST(256) = (GCARR(9.00E-13,0.0E+00,-360.0))
   RCONST(257) = (GCARR(2.00E-12,0.0E+00,-840.0))
-  RCONST(258) = (GCARR(2.35E-12,0.0E+00,-1300.0))
+  RCONST(258) = (GCARR(1.42E-12,0.0E+00,-1150.0))
   RCONST(259) = (HET(ind_BrNO3,1))
   RCONST(260) = (HET(ind_HOBr,1))
   RCONST(261) = (HET(ind_HBr,1))
@@ -883,7 +883,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(398) = (GCARR(1.25E-12,0.0E+00,-1600.0))
   RCONST(399) = (GCARR(1.30E-12,0.0E+00,-1770.0))
   RCONST(400) = (GCARR(7.40E-13,0.0E+00,-900.0))
-  RCONST(401) = (GCARR(7.10E-11,0.0E+00,-1270.0))
+  RCONST(401) = (GCARR(7.10E-12,0.0E+00,-1270.0))
   RCONST(402) = (GCARR(8.10E-11,0.0E+00,-30.0))
   RCONST(403) = (GCARR(2.30E-11,0.0E+00,-200.0))
   RCONST(404) = (GCARR(3.05E-11,0.0E+00,-2270.0))

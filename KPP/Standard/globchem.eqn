@@ -400,7 +400,7 @@
 {312} BrO + NO2 {+M} = BrNO3 {+M} :                    GCJPLPR(5.40E-31, 3.1E+00, 0.0, 6.5E-12, 2.9, 0.0, 0.6, 0.0, 0.0); {JPL 15-10}
 {313} CHBr3 + OH = 3.000Br :                           GCARR(9.00E-13, 0.0E+00, -360.0); {JPL 15-10}
 {314} CH2Br2 + OH = 2.000Br :                          GCARR(2.00E-12, 0.0E+00, -840.0);
-{315} CH3Br + OH = Br + H2O + HO2 :                    GCARR(2.35E-12, 0.0E+00, -1300.0);
+{315} CH3Br + OH = Br + H2O + HO2 :                    GCARR(1.42E-12, 0.0E+00, -1150.0);
 {316} BrNO3 + H2O = HOBr + HNO3 :                      HET(ind_BrNO3,1);
 {317} HOBr = 0.500Br2 + H2O :                          HET(ind_HOBr,1);
 {318} HBr = 0.500Br2 :                                 HET(ind_HBr,1);
@@ -603,7 +603,7 @@
 {472} OH + HCFC141b = 2.000Cl + H2O :                  GCARR(1.25E-12, 0.0E+00, -1600.0);
 {473} OH + HCFC142b = Cl + H2O :                       GCARR(1.30E-12, 0.0E+00, -1770.0);
 {474} OH + HCFC123 = 2.000Cl + H2O :                   GCARR(7.40E-13, 0.0E+00, -900.0);  {JPL 15-10}
-{475} CH4 + Cl = HCl + MO2 :                           GCARR(7.10E-11, 0.0E+00, -1270.0); {JPL 15-10}
+{475} CH4 + Cl = HCl + MO2 :                           GCARR(7.10E-12, 0.0E+00, -1270.0); {JPL 15-10}
 {476} CH2O + Cl = CO + HCl + HO2 :                     GCARR(8.10E-11, 0.0E+00, -30.0);
 {477} Cl + O3 = ClO + O2 :                             GCARR(2.30E-11, 0.0E+00, -200.0);
 {478} Cl + H2 = H + HCl :                              GCARR(3.05E-11, 0.0E+00, -2270.0);
