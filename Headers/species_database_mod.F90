@@ -297,28 +297,6 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-          CASE( 'APINE' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'alpha-Pinene',               &
-                              MW_g          = 136.234_fp,                   &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 10.0_fp,                      &
-                              Is_Advected   = T,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-#if defined( NEW_HENRY_CONSTANTS )
-!------------------------------------------------------------------------------
-! Need to add new values for methylglyoxal (mps, 01/03/17)
-!                              Henry_K0      = 1.20e-5_f8 * To_M_atm,        &
-!                              Henry_CR      = 3100.0_f8,                    &
-!------------------------------------------------------------------------------
-#endif
-                              RC            = RC )
-
           CASE( 'ALK4' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &

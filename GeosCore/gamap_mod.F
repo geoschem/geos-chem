@@ -5853,13 +5853,13 @@
             UNIT (T,28) = 'atomsC/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         !evf, 8/14/2012, APINE
-         IF ( id_APINE > 0 ) THEN  ! Change to MTPA (mps, 2/24/17)
+         !evf, 8/14/2012, APINE, now MTPA
+         IF ( id_MTPA > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
-            NAME (T,28) = 'APINE'
+            NAME (T,28) = 'MTPA'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            INDEX(T,28) = id_APINE + ( SPACING * 45 )
+            INDEX(T,28) = id_MTPA + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 10
             UNIT (T,28) = 'atomsC/cm2/s'

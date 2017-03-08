@@ -40,6 +40,8 @@
 ! !REVISION HISTORY: 
 !  08 Aug 2014 - R. Yantosca - Initial version
 !  10 Jul 2015 - R. Yantosca - Fixed minor issues in ProTeX header
+!  08 Mar 2017 - M. Sulprizio- Added the following updates from E. Fischer:
+!                              - Added EOH and MTPA for PAN updates
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -268,6 +270,24 @@ GFED4_EMFAC(25,3)=4.81E-03_hp
 GFED4_EMFAC(25,4)=2.08E-02_hp
 GFED4_EMFAC(25,5)=2.20E-03_hp
 GFED4_EMFAC(25,6)=4.81E-03_hp
+
+! EOH
+GFED3_SPEC_NAME(26)="EOH"
+GFED3_EMFAC(26,1)=7.90E-06_hp
+GFED3_EMFAC(26,2)=8.65E-06_hp
+GFED3_EMFAC(26,3)=2.86E-05_hp
+GFED3_EMFAC(26,4)=1.80E-05_hp
+GFED3_EMFAC(26,5)=3.22E-06_hp
+GFED3_EMFAC(26,6)=1.80E-05_hp
+
+! MTPA=APINE+BPINE+SABIN+CARE
+GFED3_SPEC_NAME(27)="MTPA"
+GFED3_EMFAC(27,1)=5.98E-04_hp
+GFED3_EMFAC(27,2)=0.00E+00_hp
+GFED3_EMFAC(27,3)=2.72E-03_hp
+GFED3_EMFAC(27,4)=0.00E+00_hp
+GFED3_EMFAC(27,5)=5.98E-05_hp
+GFED3_EMFAC(27,6)=0.00E+00_hp
 
 ! Hg0
 GFED4_SPEC_NAME(26)="Hg0"

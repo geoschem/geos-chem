@@ -37,10 +37,21 @@
 !  GFED3_EMFAC(N,1) = Savanna              Emission Factor for species N       
 !  GFED3_EMFAC(N,1) = Woodland             Emission Factor for species N
 ! 
+!  References:
+!  ============================================================================
+!  (1 ) Akagi, S.K., R.J. Yokelson, C. Wiedinmyer, M.J. Alvarado, J.S. Reid,
+!       T. Karl, J.D. Crounse, and P.O. Wennberg, Emission factors for open and
+!       domestic biomass burning for use in atmospheric models, Atmos. Chem.
+!       Phys., 11, 4039-4072, 10.5194/acp-11-4039-2011, 2011.
+!
 ! !REVISION HISTORY: 
 !  08 Aug 2014 - R. Yantosca - Initial version
 !  10 Jul 2015 - R. Yantosca - Fixed minor issues in ProTeX header
-!  16 Oct 2015 - M. Sulprizio- Added EOH and APINE for PAN updates
+!  16 Oct 2015 - M. Sulprizio- Added the following updates from E. Fischer:
+!                              - Added EOH and MTPA for PAN updates;
+!                              - Updated the emission factors for NMVOCs and
+!                                NOx from extratropical forests, savannas and
+!                                agricultural fires from Akagi et al. (2011,ACP)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -279,8 +290,8 @@ GFED3_EMFAC(26,4)=1.80E-05_hp
 GFED3_EMFAC(26,5)=3.22E-06_hp
 GFED3_EMFAC(26,6)=1.80E-05_hp
 
-! APINE
-GFED3_SPEC_NAME(27)="APINE"
+! MTPA=APINE+BPINE+SABIN+CARE
+GFED3_SPEC_NAME(27)="MTPA"
 GFED3_EMFAC(27,1)=5.98E-04_hp
 GFED3_EMFAC(27,2)=0.00E+00_hp
 GFED3_EMFAC(27,3)=2.72E-03_hp
