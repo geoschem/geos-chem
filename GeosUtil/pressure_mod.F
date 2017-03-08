@@ -380,15 +380,15 @@
       !-------------------------------------------------------
       ! GEOS-4, GEOS-5, GEOS-FP, MERRA, and MERRA-2 met fields
       !-------------------------------------------------------
-#if defined( ESMF_ )
+!#if defined( ESMF_ )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Taken from the GCM fields
-      PEDGE = EXTERNAL_PEDGE(I,J,L)
-#else
+!      PEDGE = EXTERNAL_PEDGE(I,J,L)
+!#else
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Computed for use w/in GEOS-Chem
       PEDGE = AP(L) + ( BP(L) * PFLT_WET(I,J) )
-#endif
+!#endif
 
 #endif     
 
