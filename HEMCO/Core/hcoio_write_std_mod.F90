@@ -100,6 +100,9 @@ CONTAINS
     USE HCO_EXTLIST_MOD,     ONLY : GetExtOpt, CoreNr
     USE HCO_Types_Mod,       ONLY : DiagnCont
     USE HCO_Clock_Mod
+
+    ! Parameters for netCDF routines
+    include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !
@@ -133,6 +136,7 @@ CONTAINS
 !                              switch to data mode just once. Much faster
 !                              writing. 
 !  17 Feb 2017 - C. Holmes   - Enable netCDF-4 compression
+!  08 Mar 2017 - R. Yantosca - Use unlimited time dimensions for netCDF files
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -330,13 +334,14 @@ CONTAINS
 
     ! Create output file
     ! Pass CREATE_NC4 to make file format netCDF-4 (mps, 3/3/16)
+    ! Now create netCDF file with time dimension as UNLIMITED (bmy, 3/8/17)
     IF ( NoLevDim ) THEN
-       CALL NC_CREATE( ncFile, title, nLon,  nLat,    -1,  nTime,  &
-                       fId,    lonId, latId, levId, timeId, VarCt, &
+       CALL NC_CREATE( ncFile, title, nLon,  nLat,  -1,     NF_UNLIMITED,  &
+                       fId,    lonId, latId, levId, timeId, VarCt,         &
                        CREATE_NC4=.TRUE. )
     ELSE
-       CALL NC_CREATE( ncFile, title, nLon,  nLat,  nLev,  nTime,  &
-                       fId,    lonId, latId, levId, timeId, VarCt, &
+       CALL NC_CREATE( ncFile, title, nLon,  nLat,  nLev,   NF_UNLIMITED,  &
+                       fId,    lonId, latId, levId, timeId, VarCt,         &
                        CREATE_NC4=.TRUE. ) 
     ENDIF
 
