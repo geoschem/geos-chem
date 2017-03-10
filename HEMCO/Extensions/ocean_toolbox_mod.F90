@@ -26,6 +26,8 @@
 ! \item  E. Fuller et al.: "New method for prediction of binary gas-phase 
 !        diffusion coefficients", Industrial \& Engineering Chemistry, 58, 
 !        1966.
+! \item Saltzman et al.: Experimental determination of the diffusion
+!    coefficient of dimethylsulfide in water, J. Geophys. Res., 98, 1993.
 ! \end{itemize}
 !
 ! !INTERFACE: 
