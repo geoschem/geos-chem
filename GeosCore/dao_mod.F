@@ -1945,6 +1945,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !  27 Nov 2012 - R. Yantosca - Update SUNCOS fields of the State_Met object
+!  10 Mar 2017 - E. Lundgren - Bug fix: include partial hour in current time
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1980,7 +1981,8 @@
       FACTOR   = MINUTE / TS_SUN                       ! Multiplying factor
 
       ! GMT at the current time
-      GMT_CUR  = DBLE( GMT_HOUR )
+      GMT_CUR  = DBLE( GMT_HOUR          )
+     &         + ( DBLE( TS_SUN * FACTOR ) / 60e+0_fp ) 
 
       ! GMT at the midpoint of the chemistry time interval
       GMT_MID  = ( DBLE( GMT_HOUR        )        )  
