@@ -598,6 +598,7 @@ CONTAINS
 ! \item Parameterization as in Johnson, 2010 (default).
 ! \item Parameterization for DMS according to Saltzman et al., 1993.
 ! \item Parameterization for Acetone as in former acetone\_mod.F in GC. 
+! \item Parameterization for Acetaldehyde as in ald2\_mod.F from D. Millet
 ! \end{enumerate}
 
 ! The oceanic surface concentrations of all species are obtained from
@@ -745,7 +746,7 @@ CONTAINS
     OcSpecs(I)%OcSpcName  = 'ALD2'
     OcSpecs(I)%OcDataName = 'ALD2_SEAWATER'
     OcSpecs(I)%LiqVol     = 2d0*7d0 + 4d0*7d0 + 1d0*7d0 + 1d0*7d0 ! Johnson, 2010
-    OcSpecs(I)%SCWPAR     = 1 ! Schmidt number following Johnson, 2010
+    OcSpecs(I)%SCWPAR     = 4 ! Schmidt number of acetaldehyde
 
     ! ----------------------------------------------------------------------
     ! Match module species with species assigned to this module in config.

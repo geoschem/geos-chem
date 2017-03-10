@@ -23,7 +23,7 @@
 !  and hence not distinguishable from those. For most compounds, no biofuel 
 !  diagnostics are written.
 ! \item In HEMCO, ocean sinks are treated as drydep and the calculated 
-!  deposition velocities are passed to drydep\_mod.F. Hence, no Acetone
+!  deposition velocities are passed to drydep\_mod.F. Hence, no Acetone or ALD2
 !  ocean sink is calculated by HEMCO and the DMS diagnostics only includes
 !  the ocean flux (this is NOT the net flux!!). 
 !  If needed, we can build a simple wrapper in hcoi\_gc\_main\_mod.F90 that
@@ -3902,6 +3902,9 @@ CONTAINS
 
     !=======================================================================
     ! These diagnostics use the SeaFlux extension
+    !
+    ! As we did for acetone, only keep track of flux from ocean. Deposition
+    ! from the atmosphere is handled by drydep.
     !=======================================================================
     IF ( ( ND46 > 0                     )   .and. &
          ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.  &

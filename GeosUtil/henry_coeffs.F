@@ -44,7 +44,6 @@
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  11 Dec 2014 - M. Yannetti - Reverted PRECISION changes due to hcoi_gc_main_mod
 !  02 Feb 2017 - M. Sulprizio- Added ALD2 based on code from E. Fischer
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
