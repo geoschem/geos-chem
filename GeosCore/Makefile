@@ -159,7 +159,6 @@
 #  23 Jun 2016 - R. Yantosca - Remove references to GeosApm
 #  30 Jun 2016 - M. Sulprizio- Remove readchem.F, reader.F, jsparse.F, ksparse.F
 #  09 Aug 2016 - M. Sulprizio- Remove diag_pl_mod and add diag20_mod
-#  02 Feb 2017 - M. Sulprizio- Add modifications for ald2_mod (E. Fischer)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -426,10 +425,6 @@ a6_read_mod.o               : a6_read_mod.F                                  \
 aerosol_mod.o               : aerosol_mod.F                                  \
                               chemgrid_mod.o          dao_mod.o              \
                               diag_mod.o              ucx_mod.o
-
-ald2_mod.o                  : ald2_mod.F              acetone_mod.o          \
-                              pbl_mix_mod.o           tracer_mod.o           \
-                              dao_mod.o
 
 benchmark_mod.o             : benchmark_mod.F                              
 
