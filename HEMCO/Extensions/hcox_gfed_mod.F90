@@ -235,6 +235,9 @@ CONTAINS
 !                                any more but fraction (0.0 - 1.0).
 !  21 Sep 2016 - R. Yantosca   - Bug fix: move WHERE statement for HUMTROP
 !                                into the GFED3 block to avoid segfault
+!  10 Mar 2017 - M. Sulprizio  - Add SpcArr3D for emitting 65% of biomass
+!                                burning emissions into the PBL and 35% into the
+!                                free troposphere, following code from E.Fischer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -242,12 +245,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL, SAVE       :: FIRST = .TRUE.
-    INTEGER             :: N, M
+    INTEGER             :: I, J, L, N, M
+    INTEGER             :: PBL_TOP
+    REAL(hp)            :: PBL_FRAC, F_OF_PBL, F_OF_FT
+    REAL(hp)            :: DELTPRES, TOTPRESFT
     REAL(hp), POINTER   :: TmpPtr(:,:)
     CHARACTER(LEN=63)   :: MSG
 
     REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET    :: SpcArr3D(HcoState%NX,HcoState%NY,HcoState%NZ)
    
     !=================================================================
     ! HCOX_GFED_Run begins here!
@@ -259,6 +266,10 @@ CONTAINS
     ! Enter 
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_GFED_Run (hcox_gfed_mod.F90)', RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Add only 65% biomass burning source to boundary layer, the
+    ! rest is emitted into the free troposphere (mps from evf+tjb, 3/10/17)
+    PBL_FRAC = 0.65_hp
 
     !-----------------------------------------------------------------
     ! Get pointers to data arrays 
@@ -423,8 +434,56 @@ CONTAINS
        CALL HCOX_SCALE( am_I_Root, HcoState, SpcArr, TRIM(SpcScalFldNme(N)), RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
+       ! Loop over grid boxes
+       DO J = 1, HcoState%Ny
+       DO I = 1, HcoState%Nx
+
+          ! Planetary boundary layer top [level]
+          PBL_TOP  = ExtState%PBL_TOP_L%Arr%Val(I,J) 
+          F_OF_PBL = 0e+0_hp
+
+          ! Loop over the boundary layer
+          DO L = 1, PBL_TOP
+
+             ! Fraction of PBL that box (I,J,L) makes up [unitless]
+             F_OF_PBL = ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) 
+
+             ! Add only 65% biomass burning source to PBL
+             ! Distribute emissions thru the entire boundary layer
+             ! (mps from evf+tjb, 3/10/17)
+             SpcArr3D(I,J,L) = SpcArr(I,J) * PBL_FRAC * F_OF_PBL
+
+          ENDDO
+
+          ! Total thickness of the free troposphere [hPa]
+          ! (considered here to be 10 levels above the PBL)
+          TOTPRESFT = HcoState%Grid%PEDGE%Val(I,J,PBL_TOP+1) - &
+                      HcoState%Grid%PEDGE%Val(I,J,PBL_TOP+10)
+
+          ! Loop over the free troposphere
+          DO L = PBL_TOP+1, PBL_TOP+10
+
+             ! Thickness of level L [hPa]
+             DELTPRES= HcoState%Grid%PEDGE%Val(I,J,L) - &
+                       HcoState%Grid%PEDGE%Val(I,J,L+1)
+
+             ! Fraction of FT that box (I,J,L) makes up [unitless]
+             F_OF_FT = DELTPRES / TOTPRESFT
+
+             ! Add 35% of biomass burning source to free troposphere
+             ! Distribute emissions thru 10 model levels above the BL
+             ! (mps from evf+tjb, 3/10/17)
+             SpcArr3D(I,J,L) = SpcArr(I,J) * (1.0-PBL_FRAC) * F_OF_FT
+
+          ENDDO
+
+       ENDDO
+       ENDDO
+
        ! Add flux to HEMCO emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, SpcArr, HcoIDs(N), RC, ExtNr=ExtNr ) 
+       ! Now 3D flux (mps, 3/10/17)
+       CALL HCO_EmisAdd( am_I_Root, HcoState,   SpcArr3D, HcoIDs(N), &
+                         RC,        ExtNr=ExtNr ) 
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'HCO_EmisAdd error: ' // TRIM(HcoState%Spc(HcoIDs(N))%SpcName)
           CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
@@ -781,6 +840,14 @@ CONTAINS
           RETURN
        ENDIF
     ENDDO !N
+
+    !=======================================================================
+    ! Activate this module and the fields of ExtState that it uses
+    !=======================================================================
+
+    ! Activate met fields required by this extension
+    ExtState%PBL_TOP_L%DoUse   = .TRUE.
+    ExtState%FRAC_OF_PBL%DoUse = .TRUE.
 
     ! Enable module
     ExtState%GFED = .TRUE.

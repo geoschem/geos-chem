@@ -1534,6 +1534,8 @@ CONTAINS
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use biomass
 !  17 Jun 2016 - R. Yantosca - Now define species ID's with Ind_ function
+!  10 Mar 2017 - M. Sulprizio- Change SpaceDim from 2 to 3 for emitting 35% of
+!                              biomass burning source into the free troposphere
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1593,7 +1595,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1619,7 +1621,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1645,7 +1647,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1671,7 +1673,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1697,7 +1699,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1723,7 +1725,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1749,7 +1751,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1774,7 +1776,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1796,7 +1798,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1818,7 +1820,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1840,7 +1842,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1862,7 +1864,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1884,7 +1886,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1906,7 +1908,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1928,7 +1930,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1950,7 +1952,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1972,7 +1974,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2000,7 +2002,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2036,7 +2038,7 @@ CONTAINS
                                 Cat       = Cat,               &
                                 Hier      = -1,                &
                                 HcoID     = HcoID,             &
-                                SpaceDim  = 2,                 &
+                                SpaceDim  = 3,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
                                 COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2062,7 +2064,7 @@ CONTAINS
                                 Cat       = Cat,               &
                                 Hier      = -1,                &
                                 HcoID     = HcoID,             &
-                                SpaceDim  = 2,                 &
+                                SpaceDim  = 3,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
                                 COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2083,7 +2085,7 @@ CONTAINS
                                 Cat       = Cat,               &
                                 Hier      = -1,                &
                                 HcoID     = HcoID,             &
-                                SpaceDim  = 2,                 &
+                                SpaceDim  = 3,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
                                 COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2109,7 +2111,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2130,7 +2132,7 @@ CONTAINS
                              Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2196,7 +2198,7 @@ CONTAINS
                                    Cat       = Cat,                 &
                                    Hier      = -1,                  &
                                    HcoID     = HcoID,               &
-                                   SpaceDim  = 2,                   &
+                                   SpaceDim  = 3,                   &
                                    LevIDx    = -1,                  &
                                    OutUnit   = 'kg/m2/s',           &
                                    COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2228,7 +2230,7 @@ CONTAINS
                              Cat       = Cat,             &
                              Hier      = -1,              &
                              HcoID     = HcoID,           &
-                             SpaceDim  = 2,               &
+                             SpaceDim  = 3,               &
                              LevIDx    = -1,              &
                              OutUnit   = 'kg/m2/s',       &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,&
@@ -2255,7 +2257,7 @@ CONTAINS
                           Cat       = Cat,             &
                           Hier      = -1,              &
                           HcoID     = HcoID,           &
-                          SpaceDim  = 2,               &
+                          SpaceDim  = 3,               &
                           LevIDx    = -1,              &
                           OutUnit   = 'kg/m2/s',       &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,&
@@ -3228,7 +3230,7 @@ CONTAINS
                                    Cat       = CATEGORY_AIRCRAFT,         &
                                    Hier      = -1,                        &
                                    HcoID     = HcoID,                     &
-                                   SpaceDim  = 2,                         &
+                                   SpaceDim  = 3,                         &
                                    LevIDx    = -1,                        &
                                    OutUnit   = 'kg/m2/s',                 &
                                    COL       = HcoState%Diagn%HcoDiagnIDManual,  &
