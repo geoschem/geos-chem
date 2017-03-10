@@ -232,6 +232,7 @@
 !  19 Jul 2016 - R. Yantosca - Now bracket DO_TEND calls with #ifdef USE_TEND
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  11 Aug 2016 - R. Yantosca - Clean up calls to error subroutines
+!  09 Mar 2017 - C. Keller   - Bug fix: call TEND_STAGE1 before unit conversion
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -336,6 +337,14 @@
       ! to [kg/kg dry air]. (ewl, 8/13/15)
       !-----------------------------------------------------------------
 
+#if defined( USE_TEND )
+      !=================================================================
+      ! Archive species concentrations for tendencies (ckeller,7/15/2015)
+      !=================================================================
+      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
+     &                  State_Chm, 'CHEM', RC )
+#endif
+
       ! Convert species units from [kg/kg] to [kg] for chemistry (ewl, 8/12/15)
       CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
      &                               State_Chm, RC         ) 
@@ -344,14 +353,6 @@
          CALL GC_Error( MSG, RC, LOC )
          RETURN
       ENDIF  
-
-#if defined( USE_TEND )
-      !=================================================================
-      ! Archive species concentrations for tendencies (ckeller,7/15/2015)
-      !=================================================================
-      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'CHEM', RC )
-#endif
 
       !=================================================================
       ! If LCHEM=T then call the chemistry subroutines
