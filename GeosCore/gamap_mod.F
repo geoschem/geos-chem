@@ -141,7 +141,7 @@
       INTEGER :: id_OCPI,  id_OCPO,  id_OPOA1, id_OPOG1
       INTEGER :: id_PAN,   id_POA1,  id_PRPE  
       INTEGER :: id_SOAG,  id_SOAM,  id_SO2,   id_TSOA1 
-      INTEGER :: id_TOLU,  id_XYLE  
+      INTEGER :: id_TOLU,  id_XYLE,  id_HNO3
 
       CONTAINS
 !EOC

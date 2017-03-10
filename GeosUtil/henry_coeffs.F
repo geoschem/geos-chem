@@ -53,7 +53,7 @@
 !
 
       ! Constants to be used for each tracer
-      INTEGER,           PARAMETER :: N = 4
+      INTEGER,           PARAMETER :: N = 5
 
       ! NOTE: GFORTRAN throws a hissy fit if the names in the array 
       ! constructor are not all the same length (bmy, 9/19/16)
