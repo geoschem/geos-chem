@@ -154,6 +154,8 @@ CONTAINS
 !                              rename from FLEX_CHEMDR to Do_FlexChem
 !  22 Sep 2016 - R. Yantosca - Add extra debug printout after FAST_JX
 !  14 Nov 2016 - E. Lundgren - Move UCX calls to after spc conversion to kg
+!  10 Mar 2017 - C. Keller   - Make sure ind_CH4 is correctly specified in
+!                              ESMF environment.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -254,6 +256,11 @@ CONTAINS
     MONTH     = GET_MONTH()
     YEAR      = GET_YEAR()
 
+    ! Define advected species ID flag
+    ! Make sure that id_CH4 is also defined if EXTERNAL_GRID
+    ! or EXTERNAL_FORCING compiler switches are on (ckeller, 3/10/17).
+    id_CH4 = Ind_('CH4','A')
+
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
     !-----------------------------------------------------------------
     !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
@@ -274,9 +281,6 @@ CONTAINS
        !---------------------------------
        ! Set global concentration of CH4
        !---------------------------------
-       ! Define advected species ID flag
-       id_CH4 = Ind_('CH4','A')
-
        ! Check that CH4 is not an advected species
        ! Check that CH4 is a KPP species (ind_CH4 is from gckpp_Monitor.F90)
        IF ( id_CH4 <= 0 .and. ind_CH4 > 0 .and. ( CH4_YEAR /= YEAR ) ) THEN

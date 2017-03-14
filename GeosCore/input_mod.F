@@ -2970,6 +2970,7 @@
 !  18 Jun 2013 - D. Ridley   - Initial version
 !  03 Dec 2014 - M. Sulprizio- Now save fields to the Input_Opt object
 !  10 Dec 2014 - M. Sulprizio- Add error checks for RRTMG switches
+!  10 Mar 2017 - C. Keller   - Wrapped print out in am_I_Root statement.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3099,18 +3100,22 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      WRITE( 6, '(/,a)' ) 'RADIATION MENU'
-      WRITE( 6, '(  a)' ) '--------------'
-      DO N=1, NWVSELECT
-      WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ', WVSELECT(N)
-      ENDDO
-      WRITE( 6, 100     ) 'Turn on radiation?          : ', LRAD
-      WRITE( 6, 100     ) 'Consider LW                 : ', LLWRAD
-      WRITE( 6, 100     ) 'Consider SW                 : ', LSWRAD
-      WRITE( 6, 125     ) 'Clear-sky/All-sky           : ',
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'RADIATION MENU'
+         WRITE( 6, '(  a)' ) '--------------'
+         DO N=1, NWVSELECT
+            WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ', 
+     &         WVSELECT(N)
+         ENDDO
+         WRITE( 6, 100     ) 'Turn on radiation?          : ', LRAD
+         WRITE( 6, 100     ) 'Consider LW                 : ', LLWRAD
+         WRITE( 6, 100     ) 'Consider SW                 : ', LSWRAD
+         WRITE( 6, 125     ) 'Clear-sky/All-sky           : ',
      &                    LSKYRAD(1),'/',LSKYRAD(2)
-      WRITE( 6, 110     ) 'Radiation timestep [min]    : ', TS_RAD
-      WRITE( 6, 120     ) 'Flux output selection       : ', LSPECRADMENU
+         WRITE( 6, 110     ) 'Radiation timestep [min]    : ', TS_RAD
+         WRITE( 6, 120     ) 'Flux output selection       : ', 
+     &      LSPECRADMENU
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )

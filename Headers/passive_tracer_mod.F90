@@ -405,6 +405,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  04 Sep 2015 - C. Keller    - Initial version 
+!  09 Mar 2017 - C. Keller    - Bug fix: initialize molw to default value of 0.0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -422,6 +423,7 @@ CONTAINS
     ! Init
     IsPass = .FALSE.
     InConc = 0.0_fp 
+    molw   = 0.0_fp 
 
     ! Nothing to do if no passive tracers defined
     IF ( NPASSIVE > 0 ) THEN 

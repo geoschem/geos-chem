@@ -5564,6 +5564,8 @@
 !  12 Feb 2015 - C. Keller   - Initial version
 !  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod since not used. 
 !  27 Jun 2016 - C. Keller   - Use VUD_DEFINED instead of ESMF_ compiler switch.
+!  13 Mar 2017 - C. Keller   - Bug fix: make sure VUD_DEFINED is updated after
+!                              defining VUD.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5595,6 +5597,9 @@
      &          * State_Met%BXHEIGHT(I,J,L) 
      &          / State_Met%DELP    (I,J,L) 
          ENDIF
+
+         ! VUD is now defined
+         VUD_DEFINED = .TRUE.
       ENDIF
 
       !=================================================================

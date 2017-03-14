@@ -175,6 +175,7 @@
 !  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
 !                               species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca  - Remove temporary tracer-removal code
+!  10 Mar 2017 - C. Keller    - Add print out statement after initialization. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -307,6 +308,16 @@
 
             ENDIF
          ENDIF
+
+         ! Print out
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) REPEAT( '=', 79 )
+            WRITE( 6, 110 )
+            WRITE( 6, 100 ) REPEAT( '=', 79 )
+         ENDIF
+
+100      FORMAT( a                                            )
+110      FORMAT( 'Successfully initialized ISORROPIA code II' )
 
          ! Reset first-time flag
          FIRST = .FALSE. 
