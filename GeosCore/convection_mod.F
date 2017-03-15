@@ -420,7 +420,7 @@
             DO NW = 1, State_Chm%nWetDep
 
                ! Get the species ID From the wetdep ID
-               N = State_Chm%Map_Advect(NA)
+               N = State_Chm%Map_Wetdep(NW)
 
                ! Archive diagnostic
                DO L = 1, LD14
@@ -2731,7 +2731,7 @@
                   ! timesteps so that the sum represents the average loss rate 
                   ! across all internal timesteps.
                   !------------------------------------------------------------
-                  IF ( USE_DIAG14 ) THEN
+                  IF ( USE_DIAG14 .and. NW > 0 ) THEN
                      DIAG14(K,NW) = 
      &               DIAG14(K,NW) + ( -T2-T3 ) * AREA_M2 / DNS   
                   ENDIF
