@@ -373,12 +373,14 @@ CONTAINS
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
     ENDIF
 
-    ! Eventually set Minit
+#if defined( ESMF_ )
+    ! Eventually set Minit if in ESMF environment (ckeller, 4/6/16)
     IF ( .NOT. Minit_Is_Set ) THEN
        CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, &
                        State_Chm, errCode )
        IF ( errCode /= GC_SUCCESS ) RETURN
     ENDIF
+#endif
 
     !======================-================================================
     ! FULL CHEMISTRY SIMULATIONS
@@ -1554,9 +1556,9 @@ CONTAINS
     ALLOCATE( MInit( IIPAR, JJPAR, LLPAR, nAdvect ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
 
+#if !defined( ESMF_ )
     ! Set MINIT. Ignore in ESMF environment because State_Chm%Species
     ! is not yet filled during initialization. (ckeller, 4/6/16)
-#if !defined( ESMF_ )
     CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 #endif
@@ -1620,6 +1622,7 @@ CONTAINS
 !  06 Apr 2016 - C. Keller   - Initial version: moved outside of 
 !                              INIT_STRAT_CHEM so that it can be called from
 !                              within DO_STRAT_CHEM (for ESMF applications).
+!  15 Mar 2017 - E. Lundgren - Add unit catch and error handling
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1627,6 +1630,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: N, NA
+    LOGICAL :: UNITCHANGE
+    CHARACTER(LEN=255)     :: MSG, LOC
 
     !=================================================================
     ! SET_MINIT begins here!
@@ -1635,18 +1640,31 @@ CONTAINS
     ! Assume success
     RC                       = GC_SUCCESS
 
-    ! Safety check that STT is non-zero.
-    IF ( SUM(State_Chm%Species) <= 0.0_fp ) RETURN
+    ! Set location for error handling
+    LOC = 'Routine SET_MINIT in strat_chem_mod.F90'
 
-    ! Convert species from [kg/kg dry air] to [kg] so
-    ! that initial state of atmosphere is in same units as 
-    ! chemistry ([kg]), and then convert back after MInit is assigned 
-    ! (ewl, 8/10/15)
-    CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, &
-                     'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
-       RETURN
+    ! Assume no unit change is necessary and species are already in kg
+    UNITCHANGE = .FALSE.
+
+    ! Safety check that STT is non-zero.
+    IF ( SUM(State_Chm%Species) <= 0.0_fp ) THEN
+       CALL GC_Error( 'Negative species concentrations!', RC, LOC )
+    ENDIF
+
+    ! If incoming species units are in mixing ratio, convert species 
+    ! from [kg/kg dry air] to [kg] so that initial state of atmosphere 
+    ! is in same units as chemistry ([kg]), and then convert back after 
+    ! MInit is assigned (ewl, 8/10/15)
+    IF ( TRIM(State_Chm%Spc_Units) .eq. 'kg/kg dry' ) THEN
+       UNITCHANGE = .TRUE.
+       CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error('Unit conversion error!', RC, LOC )
+       ENDIF
+    ELSE IF ( TRIM(State_Chm%Spc_Units) .ne. 'kg' ) THEN
+          MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units) &
+               // ' (must be kg or kg/kg dry)'
+          CALL GC_Error( MSG, RC, LOC )
     ENDIF
 
     ! Loop over only the advected species
@@ -1660,12 +1678,13 @@ CONTAINS
 
     ENDDO
 
-    ! Convert species back to [kg/kg dry air]
-    CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, &
-                     'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
-       RETURN
+    ! If unit conversion occurred, convert species back to [kg/kg dry air]
+    IF ( UNITCHANGE ) THEN
+       CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error('Unit conversion error!', RC, LOC)
+          RETURN
+       ENDIF
     ENDIF
 
     ! Minit is now set
