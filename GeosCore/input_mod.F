@@ -5136,8 +5136,10 @@
       !=================================================================
 
       ! Initialize for ND48 timeseries
-      CALL INIT_DIAG48( DO_ND48, FREQ, N_STA, IARR, 
-     &                  JARR,    LARR, NARR,  FILE )
+      IF ( DO_ND48 ) THEN
+         CALL INIT_DIAG48( DO_ND48, FREQ, N_STA, IARR, 
+     &                     JARR,    LARR, NARR,  FILE )
+      ENDIF
 
       END SUBROUTINE READ_ND48_MENU
 !EOC
@@ -5318,9 +5320,11 @@
       !=================================================================
 
       ! Initialize for ND49 timeseries
-      CALL INIT_DIAG49( DO_ND49, N_ND49, TRACERS, IMIN, 
-     &                  IMAX,    JMIN,   JMAX,    LMIN,    
-     &                  LMAX,    FREQ,   FILE )
+      IF ( DO_ND49 ) THEN
+         CALL INIT_DIAG49( DO_ND49, N_ND49, TRACERS, IMIN, 
+     &                     IMAX,    JMIN,   JMAX,    LMIN,    
+     &                     LMAX,    FREQ,   FILE )
+      ENDIF
 
       END SUBROUTINE READ_ND49_MENU
 !EOC
@@ -5483,8 +5487,10 @@
       !=================================================================
 
       ! Initialize parameters for ND49 timeseries
-      CALL INIT_DIAG50( DO_ND50, N_ND50, TRACERS, IMIN, IMAX, 
-     &                  JMIN,    JMAX,   LMIN,    LMAX, FILE )
+      IF ( DO_ND50 ) THEN
+         CALL INIT_DIAG50( DO_ND50, N_ND50, TRACERS, IMIN, IMAX, 
+     &                     JMIN,    JMAX,   LMIN,    LMAX, FILE )
+      ENDIF
 
       END SUBROUTINE READ_ND50_MENU
 !EOC
@@ -5664,9 +5670,11 @@
       !=================================================================
 
       ! Initialize parameters for ND51 timeseries
-      CALL INIT_DIAG51( DO_ND51, N_ND51, TRACERS, HR_WRITE, 
-     &                  HR1,     HR2,    IMIN,    IMAX,   
-     &                  JMIN,    JMAX,   LMIN,    LMAX,  FILE )
+      IF ( DO_ND51 ) THEN
+         CALL INIT_DIAG51( DO_ND51, N_ND51, TRACERS, HR_WRITE, 
+     &                     HR1,     HR2,    IMIN,    IMAX,   
+     &                     JMIN,    JMAX,   LMIN,    LMAX,  FILE )
+      ENDIF
 
       END SUBROUTINE READ_ND51_MENU
 !EOC
@@ -5843,9 +5851,11 @@
       !=================================================================
 
       ! Initialize parameters for ND51b timeseries
-      CALL INIT_DIAG51b( DO_ND51, N_ND51, TRACERS, HR_WRITE,
-     &                   HR1,     HR2,    IMIN,    IMAX,
-     &                   JMIN,    JMAX,   LMIN,    LMAX,  FILE )
+      IF ( DO_ND51 ) THEN
+         CALL INIT_DIAG51b( DO_ND51, N_ND51, TRACERS, HR_WRITE,
+     &                      HR1,     HR2,    IMIN,    IMAX,
+     &                      JMIN,    JMAX,   LMIN,    LMAX,  FILE )
+      ENDIF
 
       END SUBROUTINE READ_ND51b_MENU
 !EOC
@@ -5998,8 +6008,10 @@
       !=================================================================
 
       ! Initialize for ND63 timeseries
-      CALL INIT_DIAG63( DO_ND63, N_ND63, TRACERS, IMIN, 
-     &                  IMAX,    JMIN,   JMAX,  FREQ,   FILE )
+      IF ( DO_ND63 ) THEN
+         CALL INIT_DIAG63( DO_ND63, N_ND63, TRACERS, IMIN, 
+     &                     IMAX,    JMIN,   JMAX,  FREQ,   FILE )
+      ENDIF
 
       END SUBROUTINE READ_ND63_MENU
 !EOC
