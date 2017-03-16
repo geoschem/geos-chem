@@ -3340,19 +3340,6 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
-          CASE( 'PASV' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = 'PASV',                       &
-                              FullName      = 'Passive species',            &
-                              MW_g          = 1.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
-
           !==================================================================
           ! Species for the Hg specialty simulation
           !==================================================================
