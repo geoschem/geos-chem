@@ -613,10 +613,11 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE READ_GTMM_RESTART( am_I_Root,   Input_Opt,  
+      SUBROUTINE READ_GTMM_RESTART( am_I_Root,   
+     &                              Input_Opt,   State_Chm, 
      &                              YYYYMMDD,    HHMMSS,     
      &                              Hg0dryGEOS,  HgIIdryGEOS, 
-     &                              HgIIwetGEOS, RC )
+     &                              HgIIwetGEOS, RC           )
 ! 
 ! !USES:
 !
@@ -636,6 +637,10 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?!
@@ -643,10 +648,14 @@
       REAL(fp), DIMENSION(IIPAR, JJPAR)   :: HgIIdryGEOS
       REAL(fp), DIMENSION(IIPAR, JJPAR)   :: HgIIwetGEOS     
 !
+! !REMAKRS:
+!  NOTE: THIS ROUTINE WILL HAVE TO BE UPDATED TO CONVERT TO NETCDF FORMAT!!!
+!
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  16 Mar 2017 - R. Yantosca - Replace NNPAR with State_Chm%nAdvect
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -654,7 +663,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER               :: IOS, I, IU_FILE, J, L, NN, N_gtmm
-      INTEGER               :: NCOUNT(NNPAR) 
+      INTEGER               :: NCOUNT(State_Chm%nAdvect) 
       REAL*4                :: FLUX(IIPAR,JJPAR)
       CHARACTER(LEN=255)    :: FILENAME
 

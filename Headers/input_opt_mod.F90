@@ -46,10 +46,8 @@ MODULE Input_Opt_Mod
      ! SIZE PARAMETER fields
      !----------------------------------------
      INTEGER                     :: MAX_DIAG
-     INTEGER                     :: MAX_TRCS
-     INTEGER                     :: MAX_MEMB
-     INTEGER                     :: MAX_FAMS
-     INTEGER                     :: MAX_DEP
+     INTEGER                     :: MAX_FAM
+     INTEGER                     :: MAX_SPC
 
      !----------------------------------------
      ! SIMULATION MENU fields 
@@ -453,15 +451,11 @@ MODULE Input_Opt_Mod
      ! PROD LOSS MENU fields
      !----------------------------------------
      LOGICAL                     :: DO_SAVE_PL
-     LOGICAL                     :: LFAMILY
      INTEGER                     :: ND65, LD65
      LOGICAL                     :: DO_SAVE_O3
      INTEGER                     :: NFAM
-     REAL(fp),           POINTER :: FAM_COEF(:,:)
-     CHARACTER(LEN=255), POINTER :: FAM_MEMB(:,:)
-     CHARACTER(LEN=255), POINTER :: FAM_NAME(:  )
-     INTEGER,            POINTER :: FAM_NMEM(:  )
-     CHARACTER(LEN=255), POINTER :: FAM_TYPE(:  )
+     CHARACTER(LEN=255), POINTER :: FAM_NAME(:)
+     CHARACTER(LEN=255), POINTER :: FAM_TYPE(:)
 
      !----------------------------------------
      ! UNIX CMDS fields
@@ -558,12 +552,9 @@ MODULE Input_Opt_Mod
      ! from file "input.geos". (mlong, 1/5/13)
      !----------------------------------------
      INTEGER                     :: N_DUST_BINS
-     INTEGER,            POINTER :: NTRAIND(:)
      INTEGER,            POINTER :: IDDEP(:)
-     INTEGER,            POINTER :: IDEP(:)
      REAL(fp),           POINTER :: DUSTREFF(:)
      REAL(fp),           POINTER :: DUSTDEN(:)
-     CHARACTER(LEN=14),  POINTER :: DEPNAME(:)
 
      !----------------------------------------
      ! Fields for interface to GEOS-5 GCM
@@ -690,9 +681,9 @@ CONTAINS
 ! !REMARKS:
 !  Set the following fields of Input_Opt outside of this routine:
 !  (1 ) Input_Opt%MAX_DIAG      : Max # of diagnostics
-!  (2 ) Input_Opt%MAX_TRCS      : Max # of tracers
+!  (2 ) Input_Opt%MAX_SPC       : Max # of species
 !  (3 ) Input_Opt%MAX_MEMB      : Max # of members per family tracer
-!  (4 ) Input_Opt%MAX_FAMS      : Max # of P/L diagnostic families
+!  (4 ) Input_Opt%MAX_FAM       : Max # of P/L diagnostic families
 !  (5 ) Input_Opt%MAX_DEP       : Max # of dry depositing species
 !  (6 ) Input_Opt%LINOZ_NLEVELS : Number of levels    in LINOZ climatology
 !  (7 ) Input_Opt%LINOZ_NLAT    : Number of latitudes in LINOZ climatology
@@ -736,13 +727,14 @@ CONTAINS
 !  31 May 2016 - E. Lundgren - Remove TRACER_MW_G, TRACER_MW_KG, and XNUMOL
 !  13 Jul 2016 - R. Yantosca - Remove some obsolete drydep fields
 !  13 Jul 2016 - R. Yantosca - Remove ID_TRACER, NUMDEP
+!  16 Mar 2017 - R. Yantosca - Remove obsolete family and drydep variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: MAX_DIAG, MAX_TRCS, MAX_MEMB, MAX_FAMS, MAX_DEP
+    INTEGER :: MAX_DIAG, MAX_FAM, MAX_SPC
 
     ! Assume success
     RC                               = GC_SUCCESS
@@ -759,10 +751,8 @@ CONTAINS
     ! SIZE PARAMETER fields 
     !----------------------------------------
     MAX_DIAG                         = Input_Opt%MAX_DIAG
-    MAX_TRCS                         = Input_Opt%MAX_TRCS
-    MAX_MEMB                         = Input_Opt%MAX_MEMB
-    MAX_FAMS                         = Input_Opt%MAX_FAMS
-    MAX_DEP                          = Input_Opt%MAX_DEP
+    MAX_FAM                          = Input_Opt%MAX_FAM
+    MAX_SPC                          = Input_Opt%MAX_SPC
   
     !----------------------------------------
     ! SIMULATION MENU fields 
@@ -797,7 +787,7 @@ CONTAINS
     !----------------------------------------
     ! ADVECTED SPECIES MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%AdvectSpc_Name( MAX_TRCS ), STAT=RC )
+    ALLOCATE( Input_Opt%AdvectSpc_Name( MAX_SPC ), STAT=RC )
 
     Input_Opt%N_ADVECT               = 0
     Input_Opt%AdvectSpc_Name         = ''
@@ -974,9 +964,9 @@ CONTAINS
     !----------------------------------------
     Input_Opt%DIAG_COLLECTION        = -999
     Input_Opt%TS_DIAG                = 0
-    ALLOCATE( Input_Opt%TINDEX( MAX_DIAG, MAX_TRCS ), STAT=RC )
-    ALLOCATE( Input_Opt%TCOUNT( MAX_DIAG           ), STAT=RC )
-    ALLOCATE( Input_Opt%TMAX  ( MAX_DIAG           ), STAT=RC )
+    ALLOCATE( Input_Opt%TINDEX( MAX_DIAG, MAX_SPC ), STAT=RC )
+    ALLOCATE( Input_Opt%TCOUNT( MAX_DIAG          ), STAT=RC )
+    ALLOCATE( Input_Opt%TMAX  ( MAX_DIAG          ), STAT=RC )
 
     Input_Opt%ND01                   = 0
     Input_Opt%ND02                   = 0
@@ -1162,7 +1152,7 @@ CONTAINS
     !----------------------------------------
     ! ND49 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND49_TRACERS( MAX_TRCS ), STAT=RC )
+    ALLOCATE( Input_Opt%ND49_TRACERS( MAX_SPC ), STAT=RC )
 
     Input_Opt%DO_ND49                = .FALSE.
     Input_Opt%ND49_FILE              = ''
@@ -1178,7 +1168,7 @@ CONTAINS
     !----------------------------------------
     ! ND50 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND50_TRACERS( MAX_TRCS ), STAT=RC )
+    ALLOCATE( Input_Opt%ND50_TRACERS( MAX_SPC ), STAT=RC )
 
     Input_Opt%DO_ND50                = .FALSE.
     Input_Opt%ND50_FILE              = ''
@@ -1194,7 +1184,7 @@ CONTAINS
     !----------------------------------------
     ! ND51 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND51_TRACERS( MAX_TRCS ), STAT=RC )
+    ALLOCATE( Input_Opt%ND51_TRACERS( MAX_SPC ), STAT=RC )
 
     Input_Opt%DO_ND51                = .FALSE.
     Input_Opt%ND51_FILE              = ''
@@ -1212,7 +1202,7 @@ CONTAINS
     !----------------------------------------
     ! ND51b MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND51b_TRACERS( MAX_TRCS ), STAT=RC )
+    ALLOCATE( Input_Opt%ND51b_TRACERS( MAX_SPC ), STAT=RC )
 
     Input_Opt%DO_ND51b               = .FALSE.
     Input_Opt%ND51b_FILE             = ''
@@ -1230,7 +1220,7 @@ CONTAINS
     !----------------------------------------
     ! ND63 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND63_TRACERS( MAX_TRCS ), STAT=RC )
+    ALLOCATE( Input_Opt%ND63_TRACERS( MAX_SPC ), STAT=RC )
 
     Input_Opt%DO_ND63                = .FALSE.
     Input_Opt%ND63_FILE              = ''
@@ -1243,22 +1233,15 @@ CONTAINS
 
     !----------------------------------------
     ! PROD LOSS MENU fields
-    !----------------------------------------
-    ALLOCATE( Input_Opt%FAM_COEF( MAX_MEMB, MAX_FAMS ), STAT=RC )
-    ALLOCATE( Input_Opt%FAM_MEMB( MAX_MEMB, MAX_FAMS ), STAT=RC )
-    ALLOCATE( Input_Opt%FAM_NAME(           MAX_FAMS ), STAT=RC )
-    ALLOCATE( Input_Opt%FAM_NMEM(           MAX_FAMS ), STAT=RC )
-    ALLOCATE( Input_Opt%FAM_TYPE(           MAX_FAMS ), STAT=RC )
+    !---------------------------------------
+    ALLOCATE( Input_Opt%FAM_NAME( MAX_FAM ), STAT=RC )
+    ALLOCATE( Input_Opt%FAM_TYPE( MAX_FAM ), STAT=RC )
 
     Input_Opt%DO_SAVE_PL             = .FALSE.
-    Input_Opt%LFAMILY                = .FALSE.
     Input_Opt%ND65                   = 0
     Input_Opt%DO_SAVE_O3             = .FALSE.
     Input_Opt%NFAM                   = 0
-    Input_Opt%FAM_COEF               = 0e+0_fp
-    Input_Opt%FAM_MEMB               = ''
     Input_Opt%FAM_NAME               = ''
-    Input_Opt%FAM_NMEM               = 0
     Input_Opt%FAM_TYPE               = ''
 
     !----------------------------------------
@@ -1351,35 +1334,28 @@ CONTAINS
     ! Fields for DRYDEP and DUST based on
     ! input from the file "input.geos"
     !----------------------------------------
-    ALLOCATE( Input_Opt%DEPNAME ( MAX_DEP ),   STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%IDEP    ( MAX_DEP ),   STAT=RC ) ! Drydep
     ! Double size of IDDEP to account for dust alkalinity   tdf 04/10/08
     ALLOCATE( Input_Opt%IDDEP   ( NDSTBIN*2 ), STAT=RC ) ! Dust_mod
     ALLOCATE( Input_Opt%DUSTREFF( NDSTBIN ),   STAT=RC ) ! Dust_mod
     ALLOCATE( Input_Opt%DUSTDEN ( NDSTBIN ),   STAT=RC ) ! Dust_mod
-    ALLOCATE( Input_Opt%NTRAIND ( MAX_DEP ),   STAT=RC ) ! Drydep
 
     Input_Opt%N_DUST_BINS            = NDSTBIN
     Input_Opt%IDDEP                  = 0
-    Input_Opt%IDEP                   = 0
     Input_Opt%DUSTREFF               = 0e+0_fp
     Input_Opt%DUSTDEN                = 0e+0_fp
-    Input_Opt%DEPNAME                = ''
 
     !----------------------------------------
     ! Fields for interface to GEOS-5 GCM
     !----------------------------------------
     Input_Opt%haveImpRst             = .FALSE.
 
-
     !----------------------------------------
     ! Fields for LINOZ strat chem
     !----------------------------------------
-    Input_Opt%LINOZ_NLEVELS = 25
-    Input_Opt%LINOZ_NLAT    = 18
-    Input_Opt%LINOZ_NMONTHS = 12
-    Input_Opt%LINOZ_NFIELDS = 7
-
+    Input_Opt%LINOZ_NLEVELS          = 25
+    Input_Opt%LINOZ_NLAT             =  18
+    Input_Opt%LINOZ_NMONTHS          = 12
+    Input_Opt%LINOZ_NFIELDS          = 7
 
     ALLOCATE( Input_Opt%LINOZ_TPARM( Input_Opt%LINOZ_NLEVELS,            &
                                      Input_Opt%LINOZ_NLAT,               &
@@ -1435,6 +1411,7 @@ CONTAINS
 !                              TRACER_COEFF
 !  31 May 2016 - E. Lundgren - Remove TRACER_MW_G, TRACER_MW_KG, and XNUMOL
 !  13 Jul 2016 - R. Yantosca - Remove ID_TRACER
+!  16 Mar 2017 - R. Yantosca - Remove obsolete family & drydep fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1509,32 +1486,8 @@ CONTAINS
        DEALLOCATE( Input_Opt%ND63_TRACERS )
     ENDIF
 
-    IF ( ASSOCIATED( Input_Opt%FAM_COEF ) ) THEN
-       DEALLOCATE( Input_Opt%FAM_COEF )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%FAM_MEMB ) ) THEN
-       DEALLOCATE( Input_Opt%FAM_MEMB )
-    ENDIF
-
     IF ( ASSOCIATED( Input_Opt%FAM_NAME ) ) THEN
        DEALLOCATE( Input_Opt%FAM_NAME )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%FAM_NMEM ) ) THEN
-       DEALLOCATE( Input_Opt%FAM_NMEM )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%FAM_TYPE ) ) THEN
-       DEALLOCATE( Input_Opt%FAM_TYPE )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%DEPNAME ) ) THEN
-       DEALLOCATE( Input_Opt%DEPNAME )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%IDEP ) ) THEN
-       DEALLOCATE( Input_Opt%IDEP )
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%IDDEP ) ) THEN

@@ -427,15 +427,12 @@
       ! file so these are just placeholder values (bmy, 11/7/12)
       !
       Input_Opt%MAX_DIAG      = MAX_DIAG
-      Input_Opt%MAX_TRCS      = NNPAR
-      Input_Opt%MAX_MEMB      = 15
-      Input_Opt%MAX_FAMS      = MAXFAM
-      Input_Opt%MAX_DEP       = NNPAR
-      Input_Opt%LINOZ_NLEVELS = 25
+      Input_Opt%MAX_FAM       = 250      ! Set to large placeholder value
+      Input_Opt%MAX_SPC       = 500      ! Set to large placeholder value
       Input_Opt%LINOZ_NLAT    = 18
       Input_Opt%LINOZ_NMONTHS = 12
       Input_Opt%LINOZ_NFIELDS = 7
-      Input_Opt%RootCPU       = .true.
+      Input_Opt%RootCPU       = .TRUE.
       !
       ! Call the routine GC_Allocate_All (located in module file
       ! GeosCore/gc_environment_mod.F90) to allocate all lat/lon

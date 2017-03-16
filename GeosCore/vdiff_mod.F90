@@ -1947,6 +1947,7 @@ contains
 !  27 Jul 2016 - R. Yantosca - Bug fix: set nDrydep=0 if drydep is turned off
 !  04 Aug 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  16 Mar 2017 - R. Yantosca - Remove N_MEMBERS, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2006,7 +2007,6 @@ contains
     LOGICAL            :: IS_CH4,    IS_FULLCHEM, IS_Hg,     IS_TAGO3
     LOGICAL            :: IS_TAGCO,  IS_AEROSOL,  IS_RnPbBe, LDYNOCEAN
     LOGICAL            :: LGTMM,     LSOILNOX
-    INTEGER            :: N_MEMBERS 
 
     ! HEMCO update
     LOGICAL            :: FND
@@ -2096,7 +2096,6 @@ contains
     LDYNOCEAN    = Input_Opt%LDYNOCEAN
     LGTMM        = Input_Opt%LGTMM
     LSOILNOX     = Input_Opt%LSOILNOX
-    N_MEMBERS    = Input_Opt%MAX_MEMB
 
     dtime = GET_TS_CONV()*60e+0_fp ! min -> second
     

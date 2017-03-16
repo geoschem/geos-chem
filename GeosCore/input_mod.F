@@ -1442,10 +1442,10 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_adv_spec_menu:3' )
 
-      ! Input_Opt vectors are of length MAX_TRCS. Make sure that
+      ! Input_Opt vectors are of length MAX_SPC. Make sure that
       ! # of advected species does not exceed length of these vectors.
-      IF ( Input_Opt%N_ADVECT > Input_Opt%MAX_TRCS ) THEN
-         CALL ERROR_STOP( 'Error: N_ADVECT > MAX_TRCS!', 
+      IF ( Input_Opt%N_ADVECT > Input_Opt%MAX_SPC ) THEN
+         CALL ERROR_STOP( 'Error: N_ADVECT > MAX_SPC!', 
      &                    'read_adv_spec_menu (input_mod.f)' )
          RC = GC_FAILURE
          RETURN
@@ -4654,7 +4654,7 @@
          Input_Opt%TMAX(M)         = TMAX(M)
 
          ! Loop over tracers per diagnostic
-         DO N = 1, Input_Opt%MAX_TRCS
+         DO N = 1, Input_Opt%MAX_SPC
             Input_Opt%TINDEX(M,N)  = TINDEX(M,N)
          ENDDO
       ENDDO
@@ -6141,19 +6141,33 @@
          ENDIF
       ENDIF
 
-      Input_Opt%LFAMILY = ( DO_SAVE_PL .and. NFAM > 0 )
+!----------------------------------------------------------------------------
+! Prior to 3/16/17:
+! Input_Opt%LFAMILY Is only used here.  We can remove reference to it and
+! just hard-code the IF statement below with the equivalent logic
+!      Input_Opt%LFAMILY = ( DO_SAVE_PL .and. NFAM > 0 )
+!
+!      ! Return if there are no prod/loss families
+!      ! or if we have turned off this diagnostic
+!      IF ( .not. Input_Opt%LFAMILY ) THEN
+!         DO_SAVE_PL = .FALSE.
+!         DO_SAVE_O3 = .FALSE.
+!         ND65       = 0
+!      ENDIF
+!----------------------------------------------------------------------------
 
       ! Return if there are no prod/loss families
       ! or if we have turned off this diagnostic
-      IF ( .not. Input_Opt%LFAMILY ) THEN
-         DO_SAVE_PL = .FALSE.
-         DO_SAVE_O3 = .FALSE.
-         ND65       = 0
+      IF ( .not. ( DO_SAVE_PL .and. NFAM > 0 ) ) THEN
+         DO_SAVE_PL         = .FALSE.
+         DO_SAVE_O3         = .FALSE.
+         ND65               = 0
       ENDIF
 
-      Input_Opt%DO_SAVE_PL     = DO_SAVE_PL
-      Input_Opt%DO_SAVE_O3     = DO_SAVE_O3
-      Input_Opt%ND65           = ND65
+      ! Set fields 
+      Input_Opt%DO_SAVE_PL  = DO_SAVE_PL
+      Input_Opt%DO_SAVE_O3  = DO_SAVE_O3
+      Input_Opt%ND65        = ND65
 
       ! Loop over families
       DO F = 1, Input_Opt%NFAM
