@@ -2006,6 +2006,7 @@
 !  19 Mar 2012 - R. Yantosca - Now echo info if ISORROPIA is turned off
 !  22 Oct 2012 - R. Yantosca - Now echo info if -DDEVEL is used
 !  01 Mar 2017 - R. Yantosca - Now echo info if netCDF can do compression
+!  16 Mar 2017 - M. Sulprizio- Print model version to log file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2014,6 +2015,10 @@
 !
       ! For system time stamp
       CHARACTER(LEN=16) :: STAMP
+      CHARACTER(LEN=16) :: VERSION
+
+      ! Set GEOS-Chem version
+      VERSION = 'v11-02'
 
       !-------------------------------------------------
       ! Print resolution info
@@ -2021,43 +2026,43 @@
 #if   defined( GRID4x5   )
       WRITE( 6, '(a)' )                   
      &    REPEAT( '*', 13 )                                          //
-     &    '   S T A R T I N G   4 x 5   G E O S--C H E M   '         //
+     &    '   S T A R T I N G   4 x 5   G E O S - C H E M   '        //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID2x25  )
       WRITE( 6, '(a)' ) 
      &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G   2 x 2.5   G E O S--C H E M   '       //
+     &    '   S T A R T I N G   2 x 2.5   G E O S - C H E M   '      //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID1x125 )
       WRITE( 6, '(a)' ) 
      &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G   1 x 1.25   G E O S--C H E M   '      //
+     &    '   S T A R T I N G   1 x 1.25   G E O S - C H E M   '     //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID1x1 )
       WRITE( 6, '(a)' ) 
      &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G   1 x 1   G E O S -- C H E M   '       //
+     &    '   S T A R T I N G   1 x 1   G E O S - C H E M   '        //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID05x0666 )
       WRITE( 6, '(a)' ) 
      &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G   0.5 x 0.666   G E O S -- C H E M   ' //
+     &    '   S T A R T I N G   0.5 x 0.666   G E O S - C H E M   '  //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID05x0625 )
       WRITE( 6, '(a)' ) 
      &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G   0.5 x 0.625   G E O S -- C H E M   ' //
+     &    '   S T A R T I N G   0.5 x 0.625   G E O S - C H E M   '  //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID025x03125 )
       WRITE( 6, '(a)' ) 
      &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G  0.25 x 0.3125  G E O S -- C H E M   ' //
+     &    '   S T A R T I N G  0.25 x 0.3125  G E O S - C H E M   '  //
      &    REPEAT( '*', 13 )
 
 #endif
@@ -2076,11 +2081,18 @@
 #elif defined( LINUX_IFORT )
       WRITE( 6, '(a)' ) 'Created w/ LINUX/IFORT compiler'
       WRITE( 6, '(a)' ) 'Use ifort -V to print version information'
+#elif defined( LINUX_GFORTRAN )
+      WRITE( 6, '(a)' ) 'Created w/ LINUX/GFORTRAN compiler'
 #elif defined( SGI_MIPS  )
       WRITE( 6, '(a)' ) 'Created w/ SGI MIPSpro compiler'
 #elif defined( SPARC     )
       WRITE( 6, '(a)' ) 'Created w/ Sun/SPARC compiler'
 #endif
+
+      !-------------------------------------------------
+      ! Print model version
+      !-------------------------------------------------
+      WRITE( 6, '(a)' ) 'Using GEOS-Chem ' // TRIM( VERSION )
 
       !-------------------------------------------------
       ! Print met field info
