@@ -183,7 +183,7 @@ state_met_mod.o        : state_met_mod.F90        \
                          CMN_SIZE_mod.o           \
                          precision_mod.o
 
-passive_tracer_mod.o   : passive_tracer_mod.F90   \
+passive_species_mod.o  : passive_species_mod.F90  \
                          errcode_mod.o            \
                          precision_mod.o
 
@@ -197,7 +197,7 @@ species_mod.o          : species_mod.F90          \
 species_database_mod.o : species_database_mod.F90 \
                          errcode_mod.o            \
                          input_opt_mod.o          \
-                         passive_tracer_mod.o     \
+                         passive_species_mod.o    \
                          precision_mod.o          \
                          species_mod.o
 

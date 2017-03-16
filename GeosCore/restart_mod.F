@@ -507,8 +507,7 @@
       CHARACTER(LEN=60)         :: HgSpc
       CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
 
-      ! Passive tracers
-      LOGICAL         :: IsPassive
+      ! Default background concentration
       REAL(fp)        :: Background_VV
 
       ! Objects

@@ -55,7 +55,7 @@
       PRIVATE :: READ_NESTED_GRID_MENU
       PRIVATE :: READ_BENCHMARK_MENU  
       PRIVATE :: READ_CH4_MENU
-      PRIVATE :: READ_PASSIVE_TRACER_MENU
+      PRIVATE :: READ_PASSIVE_SPECIES_MENU
       PRIVATE :: VALIDATE_DIRECTORIES  
       PRIVATE :: CHECK_DIRECTORY
       PRIVATE :: CHECK_TIME_STEPS 
@@ -398,8 +398,8 @@
          ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN 
             CALL READ_CH4_MENU( am_I_Root, Input_Opt, RC )
 
-         ELSE IF ( INDEX( LINE, 'PASSIVE TRACERS' ) > 0 ) THEN 
-            CALL READ_PASSIVE_TRACER_MENU( am_I_Root, Input_Opt, RC )
+         ELSE IF ( INDEX( LINE, 'PASSIVE SPECIES' ) > 0 ) THEN 
+            CALL READ_PASSIVE_SPECIES_MENU( am_I_Root, Input_Opt, RC )
 
          ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN 
             EXIT
@@ -7178,23 +7178,23 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_passive_tracer_menu
+! !IROUTINE: read_passive_species_menu
 !
-! !DESCRIPTION: Subroutine READ\_PASSIVE\_TRACER\_MENU reads the passive 
-!  tracer MENU section of the GEOS-Chem input file; this defines passive
-!  tracers to be used for this simulation. 
+! !DESCRIPTION: Subroutine READ\_PASSIVE\_SPECIES\_MENU reads the passive 
+!  species MENU section of the GEOS-Chem input file; this defines passive
+!  species to be used for this simulation. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PASSIVE_TRACER_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_PASSIVE_SPECIES_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod,        ONLY : OptInput
-      USE PASSIVE_TRACER_MOD,   ONLY : INIT_PASSIVE_TRACER
-      USE PASSIVE_TRACER_MOD,   ONLY : ADD_PASSIVE_TRACER
+      USE Input_Opt_Mod,         ONLY : OptInput
+      USE PASSIVE_SPECIES_MOD,   ONLY : INIT_PASSIVE_SPECIES
+      USE PASSIVE_SPECIES_MOD,   ONLY : ADD_PASSIVE_SPECIES
 !
 ! !INPUT PARAMETERS:
 !
@@ -7225,30 +7225,30 @@
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
       !=================================================================
-      ! READ_PASSIVE_TRACER_MENU begins here!
+      ! READ_PASSIVE_SPECIES_MENU begins here!
       !=================================================================
 
       ! Assume success until otherwise
       RC = GC_SUCCESS
 
-      ! # of passive tracers 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_passive_tracer_menu:1' )
+      ! # of passive speciess
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_passive_species_menu:1')
       READ( SUBSTRS(1), * ) NPT 
 
-      ! Initialize passive tracer module arrays
-      CALL INIT_PASSIVE_TRACER ( am_I_Root, NPT, RC )
+      ! Initialize passive species module arrays
+      CALL INIT_PASSIVE_SPECIES ( am_I_Root, NPT, RC )
 
-      ! Read passive tracer information for each passive tracer
-      ! Every passive tracer line is expected to have 3 entries:
-      ! - Tracer name
-      ! - Tracer molecular weight 
+      ! Read passive species information for each passive species
+      ! Every passive species line is expected to have 3 entries:
+      ! - Species name
+      ! - Species molecular weight 
       ! - Atmospheric lifetime (s)
       ! - Default atmospheric concentration (v/v)
       IF ( NPT > 0 ) THEN
          DO I = 1, NPT
             ! Read values into substrings
             CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 
-     &                           'read_passive_tracer_menu:2' )
+     &                           'read_passive_species_menu:2' )
      
             ! Pass to temporary variables
             TRCNAME = TRIM(SUBSTRS(1))
@@ -7256,8 +7256,8 @@
             READ( SUBSTRS(3), * ) TAU
             READ( SUBSTRS(4), * ) INITCONC 
       
-            ! Register as passive tracer 
-            CALL ADD_PASSIVE_TRACER ( am_I_Root, TRCNAME, 
+            ! Register as passive species 
+            CALL ADD_PASSIVE_SPECIES( am_I_Root, TRCNAME, 
      &                                TAU,       INITCONC,  MW, RC  )
             IF ( RC /= GC_SUCCESS ) RETURN 
 
@@ -7267,7 +7267,7 @@
       ! All done
       RC = GC_SUCCESS
 
-      END SUBROUTINE READ_PASSIVE_TRACER_MENU
+      END SUBROUTINE READ_PASSIVE_SPECIES_MENU
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
