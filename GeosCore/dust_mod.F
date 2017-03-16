@@ -157,6 +157,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  16 Mar 2017 - R. Yantosca - Clean up calls to DRY_SETTLING
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -171,13 +172,6 @@
       LOGICAL       :: LDUST
       LOGICAL       :: LDSTUP
       LOGICAL       :: prtDebug
-      INTEGER       :: N
-      INTEGER       :: IDISP
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: Spc(:,:,:,:)
 
       !=================================================================
       ! CHEMDUST begins here!
@@ -220,9 +214,6 @@
       ! Do dust settling & deposition
       !=================================================================
 
-      ! Point to chemical species array [kg]
-      Spc => State_Chm%Species
-
       !-------------------------------------------------------------
       ! Dust settling for regular dust species
       !
@@ -230,10 +221,8 @@
       ! contiguous in the species list.  This is usually correct,
       ! but we may have to update this later. (bmy, 7/5/16)
       !-------------------------------------------------------------
-      IDISP = 0
-      CALL DRY_SETTLING(  am_I_Root, Input_Opt, State_Met,
-     &                    State_Chm, Spc(:,:,:,id_DST1:id_DST4),
-     &                    RC,        id_DST1,  IDISP             )
+      CALL DRY_SETTLING( am_I_Root, Input_Opt, State_Met,
+     &                   State_Chm, id_DST1,   id_DST4,   RC )
    
       !-------------------------------------------------------------
       ! Dust settling for acid uptake on dust species
@@ -241,24 +230,20 @@
       ! NOTE: Assumes that id_DAL1, id_DAL2, id_DAL3, id_DAL4 are 
       ! contiguous in the species list.  This is usually correct,
       ! but we may have to update this later. (bmy, 7/5/16)
+      !
+      ! ALSO NOTE: Dry settling of DSTNIT, DSTSO4 occurs in 
+      ! GRAV_SETTLING, called from CHEMSULFATE in SULFATE_MOD.
       !-------------------------------------------------------------
       IF ( LDSTUP ) THEN
-         ! Include dust alkalinity settling                 tdf 04/10/08
-         IDISP = 4
-         CALL DRY_SETTLING( am_I_Root, Input_Opt, State_Met, 
-     &                     State_Chm,  Spc(:,:,:,id_DAL1:id_DAL4), 
-     &                     RC,         id_DAL1,  IDISP             )
-         ! Note: DRY SETTLING of DSTNIT, DSTSO4 occurs in GRAV_SETTLING
-         !       called from CHEMSULFATE in SULFATE_MOD.    tdf 04/10/08
+         CALL DRY_SETTLING( am_I_Root, Input_Opt, State_Met,
+     &                      State_Chm, id_DAL1,   id_DAL4,   RC )
+
       ENDIF
 
       ! Debug print
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMDUST: a DRY_SETTLING' )
       ENDIF
-
-      ! Free pointer
-      Spc => NULL()
 
       END SUBROUTINE CHEMDUST
 !EOC
@@ -639,8 +624,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DRY_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                         State_Chm, TC, RC, INDEX, IDISP )
+       SUBROUTINE DRY_SETTLING( am_I_Root, Input_Opt, State_Met,
+     &                          State_Chm, Ind0,      Ind1,      RC )
 !
 ! !USES:
 !
@@ -666,21 +651,19 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)   :: State_Met   ! Meteorology State object
-      INTEGER,        INTENT(IN)   :: INDEX       ! Species index
-      INTEGER,        INTENT(IN)   :: IDISP       ! Displacement index for IIDEP
-
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: Ind0        ! Starting dust species #
+      INTEGER,        INTENT(IN)    :: Ind1        ! Ending   dust species #
 !
 ! !INPUT/OUTPUT PARAMETERS
 ! 
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN) ! Dust [kg]
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)  :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -701,57 +684,62 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  31 May 2016 - E. Lundgren - Use TCVV instead of XNUMOL for molecular weights
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
+!  16 Mar 2017 - R. Yantosca - Remove TC, IDISP; Loop over slots Ind0:Ind1
+!                              of the State_Chm%Species array.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: I, J, L, N
-      REAL(fp)              :: DT_SETTL, DELZ,  DELZ1
-      REAL(fp)              :: REFF,     DEN,   CONST   
-      REAL(fp)              :: NUM,      LAMDA, FLUX
-      REAL(fp)              :: AREA_CM2, TC0(LLPAR)
-      REAL(fp)              :: TOT1,     TOT2
+      INTEGER                :: I,        J,     L
+      INTEGER                :: N,        NA,    ND
+      REAL(fp)               :: DT_SETTL, DELZ,  DELZ1
+      REAL(fp)               :: REFF,     DEN,   CONST   
+      REAL(fp)               :: NUM,      LAMDA, FLUX
+      REAL(fp)               :: AREA_CM2, TC0(LLPAR)
+      REAL(fp)               :: TOT1,     TOT2
 
       ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa      
-      REAL(fp)              :: P 
+      REAL(fp)               :: P 
 
       ! Diameter of aerosol [um]
-      REAL(fp)              :: Dp
+      REAL(fp)               :: Dp
 
       ! Pressure * DP
-      REAL(fp)              :: PDp 
+      REAL(fp)               :: PDp 
 
       ! Temperature (K)    
-      REAL(fp)              :: TEMP        
+      REAL(fp)               :: TEMP        
 
       ! Slip correction factor
-      REAL(fp)              :: Slip        
+      REAL(fp)               :: Slip        
 
       ! Viscosity of air (Pa s)
-      REAL(fp)              :: Visc   
+      REAL(fp)               :: Visc   
 
       ! Settling velocity of particle (m/s)
-      REAL(fp)              :: VTS(LLPAR)  
+      REAL(fp)               :: VTS(LLPAR)  
 
       ! Pointers
-      TYPE(Species),    POINTER :: ThisSpc
+      TYPE(Species), POINTER :: ThisSpc
+      REAL(fp),      POINTER :: TC(:,:,:,:)
+
 
 #if defined( NC_DIAG )
       ! For netcdf diagnostics (ND44 drydep flux)
-      INTEGER               :: drydep_id, spc_id, HCRC
-      CHARACTER(LEN=30)     :: DiagnName
-      REAL(fp), TARGET      :: DryDepFlux( IIPAR, JJPAR, NDSTBIN ) 
-      REAL(fp), POINTER     :: Ptr2D(:,:)
+      INTEGER                :: drydep_id, spc_id, HCRC
+      CHARACTER(LEN=30)      :: DiagnName
+      REAL(fp), TARGET       :: DryDepFlux( IIPAR, JJPAR, NDSTBIN ) 
+      REAL(fp), POINTER      :: Ptr2D(:,:)
 #endif
 !
 ! !DEFINED PARAMETERS:
 !      
-      REAL(fp),  PARAMETER  :: C1 =  0.7674e+0_fp
-      REAL(fp),  PARAMETER  :: C2 =  3.079e+0_fp 
-      REAL(fp),  PARAMETER  :: C3 =  2.573e-11_fp
-      REAL(fp),  PARAMETER  :: C4 = -1.424e+0_fp
+      REAL(fp),  PARAMETER   :: C1 =  0.7674e+0_fp
+      REAL(fp),  PARAMETER   :: C2 =  3.079e+0_fp 
+      REAL(fp),  PARAMETER   :: C3 =  2.573e-11_fp
+      REAL(fp),  PARAMETER   :: C4 = -1.424e+0_fp 
 
       !=================================================================
       ! DRY_SETTLING begins here!
@@ -761,9 +749,8 @@
       RC        = GC_SUCCESS
 
       ! Initialize pointers
-      ThisSpc     => NULL()
-
-      ! Initialize
+      ThisSpc   => NULL()
+      TC        => State_Chm%Species
 #if defined( NC_DIAG )
       Ptr2D     => NULL()
 #endif
@@ -781,15 +768,27 @@
 !$OMP+PRIVATE( I,     J,        L,    N,     DEN,  REFF, DP    )
 !$OMP+PRIVATE( CONST, AREA_CM2, VTS,  TEMP,  P,    PDP,  SLIP  )
 !$OMP+PRIVATE( VISC,  TC0,      DELZ, DELZ1, TOT1, TOT2, FLUX  )
+!$OMP+PRIVATE( NA,    ThisSpc,  ND                             )
 
-      ! Loop over dust bins
-      DO N = 1, NDSTBIN
+      ! Loop over only the advected dust species
+      DO NA = Ind0, Ind1
 
-         ! Initialize
-         DEN   = Input_Opt%DUSTDEN(N)
-         REFF  = Input_Opt%DUSTREFF(N)
-         DP    = 2e+0_fp * REFF * 1.e+6_fp    ! Dp [um] = particle diameter
-         CONST = 2e+0_fp * DEN * REFF**2 * g0 / 9e+0_fp
+         ! Look up this species in the species database
+         ! NOTE: The advected species are listed first in the master
+         ! species list, so it's OK to use the advected species ID
+         ! to query the Species Database (bmy, 3/16/17)
+         ThisSpc => State_Chm%SpcData(NA)%Info
+         
+         ! Get the drydep ID corresponding to this species
+         ND      =  ThisSpc%DryDepId
+
+         ! Density [kg/m3] and radius [m]
+         DEN     =  ThisSpc%Density
+         REFF    =  ThisSpc%Radius
+
+         ! Dp [um] = particle diameter
+         DP      =  2e+0_fp * REFF * 1.e+6_fp    
+         CONST   =  2e+0_fp * DEN * REFF**2 * g0 / 9e+0_fp
 
          ! Loop over latitudes
          DO J = 1, JJPAR
@@ -853,22 +852,22 @@
                ! Method is to solve bidiagonal matrix 
                ! which is implicit and first order accurate in Z
                DO L = 1, LLPAR
-                  TC0(L) = TC(I,J,L,N)
+                  TC0(L) = TC(I,J,L,NA)
                ENDDO
 
                ! We know the boundary condition at the model top
                L           = LLCHEM
                DELZ        = State_Met%BXHEIGHT(I,J,L)
-               TC(I,J,L,N) = TC(I,J,L,N) / 
-     &                       ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+               TC(I,J,L,NA) = TC(I,J,L,NA) / 
+     &                        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
 
                DO L = LLCHEM-1, 1, -1
-                  DELZ        = State_Met%BXHEIGHT(I,J,L)
-                  DELZ1       = State_Met%BXHEIGHT(I,J,L+1)
-                  TC(I,J,L,N) = 1.e+0_fp / 
+                  DELZ         = State_Met%BXHEIGHT(I,J,L)
+                  DELZ1        = State_Met%BXHEIGHT(I,J,L+1)
+                  TC(I,J,L,NA) = 1.e+0_fp / 
      &                 ( 1.e+0_fp + DT_SETTL * VTS(L)   / DELZ )
-     &                 * (TC(I,J,L,N)  + DT_SETTL * VTS(L+1) / DELZ1
-     &                 *  TC(I,J,L+1,N) )
+     &                 * (TC(I,J,L,NA)  + DT_SETTL * VTS(L+1) / DELZ1
+     &                 *  TC(I,J,L+1,NA) )
                ENDDO
 
                !========================================================      
@@ -883,52 +882,53 @@
                   ! Compute column totals of TCO(:) and TC(I,J,:,N)
                   DO L = 1, LLPAR
                      TOT1 = TOT1 + TC0(L)
-                     TOT2 = TOT2 + TC(I,J,L,N)
+                     TOT2 = TOT2 + TC(I,J,L,NA)
                   ENDDO
 
                   ! Convert dust flux from [kg/s] to [molec/cm2/s]
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
                   FLUX = FLUX * AVO * ( AIRMW / 
-     &                   State_Chm%SpcData(INDEX)%Info%emMW_g ) / 
+!     &                   State_Chm%SpcData(INDEX)%Info%emMW_g ) / 
+     &                    ThisSpc%emMw_g    ) /
      &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
 
 #if defined( BPCH_DIAG )
                   ! For bpch diagnostic, save in global array AD44
-!tdf                  AD44(I,J,Input_Opt%IDDEP(N),1) = 
-!tdf     &            AD44(I,J,Input_OPt%IDDEP(N),1) + FLUX
-                  AD44(I,J,Input_Opt%IDDEP(N+IDISP),1) =
-     &            AD44(I,J,Input_Opt%IDDEP(N+IDISP),1) + FLUX
+                  AD44(I,J,ND,1) = AD44(I,J,ND,1) + FLUX
 #endif
 #if defined( NC_DIAG )
                   ! For netcdf diagnostic, store data in local array
+                  N                 = NA - Ind0 + 1
                   DryDepFlux(I,J,N) = FLUX
 #endif
                ENDIF
 
             ENDDO 
          ENDDO    
+
+         ! Nullify pointer
+         ThisSpc => NULL()
       ENDDO       
 !$OMP END PARALLEL DO
 
-      ! Nullify pointer
-      ThisSpc => NULL()
-
-
 #if defined( NC_DIAG )
       !========================================================      
-      ! ND44: Dry deposition diagnostic [molec/cm2/s] (netcdf) 
+      ! ND44: Dry deposition diagnostic [molec/cm2/s] (netcdf)
+      ! %%%% NOTE: NEEDS WORK %%%%
       !========================================================
       IF ( ND44 > 0 ) THEN
 
          ! Loop over dust bins
-         DO N = 1, NDSTBIN
-
-            ! Get drydep id
-            drydep_id = IDISP + N
-
-            ! Get species ID
-            spc_id = State_Chm%Map_DryDep( drydep_id )
+         DO Spc_Id = Ind0, Ind1
+            
+            N = Spc_Id - Ind0 + 1
+            
+            ! Look up this species in the species database
+            ThisSpc => State_Chm%SpcData(Spc_Id)%Info
          
+            ! Get drydep id
+            drydep_id = ThisSpc%DryDepId
+
             ! If this species number NN is scheduled for output in input.geos, 
             ! then archive the latest depvel data into the diagnostic structure
             IF ( ANY( Input_Opt%TINDEX(44,:) == spc_id ) ) THEN
@@ -960,6 +960,10 @@
          ENDDO
       ENDIF
 #endif
+
+      ! Free pointers
+      ThisSpc => NULL()
+      TC      => NULL()
 
       END SUBROUTINE DRY_SETTLING
 !EOC
