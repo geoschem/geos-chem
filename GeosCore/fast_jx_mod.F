@@ -4765,6 +4765,7 @@ c  Ensure all 'AN_' types are valid selections
 !  18 Apr 2016 - R. Yantosca - Remove Input_Opt, State_Met, State_Chm args
 !                              and pass air density & temperature instead
 !  18 Apr 2016 - R. Yantosca - Also prevent div-by-zero conditions
+!  16 Mar 2017 - M. Sulprizio- Restore P(OH) from O3 photolysis for ND22
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4894,6 +4895,16 @@ c  Ensure all 'AN_' types are valid selections
          ZPJ(L,RXN_O3_2b,I,J) = ZPJ(L,RXN_O3_2b,I,J) * RO1DplH2  / RO1D
 
       ENDIF
+
+      ! Store P(OH) from O3 photolysis as AD22(:,:,:,6)
+      IF ( ND22 > 0 ) THEN
+         IF ( L <= LD22 .and. LTJV(I,J) > 0 ) THEN
+            AD22(I,J,L,6) = AD22(I,J,L,6)        + 
+     &                      ZPJ(L,RXN_O3_2a,I,J) +
+     &                      ZPJ(L,RXN_O3_2b,I,J)
+         ENDIF
+      ENDIF
+
 #endif
       
       END SUBROUTINE PHOTRATE_ADJ
