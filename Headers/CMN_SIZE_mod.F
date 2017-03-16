@@ -553,28 +553,6 @@
       INTEGER               :: LLCHEM_FIX
 
       !=================================================================
-      ! TRACER & EMISSION SPECIES PARAMETERS
-      !
-      ! NNPAR   = max number of tracers
-      ! NEMPARA = max number of anthropogenic emission species
-      ! NEMPARB = max number of biogenic      emission species
-      !=================================================================
-      ! increase NNPAR and NEMPARA an extra amount (hotp 7/31/09)
-#if   defined( TOMAS )
-# if    defined( TOMAS40 )
-      INTEGER,    PARAMETER :: NNPAR   = 430   ! For TOMAS40 (sfarina 6/11/13)
-# elif  defined( TOMAS15 )
-      INTEGER,    PARAMETER :: NNPAR   = 205   ! For TOMAS15 (sfarina 6/11/13)
-# elif  defined( TOMAS12 )
-      INTEGER,    PARAMETER :: NNPAR   = 178   ! For TOMAS12 (sfarina 6/11/13)
-# else
-      INTEGER,    PARAMETER :: NNPAR   = 340   ! For TOMAS (win, bmy, sfarina 6/11/13)f
-# endif
-#else
-      INTEGER,    PARAMETER :: NNPAR   = 150   ! For non-TOMAS simulations
-#endif
-
-      !=================================================================
       ! OTHER PARAMETERS 
       !=================================================================
 
@@ -756,6 +734,7 @@
 !  18 May 2016 - M. Sulprizio- Remove MAXIJ made obsolete by FlexChem
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
+!  16 Mar 2017 - R. Yantosca - Remove obsolete NNPAR parameter
 !EOP
 !------------------------------------------------------------------------------
 !BOC

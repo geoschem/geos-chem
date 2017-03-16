@@ -898,7 +898,8 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE GTMM_DR( am_I_Root, Input_Opt, State_Met, Hg0gtm, RC )
+      SUBROUTINE GTMM_DR( am_I_Root, Input_Opt, State_Met, 
+     &                    State_Chm, Hg0gtm,    RC )
 ! 
 ! !USES:
 !
@@ -913,22 +914,27 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLun
       USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : EXPAND_DATE, YMD_EXTRACT
       USE TIME_MOD,           ONLY : GET_NYMD, GET_NHMS
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object      
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object      
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS: 
 !
       ! Emission of Hg0 calculated by GTMM for the month [kg/s]
-      REAL(fp),         INTENT(OUT) :: Hg0gtm(IIPAR, JJPAR) 
+      REAL(fp),       INTENT(OUT)   :: Hg0gtm(IIPAR, JJPAR) 
 
       ! Success or failure?
-      INTEGER,        INTENT(OUT) :: RC
+      INTEGER,        INTENT(OUT)   :: RC
 ! 
 ! !REMARKS:
 !  ##########################################################################
@@ -941,6 +947,7 @@
 !  15 Sep 2009 - C. Carouge  - Initial version
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  05 Mar 2015 - R. Yantosca - Now add Input_Opt%RES_DIR to data path
+!  16 Mar 2017 - R. Yantosca - Now pass State_Chm to READ_GTMM_RESTART
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1106,9 +1113,9 @@
       !=================================================================
       ! Read GTMM restart file to get data from previous month
       !=================================================================
-      CALL READ_GTMM_RESTART( am_I_Root,  Input_Opt,  NYMD,      
-     &                        NHMS,       Hg0mth_dry, Hg2mth_dry, 
-     &                        Hg2mth_wet, RC  )
+      CALL READ_GTMM_RESTART( am_I_Root,  Input_Opt,  State_Chm,
+     &                        NYMD,       NHMS,       Hg0mth_dry, 
+     &                        Hg2mth_dry, Hg2mth_wet, RC  )
 
       !=================================================================
       ! Call GTMM model

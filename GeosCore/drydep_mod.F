@@ -190,6 +190,7 @@
 !  13 Jul 2016 - R. Yantosca - Remove DRYHg0, DRYHg2, DRYHgP ID flags
 !  13 Jul 2016 - R. Yantosca - Also make NDVZIND a local variable for now
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  16 Mar 2017 - R. Yantosca - Remove references to obsolete vars in Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -250,7 +251,7 @@
 
       ! Arrays that hold information for each of the 74 Olson land types
       INTEGER                        :: INDOLSON(NVEGTYPE )
-      INTEGER, POINTER               :: IDEP    (:        )
+      INTEGER                        :: IDEP    (NVEGTYPE )
       INTEGER                        :: IZO     (NVEGTYPE )
       INTEGER                        :: IWATER  (NVEGTYPE )
 
@@ -1203,7 +1204,6 @@
       ILAND   => State_Met%ILAND
       IUSE    => State_Met%IUSE
       XLAI    => State_Met%XLAI
-      IDEP    => Input_Opt%IDEP
       SpcInfo => NULL()
 
       ! Is this a POPs simmulation?
@@ -2037,7 +2037,6 @@
       NULLIFY( ILAND )
       NULLIFY( IUSE  )
       NULLIFY( XLAI  )
-      IDEP => NULL()
 
       END SUBROUTINE DEPVEL
 !EOC
@@ -2220,6 +2219,7 @@
 !  18 Dec 2014 - R. Yantosca - Now read DRYCOEFF at REAL*8 precision and
 !                              then cast to flexible precision
 !  13 Mar 2015 - R. Yantosca - Replace DATA_DIR_1x1 w/ CHEM_INPUTS_DIR
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4254,13 +4254,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
       DMID = 0e+0_f8
 
-      ! SDE 2016-03-27: This is now called after Input_Opt has already
-      ! been broadcast, so each CPU will do this independently anyway
-      ! ckeller: moved to end of routine (see below)
-!      Input_Opt%NUMDEP            = NUMDEP
-!      Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
-!      Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
-
       !=================================================================
       ! Echo information to stdout
       !=================================================================
@@ -4309,8 +4302,7 @@
       ! Save Olson indices in INDOLSON array, in order to avoid
       ! confusion w/ previously-assinged variable name IOLSON
       CALL READ_DRYDEP_INPUTS( am_I_Root, Input_Opt, 
-     &                         DRYCOEFF,  INDOLSON, 
-     &                         Input_Opt%IDEP(1:NVEGTYPE),    
+     &                         DRYCOEFF,  INDOLSON, IDEP,
      &                         IWATER,    NWATER,   IZO,      
      &                         IDRYDEP,   IRI,      IRLU,     
      &                         IRAC,      IRGSS,    IRGSO, 
@@ -4321,18 +4313,7 @@
       ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
       ! sea salt aerosols (jaegle 5/11/11)
       CALL INIT_WEIGHTSS( Input_Opt )
-    
-      ! Archive variables in Input_Opt 
-      ! Moved after READ_DRYDEP_INPUTS because I'm experiencing memory
-      ! leaks if done beforehand. Best would be to execute
-      ! READ_DRYDEP_INPUTS only on the root CPU and then broadcast the
-      ! values but this solution here at least appears to fix the problem. 
-      ! (ckeller, 4/15/16)
-!      Input_Opt%NUMDEP            = NUMDEP
-!      Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
-      Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
-      Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
- 
+
       END SUBROUTINE INIT_DRYDEP
 !EOC
 !------------------------------------------------------------------------------
