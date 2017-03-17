@@ -5814,7 +5814,8 @@
             IF ( SpcInfo%Is_WetDep ) THEN
                NSOL         = NSOL + 1          ! Increment counter
                N_WD         = SpcInfo%WetDepID  ! Wetdep ID
-               IDWETD(N_WD) = SpcInfo%AdvectId  ! Species ID
+               !IDWETD(N_WD) = SpcInfo%AdvectId  ! Species ID
+               IDWETD(N_WD) = N                 ! Species ID
             ENDIF
 
             ! Free pointer
