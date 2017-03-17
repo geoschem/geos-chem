@@ -2260,11 +2260,6 @@ CONTAINS
              'Use fertilizer NOx', OptValBool=YesOrNo, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
    
-!----------------------------------------------------------------------------
-! Prior to 9/19/16:
-! Rewrite IF statement so as to have Gfortran not choke (bmy, 9/19/16)
-!          IF ( YesOrNo == .FALSE. ) THEN
-!----------------------------------------------------------------------------
           IF ( YesOrNo .eqv. .FALSE. ) THEN
              MSG = 'Fertilizer NOx disabled - diagnostics will be zero!'
              CALL HCO_Warning( MSG, RC, THISLOC=LOC )

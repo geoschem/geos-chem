@@ -83,16 +83,6 @@
       INTEGER, PARAMETER :: MAX_DIAG   = 80
 #endif
 
-!----------------------------------------------------------------------------
-! Prior to 3/16/17:
-! Remove reference to NNPAR, set a large placeholder value for now
-! NOTE: BPCH diagnostics are going out the window shortly (bmy, 3/16/17)
-!#if   defined( TOMAS )
-!      INTEGER, PARAMETER :: MAX_TRACER = NNPAR+1   ! For TOMAS (win, 1/25/10)
-!#else
-!      INTEGER, PARAMETER :: MAX_TRACER = NNPAR+6   ! For non-TOMAS simulations 
-!#endif
-!----------------------------------------------------------------------------
       INTEGER, PARAMETER  :: MAX_TRACER = 500      ! Large placeholder value
 !
 ! !PUBLIC DATA MEMBERS:

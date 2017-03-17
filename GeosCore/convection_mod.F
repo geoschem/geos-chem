@@ -1753,17 +1753,7 @@
                IF ( CLDMAS(I,J,K-1) .gt. TINY ) THEN
                   CMOUT    = CLDMAS(I,J,K) + DTRN(I,J,K)
                   ENTRN    = CMOUT         - CLDMAS(I,J,K-1)
-!-----------------------------------------------------------------------------
-! Prior to 7/7/16:
-! F loops over the # of advected species, so use NA index (bmy, 7/7/16)
-!                  QC_PRES  = QC(I,J) * ( 1e+0_fp - F(I,J,K,IC) )
-!-----------------------------------------------------------------------------
                   QC_PRES  = QC(I,J) * ( 1e+0_fp - F(I,J,K,NA) )
-!-----------------------------------------------------------------------------
-! Prior to 7/7/16:
-! F loops over the # of advected species, so use NA index (bmy, 7/7/16)
-!                  QC_SCAV  = QC(I,J) * F(I,J,K,IC)
-!-----------------------------------------------------------------------------
                   QC_SCAV  = QC(I,J) * F(I,J,K,NA)
 
 !#if defined ( DEBUG )

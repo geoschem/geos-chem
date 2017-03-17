@@ -1859,20 +1859,7 @@
                   DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
                   DUMMY4 = ABS((DUMMY2 - 1.e+0_f8)/(DUMMY2 + 1.e+0_f8))
                   RA = 1.e+0_f8 * (1.e+0_f8/CKUSTR) * LOG(DUMMY3/DUMMY4)
-!------------------------------------------------------------------------------
-! Prior to 2/18/17:
-!               ELSEIF((CORR1.GE.0.0e+0_f8).AND.(CORR1.LE.1.0e+0_f8)) 
-!     &          THEN
-!                  !coef_a=1.e+0_f8
-!                  !coef_b=5.e+0_f8
-!                  RA = (1D0/CKUSTR) *
-!     &          (1.e+0_f8*LOG(CORR1/Z0OBK) + 5.e+0_f8*(CORR1-Z0OBK))
-!               ELSE ! CORR1 .GT. 1.0D0
-!                  !coef_a=5e+0_f8
-!                  !coef_b=1.e+0_f8
-!                  RA = (1D0/CKUSTR) *
-!     &          (5.e+0_f8*LOG(CORR1/Z0OBK) + 1.e+0_f8*(CORR1-Z0OBK))
-!------------------------------------------------------------------------------
+
                !==============================================================
                ! Brian Boys (briboys@gmail.com) wrote:
                !

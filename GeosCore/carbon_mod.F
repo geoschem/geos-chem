@@ -3884,20 +3884,8 @@
             ! Diagnostic/debug info (hotp 5/22/10)
             IF ( JHC == PARENTBENZ .or. JHC == PARENTTOLU
      &                             .or. JHC == PARENTXYLE ) THEN 
-!---------------------------------------------------------------------------
-! Prior to 9/22/16:
-! The 4th dimension of GLOB_DARO2 is 2, but DELHC has a dimension of 3,
-! so avoid the array-size mismatch.
-!               GLOB_DARO2(I,J,L,:,JHC-5) = DELHC(:)
-!---------------------------------------------------------------------------
                GLOB_DARO2(I,J,L,1:2,JHC-5) = DELHC(1:2)
             ELSE ! NAP
-!---------------------------------------------------------------------------
-! Prior to 9/22/16:
-! The 4th dimension of GLOB_DARO2 is 2, but DELHC has a dimension of 3,
-! so avoid the array-size mismatch.
-!               GLOB_DARO2(I,J,L,:,4) = DELHC(:)
-!---------------------------------------------------------------------------
                GLOB_DARO2(I,J,L,1:2,4) = DELHC(1:2)
             ENDIF
 
