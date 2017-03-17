@@ -953,9 +953,11 @@ CONTAINS
                               MW_g          = 97.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
+                              Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
                               Is_Photolysis = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 1.00e+20_fp,                  &
                               RC            = RC )
 
           CASE( 'CLO' )
@@ -1679,9 +1681,14 @@ CONTAINS
                               MW_g          = 52.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
                               Is_Photolysis = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 6.50e+2_fp,                   &
+                              Henry_K0      = 6.50e+2_f8,                   &
+                              Henry_CR      = 5900.0_f8,                    &
+                              WD_RetFactor  = 0.0_fp,                       &
                               RC            = RC )
 
           CASE( 'IEPOX' )
