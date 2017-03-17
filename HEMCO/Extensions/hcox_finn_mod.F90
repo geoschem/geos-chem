@@ -808,6 +808,7 @@ CONTAINS
        IF ( TRIM(SpcName) == 'NO'   ) SpcName = 'NOx'
        IF ( TRIM(SpcName) == 'MTPA' ) SpcName = 'APINE'
        IF ( TRIM(SpcName) == 'Hg0'  ) SpcName = 'CO'
+       IF ( TRIM(SpcName) == 'SOAP' ) SpcName = 'CO'
 
        ! For lumped species, we have to repeat the lookup multiple times,
        ! so use a while loop here.  For example, for species TOLU this will 
