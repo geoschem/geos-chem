@@ -70,7 +70,7 @@
 #endif
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
-      USE PASSIVE_TRACEr_MOD,      ONLY : Cleanup_Passive_Tracer
+      USE PASSIVE_SPECIES_MOD,     ONLY : Cleanup_Passive_Species
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
 
       ! HEMCO
@@ -340,6 +340,7 @@
       CALL Cleanup_Get_Ndep   ( am_I_Root, RC )
       CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
       CALL Cleanup_CMN_FJX    ( am_I_Root, RC )
+      CALL Cleanup_Passive_Species( am_I_Root, RC )
 
       ! Close GEOS-FP or MERRA2 met field files that may still be open
 #if defined( GEOS_FP )

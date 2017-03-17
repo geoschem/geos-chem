@@ -3,54 +3,54 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: passive_tracer_mod.F90
+! !MODULE: passive_species_mod.F90
 !
-! !DESCRIPTION: Module passive\_tracer\_mod.F90 contains variables and routines
-!  for using passive tracers in GEOS-Chem. Passive tracers are tracers that are 
+! !DESCRIPTION: Module passive\_species\_mod.F90 contains variables and routines
+!  for using passive species in GEOS-Chem. Passive species are species that are 
 !  passively transported by GEOS-Chem, with a simple first order loss rate 
-!  being applied to each tracer. The number of passive tracers, corresponding 
-!  tracer properties as well as loss rates and default initial concentrations 
+!  being applied to each species. The number of passive species, corresponding 
+!  species properties as well as loss rates and default initial concentrations 
 !  can be specified by the user via the GEOS-Chem input file (input.geos).
 ! 
-!  The passive tracer module is designed to work in combination with any
+!  The passive species module is designed to work in combination with any
 !  existing GEOS-Chem simulation type, even though it has only been tested
 !  with the Radon simulation at this point.
 !
 ! !REMARKS:  
-!  Passive tracers are defined in input.geos in the PASSIVE TRACERS menu. For
-!  instance, to use the Radon simulation with two passive tracers ('Rn_ps' and 
+!  Passive species are defined in input.geos in the PASSIVE SPECIES menu. For
+!  instance, to use the Radon simulation with two passive species ('Rn_ps' and 
 !  'Dummy') with atmospheric lifetimes of 3.8 days and 1 hour, respectively, 
 !  add the following entries to input.geos:
 !
-!  %%% PASSIVE TRACERS %%% :
-!  Number of pass. tracers : 2
-!  Passive tracer #1       : Rn_ps 328320.0 1.0e-20
-!  Passive tracer #2       : Dummy 3600.0   1.0e-20
+!  %%% PASSIVE SPECIES MENU %%%:
+!  Number of passive spec.  : 2
+!  Passive species #1       : Rn_ps 328320.0 1.0e-20
+!  Passive species #2       : Dummy 3600.0   1.0e-20
 !
-!  The 3rd column of the tracer definition denotes the default initial
+!  The 3rd column of the species definition denotes the default initial
 !  concentration (in v/v) of the species of interest (1.0e-20 v/v in this
-!  case). This value will be used if the GEOS-Chem tracer restart file has
-!  no concentration field for the given tracer. 
+!  case). This value will be used if the GEOS-Chem species restart file has
+!  no concentration field for the given species. 
 !
-!  There must be a matching entry in the tracers menu for every passive tracer
-!  defined in the passive tracers menu:
+!  There must be a matching entry in the species menu for every passive species
+!  defined in the passive species menu:
 !
-!  %%% TRACER MENU %%%     :
+!  %%% ADVECTED SPECIES MENU %%%:
 !  Type of simulation      : 1
-!  Number of Tracers       : 4
-!  Tracer Entries -------> : TR#   Name  g/mole   Tracer Members; () = emitted
-!  Tracer #1               :   1   Rn     222.0
-!  Tracer #2               :   2   Pb     210.0
-!  Tracer #3               :   3   Be7      7.0
-!  Tracer #4               :   4   Rn_ps  222.0
-!  Tracer #5               :   5   Dummy  100.0
+!  Number of Advected Spec.: 4
+!  Species Entries ------->: Name
+!  Species #1              : Rn
+!  Species #2              : Pb
+!  Species #3              : Be7
+!  Species #4              : Rn_ps
+!  Species #5              : Dummy
 ! 
-!  In this example, tracers 1-3 are the default tracers for this simulation type
-!  while tracers 4-5 are the user-specific passive tracers.
+!  In this example, species 1-3 are the default species for this simulation type
+!  while species 4-5 are the user-specific passive species.
 !
-!  As for regular GEOS-Chem tracers, emissions can be assigned to passive 
-!  tracers via the HEMCO configuration file. For example, to assign a uniform 
-!  flux of 0.1 kg/m2/s to passive tracer 'Dummy', add the following line to 
+!  As for regular GEOS-Chem species, emissions can be assigned to passive 
+!  species via the HEMCO configuration file. For example, to assign a uniform 
+!  flux of 0.1 kg/m2/s to passive species 'Dummy', add the following line to 
 !  section base emissions of your HEMCO_Config.rc:
 !
 !  0 DUMMY_EMIS 0.1 - - - xy kg/m2/s Dummy - 1 1
@@ -58,7 +58,7 @@
 !\\
 ! !INTERFACE:
 !
-MODULE PASSIVE_TRACER_MOD 
+MODULE PASSIVE_SPECIES_MOD 
 !
 ! !USES:
 !
@@ -69,11 +69,11 @@ MODULE PASSIVE_TRACER_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: INIT_PASSIVE_TRACER
-  PUBLIC :: ADD_PASSIVE_TRACER
-  PUBLIC :: PASSIVE_TRACER_GETRATE
-  PUBLIC :: PASSIVE_TRACER_INQUIRE
-  PUBLIC :: CLEANUP_PASSIVE_TRACER
+  PUBLIC :: INIT_PASSIVE_SPECIES
+  PUBLIC :: ADD_PASSIVE_SPECIES
+  PUBLIC :: PASSIVE_SPECIES_GETRATE
+  PUBLIC :: PASSIVE_SPECIES_INQUIRE
+  PUBLIC :: CLEANUP_PASSIVE_SPECIES
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -102,15 +102,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Init_Passive_Tracer
+! !IROUTINE: Init_Passive_Species
 !
-! !DESCRIPTION: Subroutine INIT\_PASSIVE\_TRACER initializes the passive
-! tracers arrays.
+! !DESCRIPTION: Subroutine INIT\_PASSIVE\_SPECIES initializes the passive
+! species arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_PASSIVE_TRACER ( am_I_Root, NPT, RC ) 
+  SUBROUTINE INIT_PASSIVE_SPECIES( am_I_Root, NPT, RC ) 
 !
 ! !USES:
 !
@@ -119,7 +119,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    INTEGER,          INTENT(IN   )  :: NPT        ! # of passive tracers 
+    INTEGER,          INTENT(IN   )  :: NPT        ! # of passive species 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -138,7 +138,7 @@ CONTAINS
     INTEGER         :: AS
 
     !=================================================================
-    ! INIT_PASSIVE_TRACER begins here!
+    ! INIT_PASSIVE_SPECIES begins here!
     !=================================================================
 
     ! Assume success
@@ -153,7 +153,7 @@ CONTAINS
                  PASSIVE_INITCONC(NPASSIVE), PASSIVE_MW(NPASSIVE),  &
                  PASSIVE_NAME(NPASSIVE),     STAT=AS )
        IF ( AS /= 0 ) THEN
-          WRITE(*,*) 'Cannot allocate passive tracers arrays'
+          WRITE(*,*) 'Cannot allocate passive species arrays'
           RC = GC_FAILURE
           RETURN
        ENDIF
@@ -165,23 +165,23 @@ CONTAINS
        PASSIVE_INITCONC(:) = 0.0_fp
     ENDIF
 
-  END SUBROUTINE INIT_PASSIVE_TRACER
+  END SUBROUTINE INIT_PASSIVE_SPECIES
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Add_Passive_Tracer
+! !IROUTINE: Add_Passive_Species
 !
-! !DESCRIPTION: Subroutine ADD\_PASSIVE\_TRACER registers a passive tracer 
+! !DESCRIPTION: Subroutine ADD\_PASSIVE\_SPECIES registers a passive species 
 !  based on the passed input arguments.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ADD_PASSIVE_TRACER ( am_I_Root,   TrcName, TrcTau, &
-                                  TrcInitConc, TrcMW,   RC ) 
+  SUBROUTINE ADD_PASSIVE_SPECIES( am_I_Root,   SpcName, SpcTau, &
+                                  SpcInitConc, SpcMW,   RC ) 
 !
 ! !USES:
 !
@@ -190,10 +190,10 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
-    CHARACTER(LEN=*), INTENT(IN   )  :: TrcName     ! Tracer name
-    REAL(fp),         INTENT(IN   )  :: TrcTau      ! Tracer lifetime (s) 
-    REAL(fp),         INTENT(IN   )  :: TrcInitConc ! Tracer default init conc (v/v) 
-    REAL(fp),         INTENT(IN   )  :: TrcMW       ! Tracer molec. weight (g/mol) 
+    CHARACTER(LEN=*), INTENT(IN   )  :: SpcName     ! Species name
+    REAL(fp),         INTENT(IN   )  :: SpcTau      ! Species lifetime (s) 
+    REAL(fp),         INTENT(IN   )  :: SpcInitConc ! Species default init conc (v/v) 
+    REAL(fp),         INTENT(IN   )  :: SpcMW       ! Species molec. weight (g/mol) 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -209,21 +209,21 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER             :: I, IDX, TRCID
+    INTEGER             :: I, IDX, SPCID
     CHARACTER(LEN=255)  :: MSG
-    CHARACTER(LEN=255)  :: LOC = 'ADD_PASSIVE_TRACER (passive_tracer_mod.F90)'
+    CHARACTER(LEN=255)  :: LOC = 'ADD_PASSIVE_SPECIES (passive_species_mod.F90)'
 
     !=================================================================
-    ! ADD_PASSIVE_TRACER begins here!
+    ! ADD_PASSIVE_SPECIES begins here!
     !=================================================================
 
     ! Assume success
     RC = GC_SUCCESS
 
-    ! Error check: cannot define passive tracer if # of passive tracers is 0.
+    ! Error check: cannot define passive species if # of passive species is 0.
     IF ( NPASSIVE <= 0 ) THEN
-       WRITE(*,*) 'Cannot add passive tracer ', TRIM(TrcName), &
-             ': # of passive tracers is smaller than 1!'
+       WRITE(*,*) 'Cannot add passive species ', TRIM(SpcName), &
+             ': # of passive species is smaller than 1!'
        RC = GC_FAILURE
        RETURN 
     ENDIF 
@@ -238,35 +238,35 @@ CONTAINS
     ENDDO 
     
     IF ( IDX <= 0 ) THEN
-       WRITE(*,*) 'Cannot add passive tracer ', TRIM(TrcName), &
-                    ': all ', NPASSIVE, ' tracer slots are already being used.'
+       WRITE(*,*) 'Cannot add passive species ', TRIM(SpcName), &
+                    ': all ', NPASSIVE, ' species slots are already being used.'
        RC = GC_FAILURE
        RETURN 
     ENDIF 
 
-!    ! Find GEOS-Chem tracer ID for this tracer (by name)
-!    TRCID = ind_( TRIM(TrcName) )
+!    ! Find GEOS-Chem species ID for this species (by name)
+!    SPCID = ind_( TRIM(SpcName) )
 
-!    ! Return w/ error if this tracer is not defined as GEOS-Chem tracer
-!    IF ( TRCID <= 0 ) THEN
-!       WRITE(MSG,*) 'Cannot add passive tracer ', TRIM(TrcName), &
-!                    ': this is not a GEOS-Chem tracer.'
+!    ! Return w/ error if this species is not defined as GEOS-Chem species
+!    IF ( SPCID <= 0 ) THEN
+!       WRITE(MSG,*) 'Cannot add passive species ', TRIM(SpcName), &
+!                    ': this is not a GEOS-Chem species.'
 !       CALL ERROR_STOP ( TRIM(MSG), TRIM(LOC) )
 !       RC = GC_FAILURE
 !       RETURN 
 !    ENDIF 
 
-    ! Register tracer
+    ! Register species
     PASSIVE_ID(IDX)       = IDX
-    PASSIVE_NAME(IDX)     = TRIM(TrcName)
-    PASSIVE_TAU(IDX)      = TrcTau 
-    PASSIVE_INITCONC(IDX) = TrcInitConc 
-    PASSIVE_MW(IDX)       = TrcMW
+    PASSIVE_NAME(IDX)     = TRIM(SpcName)
+    PASSIVE_TAU(IDX)      = SpcTau 
+    PASSIVE_INITCONC(IDX) = SpcInitConc 
+    PASSIVE_MW(IDX)       = SpcMW
 
     ! Verbose
     IF ( am_I_Root ) THEN
-       WRITE( 6, '(a)' ) 'Added passive tracer: '
-       WRITE( 6, 110   ) ' - Tracer name                 : ', PASSIVE_NAME(IDX) 
+       WRITE( 6, '(a)' ) 'Added passive species: '
+       WRITE( 6, 110   ) ' - Species name                 : ', PASSIVE_NAME(IDX) 
        WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ', PASSIVE_MW(IDX)
        WRITE( 6, 120   ) ' - Lifetime [s]                : ', PASSIVE_TAU(IDX)
        WRITE( 6, 130   ) ' - Default concentration [v/v] : ', PASSIVE_INITCONC(IDX)
@@ -279,23 +279,22 @@ CONTAINS
     ! Return w/ success
     RC = GC_SUCCESS
 
-  END SUBROUTINE ADD_PASSIVE_TRACER
+  END SUBROUTINE ADD_PASSIVE_SPECIES
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Passive_Tracer_Getrate
+! !IROUTINE: Passive_Species_GetRate
 !
-! !DESCRIPTION: Subroutine PASSIVE\_TRACER\_GETRATE returns the unitless decay
-!  rate for the given tracer and chemistry time step. 
-!  on all passive tracers.
+! !DESCRIPTION: Subroutine PASSIVE\_SPECIES\_GETRATE returns the unitless decay
+!  rate for the given species and chemistry time step.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE PASSIVE_TRACER_GETRATE ( am_I_Root, TrcName, DT, Rate, RC ) 
+  SUBROUTINE PASSIVE_SPECIES_GETRATE( am_I_Root, SpcName, DT, Rate, RC ) 
 !
 ! !USES:
 !
@@ -304,7 +303,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    CHARACTER(LEN=*), INTENT(IN   )  :: TrcName    ! Passive tracer name 
+    CHARACTER(LEN=*), INTENT(IN   )  :: SpcName    ! Passive species name 
     REAL(fp),         INTENT(IN   )  :: DT         ! Time step in s
 !
 ! !OUTPUT PARAMETERS:
@@ -328,12 +327,12 @@ CONTAINS
     INTEGER             :: N, ID
     REAL(fp)            :: Decay
     CHARACTER(LEN=255)  :: MSG
-    CHARACTER(LEN=255)  :: LOC = "PASSIVE_TRACER_GETRATE (PASSIVE_TRACER_MOD.F90)"
+    CHARACTER(LEN=255)  :: LOC = "PASSIVE_SPECIES_GETRATE (PASSIVE_SPECIES_MOD.F90)"
 
     REAL(fp), PARAMETER :: ln2 = 0.693147181E+00_fp
 
     !=================================================================
-    ! PASSIVE_TRACER_GETRATE begins here!
+    ! PASSIVE_SPECIES_GETRATE begins here!
     !=================================================================
 
     ! Assume success
@@ -343,7 +342,7 @@ CONTAINS
     ID = -1
     DO N = 1, NPASSIVE
 
-       IF ( TRIM(TrcName) == TRIM(PASSIVE_NAME(N)) ) THEN
+       IF ( TRIM(SpcName) == TRIM(PASSIVE_NAME(N)) ) THEN
           ID = N
           EXIT
        ENDIF
@@ -351,7 +350,7 @@ CONTAINS
 
     ! Error check
     IF ( ID <= 0 ) THEN
-       WRITE(*,*) 'This is not a passive tracer ', TRIM(TrcName)
+       WRITE(*,*) 'This is not a passive species ', TRIM(SpcName)
        RC = GC_FAILURE
        RETURN 
     ENDIF 
@@ -370,22 +369,22 @@ CONTAINS
     ! Return w/ success 
     RC = GC_SUCCESS
  
-  END SUBROUTINE PASSIVE_TRACER_GETRATE
+  END SUBROUTINE PASSIVE_SPECIES_GETRATE
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Passive_Tracer_Inquire
+! !IROUTINE: Passive_Species_Inquire
 !
-! !DESCRIPTION: Function PASSIVE\_TRACER\_INQUIRE is a wrapper routine to 
-!  inquire information about a passive tracer. 
+! !DESCRIPTION: Function PASSIVE\_SPECIES\_INQUIRE is a wrapper routine to 
+!  inquire information about a passive species. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE PASSIVE_TRACER_INQUIRE ( TrcName, IsPassive, MW, InitConc ) 
+  SUBROUTINE PASSIVE_SPECIES_INQUIRE( SpcName, IsPassive, MW, InitConc ) 
 !
 ! !USES:
 !
@@ -393,13 +392,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),   INTENT(IN   )  :: TrcName    ! GC tracer name 
+    CHARACTER(LEN=*),   INTENT(IN   )  :: SpcName    ! GC species name 
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,  OPTIONAL, INTENT(  OUT)  :: IsPassive  ! Is TrcID a passive tracer?
+    LOGICAL,  OPTIONAL, INTENT(  OUT)  :: IsPassive  ! Is SpcID a passive spec.?
     REAL(fp), OPTIONAL, INTENT(  OUT)  :: MW         ! Molecular weight (g/mol) 
-    REAL(fp), OPTIONAL, INTENT(  OUT)  :: InitConc   ! Initial concentration (v/v) 
+    REAL(fp), OPTIONAL, INTENT(  OUT)  :: InitConc   ! Initial conc. (v/v)
 !
 ! !REMARKS:
 !
@@ -417,7 +416,7 @@ CONTAINS
     REAL(fp)   :: InConc, molw
 
     !=================================================================
-    ! PASSIVE_TRACER_INQUIRE begins here!
+    ! PASSIVE_SPECIES_INQUIRE begins here!
     !=================================================================
 
     ! Init
@@ -425,12 +424,12 @@ CONTAINS
     InConc = 0.0_fp 
     molw   = 0.0_fp 
 
-    ! Nothing to do if no passive tracers defined
+    ! Nothing to do if no passive species defined
     IF ( NPASSIVE > 0 ) THEN 
 
-       ! Loop over all passive tracers
+       ! Loop over all passive species
        DO N = 1, NPASSIVE
-          IF ( TRIM(TrcName) == TRIM(PASSIVE_NAME(N)) ) THEN
+          IF ( TRIM(SpcName) == TRIM(PASSIVE_NAME(N)) ) THEN
              IsPass = .TRUE.
              InConc = PASSIVE_INITCONC(N)
              molw   = PASSIVE_MW(N)
@@ -444,22 +443,22 @@ CONTAINS
     IF ( PRESENT(InitConc ) ) InitConc  = InConc
     IF ( PRESENT(MW       ) ) MW        = molw    
 
-  END SUBROUTINE PASSIVE_TRACER_INQUIRE
+  END SUBROUTINE PASSIVE_SPECIES_INQUIRE
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Cleanup_Passive_Tracer
+! !IROUTINE: Cleanup_Passive_Species
 !
-! !DESCRIPTION: Subroutine CLEANUP\_PASSIVE\_TRACER finalizes the passive
-! tracers arrays.
+! !DESCRIPTION: Subroutine CLEANUP\_PASSIVE\_SPECIES finalizes the passive
+! species arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CLEANUP_PASSIVE_TRACER ( am_I_Root, RC ) 
+  SUBROUTINE CLEANUP_PASSIVE_SPECIES( am_I_Root, RC ) 
 !
 ! !USES:
 !
@@ -482,7 +481,7 @@ CONTAINS
 !BOC
 
     !=================================================================
-    ! CLEANUP_PASSIVE_TRACER begins here!
+    ! CLEANUP_PASSIVE_SPECIES begins here!
     !=================================================================
 
     ! Deallocate arrays
@@ -495,6 +494,6 @@ CONTAINS
     ! Return w/ success
     RC = GC_SUCCESS
 
-  END SUBROUTINE CLEANUP_PASSIVE_TRACER
+  END SUBROUTINE CLEANUP_PASSIVE_SPECIES
 !EOC
-END MODULE PASSIVE_TRACER_MOD 
+END MODULE PASSIVE_SPECIES_MOD 

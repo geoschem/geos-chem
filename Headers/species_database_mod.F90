@@ -83,8 +83,8 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE Passive_Tracer_Mod, ONLY : PASSIVE_TRACER_INQUIRE
+    USE Input_Opt_Mod,       ONLY : OptInput
+    USE Passive_Species_Mod, ONLY : PASSIVE_SPECIES_INQUIRE
     USE Species_Mod
 !
 ! !INPUT PARAMETERS: 
@@ -181,7 +181,7 @@ CONTAINS
     LOGICAL             :: Is_Advected
     LOGICAL             :: prtDebug
 
-    ! For passive tracers
+    ! For passive species
     LOGICAL             :: IsPassive
 !
 ! !DEFINED PARAMETERS
@@ -3340,19 +3340,6 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
-          CASE( 'PASV' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = 'PASV',                       &
-                              FullName      = 'Passive species',            &
-                              MW_g          = 1.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
-
           !==================================================================
           ! Species for the Hg specialty simulation
           !==================================================================
@@ -4808,18 +4795,17 @@ CONTAINS
           !==================================================================
           CASE DEFAULT
   
-             ! Test if this is a passive tracer
-             CALL PASSIVE_TRACER_INQUIRE( NameAllCaps,          &
+             ! Test if this is a passive species
+             CALL PASSIVE_SPECIES_INQUIRE( NameAllCaps,          &
                                           IsPassive=IsPassive,  &
                                           MW=MW_g,              &
                                           InitConc=BackgroundVV  )
 
-             ! Add as passive tracer if it is listed in passive_tracer_mod.F90.
-             ! Passive tracers can be listed in the optional passive tracer menu
-             ! in input_geos. When reading the input file, all listed passive 
-             ! tracer quantities are written to local variables within module
-             ! passive_tracer_mod.F90. Pass these values here to the species
-             ! database (ckeller, 11/3/16).
+             ! Add passive species if it is listed in the optional passive
+             ! species menu in input.geos. When reading the input file, all
+             ! listed passive species quantities are written to local variables
+             ! within passive_species_mod.F90. Pass these values here to the
+             ! species database (ckeller, 11/3/16).
              IF ( IsPassive ) THEN
 
                 CALL Spc_Create( am_I_Root     = am_I_Root,                    &
