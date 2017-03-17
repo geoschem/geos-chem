@@ -168,6 +168,7 @@
 !  20 Jun 2016 - R. Yantosca - Renamed species ID's IDTxxxx to id_XXXX
 !  06 Jul 2016 - R. Yantosca - Removed GET_WETDEP_NSOL and GET_WETDEP_IDWETD,
 !                              these are now replaced by State_Chm fields
+!  17 Mar 2017 - R. Yantosca - Finally remove NSOL and IDWETD; they're unused
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -183,11 +184,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Scalars
-      INTEGER                       :: NSOL          ! # of soluble species
-
       ! Arrays
-      INTEGER,  ALLOCATABLE         :: IDWETD(:    ) ! Index array for WETDEP
       REAL(fp), ALLOCATABLE, TARGET :: C_H2O (:,:,:) ! Mix ratio of H2O [v/v]
       REAL(fp), ALLOCATABLE, TARGET :: CLDICE(:,:,:) ! Cloud ice mixing ratio
                                                      !  [cm3 ice/cm3 air]
@@ -2982,6 +2979,7 @@
 !  05 Jul 2016 - R. Yantosca - Now replace IDWETD with State_Chm%Map_Wetdep
 !  05 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  05 Aug 2016 - R. Yantosca - Remove reference to Spc, it's not needed
+!  17 Mar 2017 - R. Yantosca - Replace NSOL with State_Chm%nWetDep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3005,7 +3003,8 @@
       ! Arrays
       ! DSTT is the accumulator array of rained-out 
       ! soluble species for a given (I,J) column
-      REAL(fp)               :: DSpc(NSOL,LLPAR,IIPAR,JJPAR)
+      REAL(fp)               :: DSpc(State_Chm%nWetDep,
+     &                               LLPAR,IIPAR,JJPAR)
 
       ! Strings
       CHARACTER(LEN=255)     :: ERRMSG
@@ -3063,7 +3062,7 @@
 
          ! Zero accumulator array
          DO L  = 1, LLPAR
-         DO NW = 1, NSOL
+         DO NW = 1, State_Chm%nWetDep
             DSpc(NW,L,I,J) = 0e+0_fp
          ENDDO
          ENDDO
@@ -3610,6 +3609,8 @@
 !  05 Jul 2016 - R. Yantosca - Now replace IDWETD with State_Chm%Map_Wetdep
 !  05 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  05 Aug 2016 - R. Yantosca - Remove reference to Spc, it's not needed
+!  17 Mar 2017 - R. Yantosca - Replace NSOL with State_Chm%nWetDep
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3636,7 +3637,8 @@
       ! Arrays
       ! DSpc is the accumulator array of rained-out 
       ! soluble species for a given (I,J) column
-      REAL(fp)               :: DSpc(NSOL,LLPAR,IIPAR,JJPAR)
+      REAL(fp)               :: DSpc(State_Chm%nWetDep,
+     &                               LLPAR,IIPAR,JJPAR)
  
       ! Strings
       CHARACTER(LEN=255)     :: ERRMSG
@@ -3718,7 +3720,7 @@
 
          ! Zero accumulator array
          DO L  = 1, LLPAR
-         DO NW = 1, NSOL
+         DO NW = 1, State_Chm%nWetDep
             DSpc(NW,L,I,J) = 0e+0_fp
          ENDDO
          ENDDO
@@ -4713,20 +4715,18 @@
          ! species concentrations must be finite.WASHFRAC = NaN when F = 0. 
          ! When less than 0.1% of a soluble species is available for washout
          ! DSpc < 0 and SAFETY trips.  (Helen Amos, 20100928)
+         !
+         ! Viral Shah wrote:
+         !  The condition requiring that the WASHFRAC>1D-3 or any number 
+         !  greater than 0 for washout to occur, prevents the partial 
+         !  resuspension of the dissolved mass falling from above, and leads
+         !  to an overestimate in the wet deposited mass... I recommend that 
+         !  the condition on WASHFRAC should be removed.  If  this leads to 
+         !  negative values of DSpc, we should add a few lines to restrict
+         !  DSpc to a minimum of 0. (mps, 5/20/15)
+         !
          IF ( IT_IS_NAN( WASHFRAC ) ) THEN
             CYCLE
-!------------------------------------------------------------------------------
-! Prior to 5/20/15:
-! Viral Shah wrote:
-!  The condition requiring that the WASHFRAC>1D-3 or any number greater than 0
-!  for washout to occur, prevents the partial resuspension of the dissolved
-!  mass falling from above, and leads to an overestimate in the wet deposited
-!  mass... I recommend that the condition on WASHFRAC should be removed. If
-!  this leads to negative values of DSpc, we should add a few lines to restrict
-!  DSpc to a minimum of 0. (mps, 5/20/15)
-!         ELSEIF ( WASHFRAC < 1e-3_fp ) THEN
-!            CYCLE
-!------------------------------------------------------------------------------
          ENDIF
 #endif
 
@@ -5750,9 +5750,6 @@
       ! Initialize
       SpcInfo => NULL()
       
-      ! Actual number of wet-depositing species
-      NSOL = 0
-
       ! Define species ID flags
       id_NK1   = Ind_('NK1'  )
       id_SF1   = Ind_('SF1'  )
@@ -5778,11 +5775,6 @@
       !-----------------------------------------------------------------
       IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
 
-         ! IDs of all wet-depositing species
-         ALLOCATE( IDWETD( State_Chm%nWetDep ), STAT=RC )
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'IDWETD' )
-         IDWETD = 0
-            
          ! Allocate C_H2O on first call
          ALLOCATE( C_H2O( IIPAR, JJPAR, LLPAR ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'C_H2O' )
@@ -5798,35 +5790,12 @@
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'CLDICE' )
          CLDICE = 0.0_fp
 
-         !--------------------------------------------------------------
-         ! Construct the vector of wet-depositing species indices
-         !--------------------------------------------------------------
-
-         ! Loop over all species
-         DO N = 1, State_Chm%nSpecies
-
-            ! Get physical parameters for the Nth species from the
-            ! species database object (which is part of State_Chm)
-            SpcInfo => State_Chm%SpcData(N)%Info
-
-            ! If this is a wet-depositing species, then store the
-            ! advected species index in the IDWETD array
-            IF ( SpcInfo%Is_WetDep ) THEN
-               NSOL         = NSOL + 1          ! Increment counter
-               N_WD         = SpcInfo%WetDepID  ! Wetdep ID
-               IDWETD(N_WD) = SpcInfo%AdvectId  ! Species ID
-            ENDIF
-
-            ! Free pointer
-            SpcInfo => NULL()
-
-         ENDDO
       ENDIF
 
       !=================================================================
       ! Print information about wet-depositing species
       !=================================================================
-      IF ( am_I_Root .and. NSOL > 0 ) THEN
+      IF ( am_I_Root .and. State_Chm%nWetDep > 0 ) THEN
 
          ! Title
          LINE = 'INIT_WETSCAV: List of soluble species: '
@@ -5845,10 +5814,10 @@
          WRITE( 6, '(a)'     ) REPEAT( '-', 70 )
 
          ! Loop over all wet-depositing species
-         DO N_WD = 1, NSOL
+         DO N_WD = 1, State_Chm%nWetDep
 
-            ! GEt the corresponding advected species ID
-            N = IDWETD(N_WD)
+            ! Get the corresponding species ID
+            N = State_Chm%Map_WetDep(N_WD)
 
             ! Get physical parameters from the species database object
             SpcInfo => State_Chm%SpcData(N)%Info 
@@ -6136,6 +6105,7 @@
 !  23 Feb 2000 - R. Yantosca - Initial version
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  03 Sep 2015 - R. Yantosca - Now deallocate IDWETD
+!  17 Mar 2017 - R. Yantosca - Now remove IDWETD, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6145,7 +6115,6 @@
       IF ( ALLOCATED( C_H2O  ) ) DEALLOCATE( C_H2O  )
       IF ( ALLOCATED( CLDLIQ ) ) DEALLOCATE( CLDLIQ )
       IF ( ALLOCATED( CLDICE ) ) DEALLOCATE( CLDICE )
-      IF ( ALLOCATED( IDWETD ) ) DEALLOCATE( IDWETD )
       IF ( ALLOCATED( PDOWN  ) ) DEALLOCATE( PDOWN  )
       IF ( ALLOCATED( QQ     ) ) DEALLOCATE( QQ     )
       IF ( ALLOCATED( H2O2s  ) ) DEALLOCATE( H2O2s  )
