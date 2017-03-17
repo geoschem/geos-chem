@@ -251,12 +251,13 @@
       REAL(fp), SAVE      :: SSA_GROWTH
 
       ! Non-SAVEd variables
-      INTEGER             :: I, J, L, N, K
+      INTEGER             :: I, J, L, N, NA, ND, K
       INTEGER             :: k_SO4
       INTEGER             :: k_ORG
       INTEGER             :: k_SSA
       REAL(fp)            :: Rad_wet, Rad_dry
       REAL(fp)            :: Rho_wet, Rho_dry
+      REAL(fp)            :: REFF
 
       ! Logical flags
       LOGICAL             :: prtDebug
@@ -274,7 +275,7 @@
       LOGICAL             :: IS_POA,   IS_OPOA
       LOGICAL             :: IS_SOAG,  IS_SOAM
 
-      ! Pointers
+      ! Pointers      
       REAL(fp), POINTER   :: Spc(:,:,:,:)
       REAL(fp), POINTER   :: AIRVOL(:,:,:)
       REAL(fp), POINTER   :: PMID(:,:,:)
@@ -639,6 +640,8 @@
          ! (dar, 04/25/10) [see Ridley et al., 2012, JGR]
          !
          ! Updated for TOMAS (Jeffrey Pierce, 6/17/14)
+         !
+         ! Now get dust radius from species database (bmy, 3/16/17)
          !===========================================================
 #if defined( TOMAS )
 
@@ -653,47 +656,53 @@
             ! Loop over the # of TOMAS dust bins
             DO K = 1, IBINS
 
+               ! Get the overall species index for species K
+               N    = id_DUST1 + K - 1
+
+               ! Effective aerosol radius [m]
+               REFF = State_Chm%SpcData(N)%Info%Radius
+               
                ! Bin #1
-               IF ( Input_Opt%DUSTREFF(K) < 0.2e-6_fp ) THEN
+               IF ( REFF < 0.2e-6_fp ) THEN
                   SOILDUST(I,J,L,1) = SOILDUST(I,J,L,1)
-     &                              + Spc(I,J,L,id_DUST1+K-1)  
+     &                              + Spc(I,J,L,N)  
      &                              / AIRVOL(I,J,L)
 
 
                ! Bin #2
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 0.325e-6_fp ) THEN
+               ELSE IF ( REFF < 0.325e-6_fp ) THEN
                   SOILDUST(I,J,L,2) = SOILDUST(I,J,L,2)
-     &                              + Spc(I,J,L,id_DUST1+K-1) 
+     &                              + Spc(I,J,L,N) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #3
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 0.6e-6_fp ) THEN
+               ELSE IF ( REFF < 0.6e-6_fp ) THEN
                   SOILDUST(I,J,L,3) = SOILDUST(I,J,L,3)
-     &                              + Spc(I,J,L,id_DUST1+K-1) 
+     &                              + Spc(I,J,L,N) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #4
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 1.15e-6_fp ) THEN
+               ELSE IF ( REFF < 1.15e-6_fp ) THEN
                   SOILDUST(I,J,L,4) = SOILDUST(I,J,L,4)
-     &                              + Spc(I,J,L,id_DUST1+K-1) 
+     &                              + Spc(I,J,L,N) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #5
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 2.0e-6_fp ) THEN
+               ELSE IF ( REFF < 2.0e-6_fp ) THEN
                   SOILDUST(I,J,L,5) = SOILDUST(I,J,L,5)
-     &                              + Spc(I,J,L,id_DUST1+K-1) 
+     &                              + Spc(I,J,L,N) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #6
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 3.25e-6_fp ) THEN
+               ELSE IF ( REFF < 3.25e-6_fp ) THEN
                   SOILDUST(I,J,L,6) = SOILDUST(I,J,L,6)
-     &                              + Spc(I,J,L,id_DUST1+K-1) 
+     &                              + Spc(I,J,L,N) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #7
                ELSE 
                   SOILDUST(I,J,L,7) = SOILDUST(I,J,L,7)
-     &                              + Spc(I,J,L,id_DUST1+K-1) 
+     &                              + Spc(I,J,L,N) 
      &                              / AIRVOL(I,J,L)
 
                ENDIF
