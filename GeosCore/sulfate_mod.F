@@ -687,7 +687,7 @@
       ! SO4s [kg] gravitational settling
       IF ( id_SO4s > 0 ) THEN
          CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                       State_Chm, Spc(:,:,:,id_SO4s), 1, RC )
+     &                       State_Chm, id_SO4s,   RC         )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
          ENDIF
@@ -696,98 +696,86 @@
       ! NITs [kg] gravitational settling
       IF ( id_NITs > 0 ) THEN 
          CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met, 
-     &                       State_Chm, Spc(:,:,:,id_NITs), 2, RC )
+     &                       State_Chm, id_NITs,   RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
          ENDIF
       ENDIF
 
+      !----------------------------------------------------------------
+      ! These species are only used for the aciduptake simulations
+      !----------------------------------------------------------------
       IF ( LDSTUP ) THEN
-         !tdf
-         ! DUST_SO4 [kg] gravitational settling
+
+         ! SO4d1 [kg] gravitational settling
          IF ( id_SO4d1 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                          State_Chm, Spc(:,:,:,id_SO4d1), 
-     &                          3,         RC )
+     &                          State_Chm, id_SO4d1,  RC         )
             IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_SO4')
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d1')
             ENDIF
          ENDIF
    
-         !tdf
-         ! DUST_SO4 [kg] gravitational settling
+         ! SO4d2 [kg] gravitational settling
          IF ( id_SO4d2 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                          State_Chm, Spc(:,:,:,id_SO4d2), 
-     &                          4,         RC )
+     &                          State_Chm, id_SO4d2,  RC         )
             IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_SO4')
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d2')
             ENDIF
          ENDIF
    
-         !tdf
-         ! DUST_SO4 [kg] gravitational settling
+         ! SO4d3 [kg] gravitational settling
          IF ( id_SO4d3 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                          State_Chm, Spc(:,:,:,id_SO4d3), 
-     &                          5,         RC )
+     &                          State_Chm, id_SO4d3,  RC         )
             IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_SO4')
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d3')
             ENDIF
          ENDIF
    
-         !tdf
-         ! DUST_SO4 [kg] gravitational settling
+         ! SO4d4 [kg] gravitational settling
          IF ( id_SO4d4 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                          State_Chm, Spc(:,:,:,id_SO4d4), 
-     &                          6, RC )
+     &                          State_Chm, id_SO4d4,  RC         )
             IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_SO4')
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d4')
             ENDIF
          ENDIF
    
-         !tdf
-         ! DUST_NIT [kg] gravitational settling
+         ! NITd1 [kg] gravitational settling
          IF ( id_NITd1 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                          State_Chm, Spc(:,:,:,id_NITd1), 
-     &                          7,         RC )
+     &                          State_Chm, id_NITd1,  RC         )
             IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_NIT')
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd1')
             ENDIF
          ENDIF
    
-         !tdf
-         ! DUST_NIT [kg] gravitational settling
+         ! NITd2 [kg] gravitational settling
          IF ( id_NITd2 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                          State_Chm, Spc(:,:,:,id_NITd2), 
-     &                          8,         RC )
+     &                          State_Chm, id_NITd2,  RC         )
             IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_NIT')
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd2')
             ENDIF
          ENDIF
    
-         !tdf
-         ! DUST_NIT [kg] gravitational settling
+         ! NITd3 [kg] gravitational settling
          IF ( id_NITd3 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                          State_Chm, Spc(:,:,:,id_NITd3), 
-     &                          9,         RC )
+     &                          State_Chm, id_NITd3,  RC         )
             IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_NIT')
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd3')
             ENDIF
          ENDIF
    
-         !tdf
-         ! DUST_NIT [kg] gravitational settling
+         ! NITd4 [kg] gravitational settling
          IF ( id_NITd4 > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                          State_Chm, Spc(:,:,:,id_NITd4), 
-     &                          10,        RC )
+     &                          State_Chm, id_NITd4,  RC         )
             IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_NIT')
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd4')
             ENDIF
          ENDIF
       ENDIF
@@ -1493,8 +1481,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE GRAV_SETTLING( am_I_Root, Input_Opt, State_Met, 
-     &                          State_Chm,
-     &                          TC,        N,         RC         )
+     &                          State_Chm, N,         RC         )
 !
 ! !USES:
 !
@@ -1508,6 +1495,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
+      USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if defined( NC_DIAG )
@@ -1522,7 +1510,7 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      INTEGER,        INTENT(IN)    :: N           ! N=1 is SO4S; N=2 is NITS
+      INTEGER,        INTENT(IN)    :: N           ! Species index
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1530,7 +1518,6 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Tracer [kg]
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REMARKS:
@@ -1597,147 +1584,96 @@
       ! Visc Viscosity of air (Pa s)
       ! VTS  Settling velocity of particle (m/s)
       LOGICAL                :: LDSTUP
-      INTEGER                :: I,      J,     L,        DTCHEM
-      REAL(fp)               :: DELZ,   DELZ1, REFF
-      REAL(fp)               :: P,      DP,    PDP,      TEMP        
-      REAL(fp)               :: CONST,  SLIP,  VISC,     FAC1
-      REAL(fp)               :: FAC2,   FLUX,  AREA_CM2, RHB
-      ! replace RCM (radius in CM with RUM radius in microns) jaegle 5/11/11
-      REAL(fp)               :: RUM,    RWET,  RATIO_R
-      REAL(fp)               :: TOT1,   TOT2
-      REAL(fp)               :: VTS(LLPAR)  
-      REAL(fp)               :: TC0(LLPAR)
-      ! added variables for density calculation (jaegle, bec 5/11/11)
-      REAL(f8)               :: RHO1, WTP, RHO
-      REAL(fp)               :: DEN !tdf
- 
+      LOGICAL                :: IS_UPTAKE_SPC
+      INTEGER                :: I,         J,      L
+      INTEGER                :: DryDep_ID, DTCHEM
+      REAL(fp)               :: DELZ,      DELZ1,  REFF
+      REAL(fp)               :: P,         DP,     PDP,      TEMP        
+      REAL(fp)               :: CONST,     SLIP,   VISC,     FAC1
+      REAL(fp)               :: FAC2,      FLUX,   AREA_CM2, RHB
+      REAL(fp)               :: RUM,       RWET,   RATIO_R
+      REAL(fp)               :: TOT1,      TOT2
+      REAL(fp)               :: DEN 
+      REAL(fp)               :: EmMw_g
+      REAL(f8)               :: RHO1,      WTP,    RHO
+
 #if defined( NC_DIAG )
       ! for netcdf diagnostics (ND44 drydep flux)
-      INTEGER                :: drydep_id, spc_id, HCRC
+      INTEGER                :: spc_id, HCRC
       CHARACTER(LEN=30)      :: DiagnName
       REAL(fp), TARGET       :: DryDepFlux( IIPAR, JJPAR ) 
       REAL(fp), POINTER      :: Ptr2D(:,:)
 #endif
 
       ! Arrays
-      INTEGER                :: IDDEP(10)
-      INTEGER                :: IDTRC(10)	
       REAL(fp)               :: SALA_REDGE_um(2)
       REAL(fp)               :: SALC_REDGE_um(2)
+      REAL(fp)               :: VTS(LLPAR)  
+      REAL(fp)               :: TC0(LLPAR)
+
+      ! Pointers
+      REAL(fp),      POINTER :: TC(:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! GRAV_SETTLING begins here!
       !=================================================================
-#if defined( NC_DIAG )
-      Ptr2D => NULL()
-#endif
+
+      ! Assume success
+      RC            =  GC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LDSTUP = Input_Opt%LDSTUP
+      LDSTUP        =  Input_Opt%LDSTUP
 
       ! Return if tracers are undefined
-!      IF ( id_SO4S .le. 0 .and. id_NITS .le. 0 ) RETURN
       IF ( LDSTUP ) THEN
-         IF ( id_SO4d1 < 0 .and. id_NITD1 < 0 ) RETURN ! tdf
+         IF ( id_SO4d1 < 0 .and. id_NITd1 < 0 ) RETURN ! tdf
       ENDIF
 
       ! Return if it's the start of the run
       IF ( GET_ELAPSED_SEC() == 0 ) RETURN
 
-      ! Assume success
-      RC            = GC_SUCCESS
-
       ! Copy fields from INPUT_OPT to local variables for use below
-      SALA_REDGE_um = Input_Opt%SALA_REDGE_um
-      SALC_REDGE_um = Input_Opt%SALC_REDGE_um
+      SALA_REDGE_um =  Input_Opt%SALA_REDGE_um
+      SALC_REDGE_um =  Input_Opt%SALC_REDGE_um
 
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM        =  GET_TS_CHEM() * 60e+0_fp
+
+      ! Look up this species in the species database
+      ThisSpc       => State_Chm%SpcData(N)%Info
+
+      ! Point to the species concentration array
+      TC            => State_Chm%Species(:,:,:,N)
+
+      ! Set a logical to denote that the species is one of the dust 
+      ! uptake species, i.e. SO4d{1-4}, NITd{1-4} (bmy, 3/17/17)
+      IS_UPTAKE_SPC =  ( ( N /= id_SO4s ) .and. ( N /= id_NITs ) )
 
 #if defined( NC_DIAG )
       ! Initialize diagnostic array (ND44)
-      DryDepFlux = 0e+0_fp
+      DryDepFlux    =  0e+0_fp
+      Ptr2D         => NULL()
 #endif
 
-      ! Store in IDDEP array
-      IDDEP(1)  = DRYSO4s
-      IDDEP(2)  = DRYNITs
-      IF ( LDSTUP ) THEN
-         !tdf
-         IDDEP(3)  = DRYSO4d1
-         IDDEP(4)  = DRYSO4d2
-         IDDEP(5)  = DRYSO4d3
-         IDDEP(6)  = DRYSO4d4
-         !tdf
-         IDDEP(7)  = DRYNITd1
-         IDDEP(8)  = DRYNITd2
-         IDDEP(9)  = DRYNITd3
-         IDDEP(10) = DRYNITd4
-      ENDIF
+      ! Drydep species index
+      DryDep_Id     =  ThisSpc%DryDepId
 
-      ! Tracer array
-      IDTRC(1)  = id_SO4s
-      IDTRC(2)  = id_NITs
-      IF ( LDSTUP ) THEN
-         !tdf
-         IDTRC(3)  = id_SO4d1
-         IDTRC(4)  = id_SO4d2
-         IDTRC(5)  = id_SO4d3
-         IDTRC(6)  = id_SO4d4
-         !tdf
-         IDTRC(7)  = id_NITd1
-         IDTRC(8)  = id_NITd2
-         IDTRC(9)  = id_NITd3
-         IDTRC(10) = id_NITd4
-      ENDIF
+      ! Emitted Mol Wt [g], aerosol radius [m], and density [kg/m3]
+      EmMW_g        =  ThisSpc%EmMW_g
+      REFF          =  ThisSpc%Radius
+      DEN           =  ThisSpc%Density
 
-      ! Coarse mode
-      !tdf
-      IF ( N < 3 ) THEN  ! Sea salt
-         REFF = 0.5e-6_fp * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
-         DEN  = DEN_SS
-
-      !tdf Use the same density for dust-sulfate as for dust
-      ELSE IF ( N == 3 ) THEN  ! Dust sulfate size bin 1 (um)
-         REFF = Input_Opt%DUSTREFF(1)
-         DEN  = Input_Opt%DUSTDEN(1)
-      ELSE IF ( N == 4 ) THEN  ! Dust sulfate size bin 2 (um)
-         REFF = Input_Opt%DUSTREFF(2)
-         DEN  = Input_Opt%DUSTDEN(2)
-      ELSE IF ( N == 5 ) THEN  ! Dust sulfate size bin 3 (um)
-         REFF = Input_Opt%DUSTREFF(3)
-         DEN  = Input_Opt%DUSTDEN(3)
-      ELSE IF ( N == 6 ) THEN  ! Dust sulfate size bin 4 (um)
-         REFF = Input_Opt%DUSTREFF(4)
-         DEN  = Input_Opt%DUSTDEN(4)
-
-      !tdf Use the same density for dust-nitrate as for dust
-      ELSE IF ( N == 7 ) THEN  ! Dust nitrate size bin 1 (um)
-         REFF = Input_Opt%DUSTREFF(1)
-         DEN  = Input_Opt%DUSTDEN(1)
-      ELSE IF ( N == 8 ) THEN  ! Dust nitrate size bin 2 (um)
-         REFF = Input_Opt%DUSTREFF(2)
-         DEN  = Input_Opt%DUSTDEN(2)
-      ELSE IF ( N == 9 ) THEN  ! Dust nitrate size bin 3 (um)
-         REFF = Input_Opt%DUSTREFF(3)
-         DEN  = Input_Opt%DUSTDEN(3)
-      ELSE IF ( N == 10 ) THEN  ! Dust nitrate size bin 4 (um)
-         REFF = Input_Opt%DUSTREFF(4)
-         DEN  = Input_Opt%DUSTDEN(4)
-
-      ENDIF
-            
       ! Sea salt radius [cm]
       ! The Gerber formula for hygroscopic growth uses the radius in
       ! micrometers instead of centimeters. This fix is implemented by using
       ! RUM instead of RCM (jaegle 5/5/11)
-      RUM  = REFF * 1e+6_fp
-
+      RUM           =  REFF * 1e+6_fp
 
       ! Exponential factors
       ! replace with radius in microns (jaegle 5/5/11)
-      FAC1 = C1 * ( RUM**C2 )
-      FAC2 = C3 * ( RUM**C4 )
+      FAC1          =  C1 * ( RUM**C2 )
+      FAC2          =  C3 * ( RUM**C4 )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1819,23 +1755,24 @@
             ENDDO
 
             ! Dp = particle diameter [um]
-            DP      = 2.e+0_fp * RWET * 1.e+6_fp        
-
-            !tdf
-            IF ( N > 2 ) THEN  ! Keep dust dry for now
-               DP   = 2.e+0_fp * REFF * 1.e+6_fp
+            ! Use dry radius for dust uptake species
+            ! Use wet radius for SO4s, NITs (tdf, bmy, 3/17/17)
+            IF ( IS_UPTAKE_SPC ) THEN
+               DP = 2.e+0_fp * REFF * 1.e+6_fp  ! SO4d*, NITd*
+            ELSE
+               DP = 2.e+0_fp * RWET * 1.e+6_fp  ! SO4s,  NITs
             ENDIF
 
             ! PdP = P * dP [hPa * um]
-            PDp     = P * Dp
+            PDp = P * Dp
 
             ! Constant
-            CONST   = 2.e+0_fp * RHO * RWET**2 * g0 / 9.e+0_fp
-
-            !tdf
-            IF ( N > 2 ) THEN  ! Keep dust dry for now
-               ! Constant
-               CONST = 2.e+0_fp * DEN * REFF**2 * g0 / 9.e+0_fp
+            ! Use dry radius for dust uptake species
+            ! Use wet radius for SO4s, NITs (tdf, bmy, 3/17/17)
+            IF ( IS_UPTAKE_SPC ) THEN
+               CONST = 2.e+0_fp * DEN * REFF**2 * g0 / 9.e+0_fp ! SO4d*, NITd*
+            ELSE
+               CONST = 2.e+0_fp * RHO * RWET**2 * g0 / 9.e+0_fp ! SO4s,  NITs
             ENDIF
 
             !===========================================================
@@ -1921,12 +1858,12 @@
             ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
             FLUX     = FLUX * AVO 
-     &                 / ( State_Chm%SpcData(IDTRC(N))%Info%emMW_g 
-     &                 * 1.e-3_fp ) / AREA_CM2 
+     &               / ( EmMW_g * 1.e-3_fp ) 
+     &               / AREA_CM2 
 
 #if defined( BPCH_DIAG )   
             ! Store in global AD44 array for bpch diagnostic output
-            AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
+            AD44(I,J,DryDep_Id,1) = AD44(I,J,DryDep_Id,1) + FLUX
 #endif
 #if defined( NC_DIAG )
             ! Store in local array for netcdf diagnostic
@@ -1946,11 +1883,8 @@
          ! Assume success
          HCRC = HCO_SUCCESS
          
-         ! Get drydep id
-         drydep_id = IDDEP(N)
-
          ! Get species id
-         spc_id = State_Chm%Map_DryDep( drydep_id )
+         spc_id = N
 
          ! If this tracer number NN is scheduled for output in input.geos, 
          ! then archive the latest depvel data into the diagnostic structure
@@ -1983,6 +1917,9 @@
       ENDIF
 #endif
 
+      ! Free pointers
+      ThisSpc => NULL()
+      TC      => NULL()
 
       END SUBROUTINE GRAV_SETTLING
 !EOC
@@ -6773,12 +6710,6 @@
          ! Take NO3 from State_Chm%Species [molec/cm3]
          ! NO3 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-!----------------------------------------------------------------------------
-! Prior to 7/25/16:
-! State_Chm%Species is now already in v/v/ so convert to molec/cm3
-! following the algorithm for ITS_AN_AEROSOL_SIM
-!            NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3)
-!----------------------------------------------------------------------------
 
             ! Grid box volume [cm3]
             BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -6924,13 +6855,6 @@
          ! Get O3 from State_Chm%Species [molec/cm3] and convert it to [v/v]
          ! O3 is defined only in the chemistry grid
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-!----------------------------------------------------------------------------
-! Prior to 7/25/16:
-! NOTE: Formerly, State_Chm%Species had units of molec/cm3 but now at this
-! point the units are already in v/v.  So this unit conversion isn't needed.
-!            O3_VV = ( State_Chm%Species(I,J,L,id_O3)  * 1e+6_fp   ) / 
-!     &              ( State_Met%AIRDEN(I,J,L) * XNUMOLAIR )
-!----------------------------------------------------------------------------
             O3_VV = State_Chm%Species(I,J,L,id_O3)
          ELSE
             O3_VV = 0e+0_fp

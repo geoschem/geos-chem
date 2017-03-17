@@ -74,6 +74,7 @@
 !  20 Jun 2016 - R. Yantosca - Rename IDT* species ID's to id_*
 !  20 Jun 2016 - R. Yantosca - Now only define species ID's in the INIT phase
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  17 Mar 2017 - R. Yantosca - Remove reference to Input_Opt fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -85,15 +86,15 @@
       INTEGER               :: id_DAL1,  id_DAL2,  id_DAL3,   id_DAL4  
       INTEGER               :: id_DUST1, id_NK1
 
-      ! Drydep ID flags (mostly obsolete, keep for now)
-      INTEGER               :: dd_DST1,  dd_DST2,   dd_DST3,  dd_DST4
-      INTEGER               :: dd_DAL1,  dd_DAL2,   dd_DAL3,  dd_DAL4
-      INTEGER               :: dd_SO4D1, dd_SO4D2,  dd_SO4D3, dd_SO4D4
-
       ! Arrays
       REAL(fp), ALLOCATABLE :: FRAC_S(:)
       REAL(fp), ALLOCATABLE :: SRCE_FUNC(:,:,:)
 
+#if defined( TOMAS )
+      ! To replicate the obsolete Input_Opt%IDDEP field
+      ! Set to a large placeholder value
+      INTEGER               :: TOMAS_IDDEP(1000)
+#endif
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -308,6 +309,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  17 Mar 2017 - R. Yantosca - Update subroutine call to DRY_SETTLING
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -315,28 +317,29 @@
 ! !LOCAL VARIABLES:
 !
       ! SAVEd scalars
-      LOGICAL, SAVE     :: FIRST = .TRUE.
+      LOGICAL, SAVE          :: FIRST = .TRUE.
 
       ! Non-SAVEd scalars
-      INTEGER           :: N, BIN, I, J, L, NN, IDISP
-      REAL(fp)          :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp)          :: DIF, FLUXN, FLUXD
-      REAL(fp)          :: DT_SETTL, AREA_CM2
+      INTEGER                :: N, BIN, I, J, L, NN, IDISP
+      REAL(fp)               :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)               :: DIF, FLUXN, FLUXD
+      REAL(fp)               :: DT_SETTL, AREA_CM2
 
       !debug
-      integer           :: ii, jj , ix, jx, bb
-      data                 ii,jj, ix, jx, bb /37, 24, 58, 34, 30 /
-      CHARACTER(LEN=255) :: MSG, LOC
+      integer                :: ii, jj , ix, jx, bb
+      data                      ii,jj, ix, jx, bb /37, 24, 58, 34, 30 /
+      CHARACTER(LEN=255)     :: MSG, LOC
 
       ! Pointers
-      REAL(fp), POINTER :: Spc(:,:,:,:)
+      REAL(fp),      POINTER :: Spc(:,:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! SETTLEDUST begins here!
       !=================================================================
 
       ! Assume success
-      RC        = GC_SUCCESS
+      RC = GC_SUCCESS
 
       ! Check that species units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -345,8 +348,9 @@
          CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
-      ! Point to chemical species array [kg]
-      Spc       => State_Chm%Species
+      ! Set pointers
+      Spc     => State_Chm%Species  ! [kg], for now
+      ThisSpc => NULL()
 
       !=================================================================
       ! Do dust settling & deposition
@@ -357,33 +361,40 @@
 
       ! Save initial dust mass
       DO BIN = 1, IBINS
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         DU0(I,J,L,BIN) = Spc(I,J,L,id_DUST1-1+BIN) 
-      ENDDO
-      ENDDO
-      ENDDO
+
+         ! Species ID
+         N = id_DUST1 - 1 + BIN
+
+         DO L   = 1, LLPAR
+         DO J   = 1, JJPAR
+         DO I   = 1, IIPAR
+            DU0(I,J,L,BIN) = Spc(I,J,L,N)
+         ENDDO
+         ENDDO
+         ENDDO
       ENDDO
 
       ! Dust settling
-      IDISP = 0
-      CALL DRY_SETTLING( am_I_Root,
-     &                   Input_Opt,  
-     &                   State_Met,
-     &                   State_Chm,
-     &                   Spc(:,:,:,id_DUST1:id_DUST1-1+IBINS),
-     &                   RC,
-     &                   id_DUST1,
-     &                   IDISP )
-
+      CALL DRY_SETTLING( am_I_Root, Input_Opt, 
+     &                   State_Met, State_Chm, 
+     &                   id_DUST1,  id_DUST1-1+IBINS, 
+     &                   RC                           )
+   
 
       ! Calculate change in number to correspond with dust redistribution
       ! by gravitational settling
       DO BIN = 1, IBINS
-      NN = State_Chm%nDryDep + (SRTDUST-1)*IBINS + BIN
 
-      DO J = 1, JJPAR
+         ! Species ID
+         N       =  id_DUST1 - 1 + BIN
+
+         ! Look up this species in the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Drydep index (??? -- replace w/ species DB info?)
+         NN      = State_Chm%nDryDep + (SRTDUST-1)*IBINS + BIN
+
+         DO J = 1, JJPAR
          DO I = 1, IIPAR
 
             ! Surface area [cm2]
@@ -406,14 +417,14 @@
             
                ! Convert flux from [kg/s] to [molec/cm2/s]
                FLUXD = FLUXD +                                                 
-     &                 DIF / DT_SETTL * AVO / ( 1.e-3_fp *                     
-     &                 State_Chm%SpcData(id_DUST1-1+BIN)%Info%emMW_g ) /        
+     &                 DIF / DT_SETTL * AVO / 
+     &                 ( 1.e-3_fp * ThisSpc%emMW_g ) /        
      &                 AREA_CM2                                                
            
                
                FLUXN = FLUXN + DIF/(SQRT( Xk(BIN)*Xk(BIN+1))) /
-     &                 DT_SETTL * AVO / ( 1.e-3_fp *
-     &                 State_Chm%SpcData(id_NK1-1+BIN)%Info%emMW_g ) / 
+     &                 DT_SETTL * AVO / 
+     &                 ( 1.e-3_fp * ThisSpc%%emMW_g ) / 
      &                 AREA_CM2
 
 !debug               if(i==ii .and. j==jj .and. bin==bb) then
@@ -430,14 +441,21 @@
          ! ND44: Dry deposition diagnostic [#/cm2/s] (bpch)
          !========================================================
             IF ( ND44 > 0 ) THEN
-               AD44(I,J,Input_Opt%IDDEP(BIN),1) = 
-     &         AD44(I,J,Input_Opt%IDDEP(BIN),1) + FLUXN
+
+               !%%% NOTE: Now use TOMAS_IDDEP, which replicates the
+               !%%% since-removed Input_Opt%IDDEP field (bmy, 3/17/17)
+               AD44(I,J,TOMAS_IDDEP(BIN),1) = 
+     &         AD44(I,J,TOMAS_IDDEP(BIN),1) + FLUXN
                AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
             ENDIF
 #endif
 
          ENDDO
-      ENDDO
+         ENDDO
+
+         ! Free pointer
+         ThisSpc => NULL()
+
       ENDDO
 
       ! Free pointer memory
@@ -2435,57 +2453,18 @@
       !-----------------------------------------------------------------
 
       id_DST1                  =  Ind_('DST1'    )
-      dd_DST1                  =  Ind_('DST1','D')
-
-      IF ( id_DST1 > 0 ) THEN
-         SpcInfo               => State_Chm%SpcData(id_DST1)%Info
-         Input_Opt%DUSTDEN (1) =  SpcInfo%Density
-         Input_Opt%DUSTREFF(1) =  SpcInfo%Radius
-         SpcInfo               => NULL()
-      ENDIF
-
       id_DST2                  =  Ind_('DST2'    )
-      dd_DST2                  =  Ind_('DST2','D')
-      IF ( id_DST2 > 0 ) THEN
-         SpcInfo               => State_Chm%SpcData(id_DST2)%Info
-         Input_Opt%DUSTDEN (2) =  SpcInfo%Density
-         Input_Opt%DUSTREFF(2) =  SpcInfo%Radius
-         SpcInfo               => NULL()
-      ENDIF
-
       id_DST3                  =  Ind_('DST3'    )
-      dd_DST3                  =  Ind_('DST3','D')
-      IF ( id_DST3 > 0 ) THEN
-         SpcInfo               => State_Chm%SpcData(id_DST3)%Info
-         Input_Opt%DUSTDEN (3) =  SpcInfo%Density
-         Input_Opt%DUSTREFF(3) =  SpcInfo%Radius
-         SpcInfo               => NULL()
-      ENDIF
-
       id_DST4                  =  Ind_('DST4'    )
-      dd_DST4                  =  Ind_('DST4','D')
-      IF ( id_DST4 > 0 ) THEN
-         SpcInfo               => State_Chm%SpcData(id_DST4)%Info
-         Input_Opt%DUSTDEN (4) =  SpcInfo%Density
-         Input_Opt%DUSTREFF(4) =  SpcInfo%Radius
-         SpcInfo               => NULL()
-      ENDIF
 
       !-----------------------------------------------------------------
       ! DAL1 - DAL4 and SO4d1 - SO4d4 species (acid uptake sims only)
       !-----------------------------------------------------------------
 
-      id_DAL1                  =  Ind_('DSTAL1'    )
-      dd_DAL1                  =  Ind_('DSTAL1','D')
-
-      id_DAL2                  =  Ind_('DSTAL2'    )
-      dd_DAL2                  =  Ind_('DSTAL2','D')
-
-      id_DAL3                  =  Ind_('DSTAL3'    )
-      dd_DAL3                  =  Ind_('DSTAL3','D')
-
-      id_DAL4                  =  Ind_('DSTAL4'    )
-      dd_DAL4                  =  Ind_('DSTAL4','D')
+      id_DAL1                  =  Ind_('DSTAL1'  )
+      id_DAL2                  =  Ind_('DSTAL2'  )
+      id_DAL3                  =  Ind_('DSTAL3'  )
+      id_DAL4                  =  Ind_('DSTAL4'  )
 
       ! Error check the dust uptake species
       IF ( Input_Opt%LDSTUP ) THEN
@@ -2496,29 +2475,6 @@
          ENDIF
       ENDIF
 
-      !%%%% NOTE: Input_Opt%IDDEP is obsolete and is only used in the
-      !%%%% bpch_diag section for ND44 in this module.  We can consider
-      !%%%% removing it later (bmy, 6/20/16)
-
-      ! Find drydep species in DEPSAV
-      IF( Input_Opt%LDRYD ) THEN
-
-         ! This may lead to out of bounds errors
-         Input_Opt%IDDEP(1) = dd_DST1
-         Input_Opt%IDDEP(2) = dd_DST2
-         Input_Opt%IDDEP(3) = dd_DST3
-         Input_Opt%IDDEP(4) = dd_DST4
-
-         IF ( LDSTUP  ) THEN
-            ! Include dust alkalinity species                  tdf 04/10/08
-            Input_Opt%IDDEP(5) = dd_DAL1
-            Input_Opt%IDDEP(6) = dd_DAL2
-            Input_Opt%IDDEP(7) = dd_DAL3
-            Input_Opt%IDDEP(8) = dd_DAL4
-         ENDIF
-      ENDIF
-
-
 #if defined( TOMAS )
       !=================================================================
       ! INITIALIZATION SECTION FOR TOMAS MICROPHYSICS
@@ -2528,59 +2484,26 @@
       id_DUST1 = Ind_('DUST1')
       id_NK1   = Ind_('NK1'  ) 
 
-
-      !-------------------------------
-      ! Set up dust density
-      !-------------------------------
-      IF ( NDSTBIN == 4 ) THEN
-         Input_Opt%DUSTDEN(1:4) = (/ 2500.e+0_fp, 2650.e+0_fp, 
-     &                               2650.e+0_fp, 2650.e+0_fp /)
-
-      ELSE IF ( NDSTBIN == IBINS ) THEN
-
-         DO I = 1, IBINS
-            IF (Xk(I) < 4.0e-15_fp ) THEN
-               Input_Opt%DUSTDEN(I)  = 2500.e+0_fp
-            ELSE
-               Input_Opt%DUSTDEN(I)  = 2650.e+0_fp
-            ENDIF
-         ENDDO
-
-      ENDIF
-
-      !--------------------------------
-      ! Set up dust effective radius
-      !--------------------------------
-      IF ( NDSTBIN == 4 ) THEN
-         Input_Opt%DUSTREFF(1) = 0.73e-6_fp
-         Input_Opt%DUSTREFF(2) =  1.4e-6_fp
-         Input_Opt%DUSTREFF(3) =  2.4e-6_fp
-         Input_Opt%DUSTREFF(4) =  4.5e-6_fp
-
-      ELSE IF ( NDSTBIN == IBINS ) THEN
-
-         ! TOMAS dust Reff (win, 7/17/09)
-         DO I = 1, IBINS
-            Input_Opt%DUSTREFF(I) = 
-     &           0.5e+0_fp * ( SQRT(Xk(I) * Xk(I+1)) /
-     &           Input_Opt%DUSTDEN(I) * 6.e+0_fp/PI  )**( 0.333e+0_fp )
-         ENDDO 
-        
-      ENDIF
-
       !----------------------------------
       ! Set up FRAC_S (only for Ginoux)
       !----------------------------------
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !% NOTE: LDEAD has not been set by HCOI_GC_INIT yet. This code needs %
-      !% to be moved or modified accordingly (mps, 4/9/15)                 %
+      !% to be moved or modified accordingly (mps, 4/9/15)                 %    
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !% NOTE: This code replicates the obsolete Input_Opt%IDDEP field,    %
+      !% which has since been removed.  TOMAS TEAM please take note.       %
+      !% (bmy, 3/17/17)                                                    %
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( .not. LDEAD ) THEN
 
+         ! Initialize
+         TOMAS_IDDEP = 0
+         
          DO BIN = 1, IBINS
          DO N   = 1, State_Chm%nDryDep
             IF ( State_Chm%Map_DryDep(N) == ( id_NK1-1+BIN ) )THEN
-               Input_Opt%IDDEP(BIN) = N
+               TOMAS_IDDEP(BIN) = N
                GOTO 100
             ENDIF            
          ENDDO
@@ -2588,7 +2511,6 @@
          ENDDO
 
       ENDIF
-
 #endif 
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( TOMAS )

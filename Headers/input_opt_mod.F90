@@ -552,9 +552,6 @@ MODULE Input_Opt_Mod
      ! from file "input.geos". (mlong, 1/5/13)
      !----------------------------------------
      INTEGER                     :: N_DUST_BINS
-     INTEGER,            POINTER :: IDDEP(:)
-     REAL(fp),           POINTER :: DUSTREFF(:)
-     REAL(fp),           POINTER :: DUSTDEN(:)
 
      !----------------------------------------
      ! Fields for interface to GEOS-5 GCM
@@ -728,6 +725,7 @@ CONTAINS
 !  13 Jul 2016 - R. Yantosca - Remove some obsolete drydep fields
 !  13 Jul 2016 - R. Yantosca - Remove ID_TRACER, NUMDEP
 !  16 Mar 2017 - R. Yantosca - Remove obsolete family and drydep variables
+!  17 Mar 2017 - R. Yantosca - Remove IDDEP, DUSTREFF, DUSTDEN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1334,15 +1332,7 @@ CONTAINS
     ! Fields for DRYDEP and DUST based on
     ! input from the file "input.geos"
     !----------------------------------------
-    ! Double size of IDDEP to account for dust alkalinity   tdf 04/10/08
-    ALLOCATE( Input_Opt%IDDEP   ( NDSTBIN*2 ), STAT=RC ) ! Dust_mod
-    ALLOCATE( Input_Opt%DUSTREFF( NDSTBIN ),   STAT=RC ) ! Dust_mod
-    ALLOCATE( Input_Opt%DUSTDEN ( NDSTBIN ),   STAT=RC ) ! Dust_mod
-
     Input_Opt%N_DUST_BINS            = NDSTBIN
-    Input_Opt%IDDEP                  = 0
-    Input_Opt%DUSTREFF               = 0e+0_fp
-    Input_Opt%DUSTDEN                = 0e+0_fp
 
     !----------------------------------------
     ! Fields for interface to GEOS-5 GCM
@@ -1412,6 +1402,7 @@ CONTAINS
 !  31 May 2016 - E. Lundgren - Remove TRACER_MW_G, TRACER_MW_KG, and XNUMOL
 !  13 Jul 2016 - R. Yantosca - Remove ID_TRACER
 !  16 Mar 2017 - R. Yantosca - Remove obsolete family & drydep fields
+!  17 Mar 2017 - R. Yantosca - Remove IDDEP, DUSTREFF, DUSTDEN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1488,18 +1479,6 @@ CONTAINS
 
     IF ( ASSOCIATED( Input_Opt%FAM_NAME ) ) THEN
        DEALLOCATE( Input_Opt%FAM_NAME )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%IDDEP ) ) THEN
-       DEALLOCATE( Input_Opt%IDDEP )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%DUSTREFF ) ) THEN
-       DEALLOCATE( Input_Opt%DUSTREFF )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%DUSTDEN ) ) THEN
-       DEALLOCATE( Input_Opt%DUSTDEN )
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%LINOZ_TPARM ) ) THEN
