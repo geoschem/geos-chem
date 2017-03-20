@@ -578,7 +578,7 @@ O1D + CFC115 = 0.700O + 0.700CFC115 +
 O1D + H2402 = 0.250O + 0.250H2402 + 
  0.750Br + 0.750BrO :                            GCARR(1.60E-10, 0.0E+00, 0.0);
 OH + Cl2 = HOCl + Cl :                           GCARR(2.60E-12, 0.0E+00, -1100.0);
-MO2 + ClO = ClOO + HO2 + CH2O :                  GCARR(1.80E-12, 0.0E+00, -600.0); {JPL 15-10}
+MO2 + ClO = ClOO + HO2 + CH2O :                  GCARR(1.80E-11, 0.0E+00, -600.0); {JPL 15-10}
 OH + ClO = HO2 + Cl :                            GCARR(7.40E-12, 0.0E+00, 270.0);
 OH + ClO = HCl + O2 :                            GCARR(6.00E-13, 0.0E+00, 230.0);
 OH + OClO = HOCl + O2 :                          GCARR(1.40E-12, 0.0E+00, 600.0); {JPL 15-10}
