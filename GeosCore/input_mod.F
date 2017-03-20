@@ -1526,7 +1526,6 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE UCX_MOD,            ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
 !
 ! !INPUT PARAMETERS:
 !
@@ -1590,6 +1589,7 @@
       LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA
       INTEGER            :: N,          T,          I 
       CHARACTER(LEN=255) :: MSG,        LOCATION
+      REAL(fp)           :: T_NAT_SUPERCOOL, P_ICE_SUPERSAT
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -1744,8 +1744,8 @@
       Input_Opt%LGRAVSTRAT         = LGRAVSTRAT
       Input_Opt%LSOLIDPSC          = LSOLIDPSC
       Input_Opt%LHOMNUCNAT         = LHOMNUCNAT
-      Input_Opt%T_NAT_SUPERCOOL    = T_NAT_SUPERCOOL
-      Input_Opt%P_ICE_SUPERSAT     = P_ICE_SUPERSAT
+      Input_Opt%T_NAT_SUPERCOOL    = T_NAT_SUPERCOOL ! NAT supercooling (K)
+      Input_Opt%P_ICE_SUPERSAT     = P_ICE_SUPERSAT  ! Ice supersaturation (-)
       Input_Opt%LPSCCHEM           = LPSCCHEM
       Input_Opt%LSTRATOD           = LSTRATOD
 

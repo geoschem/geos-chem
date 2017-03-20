@@ -45,8 +45,6 @@
       CHARACTER(LEN=255), PUBLIC :: NOON_FILE_ROOT ! Directory for noontime data
       CHARACTER(LEN=255), PUBLIC :: MONTREAL_FILE_ROOT ! Root directoy for WHO data 
                           PUBLIC :: T_STS ! Max temperature of STS formation (K)
-      REAL(fp),           PUBLIC :: T_NAT_SUPERCOOL ! NAT supercooling (K)
-      REAL(fp),           PUBLIC :: P_ICE_SUPERSAT ! Ice supersaturation (-)
                           PUBLIC :: NDENS_AER ! See below
       INTEGER,            PUBLIC :: CFCYEAR ! Year for CFC emissions
 !
@@ -3913,13 +3911,13 @@
                   PSATH2O = 10.0e+0_fp**((TSATH2O_A*TINV)+TSATH2O_B)
 
                   ! Supersaturation requirement for ice
-                  PSATH2O_SUPERSAT = PSATH2O * P_ICE_SUPERSAT
+                  PSATH2O_SUPERSAT = PSATH2O * Input_Opt%P_ICE_SUPERSAT
 
                   ! If homogeneous NAT nucleation allowed, calculate
                   ! threshold saturation pressure
                   IF (LHOMNUCNAT) THEN
                      ! Calculate as if temperature is (T+T_NAT_SUPERCOOL)
-                     TOFFSET = TCENTER + T_NAT_SUPERCOOL
+                     TOFFSET = TCENTER + Input_Opt%T_NAT_SUPERCOOL
                      PSATHNO3_SUPERCOOL = 10.e+0_fp**(((TSATHNO3_A+
      &                  (TOFFSET*TSATHNO3_B))*LOG10(H2OPP*760.0e+0_fp/
      &                  ATM))+
