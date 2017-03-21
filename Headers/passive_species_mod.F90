@@ -17,43 +17,60 @@
 !  with the Radon simulation at this point.
 !
 ! !REMARKS:  
-!  Passive species are defined in input.geos in the PASSIVE SPECIES menu. For
-!  instance, to use the Radon simulation with two passive species ('Rn_ps' and 
-!  'Dummy') with atmospheric lifetimes of 3.8 days and 1 hour, respectively, 
+!  Passive species are defined in input.geos in the PASSIVE SPECIES MENU. For
+!  instance, to use the Rn-Pb-Be simulation with two passive species (PASV1
+!  and PASV2) with atmospheric lifetimes of 1 hour and 3.8 days, respectively, 
 !  add the following entries to input.geos:
 !
 !  %%% PASSIVE SPECIES MENU %%%:
-!  Number of passive spec.  : 2
-!  Passive species #1       : Rn_ps 328320.0 1.0e-20
-!  Passive species #2       : Dummy 3600.0   1.0e-20
+!  Number of passive spec. : 2
+!  Passive species #1      : PASV1 50.0 3600.0 1.0e-12
+!  Passive species #2      : PASV2 250.0 328320.0 1.0e-09
 !
-!  The 3rd column of the species definition denotes the default initial
-!  concentration (in v/v) of the species of interest (1.0e-20 v/v in this
-!  case). This value will be used if the GEOS-Chem species restart file has
-!  no concentration field for the given species. 
+!  For each passive species you must define the molecular weight (g/mol),
+!  atmospheric lifetime (s), and default initial atmospheric concentration
+!  (v/v). The default initial concentration is only used if the passive species
+!  are not included in the restart file.
 !
-!  There must be a matching entry in the species menu for every passive species
-!  defined in the passive species menu:
+!  There must be a matching entry in the advected species menu for every
+!  passive species defined in the passive species menu:
 !
 !  %%% ADVECTED SPECIES MENU %%%:
 !  Type of simulation      : 1
-!  Number of Advected Spec.: 4
+!  Number of Advected Spec.: 5
 !  Species Entries ------->: Name
 !  Species #1              : Rn
 !  Species #2              : Pb
 !  Species #3              : Be7
-!  Species #4              : Rn_ps
-!  Species #5              : Dummy
+!  Species #4              : PASV1
+!  Species #5              : PASV2
 ! 
 !  In this example, species 1-3 are the default species for this simulation type
 !  while species 4-5 are the user-specific passive species.
 !
 !  As for regular GEOS-Chem species, emissions can be assigned to passive 
 !  species via the HEMCO configuration file. For example, to assign a uniform 
-!  flux of 0.1 kg/m2/s to passive species 'Dummy', add the following line to 
-!  section base emissions of your HEMCO_Config.rc:
+!  flux of 1e-3 and 1e-9 kg/m2/s to PASV1 and PASV2, respectively, add the
+!  following line to section base emissions of your HEMCO_Config.rc:
 !
-!  0 DUMMY_EMIS 0.1 - - - xy kg/m2/s Dummy - 1 1
+!  0 PASV1_Flux 1.0e-3  - - - xy kg/m2/s PASV1 - 1 1
+!  0 PASV2_Flux 1.0e-9  - - - xy kg/m2/s PASV2 - 1 1
+!
+!  There is no default diagnostics for these emissions but you can easily
+!  define a HEMCO diagnostics for each passive species by creating a
+!  corresponding entry in the HEMCO diagnostics file (HEMCO_diagn.rc):
+!
+!  # Name       Spec  ExtNr Cat Hier Dim Unit
+!  PASV1_TOTAL  PASV1 -1    -1  -1   2   kg/m2/s
+!  PASV2_TOTAL  PASV2 -1    -1  -1   2   kg/m2/s
+!
+!  To activate these diagnostics you need to link to the HEMCO diagnostics file
+!  in HEMCO_Config.rc, as well as define the diagnostics output frequency (in
+!  the settings section of the HEMCO configuration file). For example to write
+!  the diagnostics at 30-minute intervals:
+!
+!  DiagnFile:                 HEMCO_Diagn.rc
+!  DiagnFreq:                 00000000 003000
 !\\
 !\\
 ! !INTERFACE:
@@ -110,7 +127,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_PASSIVE_SPECIES( am_I_Root, NPT, RC ) 
+  SUBROUTINE INIT_PASSIVE_SPECIES( am_I_Root, nSpc, RC ) 
 !
 ! !USES:
 !
@@ -119,7 +136,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    INTEGER,          INTENT(IN   )  :: NPT        ! # of passive species 
+    INTEGER,          INTENT(IN   )  :: nSpc       ! # of passive species 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -145,7 +162,7 @@ CONTAINS
     RC = GC_SUCCESS
   
     ! Set module variable 
-    NPASSIVE = NPT
+    NPASSIVE = nSpc
     
     ! Allocate arrays
     IF ( NPASSIVE > 0 ) THEN
@@ -243,18 +260,6 @@ CONTAINS
        RC = GC_FAILURE
        RETURN 
     ENDIF 
-
-!    ! Find GEOS-Chem species ID for this species (by name)
-!    SPCID = ind_( TRIM(SpcName) )
-
-!    ! Return w/ error if this species is not defined as GEOS-Chem species
-!    IF ( SPCID <= 0 ) THEN
-!       WRITE(MSG,*) 'Cannot add passive species ', TRIM(SpcName), &
-!                    ': this is not a GEOS-Chem species.'
-!       CALL ERROR_STOP ( TRIM(MSG), TRIM(LOC) )
-!       RC = GC_FAILURE
-!       RETURN 
-!    ENDIF 
 
     ! Register species
     PASSIVE_ID(IDX)       = IDX

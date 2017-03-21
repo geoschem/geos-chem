@@ -7181,7 +7181,7 @@
 ! !IROUTINE: read_passive_species_menu
 !
 ! !DESCRIPTION: Subroutine READ\_PASSIVE\_SPECIES\_MENU reads the passive 
-!  species MENU section of the GEOS-Chem input file; this defines passive
+!  species menu section of the GEOS-Chem input file; this defines passive
 !  species to be used for this simulation. 
 !\\
 !\\
@@ -7217,9 +7217,9 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: I, N, NPT
-      CHARACTER(LEN=31)  :: TRCNAME
-      REAL(fp)           :: MW, TAU, INITCONC
+      INTEGER            :: I, N, nPassive
+      CHARACTER(LEN=31)  :: SpcName
+      REAL(fp)           :: SpcMW, SpcTau, SpcInitConc
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -7233,10 +7233,10 @@
 
       ! # of passive speciess
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_passive_species_menu:1')
-      READ( SUBSTRS(1), * ) NPT 
+      READ( SUBSTRS(1), * ) nPassive
 
       ! Initialize passive species module arrays
-      CALL INIT_PASSIVE_SPECIES ( am_I_Root, NPT, RC )
+      CALL INIT_PASSIVE_SPECIES ( am_I_Root, nPassive, RC )
 
       ! Read passive species information for each passive species
       ! Every passive species line is expected to have 3 entries:
@@ -7244,21 +7244,22 @@
       ! - Species molecular weight 
       ! - Atmospheric lifetime (s)
       ! - Default atmospheric concentration (v/v)
-      IF ( NPT > 0 ) THEN
-         DO I = 1, NPT
+      IF ( nPassive > 0 ) THEN
+         DO I = 1, nPassive
             ! Read values into substrings
             CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 
      &                           'read_passive_species_menu:2' )
      
             ! Pass to temporary variables
-            TRCNAME = TRIM(SUBSTRS(1))
-            READ( SUBSTRS(2), * ) MW
-            READ( SUBSTRS(3), * ) TAU
-            READ( SUBSTRS(4), * ) INITCONC 
+            SpcName = TRIM(SUBSTRS(1))
+            READ( SUBSTRS(2), * ) SpcMW
+            READ( SUBSTRS(3), * ) SpcTau
+            READ( SUBSTRS(4), * ) SpcInitConc 
       
             ! Register as passive species 
-            CALL ADD_PASSIVE_SPECIES( am_I_Root, TRCNAME, 
-     &                                TAU,       INITCONC,  MW, RC  )
+            CALL ADD_PASSIVE_SPECIES( am_I_Root, SpcName, 
+     &                                SpcTau,    SpcInitConc,
+     &                                SpcMW,     RC )
             IF ( RC /= GC_SUCCESS ) RETURN 
 
          ENDDO
