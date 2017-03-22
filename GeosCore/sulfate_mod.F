@@ -2583,6 +2583,7 @@
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !  23 Sep 2015 - R. Yantosca - Remove reference to obsolete DRYSO2 flag
 !  24 Jun 2016 - R. Yantosca - Now return id_H2O2 < 0 or id_SO2 < 0 (not == 0)
+!  22 Mar 2017 - M. Sulprizio- Add fixes for LWC unit conversion (V. Shah)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3178,24 +3179,24 @@
             ! Fahey and Seinfeld decision algorithm
 	    IF ( H2O20 > SO2_ss + 1e-9_fp ) THEN
                BULK = 1
-            ELSEIF( LWC < 0.1e+6_fp ) THEN !10^6 coversion from m3/m3 --> g/m3
+            ELSEIF( LWC < 0.1e-6_fp ) THEN !10^-6 coversion from g/m3 --> m3/m3
                SIZE_RES = 1
             ELSEIF( gno3 > NH3 ) THEN
                IF ( SO2_ss >= 5.e-9_fp          .and. 
      &              H2O20  >= SO20   ) 
      &              BULK    = 1
-               IF ( LWC    >= 0.3e+6_fp          .and. 
+               IF ( LWC    >= 0.3e-6_fp         .and.
      &              SO2_ss >= 3.e-9_fp          .and. 
      &              H2O20  >= SO2_ss ) 
      &              BULK    = 1
-               IF ( ALKds  >= 5.e+0_fp           .and. 
-     &              LWC    >= 0.5e+6_fp          .and. 
+               IF ( ALKds  >= 5.e+0_fp          .and.
+     &              LWC    >= 0.5e-6_fp         .and.
      &              H2O20  >= SO2_ss ) 
      &              BULK    = 1
-               IF ( LWC    >= 0.1e+6_fp          .and. 
+               IF ( LWC    >= 0.1e-6_fp         .and. 
      &              gno3   <= (NH3 + 2.e-9_fp) ) 
      &              BULK    = 1
-            ELSEIF( LWC    >= 0.1e+6_fp ) THEN
+            ELSEIF( LWC    >= 0.1e-6_fp ) THEN
                IF ( NH3    <= 1.e-9_fp          .and. 
      &              ALKds  >= 5.e+0_fp   ) 
      &              BULK    = 1
@@ -3218,14 +3219,14 @@
      &              BULK    = 1
                IF ( gno3   <= 7.e-9_fp          .and. 
      &              NH3    >= (gno3 + 3.e-9_fp) .and. 
-     &		    ALKds  >= 4.e+0_fp           .and. 
+     &		    ALKds  >= 4.e+0_fp          .and. 
      &              SO2_ss <= 9.e-9_fp  ) 
      &              BULK    = 1
-               IF ( ALKds  >= 3.e+0_fp           .and. 
+               IF ( ALKds  >= 3.e+0_fp          .and. 
      &              NH3    <= 3.e-9_fp          .and. 
      &              SO2_ss <= 4.e-9_fp ) 
      &              BULK    = 1
-               IF ( ALKds  >= 5.e+0_fp           .and. 
+               IF ( ALKds  >= 5.e+0_fp          .and. 
      &              SO2_ss <= 5.e-9_fp          .and. 
      &              NH3    <= 7.e-9_fp )  
      &              BULK    = 1
@@ -3235,7 +3236,7 @@
                IF ( NH3    >= (gno3 + 4.e-9_fp) .and. 
      &              SO2_ss <= 10.e-9_fp )
      &              BULK    = 1
-               IF ( ALKds  >= 2.e+0_fp           .and. 
+               IF ( ALKds  >= 2.e+0_fp          .and. 
      &              NH3    <= 10.e-9_fp         .and. 
      &              H2O20  >= SO2_ss ) 
      &              BULK    = 1
@@ -3243,7 +3244,7 @@
      &              SO2_ss >= 3.e-9_fp          .and. 
      &              H2O20  >= SO2_ss ) 
      &              BULK    = 1
-            ELSEIF ( LWC   >= 0.3d6 ) THEN
+            ELSEIF( LWC    >= 0.3e-6_fp ) THEN
                IF ( NH3    >= (gno3 + 5.e-9_fp) .and. 
      &              SO2_ss <= 10.e-9_fp )
      &              BULK    = 1
@@ -3253,11 +3254,11 @@
                IF ( gno3   <= 7.e-9_fp          .and. 
      &              NH3    >= (gno3 + 3.e-9_fp) )
      &              BULK    = 1
-               IF ( ALKds  >= 3.e+0_fp           .and. 
+               IF ( ALKds  >= 3.e+0_fp          .and. 
      &              NH3 <= 10e-9_fp             .and. 
      &              SO2_ss <= 5e-9_fp ) 
      &              BULK    = 1
-               IF ( ALKds  >= 5.e+0_fp           .and. 
+               IF ( ALKds  >= 5.e+0_fp          .and. 
      &              NH3    <= 10.e-9_fp         .and. 
      &              SO2_ss <= 5.e-9_fp ) 
      &              BULK    = 1
@@ -3268,22 +3269,22 @@
      &              ALKds  >=10.e+0_fp ) 
      &              BULK    = 1
                IF ( NH3    <= 1.e-9_fp          .and. 
-     &              ALKds  >= 4.e+0_fp           .and. 
+     &              ALKds  >= 4.e+0_fp          .and. 
      &              SO2_ss <= 10.e-9_fp ) 
      &              BULK    = 1
                IF ( NH3    <= 5.e-9_fp          .and. 
-     &              ALKds  >= 6.e+0_fp           .and. 
+     &              ALKds  >= 6.e+0_fp          .and. 
      &              SO2_ss <= 10.e-9_fp ) 
      &              BULK    = 1
                IF ( NH3    <= 7.e-9_fp          .and. 
-     &              ALKds   >-8.e+0_fp           .and. 
+     &              ALKds   >-8.e+0_fp          .and. 
      &              SO2_ss <= 10.e-9_fp ) 
      &              BULK    = 1
-            ELSEIF ( LWC   >= 0.5e+6_fp ) THEN
+            ELSEIF( LWC    >= 0.5e-6_fp ) THEN
                IF ( H2O20  >= (0.9e+0_fp * SO2_ss) ) 
      &              BULK    = 1
                IF ( NH3    <= 1.e-9_fp          .and. 
-     &              ALKds  >= 5.e+0_fp           .and. 
+     &              ALKds  >= 5.e+0_fp          .and. 
      &              SO2_ss <= 10.e-9_fp ) 
      &              BULK    = 1
             ELSE
@@ -4710,6 +4711,11 @@
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
 !  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
+!  22 Mar 2017 - M. Sulprizio- Dhco2 value is from Table 7.3 of Seinfeld and
+!                              Pandis (2006, pp 289) and should be positive for
+!                              consistency with the way it is used here. Also,
+!                              the value of R, in units of kcal mol-1 K-1, is
+!                              1.986x10^-3, not 0.04. (V. Shah)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4722,7 +4728,7 @@
       REAL(fp),  PARAMETER  :: DhrKc1 = -1000.
       REAL(fp),  PARAMETER  :: DhrKc2 = -1760.
       REAL(fp),  PARAMETER  :: Hco2 = 3.4e-2
-      REAL(fp),  PARAMETER  :: Dhco2 = -4.85/0.04
+      REAL(fp),  PARAMETER  :: Dhco2 = 4.85e+0_fp/1.986e-3_fp
       ! CO2 concentration [v/v]
       REAL(fp),  PARAMETER  :: CO2 = 380.0e-6_fp !380 ppmv
 !
@@ -4732,7 +4738,7 @@
       REAL(fp)              :: Hco2eff, xCO2, pCO2
 
       !=================================================================
-      ! kCO2 begins here!
+      ! kCO21 begins here!
       !=================================================================
 
       !CO2 dissolution constants
@@ -4776,6 +4782,11 @@
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
 !  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
+!  22 Mar 2017 - M. Sulprizio- Dhco2 value is from Table 7.3 of Seinfeld and
+!                              Pandis (2006, pp 289) and should be positive for
+!                              consistency with the way it is used here. Also,
+!                              the value of R, in units of kcal mol-1 K-1, is
+!                              1.986x10^-3, not 0.04. (V. Shah)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4788,7 +4799,7 @@
       REAL(fp),  PARAMETER  :: DhrKc1 = -1000.
       REAL(fp),  PARAMETER  :: DhrKc2 = -1760.
       REAL(fp),  PARAMETER  :: Hco2 = 3.4e-2
-      REAL(fp),  PARAMETER  :: Dhco2 = -4.85/0.04
+      REAL(fp),  PARAMETER  :: Dhco2 = 4.85e+0_fp/1.986e-3_fp
       ! CO2 concentration [v/v]
       REAL(fp),  PARAMETER  :: CO2 = 380.0e-6_fp 
 !
@@ -4798,7 +4809,7 @@
       REAL(fp)              :: Hco2eff, xCO2, pCO2
 
       !=================================================================
-      ! kCO2 begins here!
+      ! kCO22 begins here!
       !=================================================================
 
       !CO2 dissolution constants
@@ -4843,6 +4854,11 @@
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
 !  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
+!  22 Mar 2017 - M. Sulprizio- Dhso2 value is from Table 7.3 of Seinfeld and
+!                              Pandis (2006, pp 289) and should be positive for
+!                              consistency with the way it is used here. Also,
+!                              the value of R, in units of kcal mol-1 K-1, is
+!                              1.986x10^-3, not 0.04. (V. Shah)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4853,7 +4869,7 @@
       REAL(fp),  PARAMETER  :: Ks1 = 1.3e-2
       REAL(fp),  PARAMETER  :: Ks2 = 6.6e-8
       REAL(fp),  PARAMETER  :: Hso2 = 1.23
-      REAL(fp),  PARAMETER  :: Dhso2 = -6.25/0.04
+      REAL(fp),  PARAMETER  :: Dhso2 = 6.25+0_fp/1.986e-3_fp
       REAL(fp),  PARAMETER  :: DhrKso21 = 1960.
       REAL(fp),  PARAMETER  :: DhrKso22 = 1500.
 !
@@ -4863,7 +4879,7 @@
       REAL(fp)              :: Hso2eff, xSO2, pSO2
 
       !=================================================================
-      ! kSO2 begins here!
+      ! kSO21 begins here!
       !=================================================================
 
 
@@ -4908,6 +4924,11 @@
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
 !  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
+!  22 Mar 2017 - M. Sulprizio- Dhso2 value is from Table 7.3 of Seinfeld and
+!                              Pandis (2006, pp 289) and should be positive for
+!                              consistency with the way it is used here. Also,
+!                              the value of R, in units of kcal mol-1 K-1, is
+!                              1.986x10^-3, not 0.04. (V. Shah)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4918,7 +4939,7 @@
       REAL(fp),  PARAMETER  :: Ks1 = 1.3e-2
       REAL(fp),  PARAMETER  :: Ks2 = 6.6e-8
       REAL(fp),  PARAMETER  :: Hso2 = 1.23
-      REAL(fp),  PARAMETER  :: Dhso2 = -6.25/0.04
+      REAL(fp),  PARAMETER  :: Dhso2 = 6.25+0_fp/1.986e-3_fp
       REAL(fp),  PARAMETER  :: DhrKso21 = 1960.
       REAL(fp),  PARAMETER  :: DhrKso22 = 1500.
 !
@@ -4928,7 +4949,7 @@
       REAL(fp)              :: Hso2eff, xSO2, pSO2
 
       !=================================================================
-      ! kSO2 begins here!
+      ! kSO22 begins here!
       !=================================================================
 
 
@@ -4974,6 +4995,7 @@
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
 !  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
+!  22 Mar 2017 - M. Sulprizio- Add fix for Hhno3eff from V. Shah
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4999,8 +5021,12 @@
       Hhno3_T = Hhno3*exp(Dhhno3*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
       Kn1_T = Kn1*exp(DhrKn1*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))
 
-      !HNO3 dissolution
-      Hhno3eff = 3.2e6/HPLUS
+      ! HNO3 dissolution
+      ! The original Hhno3eff expression is valid for 298K (Seinfeld and Pandis
+      ! 2006, pp 299-301), and Kn1 has a strong temperature dependence. The
+      ! fix follows Eq. 7.59 of Seinfeld and Pandis (2006, pp 301).
+      !Hhno3eff = 3.2e6/HPLUS
+      Hhno3eff = Hhno3_T*(1.0e+0_fp+(Kn1_T/HPLUS))
       xHNO3 = 1.e+0_fp / ( 1.e+0_fp 
      &      + ( Hhno3eff * 0.08205e+0_fp * T * LWC ) )
       pHNO3 = HNO3 * P * xHNO3
@@ -5094,6 +5120,11 @@
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
 !  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
+!  22 Mar 2017 - M. Sulprizio- Dhnh3 value is from Table 7.3 of Seinfeld and
+!                              Pandis (2006, pp 289) and should be positive for
+!                              consistency with the way it is used here. Also,
+!                              the value of R, in units of kcal mol-1 K-1, is
+!                              1.986x10^-3, not 0.04. (V. Shah)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5103,7 +5134,7 @@
       ! NH3 dissociation contants
       REAL(fp),  PARAMETER  :: Ka1 = 1.7e-5
       REAL(fp),  PARAMETER  :: Hnh3 = 62.
-      REAL(fp),  PARAMETER  :: Dhnh3 = -8.17/0.04
+      REAL(fp),  PARAMETER  :: Dhnh3 = 8.17+0_fp/1.986e-3_fp
       REAL(fp),  PARAMETER  :: DhrKa1 = -450.
 
       ! Variables
