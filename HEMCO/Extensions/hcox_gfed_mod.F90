@@ -99,6 +99,7 @@ MODULE HCOX_GFED_MOD
 !  03 Jun 2015 - C. Keller / P. Kasibhatla - GFED-4 update: now use GFED-4
 !                                            specific emission factors and DM data.
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
+!  23 Mar 2017 - M. Sulprizio- Increase N_SPEC to 28 (+EOH+MTPA)
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -111,7 +112,7 @@ MODULE HCOX_GFED_MOD
   ! N_SPEC  : Max. number of species
   !=================================================================
   INTEGER,           PARAMETER :: N_EMFAC = 6
-  INTEGER,           PARAMETER :: N_SPEC  = 26
+  INTEGER,           PARAMETER :: N_SPEC  = 28
 !
 ! !PRIVATE TYPES:
 !
