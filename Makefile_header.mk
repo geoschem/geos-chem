@@ -460,11 +460,18 @@ endif
 #------------------------------------------------------------------------------
 # KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
 # (since it is an environent variable), so define a shadow variable KPP_CHEM.
-# %%%%% NOTE: These will probably be obsolete when FLEXCHEM is added. %%%%%
 #------------------------------------------------------------------------------
 
 # Test if the CHEM value is set
 IS_CHEM_SET          :=0
+
+# %%%%%  CHEM=Standard (aka benchmark, will turn on UCX) %%%%%
+REGEXP               :=(^[Ss][Tt][Aa][Nn][Dd][Aa][Rr][Dd])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  UCX                :=y
+  KPP_CHEM           :=Standard
+  IS_CHEM_SET        :=1
+endif
 
 # %%%%% Test if CHEM=UCX (will also turn on UCX) %%%%%
 REGEXP               :=(^[Uu][Cc][Xx])
@@ -488,15 +495,15 @@ ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   IS_CHEM_SET        :=1
 endif
 
-# %%%%% Test if CHEM=NOx_Ox_HC_Aer_Br %%%%%
-REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Aa][Ee][Rr]_[Bb][Rr])
+# %%%%% Test if CHEM=Tropchem %%%%%
+REGEXP               :=(^[Tt][Rr][Oo][Pp][Cc][Hh][Ee][Mm])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   KPP_CHEM           :=Tropchem
   IS_CHEM_SET        :=1
 endif
 
-# %%%%% Test if CHEM=tropchem (synonym for NOx_Ox_HC_Aer_Br) %%%%%
-REGEXP               :=(^[Tt][Rr][Oo][Pp][Cc][Hh][Ee][Mm])
+# %%%%% Test if CHEM=NOx_Ox_HC_Aer_Br (former name for Tropchem) %%%%%
+REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Aa][Ee][Rr]_[Bb][Rr])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   KPP_CHEM           :=Tropchem
   IS_CHEM_SET        :=1
@@ -509,7 +516,7 @@ ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   IS_CHEM_SET        :=1
 endif
 
-# %%%%%  Default setting: CHEM=standard (aka benchmark) %%%%%
+# %%%%%  Default setting %%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # NOTE: For clarify in the future, the default setting should be to not set
 # KPP_CHEM or IS_CHEM_SET if the CHEM compiler option is not passed. The default
@@ -517,6 +524,7 @@ endif
 # code to be compiled. (mps, 4/22/16)
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ifeq ($(IS_CHEM_SET),0)
+  UCX                :=y
   KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
 endif
