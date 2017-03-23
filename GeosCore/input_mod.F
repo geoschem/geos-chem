@@ -6056,6 +6056,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL              :: EOF,      DO_SAVE_PL, DO_SAVE_O3
+      LOGICAL              :: DO_SAVE_PCO
       INTEGER              :: F,        N,          N_ADVECT
       CHARACTER(LEN=255)   :: LOCATION, MSG
 
@@ -6092,6 +6093,10 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:3' )
       READ( SUBSTRS(1:N), * ) DO_SAVE_O3
 
+      ! Save P(CO) from CH4 & NMVOC for tagged CO run?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:4' )
+      READ( SUBSTRS(1:N), * ) DO_SAVE_PCO
+
       !=================================================================
       ! Error check families for certain types of simulations
       !=================================================================
@@ -6101,6 +6106,7 @@
       IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
          DO_SAVE_PL    = .FALSE.
          DO_SAVE_O3    = .FALSE.
+         DO_SAVE_PCO   = .FALSE.
          ND65          = 0
       ENDIF
 
@@ -6129,13 +6135,15 @@
       ! Return if there are no prod/loss families
       ! or if we have turned off this diagnostic
       IF ( .not. Input_Opt%LFAMILY ) THEN
-         DO_SAVE_PL = .FALSE.
-         DO_SAVE_O3 = .FALSE.
-         ND65       = 0
+         DO_SAVE_PL  = .FALSE.
+         DO_SAVE_O3  = .FALSE.
+         DO_SAVE_PCO = .FALSE.
+         ND65        = 0
       ENDIF
 
       Input_Opt%DO_SAVE_PL     = DO_SAVE_PL
       Input_Opt%DO_SAVE_O3     = DO_SAVE_O3
+      Input_Opt%DO_SAVE_PCO    = DO_SAVE_PCO
       Input_Opt%ND65           = ND65
 
       ! Loop over families
@@ -6195,6 +6203,7 @@
          WRITE( 6, 100 ) 'Turn on prod & loss diag?   : ', DO_SAVE_PL
          WRITE( 6, 110 ) '# of levels for P/L diag    : ', ND65
          WRITE( 6, 100 ) 'Save P(O3), L(O3) for TagO3?: ', DO_SAVE_O3
+         WRITE( 6, 100 ) 'Save CO Production?         : ', DO_SAVE_PCO
       
          ! Loop over families
          DO F = 1, Input_Opt%NFAM

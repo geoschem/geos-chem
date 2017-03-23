@@ -7150,6 +7150,34 @@
 #endif
 
          ENDDO
+
+         ! Extras for saving CO production fields
+         IF ( Input_Opt%DO_SAVE_PCO ) THEN
+
+            ! CO production from CH4
+            NTRAC(65) = NTRAC(65)+1
+            T = NTRAC(65)
+            NAME (T,65) = 'PCO_CH4'
+            FNAME(T,65) = 'PCO from CH4 only'
+            INDEX(T,65) = T + ( SPACING * 17 )
+            MOLC (T,65) = 1 
+            MWT  (T,65) = 0e0
+            SCALE(T,65) = 1e0
+            UNIT(T,65) = 'molec/cm3/s'
+
+            ! CO production from NMVOC
+            NTRAC(65) = NTRAC(65)+1
+            T = NTRAC(65)
+            NAME (T,65) = 'PCO_NMVOC'
+            FNAME(T,65) = 'PCO from NMVOC only'
+            INDEX(T,65) = T + ( SPACING * 17 )
+            MOLC (T,65) = 1 
+            MWT  (T,65) = 0e0
+            SCALE(T,65) = 1e0
+            UNIT(T,65) = 'molec/cm3/s'
+
+         ENDIF
+
       ENDIF
 
       !-------------------------------------      

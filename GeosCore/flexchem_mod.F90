@@ -209,6 +209,9 @@ CONTAINS
     INTEGER                :: COEF
     CHARACTER(LEN=14)      :: NAME
 
+    ! For tagged CO saving
+    REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
+
     ! For testing only, may be removed later (mps, 4/26/16)
     LOGICAL                :: DO_HETCHEM
     LOGICAL                :: DO_PHOTCHEM
@@ -514,6 +517,7 @@ CONTAINS
     !$OMP PRIVATE  ( START, FINISH,   ISTATUS,    RSTATE      ) &
     !$OMP PRIVATE  ( FAM,   SpcId                             ) &
     !$OMP PRIVATE  ( NAME,  COEF,     IND,        F,     M    ) &
+    !$OMP PRIVATE  ( LCH4,  PCO_TOT,  PCO_CH4,    PCO_NMVOC   ) &
     !$OMP REDUCTION( +:ITIM                                   ) &
     !$OMP REDUCTION( +:RTIM                                   ) &
     !$OMP REDUCTION( +:TOTSTEPS                               ) &
@@ -544,6 +548,10 @@ CONTAINS
        SO4_FRAC = 0.0_fp    ! Fraction of SO4 available for photolysis
        TEMP     = 0.0_fp    ! Temperature
        YLAT     = 0.0_fp    ! Latitude
+       LCH4     = 0.0_fp    ! Methane loss rate - for tagged CO
+       PCO_TOT  = 0.0_fp    ! Total CO production - for tagged CO
+       PCO_CH4  = 0.0_fp    ! CO production from CH4 - for tagged CO
+       PCO_NMVOC  = 0.0_fp  ! Total CO from NMVOC - for tagged CO
 
        !==============================================================
        ! Test if we need to do the chemistry for box (I,J,L),
@@ -849,6 +857,15 @@ CONTAINS
                 ENDIF
              ENDIF
 
+             !--------------------------------------------------------
+             ! Save out P(CO) and L(CH4) from the fullchem simulation
+             ! for use in tagged CO
+             !--------------------------------------------------------
+             IF ( Input_Opt%DO_SAVE_PCO ) THEN
+                IF ( TRIM(FAM_NAMES(F)) == 'PCO'  ) PCO_TOT = FAM(F)/DT
+                IF ( TRIM(FAM_NAMES(F)) == 'LCH4' ) LCH4    = FAM(F)/DT
+             ENDIF
+
 #if defined( TOMAS )
              !-------------------------------------------------------
              ! FOR TOMAS MICROPHYSICS:
@@ -867,6 +884,22 @@ CONTAINS
              ENDIF
 #endif
           ENDDO
+
+          ! For tagged CO, use LCH4 to get P(CO) contributions from
+          ! CH4 and NMVOC
+          IF ( Input_Opt%DO_SAVE_PCO ) THEN
+             ! P(CO)_CH4 is LCH4. Cap so that it is never greater
+             ! than total P(CO) to prevent negative P(CO)_NMVOC
+             PCO_CH4 = MIN( LCH4, PCO_TOT )
+
+             ! P(CO) from NMVOC is the remaining P(CO)
+             PCO_NMVOC = PCO_TOT - PCO_CH4
+
+             ! Add to AD65 array [molec/cm3/s]
+             AD65(I,J,L,NFAM+1) = AD65(I,J,L,NFAM+1) + PCO_CH4
+             AD65(I,J,L,NFAM+2) = AD65(I,J,L,NFAM+2) + PCO_NMVOC
+
+          ENDIF
 
        ENDIF
 

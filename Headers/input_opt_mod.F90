@@ -456,6 +456,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LFAMILY
      INTEGER                     :: ND65, LD65
      LOGICAL                     :: DO_SAVE_O3
+     LOGICAL                     :: DO_SAVE_PCO
      INTEGER                     :: NFAM
      REAL(fp),           POINTER :: FAM_COEF(:,:)
      CHARACTER(LEN=255), POINTER :: FAM_MEMB(:,:)
@@ -1254,6 +1255,7 @@ CONTAINS
     Input_Opt%LFAMILY                = .FALSE.
     Input_Opt%ND65                   = 0
     Input_Opt%DO_SAVE_O3             = .FALSE.
+    Input_Opt%DO_SAVE_PCO            = .FALSE.
     Input_Opt%NFAM                   = 0
     Input_Opt%FAM_COEF               = 0e+0_fp
     Input_Opt%FAM_MEMB               = ''

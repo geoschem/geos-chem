@@ -219,7 +219,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: NMAX, AS, NEMISS, LMAX, nAdvect
+      INTEGER :: NMAX, AS, NEMISS, LMAX, nAdvect, NFAM
       LOGICAL :: IT_IS_A_CH3I_SIM
       LOGICAL :: IT_IS_A_FULLCHEM_SIM
       LOGICAL :: IT_IS_A_MERCURY_SIM
@@ -1081,7 +1081,12 @@
          ELSE
             LD65 = MIN( ND65, LLPAR  )
          ENDIF
-         ALLOCATE( AD65( IIPAR, JJPAR, LD65, Input_Opt%NFAM ), STAT=AS )
+         IF ( Input_Opt%DO_SAVE_PCO ) THEN
+            NFAM = Input_Opt%NFAM + 2
+         ELSE
+            NFAM = Input_Opt%NFAM
+         ENDIF
+         ALLOCATE( AD65( IIPAR, JJPAR, LD65, NFAM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD64' )
       ENDIF
 
