@@ -81,8 +81,6 @@ MODULE HCOI_GC_Main_Mod
 !  20 Jun 2016 - R. Yantosca - Now define species ID's as module variables
 !                              so that we can define them in HCOI_GC_INIT
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  10 Mar 2017 - M. Sulprizio- Add PBL_TOP_L for emitting 35% of biomass burning
-!                              source into the free troposphere
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -109,7 +107,6 @@ MODULE HCOI_GC_Main_Mod
 
   ! Internal met fields (will be used by some extensions)
   INTEGER,               TARGET :: HCO_PBL_MAX                      ! level
-  INTEGER,  POINTER             :: HCO_PBL_TOP_L(:,:)
   REAL(hp), POINTER             :: HCO_FRAC_OF_PBL(:,:,:)
   REAL(hp), POINTER             :: HCO_SZAFACT(:,:)
 
@@ -763,7 +760,6 @@ CONTAINS
     ! Module variables
     IF ( ASSOCIATED ( ZSIGMA          ) ) DEALLOCATE( ZSIGMA          )
     IF ( ASSOCIATED ( HCO_FRAC_OF_PBL ) ) DEALLOCATE( HCO_FRAC_OF_PBL )
-    IF ( ASSOCIATED ( HCO_PBL_TOP_L   ) ) DEALLOCATE( HCO_PBL_TOP_L   )
     IF ( ASSOCIATED ( HCO_SZAFACT     ) ) DEALLOCATE( HCO_SZAFACT     )
     IF ( ASSOCIATED ( JNO2            ) ) DEALLOCATE( JNO2            )
     IF ( ASSOCIATED ( JOH             ) ) DEALLOCATE( JOH             )
@@ -929,12 +925,6 @@ CONTAINS
        ALLOCATE(HCO_FRAC_OF_PBL(IIPAR,JJPAR,LLPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_FRAC_OF_PBL', LOC, INS )
        HCO_FRAC_OF_PBL = 0.0_hp
-    ENDIF
-
-    IF ( ExtState%PBL_TOP_L%DoUse ) THEN 
-       ALLOCATE(HCO_PBL_TOP_L(IIPAR,JJPAR),STAT=AS)
-       IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_PBL_TOP_L', LOC, INS )
-       HCO_PBL_TOP_L = 0.0_hp
     ENDIF
 
     ! Initialize max. PBL
@@ -1132,10 +1122,6 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! 2D fields 
     ! ----------------------------------------------------------------
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%PBL_TOP_L, &
-          'PBL_TOP_L_FOR_EMIS', HCRC, FIRST, HCO_PBL_TOP_L )  
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%U10M, &
             'U10M_FOR_EMIS',    HCRC, FIRST, State_Met%U10M )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
@@ -1429,7 +1415,6 @@ CONTAINS
     USE HCO_GeoTools_Mod,      ONLY : HCO_GetSUNCOS
     USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL
     USE PBL_MIX_MOD,           ONLY : GET_PBL_MAX_L
-    USE PBL_MIX_MOD,           ONLY : GET_PBL_TOP_L
     USE State_Met_Mod,         ONLY : MetState
     USE State_Chm_Mod,         ONLY : ChmState
 #if defined(ESMF_) 
@@ -1528,12 +1513,6 @@ CONTAINS
        ! Fraction of PBL for each box [unitless]
        IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
           HCO_FRAC_OF_PBL(I,J,L) = GET_FRAC_OF_PBL(I,J,L)
-       ENDIF
-
-       ! Top of PBL for each box [level]
-       IF ( ExtState%PBL_TOP_L%DoUse ) THEN
-          HCO_PBL_TOP_L(I,J) = FLOOR( GET_PBL_TOP_L(I,J) )
-          IF ( HCO_PBL_TOP_L(I,J) == 0 ) HCO_PBL_TOP_L(I,J) = 1
        ENDIF
 
        ! Maximum extent of the PBL [model level]

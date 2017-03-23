@@ -155,7 +155,6 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: JOH         ! J-Value for O3->OH  [1/s]
      TYPE(ExtDat_2R),  POINTER :: LAI         ! daily leaf area index [cm2/cm2]
      TYPE(ExtDat_2R),  POINTER :: CHLR        ! daily chlorophyll-a [mg/m3]
-     TYPE(ExtDat_2I),  POINTER :: PBL_TOP_L   ! PBL top [level]
      INTEGER,          POINTER :: PBL_MAX     ! Max height of PBL [level]
      TYPE(ExtDat_3R),  POINTER :: CNV_MFC     ! Convective cloud mass flux [kg/m2/s] 
      TYPE(ExtDat_3R),  POINTER :: FRAC_OF_PBL ! Fraction of grid box in PBL
@@ -226,7 +225,6 @@ MODULE HCOX_STATE_MOD
 !  20 Apr 2016 - M. Sulprizio- Change JO1D pointer to JOH to reflect that it now
 !                              points to the effective O3 + hv -> 2OH rates
 !  01 Nov 2016 - M. Sulprizio- Rename TOMAS sea salt to TOMAS Jeagle (J. Kodros)
-!  10 Mar 2017 - M. Sulprizio- Add PBL_TOP_L for biomass burning extensions
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -435,9 +433,6 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%FRAC_OF_PBL, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%PBL_TOP_L, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     CALL ExtDat_Init ( ExtState%SPHU, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -552,7 +547,6 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%JOH        )
        CALL ExtDat_Cleanup( ExtState%CNV_MFC    )
        CALL ExtDat_Cleanup( ExtState%FRAC_OF_PBL)
-       CALL ExtDat_Cleanup( ExtState%PBL_TOP_L  )
        CALL ExtDat_Cleanup( ExtState%SPHU       )
        CALL ExtDat_Cleanup( ExtState%TK         )
        CALL ExtDat_Cleanup( ExtState%AIR        )
