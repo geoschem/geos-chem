@@ -30,10 +30,12 @@
 
       ! SAVEOH  = array to save OH  fields 
       ! SAVEHO2 = array to save HO2 fields (rvm, bmy, 2/27/02)
+      ! SAVEEOH = array to save EOH fields (evf, 5/21/13)
       REAL(fp), ALLOCATABLE ::   SAVEOH(:,:,:)
       REAL(fp), ALLOCATABLE ::   SAVEHO2(:,:,:)
       REAL(fp), ALLOCATABLE ::   SAVEO1D(:,:,:)
       REAL(fp), ALLOCATABLE ::   SAVEO3P(:,:,:)
+      REAL(fp), ALLOCATABLE ::   SAVEEOH(:,:,:)
 !
 ! !REMARKS:
 !  NOTE: Now NEMPARA = max no. of anthropogenic emissions
@@ -55,6 +57,7 @@
 !  21 Feb 2014 - M. Sulprizio- Added SAVEO1D and SAVEO3P for UCX (S.D. Eastham)
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  22 May 2015 - R. Yantosca - Remove arrays made obsolete by HEMCO
+!  03 Jan 2017 - M. Sulprizio- Added SAVEEOH (E. Fischer)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -107,12 +110,14 @@
       ALLOCATE( SAVEHO2( IIPAR, JJPAR, LLPAR ), STAT=RC )
       ALLOCATE( SAVEO1D( IIPAR, JJPAR, LLPAR ), STAT=RC )
       ALLOCATE( SAVEO3P( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( SAVEEOH( IIPAR, JJPAR, LLPAR ), STAT=RC )
 
       ! Zero arrays
       SAVEOH     = 0e+0_fp
       SAVEHO2    = 0e+0_fp
       SAVEO1D    = 0e+0_fp
       SAVEO3P    = 0e+0_fp
+      SAVEEOH    = 0e+0_fp
 
       END SUBROUTINE Init_CMN_O3
 !EOC
@@ -159,6 +164,7 @@
       IF ( ALLOCATED( SAVEHO2 ) ) DEALLOCATE( SAVEHO2 )
       IF ( ALLOCATED( SAVEO1D ) ) DEALLOCATE( SAVEO1D ) 
       IF ( ALLOCATED( SAVEO3P ) ) DEALLOCATE( SAVEO3P )
+      IF ( ALLOCATED( SAVEEOH ) ) DEALLOCATE( SAVEEOH )
 
       END SUBROUTINE Cleanup_CMN_O3
 !EOC

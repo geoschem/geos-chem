@@ -43,6 +43,7 @@
 !  16 Apr 2013 - C. Keller   - Initial version
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  11 Dec 2014 - M. Yannetti - Reverted PRECISION changes due to hcoi_gc_main_mod
+!  02 Feb 2017 - M. Sulprizio- Added ALD2 based on code from E. Fischer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -51,7 +52,7 @@
 !
 
       ! Constants to be used for each tracer
-      INTEGER,           PARAMETER :: N = 4
+      INTEGER,           PARAMETER :: N = 5
 
       ! NOTE: GFORTRAN throws a hissy fit if the names in the array 
       ! constructor are not all the same length (bmy, 9/19/16)
@@ -59,20 +60,24 @@
      &  'H2O2',   ! Jacob et al. 2000 
      &  'CH3I',   ! Moore et al. 1995
      &  'DMS ',   ! De Bruyn et al. 1995
-     &  'ACET' /) ! Benkelberg et al. 1995
+     &  'ACET',   ! Benkelberg et al. 1995
+     &  'ALD2' /) ! Benkelberg et al. 1995
 
       REAL*8,          PARAMETER :: K0(N)   = (/ 8.3d+4,  
      &                                           1.4d-1,
      &                                           4.8d-1, 
-     &                                           27d+0   /)
+     &                                           27d+0,
+     &                                           11d+0   /)
 
       REAL*8,          PARAMETER :: CR(N)   = (/ 7.4d+3,  
      &                                           4.3d+3,
      &                                           3.1d+3,  
-     &                                           5300d+0 /) 
+     &                                           5300d+0,
+     &                                           6300d+0 /) 
 
       REAL*8,          PARAMETER :: PKa(N)  = (/ -999d+0, 
      &                                           -999d+0,
+     &                                           -999d+0, 
      &                                           -999d+0, 
      &                                           -999d+0 /) 
 

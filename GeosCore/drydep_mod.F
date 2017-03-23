@@ -190,6 +190,9 @@
 !  13 Jul 2016 - R. Yantosca - Remove DRYHg0, DRYHg2, DRYHgP ID flags
 !  13 Jul 2016 - R. Yantosca - Also make NDVZIND a local variable for now
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  10 Mar 2017 - M. Sulprizio- Add special treatment for ALD2, following what is
+!                              done for ACET. Drydep over the oceans is handled
+!                              via the HEMCO SeaFlux extension. 
 !  16 Mar 2017 - R. Yantosca - Remove references to obsolete vars in Input_Opt
 !EOP
 !------------------------------------------------------------------------------
@@ -243,7 +246,7 @@
       ! Scalars
       INTEGER                        :: NUMDEP,   NWATER
       INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
-      INTEGER                        :: id_ACET
+      INTEGER                        :: id_ACET,  id_ALD2
       INTEGER                        :: id_NK1
 
       ! Arrays for Baldocchi drydep polynomial coefficients
@@ -573,10 +576,22 @@
 
             ! For ACET, we need to only do drydep over the land
             ! and not over the oceans.
-            IF ( N == ID_ACET ) THEN
+            IF ( N == id_ACET ) THEN
                IF ( IS_LAND( I, J, State_Met ) ) THEN
                   DVZ = 0.1e+0_f8
                ELSE
+                  DVZ = 0e+0_f8
+               ENDIF
+            ENDIF
+
+            !-----------------------------------------------------------
+            ! Special treatment for ALD2
+            !-----------------------------------------------------------
+
+            ! For ALD2, we need to only do drydep over the land
+            ! and not over the oceans.
+            IF ( N == id_ALD2 ) THEN
+               IF ( .not. IS_LAND( I, J, State_Met ) ) THEN
                   DVZ = 0e+0_f8
                ENDIF
             ENDIF
@@ -4048,7 +4063,8 @@
       NUMDEP  = 0
 
       ! Flag to identify acetone
-      ID_ACET = 0
+      id_ACET = 0
+      id_ALD2 = 0
 
       !===================================================================
       ! Arrays that hold information about dry-depositing species
@@ -4176,8 +4192,12 @@
 
                CASE( 'ACET' )
                   ! Flag the species ID of ACET for use above.
-                  ID_ACET = SpcInfo%ModelId
+                  id_ACET = SpcInfo%ModelId
                         
+               CASE( 'ALD2' )
+                  ! Flag the species ID of ALD2 for use above.
+                  id_ALD2 = SpcInfo%ModelId
+
                CASE( 'NITs', 'NITS' )
                   ! DEPNAME for NITs has to be in all caps, for
                   ! backwards compatibility with older code.
