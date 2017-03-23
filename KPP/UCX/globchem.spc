@@ -9,6 +9,7 @@
      ALK4            =          IGNORE; {>= C4 alkanes}
      ATO2            =          IGNORE; {RO2 from acetone}
      B3O2            =          IGNORE; {Secondary RO2 from C3H8}
+     BENZ            =          IGNORE; {Benzene}
      C2H6            =          IGNORE; {Ethane}
      C3H8            =          IGNORE; {Propane}
      CH2O            =          IGNORE; {Formaldehyde}
@@ -47,6 +48,7 @@
      MEK             =          IGNORE; {Methyl ethyl ketone}
      MGLY            =          IGNORE; {Methylglyoxal}
      MO2             =          IGNORE; {Methylperoxy radical}
+     MONX            =          IGNORE; {Total monoterpenes}
      MP              =          IGNORE; {Methylhydroperoxide}
      MRO2            =          IGNORE; {RO2 from MACR+OH}
      MRP             =          IGNORE; {Peroxide from MRO2}
@@ -81,13 +83,25 @@
      RIP             =          IGNORE; {Peroxide from RIO2, aka ISOPOOH}
      ROH             =          IGNORE; {> C2 alcohols}
      RP              =          IGNORE; {Peroxide from RCO3}
+     TOLU            =          IGNORE; {Toluene}
      VRO2            =          IGNORE; {RO2 from MVK+OH}
      VRP             =          IGNORE; {Peroxide from VRO2}
+     XYLE            =          IGNORE; {Xylene}
      DMS             =          IGNORE; {Dimethylsulfide}
      SO2             =          IGNORE; {Sulfur dioxide}
      SO4             =          IGNORE; {Sulfate}
      MSA             =          IGNORE; {Methanesulfonic acid}
      LISOPOH         =          IGNORE; {Track loss of ISOP from rxn with OH}
+     LISOPNO3        =          IGNORE; {Track loss of ISOP from rxn with NO3}
+     BRO2            =          IGNORE; {Peroxy radical from NENZ oxidation}
+     TRO2            =          IGNORE; {Peroxy radical from TOLU oxidation}
+     XRO2            =          IGNORE; {Peroxy radical from XYLE oxidation}
+     LBRO2H          =          IGNORE; {Track oxidation of BRO2 by HO2}
+     LBRO2N          =          IGNORE; {Track oxidation of BRO2 by NO}
+     LTRO2H          =          IGNORE; {Track oxidation of TRO2 by HO2}
+     LTRO2N          =          IGNORE; {Track oxidation of TRO2 by NO}
+     LXRO2H          =          IGNORE; {Track oxidation of XRO2 by HO2}
+     LXRO2N          =          IGNORE; {Track oxidation of XRO2 by NO}
      Br2             =          IGNORE; {Molecular bromine}
      Br              =          IGNORE; {Atomic bromine}
      BrO             =          IGNORE; {Bromine monoxide}
@@ -158,11 +172,16 @@
      CO2             =          IGNORE; {Carbon dioxide}
      MBO             =          IGNORE; {Criegee intermediate}
      MBOOO           =          IGNORE; {Criegee intermediate}
-     MONX            =          IGNORE; {Total monoterpenes}
+     EOH             =          IGNORE; {Ethanol}
+     MTPA            =          IGNORE; {a-pinene, b-pinene, sabinene, carene}
+     PIO2            =          IGNORE; {RO2 from MTPA}
+     PIP             =          IGNORE; {Peroxides from MTPA}
+     OLND            =          IGNORE; {Monoterpene-derived NO3-aklene adduct}
+     OLNN            =          IGNORE; {Monoterpene-derived NO3 adduct}
+     ONIT            =          IGNORE; {Organic nitrate}
 
 #DEFFIX
 
-     EOH             =          IGNORE; {Ethanol}
      H2              =          IGNORE; {Molecular hydrogen}
      MNO3            =          IGNORE; {Methylnitrate}
      MOH             =          IGNORE; {Methanol}

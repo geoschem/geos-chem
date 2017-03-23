@@ -172,14 +172,16 @@
      CO2             =          IGNORE; {Carbon dioxide}
      MBO             =          IGNORE; {Criegee intermediate}
      MBOOO           =          IGNORE; {Criegee intermediate}
-     NAP             =          IGNORE; {Naphthalene; IVOC surrogate}
-     NRO2            =          IGNORE; {Peroxy radical from NAP oxidation}
-     LNRO2H          =          IGNORE; {Track oxidation of NRO2 by HO2}
-     LNRO2N          =          IGNORE; {Track oxidation of NRO2 by NO}
+     EOH             =          IGNORE; {Ethanol}
+     MTPA            =          IGNORE; {a-pinene, b-pinene, sabinene, carene}
+     PIO2            =          IGNORE; {RO2 from MTPA}
+     PIP             =          IGNORE; {Peroxides from MTPA}
+     OLND            =          IGNORE; {Monoterpene-derived NO3-aklene adduct}
+     OLNN            =          IGNORE; {Monoterpene-derived NO3 adduct}
+     ONIT            =          IGNORE; {Organic nitrate}
 
 #DEFFIX
 
-     EOH             =          IGNORE; {Ethanol}
      H2              =          IGNORE; {Molecular hydrogen}
      MNO3            =          IGNORE; {Methylnitrate}
      MOH             =          IGNORE; {Methanol}

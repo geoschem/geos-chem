@@ -55,6 +55,7 @@
      NO              =          IGNORE; {Nitric oxide}
      NO2             =          IGNORE; {Nitrogen dioxide}
      NO3             =          IGNORE; {Nitrate radical}
+     O1D             =          IGNORE; {Oxygen atom in an excited singlet state}
      O3              =          IGNORE; {Ozone}
      OH              =          IGNORE; {Hydroxyl radical}
      PAN             =          IGNORE; {Peroxyacetylnitrate}
@@ -142,12 +143,17 @@
      CO2             =          IGNORE; {Carbon dioxide}
      MBO             =          IGNORE; {Criegee intermediate}
      MBOOO           =          IGNORE; {Criegee intermediate}
-     O1D             =          IGNORE; {Oxygen atom in an excited singlet state}
+     EOH             =          IGNORE; {Ethanol}
+     MTPA            =          IGNORE; {a-pinene, b-pinene, sabinene, carene}
+     PIO2            =          IGNORE; {RO2 from MTPA}
+     PIP             =          IGNORE; {Peroxides from MTPA}
+     OLND            =          IGNORE; {Monoterpene-derived NO3-aklene adduct}
+     OLNN            =          IGNORE; {Monoterpene-derived NO3 adduct}
+     ONIT            =          IGNORE; {Organic nitrate}
 
 #DEFFIX
 
      CH4             =          IGNORE; {Methane}
-     EOH             =          IGNORE; {Ethanol}
      H               =          IGNORE; {Atomic hydrogen}
      H2              =          IGNORE; {Molecular hydrogen}
      H2O             =          IGNORE; {Water vapor}
