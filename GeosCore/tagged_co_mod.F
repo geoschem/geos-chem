@@ -177,7 +177,7 @@
       USE HCO_Interface_Mod,  ONLY : HcoState, GetHcoID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
-      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : ChmState, Ind_
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
@@ -322,6 +322,12 @@
       ! SAVED scalars
       LOGICAL,   SAVE          :: FIRST = .TRUE.
       REAL(fp),  SAVE          :: A3090S, A0030S, A0030N, A3090N
+      INTEGER,   SAVE          :: IDch4   = -1
+      INTEGER,   SAVE          :: IDnmvoc = -1
+      INTEGER,   SAVE          :: IDisop  = -1
+      INTEGER,   SAVE          :: IDch3oh = -1
+      INTEGER,   SAVE          :: IDmono  = -1
+      INTEGER,   SAVE          :: IDacet  = -1
 !
 ! !DEFINED PARAMETERS:
 !
@@ -398,6 +404,14 @@
       !      called, the HEMCO_Config file has not yet been read in.
       !=================================================================
       IF ( FIRST ) THEN
+
+         ! Get species IDs
+         IDch4    = Ind_( 'COch4'  )
+         IDnmvoc  = Ind_( 'COnmvoc'  )
+         IDisop   = Ind_( 'COisop'  )
+         IDch3oh  = Ind_( 'COch3oh'  )
+         IDmono   = Ind_( 'COmono'  )
+         IDacet   = Ind_( 'COacet'  )
          
          ! Get a pointer to the OH field from the HEMCO list (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', OH,   RC )
@@ -885,13 +899,19 @@
          ! %%% get an array-out-of-bounds error (bmy, 6/11/08)
          !==============================================================
          IF ( LSPLIT ) THEN
-            Spc(I,J,L,12) = Spc(I,J,L,12) + CO_CH4   / STTCO
-            Spc(I,J,L,13) = Spc(I,J,L,13) + CO_NMVOC / STTCO
+            IF ( IDch4 >= 0 )
+     &         Spc(I,J,L,IDch4) = Spc(I,J,L,IDch4) + CO_CH4   / STTCO
+            IF ( IDnmvoc >= 0 )
+     &         Spc(I,J,L,IDnmvoc) = Spc(I,J,L,IDnmvoc) + CO_NMVOC /STTCO
             IF (.not. LPCO_NMVOC) THEN
-               Spc(I,J,L,14) = Spc(I,J,L,14) + CO_ISOP  / STTCO 
-               Spc(I,J,L,15) = Spc(I,J,L,15) + CO_MONO  / STTCO
-               Spc(I,J,L,16) = Spc(I,J,L,16) + CO_CH3OH / STTCO
-               Spc(I,J,L,17) = Spc(I,J,L,17) + CO_ACET  / STTCO
+               IF ( IDisop >= 0 )
+     &            Spc(I,J,L,IDisop) = Spc(I,J,L,IDisop) + CO_ISOP /STTCO
+               IF ( IDmono >= 0 )
+     &            Spc(I,J,L,IDmono) = Spc(I,J,L,IDmono) + CO_MONO /STTCO
+               IF ( IDch3oh >= 0 )
+     &            Spc(I,J,L,IDch3oh) = Spc(I,J,L,IDch3oh)+CO_CH3OH/STTCO
+               IF ( IDacet >= 0 )
+     &            Spc(I,J,L,IDacet) = Spc(I,J,L,IDacet) + CO_ACET /STTCO
             ENDIF
          ENDIF
 
