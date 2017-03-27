@@ -276,6 +276,8 @@
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  20 Sep 2016 - R. Yantosca - Use .eqv. instead of .eq. to compare LOGICALs
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  27 Mar 2017 - M. Sulprizio- Make biomass burning and anthropogenic emission
+!                              diagnostics 3D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -831,7 +833,7 @@
                   CASE ( 1 ) 
                      CATEGORY = TRIM(SpcName)//'-ANTH'
                      SRCNAME  = 'ANTHRO'
-                     Levs     = 1
+                     Levs     = LLPAR
                   CASE ( 2 ) 
                      CATEGORY = TRIM(SpcName)//'-BIOF'
                      SRCNAME  = 'BIOFUEL'
@@ -839,7 +841,7 @@
                   CASE ( 3 ) 
                      CATEGORY = TRIM(SpcName)//'-BIOB'
                      SRCNAME  = 'BIOMASS'
-                     Levs     = LD07
+                     Levs     = LLPAR
                END SELECT
    
                !----- (1) Hydrophilic -----
@@ -867,17 +869,17 @@
       
                ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  IF ( I == 3 ) THEN
-                     ! Biomass burning emissions are 3D
-                     DO L = 1, LD07
+                  IF ( I == 2 ) THEN
+                     ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
+     &                            * FACTOR
+     &                            * HcoState%Grid%AREA_M2%Val(:,:)
+                  ELSE
+                     ! Biomass burning and anthro emissions are 3D
+                     DO L = 1, LLPAR
                         ARRAY(:,:,L) = DiagnCnt%Arr3D%Val(:,:,L)
      &                               * FACTOR
      &                               * HcoState%Grid%AREA_M2%Val(:,:)
                      ENDDO
-                  ELSE
-                     ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
-     &                            * FACTOR
-     &                            * HcoState%Grid%AREA_M2%Val(:,:)
                   ENDIF
                ELSE
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
@@ -912,19 +914,19 @@
       
                ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  IF ( I == 3 ) THEN
-                     ! Biomass burning emissions are 3D
-                     DO L = 1, LD07
+                  IF ( I == 2 ) THEN
+                     ARRAY(:,:,1) = ARRAY(:,:,1) 
+     &                            + ( DiagnCnt%Arr2D%Val(:,:)
+     &                            * FACTOR 
+     &                            * HcoState%Grid%AREA_M2%Val(:,:) )
+                  ELSE
+                     ! Biomass burning and anthro emissions are 3D
+                     DO L = 1, LLPAR
                         ARRAY(:,:,L) = ARRAY(:,:,L) 
      &                               + ( DiagnCnt%Arr3D%Val(:,:,L)
      &                               *   FACTOR 
      &                               *   HcoState%Grid%AREA_M2%Val(:,:))
-                     ENDDO
-                  ELSE
-                     ARRAY(:,:,1) = ARRAY(:,:,1) 
-     &                            + ( DiagnCnt%Arr2D%Val(:,:)
-     &                            * FACTOR 
-     &                            * HcoState%Grid%AREA_M2%Val(:,:) ) 
+                     ENDDO 
                   ENDIF
                ELSE
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
@@ -1657,7 +1659,7 @@
          CATEGORY  = 'SO2-AN-$'
          FACTOR    =  S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO2, 1, -1, .FALSE., FACTOR, RC )
+     &                   UNIT, id_SO2, 1, LLPAR, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
          
          !%%%%% Biomass SO2 (convert kg/m2/s --> kg S) %%%%%
@@ -1709,7 +1711,7 @@
          CATEGORY  = 'SO4-AN-$'
          FACTOR    = S_SO4
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO4, 1, -1, .FALSE., FACTOR, RC )
+     &                   UNIT, id_SO4, 1, LLPAR, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Biofuel SO4 %%%%%
@@ -1730,7 +1732,7 @@
          CATEGORY  = 'NH3-ANTH'
          FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_NH3, 1, -1, .FALSE., FACTOR, RC )
+     &                   UNIT, id_NH3, 1, LLPAR, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%%  Natural source NH3 %%%%%
@@ -2758,7 +2760,7 @@
       
          ! Save into ARRAY. Convert to units
          IF ( FLAG == HCO_SUCCESS ) THEN
-            DO L = 1, LD28
+            DO L = 1, LLPAR
                ARRAY(:,:,L) = DiagnCnt%Arr3D%Val(:,:,L) 
      &                      * FACTOR 
             ENDDO
@@ -2782,7 +2784,7 @@
       
          ! Save into ARRAY. Convert to units
          IF ( FLAG == HCO_SUCCESS ) THEN
-            DO L = 1, LD28
+            DO L = 1, LLPAR
                ARRAY(:,:,L) = ARRAY(:,:,L) 
      &                      + ( DiagnCnt%Arr3D%Val(:,:,L) * FACTOR )
             ENDDO
@@ -2797,7 +2799,7 @@
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT ,     DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     LLPAR,    IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
       
          ! Free pointer
          DiagnCnt => NULL()
@@ -2835,7 +2837,7 @@
          
             ! Save into ARRAY. Convert to units
             IF ( FLAG == HCO_SUCCESS ) THEN
-               DO L = 1, LD28
+               DO L = 1, LLPAR
                   ARRAY(:,:,L) = DiagnCnt%Arr3D%Val(:,:,L) 
      &                         * FACTOR
                ENDDO
@@ -2859,7 +2861,7 @@
          
             ! Save into ARRAY. Convert to units
             IF ( FLAG == HCO_SUCCESS ) THEN
-               DO L = 1, LD28
+               DO L = 1, LLPAR
                   ARRAY(:,:,L) = ARRAY(:,:,L) 
      &                         + ( DiagnCnt%Arr3D%Val(:,:,L) * FACTOR )
                ENDDO
@@ -2874,7 +2876,7 @@
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT ,     DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     LLPAR,    IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
          
             ! Free pointer
             DiagnCnt => NULL()
@@ -3020,6 +3022,7 @@
             SELECT CASE ( N )
                CASE( 1 )
                   DiagnName = 'ANTHROPOGENIC_CO'
+                  Levs      = LLPAR
                CASE( 2 )
                   DiagnName = 'BIOMASS_CO'
                   Levs      = LLPAR
@@ -3035,6 +3038,7 @@
                ! Tagged CO: Anthro sectors, USA
                CASE( 7 )
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_US'
+                  Levs      = LLPAR
                CASE( 8 ) 
                   DiagnName = 'AIRCRAFT_TAGCO_US'
                   Levs      = LLPAR
@@ -3044,6 +3048,7 @@
                ! Tagged CO: Anthro sectors, Europe
                CASE( 10 )
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_EUR'
+                  Levs      = LLPAR
                CASE( 11 )
                   DiagnName = 'AIRCRAFT_TAGCO_EUR'
                   Levs      = LLPAR
@@ -3053,6 +3058,7 @@
                ! Tagged CO: Anthro sectors, Asia
                CASE( 13 )
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_ASIA'
+                  Levs      = LLPAR
                CASE( 14 )
                   DiagnName = 'AIRCRAFT_TAGCO_ASIA'
                   Levs      = LLPAR
@@ -3062,6 +3068,7 @@
                ! Tagged CO: Anthro sectors, rest of world
                CASE( 16 )
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_OTHER'
+                  Levs      = LLPAR
                CASE( 17 )
                   DiagnName = 'AIRCRAFT_TAGCO_OTHER'
                   Levs      = LLPAR
@@ -3235,7 +3242,9 @@
 
          ! Save into ARRAY. Convert to units
          IF ( FLAG == HCO_SUCCESS ) THEN
-            ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) * FACTOR 
+            DO L = 1, LLPAR
+               ARRAY(:,:,L) = DiagnCnt%Arr3D%Val(:,:,L) * FACTOR 
+            ENDDO
          ELSE
             MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
             MSG = TRIM(MSG) // ' - will write zeros!'
@@ -3270,8 +3279,8 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &               IIPAR,     JJPAR,     LLPAR,    IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
 
          ! Free pointer
          DiagnCnt => NULL()
@@ -3764,6 +3773,18 @@
                   N         = SpcInfo%ModelId
                   FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
+               CASE( 'RCHO'    )
+                  DiagnName = 'ANTHROPOGENIC_RCHO'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'MACR'    )
+                  DiagnName = 'ANTHROPOGENIC_MACR'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
                CASE( 'PRPE'    )
                   DiagnName = 'ANTHROPOGENIC_PRPE'
                   UNIT      = 'atoms C/cm2/s'
@@ -3785,6 +3806,60 @@
                CASE( 'C2H6'    )
                   DiagnName = 'ANTHROPOGENIC_C2H6'
                   UNIT      = 'atoms C/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'SO2'     )
+                  DiagnName = 'ANTHROPOGENIC_SO2'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'SO4'     )
+                  DiagnName = 'ANTHROPOGENIC_SO4'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'NH3'     )
+                  DiagnName = 'ANTHROPOGENIC_NH3'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'BCPI'    )
+                  DiagnName = 'ANTHROPOGENIC_BCPI'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'OCPI'    )
+                  DiagnName = 'ANTHROPOGENIC_OCPI'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'BCPO'    )
+                  DiagnName = 'ANTHROPOGENIC_BCPO'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'OCPO'    )
+                  DiagnName = 'ANTHROPOGENIC_OCPO'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'NO2'     )
+                  DiagnName = 'ANTHROPOGENIC_NO2'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'HNO2'    )
+                  DiagnName = 'ANTHROPOGENIC_HNO2'
+                  UNIT      = 'molec/cm2/s'
                   N         = SpcInfo%ModelId
                   FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
@@ -3826,7 +3901,7 @@
             IF ( N > 0 ) THEN
                ! kg/m2/s to molec/cm2/s 
                CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                         UNIT, N, 1, -1, .TRUE., FACTOR, RC )
+     &                         UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
                IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
             ENDIF
 

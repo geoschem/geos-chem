@@ -816,6 +816,7 @@ CONTAINS
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use carbon
 !  16 Jun 2016 - C. Miller   - Now define species ID's with Ind_ function 
+!  27 Mar 2017 - M. Sulprizio- Make anthropogenic emissions diagnostics 3D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -827,6 +828,7 @@ CONTAINS
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_CARBON (hcoi_gc_diagn_mod.F90)'
     INTEGER            :: id_POA1, id_POG1
+    INTEGER            :: SpaceDim
 
     !=======================================================================
     ! DIAGN_CARBON begins here!
@@ -876,9 +878,11 @@ CONTAINS
                 CASE ( 1 )
                    SrcName = 'ANTHRO'
                    Cat     = CATEGORY_ANTHRO
+                   SpaceDim= 3
                 CASE ( 2 )
                    SrcName = 'BIOFUEL'
                    Cat     = CATEGORY_BIOFUEL 
+                   SpaceDim= 2
              END SELECT
 
              !-------------------------------------------
@@ -895,7 +899,7 @@ CONTAINS
                                 Cat       = Cat,               &
                                 Hier      = -1,                &
                                 HcoID     = HcoID,             &
-                                SpaceDim  = 2,                 &
+                                SpaceDim  = SpaceDim,          &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
                                 COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1197,6 +1201,7 @@ CONTAINS
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use sulfur
 !  23 Feb 2015 - C. Keller   - Split volcano into eruptive and degassing.
+!  27 Mar 2017 - M. Sulprizio- Make anthropogenic emissions diagnostics 3D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1301,7 +1306,7 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg',              &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1395,7 +1400,7 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg',              &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -1457,7 +1462,7 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg',              &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2738,6 +2743,9 @@ CONTAINS
 !  28 Aug 2014 - R. Yantosca - Add IF statements to prevent defining diags
 !                              for species that aren't present in a given sim
 !  22 Apr 2015 - M. Sulprizio- Now save out hydrocarbons in units kgC/m2/s
+!  27 Mar 2017 - M. Sulprizio- Make anthropogenic emissions diagnostics 3D;
+!                              Add anthropogenic emissions diagnostics for
+!                              remaining NEI2011 species
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -2799,7 +2807,7 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',        &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2824,7 +2832,7 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2849,7 +2857,7 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2874,7 +2882,7 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2899,9 +2907,59 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !----------------------------------------
+       ! %%%%% Anthropogenic RCHO %%%%%
+       !----------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'RCHO', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'ANTHROPOGENIC_RCHO'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = CATEGORY_ANTHRO,   &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 3,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',        &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !----------------------------------------
+       ! %%%%% Anthropogenic MACR %%%%%
+       !----------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'MACR', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'ANTHROPOGENIC_MACR'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = CATEGORY_ANTHRO,   &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 3,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',        &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
@@ -2924,7 +2982,7 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2949,7 +3007,7 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2974,7 +3032,7 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -2999,13 +3057,240 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !----------------------------------------
+       ! %%%%% Anthropogenic SO2 %%%%%
+       !----------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'SO2', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'ANTHROPOGENIC_SO2'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = CATEGORY_ANTHRO,   &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 3,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',        &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !----------------------------------------
+       ! %%%%% Anthropogenic SO4 %%%%%
+       !----------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'SO4', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'ANTHROPOGENIC_SO4'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = CATEGORY_ANTHRO,   &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 3,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',        &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !----------------------------------------
+       ! %%%%% Anthropogenic NH3 %%%%%
+       !----------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'NH3', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'ANTHROPOGENIC_NH3'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = CATEGORY_ANTHRO,   &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 3,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',        &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !----------------------------------------
+       ! %%%%% Anthropogenic BCPI %%%%%
+       !----------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'BCPI', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'ANTHROPOGENIC_BCPI'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = CATEGORY_ANTHRO,   &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 3,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',        &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !----------------------------------------
+       ! %%%%% Anthropogenic OCPI %%%%%
+       !----------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'OCPI', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'ANTHROPOGENIC_OCPI'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = CATEGORY_ANTHRO,   &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 3,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',        &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !----------------------------------------
+       ! %%%%% Anthropogenic BCPO %%%%%
+       !----------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'BCPO', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'ANTHROPOGENIC_BCPO'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = CATEGORY_ANTHRO,   &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 3,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',        &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !----------------------------------------
+       ! %%%%% Anthropogenic OCPO %%%%%
+       !----------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'OCPO', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'ANTHROPOGENIC_OCPO'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = CATEGORY_ANTHRO,   &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 3,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',        &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !----------------------------------------
+       ! %%%%% Anthropogenic NO2 %%%%%
+       !----------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'NO2', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'ANTHROPOGENIC_NO2'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = CATEGORY_ANTHRO,   &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 3,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',        &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !----------------------------------------
+       ! %%%%% Anthropogenic HNO2 %%%%%
+       !----------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'HNO2', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'ANTHROPOGENIC_HNO2'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = CATEGORY_ANTHRO,   &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 3,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',        &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+
 
        !----------------------------------------
        ! %%%%% Anthropogenic BENZ %%%%%
@@ -3024,7 +3309,7 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -3049,7 +3334,7 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -3074,7 +3359,7 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -3099,7 +3384,7 @@ CONTAINS
                           Cat       = CATEGORY_ANTHRO,   &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -3130,7 +3415,7 @@ CONTAINS
                              Cat       = CATEGORY_ANTHRO,   &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
+                             SpaceDim  = 3,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -3210,7 +3495,7 @@ CONTAINS
                                    Cat       = CATEGORY_ANTHRO,           &
                                    Hier      = -1,                        &
                                    HcoID     = HcoID,                     &
-                                   SpaceDim  = 2,                         &
+                                   SpaceDim  = 3,                         &
                                    LevIDx    = -1,                        &
                                    OutUnit   = 'kg/m2/s',                 &
                                    COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -4747,7 +5032,7 @@ CONTAINS
                           Cat       = Cat,               &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -5189,7 +5474,7 @@ CONTAINS
                           Cat       = Cat,               &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
 			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -5212,7 +5497,7 @@ CONTAINS
                           Cat       = Cat,               &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
 			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -5235,7 +5520,7 @@ CONTAINS
                           Cat       = Cat,               &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
 			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -5258,7 +5543,7 @@ CONTAINS
                           Cat       = Cat,               &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
+                          SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
 			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -5526,7 +5811,7 @@ CONTAINS
 		       Cat       = Cat,               &
                        Hier      = -1,                &
                        HcoID     = HcoID,             &
-                       SpaceDim  = 2,                 &
+                       SpaceDim  = 3,                 &
                        LevIDx    = -1,                &
                        OutUnit   = 'kg/m2/s',         &
 		       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
