@@ -273,6 +273,8 @@
 !                              the SUM*CO arrays, they will remain zeroed out.
 !  12 Oct 2016 - R. Yantosca - Bug fix: convert OH from kg/m3 (which HEMCO
 !                              brings in from disk) to molec/cm3.
+!  27 Mar 2017 - R. Yantosca - Now compute ND65 diagnostic before applying the
+!                              loss to the CO tagged species 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -810,6 +812,23 @@
                   ! Advected species ID
                   N            = State_Chm%Map_Advect(NA)
 
+                  ! NOTE: The proper order should be:
+                  !   (1) Calculate CO loss rate
+                  !   (2) Update AD65 array
+                  !   (3) Update the SPC array using the loss rate
+                  ! 
+                  ! Therefore, we have now moved the computation of the
+                  ! ND65 diagnostic before we apply the loss to the 
+                  ! tagged CO concentrations stored in the SPC array.
+                  !
+                  !    -- Jenny Fisher (27 Mar 2017)
+                  !
+                  ! ND65 diagnostic -- loss of CO by OH for "tagged" species
+                  IF ( ND65 > 0 .and. L <= LD65 ) THEN
+                     AD65(I,J,L,N) = AD65(I,J,L,N) +
+     &                               ( CORATE * Spc(I,J,L,N) * STTCO)
+                  ENDIF
+
                   ! Loss
                   Spc(I,J,L,N) = Spc(I,J,L,N) * ( 1.0_fp - CO_OH )
 
@@ -825,11 +844,6 @@
                   CALL CHECK_VALUE( Spc(I,J,L,N), ERR_LOC,
      &                              ERR_VAR,      ERR_MSG )
 
-                  ! ND65 diagnostic -- loss of CO by OH for "tagged" species
-                  IF ( ND65 > 0 .and. L <= LD65 ) THEN
-                     AD65(I,J,L,N) = AD65(I,J,L,N) +
-     &                               ( CORATE * Spc(I,J,L,N) * STTCO)
-                  ENDIF
                ENDDO
             ENDIF
 
@@ -902,6 +916,24 @@
                   ! Advected species ID
                   N            = State_Chm%Map_Advect(NA)
 
+                  ! NOTE: The proper order should be:
+                  !   (1) Calculate CO loss rate
+                  !   (2) Update AD65 array
+                  !   (3) Update the SPC array using the loss rate
+                  ! 
+                  ! Therefore, we have now moved the computation of the
+                  ! ND65 diagnostic before we apply the loss to the 
+                  ! tagged CO concentrations stored in the SPC array.
+                  !
+                  !    -- Jenny Fisher (27 Mar 2017)
+                  !
+                  ! ND65 diagnostic -- loss of CO by OH for "tagged" species
+                  IF ( ND65 > 0 .and. L <= LD65 ) THEN
+                     AD65(I,J,L,N) = AD65(I,J,L,N) + 
+     &                   ( KRATE * OH_MOLEC_CM3 * Spc(I,J,L,N) * STTCO )
+                  ENDIF
+
+
                   ! Use tropospheric rate constant 
                   Spc(I,J,L,N) = Spc(I,J,L,N) *
      &                 ( 1e+0_fp - KRATE * OH_MOLEC_CM3 * DTCHEM )
@@ -912,12 +944,6 @@
                   ERR_MSG = 'STOP at tagged_co_mod:8'
                   CALL CHECK_VALUE( Spc(I,J,L,N), ERR_LOC,
      &                              ERR_VAR,      ERR_MSG )
-
-                  ! ND65 diagnostic -- loss of CO by OH for "tagged" species
-                  IF ( ND65 > 0 .and. L <= LD65 ) THEN
-                     AD65(I,J,L,N) = AD65(I,J,L,N) + 
-     &                   ( KRATE * OH_MOLEC_CM3 * Spc(I,J,L,N) * STTCO )
-                  ENDIF
                ENDDO
             ENDIF
 
