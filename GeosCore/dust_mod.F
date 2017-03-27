@@ -1291,19 +1291,19 @@
                LINTERP=.TRUE.
             ENDIF
 
-            ! There are always 10 + (NRHAER*2) preceding size-res dust
+            ! There are always 5 + (NRHAER*3) preceding size-res dust
             ! Each subsequent set is separated by a further distance of
             ! (NRHAER + NDUST)
 !-----------------------------------------------------------------------------
 ! Prior to 3/27/17:
 ! This formula for NOUT caused the size-resolved dust AOD's to be written
 ! to slots 16-22 of AD21, thus overwriting other diagnostics.  They should
-! be written to slots 21-27.  Change the leading 5 to a 10 to make the 
+! be written to slots 21-27.  Change the NRHAERR*2 to NRHAER*3 to make the 
 ! counting come out right.  This is just an empirical fix.  Maybe the issue
-! was caused by a modification in aerosol_mod.F. (bmy, 3/27/17)
+! was caused by a modification in aerosol_mod.F. (cdh, bmy, 3/27/17)
 !            NOUT = 5 + (NRHAER*2) + ((NRHAER+NDUST)*(W-1)) + N
 !-----------------------------------------------------------------------------
-            NOUT = 10 + (NRHAER*2) + ((NRHAER+NDUST)*(W-1)) + N
+            NOUT = 5 + (NRHAER*3) + ((NRHAER+NDUST)*(W-1)) + N
 
             DO L = 1, LD21
             DO J = 1, JJPAR
