@@ -283,7 +283,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: NA, nAdvect, nDryDep, NW
-      INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, LMAX
+      INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, Levs
       INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC, T
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
       INTEGER            :: NSPECOUT
@@ -831,12 +831,15 @@
                   CASE ( 1 ) 
                      CATEGORY = TRIM(SpcName)//'-ANTH'
                      SRCNAME  = 'ANTHRO'
+                     Levs     = 1
                   CASE ( 2 ) 
                      CATEGORY = TRIM(SpcName)//'-BIOF'
                      SRCNAME  = 'BIOFUEL'
+                     Levs     = 1
                   CASE ( 3 ) 
                      CATEGORY = TRIM(SpcName)//'-BIOB'
                      SRCNAME  = 'BIOMASS'
+                     Levs     = LD07
                END SELECT
    
                !----- (1) Hydrophilic -----
@@ -864,8 +867,18 @@
       
                ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
-     &                         * FACTOR * HcoState%Grid%AREA_M2%Val(:,:)
+                  IF ( I == 3 ) THEN
+                     ! Biomass burning emissions are 3D
+                     DO L = 1, LD07
+                        ARRAY(:,:,L) = DiagnCnt%Arr3D%Val(:,:,L)
+     &                               * FACTOR
+     &                               * HcoState%Grid%AREA_M2%Val(:,:)
+                     ENDDO
+                  ELSE
+                     ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
+     &                            * FACTOR
+     &                            * HcoState%Grid%AREA_M2%Val(:,:)
+                  ENDIF
                ELSE
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                   MSG = TRIM(MSG) // ' - will write zeros!'
@@ -899,9 +912,20 @@
       
                ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  ARRAY(:,:,1) = ARRAY(:,:,1) 
-     &                         + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR 
-     &                         *   HcoState%Grid%AREA_M2%Val(:,:) ) 
+                  IF ( I == 3 ) THEN
+                     ! Biomass burning emissions are 3D
+                     DO L = 1, LD07
+                        ARRAY(:,:,L) = ARRAY(:,:,L) 
+     &                               + ( DiagnCnt%Arr3D%Val(:,:,L)
+     &                               *   FACTOR 
+     &                               *   HcoState%Grid%AREA_M2%Val(:,:))
+                     ENDDO
+                  ELSE
+                     ARRAY(:,:,1) = ARRAY(:,:,1) 
+     &                            + ( DiagnCnt%Arr2D%Val(:,:)
+     &                            * FACTOR 
+     &                            * HcoState%Grid%AREA_M2%Val(:,:) ) 
+                  ENDIF
                ELSE
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                   MSG = TRIM(MSG) // ' - will write zeros!'
@@ -911,9 +935,9 @@
                ! Write combined diagnostics to disk
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, N,
-     &                     UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     1,        IFIRST,     
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     Levs,     IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:Levs) )
       
                ! Free pointer
                DiagnCnt => NULL()
@@ -2734,8 +2758,10 @@
       
          ! Save into ARRAY. Convert to units
          IF ( FLAG == HCO_SUCCESS ) THEN
-            ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
-     &                   * FACTOR 
+            DO L = 1, LD28
+               ARRAY(:,:,L) = DiagnCnt%Arr3D%Val(:,:,L) 
+     &                      * FACTOR 
+            ENDDO
          ELSE
             MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
             MSG = TRIM(MSG) // ' - will write zeros!'
@@ -2756,8 +2782,10 @@
       
          ! Save into ARRAY. Convert to units
          IF ( FLAG == HCO_SUCCESS ) THEN
-            ARRAY(:,:,1) = ARRAY(:,:,1) 
-     &                   + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+            DO L = 1, LD28
+               ARRAY(:,:,L) = ARRAY(:,:,L) 
+     &                      + ( DiagnCnt%Arr3D%Val(:,:,L) * FACTOR )
+            ENDDO
          ELSE
             MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
             MSG = TRIM(MSG) // ' - will write zeros!'
@@ -2807,8 +2835,10 @@
          
             ! Save into ARRAY. Convert to units
             IF ( FLAG == HCO_SUCCESS ) THEN
-               ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
-     &                      * FACTOR
+               DO L = 1, LD28
+                  ARRAY(:,:,L) = DiagnCnt%Arr3D%Val(:,:,L) 
+     &                         * FACTOR
+               ENDDO
             ELSE
                MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                MSG = TRIM(MSG) // ' - will write zeros!'
@@ -2829,8 +2859,10 @@
          
             ! Save into ARRAY. Convert to units
             IF ( FLAG == HCO_SUCCESS ) THEN
-               ARRAY(:,:,1) = ARRAY(:,:,1) 
-     &                      + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+               DO L = 1, LD28
+                  ARRAY(:,:,L) = ARRAY(:,:,L) 
+     &                         + ( DiagnCnt%Arr3D%Val(:,:,L) * FACTOR )
+               ENDDO
             ELSE
                MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                MSG = TRIM(MSG) // ' - will write zeros!'
@@ -2981,12 +3013,16 @@
          ! Also note: Tagged CO lumps biofuels with anthro emissions
          DO N = 1, NN
 
+            ! Initalize number of levels for diagnostic
+            Levs = -1
+
             ! Find the proper HEMCO diagnostic name 
             SELECT CASE ( N )
                CASE( 1 )
                   DiagnName = 'ANTHROPOGENIC_CO'
                CASE( 2 )
                   DiagnName = 'BIOMASS_CO'
+                  Levs      = LLPAR
                CASE( 3 )
                   DiagnName = 'BIOFUEL_CO'
                CASE( 4 ) 
@@ -3001,6 +3037,7 @@
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_US'
                CASE( 8 ) 
                   DiagnName = 'AIRCRAFT_TAGCO_US'
+                  Levs      = LLPAR
                CASE( 9 )
                   DiagnName = 'SHIP_TAGCO_US'
 
@@ -3009,6 +3046,7 @@
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_EUR'
                CASE( 11 )
                   DiagnName = 'AIRCRAFT_TAGCO_EUR'
+                  Levs      = LLPAR
                CASE( 12 )
                   DiagnName = 'SHIP_TAGCO_EUR'
 
@@ -3017,6 +3055,7 @@
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_ASIA'
                CASE( 14 )
                   DiagnName = 'AIRCRAFT_TAGCO_ASIA'
+                  Levs      = LLPAR
                CASE( 15 ) 
                   DiagnName = 'SHIP_TAGCO_ASIA'
 
@@ -3025,22 +3064,29 @@
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_OTHER'
                CASE( 17 )
                   DiagnName = 'AIRCRAFT_TAGCO_OTHER'
+                  Levs      = LLPAR
                CASE( 18 )
                   DiagnName = 'SHIP_TAGCO_OTHER'
 
                ! Tagged CO: Regional biomass tracers
                CASE( 19 )
                   DiagnName = 'BIOMASS_TAGCO_USA'
+                  Levs      = LLPAR
                CASE( 20 )
                   DiagnName = 'BIOMASS_TAGCO_AFRICA'
+                  Levs      = LLPAR
                CASE( 21 )
                   DiagnName = 'BIOMASS_TAGCO_ASIA'
+                  Levs      = LLPAR
                CASE( 22 )
                   DiagnName = 'BIOMASS_TAGCO_OCEANIA'
+                  Levs      = LLPAR
                CASE( 23 )
                   DiagnName = 'BIOMASS_TAGCO_EUROPE'
+                  Levs      = LLPAR
                CASE( 24 )
                   DiagnName = 'BIOMASS_TAGCO_OTHER'
+                  Levs      = LLPAR
                   
                ! Default
                CASE DEFAULT
@@ -3049,7 +3095,7 @@
 
             ! Write data from HEMCO to the bpch file
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+     &                      UNIT,      N, 1, Levs, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDDO
 

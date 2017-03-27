@@ -274,6 +274,7 @@
       LD24 = 1
       LD25 = 1
       LD26 = 1
+      LD28 = 1
       LD31 = 1
       LD37 = 1
       LD38 = 1
@@ -548,6 +549,12 @@
          ND26 = LLPAR
       ENDIF
 
+      !=================================================================
+      ! ND28: Biomass burning emissions [molec/cm2/s]
+      !=================================================================
+      IF ( ND28 > 0 ) THEN
+         LD28 = MIN( ND28, LLPAR )
+      ENDIF
 
       !=================================================================
       ! ND24: Eastward mass flux from transport [kg/s] 
@@ -1194,6 +1201,7 @@
       Input_Opt%LD24  = LD24
       Input_Opt%LD25  = LD25
       Input_Opt%LD26  = LD26
+      Input_Opt%LD28  = LD28
       Input_Opt%LD31  = LD31
       Input_Opt%LD37  = LD37
       Input_Opt%LD38  = LD38
