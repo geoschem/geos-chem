@@ -141,6 +141,8 @@
       REAL(f4), POINTER     :: OH         (:,:,:) => NULL() ! Global OH
       REAL(f4), POINTER     :: GMI_PROD_CO(:,:,:) => NULL() ! Global P(CO)
       REAL(f4), POINTER     :: GMI_LOSS_CO(:,:,:) => NULL() ! Global L(CO)
+      REAL(f4), POINTER     :: PCO_CH4    (:,:,:) => NULL() ! CH4 P(CO)
+      REAL(f4), POINTER     :: PCO_NMVOC  (:,:,:) => NULL() ! NMVOC P(CO)
 
       CONTAINS
 !EOC
@@ -281,6 +283,7 @@
 !
       ! Scalars
       LOGICAL                  :: FOUND,         LSPLIT
+      LOGICAL                  :: LPCO_CH4,      LPCO_NMVOC
       INTEGER                  :: nAdvect,       HcoID,       NA
       INTEGER                  :: I,             J,           L
       INTEGER                  :: N,             MONTH,       YEAR
@@ -288,6 +291,7 @@
       REAL(fp)                 :: STTCO,         KRATE,       CH4
       REAL(fp)                 :: CO_CH4,        CO_ISOP,     CO_MONO
       REAL(fp)                 :: CO_CH3OH,      CO_OH,       CO_ACET
+      REAL(fp)                 :: CO_NMVOC
       REAL(fp)                 :: CH4RATE,       DENS,        CORATE
       REAL(fp)                 :: YMID,          BOXVL,       FMOL_CO
       REAL(fp)                 :: KHI1,          KLO1,        XYRAT1
@@ -295,8 +299,9 @@
       REAL(fp)                 :: KLO2,          XYRAT2,      BLOG2
       REAL(fp)                 :: FEXP2,         KCO1,        KCO2
       REAL(fp)                 :: OH_MOLEC_CM3,  FAC_DIURNAL, SUNCOS
-      REAL(fp)                 :: kgs_to_atomsC, Emis
-      REAL(fp)                 :: kgm3_to_mcm3OH
+      REAL(fp)                 :: PCO_CH4_MCM3S, PCO_NMVOC_MCM3S
+      REAL(fp)                 :: kgs_to_atomsC, Emis,        DTEMIS
+      REAL(fp)                 :: kgm3_to_mcm3OH,kgm3_to_mcm3sCO
 
       ! Strings
       CHARACTER(LEN=255)       :: ERR_VAR
@@ -343,10 +348,16 @@
       nAdvect   = State_Chm%nAdvect
 
       ! Get fields from Input_Opt
-      LSPLIT    = Input_Opt%LSPLIT
+      LSPLIT     = Input_Opt%LSPLIT
+      LPCO_CH4   = Input_Opt%LPCO_CH4
+      LPCO_NMVOC = Input_Opt%LPCO_NMVOC
 
       ! DTCHEM is the number of seconds per chemistry timestep
       DTCHEM    = GET_TS_CHEM() * 60.0_fp
+
+      ! DTEMIS is the number of seconds per emission timestep
+      ! used here for conversion from HEMCO
+      DTEMIS    = GET_TS_EMIS() * 60.0_fp
 
       ! Initialize pointers
       AD        => State_Met%AD
@@ -361,6 +372,11 @@
 
       ! Factor to convert OH from kg/m3 (from HEMCO) to molec/cm3 
       kgm3_to_mcm3OH = ( AVO / 17.0e-3_fp ) * 1.0e-6_fp
+
+      ! Factor to convert P(CO) from kg/m3 (from HEMCO) to molec/cm3/s
+      ! HEMCO uses emission timestep to convert from kg/m3/s to kg/m3;
+      ! apply that here.
+      kgm3_to_mcm3sCO = ( AVO / (FMOL_CO * DTEMIS) ) * 1.0e-6_fp
 
       ! Compute diurnal cycle for OH every day (check for new day inside
       ! subroutine) - jaf 7/10/14
@@ -403,6 +419,23 @@
             CALL ERROR_STOP ( 'Cannot get pointer to GMI_LOSS_CO', LOC )
          ENDIF
             
+         ! Get pointer to trop P(CO) from CH4 if needed
+         IF ( LPCO_CH4 ) THEN
+            CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                      'PCO_CH4', PCO_CH4, RC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               CALL ERROR_STOP ( 'Cannot get pointer to PCO_CH4', LOC )
+            ENDIF
+         ENDIF
+
+         IF ( LPCO_NMVOC ) THEN
+            CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                      'PCO_NMVOC', PCO_NMVOC, RC )
+            IF ( RC /= GC_SUCCESS ) THEN
+              CALL ERROR_STOP ( 'Cannot get pointer to PCO_NMVOC', LOC )
+            ENDIF
+         ENDIF
+
          ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
@@ -490,6 +523,7 @@
 !$OMP+PRIVATE( KLO1,    XYRAT1,       BLOG1,       FEXP1,      KHI2    )
 !$OMP+PRIVATE( KLO2,    XYRAT2,       BLOG2,       FEXP2,      KCO1    )
 !$OMP+PRIVATE( KCO2,    OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS,     ERR_LOC ) 
+!$OMP+PRIVATE( PCO_CH4_MCM3S,         PCO_NMVOC_MCM3S,         CO_NMVOC)
 !$OMP+PRIVATE( ERR_VAR, ERR_MSG,      BOXVL                            )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -539,6 +573,32 @@
          ! Make sure OH is not negative
          OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
 
+         ! Also impose diurnal cycle on P(CO) from CH4, NMVOC
+         IF ( LPCO_CH4 ) THEN
+
+            ! HEMCO brings in PCO in kg/m3, so we need to also
+            ! apply a conversion to molec/cm3/s 
+            PCO_CH4_MCM3S = PCO_CH4(I,J,L) * kgm3_to_mcm3sCO * 
+     &                          FAC_DIURNAL
+
+            ! Make sure PCO_CH4 is not negative
+            PCO_CH4_MCM3S = MAX( PCO_CH4_MCM3S, 0e+0_fp )
+
+
+         ENDIF
+
+         IF ( LPCO_NMVOC ) THEN
+
+            ! HEMCO brings in PCO in kg/m3/s, so we need to also
+            ! apply a conversion to molec/cm3/s 
+            PCO_NMVOC_MCM3S = PCO_NMVOC(I,J,L) * kgm3_to_mcm3sCO * 
+     &                            FAC_DIURNAL
+
+            ! Make sure PCO_NMVOC is not negative
+            PCO_NMVOC_MCM3S = MAX( PCO_NMVOC_MCM3S, 0e+0_fp )
+
+         ENDIF
+
          !==============================================================
          ! (1a) Production of CO by reaction with CH4
          !==============================================================
@@ -565,22 +625,34 @@
             ! (1a-2) Production of CO from CH4 in the troposphere 
             !===========================================================
 
-            ! CH4 concentration [ppbv] for the given latitude band 
-            ! (bmy, 1/2/01)
-            CH4 = A3090S
-            IF ( YMID >= -30.0 .and. YMID < 0.0  ) CH4 = A0030S
-            IF ( YMID >=   0.0 .and. YMID < 30.0 ) CH4 = A0030N
-            IF ( YMID >=  30.0                   ) CH4 = A3090N
-            
-            ! Convert CH4 from [ppbv] to [molec CH4/cm3]
-            CH4 = CH4 * 1e-9_fp * DENS
+            ! Use rates saved from full chemistry
+            IF ( LPCO_CH4 ) THEN
 
-            ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
-            KRATE = 2.45e-12_fp * EXP( -1775.e+0_fp / T(I,J,L) ) 
+               ! Diurnal cycle & unit conversion applied above
+               ! Multiply by DTCHEM to convert to [molec CO/cm3]
+               CO_CH4 = PCO_CH4_MCM3S * DTCHEM
 
-            ! Production of CO from CH4 = alpha * k * [CH4] * [OH] * dt 
-            ! Units are [molec CO/cm3]
-            CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH_MOLEC_CM3 * DTCHEM 
+            ! Original behaviour based on latitude bands
+            ELSE
+   
+               ! CH4 concentration [ppbv] for the given latitude band 
+               ! (bmy, 1/2/01)
+               CH4 = A3090S
+               IF ( YMID >= -30.0 .and. YMID < 0.0  ) CH4 = A0030S
+               IF ( YMID >=   0.0 .and. YMID < 30.0 ) CH4 = A0030N
+               IF ( YMID >=  30.0                   ) CH4 = A3090N
+               
+               ! Convert CH4 from [ppbv] to [molec CH4/cm3]
+               CH4 = CH4 * 1e-9_fp * DENS
+   
+               ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
+               KRATE = 2.45e-12_fp * EXP( -1775.e+0_fp / T(I,J,L) ) 
+   
+               ! Production of CO from CH4 = alpha * k * [CH4] * [OH] * dt 
+               ! Units are [molec CO/cm3]
+               CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH_MOLEC_CM3 * DTCHEM 
+   
+            ENDIF
 
          ENDIF
 
@@ -590,180 +662,222 @@
          ERR_MSG = 'STOP at tagged_co_mod:1'
          CALL CHECK_VALUE( CO_CH4, ERR_LOC, ERR_VAR, ERR_MSG )
 
-         !==============================================================
-         ! (1b) Production of CO from ISOPRENE and METHANOL (CH3OH)
-         !==============================================================
-
-         ! Initialize
-         CO_ISOP  = 0e+0_fp
-         CO_CH3OH = 0e+0_fp
-
-         ! Isoprene is emitted only into the surface layer 
-         IF ( L == 1 ) THEN 
-
+         ! Use rates saved from full chemistry
+         IF ( LPCO_NMVOC) THEN
             !===========================================================
-            ! Yield of CO from ISOP: 30%, from Miyoshi et al., 1994.
-            ! They estimate globally 105 Tg C/yr of CO is produced 
-            ! from isoprene oxidation. 
-            !-----------------------------------------------------------
-            ! We need to scale the Isoprene flux to get the CH3OH 
-            ! (methanol) flux.  Currently, the annual isoprene flux in 
-            ! GEOS-CHEM is ~ 397 Tg C.
-            !
-            ! Daniel Jacob recommends a flux of 100 Tg/yr CO from CH3OH 
-            ! oxidation based on Singh et al. 2000 [JGR 105, 3795-3805] 
-            ! who estimate a global methanol source of 122 Tg yr-1, of 
-            ! which most (75 Tg yr-1) is "primary biogenic".  He also 
-            ! recommends for now that the CO flux from CH3OH oxidation 
-            ! be scaled to monthly mean isoprene flux.
-            !
-            ! To get CO from METHANOL oxidation, we must therefore 
-            ! multiply the ISOPRENE flux by the following scale factor:
-            !  ( 100 Tg CO / 397 Tg C ) * ( 12 g C/mole / 28 g CO/mole )
-            !-----------------------------------------------------------
-            ! We now call GET_ALPHA_ISOP to get the yield factor of
-            ! CO produced from isoprene, as a function of NOx, or
-            ! as a constant. (bnd, bmy, 6/14/01)
+            ! (1b) Production of CO from NMVOCs (all but CH4)
             !===========================================================
 
-            ! Get CO yield from isoprene
-            ALPHA_ISOP = GET_ALPHA_ISOP( .FALSE. )
+            ! Initialize
+            CO_NMVOC = 0e+0_fp
 
-            ! P(CO) from Isoprene Flux = ALPHA_ISOP * Flux(ISOP)
-            ! Convert from [molec ISOP/box] to [molec CO/cm3]
-            !
-            ! Units of SUMISOPCO are [atoms C/box/time step]. 
-            ! Division by 5 is necessary to convert to 
-            ! [molec ISOP/box/timestep].
-            !
-            ! Units of ALPHA_ISOP are [molec CO/molec ISOP]
-            ! Units of CO_ISOP are [molec CO/cm3]
-            CO_ISOP  = SUMISOPCO(I,J)   / BOXVL
-     &               / 5.0_fp           * ALPHA_ISOP
+            ! CO production only happens in the troposphere. However,
+            ! this is already taken into account in the input files,
+            ! which are filled with zeros above the flexchem levels.
+          
+            ! Diurnal cycle & unit conversion applied above
+            ! Multiply by DTCHEM to convert to [molec CO/cm3]
+            CO_NMVOC = PCO_NMVOC_MCM3S * DTCHEM
 
-            ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
-            ! Units are [molec CO/cm3]
-            CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL    )
-     &               * ( 100.0_fp       / 397.0_fp ) 
-     &               * ( 12.0_fp        / 28.0_fp  )
+            ! Make sure it is not negative
+            CO_NMVOC = MAX( CO_NMVOC, 0e+0_fp )
+
+            ! Check CO_NMVOC for NaN or Infinity
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'CO_NMVOC'
+            ERR_MSG = 'STOP at tagged_co_mod:1'
+            CALL CHECK_VALUE( CO_NMVOC, ERR_LOC, ERR_VAR, ERR_MSG )
+
+           ! Set individual VOC contributions to zero to avoid
+           ! diagnostic problems
+           CO_ISOP  = 0e+0_fp
+           CO_CH3OH = 0e+0_fp
+           CO_ACET  = 0e+0_fp
+           CO_MONO  = 0e+0_fp
+
+         ! Otherwise use original behaviour
+         ELSE
+            !===========================================================
+            ! (1b) Production of CO from ISOPRENE and METHANOL (CH3OH)
+            !===========================================================
+
+            ! Initialize
+            CO_ISOP  = 0e+0_fp
+            CO_CH3OH = 0e+0_fp
+   
+            ! Isoprene is emitted only into the surface layer 
+            IF ( L == 1 ) THEN 
+
+               !========================================================
+               ! Yield of CO from ISOP: 30%, from Miyoshi et al., 1994.
+               ! They estimate globally 105 Tg C/yr of CO is produced 
+               ! from isoprene oxidation. 
+               !--------------------------------------------------------
+               ! We need to scale the Isoprene flux to get the CH3OH 
+               ! (methanol) flux.  Currently, the annual isoprene flux in 
+               ! GEOS-CHEM is ~ 397 Tg C.
+               !
+               ! Daniel Jacob recommends a flux of 100 Tg/yr CO from CH3OH 
+               ! oxidation based on Singh et al. 2000 [JGR 105, 3795-3805] 
+               ! who estimate a global methanol source of 122 Tg yr-1, of 
+               ! which most (75 Tg yr-1) is "primary biogenic".  He also 
+               ! recommends for now that the CO flux from CH3OH oxidation 
+               ! be scaled to monthly mean isoprene flux.
+               !
+               ! To get CO from METHANOL oxidation, we must therefore 
+               ! multiply the ISOPRENE flux by the following scale factor:
+               !  ( 100 Tg CO / 397 Tg C ) * ( 12 g C/mole / 28 g CO/mole )
+               !-----------------------------------------------------------
+               ! We now call GET_ALPHA_ISOP to get the yield factor of
+               ! CO produced from isoprene, as a function of NOx, or
+               ! as a constant. (bnd, bmy, 6/14/01)
+               !=======================================================
+
+               ! Get CO yield from isoprene
+               ALPHA_ISOP = GET_ALPHA_ISOP( .FALSE. )
+
+               ! P(CO) from Isoprene Flux = ALPHA_ISOP * Flux(ISOP)
+               ! Convert from [molec ISOP/box] to [molec CO/cm3]
+               !
+               ! Units of SUMISOPCO are [atoms C/box/time step]. 
+               ! Division by 5 is necessary to convert to 
+               ! [molec ISOP/box/timestep].
+               !
+               ! Units of ALPHA_ISOP are [molec CO/molec ISOP]
+               ! Units of CO_ISOP are [molec CO/cm3]
+               CO_ISOP  = SUMISOPCO(I,J)   / BOXVL
+     &                  / 5.0_fp           * ALPHA_ISOP
+
+               ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
+               ! Units are [molec CO/cm3]
+               CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL    )
+     &                  * ( 100.0_fp       / 397.0_fp ) 
+     &                  * ( 12.0_fp        / 28.0_fp  )
  
-            ! Zero SUMISOPCO and SUMCH3OHCO for the next emission step
-            SUMISOPCO(I,J)  = 0e+0_fp
-            SUMCH3OHCO(I,J) = 0e+0_fp
+               ! Zero SUMISOPCO and SUMCH3OHCO for the next emission step
+               SUMISOPCO(I,J)  = 0e+0_fp
+               SUMCH3OHCO(I,J) = 0e+0_fp
 
-            ! Check CO_ISOP for NaN or Infinity
-            ERR_LOC = (/ I, J, L, 0 /)
-            ERR_VAR = 'CO_ISOP'
-            ERR_MSG = 'STOP at tagged_co_mod:2'
-            CALL CHECK_VALUE( CO_ISOP,  ERR_LOC, ERR_VAR, ERR_MSG )
+               ! Check CO_ISOP for NaN or Infinity
+               ERR_LOC = (/ I, J, L, 0 /)
+               ERR_VAR = 'CO_ISOP'
+               ERR_MSG = 'STOP at tagged_co_mod:2'
+               CALL CHECK_VALUE( CO_ISOP,  ERR_LOC, ERR_VAR, ERR_MSG )
 
-            ! Check CO_CH3OH for NaN or Infinity
-            ERR_VAR = 'CO_CH3OH'
-            ERR_MSG = 'STOP at tagged_co_mod:3'
-            CALL CHECK_VALUE( CO_CH3OH, ERR_LOC, ERR_VAR, ERR_MSG )
-         ENDIF
-
-         !==============================================================
-         ! (1c) Production of CO from MONOTERPENE oxidation
-         !==============================================================
-
-         ! Initialize
-         CO_MONO = 0.e+0_fp
-
-         ! Monoterpenes are emitted only into the surface layer
-         IF ( L == 1 ) THEN
+               ! Check CO_CH3OH for NaN or Infinity
+               ERR_VAR = 'CO_CH3OH'
+               ERR_MSG = 'STOP at tagged_co_mod:3'
+               CALL CHECK_VALUE( CO_CH3OH, ERR_LOC, ERR_VAR, ERR_MSG )
+            ENDIF
 
             !===========================================================
-            ! Assume the production of CO from monoterpenes is 
-            ! instantaneous even though the lifetime of intermediate 
-            ! species may be on the order of hours or days.  This 
-            ! assumption will likely cause CO from monoterpene 
-            ! oxidation to be too high in the box in which the 
-            ! monoterpene is emitted.
-            !-----------------------------------------------------------
-            ! The CO yield here is taken from:
-            !   Hatakeyama et al. JGR, Vol. 96, p. 947-958 (1991)
-            !   Vinckier et al. Fresenius Env. Bull., Vol. 7, p.361-368 
-            !     (1998)
-            !
-            ! Hatakeyama:  "The ultimate yield of CO from the 
-            !   tropospheric oxidation of terpenes (including both O3 
-            !   and OH reactions) was estimated to be 20% on the carbon 
-            !   number basis."  They studied ALPHA- & BETA-pinene.
-            !
-            ! Vinckier  :  "R(CO)=1.8+/-0.3" : 1.8/10 is about 20%.
-            !-----------------------------------------------------------
-            ! Calculate source of CO per time step from monoterpene 
-            ! flux (assume lifetime very short) using the C number basis:
-            !
-            !   CO [molec CO/cm3] = Flux [atoms C from MONO/box] /
-            !                       Grid Box Volume [cm^-3]       *
-            !                       ALPHA_MONO 
-            !
-            ! where ALPHA_MONO = 0.2 as explained above.
+            ! (1c) Production of CO from MONOTERPENE oxidation
             !===========================================================
 
-            ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
-            ! Units are [molec CO/cm3]
-            CO_MONO = ( SUMMONOCO(I,J) / BOXVL ) * ALPHA_MONO
+            ! Initialize
+            CO_MONO = 0.e+0_fp
 
-            ! Zero SUMMONOCO for the next emission step
-            SUMMONOCO(I,J) = 0e+0_fp
+            ! Monoterpenes are emitted only into the surface layer
+            IF ( L == 1 ) THEN
 
-            ! Check CO_MONO for NaN or Infinity
-            ERR_LOC = (/ I, J, L, 0 /)
-            ERR_VAR = 'CO_MONO'
-            ERR_MSG = 'STOP at tagged_co_mod:4'
-            CALL CHECK_VALUE( CO_MONO, ERR_LOC, ERR_VAR, ERR_MSG )
-         ENDIF
+               !=======================================================
+               ! Assume the production of CO from monoterpenes is 
+               ! instantaneous even though the lifetime of intermediate 
+               ! species may be on the order of hours or days.  This 
+               ! assumption will likely cause CO from monoterpene 
+               ! oxidation to be too high in the box in which the 
+               ! monoterpene is emitted.
+               !-------------------------------------------------------
+               ! The CO yield here is taken from:
+               !   Hatakeyama et al. JGR, Vol. 96, p. 947-958 (1991)
+               !   Vinckier et al. Fresenius Env. Bull., Vol. 7, p.361-368 
+               !     (1998)
+               !
+               ! Hatakeyama:  "The ultimate yield of CO from the 
+               !   tropospheric oxidation of terpenes (including both O3 
+               !   and OH reactions) was estimated to be 20% on the carbon 
+               !   number basis."  They studied ALPHA- & BETA-pinene.
+               !
+               ! Vinckier  :  "R(CO)=1.8+/-0.3" : 1.8/10 is about 20%.
+               !--------------------------------------------------------
+               ! Calculate source of CO per time step from monoterpene 
+               ! flux (assume lifetime very short) using the C number basis:
+               !
+               !   CO [molec CO/cm3] = Flux [atoms C from MONO/box] /
+               !                       Grid Box Volume [cm^-3]       *
+               !                       ALPHA_MONO 
+               !
+               ! where ALPHA_MONO = 0.2 as explained above.
+               !========================================================
 
-         !==============================================================
-         ! (1d) Production of CO from oxidation of ACETONE 
-         !
-         ! ALPHA_ACET = 2/3 to get a yield for CO.  This accounts 
-         ! for acetone loss from reaction with OH And photolysis.  
-         ! The acetone sources taken into account are:
-         ! 
-         ! (a) Primary emissions of acetone from biogenic sources
-         ! (b) Secondary production of acetone from monoterpene 
-         !      oxidation
-         ! (c) Secondary production of acetone from ALK4 and 
-         !      propane oxidation
-         ! (d) Direct emissions of acetone from biomass burning and 
-         !      fossil fuels
-         ! (e) direct emissions from ocean
-         !
-         ! Calculate source of CO per time step from biogenic acetone 
-         ! # molec CO/cc = ALPHA * ACET Emission Rate * dt
-         !==============================================================
+               ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
+               ! Units are [molec CO/cm3]
+               CO_MONO = ( SUMMONOCO(I,J) / BOXVL ) * ALPHA_MONO
 
-         ! Initialize
-         CO_ACET = 0.e+0_fp
+               ! Zero SUMMONOCO for the next emission step
+               SUMMONOCO(I,J) = 0e+0_fp
 
-         ! Biogenic acetone sources are emitted only into the surface layer
-         IF ( L == 1 ) THEN
+               ! Check CO_MONO for NaN or Infinity
+               ERR_LOC = (/ I, J, L, 0 /)
+               ERR_VAR = 'CO_MONO'
+               ERR_MSG = 'STOP at tagged_co_mod:4'
+               CALL CHECK_VALUE( CO_MONO, ERR_LOC, ERR_VAR, ERR_MSG )
+            ENDIF
 
-            ! Units are [molec CO/cc]
-            CO_ACET = SUMACETCO(I,J) / BOXVL * ALPHA_ACET
+            !===========================================================
+            ! (1d) Production of CO from oxidation of ACETONE 
+            !
+            ! ALPHA_ACET = 2/3 to get a yield for CO.  This accounts 
+            ! for acetone loss from reaction with OH And photolysis.  
+            ! The acetone sources taken into account are:
+            ! 
+            ! (a) Primary emissions of acetone from biogenic sources
+            ! (b) Secondary production of acetone from monoterpene 
+            !      oxidation
+            ! (c) Secondary production of acetone from ALK4 and 
+            !      propane oxidation
+            ! (d) Direct emissions of acetone from biomass burning and 
+            !      fossil fuels
+            ! (e) direct emissions from ocean
+            !
+            ! Calculate source of CO per time step from biogenic acetone 
+            ! # molec CO/cc = ALPHA * ACET Emission Rate * dt
+            !===========================================================
 
-            ! Zero SUMACETCO for the next emission step
-            SUMACETCO(I,J) = 0e+0_fp
+            ! Initialize
+            CO_ACET = 0.e+0_fp
+   
+            ! Biogenic acetone sources are emitted only into the surface layer
+            IF ( L == 1 ) THEN
+   
+               ! Units are [molec CO/cc]
+               CO_ACET = SUMACETCO(I,J) / BOXVL * ALPHA_ACET
+   
+               ! Zero SUMACETCO for the next emission step
+               SUMACETCO(I,J) = 0e+0_fp
 
-            ! Check CO_ACET for NaN or Infinity
-            ERR_LOC = (/ I, J, L, 0 /)
-            ERR_VAR = 'CO_ACET'
-            ERR_MSG = 'STOP at tagged_co_mod:5'
-            CALL CHECK_VALUE( CO_ACET, ERR_LOC, ERR_VAR, ERR_MSG )
-         ENDIF
+               ! Check CO_ACET for NaN or Infinity
+               ERR_LOC = (/ I, J, L, 0 /)
+               ERR_VAR = 'CO_ACET'
+               ERR_MSG = 'STOP at tagged_co_mod:5'
+               CALL CHECK_VALUE( CO_ACET, ERR_LOC, ERR_VAR, ERR_MSG )
+            ENDIF
+
+            ! Add individual NMVOC contributions together to get total
+            ! NMVOC contribution
+            CO_NMVOC = CO_ISOP + CO_CH3OH + CO_MONO + CO_ACET
+
+         ENDIF !Saved rates vs surface fluxes
 
          !==============================================================
          ! (1e) Add production of CO into the following tagged species:
          !
          ! (a) Species #12: CO produced from CH4
-         ! (b) Species #14: CO produced from ISOPRENE
-         ! (c) Species #15: CO produced from MONOTERPENES
-         ! (d) Species #16: CO produced from METHANOL (CH3OH)
-         ! (e) Species #17: CO produced from ACETONE
+         ! (a) Species #13: CO produced from NMVOC
+         ! (b) Species #14: CO produced from ISOPRENE - old only
+         ! (c) Species #15: CO produced from MONOTERPENES - old only
+         ! (d) Species #16: CO produced from METHANOL (CH3OH) - old only
+         ! (e) Species #17: CO produced from ACETONE - old only
          !
          ! %%% NOTE: If you are modifying the tagged CO simulation, 
          ! %%% and your simulation has less than 12 species, then 
@@ -772,10 +886,13 @@
          !==============================================================
          IF ( LSPLIT ) THEN
             Spc(I,J,L,12) = Spc(I,J,L,12) + CO_CH4   / STTCO
-            Spc(I,J,L,14) = Spc(I,J,L,14) + CO_ISOP  / STTCO 
-            Spc(I,J,L,15) = Spc(I,J,L,15) + CO_MONO  / STTCO
-            Spc(I,J,L,16) = Spc(I,J,L,16) + CO_CH3OH / STTCO
-            Spc(I,J,L,17) = Spc(I,J,L,17) + CO_ACET  / STTCO
+            Spc(I,J,L,13) = Spc(I,J,L,13) + CO_NMVOC / STTCO
+            IF (.not. LPCO_NMVOC) THEN
+               Spc(I,J,L,14) = Spc(I,J,L,14) + CO_ISOP  / STTCO 
+               Spc(I,J,L,15) = Spc(I,J,L,15) + CO_MONO  / STTCO
+               Spc(I,J,L,16) = Spc(I,J,L,16) + CO_CH3OH / STTCO
+               Spc(I,J,L,17) = Spc(I,J,L,17) + CO_ACET  / STTCO
+            ENDIF
          ENDIF
 
          !==============================================================
@@ -930,8 +1047,7 @@
 
          ! GCO is the total CO before chemistry was applied [molec CO/cm3]
          ! Add to GCO the sources and sinks listed above
-         GCO = GCO + CO_CH4   + CO_MONO + CO_ACET + 
-     &               CO_CH3OH + CO_ISOP - CO_OH
+         GCO = GCO + CO_CH4 + CO_NMVOC - CO_OH
 
          ! Convert net CO from [molec CO/cm3] to [kg] and store in
          ! State_Chm%Species

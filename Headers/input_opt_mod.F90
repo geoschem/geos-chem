@@ -163,6 +163,12 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LFUTURECFC
 
      !----------------------------------------
+     ! CO MENU fields
+     !----------------------------------------
+     LOGICAL                     :: LPCO_CH4
+     LOGICAL                     :: LPCO_NMVOC
+
+     !----------------------------------------
      ! CO2 MENU fields
      !----------------------------------------
      LOGICAL                     :: LFOSSIL
@@ -879,6 +885,12 @@ CONTAINS
     Input_Opt%LSETH2SO4              = .FALSE.
     Input_Opt%CFCYEAR                = 0
     Input_Opt%LFUTURECFC             = .FALSE.
+
+    !----------------------------------------
+    ! CO MENU fields
+    !----------------------------------------
+    Input_Opt%LPCO_CH4               = .FALSE.
+    Input_Opt%LPCO_NMVOC             = .FALSE.
 
     !----------------------------------------
     ! CO2 MENU fields

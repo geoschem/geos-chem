@@ -970,7 +970,7 @@ CONTAINS
           CASE( 'CO',     'COUS',    'COEUR',  'COASIA', 'COOTH',           &
                 'COBBAM', 'COBBAF',  'COBBAS', 'COBBOC', 'COBBEU',          &
                 'COBBNA', 'COBBOTH', 'COCH4',  'COBIOF', 'COISOP',          &
-                'COMONO', 'COMEOH',  'COACET'                       )
+                'COMONO', 'COMEOH',  'COACET', 'CONMVOC'            )
 
              ! Set Name and LongName for the various CO species
              SELECT CASE( TRIM( NameAllCaps ) )
@@ -1013,6 +1013,9 @@ CONTAINS
                 CASE( 'COBIOF' )
                    Name     = 'CObiof'
                    FullName = 'CO produced from biofuels (whole world)'
+                CASE( 'CONMVOC' )
+                   Name     = 'COnmvoc'
+                   FullName = 'CO produced from NMVOC oxidation'
                 CASE( 'COISOP' )
                    Name     = 'COisop'
                    FullName = 'CO produced from isoprene oxidation'

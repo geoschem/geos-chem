@@ -344,6 +344,9 @@
          ELSE IF ( INDEX( LINE, 'RADIATION MENU'   ) > 0 ) THEN
             CALL READ_RADIATION_MENU( am_I_Root, Input_Opt, RC )
 
+         ELSE IF ( INDEX( LINE, 'CO SIM MENU'     ) > 0 ) THEN
+            CALL READ_CO_SIM_MENU( am_I_Root, Input_Opt, RC )
+                                    
          ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN
             CALL READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
                                     
@@ -2375,6 +2378,108 @@
  130  FORMAT( A, A   )
 
       END SUBROUTINE READ_EMISSIONS_MENU
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_co_sim_menu
+!
+! !DESCRIPTION: Subroutine READ\_CO\_SIM\_MENU reads the CO SIM MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_CO_SIM_MENU( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  24 Mar 2017 - J. Fisher   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      LOGICAL            :: LPCO_CH4
+      LOGICAL            :: LPCO_NMVOC
+      INTEGER            :: N
+      CHARACTER(LEN=255) :: MSG, LOC
+
+      ! Arrays
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_CO_SIM_MENU begins here!
+      !=================================================================
+
+      ! Location for error messages
+      LOC = 'READ_CO_SIM_MENU ("input_mod.f")'
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN 
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      ! Use P(CO) from CH4 from full chemistry simulation?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO_sim_menu:1' )
+      READ( SUBSTRS(1:N), * ) LPCO_CH4
+
+      ! Use P(CO) from CH4 from full chemistry simulation?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO_sim_menu:2' )
+      READ( SUBSTRS(1:N), * ) LPCO_NMVOC
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LPCO_CH4   = LPCO_CH4
+      Input_Opt%LPCO_NMVOC = LPCO_NMVOC
+
+      ! Return success
+      RC = GC_SUCCESS
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      IF ( Input_Opt%ITS_A_TAGCO_SIM .and. am_I_Root ) THEN
+         WRITE(6,'(/,a)') 'CO SIMULATION MENU ' //
+     &        '(overwrites any other settings related to CO)'
+         WRITE(6,'(  a)') '-------------------------------------'
+         WRITE(6,100    ) 'Use full chem. P(CO) from CH4?:', LPCO_CH4
+         WRITE(6,100    ) '                   from NMVOC?:', LPCO_NMVOC
+         WRITE(6,'(  a)') '-------------------------------------'
+      ENDIF      
+
+      ! FORMAT statements
+  90  FORMAT( A )
+ 100  FORMAT( A, L5 )
+ 110  FORMAT( A, L5, A )
+
+      END SUBROUTINE READ_CO_SIM_MENU
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
