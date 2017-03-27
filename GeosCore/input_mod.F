@@ -6231,7 +6231,11 @@
             Input_Opt%NFAM = 2*N_ADVECT
          ELSEIF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
             ! Tagged CO
-            Input_Opt%NFAM = N_ADVECT+5
+            IF ( Input_Opt%LPCO_NMVOC ) THEN
+               Input_Opt%NFAM = N_ADVECT+2
+            ELSE
+               Input_Opt%NFAM = N_ADVECT+6
+            ENDIF
          ENDIF
       ENDIF
 
@@ -6274,17 +6278,19 @@
 
             ! Tagged CO
             IF ( F <= N_ADVECT ) THEN
-               Input_Opt%FAM_NAME(F) = 'P'//Input_Opt%AdvectSpc_Name(F)
+               Input_Opt%FAM_NAME(F) = 'L'//Input_Opt%AdvectSpc_Name(F)
             ELSEIF ( F == N_ADVECT+1 ) THEN
-               Input_Opt%FAM_NAME(F) = 'PISOP'
+               Input_Opt%FAM_NAME(F) = 'PCO_CH4'
             ELSEIF ( F == N_ADVECT+2 ) THEN
-               Input_Opt%FAM_NAME(F) = 'PCH4'
+               Input_Opt%FAM_NAME(F) = 'PCO_NMVOC'
             ELSEIF ( F == N_ADVECT+3 ) THEN
-               Input_Opt%FAM_NAME(F) = 'PCH3OH'
+               Input_Opt%FAM_NAME(F) = 'PCO_ISOP'
             ELSEIF ( F == N_ADVECT+4 ) THEN
-               Input_Opt%FAM_NAME(F) = 'PMONO'
+               Input_Opt%FAM_NAME(F) = 'PCO_CH3OH'
             ELSEIF ( F == N_ADVECT+5 ) THEN
-               Input_Opt%FAM_NAME(F) = 'PACET'
+               Input_Opt%FAM_NAME(F) = 'PCO_MONO'
+            ELSEIF ( F == N_ADVECT+6 ) THEN
+               Input_Opt%FAM_NAME(F) = 'PCO_ACET'
             ENDIF
 
          ENDIF

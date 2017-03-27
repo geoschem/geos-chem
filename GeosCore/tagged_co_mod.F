@@ -1063,25 +1063,31 @@
             N             = 1
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_OH / DTCHEM )
 
-            ! Production of CO from Isoprene [molec CO/cm3/s]
-            N             = nAdvect + 1
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ISOP / DTCHEM )
-
             ! Production of CO from CH4 [molec CO/cm3/s]
-            N             = nAdvect + 2
+            N             = nAdvect + 1
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH4 / DTCHEM )
 
-            ! Production of CO from CH3OH [molec CO/cm3/s]            
-            N             = nAdvect + 3
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH3OH / DTCHEM )
-
-            ! Production of CO from MONO [molec CO/cm3/s]
-            N             = nAdvect + 4
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_MONO / DTCHEM )    
-
-            ! Production of CO from ACET [molec CO/cm3/s]
-            N             = nAdvect + 5 
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ACET / DTCHEM )
+            ! Production of CO from NMVOCs [molec CO/cm3/s]
+            N             = nAdvect + 2
+            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_NMVOC / DTCHEM )
+   
+            IF ( .not. LPCO_NMVOC ) THEN
+               ! Production of CO from Isoprene [molec CO/cm3/s]
+               N             = nAdvect + 3
+               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ISOP / DTCHEM )
+   
+               ! Production of CO from CH3OH [molec CO/cm3/s]            
+               N             = nAdvect + 4
+               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH3OH / DTCHEM )
+   
+               ! Production of CO from MONO [molec CO/cm3/s]
+               N             = nAdvect + 5
+               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_MONO / DTCHEM )    
+   
+               ! Production of CO from ACET [molec CO/cm3/s]
+               N             = nAdvect + 6 
+               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ACET / DTCHEM )
+            ENDIF
          ENDIF
       ENDDO
       ENDDO
