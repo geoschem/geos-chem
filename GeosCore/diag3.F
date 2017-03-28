@@ -6098,7 +6098,7 @@
 !  (1) BXHEIGHT : Grid box height                   : m        : SCALEDYN
 !  (2) AD       : Air mass in grid box              : kg       : SCALEDYN
 !  (3) AVGW     : Mixing ratio of water vapor       : v/v      : SCALEDYN
-!  (4) AIRNUMDEN: Dry air number density            : molec/m3 : SCALEDYN
+!  (4) AIRNUMDEN: Dry air number density            : molec/cm3: SCALEDYN
 !  (5) T        : Temperature                       : K        : SCALEDYN
 !  (6) PMID     : Arithmetic mean pressure          : hPa      : SCALEDYN
 !  (7) PEDGE    : Level pressure (bottom edge)      : hPa      : SCALEDYN

@@ -504,7 +504,7 @@
       ! ND68: 1:  BXHEIGHT     - box height [m] 
       !       2:  AD           - dry air mass [kg]
       !       3:  AVGW         - mol H2O / mol dry air [v/v]
-      !       4:  AIRNUMDEN    - dry air number density [molecules/m3]
+      !       4:  AIRNUMDEN    - dry air number density [molecules/cm3]
       !       5:  T            - temperature [K]
       !       6:  PMID         - arithmetic mean pressure [hPa]
       !       7:  PEDGE        - level pressure (bottom edge) [hPa]

@@ -1179,7 +1179,7 @@ CONTAINS
              Units      = 'v/v'
           CASE ( 11 )
              NameSuffix = 'NAIR'         ! ND68, trcr 4
-             Units      = 'molec/m3'
+             Units      = 'molec/cm3'
           CASE ( 12 )
              NameSuffix = 'PEDGE'        ! ND31, trcr 1
              Units      = 'hPa'
@@ -2614,7 +2614,7 @@ CONTAINS
              Ptr3D => State_Met%AVGW     !               [v/v dry air]
           CASE ( 14 )
              NameSuffix = 'NAIR'         ! ND68, trcr 4: Air number density
-             Temp3D = State_Met%AIRDEN * XNUMOLAIR  !    [molec dry air/m3]
+             Temp3D = State_Met%AIRDEN * XNUMOLAIR  !    [molec dry air/cm3]
              Ptr3D => Temp3D
           CASE DEFAULT
              IF ( N < Num3D ) THEN
