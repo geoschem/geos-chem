@@ -6066,6 +6066,7 @@
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  14 Jan 2016 - C. Keller   - Now refer to Input_Opt%LKPP instead of LKPP
+!  27 Mar 2017 - R. Yantosca - For tagCO, ND65 slots < nAdvect are L(CO)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6141,21 +6142,6 @@
          ENDIF
       ENDIF
 
-!----------------------------------------------------------------------------
-! Prior to 3/16/17:
-! Input_Opt%LFAMILY Is only used here.  We can remove reference to it and
-! just hard-code the IF statement below with the equivalent logic
-!      Input_Opt%LFAMILY = ( DO_SAVE_PL .and. NFAM > 0 )
-!
-!      ! Return if there are no prod/loss families
-!      ! or if we have turned off this diagnostic
-!      IF ( .not. Input_Opt%LFAMILY ) THEN
-!         DO_SAVE_PL = .FALSE.
-!         DO_SAVE_O3 = .FALSE.
-!         ND65       = 0
-!      ENDIF
-!----------------------------------------------------------------------------
-
       ! Return if there are no prod/loss families
       ! or if we have turned off this diagnostic
       IF ( .not. ( DO_SAVE_PL .and. NFAM > 0 ) ) THEN
@@ -6192,7 +6178,7 @@
 
             ! Tagged CO
             IF ( F <= N_ADVECT ) THEN
-               Input_Opt%FAM_NAME(F) = 'P'//Input_Opt%AdvectSpc_Name(F)
+               Input_Opt%FAM_NAME(F) = 'L'//Input_Opt%AdvectSpc_Name(F)
             ELSEIF ( F == N_ADVECT+1 ) THEN
                Input_Opt%FAM_NAME(F) = 'PISOP'
             ELSEIF ( F == N_ADVECT+2 ) THEN
