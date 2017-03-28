@@ -8362,12 +8362,8 @@
       !=================================================================
 
       ! SOAupdate: update for new mtp (hotp 5/24/10)
-      I = MAX( Ind_('MTPA' ), 0 )
-     &  + MAX( Ind_('LIMO' ), 0 )
+      I = MAX( Ind_('LIMO' ), 0 )
      &  + MAX( Ind_('MTPO' ), 0 )
-     &  + MAX( Ind_('BENZ' ), 0 )
-     &  + MAX( Ind_('TOLU' ), 0 )
-     &  + MAX( Ind_('XYLE' ), 0 )
      &  + MAX( Ind_('TSOA1'), 0 )
      &  + MAX( Ind_('TSOA2'), 0 )
      &  + MAX( Ind_('TSOA3'), 0 )
