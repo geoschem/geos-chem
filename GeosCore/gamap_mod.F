@@ -7390,7 +7390,7 @@
                CASE( 4 )
                   NAME (T,68) = 'AIRNUMDEN'
                   FNAME(T,68) = 'Dry air number density'
-                  UNIT (T,68) = 'molec air/m3'
+                  UNIT (T,68) = 'molec air/cm3'
                CASE( 5 )
                   NAME (T,68) = 'T'
                   FNAME(T,68) = 'Temperature'

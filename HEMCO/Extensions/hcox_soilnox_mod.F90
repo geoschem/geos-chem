@@ -299,6 +299,9 @@ CONTAINS
 !  08 May 2015 - C. Keller - Now read/write restart variables from here to
 !                            accomodate replay runs in GEOS-5.
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  29 Mar 2017 - M. Sulprizio- Read DEP_RESERVOIR_DEFAULT field from file for
+!                              use when when DEP_RESERVOIR is not found in the
+!                              HEMCO restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -308,6 +311,8 @@ CONTAINS
     INTEGER                  :: I, J, N
     REAL(hp), TARGET         :: FLUX_2D(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET         :: DIAG   (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: Tmp2D  (HcoState%NX,HcoState%NY)
+    REAL(sp)                 :: Def2D  (HcoState%NX,HcoState%NY)
     REAL(hp)                 :: FERTDIAG, DEP_FERT, SOILFRT
     REAL*4                   :: TSEMIS
     REAL(hp)                 :: UNITCONV, IJFLUX
@@ -451,17 +456,17 @@ CONTAINS
 
     IF ( FIRST .OR. HcoClock_Rewind( HcoState%Clock, .TRUE. ) ) THEN
 
-       ! DEP_RESERVOIR. Read in kg NO/m3.
-       CALL HCO_RestartGet( am_I_Root, HcoState,   'DEP_RESERVOIR', &
-                            Inst%DEP_RESERVOIR, RC, FILLED=FOUND     )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       IF ( .NOT. FOUND ) THEN
-          Inst%DEP_RESERVOIR = 1.0e-4_sp
-          IF ( am_I_Root ) THEN
-             MSG = 'Cannot find DEP_RESERVOIR restart variable - initialized to 1e-4!'
-             CALL HCO_WARNING(HcoState%Config%Err,MSG,RC)
-          ENDIF
+       ! DEP_RESERVOIR. Read in kg NO/m3
+       CALL HCO_EvalFld( am_I_Root, HcoState, 'DEP_RESERVOIR_DEFAULT', &
+                         Tmp2D, RC, FOUND=FOUND )
+       IF ( FOUND ) THEN
+          Def2D = Tmp2D
+       ELSE
+          Def2D = 1.0e-4_sp
        ENDIF
+       CALL HCO_RestartGet( am_I_Root, HcoState,   'DEP_RESERVOIR', &
+                            Inst%DEP_RESERVOIR, RC, Def2D=Def2D )
+       IF ( RC /= HCO_SUCCESS ) RETURN
     
        ! GWET_PREV [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'GWET_PREV', &

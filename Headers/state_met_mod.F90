@@ -191,7 +191,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: TV        (:,:,:) ! Virtual temperature [K]
      REAL(fp), POINTER :: MAIRDEN   (:,:,:) ! Moist air density [kg/m3]
      REAL(fp), POINTER :: AIRDEN    (:,:,:) ! Dry air density [kg/m3]
-     REAL(fp), POINTER :: AIRNUMDEN (:,:,:) ! Dry air density [molec/m3]
+     REAL(fp), POINTER :: AIRNUMDEN (:,:,:) ! Dry air density [molec/cm3]
      REAL(fp), POINTER :: AVGW      (:,:,:) ! Water vapor volume mixing ratio
                                             ! [vol H2O / vol dry air]
      REAL(fp), POINTER :: BXHEIGHT  (:,:,:) ! Grid box height [m] (dry air)
