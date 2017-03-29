@@ -311,8 +311,8 @@ CONTAINS
     INTEGER                  :: I, J, N
     REAL(hp), TARGET         :: FLUX_2D(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET         :: DIAG   (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: Tmp2D  (HcoState%NX,HcoState%NY)
     REAL(sp)                 :: Def2D  (HcoState%NX,HcoState%NY)
-    REAL(hp), POINTER        :: Ptr2D(:,:)
     REAL(hp)                 :: FERTDIAG, DEP_FERT, SOILFRT
     REAL*4                   :: TSEMIS
     REAL(hp)                 :: UNITCONV, IJFLUX
@@ -341,7 +341,6 @@ CONTAINS
     ! Nullify
     Inst   => NULL()
     TmpCnt => NULL()
-    Ptr2D  => NULL()
 
     ! Get Instance
     CALL InstGet ( ExtState%SoilNox, Inst, RC )
@@ -459,9 +458,9 @@ CONTAINS
 
        ! DEP_RESERVOIR. Read in kg NO/m3
        CALL HCO_EvalFld( am_I_Root, HcoState, 'DEP_RESERVOIR_DEFAULT', &
-                         Ptr2D, RC, FOUND=FOUND )
+                         Tmp2D, RC, FOUND=FOUND )
        IF ( FOUND ) THEN
-          Def2D = Ptr2D
+          Def2D = Tmp2D
        ELSE
           Def2D = 1.0e-4_sp
        ENDIF
