@@ -1156,7 +1156,7 @@ CONTAINS
 
           !$OMP PARALLEL DO       &
           !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( I, J, K )  
+          !$OMP PRIVATE( I, J, K )
           DO K = 1, KM
           DO J = 1, JM
           DO I = 1, IM

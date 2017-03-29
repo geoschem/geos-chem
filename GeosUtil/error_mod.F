@@ -1656,38 +1656,86 @@
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2016 - E. Lundgren - Initial version
+!  29 Mar 2017 - R. Yantosca - Now print out sums for up to the 1st 5 species
+!                              and use a more efficient algorithm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETERS
+!
+      INTEGER, PARAMETER :: nSums = 5
+!
 ! !LOCAL VARIABLES:
 !     
-      INTEGER      :: I, J, L
-      REAL(fp)     :: Species_Kg(IIPAR,JJPAR,LLPAR)
-      REAL(fp)     :: Sum_Species_Kg
+      ! Scalars
+      INTEGER            :: I, J, L, N, nSpecies
+      REAL(fp)           :: SpcTotal(nSums)
+
+      ! Arrays
+      REAL(fp)           :: Species_Kg    (IIPAR,JJPAR,LLPAR      )
+      REAL(fp)           :: Sum_Species_Kg(IIPAR,JJPAR,LLPAR,nSums)
+
+      ! Strings
+      CHARACTER(LEN=12)  :: SpcName
 
       !================================================================
       ! Print_Global_Species_Kg begins here!
       !================================================================
-      PRINT *, " "
-      PRINT *, TRIM( LOC )
-      Sum_Species_Kg = 0.e+0_fp
-      Species_Kg      = 0.e+0_fp
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( LOC )
+ 100  FORMAT( /, '%%%%% PRINT_GLOBAL_SPECIES_KG at ', a )
+
+      ! Initialize
+      Species_Kg     = 0.0_fp
+      Sum_Species_Kg = 0.0_fp
+      
+      ! Check mass for up to the 1st nSums (=5) species
+      nSpecies       = MIN( nSums, State_Chm%nSpecies )
+
+      !---------------------------
+      ! Compute global sums [kg]
+      !---------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         Species_Kg(I,J,L) =
-     &            State_Chm%Species(I,J,L,1) * State_Met%AD(I,J,L)
-      ENDDO
-      ENDDO
+!$OMP+PRIVATE( I, J, L, N )
+      DO N = 1, nSpecies
+
+         ! Compute sum at each grid box
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            Sum_Species_Kg(I,J,L,N) = Sum_Species_Kg(I,J,L,N)
+     &                              + ( State_Chm%Species(I,J,L,N)
+     &                              *   State_Met%AD     (I,J,L)   ) 
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! Compute global sum for each species
+         SpcTotal(N) = SUM( Sum_Species_Kg(:,:,:,N) )
       ENDDO
 !$OMP END PARALLEL DO
-      Sum_Species_Kg = SUM( Species_Kg(:,:,:) )
-      PRINT *, "Global species Kg: ", Sum_Species_Kg      
-      PRINT *, " "
+
+      !---------------------------
+      ! Display global sums [kg]
+      !---------------------------
+      DO N = 1, nSpecies
+         
+         ! Get species name from the species database
+         SpcName = TRIM( State_Chm%SpcData(N)%Info%Name )
+         
+         ! Write formatted output
+         WRITE( 6, 110 ) SpcName, SpcTotal(N)
+ 110     FORMAT( 'Global sum [kg] for ', a12, ' = ', es24.16 )         
+         print*, '===> : ', State_Chm%Species(23,34,5,N)
+     &                  *   State_Met%AD     (23,34,5)
+      ENDDO
+
+      ! Add trailing space
+      WRITE( 6, 120 )
+ 120  FORMAT( / )
 
       END SUBROUTINE Print_Global_Species_Kg
 !EOC

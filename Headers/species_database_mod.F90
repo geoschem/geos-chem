@@ -4796,31 +4796,37 @@ CONTAINS
           CASE DEFAULT
   
              ! Test if this is a passive species
-             CALL PASSIVE_SPECIES_INQUIRE( NameAllCaps,          &
-                                          IsPassive=IsPassive,  &
-                                          MW=MW_g,              &
-                                          InitConc=BackgroundVV  )
+             CALL PASSIVE_SPECIES_INQUIRE( NameAllCaps,                     &
+                                           IsPassive = IsPassive,           &
+                                           MW        = MW_g,                &
+                                           InitConc  = BackgroundVV  )
 
+             !---------------------------------------------------------------
              ! Add passive species if it is listed in the optional passive
              ! species menu in input.geos. When reading the input file, all
-             ! listed passive species quantities are written to local variables
-             ! within passive_species_mod.F90. Pass these values here to the
-             ! species database (ckeller, 11/3/16).
+             ! listed passive species quantities are written to local
+             ! variables within passive_species_mod.F90. Pass these values
+             ! here to the species database (ckeller, 11/3/16).
+             !
+             ! NOTE: EmMw_g will be set to MW_g by default and MolecRatio
+             ! will be set to 1 by default, so we can omit setting these
+             ! explicitly.  Also the passive species should probably be a gas 
+             ! instead of an aerosol (i.e., set Is_Gas = T). (bmy, 3/29/17)
+             !---------------------------------------------------------------
              IF ( IsPassive ) THEN
 
-                CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                                 ThisSpc       = SpcData(N)%Info,              &
-                                 ModelID       = N,                            &
-                                 Name          = NameAllCaps,                  &
-                                 MW_g          = MW_g,                         &
-                                 EmMW_g        = MW_g,                         &
-                                 BackgroundVV  = BackgroundVV,                 &
-                                 MolecRatio    = 1.0_fp,                       &
-                                 Is_Advected   = T,                            &
-                                 Is_Gas        = F,                            &
-                                 Is_Drydep     = F,                            &
-                                 Is_Wetdep     = F,                            &
-                                 Is_Photolysis = F,                            &
+                ! Define passive species
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 Name          = NameAllCaps,               &
+                                 MW_g          = MW_g,                      &
+                                 BackgroundVV  = BackgroundVV,              &
+                                 Is_Advected   = T,                         &
+                                 Is_Gas        = F,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 Is_Photolysis = F,                         &
                                  RC            = RC )
    
              ! Test if this is a non-advected chemical species
