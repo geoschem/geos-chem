@@ -254,14 +254,16 @@ CONTAINS
     MONTH     = GET_MONTH()
     YEAR      = GET_YEAR()
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    ! SDE 2017-03-29: This is not valid. We need id_CH4 and the CXXYYZ variables
+    ! to be set, whether or not EXTERNAL_GRID is defined.
+!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
     !-----------------------------------------------------------------
     !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
     !
     ! Do nothing, since we will call these setup routines from the 
     ! init method of the ESMF interface (bmy, 10/24/12)
     !-----------------------------------------------------------------
-#else
+!#else
     !-----------------------------------------------------------------
     !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
     !
@@ -302,7 +304,7 @@ CONTAINS
        ENDIF
 
     ENDIF
-#endif
+!#endif
 
     !================================================================
     ! Get concentrations of aerosols in [kg/m3] 
