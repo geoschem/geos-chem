@@ -765,7 +765,7 @@
      &            ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
                   
             ! Store diagnostic of meltwater delivery to ocean
-            IF ( ND03 > 0 ) AD03(I,J,19,1) = AD03(I,J,19,1) +
+            IF ( ND03 > 0 ) AD03(I,J,1,19,1) = AD03(I,J,1,19,1) +
      &         ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
 
             ! Zero reservoirs over ocean box, since we've added it
@@ -2076,7 +2076,7 @@
 
                   ! Store carbon sinking [kgC/time]
                   IF ( ND03 > 0 ) THEN
-                     AD03(I,J,12,1) = AD03(I,J,12,1) + JorgC_kg
+                     AD03(I,J,1,12,1) = AD03(I,J,1,12,1) + JorgC_kg
                   ENDIF
                 
                !- eds 8/31/10 -----------------------------------------
@@ -2200,23 +2200,23 @@
 
                ! Aqueous Hg(0) mass [kg]
 !               AD03(I,J,2)  = AD03(I,J,2)  + Hg0aq(I,J,ID_Hg_tot) 
-               AD03(I,J,2,NN)  = AD03(I,J,2,NN)  + Hg0aq(I,J,NN)
+               AD03(I,J,1,2,NN)  = AD03(I,J,1,2,NN)  + Hg0aq(I,J,NN)
 
                ! Aqueous Hg(II) mass [kg] 
 !               AD03(I,J,7)  = AD03(I,J,7)  + Hg2aq(I,J,ID_Hg_tot) 
-               AD03(I,J,7,NN)  = AD03(I,J,7,NN)  + Hg2aq(I,J,NN)
+               AD03(I,J,1,7,NN)  = AD03(I,J,1,7,NN)  + Hg2aq(I,J,NN)
 
                ! Hg2 sunk deep into the ocean [kg/time]
 !               AD03(I,J,8)  = AD03(I,J,8)  + HgPaq_SUNK
-               AD03(I,J,8,NN)= AD03(I,J,8,NN) + HgPaq_SUNK(I,J,NN)
+               AD03(I,J,1,8,NN)= AD03(I,J,1,8,NN) + HgPaq_SUNK(I,J,NN)
 
                ! HgTot aqua mass [kg] 
 !               AD03(I,J,10) =AD03(I,J,10) + Hgaq_tot        
-               AD03(I,J,10,NN) =AD03(I,J,10,NN) + Hgaq_tot(I,J,NN)
+               AD03(I,J,1,10,NN) =AD03(I,J,1,10,NN) + Hgaq_tot(I,J,NN)
  
                ! HgP ocean mass [kg]
 !               AD03(I,J,11) = AD03(I,J,11) + HgPaq(I,J) 
-               AD03(I,J,11,NN) = AD03(I,J,11,NN) + HgPaq(I,J,NN)
+               AD03(I,J,1,11,NN) = AD03(I,J,1,11,NN) + HgPaq(I,J,NN)
 
                !Prior to 09 Nov 2011, H Amos --------------------------
                ! flux up and down (eck)
@@ -2231,10 +2231,10 @@
 !              ENDIF
                ! Loop over tagged tracers (eds)
                IF (FLUX(I,J,NN) > 0e+0_fpp) THEN
-                  AD03(I,J,16,NN) = AD03(I,J,16,NN) 
+                  AD03(I,J,1,16,NN) = AD03(I,J,1,16,NN) 
      &                           + FLUX(I,J,NN) * DTSRCE
                ELSE IF (FLUX(I,J,NN) < 0e+0_fpp) THEN
-                  AD03(I,J,17,NN) = AD03(I,J,17,NN) 
+                  AD03(I,J,1,17,NN) = AD03(I,J,1,17,NN) 
      &                           + ( abs(FLUX(I,J,NN) * DTSRCE ))
                ENDIF
                !-------------------------------------------------------
@@ -2242,7 +2242,7 @@
               ENDDO
 
                ! Total HgII/HgP dep to open ocean [kg]
-               AD03(I,J,20,1) = AD03(I,J,20,1) + TOTDEP
+               AD03(I,J,1,20,1) = AD03(I,J,1,20,1) + TOTDEP
 
             ENDIF
 

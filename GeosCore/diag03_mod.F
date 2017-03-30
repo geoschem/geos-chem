@@ -33,13 +33,13 @@
       INTEGER, PUBLIC              :: LD03                 ! # of levels
 
       ! Arrays
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD03(:,:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03(:,:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Hg0(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Br(:,:,:,:) 
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_OH(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_O3(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_SS(:,:,:)
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_nat(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_nat(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_SSR(:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Br(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_RGM(:,:,:)
@@ -242,6 +242,8 @@
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  25 Apr 2016 - R. Yantosca - Now pass State_Chm via the arg list
+!  30 Mar 2017 - M. Sulprizio- Add level dimension to AD03 and AD03_nat for 3D
+!                              Hg0 biomass burning emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -317,7 +319,7 @@
                   UNIT           = 'kg'
                   LMAX           = 1
                   NN             = N
-                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
+                  ARRAY(:,:,1)   = AD03(:,:,1,N,NT)
 
                ELSE
                   CYCLE
@@ -332,7 +334,7 @@
                UNIT              = 'kg'
                LMAX              = 1
                NN                = N
-               ARRAY(:,:,1)      = AD03(:,:,N,NT) / SCALE
+               ARRAY(:,:,1)      = AD03(:,:,1,N,NT) / SCALE
 
 
             ELSE IF ( N == 3 ) THEN
@@ -344,7 +346,7 @@
                UNIT              = 'kg'
                LMAX              = 1
                NN                = N        
-               ARRAY(:,:,1)      = AD03(:,:,N,NT)
+               ARRAY(:,:,1)      = AD03(:,:,1,N,NT)
 
 
             ELSE IF ( N == 4 ) THEN
@@ -356,7 +358,7 @@
                UNIT              = 'kg'
                LMAX              = 1
                NN                = N
-               ARRAY(:,:,1)      = AD03(:,:,N,NT)
+               ARRAY(:,:,1)      = AD03(:,:,1,N,NT)
 
 
             ELSE IF ( N == 5 ) THEN
@@ -370,7 +372,7 @@
                   UNIT           = 'kg'
                   LMAX           = 1
                   NN             = N
-                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
+                  ARRAY(:,:,1)   = AD03(:,:,1,N,NT)
 
                ELSE
                   CYCLE
@@ -388,7 +390,7 @@
                   UNIT           = 'kg'
                   LMAX           = 1
                   NN             = N
-                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
+                  ARRAY(:,:,1)   = AD03(:,:,1,N,NT)
 
                ELSE
                   CYCLE
@@ -403,7 +405,7 @@
                UNIT              = 'kg'
                LMAX              = 1
                NN                = N
-               ARRAY(:,:,1)      = AD03(:,:,N,NT) /SCALE
+               ARRAY(:,:,1)      = AD03(:,:,1,N,NT) /SCALE
 
 
             ELSE IF ( N == 8 ) THEN
@@ -417,7 +419,7 @@
                   UNIT           = 'kg'
                   LMAX           = 1
                   NN             = N
-                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
+                  ARRAY(:,:,1)   = AD03(:,:,1,N,NT)
 
                ELSE
                   CYCLE
@@ -434,7 +436,7 @@
                   UNIT           = 'kg'
                   LMAX           = 1
                   NN             = N
-                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
+                  ARRAY(:,:,1)   = AD03(:,:,1,N,NT)
 
                ELSE
                   CYCLE
@@ -451,7 +453,7 @@
                   UNIT           = 'kg'
                   LMAX           = 1
                   NN             = N
-                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
+                  ARRAY(:,:,1)   = AD03(:,:,1,N,NT)
 
                ELSE
                   CYCLE
@@ -466,7 +468,7 @@
                UNIT              = 'kg'
                LMAX              = 1
                NN                = N
-               ARRAY(:,:,1)      = AD03(:,:,N,NT)
+               ARRAY(:,:,1)      = AD03(:,:,1,N,NT)
 
             ELSE IF ( N == 12 ) THEN
 
@@ -479,7 +481,7 @@
                   UNIT           = 'kg'
                   LMAX           = 1
                   NN             = N
-                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
+                  ARRAY(:,:,1)   = AD03(:,:,1,N,NT)
  
                ELSE
                   CYCLE
@@ -494,9 +496,9 @@
                   !--------------------------------
                   CATEGORY       = 'HG0-BURN'
                   UNIT           = 'kg'
-                  LMAX           = 1
+                  LMAX           = LD03
                   NN             = N
-                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
+                  ARRAY(:,:,1:LMAX) = AD03(:,:,1:LMAX,N,NT)
 
                ELSE
                   CYCLE
@@ -513,7 +515,7 @@
                   UNIT           = 'kg'
                   LMAX           = 1
                   NN             = N
-                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
+                  ARRAY(:,:,1)   = AD03(:,:,1,N,NT)
 
                ELSE
                   CYCLE
@@ -530,7 +532,7 @@
                   UNIT           = 'kg'
                   LMAX           = 1
                   NN             = N
-                  ARRAY(:,:,1)   = AD03(:,:,N,NT)
+                  ARRAY(:,:,1)   = AD03(:,:,1,N,NT)
 
                ELSE
                   CYCLE
@@ -545,7 +547,7 @@
                UNIT              = 'kg'
                LMAX              = 1
                NN                = N
-               ARRAY(:,:,1)      = AD03(:,:,N,NT)
+               ARRAY(:,:,1)      = AD03(:,:,1,N,NT)
 
             ELSE IF ( N == 17 ) THEN
 
@@ -556,7 +558,7 @@
                UNIT              = 'kg'
                LMAX              = 1
                NN                = N
-               ARRAY(:,:,1)      = AD03(:,:,N,NT)
+               ARRAY(:,:,1)      = AD03(:,:,1,N,NT)
 
             ELSE IF ( N == 18 ) THEN
 
@@ -567,7 +569,7 @@
                UNIT              = 'kg'
                LMAX              = 1
                NN                = N
-               ARRAY(:,:,1)      = AD03(:,:,N,NT)
+               ARRAY(:,:,1)      = AD03(:,:,1,N,NT)
 
             ELSE IF ( N == 19 ) THEN
 
@@ -725,8 +727,20 @@
                UNIT              = 'kg'
                LMAX              = 1
                NN                = N
-               ARRAY(:,:,1)      = AD03(:,:,N,1) / SCALE
+               ARRAY(:,:,1)      = AD03(:,:,1,N,1) / SCALE
                
+            ELSE IF ( N == 13 ) THEN
+
+               !--------------------------------
+               ! #13: Biomass burning emissions
+               ! Emitted to PBL and free trop
+               !--------------------------------
+               CATEGORY          = 'HG-SRCE'
+               UNIT              = 'kg'
+               LMAX              = 1
+               NN                = N
+               ARRAY(:,:,1:LD03) = AD03(:,:,1:LD03,N,1)
+
             ELSE IF ( N <= 21 ) THEN
             
                !--------------------------------
@@ -744,7 +758,7 @@
                UNIT              = 'kg'
                LMAX              = 1
                NN                = N
-               ARRAY(:,:,1)      = AD03(:,:,N,1)
+               ARRAY(:,:,1)      = AD03(:,:,1,N,1)
    
             ELSE IF ( N == 22 ) THEN
 
@@ -998,8 +1012,8 @@
       ! Get number of levels for 3-D arrays
       LD03 = MIN( ND03, LLPAR )
 
-      ! 3-D array ("HG-SRCE")
-      ALLOCATE( AD03( IIPAR, JJPAR, PD03, N_HG_CATS ), STAT=AS )
+      ! "HG-SRCE"
+      ALLOCATE( AD03( IIPAR, JJPAR, LD03, PD03, N_HG_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03' )
 
       ! 4-D arrays ("PL-HG2-$")
@@ -1018,7 +1032,7 @@
       ALLOCATE( AD03_Hg2_SS( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_SS' )
 
-      ALLOCATE( AD03_nat( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
+      ALLOCATE( AD03_nat( IIPAR, JJPAR, LD03, N_Hg_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_nat' )
 
       ALLOCATE( AD03_Hg2_SSR( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )

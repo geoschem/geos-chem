@@ -2260,7 +2260,11 @@ contains
        !----------------------------------------------------------------
        IF ( IS_CH4 ) THEN
           do NA = 1, nAdvect
-             eflx(I,J,NA) = CH4_EMIS(I,J,NA)
+             ! Add total emissions in the PBL to the EFLX array
+             ! which tracks emission fluxes.  Units are [kg/m2/s].
+             DO L = 1, TOPMIX
+                eflx(I,J,NA) = eflx(I,J,NA) + CH4_EMIS(I,J,L,NA)
+             ENDDO
           enddo
        ENDIF
 
@@ -2272,7 +2276,11 @@ contains
        !----------------------------------------------------------------
        IF ( IS_Hg ) THEN
           do NA = 1, nAdvect
-             eflx(I,J,NA) = HG_EMIS(I,J,NA) 
+             ! Add total emissions in the PBL to the EFLX array
+             ! which tracks emission fluxes.  Units are [kg/m2/s].
+             DO L = 1, TOPMIX
+                eflx(I,J,NA) = HG_EMIS(I,J,L,NA) 
+             ENDDO
           enddo
        ENDIF
 

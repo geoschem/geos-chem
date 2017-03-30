@@ -946,7 +946,7 @@
       !=================================================================
       IF ( ND58 > 0 ) THEN 
 
-         ALLOCATE( AD58( IIPAR, JJPAR, PD58), STAT=AS )
+         ALLOCATE( AD58( IIPAR, JJPAR, LLPAR, PD58), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD58' )
 
       ENDIF

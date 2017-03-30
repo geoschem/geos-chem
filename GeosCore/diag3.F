@@ -5609,13 +5609,13 @@
 
             UNIT = 'kg'
 
-            ARRAY(:,:,1) = AD58(:,:,N)
+            ARRAY(:,:,1:LLPAR) = AD58(:,:,1:LLPAR,N)
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     1,        IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &                  IIPAR,     JJPAR,     LLPAR,    IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
          ENDDO
       ENDIF
 

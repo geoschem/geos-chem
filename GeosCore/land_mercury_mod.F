@@ -254,7 +254,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),  DIMENSION(:,:),INTENT(OUT) :: EHg0_bb
+      REAL(fp), DIMENSION(:,:,:), INTENT(OUT) :: EHg0_bb
       INTEGER,                INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
@@ -275,6 +275,9 @@
 !  15 Aug 2014 - R. Yantosca - Removed reference to IDBCO; now obsolete
 !  23 Sep 2014 - C. Keller   - Now use HEMCO diagnostics
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  30 Mar 2017 - M. Sulprizio- Hg0 biomass burning emissions are now 3D to allow
+!                              for emissions to be distributed to the PBL and
+!                              free troposphere (PAN updates from E.Fischer)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -282,7 +285,7 @@
 ! !LOCAL VARIABLES:
 !     
 !      REAL(fp)                 :: DTSRCE, E_CO, AREA_CM2
-      INTEGER                :: I, J
+      INTEGER                :: I, J, L
 
 !      ! Hg molar mass, kg Hg/ mole Hg
 !      REAL(fp),  PARAMETER   :: FMOL_HG     = 200.59d-3
@@ -302,7 +305,7 @@
 
       ! HEMCO update
       CHARACTER(LEN= 63)       :: DgnName
-      REAL(sp), POINTER        :: Ptr2D(:,:)
+      REAL(sp), POINTER        :: Ptr3D(:,:,:)
 
       CHARACTER(LEN=255)       :: MSG
       CHARACTER(LEN=255)       :: LOC ='BIOMASSHG (land_mercury_mod.F)'
@@ -312,7 +315,7 @@
       !=================================================================
 
       ! Initialize pointers
-      Ptr2d    => NULL()
+      Ptr3d    => NULL()
 
       ! Do biomass Hg emissions if biomass burning is on and it is a 
       ! present-day simulation (i.e. not preindustrial)
@@ -327,10 +330,12 @@
          ! by HEMCO automatically. Output unit is as specified when
          ! defining diagnostics (kg/m2/s).
          DgnName = 'BIOMASS_HG0'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr3D=Ptr3D )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
-         EHg0_bb = Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
-
+         DO L = 1, LLPAR
+            EHg0_bb(:,:,L) = Ptr3D(:,:,L) *
+     &                       HcoState%Grid%AREA_M2%Val(:,:)
+         ENDDO
       ELSE
 
          ! No emissions for preindustrial period, or when BB is turned off.
@@ -339,7 +344,7 @@
       ENDIF
 
       ! Free pointer
-      Ptr2D    => NULL()
+      Ptr3D    => NULL()
 
       END SUBROUTINE BIOMASSHG
 !EOC

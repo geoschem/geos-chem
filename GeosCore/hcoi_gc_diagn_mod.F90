@@ -1791,6 +1791,31 @@ CONTAINS
        ENDIF
   
        !-------------------------------------------
+       ! %%%%% Biomass CH4 %%%%%
+       !-------------------------------------------
+
+       ! HEMCO species ID
+       HcoID = HCO_GetHcoID( 'CH4', HcoState )
+       IF ( HcoID > 0 ) THEN  
+          ! Create diagnostic container
+          DiagnName = 'BIOMASS_CH4'
+          CALL Diagn_Create( am_I_Root,                     & 
+                             HcoState  = HcoState,          &
+                             cName     = TRIM( DiagnName ), &
+                             ExtNr     = ExtNr,             &
+                             Cat       = Cat,               &
+                             Hier      = -1,                &
+                             HcoID     = HcoID,             &
+                             SpaceDim  = 3,                 &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kgC/m2/s',        &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                             AutoFill  = 1,                 &
+                             RC        = RC                  ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------
        ! %%%%% Biomass NH3 %%%%%
        !-------------------------------------------
        HcoID = HCO_GetHcoID( 'NH3', HcoState )
@@ -4813,6 +4838,8 @@ CONTAINS
 ! !REMARKS:
 !  Split off code from HCOI_GC_Diagn_Init into smaller routines in order to
 !  make the code more manageable.
+!
+!  Biomass diagnostics are defined in routine Diagn_Biomass.
 !\\
 !\\
 !  CH4 diagnostics need to be defined even if ND58 is turned off because
@@ -5032,7 +5059,7 @@ CONTAINS
                           Cat       = Cat,               &
                           Hier      = -1,                &
                           HcoID     = HcoID,             &
-                          SpaceDim  = 3,                 &
+                          SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
@@ -5104,46 +5131,10 @@ CONTAINS
     ENDIF
 
     !--------------------------------------------------------------------------
-    ! %%%%% CH4 from biomass burning (automatically filled in extension)  %%%%%
+    ! %%%%% CH4 from biomass burning %%%%%
+    ! ==> defined in Diagn_Biomass
     !--------------------------------------------------------------------------
 
-    ! HEMCO extension # for biomass ch4 
-    ExtNr = GetExtNr( HcoState%Config%ExtList, 'GFED' )
-    IF ( ExtNr <= 0 ) ExtNr = GetExtNr( HcoState%Config%ExtList, 'FINN' )
-    IF ( ExtNr <= 0 ) THEN
-       IF ( am_I_Root ) THEN
-          MSG = 'Biomass burning not turned on - no CH4 emissions from biomass burning!'
-          WRITE(*,*) TRIM(MSG)
-          CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-       ENDIF
-    ENDIF
-    IF ( ExtNr > 0 ) THEN
-       IF ( id_CH4 < 0 ) THEN
-          HcoID = HCO_GetHcoID( 'CH4_tot', HcoState )
-       ELSE
-          HcoID = id_CH4
-       ENDIF
-       IF ( HcoID > 0 ) THEN 
-   
-          ! Create diagnostic container
-          DiagnName = 'CH4_BIOMASS'
-          CALL Diagn_Create( am_I_Root,                     & 
-                             HcoState  = HcoState,          &
-                             cName     = TRIM( DiagnName ), &
-                             ExtNr     = ExtNr,             &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                             AutoFill  = 1,                 & 
-                             RC        = RC                  ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-       ENDIF     
-    ENDIF     
-   
     !----------------------------------------------------------------------
     ! %%%%% CH4 from rice (manual diagnostics in wetlands extension)  %%%%%
     !----------------------------------------------------------------------
