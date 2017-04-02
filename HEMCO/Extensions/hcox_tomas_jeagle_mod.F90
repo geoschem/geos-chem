@@ -132,7 +132,7 @@ CONTAINS
     ! For debugging
     !INTEGER            :: ii=50, jj=10
 
-    ! Error handling	
+    ! Error handling    
     LOGICAL                :: ERR
 
     !=================================================================
@@ -184,10 +184,10 @@ CONTAINS
           W10M = SQRT( ExtState%U10M%Arr%Val(I,J)**2  &
                +       ExtState%V10M%Arr%Val(I,J)**2 )
 
-	  ! Sea surface temperature in Celcius 
-	  SST = ExtState%TSKIN%Arr%Val(I,J) - 273.15d0
+      ! Sea surface temperature in Celcius 
+      SST = ExtState%TSKIN%Arr%Val(I,J) - 273.15d0
 
-	  ! Limit SST to 0-30C range
+      ! Limit SST to 0-30C range
           SST = MAX( SST , 0d0 )  ! limit to  0C
           SST = MIN( SST , 30d0 ) ! limit to 30C
 
@@ -200,7 +200,7 @@ CONTAINS
           !---------------------------------------------------------------
           DO K = 1, HcoState%MicroPhys%nBins
              rwet=TOMAS_DBIN(k)*1.0E6*BETHA/2. ! convert from dry diameter [m] to wet (80% RH) radius [um]  
-	     ! jkodros - testing out BETHA 7/29/15
+         ! jkodros - testing out BETHA 7/29/15
              if (rwet > 0.d0) then
                   A=4.7*(1.+30.*rwet)**(-0.017*rwet**(-1.44))
                   B=(0.433-log10(rwet))/0.433
@@ -210,11 +210,11 @@ CONTAINS
 
              else
 
-		dfo=0.d0
-	     endif
+        dfo=0.d0
+         endif
 
              dfo=dfo*DRFAC(k)*BETHA  !hemco units???? jkodros
-	     dfo=dfo*focean*SCALE
+         dfo=dfo*focean*SCALE
 
              ! Loop thru the boundary layer
              DO L = 1, HcoState%Nz
@@ -241,8 +241,8 @@ CONTAINS
              ENDDO
           ENDDO
        ELSE
-	TC1(I,J,:,:) = 0d0
-	TC2(I,J,:,:) = 0d0
+    TC1(I,J,:,:) = 0d0
+    TC2(I,J,:,:) = 0d0
        ENDIF
     ENDDO
     ENDDO
@@ -455,7 +455,7 @@ CONTAINS
           3.90620d-07,   6.20070d-07,    9.84300d-07,    3.12500d-06  /)
 
     DRFAC     = (/                                                      &
-       	  2.84132d-03,   4.51031d-03,    7.15968d-03,    1.13653d-02,   &
+          2.84132d-03,   4.51031d-03,    7.15968d-03,    1.13653d-02,   &
           1.80413d-02,   2.86387d-02,    4.54612d-02,    7.21651d-02,   &
           1.14555d-01,   1.81845d-01,    1.06874d+00,    3.39304d+00 /)
 #elif defined( TOMAS15 )
@@ -464,15 +464,15 @@ CONTAINS
     ! TOMAS simulation w/ 15 size-resolved bins
     !-----------------------------------------------------------------------
 
-    TOMAS_DBIN = (/              0d0,            0d0,            0d0,   &
-          1.22069d-08,   1.93772d-08,    3.07594d-08,    4.88274d-08,   &
-          7.75087d-08,   1.23037d-07,    1.95310d-07,    3.10035d-07,   &
-          4.92150d-07,   7.81239d-07,    1.74054d-06,    5.52588d-06 /)
+    TOMAS_DBIN = (/              0d0,            0d0,             0d0,   &
+          1.22069d-08,   1.93772d-08,    3.07594d-08,     4.88274d-08,   &
+          7.75087d-08,   1.23037d-07,    1.95310d-07,     3.10035d-07,   &
+          4.92150d-07,   7.81239d-07,    1.74054d-06,     5.52588d-06 /)
 
-    DRFAC      = (/              0d0,            0d0,            0d0,   & 
-          2.84132d-03,   4.51031d-03,    7.15968d-03,	 1.13653d-02,   &
-	  1.80413d-02,   2.86387d-02,    4.54612d-02,    7.21651d-02,   &
-	  1.14555d-01,   1.81845d-01,    1.06874d+00,    3.39304d+00 /)
+    DRFAC      = (/              0d0,            0d0,             0d0,   & 
+          2.84132d-03,   4.51031d-03,    7.15968d-03,     1.13653d-02,   &
+          1.80413d-02,   2.86387d-02,    4.54612d-02,     7.21651d-02,   &
+          1.14555d-01,   1.81845d-01,    1.06874d+00,     3.39304d+00 /)
 
 #elif defined( TOMAS40 )
 
@@ -514,10 +514,10 @@ CONTAINS
        3.12496d-06, 3.93720d-06, 4.96056d-06, 6.24991d-06, 7.87440d-06 /)
 
     DRFAC     = (/                                                       &
-       1.24737d-03, 1.57158d-03, 1.98007d-03, 2.49473d-03, 3.14317d-03,	 &
+       1.24737d-03, 1.57158d-03, 1.98007d-03, 2.49473d-03, 3.14317d-03,  &
        3.96014d-03, 4.98947d-03, 6.28633d-03, 7.92028d-03, 9.97893d-03,  &
        1.25727d-02, 1.58406d-02, 1.99579d-02, 2.51453d-02, 3.16811d-02,  &
-       3.99157d-02, 5.02906d-02, 6.33623d-02, 7.98314d-02, 1.00581d-01,	 &
+       3.99157d-02, 5.02906d-02, 6.33623d-02, 7.98314d-02, 1.00581d-01,  &
        1.26725d-01, 1.59663d-01, 2.01163d-01, 2.53449d-01, 3.19326d-01,  &
        4.02325d-01, 5.06898d-01, 6.38652d-01, 8.04651d-01, 1.01380d+00 /)
 #endif
