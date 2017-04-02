@@ -3583,11 +3583,11 @@
       ENDIF
 
       ! Only used for SOA simulation:
-!      IF ( Inst%ExtNrSoa > 0 ) THEN
-!         CALL HCO_EvalFld( am_I_Root, HcoState, 'MEGAN_ORVC'//TRIM(SFX), 
-!     &                     Inst%GEIA_ORVC, RC )
-!         IF ( RC /= HCO_SUCCESS ) RETURN
-!      ENDIF
+      IF ( Inst%ExtNrSoa > 0 ) THEN
+         CALL HCO_EvalFld( am_I_Root, HcoState, 'MEGAN_ORVC'//TRIM(SFX), 
+     &                     Inst%GEIA_ORVC, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+      ENDIF
 
       !-----------------------------------------------------------------
       ! Point to PFT fractions
