@@ -262,47 +262,12 @@ CONTAINS
        ENDIF
 
        ! Get the proper species name
-       !%%% This is a kludge, do better later %%%
-       IF ( K==1  ) SpcName = 'NK1'
-       IF ( K==2  ) SpcName = 'NK2'
-       IF ( K==3  ) SpcName = 'NK3'
-       IF ( K==4  ) SpcName = 'NK4'
-       IF ( K==5  ) SpcName = 'NK5'
-       IF ( K==6  ) SpcName = 'NK6'
-       IF ( K==7  ) SpcName = 'NK7'
-       IF ( K==8  ) SpcName = 'NK8'
-       IF ( K==9  ) SpcName = 'NK9'
-       IF ( K==10 ) SpcName = 'NK10'
-       IF ( K==11 ) SpcName = 'NK11'
-       IF ( K==12 ) SpcName = 'NK12'
-       IF ( K==13 ) SpcName = 'NK13'
-       IF ( K==14 ) SpcName = 'NK14'
-       IF ( K==15 ) SpcName = 'NK15'
-       IF ( K==16 ) SpcName = 'NK16'
-       IF ( K==17 ) SpcName = 'NK17'
-       IF ( K==18 ) SpcName = 'NK18'
-       IF ( K==19 ) SpcName = 'NK19'
-       IF ( K==20 ) SpcName = 'NK20'
-       IF ( K==21 ) SpcName = 'NK21'
-       IF ( K==22 ) SpcName = 'NK22'
-       IF ( K==23 ) SpcName = 'NK23'
-       IF ( K==24 ) SpcName = 'NK24'
-       IF ( K==25 ) SpcName = 'NK25'
-       IF ( K==26 ) SpcName = 'NK26'
-       IF ( K==27 ) SpcName = 'NK27'
-       IF ( K==28 ) SpcName = 'NK28'
-       IF ( K==29 ) SpcName = 'NK29'
-       IF ( K==30 ) SpcName = 'NK30'
-       IF ( K==31 ) SpcName = 'NK31'
-       IF ( K==32 ) SpcName = 'NK32'
-       IF ( K==33 ) SpcName = 'NK33'
-       IF ( K==34 ) SpcName = 'NK34'
-       IF ( K==35 ) SpcName = 'NK35'
-       IF ( K==36 ) SpcName = 'NK36'
-       IF ( K==37 ) SpcName = 'NK37'
-       IF ( K==38 ) SpcName = 'NK38'
-       IF ( K==39 ) SpcName = 'NK39'
-       IF ( K==40 ) SpcName = 'NK40'
+        
+       IF ( K<10  ) THEN
+         WRITE(SpcName,'(A2,I1)') 'NK', K
+       ELSE
+         WRITE(SpcName,'(A2,I2)') 'NK', K
+       ENDIF
 
        ! HEMCO species ID
        HcoID = HCO_GetHcoID( TRIM(SpcName), HcoState ) 
@@ -426,7 +391,7 @@ CONTAINS
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ELSE
- TC1 = 0d0
+    TC1 = 0d0
     ENDIF
 
    ! JKODROS - ALLOCATE TC1 and TC2
@@ -437,7 +402,7 @@ CONTAINS
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ELSE
- TC2 = 0d0
+    TC2 = 0d0
     ENDIF
 
 ! ----- IMPORTANT BINS ONLY CORRECTLY SET UP FOR TOMAS 15 PLEASE ADJUST OTHERS -jkodros (7/21/15)

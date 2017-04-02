@@ -283,6 +283,8 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD,          ONLY : IBINS, Xk, SRTDUST
+      USE Species_Mod,        ONLY : Species
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -424,7 +426,7 @@
                
                FLUXN = FLUXN + DIF/(SQRT( Xk(BIN)*Xk(BIN+1))) /
      &                 DT_SETTL * AVO / 
-     &                 ( 1.e-3_fp * ThisSpc%%emMW_g ) / 
+     &                 ( 1.e-3_fp * ThisSpc%emMW_g ) / 
      &                 AREA_CM2
 
 !debug               if(i==ii .and. j==jj .and. bin==bb) then
