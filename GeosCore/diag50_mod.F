@@ -33,7 +33,6 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 ! 
       PRIVATE :: ACCUMULATE_DIAG50
-      PRIVATE :: ITS_TIME_FOR_WRITE_DIAG50
       PRIVATE :: WRITE_DIAG50
       PRIVATE :: GET_I
 !
@@ -186,6 +185,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE State_Met_Mod,      ONLY : MetState
+      USE Time_Mod,           ONLY : ITS_A_NEW_DAY
 !
 ! !INPUT PARAMETERS:
 !
@@ -219,7 +219,7 @@
      &    ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       ! Write data to disk at the end of the day
-      IF ( ITS_TIME_FOR_WRITE_DIAG50() .and. 
+      IF ( ITS_A_NEW_DAY() .and. 
      &     Input_Opt%DO_DIAG_WRITE    ) THEN
          CALL WRITE_DIAG50( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
@@ -885,60 +885,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_time_for_write_diag50
-!
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_WRITE\_DIAG50 returns TRUE if it's 
-!  time to write the ND50 bpch file to disk.  We test the time at the next 
-!  dynamic timestep, so that we can close the file before the end of the 
-!  run properly.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION ITS_TIME_FOR_WRITE_DIAG50() RESULT( ITS_TIME )
-!
-! !USES:
-!
-      USE TIME_MOD, ONLY : GET_HOUR
-      USE TIME_MOD, ONLY : GET_MINUTE
-      USE TIME_MOD, ONLY : GET_TS_DYN
-!
-! !RETURN VALUE:
-!
-      LOGICAL :: ITS_TIME
-! 
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) The time is already updated to the next time step in main.f 
-!        (ccc, 8/12/09)
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL(fp) :: HR1
-
-      !=================================================================
-      ! ITS_TIME_FOR_WRITE_DIAG50 begins here!
-      !=================================================================
-
-      ! Current hour
-      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp )
-
-      ! Hour at the next dynamic timestep
-
-      ! If the next dyn step is the start of a new day, return TRUE
-      ITS_TIME = ( INT( HR1 ) == 0 )
-
-      END FUNCTION ITS_TIME_FOR_WRITE_DIAG50
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: write_diag50
 !
 ! !DESCRIPTION: Subroutine WRITE\_DIAG50 computes the 24-hr time-average of 
@@ -1095,14 +1041,17 @@
 !$OMP+PRIVATE( X, Y, K, W, DIVISOR )
       DO W = 1, ND50_N_TRACERS
 
-         ! Pick the proper divisor, depending on whether or not the
-         ! species in question is archived only each chem timestep
-         SELECT CASE ( ND50_TRACERS(W) )
-            CASE (91, 92, 76, 77 )
-               DIVISOR = COUNT_CHEM3D
-            CASE DEFAULT
-               DIVISOR = COUNT
-         END SELECT
+         ! ND50 Tracer number
+         N = ND50_TRACERS(W)
+         
+         ! Pick the proper divisor
+         ! OH is defined only in boxes with active chemistry
+         ! Others are defined everywhere
+         IF ( N == 151 ) THEN
+            DIVISOR = COUNT_CHEM3D
+         ELSE
+            DIVISOR = COUNT
+         ENDIF
 
          ! Loop over grid boxes
          DO K = 1, ND50_NL
