@@ -532,7 +532,8 @@ diag49_mod.o                : diag49_mod.F                                   \
                               modis_lai_mod.o         pbl_mix_mod.o
 
 diag50_mod.o                : diag50_mod.F                                   \
-                              chemgrid_mod.o          pbl_mix_mod.o
+                              chemgrid_mod.o          pbl_mix_mod.o          \
+                              aerosol_mod.o
 
 diag51_mod.o                : diag51_mod.F                                   \
                               chemgrid_mod.o          modis_lai_mod.o        \

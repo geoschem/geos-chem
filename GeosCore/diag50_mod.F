@@ -257,6 +257,7 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
+      USE Aerosol_Mod,        ONLY : PM25
 !
 ! !INPUT PARAMETERS:
 !
@@ -855,6 +856,13 @@
                   ENDIF
                ENDIF
 
+            ELSE IF ( N == 180 ) THEN
+
+               !--------------------------------------
+               ! PM 2.5, ug/m3 at STP
+               !--------------------------------------
+               Q(X,Y,K,W) = Q(X,Y,K,W) + PM25(I,J,L)
+               
             ELSE
 
                ! Skip other tracers
@@ -1362,6 +1370,16 @@
             UNIT      = 'unitless'
             GMNL      = ND50_NL
             GMTRC     = 21+(N-173)
+
+         ELSE IF ( N == 180 ) THEN
+
+            !---------------------
+            ! PM2.5
+            !---------------------   
+            CATEGORY  = 'IJ-SOA-$'
+            UNIT      = 'ug/m3'
+            GMNL      = ND50_NL
+            GMTRC     = 18
 
          ELSE
 
