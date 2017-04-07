@@ -228,7 +228,13 @@ CONTAINS
 !
     INTEGER,          INTENT(  OUT)            :: nTime 
     CHARACTER(LEN=*), INTENT(  OUT)            :: timeUnit 
-    INTEGER,          POINTER,       OPTIONAL  :: timeVec(:)
+!----------------------------------------------------------------------------
+! Prior to 4/7/17:
+! Now use REAL*8 time variables to avoid issues when the time is a large
+! number of days/hours from the reference date (bmy, 4/7/17)
+!    INTEGER,          POINTER,       OPTIONAL  :: timeVec(:)
+!----------------------------------------------------------------------------
+    REAL*8,           POINTER,       OPTIONAL  :: timeVec(:)
     CHARACTER(LEN=*), INTENT(  OUT), OPTIONAL  :: timeCalendar
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -243,12 +249,21 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     LOGICAL                :: hasTime
     CHARACTER(LEN=255)     :: v_name             ! netCDF variable name 
     CHARACTER(LEN=255)     :: a_name             ! netCDF attribute name
     CHARACTER(LEN=255)     :: a_val              ! netCDF attribute value
     INTEGER                :: st1d(1), ct1d(1)   ! For 1D arrays    
-    INTEGER, ALLOCATABLE   :: tmpTime(:)
+
+    ! Arrays
+    REAL*8,  ALLOCATABLE   :: tmpTime(:)
+!----------------------------------------------------------------------------
+! Prior to 4/7/17:
+! Now use REAL*8 time variables to avoid issues when the time is a large
+! number of days/hours from the reference date (bmy, 4/7/17)
+!    INTEGER, ALLOCATABLE   :: tmpTime(:)
+!----------------------------------------------------------------------------
 
     !=================================================================
     ! NC_READ_TIME begins here
@@ -1149,11 +1164,20 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     CHARACTER(LEN=255)  :: ncUnit
-    INTEGER, POINTER    :: tVec(:)
+!---------------------------------------------------------------------
+! Prior to 4/7/17:
+! Now use REAL*8 for time vectors, to avoid problems with dates/times
+! far away from the reference time (bmy, 4/7/17)
+!    INTEGER, POINTER    :: tVec(:)
+!---------------------------------------------------------------------
     INTEGER             :: refYr, refMt, refDy, refHr, refMn, refSc
     INTEGER             :: T, YYYYMMDD, hhmmss 
     REAL*8              :: realrefDy, refJulday, tJulday
+
+    ! Pointers
+    REAL*8,   POINTER   :: tVec(:)
 
     !=================================================================
     ! NC_READ_TIME_YYYYMMDDhh begins here 
@@ -1204,7 +1228,12 @@ CONTAINS
     ! in the proper 'units', e.g. in days, hours or minutes, depending on 
     ! the reference unit.
     DO T = 1, nTime
-       tJulday = real(tVec(T), kind=8)
+!---------------------------------------------------
+! Prior to 4/7/17:
+! TVEC is already REAL*8 (bmy, 4/7/17)
+!       tJulday = real(tVec(T), kind=8)
+!---------------------------------------------------
+       tJulDay = tVec(T)
        IF ( refHr >= 0 ) tJulday = tJulday / 24.d0
        IF ( refMn >= 0 ) tJulday = tJulday / 60.d0
        tJulday = tJulday + refJulday
