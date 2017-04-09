@@ -603,7 +603,7 @@ CONTAINS
     ! Check for missing values: set base emissions and masks to 0, and
     ! scale factors to 1. This will make sure that these entries will
     ! be ignored.
-    CALL CheckMissVal ( Lct, ncArr )
+!!! CALL CheckMissVal ( Lct, ncArr )
 
     !-----------------------------------------------------------------
     ! Eventually do interpolation between files. This is a pretty 
@@ -665,7 +665,7 @@ CONTAINS
           ENDIF
 
           ! Eventually fissing values
-          CALL CheckMissVal ( Lct, ncArr2 )
+!!!          CALL CheckMissVal ( Lct, ncArr2 )
 
           ! Calculate weights to be applied to ncArr2 and ncArr1. These
           ! weights are calculated based on the originally preferred 
@@ -794,7 +794,7 @@ CONTAINS
              ENDIF
       
              ! Eventually fissing values
-             CALL CheckMissVal ( Lct, ncArr2 )
+!!!             CALL CheckMissVal ( Lct, ncArr2 )
       
              ! Add all values to ncArr 
              ncArr = ncArr + ncArr2
