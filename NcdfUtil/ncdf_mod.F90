@@ -39,7 +39,7 @@ MODULE NCDF_MOD
   PUBLIC  :: NC_VAR_WRITE
   PUBLIC  :: NC_CLOSE
   PUBLIC  :: NC_READ_TIME
-  PUBLIC  :: NC_READ_TIME_YYYYMMDDhh
+  PUBLIC  :: NC_READ_TIME_YYYYMMDDhhmm
   PUBLIC  :: NC_READ_VAR
   PUBLIC  :: NC_READ_ARR
   PUBLIC  :: NC_GET_REFDATETIME
@@ -89,6 +89,9 @@ MODULE NCDF_MOD
 !  19 Sep 2016 - R. Yantosca - Now include netcdf.inc once at top of module
 !  19 Sep 2016 - R. Yantosca - Remove extra IMPLICIT NONE statements, we only
 !                              need to declare it once at the top of module
+!  10 Apr 2017 - R. Yantosca - Renamed routine NC_READ_TIME_YYYYMMDDhh to 
+!                              NC_READ_TIME_YYYYMMDDhhmm, to indicate that
+!                              it will now uses YYYYYMMDDhhmm format
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -228,12 +231,6 @@ CONTAINS
 !
     INTEGER,          INTENT(  OUT)            :: nTime 
     CHARACTER(LEN=*), INTENT(  OUT)            :: timeUnit 
-!----------------------------------------------------------------------------
-! Prior to 4/7/17:
-! Now use REAL*8 time variables to avoid issues when the time is a large
-! number of days/hours from the reference date (bmy, 4/7/17)
-!    INTEGER,          POINTER,       OPTIONAL  :: timeVec(:)
-!----------------------------------------------------------------------------
     REAL*8,           POINTER,       OPTIONAL  :: timeVec(:)
     CHARACTER(LEN=*), INTENT(  OUT), OPTIONAL  :: timeCalendar
 !
@@ -257,13 +254,7 @@ CONTAINS
     INTEGER                :: st1d(1), ct1d(1)   ! For 1D arrays    
 
     ! Arrays
-    REAL*8,  ALLOCATABLE   :: tmpTime(:)
-!----------------------------------------------------------------------------
-! Prior to 4/7/17:
-! Now use REAL*8 time variables to avoid issues when the time is a large
-! number of days/hours from the reference date (bmy, 4/7/17)
-!    INTEGER, ALLOCATABLE   :: tmpTime(:)
-!----------------------------------------------------------------------------
+    REAL*8 , ALLOCATABLE   :: tmpTime(:)
 
     !=================================================================
     ! NC_READ_TIME begins here
@@ -1124,15 +1115,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Nc_Read_Time_yyyymmddhh
+! !IROUTINE: Nc_Read_Time_yyyymmddhhmm
 !
-! !DESCRIPTION: Returns a vector containing the datetimes (YYYYMMDDhh) of 
+! !DESCRIPTION: Returns a vector containing the datetimes (YYYYMMDDhhmm) of 
 ! all time slices in the netCDF file.
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_READ_TIME_YYYYMMDDhh( fID, nTime, all_YYYYMMDDhh, &
-                                      timeUnit,   refYear, RC )
+  SUBROUTINE NC_READ_TIME_YYYYMMDDhhmm( fID,              nTime,    &
+                                        all_YYYYMMDDhhmm, timeUnit, &  
+                                        refYear,          RC )
 !
 ! !USES:
 !
@@ -1144,7 +1136,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER(8),       POINTER                 :: all_YYYYMMDDhh(:)
+    REAL*8,           POINTER                 :: all_YYYYMMDDhhmm(:)
     CHARACTER(LEN=*), INTENT(  OUT), OPTIONAL :: timeUnit
     INTEGER,          INTENT(  OUT), OPTIONAL :: refYear 
 !
@@ -1154,10 +1146,11 @@ CONTAINS
     INTEGER,          INTENT(INOUT)           :: RC 
 !
 ! !REVISION HISTORY:
-!  27 Jul 2012 - C. Keller - Initial version
-!  09 Oct 2014 - C. Keller - Now also support 'minutes since ...'
-!  05 Nov 2014 - C. Keller - Bug fix if reference datetime is in minutes.
+!  27 Jul 2012 - C. Keller   - Initial version
+!  09 Oct 2014 - C. Keller   - Now also support 'minutes since ...'
+!  05 Nov 2014 - C. Keller   - Bug fix if reference datetime is in minutes.
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  10 Apr 2017 - R. Yantosca - Now return times in YYYYMMDDhhmm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1166,12 +1159,6 @@ CONTAINS
 !
     ! Scalars
     CHARACTER(LEN=255)  :: ncUnit
-!---------------------------------------------------------------------
-! Prior to 4/7/17:
-! Now use REAL*8 for time vectors, to avoid problems with dates/times
-! far away from the reference time (bmy, 4/7/17)
-!    INTEGER, POINTER    :: tVec(:)
-!---------------------------------------------------------------------
     INTEGER             :: refYr, refMt, refDy, refHr, refMn, refSc
     INTEGER             :: T, YYYYMMDD, hhmmss 
     REAL*8              :: realrefDy, refJulday, tJulday
@@ -1180,7 +1167,7 @@ CONTAINS
     REAL*8,   POINTER   :: tVec(:)
 
     !=================================================================
-    ! NC_READ_TIME_YYYYMMDDhh begins here 
+    ! NC_READ_TIME_YYYYMMDDhhmm begins here 
     !=================================================================
 
     ! Init values
@@ -1220,26 +1207,21 @@ CONTAINS
     ENDIF
 
     ! Get calendar dates
-    IF ( ASSOCIATED ( all_YYYYMMDDhh ) ) DEALLOCATE( all_YYYYMMDDhh )
-    ALLOCATE( all_YYYYMMDDhh(nTime) )
-    all_YYYYMMDDhh = 0 
+    IF ( ASSOCIATED ( all_YYYYMMDDhhmm ) ) DEALLOCATE( all_YYYYMMDDhhmm )
+    ALLOCATE( all_YYYYMMDDhhmm(nTime) )
+    all_YYYYMMDDhhmm = 0.0d0
  
     ! Construct julian date for every available time slice. Make sure it is
     ! in the proper 'units', e.g. in days, hours or minutes, depending on 
     ! the reference unit.
     DO T = 1, nTime
-!---------------------------------------------------
-! Prior to 4/7/17:
-! TVEC is already REAL*8 (bmy, 4/7/17)
-!       tJulday = real(tVec(T), kind=8)
-!---------------------------------------------------
        tJulDay = tVec(T)
        IF ( refHr >= 0 ) tJulday = tJulday / 24.d0
        IF ( refMn >= 0 ) tJulday = tJulday / 60.d0
        tJulday = tJulday + refJulday
        CALL CALDATE ( tJulday, YYYYMMDD, hhmmss )
-       all_YYYYMMDDhh(T) = YYYYMMDD * 100 & 
-                         + FLOOR( MOD(hhmmss,1000000) / 1.0d4 )
+       all_YYYYMMDDhhmm(T) = ( DBLE( YYYYMMDD ) * 1d4   ) + &
+                             ( DBLE( hhmmss     / 100 ) ) 
     ENDDO
 
     ! Cleanup
@@ -1250,7 +1232,7 @@ CONTAINS
     IF ( PRESENT(refYear ) ) refYear  = refYr 
     RC = 0
 
-  END SUBROUTINE NC_READ_TIME_YYYYMMDDhh
+  END SUBROUTINE NC_READ_TIME_YYYYMMDDhhmm
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
