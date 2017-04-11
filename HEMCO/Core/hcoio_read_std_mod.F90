@@ -58,10 +58,18 @@ MODULE HCOIO_read_std_mod
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  22 Feb 2016 - C. Keller   - Split off from hcoio_dataread_mod.F90
-!  10 Apr 2017 - R. Yantosca - Time vectors now use YYYYMMDDhhmm format
+!  10 Apr 2017 - R. Yantosca - Time vectors now use YYYYMMDDhhmm format,
+!                              and are now all REAL(dp) instead of INTEGER(8)
+!  11 Apr 2017 - R. Yantosca - Added more minor fixes for robustness
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !DEFINED PARAMETERS
+!
+  ! Parameter used for difference testing of floating points
+  REAL(dp), PRIVATE, PARAMETER :: EPSILON = 1.0e-5_dp
+
 CONTAINS
 !EOC
 #if !defined(ESMF_)
@@ -202,7 +210,7 @@ CONTAINS
     LOGICAL                       :: DoReturn 
     INTEGER                       :: UnitTolerance
     INTEGER                       :: AreaFlag, TimeFlag 
-    REAL(dp)                      :: YMDhma, YMDhmb, YMDhm1 
+    REAL(dp)                      :: YMDhma,  YMDhmb, YMDhm1 
     REAL(dp)                      :: oYMDhm1, oYMDhm2
     INTEGER                       :: cYr, cMt, cDy, cHr, Yr1, Yr2
     INTEGER                       :: nYears, iYear 
@@ -953,16 +961,8 @@ CONTAINS
 
        ! Now convert to HEMCO units. This attempts to convert mass, 
        ! area/volume and time to HEMCO standards (kg, m2/m3, s).
-!-----------------------------------------------------------------------------
-! Prior to 4/10/17:
-! Time vectors now use YYYYMMDDhhmm instead of YYYYMMDDhh (bmy, 4/10/17)
-!       !GanLuo+ncYr  = FLOOR( MOD(oYMDh1,10000000000) / 1.0d6 )
-!       !GanLuo+ncMt  = FLOOR( MOD(oYMDh1,1000000)     / 1.0d4 )
-!       ncYr  = FLOOR( MOD(oYMDh1*1.d0,10000000000.d0) / 1.0d6 )
-!       ncMt  = FLOOR( MOD(oYMDh1*1.d0,1000000.d0)     / 1.0d4 )
-!-----------------------------------------------------------------------------
-       ncYr  = FLOOR( MOD( oYMDhm1, 1.0d12 ) / 1.0d8 )
-       ncMt  = FLOOR( MOD( oYMDhm1, 1.0d8  ) / 1.0d6 )
+       ncYr  = FLOOR( MOD( oYMDhm1, 1.0e12_dp ) / 1.0e8_dp )
+       ncMt  = FLOOR( MOD( oYMDhm1, 1.0e8_dp  ) / 1.0e6_dp )
 
        IF ( ncYr == 0 ) THEN
           CALL HcoClock_Get( am_I_Root, HcoState%Clock, cYYYY = ncYr, RC=RC ) 
@@ -1364,9 +1364,9 @@ CONTAINS
     ! Initialize
     wgt1  = -1.0_sp
     wgt2  = -1.0_sp
-    oYMDhm = 0
-    YMDhm  = 0
-    YMDhm1 = 0
+    oYMDhm = 0.0_dp
+    YMDhm  = 0.0_dp
+    YMDhm1 = 0.0_dp
  
     ! Initialize pointers
     availYMDhm => NULL() 
@@ -1445,16 +1445,12 @@ CONTAINS
     ! origYMDhm is the preferred datetime. Store into shadow variable
     ! prefYMDhm. prefYMDhm may be adjusted if origYMDhm is outside of the
     ! netCDF datetime range.
-!    origYMDh = prefYr*1000000 + prefMt*10000 + &
-!               prefDy*100 + max(prefHr,0)
-!    prefYMDh = origYMDh
-
     ! Now put origYMDhm, prefYMDhm in YYYYMMDDhhmm format (bmy, 4/10/17)
-    origYMDhm = DBLE( prefYr ) * 1d8 + &
-               DBLE( prefMt ) * 1d6 + &
-               DBLE( prefDy ) * 1d4 + &
-               DBLE( prefMn ) * 1d2 + &
-               DBLE( prefMn )
+    origYMDhm = ( DBLE(      prefYr      ) * 1.0e8_dp ) + &
+                ( DBLE(      prefMt      ) * 1.0e6_dp ) + &
+                ( DBLE(      prefDy      ) * 1.0e4_dp ) + &
+                ( DBLE( MAX( prefHr, 0 ) ) * 1.0e2_dp ) + &
+                ( DBLE( MAX( prefMn, 0 ) )          )
     prefYMDhm = origYMDhm
 
     ! verbose mode
@@ -1535,7 +1531,8 @@ CONTAINS
 
              ! verbose mode 
              IF ( verb ) THEN
-                write(MSG,'(A30,f14.0)') 'adjusted preferred datetime: ', prefYMDhm
+                write(MSG,'(A30,f14.0)') 'adjusted preferred datetime: ', &
+                     prefYMDhm
                 CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
       
@@ -1561,7 +1558,7 @@ CONTAINS
              tidx1 = nTime
           ENDIF
        ENDIF
- 
+
        ! ------------------------------------------------------------- 
        ! If we are dealing with weekday data, pick the slice to be
        ! used based on the current day of week. 
@@ -1658,10 +1655,10 @@ CONTAINS
           ! Interpolate between dates
           IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_INTER ) THEN
         
-             CALL GetIndex2Interp( am_I_Root, HcoState, Lct, nTime, &
-                                   availYMDhm, prefYMDhm, origYMDhm, &
-                                   tidx1,     tidx2,    wgt1,     &
-                                   wgt2,      RC                   )
+             CALL GetIndex2Interp( am_I_Root,  HcoState,  Lct, nTime, &
+                                   availYMDhm, prefYMDhm, origYMDhm,  &
+                                   tidx1,      tidx2,     wgt1,       &
+                                   wgt2,       RC                   )
              IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Check for multiple hourly data
@@ -1712,7 +1709,6 @@ CONTAINS
     ! (e.g. every hour, every 3 hours, ...).
     !-----------------------------------------------------------------
     IF ( (tidx2>tidx1) .AND. (Lct%Dct%Dta%CycleFlag/=HCO_CFLAG_INTER) ) THEN
-!       Lct%Dct%Dta%DeltaT = YMDh2hrs( availYMDh(tidx1+1) - availYMDh(tidx1) )
        Lct%Dct%Dta%DeltaT = YMDhm2hrs( availYMDhm(tidx1+1) - availYMDhm(tidx1) )
     ELSE
        Lct%Dct%Dta%DeltaT = 0
@@ -1723,7 +1719,8 @@ CONTAINS
        WRITE(MSG,'(A30,I14)') 'selected tidx1: ', tidx1
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        IF ( tidx1 > 0 ) THEN
-          WRITE(MSG,'(A30,f14.0)') 'corresponding datetime 1: ', availYMDhm(tidx1)
+          WRITE(MSG,'(A30,f14.0)') 'corresponding datetime 1: ', &
+               availYMDhm(tidx1)
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           IF ( wgt1 >= 0.0_sp ) THEN
              WRITE(MSG,*) 'weight1: ', wgt1
@@ -1734,7 +1731,8 @@ CONTAINS
        IF ( (tidx2 /= tidx1) ) THEN
           WRITE(MSG,'(A30,I14)') 'selected tidx2: ', tidx2
           CALL HCO_MSG(HcoState%Config%Err,MSG)
-          WRITE(MSG,'(A30,f14.0)') 'corresponding datetime 2: ', availYMDhm(tidx2)
+          WRITE(MSG,'(A30,f14.0)') 'corresponding datetime 2: ', &
+               availYMDhm(tidx2)
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           IF ( wgt1 >= 0.0_sp ) THEN
              WRITE(MSG,*) 'weight2: ', wgt2
@@ -1804,7 +1802,8 @@ CONTAINS
     INTEGER,          INTENT(OUT)  :: tidx1
 !
 ! !REVISION HISTORY:
-!  13 Mar 2013 - C. Keller - Initial version
+!  13 Mar 2013 - C. Keller   - Initial version
+!  11 Apr 2017 - R. Yantosca - Now epsilon-test time stamps for equality
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1825,7 +1824,10 @@ CONTAINS
 
     ! get closest index that is not in the future
     DO I = 1, N
-       IF ( availYMDhm(I) == prefYMDhm ) THEN
+
+       ! NOTE: Epsilon test is more robust than an equality test 
+       ! for double-precision variables (bmy, 4/11/17)
+       IF ( ABS( availYMDhm(I) - prefYMDhm ) < EPSILON ) THEN
           tidx1 = I
           EXIT
        ENDIF
@@ -1833,7 +1835,7 @@ CONTAINS
        ! Check if next time slice is in the future, in which case the
        ! current slice is selected. Don't do this for a CycleFlag of
        ! 3 (==> exact match).
-       IF ( (availYMDhm(I+1)        >  prefYMDhm       ) .AND. &
+       IF ( (availYMDhm(I+1)       >  prefYMDhm        ) .AND. &
             (Lct%Dct%Dta%CycleFlag /= HCO_CFLAG_EXACT) ) THEN
           tidx1 = I
           EXIT
@@ -1890,59 +1892,45 @@ CONTAINS
     ! prefYMDhm_Adjust begins here! 
     !=================================================================
 
-    !-----------------------------------------------------------------
-    ! Prior to 4/10/17:
-    ! Preserve original code assuming YYYYMMDDhh format (bmy, 4/10/17)
-    ! Get original Yr, Mt, Dy and Hr
-    !GanLuo+origYr = FLOOR( MOD(prefYMDh, 10000000000) / 1.0d6 )
-    !GanLuo+origMt = FLOOR( MOD(prefYMDh, 1000000    ) / 1.0d4 )
-    !GanLuo+origDy = FLOOR( MOD(prefYMDh, 10000      ) / 1.0d2 )
-    !GanLuo+origHr = FLOOR( MOD(prefYMDh, 100        ) / 1.0d0 )
-    ! NOTE: 
-    !origYr = FLOOR( MOD(prefYMDh*1.d0, 10000000000.d0) / 1.0d6 )
-    !origMt = FLOOR( MOD(prefYMDh*1.d0, 1000000.d0    ) / 1.0d4 )
-    !origDy = FLOOR( MOD(prefYMDh*1.d0, 10000.d0      ) / 1.0d2 )
-    !origHr = FLOOR( MOD(prefYMDh*1.d0, 100.d0        ) / 1.0d0 )
-    !-----------------------------------------------------------------
-    
     ! Get original Yr, Mt, Day, Hr, Mi
-    origYr = FLOOR( MOD( prefYMDhm, 1.0d12 ) / 1.0d8 )
-    origMt = FLOOR( MOD( prefYMDhm, 1.0d8  ) / 1.0d6 )
-    origDy = FLOOR( MOD( prefYMDhm, 1.0d6  ) / 1.0d4 )
-    origHr = FLOOR( MOD( prefYMDhm, 1.0d4  ) / 1.0d2 )
-    origMi = FLOOR( MOD( prefYMDhm, 1.0d2  )         )
+    ! Time values are now in YYYYMMDDhhmm format (bmy, 4/11/17)
+    origYr = FLOOR( MOD( prefYMDhm, 1.0e12_dp ) / 1.0e8_dp )
+    origMt = FLOOR( MOD( prefYMDhm, 1.0e8_dp  ) / 1.0e6_dp )
+    origDy = FLOOR( MOD( prefYMDhm, 1.0e6_dp  ) / 1.0e4_dp )
+    origHr = FLOOR( MOD( prefYMDhm, 1.0e4_dp  ) / 1.0e2_dp )
+    origMi = FLOOR( MOD( prefYMDhm, 1.0e2_dp  )            )
 
     ! Extract new attribute from availYMDhm and insert into prefYMDhm. Pick
     ! closest available value.
     SELECT CASE ( level ) 
        ! --- Year
        CASE ( 1 )
-          modVal  = 1.0d12
-          div     = 1.0d8
+          modVal  = 1.0e12_dp
+          div     = 1.0e8_dp
           refAttr = origYr
 
        ! --- Month
        CASE ( 2 )
-          modVal  = 1.0d8
-          div     = 1.0d6
+          modVal  = 1.0e8_dp
+          div     = 1.0e6_dp
           refAttr = origMt
 
        ! --- Day 
        CASE ( 3 )
-          modVal  = 1.0d6
-          div     = 1.0d4
+          modVal  = 1.0e6_dp
+          div     = 1.0e4_dp
           refAttr = origMt
 
        ! --- Hour
        CASE ( 4 )
-          modval  = 1.0d4
-          div     = 1.0d2
+          modval  = 1.0e4_dp
+          div     = 1.0e2_dp
           refAttr = origHr
 
        ! --- Minute
        CASE ( 5 )
-          modVal  = 1.0d2
-          div     = 1.0d0
+          modVal  = 1.0e2_dp
+          div     = 1.0_dp
           refAttr = origMi
 
        CASE DEFAULT
@@ -1968,7 +1956,7 @@ CONTAINS
     ENDIF
 
     ! Select current minimum value
-    minDiff = 10000000000000000d0
+    minDiff = 10000000000000000.0_dp
     newAttr = -1d0
     DO I = IMIN, IMAX 
        tmpAttr = FLOOR( MOD(availYMDhm(I),modVal) / div )
@@ -1987,42 +1975,42 @@ CONTAINS
     ! Update variable
     ! --- Year
     IF ( level == 1 ) THEN
-       prefYMDhm = ( newAttr * 1.0d8 ) + &
-                  ( origMt  * 1.0d6 ) + &
-                  ( origDy  * 1.0d4 ) + &
-                  ( origHr  * 1.0d2 ) + &
-                  ( origMi          )
+       prefYMDhm = ( newAttr * 1.0e8_dp ) + &
+                   ( origMt  * 1.0e6_dp ) + &
+                   ( origDy  * 1.0e4_dp ) + &
+                   ( origHr  * 1.0e2_dp ) + &
+                   ( origMi          )
 
     ! --- Month 
     ELSEIF ( level == 2 ) THEN
-       prefYMDhm = ( origYr  * 1.0d8 ) + &
-                  ( newAttr * 1.0d6 ) + &
-                  ( origDy  * 1.0d4 ) + &
-                  ( origHr  * 1.0d2 ) + &
-                  ( origMi          ) 
+       prefYMDhm = ( origYr  * 1.0e8_dp ) + &
+                   ( newAttr * 1.0e6_dp ) + &
+                   ( origDy  * 1.0e4_dp ) + &
+                   ( origHr  * 1.0e2_dp ) + &
+                   ( origMi             ) 
 
     ! --- Day
     ELSEIF ( level == 3 ) THEN
-       prefYMDhm = ( origYr  * 1.0d8  ) + &
-                  ( origMt  * 1.0d6  ) + &
-                  ( newAttr * 1.0d4  ) + &
-                  ( origHr  * 1.0d2  ) + &
-                  ( origMi           )
+       prefYMDhm = ( origYr  * 1.0e8_dp  ) + &
+                   ( origMt  * 1.0e6_dp  ) + &
+                   ( newAttr * 1.0e4_dp  ) + &
+                   ( origHr  * 1.0e2_dp  ) + &
+                   ( origMi              )
 
     ! --- Hour
     ELSEIF ( level == 4 ) THEN
-       prefYMDhm = ( origYr  * 1.0d8  ) + &
-                  ( origMt  * 1.0d6  ) + &
-                  ( origDy  * 1.0d4  ) + &
-                  ( newAttr * 1.0d2  ) + &
-                  ( origMi           )
+       prefYMDhm = ( origYr  * 1.0e8_dp  ) + &
+                   ( origMt  * 1.0e6_dp  ) + &
+                   ( origDy  * 1.0e4_dp  ) + &
+                   ( newAttr * 1.0e2_dp  ) + &
+                   ( origMi              )
     ! --- Minute
     ELSEIF ( level == 5 ) THEN
-       prefYMDhm = ( origYr  * 1.0d8  ) + &
-                  ( origMt  * 1.0d6  ) + &
-                  ( origDy  * 1.0d4  ) + &
-                  ( origHr  * 1.0d2  ) + &
-                  ( newAttr          )
+       prefYMDhm = ( origYr  * 1.0e8_dp  ) + &
+                   ( origMt  * 1.0e6_dp  ) + &
+                   ( origDy  * 1.0e4_dp  ) + &
+                   ( origHr  * 1.0e2_dp  ) + &
+                   ( newAttr             )
 
     ENDIF
 
@@ -2046,13 +2034,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER   , INTENT(IN)  :: N
-    REAL(dp)  , INTENT(IN)  :: availYMDhm(N)
-    INTEGER   , INTENT(IN)  :: tidx1 
+    INTEGER,  INTENT(IN)  :: N               ! Number of times
+    REAL(dp), INTENT(IN)  :: availYMDhm(N)   ! Time stamp vector
+    INTEGER,  INTENT(IN)  :: tidx1           ! Lower time slice index
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER   , INTENT(OUT) :: tidx2 
+    INTEGER,  INTENT(OUT) :: tidx2           ! Upper time slice index
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller   - Initial version
@@ -2077,12 +2065,12 @@ CONTAINS
     IF ( tidx1 == N ) RETURN
 
     ! Get wanted YMD
-    YMD = floor(availYMDhm(tidx1) / 1d4)
+    YMD = floor(availYMDhm(tidx1) / 1.0e4_dp)
 
     ! See how many more tile slices with the same YMD exist from index
     ! tidx1 onwards.
     DO I = tidx1, N
-       iYMD = floor(availYMDhm(I) / 1d4)
+       iYMD = floor(availYMDhm(I) / 1.0e4_dp)
        IF ( iYMD == YMD ) THEN
           tidx2 = I
        ELSEIF ( iYMD > YMD ) THEN
@@ -2122,7 +2110,8 @@ CONTAINS
     LOGICAL              :: Closest
 !
 ! !REVISION HISTORY:
-!  03 Mar 2015 - C. Keller - Initial version
+!  03 Mar 2015 - C. Keller   - Initial version
+!  11 Apr 2017 - R. Yantosca - Now epsilon-test time stamps for equality
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2149,7 +2138,9 @@ CONTAINS
     IF ( ctidx1 == 1 ) RETURN
 
     ! It's closest if it matches date exactly
-    IF ( availYMDhm(ctidx1) == prefYMDhm ) RETURN
+    ! NOTE: Epsilon test is more robust than an equality test 
+    ! for double-precision variables (bmy, 4/11/17)
+    IF ( ABS( availYMDhm(ctidx1) - prefYMDhm ) < EPSILON ) RETURN
 
     ! It's closest if current select one is in the future
     IF ( availYMDhm(ctidx1) > prefYMDhm ) RETURN
@@ -2206,15 +2197,22 @@ CONTAINS
     INTEGER,          INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY:
-!  02 Mar 2015 - C. Keller - Initial version
+!  02 Mar 2015 - C. Keller   - Initial version
+!  11 Apr 2017 - R. Yantosca - Time stamp variables now use YYYYMMDDhhmm
+!                              fprmat and are REAL(dp) instead of INTEGER(8)
+!  11 Apr 2017 - R. Yantosca - Now epsilon-test time stamps for equality
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 ! 
 ! !LOCAL VARIABLES:
 !
-    INTEGER             :: I, tmpYMDhm
+    ! Scalars
+    INTEGER             :: I
+    REAL(dp)            :: tmpYMDhm
     LOGICAL             :: verb
+
+    ! Strings
     CHARACTER(LEN=255)  :: MSG
     CHARACTER(LEN=255)  :: LOC = 'GetIndex2Interp (hcoio_dataread_mod.F90)'
 
@@ -2242,7 +2240,9 @@ CONTAINS
 
     ! No interpolation needed if there is a time slices that exactly 
     ! matches the (originally) preferred datetime.
-    ELSEIF( origYMDhm == availYMDhm(tidx1) ) THEN
+    ! NOTE: An Epsilon test is more robust than an equality test 
+    ! for double-precision variables (bmy, 4/11/17)
+    ELSEIF ( ABS( origYMDhm - availYMDhm(tidx1) ) < EPSILON ) THEN
        tidx2 = tidx1 
        wgt1  = 1.0_sp
        wgt2  = 0.0_sp
@@ -2265,8 +2265,8 @@ CONTAINS
        tmpYMDhm = availYMDhm(tidx1)
        DO 
           ! Increase by one year
-          tmpYMDhm = tmpYMDhm + 1000000
- 
+          tmpYMDhm = tmpYMDhm + 1.0e8_dp
+
           ! Exit if we are beyond available dates
           IF ( tmpYMDhm > availYMDhm(nTime) ) EXIT
  
@@ -2285,14 +2285,14 @@ CONTAINS
           tmpYMDhm = availYMDhm(tidx1)
           DO 
              ! Increase by one month
-             tmpYMDhm = tmpYMDhm + 10000
+             tmpYMDhm = tmpYMDhm + 1.0e6_dp
            
              ! Exit if we are beyond available dates
              IF ( tmpYMDhm > availYMDhm(nTime) ) EXIT
     
              ! Check if there is a time slice with that date
              DO I = tidx1,nTime
-                IF ( tmpYMDhm == availYMDhm(I) ) THEN
+                IF ( ABS( tmpYMDhm - availYMDhm(I) ) < EPSILON ) THEN
                    tidx2 = I
                    EXIT
                 ENDIF
@@ -2306,7 +2306,7 @@ CONTAINS
           tmpYMDhm = availYMDhm(tidx1)
           DO 
              ! Increase by one day
-             tmpYMDhm = tmpYMDhm + 100
+             tmpYMDhm = tmpYMDhm + 1.0e4_dp
            
              ! Exit if we are beyond available dates
              IF ( tmpYMDhm > availYMDhm(nTime) ) EXIT
@@ -2434,25 +2434,10 @@ CONTAINS
     !=================================================================
     ! YMDh2hrs begins here! 
     !=================================================================
-
-!----------------------------------------------------------------------------
-! Prior to 4/10/17:
-! These algorithms assumed time was in YYMMDDhh format
-!    !GanLuo+hrs = FLOOR( MOD(YMDh, 10000000000) / 1.0d6 ) * 8760 + &
-!    !GanLuo+      FLOOR( MOD(YMDh, 1000000    ) / 1.0d4 ) * 720  + &
-!    !GanLuo+      FLOOR( MOD(YMDh, 10000      ) / 1.0d2 ) * 24   + &
-!    !GanLuo+      FLOOR( MOD(YMDh, 100        ) / 1.0d0 )
-!
-!    hrs = FLOOR( MOD(YMDh*1.d0, 10000000000.d0) / 1.0d6 ) * 8760 + &
-!          FLOOR( MOD(YMDh*1.d0, 1000000.d0    ) / 1.0d4 ) * 720  + &
-!          FLOOR( MOD(YMDh*1.d0, 10000.d0      ) / 1.0d2 ) * 24   + &
-!          FLOOR( MOD(YMDh*1.d0, 100.d0        ) / 1.0d0 )
-!----------------------------------------------------------------------------
-
-    hrs = FLOOR( MOD( YMDhm, 1.0d12 ) / 1.0d8 ) * 8760 + &
-          FLOOR( MOD( YMDhm, 1.0d8  ) / 1.0d6 ) * 720  + &
-          FLOOR( MOD( YMDhm, 1.0d6  ) / 1.0d4 ) * 24   + &
-          FLOOR( MOD( YMDhm, 1.0d4  ) / 1.0d2 )
+    hrs = FLOOR( MOD( YMDhm, 1.0e12_dp ) / 1.0e8_dp ) * 8760 + &
+          FLOOR( MOD( YMDhm, 1.0e8_dp  ) / 1.0e6_dp ) * 720  + &
+          FLOOR( MOD( YMDhm, 1.0e6_dp  ) / 1.0e4_dp ) * 24   + &
+          FLOOR( MOD( YMDhm, 1.0e4_dp  ) / 1.0e2_dp )
 
   END FUNCTION YMDhm2hrs 
 !EOC
