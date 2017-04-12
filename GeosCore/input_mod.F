@@ -5486,7 +5486,7 @@
       ! Call setup routines from other F90 modules
       !=================================================================
 
-      ! Initialize parameters for ND49 timeseries
+      ! Initialize parameters for ND50 timeseries
       IF ( DO_ND50 ) THEN
          CALL INIT_DIAG50( DO_ND50, N_ND50, TRACERS, IMIN, IMAX, 
      &                     JMIN,    JMAX,   LMIN,    LMAX, FILE )
