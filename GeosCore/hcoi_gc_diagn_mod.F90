@@ -3737,6 +3737,32 @@ CONTAINS
           ENDIF
 
           !----------------------------------------
+          ! %%%%% Biogenic EOH %%%%%
+          !----------------------------------------
+
+          ! HEMCO species ID
+          HcoID = HCO_GetHcoID( 'EOH', HcoState )
+
+          ! Create diagnostic container (if EOH is defined)
+          IF ( HcoID > 0 ) THEN
+             DiagnName = 'BIOGENIC_EOH'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState  = HcoState,          &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = Cat,               &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kgC/m2/s',        &
+                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                                AutoFill  = 1,                 &
+                                RC        = RC                  ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDIF
+
+          !----------------------------------------
           ! %%%%% Biogenic PRPE %%%%%
           !----------------------------------------
 
@@ -3849,8 +3875,8 @@ CONTAINS
           !%%% The diagnostics  name defined below must match the names 
           !%%% used in the MEGAN extension!
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-          ! There are 5 manual diagnostics in MEGAN
-          DO I = 1,4
+          ! There are 3 manual diagnostics in MEGAN
+          DO I = 1,3
    
              ! Define diagnostics names. These names have to match the
              ! names called in hcox_megan_mod.F90.
@@ -3860,8 +3886,6 @@ CONTAINS
                 DiagnName = 'BIOGENIC_AAXX'
              ELSEIF ( I == 3 ) THEN
                 DiagnName = 'BIOGENIC_MOHX'
-             ELSEIF ( I == 4 ) THEN
-                DiagnName = 'BIOGENIC_ETOH'
              ENDIF
       
              ! Create diagnostics. Don't use AutoFill here since the 
@@ -4171,7 +4195,7 @@ CONTAINS
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
-                             OutUnit   = 'atoms C/cm2/s',   &
+                             OutUnit   = 'kg/m2/s',   &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  )
@@ -4198,7 +4222,7 @@ CONTAINS
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
-                             OutUnit   = 'atoms C/cm2/s',   &
+                             OutUnit   = 'kg/m2/s',   &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  )
@@ -4241,7 +4265,7 @@ CONTAINS
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
-                             OutUnit   = 'atoms C/cm2/s',   &
+                             OutUnit   = 'kg/m2/s',   &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  )

@@ -6506,7 +6506,7 @@
                   MWT (T,46) = 32d-3
                   SCALE (T,46) = 1e0
                CASE( 19)
-                  NAME(T,46) = 'ETOH'
+                  NAME(T,46) = 'EOH'
                   MOLC(T,46) = 2
                ! SOAupdate: Biogenic emissions from sesq hotp 3/1/10
                ! MOLC is #C/molecule (10 for mono, 15 for sesq) hotp 5/10/10

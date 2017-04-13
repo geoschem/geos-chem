@@ -240,7 +240,7 @@
          REAL(hp), POINTER       :: AEF_OMON(:,:)              ! Other monoterpenes
          REAL(hp), POINTER       :: AEF_MOHX(:,:)              ! Methanol
          REAL(hp), POINTER       :: AEF_ACET(:,:)              ! Acetone
-         REAL(hp), POINTER       :: AEF_ETOH(:,:)              ! Ethanol
+         REAL(hp), POINTER       :: AEF_EOH(:,:)               ! Ethanol
          REAL(hp), POINTER       :: AEF_CH2O(:,:)              ! Formaldehyde
          REAL(hp), POINTER       :: AEF_ALD2(:,:)              ! Acetaldehyde
          REAL(hp), POINTER       :: AEF_FAXX(:,:)              ! Formic acid
@@ -356,7 +356,7 @@
       REAL(hp)            :: EMIS_ISOP, EMIS_MBOX, EMIS_APIN, EMIS_BPIN
       REAL(hp)            :: EMIS_LIMO, EMIS_SABI, EMIS_MYRC, EMIS_CARE
       REAL(hp)            :: EMIS_OCIM, EMIS_OMON, EMIS_MONO, EMIS_ALD2
-      REAL(hp)            :: EMIS_MOHX, EMIS_ETOH, EMIS_FAXX, EMIS_AAXX
+      REAL(hp)            :: EMIS_MOHX, EMIS_EOH,  EMIS_FAXX, EMIS_AAXX
       REAL(hp)            :: EMIS_ACET, EMIS_PRPE, EMIS_C2H4
       REAL(hp)            :: EMIS_FARN, EMIS_BCAR, EMIS_OSQT
       REAL(hp)            :: BIOG_ALPH, BIOG_LIMO
@@ -400,7 +400,7 @@
       REAL(hp), TARGET    :: FLUXOMON  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXALD2  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXMOHX  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXETOH  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXEOH   (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXFAXX  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXAAXX  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXFARN  (HcoState%NX,HcoState%NY)
@@ -473,7 +473,7 @@
       FLUXMONO   = 0.0_hp
       FLUXALD2   = 0.0_hp
       FLUXMOHX   = 0.0_hp
-      FLUXETOH   = 0.0_hp
+      FLUXEOH    = 0.0_hp
       FLUXFAXX   = 0.0_hp
       FLUXAAXX   = 0.0_hp
       FLUXACETmo = 0.0_hp
@@ -534,7 +534,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J,      EMIS_ISOP, EMIS_MBOX, EMIS_APIN, EMIS_BPIN   )
 !$OMP+PRIVATE( EMIS_LIMO, EMIS_SABI, EMIS_MYRC, EMIS_CARE, EMIS_OCIM   )
-!$OMP+PRIVATE( EMIS_OMON, EMIS_MONO, EMIS_MOHX, EMIS_ETOH, EMIS_FAXX   )
+!$OMP+PRIVATE( EMIS_OMON, EMIS_MONO, EMIS_MOHX, EMIS_EOH,  EMIS_FAXX   )
 !$OMP+PRIVATE( EMIS_AAXX, EMIS_ACET, EMIS_PRPE, EMIS_C2H4              )
 !$OMP+PRIVATE( EMIS_FARN, EMIS_BCAR, EMIS_OSQT, EMIS_ALD2              )
 !$OMP+PRIVATE( MONO_MOL,  TMP,       MBOX_MOL                          )
@@ -561,7 +561,7 @@
          EMIS_MONO  = 0.0_hp
          EMIS_ALD2  = 0.0_hp
          EMIS_MOHX  = 0.0_hp
-         EMIS_ETOH  = 0.0_hp
+         EMIS_EOH   = 0.0_hp
          EMIS_FAXX  = 0.0_hp
          EMIS_AAXX  = 0.0_hp
          EMIS_ACET  = 0.0_hp
@@ -818,16 +818,16 @@
          ! MEGAN Ethanol
          IF ( Inst%IDTEOH > 0 ) THEN
             CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
-     &                                Inst, I, J, 'ETOH', EMIS_ETOH, RC)
+     &                                Inst, I, J, 'EOH', EMIS_EOH, RC)
             IF ( RC /= HCO_SUCCESS ) THEN 
                CALL HCO_ERROR( HcoState%Config%Err, 
-     &                        'GET_MEGAN_EMISSIONS_ETOH', RC )
+     &                        'GET_MEGAN_EMISSIONS_EOH', RC )
                ERR = .TRUE.
                EXIT
             ENDIF
 
             ! Add to tracer tendency array [kg C/m2/s]
-            FLUXETOH(I,J) = EMIS_ETOH
+            FLUXEOH(I,J) = EMIS_EOH
          ENDIF
 
          !--------------------------------------------------------------------
@@ -1377,11 +1377,11 @@
       IF ( Inst%IDTEOH > 0 ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXETOH, Inst%IDTEOH,
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXEOH, Inst%IDTEOH,
      &                     RC,        ExtNr=Inst%ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( HcoState%Config%Err,
-     &                  'HCO_EmisAdd error: FLUXETOH', RC )
+     &                  'HCO_EmisAdd error: FLUXEOH', RC )
             RETURN 
          ENDIF
       ENDIF
@@ -2175,7 +2175,7 @@
          
       ! Bidirectional VOC: Ethanol, formaldehyde, acetaldehyde, formic acid,
       ! acetic acid
-      ELSE IF ( TRIM(CPD) == 'ETOH' .OR.
+      ELSE IF ( TRIM(CPD) == 'EOH'  .OR.
      &          TRIM(CPD) == 'CH2O' .OR. 
      &          TRIM(CPD) == 'ALD2' .OR.
      &          TRIM(CPD) == 'FAXX' .OR.
@@ -2330,8 +2330,8 @@
             EMFAC = Inst%AEF_MOHX(I,J)
          CASE ( 'ACET' )
             EMFAC = Inst%AEF_ACET(I,J)
-         CASE ( 'ETOH' )
-            EMFAC = Inst%AEF_ETOH(I,J)
+         CASE ( 'EOH' )
+            EMFAC = Inst%AEF_EOH(I,J)
          CASE ( 'CH2O' )
             EMFAC = Inst%AEF_CH2O(I,J)
          CASE ( 'ALD2' )
@@ -3008,7 +3008,7 @@
       ! Error trap: GWETROOT must be between 0.0 and 1.0 (ckeller, 4/16/15)
       GWETROOT = MIN(MAX(ExtState%GWETROOT%Arr%Val(I,J),0.0_hp),1.0_hp)
 
-      IF ( TRIM( CMPD ) == 'ALD2' .OR. TRIM ( CMPD ) == 'ETOH' ) THEN
+      IF ( TRIM( CMPD ) == 'ALD2' .OR. TRIM ( CMPD ) == 'EOH' ) THEN
          
          ! GWETROOT = degree of saturation or wetness in the root-zone
          ! (top meter of soil). This is defined as the ratio of the volumetric
@@ -3476,7 +3476,7 @@
 ! <---
       REAL(hp)                :: PFT_EF_FARN(15), PFT_EF_BCAR(15)
       REAL(hp)                :: PFT_EF_OSQT(15)
-      REAL(hp)                :: EM_FRAC_ALD2(15), EM_FRAC_ETOH(15)
+      REAL(hp)                :: EM_FRAC_ALD2(15), EM_FRAC_EOH(15)
       REAL(hp)                :: EM_FRAC_FAXX(15), EM_FRAC_AAXX(15)
       REAL(hp)                :: EM_FRAC_CH2O(15)
      
@@ -3822,7 +3822,7 @@
 
       ! Ethanol: 40% of bidirectional category flux, except 25%
       ! for grasses and crops
-      EM_FRAC_ETOH = (/0.40_hp, 0.40_hp, 0.40_hp, 0.40_hp, 0.40_hp,
+      EM_FRAC_EOH  = (/0.40_hp, 0.40_hp, 0.40_hp, 0.40_hp, 0.40_hp,
      &                 0.40_hp, 0.40_hp, 0.40_hp, 0.40_hp, 0.40_hp,
      &                 0.40_hp, 0.25_hp, 0.25_hp, 0.25_hp, 0.25_hp/)
 
@@ -3891,8 +3891,8 @@
      &        ARRAY_16(:,:,ARR_IND) * PFT_EF_ACET(P)
 
          ! Ethanol: variable fraction of category
-         Inst%AEF_ETOH(:,:) = Inst%AEF_ETOH(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_BIDR(P) * EM_FRAC_ETOH(P)
+         Inst%AEF_EOH(:,:) = Inst%AEF_EOH(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_BIDR(P) * EM_FRAC_EOH(P)
 
          ! Formaldehyde: variable fraction of category
          Inst%AEF_CH2O(:,:) = Inst%AEF_CH2O(:,:) + 
@@ -3982,7 +3982,7 @@
 
          Inst%AEF_ACET(I,J) = Inst%AEF_ACET(I,J) 
      &                      * FACTOR *  36.0_hp /  58.079_hp 
-         Inst%AEF_ETOH(I,J) = Inst%AEF_ETOH(I,J) 
+         Inst%AEF_EOH(I,J)  = Inst%AEF_EOH(I,J) 
      &                      * FACTOR *  24.0_hp /  46.068_hp 
          Inst%AEF_ALD2(I,J) = Inst%AEF_ALD2(I,J) 
      &                      * FACTOR *  24.0_hp /  44.053_hp 
@@ -4177,7 +4177,7 @@
                WRITE(MSG,*) '   ALD2       = ',
      &                      TRIM(SpcNames(I)),Inst%IDTALD2
             CASE( 'EOH' )
-               Inst%IDTALD2 = HcoIDs(I)
+               Inst%IDTEOH  = HcoIDs(I)
                WRITE(MSG,*) '   EOH        = ',
      &                      TRIM(SpcNames(I)),Inst%IDTEOH
             CASE( 'C2H4' )
@@ -4479,13 +4479,13 @@
       ENDIF
       Inst%AEF_ACET = 0.0_hp
 
-      ALLOCATE( Inst%AEF_ETOH( NX, NY ), STAT=AS )
+      ALLOCATE( Inst%AEF_EOH( NX, NY ), STAT=AS )
       IF ( AS /= 0 ) THEN 
          CALL HCO_ERROR( HcoState%Config%Err,
-     &                  'AEF_ETOH', RC )
+     &                  'AEF_EOH', RC )
          RETURN
       ENDIF
-      Inst%AEF_ETOH = 0.0_hp
+      Inst%AEF_EOH = 0.0_hp
 
       ALLOCATE( Inst%AEF_CH2O( NX, NY ), STAT=AS )
       IF ( AS /= 0 ) THEN 
@@ -4886,8 +4886,8 @@
      &      DEALLOCATE( Inst%AEF_MOHX        )
        IF ( ASSOCIATED( Inst%AEF_ACET        ) ) 
      &      DEALLOCATE( Inst%AEF_ACET        )
-       IF ( ASSOCIATED( Inst%AEF_ETOH        ) ) 
-     &      DEALLOCATE( Inst%AEF_ETOH        )
+       IF ( ASSOCIATED( Inst%AEF_EOH         ) ) 
+     &      DEALLOCATE( Inst%AEF_EOH         )
        IF ( ASSOCIATED( Inst%AEF_CH2O        ) ) 
      &      DEALLOCATE( Inst%AEF_CH2O        )
        IF ( ASSOCIATED( Inst%AEF_ALD2        ) ) 

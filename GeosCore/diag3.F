@@ -4466,7 +4466,7 @@
 !  (16) ALD2   : Acetaldehyde               : atoms C/cm2/s : SCALESRCE
 !  (17) OMON   : Other monoterp             : atoms C/cm2/s : SCALESRCE
 !  (18) MOHX   : Methanol                   :   molec/cm2/s : SCALESRCE
-!  (19) ETOH   : Ethanol                    : atoms C/cm2/s : SCALESRCE
+!  (19) EOH    : Ethanol                    : atoms C/cm2/s : SCALESRCE
 !  (20) FARN   : Farnesene                  : atoms C/cm2/s : SCALESRCE
 !  (21) BCAR   : b-caryophyllene            : atoms C/cm2/s : SCALESRCE
 !  (22) OSQT   : Other sesquiterpenes       : atoms C/cm2/s : SCALESRCE
@@ -4804,7 +4804,7 @@
          !%%%%% ETHANOL %%%%%
          !-----------------------------------------------------------
          IF ( id_EOH > 0 ) THEN
-            DiagnName = 'BIOGENIC_ETOH'
+            DiagnName = 'BIOGENIC_EOH'
             UNIT      = 'atoms C/cm2/s'
             N         = 19
             SpcInfo => State_Chm%SpcData(id_eoh)%Info
