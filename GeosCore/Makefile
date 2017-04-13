@@ -266,7 +266,10 @@ lib:                                               # Build all G-C libraries
 libcore: $(OBJECTS)                                # Build code in GeosCore/
 
 libgigc:
+ifeq ($(wildcard $(FVDIR)/fvdycore.install),)
 	@$(MAKE) -C $(DYN) install
+	@touch $(FVDIR)/fvdycore.install
+endif
 	@$(MAKE) -C $(GCHP) lib
 
 libheaders:                                        # Build code in Headers/ 

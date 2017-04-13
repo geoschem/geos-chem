@@ -712,74 +712,93 @@ CONTAINS
     ! Deallocate fields
     !=======================================================================
     IF ( ASSOCIATED( State_Chm%Map_Advect) ) THEN
+       if (am_I_Root) print*, 'Deallocating 1'
        DEALLOCATE( State_Chm%Map_Advect )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_DryDep ) ) THEN
+       if (am_I_Root) print*, 'Deallocating 2'
        DEALLOCATE( State_Chm%Map_DryDep )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_KppSpc ) ) THEN
+       if (am_I_Root) print*, 'Deallocating 3'
        DEALLOCATE( State_Chm%Map_KppSpc )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_WetDep ) ) THEN
+       if (am_I_Root) print*, 'Deallocating 4'
        DEALLOCATE( State_Chm%Map_WetDep )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Spec_Id  ) ) THEN
+       if (am_I_Root) print*, 'Deallocating 5'
        DEALLOCATE( State_Chm%Spec_Id )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Spec_Name ) ) THEN
+       if (am_I_Root) print*, 'Deallocating 6'
        DEALLOCATE( State_Chm%Spec_Name  )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Species ) ) THEN
-       DEALLOCATE( State_Chm%Species )
+       if (am_I_Root) print*, 'Deallocating 7'
+       NULLIFY( State_Chm%Species )
+!       DEALLOCATE( State_Chm%Species )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Hg_Cat_Name ) ) THEN
+       if (am_I_Root) print*, 'Deallocating 8'
        DEALLOCATE( State_Chm%Hg_Cat_Name )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Hg0_Id_List ) ) THEN
+       if (am_I_Root) print*, 'Deallocating 9'
        DEALLOCATE( State_Chm%Hg0_Id_List ) 
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Hg2_Id_List ) ) THEN
+       if (am_I_Root) print*, 'Deallocating 10'
        DEALLOCATE( State_Chm%Hg2_Id_List )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%HgP_Id_List ) ) THEN
+       if (am_I_Root) print*, 'Deallocating 11'
        DEALLOCATE( State_Chm%HgP_Id_List )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%AeroArea ) ) THEN
+       if (am_I_Root) print*, 'Deallocating 12'
        DEALLOCATE( State_Chm%AeroArea   )
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%AeroRadi ) ) THEN
+       if (am_I_Root) print*, 'Deallocating 13'
        DEALLOCATE( State_Chm%AeroRadi )
     ENDIF
 
     IF ( ASSOCIATED(State_Chm%WetAeroArea) ) THEN
+       if (am_I_Root) print*, 'Deallocating 14'
        DEALLOCATE(State_Chm%WetAeroArea)
     ENDIF
 
     IF ( ASSOCIATED(State_Chm%WetAeroRadi) ) THEN
+       if (am_I_Root) print*, 'Deallocating 15'
        DEALLOCATE(State_Chm%WetAeroRadi)
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%STATE_PSC ) ) THEN
+       if (am_I_Root) print*, 'Deallocating 16'
        DEALLOCATE(State_Chm%STATE_PSC  )
     ENDIF
        
     IF ( ASSOCIATED( State_Chm%KHETI_SLA ) ) THEN
+       if (am_I_Root) print*, 'Deallocating 17'
        DEALLOCATE( State_Chm%KHETI_SLA  )
     ENDIF
 
     ! Deallocate the species database object field
+       if (am_I_Root) print*, 'Deallocating 18'
     CALL Cleanup_Species_Database( am_I_Root, State_Chm%SpcData, RC )
 
   END SUBROUTINE Cleanup_State_Chm
