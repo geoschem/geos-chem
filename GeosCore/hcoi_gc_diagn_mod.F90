@@ -2743,6 +2743,7 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      only : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -2778,6 +2779,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: ExtNr, HcoID, I, N, N_CO
+    INTEGER            :: id_OCPI, id_OCPO
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=31)  :: DiagnName_AN
@@ -2811,6 +2813,10 @@ CONTAINS
     IF ( Input_Opt%ITS_A_POPS_SIM    ) RETURN
     IF ( Input_Opt%ITS_A_RnPbBe_SIM  ) RETURN
     IF ( Input_Opt%ITS_A_TAGO3_SIM   ) RETURN
+
+    ! Define advected species ID's
+    id_OCPI = Ind_('OCPI','A')
+    id_OCPO = Ind_('OCPO','A')
 
     ! ND36 only: VOC's are only defined for fullchem (not tagged CO)
     IF ( ND36 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
@@ -3194,26 +3200,31 @@ CONTAINS
        ! %%%%% Anthropogenic OCPI %%%%%
        !----------------------------------------
 
-       ! HEMCO species ID
-       HcoID = GetHemcoId( 'OCPI', HcoState, LOC, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Only create diagnostic if OCPI is a defined species
+       IF ( id_OCPI > 0 ) THEN
 
-       ! Create diagnostic container
-       DiagnName = 'ANTHROPOGENIC_OCPI'
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = CATEGORY_ANTHRO,   &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 3,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',        &
-                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                          AutoFill  = 1,                 &
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'OCPI', HcoState, LOC, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! Create diagnostic container
+          DiagnName = 'ANTHROPOGENIC_OCPI'
+          CALL Diagn_Create( am_I_Root,                     & 
+                             HcoState  = HcoState,          &
+                             cName     = TRIM( DiagnName ), &
+                             ExtNr     = ExtNr,             &
+                             Cat       = CATEGORY_ANTHRO,   &
+                             Hier      = -1,                &
+                             HcoID     = HcoID,             &
+                             SpaceDim  = 3,                 &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/m2/s',        &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                             AutoFill  = 1,                 &
+                             RC        = RC                  ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ENDIF
 
        !----------------------------------------
        ! %%%%% Anthropogenic BCPO %%%%%
@@ -3244,26 +3255,31 @@ CONTAINS
        ! %%%%% Anthropogenic OCPO %%%%%
        !----------------------------------------
 
-       ! HEMCO species ID
-       HcoID = GetHemcoId( 'OCPO', HcoState, LOC, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Only create diagnostic if OCPO is a defined species
+       IF ( id_OCPO > 0 ) THEN
 
-       ! Create diagnostic container
-       DiagnName = 'ANTHROPOGENIC_OCPO'
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = CATEGORY_ANTHRO,   &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 3,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',        &
-                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                          AutoFill  = 1,                 &
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'OCPO', HcoState, LOC, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! Create diagnostic container
+          DiagnName = 'ANTHROPOGENIC_OCPO'
+          CALL Diagn_Create( am_I_Root,                     & 
+                             HcoState  = HcoState,          &
+                             cName     = TRIM( DiagnName ), &
+                             ExtNr     = ExtNr,             &
+                             Cat       = CATEGORY_ANTHRO,   &
+                             Hier      = -1,                &
+                             HcoID     = HcoID,             &
+                             SpaceDim  = 3,                 &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/m2/s',        &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                             AutoFill  = 1,                 &
+                             RC        = RC                  ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ENDIF
 
        !----------------------------------------
        ! %%%%% Anthropogenic NO2 %%%%%
