@@ -3189,6 +3189,7 @@
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  20 Sep 2016 - R. Yantosca - Use "I8" format for write statement
+!  18 Apr 2017 - C. Holmes   - Fix incorrect format statement in error msg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3320,10 +3321,12 @@
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
       IF ( .not. Input_Opt%HPC ) THEN
-      IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
-         write(MSG,'(I8,a,L)') '<>', Input_Opt%TS_DYN, Input_Opt%HPC
-         CALL ERROR_STOP( MSG, LOCATION )
-      ENDIF
+         IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
+            WRITE( MSG, 300 ) 'Transport timestep exceeds max:',
+     &                        Input_Opt%TS_DYN, MAX_DYN
+ 300        FORMAT( a, i8, ' >', i8 ) 
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
       ENDIF
 
 #endif
