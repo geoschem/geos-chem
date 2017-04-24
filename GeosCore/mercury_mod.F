@@ -185,9 +185,6 @@
 !  31 May 2016 - E. Lundgren - Replace Input_Opt%XNUMOL with AVO / (emMW_g*1e-3)
 !                              where emMW_g is emitted MW from species database
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  30 Mar 2017 - M. Sulprizio- Hg0 biomass burning emissions are now 3D to allow
-!                              for emissions to be distributed to the PBL and
-!                              free troposphere (PAN updates from E.Fischer)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -262,7 +259,7 @@
       REAL(fp), ALLOCATABLE :: EHg0_dist(:,:) ! Spatial dist of terrestrial Hg0
                                               !  sources [unitless]
       REAL(fp), ALLOCATABLE :: EHg0_geo(:,:)  ! Geogenic Hg0 emis [kg/s]
-      REAL(fp), ALLOCATABLE :: EHg0_bb(:,:,:) ! Biomass burning Hg0 emis [kg/s]
+      REAL(fp), ALLOCATABLE :: EHg0_bb(:,:)   ! Biomass burning Hg0 emis [kg/s]
       REAL(fp), ALLOCATABLE :: EHg0_vg(:,:)   ! Vegetation Hg0 emis [kg/s
       REAL(fp), ALLOCATABLE :: EHg0_so(:,:)   ! Soil Hg0 emis [kg/s]
       REAL(fp), ALLOCATABLE :: EHg0_gtm(:,:)  ! GTMM Hg0 emis [kg/s]
@@ -275,7 +272,7 @@
       ! For now, we need an emission array for the HG simulation
       ! that can be passed to vdiff_mod.F90 since Trac_Tend does 
       ! not exist anymore (ckeller, 10/21/2014).
-      REAL(fp), ALLOCATABLE, PUBLIC :: HG_EMIS(:,:,:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: HG_EMIS(:,:,:)
 
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared REAL(f4), aka REAL*4.
@@ -1716,12 +1713,12 @@
      &           GET_YMID( I, J, 1 ) >  10  .AND.
      &           GET_YMID( I, J, 1 ) <  70 ) THEN
                
-               EHg0_An(I,J)   = 0e+0_fp
-               EHg2_An(I,J)   = 0e+0_fp
-               EHgP_An(I,J)   = 0e+0_fp
+               EHg0_An(I,J) = 0e+0_fp
+               EHg2_An(I,J) = 0e+0_fp
+               EHgP_An(I,J) = 0e+0_fp
                
-               EHg0_bb(I,J,:) = 0e+0_fp
-               EHg0_am(I,J)   = 0e+0_fp
+               EHg0_bb(I,J) = 0e+0_fp
+               EHg0_am(I,J) = 0e+0_fp
                
             ENDIF
 
@@ -1839,7 +1836,7 @@
          ! Save emissions as [kg/m2/s].  These will be added
          ! to the chemical species array in routine DO_TEND
          ! (in mixing_mod.F90).
-         HG_EMIS(I,J,L,ID) = HG_EMIS(I,J,L,ID) 
+         HG_EMIS(I,J,ID) = HG_EMIS(I,J,ID) 
      &                   + ( MAX(E_HG,0e+0_fp) / AM2 / TS )
 
       ELSE
@@ -1881,7 +1878,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DIAG03_MOD,         ONLY : AD03, LD03, ND03, AD03_nat
+      USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_nat
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -1913,7 +1910,6 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
-!  30 Mar 2017 - M. Sulprizio- Hg0 burning emissions are now 3D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1957,7 +1953,7 @@
             T_Hg_An = 0e+0_fp
 
             ! No biomass burning emissions
-            EHg0_bb(I,J,:) = 0e+0_fp
+            EHg0_bb(I,J) = 0e+0_fp
 
          ELSE
 
@@ -1966,7 +1962,7 @@
 
             IF ( LAnthroHgOnly ) THEN
                ! No other emissions
-               EHg0_bb(I,J,:)    = 0e+0_fp
+               EHg0_bb(I,J)      = 0e+0_fp
                EHg0_oc(I,J,:)    = 0e+0_fp
                EHg0_snow(I,J,:)  = 0e+0_fp
                IF ( LGTMM ) THEN
@@ -1983,12 +1979,14 @@
          ! Compute total Hg(0) emissions (anthro+oceans+land+natural)
          IF ( LGTMM ) THEN
             T_Hg = T_Hg_An +
+     &             EHg0_bb(I,J) +
      &             EHg0_oc(I,J,ID_Hg_tot) + 
      &             EHg0_geo(I,J) +
      &             EHg0_gtm(I,J) +
      &             EHg0_snow(I,J,ID_Hg_tot)
          ELSE
             T_Hg = T_Hg_An +
+     &             EHg0_bb(I,J) +
      &             EHg0_oc(I,J,ID_Hg_tot) + 
      &             EHg0_ln(I,J,ID_Hg_tot) +
      &             EHg0_geo(I,J) +
@@ -1996,11 +1994,6 @@
      &             EHg0_so(I,J) +
      &             EHg0_snow(I,J,ID_Hg_tot)
          ENDIF
-
-         ! Add biomass burning emissions from PBL and free troposphere
-         DO L = 1, LLPAR
-            T_Hg = T_Hg + EHg0_bb(I,J,L)
-         ENDDO
 
          !==============================================================
          ! Partition Hg0 throughout PBL; store into STT [kg]
@@ -2119,11 +2112,9 @@
                E_Hg = F_OF_PBL * EHg0_so(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
-               ! Biomass burning emissions
-               ! Now 3D, no need for F_OF_PBL as this is applied in
-               ! the GFED and FINN extensions (mps, 3/30/17)
+               ! Biomass burning emissions             
                N    = Hg0_Id_List(ID_Hg_bb)
-               E_Hg = EHg0_bb(I,J,L) * DTSRCE
+               E_Hg = F_OF_PBL * EHg0_bb(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
 
                ! Geogenic emissions             
@@ -2578,19 +2569,12 @@
               !eds 9/9/10 
               DO NN = 1, N_HG_CATS
 
-              AD03(I,J,1, 1,NN) = AD03(I,J,1, 1,NN) +
-     &                            (T_Hg_An          * DTSRCE)
-              AD03(I,J,1, 3,NN) = AD03(I,J,1, 3,NN) +
-     &                            (EHg0_oc(I,J,NN)  * DTSRCE)
-              AD03(I,J,1, 4,NN) = AD03(I,J,1, 4,NN) +
-     &                            (EHg0_gtm(I,J)    * DTSRCE)
-              AD03(I,J,1, 5,NN) = AD03(I,J,1, 5,NN) +
-     &                            (EHg0_geo(I,J)    * DTSRCE)
-              AD03(I,J,1,18,NN) = AD03(I,J,1,18,NN) +
-     &                            (EHg0_snow(I,J,NN)* DTSRCE)
-
-              AD03(I,J,1:LD03,13,NN) = AD03(I,J,1:LD03,13,NN) +
-     &                                 (EHg0_bb(I,J,1:LD03) * DTSRCE)
+              AD03(I,J, 1,NN)=AD03(I,J, 1,NN)+(T_Hg_An          *DTSRCE)
+              AD03(I,J, 3,NN)=AD03(I,J, 3,NN)+(EHg0_oc(I,J,NN)  *DTSRCE)
+              AD03(I,J, 4,NN)=AD03(I,J, 4,NN)+(EHg0_gtm(I,J)    *DTSRCE)
+              AD03(I,J, 5,NN)=AD03(I,J, 5,NN)+(EHg0_geo(I,J)    *DTSRCE)
+              AD03(I,J,13,NN)=AD03(I,J,13,NN)+(EHg0_bb(I,J)     *DTSRCE)
+              AD03(I,J,18,NN)=AD03(I,J,18,NN)+(EHg0_snow(I,J,NN)*DTSRCE)
 
               ENDDO
 
@@ -2600,23 +2584,14 @@
               !eds 9/9/10 
               DO NN = 1, N_HG_CATS
 
-              AD03(I,J,1, 1,NN) = AD03(I,J,1, 1,NN) +
-     &                            (T_Hg_An          * DTSRCE)
-              AD03(I,J,1, 3,NN) = AD03(I,J,1, 3,NN) +
-     &                            (EHg0_oc(I,J,NN)  * DTSRCE)
-              AD03(I,J,1, 4,NN) = AD03(I,J,1, 4,NN) +
-     &                            (EHg0_ln(I,J,NN)  * DTSRCE)
-              AD03(I,J,1, 5,NN) = AD03(I,J,1, 5,NN) +
-     &                            (EHg0_geo(I,J)    * DTSRCE)
-              AD03(I,J,1,14,NN) = AD03(I,J,1,14,NN) +
-     &                            (EHg0_vg(I,J)     * DTSRCE)
-              AD03(I,J,1,15,NN) = AD03(I,J,1,15,NN) +
-     &                            (EHg0_so(I,J)     * DTSRCE)
-              AD03(I,J,1,18,NN) = AD03(I,J,1,18,NN) +
-     &                            (EHg0_snow(I,J,NN)* DTSRCE)
-
-              AD03(I,J,1:LD03,13,NN) = AD03(I,J,1:LD03,13,NN) +
-     &                                 (EHg0_bb(I,J,1:LD03) * DTSRCE)
+              AD03(I,J, 1,NN)=AD03(I,J, 1,NN)+(T_Hg_An          *DTSRCE)
+              AD03(I,J, 3,NN)=AD03(I,J, 3,NN)+(EHg0_oc(I,J,NN)  *DTSRCE)
+              AD03(I,J, 4,NN)=AD03(I,J, 4,NN)+(EHg0_ln(I,J,NN)  *DTSRCE)
+              AD03(I,J, 5,NN)=AD03(I,J, 5,NN)+(EHg0_geo(I,J)    *DTSRCE)
+              AD03(I,J,13,NN)=AD03(I,J,13,NN)+(EHg0_bb(I,J)     *DTSRCE)
+              AD03(I,J,14,NN)=AD03(I,J,14,NN)+(EHg0_vg(I,J)     *DTSRCE)
+              AD03(I,J,15,NN)=AD03(I,J,15,NN)+(EHg0_so(I,J)     *DTSRCE)
+              AD03(I,J,18,NN)=AD03(I,J,18,NN)+(EHg0_snow(I,J,NN)*DTSRCE)
 
               ENDDO
 
@@ -2627,25 +2602,23 @@
             ! for present day archive soil, geogenic, biomass burning, 
             ! vegetation, and rapid recycing 
             IF ( LPREINDHG ) THEN !eds
-               AD03_nat(I,J,1,:)=MAX(EHg0_so(I,J)*DTSRCE, SMALLNUM)
+               AD03_nat(I,J,:)=MAX(EHg0_so(I,J)*DTSRCE, SMALLNUM)
             ELSE
                IF ( LGTMM ) THEN
                   DO N = 1, N_HG_CATS
-                     AD03_nat(I,J,1,N) = DTSRCE * ( EHg0_geo(I,J)     +
-     &                                              EHg0_gtm(I,J)     +
-     &                                              EHg0_snow(I,J,N)  )
-                     AD03_nat(I,J,1:LD03,N) = DTSRCE *
-     &                                        EHg0_bb(I,J,1:LD03)
+                     AD03_nat(I,J,N) = DTSRCE * ( EHg0_geo(I,J)     +
+     &                                            EHg0_bb(I,J)      +
+     &                                            EHg0_gtm(I,J)     +
+     &                                            EHg0_snow(I,J,N)  )
                   ENDDO
                ELSE
                   DO N = 1, N_HG_CATS
-                     AD03_nat(I,J,1,N) = DTSRCE * ( EHg0_ln(I,J,N)   +
-     &                                              EHg0_geo(I,J)    +
-     &                                              EHg0_vg(I,J)     +
-     &                                              EHg0_so(I,J)     +
-     &                                              EHg0_snow(I,J,N) )
-                     AD03_nat(I,J,1:LD03,N) = DTSRCE *
-     &                                        EHg0_bb(I,J,1:LD03)
+                     AD03_nat(I,J,N) = DTSRCE * ( EHg0_ln(I,J,N)   +
+     &                                            EHg0_geo(I,J)    +
+     &                                            EHg0_bb(I,J)     +
+     &                                            EHg0_vg(I,J)     +
+     &                                            EHg0_so(I,J)     +
+     &                                            EHg0_snow(I,J,N) )
                   ENDDO
                ENDIF 
             ENDIF
@@ -2857,8 +2830,7 @@
             ! ND03 diag: Anthro Hg(II) [kg]
             !-------------------------------
             IF ( ND03 > 0 ) THEN
-               AD03(I,J,1,6,1) = AD03(I,J,1,6,1) +
-     &                           ( EHg2_an(I,J) * DTSRCE )
+               AD03(I,J,6,1) = AD03(I,J,6,1) + ( EHg2_an(I,J) * DTSRCE )
             ENDIF
          ENDDO
          ENDDO
@@ -3066,8 +3038,7 @@
             ! ND03 diag: Anthro HgP [kg]
             !----------------------------
             IF ( ND03 > 0 ) THEN
-               AD03(I,J,1,9,1) = AD03(I,J,1,9,1) +
-     &                           (EHgP_an(I,J) * DTSRCE)
+               AD03(I,J,9,1) = AD03(I,J,9,1) + (EHgP_an(I,J) * DTSRCE)
             ENDIF
          
          ENDDO 
@@ -4777,7 +4748,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_geo' )
       EHg0_geo = 0e+0_fp
 
-      ALLOCATE( EHg0_bb( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( EHg0_bb( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_bb' )
       EHg0_bb = 0e+0_fp
 
@@ -5060,7 +5031,7 @@
       ENDIF
 
       ! HG_EMIS is needed for non-local PBL mixing 
-      ALLOCATE ( HG_EMIS( IIPAR, JJPAR, LLPAR, nAdvect ), STAT=AS )
+      ALLOCATE ( HG_EMIS( IIPAR, JJPAR, nAdvect ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG_EMIS' )
       HG_EMIS = 0e+0_fp
 

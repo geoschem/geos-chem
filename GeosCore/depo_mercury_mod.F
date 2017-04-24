@@ -428,9 +428,9 @@
 !    -- Bob Yantosca (22 Apr 2016)
 !
          ! Store diagnostic of TOTAL HgII/HgP deposition to snow/ice
-         IF ( ND03 > 0 ) AD03(I,J,1,21,1) = AD03(I,J,1,21,1)   +
-     &                                      FRAC_SNOW_OR_ICE *
-     &                                      MAX(DEP_HG2, 0e+0_fp) 
+         IF ( ND03 > 0 ) AD03(I,J,21,1) = AD03(I,J,21,1)   +
+     &                                    FRAC_SNOW_OR_ICE *
+     &                                    MAX(DEP_HG2, 0e+0_fp) 
 !----------------------------------------------------------------------------
       ENDIF
 

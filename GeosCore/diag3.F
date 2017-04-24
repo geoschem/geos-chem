@@ -276,8 +276,7 @@
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  20 Sep 2016 - R. Yantosca - Use .eqv. instead of .eq. to compare LOGICALs
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  27 Mar 2017 - M. Sulprizio- Make biomass burning and anthropogenic emission
-!                              diagnostics 3D
+!  27 Mar 2017 - M. Sulprizio- Make anthropogenic emission diagnostics 3D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -841,7 +840,7 @@
                   CASE ( 3 ) 
                      CATEGORY = TRIM(SpcName)//'-BIOB'
                      SRCNAME  = 'BIOMASS'
-                     Levs     = LLPAR
+                     Levs     = 1
                END SELECT
    
                !----- (1) Hydrophilic -----
@@ -869,12 +868,12 @@
       
                ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  IF ( I == 2 ) THEN
+                  IF ( I == 2 .or I == 3 ) THEN
                      ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
      &                            * FACTOR
      &                            * HcoState%Grid%AREA_M2%Val(:,:)
                   ELSE
-                     ! Biomass burning and anthro emissions are 3D
+                     ! Anthro emissions are 3D
                      DO L = 1, LLPAR
                         ARRAY(:,:,L) = DiagnCnt%Arr3D%Val(:,:,L)
      &                               * FACTOR
@@ -914,13 +913,13 @@
       
                ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  IF ( I == 2 ) THEN
+                  IF ( I == 2 .or. I == 3 ) THEN
                      ARRAY(:,:,1) = ARRAY(:,:,1) 
      &                            + ( DiagnCnt%Arr2D%Val(:,:)
      &                            * FACTOR 
      &                            * HcoState%Grid%AREA_M2%Val(:,:) )
                   ELSE
-                     ! Biomass burning and anthro emissions are 3D
+                     ! Anthro emissions are 3D
                      DO L = 1, LLPAR
                         ARRAY(:,:,L) = ARRAY(:,:,L) 
      &                               + ( DiagnCnt%Arr3D%Val(:,:,L)
@@ -1659,7 +1658,7 @@
          CATEGORY  = 'SO2-AN-$'
          FACTOR    =  S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO2, 1, LLPAR, .FALSE., FACTOR, RC )
+     &                   UNIT, id_SO2, 1, -1, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
          
          !%%%%% Biomass SO2 (convert kg/m2/s --> kg S) %%%%%
@@ -1667,7 +1666,7 @@
          CATEGORY  = 'SO2-BIOB'
          FACTOR    = S_SO2 * SECONDS
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &          UNIT, id_SO2, 1, LLPAR, .TRUE., FACTOR, RC, AreaScal=1 )
+     &           UNIT, id_SO2, 1, -1, .TRUE., FACTOR, RC, AreaScal=1 )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Biofuel SO2 %%%%%
@@ -1711,7 +1710,7 @@
          CATEGORY  = 'SO4-AN-$'
          FACTOR    = S_SO4
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO4, 1, LLPAR, .FALSE., FACTOR, RC )
+     &                   UNIT, id_SO4, 1, -1, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Biofuel SO4 %%%%%
@@ -1732,7 +1731,7 @@
          CATEGORY  = 'NH3-ANTH'
          FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_NH3, 1, LLPAR, .FALSE., FACTOR, RC )
+     &                   UNIT, id_NH3, 1, -1, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%%  Natural source NH3 %%%%%
@@ -1748,7 +1747,7 @@
          CATEGORY  = 'NH3-BIOB'
          FACTOR    = SECONDS
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &          UNIT, id_NH3, 1, LLPAR, .TRUE., FACTOR, RC, AreaScal=1 )
+     &          UNIT, id_NH3, 1, -1, .TRUE., FACTOR, RC, AreaScal=1 )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Biofuel NH3 %%%%%
@@ -2576,7 +2575,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp * CM2PERM2 )
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2588,7 +2587,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp * CM2PERM2 )
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2600,7 +2599,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2612,7 +2611,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2624,7 +2623,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2636,7 +2635,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2648,7 +2647,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2660,7 +2659,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2672,7 +2671,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2684,7 +2683,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2696,7 +2695,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2708,7 +2707,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2720,7 +2719,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2732,7 +2731,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2760,10 +2759,8 @@
       
          ! Save into ARRAY. Convert to units
          IF ( FLAG == HCO_SUCCESS ) THEN
-            DO L = 1, LLPAR
-               ARRAY(:,:,L) = DiagnCnt%Arr3D%Val(:,:,L) 
-     &                      * FACTOR 
-            ENDDO
+            ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
+     &                   * FACTOR 
          ELSE
             MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
             MSG = TRIM(MSG) // ' - will write zeros!'
@@ -2784,10 +2781,8 @@
       
          ! Save into ARRAY. Convert to units
          IF ( FLAG == HCO_SUCCESS ) THEN
-            DO L = 1, LLPAR
-               ARRAY(:,:,L) = ARRAY(:,:,L) 
-     &                      + ( DiagnCnt%Arr3D%Val(:,:,L) * FACTOR )
-            ENDDO
+            ARRAY(:,:,1) = ARRAY(:,:,1) 
+     &                   + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
          ELSE
             MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
             MSG = TRIM(MSG) // ' - will write zeros!'
@@ -2798,8 +2793,8 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LLPAR,    IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       
          ! Free pointer
          DiagnCnt => NULL()
@@ -2813,7 +2808,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
 
          !%%%%% OC %%%%%
          ELSE
@@ -2837,10 +2832,8 @@
          
             ! Save into ARRAY. Convert to units
             IF ( FLAG == HCO_SUCCESS ) THEN
-               DO L = 1, LLPAR
-                  ARRAY(:,:,L) = DiagnCnt%Arr3D%Val(:,:,L) 
-     &                         * FACTOR
-               ENDDO
+               ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
+     &                      * FACTOR
             ELSE
                MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                MSG = TRIM(MSG) // ' - will write zeros!'
@@ -2861,10 +2854,8 @@
          
             ! Save into ARRAY. Convert to units
             IF ( FLAG == HCO_SUCCESS ) THEN
-               DO L = 1, LLPAR
-                  ARRAY(:,:,L) = ARRAY(:,:,L) 
-     &                         + ( DiagnCnt%Arr3D%Val(:,:,L) * FACTOR )
-               ENDDO
+               ARRAY(:,:,1) = ARRAY(:,:,1) 
+     &                      + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
             ELSE
                MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                MSG = TRIM(MSG) // ' - will write zeros!'
@@ -2875,8 +2866,8 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LLPAR,    IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
+     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          
             ! Free pointer
             DiagnCnt => NULL()
@@ -2890,7 +2881,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2902,7 +2893,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2914,7 +2905,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2926,7 +2917,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2938,7 +2929,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2950,7 +2941,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2962,7 +2953,7 @@
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -3025,7 +3016,6 @@
                   Levs      = LLPAR
                CASE( 2 )
                   DiagnName = 'BIOMASS_CO'
-                  Levs      = LLPAR
                CASE( 3 )
                   DiagnName = 'BIOFUEL_CO'
                CASE( 4 ) 
@@ -3078,22 +3068,16 @@
                ! Tagged CO: Regional biomass tracers
                CASE( 19 )
                   DiagnName = 'BIOMASS_TAGCO_USA'
-                  Levs      = LLPAR
                CASE( 20 )
                   DiagnName = 'BIOMASS_TAGCO_AFRICA'
-                  Levs      = LLPAR
                CASE( 21 )
                   DiagnName = 'BIOMASS_TAGCO_ASIA'
-                  Levs      = LLPAR
                CASE( 22 )
                   DiagnName = 'BIOMASS_TAGCO_OCEANIA'
-                  Levs      = LLPAR
                CASE( 23 )
                   DiagnName = 'BIOMASS_TAGCO_EUROPE'
-                  Levs      = LLPAR
                CASE( 24 )
                   DiagnName = 'BIOMASS_TAGCO_OTHER'
-                  Levs      = LLPAR
                   
                ! Default
                CASE DEFAULT
@@ -3289,7 +3273,7 @@
          DiagnName = 'BIOMASS_NO' 
          CATEGORY  = 'NO-BIOB'
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !%%%%% Biofuel NO %%%%%
@@ -5609,13 +5593,13 @@
 
             UNIT = 'kg'
 
-            ARRAY(:,:,1:LLPAR) = AD58(:,:,1:LLPAR,N)
+            ARRAY(:,:,1) = AD58(:,:,N)
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LLPAR,    IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
+     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
 

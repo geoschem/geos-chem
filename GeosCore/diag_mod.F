@@ -174,7 +174,7 @@
 
       ! -- for methane simulation diagnostics
       REAL*4,  ALLOCATABLE :: AD19(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD58(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD58(:,:,:)
       REAL*4,  ALLOCATABLE :: AD60(:,:)
 
 #if   defined( TOMAS )

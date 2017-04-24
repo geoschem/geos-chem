@@ -48,7 +48,7 @@
 
       ! Make CH4_EMIS now public so that it can be used by vdiff_mod.F90
       ! Methane emissions units are [kg/m2/s]
-      REAL(fp),  ALLOCATABLE, PUBLIC :: CH4_EMIS(:,:,:,:)
+      REAL(fp),  ALLOCATABLE, PUBLIC :: CH4_EMIS(:,:,:)
 ! 
 ! !REVISION HISTORY: 
 !  17 Jan 2001- J. Wang, B. Duncan, R. Yantosca -- Initial version
@@ -401,9 +401,6 @@
 !  11 Sep 2015 - E. Lundgren - Remove area-dependency (except for global mass
 !                              sums) by outputting diagnostics as kg/m2 not kg
 !  11 Sep 2015 - E. Lundgren - Remove State_Chm from arg list since not used
-!  30 Mar 2017 - M. Sulprizio- CH4 biomass burning emissions are now 3D to allow
-!                              for emissions to be distributed to the PBL and
-!                              free troposphere (PAN updates from E.Fischer)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -430,7 +427,6 @@
 
       ! Pointers
       REAL(f4),        POINTER :: Ptr2D(:,:)
-      REAL(f4),        POINTER :: Ptr3D(:,:,:)
 
       !=================================================================
       ! EMISSCH4 begins here!
@@ -438,7 +434,6 @@
 
       ! Nullify pointers
       Ptr2D => NULL()
-      Ptr3D => NULL()
 
       ! Assume success
       RC                  = GC_SUCCESS
@@ -476,7 +471,7 @@
       ! defined. 
       !                                              (ckeller, 9/12/2013)
       ! =================================================================
-      CH4_EMIS(:,:,:,:) = 0e+0_fp
+      CH4_EMIS(:,:,:) = 0e+0_fp
 
       ! =================================================================
       ! Pass emissions from HEMCO state to CH4_EMIS via HEMCO
@@ -496,7 +491,7 @@
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,1,2) =  Ptr2D(:,:)
+         CH4_EMIS(:,:,2) =  Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -507,7 +502,7 @@
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,1,3) =  Ptr2D(:,:)
+         CH4_EMIS(:,:,3) =  Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -518,7 +513,7 @@
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,1,4) =  Ptr2D(:,:)
+         CH4_EMIS(:,:,4) =  Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -529,7 +524,7 @@
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,1,5) =  Ptr2D(:,:)
+         CH4_EMIS(:,:,5) =  Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -540,7 +535,7 @@
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,1,6) =  Ptr2D(:,:)
+         CH4_EMIS(:,:,6) =  Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -551,7 +546,7 @@
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,1,7) =  Ptr2D(:,:)
+         CH4_EMIS(:,:,7) =  Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -562,20 +557,20 @@
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,1,8) =  Ptr2D(:,:)
+         CH4_EMIS(:,:,8) =  Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
       ! Biomass burning 
       DgnName = 'BIOMASS_CH4'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr3D=Ptr3D )
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
       IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
-      IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,:,9) =  Ptr3D(:,:,:)
+         CH4_EMIS(:,:,9) =  Ptr2D(:,:)
       ENDIF
-      Ptr3D => NULL()
+      Ptr2D => NULL()
 
       ! Wetland 
       DgnName = 'CH4_WETLAND'
@@ -584,7 +579,7 @@
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,1,10) =  Ptr2D(:,:)
+         CH4_EMIS(:,:,10) =  Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -595,7 +590,7 @@
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,1,11) =  Ptr2D(:,:) * -1.0_hp
+         CH4_EMIS(:,:,11) =  Ptr2D(:,:) * -1.0_hp
       ENDIF
       Ptr2D => NULL()
 
@@ -606,7 +601,7 @@
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,1,12) =  Ptr2D(:,:)
+         CH4_EMIS(:,:,12) =  Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -616,24 +611,24 @@
       ! We have to substract soil absorption twice because it is added 
       ! to other emissions in the SUM function. (ccc, 7/23/09)
       ! =================================================================
-      CH4_EMIS(:,:,:,1) = SUM(CH4_EMIS, 4) - (2 * CH4_EMIS(:,:,:,11))
+      CH4_EMIS(:,:,1) = SUM(CH4_EMIS, 3) - (2 * CH4_EMIS(:,:,11))
 
       ! testing only
 !      write(*,*) 'CH4_EMIS (kg/m2/s):'
-!      write(*,*) '1 : ', SUM(CH4_EMIS(:,:,:,1))
-!      write(*,*) '2 : ', SUM(CH4_EMIS(:,:,:,2))
-!      write(*,*) '3 : ', SUM(CH4_EMIS(:,:,:,3))
-!      write(*,*) '4 : ', SUM(CH4_EMIS(:,:,:,4))
-!      write(*,*) '5 : ', SUM(CH4_EMIS(:,:,:,5))
-!      write(*,*) '6 : ', SUM(CH4_EMIS(:,:,:,6))
-!      write(*,*) '7 : ', SUM(CH4_EMIS(:,:,:,7))
-!      write(*,*) '8 : ', SUM(CH4_EMIS(:,:,:,8))
-!      write(*,*) '9 : ', SUM(CH4_EMIS(:,:,:,9))
-!      write(*,*) '10: ', SUM(CH4_EMIS(:,:,:,10))
-!      write(*,*) '11: ', SUM(CH4_EMIS(:,:,:,11))
-!      write(*,*) '12: ', SUM(CH4_EMIS(:,:,:,12))
-!      write(*,*) 'rice 55,29: ',ch4_emis(55,29,1,7)
-!      write(*,*) 'wetl 55,29: ',ch4_emis(55,29,1,10)
+!      write(*,*) '1 : ', SUM(CH4_EMIS(:,:,1))
+!      write(*,*) '2 : ', SUM(CH4_EMIS(:,:,2))
+!      write(*,*) '3 : ', SUM(CH4_EMIS(:,:,3))
+!      write(*,*) '4 : ', SUM(CH4_EMIS(:,:,4))
+!      write(*,*) '5 : ', SUM(CH4_EMIS(:,:,5))
+!      write(*,*) '6 : ', SUM(CH4_EMIS(:,:,6))
+!      write(*,*) '7 : ', SUM(CH4_EMIS(:,:,7))
+!      write(*,*) '8 : ', SUM(CH4_EMIS(:,:,8))
+!      write(*,*) '9 : ', SUM(CH4_EMIS(:,:,9))
+!      write(*,*) '10: ', SUM(CH4_EMIS(:,:,10))
+!      write(*,*) '11: ', SUM(CH4_EMIS(:,:,11))
+!      write(*,*) '12: ', SUM(CH4_EMIS(:,:,12))
+!      write(*,*) 'rice 55,29: ',ch4_emis(55,29,7)
+!      write(*,*) 'wetl 55,29: ',ch4_emis(55,29,10)
  
       ! =================================================================
       ! Modify the chemical species array with emissions rates. 
@@ -674,13 +669,13 @@
          IF ( ND58 > 0 ) THEN
 
             ! All emission sources excluding soil absorption [kg]
-            AD58(IREF,JREF,:,1) = AD58(IREF,JREF,:,1) + 
-     &         ( CH4_EMIS(IREF,JREF,:,1) + CH4_EMIS(IREF,JREF,:,11) )
+            AD58(IREF,JREF,1) = AD58(IREF,JREF,1) + 
+     &         ( CH4_EMIS(IREF,JREF,1) + CH4_EMIS(IREF,JREF,11) )
      &           * DTSRCE * AREA_M2
 
             DO N = 2, PD58
-               AD58(IREF,JREF,:,N) = AD58(IREF,JREF,:,N) + 
-     &            CH4_EMIS(IREF,JREF,:,N) * DTSRCE * AREA_M2
+               AD58(IREF,JREF,N) = AD58(IREF,JREF,N) + 
+     &            CH4_EMIS(IREF,JREF,N) * DTSRCE * AREA_M2
             ENDDO
          ENDIF
 
@@ -712,39 +707,39 @@
 
             ! Anthropogenic (gas and oil, coal, biofuel, other anthro)
             TCH4(I,J,1,5) = TCH4(I,J,1,5) +
-     &           ( ( CH4_EMIS(I,J,1,2) + 
-     &               CH4_EMIS(I,J,1,3) 
-     &               CH4_EMIS(I,J,1,6)
-     &               CH4_EMIS(I,J,1,8) ) * 
+     &           ( ( CH4_EMIS(I,J,2) + 
+     &               CH4_EMIS(I,J,3) 
+     &               CH4_EMIS(I,J,6)
+     &               CH4_EMIS(I,J,8) ) * 
      &              * XNUMOL_CH4 * AREA_M2 * DTSRCE )
                
             ! Agriculture (rice, animals, waste)
             TCH4(I,J,1,6) = TCH4(I,J,1,6) +
-     &           ( ( CH4_EMIS(I,J,1,4) +
-     &               CH4_EMIS(I,J,1,7) + 
-     &               CH4_EMIS(I,J,1,5) ) *
+     &           ( ( CH4_EMIS(I,J,4) +
+     &               CH4_EMIS(I,J,7) + 
+     &               CH4_EMIS(I,J,5) ) *
      &               XNUMOL_CH4 * AREA_M2 * DTSRCE )
             
             ! Biomass burning
-            TCH4(I,J,:,7) = TCH4(I,J,:,7)+
-     &           ( CH4_EMIS(I,J,:,9)  * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+            TCH4(I,J,1,7) = TCH4(I,J,1,7)+
+     &           ( CH4_EMIS(I,J,9)  * XNUMOL_CH4 * AREA_M2 * DTSRCE )
 
             ! Termites
             TCH4(I,J,1,8) = TCH4(I,J,1,8)+
-     &           ( CH4_EMIS(I,J,1,12) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+     &           ( CH4_EMIS(I,J,12) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
 
             ! Wetlands
             TCH4(I,J,1,9) = TCH4(I,J,1,9)+
-     &           ( CH4_EMIS(I,J,1,10) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+     &           ( CH4_EMIS(I,J,10) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
 
             ! Soil Absorption
             TCH4(I,J,1,10) = TCH4(I,J,1,10)+
-     &           ( CH4_EMIS(I,J,1,11) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+     &           ( CH4_EMIS(I,J,11) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
 
 
             ! Total emissions
             TCH4(I,J,1,4) = TCH4(I,J,1,4) + 
-     &          ( CH4_EMIS(I,J,1,1)  + ( 2 * CH4_EMIS(IREF,JREF,1,11) ))
+     &          ( CH4_EMIS(I,J,1)  + ( 2 * CH4_EMIS(IREF,JREF,11) ))
      &          * XNUMOL_CH4 * AREA_M2 * DTSRCE
 
          ENDDO
@@ -781,26 +776,26 @@
 
             ! Total anthropogenic emissions
             ! Gas & oil, mining, livestock, waste, biofuel, rice, other
-            SUMANTHRO(I,J) = CH4_EMIS(I,J,1,2) + CH4_EMIS(I,J,1,3) +
-     &                     + CH4_EMIS(I,J,1,4) + CH4_EMIS(I,J,1,5) +
-     &                     + CH4_EMIS(I,J,1,6) + CH4_EMIS(I,J,1,7) +
-     &                     + CH4_EMIS(I,J,1,8)
+            SUMANTHRO(I,J) = CH4_EMIS(I,J,2) + CH4_EMIS(I,J,3) +
+     &                     + CH4_EMIS(I,J,4) + CH4_EMIS(I,J,5) +
+     &                     + CH4_EMIS(I,J,6) + CH4_EMIS(I,J,7) +
+     &                     + CH4_EMIS(I,J,8)
 
             ! kg/s
             DO N=1,7
                 DBGANTHRO(N) = DBGANTHRO(N) + 
-     &                         (CH4_EMIS(I,J,1,N+1)*AREA_M2)
+     &                         (CH4_EMIS(I,J,N+1)*AREA_M2)
             ENDDO
 
             ! Total biogenic emissions
             ! Wetlands, other natural, (-)soil absorption
-            SUMBIOG(I,J) = CH4_EMIS(I,J,1,10) + CH4_EMIS(I,J,1,12)
-     &                   - CH4_EMIS(I,J,1,11)
+            SUMBIOG(I,J) = CH4_EMIS(I,J,10) + CH4_EMIS(I,J,12)
+     &                   - CH4_EMIS(I,J,11)
 
             ! kg/s
             DO N=1,3
                 DBGBIO(N) = DBGBIO(N) + 
-     &                      (CH4_EMIS(I,J,1,N+9)*AREA_M2)
+     &                      (CH4_EMIS(I,J,N+9)*AREA_M2)
             ENDDO
 
          ENDDO
@@ -1456,7 +1451,7 @@
                CH4EMIS = 0e+0_fp
             ELSE
                AREA_CM2 = GET_AREA_CM2( I, J, L ) / 10000.0e+0_fp         ! now in m2!!
-               CH4EMIS  = SUM(CH4_EMIS(I,J,1,2:10)) + CH4_EMIS(I,J,1,12)
+               CH4EMIS  = SUM(CH4_EMIS(I,J,2:10)) + CH4_EMIS(I,J,12)
                CH4EMIS  = CH4EMIS * AREA_CM2                          ! [kg/m2/s]  --> [kg/box/s]
                CH4EMIS  = CH4EMIS * XNUMOL_CH4                        ! [kg/box/s] --> [molec/box/s]
             ENDIF
@@ -2237,7 +2232,7 @@
 !  SINKS
 !           ( 3) = Tropospheric CH4 sink by OH
 !  SOURCES
-!           ( 4) = Total Source<
+!           ( 4) = Total Source
 !           ( 5) = Industral
 !           ( 6) = Agriculture
 !           ( 7) = Biomass Burning
@@ -2606,7 +2601,7 @@
       TCH4 = 0e+0_fp      
 #endif
 
-      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, LLPAR, PD58), STAT=AS )
+      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, PD58), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_EMIS' )
       CH4_EMIS = 0e+0_fp
 
