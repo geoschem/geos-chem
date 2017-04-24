@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Fri Feb 10 11:11:47 2017
-! Working directory    : /work/home/ts551/KPP_GC_updates
+! Time                 : Wed May  3 17:18:07 2017
+! Working directory    : /work/home/ts551/data/all_model_simulations/iodine_runs/iGEOSChem_5.0/code_TMS_new/KPP/Halogens
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -869,7 +869,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(384) = (GCARR(5.00E-11,0.0E+00,0.0))
   RCONST(385) = (GCARR(1.60E-10,0.0E+00,0.0))
   RCONST(386) = (GCARR(2.60E-12,0.0E+00,-1100.0))
-  RCONST(387) = (GCARR(1.80E-12,0.0E+00,-600.0))
+  RCONST(387) = (GCARR(1.80E-11,0.0E+00,-600.0))
   RCONST(388) = (GCARR(7.40E-12,0.0E+00,270.0))
   RCONST(389) = (GCARR(6.00E-13,0.0E+00,230.0))
   RCONST(390) = (GCARR(1.40E-12,0.0E+00,600.0))

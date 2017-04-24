@@ -453,7 +453,8 @@ CONTAINS
 #if defined( UCX )
     ! Relative tolerance, for UCX-based mechanisms
     !RTOL      = 2e-2_dp    
-    RTOL      = 1e-2_dp    
+    !RTOL      = 1e-2_dp    
+    RTOL      = 0.5e-2_dp    
 #else
     ! Relative tolerance, non-UCX mechanisms
     RTOL      = 2e-1_dp    
