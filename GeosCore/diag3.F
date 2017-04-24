@@ -868,7 +868,7 @@
       
                ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  IF ( I == 2 .or I == 3 ) THEN
+                  IF ( I == 2 .or. I == 3 ) THEN
                      ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
      &                            * FACTOR
      &                            * HcoState%Grid%AREA_M2%Val(:,:)
