@@ -21097,9 +21097,8 @@
       IF (W(3).GT.TINY .AND. WATER.GT.TINY) THEN  ! First try 3rd order soln
          BB   =-(CHI4 + PSI6 + PSI5 + 1.d0/A4)
          CC   = CHI4*(PSI5+PSI6)
-         DD   = BB*BB-4.d0*CC
+         DD   = MAX(BB*BB-4.d0*CC,ZERO)           ! Patch proposed by Uma Shankar, 19/11/01
          PSI4 =0.5d0*(-BB - SQRT(DD))
-         PSI4 = MIN(PSI4,CHI4)
       ELSE
          PSI4 = TINY
       ENDIF

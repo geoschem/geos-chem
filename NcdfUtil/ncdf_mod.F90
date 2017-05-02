@@ -1143,6 +1143,7 @@ CONTAINS
 !  09 Oct 2014 - C. Keller - Now also support 'minutes since ...'
 !  05 Nov 2014 - C. Keller - Bug fix if reference datetime is in minutes.
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  05 Apr 2017 - C. Keller - Now also support 'seconds since ...'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1207,6 +1208,7 @@ CONTAINS
        tJulday = real(tVec(T), kind=8)
        IF ( refHr >= 0 ) tJulday = tJulday / 24.d0
        IF ( refMn >= 0 ) tJulday = tJulday / 60.d0
+       IF ( refSc >= 0 ) tJulday = tJulday / 60.d0
        tJulday = tJulday + refJulday
        CALL CALDATE ( tJulday, YYYYMMDD, hhmmss )
        all_YYYYMMDDhh(T) = YYYYMMDD * 100 & 
