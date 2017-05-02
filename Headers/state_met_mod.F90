@@ -597,7 +597,7 @@ CONTAINS
     ! field. Only available to online model (ckeller, 3/4/16) 
 #if defined( ESMF_ )
     ALLOCATE( State_Met%CNV_FRC   ( IM, JM ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%CNV_FRC  = 0.0_fp
 #endif
 
@@ -1159,7 +1159,7 @@ CONTAINS
 
     ! 3-D fields
     IF ( ASSOCIATED( State_Met%AD         )) NULLIFY( State_Met%AD         )
-    IF ( ASSOCIATED( State_Met%ADMOIST    )) NULLIFY( State_Met%ADMOIST    )
+    !IF ( ASSOCIATED( State_Met%ADMOIST    )) NULLIFY( State_Met%ADMOIST    )
     IF ( ASSOCIATED( State_Met%AIRDEN     )) NULLIFY( State_Met%AIRDEN     )
     IF ( ASSOCIATED( State_Met%MAIRDEN    )) NULLIFY( State_Met%MAIRDEN    )
     IF ( ASSOCIATED( State_Met%AIRVOL     )) NULLIFY( State_Met%AIRVOL     )
@@ -1175,7 +1175,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%DQIDTMST   )) NULLIFY( State_Met%DQIDTMST   )
     IF ( ASSOCIATED( State_Met%DQLDTMST   )) NULLIFY( State_Met%DQLDTMST   )
     IF ( ASSOCIATED( State_Met%DQVDTMST   )) NULLIFY( State_Met%DQVDTMST   )
-    IF ( ASSOCIATED( State_Met%MOISTMW    )) NULLIFY( State_Met%MOISTMW    )
+    !IF ( ASSOCIATED( State_Met%MOISTMW    )) NULLIFY( State_Met%MOISTMW    )
     IF ( ASSOCIATED( State_Met%DTRAIN     )) NULLIFY( State_Met%DTRAIN     )
     IF ( ASSOCIATED( State_Met%MOISTQ     )) NULLIFY( State_Met%MOISTQ     )
     IF ( ASSOCIATED( State_Met%OPTD       )) NULLIFY( State_Met%OPTD       )
@@ -1183,8 +1183,8 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) NULLIFY( State_Met%PEDGE_DRY  )
     IF ( ASSOCIATED( State_Met%PMID       )) NULLIFY( State_Met%PMID       )
     IF ( ASSOCIATED( State_Met%PMID_DRY   )) NULLIFY( State_Met%PMID_DRY   )
-    IF ( ASSOCIATED( State_Met%PMEAN      )) NULLIFY( State_Met%PMEAN      )
-    IF ( ASSOCIATED( State_Met%PMEAN_DRY  )) NULLIFY( State_Met%PMEAN_DRY  )
+    !IF ( ASSOCIATED( State_Met%PMEAN      )) NULLIFY( State_Met%PMEAN      )
+    !IF ( ASSOCIATED( State_Met%PMEAN_DRY  )) NULLIFY( State_Met%PMEAN_DRY  )
     IF ( ASSOCIATED( State_Met%PV         )) NULLIFY( State_Met%PV         )
     IF ( ASSOCIATED( State_Met%QI         )) NULLIFY( State_Met%QI         )
     IF ( ASSOCIATED( State_Met%QL         )) NULLIFY( State_Met%QL         )

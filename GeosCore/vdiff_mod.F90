@@ -1947,13 +1947,14 @@ contains
 !  27 Jul 2016 - R. Yantosca - Bug fix: set nDrydep=0 if drydep is turned off
 !  04 Aug 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  15 Mar 2017 - C. Keller   - Remove variable trc_id (use N instead) 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    integer :: I, J, L, N, NN, D, trc_id, NA, nAdvect, ND, nDryDep
+    integer :: I, J, L, N, NN, D, NA, nAdvect, ND, nDryDep
 
     REAL(fp)                :: FRAC_NO_HG0_DEP !jaf 
     LOGICAL                 :: ZERO_HG0_DEP !jaf 
@@ -2608,7 +2609,7 @@ contains
              
              ! If this tracer is scheduled for output in 
              ! input.geos, then update the diagnostic
-             IF ( ANY( Input_Opt%TINDEX(44,:) == trc_id ) ) THEN
+             IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
 
                 ! Update diagnostic container
                 DiagnName = 'DRYDEP_FLX_MIX_'                &
