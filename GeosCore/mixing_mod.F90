@@ -323,6 +323,7 @@ CONTAINS
 !                              species ID from State_Chm%Map_Advect.
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
+!  12 Apr 2017 - C. Keller   - Bug fix: now allow negative emission fluxes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -716,7 +717,9 @@ CONTAINS
                 CALL GetHcoVal ( N, I, J, L, FND, emis=TMP )
            
                 ! Add emissions (if any)
-                IF ( FND .AND. (TMP > 0.0_fp) ) THEN
+                ! Bug fix: allow negative fluxes. (ckeller, 4/12/17)
+                !IF ( FND .AND. (TMP > 0.0_fp) ) THEN
+                IF ( FND ) THEN
 
                    ! Flux: [kg/m2] = [kg m-2 s-1 ] x [s]
                    FLUX = TMP * TS
