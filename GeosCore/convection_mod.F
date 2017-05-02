@@ -480,7 +480,7 @@
      &                 State_Chm%Species(:,:,:,D)) / DTIME 
 
                ! Convert to [kg/s]
-               TMP3D = TMP3D * State_Met%DELP_DRY(I,J,L) * 
+               TMP3D = TMP3D * State_Met%DELP_DRY(:,:,:) * 
      &                 G0_100 * AREA_M2
 
                ! Sum over the column

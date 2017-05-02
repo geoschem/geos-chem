@@ -81,6 +81,7 @@ CONTAINS
 !  04 Mar 2015 - C. Keller   - Initial version
 !  26 Oct 2016 - R. Yantosca - Now also call COMPUTE_PBL_HEIGHT so that we
 !                              populate PBL quantities w/ the initial met
+!  09 Mar 2017 - C. Keller   - Do not call COMPUTE_PBL_HEIGHT in ESMF env.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -106,7 +107,12 @@ CONTAINS
     ! Compute the various PBL quantities with the initial met fields.
     ! This is needed so that HEMCO won't be passed a zero PBL height
     ! (bmy, 10/26/16)
+    ! In ESMF mode this routine should not be called during the init
+    ! stage: the required met quantities are not yet defined.
+    ! (ckeller, 11/23/16)
+#if !defined(ESMF_)
     CALL COMPUTE_PBL_HEIGHT( State_Met )
+#endif
 
   END SUBROUTINE INIT_MIXING 
 !EOC

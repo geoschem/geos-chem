@@ -5581,7 +5581,7 @@
       USE ErrCode_Mod
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : ChmState, Ind_
       USE State_Met_Mod,      ONLY : MetState
       USE UnitConv_Mod 
 !
@@ -5618,6 +5618,7 @@
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !  18 Jul 2016 - E. Lundgren   - Remove dependency on grid box mass
 !  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
+!  13 Mar 2017 - C. Keller     - Add error trap for id_H2O
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5678,6 +5679,14 @@
       ! (ewl, 10/29/15)
       IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
          State_Met%SPHU_prev = State_Met%SPHU
+      ENDIF
+
+      ! Error trap: make sure id_H2O is defined. There are instances 
+      ! in GEOS-5 where we want to call this routine even with UCX
+      ! turned off, in which case id_H2O might be undefined.
+      ! (ckeller, 3/13/17)
+      IF ( id_H2O <= 0 ) THEN
+         id_H2O = Ind_('H2O')
       ENDIF
 
 !$OMP PARALLEL DO

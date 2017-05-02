@@ -2624,6 +2624,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !  31 Mar 2013 - S. D. Eastham - Modified to track number of branches
 !  29 Mar 2016 - R. Yantosca   - Now flag rxn numbers for use in PHOTRATE_ADJ
 !  27 Jun 2016 - M. Sulprizio  - Add RXN_NO2 flag for PARANOX
+!  10 Mar 2017 - C. Keller     - Wrapped print out into am_I_Root statement
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2830,17 +2831,19 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       !------------------------------------
       ! Print out saved rxn flags
       !------------------------------------
-      WRITE( 6, 100 ) REPEAT( '=', 79 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) REPEAT( '=', 79 )
       wRITE( 6, 110 )
-      WRITE( 6, 120 ) RXN_O2
-      WRITE( 6, 130 ) RXN_O3_1
-      WRITE( 6, 140 ) RXN_O3_2a
-      WRITE( 6, 150 ) RXN_O3_2b
+         WRITE( 6, 120 ) RXN_O2
+         WRITE( 6, 130 ) RXN_O3_1
+         WRITE( 6, 140 ) RXN_O3_2a
+         WRITE( 6, 150 ) RXN_O3_2b
 #if defined( UCX )
-      WRITE( 6, 160 ) RXN_H2SO4
+         WRITE( 6, 160 ) RXN_H2SO4
 #endif
-      WRITE( 6, 170 ) RXN_NO2
-      WRITE( 6, 100 ) REPEAT( '=', 79 )
+         WRITE( 6, 170 ) RXN_NO2
+         WRITE( 6, 100 ) REPEAT( '=', 79 )
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( a                                                 )
