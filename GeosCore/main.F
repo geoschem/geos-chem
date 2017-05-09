@@ -1701,23 +1701,11 @@
          CALL GEOS_Timer_Start( "Diagnostics", RC )
 #endif
 
-         ! Plane following diagnostic
+         ! Planeflight diagnostic
          IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
-         
-            ! Call SETUP_PLANEFLIGHT routine if necessary
             IF ( ITS_A_NEW_DAY() ) THEN
-               
-               ! If it's a full-chemistry simulation but LCHEM=F,
-               ! or if it's an offline simulation, call setup routine 
-               IF ( ITS_A_FULLCHEM_SIM ) THEN
-                  IF ( .not. LCHEM ) THEN
-                     CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt,
-     &                                       State_Chm, RC )
-                  ENDIF
-               ELSE
-                  CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, 
-     &                                    State_Chm, RC )
-               ENDIF
+               CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, 
+     &                                 State_Chm, RC )
             ENDIF
          ENDIF
 
