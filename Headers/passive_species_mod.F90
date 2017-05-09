@@ -271,7 +271,7 @@ CONTAINS
     ! Verbose
     IF ( am_I_Root ) THEN
        WRITE( 6, '(a)' ) 'Added passive species: '
-       WRITE( 6, 110   ) ' - Species name                 : ', PASSIVE_NAME(IDX) 
+       WRITE( 6, 110   ) ' - Species name                : ', PASSIVE_NAME(IDX) 
        WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ', PASSIVE_MW(IDX)
        WRITE( 6, 120   ) ' - Lifetime [s]                : ', PASSIVE_TAU(IDX)
        WRITE( 6, 130   ) ' - Default concentration [v/v] : ', PASSIVE_INITCONC(IDX)
@@ -362,7 +362,7 @@ CONTAINS
 
     ! No loss needed if tau is zero or negative
     IF ( PASSIVE_TAU(N) <= 0.0_fp ) THEN
-       Rate = 1.0
+       Rate = 1.0_fp
 
     ! Calculate decay rate (unitless)
     ELSE 

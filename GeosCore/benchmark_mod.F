@@ -153,8 +153,9 @@
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
 
-      ! Return if we are not doing either a radon or fullchem stdrun
+      ! Return if we are not doing either a radon, tagO3, or fullchem stdrun
       IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and. 
+     &     ( .not. Input_Opt%ITS_A_TAGO3_SIM    )  .and.
      &     ( .not. Input_Opt%ITS_A_RnPbBe_SIM   ) ) RETURN
 
       ! Find a free file LUN
@@ -225,7 +226,8 @@
       !=================================================================
       ! Save the mass of O3 to a file
       !=================================================================
-      ELSE IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. id_O3 > 0 ) THEN
+      ELSE IF ( ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. 
+     &            Input_OPt%ITS_A_TAGO3_SIM    ) .and. id_O3 > 0 ) THEN
 
          ! Open binary punch file for writing
          CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )

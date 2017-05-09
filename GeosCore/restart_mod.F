@@ -612,7 +612,7 @@
 
          ! Get info about this species from the species database
          SpcInfo => State_Chm%SpcData(N)%Info
-         MW_g    = State_Chm%SpcData(N)%Info%emMW_g
+         MW_g    =  SpcInfo%emMW_g
 
          ! Define variable name
          v_name = 'SPC_' // TRIM( SpcInfo%Name )
@@ -634,7 +634,7 @@
          IF ( SpcInfo%Is_InRestart ) THEN
 
             ! Initialize temporary array for this species and point to it
-            Temp3D = 0.0e-0_fp
+            Temp3D = 0.0_fp
             Ptr3D => Temp3D
 
             ! Read variable from file and store in local array
