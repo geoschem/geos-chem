@@ -45,8 +45,6 @@
       CHARACTER(LEN=255), PUBLIC :: NOON_FILE_ROOT ! Directory for noontime data
       CHARACTER(LEN=255), PUBLIC :: MONTREAL_FILE_ROOT ! Root directoy for WHO data 
                           PUBLIC :: T_STS ! Max temperature of STS formation (K)
-      REAL(fp),           PUBLIC :: T_NAT_SUPERCOOL ! NAT supercooling (K)
-      REAL(fp),           PUBLIC :: P_ICE_SUPERSAT ! Ice supersaturation (-)
                           PUBLIC :: NDENS_AER ! See below
       INTEGER,            PUBLIC :: CFCYEAR ! Year for CFC emissions
 !
@@ -240,8 +238,8 @@
       REAL(fp),DIMENSION(:,:),ALLOCATABLE     :: UCX_REGRID
       REAL(fp),DIMENSION(:),ALLOCATABLE       :: UCX_PLEVS
       REAL(fp),DIMENSION(:),ALLOCATABLE       :: UCX_LATS
-      INTEGER,DIMENSION(MAX_EMIT)           :: IDT_EMIT
-      REAL(fp),DIMENSION(:,:),ALLOCATABLE     :: GRID_EMIT
+      INTEGER,DIMENSION(MAX_EMIT)             :: IDT_EMIT
+      REAL(fp),DIMENSION(:,:,:),ALLOCATABLE   :: GRID_EMIT
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: RAD_AER
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: KG_AER
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: SAD_AER
@@ -2284,7 +2282,7 @@
              DO I = 1, IIPAR
            
                 ! Set kg/kg dry air using vol/vol (ewl, 9/10/15)
-                Spc(I,J,1,N_EMITTED) = GRID_EMIT(J,N)
+                Spc(I,J,1,N_EMITTED) = GRID_EMIT(I,J,N)
      &                        / ( AIRMW /
      &                        State_Chm%SpcData(N_EMITTED)%Info%emMW_g ) 
 
@@ -2340,7 +2338,7 @@
 !
       REAL(fp)           :: YLAT
       REAL(fp)           :: MR90S,MR30S,MR30N,MR90N
-      INTEGER          :: N, TARG_LINE, J
+      INTEGER          :: I, N, TARG_LINE, J
       CHARACTER(LEN=20):: LOCAL_NAME
       INTEGER          :: TARG_YR_NC, TARG_MO_NC
 
@@ -2385,30 +2383,32 @@
      &                    TARG_YR_NC,TARG_MO_NC,N)
                CASE ('OCS')
                   ! Simple boundary condition
-                  GRID_EMIT(:,N) = OCS_MR
+                  GRID_EMIT(:,:,N) = OCS_MR
                CASE ('H2')
                   ! Simple boundary condition
-                  GRID_EMIT(:,N) = H2_MR
+                  GRID_EMIT(:,:,N) = H2_MR
                CASE ('CH4')
                   ! Get the 4 major mixing ratios
                   CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
      &                             MR90S, MR30S, MR30N, MR90N,
      &                             am_I_Root, Input_Opt )
                   ! Figure out which box each is in
+                  DO I=1,IIPAR   
                   DO J=1,JJPAR   
                      ! Grid-box latitude index
-                     YLAT  = GET_YMID( 1,J,1 )
+                     YLAT  = GET_YMID( I,J,1 )
                      IF ( YLAT < -30e+0_fp ) THEN
-                        GRID_EMIT(J,N) = MR90S
+                        GRID_EMIT(I,J,N) = MR90S
                      ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  )
      &                THEN
-                        GRID_EMIT(J,N) = MR30S
+                        GRID_EMIT(I,J,N) = MR30S
                      ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp )
      &                THEN
-                        GRID_EMIT(J,N) = MR30N
+                        GRID_EMIT(I,J,N) = MR30N
                      ELSE
-                        GRID_EMIT(J,N) = MR90N
+                        GRID_EMIT(I,J,N) = MR90N
                      ENDIF
+                  ENDDO
                   ENDDO
                CASE DEFAULT
                   ! Standard 1:1
@@ -2448,30 +2448,32 @@
      &                         CFCYEAR+OFFSETYEAR-1949,N)
                CASE ('OCS')
                   ! Simple boundary condition
-                  GRID_EMIT(:,N) = OCS_MR
+                  GRID_EMIT(:,:,N) = OCS_MR
                CASE ('H2')
                   ! Simple boundary condition
-                  GRID_EMIT(:,N) = H2_MR
+                  GRID_EMIT(:,:,N) = H2_MR
                CASE ('CH4')
                   ! Get the 4 major mixing ratios
                   CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
      &                             MR90S, MR30S, MR30N, MR90N,
      &                             am_I_Root, Input_Opt )
                   ! Figure out which box each is in
+                  DO I=1,IIPAR   
                   DO J=1,JJPAR   
                      ! Grid-box latitude index
-                     YLAT  = GET_YMID( 1,J,1 )
+                     YLAT  = GET_YMID( I,J,1 )
                      IF ( YLAT < -30e+0_fp ) THEN
-                        GRID_EMIT(J,N) = MR90S
+                        GRID_EMIT(I,J,N) = MR90S
                      ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  )
      &                THEN
-                        GRID_EMIT(J,N) = MR30S
+                        GRID_EMIT(I,J,N) = MR30S
                      ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp )
      &                THEN
-                        GRID_EMIT(J,N) = MR30N
+                        GRID_EMIT(I,J,N) = MR30N
                      ELSE
-                        GRID_EMIT(J,N) = MR90N
+                        GRID_EMIT(I,J,N) = MR90N
                      ENDIF
+                  ENDDO
                   ENDDO
                CASE DEFAULT
                   ! Standard 1:1
@@ -2522,7 +2524,7 @@
       ! SET_MONTREAL_NCDF begins here!
       !=================================================================
 
-      GRID_EMIT(:,N) = GRID_EMIT(:,N) + 
+      GRID_EMIT(:,:,N) = GRID_EMIT(:,:,N) + 
      &      GET_MONTREAL_NCDF(TRAC_NAME,TARG_YR_NC,TARG_MO_NC)
 
       ! Return to calling routine
@@ -2657,11 +2659,9 @@
       ! SET_MONTREAL begins here!
       !=================================================================
 
-!      GRID_EMIT(:,N) = GRID_EMIT(:,N)+GET_MONTREAL(TRAC_NAME,TARG_LINE)
-
       YY = CFCYEAR+OFFSETYEAR
       MM = SFC_MONTH
-      GRID_EMIT(:,N) = GRID_EMIT(:,N) + SFCMR_GET( TRAC_NAME, YY, MM )
+      GRID_EMIT(:,:,N) = GRID_EMIT(:,:,N) + SFCMR_GET(TRAC_NAME,YY,MM)
 
       ! Return to calling routine
       END SUBROUTINE SET_MONTREAL
@@ -3913,13 +3913,13 @@
                   PSATH2O = 10.0e+0_fp**((TSATH2O_A*TINV)+TSATH2O_B)
 
                   ! Supersaturation requirement for ice
-                  PSATH2O_SUPERSAT = PSATH2O * P_ICE_SUPERSAT
+                  PSATH2O_SUPERSAT = PSATH2O * Input_Opt%P_ICE_SUPERSAT
 
                   ! If homogeneous NAT nucleation allowed, calculate
                   ! threshold saturation pressure
                   IF (LHOMNUCNAT) THEN
                      ! Calculate as if temperature is (T+T_NAT_SUPERCOOL)
-                     TOFFSET = TCENTER + T_NAT_SUPERCOOL
+                     TOFFSET = TCENTER + Input_Opt%T_NAT_SUPERCOOL
                      PSATHNO3_SUPERCOOL = 10.e+0_fp**(((TSATHNO3_A+
      &                  (TOFFSET*TSATHNO3_B))*LOG10(H2OPP*760.0e+0_fp/
      &                  ATM))+
@@ -7015,7 +7015,7 @@
       ENDIF
 
       IF (N_EMIT.gt.0) THEN
-         ALLOCATE( GRID_EMIT( JJPAR, N_EMIT ), STAT=AS )
+         ALLOCATE( GRID_EMIT( IIPAR, JJPAR, N_EMIT ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRID_EMIT' )
          GRID_EMIT = 0e+0_fp
       ENDIF

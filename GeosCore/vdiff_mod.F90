@@ -1947,6 +1947,7 @@ contains
 !  27 Jul 2016 - R. Yantosca - Bug fix: set nDrydep=0 if drydep is turned off
 !  04 Aug 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  20 Oct 2016 - R. Yantosca - Only write eflx/dflx debug on the root CPU
 !  16 Mar 2017 - R. Yantosca - Remove N_MEMBERS, it's obsolete
 !EOP
 !------------------------------------------------------------------------------

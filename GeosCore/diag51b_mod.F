@@ -429,7 +429,6 @@
       USE CMN_O3_MOD               ! SAVEOH
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,    GET_PBL_TOP_m
       USE State_Chm_Mod,      ONLY : ChmState
@@ -1128,7 +1127,7 @@
                IF ( K == 1 ) THEN
               
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( ISOLAI(I,J) * GOOD(I) ) 
+     &                     ( State_Met%MODISLAI(I,J) * GOOD(I) ) 
                ENDIF
 
 

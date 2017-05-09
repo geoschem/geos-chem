@@ -272,12 +272,6 @@
       ! Assume success
       RC       = GC_SUCCESS
 
-      ! We need to add the '.rc' extension to the input.geos file
-      ! so taht GEOS-5 will copy it to the proper run directory.
-#if defined( ESMF_ )
-      FILENAME = TRIM(FILENAME)//'.rc'
-#endif
-
       ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:1' )
@@ -643,6 +637,7 @@
       USE TIME_MOD,           ONLY : SET_BEGIN_TIME,   SET_END_TIME 
       USE TIME_MOD,           ONLY : SET_CURRENT_TIME, SET_DIAGb
       USE TIME_MOD,           ONLY : SET_NDIAGTIME,    GET_TAU
+      USE TIME_MOD,           ONLY : YMD_EXTRACT
       USE TRANSFER_MOD,       ONLY : INIT_TRANSFER
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE TIME_MOD,           ONLY : Accept_External_Date_Time
@@ -711,7 +706,9 @@
       INTEGER            :: N,       NDIAGTIME
       INTEGER            :: NYMDb,   NHMSb 
       INTEGER            :: NYMDe,   NHMSe
-      INTEGER            :: C
+      INTEGER            :: C,       H
+      INTEGER            :: M,       S
+      REAL(f4)           :: init_UTC
 
       ! Strings
       CHARACTER(LEN=255) :: TMP_CHAR
@@ -928,6 +925,11 @@
       NHMSb                   = Input_Opt%NHMSb
       NYMDe                   = Input_Opt%NYMDe
       NHMSe                   = Input_Opt%NHMSe
+
+      ! Get the starting UTC time from Input_Opt%NHMSb for use below
+      CALL YMD_Extract( Input_Opt%NHMSb, H, M, S )
+      init_UTC                = ( H + ( M / 60 ) + ( S / 3600 ) )
+
 #else
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
@@ -1026,6 +1028,7 @@
      &                                value_NHMSe = Input_Opt%NHMSe,
      &                                value_NYMD  = Input_Opt%NYMDb,
      &                                value_NHMS  = Input_Opt%NHMSb,
+     &                                value_UTC   = init_UTC,
      &                                RC          = RC               )
      &                                 
 
@@ -1249,6 +1252,7 @@
      &                   LM        = LLPAR,         ! # of levs on this CPU
      &                   RC        = RC         )   ! Success or failure?
 
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
       ! Compute the horiziontal grid properties
       CALL Compute_Grid( am_I_Root = am_I_Root,     ! Are we on the root CPU?
      &                   I1        = 1,             ! Min lon index, this CPU
@@ -1264,7 +1268,7 @@
      &                   I_LO      = I_LO,          ! Min global lon index
      &                   J_LO      = J_LO,          ! Min global lat index
      &                   RC        = RC         )   ! Success or failure?
-
+#endif
 
       END SUBROUTINE INITIALIZE_GEOS_GRID
 !EOC
@@ -1522,7 +1526,6 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE UCX_MOD,            ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
 !
 ! !INPUT PARAMETERS:
 !
@@ -1586,6 +1589,7 @@
       LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA
       INTEGER            :: N,          T,          I 
       CHARACTER(LEN=255) :: MSG,        LOCATION
+      REAL(fp)           :: T_NAT_SUPERCOOL, P_ICE_SUPERSAT
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -1740,8 +1744,8 @@
       Input_Opt%LGRAVSTRAT         = LGRAVSTRAT
       Input_Opt%LSOLIDPSC          = LSOLIDPSC
       Input_Opt%LHOMNUCNAT         = LHOMNUCNAT
-      Input_Opt%T_NAT_SUPERCOOL    = T_NAT_SUPERCOOL
-      Input_Opt%P_ICE_SUPERSAT     = P_ICE_SUPERSAT
+      Input_Opt%T_NAT_SUPERCOOL    = T_NAT_SUPERCOOL ! NAT supercooling (K)
+      Input_Opt%P_ICE_SUPERSAT     = P_ICE_SUPERSAT  ! Ice supersaturation (-)
       Input_Opt%LPSCCHEM           = LPSCCHEM
       Input_Opt%LSTRATOD           = LSTRATOD
 
@@ -1919,14 +1923,14 @@
       ENDIF
 
       ! Halt with error if none of the TOMAS aerosol species are defined
-      I = MAX( Ind_('NK1'  ), 0 )
-     &  + MAX( Ind_('SF1'  ), 0 ) 
-     &  + MAX( Ind_('SS1'  ), 0 )
-     &  + MAX( Ind_('ECOB1'), 0 ) 
-     &  + MAX( Ind_('ECIL1'), 0 )  
-     &  + MAX( Ind_('OCOB1'), 0 ) 
-     &  + MAX( Ind_('OCIL1'), 0 )
-     &  + MAX( Ind_('DUST1'), 0 )
+      I = MAX( Ind_('NK1'  ,'A'), 0 )
+     &  + MAX( Ind_('SF1'  ,'A'), 0 ) 
+     &  + MAX( Ind_('SS1'  ,'A'), 0 )
+     &  + MAX( Ind_('ECOB1','A'), 0 ) 
+     &  + MAX( Ind_('ECIL1','A'), 0 )  
+     &  + MAX( Ind_('OCOB1','A'), 0 ) 
+     &  + MAX( Ind_('OCIL1','A'), 0 )
+     &  + MAX( Ind_('DUST1','A'), 0 )
 
       IF ( I == 0 ) THEN 
          MSG = 'None of the TOMAS aerosols are defined!'
@@ -1940,10 +1944,10 @@
       ENDIF
 
       ! Halt with error if carbonaceous aerosols are not defined
-      I = MAX( Ind_('ECOB1'), 0 ) 
-     &  + MAX( Ind_('ECIL1'), 0 ) 
-     &  + MAX( Ind_('OCOB1'), 0 ) 
-     &  + MAX( Ind_('OCIL1'), 0 )
+      I = MAX( Ind_('ECOB1','A'), 0 ) 
+     &  + MAX( Ind_('ECIL1','A'), 0 ) 
+     &  + MAX( Ind_('OCOB1','A'), 0 ) 
+     &  + MAX( Ind_('OCIL1','A'), 0 )
 
       IF ( I > 0 .and. (.not. Input_Opt%LCARB ) ) THEN
          MSG = 'Need LCARB on for TOMAS-carb to work (for now)'
@@ -4548,24 +4552,24 @@
       !----------------------------------------------------------
       ! NETCDF diagnostic output type (eventually read from file)
       !----------------------------------------------------------
-      Input_Opt%TRANSPORT_OUTPUT_TYPE    = 'Mean'
-      Input_Opt%WETSCAV_OUTPUT_TYPE      = 'Mean'
-      Input_Opt%DRYDEP_OUTPUT_TYPE       = 'Mean'
-      Input_Opt%SPECIES_CONC_OUTPUT_TYPE  = 'Mean'
-      Input_Opt%SPECIES_EMIS_OUTPUT_TYPE  = 'Mean'
-      Input_Opt%MET_OUTPUT_TYPE          = 'Mean'
+      Input_Opt%TRANSPORT_OUTPUT_TYPE    = 'Instantaneous'
+      Input_Opt%WETSCAV_OUTPUT_TYPE      = 'Instantaneous'
+      Input_Opt%DRYDEP_OUTPUT_TYPE       = 'Instantaneous'
+      Input_Opt%SPECIES_CONC_OUTPUT_TYPE  = 'Instantaneous'
+      Input_Opt%SPECIES_EMIS_OUTPUT_TYPE  = 'Instantaneous'
+      Input_Opt%MET_OUTPUT_TYPE          = 'Instantaneous'
 
       ! placeholders pending grouping of diagnostics
-      Input_Opt%ND01_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND02_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND12_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND14_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND15_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND16_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND17_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND18_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND19_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND30_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND01_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND02_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND12_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND14_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND15_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND16_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND17_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND18_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND19_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND30_OUTPUT_TYPE         = 'Instantaneous'
 
 #endif
 
@@ -7642,7 +7646,11 @@
       K = TS_EMIS
       L = TS_CHEM
 
-      IF ( .not. LTRAN                  ) I = 999999 
+      ! SDE 2017-02-24: Always use LTRAN on the assumption that it will
+      ! be used as a "heartbeat". This ensures that chemistry always
+      ! takes place at the same time, regardless of whether or not
+      ! transport is enabled.
+      !IF ( .not. LTRAN                  ) I = 999999 
       IF ( .not. LCONV .and..not. LTURB ) J = 999999
       IF ( .not. LDRYD .and..not. LEMIS ) K = 999999
       IF ( .not. LCHEM                  ) L = 999999
@@ -8186,8 +8194,8 @@
       !=================================================================
       ! Error check SEASALT AEROSOLS
       !=================================================================
-      I = MAX( Ind_('SALA'), 0 ) 
-     &  + MAX( Ind_('SALC'), 0 )
+      I = MAX( Ind_('SALA','A'), 0 ) 
+     &  + MAX( Ind_('SALC','A'), 0 )
 
       IF ( Input_Opt%LSSALT ) THEN
          IF ( I == 0 ) THEN
@@ -8204,8 +8212,8 @@
       !=================================================================
       ! Error check MARINE ORGANIC AEROSOLS
       !=================================================================
-      I = MAX( Ind_('MOPO'), 0 )  
-     &  + MAX( Ind_('MOPI'), 0 )
+      I = MAX( Ind_('MOPO','A'), 0 )  
+     &  + MAX( Ind_('MOPI','A'), 0 )
 
       IF ( Input_Opt%LMPOA ) THEN
          IF ( .not. Input_Opt%LSSALT ) THEN
@@ -8226,14 +8234,14 @@
       !=================================================================
       ! Error check SULFUR AEROSOLS
       !=================================================================
-      I = MAX( Ind_('DMS' ), 0 )
-     &  + MAX( Ind_('SO2' ), 0 )
-     &  + MAX( Ind_('SO4' ), 0 )
-     &  + MAX( Ind_('SO4s'), 0 )
-     &  + MAX( Ind_('MSA' ), 0 )
-     &  + MAX( Ind_('NH3' ), 0 )
-     &  + MAX( Ind_('NH4' ), 0 )
-     &  + MAX( Ind_('NITs'), 0 ) 
+      I = MAX( Ind_('DMS' ,'A'), 0 )
+     &  + MAX( Ind_('SO2' ,'A'), 0 )
+     &  + MAX( Ind_('SO4' ,'A'), 0 )
+     &  + MAX( Ind_('SO4s','A'), 0 )
+     &  + MAX( Ind_('MSA' ,'A'), 0 )
+     &  + MAX( Ind_('NH3' ,'A'), 0 )
+     &  + MAX( Ind_('NH4' ,'A'), 0 )
+     &  + MAX( Ind_('NITs','A'), 0 ) 
 
       IF ( Input_Opt%LSULF ) THEN
 
@@ -8263,11 +8271,11 @@
       !=================================================================
       ! Error check CRYST /AQ AEROSOLS
       !=================================================================
-      I = MAX( Ind_('AS'   ), 0 )
-     &  + MAX( Ind_('AHS'  ), 0 )
-     &  + MAX( Ind_('LET'  ), 0 )
-     &  + MAX( Ind_('NH4aq'), 0 )
-     &  + MAX( Ind_('SO4aq'), 0 )
+      I = MAX( Ind_('AS'   ,'A'), 0 )
+     &  + MAX( Ind_('AHS'  ,'A'), 0 )
+     &  + MAX( Ind_('LET'  ,'A'), 0 )
+     &  + MAX( Ind_('NH4aq','A'), 0 )
+     &  + MAX( Ind_('SO4aq','A'), 0 )
 
       IF ( Input_Opt%LCRYST ) THEN
          IF ( I == 0 ) THEN
@@ -8286,11 +8294,11 @@
       !=================================================================
 
       ! SOAupdate: Add POA (hotp 10/11/09)
-      I = MAX( Ind_('BCPO'), 0 )
-     &  + MAX( Ind_('BCPI'), 0 )
-     &  + MAX( Ind_('OCPO'), 0 )
-     &  + MAX( Ind_('OCPI'), 0 )
-     &  + MAX( Ind_('POA1'), 0 )
+      I = MAX( Ind_('BCPO','A'), 0 )
+     &  + MAX( Ind_('BCPI','A'), 0 )
+     &  + MAX( Ind_('OCPO','A'), 0 )
+     &  + MAX( Ind_('OCPI','A'), 0 )
+     &  + MAX( Ind_('POA1','A'), 0 )
 
       IF ( Input_Opt%LCARB ) THEN
          IF ( I == 0 ) THEN
@@ -8313,8 +8321,8 @@
       ! OCPI and OCPO are the non-volatile POA species
       ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA species
       ! You can't have both!
-      I = MAX( Ind_('OCPI'), 0 )  
-     &  + MAX( Ind_('OCPO'), 0 )
+      I = MAX( Ind_('OCPI','A'), 0 )  
+     &  + MAX( Ind_('OCPO','A'), 0 )
 
       IF ( Ind_('POA1') > 0 ) THEN
          IF ( I > 0 ) THEN
@@ -8337,14 +8345,14 @@
       !   POA POG OPOA OPOG SOA BTX NAP (semivol + orig trad + IVOC )
       ! NAP emissions are set in input.geos
       ! LSVPOA is just a check (doesn't do anything hotp 7/21/10)
-      I = MAX( Ind_('POA1' ), 0 )
-     &  + MAX( Ind_('POA2' ), 0 )
-     &  + MAX( Ind_('POG1' ), 0 )
-     &  + MAX( Ind_('POG2' ), 0 )
-     &  + MAX( Ind_('OPOA1'), 0 )
-     &  + MAX( Ind_('OPOA2'), 0 )
-     &  + MAX( Ind_('OPOG1'), 0 )
-     &  + MAX( Ind_('OPOG2'), 0 )
+      I = MAX( Ind_('POA1' ,'A'), 0 )
+     &  + MAX( Ind_('POA2' ,'A'), 0 )
+     &  + MAX( Ind_('POG1' ,'A'), 0 )
+     &  + MAX( Ind_('POG2' ,'A'), 0 )
+     &  + MAX( Ind_('OPOA1','A'), 0 )
+     &  + MAX( Ind_('OPOA2','A'), 0 )
+     &  + MAX( Ind_('OPOG1','A'), 0 )
+     &  + MAX( Ind_('OPOG2','A'), 0 )
 
       IF ( Input_Opt%LSVPOA ) THEN
          IF ( I < 8 ) THEN
@@ -8362,20 +8370,20 @@
       !=================================================================
 
       ! SOAupdate: update for new mtp (hotp 5/24/10)
-      I = MAX( Ind_('LIMO' ), 0 )
-     &  + MAX( Ind_('MTPO' ), 0 )
-     &  + MAX( Ind_('TSOA1'), 0 )
-     &  + MAX( Ind_('TSOA2'), 0 )
-     &  + MAX( Ind_('TSOA3'), 0 )
-     &  + MAX( Ind_('ISOA1'), 0 )
-     &  + MAX( Ind_('ISOA2'), 0 )
-     &  + MAX( Ind_('ISOA3'), 0 )
-     &  + MAX( Ind_('ASOA1'), 0 )
-     &  + MAX( Ind_('ASOA2'), 0 )
-     &  + MAX( Ind_('ASOA3'), 0 )
-     &  + MAX( Ind_('ASOAN'), 0 )
-     &  + MAX( Ind_('SOAG' ), 0 )
-     &  + MAX( Ind_('SOAM' ), 0 )
+      I = MAX( Ind_('LIMO' ,'A'), 0 )
+     &  + MAX( Ind_('MTPO' ,'A'), 0 )
+     &  + MAX( Ind_('TSOA1','A'), 0 )
+     &  + MAX( Ind_('TSOA2','A'), 0 )
+     &  + MAX( Ind_('TSOA3','A'), 0 )
+     &  + MAX( Ind_('ISOA1','A'), 0 )
+     &  + MAX( Ind_('ISOA2','A'), 0 )
+     &  + MAX( Ind_('ISOA3','A'), 0 )
+     &  + MAX( Ind_('ASOA1','A'), 0 )
+     &  + MAX( Ind_('ASOA2','A'), 0 )
+     &  + MAX( Ind_('ASOA3','A'), 0 )
+     &  + MAX( Ind_('ASOAN','A'), 0 )
+     &  + MAX( Ind_('SOAG' ,'A'), 0 )
+     &  + MAX( Ind_('SOAM' ,'A'), 0 )
 
       IF ( Input_Opt%LSOA ) THEN
          IF ( I == 0 ) THEN
@@ -8396,13 +8404,13 @@
 ! JKODROS - Uncomment this if the dust fixes are back working. 
 #if defined( TOMAS )
       ! For TOMAS only: If DUST1 is present, the other dust species are too
-      I = MAX( Ind_('DUST1'), 0 )
+      I = MAX( Ind_('DUST1','A'), 0 )
 #else
       ! Non-TOMAS simulations: Need all DST1-DST4 species
-      I = MAX( Ind_('DST1'), 0 )
-     &  + MAX( Ind_('DST2'), 0 )
-     &  + MAX( Ind_('DST3'), 0 )
-     &  + MAX( Ind_('DST4'), 0 )
+      I = MAX( Ind_('DST1','A'), 0 )
+     &  + MAX( Ind_('DST2','A'), 0 )
+     &  + MAX( Ind_('DST3','A'), 0 )
+     &  + MAX( Ind_('DST4','A'), 0 )
 #endif
 
       IF ( Input_Opt%LDUST ) THEN
@@ -8422,18 +8430,18 @@
       !             DUST SULFATE    AEROSOLS
       !             DUST ALKALINITY AEROSOLS
       !=================================================================
-      I = MAX( Ind_('NITd1'  ), 0 ) 
-     &  + MAX( Ind_('NITd2'  ), 0 ) 
-     &  + MAX( Ind_('NITd3'  ), 0 )
-     &  + MAX( Ind_('NITd4'  ), 0 ) 
-     &  + MAX( Ind_('SO4d1'  ), 0 ) 
-     &  + MAX( Ind_('SO4d2'  ), 0 )
-     &  + MAX( Ind_('SO4d3'  ), 0 ) 
-     &  + MAX( Ind_('SO4d4'  ), 0 ) 
-     &  + MAX( Ind_('DSTAL1' ), 0 )
-     &  + MAX( Ind_('DSTAL2' ), 0 ) 
-     &  + MAX( Ind_('DSTAL3' ), 0 ) 
-     &  + MAX( Ind_('DSTAL4' ), 0 )
+      I = MAX( Ind_('NITd1'  ,'A'), 0 ) 
+     &  + MAX( Ind_('NITd2'  ,'A'), 0 ) 
+     &  + MAX( Ind_('NITd3'  ,'A'), 0 )
+     &  + MAX( Ind_('NITd4'  ,'A'), 0 ) 
+     &  + MAX( Ind_('SO4d1'  ,'A'), 0 ) 
+     &  + MAX( Ind_('SO4d2'  ,'A'), 0 )
+     &  + MAX( Ind_('SO4d3'  ,'A'), 0 ) 
+     &  + MAX( Ind_('SO4d4'  ,'A'), 0 ) 
+     &  + MAX( Ind_('DSTAL1' ,'A'), 0 )
+     &  + MAX( Ind_('DSTAL2' ,'A'), 0 ) 
+     &  + MAX( Ind_('DSTAL3' ,'A'), 0 ) 
+     &  + MAX( Ind_('DSTAL4' ,'A'), 0 )
 
       IF ( Input_Opt%LDSTUP ) THEN
          IF ( I < 12 ) THEN
@@ -8450,8 +8458,8 @@
       !=================================================================
       ! Error check SEASALT AEROSOLS
       !=================================================================
-      I = MAX( Ind_('SALA'), 0 ) 
-     &  + MAX( Ind_('SALC'), 0 )
+      I = MAX( Ind_('SALA','A'), 0 ) 
+     &  + MAX( Ind_('SALC','A'), 0 )
 
       IF ( Input_Opt%LSSALT ) THEN
          IF ( I == 0 ) THEN

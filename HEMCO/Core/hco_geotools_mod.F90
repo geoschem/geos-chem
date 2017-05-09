@@ -469,30 +469,36 @@ CONTAINS
          ! Required for photolysis, chemistry, emissions, drydep
          !==============================================================
 
-!-----------------------------------------------------------------------------
-! Prior to 3/2/17:
-! Seb Eastham suggested to comment out the call to HcoClock_GetLocal.  If
-! the Voronoi timezones are used, this will compute the timezones on political 
-! boundaries and not strictly on longitude.  This will cause funny results.
-! Replace this with a strict longitudinal local time. (bmy, 3/27/17)
-!         ! Local time [hours] at box (I,J) at the midpt of the chem timestep
-!         CALL HcoClock_GetLocal ( HcoState, I, J, cH=LHR, RC=RC )
-!
-!         IF ( RC /= HCO_SUCCESS ) THEN
-!            ERR = .TRUE.
-!            EXIT
-!         ENDIF
-!-----------------------------------------------------------------------------
-! Prior to 3/2/17:
-! Seb Eastham says that HOUR (in the new formula below) already contains DT.
-! so we need to comment this out and just use HOUR + LONGITUDE/15.
-! (bmy, 3/2/17)
-!         ! Adjust for time shift
-!         LHR = LHR + DT
-!----------------------------------------------------------------------------
+         ! Local time [hours] at box (I,J) at the midpt of the chem timestep
+         ! Prior to 3/2/17: get local time using HEMCO routine. The problem
+         ! with this is if Voronoi timezones are used the resultant time
+         ! reflects political boundaries rather than longitude. Replace
+         ! with grid box longitude method below.
+         !CALL HcoClock_GetLocal ( HcoState, I, J, cH=LHR, RC=RC )
 
-         ! Compute local time as UTC + longitude/15 (bmy, 3/2/17)
-         LHR = HOUR + ( HcoState%Grid%XMid%Val(I,J) / 15.0_hp )
+         ! Retrieve longitude in degrees
+         LHR = HcoState%Grid%XMid%Val(I,J)
+
+         ! Force longitude to be between -180 and +180
+         Do While (LHR < -180.0e+0_hp)
+            LHR = LHR + 180.0e+0_hp
+         End Do
+         Do While (LHR >  180.0e+0_hp)
+            LHR = LHR - 180.0e+0_hp
+         End Do
+
+         ! Convert LHR from degrees longitude to local hours
+         LHR = HOUR + (LHR/15.0e+0_hp)
+         
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ERR = .TRUE.
+            EXIT
+         ENDIF
+
+         ! Prior to 3/2/17: Adjust for time shift. No longer necessary with
+         ! the longitude retrieval used above.
+         !LHR = LHR + DT
+
          IF ( LHR <   0.0_hp ) LHR = LHR + 24.0_hp
          IF ( LHR >= 24.0_hp ) LHR = LHR - 24.0_hp
 

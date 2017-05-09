@@ -223,7 +223,6 @@
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLun
-      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
       USE PhysConstants            ! XTRA2, XNUMOLAIR
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE State_Chm_Mod,      ONLY : ChmState
@@ -1471,7 +1470,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = ISOLAI(I,J) 
+               Q(X,Y,1) = State_Met%MODISLAI(I,J) 
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO

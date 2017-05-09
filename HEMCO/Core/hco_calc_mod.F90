@@ -880,8 +880,14 @@ CONTAINS
           ENDIF
   
           ! If it's a missing value, mask box as unused and set value to 
-          ! zero 
+          ! zero
+#if defined( ESMF_ )
+          ! SDE 2017-01-07: Temporary kludge. MAPL ExtData sets missing
+          ! data to 1e15, but HEMCO uses a different value!
+          IF ( ( TMPVAL == HCO_MISSVAL ) .or. ( TMPVAL > 1.0e+14 ) ) THEN
+#else
           IF ( TMPVAL == HCO_MISSVAL ) THEN
+#endif
              MASK(I,J,:)      = 0.0_hp
              OUTARR_3D(I,J,L) = 0.0_hp
 
