@@ -165,13 +165,16 @@ CONTAINS
 !!           (NF_FLOAT, NF_CHAR, NF_INT, NF_DOUBLE, NF_BYTE, NF_SHORT)
 !!  ndims  : number of dimensions of the variable
 !!  dims   : netCDF dimension id of the variable
-!!  varid  : netCDF varid id
-
-    CHARACTER (LEN=*), INTENT(IN) :: name
-    INTEGER,           INTENT(IN) :: ncid, ndims, var_id
-    INTEGER,           INTENT(IN) :: dims(ndims)
-    INTEGER,           INTENT(IN) :: type
-    LOGICAL, OPTIONAL, INTENT(IN) :: compress
+    CHARACTER (LEN=*), INTENT(IN)  :: name
+    INTEGER,           INTENT(IN)  :: ncid, ndims
+    INTEGER,           INTENT(IN)  :: dims(ndims)
+    INTEGER,           INTENT(IN)  :: type
+    LOGICAL, OPTIONAL, INTENT(IN)  :: compress
+!
+! !OUTPUT PARAMETERS:
+!
+!!  varid  : netCDF variable id returned by NF_DEF_VAR
+    INTEGER,           INTENT(OUT) :: var_id
 !
 ! !DESCRIPTION: Defines a netCDF variable.
 !\\
@@ -184,6 +187,8 @@ CONTAINS
 !  17 Feb 2017 - C. Holmes   - Enable netCDF-4 compression
 !  01 Mar 2017 - R. Yantosca - Add an #ifdef to enable netCDF4 compression
 !                              only if the library has nf_def_var_deflate
+!  10 May 2017 - R. Yantosca - Bug fix: var_id needs to be INTENT(OUT),
+!                              because it's returned from NF_DEF_VAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC

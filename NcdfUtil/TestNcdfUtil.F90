@@ -176,6 +176,10 @@ CONTAINS
     REAL*4              :: PS( ILONG, ILAT,        ITIME )  ! surface pressure
     REAL*4              :: T ( ILONG, ILAT, IVERT, ITIME )  ! temperature
     CHARACTER           :: DESC( ICHAR1, ICHAR2          )  ! Description
+!
+! !DEFINED PARAMETERS:
+!
+    LOGICAL, PARAMETER  :: COMPRESS = .TRUE.                ! Use compression
 
     !=========================================================================
     ! Create the netCDF file
@@ -242,13 +246,12 @@ CONTAINS
 
     ! Time index array (hardwire date to 2011/01/01)
     var1    = (/ idTime /)
-    vId     = 0
     units   = 'minutes since 2011-01-01 00:00:00 GMT'
     delta_t = '0000-00-00 00:00:00'
     begin_d = '20110101'
     begin_t = '000000'
     incr    = '000000'
-    CALL NcDef_Variable      ( fId, 'time', NF_INT,  1, var1, vId           )
+    CALL NcDef_Variable      ( fId, 'time', NF_INT,  1, var1, vId, COMPRESS )
     CALL NcDef_Var_Attributes( fId, vId, 'long_name',      'time'           )
     CALL NcDef_Var_Attributes( fId, vId, 'units',          TRIM( units   )  ) 
     CALL NcDef_Var_Attributes( fId, vId, 'delta_t',        TRIM( delta_t )  ) 
@@ -257,30 +260,26 @@ CONTAINS
     CALL NcDef_Var_Attributes( fId, vId, 'time_increment', TRIM( incr    )  )
 
     ! Define vertical (pressure) variable
-    vId  = vId + 1
     var1 = (/ idLev /)
-    CALL NcDef_Variable( fId, 'lev', NF_DOUBLE, 1, var1, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Pressure' )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'hPa'      )
+    CALL NcDef_Variable( fId, 'lev', NF_DOUBLE, 1, var1, vId, COMPRESS )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Pressure'       )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'hPa'            )
 
     ! Define latitude variable
-    vId  = vId + 1
     var1 = (/ idLat /)
-    CALL NcDef_Variable( fId, 'lat', NF_DOUBLE, 1, var1, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Latitude'      )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degrees_north' )
+    CALL NcDef_Variable( fId, 'lat', NF_DOUBLE, 1, var1, vId, COMPRESS )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Latitude'       )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degrees_north'  )
 
     ! Define longitude variable
     var1 = (/ idLon /)
-    vId  = vId + 1
-    CALL NcDef_Variable( fId, 'lon', NF_DOUBLE, 1, var1, vId )
-    CALL NcDef_Var_Attributes( fId, vId,  'long_name', 'Longitude'    )
-    CALL NcDef_Var_Attributes( fId, vId,  'units',     'degrees_east' )
+    CALL NcDef_Variable( fId, 'lon', NF_DOUBLE, 1, var1, vId, COMPRESS )
+    CALL NcDef_Var_Attributes( fId, vId,  'long_name', 'Longitude'     )
+    CALL NcDef_Var_Attributes( fId, vId,  'units',     'degrees_east'  )
       
     ! Define surface pressure variable
-    vId  = vId + 1
     var3 = (/ idLon, idLat, idTime /)
-    CALL NcDef_Variable      ( fId, 'PS', NF_FLOAT, 3, var3, vId )
+    CALL NcDef_Variable      ( fId, 'PS', NF_FLOAT, 3, var3, vId, COMPRESS    )
     CALL NcDef_Var_Attributes( fId, vId, 'long_name',      'Surface Pressure' )
     CALL NcDef_Var_Attributes( fId, vId, 'units',          'hPa'              )
     CALL NcDef_Var_Attributes( fId, vId, 'gamap_category', 'GMAO-2D'          )
@@ -296,9 +295,8 @@ CONTAINS
     CALL NcBegin_Def( fId )
 
     ! Define temperature variable
-    vId  = vId + 1
     var4 = (/ idLon, idLat, idLev, idTime /)
-    CALL NcDef_Variable      ( fId, 'T', NF_FLOAT, 4, var4, vId )
+    CALL NcDef_Variable      ( fId, 'T', NF_FLOAT, 4, var4, vId, COMPRESS     )
     CALL NcDef_Var_Attributes( fId, vId, 'long_name',      'Temperature'      )
     CALL NcDef_Var_Attributes( fId, vId, 'units',          'K'                )
     CALL NcDef_Var_Attributes( fId, vId, 'gamap_category', 'GMAO-3D$'         )
@@ -308,9 +306,8 @@ CONTAINS
 
 
     ! Define description variable
-    vId  = vId + 1
     var2 = (/ idChar1, idChar2 /)
-    CALL NcDef_Variable      ( fId, 'DESC', NF_CHAR, 2, var2, vId )
+    CALL NcDef_Variable      ( fId, 'DESC', NF_CHAR, 2, var2, vId, COMPRESS   )
     CALL NcDef_Var_Attributes( fId, vId, 'long_name',      'Description'      )
     CALL NcDef_Var_Attributes( fId, vId, 'units',          '1'                )
     CALL NcDef_Var_Attributes( fId, vId, 'gamap_category', 'none'             )
