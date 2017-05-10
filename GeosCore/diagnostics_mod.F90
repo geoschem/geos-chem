@@ -260,10 +260,10 @@ CONTAINS
                                  TS           = TS,              &
                                  AM2          = AM2,             &
                                  PREFIX       = DGN,             &
-                                 !deltaYMD     = deltaYMD,        &
-                                 !deltaHMS     = deltaHMS,        &
-                                 deltaYMD     = 00000000,        &
-                                 deltaHMS     = 010000,          &
+                                 deltaYMD     = deltaYMD,        &
+                                 deltaHMS     = deltaHMS,        &
+                                 !deltaYMD     = 00000000,        &
+                                 !deltaHMS     = 010000,          &
                                  COL          = CollectionID,    &
                                  OutTimeStamp = HcoDiagnEnd,     &
                                  RC           = RC                )
@@ -1137,8 +1137,7 @@ CONTAINS
 
     ! Set number of 3D and 2D MET diagnostics
     Num3d = 12
-    !Num2d = 26 ! Add 4 diagnostics for olson testing (ewl, 10/13/16)
-    Num2d = 30
+    Num2d = 26
 
     !----------------------------------------------------------------
     ! Create containers
@@ -1296,18 +1295,6 @@ CONTAINS
           CASE ( 26 )
              NameSuffix = 'EFLUX'        ! ND67, trcr 23: Latent heat flux
              Units      = 'W/m2'
-          CASE ( 27 )
-             NameSuffix = 'FRCLND'       ! GCHP validation (ewl)
-             Units      = 'dimless'
-          CASE ( 28 )
-             NameSuffix = 'IREG'         ! GCHP validation (ewl)
-             Units      = '# land types'
-          CASE ( 29 )
-             NameSuffix = 'ILAND1'       ! GCHP validation (ewl)
-             Units      = '1st land type'
-          CASE ( 30 )
-             NameSuffix = 'IUSE1'        ! GCHP validation (ewl)
-             Units      = 'frac 1st land type'
           CASE DEFAULT
              IF ( N < Num2D ) THEN
                 MSG = 'Num2D is less than number of named 2D MET diagnostics'
@@ -2450,8 +2437,7 @@ CONTAINS
 #if defined( GEOS_FP ) || defined ( MERRA2 )
 
     ! Set number of 3D and 2D MET diagnostics that are updated 
-    !Num2d = 23 ! add 4 for GCHP validation of olson (ewl, 10/13/16)
-    Num2d = 27
+    Num2d = 23
     Num3d = 14
 
     !----------------------------------------------------------------
@@ -2537,22 +2523,6 @@ CONTAINS
           CASE ( 23 )
              NameSuffix = 'EFLUX'   ! ND67, trcr 23: Latent heat flx
              Ptr2D => State_Met%EFLUX !              [W/m2] 
-          CASE ( 24 )
-             NameSuffix = 'FRCLND'       ! GCHP validation (ewl)
-             Ptr2D => State_Met%FRCLND
-          CASE ( 25 )
-             NameSuffix = 'IREG'         ! GCHP validation (ewl)
-             Temp2D = State_Met%IREG * 1.0_fp ! for to fp
-             Ptr2D => Temp2D
-          CASE ( 26 )
-             NameSuffix = 'ILAND1'       ! GCHP validation (ewl)
-             Temp2D = State_Met%ILAND(:,:,1) * 1.0_fp ! force to fp
-             Ptr2D => Temp2D
-          CASE ( 27 )
-             NameSuffix = 'IUSE1'        ! GCHP validation (ewl)
-             Temp2D = State_Met%IUSE(:,:,1) * 1.0_fp ! force to fp
-             Ptr2D => Temp2D
-
           CASE DEFAULT
              IF ( N > Num2D ) THEN
                 MSG = 'Undefined 2D diagnostic in MET diagnostic group'
