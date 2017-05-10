@@ -1,3 +1,4 @@
+
 #------------------------------------------------------------------------------
 #                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
@@ -317,7 +318,7 @@ ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
   else
     COMPILE_CMD      :=$(FC)
   endif
-
+  COMPILER_FAMILY    :=Intel
   USER_DEFS          += -DLINUX_IFORT
 endif
 
