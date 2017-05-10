@@ -448,18 +448,12 @@
                AD04(I,J,1) = AD04(I,J,1) + E_CO2
             ENDIF
 
-! old
-!            ! Convert from [molec/cm2/s] to [kg]
-!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-! new
             ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
             ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
-            ! (ewl, 9/11/15)
+            ! (ewl, 5/10/17)
             E_CO2  =  HcoState%Spc(IDff)%Emis%Val(I,J,1)
-     &                * DTSRCE / ( State_Met%DELP(I,J,1) 
-     &                * G0_100 * ( 1.0e+0_fp
-     &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
-! end new (ewl)
+     &                * DTSRCE * ( 1.0e+0_fp / ( g0_100
+     &                * State_Met%DELP_DRY(I,J,L) ) )
 
             ! Add to Species #1: Total CO2 [kg/kg]
             Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
