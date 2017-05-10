@@ -2870,6 +2870,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
+!  10 May 2017 - R. Yantosca - Don't manually increment vId, it's returned
+!                              as an output from NCDEF_VARIABLE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2965,7 +2967,6 @@ CONTAINS
 
     ! Define the "lon" variable
     v_name = "lon"
-    vId    = vId + 1
     var1d = (/ id_lon /)
     CALL NcDef_Variable( fId, TRIM(v_name), NF_FLOAT, 1, var1d, vId )
 
@@ -2985,7 +2986,6 @@ CONTAINS
 
     ! Define the "lat" variable
     v_name = "lat"
-    vId    = vId + 1
     var1d = (/ id_lat /)
     CALL NcDef_Variable( fId, TRIM(v_name), NF_FLOAT, 1, var1d, vId )
 
@@ -3007,7 +3007,6 @@ CONTAINS
 
        ! Define the "levels" variable
        v_name = "lev"
-       vId    = vId + 1
        var1d = (/ id_lev /)
        CALL NcDef_Variable( fId, TRIM(v_name), NF_INT, 1, var1d, vId )
 
@@ -3028,7 +3027,6 @@ CONTAINS
 
     ! Define the "time" variable
     v_name = "time"
-    vId    = vId + 1
     var1d = (/ id_time /)
     CALL NcDef_Variable( fId, TRIM(v_name), NF_INT, 1, var1d, vId )
 
@@ -3049,7 +3047,6 @@ CONTAINS
     DO I = 1, SIZE(ncVars)
 
        v_name = TRIM(ncVars(I))
-       vId    = vId + 1
        IF ( PRESENT(nlev) ) THEN
           var4d = (/ id_lon, id_lat, id_lev, id_time /)
           CALL NcDef_Variable(fId,TRIM(v_name),NF_DOUBLE,4,var4d,vId)
