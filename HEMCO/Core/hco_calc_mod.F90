@@ -141,6 +141,7 @@ CONTAINS
     USE HCO_ARR_MOD,      ONLY : HCO_ArrAssert
     USE HCO_DATACONT_MOD, ONLY : ListCont_NextCont
     USE HCO_FILEDATA_MOD, ONLY : FileData_ArrIsDefined
+    USE HCO_Scale_Mod,    ONLY : HCO_ScaleArr
 !
 ! !INPUT PARAMETERS:
 !
@@ -553,6 +554,10 @@ CONTAINS
                                    nI, nJ, nL, TmpFlx,   Mask, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
+       ! Eventually add universal scale factor
+       CALL HCO_ScaleArr( am_I_Root, HcoState, ThisSpc, TmpFlx, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
        ! Check for negative values according to the corresponding setting
        ! in the configuration file: 2 means allow negative values, 1 means
        ! set to zero and prompt a warning, else return with error.
@@ -720,7 +725,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Get_Current_Emissions( am_I_Root, HcoState,   BaseDct,   &
-                                    nI, nJ, nL, OUTARR_3D, MASK,    RC, UseLL )
+                                    nI, nJ, nL, OUTARR_3D, MASK, RC, UseLL )
 !
 ! !USES:
 !
@@ -730,10 +735,10 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN )   :: am_I_Root           ! Root CPU?
-    INTEGER,         INTENT(IN)    :: nI                  ! # of lons
-    INTEGER,         INTENT(IN)    :: nJ                  ! # of lats
-    INTEGER,         INTENT(IN)    :: nL                  ! # of levs
+    LOGICAL,           INTENT(IN ) :: am_I_Root           ! Root CPU?
+    INTEGER,           INTENT(IN)  :: nI                  ! # of lons
+    INTEGER,           INTENT(IN)  :: nJ                  ! # of lats
+    INTEGER,           INTENT(IN)  :: nL                  ! # of levs
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -770,6 +775,7 @@ CONTAINS
 !  02 Mar 2015 - C. Keller   - Now check for missing values. Missing values are
 !                              excluded from emission calculation.
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  11 May 2017 - C. Keller   - Added universal scaling
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -783,6 +789,7 @@ CONTAINS
     ! Scalars
     REAL(sp)                :: TMPVAL, MaskScale
     REAL(hp)                :: DilFact
+    REAL(hp)                :: ScalFact
     INTEGER                 :: tIDx, IDX
     INTEGER                 :: I, J, L, N
     INTEGER                 :: LowLL, UppLL, ScalLL, TmpLL

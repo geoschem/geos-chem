@@ -176,6 +176,7 @@ CONTAINS
 !                              Avgdr and g0 to NIST 2014 values
 !  15 Feb 2016 - C. Keller - Now pass HcoConfig object
 !  01 Nov 2016 - C. Keller - Now nullify all pointers
+!  12 May 2017 - C. Keller - Added option ScaleEmis 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -357,6 +358,12 @@ CONTAINS
                      OptValBool=HcoState%Options%PBL_DRYDEP, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%PBL_DRYDEP = .FALSE. 
+
+    ! Apply uniform scale factors specified in HEMCO_Config.rc?
+    CALL GetExtOpt ( HcoConfig, CoreNr, 'Scale emissions', &
+                     OptValBool=HcoState%Options%ScaleEmis, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%ScaleEmis = .TRUE.
 
     ! Get MaxDepExp from configuration file. If not found, set to default
     ! value of 20. 

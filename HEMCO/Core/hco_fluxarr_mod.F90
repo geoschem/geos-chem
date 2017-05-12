@@ -18,6 +18,7 @@ MODULE HCO_FluxArr_Mod
 !
   USE HCO_Error_Mod
   USE HCO_Arr_Mod
+  USE HCO_Scale_Mod
   USE HCO_State_Mod, ONLY : HCO_State
 
   IMPLICIT NONE
@@ -186,6 +187,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
 !  20 Apr 2015 - C. Keller - Added DiagnCheck
+!  12 May 2017 - C. Keller - Added option to use uniform scale factor 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -220,6 +222,10 @@ CONTAINS
           ENDIF
        ENDIF
     ENDIF
+
+    ! Eventually add universal scale factor
+    CALL HCO_ScaleArr( am_I_Root, HcoState, HcoID, Arr3D, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add array
     HcoState%Spc(HcoID)%Emis%Val(:,:,:) = &
@@ -276,6 +282,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
 !  20 Apr 2015 - C. Keller - Added DiagnCheck
+!  12 May 2017 - C. Keller - Added option to use uniform scale factor 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -310,6 +317,10 @@ CONTAINS
           ENDIF
        ENDIF
     ENDIF
+
+    ! Eventually add universal scale factor
+    CALL HCO_ScaleArr( am_I_Root, HcoState, HcoID, Arr3D, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add array
     HcoState%Spc(HcoID)%Emis%Val(:,:,:) = &
@@ -364,6 +375,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
 !  20 Apr 2015 - C. Keller - Added DiagnCheck
+!  12 May 2017 - C. Keller - Added option to use uniform scale factor 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -398,6 +410,10 @@ CONTAINS
           ENDIF
        ENDIF
     ENDIF
+
+    ! Eventually add universal scale factor
+    CALL HCO_ScaleArr( am_I_Root, HcoState, HcoID, Arr2D, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add array
     HcoState%Spc(HcoID)%Emis%Val(:,:,1) = &
@@ -453,6 +469,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
 !  20 Apr 2015 - C. Keller - Added DiagnCheck
+!  12 May 2017 - C. Keller - Added option to use uniform scale factor 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -487,6 +504,10 @@ CONTAINS
           ENDIF
        ENDIF
     ENDIF
+
+    ! Eventually add universal scale factor
+    CALL HCO_ScaleArr( am_I_Root, HcoState, HcoID, Arr2D, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add array
     HcoState%Spc(HcoID)%Emis%Val(:,:,1) = &
@@ -534,6 +555,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
+!  12 May 2017 - C. Keller - Added option to use uniform scale factor 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -587,6 +609,10 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! Eventually add universal scale factor
+    CALL HCO_ScaleArr( .FALSE., HcoState, HcoID, iVal, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Add array
     HcoState%Spc(HcoID)%Emis%Val(I,J,L) = &
        HcoState%Spc(HcoID)%Emis%Val(I,J,L) + iVal
@@ -627,6 +653,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
+!  12 May 2017 - C. Keller - Added option to use uniform scale factor 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -679,6 +706,10 @@ CONTAINS
           ENDIF
        ENDIF
     ENDIF
+
+    ! Eventually add universal scale factor
+    CALL HCO_ScaleArr( .FALSE., HcoState, HcoID, iVal, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add array
     HcoState%Spc(HcoID)%Emis%Val(I,J,L) = &
