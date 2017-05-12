@@ -241,6 +241,8 @@ CONTAINS
 !                                free troposphere, following code from E.Fischer
 !  24 Apr 2017 - M. Sulprizio  - Comment out vertical distribution of biomass 
 !                                burning emissions for now. 
+!  12 May 2017 - M. Sulprizio  - Comment out partitioning of NO directly to PAN
+!                                and HNO3 for now.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -436,16 +438,21 @@ CONTAINS
              SpcArr = SpcArr * POG1frac
           CASE ( 'POG2' )
              SpcArr = SpcArr * (1.0_sp - POG1frac)
-          ! Put 40% of NOx Biomass emissions into PAN
-          ! and 20% into HNO3 (evf, 9/9/11, 9/15/11)
-          ! Sensitivity study with Hudman 2007 recommendation
-          ! of 80% of NOX as PAN. (evf, 4/25/12)
-          CASE ( 'NO' )
-             SpcArr = SpcArr * 0.40_sp
-          CASE ( 'PAN' )
-             SpcArr = SpcArr * 0.40_sp
-          CASE ( 'HNO3' )
-             SpcArr = SpcArr * 0.20_sp
+!==============================================================================
+! This code is required for partitioning NOx emissions directly to PAN and HNO3.
+! We will keep it here as an option for users focusing on North American fires.
+! (mps, 5/12/17)
+!          ! Put 40% of NOx Biomass emissions into PAN
+!          ! and 20% into HNO3 (evf, 9/9/11, 9/15/11)
+!          ! Sensitivity study with Hudman 2007 recommendation
+!          ! of 80% of NOX as PAN. (evf, 4/25/12)
+!          CASE ( 'NO' )
+!             SpcArr = SpcArr * 0.40_sp
+!          CASE ( 'PAN' )
+!             SpcArr = SpcArr * 0.40_sp
+!          CASE ( 'HNO3' )
+!             SpcArr = SpcArr * 0.20_sp
+!==============================================================================
        END SELECT
 
        ! Check for masking
@@ -854,8 +861,13 @@ CONTAINS
        IF ( TRIM(SpcName) == 'POG1' ) SpcName = 'OC'
        IF ( TRIM(SpcName) == 'POG2' ) SpcName = 'OC'
        IF ( TRIM(SpcName) == 'NAP'  ) SpcName = 'CO'
-       IF ( TRIM(SpcName) == 'PAN'  ) SpcName = 'NO'
-       IF ( TRIM(SpcName) == 'HNO3' ) SpcName = 'NO'
+!==============================================================================
+! This code is required for partitioning NOx emissions directly to PAN and HNO3.
+! We will keep it here as an option for users focusing on North American fires.
+! (mps, 5/12/17)
+!       IF ( TRIM(SpcName) == 'PAN'  ) SpcName = 'NO'
+!       IF ( TRIM(SpcName) == 'HNO3' ) SpcName = 'NO'
+!==============================================================================
 
        ! Search for matching GFED species by name
        Matched = .FALSE.
