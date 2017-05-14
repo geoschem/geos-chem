@@ -3403,7 +3403,7 @@ CONTAINS
 ! KLUDGE BY BOB YANTOSCA (05 Jan 2016)
 !
 ! This WRITE statement avoids a seg fault in some Intel Fortran Compiler 
-! versions, such as ifort 12 and ifort 13.  The ADVANCE="no" prevents 
+! versions, such as ifort 12 and ifort 13.  The ADVANCE="no" prevents
 ! carriage returns from being added to the log file, and the '' character
 ! will prevent text from creeping across the screen.
 ! 

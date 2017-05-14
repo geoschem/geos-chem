@@ -398,14 +398,6 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
           Indx = WD + 1
 
-       ! Weekday data (already gridded)
-       ! For gridded weekday factors, just use the UTC slice. Add
-       ! one since weekday start at 0.
-!       CASE ( 71 )
-!          CALL HcoClock_Get( am_I_Root, HcoState%Clock, cWeekday=WD, RC=RC )
-!          IF ( RC /= HCO_SUCCESS ) RETURN
-!          Indx = WD + 1
-
        ! Monthly data (local time)
        ! Monthly data is always in local time.
        ! For gridded monthly data, only the current valid time slice
@@ -765,13 +757,14 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  13 Jan 2014 - C. Keller - Initial version 
 !  29 Feb 2016 - C. Keller - Added time shift option
+!  03 Mar 2017 - C. Keller - Added option to deal with UTC weekdays 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER   :: cYr, cMt, cDy, cHr, cMn 
+    INTEGER   :: cYr, cMt, cDy, cWd, cHr, cMn 
     LOGICAL   :: InRange
 
     !-----------------------------------
@@ -782,13 +775,19 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Get current time
-    CALL HcoClock_Get( am_I_Root, HcoState%Clock, &
-                       cYYYY = cYr, cMM = cMt, cDD = cDy, &
-                       cH  = cHr,   cM  = cMn, RC  = RC    ) 
+    CALL HcoClock_Get( am_I_Root, HcoState%Clock,                   &
+                       cYYYY    = cYr, cMM = cMt, cDD = cDy,        &
+                       cWEEKDAY = cWd, cH  = cHr, cM  = cMn, RC = RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ! preferred minute is always current one
     readMn = cMn
+
+    ! If data is in weekdays, set day to weekday: 1=Sun, ..., 7=Sat
+    IF ( Lct%Dct%Dta%ncDys(1) == 1 .AND. &
+         Lct%Dct%Dta%ncDys(2) == 7        ) THEN
+       cDy = cWd + 1 
+    ENDIF
 
     ! ------------------------------------------------------------- 
     ! If CycleFlag is set to range, the preferred datetime is 
@@ -964,6 +963,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  18 Sep 2013 - C. Keller - Initial version (update) 
 !  29 Feb 2016 - C. Keller - Added time shift option
+!  03 Mar 2017 - C. Keller - Added option to deal with UTC weekdays 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
