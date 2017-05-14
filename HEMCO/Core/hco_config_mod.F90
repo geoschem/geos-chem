@@ -882,7 +882,6 @@ CONTAINS
           ! direction' (up or down). These information is also extracted
           ! from srcDim and will be stored in variable Dta%Levels.
           ! (ckeller, 5/20/15)
-
           CALL ExtractSrcDim( am_I_Root, HcoConfig, srcDim, Dta, RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
 

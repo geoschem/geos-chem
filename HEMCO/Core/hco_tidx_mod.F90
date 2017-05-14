@@ -1028,6 +1028,12 @@ CONTAINS
                 INDEX( TRIM(SUBSTR(I)), 'HH'   ) > 0       ) THEN 
           TimeVec(I0:I1) = -999
 
+       ! For weekdaily data in UTC coordinates, set day flags to 1-7. 
+       ELSEIF ( I==3 .AND. INDEX( TRIM(SUBSTR(I)), 'UTCWD' ) > 0 ) THEN
+          TimeVec(I0) = 1
+          TimeVec(I1) = 7
+          Dta%IsLocTime = .FALSE. 
+
        ! For the daily index, value 'WD' is also supported. This 
        ! indicates weekdays (Sun, Mon, ..., Sat). Use a special
        ! flag here to expliclity state that these are weekday data. 
@@ -1039,6 +1045,7 @@ CONTAINS
        ! state that these data are local hours. 
        ELSEIF ( I==4 .AND. INDEX( TRIM(SUBSTR(I)), 'LH' ) > 0 ) THEN
           TimeVec(I0:I1) = -10
+          Dta%IsLocTime = .TRUE.
 
        ! Otherwise, check for date range and set lower and upper bound
        ! accordingly.
@@ -1074,7 +1081,7 @@ CONTAINS
     ! read into memory. This will ensure that for every time zone, the 
     ! correct values can be selected.
     IF ( Dta%IsLocTime ) THEN
-       Dta%ncDys = -1
+       !Dta%ncDys = -1
        Dta%ncHrs = -1
     ENDIF
 
