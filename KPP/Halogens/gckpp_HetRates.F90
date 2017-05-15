@@ -263,6 +263,8 @@ MODULE GCKPP_HETRATES
       REAL(fp) :: PSCEDUCTCONC(11,2)
 #endif
 
+      INTEGER :: N
+
       !====================================================================
       ! SET_HET begins here!
       !====================================================================
@@ -1580,7 +1582,7 @@ MODULE GCKPP_HETRATES
       XStkCf = Gamma_HX_Uptake( rAer, denAir, X, TK )
 
       ! Reaction rate for surface of aerosol
-      kISum = Arsl1K(AAer,rAer,denAir,XStkCf,TK,XSqM)
+      kISum = Arsl1K(AAer,rAer,denAir,XStkCf,XTemp,XSqM)
 
     END FUNCTION HETHXUptake_JS
 !EOC
@@ -1643,7 +1645,7 @@ MODULE GCKPP_HETRATES
       End If
 
       ! Reaction rate for surface of aerosol
-      kISum = Arsl1K(AAer,rAer,denAir,XStkCf,TK,XSqM)
+      kISum = Arsl1K(AAer,rAer,denAir,XStkCf,XTemp,XSqM)
 
     END FUNCTION HETO3_SS_JS
 !EOC
@@ -1705,7 +1707,7 @@ MODULE GCKPP_HETRATES
       End If
 
       ! Reaction rate for surface of aerosol
-      kISum = Arsl1K(AAer,rAer,denAir,XStkCf,TK,XSqM)
+      kISum = Arsl1K(AAer,rAer,denAir,XStkCf,XTemp,XSqM)
 
     END FUNCTION HETClNO3_SS_JS
 !EOC
@@ -1770,7 +1772,7 @@ MODULE GCKPP_HETRATES
       End If
 
       ! Reaction rate for surface of aerosol
-      kISum = Arsl1K(AAer,rAer,denAir,XStkCf,TK,XSqM)
+      kISum = Arsl1K(AAer,rAer,denAir,XStkCf,XTemp,XSqM)
 
     END FUNCTION HETHOBr_SS_JS
 !EOC
@@ -1858,11 +1860,11 @@ MODULE GCKPP_HETRATES
     If (.not. StratBox) Then
        If (ALiq.gt.0.0e+0_fp) Then
           XStkCf = Gamma_O3_Br( rLiq, denAir, TK, brConc, O3Conc )
-          kISum = kISum + Arsl1K(ALiq, rLiq, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(ALiq, rLiq, denAir, XStkCf, XTemp, XSqM)
        End If
        If (AIce.gt.0.0e+0_fp) Then
           XStkCf = Gamma_O3_Br( rIce, denAir, TK, brConc, O3Conc )
-          kISum = kISum + Arsl1K(AIce, rIce, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(AIce, rIce, denAir, XStkCf, XTemp, XSqM)
        End If
     End If
 
@@ -2038,11 +2040,11 @@ MODULE GCKPP_HETRATES
     If (.not. StratBox) Then
        If (ALiq.gt.0.0e+0_fp) Then
           XStkCf = Gamma_ClNO3_Br( rLiq, denAir, TK, brConc )
-          kISum = kISum + Arsl1K(ALiq, rLiq, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(ALiq, rLiq, denAir, XStkCf, XTemp, XSqM)
        End If
        If (AIce.gt.0.0e+0_fp) Then
           XStkCf = Gamma_ClNO3_Br( rIce, denAir, TK, brConc )
-          kISum = kISum + Arsl1K(AIce, rIce, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(AIce, rIce, denAir, XStkCf, XTemp, XSqM)
        End If
     End If
 
@@ -2228,7 +2230,7 @@ MODULE GCKPP_HETRATES
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,TK,XSQM)
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,XSQM)
          ENDIF
          
          ! Add to overall reaction rate
@@ -2239,11 +2241,11 @@ MODULE GCKPP_HETRATES
     If (.not. StratBox) Then
        If (ALiq.gt.0.0e+0_fp) Then
           XstkCf = Gamma_HOBr_X(rLiq, denAir, 1, TK, clConc, hConc_LCl)
-          kISum = kISum + Arsl1K(ALiq, rLiq, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(ALiq, rLiq, denAir, XStkCf, XTemp, XSqM)
        End If
        If (AIce.gt.0.0e+0_fp) Then
           XStkCf = Gamma_HOBr_X(rIce, denAir, 1, TK, clConc, hConc_ICl)
-          kISum = kISum + Arsl1K(AIce, rIce, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(AIce, rIce, denAir, XStkCf, XTemp, XSqM)
        End If
     End If
 
@@ -2332,7 +2334,7 @@ MODULE GCKPP_HETRATES
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,TK,XSQM)
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTemp,XSQM)
          ENDIF
          
          ! Add to overall reaction rate
@@ -2343,11 +2345,11 @@ MODULE GCKPP_HETRATES
     If (.not. StratBox) Then
        If (ALiq.gt.0.0e+0_fp) Then
           XstkCf = Gamma_HOBr_X(rLiq, denAir, 2, TK, brConc, hConc_LCl)
-          kISum = kISum + Arsl1K(ALiq, rLiq, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(ALiq, rLiq, denAir, XStkCf, XTemp, XSqM)
        End If
        If (AIce.gt.0.0e+0_fp) Then
           XStkCf = Gamma_HOBr_X(rIce, denAir, 2, TK, brConc, hConc_ICl)
-          kISum = kISum + Arsl1K(AIce, rIce, denAir, XStkCf, TK, XSqM)
+          kISum = kISum + Arsl1K(AIce, rIce, denAir, XStkCf, XTemp, XSqM)
        End If
     End If
 
