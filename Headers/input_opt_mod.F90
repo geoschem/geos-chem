@@ -660,8 +660,8 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CMN_SIZE_Mod,     ONLY : NDSTBIN
     USE ErrCode_Mod
-    USE CMN_SIZE_Mod,     ONLY : NDSTBIN, NVEGTYPE
 !
 ! !INPUT PARAMETERS: 
 !

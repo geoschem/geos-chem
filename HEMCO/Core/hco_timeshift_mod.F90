@@ -160,6 +160,17 @@ CONTAINS
                              
     ENDIF
 
+    ! Error: cannot shift data if we use weekday data
+    IF ( Dta%tShift(1) /= 0 .OR. Dta%tShift(2) /= 0 ) THEN
+       IF (   Dta%ncDys(1) == -10 .OR. &
+            ( Dta%ncDys(1) == 1 .AND. Dta%ncDys(2) == 7 ) ) THEN
+          WRITE(MSG,*) 'Time shift not supported for weekday data: ', &
+             TRIM(Dta%ncFile)
+          CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+    ENDIF
+
     ! verbose mode
     IF ( HCO_IsVerb(HcoConfig%Err,2) ) THEN
        WRITE(MSG,*) 'Will shift time stamp of field ', TRIM(Dta%ncFile), ': '

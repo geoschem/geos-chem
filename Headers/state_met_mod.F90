@@ -15,7 +15,7 @@
 !  driver routine, and then passed to lower-level routines as an argument.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE State_Met_Mod
 !
@@ -41,7 +41,7 @@ MODULE State_Met_Mod
      !----------------------------------------------------------------------
      ! Surface fields
      !----------------------------------------------------------------------
-     REAL(fp), POINTER :: ALBD      (:,:  ) ! Visible surface albedo [1]
+     REAL(fp), POINTER :: ALBD      (:,:  ) ! Visible surface albedo [1
      REAL(fp), POINTER :: CLDFRC    (:,:  ) ! Column cloud fraction [1]
      INTEGER,  POINTER :: CLDTOPS   (:,:  ) ! Max cloud top height [levels]
      REAL(fp), POINTER :: EFLUX     (:,:  ) ! Latent heat flux [W/m2]
@@ -57,7 +57,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: GWETROOT  (:,:  ) ! Root soil wetness [1]
      REAL(fp), POINTER :: GWETTOP   (:,:  ) ! Top soil moisture [1]
      REAL(fp), POINTER :: HFLUX     (:,:  ) ! Sensible heat flux [W/m2]
-     REAL(fp), POINTER :: LAI       (:,:  ) ! Leaf area index [m2/m2]
+     REAL(fp), POINTER :: LAI       (:,:  ) ! Leaf area index [m2/m2] (online)
      REAL(fp), POINTER :: ITY       (:,:  ) ! Land surface type index
      REAL(fp), POINTER :: LWI       (:,:  ) ! Land/water indices [1]
      REAL(fp), POINTER :: LWI_GISS  (:,:  ) ! Land fraction [1]
@@ -204,18 +204,23 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: SPHU_PREV (:,:,:) ! Previous State_Met%SPHU
 
      !----------------------------------------------------------------------
-     ! Land type and leaf area index (LAI) fields for dry deposition
+     ! Offline land type, leaf area index, and chlorophyll fields
      !----------------------------------------------------------------------
      INTEGER,  POINTER :: IREG      (:,:  ) ! # of landtypes in grid box (I,J) 
      INTEGER,  POINTER :: ILAND     (:,:,:) ! Land type at (I,J); 1..IREG(I,J)
      INTEGER,  POINTER :: IUSE      (:,:,:) ! Fraction (per mil) of grid box
-                                            !  (I,J) occupied by each land type
-     REAL(fp), POINTER :: XLAI      (:,:,:) ! LAI per land type, this month
-     REAL(fp), POINTER :: XLAI2     (:,:,:) ! LAI per land type, next month
-     REAL(fp), POINTER :: XCHLR     (:,:,:) ! CHLR per land type, this month
-     REAL(fp), POINTER :: XCHLR2    (:,:,:) ! CHLR per land type, next month
-
-
+                                            ! (I,J) occupied by each land type
+     REAL(fp), POINTER :: MODISLAI  (:,:  ) ! Daily LAI computed from monthly
+                                            ! offline MODIS values [m2/m2]
+     REAL(fp), POINTER :: MODISCHLR (:,:  ) ! Daily chlorophyll-a computed from
+                                            ! offline MODIS monthly values
+     REAL(fp), POINTER :: XLAI      (:,:,:) ! MODIS LAI per land type, this mo
+     REAL(fp), POINTER :: XLAI2     (:,:,:) ! MODIS LAI per land type, next mo
+     REAL(fp), POINTER :: XCHLR     (:,:,:) ! MODIS CHLR per land type, this mo
+     REAL(fp), POINTER :: XCHLR2    (:,:,:) ! MODIS CHLR per land type, next mo
+     REAL(fp), POINTER :: LandTypeFrac(:,:,:) ! Olson frac per type (I,J,type)
+     REAL(fp), POINTER :: XLAI_NATIVE(:,:,:)  ! avg LAI per type (I,J,type)
+     REAL(fp), POINTER :: XCHLR_NATIVE(:,:,:) ! avg CHLR per type (I,J,type)
 
   END TYPE MetState
 !
@@ -260,6 +265,9 @@ MODULE State_Met_Mod
 !                              state_chm_mod.F90. The "gigc" nomenclature is
 !                              no longer used.
 !  03 Feb 2017 - M. Sulprizio- Add OMEGA for use in sulfate_mod.F (Q. Chen)
+!  18 Oct 2016 - E. Lundgren - Remove XLAI2, CHLR2; add MODISLAI, MODISCHLR to
+!                              replace modis_lai_mod-level GC_LAI and GC_CHLR
+!  19 Oct 2016 - E. Lundgren - Use NSURFTYPE as the # of land types
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -283,8 +291,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod                              ! Error codes
-    USE CMN_SIZE_MOD,    ONLY : NTYPE            ! # of land types
-
+    USE CMN_SIZE_MOD,    ONLY : NSURFTYPE        ! # of land types
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -599,7 +606,7 @@ CONTAINS
     ! field. Only available to online model (ckeller, 3/4/16) 
 #if defined( ESMF_ )
     ALLOCATE( State_Met%CNV_FRC   ( IM, JM ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%CNV_FRC  = 0.0_fp
 #endif
 
@@ -1021,31 +1028,51 @@ CONTAINS
     !=======================================================================
     ! Allocate land type and leaf area index fields for dry deposition
     !=======================================================================
-    ALLOCATE( State_Met%IREG      ( IM, JM        ), STAT=RC )
+    ALLOCATE( State_Met%IREG       ( IM, JM           ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%IREG     = 0
+    State_Met%IREG = 0
 
-    ALLOCATE( State_Met%ILAND     ( IM, JM, NTYPE ), STAT=RC )
+    ALLOCATE( State_Met%ILAND      ( IM, JM, NSURFTYPE), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%ILAND    = 0
+    State_Met%ILAND = 0
 
-    ALLOCATE( State_Met%IUSE      ( IM, JM, NTYPE ), STAT=RC )
+    ALLOCATE( State_Met%IUSE       ( IM, JM, NSURFTYPE), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%IUSE     = 0
+    State_Met%IUSE = 0
 
-    ALLOCATE( State_Met%XLAI      ( IM, JM, NTYPE ), STAT=RC )
+    ALLOCATE( State_Met%XLAI       ( IM, JM, NSURFTYPE), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%XLAI     = 0.0_fp
+    State_Met%XLAI = 0.0_fp
 
-    ALLOCATE( State_Met%XLAI2     ( IM, JM, NTYPE ), STAT=RC )        
+    ALLOCATE( State_Met%MODISLAI   ( IM, JM           ), STAT=RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%MODISLAI = 0.0_fp
+
+    ALLOCATE( State_Met%XCHLR      ( IM, JM, NSURFTYPE), STAT=RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%XCHLR = 0.0_fp
+
+    ALLOCATE( State_Met%MODISCHLR  ( IM, JM           ), STAT=RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%MODISCHLR = 0.0_fp
+
+    ALLOCATE( State_Met%LANDTYPEFRAC( IM, JM, NSURFTYPE ), STAT=RC )        
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%LANDTYPEFRAC = 0.0_fp
+
+    ALLOCATE( State_Met%XLAI_NATIVE ( IM, JM, NSURFTYPE ), STAT=RC )        
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%XLAI_NATIVE  = 0.0_fp
+
+    ALLOCATE( State_Met%XCHLR_NATIVE( IM, JM, NSURFTYPE ), STAT=RC )        
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%XCHLR_NATIVE = 0.0_fp
+
+    ALLOCATE( State_Met%XLAI2     ( IM, JM, NSURFTYPE ), STAT=RC )        
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%XLAI2    = 0.0_fp
 
-    ALLOCATE( State_Met%XCHLR      ( IM, JM, NTYPE ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%XCHLR     = 0.0_fp
-
-    ALLOCATE( State_Met%XCHLR2     ( IM, JM, NTYPE ), STAT=RC )        
+    ALLOCATE( State_Met%XCHLR2     ( IM, JM, NSURFTYPE ), STAT=RC )        
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%XCHLR2    = 0.0_fp
 
@@ -1165,9 +1192,7 @@ CONTAINS
 
     ! 3-D fields
     IF ( ASSOCIATED( State_Met%AD         )) NULLIFY( State_Met%AD         )
-    IF ( ASSOCIATED( State_Met%ADMOIST    )) NULLIFY( State_Met%ADMOIST    )
     IF ( ASSOCIATED( State_Met%AIRDEN     )) NULLIFY( State_Met%AIRDEN     )
-    IF ( ASSOCIATED( State_Met%MAIRDEN    )) NULLIFY( State_Met%MAIRDEN    )
     IF ( ASSOCIATED( State_Met%AIRVOL     )) NULLIFY( State_Met%AIRVOL     )
     IF ( ASSOCIATED( State_Met%AREA_M2    )) NULLIFY( State_Met%AREA_M2    )
     IF ( ASSOCIATED( State_Met%AVGW       )) NULLIFY( State_Met%AVGW       )
@@ -1181,7 +1206,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%DQIDTMST   )) NULLIFY( State_Met%DQIDTMST   )
     IF ( ASSOCIATED( State_Met%DQLDTMST   )) NULLIFY( State_Met%DQLDTMST   )
     IF ( ASSOCIATED( State_Met%DQVDTMST   )) NULLIFY( State_Met%DQVDTMST   )
-    IF ( ASSOCIATED( State_Met%MOISTMW    )) NULLIFY( State_Met%MOISTMW    )
     IF ( ASSOCIATED( State_Met%DTRAIN     )) NULLIFY( State_Met%DTRAIN     )
     IF ( ASSOCIATED( State_Met%MOISTQ     )) NULLIFY( State_Met%MOISTQ     )
     IF ( ASSOCIATED( State_Met%OMEGA      )) NULLIFY( State_Met%OMEGA      )
@@ -1190,8 +1214,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) NULLIFY( State_Met%PEDGE_DRY  )
     IF ( ASSOCIATED( State_Met%PMID       )) NULLIFY( State_Met%PMID       )
     IF ( ASSOCIATED( State_Met%PMID_DRY   )) NULLIFY( State_Met%PMID_DRY   )
-    IF ( ASSOCIATED( State_Met%PMEAN      )) NULLIFY( State_Met%PMEAN      )
-    IF ( ASSOCIATED( State_Met%PMEAN_DRY  )) NULLIFY( State_Met%PMEAN_DRY  )
     IF ( ASSOCIATED( State_Met%PV         )) NULLIFY( State_Met%PV         )
     IF ( ASSOCIATED( State_Met%QI         )) NULLIFY( State_Met%QI         )
     IF ( ASSOCIATED( State_Met%QL         )) NULLIFY( State_Met%QL         )
@@ -1353,8 +1375,13 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%IUSE       )) DEALLOCATE( State_Met%IUSE       )
     IF ( ASSOCIATED( State_Met%XLAI       )) DEALLOCATE( State_Met%XLAI       )
     IF ( ASSOCIATED( State_Met%XLAI2      )) DEALLOCATE( State_Met%XLAI2      )
+    IF ( ASSOCIATED( State_Met%MODISLAI   )) DEALLOCATE( State_Met%MODISLAI   )
     IF ( ASSOCIATED( State_Met%XCHLR      )) DEALLOCATE( State_Met%XCHLR      )
     IF ( ASSOCIATED( State_Met%XCHLR2     )) DEALLOCATE( State_Met%XCHLR2     )
+    IF ( ASSOCIATED( State_Met%MODISCHLR  )) DEALLOCATE( State_Met%MODISCHLR  )
+    IF (ASSOCIATED( State_Met%LANDTYPEFRAC)) DEALLOCATE( State_Met%LANDTYPEFRAC)
+    IF (ASSOCIATED( State_Met%XLAI_NATIVE )) DEALLOCATE( State_Met%XLAI_NATIVE )
+    IF (ASSOCIATED( State_Met%XCHLR_NATIVE)) DEALLOCATE( State_Met%XCHLR_NATIVE)
 
    END SUBROUTINE Cleanup_State_Met
 !EOC

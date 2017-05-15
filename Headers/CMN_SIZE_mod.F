@@ -556,10 +556,10 @@
       ! OTHER PARAMETERS 
       !=================================================================
 
-      ! NVEGTYPE - Maximum number of surface types: 74 olson
-      ! NTYPE    - Maximum number of veg types in a CTM grid box
-      ! NPOLY    - Number of coefficients for polynomial fits
-      INTEGER,    PARAMETER :: NVEGTYPE = 74
+      ! NSURFTYPE - Maximum number of surface types: 73 olson
+      ! NTYPE     - Maximum number of veg types in a CTM grid box
+      ! NPOLY     - Number of coefficients for polynomial fits
+      INTEGER,    PARAMETER :: NSURFTYPE = 73
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_TYPE )
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%

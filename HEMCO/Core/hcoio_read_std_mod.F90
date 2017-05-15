@@ -52,6 +52,7 @@ MODULE HCOIO_read_std_mod
   PRIVATE :: GetDataVals 
   PRIVATE :: GetSliceIdx
   PRIVATE :: FillMaskBox 
+  PRIVATE :: ReadMath 
 !
 ! !REVISION HISTORY:
 !  22 Aug 2013 - C. Keller   - Initial version
@@ -612,7 +613,7 @@ CONTAINS
     ! Check for missing values: set base emissions and masks to 0, and
     ! scale factors to 1. This will make sure that these entries will
     ! be ignored.
-    CALL CheckMissVal ( Lct, ncArr )
+!!! CALL CheckMissVal ( Lct, ncArr )
 
     !-----------------------------------------------------------------
     ! Eventually do interpolation between files. This is a pretty 
@@ -674,7 +675,7 @@ CONTAINS
           ENDIF
 
           ! Eventually fissing values
-          CALL CheckMissVal ( Lct, ncArr2 )
+!!!          CALL CheckMissVal ( Lct, ncArr2 )
 
           ! Calculate weights to be applied to ncArr2 and ncArr1. These
           ! weights are calculated based on the originally preferred 
@@ -803,7 +804,7 @@ CONTAINS
              ENDIF
       
              ! Eventually fissing values
-             CALL CheckMissVal ( Lct, ncArr2 )
+!!!             CALL CheckMissVal ( Lct, ncArr2 )
       
              ! Add all values to ncArr 
              ncArr = ncArr + ncArr2
@@ -3719,6 +3720,7 @@ CONTAINS
     REAL(hp)           :: FileVals(100)
     REAL(hp), POINTER  :: FileArr(:,:,:,:)
     LOGICAL            :: IsPerArea
+    LOGICAL            :: IsMath
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'GetDataVals (hcoio_dataread_mod.F90)'
 
@@ -3742,12 +3744,25 @@ CONTAINS
        MolecRatio = -999.0_hp
     ENDIF
 
-    ! Read data into array
-    CALL HCO_CharSplit ( ValStr, &
-                         HCO_GetOpt(HcoState%Config%ExtList,'Separator'), &
-                         HCO_GetOpt(HcoState%Config%ExtList,'Wildcard'), &
-                         FileVals, N, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Is this a math expression?
+    IsMath = .FALSE.
+    IF ( LEN(ValStr) > 5 ) THEN
+       IF ( ValStr(1:5)=='MATH:' ) IsMath = .TRUE.
+    ENDIF
+
+    ! Evaluate math expression if string starts with 'MATH:'
+    IF ( IsMath ) THEN
+       CALL ReadMath ( am_I_Root, HcoState, Lct, ValStr, FileVals, N, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    ! Use regular string parser otherwise 
+    ELSE
+       CALL HCO_CharSplit ( ValStr, &
+                            HCO_GetOpt(HcoState%Config%ExtList,'Separator'), &
+                            HCO_GetOpt(HcoState%Config%ExtList,'Wildcard'), &
+                            FileVals, N, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
 
     ! Return w/ error if no scale factor defined
     IF ( N == 0 ) THEN
@@ -3792,67 +3807,82 @@ CONTAINS
     ! ---------------------------------------------------------------- 
     ELSE
 
-       ! Get the preferred times, i.e. the preferred year, month, day, 
-       ! or hour (as specified in the configuration file).
-       CALL HCO_GetPrefTimeAttr ( am_I_Root, HcoState, Lct, prefYr, &
-                                  prefMt, prefDy, prefHr, prefMn, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-   
-       ! Currently, data read directly from the configuration file can only
-       ! represent one time dimension, i.e. it can only be yearly, monthly,
-       ! daily (or hourly data, but this is read all at the same time). 
-   
-       ! Annual data 
-       IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
-          ! Error check
-          IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) .OR. & 
-               Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
-               Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
-             MSG = 'Data must not have more than one time dimension: ' // &
-                    TRIM(Lct%Dct%cName)
-             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
-             RETURN
-          ENDIF
-   
-          CALL GetSliceIdx ( HcoState, Lct, 1, prefYr, IDX1, RC ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          IDX2 = IDX1
+       ! If there is only one value use this one and ignore any time
+       ! preferences.
+       IF ( N == 1 ) THEN
           NUSE = 1
-   
-       ! Monthly data
-       ELSEIF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
-          ! Error check
-          IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
-               Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
-             MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
-             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
-             RETURN
-          ENDIF
-   
-          CALL GetSliceIdx ( HcoState, Lct, 2, prefMt, IDX1, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          IDX2 = IDX1
-          NUSE = 1
-   
-       ! Daily data
-       ELSEIF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
-          ! Error check
-          IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
-             MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
-             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
-             RETURN
-          ENDIF
-   
-          CALL GetSliceIdx ( HcoState, Lct, 3, prefDy, IDX1, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          IDX2 = IDX1
-          NUSE = 1
-   
-       ! All other cases (incl. hourly data): read all time slices).
-       ELSE
+          IDX1 = 1
+          IDX2 = 1
+
+       ! If it's a math expression use all passed values
+       ELSEIF ( IsMath ) THEN
+          NUSE = N
           IDX1 = 1
           IDX2 = N
-          NUSE = N
+
+       ELSE
+          ! Get the preferred times, i.e. the preferred year, month, day, 
+          ! or hour (as specified in the configuration file).
+          CALL HCO_GetPrefTimeAttr ( am_I_Root, HcoState, Lct, prefYr, &
+                                     prefMt, prefDy, prefHr, prefMn, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+      
+          ! Currently, data read directly from the configuration file can only
+          ! represent one time dimension, i.e. it can only be yearly, monthly,
+          ! daily (or hourly data, but this is read all at the same time). 
+      
+          ! Annual data 
+          IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
+             ! Error check
+             IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) .OR. & 
+                  Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
+                  Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
+                MSG = 'Data must not have more than one time dimension: ' // &
+                       TRIM(Lct%Dct%cName)
+                CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+      
+             CALL GetSliceIdx ( HcoState, Lct, 1, prefYr, IDX1, RC ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN
+             IDX2 = IDX1
+             NUSE = 1
+      
+          ! Monthly data
+          ELSEIF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
+             ! Error check
+             IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
+                  Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
+                MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
+                CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+   
+             CALL GetSliceIdx ( HcoState, Lct, 2, prefMt, IDX1, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+             IDX2 = IDX1
+             NUSE = 1
+   
+          ! Daily data
+          ELSEIF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
+             ! Error check
+             IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
+                MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
+                CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+      
+             CALL GetSliceIdx ( HcoState, Lct, 3, prefDy, IDX1, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+             IDX2 = IDX1
+             NUSE = 1
+
+          ! All other cases (incl. hourly data): read all time slices).
+          ELSE
+             IDX1 = 1
+             IDX2 = N
+             NUSE = N
+          ENDIF
        ENDIF
    
        ! ---------------------------------------------------------------- 
@@ -4121,5 +4151,235 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE FillMaskBox
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ReadMath 
+!
+! !DESCRIPTION: Subroutine ReadMath reads and evaluates a mathematical
+! expression. Mathematical expressions can combine time-stamps with
+! mathematical functions, e.g. to yield the sine of current simulation hour.
+! Mathematical expressions must start with the identifier 'MATH:', followed
+! by the actual expression. Each expression must include at least one 
+! variable (evaluated at runtime). The following variables are currently 
+! supported: YYYY (year), MM (month), DD (day), HH (hour), LH (local hour), 
+! NN (minute), SS (second), WD (weekday), LWD (local weekday), DOY (day of year). 
+! In addition, the following variables can be used: PI (3.141...), DOM
+! (# of days of current month).
+! For example, the following expression would yield a continuous sine
+! curve as function of hour of day: 'MATH:sin(HH/24*PI*2)'.
+!\\
+!\\
+! For a full list of valid mathematical expressions, see module interpreter.F90.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ReadMath ( am_I_Root, HcoState, Lct, ValStr, Vals, N, RC ) 
+!
+! !USES:
+!
+    USE HCO_CLOCK_MOD,      ONLY : HcoClock_Get
+    USE HCO_tIdx_Mod,       ONLY : HCO_GetPrefTimeAttr
+    USE INTERPRETER
+!
+! !INPUT PARAMTERS:
+!
+    LOGICAL,          INTENT(IN   )   :: am_I_Root
+    TYPE(HCO_State),  POINTER         :: HcoState    ! HEMCO state
+    TYPE(ListCont),   POINTER         :: Lct
+    CHARACTER(LEN=*), INTENT(IN   )   :: ValStr
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(hp),         INTENT(INOUT)   :: Vals(:)
+    INTEGER,          INTENT(INOUT)   :: RC 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(  OUT)   :: N
+!
+! !REVISION HISTORY:
+!  11 May 2017 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL            :: EOS
+    INTEGER            :: STRL
+    INTEGER            :: I, NVAL, LHIDX, LWDIDX 
+    INTEGER            :: prefYr, prefMt, prefDy, prefHr, prefMn
+    INTEGER            :: prefWD, prefDOY, prefS, LMD, cHr
+    REAL(hp)           :: Val
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'ReadMath (hcoio_dataread_mod.F90)'
+
+    !Variables used by the evaluator to build and to determine the value of the expressions
+    character(len = 10) :: all_variables(12)
+    real(hp)            :: all_variablesvalues(12)
+
+    !String variable that will store the function that the evaluator will build
+    character (len = 275)  :: func
+
+    !String variable that will return the building of the expression result 
+    !If everything was ok then statusflag = 'ok', otherwise statusflag = 'error'
+    character (len = 5)  :: statusflag
+
+    !======================================================================
+    ! ReadMath begins here
+    !======================================================================
+
+    ! Substring (without flag 'MATH:') 
+    STRL = LEN(ValStr)
+    IF ( STRL < 6 ) THEN
+       MSG = 'Math expression is too short - expected `MATH:<expr>`: '//TRIM(ValStr)
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF 
+    func = ValStr(6:STRL)
+
+    ! Get preferred time stamps
+    CALL HCO_GetPrefTimeAttr ( am_I_Root, HcoState, Lct, prefYr, &
+                               prefMt, prefDy, prefHr, prefMn, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+    ! Get some other current time stamps 
+    CALL HcoClock_Get( am_I_Root, HcoState%Clock, cS=prefS, cH=cHr, &
+                       cWEEKDAY=prefWD, cDOY=prefDOY, LMD=LMD, RC=RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    ! GetPrefTimeAttr can return -999 for hour. In this case set to current
+    ! simulation hour
+    IF ( prefHr < 0 ) prefHr = cHr
+ 
+    ! Check which variables are in string. 
+    ! Possible variables are YYYY, MM, DD, WD, HH, NN, SS, DOY 
+    NVAL   = 0
+    LHIDX  = -1
+    LWDIDX = -1
+
+    IF ( INDEX(func,'YYYY') > 0 ) THEN
+       NVAL                      = NVAL + 1
+       all_variables(NVAL)       = 'yyyy'
+       all_variablesvalues(NVAL) = prefYr
+    ENDIF
+    IF ( INDEX(func,'MM') > 0 ) THEN
+       NVAL                      = NVAL + 1
+       all_variables(NVAL)       = 'mm'
+       all_variablesvalues(NVAL) = prefMt
+    ENDIF
+    IF ( INDEX(func,'DD') > 0 ) THEN
+       NVAL                      = NVAL + 1
+       all_variables(NVAL)       = 'dd'
+       all_variablesvalues(NVAL) = prefDy
+    ENDIF
+    IF ( INDEX(func,'WD') > 0 ) THEN
+       NVAL                      = NVAL + 1
+       all_variables(NVAL)       = 'wd'
+       all_variablesvalues(NVAL) = prefWD
+    ENDIF
+    IF ( INDEX(func,'LWD') > 0 ) THEN
+       NVAL                      = NVAL + 1
+       all_variables(NVAL)       = 'lwd'
+       all_variablesvalues(NVAL) = prefWD
+       LWDIDX                    = NVAL
+    ENDIF
+    IF ( INDEX(func,'HH') > 0 ) THEN
+       NVAL                      = NVAL + 1
+       all_variables(NVAL)       = 'hh'
+       all_variablesvalues(NVAL) = prefHr
+    ENDIF
+    IF ( INDEX(func,'LH') > 0 ) THEN
+       NVAL                      = NVAL + 1
+       all_variables(NVAL)       = 'lh'
+       all_variablesvalues(NVAL) = prefHr
+       LHIDX                     = NVAL
+    ENDIF
+    IF ( INDEX(func,'NN') > 0 ) THEN
+       NVAL                      = NVAL + 1
+       all_variables(NVAL)       = 'nn'
+       all_variablesvalues(NVAL) = prefMn
+    ENDIF
+    IF ( INDEX(func,'SS') > 0 ) THEN
+       NVAL                      = NVAL + 1
+       all_variables(NVAL)       = 'ss'
+       all_variablesvalues(NVAL) = prefS
+    ENDIF
+    IF ( INDEX(func,'DOY') > 0 ) THEN
+       NVAL                      = NVAL + 1
+       all_variables(NVAL)       = 'doy'
+       all_variablesvalues(NVAL) = prefDOY
+    ENDIF
+    IF ( INDEX(func,'PI') > 0 ) THEN
+       NVAL                      = NVAL + 1
+       all_variables(NVAL)       = 'pi'
+       all_variablesvalues(NVAL) = HcoState%Phys%PI
+    ENDIF
+    IF ( INDEX(func,'DOM') > 0 ) THEN
+       NVAL                      = NVAL + 1
+       all_variables(NVAL)       = 'dom'
+       all_variablesvalues(NVAL) = LMD 
+    ENDIF
+
+    ! Need at least one expression
+    IF ( NVAL == 0 ) THEN
+       MSG = 'No valid time expression found - '//&
+             'the function should contain at least one of '//&
+             'YYYY,MM,DD,HH,NN,SS,DOY,WD; '//TRIM(func)
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF 
+
+    ! Error trap: cannot have local hour and local weekday in 
+    ! same expression
+    IF ( LHIDX > 0 .AND. LWDIDX > 0 ) THEN
+       MSG = 'Cannot have local hour and local weekday in '//&
+             'same expression: '//TRIM(func)
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
+    ! N is the number of expressions. This is 1 or 24
+    Vals(:) = -999.0_hp
+    IF ( LHIDX > 0 ) THEN
+       N = 24
+    ELSEIF ( LWDIDX > 0 ) THEN
+       N = 7 
+    ELSE
+       N = 1
+    ENDIF
+
+    ! Evaluate expression
+    !Initialize function
+    call init (func, all_variables(1:NVAL), statusflag)
+    IF(statusflag == 'ok') THEN
+       DO I=1,N
+          IF ( LHIDX  > 0 ) all_variablesvalues(LHIDX)  = I-1
+          IF ( LWDIDX > 0 ) all_variablesvalues(LWDIDX) = I-1
+          Val = evaluate( all_variablesvalues(1:NVAL) )
+          Vals(I) = Val
+
+          ! Verbose
+          IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+             WRITE(MSG,*) 'Evaluated function: ',TRIM(func),' --> ', Val
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
+          ENDIF
+       ENDDO
+    ELSE
+       MSG = 'Error evaluation function: '//TRIM(func)
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    call destroyfunc()
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE ReadMath 
 !EOC
 END MODULE HCOIO_read_std_mod

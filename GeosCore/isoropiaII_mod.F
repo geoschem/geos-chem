@@ -196,6 +196,7 @@
 !  25 Jan 2017 - S. Eastham   - Can skip calling ISORROPIA if P and T are not 
 !                               in the proper range to yield a valid solution.
 !                               (Activate this with the #ifdef block above.)
+!  10 Mar 2017 - C. Keller    - Add print out statement after initialization. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -331,6 +332,16 @@
 
             ENDIF
          ENDIF
+
+         ! Print out
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) REPEAT( '=', 79 )
+            WRITE( 6, 110 )
+            WRITE( 6, 100 ) REPEAT( '=', 79 )
+         ENDIF
+
+100      FORMAT( a                                            )
+110      FORMAT( 'Successfully initialized ISORROPIA code II' )
 
          ! Reset first-time flag
          FIRST = .FALSE. 

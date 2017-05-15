@@ -116,6 +116,7 @@ hco_calc_mod.o         : hco_calc_mod.F90        \
                          hco_extlist_mod.o       \
                          hco_error_mod.o         \
                          hco_filedata_mod.o      \
+                         hco_scale_mod.o         \
                          hco_state_mod.o         \
                          hco_types_mod.o         \
                          hco_tidx_mod.o
@@ -171,6 +172,7 @@ hco_driver_mod.o       : hco_driver_mod.F90      \
                          hco_error_mod.o         \
                          hco_extlist_mod.o       \
                          hco_readlist_mod.o      \
+                         hco_scale_mod.o         \
                          hco_state_mod.o         \
                          hco_tidx_mod.o          \
                          hcoio_diagn_mod.o
@@ -200,6 +202,7 @@ hco_fluxarr_mod.o      : hco_fluxarr_mod.F90     \
                          hco_arr_mod.o           \
                          hco_diagn_mod.o         \
                          hco_error_mod.o         \
+                         hco_scale_mod.o         \
                          hco_state_mod.o
 
 hco_geotools_mod.o     : hco_geotools_mod.F90    \
@@ -238,6 +241,11 @@ hco_restart_mod.o      : hco_restart_mod.F90     \
                          hco_diagn_mod.o         \
                          hco_emislist_mod.o      \
                          hco_error_mod.o         \
+                         hco_state_mod.o
+
+hco_scale_mod.o        : hco_scale_mod.F90       \
+                         hco_error_mod.o         \
+                         hco_extlist_mod.o       \
                          hco_state_mod.o
 
 hco_state_mod.o        : hco_state_mod.F90       \
@@ -309,7 +317,8 @@ hcoio_read_std_mod.o   : hcoio_read_std_mod.F90  \
                          hco_tidx_mod.o          \
                          hco_types_mod.o         \
                          hco_unit_mod.o          \
-                         hcoio_messy_mod.o
+                         hcoio_messy_mod.o       \
+                         interpreter.o
 
 hcoio_messy_mod.o      : hcoio_messy_mod.F90     \
                          hco_error_mod.o         \
@@ -333,6 +342,9 @@ hcoio_write_std_mod.o  : hcoio_write_std_mod.F90 \
                          hco_extlist_mod.o       \
                          hco_state_mod.o         \
                          hco_types_mod.o
+
+interpreter.o          : interpreter.F90         \
+                         hco_error_mod.o
 
 messy_ncregrid_base.o  : messy_ncregrid_base.F90 \
                          hco_error_mod.o         \

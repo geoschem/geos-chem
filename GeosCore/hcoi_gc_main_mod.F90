@@ -1034,11 +1034,6 @@ CONTAINS
     USE Get_Ndep_Mod,          ONLY : DRY_TOTN
     USE Get_Ndep_Mod,          ONLY : WET_TOTN
 
-#if !defined(ESMF_)
-    USE MODIS_LAI_MOD,         ONLY : GC_LAI
-#endif
-    USE MODIS_LAI_MOD,         ONLY : GC_CHLR
-
 #if defined(ESMF_)
     USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
 #endif
@@ -1257,19 +1252,12 @@ CONTAINS
          'FRLANDIC_FOR_EMIS',   HCRC, FIRST, State_Met%FRLANDIC  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-    ! Use 'offline' MODIS LAI in standard GEOS-Chem
-#if defined(ESMF_)
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
-              'LAI_FOR_EMIS',   HCRC, FIRST, State_Met%LAI  )
+              'LAI_FOR_EMIS',   HCRC, FIRST, State_Met%MODISLAI  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
-#else
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
-              'LAI_FOR_EMIS',   HCRC, FIRST, GC_LAI         )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-#endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CHLR, &
-             'CHLR', HCRC,      FIRST,   GC_CHLR          )
+             'CHLR', HCRC,      FIRST,    State_Met%MODISCHLR )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     ! Convective fractions

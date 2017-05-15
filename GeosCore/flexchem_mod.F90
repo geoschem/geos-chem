@@ -224,7 +224,7 @@ CONTAINS
     DO_HETCHEM  = .TRUE.
     DO_PHOTCHEM = .TRUE.
 
-    IF ( FIRSTCHEM ) THEN
+    IF ( FIRSTCHEM .AND. am_I_Root ) THEN
        WRITE( 6, '(a)' ) REPEAT( '#', 32 )
        WRITE( 6, '(a,l,a)' ) '# FLEX_CHEMDR: DO_HETCHEM  =', &
                                              DO_HETCHEM,  ' #'
@@ -255,14 +255,17 @@ CONTAINS
     ! or EXTERNAL_FORCING compiler switches are on (ckeller, 3/10/17).
     id_CH4 = Ind_('CH4','A')
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    ! SDE 2017-03-29: This is not valid. We need id_CH4 and the CXXYYZ variables
+    ! to be set, whether or not EXTERNAL_GRID is defined.
+!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+
     !-----------------------------------------------------------------
     !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
     !
     ! Do nothing, since we will call these setup routines from the 
     ! init method of the ESMF interface (bmy, 10/24/12)
     !-----------------------------------------------------------------
-#else
+!#else
     !-----------------------------------------------------------------
     !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
     !
@@ -300,7 +303,7 @@ CONTAINS
        ENDIF
 
     ENDIF
-#endif
+!#endif
 
     !================================================================
     ! Get concentrations of aerosols in [kg/m3] 
@@ -688,6 +691,7 @@ CONTAINS
        ! If both are nonzero, then CH4 is an advected species.
        ! If id_CH4 <= 0 but ind_CH4 > 0, then CH4 is a non-advected species.
        ! (bmy, 6/20/16_)
+#if !defined(ESMF_)
        IF ( id_CH4 <= 0 .and. ind_CH4 > 0 ) THEN
           ! Set CH4 according to latitude
           ! Convert from [ppbv CH4] to [molec CH4/cm3]
@@ -701,6 +705,7 @@ CONTAINS
              C(ind_CH4) = C3090N * 1e-9_dp * NUMDEN
           ENDIF
        ENDIF
+#endif
 
        !===========================================================
        ! Update KPP's rates
@@ -890,15 +895,15 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
-    write(*,'(a,F10.3)') 'Flex Rate Time     : ', rtim
-    write(*,'(a,F10.3)') 'Flex Intg Time     : ', itim
-    write(*,'(a,I9)'   ) 'Flex Function Calls: ', totfuncs
-    write(*,'(a,I9)'   ) 'Flex Jacobian Calls: ', totjacob
-    write(*,'(a,I9)'   ) 'Flex Total Steps   : ', totsteps
-    write(*,'(a,I9)'   ) 'Flex Rejected Steps: ', totrejec
-    write(*,'(a,I9)'   ) 'Flex LU Decompos.  : ', totnumLU
-#endif
+!!!#if defined( DEVEL )
+!    write(*,'(a,F10.3)') 'Flex Rate Time     : ', rtim
+!    write(*,'(a,F10.3)') 'Flex Intg Time     : ', itim
+!    write(*,'(a,I9)'   ) 'Flex Function Calls: ', totfuncs
+!    write(*,'(a,I9)'   ) 'Flex Jacobian Calls: ', totjacob
+!    write(*,'(a,I9)'   ) 'Flex Total Steps   : ', totsteps
+!    write(*,'(a,I9)'   ) 'Flex Rejected Steps: ', totrejec
+!    write(*,'(a,I9)'   ) 'Flex LU Decompos.  : ', totnumLU
+!!!#endif
 
     !=================================================================
     ! Call OHSAVE which saves info on OH AND HO2 concentrations

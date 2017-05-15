@@ -882,7 +882,6 @@ CONTAINS
           ! direction' (up or down). These information is also extracted
           ! from srcDim and will be stored in variable Dta%Levels.
           ! (ckeller, 5/20/15)
-
           CALL ExtractSrcDim( am_I_Root, HcoConfig, srcDim, Dta, RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1900,24 +1899,28 @@ CONTAINS
        ELSE IF ( Lct%Dct%DctType   == HCO_DCTTYPE_MASK .AND. &
                  Lct%Dct%Dta%Cover == -999                   ) THEN
 
-          ! Get mask edges
-          lon1 = Lct%Dct%Dta%ncYrs(1)
-          lat1 = Lct%Dct%Dta%ncYrs(2)
-          lon2 = Lct%Dct%Dta%ncMts(1)
-          lat2 = Lct%Dct%Dta%ncMts(2) 
+          If (HcoState%isESMF) Then
+             ThisCover = -1
+          Else
+             ! Get mask edges
+             lon1 = Lct%Dct%Dta%ncYrs(1)
+             lat1 = Lct%Dct%Dta%ncYrs(2)
+             lon2 = Lct%Dct%Dta%ncMts(1)
+             lat2 = Lct%Dct%Dta%ncMts(2) 
 
-          ThisCover = CALC_COVERAGE( lon1,  lon2,  &
-                                     lat1,  lat2,  &
-                                     cpux1, cpux2, &
-                                     cpuy1, cpuy2   )
+             ThisCover = CALC_COVERAGE( lon1,  lon2,  &
+                                        lat1,  lat2,  &
+                                        cpux1, cpux2, &
+                                        cpuy1, cpuy2   )
        
-          ! There appear to be some issues with full masks coverages 
-          ! when working in an MPI environment. Specifically, masks
-          ! can be seen as fully covering a given CPU even though in
-          ! reality it may only cover parts of it. Thus, in ESMF mode
-          ! always set coverage to zero or partial (ckeller, 3/17/16).
-          IF ( HcoState%isESMF ) THEN
-             IF ( ThisCover == 1 ) ThisCover = -1
+             ! There appear to be some issues with full masks coverages 
+             ! when working in an MPI environment. Specifically, masks
+             ! can be seen as fully covering a given CPU even though in
+             ! reality it may only cover parts of it. Thus, in ESMF mode
+             ! always set coverage to zero or partial (ckeller, 3/17/16).
+             IF ( HcoState%isESMF ) THEN
+                IF ( ThisCover == 1 ) ThisCover = -1
+             ENDIF 
           ENDIF 
  
           ! Update container information
@@ -3971,7 +3974,7 @@ CONTAINS
        ! Verbose
        IF ( am_I_Root .AND. HCO_IsVerb(HcoConfig%Err,2) ) THEN
           WRITE(MSG,*) 'Will use additional dimension on file ', &
-             TRIM(Dta%ncFile), ': ', TRIM(Dta%ArbDimName), ' = ', &
+             TRIM(Dta%ncFile), & ': ', TRIM(Dta%ArbDimName), ' = ', &
              TRIM(Dta%ArbDimVal)
           CALL HCO_MSG(HcoConfig%Err,MSG)
        ENDIF

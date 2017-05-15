@@ -1946,7 +1946,9 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !  27 Nov 2012 - R. Yantosca - Update SUNCOS fields of the State_Met object
-!  10 Mar 2017 - E. Lundgren - Bug fix: include partial hour in current time
+!  10 Mar 2017 - E. Lundgren - Bug fix: use partial hour in current time
+!                              and set suncosmid to suncos for GCHP comparison
+!                              (REMOVE THIS WHEN MERGING INTO GCBE DEV!)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1982,7 +1984,7 @@
       FACTOR   = MINUTE / TS_SUN                       ! Multiplying factor
 
       ! GMT at the current time
-      GMT_CUR  = DBLE( GMT_HOUR          )
+      GMT_CUR  = ( DBLE( GMT_HOUR        )        )
      &         + ( DBLE( TS_SUN * FACTOR ) / 60e+0_fp ) 
 
       ! GMT at the midpoint of the chemistry time interval
@@ -2063,7 +2065,8 @@
             State_Met%SUNCOS    (I,J) = SUNCOS
                                
             ! COS(SZA) @ the midpoint of the current chemistry timestep
-            State_Met%SUNCOSmid (I,J) = SUNCOS_MID
+!EWL            State_Met%SUNCOSmid (I,J) = SUNCOS_MID
+            State_Met%SUNCOSmid (I,J) = SUNCOS ! use suncos for GCHP comparison
                                                            
          ENDIF                                             
 

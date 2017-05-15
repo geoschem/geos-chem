@@ -442,7 +442,8 @@ carbon_mod.o                : carbon_mod.F                                   \
                               hco_interface_mod.o     aerosol_mod.o
 
 chemgrid_mod.o              : chemgrid_mod.F                                 \
-                              dao_mod.o               diag_mod.o
+                              dao_mod.o               diag_mod.o             \
+                              hco_interface_mod.o
 
 chemistry_mod.o             : chemistry_mod.F                                \
                               aerosol_mod.o           isoropiaII_mod.o       \
@@ -535,12 +536,11 @@ diag50_mod.o                : diag50_mod.F                                   \
                               chemgrid_mod.o          pbl_mix_mod.o
 
 diag51_mod.o                : diag51_mod.F                                   \
-                              chemgrid_mod.o          modis_lai_mod.o        \
-                              pbl_mix_mod.o           
+                              chemgrid_mod.o          pbl_mix_mod.o           
 
 diag51b_mod.o               : diag51b_mod.F                                  \
-                              chemgrid_mod.o          modis_lai_mod.o        \
-                              pbl_mix_mod.o           
+                              chemgrid_mod.o          pbl_mix_mod.o           
+
 
 diag53_mod.o                : diag53_mod.F
 
@@ -696,9 +696,9 @@ input_mod.o                 : input_mod.F                                    \
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               chemgrid_mod.o          hco_interface_mod.o
 
-land_mercury_mod.o          : land_mercury_mod.F                             \
+land_mercury_mod.o          : land_mercury_mod.F      modis_lai_mod.o        \
                               dao_mod.o               depo_mercury_mod.o     \
-                              modis_lai_mod.o         hco_interface_mod.o
+                              hco_interface_mod.o
 
 linoz_mod.o                 : linoz_mod.F                                    \
                               chemgrid_mod.o          
@@ -764,7 +764,8 @@ mixing_mod.o                : mixing_mod.F90                                 \
                               pbl_mix_mod.o           tendencies_mod.o       \
                               hco_interface_mod.o     vdiff_mod.o
 
-modis_lai_mod.o             : modis_lai_mod.F90       mapping_mod.o
+modis_lai_mod.o             : modis_lai_mod.F90                              \
+                              mapping_mod.o
 
 ndxx_setup.o                : ndxx_setup.F                                   \
                               diag_mod.o                                     \

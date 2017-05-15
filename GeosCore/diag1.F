@@ -676,7 +676,7 @@
             IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
 
                ! Construct diagnostic name
-               DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name )
+               DiagnName = 'SPC_' // TRIM( SpcInfo%Name )
 
                ! Point to the proper slice of the DEPSAV array
                Ptr3D => Spc_VV(:,:,:,N)
@@ -693,7 +693,7 @@
                ! STOP wieth error if the diagnostics were unsuccessful
                IF ( RC /= HCO_SUCCESS ) THEN
                   CALL ERROR_STOP(
-     &                 'Cannot update SPECIES_CONC diag diagnostics',
+     &                 'Cannot update SPC diag diagnostics',
      &                 'DIAG1 (diag1.F)')
                ENDIF
             ENDIF

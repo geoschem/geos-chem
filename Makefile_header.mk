@@ -269,11 +269,15 @@ ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
   export HPC
 endif
 
-# %%%%% For HPC, we disable OpenMP and turn on the full vertical grid %%%
-ifeq ($(HPC),yes)
+# %%%%% For HPC, we disable OpenMP and turn on the full vertical grid %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(HPC)" =~ $(REGEXP) ]] && echo true),true)
+  IS_HPC             :=1
   OMP                :=no
   NO_REDUCED         :=yes
 # PRECISION          :=4
+else
+  IS_HPC             :=0
 endif
 
 # %%%%% Default to 8-byte precision unless specified otherwise %%%%%
@@ -1067,7 +1071,7 @@ endif
 
 # If we are building w/ the HPC target, then include GIGC.mk as well
 # Determine if we are building with the hpc target
-ifeq ($(HPC),yes)
+ifeq ($(IS_HPC),1)
   ifneq ("$(wildcard $(CURDIR)/../GCHP/GIGC.mk)","")
     include $(CURDIR)/../GCHP/GIGC.mk
   else
@@ -1357,7 +1361,7 @@ ifeq ($(COMPILER_FAMILY),Intel)
   INCLUDE_ISO        :=$(INCLUDE)
 
   # Append the ESMF/MAPL/FVDYCORE include commands
-  ifeq ($(HPC),yes)
+  ifeq ($(IS_HPC),1)
     INCLUDE          += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC) $(FV_INC)
   endif
 
@@ -1471,7 +1475,7 @@ ifeq ($(COMPILER_FAMILY),PGI)
   INCLUDE_ISO        :=$(INCLUDE)
 
   # Append the ESMF/MAPL/FVDYCORE include commands
-  ifeq ($(HPC),yes)
+  ifeq ($(IS_HPC),1)
    INCLUDE           += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC) $(FV_INC)
   endif
 

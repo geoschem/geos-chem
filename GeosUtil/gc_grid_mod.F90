@@ -647,8 +647,14 @@ CONTAINS
        ENDDO
     ENDDO
 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    WRITE( 6, '(''Call incorrectly made for lat-lon grid comp'')' )
+    WRITE( 6, '(''Should be using external grids only'')' )
+    RC = GC_FAILURE
+#else
     ! Return successfully
     RC = GC_SUCCESS
+#endif
 
     !======================================================================
     ! Echo info to stdout
