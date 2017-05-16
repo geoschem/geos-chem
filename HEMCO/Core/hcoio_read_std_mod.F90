@@ -1373,7 +1373,7 @@ CONTAINS
     availYMDhm => NULL() 
  
     ! ---------------------------------------------------------------- 
-    ! Extract netCDF time slices (YYYYMMDDhh) 
+    ! Extract netCDF time slices (YYYYMMDDhhmm) 
     ! ----------------------------------------------------------------
     CALL NC_READ_TIME_YYYYMMDDhhmm( ncLun, nTime,    availYMDhm,  &
                                     refYear=refYear, RC=NCRC     )     

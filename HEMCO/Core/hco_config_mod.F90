@@ -3974,7 +3974,7 @@ CONTAINS
        ! Verbose
        IF ( am_I_Root .AND. HCO_IsVerb(HcoConfig%Err,2) ) THEN
           WRITE(MSG,*) 'Will use additional dimension on file ', &
-             TRIM(Dta%ncFile), & ': ', TRIM(Dta%ArbDimName), ' = ', &
+             TRIM(Dta%ncFile), ': ', TRIM(Dta%ArbDimName), ' = ', &
              TRIM(Dta%ArbDimVal)
           CALL HCO_MSG(HcoConfig%Err,MSG)
        ENDIF
