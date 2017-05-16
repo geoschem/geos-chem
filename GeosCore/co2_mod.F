@@ -453,7 +453,7 @@
             ! (ewl, 5/10/17)
             E_CO2  =  HcoState%Spc(IDff)%Emis%Val(I,J,1)
      &                * DTSRCE * ( 1.0e+0_fp / ( g0_100
-     &                * State_Met%DELP_DRY(I,J,L) ) )
+     &                * State_Met%DELP_DRY(I,J,1) ) )
 
             ! Add to Species #1: Total CO2 [kg/kg]
             Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
