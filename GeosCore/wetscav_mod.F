@@ -4802,7 +4802,7 @@
 # elif  defined( TOMAS15)
                   KMIN = 8
 # elif  defined( TOMAS30)
-                  KIMIN = 10
+                  KMIN = 10
 # else
                   KMIN = 20
 # endif
@@ -4813,7 +4813,7 @@
 # elif  defined( TOMAS15)
                   KMIN = 6
 # elif  defined( TOMAS30)
-                  KIMIN = 6
+                  KMIN = 6
 # else
                   KMIN = 16
 # endif
