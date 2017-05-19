@@ -1,3 +1,4 @@
+
 #------------------------------------------------------------------------------
 #                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
@@ -196,6 +197,7 @@
 #                              can write compressed data to disk
 #  07 Mar 2017 - R. Yantosca - Replace makefile variable COMPILER with
 #                              COMPILER_FAMILY; also works if FC=mpif90
+#  08 May 2017 - R. Yantosca - Add minor fixes to avoid Perl bareword errors
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -307,9 +309,12 @@ endif
 
 # %%%%% Test if Intel Fortran Compiler is selected %%%%%
 REGEXP               :=(^[Ii][Ff][Oo][Rr][Tt])
-ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
-  ifeq ($(HPC),yes) 
-    COMPILE_CMD      :=mpif90
+ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
+
+  # If we are building GCHP, then set the compile command to "mpifort",
+  # which invokes the MPI magic.  Otherwise set it to $(FC). (bmy, 10/17/16)
+  ifeq ($(IS_HPC),1) 
+    COMPILE_CMD      :=mpifort
   else
     COMPILE_CMD      :=$(FC)
   endif
@@ -949,7 +954,7 @@ endif
 NC_VERSION           :=$(shell $(GC_BIN)/nc-config --version)
 NC_VERSION           :=$(shell echo "$(NC_VERSION)" | sed 's|netCDF ||g')
 NC_VERSION           :=$(shell echo "$(NC_VERSION)" | sed 's|\.||g')
-NC_VERSION_LEN       :=$(shell perl -e "print length $(NC_VERSION)")
+NC_VERSION_LEN       :=$(shell perl -e "print length( $(NC_VERSION) )")
 ifeq ($(NC_VERSION_LEN),3)
  NC_VERSION          :=$(NC_VERSION)0
 endif
@@ -1093,10 +1098,10 @@ endif
 ifeq ($(COMPILER_FAMILY),GNU) 
 
   # Get the GNU Fortran version
-  VERSIONTEXT        :=$(shell $(FC) --version)
-  VERSION            :=$(word 4, $(VERSIONTEXT))
-  VERSION            :=$(subst .,,$(VERSION))
-  NEWER_THAN_447     :=$(shell perl -e "print ($(VERSION) gt 447)")
+  GNU_VERSIONTEXT    :=$(shell $(FC) --version)
+  GNU_VERSION        :=$(word 4, $(GNU_VERSIONTEXT))
+  GNU_VERSION        :=$(subst .,,$(GNU_VERSION))
+  NEWER_THAN_447     :=$(shell perl -e "print ($(GNU_VERSION) gt 447)")
 
   # Base set of compiler flags
   FFLAGS             :=-cpp -w -std=legacy -fautomatic -fno-align-commons

@@ -706,9 +706,11 @@
       INTEGER            :: N,       NDIAGTIME
       INTEGER            :: NYMDb,   NHMSb 
       INTEGER            :: NYMDe,   NHMSe
-      INTEGER            :: C,       H
-      INTEGER            :: M,       S
+      INTEGER            :: C
+#if defined(  ESMF_ ) 
+      INTEGER            :: H,       M,       S
       REAL(f4)           :: init_UTC
+#endif
 
       ! Strings
       CHARACTER(LEN=255) :: TMP_CHAR
@@ -4552,24 +4554,24 @@
       !----------------------------------------------------------
       ! NETCDF diagnostic output type (eventually read from file)
       !----------------------------------------------------------
-      Input_Opt%TRANSPORT_OUTPUT_TYPE    = 'Instantaneous'
-      Input_Opt%WETSCAV_OUTPUT_TYPE      = 'Instantaneous'
-      Input_Opt%DRYDEP_OUTPUT_TYPE       = 'Instantaneous'
-      Input_Opt%SPECIES_CONC_OUTPUT_TYPE  = 'Instantaneous'
-      Input_Opt%SPECIES_EMIS_OUTPUT_TYPE  = 'Instantaneous'
-      Input_Opt%MET_OUTPUT_TYPE          = 'Instantaneous'
+      Input_Opt%TRANSPORT_OUTPUT_TYPE    = 'Mean'
+      Input_Opt%WETSCAV_OUTPUT_TYPE      = 'Mean'
+      Input_Opt%DRYDEP_OUTPUT_TYPE       = 'Mean'
+      Input_Opt%SPECIES_CONC_OUTPUT_TYPE  = 'Mean'
+      Input_Opt%SPECIES_EMIS_OUTPUT_TYPE  = 'Mean'
+      Input_Opt%MET_OUTPUT_TYPE          = 'Mean'
 
       ! placeholders pending grouping of diagnostics
-      Input_Opt%ND01_OUTPUT_TYPE         = 'Instantaneous'
-      Input_Opt%ND02_OUTPUT_TYPE         = 'Instantaneous'
-      Input_Opt%ND12_OUTPUT_TYPE         = 'Instantaneous'
-      Input_Opt%ND14_OUTPUT_TYPE         = 'Instantaneous'
-      Input_Opt%ND15_OUTPUT_TYPE         = 'Instantaneous'
-      Input_Opt%ND16_OUTPUT_TYPE         = 'Instantaneous'
-      Input_Opt%ND17_OUTPUT_TYPE         = 'Instantaneous'
-      Input_Opt%ND18_OUTPUT_TYPE         = 'Instantaneous'
-      Input_Opt%ND19_OUTPUT_TYPE         = 'Instantaneous'
-      Input_Opt%ND30_OUTPUT_TYPE         = 'Instantaneous'
+      Input_Opt%ND01_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND02_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND12_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND14_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND15_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND16_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND17_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND18_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND19_OUTPUT_TYPE         = 'Mean'
+      Input_Opt%ND30_OUTPUT_TYPE         = 'Mean'
 
 #endif
 
@@ -8370,12 +8372,8 @@
       !=================================================================
 
       ! SOAupdate: update for new mtp (hotp 5/24/10)
-      I = MAX( Ind_('MTPA' ,'A'), 0 )
-     &  + MAX( Ind_('LIMO' ,'A'), 0 )
+      I = MAX( Ind_('LIMO' ,'A'), 0 )
      &  + MAX( Ind_('MTPO' ,'A'), 0 )
-     &  + MAX( Ind_('BENZ' ,'A'), 0 )
-     &  + MAX( Ind_('TOLU' ,'A'), 0 )
-     &  + MAX( Ind_('XYLE' ,'A'), 0 )
      &  + MAX( Ind_('TSOA1','A'), 0 )
      &  + MAX( Ind_('TSOA2','A'), 0 )
      &  + MAX( Ind_('TSOA3','A'), 0 )

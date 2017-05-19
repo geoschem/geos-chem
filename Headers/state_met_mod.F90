@@ -264,10 +264,10 @@ MODULE State_Met_Mod
 !  16 Aug 2016 - M. Sulprizio- Rename from gigc_state_chm_mod.F90 to
 !                              state_chm_mod.F90. The "gigc" nomenclature is
 !                              no longer used.
-!  03 Feb 2017 - M. Sulprizio- Add OMEGA for use in sulfate_mod.F (Q. Chen)
 !  18 Oct 2016 - E. Lundgren - Remove XLAI2, CHLR2; add MODISLAI, MODISCHLR to
 !                              replace modis_lai_mod-level GC_LAI and GC_CHLR
 !  19 Oct 2016 - E. Lundgren - Use NSURFTYPE as the # of land types
+!  03 Feb 2017 - M. Sulprizio- Add OMEGA for use in sulfate_mod.F (Q. Chen)
 !EOP
 !------------------------------------------------------------------------------
 !BOC

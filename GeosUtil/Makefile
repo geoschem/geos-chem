@@ -181,8 +181,6 @@ gc_grid_mod.o     : gc_grid_mod.F90       \
 
 henry_mod.o       : henry_mod.F
 
-henry_coeffs.o    : henry_coeffs.F
-
 ifort_errmsg.o    : ifort_errmsg.F
 
 inquireMod.o      : inquireMod.F90

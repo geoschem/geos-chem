@@ -215,6 +215,11 @@ CONTAINS
 !  02 Jan 2012 - J. Mao & J. Fisher - Initial version, based on GFED3
 !  18 Jun 2014 - C. Keller          - Now a HEMCO extension.
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  10 Mar 2017 - M. Sulprizio- Add SpcArr3D for emitting 65% of biomass
+!                              burning emissions into the PBL and 35% into the
+!                              free troposphere, following code from E.Fischer
+!  24 Apr 2017 - M. Sulprizio- Comment out vertical distribution of biomass 
+!                              burning emissions for now. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -236,6 +241,16 @@ CONTAINS
     REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
 
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!    INTEGER             :: I, J, L, N, M
+!    INTEGER             :: PBL_MAX
+!    REAL(hp)            :: PBL_FRAC, F_OF_PBL, F_OF_FT
+!    REAL(hp)            :: DELTPRES, TOTPRESFT
+!    REAL(hp), TARGET    :: SpcArr3D(HcoState%NX,HcoState%NY,HcoState%NZ)
+!==============================================================================
+
     ! Pointers
     REAL(hp), POINTER   :: THISTYP(:,:)
 
@@ -252,6 +267,14 @@ CONTAINS
 
     ! Init
     THISTYP => NULL()
+
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!    ! Add only 65% biomass burning source to boundary layer, the
+!    ! rest is emitted into the free troposphere (mps from evf+tjb, 3/10/17)
+!    PBL_FRAC = 0.65_hp
+!==============================================================================
 
     !-----------------------------------------------------------------------
     ! Get pointers to data arrays 
@@ -335,7 +358,12 @@ CONTAINS
 
        ! SpcArr are the total biomass burning emissions for this
        ! species. TypArr are the emissions from a given vegetation type. 
-       SpcArr = 0.0_hp
+       SpcArr   = 0.0_hp
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!       SpcArr3D = 0.0_hp
+!==============================================================================
 
        ! Calculate emissions for all source types
        DO NF = 1, N_EMFAC
@@ -387,6 +415,78 @@ CONTAINS
           CASE ( 'BCPO' )
              SpcArr = SpcArr * (1.0_sp - BCPIfrac)
        END SELECT
+
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!
+!       !--------------------------------------------------------------------
+!       ! For grid boxes with emissions, distribute 65% to PBL and 35% to FT
+!       !--------------------------------------------------------------------
+!       DO J = 1, HcoState%Ny
+!       DO I = 1, HcoState%Nx
+!
+!          IF ( SpcArr(I,J) > 0e+0_hp ) THEN
+!
+!             ! Initialize
+!             PBL_MAX  = 1
+!             F_OF_PBL = 0e+0_hp
+!             F_OF_FT  = 0e+0_hp
+!             DELTPRES = 0e+0_hp
+!
+!             ! Determine PBL height
+!             DO L = HcoState%NZ, 1, -1
+!                IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) > 0.0_hp ) THEN
+!                   PBL_MAX = L
+!                   EXIT
+!                ENDIF
+!             ENDDO
+!
+!             ! Loop over the boundary layer
+!             DO L = 1, PBL_MAX
+!
+!                ! Fraction of PBL that box (I,J,L) makes up [unitless]
+!                F_OF_PBL = ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) 
+!
+!                ! Add only 65% biomass burning source to PBL
+!                ! Distribute emissions thru the entire boundary layer
+!                ! (mps from evf+tjb, 3/10/17)
+!                SpcArr3D(I,J,L) = SpcArr(I,J) * PBL_FRAC * F_OF_PBL
+!
+!             ENDDO
+!
+!             ! Total thickness of the free troposphere [hPa]
+!             ! (considered here to be 10 levels above the PBL)
+!             TOTPRESFT = HcoState%Grid%PEDGE%Val(I,J,PBL_MAX+1) - &
+!                         HcoState%Grid%PEDGE%Val(I,J,PBL_MAX+11)
+!
+!             ! Loop over the free troposphere
+!             DO L = PBL_MAX+1, PBL_MAX+10
+!
+!                ! Thickness of level L [hPa]
+!                DELTPRES= HcoState%Grid%PEDGE%Val(I,J,L) - &
+!                          HcoState%Grid%PEDGE%Val(I,J,L+1)
+!
+!                ! Fraction of FT that box (I,J,L) makes up [unitless]
+!                F_OF_FT = DELTPRES / TOTPRESFT
+!
+!                ! Add 35% of biomass burning source to free troposphere
+!                ! Distribute emissions thru 10 model levels above the BL
+!                ! (mps from evf+tjb, 3/10/17)
+!                SpcArr3D(I,J,L) = SpcArr(I,J) * (1.0-PBL_FRAC) * F_OF_FT
+!
+!             ENDDO
+!
+!          ENDIF
+!
+!       ENDDO
+!       ENDDO
+!
+!       ! Add flux to HEMCO emission array
+!       ! Now 3D flux (mps, 3/10/17)
+!       CALL HCO_EmisAdd( am_I_Root, HcoState,    SpcArr3D, HcoID, &
+!                         RC,        ExtNr=ExtNr, Cat=-1,   Hier=-1 ) 
+!==============================================================================
 
        ! Add flux to HEMCO emission array
        CALL HCO_EmisAdd( am_I_Root, HcoState,    SpcArr, HcoID, &
@@ -996,6 +1096,17 @@ CONTAINS
           RETURN
        ENDIF
     ENDDO !L
+
+    !=======================================================================
+    ! Activate this module and the fields of ExtState that it uses
+    !=======================================================================
+
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!    ! Activate met fields required by this extension
+!    ExtState%FRAC_OF_PBL%DoUse = .TRUE. 
+!==============================================================================
 
     ! Enable module
     ExtState%FINN = .TRUE.

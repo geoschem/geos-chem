@@ -426,11 +426,14 @@
       LOGICAL                  :: ITS_A_FULLCHEM_SIM
 
       ! Pointers
-      REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
+      REAL(f4),        POINTER :: Ptr2D(:,:)
 
       !=================================================================
       ! EMISSCH4 begins here!
       !=================================================================
+
+      ! Nullify pointers
+      Ptr2D => NULL()
 
       ! Assume success
       RC                  = GC_SUCCESS
@@ -559,7 +562,7 @@
       Ptr2D => NULL()
 
       ! Biomass burning 
-      DgnName = 'CH4_BIOMASS'
+      DgnName = 'BIOMASS_CH4'
       CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
       IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
@@ -702,20 +705,24 @@
             ! Grid box surface area [m2]
             AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
 
-            ! Gas, oil, mine
+            ! Anthropogenic (gas and oil, coal, biofuel, other anthro)
             TCH4(I,J,1,5) = TCH4(I,J,1,5) +
-     &           ( ( CH4_EMIS(I,J,2) + CH4_EMIS(I,J,3) ) * 
+     &           ( ( CH4_EMIS(I,J,2) + 
+     &               CH4_EMIS(I,J,3) 
+     &               CH4_EMIS(I,J,6)
+     &               CH4_EMIS(I,J,8) ) * 
      &              * XNUMOL_CH4 * AREA_M2 * DTSRCE )
                
-            ! agriculture (rice, animals, waste)
+            ! Agriculture (rice, animals, waste)
             TCH4(I,J,1,6) = TCH4(I,J,1,6) +
-     &           ( ( CH4_EMIS(I,J,4) + CH4_EMIS(I,J,7) + 
-     &               CH4_EMIS(I,J,5) ) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+     &           ( ( CH4_EMIS(I,J,4) +
+     &               CH4_EMIS(I,J,7) + 
+     &               CH4_EMIS(I,J,5) ) *
+     &               XNUMOL_CH4 * AREA_M2 * DTSRCE )
             
-            ! Biomass burning (and biofuel?)
+            ! Biomass burning
             TCH4(I,J,1,7) = TCH4(I,J,1,7)+
-     &           ( ( CH4_EMIS(I,J,9) + CH4_EMIS(I,J,6) ) *
-     &               * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+     &           ( CH4_EMIS(I,J,9)  * XNUMOL_CH4 * AREA_M2 * DTSRCE )
 
             ! Termites
             TCH4(I,J,1,8) = TCH4(I,J,1,8)+
@@ -730,6 +737,7 @@
      &           ( CH4_EMIS(I,J,11) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
 
 
+            ! Total emissions
             TCH4(I,J,1,4) = TCH4(I,J,1,4) + 
      &          ( CH4_EMIS(I,J,1)  + ( 2 * CH4_EMIS(IREF,JREF,11) ))
      &          * XNUMOL_CH4 * AREA_M2 * DTSRCE

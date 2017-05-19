@@ -9,10 +9,6 @@
 ! GFED biomass burning emissions in HEMCO. This can be GFED-3 or GFED-4,
 ! depending on the input data selected in the HEMCO configuration file. 
 !
-! !NOTES:
-!
-! !REFERENCES:
-!
 ! !INTERFACE: 
 !
 MODULE HCOX_GFED_MOD
@@ -103,6 +99,7 @@ MODULE HCOX_GFED_MOD
 !  03 Jun 2015 - C. Keller / P. Kasibhatla - GFED-4 update: now use GFED-4
 !                                            specific emission factors and DM data.
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
+!  23 Mar 2017 - M. Sulprizio- Increase N_SPEC to 28 (+EOH+MTPA)
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -115,7 +112,7 @@ MODULE HCOX_GFED_MOD
   ! N_SPEC  : Max. number of species
   !=================================================================
   INTEGER,           PARAMETER :: N_EMFAC = 6
-  INTEGER,           PARAMETER :: N_SPEC  = 26
+  INTEGER,           PARAMETER :: N_SPEC  = 28
 !
 ! !PRIVATE TYPES:
 !
@@ -239,6 +236,13 @@ CONTAINS
 !                                any more but fraction (0.0 - 1.0).
 !  21 Sep 2016 - R. Yantosca   - Bug fix: move WHERE statement for HUMTROP
 !                                into the GFED3 block to avoid segfault
+!  10 Mar 2017 - M. Sulprizio  - Add SpcArr3D for emitting 65% of biomass
+!                                burning emissions into the PBL and 35% into the
+!                                free troposphere, following code from E.Fischer
+!  24 Apr 2017 - M. Sulprizio  - Comment out vertical distribution of biomass 
+!                                burning emissions for now. 
+!  12 May 2017 - M. Sulprizio  - Comment out partitioning of NO directly to PAN
+!                                and HNO3 for now.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -252,6 +256,16 @@ CONTAINS
 
     REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
+
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!    INTEGER             :: I, J, L, N, M
+!    INTEGER             :: PBL_MAX
+!    REAL(hp)            :: PBL_FRAC, F_OF_PBL, F_OF_FT
+!    REAL(hp)            :: DELTPRES, TOTPRESFT
+!    REAL(hp), TARGET    :: SpcArr3D(HcoState%NX,HcoState%NY,HcoState%NZ)
+!==============================================================================
    
     !=================================================================
     ! HCOX_GFED_Run begins here!
@@ -263,6 +277,14 @@ CONTAINS
     ! Enter 
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_GFED_Run (hcox_gfed_mod.F90)', RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!    ! Add only 65% biomass burning source to boundary layer, the
+!    ! rest is emitted into the free troposphere (mps from evf+tjb, 3/10/17)
+!    PBL_FRAC = 0.65_hp
+!==============================================================================
 
     !-----------------------------------------------------------------
     ! Get pointers to data arrays 
@@ -333,7 +355,12 @@ CONTAINS
 
        ! SpcArr are the total biomass burning emissions for this
        ! species. TypArr are the emissions from a given source type. 
-       SpcArr = 0.0_hp
+       SpcArr   = 0.0_hp
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!       SpcArr3D = 0.0_hp
+!==============================================================================
 
        ! Calculate emissions for all source types
        DO M = 1, N_EMFAC
@@ -411,11 +438,100 @@ CONTAINS
              SpcArr = SpcArr * POG1frac
           CASE ( 'POG2' )
              SpcArr = SpcArr * (1.0_sp - POG1frac)
+!==============================================================================
+! This code is required for partitioning NOx emissions directly to PAN and HNO3.
+! We will keep it here as an option for users focusing on North American fires.
+! (mps, 5/12/17)
+!          ! Put 40% of NOx Biomass emissions into PAN
+!          ! and 20% into HNO3 (evf, 9/9/11, 9/15/11)
+!          ! Sensitivity study with Hudman 2007 recommendation
+!          ! of 80% of NOX as PAN. (evf, 4/25/12)
+!          CASE ( 'NO' )
+!             SpcArr = SpcArr * 0.40_sp
+!          CASE ( 'PAN' )
+!             SpcArr = SpcArr * 0.40_sp
+!          CASE ( 'HNO3' )
+!             SpcArr = SpcArr * 0.20_sp
+!==============================================================================
        END SELECT
 
        ! Check for masking
        CALL HCOX_SCALE( am_I_Root, HcoState, SpcArr, TRIM(SpcScalFldNme(N)), RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
+
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!
+!       !--------------------------------------------------------------------
+!       ! For grid boxes with emissions, distribute 65% to PBL and 35% to FT
+!       !--------------------------------------------------------------------
+!       DO J = 1, HcoState%Ny
+!       DO I = 1, HcoState%Nx
+!
+!          IF ( SpcArr(I,J) > 0e+0_hp ) THEN
+!
+!             ! Initialize
+!             PBL_MAX  = 1
+!             F_OF_PBL = 0e+0_hp
+!             F_OF_FT  = 0e+0_hp
+!             DELTPRES = 0e+0_hp
+!
+!             ! Determine PBL height
+!             DO L = HcoState%NZ, 1, -1
+!                IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) > 0.0_hp ) THEN
+!                   PBL_MAX = L
+!                   EXIT
+!                ENDIF
+!             ENDDO
+!
+!             ! Loop over the boundary layer
+!             DO L = 1, PBL_MAX
+!
+!                ! Fraction of PBL that box (I,J,L) makes up [unitless]
+!                F_OF_PBL = ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) 
+!
+!                ! Add only 65% biomass burning source to PBL
+!                ! Distribute emissions thru the entire boundary layer
+!                ! (mps from evf+tjb, 3/10/17)
+!                SpcArr3D(I,J,L) = SpcArr(I,J) * PBL_FRAC * F_OF_PBL
+!
+!             ENDDO
+!
+!
+!             ! Total thickness of the free troposphere [hPa]
+!             ! (considered here to be 10 levels above the PBL)
+!             TOTPRESFT = HcoState%Grid%PEDGE%Val(I,J,PBL_MAX+1) - &
+!                         HcoState%Grid%PEDGE%Val(I,J,PBL_MAX+11)
+!
+!
+!             ! Loop over the free troposphere
+!             DO L = PBL_MAX+1, PBL_MAX+10
+!
+!                ! Thickness of level L [hPa]
+!                DELTPRES = HcoState%Grid%PEDGE%Val(I,J,L) - &
+!                           HcoState%Grid%PEDGE%Val(I,J,L+1)
+!
+!                ! Fraction of FT that box (I,J,L) makes up [unitless]
+!                F_OF_FT = DELTPRES / TOTPRESFT
+!
+!                ! Add 35% of biomass burning source to free troposphere
+!                ! Distribute emissions thru 10 model levels above the BL
+!                ! (mps from evf+tjb, 3/10/17)
+!                SpcArr3D(I,J,L) = SpcArr(I,J) * (1.0-PBL_FRAC) * F_OF_FT
+!
+!             ENDDO
+!
+!          ENDIF
+!
+!       ENDDO
+!       ENDDO
+!
+!       ! Add flux to HEMCO emission array
+!       ! Now 3D flux (mps, 3/10/17)
+!       CALL HCO_EmisAdd( am_I_Root, HcoState,   SpcArr3D, HcoIDs(N), &
+!                         RC,        ExtNr=ExtNr ) 
+!==============================================================================
 
        ! Add flux to HEMCO emission array
        CALL HCO_EmisAdd( am_I_Root, HcoState, SpcArr, HcoIDs(N), RC, ExtNr=ExtNr ) 
@@ -745,6 +861,13 @@ CONTAINS
        IF ( TRIM(SpcName) == 'POG1' ) SpcName = 'OC'
        IF ( TRIM(SpcName) == 'POG2' ) SpcName = 'OC'
        IF ( TRIM(SpcName) == 'NAP'  ) SpcName = 'CO'
+!==============================================================================
+! This code is required for partitioning NOx emissions directly to PAN and HNO3.
+! We will keep it here as an option for users focusing on North American fires.
+! (mps, 5/12/17)
+!       IF ( TRIM(SpcName) == 'PAN'  ) SpcName = 'NO'
+!       IF ( TRIM(SpcName) == 'HNO3' ) SpcName = 'NO'
+!==============================================================================
 
        ! Search for matching GFED species by name
        Matched = .FALSE.
@@ -773,6 +896,17 @@ CONTAINS
           RETURN
        ENDIF
     ENDDO !N
+
+    !=======================================================================
+    ! Activate this module and the fields of ExtState that it uses
+    !=======================================================================
+
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!    ! Activate met fields required by this extension
+!    ExtState%FRAC_OF_PBL%DoUse = .TRUE.
+!==============================================================================
 
     ! Enable module
     ExtState%GFED = .TRUE.

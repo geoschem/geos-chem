@@ -1401,7 +1401,8 @@ CONTAINS
     USE ERROR_MOD,             ONLY : ERROR_STOP
     USE FAST_JX_MOD,           ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
     USE HCO_GeoTools_Mod,      ONLY : HCO_GetSUNCOS
-    USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
+    USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL
+    USE PBL_MIX_MOD,           ONLY : GET_PBL_MAX_L
     USE State_Met_Mod,         ONLY : MetState
     USE State_Chm_Mod,         ONLY : ChmState
 #if defined(ESMF_) 

@@ -279,6 +279,7 @@
       USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
+      USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -424,7 +425,7 @@
                
                FLUXN = FLUXN + DIF/(SQRT( Xk(BIN)*Xk(BIN+1))) /
      &                 DT_SETTL * AVO / 
-     &                 ( 1.e-3_fp * ThisSpc%%emMW_g ) / 
+     &                 ( 1.e-3_fp * ThisSpc%emMW_g ) / 
      &                 AREA_CM2
 
 !debug               if(i==ii .and. j==jj .and. bin==bb) then

@@ -275,6 +275,7 @@
 !                              brings in from disk) to molec/cm3.
 !  27 Mar 2017 - R. Yantosca - Now compute ND65 diagnostic before applying the
 !                              loss to the CO tagged species 
+!  24 Apr 2017 - M. Sulprizio- Update CO + OH (+M) rate constant for JPL 15-10
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -878,22 +879,34 @@
             ! CO2." So we now need two complicated reactions. The code
             ! is more or less copied from calcrate.f as implemented by
             ! jmao (jaf, 3/4/09)
+            !
+            ! Update rate constant for JPL 15-10 (mps, 4/24/17):
+            ! GY( A0 = 5.9e-33, B0 = 1.4e0,  A1 = 1.1e-12, B1 = -1.3e0,
+            !     A2 = 1.5e-13, B2 = -0.6e0, A3 = 2.1e09,  B3 = -6.1e0 )
+            !
+            ! is now
+            !
+            ! GY( A0 = 5.9e-33, B0 = 1.,     A1 = 1.1e-12, B1 = -1.3e0,
+            !     A2 = 1.5e-13, B2 = 0.,     A3 = 2.1e09,  B3 = -6.1e0 )
             !===========================================================
 
-            ! Decay rate - new JPL 2006 version (jaf, 3/4/09)
+            ! Decay rate
+            ! NOTE: This code is nearly identical to function GC_OHCO
+            !  found in KPP/Standard/gckpp_Rates.F90)
+            ! new JPL 2006 version (jaf, 3/4/09)
             ! KLO1 = k_0(T) from JPL Data Eval (page 2-1)
-            KLO1   = 5.9e-33_fp * ( T(I,J,L) / 300 )**(-1.4e+0_fp)
+            KLO1   = 5.9e-33_fp * ( 300 / T(I,J,L) )**(1.e+0_fp)
             ! KHI1 = k_inf(T) from JPL Data Eval (page 2-1)
-            KHI1   = 1.1e-12_fp * ( T(I,J,L) / 300 )**(1.3e+0_fp)
+            KHI1   = 1.1e-12_fp * ( 300 / T(I,J,L) )**(-1.3e+0_fp)
             XYRAT1 = KLO1 * DENS / KHI1
             BLOG1  = LOG10(XYRAT1)
             FEXP1  = 1.e+0_fp / ( 1.e+0_fp + BLOG1 * BLOG1 )
             ! KCO1 = k_f([M],T) from JPL Data Eval (page 2-1)
             KCO1   = KLO1 * DENS * 0.6**FEXP1 / ( 1.e+0_fp + XYRAT1 )
             ! KLO2 = k_0(T) from JPL Data Eval (page 2-1)
-            KLO2   = 1.5e-13_fp * ( T(I,J,L) / 300 )**(0.6e+0_fp)
+            KLO2   = 1.5e-13_fp * ( 300 / T(I,J,L) )**(0.e+0_fp)
             ! KHI2 = k_inf(T) from JPL Data Eval (page 2-1)
-            KHI2   = 2.1e+09_fp  * ( T(I,J,L) / 300 )**(6.1e+0_fp)
+            KHI2   = 2.1e+09_fp * ( 300 / T(I,J,L) )**(-6.1e+0_fp)
             XYRAT2 = KLO2 * DENS / KHI2
             BLOG2  = LOG10(XYRAT2)
             FEXP2  = 1.e+0_fp / ( 1.e+0_fp + BLOG2 * BLOG2 )

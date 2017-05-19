@@ -60,9 +60,6 @@ MODULE Strat_Chem_Mod
   PUBLIC  :: Do_Strat_Chem
   PUBLIC  :: Cleanup_Strat_Chem
   PUBLIC  :: Calc_STE
-!#if defined( ESMF_ )
-!  PUBLIC  :: Set_Init_Conc_Strat_Chem
-!#endif
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -1560,35 +1557,6 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
     MInit = 0.0_fp
 
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !%%% NOTE: Only call this block here if we are running GC-Classic!
-    !%%% For GCHP, we will have to do the unit conversions on the first
-    !%%% timestep of the run stage, when the restarts & met fields
-    !%%% have been read from disk. (bmy, 10/19/16)
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    !! Convert State_Chm%TRACERS from [kg/kg dry air] to [kg] so
-    !! that initial state of atmosphere is in same units as
-    !! chemistry ([kg]), and then convert back after MInit is assigned 
-    !! (ewl, 8/10/15)
-    !CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  &
-    !                            State_Chm, RC )
-    !IF ( RC /= GC_SUCCESS ) THEN
-    !   CALL GC_Error('Unit conversion error', RC, &
-    !                   'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
-    !   RETURN
-    !ENDIF 
-    !
-    !MInit = STT
-    !
-    !CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  &
-    !                            State_Chm, RC )
-    !IF ( RC /= GC_SUCCESS ) THEN
-    !   CALL GC_Error('Unit conversion error', RC, &
-    !                   'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
-    !   RETURN
-    !ENDIF 
-
 #if !defined( ESMF_ )
     ! Set MINIT. Ignore in ESMF environment because State_Chm%Species
     ! is not yet filled during initialization. (ckeller, 4/6/16)
@@ -1612,106 +1580,6 @@ CONTAINS
 
   END SUBROUTINE INIT_STRAT_CHEM
 !EOC
-!#if defined( ESMF_ ) 
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: Set_Init_Conc_Strat_Chem
-!!
-!! !DESCRIPTION: Subroutine Set\_Init\_Conc\_Strat\_Chem initializes the MINIT
-!!  module array with GEOS-Chem tracer concentrations.  This routine is only
-!!  called for when using GCHP in the ESMF/MAPL environment.
-!!\\
-!!\\
-!! !INTERFACE:
-!!      
-!  SUBROUTINE Set_Init_Conc_Strat_Chem( am_I_Root, Input_Opt,     &
-!                                       State_Met, State_Chm, RC )
-!!
-!! !USES:
-!!
-!    USE CMN_SIZE_MOD
-!    USE ERROR_MOD,          ONLY : GC_ERROR
-!    USE ErrCode_Mod
-!    USE Input_Opt_Mod, ONLY : OptInput
-!    USE State_Chm_Mod, ONLY : ChmState
-!    USE State_Met_Mod, ONLY : MetState
-!    USE UNITCONV_MOD
-!!
-!! !INPUT PARAMETERS:
-!!
-!    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-!    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!!
-!! !REMARKS:
-!!  (1) This routine is only called when using GCHP with the ESMF/MAPL
-!!       libraries.  It will be ignored for GEOS-Chem "Classic" runs.
-!!  (2) This routine is called from routine Run_ (in GCHP/gigc_chunk_mod.F90),
-!!       after the first call to AIRQNT.  This is because we need the 
-!!       State_Met%AD array to be populated with non-zero values for the
-!!       unit conversions between [kg/kg dry air] and [kg].
-!!  (3) This routine is only called once.  It will not be called if the
-!!       stratospheric chemistry option is turned off.
-!! 
-!! !REVISION HISTORY:
-!!  19 Oct 2016 - R. Yantosca - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    !=================================================================
-!    ! Set_Init_Cond_Strat begins here!
-!    !=================================================================
-!
-!    ! Assume success
-!    RC = GC_SUCCESS
-!
-!    ! Echo info
-!    IF ( am_I_Root ) THEN
-!       WRITE( 6, 100 )
-! 100   FORMAT( '-- Setting initial conditions for stratospheric chemistry!' )
-!    ENDIF
-!    
-!    ! Convert State_Chm%TRACERS from [kg/kg dry air] to [kg] so
-!    ! that initial state of atmosphere is in same units as
-!    ! chemistry ([kg]), and then convert back after MInit is assigned 
-!    ! (ewl, 8/10/15)
-!    CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt,     &
-!                                State_Met, State_Chm, RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error('Unit conversion error', RC, &
-!                       'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
-!       RETURN
-!    ENDIF 
-!    
-!    ! Initialize MINIT from the tracer mass [kg]
-!    MInit = State_Chm%TRACERS
-!    
-!    ! Convert State_Chm%TRACERS from [kg] back to [kg/kg dry air]
-!    CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt,     &
-!                                State_Met, State_Chm, RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error('Unit conversion error', RC, &
-!                       'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
-!       RETURN
-!    ENDIF 
-!
-!  END SUBROUTINE Set_Init_Conc_Strat_Chem
-!!EOC
-!#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
