@@ -479,6 +479,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  29 Sep 2015 - C. Keller   - Initial version
+!  22 May 2017 - R. Yantosca - Bug fix: Add MERRA2 to the #elif statement
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -528,7 +530,7 @@ CONTAINS
           ENDIF
        ENDIF
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
        ! Full grid
        IF ( nz == 72 ) THEN
           IF ( nlev <= 73 ) THEN

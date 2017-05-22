@@ -1344,6 +1344,7 @@
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  06 Jul 2016 - E. Lundgren - Now use kg/kg dry air as spc units, requiring
 !                              use of DELP_DRY instead of DELP
+!  22 May 2017 - R. Yantosca - Now don't allocate DSIG if we're using MERRA2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1440,7 +1441,7 @@
          WRITE( 6, '(a)' ) 'N F C L D M X  -- by S-J Lin'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
+#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
          ! Do nothing, these are all hybrid grids
 #else
          ! NOTE: We don't need to do this for GEOS-5 (bmy, 6/27/07)
