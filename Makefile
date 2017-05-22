@@ -58,7 +58,7 @@ GTMM    :=GTMM
 
 .PHONY: all lib libcore libheaders libkpp libiso libnc librad libutil
 .PHONY: exe clean realclean doc docclean tauclean help wipeout debug
-.PHONY: realclean_except_rrtmg
+.PHONY: realclean_except_rrtmg libhemcosa
 
 all:
 	@$(MAKE) -C $(GEOSDIR) all
@@ -89,6 +89,9 @@ ncdfcheck:
 
 librad:
 	@$(MAKE) -C $(GEOSDIR) librad
+
+libhemcosa:
+	@$(MAKE) -C $(GEOSDIR) libhemcosa
 
 libutil:
 	@$(MAKE) -C $(GEOSDIR) libutil

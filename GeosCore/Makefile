@@ -275,8 +275,15 @@ endif
 libheaders:                                        # Build code in Headers/ 
 	@$(MAKE) -C $(HDR)			  
 
-libhemco:                                      
+libhemco:                                          # Build code in HEMCO/*
 	@$(MAKE) -C $(HEMCO) lib
+
+libhemcosa:                                        # Build HEMCO standalone
+	@$(MAKE) libnc
+	@$(MAKE) kppfirstpass
+	@$(MAKE) libheaders         		  
+	@$(MAKE) libutil 
+	@$(MAKE) libhemco
 
 libiso:                                            # Build code in ISOROPIA/
 	@$(MAKE) -C $(ISO)			  
