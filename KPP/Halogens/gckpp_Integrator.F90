@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Integrator.f90
-! Time                 : Wed May  3 17:18:07 2017
-! Working directory    : /work/home/ts551/data/all_model_simulations/iodine_runs/iGEOSChem_5.0/code_TMS_new/KPP/Halogens
+! Time                 : Wed Nov 30 14:50:29 2016
+! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/Standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -1291,7 +1291,6 @@ SUBROUTINE FunTemplate( T, Y, Ydot )
  USE gckpp_Parameters, ONLY: NVAR, LU_NONZERO
  USE gckpp_Global, ONLY: FIX, RCONST, TIME
  USE gckpp_Function, ONLY: Fun
- USE gckpp_Rates, ONLY: Update_SUN, Update_RCONST
 !~~~> Input variables
    REAL(kind=dp) :: T, Y(NVAR)
 !~~~> Output variables
@@ -1301,8 +1300,6 @@ SUBROUTINE FunTemplate( T, Y, Ydot )
 
    Told = TIME
    TIME = T
-   CALL Update_SUN()
-   CALL Update_RCONST()
    CALL Fun( Y, FIX, RCONST, Ydot )
    TIME = Told
 
@@ -1319,7 +1316,6 @@ SUBROUTINE JacTemplate( T, Y, Jcb )
  USE gckpp_Global, ONLY: FIX, RCONST, TIME
  USE gckpp_Jacobian, ONLY: Jac_SP, LU_IROW, LU_ICOL
  USE gckpp_LinearAlgebra
- USE gckpp_Rates, ONLY: Update_SUN, Update_RCONST
 !~~~> Input variables
     REAL(kind=dp) :: T, Y(NVAR)
 !~~~> Output variables
@@ -1336,8 +1332,6 @@ SUBROUTINE JacTemplate( T, Y, Jcb )
 
     Told = TIME
     TIME = T
-    CALL Update_SUN()
-    CALL Update_RCONST()
 #ifdef FULL_ALGEBRA    
     CALL Jac_SP(Y, FIX, RCONST, JV)
     DO j=1,NVAR
