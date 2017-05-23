@@ -1758,11 +1758,10 @@
          WRITE( 6, 100     ) 'Online CRYST & AQ AEROSOLS? : ', LCRYST
          WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
          WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ', LBRC
-         WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
+         WRITE( 6, 100     ) 'Online COMPLEX SOA?         : ', LSOA
          WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
          WRITE( 6, 100     ) 'Acid uptake on dust?        : ', LDSTUP
-
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
          WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', 
      &                        Input_Opt%SALA_REDGE_um(1), 
@@ -8308,7 +8307,7 @@
       ENDIF
 
       IF ( Input_Opt%LSVPOA .and. ( .NOT. Input_Opt%LSOA ) ) THEN
-         MSG = 'Semivolatile POA requires LSOA=T'
+         MSG = 'Semivolatile POA requires COMPLEX SOA (LSOA=T)'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
@@ -8364,7 +8363,7 @@
       ! Error check SECONDARY ORGANIC AEROSOLS
       !=================================================================
 
-      ! SOAupdate: update for new mtp (hotp 5/24/10)
+      ! Check for complex SOA species
       I = MAX( Ind_('MTPA' ), 0 )
      &  + MAX( Ind_('LIMO' ), 0 )
      &  + MAX( Ind_('MTPO' ), 0 )
@@ -8386,12 +8385,23 @@
 
       IF ( Input_Opt%LSOA ) THEN
          IF ( I == 0 ) THEN
-            MSG = 'LSOA=T but ONLINE 2dy ORG AEROSOLS are undefined!'
+            MSG = 'LSOA=T but COMPLEX SOA species are undefined!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ELSE
          IF ( I > 0 ) THEN
-            MSG = 'Cannot use ONLINE 2dy ORG AEROSOLS if LSOA=F!'
+            MSG = 'Cannot use COMPLEX SOA species if LSOA=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      ! Check for simple SOA species
+      I = MAX( Ind_('SOAP' ), 0 )
+     &  + MAX( Ind_('SOAS' ), 0 )
+
+      IF ( Input_Opt%LSOA ) THEN
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use SIMPLE SOA species if LSOA=T!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF
