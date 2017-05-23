@@ -198,6 +198,7 @@
 #  07 Mar 2017 - R. Yantosca - Replace makefile variable COMPILER with
 #                              COMPILER_FAMILY; also works if FC=mpif90
 #  08 May 2017 - R. Yantosca - Add minor fixes to avoid Perl bareword errors
+#  23 May 2017 - R. Yantosca - use -dumpversion to get the Gfortran version #
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -1098,8 +1099,7 @@ endif
 ifeq ($(COMPILER_FAMILY),GNU) 
 
   # Get the GNU Fortran version
-  GNU_VERSIONTEXT    :=$(shell $(FC) --version)
-  GNU_VERSION        :=$(word 4, $(GNU_VERSIONTEXT))
+  GNU_VERSION        :=$(shell $(FC) -dumpversion)
   GNU_VERSION        :=$(subst .,,$(GNU_VERSION))
   NEWER_THAN_447     :=$(shell perl -e "print ($(GNU_VERSION) gt 447)")
 
