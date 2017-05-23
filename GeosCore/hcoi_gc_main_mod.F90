@@ -1066,6 +1066,7 @@ CONTAINS
 !  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
 !                               species ID from State_Chm%Map_Advect.
 !  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
+!  23 May 2017 - R. Yantosca - Fixed typo for MERRA2 in #ifdef at line 1193
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1185,7 +1186,7 @@ CONTAINS
     ! at ground (SWGDN). For simplicity we store radiation as a single 
     ! variable in HEMCO. SWGDN is also available for MERRA but is not 
     ! used in HEMCO to preserve legacy usage of net radiation (ewl, 9/23/15)
-#if defined ( GEOS_FP ) || ( MERRA2 )
+#if defined ( GEOS_FP ) || defined( MERRA2 )
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%RADSWG, &
            'RADSWG_FOR_EMIS',   HCRC, FIRST, State_Met%SWGDN  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN

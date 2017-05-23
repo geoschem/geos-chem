@@ -776,7 +776,9 @@
 ! GEOS-FP and MERRA-2 in GEOS-Chem. It is available from MERRA data sets
 ! but is not currently stored in State_Met (ewl, 9/14/15) 
       IF ( FIRSTTIME ) THEN 
-#if !defined( MERRA2 ) || !defined( GEOS_FP )
+#if defined( MERRA2 ) || defined( GEOS_FP )
+         ! Do nothing
+#else
          WRITE( 6, * ) 'WARNING: Snow emission parameterization '//
      &        'designed for use with incident '
          WRITE( 6, * ) 'shortwave radiation. Only net shortwave '//
