@@ -471,10 +471,9 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_LAND
       USE GC_GRID_MOD,        ONLY : GET_AREA_M2
-      USE MODIS_LAI_MOD,      ONLY : ISOLAI  => GC_LAI
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
+       USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
 !
@@ -629,7 +628,7 @@
 
             ! attenuate solar radiation based on function of leaf area index
             ! Jacob and Wofsy 1990 equations 8 & 9
-            TAUZ = ISOLAI(I,J) * 0.5e+0_fp
+            TAUZ = State_Met%MODISLAI(I,J) * 0.5e+0_fp
 
             ! For very low and below-horizon solar zenith angles, use
             ! same attenuation as for SZA=85 degrees
@@ -777,7 +776,9 @@
 ! GEOS-FP and MERRA-2 in GEOS-Chem. It is available from MERRA data sets
 ! but is not currently stored in State_Met (ewl, 9/14/15) 
       IF ( FIRSTTIME ) THEN 
-#if !defined( MERRA2 ) || !defined( GEOS_FP )
+#if defined( MERRA2 ) || defined( GEOS_FP )
+         ! Do nothing
+#else
          WRITE( 6, * ) 'WARNING: Snow emission parameterization '//
      &        'designed for use with incident '
          WRITE( 6, * ) 'shortwave radiation. Only net shortwave '//

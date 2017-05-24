@@ -276,6 +276,7 @@
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  20 Sep 2016 - R. Yantosca - Use .eqv. instead of .eq. to compare LOGICALs
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  27 Mar 2017 - M. Sulprizio- Make anthropogenic emission diagnostics 3D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -283,7 +284,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: NA, nAdvect, nDryDep, NW
-      INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, LMAX
+      INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, Levs
       INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC, T
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
       INTEGER            :: NSPECOUT
@@ -373,6 +374,8 @@
       INTEGER, SAVE            :: id_DUST1, id_NK1,   id_SF1,   id_SS1
       INTEGER, SAVE            :: id_ECIL1, id_ECOB1, id_OCIL1, id_OCOB1
       INTEGER, SAVE            :: id_CH2BR2
+      INTEGER, SAVE            :: id_PAN,   id_HNO3,  id_EOH,   id_MGLY
+      INTEGER, SAVE            :: id_BENZ,  id_TOLU,  id_XYLE
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -480,6 +483,13 @@
          id_ECOB1     = Ind_('ECOB1'   )
          id_OCIL1     = Ind_('OCIL1'   )
          id_OCOB1     = Ind_('OCOB1'   )
+         id_PAN       = Ind_('PAN'     )
+         id_HNO3      = Ind_('HNO3'    )
+         id_EOH       = Ind_('EOH'     )
+         id_MGLY      = Ind_('MGLY'    )
+         id_BENZ      = Ind_('BENZ'    )
+         id_TOLU      = Ind_('TOLU'    )
+         id_XYLE      = Ind_('XYLE'    )
 
          ! NOTE: CH4 can be an advected species (in CH4 or UCX-based sims),
          ! or a non-advected species (tropchem, soa, soa-svpoa).  We only
@@ -822,12 +832,15 @@
                   CASE ( 1 ) 
                      CATEGORY = TRIM(SpcName)//'-ANTH'
                      SRCNAME  = 'ANTHRO'
+                     Levs     = LLPAR
                   CASE ( 2 ) 
                      CATEGORY = TRIM(SpcName)//'-BIOF'
                      SRCNAME  = 'BIOFUEL'
+                     Levs     = 1
                   CASE ( 3 ) 
                      CATEGORY = TRIM(SpcName)//'-BIOB'
                      SRCNAME  = 'BIOMASS'
+                     Levs     = 1
                END SELECT
    
                !----- (1) Hydrophilic -----
@@ -855,8 +868,18 @@
       
                ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
-     &                         * FACTOR * HcoState%Grid%AREA_M2%Val(:,:)
+                  IF ( I == 2 .or. I == 3 ) THEN
+                     ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
+     &                            * FACTOR
+     &                            * HcoState%Grid%AREA_M2%Val(:,:)
+                  ELSE
+                     ! Anthro emissions are 3D
+                     DO L = 1, LLPAR
+                        ARRAY(:,:,L) = DiagnCnt%Arr3D%Val(:,:,L)
+     &                               * FACTOR
+     &                               * HcoState%Grid%AREA_M2%Val(:,:)
+                     ENDDO
+                  ENDIF
                ELSE
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                   MSG = TRIM(MSG) // ' - will write zeros!'
@@ -890,9 +913,20 @@
       
                ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  ARRAY(:,:,1) = ARRAY(:,:,1) 
-     &                         + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR 
-     &                         *   HcoState%Grid%AREA_M2%Val(:,:) ) 
+                  IF ( I == 2 .or. I == 3 ) THEN
+                     ARRAY(:,:,1) = ARRAY(:,:,1) 
+     &                            + ( DiagnCnt%Arr2D%Val(:,:)
+     &                            * FACTOR 
+     &                            * HcoState%Grid%AREA_M2%Val(:,:) )
+                  ELSE
+                     ! Anthro emissions are 3D
+                     DO L = 1, LLPAR
+                        ARRAY(:,:,L) = ARRAY(:,:,L) 
+     &                               + ( DiagnCnt%Arr3D%Val(:,:,L)
+     &                               *   FACTOR 
+     &                               *   HcoState%Grid%AREA_M2%Val(:,:))
+                     ENDDO 
+                  ENDIF
                ELSE
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                   MSG = TRIM(MSG) // ' - will write zeros!'
@@ -902,9 +936,9 @@
                ! Write combined diagnostics to disk
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, N,
-     &                     UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     1,        IFIRST,     
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     Levs,     IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:Levs) )
       
                ! Free pointer
                DiagnCnt => NULL()
@@ -1624,7 +1658,7 @@
          CATEGORY  = 'SO2-AN-$'
          FACTOR    =  S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO2, 1, -1, .FALSE., FACTOR, RC )
+     &                   UNIT, id_SO2, 1, LLPAR, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
          
          !%%%%% Biomass SO2 (convert kg/m2/s --> kg S) %%%%%
@@ -1676,7 +1710,7 @@
          CATEGORY  = 'SO4-AN-$'
          FACTOR    = S_SO4
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO4, 1, -1, .FALSE., FACTOR, RC )
+     &                   UNIT, id_SO4, 1, LLPAR, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Biofuel SO4 %%%%%
@@ -1697,7 +1731,7 @@
          CATEGORY  = 'NH3-ANTH'
          FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_NH3, 1, -1, .FALSE., FACTOR, RC )
+     &                   UNIT, id_NH3, 1, LLPAR, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%%  Natural source NH3 %%%%%
@@ -2486,22 +2520,31 @@
 !******************************************************************************
 !  ND28: Biomass burning diagnostic 
 !
-!   # : Field : Description   : Units            : Scale factor
+!   #  : Field : Description    : Units            : Scale factor
 !  --------------------------------------------------------------------------
-!  (1 ) NOx   : NOx            : molec NOx /cm2/s : SCALESRCE
-!  (4 ) CO    : CO             : molec CO  /cm2/s : SCALESRCE
-!  (9 ) ACET  : Acetone        : atoms C   /cm2/s : SCALESRCE
-!  (10) MEK   : Ketones(>C3)   : atoms C   /cm2/s : SCALESRCE
-!  (11) ALD2  : Acetaldehyde   : atoms C   /cm2/s : SCALESRCE
-!  (18) PRPE  : Propene        : atoms C   /cm2/s : SCALESRCE
-!  (19) C3H8  : Propane        : atoms C   /cm2/s : SCALESRCE
-!  (20) C2HO  : Formaldehyde   : molec CH2O/cm2/s : SCALESRCE
-!  (21) C2H6  : Ethane         : atoms C   /cm2/s : SCALESRCE
-!  (26) SO2   : Sulfur dioxide : molec SO2 /cm2/s : SCALESRCE
-!  (30) NH3   : Ammonia        : molec NH3 /cm2/s : SCALESRCE
-!  (34) BC    : Black carbon   : atoms C   /cm2/s : SCALESRCE
-!  (35) OC    : Organic carbon : atoms C   /cm2/s : SCALESRCE
-!  (69) CH4   : Methane        : molec CH4 /cm2/s : SCALESRCE
+!  (1  ) NOx   : NOx            : molec NOx /cm2/s : SCALESRCE
+!  (3  ) PAN   : PAN            : molec PAN /cm2/s : SCALESRCE
+!  (4  ) CO    : CO             : molec CO  /cm2/s : SCALESRCE
+!  (5  ) ALK4  : >=C4 alkanes   : atoms C   /cm2/s : SCALESRCE
+!  (7  ) HNO3  : HNO3           : molec HNO3/cm2/s : SCALESRCE
+!  (9  ) ACET  : Acetone        : atoms C   /cm2/s : SCALESRCE
+!  (10 ) MEK   : Ketones(>C3)   : atoms C   /cm2/s : SCALESRCE
+!  (11 ) ALD2  : Acetaldehyde   : atoms C   /cm2/s : SCALESRCE
+!  (18 ) PRPE  : Propene        : atoms C   /cm2/s : SCALESRCE
+!  (19 ) C3H8  : Propane        : atoms C   /cm2/s : SCALESRCE
+!  (20 ) CH2O  : Formaldehyde   : molec CH2O/cm2/s : SCALESRCE
+!  (21 ) C2H6  : Ethane         : atoms C   /cm2/s : SCALESRCE
+!  (26 ) SO2   : Sulfur dioxide : molec SO2 /cm2/s : SCALESRCE
+!  (30 ) NH3   : Ammonia        : molec NH3 /cm2/s : SCALESRCE
+!  (34 ) BC    : Black carbon   : atoms C   /cm2/s : SCALESRCE
+!  (35 ) OC    : Organic carbon : atoms C   /cm2/s : SCALESRCE
+!  (71 ) CH4   : Methane        : molec CH4 /cm2/s : SCALESRCE
+!  (99 ) MTPA  : Lumped monoterp: atoms C   /cm2/s : SCALESRCE
+!  (116) BENZ  : Benzene        : atoms C   /cm2/s : SCALESRCE
+!  (117) TOLU  : Toluene        : atoms C   /cm2/s : SCALESRCE
+!  (118) XYLE  : Xylene         : atoms C   /cm2/s : SCALESRCE
+!  (126) EOH   : Ethanol        : atoms C   /cm2/s : SCALESRCE
+!  (127) MGLY  : Methylglyoxyal : atoms C   /cm2/s : SCALESRCE
 !
 !  NOTES:
 !  (1) Use the F90 intrinsic "ANY" function to make sure that N 
@@ -2536,6 +2579,18 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
+         !%%%%% PAN %%%%%
+         IF ( id_PAN > 0 ) THEN
+            DiagnName = 'BIOMASS_PAN'
+            UNIT      = 'molec/cm2/s'
+            N         = id_PAN
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp * CM2PERM2 )
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
          !%%%%% CO %%%%%
          IF ( id_CO > 0 ) THEN
             DiagnName = 'BIOMASS_CO'
@@ -2557,6 +2612,18 @@
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
+         !%%%%% HNO3 %%%%%
+         IF ( id_HNO3 > 0 ) THEN
+            DiagnName = 'BIOMASS_HNO3'
+            UNIT      = 'molec/cm2/s'
+            N         = id_HNO3
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -2704,9 +2771,9 @@
          DiagnName = 'BIOMASS_BCPO'
          DiagnCnt  => NULL()
          CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DiagnCnt, 
-     &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, 
-     &                      COL=HcoState%Diagn%HcoDiagnIDManual )
+     &                   FLAG, RC,   cName=TRIM(DiagnName), 
+     &                   AutoFill=1, 
+     &                   COL=HcoState%Diagn%HcoDiagnIDManual )
          IF ( RC /= HCO_SUCCESS ) THEN
             MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
             CALL ERROR_STOP ( MSG, LOC ) 
@@ -2818,6 +2885,78 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
+         !%%%%% MTPA %%%%%
+         IF ( id_MTPA > 0 ) THEN
+            DiagnName = 'BIOMASS_MTPA'
+            UNIT      = 'atoms C/cm2/s'
+            N         = id_MTPA
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
+         !%%%%% BENZ %%%%%
+         IF ( id_BENZ > 0 ) THEN
+            DiagnName = 'BIOMASS_BENZ'
+            UNIT      = 'atoms C/cm2/s'
+            N         = id_BENZ
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
+         !%%%%% TOLU %%%%%
+         IF ( id_TOLU > 0 ) THEN
+            DiagnName = 'BIOMASS_TOLU'
+            UNIT      = 'atoms C/cm2/s'
+            N         = id_TOLU
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
+         !%%%%% XYLE %%%%%
+         IF ( id_XYLE > 0 ) THEN
+            DiagnName = 'BIOMASS_XYLE'
+            UNIT      = 'atoms C/cm2/s'
+            N         = id_XYLE
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
+         !%%%%% EOH %%%%%
+         IF ( id_EOH > 0 ) THEN
+            DiagnName = 'BIOMASS_EOH'
+            UNIT      = 'atoms C/cm2/s'
+            N         = id_EOH
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
+         !%%%%% MGLY %%%%%
+         IF ( id_MGLY > 0 ) THEN
+            DiagnName = 'BIOMASS_MGLY'
+            UNIT      = 'atoms C/cm2/s'
+            N         = id_MGLY
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
          ! Free pointer
          SpcInfo => NULL()
 
@@ -2867,10 +3006,14 @@
          ! Also note: Tagged CO lumps biofuels with anthro emissions
          DO N = 1, NN
 
+            ! Initalize number of levels for diagnostic
+            Levs = -1
+
             ! Find the proper HEMCO diagnostic name 
             SELECT CASE ( N )
                CASE( 1 )
                   DiagnName = 'ANTHROPOGENIC_CO'
+                  Levs      = LLPAR
                CASE( 2 )
                   DiagnName = 'BIOMASS_CO'
                CASE( 3 )
@@ -2885,32 +3028,40 @@
                ! Tagged CO: Anthro sectors, USA
                CASE( 7 )
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_US'
+                  Levs      = LLPAR
                CASE( 8 ) 
                   DiagnName = 'AIRCRAFT_TAGCO_US'
+                  Levs      = LLPAR
                CASE( 9 )
                   DiagnName = 'SHIP_TAGCO_US'
 
                ! Tagged CO: Anthro sectors, Europe
                CASE( 10 )
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_EUR'
+                  Levs      = LLPAR
                CASE( 11 )
                   DiagnName = 'AIRCRAFT_TAGCO_EUR'
+                  Levs      = LLPAR
                CASE( 12 )
                   DiagnName = 'SHIP_TAGCO_EUR'
 
                ! Tagged CO: Anthro sectors, Asia
                CASE( 13 )
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_ASIA'
+                  Levs      = LLPAR
                CASE( 14 )
                   DiagnName = 'AIRCRAFT_TAGCO_ASIA'
+                  Levs      = LLPAR
                CASE( 15 ) 
                   DiagnName = 'SHIP_TAGCO_ASIA'
 
                ! Tagged CO: Anthro sectors, rest of world
                CASE( 16 )
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_OTHER'
+                  Levs      = LLPAR
                CASE( 17 )
                   DiagnName = 'AIRCRAFT_TAGCO_OTHER'
+                  Levs      = LLPAR
                CASE( 18 )
                   DiagnName = 'SHIP_TAGCO_OTHER'
 
@@ -2935,7 +3086,7 @@
 
             ! Write data from HEMCO to the bpch file
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+     &                      UNIT,      N, 1, Levs, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDDO
 
@@ -3075,7 +3226,9 @@
 
          ! Save into ARRAY. Convert to units
          IF ( FLAG == HCO_SUCCESS ) THEN
-            ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) * FACTOR 
+            DO L = 1, LLPAR
+               ARRAY(:,:,L) = DiagnCnt%Arr3D%Val(:,:,L) * FACTOR 
+            ENDDO
          ELSE
             MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
             MSG = TRIM(MSG) // ' - will write zeros!'
@@ -3110,8 +3263,8 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &               IIPAR,     JJPAR,     LLPAR,    IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
 
          ! Free pointer
          DiagnCnt => NULL()
@@ -3202,18 +3355,23 @@
 !  %%%  SUM OF ANTHROPOGENIC + BIOFUEL EMISSIONS. (bmy, 8/15/14)           %%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
-!   # : Field : Description         : Units            : Scale factor
+!   #  : Field : Description         : Units            : Scale factor
 !  --------------------------------------------------------------------------
-!  (1 ) NOx   : NOx                 : molec NOx /cm2/s : SCALESRCE
-!  (4 ) CO    : CO                  : molec CO  /cm2/s : SCALESRCE
-!  (5 ) ALK4  : Alkanes(>C4)        : atoms C   /cm2/s : SCALESRCE
-!  (9 ) ACET  : Acetone             : atoms C   /cm2/s : SCALESRCE
-!  (10) MEK   : Metyl Ethyl Ketone  : atoms C   /cm2/s : SCALESRCE
-!  (11) ALD2  : Acetaldehyde        : atoms C   /cm2/s : SCALESRCE
-!  (18) PRPE  : Alkenes(>=C3)       : atoms C   /cm2/s : SCALESRCE
-!  (19) C3H8  : Propane             : atoms C   /cm2/s : SCALESRCE
-!  (20) CH2O  : Formaldehyde        : molec CH2O/cm2/s : SCALESRCE
-!  (21) C2H6  : Ethane              : atoms C   /cm2/s : SCALESRCE
+!  (1  ) NOx   : NOx                 : molec NOx /cm2/s : SCALESRCE
+!  (4  ) CO    : CO                  : molec CO  /cm2/s : SCALESRCE
+!  (5  ) ALK4  : Alkanes(>C4)        : atoms C   /cm2/s : SCALESRCE
+!  (9  ) ACET  : Acetone             : atoms C   /cm2/s : SCALESRCE
+!  (10 ) MEK   : Metyl Ethyl Ketone  : atoms C   /cm2/s : SCALESRCE
+!  (11 ) ALD2  : Acetaldehyde        : atoms C   /cm2/s : SCALESRCE
+!  (18 ) PRPE  : Alkenes(>=C3)       : atoms C   /cm2/s : SCALESRCE
+!  (19 ) C3H8  : Propane             : atoms C   /cm2/s : SCALESRCE
+!  (20 ) CH2O  : Formaldehyde        : molec CH2O/cm2/s : SCALESRCE
+!  (26 ) SO2   : SO2                 : molec SO2 /cm2/s : SCALESRCE
+!  (30 ) NH3   : NH3                 : molec NH3 /cm2/s : SCALESRCE
+!  (116) BENZ  : Benzene             : atoms C   /cm2/s : SCALESRCE
+!  (117) TOLU  : Toluene             : atoms C   /cm2/s : SCALESRCE
+!  (118) XYLE  : Xylene              : atoms C   /cm2/s : SCALESRCE
+!  (126) EOH   : Ethanol             : atoms C   /cm2/s : SCALESRCE
 !
 !  NOTES:
 !  (1) Use the F90 intrinsic "ANY" function to make sure that N 
@@ -3381,6 +3539,54 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
+         !%%%%% BENZ %%%%%
+         IF ( id_BENZ > 0 ) THEN
+            DiagnName = 'BIOFUEL_BENZ'
+            UNIT      = 'atoms C/cm2/s'
+            N         = id_BENZ
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR,RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
+         !%%%%% TOLU %%%%%
+         IF ( id_TOLU > 0 ) THEN
+            DiagnName = 'BIOFUEL_TOLU'
+            UNIT      = 'atoms C/cm2/s'
+            N         = id_TOLU
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR,RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
+         !%%%%% XYLE %%%%%
+         IF ( id_XYLE > 0 ) THEN
+            DiagnName = 'BIOFUEL_XYLE'
+            UNIT      = 'atoms C/cm2/s'
+            N         = id_XYLE
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR,RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
+         !%%%%% EOH %%%%%
+         IF ( id_EOH > 0 ) THEN
+            DiagnName = 'BIOFUEL_EOH'
+            UNIT      = 'atoms C/cm2/s'
+            N         = id_EOH
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR,RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
          ! Free pointer
          SpcInfo => NULL()
       ENDIF
@@ -3421,22 +3627,24 @@
 !******************************************************************************
 !  ND36: Anthropogenic source diagnostic
 !
-!   #   Field  : Description                     : Units         : S. Factor
+!   #    Field  : Description                     : Units         : S. Factor
 !  ---------------------------------------------------------------------------
-!  (1 ) NOx    : NOx                             : molec/cm2/s   : SCALE3
-!  (4 ) CO     : CO                              : molec/cm2/s   : SCALE3
-!  (5 ) ALK4   : Alkanes(>C4)                    : atoms C/cm2/s : SCALE3
-!  (9 ) ACET   : Acetone                         : atoms C/cm2/s : SCALE3
-!  (10) MEK    : Ketones(>C3)                    : atoms C/cm2/s : SCALE3
-!  (18) PRPE   : Propene                         : atoms C/cm2/s : SCALE3 
-!  (19) C3H8   : Propane                         : atoms C/cm2/s : SCALE3 
-!  (21) C2H6   : Ethane                          : atoms C/cm2/s : SCALE3
-!  (69) CH4    : Methane                         : molec/cm2/s   : SCALE3
-!  (71) CH3Ioc : Methyl Iodide (oceanic source)  : ng/m2/s       : SCALE3
-!  (72) CH3Ibb : Methyl Iodide (biomass burning) : ng/m2/s       : SCALE3
-!  (73) CH3Iwb : Methyl Iodide (wood burning)    : ng/m2/s       : SCALE3
-!  (74) CH3Irc : Methyl Iodide (rice paddies)    : ng/m2/s       : SCALE3
-!  (75) CH3Iwl : Methyl Iodide (wetlands)        : ng/m2/s       : SCALE3
+!  (1  ) NOx    : NOx                             : molec/cm2/s   : SCALE3
+!  (2  ) O3     : O3                              : molec/cm2/s   : SCALE3
+!  (4  ) CO     : CO                              : molec/cm2/s   : SCALE3
+!  (5  ) ALK4   : Alkanes(>C4)                    : atoms C/cm2/s : SCALE3
+!  (9  ) ACET   : Acetone                         : atoms C/cm2/s : SCALE3
+!  (10 ) MEK    : Ketones(>C3)                    : atoms C/cm2/s : SCALE3
+!  (11 ) ALD2   : Acetaldehyde                    : atoms C/cm2/s : SCALE3
+!  (18 ) PRPE   : Propene                         : atoms C/cm2/s : SCALE3 
+!  (19 ) C3H8   : Propane                         : atoms C/cm2/s : SCALE3 
+!  (20 ) CH2O   : Formaldehyde                    : atoms C/cm2/s : SCALE3
+!  (21 ) C2H6   : Ethane                          : atoms C/cm2/s : SCALE3
+!  (71 ) CH4    : Methane                         : molec/cm2/s   : SCALE3
+!  (116) BENZ   : Benzene                         : atoms C/cm2/s : SCALE3
+!  (117) TOLU   : Toluene                         : atoms C/cm2/s : SCALE3
+!  (118) XYLE   : Xylene                          : atoms C/cm2/s : SCALE3
+!  (126) EOH    : Ethanol                         : atoms C/cm2/s : SCALE3
 !
 !  NOTES:
 !  (1) ND36 is also used for CH3I emissions diagnostics when NSRCX=2.
@@ -3485,6 +3693,12 @@
             SELECT CASE( TRIM( SpcInfo%Name ) )
                CASE( 'NO'     )
                   DiagnName = 'ANTHROPOGENIC_NO'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'O3'     )
+                  DiagnName = 'ANTHROPOGENIC_O3'
                   UNIT      = 'molec/cm2/s'
                   N         = SpcInfo%ModelId
                   FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
@@ -3543,6 +3757,18 @@
                   N         = SpcInfo%ModelId
                   FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
+               CASE( 'RCHO'    )
+                  DiagnName = 'ANTHROPOGENIC_RCHO'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'MACR'    )
+                  DiagnName = 'ANTHROPOGENIC_MACR'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
                CASE( 'PRPE'    )
                   DiagnName = 'ANTHROPOGENIC_PRPE'
                   UNIT      = 'atoms C/cm2/s'
@@ -3567,9 +3793,87 @@
                   N         = SpcInfo%ModelId
                   FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
+               CASE( 'SO2'     )
+                  DiagnName = 'ANTHROPOGENIC_SO2'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'SO4'     )
+                  DiagnName = 'ANTHROPOGENIC_SO4'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'NH3'     )
+                  DiagnName = 'ANTHROPOGENIC_NH3'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'BCPI'    )
+                  DiagnName = 'ANTHROPOGENIC_BCPI'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'OCPI'    )
+                  DiagnName = 'ANTHROPOGENIC_OCPI'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'BCPO'    )
+                  DiagnName = 'ANTHROPOGENIC_BCPO'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'OCPO'    )
+                  DiagnName = 'ANTHROPOGENIC_OCPO'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'NO2'     )
+                  DiagnName = 'ANTHROPOGENIC_NO2'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'HNO2'    )
+                  DiagnName = 'ANTHROPOGENIC_HNO2'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
                CASE( 'CH4'     )
                   DiagnName = 'ANTHROPOGENIC_CH4'
                   UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'BENZ'    )
+                  DiagnName = 'ANTHROPOGENIC_BENZ'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'TOLU'    )
+                  DiagnName = 'ANTHROPOGENIC_TOLU'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'XYLE'    )
+                  DiagnName = 'ANTHROPOGENIC_XYLE'
+                  UNIT      = 'atoms C/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
+               CASE( 'EOH'     )
+                  DiagnName = 'ANTHROPOGENIC_EOH'
+                  UNIT      = 'atoms C/cm2/s'
                   N         = SpcInfo%ModelId
                   FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
@@ -3581,7 +3885,7 @@
             IF ( N > 0 ) THEN
                ! kg/m2/s to molec/cm2/s 
                CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                         UNIT, N, 1, -1, .TRUE., FACTOR, RC )
+     &                         UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
                IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
             ENDIF
 
@@ -4126,34 +4430,37 @@
 !******************************************************************************
 !  ND46: Biogenic source diagnostic
 !
-!   # : Field  : Description          : Units         : Scale Factor
+!   # : Field  : Description                : Units         : Scale Factor
 !  ---------------------------------------------------------------------------
-!  (1 ) ISOP   : Isoprene             : atoms C/cm2/s : SCALESRCE
-!  (2 ) ACET   : Acetone              : atoms C/cm2/s : SCALESRCE
-!  (3 ) PRPE   : Propene              : atoms C/cm2/s : SCALESRCE
-!  (4 ) MONX   : Total Monoterpenes   : atoms C/cm2/s : SCALESRCE
-!  (5 ) MBOX   : Methyl Butenol       : atoms C/cm2/s : SCALESRCE
-!  (6 ) C2H4   : Ethene               : atoms C/cm2/s : SCALESRCE
-!  (7 ) APIN   : Alpha pinene         : atoms C/cm2/s : SCALESRCE
-!  (8 ) BPIN   : Beta pinene          : atoms C/cm2/s : SCALESRCE
-!  (9 ) LIMO   : Limonene             : atoms C/cm2/s : SCALESRCE
-!  (10) SABI   : Sabinene             : atoms C/cm2/s : SCALESRCE
-!  (11) MYRC   : Mycrene              : atoms C/cm2/s : SCALESRCE
-!  (12) CARE   : 3-Carene             : atoms C/cm2/s : SCALESRCE
-!  (13) OCIM   : Ocimene              : atoms C/cm2/s : SCALESRCE
-!  (14) FAXX   : Formic acid          :   molec/cm2/s : SCALESRCE
-!  (15) AAXX   : Acetic acid          :   molec/cm2/s : SCALESRCE
-!  (16) ALD2   : Acetaldehyde         : atoms C/cm2/s : SCALESRCE
-!  (17) OMON   : Other monoterp       : atoms C/cm2/s : SCALESRCE
-!  (18) MOHX   : Methanol             :   molec/cm2/s : SCALESRCE
-!  (19) ETOH   : Ethanol              : atoms C/cm2/s : SCALESRCE
-!  (20) FARN   : Farnesene            : atoms C/cm2/s : SCALESRCE
-!  (21) BCAR   : b-caryophyllene      : atoms C/cm2/s : SCALESRCE
-!  (22) OSQT   : Other sesquiterpenes : atoms C/cm2/s : SCALESRCE
-!  (23) CHBr3  : Bromoform            :       kg/m2/s : SCALESRCE
-!  (24) CH2Br2 : Dibromomethane       :       kg/m2/s : SCALESRCE
-!  (25) Br2    : Molec. Bromine       :       kg/m2/s : SCALESRCE
-!  (26) CH4    : Methane              :   molec/cm2/s : SCALE3
+!  (1 ) ISOP   : Isoprene                   : atoms C/cm2/s : SCALESRCE
+!  (2 ) ACET   : Acetone                    : atoms C/cm2/s : SCALESRCE
+!  (3 ) PRPE   : Propene                    : atoms C/cm2/s : SCALESRCE
+!  (4 ) MONX   : Total Monoterpenes         : atoms C/cm2/s : SCALESRCE
+!  (5 ) MBOX   : Methyl Butenol             : atoms C/cm2/s : SCALESRCE
+!  (6 ) C2H4   : Ethene                     : atoms C/cm2/s : SCALESRCE
+!  (7 ) APIN   : Alpha pinene               : atoms C/cm2/s : SCALESRCE
+!  (8 ) BPIN   : Beta pinene                : atoms C/cm2/s : SCALESRCE
+!  (9 ) LIMO   : Limonene                   : atoms C/cm2/s : SCALESRCE
+!  (10) SABI   : Sabinene                   : atoms C/cm2/s : SCALESRCE
+!  (11) MYRC   : Mycrene                    : atoms C/cm2/s : SCALESRCE
+!  (12) CARE   : 3-Carene                   : atoms C/cm2/s : SCALESRCE
+!  (13) OCIM   : Ocimene                    : atoms C/cm2/s : SCALESRCE
+!  (14) FAXX   : Formic acid                :   molec/cm2/s : SCALESRCE
+!  (15) AAXX   : Acetic acid                :   molec/cm2/s : SCALESRCE
+!  (16) ALD2   : Acetaldehyde               : atoms C/cm2/s : SCALESRCE
+!  (17) OMON   : Other monoterp             : atoms C/cm2/s : SCALESRCE
+!  (18) MOHX   : Methanol                   :   molec/cm2/s : SCALESRCE
+!  (19) EOH    : Ethanol                    : atoms C/cm2/s : SCALESRCE
+!  (20) FARN   : Farnesene                  : atoms C/cm2/s : SCALESRCE
+!  (21) BCAR   : b-caryophyllene            : atoms C/cm2/s : SCALESRCE
+!  (22) OSQT   : Other sesquiterpenes       : atoms C/cm2/s : SCALESRCE
+!  (23) CHBr3  : Bromoform                  :       kg/m2/s : SCALESRCE
+!  (24) CH2Br2 : Dibromomethane             :       kg/m2/s : SCALESRCE
+!  (25) Br2    : Molec. Bromine             :       kg/m2/s : SCALESRCE
+!  (26) CH4    : Methane                    :   molec/cm2/s : SCALE3
+!  (27) ALD2   : ALD2 from senescing plants : atoms C/cm2/s : SCALESRCE
+!  (28) EOH    : EOH  from senescing plants : atoms C/cm2/s : SCALESRCE
+!  (29) ALD2   : ALD2 ocean emissions       : atoms C/cm2/s : SCALESRCE
 !
 !  NOTES:
 !  (1) ND46 now uses allocatable array AD46 instead of AIJ (bmy, 3/16/00)
@@ -4480,14 +4787,20 @@
          !-----------------------------------------------------------
          !%%%%% ETHANOL %%%%%
          !-----------------------------------------------------------
-         DiagnName = 'BIOGENIC_ETOH'
-         UNIT      = 'atoms C/cm2/s'
-         N         = 19
-         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = GPERKG / MWC * AVO / CM2PERM2
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( id_EOH > 0 ) THEN
+            DiagnName = 'BIOGENIC_EOH'
+            UNIT      = 'atoms C/cm2/s'
+            N         = 19
+            SpcInfo => State_Chm%SpcData(id_eoh)%Info
+            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+            ! Free pointer
+            SpcInfo => NULL()
+         ENDIF
 
          !-----------------------------------------------------------
          !%%%%% FARNESENE %%%%%
@@ -4653,6 +4966,60 @@
      &                  UNIT ,     DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+            ! Free pointer
+            SpcInfo => NULL()
+         ENDIF
+
+         !-----------------------------------------------------------
+         !%%%%% ACETALDEHYDE FROM SENESCING PLANTS %%%%%
+         !-----------------------------------------------------------
+         IF ( id_ALD2 > 0 ) THEN
+            DiagnName = 'ALD2_SENESCING'
+            UNIT      = 'atoms C/cm2/s'
+            N         = 27
+            SpcInfo  => State_Chm%SpcData(id_ALD2)%Info
+            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+            ! Free pointer
+            SpcInfo => NULL()
+         ENDIF
+
+         !-----------------------------------------------------------
+         !%%%%% ETHANOL FROM SENESCING PLANTS %%%%%
+         !-----------------------------------------------------------
+         IF ( id_EOH > 0 ) THEN
+            DiagnName = 'EOH_SENESCING'
+            UNIT      = 'atoms C/cm2/s'
+            N         = 28
+            SpcInfo  => State_Chm%SpcData(id_EOH)%Info
+            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+            ! Free pointer
+            SpcInfo => NULL()
+         ENDIF
+
+         !-----------------------------------------------------------
+         !%%%%% ACETALDEHYDE OCEAN SOURCE %%%%%
+         !-----------------------------------------------------------
+         IF ( id_ALD2 > 0 ) THEN
+            DiagnName = 'ALD2_OCEAN_SOURCE'
+            UNIT      = 'atoms C/cm2/s'
+            N         = 29
+            SpcInfo  => State_Chm%SpcData(id_ALD2)%Info
+            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
             ! Free pointer
             SpcInfo => NULL()

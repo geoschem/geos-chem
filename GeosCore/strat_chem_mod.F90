@@ -143,6 +143,9 @@ MODULE Strat_Chem_Mod
 
   ! Number of species from GMI model
   INTEGER, PARAMETER   :: NTR_GMI   = 120  
+
+  ! Minit_Is_Set indicates whether Minit has been set or not
+  LOGICAL, PUBLIC      :: Minit_Is_Set = .FALSE. 
 !
 ! !PRIVATE TYPES:
 !
@@ -168,10 +171,6 @@ MODULE Strat_Chem_Mod
   REAL(f4), ALLOCATABLE :: MInit(:,:,:,:)      ! Init. atm. state for STE period
   REAL(f4), ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                                !   (total P - L) [kg period-1]
-
-  ! Minit_Is_Set indicates whether Minit has been set or not
-  LOGICAL               :: Minit_Is_Set = .FALSE. 
-
   ! Species ID flags
   INTEGER               :: id_Br2,   id_Br,     id_BrNO3
   INTEGER               :: id_BrO,   id_CHBr3,  id_CH2Br2
@@ -269,6 +268,7 @@ CONTAINS
 !  12 Jul 2016 - R. Yantosca - Bug fix: ISBR2 should be held !$OMP PRIVATE
 !  18 Jul 2016 - M. Yannetti - Replaced TCVV with spec db and phys constant
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  19 Oct 2016 - R. Yantosca - Add routine Set_Init_Conc_Strat_Chem for GCHP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1555,6 +1555,7 @@ CONTAINS
     ! initial atm. conditions from restart file converted to [kg/kg].
     ALLOCATE( MInit( IIPAR, JJPAR, LLPAR, nAdvect ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
+    MInit = 0.0_fp
 
 #if !defined( ESMF_ )
     ! Set MINIT. Ignore in ESMF environment because State_Chm%Species

@@ -223,9 +223,6 @@ CONTAINS
 !                              out lon & lat as float instead of double
 !  06 Nov 2015 - C. Keller   - Output time stamp is now determined from 
 !                              variable OutTimeStamp.
-!  14 Jan 2016 - E. Lundgren - Create netcdf title out of filename prefix
-!  20 Jan 2016 - C. Keller   - Added options DiagnRefTime and DiagnNoLevDim.
-!  22 Feb 2016 - C. Keller   - Now calls down to environment specific routines.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

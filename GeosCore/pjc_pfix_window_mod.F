@@ -1168,8 +1168,8 @@ c     --------------------------------------
 !
 !******************************************************************************
 !
-      USE CMN_SIZE_MOD ! Size parameters
-      USE PhysConstants! Re, PI
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE PhysConstants ! Re, PI
  
       implicit none
 
@@ -1361,8 +1361,8 @@ c     --------------------------------------
 !  
 !******************************************************************************
 !
-      USE CMN_SIZE_MOD ! Size parameters
-      USE PhysConstants! Re, Pi
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE PhysConstants ! Re, Pi
 
       implicit none
 

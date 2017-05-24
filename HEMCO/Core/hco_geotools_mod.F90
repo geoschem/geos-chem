@@ -493,6 +493,7 @@ CONTAINS
 
          ! Compute local time as UTC + longitude/15 (bmy, 3/2/17)
          LHR = HOUR + ( HcoState%Grid%XMid%Val(I,J) / 15.0_hp )
+
          IF ( LHR <   0.0_hp ) LHR = LHR + 24.0_hp
          IF ( LHR >= 24.0_hp ) LHR = LHR - 24.0_hp
 

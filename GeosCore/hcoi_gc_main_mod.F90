@@ -1034,11 +1034,6 @@ CONTAINS
     USE Get_Ndep_Mod,          ONLY : DRY_TOTN
     USE Get_Ndep_Mod,          ONLY : WET_TOTN
 
-#if !defined(ESMF_)
-    USE MODIS_LAI_MOD,         ONLY : GC_LAI
-#endif
-    USE MODIS_LAI_MOD,         ONLY : GC_CHLR
-
 #if defined(ESMF_)
     USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
 #endif
@@ -1071,6 +1066,7 @@ CONTAINS
 !  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
 !                               species ID from State_Chm%Map_Advect.
 !  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
+!  23 May 2017 - R. Yantosca - Fixed typo for MERRA2 in #ifdef at line 1193
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1190,7 +1186,7 @@ CONTAINS
     ! at ground (SWGDN). For simplicity we store radiation as a single 
     ! variable in HEMCO. SWGDN is also available for MERRA but is not 
     ! used in HEMCO to preserve legacy usage of net radiation (ewl, 9/23/15)
-#if defined ( GEOS_FP ) || ( MERRA2 )
+#if defined ( GEOS_FP ) || defined( MERRA2 )
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%RADSWG, &
            'RADSWG_FOR_EMIS',   HCRC, FIRST, State_Met%SWGDN  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
@@ -1257,19 +1253,12 @@ CONTAINS
          'FRLANDIC_FOR_EMIS',   HCRC, FIRST, State_Met%FRLANDIC  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-    ! Use 'offline' MODIS LAI in standard GEOS-Chem
-#if defined(ESMF_)
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
-              'LAI_FOR_EMIS',   HCRC, FIRST, State_Met%LAI  )
+              'LAI_FOR_EMIS',   HCRC, FIRST, State_Met%MODISLAI  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
-#else
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
-              'LAI_FOR_EMIS',   HCRC, FIRST, GC_LAI         )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-#endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CHLR, &
-             'CHLR', HCRC,      FIRST,   GC_CHLR          )
+             'CHLR', HCRC,      FIRST,    State_Met%MODISCHLR )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     ! Convective fractions
@@ -1413,7 +1402,8 @@ CONTAINS
     USE ERROR_MOD,             ONLY : ERROR_STOP
     USE FAST_JX_MOD,           ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
     USE HCO_GeoTools_Mod,      ONLY : HCO_GetSUNCOS
-    USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
+    USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL
+    USE PBL_MIX_MOD,           ONLY : GET_PBL_MAX_L
     USE State_Met_Mod,         ONLY : MetState
     USE State_Chm_Mod,         ONLY : ChmState
 #if defined(ESMF_) 

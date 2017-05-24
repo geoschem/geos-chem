@@ -1048,7 +1048,7 @@ CONTAINS
           !----------------------------------------------------------------
     
           ! Diagnostic container name and id
-          DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name )
+          DiagnName = 'SPC_' // TRIM( SpcInfo%Name )
           cId = cId + 1
     
           ! Create container

@@ -220,6 +220,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    LOGICAL            :: DefScaleEmis
 
     !=================================================================
     ! HCOX_PARANOX_RUN begins here!
@@ -336,6 +337,7 @@ CONTAINS
 !  25 May 2015 - C. Keller   - Now calculate SC5 via HCO_GetSUNCOS 
 !  29 Mar 2016 - C. Keller   - Bug fix: archive O3 deposition as positive flux.
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  12 May 2017 - C. Keller   - Force option ScaleEmis to off.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -346,6 +348,7 @@ CONTAINS
     LOGICAL                  :: ERR
     LOGICAL                  :: FILLED 
     LOGICAL                  :: FIRST
+    LOGICAL                  :: DefScaleEmis 
     REAL(hp)                 :: iFlx, TMP
     CHARACTER(LEN=255)       :: MSG
     CHARACTER(LEN=1)         :: CHAR1
@@ -710,6 +713,12 @@ CONTAINS
     ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
     !=======================================================================
 
+    ! Turn off emission scaling. We don't want the computed fluxes to be 
+    ! scaled any more. If a uniform scale factor is defined for NO, it 
+    ! has been applied to the ship NO emissions already (ckeller, 5/11/17).
+    DefScaleEmis               = HcoState%Options%ScaleEmis
+    HcoState%Options%ScaleEmis = .FALSE.
+
     ! NO
     IF ( IDTNO > 0 ) THEN
 
@@ -784,6 +793,9 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        Arr2D => NULL()       
     ENDIF
+
+    ! Reset option ScaleEmis to default value 
+    HcoState%Options%ScaleEmis = DefScaleEmis 
 
     ! Return w/ success
     CALL HCO_LEAVE( HcoState%Config%Err,RC )

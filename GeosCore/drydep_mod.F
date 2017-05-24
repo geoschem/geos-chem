@@ -190,6 +190,9 @@
 !  13 Jul 2016 - R. Yantosca - Remove DRYHg0, DRYHg2, DRYHgP ID flags
 !  13 Jul 2016 - R. Yantosca - Also make NDVZIND a local variable for now
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  10 Mar 2017 - M. Sulprizio- Add special treatment for ALD2, following what is
+!                              done for ACET. Drydep over the oceans is handled
+!                              via the HEMCO SeaFlux extension. 
 !  16 Mar 2017 - R. Yantosca - Remove references to obsolete vars in Input_Opt
 !EOP
 !------------------------------------------------------------------------------
@@ -235,25 +238,25 @@
       !  DEPNAME   : Names of dry deposition species 
       !
       !  NOTE: these variables are defined in CMN_SIZE_mod.F
-      !    NTYPE    : Max # of landtypes / grid box
-      !    NPOLY    : Number of drydep polynomial coefficients
-      !    NVEGTYPE : Number of Olson land types
+      !    NTYPE     : Max # of landtypes / grid box
+      !    NPOLY     : Number of drydep polynomial coefficients
+      !    NSURFTYPE : Number of Olson land types
       !========================================================================
 
       ! Scalars
       INTEGER                        :: NUMDEP,   NWATER
       INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
-      INTEGER                        :: id_ACET
+      INTEGER                        :: id_ACET,  id_ALD2
       INTEGER                        :: id_NK1
 
       ! Arrays for Baldocchi drydep polynomial coefficients
       REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
 
       ! Arrays that hold information for each of the 74 Olson land types
-      INTEGER                        :: INDOLSON(NVEGTYPE )
-      INTEGER                        :: IDEP    (NVEGTYPE )
-      INTEGER                        :: IZO     (NVEGTYPE )
-      INTEGER                        :: IWATER  (NVEGTYPE )
+      INTEGER                        :: INDOLSON(NSURFTYPE )
+      INTEGER                        :: IDEP    (NSURFTYPE )
+      INTEGER                        :: IZO     (NSURFTYPE )
+      INTEGER                        :: IWATER  (NSURFTYPE )
 
       ! Arrays that hold information for each of the 11 drydep land types
       INTEGER                        :: IDRYDEP (NDRYDTYPE)
@@ -573,10 +576,22 @@
 
             ! For ACET, we need to only do drydep over the land
             ! and not over the oceans.
-            IF ( N == ID_ACET ) THEN
+            IF ( N == id_ACET ) THEN
                IF ( IS_LAND( I, J, State_Met ) ) THEN
                   DVZ = 0.1e+0_f8
                ELSE
+                  DVZ = 0e+0_f8
+               ENDIF
+            ENDIF
+
+            !-----------------------------------------------------------
+            ! Special treatment for ALD2
+            !-----------------------------------------------------------
+
+            ! For ALD2, we need to only do drydep over the land
+            ! and not over the oceans.
+            IF ( N == id_ALD2 ) THEN
+               IF ( .not. IS_LAND( I, J, State_Met ) ) THEN
                   DVZ = 0e+0_f8
                ENDIF
             ENDIF
@@ -834,7 +849,7 @@
          ! SWGDN is also available for MERRA but we do not use it
          ! here to preserve the legacy method (ewl, 9/23/15)
 #if defined ( GEOS_FP ) || defined ( MERRA2 )
-         RADIAT(I,J) = State_Met%SWGDN(I,J) 
+         RADIAT(I,J) = State_Met%SWGDN(I,J)
 #else
          RADIAT(I,J) = State_Met%RADSWG(I,J) 
 #endif
@@ -1142,7 +1157,6 @@
       INTEGER IOLSON,II,IW
       INTEGER K,LDT
       REAL(f8)  RCLX,RIXX    !,BIOFIT
-      REAL(f8)  phih_zo, phih_cz
 
 #if   defined( TOMAS )
       ! For TOMAS aerosol (win, 7/15/09)
@@ -1266,22 +1280,22 @@
       ! Add parallel DO-loop (bmy, 2/22/05)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( CZ,     TEMPK,   TEMPC,   K,      VD             )
-!$OMP+PRIVATE( LDT,    RSURFC,  C1,      XNU,    RT,     IOLSON )
-!$OMP+PRIVATE( II,     RI,      RLU,     RAC,    RGSS,   RGSO   )
-!$OMP+PRIVATE( RCLS,   RCLO,    RAD0,    RIX,    GFACT,  GFACI  )
-!$OMP+PRIVATE( RDC,    XMWH2O,  RIXX,    RLUXX,  RGSX,   RCLX   )
-!$OMP+PRIVATE( DTMP1,  DTMP2,   DTMP3,   DTMP4,  VDS,    CZH    )
-!$OMP+PRIVATE( CKUSTR, REYNO,   CORR1,   CORR2,  Z0OBK,  RA     )
-!$OMP+PRIVATE( DUMMY1, DUMMY2,  DUMMY3,  DUMMY4, DAIR,   RB     )
-!$OMP+PRIVATE( C1X,    VK,      I,       J,      IW             )
-!$OMP+PRIVATE( DIAM,   DEN,     XLAI_FP, SUNCOS_FP, CFRAC_FP    )
-!$OMP+PRIVATE( SpcId,  SpcInfo, phih_zo, phih_cz                )
+!$OMP+PRIVATE( CZ,     TEMPK,  TEMPC,  K,      VD             )
+!$OMP+PRIVATE( LDT,    RSURFC, C1,     XNU,    RT,     IOLSON )
+!$OMP+PRIVATE( II,     RI,     RLU,    RAC,    RGSS,   RGSO   )
+!$OMP+PRIVATE( RCLS,   RCLO,   RAD0,   RIX,    GFACT,  GFACI  )
+!$OMP+PRIVATE( RDC,    XMWH2O, RIXX,   RLUXX,  RGSX,   RCLX   )
+!$OMP+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
+!$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
+!$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
+!$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
+!$OMP+PRIVATE( DIAM,   DEN,    XLAI_FP, SUNCOS_FP, CFRAC_FP   )
+!$OMP+PRIVATe( SpcId,  SpcInfo                                )
 #if defined( TOMAS )
-!$OMP+PRIVATE( BIN                                              )
+!$OMP+PRIVATE( BIN                                            )
 #endif
 #if defined( GCAP )
-!$OMP+PRIVATE( ZO                                               )
+!$OMP+PRIVATE( ZO                                             )
 #endif
 
       DO J = 1, JJPAR
@@ -1859,43 +1873,17 @@
                   DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
                   DUMMY4 = ABS((DUMMY2 - 1.e+0_f8)/(DUMMY2 + 1.e+0_f8))
                   RA = 1.e+0_f8 * (1.e+0_f8/CKUSTR) * LOG(DUMMY3/DUMMY4)
-
-               !==============================================================
-               ! Brian Boys (briboys@gmail.com) wrote:
-               !
-               ! I discovered a bug in the subroutine DEPVEL. For the 
-               ! calculation of aerodynamic resistance RA under very stable 
-               ! atmospheric conditions (line 1811), the integration of the 
-               ! stability function phi_h (aka dimensionless vertical  
-               ! temperature gradient) from the roughness length to grid box 
-               ! center doesn't take into account the discontinuity occurring 
-               ! at z/L = 1 where phi_h switches from 1 + 5(z/L) to 5 + z/L 
-               ! (Holtslag, 1993). The result is too high of a value for the 
-               ! integral of phi_h and subsequently RA.
-               !
-               ! A straightforward solution is to calculate RA under stable 
-               ! conditions (L>0) using an integral form of the stability 
-               ! function, such as equation (12) of Holtslag, 1988. I 
-               ! implemented these changes here.
-               !
-               ! RA bug fix, eqn (12) in Holtslag,1988)
-               !
-               !  -- 18 Feb 2017
-               !==============================================================
-               ELSE IF ( CORR1 .GE. 0.0_f8 ) THEN  
-
-	          phih_cz = -0.7_f8 * CORR1 
-     &                    -  0.75_f8 * ( CORR1 - 5.0_f8 / 0.35_f8 )
-     &                    *  EXP( -0.35_f8 * CORR1 ) 
-     &                    -  0.75_f8 * 5.0_f8 / 0.35_f8
-
-	          phih_zo = -0.7_f8 * Z0OBK 
-     &                    -  0.75_f8 * ( Z0OBK - 5.0_f8 / 0.35_f8 )
-     &                    *  EXP( -0.35_f8 * Z0OBK ) 
-     &                    -  0.75_f8 * 5.0_f8 / 0.35_f8
-
-                  RA      = ( 1.0_f8 / CKUSTR ) 
-     &                    * ( LOG( CORR1 / Z0OBK ) - phih_cz + phih_zo )    
+               ELSEIF((CORR1.GE.0.0e+0_f8).AND.(CORR1.LE.1.0e+0_f8)) 
+     &          THEN
+                  !coef_a=1.e+0_f8
+                  !coef_b=5.e+0_f8
+                  RA = (1D0/CKUSTR) *
+     &          (1.e+0_f8*LOG(CORR1/Z0OBK) + 5.e+0_f8*(CORR1-Z0OBK))
+               ELSE ! CORR1 .GT. 1.0D0
+                  !coef_a=5e+0_f8
+                  !coef_b=1.e+0_f8
+                  RA = (1D0/CKUSTR) *
+     &          (5.e+0_f8*LOG(CORR1/Z0OBK) + 1.e+0_f8*(CORR1-Z0OBK))
                ENDIF
 
             ENDIF
@@ -2168,11 +2156,11 @@
       ! IVSMAX   : Max drydep velocity (for aerosol) perr drydep land type
       !-----------------------------------------------------------------------
       REAL(fp), INTENT(OUT) :: DRYCOEFF(NPOLY    ) 
-      INTEGER,  INTENT(OUT) :: IOLSON  (NVEGTYPE )       
-      INTEGER,  INTENT(OUT) :: IDEP    (NVEGTYPE )      
-      INTEGER,  INTENT(OUT) :: IWATER  (NVEGTYPE )    
+      INTEGER,  INTENT(OUT) :: IOLSON  (NSURFTYPE)       
+      INTEGER,  INTENT(OUT) :: IDEP    (NSURFTYPE)      
+      INTEGER,  INTENT(OUT) :: IWATER  (NSURFTYPE)    
       INTEGER,  INTENT(OUT) :: NWATER        
-      INTEGER,  INTENT(OUT) :: IZO     (NVEGTYPE )       
+      INTEGER,  INTENT(OUT) :: IZO     (NSURFTYPE)       
       INTEGER,  INTENT(OUT) :: IDRYDEP (NDRYDTYPE)
       INTEGER,  INTENT(OUT) :: IRI     (NDRYDTYPE)
       INTEGER,  INTENT(OUT) :: IRLU    (NDRYDTYPE)
@@ -2206,7 +2194,6 @@
 !  18 Dec 2014 - R. Yantosca - Now read DRYCOEFF at REAL*8 precision and
 !                              then cast to flexible precision
 !  13 Mar 2015 - R. Yantosca - Replace DATA_DIR_1x1 w/ CHEM_INPUTS_DIR
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2289,7 +2276,7 @@
 
       ! Read IOLSON from file
       st1d   = (/ 1         /)
-      ct1d   = (/ NVEGTYPE /)
+      ct1d   = (/ NSURFTYPE /)
       CALL NcRd( IOLSON, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IOLSON:units attribute
@@ -2310,7 +2297,7 @@
 
       ! Read IDEP from file
       st1d   = (/ 1         /)
-      ct1d   = (/ NVEGTYPE /)
+      ct1d   = (/ NSURFTYPE /)
       CALL NcRd( IDEP, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IDEP:units attribute
@@ -2337,7 +2324,7 @@
       IWATER = 0
 
       ! Read IWATER from file
-      ! NOTE: IWATER is declared with NNVEGTYPE, but has NWATER values
+      ! NOTE: IWATER is declared with NNSURFTYPE, but has NWATER values
       ! The rest can be zeroed out
       st1d   = (/ 1      /)
       ct1d   = (/ NWATER /)
@@ -2361,7 +2348,7 @@
 
       ! Read IZO from file
       st1d   = (/ 1         /)
-      ct1d   = (/ NVEGTYPE /)
+      ct1d   = (/ NSURFTYPE /)
       CALL NcRd( IZO, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IZO:long_name attribute
@@ -4048,7 +4035,8 @@
       NUMDEP  = 0
 
       ! Flag to identify acetone
-      ID_ACET = 0
+      id_ACET = 0
+      id_ALD2 = 0
 
       !===================================================================
       ! Arrays that hold information about dry-depositing species
@@ -4176,8 +4164,12 @@
 
                CASE( 'ACET' )
                   ! Flag the species ID of ACET for use above.
-                  ID_ACET = SpcInfo%ModelId
+                  id_ACET = SpcInfo%ModelId
                         
+               CASE( 'ALD2' )
+                  ! Flag the species ID of ALD2 for use above.
+                  id_ALD2 = SpcInfo%ModelId
+
                CASE( 'NITs', 'NITS' )
                   ! DEPNAME for NITs has to be in all caps, for
                   ! backwards compatibility with older code.
@@ -4241,6 +4233,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
       DMID = 0e+0_f8
 
+      ! SDE 2016-03-27: This is now called after Input_Opt has already
+      ! been broadcast, so each CPU will do this independently anyway
+      ! ckeller: moved to end of routine (see below)
+!      Input_Opt%NUMDEP            = NUMDEP
+!      Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
+!      Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
+
       !=================================================================
       ! Echo information to stdout
       !=================================================================
@@ -4300,7 +4299,7 @@
       ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
       ! sea salt aerosols (jaegle 5/11/11)
       CALL INIT_WEIGHTSS( Input_Opt )
-
+    
       END SUBROUTINE INIT_DRYDEP
 !EOC
 !------------------------------------------------------------------------------

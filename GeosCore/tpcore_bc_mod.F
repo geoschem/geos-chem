@@ -575,7 +575,7 @@
       CHARACTER(LEN=16)    :: STAMP
       CHARACTER(LEN=20)    :: MODELNAME 
       CHARACTER(LEN=40)    :: CATEGORY  = 'IJ-AVG-$'
-      CHARACTER(LEN=40)    :: UNIT      = 'v/v'
+      CHARACTER(LEN=40)    :: UNIT      = 'kg/kg dry'
       CHARACTER(LEN=40)    :: RESERVED  = ''
 
       ! Arrays

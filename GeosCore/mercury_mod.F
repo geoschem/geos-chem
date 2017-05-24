@@ -1954,7 +1954,6 @@
 
             ! No biomass burning emissions
             EHg0_bb(I,J) = 0e+0_fp
-            EHg0_bb(I,J) = 0e+0_fp
 
          ELSE
 
@@ -5278,11 +5277,11 @@
       !=================================================================
       ! CLEANUP_MERCURY begins here!
       !=================================================================
-      IF ( ALLOCATED( AN_Hg0   ) ) DEALLOCATE( AN_Hg0  )  
-      IF ( ALLOCATED( AN_Hg2   ) ) DEALLOCATE( AN_Hg2  )      
-      IF ( ALLOCATED( AN_HgP   ) ) DEALLOCATE( AN_HgP  )      
-      IF ( ALLOCATED( COSZM    ) ) DEALLOCATE( COSZM   )      
-      IF ( ALLOCATED( EHg0_an  ) ) DEALLOCATE( EHg0_an )
+      IF ( ALLOCATED( AN_Hg0   ) ) DEALLOCATE( AN_Hg0   )  
+      IF ( ALLOCATED( AN_Hg2   ) ) DEALLOCATE( AN_Hg2   )      
+      IF ( ALLOCATED( AN_HgP   ) ) DEALLOCATE( AN_HgP   )      
+      IF ( ALLOCATED( COSZM    ) ) DEALLOCATE( COSZM    )      
+      IF ( ALLOCATED( EHg0_an  ) ) DEALLOCATE( EHg0_an  )
       IF ( ALLOCATED( EHg0_can ) ) DEALLOCATE( EHg0_can )
       IF ( ALLOCATED( EHg0_usa ) ) DEALLOCATE( EHg0_usa )
       IF ( ALLOCATED( EHg0_sam ) ) DEALLOCATE( EHg0_sam )
@@ -5336,20 +5335,20 @@
       IF ( ALLOCATED( EHgP_oce ) ) DEALLOCATE( EHgP_oce )
       IF ( ALLOCATED( EHg0_oc  ) ) DEALLOCATE( EHg0_oc  )
       IF ( ALLOCATED( EHg0_ln  ) ) DEALLOCATE( EHg0_ln  )
-      IF ( ALLOCATED( EHg0_snow) ) DEALLOCATE( EHg0_snow )
+      IF ( ALLOCATED( EHg0_snow) ) DEALLOCATE( EHg0_snow)
       IF ( ALLOCATED( EHg0_geo ) ) DEALLOCATE( EHg0_geo )
-      IF ( ALLOCATED( EHg0_bb  ) ) DEALLOCATE( EHg0_bb )
-      IF ( ALLOCATED( EHg0_gtm  ) ) DEALLOCATE( EHg0_gtm )
-      IF ( ALLOCATED( EHg0_vg  ) ) DEALLOCATE( EHg0_vg )
-      IF ( ALLOCATED( EHg0_so  ) ) DEALLOCATE( EHg0_so )
-      IF ( ALLOCATED( EHg0_dist) ) DEALLOCATE( EHg0_dist )
-      IF ( ALLOCATED( TCOSZ    ) ) DEALLOCATE( TCOSZ   )
-      IF ( ALLOCATED( TTDAY    ) ) DEALLOCATE( TTDAY   )
+      IF ( ALLOCATED( EHg0_bb  ) ) DEALLOCATE( EHg0_bb  )
+      IF ( ALLOCATED( EHg0_gtm ) ) DEALLOCATE( EHg0_gtm )
+      IF ( ALLOCATED( EHg0_vg  ) ) DEALLOCATE( EHg0_vg  )
+      IF ( ALLOCATED( EHg0_so  ) ) DEALLOCATE( EHg0_so  )
+      IF ( ALLOCATED( EHg0_dist) ) DEALLOCATE( EHg0_dist)
+      IF ( ALLOCATED( TCOSZ    ) ) DEALLOCATE( TCOSZ    )
+      IF ( ALLOCATED( TTDAY    ) ) DEALLOCATE( TTDAY    )
 !      IF ( ALLOCATED( TRANSP   ) ) DEALLOCATE( TRANSP  )
-      IF ( ALLOCATED( ZERO_DVEL) ) DEALLOCATE( ZERO_DVEL )
+      IF ( ALLOCATED( ZERO_DVEL) ) DEALLOCATE( ZERO_DVEL)
       IF ( ALLOCATED( HG2_SEASALT_LOSSRATE ) ) 
      &     DEALLOCATE( HG2_SEASALT_LOSSRATE   ) 
-      IF ( ALLOCATED( HG_EMIS   ) ) DEALLOCATE( HG_EMIS   ) 
+      IF ( ALLOCATED( HG_EMIS  ) ) DEALLOCATE( HG_EMIS  ) 
   
       ! Free pointers to HEMCO fields
       O3    => NULL()

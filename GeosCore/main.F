@@ -768,7 +768,7 @@
          CALL STDRUN( am_I_Root, Input_Opt, State_Met, State_Chm, RC, 
      &                LBEGIN=.TRUE. )
       ENDIF
- 
+
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
 ! This is only invoked when compiling GEOS-Chem with COUPLE=y
@@ -1076,70 +1076,6 @@
          laiMM = -1
          wasModisRead = .FALSE.
          IF ( ITS_A_NEW_DAY() ) THEN 
-
-            !-----------------------------------------------------------
-            !    %%%%%%% UPDATED LEAF AREA INDEX ALGORITHM %%%%%%%
-            ! 
-            ! Note that GEOS-Chem uses LAI data from two separate
-            ! sources.  The dry deposition and soil NOx modules rely
-            ! on the data from lai*.global ASCII files.  These files
-            ! (which are pre-processed offline by IDL codes) are 
-            ! generated for each specific GEOS-Chem grid configuration
-            ! (e.g. 4x5, 2x25, 0.5x0.666 nested grids).  These files
-            ! are read from disk by routine RDLAI, which saves
-            ! the LAI data into the XLAI and XYLAI arrays.  XLAI and
-            ! XYLAI store the leaf area index as a function of Olson 
-            ! land type (cf Olson 1992 land map).
-            !
-            ! However, the MEGAN biogenic emissions code relies on 
-            ! LAI data stored at 1x1 resolution stored in bpch format.
-            ! These binary files are read by routine RDISOLAI (and
-            ! other underlying routines in lai_mod.F), and are
-            ! regridded on-the-fly to the current GEOS-Chem grid
-            ! resolution.
-            !
-            ! Therefore, these two sources of LAI data present an
-            ! inconsistency that should be resolved.  Also, for the 
-            ! Grid-Indpendent GEOS-Chem project, we must move away
-            ! from ASCII files (which prevent interfacing with 
-            ! external GCMs).  We also cannot assume any particular
-            ! horizontal grid, since that is now to be specified at
-            ! the start of the simulation.
-            !
-            ! Also, to facilitate simulations at ultra-fine horizontal
-            ! resolution, we will eventually adopt the Olson 2001 land 
-            ! map, which has a native resolution of 0.25 x 0.25 
-            ! degrees, and likewise use an updated version of the 
-            ! MODIS LAI data at 0.25 x 0.25 resolution.
-            !
-            ! To resolve these issues, we have created a new module
-            ! (modis_lai_mod.F90) which reads from the MODIS LAI data
-            ! in netCDF format at the native resolution and then
-            ! regrids the LAI data to GEOS-Chem resolution on-the-fly.
-            ! The XLAI array is are populated for backwards
-            ! compatibility with the existing legacy codes.  The LAI
-            ! arrays used for MEGAN (ISOLAI, PMISOLAI, MISOLAI, and
-            ! NMISOLAI) are now replaced by arrays GC_LAI, GC_LAI_PM, 
-            ! GC_LAI_CM, and GC_LAI_NM) from modis_lai_mod.F.
-            !
-            ! We have validated that the new scheme generates identical 
-            ! XLAI arrays w/r/t the old scheme.  The arrays GC_LAI etc. 
-            ! differ from the ISOLAI etc. arrays slightly (but generally 
-            ! agree to within 0.001).  This is due to the fact that the 
-            ! ISOLAI arrays were regridded from 1 x 1 native resolution, 
-            ! but now we are regridding from much finer resolution 
-            ! (either 0.5 x 0.5 or 0.25 x 0.25).
-            !
-            ! NOTES:
-            ! (1) At the present time, we have removed all references
-            !     to the obsolete XYLAI array and its parent module
-            !     CMN_VEL_mod.F.
-            ! (2) As of Dec 2012, the XLAI and XLAI2 arrays are now
-            !     carried in State_Met.  We can remove the obsolete
-            !     module Headers/CMN_DEP_mod.F.
-            ! 
-            !      -- Bob Yantosca (09 Apr 2012)
-            !-----------------------------------------------------------
 
             ! Find the proper month and year for LAI  based on the current 
             ! month & year.  LAI months begin in the middle of the month.
@@ -1701,23 +1637,11 @@
          CALL GEOS_Timer_Start( "Diagnostics", RC )
 #endif
 
-         ! Plane following diagnostic
+         ! Planeflight diagnostic
          IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
-         
-            ! Call SETUP_PLANEFLIGHT routine if necessary
             IF ( ITS_A_NEW_DAY() ) THEN
-               
-               ! If it's a full-chemistry simulation but LCHEM=F,
-               ! or if it's an offline simulation, call setup routine 
-               IF ( ITS_A_FULLCHEM_SIM ) THEN
-                  IF ( .not. LCHEM ) THEN
-                     CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt,
-     &                                       State_Chm, RC )
-                  ENDIF
-               ELSE
-                  CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, 
-     &                                    State_Chm, RC )
-               ENDIF
+               CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, 
+     &                                 State_Chm, RC )
             ENDIF
          ENDIF
 

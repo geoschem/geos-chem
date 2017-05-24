@@ -239,7 +239,8 @@
 
 #else
 
-         ! Call TPCORE w/ proper settings for GEOS-4/GEOS-5/MERRA/GEOS-5.7
+         ! Call TPCORE w/ proper settings for the  
+         ! GEOS-4/GEOS-5/MERRA/MERRA2/GEOS-FP met fields
          CALL GEOS4_GEOS5_GLOBAL_ADV
      &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
@@ -267,7 +268,8 @@
 ! !IROUTINE: geos4_geos5_global_adv
 !
 ! !DESCRIPTION: Subroutine GEOS4\_GEOS5\_GLOBAL\_ADV is the driver routine 
-!  for TPCORE with the GMAO GEOS-4 or GEOS-5 met fields.
+!  for TPCORE with the GMAO GEOS-4, GEOS-5, GEOS-FP, MERRA, or MERRA-2
+!  met fields.
 !\\
 !\\
 ! !INTERFACE:
@@ -427,6 +429,7 @@
       ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
       !=================================================================
 
+      !### DEBUG: Print a few global species sums
       IF ( LPRT ) THEN
          CALL Print_Global_Species_Kg( State_Chm, State_Met, 
      &                                "pre-advection")
@@ -534,7 +537,7 @@
       CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
      &             update_mixing_ratio=.FALSE. )
 
-      !### Debug
+      !### DEBUG: Print a few global species sums
       IF ( LPRT ) THEN
          CALL Print_Global_Species_Kg( State_Chm, State_Met,
      &                                "post-airqnt")
