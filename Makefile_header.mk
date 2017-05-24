@@ -1,4 +1,3 @@
-
 #------------------------------------------------------------------------------
 #                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
@@ -310,7 +309,7 @@ endif
 
 # %%%%% Test if Intel Fortran Compiler is selected %%%%%
 REGEXP               :=(^[Ii][Ff][Oo][Rr][Tt])
-ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
 
   # If we are building GCHP, then set the compile command to "mpifort",
   # which invokes the MPI magic.  Otherwise set it to $(FC). (bmy, 10/17/16)
