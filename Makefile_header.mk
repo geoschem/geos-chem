@@ -482,11 +482,11 @@ ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   IS_CHEM_SET        :=1
 endif
 
-# %%%%% Test if CHEM=UCX (will also turn on UCX) %%%%%
+# %%%%% Test if CHEM=UCX (now same as Standard) %%%%%
 REGEXP               :=(^[Uu][Cc][Xx])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   UCX                :=y
-  KPP_CHEM           :=UCX
+  KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
 endif
 

@@ -141,7 +141,6 @@ realclean:
 	@$(MAKE) -C SOA       clean
 	@$(MAKE) -C SOA_SVPOA clean
 	@$(MAKE) -C Tropchem  clean
-	@$(MAKE) -C UCX       clean
 	@$(MAKE) -C Custom    clean
 
 slowrealclean:
@@ -149,7 +148,6 @@ slowrealclean:
 	@$(MAKE) -C SOA       slowclean
 	@$(MAKE) -C SOA_SVPOA slowclean
 	@$(MAKE) -C Tropchem  slowclean
-	@$(MAKE) -C UCX       slowclean
 	@$(MAKE) -C Custom    slowclean
 
 help:
