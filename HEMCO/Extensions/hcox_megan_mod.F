@@ -4362,7 +4362,7 @@
      &        Inst%IDTSOAS < 0 .AND. 
      &        Inst%IDTMONX < 0      ) THEN
             MSG = 'MEGAN_MONO option is anabled but none of the '// 
-     &            'species is found (CO, OC/OCPI, MONX)!'
+     &            'species is found (CO, SOAP, SOAS, MONX)!'
             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
             RETURN
          ENDIF
