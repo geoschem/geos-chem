@@ -1645,6 +1645,9 @@ CONTAINS
 #elif defined( GRID05x0625   ) && defined( NESTED_NA )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9683646d0
 
+#elif defined( GRID025x03125 ) && defined( NESTED_EU )
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 1.3197752d0
+
 #endif
 
     ! Are we using GEOS 5.2.0 or GEOS 5.1.0?
@@ -1702,12 +1705,12 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Oct 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2014-12-10).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
-         ( cYr .eq. 2013                   ) .or. &
-         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 82.373293d0
+    ! April 2012 - Jul 2016. Will need to be updated as more
+    ! met fields become available (ltm, 2016-10-25).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4    ) .or. &
+         ( cYr .ge. 2013 .and. cYr .le. 2015 ) .or. &
+         ( cYr .eq. 2016 .and. cMt .le. 7  ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 84.290354
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
@@ -1717,12 +1720,12 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Oct 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2014-12-10).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
-         ( cYr .eq. 2013                   ) .or. &
-         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 260.40253d0
+    ! April 2012 - Apr 2016. Will need to be updated as more
+    ! met fields become available (ltm, 2016-10-07).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4    ) .or. &
+         ( cYr .ge. 2013 .and. cYr .le. 2015 ) .or. &
+         ( cYr .eq. 2016 .and. cMt .le. 4  ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 185.36d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )
@@ -1742,17 +1745,32 @@ CONTAINS
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA )
 
     !---------------------------------------
-    ! GEOS-FP: Nested SEAC4RS simulation
+    ! GEOS-FP: Nested North America simulation
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Oct 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2015-01-13).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
-         ( cYr .eq. 2013                   ) .or. &
-         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 720.10258d0
+    ! April 2012 - April 2016. Will need to be updated as more
+    ! met fields become available (ltm, 2016-10-07).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4    ) .or. &
+         ( cYr .ge. 2013 .and. cYr .le. 2015 ) .or. &
+         ( cYr .eq. 2016 .and. cMt .le. 4  ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 754.91d0
     ENDIF
+
+#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_EU )
+
+    !---------------------------------------
+    ! GEOS-FP: Nested Europe simulation
+    !---------------------------------------
+    ! Constrained with simulated "climatology" for
+    ! April 2012 - Jul 2016. Will need to be updated as more
+    ! met fields become available (ltm, 2016-10-28).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .ge. 2013 .and. cYr .le. 2015 ) .or. &
+         ( cYr .eq. 2016 .and. cMt .le. 7 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 95.566538d0
+    ENDIF
+
 
 #elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_NA )
 
