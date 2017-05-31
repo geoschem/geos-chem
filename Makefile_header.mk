@@ -482,7 +482,7 @@ ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   IS_CHEM_SET        :=1
 endif
 
-# %%%%% Test if CHEM=UCX (now same as Standard) %%%%%
+# %%%%% Test if CHEM=UCX (same as Standard as of v11-02a) %%%%%
 REGEXP               :=(^[Uu][Cc][Xx])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   UCX                :=y
@@ -490,10 +490,10 @@ ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   IS_CHEM_SET        :=1
 endif
 
-# %%%%% Test if CHEM=SOA %%%%%
+# %%%%% Test if CHEM=SOA (same as Tropchem as of v11-02a) %%%%%
 REGEXP               :=(^[Ss][Oo][Aa])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=SOA
+  KPP_CHEM           :=Tropchem
   IS_CHEM_SET        :=1
 endif
 
