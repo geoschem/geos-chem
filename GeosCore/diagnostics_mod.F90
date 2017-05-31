@@ -1497,7 +1497,7 @@ CONTAINS
     
     ! Assign array of species numbers corresponding to decaying species
     SpeciesN    = (/ id_Pb, id_Rn, id_Be7 /)
-    SpeciesName = (/ 'Pb',  'Rn',  'Be7'  /)
+    SpeciesName = (/ 'Pb ', 'Rn ', 'Be7'  /)
 
     ! Loop over # of radon decay diagnostics
     DO M = 1, NumSpecies
