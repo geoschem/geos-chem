@@ -1958,6 +1958,9 @@
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
 
+      ! Debug
+      Integer           :: IIDebug, JJDebug
+
       !=================================================================
       ! SOA_CHEMISTRY begins here!
       !=================================================================
@@ -2033,9 +2036,12 @@
 
       ! added debug (hotp 8/24/09)
       IF ( prtDebug ) THEN
+         IIDebug = Min(IIPar,20)
+         JJDebug = Min(JJPar,33)
          print*, 'START SOA_CHEMISTRY'
          print*, 'species   ','global sum   ', 
-     &              'box 20,33,2   ', 'box 20,33,10    '
+     &       'box ',IIDEBUG,',',JJDEBUG,',2     ',
+     %       'box ',IIDEBUG,',',JJDEBUG,',10    '
 
          IF ( Input_Opt%LSVPOA ) THEN
             print*,'POA1', SUM(Spc(:,:,:,id_POA1))
@@ -2050,11 +2056,11 @@
 
          ! semivolpoa3: debug POAEMISS
          print*, 'POAEMISS,1,POG1',
-     &                 SUM(POAEMISS(:,:,:,1)),POAEMISS(20,33,2,1),
-     &                     POAEMISS(20,33,10,1)
+     &          SUM(POAEMISS(:,:,:,1)),POAEMISS(IIDEBUG,JJDEBUG,2,1),
+     &              POAEMISS(IIDEBUG,JJDEBUG,10,1)
          print*, 'POAEMISS,2,POG2',
-     &                 SUM(POAEMISS(:,:,:,2)),POAEMISS(20,33,2,2),
-     &                     POAEMISS(20,33,10,2)
+     &          SUM(POAEMISS(:,:,:,2)),POAEMISS(IIDEBUG,JJDEBUG,2,2),
+     &              POAEMISS(IIDEBUG,JJDEBUG,10,2)
 
          ! 10/12/09 debug
          IF ( Input_Opt%LSVPOA ) THEN
@@ -2405,7 +2411,8 @@
          ! initial info
          print*, 'AFTER SOA_CHEMISTRY'
          print*, 'species   ','global sum   ', 
-     &           'box 20,33,2   ', 'box 20,33,10    '
+     &       'box ',IIDEBUG,',',JJDEBUG,',2     ',
+     %       'box ',IIDEBUG,',',JJDEBUG,',10    '
 
          IF ( Input_Opt%LSVPOA ) THEN
             print*,'POA1 ', SUM(Spc(:,:,:,id_POA1))
@@ -2420,17 +2427,17 @@
 
          ! semivolpoa4: diag for POG reacted (hotp 3/27/09)
          print*, 'POGRXN ', SUM(GLOB_POGRXN(:,:,:,:)),
-     &                      SUM( GLOB_POGRXN(20,33,2,:)),
-     &                      SUM(GLOB_POGRXN(20,33,10,:))
+     &                      SUM( GLOB_POGRXN(IIDEBUG,JJDEBUG,2,:)),
+     &                      SUM(GLOB_POGRXN(IIDEBUG,JJDEBUG,10,:))
          ! POGRXN (hotp 10/11/09)
          print*, 'POGRXN p1', SUM(GLOB_POGRXN(:,:,:,1))
          print*, 'POGRXN p2', SUM(GLOB_POGRXN(:,:,:,2))
 
          ! semivolpoa3: POG1 + POG2
          print*, 'POAEMISS tot',
-     &              SUM(POAEMISS(:,:,:,:)),
-     &              POAEMISS(20,33,2,1)+POAEMISS(20,33,2,2),
-     &              POAEMISS(20,33,10,1)+POAEMISS(20,33,10,2)
+     &           SUM(POAEMISS(:,:,:,:)),
+     &   POAEMISS(IIDEBUG,JJDEBUG,2,1)+POAEMISS(IIDEBUG,JJDEBUG,2,2),
+     &   POAEMISS(IIDEBUG,JJDEBUG,10,1)+POAEMISS(IIDEBUG,JJDEBUG,10,2)
 
          ! semivolpoa4opoa: add OPOA (hotp 3/27/09)
          IF ( id_OPOA1 > 0 ) THEN ! hotp 8/24/09 ! hotp 10/11/09
@@ -2455,18 +2462,18 @@
             print*, 'OPOA produced (cumulative to date) ',GLOB_OPOA_PROD
             print*, 'POA products '
             print*, 'product 1', SUM(GLOB_AM0_POA(:,:,:,1,1,1)),
-     &                           GLOB_AM0_POA(20,33,2,1,1,1),
-     &                           GLOB_AM0_POA(20,33,10,1,1,1)
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,2,1,1,1),
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,10,1,1,1)
             print*, 'product 2', SUM(GLOB_AM0_POA(:,:,:,1,2,1)),
-     &                           GLOB_AM0_POA(20,33,2,1,2,1),
-     &                           GLOB_AM0_POA(20,33,10,1,2,1)
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,2,1,2,1),
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,10,1,2,1)
             print*, 'OPOA products'
             print*, 'product 1', SUM(GLOB_AM0_POA(:,:,:,1,1,2)),
-     &                           GLOB_AM0_POA(20,33,2,1,1,2),
-     &                           GLOB_AM0_POA(20,33,10,1,1,2)
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,2,1,1,2),
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,10,1,1,2)
             print*, 'product 2', SUM(GLOB_AM0_POA(:,:,:,1,2,2)),
-     &                           GLOB_AM0_POA(20,33,2,1,2,2),
-     &                           GLOB_AM0_POA(20,33,10,1,2,2)
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,2,1,2,2),
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,10,1,2,2)
      
             print*, 'POA to trop', SUM(Spc(:,:,1:LLCHEM,id_POA1)) + 
      &                             SUM(Spc(:,:,1:LLCHEM,id_POA2))
