@@ -66,6 +66,7 @@ CONTAINS
 !
     USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
     USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_CHEMGRID
+    USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_STRAT
     USE CMN_FJX_MOD
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
     USE DIAG_MOD,             ONLY : AD65
@@ -93,6 +94,7 @@ CONTAINS
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Chm_Mod,        ONLY : Ind_
     USE State_Met_Mod,        ONLY : MetState
+    USE Strat_Chem_Mod,       ONLY : SChem_Tend
     USE TIME_MOD,             ONLY : GET_TS_CHEM
     USE TIME_MOD,             ONLY : GET_MONTH
     USE TIME_MOD,             ONLY : GET_YEAR
@@ -156,13 +158,15 @@ CONTAINS
 !  14 Nov 2016 - E. Lundgren - Move UCX calls to after spc conversion to kg
 !  10 Mar 2017 - C. Keller   - Make sure ind_CH4 is correctly specified in
 !                              ESMF environment.
+!  30 May 2017 - M. Sulprizio- Add code for stratospheric chemical tendency
+!                              for computing STE in strat_chem_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, J, L, N, F, SpcID, KppID
+    INTEGER                :: I, J, L, N, NA, F, SpcID, KppID
     INTEGER                :: MONTH, YEAR
     INTEGER                :: WAVELENGTH
     INTEGER                :: HCRC
@@ -211,6 +215,9 @@ CONTAINS
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
+
+    ! Initial mass [kg] for computing stratospheric chemical tendency
+    REAL(fp)               :: Before(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
     !=================================================================
     ! Do_FlexChem begins here!
@@ -385,6 +392,22 @@ CONTAINS
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### FLEX_CHEMDR: after RDUST' )
     ENDIF
+
+#if defined( UCX )
+    !================================================================
+    ! Archive initial species mass for stratospheric tendency
+    !================================================================
+    ! Loop over advected species
+    DO NA = 1, State_Chm%nAdvect
+
+       ! Get the species ID from the advected species ID
+       N = State_Chm%Map_Advect(NA)
+
+       ! Archive initial mass [kg]
+       Before(:,:,:,N) = State_Chm%Species(:,:,:,N)
+
+    ENDDO
+#endif
 
     !================================================================
     ! Convert species from [kg] to [molec/cm3] (ewl, 8/16/16)
@@ -662,7 +685,7 @@ CONTAINS
        C(ind_H2) = 0.5000e-6_dp * NUMDEN
 #else
        ! Need to copy H2O to the C array for KPP (mps, 4/25/16)
-       ! NOTE: H2O is a tracer in UCX and is obtained from State_Chem%Species
+       ! NOTE: H2O is a tracer in UCX and is obtained from State_Chm%Species
        C(ind_H2O) = H2O
 #endif
 
@@ -942,6 +965,36 @@ CONTAINS
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
     ENDIF
+
+    !================================================================
+    ! Compute stratospheric chemical tendency for UCX simulations
+    !================================================================
+    !$OMP PARALLEL DO &
+    !$OMP DEFAULT( SHARED ) &
+    !$OMP PRIVATE( I, J, L, N, NA )
+    DO L = 1, LLPAR
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+       IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
+
+          ! Loop over advected species
+          DO NA = 1, State_Chm%nAdvect
+
+             ! Get the species ID from the advected species ID
+             N = State_Chm%Map_Advect(NA)
+
+             ! Aggregate stratospheric chemical tendency [kg box-1]
+             ! for tropchem simulations
+             SChem_Tend(I,J,L,N) = SChem_Tend(I,J,L,N) + &
+                 ( State_Chm%Species(I,J,L,N) - Before(I,J,L,N) )
+
+          ENDDO
+
+       ENDIF
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
 #endif
 
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step

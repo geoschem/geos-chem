@@ -399,6 +399,8 @@
                CALL GEOS_Timer_Start( "=> Strat chem", RC )
 #endif
 
+               ! Do linearized chemistry for the stratosphere (tropchem)
+               ! or the mesosphere (UCX)
                CALL DO_STRAT_CHEM
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 

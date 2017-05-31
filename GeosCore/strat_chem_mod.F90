@@ -10,6 +10,9 @@
 !  using archived 3D monthly climatological production rates and loss 
 !  frequencies are applied from the GMI combo model.
 !
+!  NOTE: If using UCX, the simple linearized chemistry here will be applied to
+!  the mesosphere instead.
+!
 !  In the original schem code (schem.F), only the following species
 !  were destroyed by photolysis in the stratosphere:
 !    PAN, H2O2, ACET, MEK, ALD2, RCHO, MVK, MACR, R4N2, CH2O, N2O5, HNO4, MP
@@ -69,6 +72,9 @@ MODULE Strat_Chem_Mod
 !
 ! !PUBLIC DATA MEMBERS:
 !
+  PUBLIC  :: SChem_Tend
+  PUBLIC  :: Minit_Is_Set
+!
 ! !REMARKS:
 !
 !  References:
@@ -91,6 +97,8 @@ MODULE Strat_Chem_Mod
 !  06 Apr 2016 - C. Keller   - Add Minit_Is_Set and SET_MINIT.
 !  03 Oct 2016 - R. Yantosca - Now dynamically allocate BrPtrDay, BrPtrNight
 !  03 Oct 2016 - R. Yantosca - Dynamically allocate BrPtrDay, BrPtrNight
+!  30 May 2017 - M. Sulprizio- SChem_Tend is now public so that it can be
+!                              updated in flexchem_mod.F90 for UCX simulations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -145,7 +153,7 @@ MODULE Strat_Chem_Mod
   INTEGER, PARAMETER   :: NTR_GMI   = 120  
 
   ! Minit_Is_Set indicates whether Minit has been set or not
-  LOGICAL, PUBLIC      :: Minit_Is_Set = .FALSE. 
+  LOGICAL              :: Minit_Is_Set = .FALSE. 
 !
 ! !PRIVATE TYPES:
 !
@@ -387,7 +395,8 @@ CONTAINS
     !
     ! %%% NOTE: For now, the algorithm assumes that the advected species
     ! %%% are listed first.  We may have to also store the advected ID's
-    ! %%% in an array for SCHEM_TEND.
+    ! %%% in an array for SCHEM_TEND for tropchem simulations. SCHEM_TEND
+    ! %%% for UCX simulations is handled in flexchem_mod.F90.
     !=======================================================================
     IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
@@ -469,9 +478,12 @@ CONTAINS
                       Spc(I,J,L,NN) = M0 + P*dt
                    ENDIF
 
-                   ! Aggregate chemical tendency [kg box-1]
+#if !defined(UCX)
+                   ! Aggregate stratospheric chemical tendency [kg box-1]
+                   ! for tropchem simulations
                    SCHEM_TEND(I,J,L,NA) = SCHEM_TEND(I,J,L,NA) + &
                                           ( Spc(I,J,L,NN) - M0 )
+#endif
 
                 ENDDO ! N
              ENDDO ! L
@@ -497,15 +509,19 @@ CONTAINS
              CALL Do_Synoz( am_I_Root, Input_Opt,             &
                             State_Met, State_Chm, RC=errCode )
           ENDIF
+
+          ! Put ozone back to [kg]
+          Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * AD / ( AIRMW  &
+                             / State_Chm%SpcData(id_O3)%Info%emMW_g )
+
        ENDIF
  
-       ! Put ozone back to [kg]
-       Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * AD / ( AIRMW  &
-                          / State_Chm%SpcData(id_O3)%Info%emMW_g )
-
-       ! Put tendency into diagnostic array [kg box-1]
+#if !defined(UCX)
+       ! Aggregate stratospheric chemical tendency [kg box-1]
+       ! for tropchem simulations
        SCHEM_TEND(:,:,:,id_O3) = SCHEM_TEND(:,:,:,id_O3) + &
                                  ( Spc(:,:,:,id_O3) - BEFORE )
+#endif
 
        !--------------------------------------------------------------------
        ! Reactions with OH
@@ -548,8 +564,12 @@ CONTAINS
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
                    T1L    = Spc(I,J,L,id_CH3Br) * RDLOSS
                    Spc(I,J,L,id_CH3Br) = Spc(I,J,L,id_CH3Br) - T1L
+#if !defined(UCX)
+                   ! Aggregate stratospheric chemical tendency [kg box-1]
+                   ! for tropchem simulations
                    SCHEM_TEND(I,J,L,id_CH3Br) = &
                      SCHEM_TEND(I,J,L,id_CH3Br) - T1L
+#endif
                 ENDIF
 
                 !============!
@@ -560,8 +580,12 @@ CONTAINS
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
                    T1L    = Spc(I,J,L,id_CHBr3) * RDLOSS
                    Spc(I,J,L,id_CHBr3) = Spc(I,J,L,id_CHBr3) - T1L
+#if !defined(UCX)
+                   ! Aggregate stratospheric chemical tendency [kg box-1]
+                   ! for tropchem simulations
                    SCHEM_TEND(I,J,L,id_CHBr3) = &
                      SCHEM_TEND(I,J,L,id_CHBr3) - T1L
+#endif
                 ENDIF
 
                 !=============!
@@ -572,8 +596,12 @@ CONTAINS
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
                    T1L    = Spc(I,J,L,id_CH2Br2) * RDLOSS
                    Spc(I,J,L,id_CH2Br2) = Spc(I,J,L,id_CH2Br2) - T1L
+#if !defined(UCX)
+                   ! Aggregate stratospheric chemical tendency [kg box-1]
+                   ! for tropchem simulations
                    SCHEM_TEND(I,J,L,id_CH2Br2) = &
                      SCHEM_TEND(I,J,L,id_CH2Br2) - T1L
+#endif
                 ENDIF
 
              ENDDO ! J
@@ -645,10 +673,13 @@ CONTAINS
              ENDDO
              ENDDO
 
-             ! Put tendency into diagnostic array [kg box-1]
+#if !defined(UCX)
+             ! Aggregate stratospheric chemical tendency [kg box-1]
+             ! for tropchem simulations
              SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) = &
                 SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) + &
                 ( Spc(:,:,:,GC_Bry_TrID(NN)) - BEFORE )
+#endif
           
           ENDIF
 
@@ -682,34 +713,36 @@ CONTAINS
 
        ENDDO
 
-       ! Convert units from [kg] to [v/v dry air] for Linoz and Synoz
-       ! (ewl, 10/05/15)
-       CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, &
-                                    State_Chm, errCode      )
-       IF ( errCode /= GC_SUCCESS ) THEN
-          CALL GC_Error('Unit conversion error', errCode,    &
-                        'DO_STRAT_CHEM in strat_chem_mod.F')
-          RETURN
-       ENDIF
+       IF ( LLINOZ .OR. LSYNOZ ) THEN
 
-       ! Call either LINOZ or SYNOZ
-       ! NOTE: If you don't want either, comment this block out
-       IF ( LLINOZ ) THEN
-          CALL Do_Linoz( am_I_Root, Input_Opt,             &
-                         State_Met, State_Chm, errCode )
-       ELSE 
-          CALL Do_Synoz( am_I_Root, Input_Opt,             &
-                         State_Met, State_Chm, errCode )
-       ENDIF
+          ! Convert units from [kg] to [v/v dry air] for Linoz and Synoz
+          ! (ewl, 10/05/15)
+          CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, &
+                                       State_Chm, errCode      )
+          IF ( errCode /= GC_SUCCESS ) THEN
+              CALL GC_Error('Unit conversion error', errCode,    &
+                           'DO_STRAT_CHEM in strat_chem_mod.F')
+             RETURN
+          ENDIF
 
+          ! Do LINOZ or SYNOZ
+          IF ( LLINOZ ) THEN
+             CALL Do_Linoz( am_I_Root, Input_Opt,             &
+                            State_Met, State_Chm, errCode )
+          ELSE 
+             CALL Do_Synoz( am_I_Root, Input_Opt,             &
+                            State_Met, State_Chm, errCode )
+          ENDIF
 
-       ! Convert units back to [kg] after Linoz and Synoz (ewl, 10/05/15)
-       CALL ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met,  &
-                                    State_Chm, errCode    )
-       IF ( errCode /= GC_SUCCESS ) THEN
-          CALL GC_Error('Unit conversion error', errCode,     &
-                        'DO_STRAT_CHEM in strat_chem_mod.F')
-          RETURN
+          ! Convert units back to [kg] after Linoz and Synoz (ewl, 10/05/15)
+          CALL ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met,  &
+                                       State_Chm, errCode    )
+          IF ( errCode /= GC_SUCCESS ) THEN
+             CALL GC_Error('Unit conversion error', errCode,     &
+                           'DO_STRAT_CHEM in strat_chem_mod.F')
+             RETURN
+          ENDIF
+
        ENDIF
 
        ! Add to tropopause level aggregator for later determining STE flux
@@ -749,9 +782,9 @@ CONTAINS
     !======================================================================
     ELSE
        IF ( am_I_Root ) THEN
-          WRITE( 6, '(a)' ) 'Strat chemistry needs to be activated for ' // &
-                            'your simulation type.'
-          WRITE( 6, '(a)' ) 'Please see GeosCore/strat_chem_mod.F90' // &
+          WRITE( 6, '(a)' ) 'Linearized strat chemistry needs to be ' // &
+                            'activated for your simulation type.'
+          WRITE( 6, '(a)' ) 'Please see GeosCore/strat_chem_mod.F90 ' // &
                             'or disable in input.geos'
        ENDIF
        CALL GEOS_CHEM_STOP()
@@ -1182,6 +1215,8 @@ CONTAINS
        dStrat   = SUM(M2)-SUM(M1)
 
        ! The total chemical tendency (P-L) over the period for species N [kg]
+       ! Schem_tend is computed in this module for tropchem simulations and
+       ! in flexchem_mod.F90 for UCX simulations
        Tend   = SUM(Schem_tend(:,:,:,N))
 
        ! Calculate flux as STE = (P-L) - dStrat/dt
