@@ -302,9 +302,19 @@ endif
 # %%%%% Test if mpif90/mpifort is selected (for now assume ifort) %%%%%
 REGEXP               :=(^[Mm][Pp][Ii])
 ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
-  COMPILE_CMD        :=$(FC)
-  COMPILER_FAMILY    :=Intel
   USER_DEFS          += -DLINUX_IFORT
+  REG_GNU            :=(^[Gg][Nn][Uu])
+  REG_INTEL          :=(^[Ii][Ff][Oo][Rr][Tt])
+  DISCRIM            :=$(word 1,$(shell $(FC) --version ) )
+  ifeq ($(shell [[ "$(DISCRIM)" =~ $(REG_INTEL) ]] && echo true),true)
+     COMPILER_FAMILY    :=Intel
+     USER_DEFS          += -DLINUX_IFORT
+  else ifeq ($(shell [[ "$(DISCRIM)" =~ $(REG_GNU) ]] && echo true),true)
+     COMPILER_FAMILY    :=GNU
+     USER_DEFS          += -DLINUX_GFORTRAN
+  else
+     $(error Could not determine compiler underlying mpifort/mpif90 )
+  endif
 endif
 
 # %%%%% Test if Intel Fortran Compiler is selected %%%%%
@@ -313,11 +323,6 @@ ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
 
   # If we are building GCHP, then set the compile command to "mpifort",
   # which invokes the MPI magic.  Otherwise set it to $(FC). (bmy, 10/17/16)
-  ifeq ($(IS_HPC),1) 
-    COMPILE_CMD      :=mpifort
-  else
-    COMPILE_CMD      :=$(FC)
-  endif
   COMPILER_FAMILY    :=Intel
   USER_DEFS          += -DLINUX_IFORT
 endif
@@ -325,11 +330,6 @@ endif
 # %%%%% Test if GNU Fortran Compiler is selected %%%%%
 REGEXP               :=(^[Gg][Ff][Oo][Rr][Tt][Rr][Aa][Nn])
 ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
-  ifeq ($(HPC),yes) 
-    COMPILE_CMD      :=mpif90
-  else
-    COMPILE_CMD      :=$(FC)
-  endif
   COMPILER_FAMILY    :=GNU
   USER_DEFS          += -DLINUX_GFORTRAN
 endif
@@ -337,9 +337,15 @@ endif
 # %%%%% Test if PGI Fortran compiler is selected  %%%%%
 REGEXP               :=(^[Pp][Gg])
 ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
-  COMPILE_CMD        :=$(FC)
   COMPILER_FAMILY    :=PGI
   USER_DEFS          += -DLINUX_PGI
+endif
+
+# Is this GCHP?
+ifeq ($(IS_HPC),1)
+  COMPILE_CMD        :=mpifort
+else
+  COMPILE_CMD        :=$(FC)
 endif
 
 # %%%%% ERROR CHECK!  Make sure our compiler selection is valid! %%%%%
@@ -1105,7 +1111,11 @@ ifeq ($(COMPILER_FAMILY),GNU)
 
   # Base set of compiler flags
   FFLAGS             :=-cpp -w -std=legacy -fautomatic -fno-align-commons
-  FFLAGS             += -fconvert=big-endian
+  ifeq ($(IS_HPC),1)
+    FFLAGS             += -fconvert=native
+  else
+    FFLAGS             += -fconvert=big-endian
+  endif
   FFLAGS             += -fno-range-check
 
   # OPTIONAL: Add the GNU Fortran -march option, which compiles for a
