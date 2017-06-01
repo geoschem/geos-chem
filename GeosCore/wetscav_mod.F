@@ -5566,6 +5566,7 @@
 !  27 Jun 2016 - C. Keller   - Use VUD_DEFINED instead of ESMF_ compiler switch.
 !  13 Mar 2017 - C. Keller   - Bug fix: make sure VUD_DEFINED is updated after
 !                              defining VUD.
+!  01 Jun 2017 - C. Keller   - Set VUD_DEFINED only if UPDVVEL has valid values. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5586,20 +5587,18 @@
       ! is stored in State_Met object UPDVVEL, in hPa/s. Convert to
       ! m/s here.
       !=================================================================
-
       IF ( ASSOCIATED( State_Met%UPDVVEL ) ) THEN
-
          IF ( State_Met%DELP(I,J,L)    >  TINY_FP .AND. 
      &        State_Met%UPDVVEL(I,J,L) >= 0.0_fp       ) THEN
  
-           ! We need the positive velocity, so use absolute values!
+            ! Compute VUD 
             VUD = State_Met%UPDVVEL (I,J,L) 
      &          * State_Met%BXHEIGHT(I,J,L) 
      &          / State_Met%DELP    (I,J,L) 
-         ENDIF
 
-         ! VUD is now defined
-         VUD_DEFINED = .TRUE.
+            ! VUD is now defined
+            VUD_DEFINED = .TRUE.
+         ENDIF
       ENDIF
 
       !=================================================================
