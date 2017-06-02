@@ -1066,6 +1066,7 @@ CONTAINS
 !  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
 !                               species ID from State_Chm%Map_Advect.
 !  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
+!  02 Jun 2017 - C. Keller   - Call HCO_SetExtState_ESMF every time.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1358,14 +1359,16 @@ CONTAINS
     ! These values must be defined here and not in the initialization
     ! because it seems like the IMPORT state is not yet properly
     ! defined during initialization. 
+    ! ckeller, 06/02/17: now call this on every time step. Routine
+    ! HCO_SetExtState_ESMF copies the fields to ExtState.
     ! ----------------------------------------------------------------
 #if defined( ESMF_ )
-    IF ( FIRST ) THEN
-       CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP ( 'Error in HCO_SetExtState_ESMF!', LOC, INS )
-       ENDIF
+    ! IF ( FIRST ) THEN
+    CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP ( 'Error in HCO_SetExtState_ESMF!', LOC, INS )
     ENDIF
+    !ENDIF
 #endif
 
     ! Not first call any more
