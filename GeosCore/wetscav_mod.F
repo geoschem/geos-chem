@@ -5588,8 +5588,8 @@
       ! m/s here.
       !=================================================================
       IF ( ASSOCIATED( State_Met%UPDVVEL ) ) THEN
-         IF ( State_Met%DELP(I,J,L)    >  TINY_FP .AND. 
-     &        State_Met%UPDVVEL(I,J,L) >= 0.0_fp       ) THEN
+         IF ( State_Met%DELP(I,J,L)    > TINY_FP .AND. 
+     &        State_Met%UPDVVEL(I,J,L) > 0.0_fp       ) THEN
  
             ! Compute VUD 
             VUD = State_Met%UPDVVEL (I,J,L) 
