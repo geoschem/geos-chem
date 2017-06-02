@@ -329,6 +329,8 @@ CONTAINS
 !                              (LM,JM,IM), to facilitate use w/in GEOS-5 GCM
 !  05 Oct 2016 - R. Yantosca - Swapped order of HKETA and HKBETA allocation
 !  28 Nov 2016 - R. Yantosca - Nullify fields that may or may not be allocated
+!  01 Jun 2017 - C. Keller   - Initialize UPDVVEL to -999.0 to ensure that 
+!                              GET_VUD (wetscav_mod.F) works properly. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -901,7 +903,8 @@ CONTAINS
 
     ALLOCATE( State_Met%UPDVVEL   ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%UPDVVEL  = 0.0_fp
+    !State_Met%UPDVVEL  = 0.0_fp
+    State_Met%UPDVVEL  = -999.0_fp
 
 #if defined( GCAP )
 
