@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Thu Mar 23 12:42:08 2017
-! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/Tropchem
+! Time                 : Tue Jun  6 12:45:05 2017
+! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/v11-02c/Tropchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -719,7 +719,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(234) = (GC_DMSOH(8.20E-39,0.0E+00,5376.0,1.05E-5,0.0,3644.0))
   RCONST(235) = (GCARR(1.90E-13,0.0E+00,530.0))
   RCONST(236) = (GCJPLPR(3.30E-31,4.3E+00,0.0,1.6E-12,0.0,0.0,0.6,0.0,0.0))
-  RCONST(237) = (GCARR(1.70E-11,0.0E+00,-800.0))
+  RCONST(237) = (GCARR(1.60E-11,0.0E+00,-780.0))
   RCONST(238) = (GCARR(4.50E-12,0.0E+00,460.0))
   RCONST(239) = (GCARR(4.80E-12,0.0E+00,-310.0))
   RCONST(240) = (GCARR(5.50E-12,0.0E+00,200.0))
