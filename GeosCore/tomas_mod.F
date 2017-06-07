@@ -3933,7 +3933,7 @@
       call mnfix(Nkf,Mkf,negvalue) !<step5.1> bug fix call argument
       !(win, 4/15/06) !<step4.2> Add call argument to carry tell where mnfix
       !found
-      if(negvalue==.true.)STOP 'MNFIX terminate' !(win, 9/12/05)
+      if(negvalue) STOP 'MNFIX terminate' !(win, 9/12/05)
                                ! the negative value (win, 9/12/05)
 !---------------------------------------------------------------------------
 
@@ -5147,7 +5147,7 @@
       ! Local variables
       INTEGER      ::  L,I,J,K,IMN,CSPECIES
       REAL(fp)       :: DN,DM,DYI,TAU(ibins),XL,XU,YL,YLC,YU,YUC
-      REAL(fp)       :: TEPS,NEPS,EX2,ZERO
+      REAL(fp)       :: TEPS,NEPS,NEPS2,EX2,ZERO
       REAL(fp)       :: XI,XX,XP,YM,WTH,W1,W2,WW,AVG
       REAL(fp)       :: VSW,VNTF(ibins)
       REAL(fp)       :: TAU_L, maxtau
@@ -5155,9 +5155,6 @@
       REAL(fp)       :: AMK(ibins,icomp),ANK(ibins)
       REAL(fp)       :: AMKDRY(ibins), WR(ibins), AMKWET(ibins)
       REAL(fp)       :: AMKDRYSOL(ibins)
-      PARAMETER (TEPS=1.0e-40_fp,NEPS=1.0e-20_fp)
-      PARAMETER (EX2=2.e+0_fp/3.e+0_fp,ZERO=0.0e+0_fp)
-      PARAMETER       NEPS2=1.0e-10_fp
       LOGICAL      :: pdbug !(win, 4/10/06)
       LOGICAL      :: errspot !(win, 4/12/06)
 !x      REAL(fp)       :: moxd !moxid/Nact (win, 5/25/06)
@@ -5174,6 +5171,9 @@
       integer      :: kk !counter (wint, 7/24/06)
       REAL(fp)       :: AMKD_tot
  
+      PARAMETER (TEPS=1.0e-40_fp,NEPS=1.0e-20_fp)
+      PARAMETER (EX2=2.e+0_fp/3.e+0_fp,ZERO=0.0e+0_fp)
+      PARAMETER (NEPS2=1.0e-10_fp)
       !=================================================================
       ! TMCOND begins here!
       !=================================================================
