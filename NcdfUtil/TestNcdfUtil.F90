@@ -13,9 +13,6 @@
 !
 PROGRAM TestNcdfUtil
 !
-! !USES: 
-!
-!
 ! !USES:
 !
   ! Modules for netCDF write
@@ -64,6 +61,7 @@ PROGRAM TestNcdfUtil
 !  31 Jan 2012 - R. Yantosca - Bug fix in error checks for attributes
 !  14 Jun 2012 - R. Yantosca - Now tests 2D character read/write
 !  10 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  12 Jun 2017 - R. Yantosca - Now write a test global attribute
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -239,6 +237,7 @@ CONTAINS
     CALL NcDef_Glob_Attributes( fId, 'Delta_time',  '000000'                  )
     CALL NcDef_Glob_Attributes( fId, 'Format',      'netCDF-3'                )
     CALL NcDef_Glob_Attributes( fId, 'valid_range', (/ -1e15, +1e15 /)        )
+    CALL NcDef_Glob_Attributes( fId, 'id_number',   1                         )
 
     !=========================================================================
     ! Define the variables and variable attributes

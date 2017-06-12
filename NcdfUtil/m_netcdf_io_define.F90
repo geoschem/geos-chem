@@ -338,6 +338,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  12 Jun 2017 - R. Yantosca - Bug fix, should call NF_PUT_ATT_INT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -347,8 +348,8 @@ CONTAINS
     integer             :: mylen, ierr
 !
     mylen = 1
-    ierr  = Nf_Put_Att_Real( ncid,   var_id, att_name, &
-                               NF_INT, mylen,  att_val )
+    ierr  = Nf_Put_Att_Int( ncid,   var_id, att_name, &
+                            NF_INT, mylen,  att_val )
 
     IF (ierr.ne.NF_NOERR) THEN
        err_msg = 'NcDef_var_attributes_i: can not define attribute : ' // &
@@ -404,7 +405,7 @@ CONTAINS
 !
     mylen = 1
     ierr  = Nf_Put_Att_Real( ncid,     var_id, att_name, &
-                               NF_FLOAT, mylen,  att_val )
+                             NF_FLOAT, mylen,  att_val )
 
     IF (ierr.ne.NF_NOERR) THEN
        err_msg = 'NcDef_var_attributes_r4: can not define attribute : ' // &
@@ -460,7 +461,7 @@ CONTAINS
 !
     mylen = 1
     ierr  = Nf_Put_Att_Double( ncid,      var_id, att_name, &
-                                 NF_DOUBLE, mylen,  att_val )
+                               NF_DOUBLE, mylen,  att_val )
 
     IF (ierr.ne.NF_NOERR) THEN
        err_msg = 'NcDef_var_attributes_r8: can not define attribute : ' // &
@@ -506,6 +507,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  12 Jun 2017 - R. Yantosca - Bug fix, should call NF_PUT_ATT_INT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -515,8 +517,8 @@ CONTAINS
     INTEGER             :: mylen, ierr
 !
     mylen = SIZE( att_val )
-    ierr  = Nf_Put_Att_Real( ncid,   var_id, att_name, &
-                               NF_INT, mylen,  att_val )
+    ierr  = Nf_Put_Att_Int( ncid,   var_id, att_name, &
+                            NF_INT, mylen,  att_val )
 
     iF (ierr.ne.NF_NOERR) THEN
        err_msg = 'NcDef_var_attributes_i_arr: can not define attribute : ' &
@@ -572,7 +574,7 @@ CONTAINS
 !
     mylen = SIZE( att_val )
     ierr  = Nf_Put_Att_Real( ncid,     var_id, att_name, &
-                               NF_FLOAT, mylen,  att_val )
+                             NF_FLOAT, mylen,  att_val )
 
     IF (ierr.ne.NF_NOERR) THEN
        err_msg = 'NcDef_var_attributes_r4_arr: can not define attribute : ' &
@@ -628,7 +630,7 @@ CONTAINS
 !
     mylen = size( att_val )
     ierr  = Nf_Put_Att_Double( ncid,      var_id, att_name, &
-                                 NF_DOUBLE, mylen,  att_val )
+                               NF_DOUBLE, mylen,  att_val )
 
     IF (ierr.ne.NF_NOERR) THEN
        err_msg = 'NcDef_var_attributes_r4_arr: can not define attribute : '&
@@ -731,6 +733,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  12 Jun 2017 - R. Yantosca - Bug fix, should call NF_PUT_ATT_INT
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -902,6 +905,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  12 Jun 2017 - R. Yantosca - Bug fix: Should call NF_PUT_ATT_INT
 !EOP
 !-------------------------------------------------------------------------
 !BOC
