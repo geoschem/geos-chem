@@ -92,6 +92,17 @@ MODULE State_Chm_Mod
      INTEGER,           POINTER :: HgP_Id_List(:      ) ! HgP cat <-> tracer #
      CHARACTER(LEN=4),  POINTER :: Hg_Cat_Name(:      ) ! Category names
 
+     ! For isoprene SOA
+     REAL(fp),          POINTER :: PH_SAV(:,:,:)
+     REAL(fp),          POINTER :: HPLUS_SAV(:,:,:)
+     REAL(fp),          POINTER :: WATER_SAV(:,:,:)
+     REAL(fp),          POINTER :: SULRAT_SAV(:,:,:)
+     REAL(fp),          POINTER :: NARAT_SAV(:,:,:)
+     REAL(fp),          POINTER :: ACIDPUR_SAV(:,:,:)
+     REAL(fp),          POINTER :: BISUL_SAV(:,:,:)
+     REAL(fp),          POINTER :: FRAC_DIOL(:,:,:,:,:)
+     REAL(fp),          POINTER :: Spc_past(:,:,:,:)
+
   END TYPE ChmState
 !
 ! !REMARKS:
@@ -128,6 +139,7 @@ MODULE State_Chm_Mod
 !                              no longer used.
 !  23 Aug 2016 - M. Sulprizio- Remove tracer fields from State_Chm. These are
 !                              now entirely replaced with the species fields.
+!  08 Jun 2017 - M. Sulprizio- Add fields for isoprene SOA updates from E.Marais
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -401,6 +413,17 @@ CONTAINS
     State_Chm%Hg2_Id_List => NULL()
     State_Chm%HgP_Id_List => NULL()
 
+    ! For isoprene SOA
+    State_Chm%PH_SAV(:,:,:)        => NULL()
+    State_Chm%HPLUS_SAV(:,:,:)     => NULL()
+    State_Chm%WATER_SAV(:,:,:)     => NULL()
+    State_Chm%SULRAT_SAV(:,:,:)    => NULL()
+    State_Chm%NARAT_SAV(:,:,:)     => NULL()
+    State_Chm%ACIDPUR_SAV(:,:,:)   => NULL()
+    State_Chm%BISUL_SAV(:,:,:)     => NULL()
+    State_Chm%FRAC_DIOL(:,:,:,:,:) => NULL()
+    State_Chm%Spc_past(:,:,:,:)    => NULL()
+
     !=====================================================================
     ! Populate the species database object field
     ! (assumes Input_Opt has already been initialized)
@@ -640,6 +663,50 @@ CONTAINS
        
     ENDIF
    
+    !=====================================================================
+    ! Allocate and initialize isoprene SOA fields
+    ! These are only relevant for fullchem or aerosol-only simulations
+    !=====================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+
+       ALLOCATE( State_Chm%PH_SAV( IM, JM, LM ) , STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%PH_SAV = 0.0_fp
+
+       ALLOCATE( State_Chm%HPLUS_SAV( IM, JM, LM ) , STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%HPLUS_SAV = 0.0_fp
+
+       ALLOCATE( State_Chm%WATER_SAV( IM, JM, LM ) , STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%WATER_SAV = 0.0_fp
+
+       ALLOCATE( State_Chm%SULRAT_SAV( IM, JM, LM ) , STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SULRAT_SAV = 0.0_fp
+
+       ALLOCATE( State_Chm%NARAT_SAV( IM, JM, LM ) , STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%NARAT_SAV = 0.0_fp
+
+       ALLOCATE( State_Chm%ACIDPUR_SAV( IM, JM, LM ) , STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%ACIDPUR_SAV = 0.0_fp
+
+       ALLOCATE( State_Chm%BISUL_SAV( IM, JM, LM ) , STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%BISUL_SAV = 0.0_fp
+
+       ALLOCATE( State_Chm%FRAC_DIOL(IM, JM, LM, 2, 2) , STAT=RC)
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%FRAC_DIOL = 0.0_fp
+
+       ALLOCATE( State_Chm%Spc_past(IM, JM, LM, 2) , STAT=RC)
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Spc_past = 0.0_fp
+
+    ENDIF
+
     SpcDataLocal => State_Chm%SpcData
 
     ! Free pointer for safety's sake
@@ -777,6 +844,42 @@ CONTAINS
        
     IF ( ASSOCIATED( State_Chm%KHETI_SLA ) ) THEN
        DEALLOCATE( State_Chm%KHETI_SLA  )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%PH_SAV ) ) THEN
+       DEALLOCATE( State_Chm%PH_SAV )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%HPLUS_SAV ) ) THEN
+       DEALLOCATE( State_Chm%HPLUS_SAV )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%WATER_SAV ) ) THEN
+       DEALLOCATE( State_Chm%WATER_SAV )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SULRAT_SAV ) ) THEN
+       DEALLOCATE( State_Chm%SULRAT_SAV )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%NARAT_SAV ) ) THEN
+       DEALLOCATE( State_Chm%NARAT_SAV )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%ACIDPUR_SAV ) ) THEN
+       DEALLOCATE( State_Chm%ACIDPUR_SAV )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BISUL_SAV ) ) THEN
+       DEALLOCATE( State_Chm%BISUL_SAV )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%FRAC_DIOL ) ) THEN
+       DEALLOCATE( State_Chm%FRAC_DIOL )
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Spc_past ) ) THEN
+       DEALLOCATE( State_Chm%Spc_past )
     ENDIF
 
     ! Deallocate the species database object field

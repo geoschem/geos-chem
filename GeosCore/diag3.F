@@ -1363,36 +1363,6 @@
 
             ENDDO
 
-            !-----------------------------------------------
-            ! SOA Production from GLYX and MGLY [kg]
-            ! 1: SOAG <- GLYX;  2: SOAM <- MGLY   IN AEROSOL
-            ! 3: SOAG <- GLYX;  4: SOAM <- MGLY   INCLOUD
-            ! (tmf, 1/7/09)
-	    ! Test if SOAG and SOAM tracers are valid before 
-            ! saving them. (ccc, 1/7/09)
-            !-----------------------------------------------
-	    IF ( id_SOAG > 0 .AND. id_SOAM > 0 ) THEN
-               CATEGORY     = 'SOAGM=$'
-
-               DO N = 1, 4
-
-                  IF ( N == 1 ) NN = 91
-                  IF ( N == 2 ) NN = 92
-                  IF ( N == 3 ) NN = 93
-                  IF ( N == 4 ) NN = 94
-
-                  DO L = 1, LD07
-                     ARRAY(:,:,L) = AD07_SOAGM(:,:,L,N) 
-                  ENDDO
-
-                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                        IIPAR,     JJPAR,     LD07,     IFIRST,
-     &                        JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
-            
-               ENDDO
-            ENDIF
          ENDIF
       ENDIF   
 #if defined( BPCH_DIAG )
@@ -5071,27 +5041,34 @@
       ENDIF
 
 !******************************************************************************
-!  ND52: gamma HO2 and aerosol radius (jaegle 02/26/09)
+!  ND52: Uptake coefficients (gamma)
 !   # Category 
 !   # : Field     : Description                      : Units     : Scale factor
 !  ----------------------------------------------------------------------------
 !  (1): GAMMAHO2  : Uptake coef for HO2              : unitless  : SCALECHEM
+!  (2): GAMMAIEPOX: Uptake coef for IEPOX            : unitless  : SCALECHEM
 !
 !******************************************************************************
       IF ( ND52 > 0 ) THEN
-        CATEGORY  = 'GAMMA'
+        CATEGORY  = 'GAMMA-$'
         UNIT      = 'unitless'
 
-        DO L = 1, LD52
-            ARRAY(:,:,L) = AD52(:,:,L) / SCALECHEM
-        ENDDO
+         DO M = 1, TMAX(52)
+            N = TINDEX(52,M)
+            IF ( N > PD52 ) CYCLE
+            NN = N
 
-        ! Save to disk
-        CALL BPCH2( IU_BPCH,    MODELNAME, LONRES,   LATRES,
-     &                    HALFPOLAR,  CENTER180, CATEGORY, 1,
-     &                    UNIT,       DIAGb,     DIAGe,    RESERVED,
-     &                    IIPAR,      JJPAR,     LD52,     IFIRST,
-     &                    JFIRST,     LFIRST,    ARRAY(:,:,1:LD52) )
+            DO L = 1, LD52
+               ARRAY(:,:,L) = AD52(:,:,L,N) / SCALECHEM
+            ENDDO
+
+            ! Save to disk
+            CALL BPCH2( IU_BPCH,    MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR,  CENTER180, CATEGORY, NN,
+     &                  UNIT,       DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,      JJPAR,     LD52,     IFIRST,
+     &                  JFIRST,     LFIRST,    ARRAY(:,:,1:LD52) )
+         ENDDO
 
       ENDIF
 !
@@ -6691,6 +6668,48 @@
          ENDDO
       ENDIF
       ENDIF
+
+!******************************************************************************
+!  ND73: ISORROPIA pH and H+ (eam, 01/2015)
+!   # Category 
+!   # : Field     : Description                      : Units     : Scale factor
+!  ----------------------------------------------------------------------------
+!  (1): pH  : ISORROPIA pH                            : unitless  : SCALECHEM
+!  (2): H+  : ISORROPIA H+                            : mol/L     : SCALECHEM
+!  (3): H2O : ISORROPIA aerosol water                 : ug/m3 air : SCALECHEM
+!
+!******************************************************************************
+      IF ( ND73 > 0 ) THEN
+         CATEGORY  = 'ISOROP-$'
+         UNIT      = 'unitless'
+
+         DO M = 1, TMAX(73)
+            N = TINDEX(73,M)
+            IF ( N > PD73 ) CYCLE
+            NN = N
+
+            DO L = 1, LD73
+               ARRAY(:,:,L) = AD73(:,:,L,N) / SCALECHEM
+            ENDDO
+
+            ! Get correct units:
+            IF ( NN == 2 ) THEN
+               UNIT = 'mol/L'
+            ENDIF
+            IF ( NN == 3 ) THEN
+               UNIT = 'ug/m3'
+            ENDIF
+
+            ! Save to disk
+            CALL BPCH2( IU_BPCH,    MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR,  CENTER180, CATEGORY, NN,
+     &                  UNIT,       DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,      JJPAR,     LD73,     IFIRST,
+     &                  JFIRST,     LFIRST,    ARRAY(:,:,1:LD73) )
+         ENDDO
+      ENDIF
+
+!******************************************************************************
 
       ! Cleanup
       DiagnCnt => NULL()

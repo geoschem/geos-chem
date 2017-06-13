@@ -236,6 +236,7 @@
       ! Dust and aerosol optical depths
       REAL(fp), ALLOCATABLE :: ODMDUST(:,:,:,:,:)
       REAL(fp), ALLOCATABLE :: ODAER(:,:,:,:,:)
+      REAL(fp), ALLOCATABLE :: ISOPOD(:,:,:,:,:)   ! eam, 2014
 
       INTEGER NJX,NW1,NW2
 
@@ -377,6 +378,11 @@
       IF ( RC /= GC_SUCCESS ) RETURN
       ODAER = 0e+0_fp
 
+      ! Allocate array for isoprene SOA AOD (eam, 2014):
+      ALLOCATE( ISOPOD( IIPAR, JJPAR, LLPAR, NWVAA), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) RETURN
+      ISOPOD = 0e+0_fp
+
       !-----------------------------------------------------------------------
       !  Variables added for RRTMG (dar, mps, 12/5/14)
       !-----------------------------------------------------------------------
@@ -442,6 +448,7 @@
       IF ( ALLOCATED( ZPJ       ) ) DEALLOCATE( ZPJ       )
       IF ( ALLOCATED( ODMDUST   ) ) DEALLOCATE( ODMDUST   )
       IF ( ALLOCATED( ODAER     ) ) DEALLOCATE( ODAER     )
+      IF ( ALLOCATED( ISOPOD    ) ) DEALLOCATE( ISOPOD    )
       IF ( ALLOCATED( IRHARR    ) ) DEALLOCATE( IRHARR    )
 #if defined( RRTMG )
       IF ( ALLOCATED( RTODAER   ) ) DEALLOCATE( RTODAER   )

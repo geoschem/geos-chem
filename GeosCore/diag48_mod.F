@@ -134,9 +134,9 @@
       INTEGER, ALLOCATABLE :: ND48_N(:)
 
       INTEGER              :: id_HNO3, id_N2O5, id_HNO4, id_NO
-      INTEGER              :: id_PAN,  id_PMN,  id_PPN,  id_O3
+      INTEGER              :: id_PAN,  id_NPMN, id_PPN,  id_O3
       INTEGER              :: id_R4N2, id_SALA, id_SALC, id_NO2
-
+      INTEGER              :: id_IPMN
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -270,7 +270,8 @@
          id_HNO4 = Ind_('HNO4')
          id_NO   = Ind_('NO'  )
          id_PAN  = Ind_('PAN' )
-         id_PMN  = Ind_('PMN' )
+         id_NPMN = Ind_('NPMN')
+         id_IPMN = Ind_('IPMN')
          id_PPN  = Ind_('PPN' )
          id_O3   = Ind_('O3'  )
          id_R4N2 = Ind_('R4N2')
@@ -286,9 +287,10 @@
          IS_SEASALT  = ( id_SALA > 0 .and. id_SALC > 0 )
          IS_NOy      = ( IS_FULLCHEM .and. id_NO   > 0 .and.
      &                   id_NO2  > 0 .and. id_PAN  > 0 .and.
-     &                   id_HNO3 > 0 .and. id_PMN  > 0 .and.
+     &                   id_HNO3 > 0 .and. id_NPMN > 0 .and.
      &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
-     &                   id_N2O5 > 0 .and. id_HNO4 > 0 ) 
+     &                   id_N2O5 > 0 .and. id_HNO4 > 0 .and.
+     &                   id_IPMN > 0 ) 
 
          ! Replace YYYYMMDD tokens in filename
          FILENAME = TRIM( ND48_OUTPUT_FILE )
@@ -398,10 +400,15 @@
      &                 / State_Chm%SpcData(id_HNO3)%Info%emMW_g )       
      &                         * SPC(I,J,L,id_HNO3) )
             
-               ! PMN
+               ! NPMN
                Q(L) = Q(L) + ( ( AIRMW 
-     &                 / State_Chm%SpcData(id_PMN)%Info%emMW_g )        
-     &                         * SPC(I,J,L,id_PMN) )
+     &                 / State_Chm%SpcData(id_NPMN)%Info%emMW_g )        
+     &                         * SPC(I,J,L,id_NPMN) )
+
+               ! IPMN
+               Q(L) = Q(L) + ( ( AIRMW 
+     &                 / State_Chm%SpcData(id_IPMN)%Info%emMW_g )        
+     &                         * SPC(I,J,L,id_IPMN) )
 
                ! PPN
                Q(L) = Q(L) + ( ( AIRMW 

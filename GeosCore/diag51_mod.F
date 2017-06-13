@@ -105,6 +105,11 @@
 !  181           : PAR diffuse                              [hPa        ]
 !  182           : Daily LAI                                [hPa        ]
 !  183           : Temperature at 2m                        [K          ]
+!  184           : Total organic aerosol                    [ug/m3      ]
+!  185           : Total isoprene SOA                       [ug/m3      ]
+!  186           : GLYX concentration                       [molec/cm3  ]
+!  187           : Total aerosol mass                       [ug/m3      ]
+!  188           : Isoprene aerosol optical depth           [unitless   ]
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -196,7 +201,7 @@
       INTEGER              :: I0,             J0
       ! Increased to 120 from 100 (mpb,2009)
       ! Increased to 121 (ccc, 4/20/10)
-      INTEGER              :: ND51_N_TRACERS, ND51_TRACERS(121)
+      INTEGER              :: ND51_N_TRACERS, ND51_TRACERS(188)
       INTEGER              :: ND51_IMIN,      ND51_IMAX
       INTEGER              :: ND51_JMIN,      ND51_JMAX
       INTEGER              :: ND51_LMIN,      ND51_LMAX
@@ -428,7 +433,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_O3_MOD               ! SAVEOH
+      USE CMN_O3_MOD               ! SAVEOH, SAVE_TMP6
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
@@ -515,11 +520,13 @@
       LOGICAL, SAVE     :: IS_FULLCHEM, IS_SEASALT
       LOGICAL, SAVE     :: IS_CLDTOPS,  IS_NOy,    IS_OPTD, IS_SLP
       INTEGER, SAVE     :: id_HNO3,     id_HNO4,   id_N2O5, id_NO
-      INTEGER, SAVE     :: id_PAN,      id_PMN,    id_PPN,  id_O3
+      INTEGER, SAVE     :: id_PAN,      id_NPMN,   id_PPN,  id_O3
       INTEGER, SAVE     :: id_R4N2,     id_SALA,   id_SALC, id_NO2
+      INTEGER, SAVE     :: id_IPMN
 
       ! Scalars
       LOGICAL           :: IS_CHEM,     IS_DIAG,   IS_EMIS
+      LOGICAL           :: LSOA,        LISOPOA
       LOGICAL           :: LINTERP
       INTEGER           :: H, I, J, K, L, M, N, ISPC, nAdvect
       INTEGER           :: PBLINT,  R, X, Y, W, XMIN
@@ -539,6 +546,10 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
+      ! Copy values from INPUT_OPT
+      LSOA      = Input_Opt%LSOA
+      LISOPOA   = Input_Opt%LISOPOA
+
       ! Number of advected species
       nAdvect   = State_Chm%nAdvect
 
@@ -551,14 +562,14 @@
          id_N2O5 = Ind_('N2O5')
          id_NO   = Ind_('NO'  )
          id_PAN  = Ind_('PAN' )
-         id_PMN  = Ind_('PMN' )
+         id_NPMN = Ind_('NPMN' )
+         id_IPMN = Ind_('IPMN' )
          id_PPN  = Ind_('PPN' )
          id_O3   = Ind_('O3'  )
          id_R4N2 = Ind_('R4N2')
          id_SALA = Ind_('SALA')
          id_SALC = Ind_('SALC')
          id_NO2  = Ind_('NO2' )
-
 
          ! Set logical flags on first call
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
@@ -568,9 +579,10 @@
          IS_SEASALT  = ( id_SALA > 0 .and. id_SALC > 0 )
          IS_NOy      = ( IS_FULLCHEM .and. id_NO   > 0 .and.
      &                   id_NO2  > 0 .and. id_PAN  > 0 .and.
-     &                   id_HNO3 > 0 .and. id_PMN  > 0 .and.
+     &                   id_HNO3 > 0 .and. id_NPMN > 0 .and.
      &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
-     &                   id_N2O5 > 0 .and. id_HNO4 > 0 ) 
+     &                   id_N2O5 > 0 .and. id_HNO4 > 0 .and.
+     &                   id_IPMN > 0 ) 
 
          ! Reset first-time flag
          FIRST       = .FALSE.
@@ -747,10 +759,15 @@
      &                        / State_Chm%SpcData(id_HNO3)%Info%emMW_g )       
      &                       * GOOD(I) * Spc(I,J,L,id_HNO3)  )
             
-               ! PMN
+               ! NPMN
                TMP = TMP + ( ( AIRMW 
-     &                        / State_Chm%SpcData(id_PMN)%Info%emMW_g )        
-     &                       * GOOD(I) * Spc(I,J,L,id_PMN)   )
+     &                        / State_Chm%SpcData(id_NPMN)%Info%emMW_g )        
+     &                       * GOOD(I) * Spc(I,J,L,id_NPMN)   )
+
+               ! IPMN
+               TMP = TMP + ( ( AIRMW 
+     &                        / State_Chm%SpcData(id_IPMN)%Info%emMW_g )        
+     &                       * GOOD(I) * Spc(I,J,L,id_IPMN)   )
 
                ! PPN
                TMP = TMP + ( ( AIRMW 
@@ -1152,6 +1169,139 @@
 !###  SEE THE NOTE ABOVE FOR INSTRUCTIONS ON HOW TO SAVE THE EQUIVALENT     ###
 !###  OUTPUTS TO A netCDF FILE. (bmy, mps, 5/26/15)                         ###
 !##############################################################################
+
+            ELSE IF ( N == 184 .and. LSOA ) THEN
+
+               !--------------------------------------
+               ! total organic aerosol [ug/m3]
+               ! NOTE: Only archive at chem timestep
+               ! and if an SOA simulation
+               !--------------------------------------
+
+               ! Accumulate data
+               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+     &              ( SAVE_TMP6(I,J,L) * GOOD_CHEM(X) )
+
+            ELSE IF ( N == 185 .and. LSOA ) THEN
+
+               !--------------------------------------
+               ! total isoprene SOA [ug/m3]
+               ! NOTE: Only archive at chem timestep
+               ! and if an SOA simulation
+               !--------------------------------------
+               ! Temp variable for accumulation
+               TMP = 0.0e+0_fp
+
+               ! Mechanistic isoprene OA:
+               IF ( LISOPOA ) THEN
+
+                  ! IEPOX-OA (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_SOAIE)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+                  ! IMAE-OA (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_SOAME)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+                  ! INDIOL (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_INDIOL)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+                  ! LVOCOA (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_LVOCOA)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+                  ! ISOP+NO3 aerosols (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_ISN1OA)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+               ELSE
+
+                  ! Reversible partitioning scheme:
+                  ! ISOA1 (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_ISOA1)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+                  ! ISOA2 (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_ISOA2)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+                  ! ISOA3 (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_ISOA3)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+               ENDIF
+
+               ! Save afternoon points
+               Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
+
+            ELSE IF ( N == 186 .and. IS_FULLCHEM ) THEN
+
+               !--------------------------------------
+               ! GLYX [molec/cm3]
+               ! NOTE: Only archive at chem timestep
+               !--------------------------------------
+
+               ! Accumulate data
+               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+     &              ( SAVEGLYX(I,J,L) * GOOD_CHEM(X) )
+
+            ELSE IF ( N == 187 ) THEN
+
+               !--------------------------------------
+               ! Total aerosol mass (excl salt and dust) [ug/m3]
+               ! NOTE: Only archive at chem timestep
+               !--------------------------------------
+               ! Temp variable for accumulation
+               TMP = 0d0
+            
+               ! Organic aerosol (ug/m3):
+               TMP = TMP + ( SAVE_TMP6(I,J,L) * GOOD_CHEM(X) )
+
+               ! Sulfate (ug/m3):
+               TMP = TMP + ( Spc(I,J,L,id_SO4)  * GOOD_CHEM(X) *
+     &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+               ! Ammonium (ug/m3):
+               TMP = TMP + ( Spc(I,J,L,id_NH4)  * GOOD_CHEM(X) *
+     &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+               ! Nitrate (ug/m3):
+               TMP = TMP + ( Spc(I,J,L,id_NIT)  * GOOD_CHEM(X) *
+     &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+               ! Hydrophillic Black carbon (ug/m3):
+               TMP = TMP + ( Spc(I,J,L,id_BCPI)  * GOOD_CHEM(X) *
+     &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+               ! Hydrophobic Black carbon (ug/m3):
+               TMP = TMP + ( Spc(I,J,L,id_BCPO)  * GOOD_CHEM(X) *
+     &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+               ! Save afternoon points
+               Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
+
+            ELSE IF ( N == 188 ) THEN
+
+               !--------------------------------------
+               ! ISOPRENE AOD @ jv_spec_aod.dat wavelength [unitless]
+               ! NOTE: Only archive at chem timestep
+               !--------------------------------------
+               DO R = 1, NRH
+
+                  ! Index for ODAER
+                  !H          = NRH    + R
+
+                  ! Scaling factor to AOD wavelength (clh, 05/09)
+                  ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
+                  ! We no longer need to scale by wavelength (skim, 02/03/11)
+                  SCALEAODnm = 1.0
+
+                  ! Accumulate
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
+     &                   ( ISOPOD(I,J,L,R) * SCALEAODnm * GOOD_CHEM(X) )
+               ENDDO
+
 
             ELSE
 
@@ -1733,9 +1883,6 @@
             GMNL     = ND51_NL
             GMTRC    = 21+(N-173)
 
-! ================================================================
-! Added with MEGAN v2.1. (ccc, 11/20/09)
-
          ELSE IF ( N == 180 ) THEN
             
             !---------------------
@@ -1783,138 +1930,60 @@
          ELSE IF ( N == 184 ) THEN
 
             !---------------------
-            ! ISOPRENE emissions 
-            ! (mpb,2008)
-            !---------------------            
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
+            ! Total org aerosol 
+            ! [ug/m3] (eam, 2014)
+            !---------------------   
+
+            CATEGORY = 'IJ-SOA-$'
+            UNIT     = 'ug/m3'
             GMNL     = ND51_NL
-            GMTRC    = 1     
+            GMTRC    = 6   
 
          ELSE IF ( N == 185 ) THEN
 
             !---------------------
-            ! MONOTERPENE emissions 
-            ! (mpb,2008)
-            !---------------------       
+            ! Total isorpene SOA 
+            ! [ug/m3] (eam, 2014)
+            !---------------------   
 
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
+            CATEGORY = 'IJ-SOA-$'
+            UNIT     = 'ug/m3'
             GMNL     = ND51_NL
-            GMTRC    = 4    
+            GMTRC    = 2 
 
          ELSE IF ( N == 186 ) THEN
 
             !---------------------
-            ! MBO emissions 
-            ! (mpb,2008)
+            ! Glyoxal concn
+            ! (eam, 2014)
             !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
+            CATEGORY = 'TIME-SER'
+            UNIT     = ''
             GMNL     = ND51_NL
-            GMTRC    = 5    
-
+            GMTRC    = 34
 
          ELSE IF ( N == 187 ) THEN
 
             !---------------------
-            ! a-pine emissions 
-            ! (mpb,2008)
+            ! Aerosol mass
+            ! (eam, 2014)
             !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
+            CATEGORY = 'TIME-SER'
+            UNIT     = ''
             GMNL     = ND51_NL
-            GMTRC    = 7    
+            GMTRC    = 35
 
          ELSE IF ( N == 188 ) THEN
 
             !---------------------
-            ! b-pine emissions 
-            ! (mpb,2008)
+            ! Isoprene AOD
+            ! (eam, 2014)
             !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
+            CATEGORY = 'OD-MAP-$'
+            UNIT     = 'unitless'
             GMNL     = ND51_NL
-            GMTRC    = 8   
+            GMTRC    = 28
 
-         ELSE IF ( N == 189 ) THEN
-
-            !---------------------
-            ! Limonene emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 9    
-
-
-         ELSE IF ( N == 190 ) THEN
-
-            !---------------------
-            ! Sabinene emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 10    
-
-         ELSE IF ( N == 191 ) THEN
-
-            !---------------------
-            ! Myrcene emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 11    
-
-
-         ELSE IF ( N == 192 ) THEN
-
-            !---------------------
-            ! 3-carene emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 12    
-
-         ELSE IF ( N == 193 ) THEN
-
-            !---------------------
-            ! Ocimene emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 13    
-
-         ELSE IF ( N == 194 ) THEN
-
-            !---------------------
-            ! Farnesene emissions
-            ! (hotp 3/5/10)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 14
-
-! ================================================================
             
          ELSE
 

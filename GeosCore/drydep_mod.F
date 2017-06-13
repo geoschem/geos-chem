@@ -4186,7 +4186,7 @@
                   ! for the computation of Vd to work properly.
                   XMW(NUMDEP) = 63.0e-3_fp
 
-               CASE(  'PMN', 'PPN', 'R4N2' )
+               CASE(  'NPMN', 'IPMN', 'PPN', 'R4N2' )
                   ! %%%%% KLUDGE (bmy, 5/19/16) %%%%%%%%%%%%%%%%%%%%%%
                   ! PMN, PPN, and R4N2 all use the Vd of PAN.  We will 
                   ! now compute the Vd of PMN, PPN, and R4N2 instead of 

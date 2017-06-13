@@ -36,11 +36,12 @@
       INTEGER, PARAMETER :: PD16=2  
       INTEGER, PARAMETER :: PD17=8           
       INTEGER, PARAMETER :: PD18=8
-      INTEGER, PARAMETER :: PD21=5+(NRHAER+NDUST)*3+(NRHAER*2)+
+      INTEGER, PARAMETER :: PD21=7+(NRHAER+NDUST)*3+(NRHAER*2)+
      &                           (NSTRATAER*3)
-      INTEGER, PARAMETER :: PD22=28
+      INTEGER, PARAMETER :: PD22=30
       INTEGER, PARAMETER :: PD40=4       
       INTEGER, PARAMETER :: PD43=7  
+      INTEGER, PARAMETER :: PD52=2
       INTEGER, PARAMETER :: PD55=3
       ! Potential temperature diagnostic (hotp 7/31/09)
       INTEGER, PARAMETER :: PD57=1           
@@ -72,6 +73,9 @@
       !for simplicity we take the largest and put up with
       !some redundancy (should be 88+72=160)
       INTEGER, PARAMETER :: PD72=187 ! Radiation (Ridley 10/2012)
+
+      ! (eam, 2015): ISORROPIA pH, H+, & aerosol water
+      INTEGER, PARAMETER :: PD73=3 
 
       !=================================================================
       ! Variables for printing out selected tracers in diagnostic output
@@ -107,7 +111,7 @@
       INTEGER :: LD24, LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47
       INTEGER :: LD54, LD64, LD65, LD66, LD68, LD01, LD02, LD05, LD07
       INTEGER :: LD09, LD10, LD31, LD52, LD19, LD57, LD58, LD59, LD60
-      INTEGER :: LD61, LD62
+      INTEGER :: LD61, LD62, LD73
 
       !=================================================================
       ! NDxx diagnostic flags

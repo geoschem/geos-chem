@@ -35,7 +35,7 @@
       ! BCPI        : Hydrophilic black carbon aerosol   [kg/m3]
       ! BCPO        : Hydrophobic black carbon aerosol   [kg/m3]
       ! OCPI        : Hydrophilic organic carbon aerosol [kg/m3]
-      ! OCPO        : Hydrophilic organic carbon aerosol [kg/m3]
+      ! OCPO        : Hydrophobic organic carbon aerosol [kg/m3]
       ! OCPISOA     : Hydrophilic OC + SOA aerosol       [kg/m3]
       ! SALA        : Accumulation mode seasalt aerosol  [kg/m3] 
       ! SALC        : Coarse mode seasalt aerosol        [kg/m3]
@@ -53,6 +53,7 @@
       ! SOAG        : SOA product of GLYX                [kg/m3]
       ! SOAM        : SOA product of MYLY                [kg/m3]
       ! PM25        : Particulate matter < 2.5 um        [kg/m3]
+      ! ISOAAQ      : Isoprene SOA (aqueous formation)   [kg/m3]
       !========================================================================
       REAL(fp), ALLOCATABLE, PUBLIC :: BCPI(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: BCPO(:,:,:)
@@ -76,6 +77,7 @@
       REAL(fp), ALLOCATABLE, PUBLIC :: SOAG(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: SOAM(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: PM25(:,:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: ISOAAQ(:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -128,6 +130,9 @@
 !  16 May 2016 - M. Sulprizio- Remove AEROSOL_RURALBOX. The implementation of
 !                              FlexChem has rendered the routine obsolete.
 !  17 Jun 2016 - R. Yantosca - Now use locally-defined species ID flags
+!  13 Jun 2017 - M. Sulprizio- Added AOD calculation for isoprene only. Don't
+!                              add to OCPI, as this would be double-counting
+!                              the isoprene SOA contribution to AOD (eam, 2014)
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -143,12 +148,15 @@
       INTEGER :: id_BCPI,  id_BCPO,  id_DST1,  id_DST2
       INTEGER :: id_DST3,  id_DST4,  id_NH4,   id_NIT  
       INTEGER :: id_OCPO,  id_OCPI,  id_SALA,  id_SALC 
-      INTEGER :: id_SO4,   id_SOAG,  id_SOAM,  id_SO4s
+      INTEGER :: id_SO4,   id_SO4s
       INTEGER :: id_NITs,  id_POA1,  id_POA2,  id_OPOA1
       INTEGER :: id_OPOA2, id_TSOA1, id_TSOA2, id_TSOA3 
       INTEGER :: id_TSOA0, id_ISOA1, id_ISOA2, id_ISOA3
       INTEGER :: id_ASOAN, id_ASOA1, id_ASOA2, id_ASOA3
       INTEGER :: id_DUST1, id_SOAS
+      INTEGER :: id_SOAGX, id_SOAMG, id_SOAGC
+      INTEGER :: id_SOAIE, id_SOAME
+      INTEGER :: id_INDIOL,id_LVOCOA,id_ISN1OA
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -265,6 +273,7 @@
       LOGICAL             :: LCARB
       LOGICAL             :: LDUST
       LOGICAL             :: LSOA
+      LOGICAL             :: LISOPOA
       LOGICAL             :: LSSALT
       LOGICAL             :: LSULF
       LOGICAL             :: LPRT
@@ -273,7 +282,6 @@
       LOGICAL             :: IS_SAL,   IS_DST
       LOGICAL             :: IS_TSOA,  IS_ISOA,  IS_ASOA
       LOGICAL             :: IS_POA,   IS_OPOA
-      LOGICAL             :: IS_SOAG,  IS_SOAM
 
       ! Pointers      
       REAL(fp), POINTER   :: Spc(:,:,:,:)
@@ -289,12 +297,13 @@
       RC     = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LCARB  = Input_Opt%LCARB
-      LDUST  = Input_Opt%LDUST
-      LSOA   = Input_Opt%LSOA
-      LSSALT = Input_Opt%LSSALT
-      LSULF  = Input_Opt%LSULF
-      LPRT   = Input_Opt%LPRT
+      LCARB   = Input_Opt%LCARB
+      LDUST   = Input_Opt%LDUST
+      LSOA    = Input_Opt%LSOA
+      LISOPOA = Input_Opt%LISOPOA
+      LSSALT  = Input_Opt%LSSALT
+      LSULF   = Input_Opt%LSULF
+      LPRT    = Input_Opt%LPRT
 
       ! Do we have to print debug output?
       prtDebug   = ( LPRT .and. am_I_Root )
@@ -316,8 +325,6 @@
      &         .AND. id_ASOA2 > 0 .AND. id_ASOA3 > 0 )
       IS_POA     = ( id_POA1  > 0 .AND. id_POA2  > 0 )
       IS_OPOA    = ( id_OPOA1 > 0 .AND. id_OPOA2 > 0 )
-      IS_SOAG    = ( id_SOAG  > 0 )
-      IS_SOAM    = ( id_SOAM  > 0 )
 
       ! If species units are 'kg/kg dry', convert to [kg] for this routine.
       ! Otherwise, if tracer units are not 'kg', throw an error to the 
@@ -549,6 +556,61 @@
 
             IF ( LSOA ) THEN
 
+               ! Mass loading of isoprene SOA [kg/m3]:
+               ! Mechanistic isoprene OA (eam, 08/2015):
+               IF ( LISOPOA ) THEN
+
+                  ! Glyoxal:
+                  IF ( id_SOAGX > 0 ) THEN
+                     ISOAAQ(I,J,L) = Spc(I,J,L,id_SOAGX) / AIRVOL(I,J,L)
+                  ENDIF
+
+                  ! Methylglyoxal:
+                  IF ( id_SOAMG > 0 ) THEN
+                     ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                             Spc(I,J,L,id_SOAMG) / AIRVOL(I,J,L)
+                  ENDIF
+
+                  ! Glycoaldehyde (currently zero, but included for
+                  !                future implementation):
+                  IF ( id_SOAGC > 0 ) THEN
+                     ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                             Spc(I,J,L,id_SOAGC) / AIRVOL(I,J,L)
+                  ENDIF
+
+                  ! IEPOX:
+                  IF ( id_SOAIE > 0 ) THEN
+                     ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                             Spc(I,J,L,id_SOAIE) / AIRVOL(I,J,L)
+                  ENDIF
+
+                  ! IMAE (4C epoxide from MACR)
+                  IF ( id_SOAME > 0 ) THEN
+                     ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                             Spc(I,J,L,id_SOAME) / AIRVOL(I,J,L)
+                  ENDIF
+
+                  ! SOA from alkyl nitrates (some contribution
+                  ! from non-isoprene sources):
+                  IF ( id_INDIOL > 0 ) THEN
+                     ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                            Spc(I,J,L,id_INDIOL) / AIRVOL(I,J,L)
+                  ENDIF
+
+                  ! SOA from ISOPOOH oxidation product:
+                  IF ( id_LVOCOA > 0 ) THEN
+                     ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                             Spc(I,J,L,id_LVOCOA) / AIRVOL(I,J,L)
+                  ENDIF
+
+                  ! SOA from ISOP+NO3:
+                  IF ( id_ISN1OA > 0 ) THEN
+                     ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                             Spc(I,J,L,id_ISN1OA) / AIRVOL(I,J,L)
+                  ENDIF
+
+               ENDIF
+
                ! Hydrophilic primary OC plus SOA [kg/m3].
                !
                ! We need to multiply by OCF to account for the mass of
@@ -572,6 +634,11 @@
      &                             / AIRVOL(I,J,L) 
                ENDIF
 
+               ! Add mechanistic isoprene OA (eam, 08/2015):
+               IF ( LISOPOA ) THEN
+                  OCPISOA(I,J,L) = OCPISOA(I,J,L) + ISOAAQ(I,J,L)
+               ENDIF
+
                IF ( IS_OPOA ) THEN  ! hotp 7/28/10
                   OCPISOA(I,J,L) = OCPISOA(I,J,L) +
      &                             ( Spc(I,J,L,id_OPOA1)
@@ -583,19 +650,6 @@
                   OCPISOA(I,J,L) = OCPISOA(I,J,L)
      &                             + Spc(I,J,L,id_OCPI)
      &                             * OCFOPOA / AIRVOL(I,J,L) 
-               ENDIF
-
-               ! Check to see if we are simulating SOAG and SOAM (tmf, 1/7/09)
-               IF ( IS_SOAG ) THEN
-                 OCPISOA(I,J,L) = OCPISOA(I,J,L)
-     &                            + Spc(I,J,L,id_SOAG)
-     &                            * OCFG / AIRVOL(I,J,L)
-               ENDIF
-
-               IF ( IS_SOAM ) THEN
-                 OCPISOA(I,J,L) = OCPISOA(I,J,L)
-     &                            + Spc(I,J,L,id_SOAM)
-     &                            * OCFM / AIRVOL(I,J,L)
                ENDIF
 
             ELSE
@@ -803,11 +857,11 @@
          ! SOAG and SOAM [kg/m3]
          !===========================================================
          IF ( IS_SOAG ) THEN
-            SOAG(I,J,L) = Spc(I,J,L,id_SOAG) * OCFG / AIRVOL(I,J,L)
+            SOAG(I,J,L) = Spc(I,J,L,id_SOAGX) * OCFG / AIRVOL(I,J,L)
          ENDIF
 
          IF ( IS_SOAM ) THEN
-            SOAM(I,J,L) = Spc(I,J,L,id_SOAM) * OCFM / AIRVOL(I,J,L)
+            SOAM(I,J,L) = Spc(I,J,L,id_SOAMG) * OCFM / AIRVOL(I,J,L)
          ENDIF
 
          !===========================================================
@@ -844,6 +898,7 @@
      &               + SOILDUST(I,J,L,5) * 0.38              ! 38% of DST2
      &               + SOAG(I,J,L)
      &               + SOAM(I,J,L)
+     &               + ISOAAQ(I,J,L) * ORG_GROWTH
 
          ! Apply STP correction factor based on ideal gas law
          PM25(I,J,L) = PM25(I,J,L) * ( 1013.25e+0_fp / PMID(I,J,L) ) *
@@ -1051,7 +1106,7 @@
       ! Change in asym parameter with RH
       REAL(fp)            :: SCALEASY
 
-      ! Chnge in Optical properties vs RH
+      ! Change in Optical properties vs RH
       REAL(fp)            :: SCALEA
       REAL(fp)            :: SCALEOD 
 
@@ -1077,10 +1132,14 @@
       INTEGER, SAVE	  :: IND(NAER) = (/22, 29, 36, 43, 50/)
 #endif
 
+      ! Aqueous aerosol volume (cm3/cm3):
+      REAL(fp)            :: TAERVOL
+
       ! Local variables for quantities from Input_Opt
       LOGICAL             :: LCARB
       LOGICAL             :: LSSALT
       LOGICAL             :: LSULF
+      LOGICAL             :: LSOA
       LOGICAL             :: LSTRATOD
       LOGICAL             :: LRAD
       LOGICAL             :: IS_POA, IS_OCPI
@@ -1109,6 +1168,7 @@
       LCARB                = Input_Opt%LCARB
       LSSALT               = Input_Opt%LSSALT
       LSULF                = Input_Opt%LSULF
+      LSOA                 = Input_Opt%LSOA
       LSTRATOD             = Input_Opt%LSTRATOD
       LRAD                 = Input_Opt%LRAD
 
@@ -1268,6 +1328,7 @@
       !
       ! Scaling is sufficient for the surface area calculation
       !=================================================================
+      ! Representative aerosol densities (kg/m3):
       MSDENS(1) = State_Chm%SpcData(id_SO4)%Info%Density
       MSDENS(2) = State_Chm%SpcData(id_BCPI)%Info%Density
       IF ( IS_POA ) THEN
@@ -1518,6 +1579,15 @@
      &                             ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
             ENDIF
 
+            ! Get the AOD contribution from isoprene SOA
+            ! only (eam, 2014):
+            IF ((N.eq.3) .and. LSOA ) THEN
+               ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0
+     &                           * State_Met%BXHEIGHT(I,J,L) 
+     &                           * ISOAAQ(I,J,L) * QQAA(IWV,1,N) / 
+     &                           ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+            ENDIF
+
 #if defined( UCX )
             ELSE           
             ! Get aerosol effective radius
@@ -1648,6 +1718,25 @@
      &                                     ( WTAREA(I,J,L,N+NDUST)   +
      &                                       DRYAREA )
                ENDIF !Hydrophobic aerosol surface area
+
+               !==============================================================
+               ! ND21 Diagnostic: 
+               !    Output aqueous aerosol volume as tracer=35
+               !    AQ AEROSOL VOL = (RADIUS * AREA)/3
+               !==============================================================
+               ! Aqueous aerosol only:
+               IF ( N .eq. 1 ) THEN 
+                  ! Initialize:
+                  TAERVOL = 0d0
+
+                  ! Compute:
+                  TAERVOL = ( ERADIUS(I,J,L,NDUST+N) * 
+     &                        TAREA(I,J,L, N+NDUST) ) / 3.D0
+
+                  ! Add to diagnostic:
+                  AD21(I,J,L,35) = AD21(I,J,L,35) + TAERVOL
+               ENDIF
+
             ENDIF    !Surface area calcs
          ENDDO
          ENDDO
@@ -1751,6 +1840,9 @@
       ! #32: Strat. particulate aerosol surface area [cm2/cm3 ]
       ! #33: Strat. particulate aerosol num. density [#/cm3   ]
       !
+      ! #34: Isoprene SOA AOD                        [unitless]
+      ! #35: Aqueous aerosol volume                  [cm3/cm3 ]
+      !
       ! NOTE: The cloud optical depths are actually recorded at
       !       1000 nm, but vary little with wavelength.
       !==============================================================
@@ -1838,6 +1930,12 @@
      &                   (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/
      &                   ODAER(I,J,L,IWVSELECT(2,W),N)))
                      ENDIF
+                  ENDIF
+
+                  ! Add ISOP AOD to tracer 34 of ND21 (eam, 2014):
+                  IF ((N.eq.3) .and. LSOA ) THEN
+                     AD21(I,J,L,34) = AD21(I,J,L,34) +
+     &                                ISOPOD(I,J,L,IWVSELECT(1,W))
                   ENDIF
 
                ENDDO
@@ -1978,8 +2076,6 @@
       id_SALA  = Ind_('SALA' )  
       id_SALC  = Ind_('SALC' )   
       id_SO4   = Ind_('SO4'  )         
-      id_SOAG  = Ind_('SOAG' ) 
-      id_SOAM  = Ind_('SOAM' ) 
       id_SO4s  = Ind_('SO4s' )  
       id_NITs  = Ind_('NITs' ) 
       id_POA1  = Ind_('POA1' )   
@@ -1997,6 +2093,14 @@
       id_ASOA1 = Ind_('ASOA1')  
       id_ASOA2 = Ind_('ASOA2') 
       id_ASOA3 = Ind_('ASOA3')
+      id_SOAGX = Ind_('SOAGX')
+      id_SOAMG = Ind_('SOAMG')
+      id_SOAGC = Ind_('SOAGC')
+      id_SOAIE = Ind_('SOAIE')
+      id_SOAME = Ind_('SOAME')
+      id_INDIOL= Ind_('INDIOL')
+      id_LVOCOA= Ind_('LVOCOA')
+      id_ISN1OA= Ind_('ISN1OA')
 
       ! Allocate arrays
       ALLOCATE( BCPI( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -2097,7 +2201,12 @@
       ! Mass of hydrophilic aerosol from Mian Chin
       ALLOCATE( WAERSL(IIPAR,JJPAR,LLPAR,NAER), STAT=AS)       
       IF ( AS /= 0) CALL ALLOC_ERR( 'WAERSL' )
-      DAERSL = 0d0
+      WAERSL = 0d0
+
+      ! Mechanistic isoprene SOA (eam, 2014):
+      ALLOCATE( ISOAAQ(IIPAR,JJPAR,LLPAR), STAT=AS)
+      IF ( AS /= 0) CALL ALLOC_ERR( 'ISOAAQ' )
+      ISOAAQ = 0d0
 
       END SUBROUTINE INIT_AEROSOL
 !EOC
@@ -2148,6 +2257,9 @@
       IF ( ALLOCATED( SOAG        ) ) DEALLOCATE( SOAG        )
       IF ( ALLOCATED( SOAM        ) ) DEALLOCATE( SOAM        )
       IF ( ALLOCATED( PM25        ) ) DEALLOCATE( PM25        )
+      IF ( ALLOCATED( WAERSL      ) ) DEALLOCATE( WAERSL      )
+      IF ( ALLOCATED( DAERSL      ) ) DEALLOCATE( DAERSL      )
+      IF ( ALLOCATED( ISOAAQ      ) ) DEALLOCATE( ISOAAQ      )
 
       END SUBROUTINE CLEANUP_AEROSOL
 !EOC

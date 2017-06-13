@@ -1424,11 +1424,6 @@
       OFFSET(N)   = SPACING * 33
 
       N           = N + 1
-      CATEGORY(N) = 'SOAGM=$'
-      DESCRIPT(N) = 'Dicarbonyl SOA production'
-      OFFSET(N)   = SPACING * 33
-
-      N           = N + 1
       CATEGORY(N) = 'HG-SRCE'
       DESCRIPT(N) = 'Hg emissions'
       OFFSET(N)   = SPACING * 34
@@ -1624,10 +1619,11 @@
       OFFSET(N)   = SPACING * 48
 
       ! New ND52 diagnostic for gamma(HO2). (jaegle, 2/29/09)
+      ! Now save out all variable gamma values (eam, 2014):
       N           = N + 1
-      CATEGORY(N) = 'GAMMA'
-      DESCRIPT(N) = 'gamma HO2'
-      OFFSET(N)   = SPACING * 49
+      CATEGORY(N) = 'GAMMA-$'
+      DESCRIPT(N) = 'gamma values'
+      OFFSET(N)   = SPACING * 50
 
       ! For mercury simulation only so we can use same spacing. (ccc, 5/21/10)
       N           = N + 1
@@ -1702,6 +1698,12 @@
       CATEGORY(N) = 'RADMAP-$'
       DESCRIPT(N) = 'Radiative diagnostics'
       OFFSET(N)   = SPACING * 72
+
+      ! ISORROPIA pH and H+:
+      N           = N + 1
+      CATEGORY(N) = 'ISOROP-$'
+      DESCRIPT(N) = 'ISORROPIA pH and H+'
+      OFFSET(N)   = SPACING * 85
 
       ! For species restart file
       N           = N + 1
@@ -4704,7 +4706,7 @@
          ! Number of tracers
          IF ( Input_Opt%LSOA ) THEN
             ! hotp updated for SOA (7/31/08)
-            NTRAC(07) = 15
+            NTRAC(07) = 11
          ELSE
             NTRAC(07) = 2
          ENDIF
@@ -4784,26 +4786,6 @@
                   ELSE
                      INDEX(T,07) = 81 + (SPACING * 33 )
                   ENDIF
-               CASE( 12 )
-                  NAME (T,07) = 'SOAG'
-                  FNAME(T,07) = 'SOAG production in aq. aerosol'
-                  MWT  (T,07) = 58e-3  ! hard-coded MW
-                  INDEX(T,07) = id_SOAG + ( SPACING * 33 )
-               CASE( 13 )
-                  NAME (T,07) = 'SOAM'
-                  FNAME(T,07) = 'SOAM production in aq. aerosol'
-                  MWT  (T,07) = 72e-3  ! hard-coded MW
-                  INDEX(T,07) = id_SOAM + ( SPACING * 33 )
-               CASE( 14 )
-                  NAME (T,07) = 'SOAG'
-                  FNAME(T,07) = 'SOAG production in clouds'
-                  MWT  (T,07) = 58e-3  ! hard-coded MW
-                  INDEX(T,07) = 91 + ( SPACING * 33 )
-               CASE( 15 )
-                  NAME (T,07) = 'SOAM'
-                  FNAME(T,07) = 'SOAM production in clouds'
-                  MWT  (T,07) = 72e-3  ! hard-coded MW
-                  INDEX(T,07) = 92 + ( SPACING * 33 )
 
                CASE DEFAULT
                   ! Nothing
@@ -5148,7 +5130,7 @@
       IF ( ND21 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
-         NTRAC(21) = 57
+         NTRAC(21) = PD21
 
          ! Loop over tracers
          DO T = 1, NTRAC(21)
@@ -5379,7 +5361,12 @@
                   NAME (T,21) = 'NDSPA'
                   FNAME(T,21) = 'SPA number density'
                   UNIT (T,21) = 'num/cm3'
-
+               CASE( 58 )
+                  NAME (T,21) = 'ISOPAOD'
+                  FNAME(T,21) = 'Isoprene AOD (550 nm)'
+               CASE( 59 )
+                  NAME (T,21) = 'AQAVOL'
+                  FNAME(T,21) = 'Aq. aerosol vol (cm3/cm3)'
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -6054,7 +6041,7 @@
       IF ( ND42 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(42) = 20
+         NTRAC(42) = PD42
 
          ! Loop over tracers
          DO T = 1, NTRAC(42)
@@ -6154,16 +6141,45 @@
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 1e-6
                CASE( 19 )
-                  NAME (T,42) = 'SOAG'
-                  FNAME(T,42) = 'SOAG'
+                  NAME (T,42) = 'SOAGX'
+                  FNAME(T,42) = 'SOAGX'
                   UNIT (T,42) = 'ug/m3'
-                  MWT  (T,42) = 1e-6
+                  MWT  (T,42) = 58e-3
                CASE( 20 )
-                  NAME (T,42) = 'SOAM'
-                  FNAME(T,42) = 'SOAM'
+                  NAME (T,42) = 'SOAMG'
+                  FNAME(T,42) = 'SOAMG'
                   UNIT (T,42) = 'ug/m3'
-                  MWT  (T,42) = 1e-6
-                  
+                  MWT  (T,42) = 42e-3
+               CASE( 21 )
+                  NAME (T,42) = 'SOAGC'
+                  FNAME(T,42) = 'SOAGC'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 60e-3
+               CASE( 22 )
+                  NAME (T,42) = 'SOAIE'
+                  FNAME(T,42) = 'IEPOX-OA'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 118e-3
+               CASE( 23 )
+                  NAME (T,42) = 'SOAME'
+                  FNAME(T,42) = 'IMAE-OA'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 102e-3
+               CASE( 24 )
+                  NAME (T,42) = 'INDIOL'
+                  FNAME(T,42) = 'ISOPN diol'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 102e-3
+               CASE( 25 )
+                  NAME (T,42) = 'LVOCOA'
+                  FNAME(T,42) = 'LV ISOPOOH SOA'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 154e-3
+               CASE( 26 )
+                  NAME (T,42) = 'ISN1OA'
+                  FNAME(T,42) = 'ISOP+NO3 SOA'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 226e-3
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -6584,7 +6600,7 @@
 
          ! Number of tracers
          ! Increased from 26 to 32 (mpb,2009)
-         NTRAC(48) = 14
+         NTRAC(48) = 17
 
          ! Loop over tracers
          DO T = 1, NTRAC(48)
@@ -6656,6 +6672,18 @@
                   NAME (T,48) = 'GWET_PRV'
                   FNAME(T,48) = 'Soil moisture'
                   UNIT (T,48) = 'unitless'
+               CASE( 15 )
+                  NAME (T,48) = 'SZA'
+                  FNAME(T,48) = 'Cosine Solar Zenith Angle'
+                  UNIT (T,48) = 'unitless'
+               CASE( 16 )
+                  NAME (T,48) = 'GLYX'
+                  FNAME(T,48) = 'Glyoxal time series'
+                  UNIT (T,48) = 'molec/cm3'
+               CASE( 17 )
+                  NAME (T,48) = 'AERMASS'
+                  FNAME(T,48) = 'Aerosol mass time series'
+                  UNIT (T,48) = 'ug/m3'
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -6666,19 +6694,48 @@
 
       !-----------------------------------
       ! gamma HO2 (ND52) jaegle (02/26/09)
+      ! Now saves out multiple gamma values (eam, 2014)
       !-----------------------------------
       IF ( ND52 > 0 ) THEN
-         T           = 1
-         NTRAC(52)   = T
-         NAME (T,52) = 'GAMMAHO2'
-         FNAME(T,52) = 'Gamma HO2'
-         UNIT (T,52) = 'unitless'
-         INDEX(T,52) = T + ( SPACING * 49 )
-         MOLC (T,52) = 1
-         MWT  (T,52) = 0e0
-         SCALE(T,52) = 1e0
-      ENDIF
 
+         ! Number of tracers:
+         NTRAC(52) = PD52
+
+         ! Loop over tracers:
+         DO T = 1, NTRAC(52)
+
+            ! Get name, longname:
+            SELECT CASE( T )
+               CASE( 1 )
+                  NAME (T,52) = 'GAMMAHO2'
+                  FNAME(T,52) = 'Gamma HO2'
+               CASE( 2 )
+                  NAME (T,52) = 'G_IEPOX'
+                  FNAME(T,52) = 'Gamma IEPOX'
+               CASE( 3 )
+                  NAME (T,52) = 'G_IMAE'
+                  FNAME(T,52) = 'Gamma IMAE'
+               CASE( 4 )
+                  NAME (T,52) = 'G_ISOPN'
+                  FNAME(T,52) = 'Gamma isoprene nitrates'
+               CASE( 5 )
+                  NAME (T,52) = 'G_DHDN'
+                  FNAME(T,52) = 'Gamma isoprene DHDN'
+               CASE( 6 )
+                  NAME (T,52) = 'G_GLYX'
+                  FNAME(T,52) = 'Gamma glyoxal'
+               CASE Default
+                  !Nothing
+            END SELECT
+
+            ! Define the remaining quantities:
+            UNIT (T,52) = 'unitless'
+            INDEX(T,52) = T + ( SPACING * 50 )
+            MOLC (T,52) = 1
+            MWT  (T,52) = 0e0
+            SCALE(T,52) = 1e0
+         ENDDO
+      ENDIF
 
       !-----------------------------------
       ! POPS (ND53) clf (03/22/11)
@@ -7581,6 +7638,44 @@
           ENDDO
       ENDIF
 #endif
+
+      !-------------------------------------      
+      ! ISORROPIA DIAGNOSTICS (ND73)
+      !-------------------------------------      
+      IF ( ND64 > 0 ) THEN 
+
+         ! Number of tracers
+         NTRAC(64) = PD64
+
+         ! Loop over tracers
+         DO T = 1, NTRAC(64)
+
+            ! Define quantities
+            INDEX(T,64) = T + ( SPACING * 85 )
+            MOLC (T,64) = 0
+            MWT  (T,64) = 0e0
+            SCALE(T,64) = 1e0
+            UNIT (T,64) = 'unitless'
+
+            ! Get name, long-name (and others where necessary)
+            SELECT CASE( T )
+               CASE( 1  )
+                  NAME (T,64) = 'ISORpH'
+                  FNAME(T,64) = 'ISORROPIA pH'
+               CASE( 2  )
+                  NAME (T,64) = 'ISORH+'
+                  FNAME(T,64) = 'ISORROPIA H+'
+                  UNIT( T,64) = 'mol/L'
+               CASE( 3  )
+                  NAME (T,64) = 'ISORH2O'
+                  FNAME(T,64) = 'ISORROPIA aerosol H2O'
+                  UNIT( T,64) = 'ug/m3'
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+         ENDDO
+      ENDIF
 
       ! Nullify pointer
       SpcInfo  => NULL()

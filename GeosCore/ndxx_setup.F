@@ -341,9 +341,6 @@
          ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 9 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_HC' )
 
-         ALLOCATE( AD07_SOAGM( IIPAR, JJPAR, LD07, 4 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_SOAGM' )
-
       ENDIF  
 
       !=================================================================
@@ -892,12 +889,12 @@
       ENDIF
 
       !=================================================================
-      ! ND52: gamma HO2
+      ! ND52: gamma values
       !=================================================================
       IF ( ND52 > 0 ) THEN
          LD52 = MIN( ND52, LLPAR)
 
-         ALLOCATE( AD52( IIPAR, JJPAR, LD52 ), STAT=AS )
+         ALLOCATE( AD52( IIPAR, JJPAR, LD52, PD52 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD52' )
       ENDIF
 
@@ -1173,6 +1170,17 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD72' )
       ENDIF
 
+      !=================================================================
+      ! ND73: ISORROPIA pH and H+
+      !=================================================================
+      IF ( ND73 > 0 ) THEN 
+         LD73 = MIN( ND73, LLPAR )
+
+         ALLOCATE( AD73( IIPAR, JJPAR, LD64, PD73 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD73' )
+
+      ENDIF
+
       ! Save LD* fields back into the Input_Opt object (bmy, 11/9/12)
       Input_Opt%LD01  = LD01
       Input_Opt%LD02  = LD02
@@ -1212,6 +1220,7 @@
       Input_Opt%LD65  = LD65
       Input_Opt%LD66  = LD66
       Input_Opt%LD68  = LD68
+      Input_Opt%LD73  = LD73
 
       END SUBROUTINE NDXX_SETUP
 !EOC

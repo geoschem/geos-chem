@@ -784,6 +784,8 @@ ndxx_setup.o                : ndxx_setup.F                                   \
                               drydep_mod.o            planeflight_mod.o      \
                               tomas_mod.o             wetscav_mod.o
 
+oasave.o                    : oasave.F
+
 ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
                               dao_mod.o               depo_mercury_mod.o     \
                               diag03_mod.o            toms_mod.o             \

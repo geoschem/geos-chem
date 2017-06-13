@@ -104,6 +104,10 @@
 !  182           : Daily LAI                                [hPa        ]
 !  183           : Temperature at 2m                        [K          ]
 !  184           : Accumulated precip.                      [mm/day     ]
+!  185           : Cosine of Solar zenith angle             [unitless   ]
+!  186           : Total organic aerosol                    [ug/m3      ]
+!  187           : ISORROPIA aerosol pH                     [unitless   ]
+!  188           : ISORROPIA aerosol water                  [ug/m3 air  ]
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -170,7 +174,7 @@
 
       INTEGER            :: IOFF,           JOFF,   LOFF
       INTEGER            :: I0,             J0
-      INTEGER            :: ND49_N_TRACERS, ND49_TRACERS(120)
+      INTEGER            :: ND49_N_TRACERS, ND49_TRACERS(188)
       INTEGER            :: ND49_IMIN,      ND49_IMAX
       INTEGER            :: ND49_JMIN,      ND49_JMAX
       INTEGER            :: ND49_LMIN,      ND49_LMAX
@@ -189,9 +193,9 @@
 
       ! Species ID flags
       INTEGER            :: id_HNO3, id_HNO4, id_N2O5, id_NO
-      INTEGER            :: id_PAN,  id_PMN,  id_PPN,  id_O3
+      INTEGER            :: id_PAN,  id_NPMN, id_PPN,  id_O3
       INTEGER            :: id_R4N2, id_SALA, id_SALC, id_NO2
-      INTEGER            :: id_PASV
+      INTEGER            :: id_PASV, id_IPMN
 
       CONTAINS
 !EOC
@@ -217,7 +221,7 @@
       USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_O3_MOD	           ! SAVEOH
+      USE CMN_O3_MOD	           ! SAVEOH, SAVE_TMP6
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
@@ -318,7 +322,7 @@
       LOGICAL, SAVE            :: FIRST  = .TRUE.
       LOGICAL, SAVE            :: IS_FULLCHEM
       LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
-      LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
+      LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP,     LSOA
 
       ! Scalars
       LOGICAL                  :: LINTERP
@@ -366,6 +370,7 @@
       nAdvect       = State_Chm%nAdvect
 
       ! Copy values from Input_Opt
+      LSOA          = Input_Opt%LSOA
       LSOILNOX      = Input_Opt%LSOILNOX
       DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
 
@@ -386,7 +391,8 @@
          id_N2O5 = Ind_('N2O5')
          id_NO   = Ind_('NO'  )
          id_PAN  = Ind_('PAN' )
-         id_PMN  = Ind_('PMN' )
+         id_NPMN = Ind_('NPMN')
+         id_IPMN = Ind_('IPMN')
          id_PPN  = Ind_('PPN' )
          id_O3   = Ind_('O3'  )
          id_R4N2 = Ind_('R4N2')
@@ -403,9 +409,10 @@
          IS_SEASALT  = ( id_SALA > 0 .and. id_SALC > 0 )
          IS_NOy      = ( IS_FULLCHEM .and. id_NO   > 0 .and.
      &                   id_NO2  > 0 .and. id_PAN  > 0 .and.
-     &                   id_HNO3 > 0 .and. id_PMN  > 0 .and.
+     &                   id_HNO3 > 0 .and. id_NPMN > 0 .and.
      &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
-     &                   id_N2O5 > 0 .and. id_HNO4 > 0 ) 
+     &                   id_N2O5 > 0 .and. id_HNO4 > 0 .and.
+     &                   id_IPMN > 0 ) 
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -647,10 +654,15 @@
      &               / State_Chm%SpcData(id_HNO3)%Info%emMW_g )     
      &               * SPC(I,J,L,id_HNO3) )
             
-               ! PMN
+               ! NPMN
                TMP = TMP + ( ( AIRMW 
-     &               / State_Chm%SpcData(id_PMN)%Info%emMW_g )      
-     &               * SPC(I,J,L,id_PMN) )
+     &               / State_Chm%SpcData(id_NPMN)%Info%emMW_g )      
+     &               * SPC(I,J,L,id_NPMN) )
+
+               ! IPMN
+               TMP = TMP + ( ( AIRMW 
+     &               / State_Chm%SpcData(id_IPMN)%Info%emMW_g )      
+     &               * SPC(I,J,L,id_IPMN) )
 
                ! PPN
                TMP = TMP + ( ( AIRMW 
@@ -1456,11 +1468,11 @@
          ELSE IF ( N == 182 ) THEN
 
             !--------------------------------------
-            ! Daily LAI [hPa]
+            ! Daily LAI [m2/m2]
             !--------------------------------------
             CATEGORY = 'TIME-SER'
             UNIT     = 'm2/m2'
-            GMNL     = ND49_NL
+            GMNL     = 1
             GMTRC    = 9
            
 !$OMP PARALLEL DO
@@ -1483,7 +1495,7 @@
             !--------------------------------------
             CATEGORY = 'DAO-FLDS'
             UNIT     = 'K'     
-            GMNL     = ND49_NL
+            GMNL     = 1
             GMTRC    = 5
 
 !$OMP PARALLEL DO
@@ -1522,6 +1534,105 @@
             DO X = 1, ND49_NI
                I = GET_I( X )
                Q(X,Y,1) =  State_Met%PRECTOT(I,J)
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 185 ) THEN
+            
+            !-----------------------------------
+            ! Cosine of SZA  (eam, 2014)
+            !-----------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'unitless'     
+            GMNL     = 1
+            GMTRC    = 33
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) = State_Met%SUNCOSmid( I, J )
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 186 .and. LSOA ) THEN
+            
+            !-------------------------------------
+            ! Total organic aerosol [ug/m3] (eam, 2014)
+            !-------------------------------------
+            CATEGORY = 'IJ-SOA-$'
+            UNIT     = 'ug/m3'
+            GMNL     = ND49_NL
+            GMTRC    = 6
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+            DO K = 1, ND49_NL
+               L = LOFF + K
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,K) = SAVE_TMP6(I,J,L)
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 187 ) THEN
+            
+            !-------------------------------------
+            ! ISORROPIA aerosol pH (unitless) 
+            ! (eam, 08/2015) 
+            !-------------------------------------
+            CATEGORY = 'ISOROP-$'
+            UNIT     = 'unitless'
+            GMNL     = ND49_NL
+            GMTRC    = 1
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+            DO K = 1, ND49_NL
+               L = LOFF + K
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,K) = PH_SAV(I,J,L)
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 188 ) THEN
+            
+            !-------------------------------------
+            ! ISORROPIA aerosol water (ug/m3 air) 
+            ! (eam, 08/2015) 
+            !-------------------------------------
+            CATEGORY = 'ISOROP-$'
+            UNIT     = 'ug/m3'
+            GMNL     = ND49_NL
+            GMTRC    = 3
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+            DO K = 1, ND49_NL
+               L = LOFF + K
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,K) = WATER_SAV(I,J,L)
+            ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO

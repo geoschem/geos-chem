@@ -215,6 +215,7 @@
          IF ( ND69 > 0 ) AD69     = 0e0      ! netcdf MET diag group
 #endif
          IF ( ND72 > 0 ) AD72     = 0e0
+         IF ( ND73 > 0 ) AD73     = 0e0
 
          ! Daily max mean hourly surface v/v
          IF ( ND71 > 0 ) THEN
@@ -247,7 +248,6 @@
             AD07_BC    = 0e0
             AD07_OC    = 0e0
             AD07_HC    = 0e0
-            AD07_SOAGM = 0e0
          ENDIF
 
          ! ND09 -- HCN & CH3CN simulation (xyp, bmy, 6/27/05)

@@ -1588,7 +1588,7 @@
       LOGICAL            :: LSVPOA,     LDUST,      LDSTUP
       LOGICAL            :: LSSALT,     LCRYST,     LDICARB
       LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
-      LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA
+      LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA, LISOPOA
       INTEGER            :: N,          T,          I 
       CHARACTER(LEN=255) :: MSG,        LOCATION
       REAL(fp)           :: T_NAT_SUPERCOOL, P_ICE_SUPERSAT
@@ -1633,6 +1633,10 @@
       ! SOAupdate: Add Semi-volatile POA switch (hotp 8/9/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
       READ( SUBSTRS(1:N), * ) LSVPOA
+
+      ! Use mechanistic isoprene OA (eam, 08/2015):
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6b' )
+      READ( SUBSTRS(1:N), * ) LISOPOA
 
       ! Use online dust aerosols ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
@@ -1722,6 +1726,7 @@
          LSSALT = .FALSE.
          LMPOA  = .FALSE.
          LSVPOA = .FALSE.
+         LISOPOA= .FALSE.
       ENDIF
 
       !%%% The cryst/aq code is currently under development so make
@@ -1738,6 +1743,7 @@
       Input_Opt%LBRC               = LBRC
       Input_Opt%LSOA               = LSOA 
       Input_Opt%LSVPOA             = LSVPOA
+      Input_Opt%LISOPOA            = LISOPOA
       Input_Opt%LDUST              = LDUST 
       Input_Opt%LDSTUP             = LDSTUP
       Input_Opt%LSSALT             = LSSALT
@@ -1766,6 +1772,7 @@
          WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ', LBRC
          WRITE( 6, 100     ) 'Online COMPLEX SOA?         : ', LSOA
          WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
+         WRITE( 6, 100     ) 'Mechanistic isoprene OA?    : ', LISOPOA
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
          WRITE( 6, 100     ) 'Acid uptake on dust?        : ', LDSTUP
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
@@ -4397,7 +4404,7 @@
      &                 47, ND47, SUBSTRS(2:N), N-1, N_ADVECT )
 
       !--------------------------
-      ! ND52: GAMMA HO2
+      ! ND52: GAMMA values
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:51' )
       READ( SUBSTRS(1), * ) ND52
@@ -4551,6 +4558,12 @@
        MSG = 'If LRAD is true then ND72 diagnostic must be switched on'
        CALL ERROR_STOP( MSG, 'READ_DIAGNOSTIC_MENU ("input_mod.f")' )
       ENDIF
+
+      !--------------------------
+      ! ND73: ISORROPIA pH and H+
+      !--------------------------
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:71' )
+      READ( SUBSTRS(1), * ) ND73
 
 #if defined( NC_DIAG )
       !----------------------------------------------------------
@@ -8386,8 +8399,6 @@
      &  + MAX( Ind_('ASOA2','A'), 0 )
      &  + MAX( Ind_('ASOA3','A'), 0 )
      &  + MAX( Ind_('ASOAN','A'), 0 )
-     &  + MAX( Ind_('SOAG' ,'A'), 0 )
-     &  + MAX( Ind_('SOAM' ,'A'), 0 )
 
       IF ( Input_Opt%LSOA ) THEN
          IF ( I == 0 ) THEN
@@ -8408,6 +8419,37 @@
       IF ( Input_Opt%LSOA ) THEN
          IF ( I > 0 ) THEN
             MSG = 'Cannot use SIMPLE SOA species if LSOA=T!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check ISOPRENE ORGANIC AEROSOLS
+      !=================================================================
+
+      ! Check for mechanistic isoprene OA
+      I = MAX( Ind_('IPMN'  ,'A'), 0 )
+     &  + MAX( Ind_('IMAE'  ,'A'), 0 )
+     &  + MAX( Ind_('SOAIE' ,'A'), 0 )
+     &  + MAX( Ind_('SOAME' ,'A'), 0 )
+     &  + MAX( Ind_('INDIOL','A'), 0 )
+     &  + MAX( Ind_('SOAGX' ,'A'), 0 )
+     &  + MAX( Ind_('SOAMG' ,'A'), 0 )
+     &  + MAX( Ind_('SOAGC' ,'A'), 0 )
+     &  + MAX( Ind_('LVOC'  ,'A'), 0 )
+     &  + MAX( Ind_('LVOCOA','A'), 0 )
+     &  + MAX( Ind_('ISN1'  ,'A'), 0 )
+     &  + MAX( Ind_('ISN1OG','A'), 0 )
+     &  + MAX( Ind_('ISN1OA','A'), 0 )
+
+      IF ( Input_Opt%LISOPOA ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LISOPOA=T but ISOPRENE SOA species are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use ISOPRENE SOA species if LISOPOA=F!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF

@@ -112,6 +112,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LSOA
      LOGICAL                     :: LMPOA
      LOGICAL                     :: LSVPOA
+     LOGICAL                     :: LISOPOA
      LOGICAL                     :: LDUST              
      LOGICAL                     :: LDEAD              
      LOGICAL                     :: LSSALT             
@@ -320,6 +321,7 @@ MODULE Input_Opt_Mod
      INTEGER                     :: ND70,             LD70
      INTEGER                     :: ND71,             LD71
      INTEGER                     :: ND72,             LD72
+     INTEGER                     :: ND73,             LD73
 
      INTEGER                     :: TS_DIAG
      LOGICAL                     :: LPRT
@@ -821,6 +823,7 @@ CONTAINS
     Input_Opt%LSOA                   = .FALSE.
     Input_Opt%LMPOA                  = .FALSE.
     Input_Opt%LSVPOA                 = .FALSE.
+    Input_Opt%LISOPOA                = .FALSE.
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
     Input_Opt%LDSTUP                 = .FALSE.
@@ -1038,6 +1041,7 @@ CONTAINS
     Input_Opt%ND70                   = 0
     Input_Opt%ND71                   = 0
     Input_Opt%ND72                   = 0
+    Input_Opt%ND73                   = 0
     Input_Opt%LD01                   = 0
     Input_Opt%LD02                   = 0
     Input_Opt%LD03                   = 0
@@ -1110,6 +1114,7 @@ CONTAINS
     Input_Opt%LD70                   = 0
     Input_Opt%LD71                   = 0
     Input_Opt%LD72                   = 0
+    Input_Opt%LD73                   = 0
     Input_Opt%LPRT                   = .FALSE.
     Input_Opt%TINDEX(:,:)            = 0
     Input_Opt%TCOUNT(:)              = 0	  

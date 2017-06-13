@@ -90,13 +90,17 @@
       ! Array for offline use in sulfate_mod (SEASALT_CHEM) 
       REAL(fp),  ALLOCATABLE :: GAS_HNO3(:,:,:)
 
-      ! AEROPH: Save information related to aerosol pH (hotp 8/11/09)
-      REAL(fp),  ALLOCATABLE :: PH_SAV(:,:,:)
-      REAL(fp),  ALLOCATABLE :: HPLUS_SAV(:,:,:)
-      REAL(fp),  ALLOCATABLE :: WATER_SAV(:,:,:)
-      REAL(fp),  ALLOCATABLE :: SULRAT_SAV(:,:,:)
-      REAL(fp),  ALLOCATABLE :: NARAT_SAV(:,:,:)
-      REAL(fp),  ALLOCATABLE :: ACIDPUR_SAV(:,:,:)
+!------------------------------------------------------------------------------
+! Prior to 6/13/17:
+! These arrays have been moved to CMN_O3_mod.F (mps, 6/13/17)
+!      ! AEROPH: Save information related to aerosol pH (hotp 8/11/09)
+!      REAL(fp),  ALLOCATABLE :: PH_SAV(:,:,:)
+!      REAL(fp),  ALLOCATABLE :: HPLUS_SAV(:,:,:)
+!      REAL(fp),  ALLOCATABLE :: WATER_SAV(:,:,:)
+!      REAL(fp),  ALLOCATABLE :: SULRAT_SAV(:,:,:)
+!      REAL(fp),  ALLOCATABLE :: NARAT_SAV(:,:,:)
+!      REAL(fp),  ALLOCATABLE :: ACIDPUR_SAV(:,:,:)
+!------------------------------------------------------------------------------
 
       ! HEMCO pointers
       REAL(sp), POINTER    :: HNO3(:,:,:) => NULL()
@@ -139,7 +143,12 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
+      USE CMN_DIAG_MOD,       ONLY : LD64,   ND64
+      USE CMN_O3_MOD,         ONLY : HPLUS_SAV,  NARAT_SAV,  PH_SAV,
+     &                               SULRAT_SAV, BISUL_SAV,  WATER_SAV,
+     &                               ACIDPUR_SAV
       USE CMN_SIZE_MOD 
+      USE DIAG_MOD,           ONLY : AD64
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -243,6 +252,13 @@
               
       ! AEROPH: Temporary variable for pH (hotp 8/11/09)
       REAL(fp)                 :: HPLUSTEMP
+      ! Temporary variable for SO4--
+      REAL(fp)                 :: SULFTEMP
+      ! Temporary variable for HSO4-
+      REAL(fp)                 :: BISULTEMP
+      ! Temporary variable for NO3-
+      REAL(fp)                 :: NITRTEMP
+
 
       ! debug variables
       INTEGER                  :: Itemp, Jtemp, Ltemp
@@ -347,14 +363,17 @@
          FIRST = .FALSE. 
       ENDIF
 
-      ! AEROPH: Initialize arrays all the way up to LLPAR for
-      ! aeroph. Arrays go up to LLPAR due to ND42 use (hotp 8/11/09)
-      PH_SAV      = 0e+0_fp
-      HPLUS_SAV   = 0e+0_fp
-      WATER_SAV   = 0e+0_fp
-      SULRAT_SAV  = 0e+0_fp
-      NARAT_SAV   = 0e+0_fp
-      ACIDPUR_SAV = 0e+0_fp
+!------------------------------------------------------------------------------
+! Prior to 6/13/17:
+!      ! AEROPH: Initialize arrays all the way up to LLPAR for
+!      ! aeroph. Arrays go up to LLPAR due to ND42 use (hotp 8/11/09)
+!      PH_SAV      = 0e+0_fp
+!      HPLUS_SAV   = 0e+0_fp
+!      WATER_SAV   = 0e+0_fp
+!      SULRAT_SAV  = 0e+0_fp
+!      NARAT_SAV   = 0e+0_fp
+!      ACIDPUR_SAV = 0e+0_fp
+!------------------------------------------------------------------------------
 
       ! Initialize for each timestep (bec, bmy, 4/15/05)
       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
@@ -378,6 +397,7 @@
 !$OMP+PRIVATE( SCASI,   P_PA,     TNO3,       AERLIQ,    AERSLD  )
 !$OMP+PRIVATE( OTHER,   TNH4,     TNIT,       HPLUSTEMP, NUM_SAV )
 !$OMP+PRIVATE( DEN_SAV, HNO3_DEN, OutOfBounds                    )
+!$OMP+PRIVATE( SULFTEMP, BISULTEMP, NITRTEMP                     )
 !$OMP+SCHEDULE( DYNAMIC, 1 )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -663,19 +683,34 @@
             ! We force HPLUSTEMP to 1d20 and PH_SAV to -999e+0_fp.
             ! (hotp, ccc, 12/18/09)
             HPLUSTEMP       = 1e+20_fp
+            SULFTEMP        = 1e-30_fp
+            BISULTEMP       = 1e-30_fp
+            NITRTEMP        = 1e-30_fp
             PH_SAV(I,J,L)   = -999e+0_fp
          ELSE
             HPLUSTEMP       = AERLIQ(1) / AERLIQ(8) * 1e+3_fp/18e+0_fp
+            SULFTEMP        = AERLIQ(5) / AERLIQ(8) * 1e+3_fp/18e+0_fp
+            BISULTEMP       = AERLIQ(6) / AERLIQ(8) * 1e+3_fp/18e+0_fp
+            NITRTEMP        = AERLIQ(7) / AERLIQ(8) * 1e+3_fp/18e+0_fp
 
             ! Use SAFELOG10 to prevent NAN
             PH_SAV(I,J,L)   = -1e+0_fp * SAFELOG10( HPLUSTEMP )
          ENDIF
 
          ! Additional Info
-         HPLUS_SAV(I,J,L)   = AERLIQ(1)
-         WATER_SAV(I,J,L)   = AERLIQ(8)
-         SULRAT_SAV(I,J,L)  = OTHER(2)
-         NARAT_SAV(I,J,L)   = OTHER(4)
+!------------------------------------------------------------------------------
+! Prior to 6/13/17:
+!         HPLUS_SAV(I,J,L)   = AERLIQ(1)
+!         WATER_SAV(I,J,L)   = AERLIQ(8)
+!         SULRAT_SAV(I,J,L)  = OTHER(2)
+!         NARAT_SAV(I,J,L)   = OTHER(4)
+!------------------------------------------------------------------------------
+         HPLUS_SAV(I,J,L)   = HPLUSTEMP 
+         ! Water in ug/m3 (convert from mol/m3 air to ug/m3 air) (eam, 07/2015):
+         WATER_SAV(I,J,L)   = AERLIQ(8) * 18e+6_fp
+         SULRAT_SAV(I,J,L)  = SULFTEMP
+         NARAT_SAV(I,J,L)   = NITRTEMP
+         BISUL_SAV(I,J,L)   = BISULTEMP
 
          NUM_SAV    = ( Spc(I,J,L,id_NH3) /17e+0_fp         +
      &                  Spc(I,J,L,id_NH4) /18e+0_fp         +
@@ -690,6 +725,16 @@
          ACIDPUR_SAV(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
      &                                 0e+0_fp,       
      &                                 999e+0_fp)
+
+         IF ( ND64 > 0 ) THEN
+            ! Archive ISORROPIA H+ and pH values (eam, 04/2015):
+            IF ( L <= LD64 ) THEN
+               AD64(I,J,L,1) = AD64(I,J,L,1) + PH_SAV(   I,J,L)
+               AD64(I,J,L,2) = AD64(I,J,L,2) + HPLUS_SAV(I,J,L)
+               AD64(I,J,L,3) = AD64(I,J,L,3) + WATER_SAV(I,J,L)
+            ENDIF
+         ENDIF
+
       ENDDO
       ENDDO
       ENDDO 
@@ -756,6 +801,12 @@
 !
       FUNCTION GET_ISRINFO( I, J, L, N ) RESULT ( RETURNVALUE )
 !
+! !USES:
+!
+      USE CMN_O3_MOD, ONLY : HPLUS_SAV,  NARAT_SAV,  PH_SAV,
+     &                       SULRAT_SAV, BISUL_SAV,  WATER_SAV,
+     &                       ACIDPUR_SAV
+!
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: I   ! GEOS-Chem longitude index
@@ -785,6 +836,8 @@
          RETURNVALUE = NARAT_SAV( I, J, L ) 
       ELSEIF ( N == 6 ) THEN
          RETURNVALUE = ACIDPUR_SAV( I, J, L ) 
+      ELSEIF ( N == 7 ) THEN
+         RETURNVALUE = BISUL_SAV( I, J, L )
       ELSE
          ! return large value to indicate problem
          RETURNVALUE = 99999e+0_fp
@@ -996,31 +1049,34 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAS_HNO3' )
       GAS_HNO3 = 0e+0_fp
 
-      ! AEROPH: diagnostic info (hotp 8/11/09)
-      ! Allocate up to LLPAR, but zero above LLTROP
-      ALLOCATE( PH_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PH_SAV' )
-      PH_SAV = 0e+0_fp
-
-      ALLOCATE( HPLUS_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-      IF ( AS /= 0  ) CALL ALLOC_ERR( 'HPLUS_SAV' )
-      HPLUS_SAV = 0e+0_fp
-      
-      ALLOCATE( WATER_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WATER_SAV' )
-      WATER_SAV = 0e+0_fp
-
-      ALLOCATE( SULRAT_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SULRAT_SAV' )
-      SULRAT_SAV = 0e+0_fp
-
-      ALLOCATE( NARAT_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NARAT_SAV' )
-      NARAT_SAV = 0e+0_fp
-
-      ALLOCATE( ACIDPUR_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ACIDPUR_SAV' )
-      ACIDPUR_SAV = 0e+0_fp
+!------------------------------------------------------------------------------
+! Prior to 6/13/17:
+!      ! AEROPH: diagnostic info (hotp 8/11/09)
+!      ! Allocate up to LLPAR, but zero above LLTROP
+!      ALLOCATE( PH_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PH_SAV' )
+!      PH_SAV = 0e+0_fp
+!
+!      ALLOCATE( HPLUS_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
+!      IF ( AS /= 0  ) CALL ALLOC_ERR( 'HPLUS_SAV' )
+!      HPLUS_SAV = 0e+0_fp
+!      
+!      ALLOCATE( WATER_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WATER_SAV' )
+!      WATER_SAV = 0e+0_fp
+!
+!      ALLOCATE( SULRAT_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SULRAT_SAV' )
+!      SULRAT_SAV = 0e+0_fp
+!
+!      ALLOCATE( NARAT_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NARAT_SAV' )
+!      NARAT_SAV = 0e+0_fp
+!
+!      ALLOCATE( ACIDPUR_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ACIDPUR_SAV' )
+!      ACIDPUR_SAV = 0e+0_fp
+!------------------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE INIT_ISOROPIAII
@@ -1048,13 +1104,16 @@
 
       IF ( ALLOCATED( HNO3_sav    ) ) DEALLOCATE( HNO3_sav )
       IF ( ALLOCATED( GAS_HNO3    ) ) DEALLOCATE( GAS_HNO3 )
-      ! AEROPH: Deallocate arrays for pH (hotp 8/11/09)
-      IF ( ALLOCATED( PH_SAV      ) ) DEALLOCATE( PH_SAV     )
-      IF ( ALLOCATED( HPLUS_SAV   ) ) DEALLOCATE( HPLUS_SAV  )
-      IF ( ALLOCATED( WATER_SAV   ) ) DEALLOCATE( WATER_SAV  )
-      IF ( ALLOCATED( SULRAT_SAV  ) ) DEALLOCATE( SULRAT_SAV )
-      IF ( ALLOCATED( NARAT_SAV   ) ) DEALLOCATE( NARAT_SAV  )
-      IF ( ALLOCATED( ACIDPUR_SAV ) ) DEALLOCATE( ACIDPUR_SAV)
+!------------------------------------------------------------------------------
+! Prior to 6/13/17:
+!      ! AEROPH: Deallocate arrays for pH (hotp 8/11/09)
+!      IF ( ALLOCATED( PH_SAV      ) ) DEALLOCATE( PH_SAV     )
+!      IF ( ALLOCATED( HPLUS_SAV   ) ) DEALLOCATE( HPLUS_SAV  )
+!      IF ( ALLOCATED( WATER_SAV   ) ) DEALLOCATE( WATER_SAV  )
+!      IF ( ALLOCATED( SULRAT_SAV  ) ) DEALLOCATE( SULRAT_SAV )
+!      IF ( ALLOCATED( NARAT_SAV   ) ) DEALLOCATE( NARAT_SAV  )
+!      IF ( ALLOCATED( ACIDPUR_SAV ) ) DEALLOCATE( ACIDPUR_SAV)
+!------------------------------------------------------------------------------
 
       ! Free pointers
       IF ( ASSOCIATED( HNO3       ) ) HNO3 => NULL()

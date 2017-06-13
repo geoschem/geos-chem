@@ -332,8 +332,9 @@
       LOGICAL, SAVE       :: IS_FULLCHEM, IS_SEASALT
       LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy,  IS_OPTD, IS_SLP
       INTEGER, SAVE       :: id_HNO3,     id_HNO4, id_N2O5, id_NO
-      INTEGER, SAVE       :: id_PAN,      id_PMN,  id_PPN,  id_O3
+      INTEGER, SAVE       :: id_PAN,      id_NPMN,  id_PPN,  id_O3
       INTEGER, SAVE       :: id_R4N2,     id_SALA, id_SALC, id_NO2
+      INTEGER             :: id_IPMN
 
       ! Scalars
       LOGICAL             :: IS_CHEM
@@ -372,7 +373,8 @@
          id_N2O5 = Ind_('N2O5')
          id_NO   = Ind_('NO'  )
          id_PAN  = Ind_('PAN' )
-         id_PMN  = Ind_('PMN' )
+         id_PMN  = Ind_('NPMN' )
+         id_PMN  = Ind_('IPMN' )
          id_PPN  = Ind_('PPN' )
          id_O3   = Ind_('O3'  )
          id_R4N2 = Ind_('R4N2')
@@ -388,9 +390,10 @@
          IS_SEASALT  = ( id_SALA > 0 .and. id_SALC > 0 )
          IS_NOy      = ( IS_FULLCHEM .and. id_NO   > 0 .and.
      &                   id_NO2  > 0 .and. id_PAN  > 0 .and.
-     &                   id_HNO3 > 0 .and. id_PMN  > 0 .and.
+     &                   id_HNO3 > 0 .and. id_NPMN > 0 .and.
      &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
-     &                   id_N2O5 > 0 .and. id_HNO4 > 0 ) 
+     &                   id_N2O5 > 0 .and. id_HNO4 > 0 .and.
+     &                   id_IPMN > 0 ) 
 
          ! Reset first-time flag
          FIRST       = .FALSE.
@@ -523,10 +526,14 @@
      &                / State_Chm%SpcData(id_HNO3)%Info%emMW_g )        
      &                       * Spc(I,J,L,id_HNO3) )
             
-               ! PMN
+               ! NPMN
                TMP = TMP + ( ( AIRMW 
-     &                / State_Chm%SpcData(id_PMN)%Info%emMW_g )         
-     &                       * Spc(I,J,L,id_PMN) )
+     &                / State_Chm%SpcData(id_NPMN)%Info%emMW_g )         
+     &                       * Spc(I,J,L,id_NPMN) )
+               ! IPMN
+               TMP = TMP + ( ( AIRMW 
+     &                / State_Chm%SpcData(id_IPMN)%Info%emMW_g )         
+     &                       * Spc(I,J,L,id_IPMN) )
 
                ! PPN
                TMP = TMP + ( ( AIRMW 

@@ -41,7 +41,6 @@
       REAL*4,  ALLOCATABLE :: AD07_BC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_OC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_HC(:,:,:,:)
-      REAL*4,  ALLOCATABLE :: AD07_SOAGM(:,:,:,:)
 
       ! For ND09 -- HCN / CH3CN simulation
       REAL*4,  ALLOCATABLE :: AD09(:,:,:,:)
@@ -159,7 +158,7 @@
       REAL(fp),  ALLOCATABLE :: STT_TEMPO2(:,:,:,:)
 
       ! For ND52 -- gamma HO2 diagnostic
-      REAL*4,  ALLOCATABLE :: AD52(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD52(:,:,:,:)
 
       ! For ND54 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD54(:,:,:)
@@ -232,6 +231,9 @@
 
       ! For ND72 -- Radiation output diagnostic
       REAL*4,  ALLOCATABLE :: AD72(:,:,:)
+
+      ! For ND64 -- ISORROPIA pH, H+, and aerosol H2O diagnostic:
+      REAL*4,  ALLOCATABLE :: AD73(:,:,:,:)
 !
 ! !REVISION HISTORY:
 !  30 Nov 1999 - A. Fiore - Initial version
@@ -364,7 +366,6 @@
       IF ( ALLOCATED( AD07_BC     ) ) DEALLOCATE( AD07_BC     )
       IF ( ALLOCATED( AD07_OC     ) ) DEALLOCATE( AD07_OC     )
       IF ( ALLOCATED( AD07_HC     ) ) DEALLOCATE( AD07_HC     )
-      IF ( ALLOCATED( AD07_SOAGM  ) ) DEALLOCATE( AD07_SOAGM  )
       IF ( ALLOCATED( AD09        ) ) DEALLOCATE( AD09        )
       IF ( ALLOCATED( AD09_em     ) ) DEALLOCATE( AD09_em     )
       IF ( ALLOCATED( AD12        ) ) DEALLOCATE( AD12        )
@@ -430,6 +431,7 @@
       IF ( ALLOCATED( AD71_HR     ) ) DEALLOCATE( AD71_HR     )
       IF ( ALLOCATED( AD71_DAY    ) ) DEALLOCATE( AD71_DAY    )
       IF ( ALLOCATED( AD72        ) ) DEALLOCATE( AD72        )
+      IF ( ALLOCATED( AD73        ) ) DEALLOCATE( AD73        )
       IF ( ALLOCATED( CONVFLUP    ) ) DEALLOCATE( CONVFLUP    )
       IF ( ALLOCATED( CT16        ) ) DEALLOCATE( CT16        )
       IF ( ALLOCATED( CT17        ) ) DEALLOCATE( CT17        )

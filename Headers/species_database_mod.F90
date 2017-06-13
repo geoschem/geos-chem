@@ -1313,6 +1313,36 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
+          CASE( 'GLYX' ) !ISOP_SOA,eam
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Glyoxal',                    &
+                              MW_g          = 58.0_fp,                      &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            & 
+                              Is_Wetdep     = T,                            & !
+                              Is_Photolysis = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )
+!------------------------------------------------------------------------------
+! Need to add new values for glyoxal (mps, 6/8/17)
+!                              Henry_K0      = 1.30e-01_f8 * To_M_atm,       &
+!                              Henry_CR      = 5900.0_f8,                    &
+!------------------------------------------------------------------------------
+#else
+                              DD_Hstar_old  = 3.7e+3_fp,                    &
+                              Henry_K0      = 3.7e+3_f8,                    &
+                              Henry_CR      = 7500.0_f8,                    &
+#endif
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
           CASE( 'H2O' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1705,83 +1735,47 @@ CONTAINS
                               Henry_K0      = 7.60e+5_f8 * To_M_atm,        &
                               Henry_CR      = 0.0_f8,                       &
 #else									    
-                              DD_Hstar_old  = 1.30e+8_fp,                   &
+                              ! Update DD_Hstar based on Pye et al. (2013)
+                              DD_Hstar_old  = 2.70e+6_fp,                   &
                               Henry_K0      = 1.30e+8_f8,                   &
                               Henry_CR      = 0.0_f8,                       &
 #endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-! Leave for future expansion (bmy, 5/19/16)
-!          CASE( 'ISN1' )
-!             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-!                              ThisSpc       = SpcData(N)%Info,              &
-!                              ModelID       = N,                            &
-!                              Name          = NameAllCaps,                  &
-!                              FullName      = '',                           &
-!                              MW_g          = __.0_fp,                      &
-!                              MolecRatio    = 1.0_fp,                       &
-!                              Is_Advected   = Is_Advected,                  &
-!                              Is_Gas        = T,                            &
-!                              Is_Drydep     = T,                            &
-!                              Is_Wetdep     = T,                            &
-!                              DD_F0         = 0.0_fp,                       &
-!                              DD_Hstar_old  = 1.0e+14_fp,                  &
-!                              RC            = RC )
-
-          CASE( 'SOAP' )
-             FullName = 'SOA Precursor - lumped species for simplified SOA paramterization'
-
-             !SOAPis not removed because it is a simple parameterization,
-             !not a physical model
-
-             ! Zero Kc (cloud condensate -> precip) rate
-             KcScale = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
-
-             ! Turn off rainout only
-             RainEff = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+          CASE( 'IMAE' ) !ISOP_SOA,eam
+             FullName = 'C4 epoxide from oxidation of MPAN (PMN)'
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
-                              MW_g          = 150.0_fp,                     &
+                              MW_g          = 102.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.00e+0_fp,                   &
-                              Henry_K0      = 0.00e+0_f8,                   &
-                              Henry_CR      = 0.0e+0_f8,                    &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+#else									    
+                              ! DD_Hstar based on Pye et al. (2013)
+                              DD_Hstar_old  = 1.20e+5_fp,                   &
+                              Henry_K0      = 1.20e+5_f8,                   &
+                              Henry_CR      = 7200.0_f8,                    &
+#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-          CASE( 'SOAS' )
-             FullName = 'SOA Simple - simplified non-volatile SOA parameterization'
-             !Copy data from ISOA
-
-             ! Halve the Kc (cloud condensate -> precip) rate
-             ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-
-             ! Turn off rainout only when 237 K <= T < 258K.
-             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+          CASE( 'INDIOL' ) !ISOP_SOA,eam
+             FullName = 'Generic aerosol-phase organonitrate hydrolysis product'
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
-                              MW_g          = 150.0_fp,                     &
+                              MW_g          = 102.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
@@ -1792,6 +1786,99 @@ CONTAINS
                               WD_AerScavEff = 0.8_fp,                       &
                               WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'IPMN' )
+             FullName = 'Peroxymethacroyl nitrate (PMN) from isoprene oxidation'
+
+             ! PMN uses the same DD_F0 and DD_Hstar_old values as PAN
+             ! so that we can compute its drydep velocity explicitly.
+             ! (bmy, 5/19/16)
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 147.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = F,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )                                          
+                              Henry_K0      = 1.70e-2_f8 * To_M_atm,        &
+#else                                                                       
+                              DD_Hstar_old  = 3.60_fp,                      &
+#endif
+                              RC            = RC )
+
+
+          CASE( 'ISN1' ) !ISOP_SOA,eam
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Nighttime isoprene nitrate', &
+                              MW_g          = 147.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+#else									    
+                              DD_Hstar_old  = 2.30e+4_fp,                   &
+                              Henry_K0      = 2.30e+4_f8,                   &
+                              Henry_CR      = 9200.0_f8,                    &
+#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'ISN1OA' ) !ISOP_SOA,eam
+             FullName      = 'Aer-phase 2nd-gen hydroxynitrates from ISOP+NO3'
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 226.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_HStar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 0.8_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'ISN1OG' ) !ISOP_SOA,eam
+             FullName      = 'Gas-phase 2nd-gen hydroxynitrates from ISOP+NO3'
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 226.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+#else									    
+                              DD_Hstar_old  = 2.30e+4_fp,                   &
+                              Henry_K0      = 2.30e+4_f8,                   &
+                              Henry_CR      = 9200.0_f8,                    &
+#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
           CASE( 'ISOA1', 'ISOA2', 'ISOA3' )
@@ -1948,6 +2035,50 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
      
+          CASE( 'LVOC' ) !ISOP_SOA,eam
+             FullName = 'Gas-phase low-volatility non-IEPOX product of RIP ox'
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 154.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+#else									    
+                              DD_Hstar_old  = 1.00e+8_fp,                   &
+                              Henry_K0      = 1.00e+8_f8,                   &
+                              Henry_CR      = 7200.0_f8,                    &
+#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'LVOCOA' ) !ISOP_SOA,eam
+             FullName = 'Aer-phase low-volatility non-IEPOX product of RIP ox'
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 154.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_HStar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 0.8_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
           CASE( 'MACR' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -2075,7 +2206,7 @@ CONTAINS
 
                               RC            = RC )
 
-          CASE( 'MOBA' )
+          CASE( 'MOBA', 'HC187' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2634,6 +2765,33 @@ CONTAINS
 #endif									    
                               RC            = RC )
 
+          CASE( 'NPMN' )
+             FullName = 'Non-isoprene peroxymethacroyl nitrate (PMN)'
+
+             ! PMN uses the same DD_F0 and DD_Hstar_old values as PAN
+             ! so that we can compute its drydep velocity explicitly.
+             ! (bmy, 5/19/16)
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 147.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = F,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )                                          
+                              Henry_K0      = 1.70e-2_f8 * To_M_atm,        &
+#else                                                                       
+                              DD_Hstar_old  = 3.60_fp,                      &
+#endif
+                              RC            = RC )
+
           CASE( 'O3',     'O3STRAT', 'O3UT',   'O3MT',   'O3ROW',           &
                 'O3PCBL', 'O3NABL',  'O3ATBL', 'O3EUBL', 'O3AFBL',          &
                 'O3ASBL', 'O3INIT',  'O3USA',  'O3STRT'            )
@@ -2864,31 +3022,6 @@ CONTAINS
 #endif                                      
                               RC            = RC )
 
-          CASE( 'PMN' )
-             ! PMN uses the same DD_F0 and DD_Hstar_old values as PAN
-             ! so that we can compute its drydep velocity explicitly.
-             ! (bmy, 5/19/16)
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxymethacroyl nitrate',   &
-                              MW_g          = 147.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )                                          
-                              Henry_K0      = 1.70e-2_f8 * To_M_atm,        &
-#else                                                                       
-                              DD_Hstar_old  = 3.60_fp,                      &
-#endif
-                              RC            = RC )
-
           CASE( 'PPN' )
              ! PPN uses the same DD_F0 and DD_Hstar_old values as PAN
              ! so that we can compute its drydep velocity explicitly.
@@ -3021,9 +3154,8 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'R4N2' )
-             ! R4N2 uses the same DD_F0 and DD_Hstar_old values as PAN
-             ! so that we can compute its drydep velocity explicitly.
-             ! (bmy, 5/19/16)
+             ! Now drydep is like other alkyl nitrates (Ito et al., 2007)
+             ! (eam, 2014)
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -3043,7 +3175,7 @@ CONTAINS
                               Henry_K0      = 1.0e-2_f8 * To_M_atm,         &
                               Henry_CR      = 5800.0_f8,                    &
 #else                                                                       
-                              DD_Hstar_old  = 3.60_fp,                      &
+                              DD_Hstar_old  = 1.70e+4_fp,                   &
 #endif
                               RC            = RC )
 
@@ -3301,6 +3433,166 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'SOAIE' ) !ISOP_SOA,eam
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Aerosol-phase IEPOX',        &
+                              MW_g          = 118.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_HStar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 0.8_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'SOAGC' ) !ISOP_SOA,eam
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Glycoaldehyde',              &
+                              MW_g          = 60.0_fp,                      &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_HStar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 0.8_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'SOAGX' ) !ISOP_SOA,eam
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Aerosol-phase glyoxal',      &
+                              MW_g          = 58.0_fp,                      &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_HStar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 0.8_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'SOAME' ) !ISOP_SOA,eam
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Aerosol-phase IMAE',         &
+                              MW_g          = 102.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_HStar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 0.8_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'SOAMG' ) !ISOP_SOA,eam
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Aerosol-phase methylglyoxal',&
+                              MW_g          = 72.0_fp,                      &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_HStar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 0.8_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'SOAP' )
+             FullName = 'SOA Precursor - lumped species for simplified SOA paramterization'
+
+             !SOAPis not removed because it is a simple parameterization,
+             !not a physical model
+
+             ! Zero Kc (cloud condensate -> precip) rate
+             KcScale = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+
+             ! Turn off rainout only
+             RainEff = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 150.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.00e+0_fp,                   &
+                              Henry_K0      = 0.00e+0_f8,                   &
+                              Henry_CR      = 0.0e+0_f8,                    &
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'SOAS' )
+             FullName = 'SOA Simple - simplified non-volatile SOA parameterization'
+             !Copy data from ISOA
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
+             RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 150.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_HStar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 0.8_fp,                       &
                               WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
@@ -4571,21 +4863,6 @@ CONTAINS
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
                               BackgroundVV  = 2.095e-01_fp,                 &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
-
-          CASE( 'GLYX' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
