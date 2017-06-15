@@ -90,18 +90,6 @@
       ! Array for offline use in sulfate_mod (SEASALT_CHEM) 
       REAL(fp),  ALLOCATABLE :: GAS_HNO3(:,:,:)
 
-!------------------------------------------------------------------------------
-! Prior to 6/13/17:
-! These arrays have been moved to CMN_O3_mod.F (mps, 6/13/17)
-!      ! AEROPH: Save information related to aerosol pH (hotp 8/11/09)
-!      REAL(fp),  ALLOCATABLE :: PH_SAV(:,:,:)
-!      REAL(fp),  ALLOCATABLE :: HPLUS_SAV(:,:,:)
-!      REAL(fp),  ALLOCATABLE :: WATER_SAV(:,:,:)
-!      REAL(fp),  ALLOCATABLE :: SULRAT_SAV(:,:,:)
-!      REAL(fp),  ALLOCATABLE :: NARAT_SAV(:,:,:)
-!      REAL(fp),  ALLOCATABLE :: ACIDPUR_SAV(:,:,:)
-!------------------------------------------------------------------------------
-
       ! HEMCO pointers
       REAL(sp), POINTER    :: HNO3(:,:,:) => NULL()
 
@@ -362,18 +350,6 @@
          ! Reset first-time flag
          FIRST = .FALSE. 
       ENDIF
-
-!------------------------------------------------------------------------------
-! Prior to 6/13/17:
-!      ! AEROPH: Initialize arrays all the way up to LLPAR for
-!      ! aeroph. Arrays go up to LLPAR due to ND42 use (hotp 8/11/09)
-!      PH_SAV      = 0e+0_fp
-!      HPLUS_SAV   = 0e+0_fp
-!      WATER_SAV   = 0e+0_fp
-!      SULRAT_SAV  = 0e+0_fp
-!      NARAT_SAV   = 0e+0_fp
-!      ACIDPUR_SAV = 0e+0_fp
-!------------------------------------------------------------------------------
 
       ! Initialize for each timestep (bec, bmy, 4/15/05)
       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
@@ -698,13 +674,6 @@
          ENDIF
 
          ! Additional Info
-!------------------------------------------------------------------------------
-! Prior to 6/13/17:
-!         HPLUS_SAV(I,J,L)   = AERLIQ(1)
-!         WATER_SAV(I,J,L)   = AERLIQ(8)
-!         SULRAT_SAV(I,J,L)  = OTHER(2)
-!         NARAT_SAV(I,J,L)   = OTHER(4)
-!------------------------------------------------------------------------------
          HPLUS_SAV(I,J,L)   = HPLUSTEMP 
          ! Water in ug/m3 (convert from mol/m3 air to ug/m3 air) (eam, 07/2015):
          WATER_SAV(I,J,L)   = AERLIQ(8) * 18e+6_fp
@@ -1049,35 +1018,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAS_HNO3' )
       GAS_HNO3 = 0e+0_fp
 
-!------------------------------------------------------------------------------
-! Prior to 6/13/17:
-!      ! AEROPH: diagnostic info (hotp 8/11/09)
-!      ! Allocate up to LLPAR, but zero above LLTROP
-!      ALLOCATE( PH_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PH_SAV' )
-!      PH_SAV = 0e+0_fp
-!
-!      ALLOCATE( HPLUS_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-!      IF ( AS /= 0  ) CALL ALLOC_ERR( 'HPLUS_SAV' )
-!      HPLUS_SAV = 0e+0_fp
-!      
-!      ALLOCATE( WATER_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WATER_SAV' )
-!      WATER_SAV = 0e+0_fp
-!
-!      ALLOCATE( SULRAT_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SULRAT_SAV' )
-!      SULRAT_SAV = 0e+0_fp
-!
-!      ALLOCATE( NARAT_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NARAT_SAV' )
-!      NARAT_SAV = 0e+0_fp
-!
-!      ALLOCATE( ACIDPUR_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ACIDPUR_SAV' )
-!      ACIDPUR_SAV = 0e+0_fp
-!------------------------------------------------------------------------------
-
       ! Return to calling program
       END SUBROUTINE INIT_ISOROPIAII
 !EOC
@@ -1104,16 +1044,6 @@
 
       IF ( ALLOCATED( HNO3_sav    ) ) DEALLOCATE( HNO3_sav )
       IF ( ALLOCATED( GAS_HNO3    ) ) DEALLOCATE( GAS_HNO3 )
-!------------------------------------------------------------------------------
-! Prior to 6/13/17:
-!      ! AEROPH: Deallocate arrays for pH (hotp 8/11/09)
-!      IF ( ALLOCATED( PH_SAV      ) ) DEALLOCATE( PH_SAV     )
-!      IF ( ALLOCATED( HPLUS_SAV   ) ) DEALLOCATE( HPLUS_SAV  )
-!      IF ( ALLOCATED( WATER_SAV   ) ) DEALLOCATE( WATER_SAV  )
-!      IF ( ALLOCATED( SULRAT_SAV  ) ) DEALLOCATE( SULRAT_SAV )
-!      IF ( ALLOCATED( NARAT_SAV   ) ) DEALLOCATE( NARAT_SAV  )
-!      IF ( ALLOCATED( ACIDPUR_SAV ) ) DEALLOCATE( ACIDPUR_SAV)
-!------------------------------------------------------------------------------
 
       ! Free pointers
       IF ( ASSOCIATED( HNO3       ) ) HNO3 => NULL()

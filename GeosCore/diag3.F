@@ -364,8 +364,8 @@
       INTEGER, SAVE            :: id_DAL1,  id_DAL2,  id_DAL3,  id_DAL4
       INTEGER, SAVE            :: id_BCPI,  id_OCPI,  id_POA1,  id_MTPA
       INTEGER, SAVE            :: id_LIMO,  id_MTPO,  id_TSOA1, id_ISOA1
-      INTEGER, SAVE            :: id_ASOA1, id_OPOA1, id_OPOG1, id_SOAG
-      INTEGER, SAVE            :: id_SOAM,  id_SALA,  id_SALC,  id_MOPO    
+      INTEGER, SAVE            :: id_ASOA1, id_OPOA1, id_OPOG1
+      INTEGER, SAVE            :: id_SALA,  id_SALC,  id_MOPO    
       INTEGER, SAVE            :: id_MOPI,  id_DMS,   id_SO2,   id_SO4
       INTEGER, SAVE            :: id_NH3,   id_NO,    id_CO,    id_ALK4
       INTEGER, SAVE            :: id_ACET,  id_MEK,   id_ALD2,  id_PRPE
@@ -450,8 +450,6 @@
          id_ASOA1     = Ind_('ASOA1'   )
          id_OPOA1     = Ind_('OPOA1'   )
          id_OPOG1     = Ind_('OPOG1'   )
-         id_SOAG      = Ind_('SOAG'    )
-         id_SOAM      = Ind_('SOAM'    )
          id_SALA      = Ind_('SALA'    )
          id_SALC      = Ind_('SALC'    )
          id_MOPO      = Ind_('MOPO'    ) 

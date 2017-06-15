@@ -89,14 +89,15 @@
      &                                  ( BOLTZ * 1e+7_fp )
 
       ! Gas constant in: [L.atm/K.mole]
-      REAL(fp), PARAMETER :: RGASLATM = 8.2057d-2
+      REAL(fp), PARAMETER :: RGASLATM = 8.2057e-2_fp
 
-      ! Molecular weight of carbon (kg/mol): 
-      REAL(fp), PARAMETER :: MWCARB    = 12.01d-3
+      ! Molecular weight of carbon (kg/mol)
+      REAL(fp), PARAMETER :: MWCARB    = 12.01e-3_fp
 
       ! Effective Henry's Law constant of IEPOX for reactive
-      ! uptake to aqueous aerosols (used in calcrate) (M/atm):
-      REAL(fp), PARAMETER :: HSTAR_EPOX = 3.3d7  ! Consistent with Nguyen (2015)
+      ! uptake to aqueous aerosols (M/atm)
+      ! (used in gckpp_HetRates.F90)
+      REAL(fp), PARAMETER :: HSTAR_EPOX = 3.3e+7_fp  ! Nguyen (2015)
 !
 ! !REFERENCES:
 ! (1) NIST, 2014. Website: http://physics.nist.gov/cuu/Constants/index.html

@@ -151,6 +151,8 @@ CONTAINS
 !                              from aerosol_mod.F
 !  23 Feb 2017 - M. Sulprizio- Change MolecRatio for ALK4 from 4 to 4.3
 !                              (B. Henderson)
+!  13 Jun 2017 - M. Sulprizio- Add species for mechanistic isoprene SOA
+!                              (E. Marais)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1313,7 +1315,7 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-          CASE( 'GLYX' ) !ISOP_SOA,eam
+          CASE( 'GLYX' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1743,7 +1745,7 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-          CASE( 'IMAE' ) !ISOP_SOA,eam
+          CASE( 'IMAE' )
              FullName = 'C4 epoxide from oxidation of MPAN (PMN)'
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1767,7 +1769,7 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-          CASE( 'INDIOL' ) !ISOP_SOA,eam
+          CASE( 'INDIOL' )
              FullName = 'Generic aerosol-phase organonitrate hydrolysis product'
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1816,7 +1818,7 @@ CONTAINS
                               RC            = RC )
 
 
-          CASE( 'ISN1' ) !ISOP_SOA,eam
+          CASE( 'ISN1' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1837,7 +1839,7 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-          CASE( 'ISN1OA' ) !ISOP_SOA,eam
+          CASE( 'ISN1OA' )
              FullName      = 'Aer-phase 2nd-gen hydroxynitrates from ISOP+NO3'
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1858,7 +1860,7 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
-          CASE( 'ISN1OG' ) !ISOP_SOA,eam
+          CASE( 'ISN1OG' )
              FullName      = 'Gas-phase 2nd-gen hydroxynitrates from ISOP+NO3'
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2035,7 +2037,7 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
      
-          CASE( 'LVOC' ) !ISOP_SOA,eam
+          CASE( 'LVOC' )
              FullName = 'Gas-phase low-volatility non-IEPOX product of RIP ox'
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2058,7 +2060,7 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-          CASE( 'LVOCOA' ) !ISOP_SOA,eam
+          CASE( 'LVOCOA' )
              FullName = 'Aer-phase low-volatility non-IEPOX product of RIP ox'
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -3437,7 +3439,7 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
-          CASE( 'SOAIE' ) !ISOP_SOA,eam
+          CASE( 'SOAIE' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -3456,26 +3458,7 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
-          CASE( 'SOAGC' ) !ISOP_SOA,eam
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Glycoaldehyde',              &
-                              MW_g          = 60.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_HStar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
-
-          CASE( 'SOAGX' ) !ISOP_SOA,eam
+          CASE( 'SOAGX' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -3494,7 +3477,7 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
-          CASE( 'SOAME' ) !ISOP_SOA,eam
+          CASE( 'SOAME' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -3513,7 +3496,7 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
-          CASE( 'SOAMG' ) !ISOP_SOA,eam
+          CASE( 'SOAMG' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &

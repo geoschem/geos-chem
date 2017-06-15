@@ -286,8 +286,6 @@
       REAL(fp), ALLOCATABLE :: TCOSZ(:,:)
       REAL(fp), ALLOCATABLE :: ORVC_SESQ(:,:,:)
       REAL(fp), ALLOCATABLE :: ISOP_PRIOR(:,:,:)  ! (dkh, 10/09/05)  
-      ! Satellite-derived isoprene SOA:
-      REAL(fp), ALLOCATABLE :: ISOP_SOA(:,:)
 
       REAL(fp), ALLOCATABLE :: GLOB_DARO2(:,:,:,:,:) ! Diagnostic (dkh, 11/10/06) 
 
@@ -355,7 +353,7 @@
       INTEGER :: id_NO3,     id_OCIL1,  id_OCOB1,  id_O3,     id_OH   
       INTEGER :: id_OCPO,    id_OCPI,   id_OPOA1,  id_OPOG1,  id_OPOA2
       INTEGER :: id_OPOG2,   id_POA1,   id_POA2,   id_POG1,   id_POG2 
-      INTEGER :: id_SOAG,    id_SOAM,   id_TOLU,   id_TSOA0,  id_TSOA1
+      INTEGER :: id_TOLU,    id_TSOA0,  id_TSOA1
       INTEGER :: id_TSOA2,   id_TSOA3,  id_TSOG0,  id_TSOG1,  id_TSOG2
       INTEGER :: id_TSOG3,   id_XYLE,   id_LBRO2N, id_LBRO2H, id_LTRO2N
       INTEGER :: id_LTRO2H,  id_LXRO2N, id_LXRO2H, id_LNRO2N, id_LNRO2H
@@ -390,7 +388,7 @@
 !
 ! !USES:
 !
-      USE CMN_O3_MOD,         ONLY : SAVE_TMP6
+      USE CMN_O3_MOD,         ONLY : SAVEOA
       USE CMN_SIZE_MOD 
       USE ErrCode_Mod 
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -796,8 +794,8 @@
 !------------------------------------------------------------------------------
 
          ! Get total organic aerosol:
-         CALL OASAVE( SAVE_TMP6, am_I_Root, 
-     &                Input_Opt, State_Met, State_Chm, RC )
+         CALL OASAVE( SAVEOA,    am_I_Root, Input_Opt,
+     &                State_Met, State_Chm, RC )
 
       ENDIF
 
@@ -8953,8 +8951,6 @@ ccc
       id_POA2     = IND_('POA2'    )
       id_POG1     = IND_('POG1'    )
       id_POG2     = IND_('POG2'    )
-      id_SOAG     = IND_('SOAG'    )
-      id_SOAM     = IND_('SOAM'    )
       id_SOAP     = IND_('SOAP'    )
       id_SOAS     = IND_('SOAS'    )
       id_TOLU     = IND_('TOLU'    )
@@ -9045,11 +9041,6 @@ ccc
       ALLOCATE( POAEMISS( IIPAR, JJPAR, LLPAR, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'POAEMISS' )
       POAEMISS = 0e+0_fp
-
-      ! Satellite-derived isoprene SOA:
-      ALLOCATE( ISOP_SOA( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ISOP_SOA' )
-      ISOP_SOA = 0e+0_fp
 
       ! JKODROS
 #if defined( TOMAS )
@@ -9218,7 +9209,6 @@ ccc
       IF ( ALLOCATED( BETANOSAVE    ) ) DEALLOCATE( BETANOSAVE    )
       IF ( ALLOCATED( SPECSOAPROD   ) ) DEALLOCATE( SPECSOAPROD   )
       IF ( ALLOCATED( SPECSOAEVAP   ) ) DEALLOCATE( SPECSOAEVAP   )
-      IF ( ALLOCATED( ISOP_SOA      ) ) DEALLOCATE( ISOP_SOA      )
 
 #if defined ( TOMAS )
       IF ( ALLOCATED( BCPI_ANTH_BULK )) DEALLOCATE( BCPI_ANTH_BULK)

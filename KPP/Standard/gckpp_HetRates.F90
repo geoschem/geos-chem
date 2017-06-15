@@ -30,7 +30,7 @@ MODULE GCKPP_HETRATES
   USE State_Chm_Mod,      ONLY : Ind_
   USE State_Met_Mod,      ONLY : MetState
   USE Input_Opt_Mod,      ONLY : OptInput
-  USE PhysConstants,      ONLY : AVO
+  USE PhysConstants,      ONLY : AVO, RGASLATM, HSTAR_EPOX
   USE Precision_Mod,      ONLY : fp
 
   IMPLICIT NONE

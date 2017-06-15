@@ -8435,7 +8435,6 @@
      &  + MAX( Ind_('INDIOL','A'), 0 )
      &  + MAX( Ind_('SOAGX' ,'A'), 0 )
      &  + MAX( Ind_('SOAMG' ,'A'), 0 )
-     &  + MAX( Ind_('SOAGC' ,'A'), 0 )
      &  + MAX( Ind_('LVOC'  ,'A'), 0 )
      &  + MAX( Ind_('LVOCOA','A'), 0 )
      &  + MAX( Ind_('ISN1'  ,'A'), 0 )

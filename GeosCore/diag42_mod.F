@@ -23,7 +23,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! Maximum number of output:
-      INTEGER, PUBLIC, PARAMETER   :: PD42 = 26
+      INTEGER, PUBLIC, PARAMETER   :: PD42 = 25
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -85,7 +85,7 @@
       USE CARBON_MOD,         ONLY : BETANOSAVE
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! NDxx flags
-      USE CMN_O3_MOD,         ONLY : SAVE_TMP6
+      USE CMN_O3_MOD,         ONLY : SAVEOA
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : ATM
       USE State_Chm_Mod,      ONLY : ChmState
@@ -137,7 +137,7 @@
       LOGICAL, SAVE       :: FIRST = .TRUE.
       INTEGER, SAVE       :: id_POA1,   id_POA2
       INTEGER, SAVE       :: id_SOAIE,  id_SOAME, id_INDIOL
-      INTEGER, SAVE       :: id_SOAGX,  id_SOAMG, id_SOAGC
+      INTEGER, SAVE       :: id_SOAGX,  id_SOAMG
       INTEGER, SAVE       :: id_LVOCOA, id_ISN1OA
       LOGICAL             :: IS_POA
 
@@ -146,7 +146,6 @@
       ! number of carbons):
       REAL(fp), PARAMETER :: NCIMAE   = 4e+0_fp
       REAL(fp), PARAMETER :: NCIEPOX  = 5e+0_fp
-      REAL(fp), PARAMETER :: NCAIDIM  = NCIEPOX*2e+0_fp
       REAL(fp), PARAMETER :: NCINDIOL = NCIEPOX
       REAL(fp), PARAMETER :: NCGLYX   = 2e+0_fp
       REAL(fp), PARAMETER :: NCGLYC   = NCGLYX
@@ -173,7 +172,6 @@
          id_INDIOL = Ind_('INDIOL' )
          id_SOAGX  = Ind_('SOAGX' )
          id_SOAMG  = Ind_('SOAMG' )
-         id_SOAGC  = Ind_('SOAGC' )
          id_LVOCOA = Ind_('LVOCOA' )
          id_ISN1OA = Ind_('ISN1OA' )
 
@@ -267,7 +265,7 @@
 !     &                     OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) )
 !     &                   * FACTOR
 !------------------------------------------------------------------------------
-         AD42(I,J,L,6) = AD42(I,J,L,6) + SAVE_TMP6(I,J,L)
+         AD42(I,J,L,6) = AD42(I,J,L,6) + SAVEOA(I,J,L)
 
          !-----------------------------------------------------------
          ! Sum of all organic carbon [ugC/m3]
@@ -299,8 +297,6 @@
      &              ( State_Chm%SpcData(id_SOAGX)%Info%MW_g * 1e-3_fp ))
      &              + Spc(I,J,L,id_SOAMG) * ( NCMGLY  * MWCARB /
      &              ( State_Chm%SpcData(id_SOAMG)%Info%MW_g * 1e-3_fp ))
-     &              + Spc(I,J,L,id_SOAGC) * ( NCGLYC  * MWCARB /
-     &              ( State_Chm%SpcData(id_SOAGC)%Info%MW_g * 1e-3_fp ))
      &              + Spc(I,J,L,id_LVOCOA)* ( NCLVOC  * MWCARB /
      &              ( State_Chm%SpcData(id_LVOCOA)%Info%MW_g* 1e-3_fp ))
      &              + Spc(I,J,L,id_ISN1OA)* ( NCISN1  * MWCARB /
@@ -384,9 +380,6 @@
          ! SOAMG [ug/m3]
          AD42(I,J,L,20) = AD42(I,J,L,20) + SOAMG(I,J,L) * FACTOR
 
-         ! SOAGC [ug/m3]
-         AD42(I,J,L,21) = AD42(I,J,L,20) + SOAGC(I,J,L) * FACTOR
-
          !--------------------------------------------------------------
          ! Isoprene SOA obtained from irreversible uptake of isoprene
          ! SOA precursors IEPOX and IMAE (eam,  2014)
@@ -394,23 +387,23 @@
          IF ( LISOPOA ) THEN
 
             ! IEPOX-OA [ug/m3]:
-            AD42(I,J,L,22) = AD42(I,J,L,22) + 
+            AD42(I,J,L,21) = AD42(I,J,L,22) + 
      &                       ( Spc(I,J,L,id_SOAIE ) * FACTOR / AIRVOL )
 
             ! IMAE-OA [ug/m3]:
-            AD42(I,J,L,23) = AD42(I,J,L,23) + 
+            AD42(I,J,L,22) = AD42(I,J,L,23) + 
      &                       ( Spc(I,J,L,id_SOAME ) * FACTOR / AIRVOL )
 
             ! INDIOL [ug/m3]:
-            AD42(I,J,L,24) = AD42(I,J,L,24) + 
+            AD42(I,J,L,23) = AD42(I,J,L,24) + 
      &                       ( Spc(I,J,L,id_INDIOL) * FACTOR / AIRVOL )
 
             ! LVOCOA [ug/m3]:
-            AD42(I,J,L,25) = AD42(I,J,L,25) + 
+            AD42(I,J,L,24) = AD42(I,J,L,25) + 
      &                       ( Spc(I,J,L,id_LVOCOA) * FACTOR / AIRVOL )
 
             ! ISN1OA [ug/m3]:
-            AD42(I,J,L,26) = AD42(I,J,L,26) + 
+            AD42(I,J,L,25) = AD42(I,J,L,26) + 
      &                       ( Spc(I,J,L,id_ISN1OA) * FACTOR / AIRVOL )
 
          ENDIF

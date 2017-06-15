@@ -32,15 +32,14 @@
       ! SAVEHO2 = array to save HO2 fields (rvm, bmy, 2/27/02)
       ! SAVEEOH = array to save EOH fields (evf, 5/21/13)
       ! SAVEGLYX= array to save GLYX fields (eam, 8/25/14 )
+      ! SAVEOA  = array for total organic aerosol (trc 6 of ND42, eam,7/10/14)
       REAL(fp), ALLOCATABLE :: SAVEOH(:,:,:)
       REAL(fp), ALLOCATABLE :: SAVEHO2(:,:,:)
       REAL(fp), ALLOCATABLE :: SAVEO1D(:,:,:)
       REAL(fp), ALLOCATABLE :: SAVEO3P(:,:,:)
       REAL(fp), ALLOCATABLE :: SAVEEOH(:,:,:)
       REAL(fp), ALLOCATABLE :: SAVEGLYX(:,:,:)
-
-      ! SAVE_TMP6 = array for total organic aerosol (trc 6 of ND42, eam,7/10/14)
-      REAL(fp), ALLOCATABLE :: SAVE_TMP6(:,:,:)
+      REAL(fp), ALLOCATABLE :: SAVEOA(:,:,:)
 
       ! AEROPH: Save information related to aerosol pH (hotp 8/11/09)
       REAL(fp), ALLOCATABLE :: PH_SAV(:,:,:)
@@ -126,7 +125,7 @@
       ALLOCATE( SAVEO3P(     IIPAR, JJPAR, LLPAR ), STAT=RC )
       ALLOCATE( SAVEEOH(     IIPAR, JJPAR, LLPAR ), STAT=RC )
       ALLOCATE( SAVEGLYX(    IIPAR, JJPAR, LLPAR ), STAT=RC )
-      ALLOCATE( SAVE_TMP6(   IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( SAVEOA(      IIPAR, JJPAR, LLPAR ), STAT=RC )
       ALLOCATE( PH_SAV(      IIPAR, JJPAR, LLPAR ), STAT=RC )
       ALLOCATE( HPLUS_SAV(   IIPAR, JJPAR, LLPAR ), STAT=RC )
       ALLOCATE( WATER_SAV(   IIPAR, JJPAR, LLPAR ), STAT=RC )
@@ -136,12 +135,13 @@
       ALLOCATE( BISUL_SAV(   IIPAR, JJPAR, LLPAR ), STAT=AS )
 
       ! Zero arrays
+      SAVEOH     = 0e+0_fp
       SAVEHO2    = 0e+0_fp
       SAVEO1D    = 0e+0_fp
       SAVEO3P    = 0e+0_fp
       SAVEEOH    = 0e+0_fp
       SAVEGLYX   = 0e+0_fp
-      SAVE_TMP6  = 0e+0_fp
+      SAVEOA     = 0e+0_fp
       PH_SAV     = 0e+0_fp
       HPLUS_SAV  = 0e+0_fp
       WATER_SAV  = 0e+0_fp
@@ -197,7 +197,7 @@
       IF ( ALLOCATED( SAVEO3P     ) ) DEALLOCATE( SAVEO3P     )
       IF ( ALLOCATED( SAVEEOH     ) ) DEALLOCATE( SAVEEOH     )
       IF ( ALLOCATED( SAVEGLYX    ) ) DEALLOCATE( SAVEGLYX    )
-      IF ( ALLOCATED( SAVE_TMP6   ) ) DEALLOCATE( SAVE_TMP6   )
+      IF ( ALLOCATED( SAVEOA      ) ) DEALLOCATE( SAVEOA      )
       IF ( ALLOCATED( PH_SAV      ) ) DEALLOCATE( PH_SAV      )
       IF ( ALLOCATED( HPLUS_SAV   ) ) DEALLOCATE( HPLUS_SAV   )
       IF ( ALLOCATED( WATER_SAV   ) ) DEALLOCATE( WATER_SAV   )

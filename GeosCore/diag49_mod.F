@@ -221,7 +221,7 @@
       USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_O3_MOD	           ! SAVEOH, SAVE_TMP6
+      USE CMN_O3_MOD	           ! SAVEOH, SAVEOA
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
@@ -1579,7 +1579,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = SAVE_TMP6(I,J,L)
+               Q(X,Y,K) = SAVEOA(I,J,L)
             ENDDO
             ENDDO
             ENDDO

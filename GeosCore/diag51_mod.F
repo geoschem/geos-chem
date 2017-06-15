@@ -433,7 +433,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_O3_MOD               ! SAVEOH, SAVE_TMP6
+      USE CMN_O3_MOD               ! SAVEOH, SAVEOA
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
@@ -1180,7 +1180,7 @@
 
                ! Accumulate data
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &              ( SAVE_TMP6(I,J,L) * GOOD_CHEM(X) )
+     &              ( SAVEOA(I,J,L) * GOOD_CHEM(X) )
 
             ELSE IF ( N == 185 .and. LSOA ) THEN
 
@@ -1256,7 +1256,7 @@
                TMP = 0d0
             
                ! Organic aerosol (ug/m3):
-               TMP = TMP + ( SAVE_TMP6(I,J,L) * GOOD_CHEM(X) )
+               TMP = TMP + ( SAVEOA(I,J,L) * GOOD_CHEM(X) )
 
                ! Sulfate (ug/m3):
                TMP = TMP + ( Spc(I,J,L,id_SO4)  * GOOD_CHEM(X) *

@@ -140,7 +140,7 @@
       INTEGER :: id_NAP,   id_NH3,   id_NK1,   id_NO
       INTEGER :: id_OCPI,  id_OCPO,  id_OPOA1, id_OPOG1
       INTEGER :: id_PAN,   id_POA1,  id_PRPE  
-      INTEGER :: id_SOAG,  id_SOAM,  id_SO2,   id_TSOA1 
+      INTEGER :: id_SO2,   id_TSOA1 
       INTEGER :: id_TOLU,  id_XYLE,  id_HNO3
 
       CONTAINS
@@ -6157,31 +6157,26 @@
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 42e-3
                CASE( 21 )
-                  NAME (T,42) = 'SOAGC'
-                  FNAME(T,42) = 'SOAGC'
-                  UNIT (T,42) = 'ug/m3'
-                  MWT  (T,42) = 60e-3
-               CASE( 22 )
                   NAME (T,42) = 'SOAIE'
                   FNAME(T,42) = 'IEPOX-OA'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 118e-3
-               CASE( 23 )
+               CASE( 22 )
                   NAME (T,42) = 'SOAME'
                   FNAME(T,42) = 'IMAE-OA'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 102e-3
-               CASE( 24 )
+               CASE( 23 )
                   NAME (T,42) = 'INDIOL'
                   FNAME(T,42) = 'ISOPN diol'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 102e-3
-               CASE( 25 )
+               CASE( 24 )
                   NAME (T,42) = 'LVOCOA'
                   FNAME(T,42) = 'LV ISOPOOH SOA'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 154e-3
-               CASE( 26 )
+               CASE( 25 )
                   NAME (T,42) = 'ISN1OA'
                   FNAME(T,42) = 'ISOP+NO3 SOA'
                   UNIT (T,42) = 'ug/m3'
@@ -7819,8 +7814,6 @@
       id_PAN   = Ind_('PAN'  )
       id_POA1  = Ind_('POA1' )
       id_PRPE  = Ind_('PRPE' )
-      id_SOAG  = Ind_('SOAG' )
-      id_SOAM  = Ind_('SOAM' )
       id_SO2   = Ind_('SO2'  )
       id_TSOA1 = Ind_('TSOA1')
       id_TOLU  = Ind_('TOLU' )

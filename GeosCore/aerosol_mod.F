@@ -50,8 +50,8 @@
       ! ISOA        : Isoprene SOA                       [kg/m3]
       ! ASOA        : Aromatic + IVOC SOA                [kg/m3]
       ! OPOA        : Aerosol product of SVOC oxidation  [kg/m3]
-      ! SOAG        : SOA product of GLYX                [kg/m3]
-      ! SOAM        : SOA product of MYLY                [kg/m3]
+      ! SOAGX       : SOA product of GLYX                [kg/m3]
+      ! SOAMG       : SOA product of MYLY                [kg/m3]
       ! PM25        : Particulate matter < 2.5 um        [kg/m3]
       ! ISOAAQ      : Isoprene SOA (aqueous formation)   [kg/m3]
       !========================================================================
@@ -74,8 +74,8 @@
       REAL(fp), ALLOCATABLE, PUBLIC :: ISOA(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: ASOA(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: OPOA(:,:,:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: SOAG(:,:,:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: SOAM(:,:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: SOAGX(:,:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: SOAMG(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: PM25(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: ISOAAQ(:,:,:)
 !
@@ -85,11 +85,11 @@
       REAL(fp), PARAMETER, PUBLIC :: OCFOPOA = 2.1e+0_fp ! OM/OC for OPOA, OCPI,
                                                          !  and OCPO
 
-      ! For SOAG, assume the total aerosol mass/glyoxal mass = 1.d0 
+      ! For SOAGX, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
       REAL(fp), PARAMETER, PUBLIC :: OCFG = 1.e+0_fp
 
-      ! For SOAM, assume the total aerosol mass/methylglyoxal mass = 1.d0 
+      ! For SOAMG, assume the total aerosol mass/methylglyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
       REAL(fp), PARAMETER, PUBLIC :: OCFM = 1.e+0_fp
 
@@ -154,7 +154,7 @@
       INTEGER :: id_TSOA0, id_ISOA1, id_ISOA2, id_ISOA3
       INTEGER :: id_ASOAN, id_ASOA1, id_ASOA2, id_ASOA3
       INTEGER :: id_DUST1, id_SOAS
-      INTEGER :: id_SOAGX, id_SOAMG, id_SOAGC
+      INTEGER :: id_SOAGX, id_SOAMG
       INTEGER :: id_SOAIE, id_SOAME
       INTEGER :: id_INDIOL,id_LVOCOA,id_ISN1OA
 
@@ -282,6 +282,7 @@
       LOGICAL             :: IS_SAL,   IS_DST
       LOGICAL             :: IS_TSOA,  IS_ISOA,  IS_ASOA
       LOGICAL             :: IS_POA,   IS_OPOA
+      LOGICAL             :: IS_SOAGX, IS_SOAMG
 
       ! Pointers      
       REAL(fp), POINTER   :: Spc(:,:,:,:)
@@ -325,6 +326,8 @@
      &         .AND. id_ASOA2 > 0 .AND. id_ASOA3 > 0 )
       IS_POA     = ( id_POA1  > 0 .AND. id_POA2  > 0 )
       IS_OPOA    = ( id_OPOA1 > 0 .AND. id_OPOA2 > 0 )
+      IS_SOAGX   = ( id_SOAGX > 0 )
+      IS_SOAMG   = ( id_SOAMG > 0 )
 
       ! If species units are 'kg/kg dry', convert to [kg] for this routine.
       ! Otherwise, if tracer units are not 'kg', throw an error to the 
@@ -569,13 +572,6 @@
                   IF ( id_SOAMG > 0 ) THEN
                      ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
      &                             Spc(I,J,L,id_SOAMG) / AIRVOL(I,J,L)
-                  ENDIF
-
-                  ! Glycoaldehyde (currently zero, but included for
-                  !                future implementation):
-                  IF ( id_SOAGC > 0 ) THEN
-                     ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                             Spc(I,J,L,id_SOAGC) / AIRVOL(I,J,L)
                   ENDIF
 
                   ! IEPOX:
@@ -854,14 +850,14 @@
          ENDIF
 
          !===========================================================
-         ! SOAG and SOAM [kg/m3]
+         ! SOAGX and SOAMG [kg/m3]
          !===========================================================
-         IF ( IS_SOAG ) THEN
-            SOAG(I,J,L) = Spc(I,J,L,id_SOAGX) * OCFG / AIRVOL(I,J,L)
+         IF ( IS_SOAGX ) THEN
+            SOAGX(I,J,L) = Spc(I,J,L,id_SOAGX) * OCFG / AIRVOL(I,J,L)
          ENDIF
 
-         IF ( IS_SOAM ) THEN
-            SOAM(I,J,L) = Spc(I,J,L,id_SOAMG) * OCFM / AIRVOL(I,J,L)
+         IF ( IS_SOAMG ) THEN
+            SOAMG(I,J,L) = Spc(I,J,L,id_SOAMG) * OCFM / AIRVOL(I,J,L)
          ENDIF
 
          !===========================================================
@@ -871,7 +867,7 @@
          !
          ! PM25 = 1.33 (NH4 + NIT  + SO4) + BCPI + BCPO +
          !        2.10 (OCPO + 1.16 OCPI) + 1.16 SOA    +
-         !        DST1 + 0.38 DST2 + 1.86 SALA + SOAG + SOAM
+         !        DST1 + 0.38 DST2 + 1.86 SALA + SOAGX + SOAMG
          !
          ! NOTES:
          ! - We apply growth factors at 35% RH (computed above): 
@@ -896,8 +892,8 @@
      &               + SOILDUST(I,J,L,1) + SOILDUST(I,J,L,2) ! DST1
      &               + SOILDUST(I,J,L,3) + SOILDUST(I,J,L,4) ! DST1
      &               + SOILDUST(I,J,L,5) * 0.38              ! 38% of DST2
-     &               + SOAG(I,J,L)
-     &               + SOAM(I,J,L)
+     &               + SOAGX(I,J,L)
+     &               + SOAMG(I,J,L)
      &               + ISOAAQ(I,J,L) * ORG_GROWTH
 
          ! Apply STP correction factor based on ideal gas law
@@ -2095,7 +2091,6 @@
       id_ASOA3 = Ind_('ASOA3')
       id_SOAGX = Ind_('SOAGX')
       id_SOAMG = Ind_('SOAMG')
-      id_SOAGC = Ind_('SOAGC')
       id_SOAIE = Ind_('SOAIE')
       id_SOAME = Ind_('SOAME')
       id_INDIOL= Ind_('INDIOL')
@@ -2181,14 +2176,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPOA' )
       OPOA = 0d0
 
-      ALLOCATE( SOAG( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOAG' )
-      SOAG = 0d0
-
-      ALLOCATE( SOAM( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOAM' )
-      SOAM = 0d0
-
       ALLOCATE( PM25( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PM25' )
       PM25 = 0d0
@@ -2254,8 +2241,6 @@
       IF ( ALLOCATED( ISOA        ) ) DEALLOCATE( ISOA        )
       IF ( ALLOCATED( ASOA        ) ) DEALLOCATE( ASOA        )
       IF ( ALLOCATED( OPOA        ) ) DEALLOCATE( OPOA        )
-      IF ( ALLOCATED( SOAG        ) ) DEALLOCATE( SOAG        )
-      IF ( ALLOCATED( SOAM        ) ) DEALLOCATE( SOAM        )
       IF ( ALLOCATED( PM25        ) ) DEALLOCATE( PM25        )
       IF ( ALLOCATED( WAERSL      ) ) DEALLOCATE( WAERSL      )
       IF ( ALLOCATED( DAERSL      ) ) DEALLOCATE( DAERSL      )
