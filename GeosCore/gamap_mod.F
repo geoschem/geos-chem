@@ -5455,6 +5455,12 @@
                      NAME(T,22) = 'JHAC'
                   CASE( 28 )
                      NAME(T,22) = 'JGLYC'
+                  CASE( 29 )
+                     NAME(T,22) = 'JPIP'
+                  CASE( 30 )
+                     NAME(T,22) = 'JIPMN'
+                  CASE( 31 )
+                     NAME(T,22) = 'JETHLN'
                  CASE DEFAULT
                   ! Nothing
                END SELECT

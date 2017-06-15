@@ -2217,6 +2217,9 @@
 !  (26 ) JMACR : MACR  J-value                 : s-1   : SCALE_JV
 !  (27 ) JHAC  : HAC   J-value                 : s-1   : SCALE_JV
 !  (28 ) JGLYC : GLYC  J-value                 : s-1   : SCALE_JV
+!  (29 ) JPIP  : PIP   J-value                 : s-1   : SCALE_JV
+!  (30 ) JIPMN : IPMN  J-value                 : s-1   : SCALE_JV
+!  (31 ) JETHLN: ETHLN J-value                 : s-1   : SCALE_JV
 !  (71 ) JCH3I : CH3I  J-value (s^-1)          : s-1   : SCALE_JV
 !  (81 ) JHCN  : HCN   J-value (s^-1)          : s-1   : SCALE_JV
 !
@@ -2240,126 +2243,11 @@
 
          DO M = 1, TMAX(22)
             N  = TINDEX(22,M)
+            IF ( N > PD22 ) CYCLE
             NN = N
 
-            !-----------------------------------------------------------------
-            ! NOTE: We can no longer select "all" in input.geos, but we
-            ! must specify the species #'s for ND22 explicitly as listed below:
-            !
-            ! Fullchem:
-            ! 1           = NO
-            ! 2           = O3_O1D & O3_O3P (Standard,UCX); O3 & OH (Trop,SOA)
-            ! 7           = HNO3
-            ! 8           = H2O2
-            ! 9           = ACET
-            ! 11          = ALD2
-            ! 13          = MVK
-            ! 14          = MACR
-            ! 20          = CH2O
-            ! 44          = Br2
-            ! 46          = BrO
-            ! 47          = HOBr
-            ! 49          = BrNO2
-            ! 50          = BrNO3
-            ! 51          = CHBr3
-            ! 59          = HAC
-            ! 60          = GLYC
-            ! 66          = NO2
-            ! 67          = NO3
-            ! 69          = N2O   (Standard, UCX simulations only)
-            ! 74          = CCl4  (Standard, UCX simulations only)
-            ! 75          = CH3Cl (Standard, UCX simulations only)
-            ! 83          = CFC11 (Standard, UCX simulations only)
-            ! 84          = CFC12 (Standard, UCX simulations only)
-            ! -1          = O2    (Standard, UCX simulations only)
-            ! N/A         = GLYX  (dicarbonyl simulation only) *needs updating*
-            ! N/A         = MGLY  (dicarbonyl simulation only) *needs updating*
-            !
-            ! HCN simulation:
-            ! 1           = HCN
-            !
-            ! CH3I simulation:
-            ! 1           = CH3I 
-            !
-            ! (ccc, bmy, 12/15/08; mps 5/27/14)
-            !-----------------------------------------------------------------
-            IF ( NN == -1 ) THEN
-
-               ! Write 'O2'
-               MM = 15
-
-            ELSE
-
-               ! Point to the species database entry for this species
-               SpcInfo => State_Chm%SpcData(NN)%Info
-
-               SELECT CASE ( TRIM( SpcInfo%Name ) )
-                  CASE ( 'NO2', 'HCN', 'CH3I' )
-                     MM = 1
-                  CASE ( 'HNO3' )
-                     MM = 2
-                  CASE ( 'H2O2' )
-                     MM = 3
-                  CASE ( 'CH2O' )
-                     MM = 4
-                  CASE ( 'O3'   )
-                     MM = 5
-                  CASE ( 'GLYX' )
-                     MM = 7
-                  CASE ( 'MGLY' )
-                     MM = 8
-                  CASE ( 'BrO' ) ! jpp, 4/24/2011 - added bromine
-                     MM = 9
-                  CASE ( 'HOBr' )
-                     MM = 10
-                  CASE ( 'BrNO2' )
-                     MM = 11
-                  CASE ( 'BrNO3' )
-                     MM = 12
-                  CASE ( 'CHBr3' )
-                     MM = 13
-                  CASE ( 'Br2' )
-                     MM = 14
-                  CASE ( 'N2O' )
-                     MM = 16
-                  CASE ( 'NO' )
-                     MM = 17
-                  CASE ( 'NO3' )
-                     MM = 18
-                  CASE ( 'CFC11' )
-                     MM = 19
-                  CASE ( 'CFC12' )
-                     MM = 20
-                  CASE ( 'CCl4' )
-                     MM = 21
-                  CASE ( 'CH3Cl' )
-                     MM = 22
-                  CASE ( 'ACET' )
-                     MM = 23
-                  CASE ( 'ALD2' )
-                     MM = 24
-                  CASE ( 'MVK' )
-                     MM = 25
-                  CASE ( 'MACR' )
-                     MM = 26
-                  CASE ( 'HAC' )
-                     MM = 27
-                  CASE ( 'GLYC' )
-                     MM = 28
-                  CASE DEFAULT
-                     MM = 0
-               END SELECT
-
-               ! Free pointer
-               SpcInfo => NULL()
-
-            ENDIF
-
-            ! Skip if not a valid index
-            IF ( MM == 0 ) CYCLE
-
             DO L = 1, LD22
-               ARRAY(:,:,L) = AD22(:,:,L,MM) / SCALE_TMP(:,:)
+               ARRAY(:,:,L) = AD22(:,:,L,NN) / SCALE_TMP(:,:)
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -2368,20 +2256,6 @@
      &                  IIPAR,     JJPAR,     LD22,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD22) )
 
-            ! If we have just written out O3, then write out OH
-            ! (ccc, bmy, 12/15/08)
-            IF ( MM == 5 ) THEN
-               MMB = 6
-               DO L = 1, LD22
-                  ARRAY(:,:,L) = AD22(:,:,L,MMB) / SCALE_TMP(:,:)
-               ENDDO
-
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, MMB,    
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     LD22,     IFIRST,     
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD22) )
-            ENDIF
          ENDDO    
       ENDIF     
 #if defined( BPCH_DIAG )
