@@ -48,6 +48,7 @@ MODULE GC_Grid_Mod
   PUBLIC  :: Set_yOffSet
   PUBLIC  :: SetGridFromCtr
   PUBLIC  :: RoundOff
+  PUBLIC  :: GET_IJ
 
 ! Make some arrays public
   PUBLIC  :: XMID, YMID, XEDGE, YEDGE, YSIN, AREA_M2
@@ -1459,6 +1460,77 @@ CONTAINS
     IT_IS_NESTED = IS_NESTED
     
   END FUNCTION ITS_A_NESTED_GRID
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_IJ
+!
+! !DESCRIPTION: Function GET\_IJ returns I and J index for a LON, LAT
+!  coordinate (dkh, 11/16/06). Updated to support nested domains and made much
+!  simpler (zhe, 1/19/11).
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION GET_IJ( LON, LAT ) RESULT ( IIJJ )
+!
+! !USES:
+!
+    USE CMN_SIZE_MOD
+    USE ERROR_MOD,    ONLY : ERROR_STOP
+!
+! !INPUT PARAMETERS:
+!
+    REAL*4, INTENT(IN)  :: LAT, LON
+!
+! !RETURN VALUE:
+!
+    INTEGER               :: IIJJ(2)
+!
+! !REVISION HISTORY:
+!  16 Jun 2017 - M. Sulprizio- Initial version based on routine from adjoint
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL(fp) :: TLON, TLAT
+      REAL(fp) :: I0,   J0
+
+      !=================================================================
+      ! GET_IJ begins here!
+      !=================================================================
+      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+
+      TLON = INT( ( LON + 180e+0_fp ) / DISIZE + 1.5e+0_fp )
+      TLAT = INT( ( LAT +  90e+0_fp ) / DJSIZE + 1.5e+0_fp )
+
+#if defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_CA )
+      TLON = TLON - I0
+      TLAT = TLAT - J0
+      IF ( TLAT < 1 .or. TLAT > JJPAR ) THEN
+         CALL ERROR_STOP('Beyond the nested window', 'GET_IJ')
+      ENDIF
+#else
+      IF ( TLON > IIPAR ) TLON = TLON - IIPAR
+
+      ! Check for impossible values
+      IF ( TLON > IIPAR .or. TLAT > JJPAR .or. &
+           TLON < 1     .or. TLAT < 1          ) THEN
+         CALL ERROR_STOP('Error finding grid box', 'GET_IJ')
+      ENDIF
+
+#endif
+
+      IIJJ(1) = TLON
+      IIJJ(2) = TLAT
+
+    END FUNCTION GET_IJ
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

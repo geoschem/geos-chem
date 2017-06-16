@@ -1635,7 +1635,7 @@
          IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
             IF ( ITS_A_NEW_DAY() ) THEN
                CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, 
-     &                                 State_Chm, RC )
+     &                                 State_Chm, State_Met, RC )
             ENDIF
          ENDIF
 
