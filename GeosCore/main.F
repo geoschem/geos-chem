@@ -84,6 +84,7 @@
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE DIAGNOSTICS_MOD       ! NetCDF diagnostics module (C. Keller)
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
+      USE GOSAT_CH4_MOD         ! For GOSAT observation operator
 
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
@@ -284,7 +285,8 @@
 !                              when we are running specialty simulations
 !  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!EOP
+!  16 Jun 2017 - M. Sulprizio- Add call for GOSAT CH4 observation operator
+!EOC
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -306,6 +308,7 @@
       INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
       INTEGER                  :: id_H2O
       REAL(f8)                 :: TAU,           TAUb         
+      REAL(fpp)                :: COST_FUNC ! Add here temporarily (mps,6/16/17)
       CHARACTER(LEN=255)       :: ZTYPE
 
       ! Set cloud flag for RRTMG
@@ -1637,6 +1640,28 @@
                CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, 
      &                                 State_Chm, State_Met, RC )
             ENDIF
+         ENDIF
+
+         !================================================================
+         ! CH4 columns from the GOSAT instrument (mps, 6/16/17
+         !================================================================
+
+         IF ( Input_Opt%GOSAT_CH4_OBS ) THEN
+      
+!------------------------------------------------------------------------------
+! For adjoint model only:
+!            ! Track cost function contributions
+!            CF_PRIOR = COST_FUNC
+!------------------------------------------------------------------------------
+
+            CALL CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm, State_Met,
+     &                                 COST_FUNC )
+      
+!------------------------------------------------------------------------------
+! For adjoint model only:
+!            ! Track cost function contributions
+!            CF_GOSCH4 = CF_GOSCH4 + COST_FUNC - CF_PRIOR
+!------------------------------------------------------------------------------
          ENDIF
 
          CALL TIMESTAMP_DIAG

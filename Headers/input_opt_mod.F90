@@ -519,6 +519,7 @@ MODULE Input_Opt_Mod
      ! CH4 MENU fields
      !----------------------------------------  
      LOGICAL                     :: LCH4BUDGET
+     LOGICAL                     :: GOSAT_CH4_OBS
 
      !----------------------------------------
      ! POPS MENU fields
@@ -1292,6 +1293,7 @@ CONTAINS
     ! CH4 MENU fields
     !----------------------------------------  
     Input_Opt%LCH4BUDGET             = .FALSE.
+    Input_Opt%GOSAT_CH4_OBS          = .FALSE.
 
     !----------------------------------------
     ! POPS MENU fields

@@ -654,6 +654,8 @@ global_ch4_mod.o            : global_ch4_mod.F                               \
                               diag_mod.o              diag_oh_mod.o          \
                               vdiff_pre_mod.o         hco_interface_mod.o
 
+gosat_ch4_mod.o             : gosat_ch4_mod.F
+
 hco_interface_mod.o         : hco_interface_mod.F90
 
 hcoi_gc_diagn_mod.o         : hcoi_gc_diagn_mod.F90                          \
@@ -742,7 +744,8 @@ main.o                      : main.F                                         \
                               ucx_mod.o               vdiff_mod.o            \
                               emissions_mod.o         cleanup.o              \
                               mixing_mod.o            merra2_read_mod.o      \
-                              wetscav_mod.o           rrtmg_rad_transfer_mod.o
+                              wetscav_mod.o           rrtmg_rad_transfer_mod.o\
+                              gosat_ch4_mod.o
 
 mapping_mod.o               : mapping_mod.F90                              
 

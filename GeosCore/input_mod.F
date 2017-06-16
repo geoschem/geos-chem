@@ -6886,6 +6886,7 @@
 !  20 Sep 2016 - R. Yantosca - Rewrote IF statement to avoid Gfortran error
 !  16 Jun 2017 - M. Sulprizio- Remove emission options since they are now
 !                              handled by HEMCO
+!  16 Jun 2017 - M. Sulprizio- Add option for GOSAT CH4 observation operator
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6907,8 +6908,12 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:1' )
       READ( SUBSTRS(1:N), * ) Input_Opt%LCH4BUDGET     
                                                 
+      ! Use GOSAT CH4 observation operator?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:2' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%GOSAT_CH4_OBS
+                                                
       ! Separator line                          
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:3' )
 
       !=================================================================
       ! Print to screen
@@ -6918,6 +6923,8 @@
          WRITE( 6, '(  a)' ) '-----------'
          WRITE( 6, 100     ) 'Compute CH4 budget?   : ',
      &                        Input_Opt%LCH4BUDGET
+         WRITE( 6, 100     ) 'Use GOSAT obs operator: ',
+     &                        Input_Opt%GOSAT_CH4_OBS
       END IF
 
       ! Error check (kjw)
