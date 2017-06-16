@@ -899,7 +899,7 @@
 
       ! For fields from Input_Opt
       LOGICAL            :: LSPLIT
-      LOGICAL            :: LCH4BUD
+      LOGICAL            :: LCH4BUDGET
 
       ! Pointers
       REAL(fp), POINTER  :: Spc(:,:,:,:)
@@ -919,8 +919,8 @@
       nAdvect = State_Chm%nAdvect
 
       ! Copy values from Input_Opt
-      LSPLIT  = Input_Opt%LSPLIT
-      LCH4BUD = Input_Opt%LCH4BUD
+      LSPLIT     = Input_Opt%LSPLIT
+      LCH4BUDGET = Input_Opt%LCH4BUDGET
 
       ! Point to the chemical species 
       Spc     => State_Chm%Species
@@ -1056,7 +1056,7 @@
       !=================================================================
       NPART = GET_NYMDb() / 100 
 
-      IF ( LCH4BUD .and. ( GET_NYMDb() - NPART*100 ) /= 1 ) THEN
+      IF ( LCH4BUDGET .and. ( GET_NYMDb() - NPART*100 ) /= 1 ) THEN
          print*,'Start date not equal to 1st of month!!!'
          print*,'  Therefore, SR CO_budget will not work!!!'
          CALL GEOS_CHEM_STOP
@@ -1065,14 +1065,14 @@
 
       NPART = GET_NYMDe() /100 
 
-      IF ( LCH4BUD .and. ( GET_NYMDe() - NPART*100 ) /= 1 ) THEN      
+      IF ( LCH4BUDGET .and. ( GET_NYMDe() - NPART*100 ) /= 1 ) THEN      
          print*,'End date not equal to 1st of month!!!'
          print*,'  Therefore, SR CO_budget will not work!!!'
          CALL GEOS_CHEM_STOP
       ENDIF
 
       ! Call CH4_BUDGET on the last day of the month
-      IF ( LCH4BUD .and. GET_DAY() == NODAYS( GET_MONTH() ) ) THEN
+      IF ( LCH4BUDGET .and. GET_DAY() == NODAYS( GET_MONTH() ) ) THEN
          print*,'CALL CH4_BUDGET'
          CALL FLUSH ( 6 )
      
