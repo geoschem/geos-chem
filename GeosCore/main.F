@@ -53,7 +53,6 @@
       !-----------------------------------------------------------------
       USE CARBON_MOD            ! For SOA simulation
       USE CHEMISTRY_MOD         ! Driver routines for chemistry
-      USE GLOBAL_CH4_MOD        ! For offline CH4 simulation
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
       USE STRAT_CHEM_MOD        ! For linearized stratospheric chemistry
@@ -356,7 +355,6 @@
       !
       ! Define shadow variables for fields in Input_Opt (bmy, 6/25/14)
       LOGICAL                  :: ITS_A_FULLCHEM_SIM 
-      LOGICAL                  :: ITS_A_CH4_SIM
       LOGICAL                  :: ITS_A_MERCURY_SIM  
       LOGICAL                  :: ITS_A_TAGCO_SIM
       LOGICAL                  :: ITS_AN_AEROSOL_SIM 
@@ -492,7 +490,6 @@
       ! from logical_mod.F and tracer_mod.F. (bmy, 3/29/13)
       USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
       ITS_A_FULLCHEM_SIM  =  Input_Opt%ITS_A_FULLCHEM_SIM
-      ITS_A_CH4_SIM       =  Input_Opt%ITS_A_CH4_SIM
       ITS_A_MERCURY_SIM   =  Input_Opt%ITS_A_MERCURY_SIM
       ITS_A_TAGCO_SIM     =  Input_Opt%ITS_A_TAGCO_SIM 
       ITS_AN_AEROSOL_SIM  =  Input_Opt%ITS_AN_AEROSOL_SIM
@@ -1468,9 +1465,6 @@
          ! the call to HEMCO emissions driver EMISSIONS_RUN. (bmy, 3/20/15)
          CALL GET_OVERHEAD_O3_FOR_FASTJ( am_I_Root )
          
-         ! Also need to compute avg P, T for CH4 chemistry (bmy, 1/16/01)
-         IF ( ITS_A_CH4_SIM ) CALL CH4_AVGTP( State_Met )
-
          ! Every chemistry timestep...
          IF ( ITS_TIME_FOR_CHEM() ) THEN
 

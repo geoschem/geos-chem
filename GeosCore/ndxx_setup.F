@@ -474,7 +474,7 @@
       IF ( ND19 > 0 ) THEN 
          LD19 = MIN( ND19, LLPAR )
 	 
-         ALLOCATE( AD19( IIPAR, JJPAR, LD19 ), STAT=AS )
+         ALLOCATE( AD19( IIPAR, JJPAR, LD19, PD19 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD19' )
 
       ENDIF 

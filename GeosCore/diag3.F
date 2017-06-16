@@ -1988,26 +1988,30 @@
 !
 !   # : Field    : Description                     : Units    : Scale factor
 !  --------------------------------------------------------------------------
-!  (1 ) CH4-LOSS : CH4 removing by OH              : kg CH4   : 1
+!  (1 ) CH4-LOSS : CH4 loss by reaction with OH    : kg CH4   : 1
+!  (2 ) CH4-LOSS : CH4 loss in the stratosphere    : kg CH4   : 1
+!  (3 ) CH4-LOSS : CH4 loss by reaction with Cl    : kg CH4   : 1
 !******************************************************************************
 !
       IF ( ND19 > 0 ) THEN
+         UNIT     = 'kg'
+         CATEGORY = 'CH4-LOSS'
 
-         UNIT = 'kg'
+         DO M = 1, TMAX(19)
+            N  = TINDEX(19,M)
+            IF ( N > PD19 ) CYCLE
+            NN = N
 
-         !==============================================================
-         ! CH4 Loss
-         !==============================================================
-         CATEGORY     = 'CH4-LOSS'
-         N            = 1
-	
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LD19,    IFIRST,     
-     &               JFIRST,    LFIRST,    AD19(:,:,:) )
+            ARRAY(:,:,1:LD19) = AD19(:,:,1:LD19,N)
 
-	ENDIF
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     LD19,     IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD19) )
+
+         ENDDO
+      ENDIF
 #endif
 !
 !******************************************************************************
@@ -5570,17 +5574,20 @@
 !   #  : Field   : Description                 : Units     : Scale Factor
 !  ---------------------------------------------------------------------------
 !  (1 ) CH4-TOT  : CH4 Emissions total(w/o sab): kg        : 1
-!  (2 ) CH4-GAO  : CH4 Emissions gas & oil     : kg        : 1
-!  (3 ) CH4-COL  : CH4 Emissions coal          : kg        : 1
-!  (4 ) CH4-LIV  : CH4 Emissions livestock     : kg        : 1
-!  (5 ) CH4-WST  : CH4 Emissions waste         : kg        : 1
-!  (6 ) CH4-BFL  : CH4 Emissions biofuel       : kg        : 1
-!  (7 ) CH4-RIC  : CH4 Emissions rice          : kg        : 1
-!  (8 ) CH4-OTA  : CH4 Emissions other anthro  : kg        : 1
-!  (9 ) CH4-BBN  : CH4 Emissions bioburn       : kg        : 1
-!  (10) CH4-WTL  : CH4 Emissions wetlands      : kg        : 1
-!  (11) CH4-SAB  : CH4 Emissions soil abs      : kg        : 1
-!  (12) CH4-OTN  : CH4 Emissions other natural : kg        : 1
+!  (2 ) CH4-OIL  : CH4 Emissions oil           : kg        : 1
+!  (3 ) CH4-GAS  : CH4 Emissions gas           : kg        : 1
+!  (4 ) CH4-COL  : CH4 Emissions coal          : kg        : 1
+!  (5 ) CH4-LIV  : CH4 Emissions livestock     : kg        : 1
+!  (6 ) CH4-LDF  : CH4 Emissions landfills     : kg        : 1
+!  (7 ) CH4-WST  : CH4 Emissions wastewater    : kg        : 1
+!  (8 ) CH4-RIC  : CH4 Emissions rice          : kg        : 1
+!  (9 ) CH4-OTA  : CH4 Emissions other anthro  : kg        : 1
+!  (10) CH4-BBN  : CH4 Emissions bioburn       : kg        : 1
+!  (11) CH4-WTL  : CH4 Emissions wetlands      : kg        : 1
+!  (12) CH4-SEE  : CH4 Emissions seeps         : kg        : 1
+!  (13) CH4-LAK  : CH4 Emissions lakes         : kg        : 1
+!  (14) CH4-TER  : CH4 Emissions termites      : kg        : 1
+!  (15) CH4-SAB  : CH4 Emissions soil abs      : kg        : 1
 !******************************************************************************
 
       IF ( ND58 > 0 ) THEN

@@ -36,6 +36,7 @@
       INTEGER, PARAMETER :: PD16=2  
       INTEGER, PARAMETER :: PD17=8           
       INTEGER, PARAMETER :: PD18=8
+      INTEGER, PARAMETER :: PD19=3
       INTEGER, PARAMETER :: PD21=5+(NRHAER+NDUST)*3+(NRHAER*2)+
      &                           (NSTRATAER*3)
       INTEGER, PARAMETER :: PD22=28
@@ -44,7 +45,7 @@
       INTEGER, PARAMETER :: PD55=3
       ! Potential temperature diagnostic (hotp 7/31/09)
       INTEGER, PARAMETER :: PD57=1           
-      INTEGER, PARAMETER :: PD58=12
+      INTEGER, PARAMETER :: PD58=15
 #if   defined( TOMAS )
       ! Special settings for TOMAS aerosol microphysics (win, bmy, 1/22/10)
       INTEGER, PARAMETER :: PD59=TOMASBIN*TOMASSPEC   

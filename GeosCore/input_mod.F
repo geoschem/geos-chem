@@ -6884,6 +6884,8 @@
 !                              controlled by an #ifdef in global_ch4_mod.F)
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  20 Sep 2016 - R. Yantosca - Rewrote IF statement to avoid Gfortran error
+!  16 Jun 2017 - M. Sulprizio- Remove emission options since they are now
+!                              handled by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6891,9 +6893,6 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LGAO,    LCOL,    LLIV,   LWAST
-      LOGICAL            :: LBFCH4,  LBMCH4,  LWETL,  LRICE
-      LOGICAL            :: LOTANT,  LSOABS,  LOTNAT, LCH4BUD
       INTEGER            :: N
       CHARACTER(LEN=255) :: MSG
 
@@ -6906,51 +6905,7 @@
 
       ! Compute CH4 budget
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:1' )
-      READ( SUBSTRS(1:N), * ) LCH4BUD
-
-      ! Use Gas & Oil emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:2' )
-      READ( SUBSTRS(1:N), * ) LGAO
-
-      ! Use Coal emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:3' )
-      READ( SUBSTRS(1:N), * ) LCOL              
-                                                
-      ! Use Livestock emissions?                
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:4' )
-      READ( SUBSTRS(1:N), * ) LLIV              
-                                                
-      ! Use Waste emissions?                    
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:5' )
-      READ( SUBSTRS(1:N), * ) LWAST             
-                                                
-      ! Use Biofuel emissions?                  
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:6' )
-      READ( SUBSTRS(1:N), * ) LBFCH4          
-                                                
-      ! Use Rice emissions?                     
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:7' )
-      READ( SUBSTRS(1:N), * ) LRICE             
-                                                
-      ! Use Other Anthropogenic emissions?      
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:8' )
-      READ( SUBSTRS(1:N), * ) LOTANT            
-                                                
-      ! Use Biomass emissions?                  
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:9' )
-      READ( SUBSTRS(1:N), * ) LBMCH4          
-                                                
-      ! Use Wetlands emissions?                 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:10' )
-      READ( SUBSTRS(1:N), * ) LWETL             
-                                                
-      ! Use Soil Absorption?          
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:11' )
-      READ( SUBSTRS(1:N), * ) LSOABS            
-                                                
-      ! Use Other Natural emissions?            
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:12' )
-      READ( SUBSTRS(1:N), * ) LOTNAT            
+      READ( SUBSTRS(1:N), * ) Input_Opt%LCH4BUDGET     
                                                 
       ! Separator line                          
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:13' )
@@ -6961,22 +6916,12 @@
       IF( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'CH4 MENU'
          WRITE( 6, '(  a)' ) '-----------'
-         WRITE( 6, 100     ) 'Compute CH4 budget?   : ', LCH4BUD
-         WRITE( 6, 100     ) 'Use Gas & Oil emis?   : ', LGAO
-         WRITE( 6, 100     ) 'Use Coal Mine emis?   : ', LCOL
-         WRITE( 6, 100     ) 'Use Livestock emis?   : ', LLIV
-         WRITE( 6, 100     ) 'Use Waste emis?       : ', LWAST
-         WRITE( 6, 100     ) 'Use Biofuel emis?     : ', LBFCH4
-         WRITE( 6, 100     ) 'Use Rice emis?        : ', LRICE
-         WRITE( 6, 100     ) 'Use Ot. Anthro emis?  : ', LOTANT
-         WRITE( 6, 100     ) 'Use Biomass emis?     : ', LBMCH4
-         WRITE( 6, 100     ) 'Use Wetlands emis?    : ', LWETL
-         WRITE( 6, 100     ) 'Use Soil Absorption?  : ', LSOABS
-         WRITE( 6, 100     ) 'Use Ot. Natural emis? : ', LOTNAT
+         WRITE( 6, 100     ) 'Compute CH4 budget?   : ',
+     &                        Input_Opt%LCH4BUDGET
       END IF
 
       ! Error check (kjw)
-      IF ( LCH4BUD ) THEN
+      IF ( Input_Opt%LCH4BUDGET ) THEN
          MSG = 'To print CH4 budget information, be sure that ' //
      &         'USE_CH4_BUDGET_DIAG is defined at the beginning' //
      &         ' of global_ch4_mod.F'
@@ -6988,22 +6933,6 @@
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
-
-      !=================================================================
-      ! Set fields of Input Options object
-      !=================================================================
-      Input_Opt%LCH4BUD = LCH4BUD
-      Input_Opt%LGAO    = LGAO
-      Input_Opt%LCOL    = LCOL         
-      Input_Opt%LLIV    = LLIV         
-      Input_Opt%LWAST   = LWAST         
-      Input_Opt%LBFCH4  = LBFCH4       
-      Input_Opt%LRICE   = LRICE         
-      Input_Opt%LOTANT  = LOTANT         
-      Input_Opt%LBMCH4  = LBMCH4       
-      Input_Opt%LWETL   = LWETL         
-      Input_Opt%LSOABS  = LSOABS          
-      Input_Opt%LOTNAT  = LOTNAT 
 
       ! Return success
       RC = GC_SUCCESS         
