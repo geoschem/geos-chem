@@ -341,7 +341,7 @@
       ! overwritten (jaf, 4/25/11)
       FRAC_SNOW_OR_ICE = 1e+0_fp
 
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       ! Don't let fraction be greater than 1
       FRAC_SNOW_OR_ICE = MIN( State_Met%FRSNO(I,J)     +
      &                        State_Met%FRSEAICE(I,J)  + 

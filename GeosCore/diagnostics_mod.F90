@@ -2434,7 +2434,7 @@ CONTAINS
 
     ! For now, only update if GEOS-FP or MERRA2 since diagnostics
     ! for those are stored in State_Met and are therefore accessible here.
-#if defined( GEOS_FP ) || defined ( MERRA2 )
+#if defined( GEOS_FP ) || defined ( MERRA2 ) || defined( FLEXGRID )
 
     ! Set number of 3D and 2D MET diagnostics that are updated 
     Num2d = 23

@@ -1187,7 +1187,7 @@ CONTAINS
     ! at ground (SWGDN). For simplicity we store radiation as a single 
     ! variable in HEMCO. SWGDN is also available for MERRA but is not 
     ! used in HEMCO to preserve legacy usage of net radiation (ewl, 9/23/15)
-#if defined ( GEOS_FP ) || defined( MERRA2 )
+#if defined ( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%RADSWG, &
            'RADSWG_FOR_EMIS',   HCRC, FIRST, State_Met%SWGDN  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
@@ -2375,7 +2375,7 @@ CONTAINS
        CALL ERROR_STOP( 'GetExtOpt +TOMS_SBUV_O3+', LOC, INS )
     ENDIF
 
-#if defined( GEOS_FP ) || defined( MERRA2 )
+#if defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
     
     ! Disable for GEOS-FP met fields no matter what it is set to in the 
     ! HEMCO configuration file unless it is a mercury simulation done 

@@ -888,7 +888,7 @@
       !=================================================================
       ! Add safety checks for logical switches
       !=================================================================
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       ! Turn unzipping off for MERRA met fields
       LUNZIP = .FALSE. 
 #endif
@@ -3468,7 +3468,7 @@
       ! Further error checks and initializations
       !=================================================================
 
-#if !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
+#if !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 ) && !defined( FLEXGRID )
       ! The non-local PBL scheme is valid only with GEOS-5/MERRA/GEOS-FP
       IF ( LNLPBL ) THEN
          IF( am_I_Root ) THEN
@@ -3635,7 +3635,7 @@
       IF ( Input_Opt%ITS_A_C2H6_SIM    ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
 
-#if   defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%% KLUDGE FOR TESTING GEOS-FP (bmy, 3/26/12)
       !%%% Use the Olson 2001 land map, which is at 0.25 x 0.25 resolution
@@ -6503,7 +6503,7 @@
       !=================================================================
       ! Error checks
       !=================================================================
-#if !defined( MERRA2 ) && !defined( GEOS_FP) 
+#if !defined( MERRA2 ) && !defined( GEOS_FP)  && !defined( FLEXGRID )
       IF ( LWINDO_AS ) THEN
          IF ( am_I_Root ) THEN
             WRITE(6,*) REPEAT( '=', 79 )

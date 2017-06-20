@@ -530,7 +530,7 @@ CONTAINS
           ENDIF
        ENDIF
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
        ! Full grid
        IF ( nz == 72 ) THEN
           IF ( nlev <= 73 ) THEN
@@ -1076,7 +1076,7 @@ CONTAINS
     ! GEOS-5 / GEOS-FP / MERRA / MERRA2 mapping
     ! These all use the same vertical grid, 72 native vertical layers
     !===================================================================
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
        !----------------------------------------------------------------
        ! Native GEOS-5

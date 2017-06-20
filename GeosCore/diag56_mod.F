@@ -161,7 +161,7 @@
       RESERVED  = ''
 #if   defined( MERRA )
       SCALE     = DBLE( GET_CT_A3() ) + 1e-32_fp
-#elif defined( GEOS_FP ) || defined( MERRA2 )
+#elif defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       SCALE     = DBLE( GET_CT_I3() ) + 1e-32_fp
 #else
       SCALE     = DBLE( GET_CT_A6() ) + 1e-32_fp

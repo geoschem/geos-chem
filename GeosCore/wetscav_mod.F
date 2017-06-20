@@ -197,7 +197,7 @@
       REAL(fp), ALLOCATABLE         :: QQ    (:,:,:) ! Rate of new precip
                                                      !  formation
                                                      !  [cm3 H2O/cm3 air/s]
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       REAL*8,  ALLOCATABLE          :: REEVAP(:,:,:) ! Rate of precip 
                                                      !  reevaporation
                                                      !  [cm3 H2O/cm3 air/s]
@@ -363,7 +363,7 @@
       ENDIF
 #endif
 
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
       !=================================================================
       ! MERRA: Only do wet deposition for large-scale + anvil precip
@@ -678,7 +678,7 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'QQ' )
          QQ = 0e+0_fp
 
-#if   defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
+#if   defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 ) || defined( FLEXGRID )
          ! Allocate REEVAP on first call
          ALLOCATE( REEVAP( LLPAR, IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAP' )
@@ -700,7 +700,7 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-#if   defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
          !==============================================================
          ! %%%%% FOR GEOS-FP or MERRA2 MET FIELDS %%%%%  
@@ -3426,7 +3426,7 @@
 
       END SUBROUTINE WETDEP
 !EOC
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -4704,7 +4704,7 @@
      &                 WASHFRAC,  KIN,          Input_Opt,
      &                 State_Met, State_Chm, RC )
 
-#if    defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if    defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
          !%%% BUG FIX: Only apply this section of when running
          !%%% GEOS-Chem with GEOS-FP, MERRA, or MERRA2 met fields.  
          ! (bmy, hamos, 5/26/11, 8/12/15)
@@ -6123,7 +6123,7 @@
       IF ( ALLOCATED( QQ     ) ) DEALLOCATE( QQ     )
       IF ( ALLOCATED( H2O2s  ) ) DEALLOCATE( H2O2s  )
       IF ( ALLOCATED( SO2s   ) ) DEALLOCATE( SO2s   )
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       IF ( ALLOCATED( REEVAP ) ) DEALLOCATE( REEVAP )
 #endif      
       END SUBROUTINE CLEANUP_WETSCAV

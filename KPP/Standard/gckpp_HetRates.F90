@@ -368,7 +368,7 @@ MODULE GCKPP_HETRATES
 
       GAMMA_HO2 = IO%GAMMA_HO2
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
             
       ! GEOS-5 / MERRA / GEOS-FP / MERRA-2 have QI and QL defined as 
       ! met fields so use these to define the QICE, QLIQ arrays. 
@@ -1950,7 +1950,7 @@ MODULE GCKPP_HETRATES
       ! ----------------------------------------------
 
       ! continental or marine clouds only...
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       IF ( (FRLAND (I,J) > 0) .or. (FROCEAN(I,J) > 0) ) THEN
 #else
       ! Above line is to skip over land ice (Greenland and Antartica). This
@@ -2026,7 +2026,7 @@ MODULE GCKPP_HETRATES
       !     AREA =  -----------------
       !              AIRVOL x RADIUS      (in cm)
       ! ----------------------------------------------
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       IF ( FRLAND(I,J) > FROCEAN(I,J) ) THEN
 #else
       IF ( IS_LAND ) THEN
@@ -2044,7 +2044,7 @@ MODULE GCKPP_HETRATES
       XAIRM3 = XAIRM3 * (100.e+0_fp)**3
 
       ! get the volume of cloud [cm3]
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       ! QL is [g/g]
       Vc = CLDF(I,J,L) * QL * AD(I,J,L) / dens_h2o
 #else

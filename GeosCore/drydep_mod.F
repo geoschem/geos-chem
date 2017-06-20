@@ -848,7 +848,7 @@
          ! clarity, using the new SWGDN field for incident radiation.
          ! SWGDN is also available for MERRA but we do not use it
          ! here to preserve the legacy method (ewl, 9/23/15)
-#if defined ( GEOS_FP ) || defined ( MERRA2 )
+#if defined ( GEOS_FP ) || defined ( MERRA2 ) || defined( FLEXGRID )
          RADIAT(I,J) = State_Met%SWGDN(I,J)
 #else
          RADIAT(I,J) = State_Met%RADSWG(I,J) 

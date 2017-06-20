@@ -1643,7 +1643,7 @@
                   CASE ( 1009 )
                      VARI(V) = L
 
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
                   !--------------------------
                   ! GEOS-Chem SEAICE frac's
                   !--------------------------

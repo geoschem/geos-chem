@@ -478,7 +478,7 @@ CONTAINS
                 ENDIF
              ENDIF
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
              ! We want emissions from any box that contains some land
              ! FRLAND is fraction of grid box that is land
              IF ( ExtState%FRLAND%Arr%Val(I,J) > 0) THEN 

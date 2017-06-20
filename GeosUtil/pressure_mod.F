@@ -706,7 +706,7 @@
       EXTERNAL_PEDGE = 0e+0_fp
 #endif
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
       !=================================================================
       ! GEOS-5/MERRA vertical coordinates (47 or 72 levels)

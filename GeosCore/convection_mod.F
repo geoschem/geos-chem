@@ -215,7 +215,7 @@
       !=================================================================
       ! MERRA or GEOS-FP met fields definitions
       !=================================================================
-#if defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       
       ! Scalars          
       INTEGER           :: I, J, L, NN, TS_DYN
@@ -326,7 +326,7 @@
       ! Call the S-J Lin convection routine for GEOS-5
       CALL NFCLDMX( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-#elif defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#elif defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
       !=================================================================
       ! GEOS-FP, MERRA, or MERRA-2 met fields
@@ -1441,7 +1441,7 @@
          WRITE( 6, '(a)' ) 'N F C L D M X  -- by S-J Lin'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
+#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 ) || defined( FLEXGRID )
          ! Do nothing, these are all hybrid grids
 #else
          ! NOTE: We don't need to do this for GEOS-5 (bmy, 6/27/07)
@@ -2277,7 +2277,7 @@
                                                     ! [mol/mol dry air]
       SpcInfo  => NULL()                            ! Species database entry
                                                 
-#if   defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
       !%%%%% FOR GEOS-FP/MERRA2, PFICU and PFLCU are on level edges %%%%%
       PFICU    => State_Met%PFICU   (I,J,2:LLPAR+1) ! Dwnwd flx of conv 

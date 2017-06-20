@@ -679,7 +679,7 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%TTO3     = 0.0_fp
 
-#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
+#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 ) || defined( FLEXGRID )
 
     !=======================================================================
     ! MERRA, GEOS-FP, and MERRA2 met fields
@@ -965,14 +965,14 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%ZMMU     = 0.0_fp
 
-#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
+#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 ) || defined( FLEXGRID )
 
     !=======================================================================
     ! MERRA, GEOS-FP, and MERRA2 met fields
     !=======================================================================
 
     ! Pick the proper vertical dimension
-#if defined( GEOS_FP ) || defined( MERRA2 )
+#if defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
     LX = LM + 1           ! For fields that are on level edges
 #else
     LX = LM               ! For fields that are on level centers
@@ -1333,7 +1333,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%TO32       )) DEALLOCATE( State_Met%TO32       )
     IF ( ASSOCIATED( State_Met%TTO3       )) DEALLOCATE( State_Met%TTO3       )
 
-#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
+#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 ) || defined( FLEXGRID )
     !========================================================================
     ! Fields specific to the GMAO GEOS-FP, MERRA, and MERRA-2 met products
     !========================================================================

@@ -2939,7 +2939,7 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
       ! MERRA and GEOS-5.7.x met fields are 1-hour time-averages, timestamped 
       ! at the center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)

@@ -577,7 +577,7 @@
       ! different versions for GEOS-FP vs GEOS-5 and nested vs.
       ! non-nested. Users are encouraged to test and adapt. (J. Fisher,
       ! 4/2016)
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 #if   defined( NESTED_NA )
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 9.6e-3_fp * 1.33
 #else
@@ -663,7 +663,7 @@
       IF ( FIRST ) THEN
          CALL SET_OPTIONS_FROM_HEMCO( am_I_Root, Input_Opt, RC )
 
-#if !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
+#if !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 ) && !defined( FLEXGRID )
          ! Warning for non-MERRA
          WRITE( 6, * ) 'WARNING: Polar BrO parameterization '//
      &                 'designed for use with incident shortwave'
@@ -796,7 +796,7 @@
 
          ! Area fraction of box with Hg0 dep. Default is dep everywhere
          F_Hg0_Dep = 1e+0_fp
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
          ! Deposition occurs over areas that are not ocean, snow or ice
          ! (jaf, 4/26/11)
          F_Hg0_Dep = 1e+0_fp - MAX( 0e+0_fp, MIN( 1e+0_fp, 
@@ -881,7 +881,7 @@
          ! Reduction rate (requires liquid water content)
          !---------------------------------------------
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -3812,7 +3812,7 @@
 ! KLUDGE: can't get SWGDN in State_Met; add this later (jaf)
 ! Use incident radiation at ground (State_Met%SWGDN) where available. 
 ! Otherwise, use net radiation at ground (State_Met%RADSWG)
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       SWRAD         = State_Met%SWGDN(I,J)
 !      SWRAD = State_Met%RADSWG(I,J) - old code (jaf)
 ! END KLUDGE

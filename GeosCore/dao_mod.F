@@ -504,7 +504,7 @@
          State_Met%AVGW(I,J,L) = AIRMW * SPHU_kgkg                        
      &                           / ( H2OMW * (1.0e+0_fp - SPHU_kgkg ) )   
                                                                           
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 ) && !defined( FLEXGRID )
                                                                           
          !=============================================================   
          ! Calculate water vapor partial pressure from specific humidity  
@@ -545,7 +545,7 @@
          ! Relative humidity [%]                                          
          State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp              
                                                                           
-#elif defined( GEOS_5 ) || defined ( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#elif defined( GEOS_5 ) || defined ( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
                                                                           
          !=============================================================   
          ! Calculate water vapor partial pressures [hPa] from relative    
@@ -912,7 +912,7 @@
       D_NTIME1 = DBLE( NTIME1 )
       D_NTDT   = DBLE( NTDT   )
 
-#if   defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       D_NDT    = 10800e+0_fp              ! For 3-hr instantaneous fields
 #else
       D_NDT    = 21600e+0_fp              ! For 6-hr instantaneous fields
@@ -924,7 +924,7 @@
       ! Fraction of timestep elapsed at the end of this dyn timestep
       TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
 
-#if   defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       ! For I3 fields, need to reset fraction after 3 hours (ewl, 5/12/2015)
       IF ( TM > 1.0e+0_fp ) THEN
          TM  = TM  - 1.0e+0_fp
@@ -1082,7 +1082,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#elif defined( GEOS_FP ) || defined( MERRA2 )
+#elif defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
       !=================================================================
       ! GEOS-FP or MERRA2 met fields: PSC2_WET, PSC2_DRY, TROPP, T, SPHU 
@@ -1219,7 +1219,7 @@
       !=================================================================
 
       ! Set pointer to the appropriate humidity
-#if defined( GEOS_FP ) || defined( MERRA2 )
+#if defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       IF ( PS_ID == 1 ) THEN
          SPHU   => State_Met%SPHU1
       ELSE IF ( PS_ID == 2 ) THEN
@@ -1629,7 +1629,7 @@
                GOTO 999
             ENDIF
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
             !---------------------------------------------------
             ! GEOS-4 / GEOS-5 / MERRA met fields
@@ -2153,7 +2153,7 @@
       State_Met%PS1_WET = State_Met%PS2_WET ! I6 surface pressure    [hPa] 
       State_Met%PS1_DRY = State_Met%PS2_DRY ! I6 surface pressure    [hPa] 
 
-#elif defined( GEOS_FP ) || defined( MERRA2 )
+#elif defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
       !------------------
       ! GEOS-FP met

@@ -410,7 +410,7 @@
             ! Directly use OPTDEPTH = TAUCLD * CLDTOT
             !===========================================================
 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
             ! Column cloud fraction (not less than zero)
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
@@ -444,7 +444,7 @@
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
                
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
             ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 

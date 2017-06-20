@@ -828,7 +828,7 @@
       WRITE( 6, '(a)' ) 
 
       ! NSTEP is the number of dynamic timesteps w/in the outer loop
-#if   defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       N_DYN_STEPS = 180 / GET_TS_DYN()     ! GEOS-FP/MERRA2 have a 3hr interval
 #else
       N_DYN_STEPS = 360 / GET_TS_DYN()     ! All other met has a 6hr interval
@@ -1056,7 +1056,7 @@
             Input_Opt%USE_O3_FROM_MET = .FALSE.
          ENDIF
 
-#elif defined( GEOS_FP ) || defined( MERRA2 )
+#elif defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
          ! For GEOS-FP met, always use the O3 columns
          ! from the A1 met field files (bmy, 11/14/13)

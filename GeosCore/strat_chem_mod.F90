@@ -2056,7 +2056,7 @@ CONTAINS
 #if   defined( GEOS_4 )
     PO3_vmr = 5.14e-14_fp                                 ! 3,3,7
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
     ! For now assume GEOS-5 has same PO3_vmr value 
     ! as GEOS-4; we can redefine later (bmy, 5/25/05)

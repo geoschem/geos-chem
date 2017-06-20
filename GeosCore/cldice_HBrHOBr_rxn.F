@@ -132,7 +132,7 @@
       ! ----------------------------------------------
 
       ! IWC in [g/cm3]
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       iwc = CLDF(I,J,L) * QI * AIRDEN(I,J,L)
       iwc = iwc / 1.e+3_f8
 #else

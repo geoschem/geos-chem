@@ -147,7 +147,7 @@
          FRAC_SNOW_OR_ICE    = 0e+0_fp
          FRAC_SNOWFREE_LAND  = 1e+0_fp
 
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
          ! Distinguish between ice/snow and snow-free land
          FRAC_SNOW_OR_ICE    = MIN( State_Met%FRSNO(I,J)     +
      &                              State_Met%FRSEAICE(I,J)  + 
@@ -557,7 +557,7 @@
       ! resolutions are encouraged to test and update these as needed (J
       ! Fisher 4/2016)
 !#if defined (GRID4x5)
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
       REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp * 0.9688e+0_fp
 #else
       REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp * 0.7156e+0_fp
@@ -608,7 +608,7 @@
          ! (jaf, 4/26/11)
          FRAC_SNOWFREE_LAND = 1e+0_fp
 
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
          FRAC_SNOWFREE_LAND = MAX( State_Met%FRLAND(I,J) - 
      &                             State_Met%FRSNO(I,J), 0e+0_fp )
          IS_SNOWFREE_LAND   = ( FRAC_SNOWFREE_LAND > 0e+0_fp )
@@ -649,7 +649,7 @@
             ! clarity, using the new SWGDN field for incident radiation.
             ! SWGDN is also available for MERRA but we do not use it
             ! here to preserve the legacy method (ewl, 9/23/15)
-#if defined( GEOS_FP ) || defined( MERRA2 )
+#if defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
             SOIL_EMIS = 
      &           EXP( 0.0011 * State_Met%SWGDN(I,J) * LIGHTFRAC ) *
      &           DRYSOIL_HG * SOIL_EMIS_FAC
@@ -776,7 +776,7 @@
 ! GEOS-FP and MERRA-2 in GEOS-Chem. It is available from MERRA data sets
 ! but is not currently stored in State_Met (ewl, 9/14/15) 
       IF ( FIRSTTIME ) THEN 
-#if defined( MERRA2 ) || defined( GEOS_FP )
+#if defined( MERRA2 ) || defined( GEOS_FP ) || defined( FLEXGRID )
          ! Do nothing
 #else
          WRITE( 6, * ) 'WARNING: Snow emission parameterization '//
@@ -827,7 +827,7 @@
 ! KLUDGE: can't get SWGDN in State_Met; add this later (jaf)
 ! Use incident radiation at ground (State_Met%SWGDN) where available. 
 ! Otherwise, use net radiation at ground (State_Met%RADSWG)
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
          SWRAD = State_Met%SWGDN(I,J)
 #else       
          SWRAD = State_Met%RADSWG(I,J)
