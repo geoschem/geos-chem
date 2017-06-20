@@ -347,6 +347,9 @@
       CALL Cleanup_GeosFp_Read()
 #elif defined( MERRA2 )
       CALL Cleanup_Merra2_Read()
+#elif defined( FLEXGRID )
+      ! FlexGrid opens metfield files through HEMCO
+      ! Don't need to clean
 #endif
       
       END SUBROUTINE CLEANUP

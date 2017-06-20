@@ -543,7 +543,79 @@
 #endif
       REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
+#elif defined( FLEXGRID ) && defined( GRID025x03125 ) && defined( NESTED_NA)
+
+      !-----------------------------------------------------------------
+      ! FlexGrid Nested NA Grid
+      !
+      ! For standard nested domains, ONLY support 
+      ! (nest,global,metfield) = (NA,4x5,GEOSFP) 
+      ! It is recommended to use the custom nesting functionality.
+      ! (Jiawei Zhuang 2017/6)
+      !-----------------------------------------------------------------
+      INTEGER               :: IGLOB      = 225
+      INTEGER               :: JGLOB      = 202
+      INTEGER               :: LGLOB      = 72
+#if   defined( GRIDREDUCED )
+      INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER,    PARAMETER :: LLTROP     = 38
+      INTEGER,    PARAMETER :: LLSTRAT    = 44
+#else
+      INTEGER               :: LLPAR                  ! Full vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER,    PARAMETER :: LLTROP     = 40
+      INTEGER,    PARAMETER :: LLSTRAT    = 59
 #endif
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
+
+#elif defined( FLEXGRID ) && defined( GRID2x25 )
+
+      !-----------------------------------------------------------------
+      ! FLEXGRID: 2 x 2.5
+      !-----------------------------------------------------------------
+      INTEGER               :: IGLOB      = 144
+      INTEGER               :: JGLOB      = 91
+      INTEGER               :: LGLOB      = 72
+#if   defined( GRIDREDUCED )
+      INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER,    PARAMETER :: LLTROP     = 38
+      INTEGER,    PARAMETER :: LLSTRAT    = 44
+#else 
+      INTEGER               :: LLPAR                  ! Full vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER,    PARAMETER :: LLTROP     = 40
+      INTEGER,    PARAMETER :: LLSTRAT    = 59
+#endif
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
+
+#elif defined( FLEXGRID ) && defined( GRID4x5 )
+
+      !-----------------------------------------------------------------
+      ! FLEXGRID: 4x5 
+      !-----------------------------------------------------------------
+      INTEGER               :: IGLOB      = 72
+      INTEGER               :: JGLOB      = 46
+      INTEGER               :: LGLOB      = 72
+#if   defined( GRIDREDUCED ) 
+      INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER,    PARAMETER :: LLTROP     = 38
+      INTEGER,    PARAMETER :: LLSTRAT    = 44
+#else
+      INTEGER               :: LLPAR                  ! Full vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels 
+      INTEGER,    PARAMETER :: LLTROP     = 40
+      INTEGER,    PARAMETER :: LLSTRAT    = 59
+#endif
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
+
+      ! This #endif below is to close (metfield,grid) choices 
+      ! that specified by many #elif statements above
+#endif
+
+      ! This #endif below is to distinguish between classic and HP
 #endif
 
       !-----------------------------------------------------------------

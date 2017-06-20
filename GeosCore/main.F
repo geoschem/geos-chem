@@ -111,6 +111,7 @@
       USE GCAP_READ_MOD         ! For reading GCAP met data
       USE GEOSFP_READ_MOD       ! For reading GEOS-FP data
       USE MERRA2_READ_MOD       ! For reading MERRA2 data
+      USE FLEXGRID_READ_MOD     ! For reading FLEXGRID data 
       USE MERRA_A1_MOD          ! For reading MERRA A1 data
       USE MERRA_A3_MOD          ! For reading MERRA A3 data
       USE MERRA_CN_MOD          ! For reading MERRA CN data
@@ -2028,6 +2029,9 @@
       WRITE( 6, '(a)' ) 'Using GMAO MERRA met fields'
 #elif defined( MERRA2 )
       WRITE( 6, '(a)' ) 'Using GMAO MERRA2 met fields'
+#elif defined( FLEXGRID )
+      WRITE( 6, '(a)' ) 
+     &'Using FlexGrid for NetCDF met fields (written by JIAWEI ZHUANG)'
 #elif defined( GCAP  )
       WRITE( 6, '(a)' ) 'Using GCAP/GISS met fields'
 #endif
@@ -2242,6 +2246,28 @@
       ! Read 3-hr time averaged data
       D = GET_FIRST_I3_TIME()
       CALL MERRA2_READ_I3_1( D(1), D(2), Input_Opt, State_Met )
+
+#elif defined( FLEXGRID )
+
+      !=================================================================
+      !    *****  R E A D   F L E X G R I D   F I E L D S    *****
+      !    *****  At the start of the GEOS-Chem simulation  *****
+      !=================================================================
+
+      ! Read time-invariant data
+      CALL FLEXGRID_READ_CN  (             Input_Opt, State_Met )
+
+      ! Read 1-hr time-averaged data
+      D = GET_FIRST_A1_TIME()
+      CALL FLEXGRID_READ_A1  ( D(1), D(2), Input_Opt, State_Met )
+
+      ! Read 3-hr time averaged data
+      D = GET_FIRST_A3_TIME()
+      CALL FLEXGRID_READ_A3  ( D(1), D(2), Input_Opt, State_Met )
+   
+      ! Read 3-hr instantanous data
+      D = GET_FIRST_I3_TIME()
+      CALL FLEXGRID_READ_I3_1( D(1), D(2), Input_Opt, State_Met )
 
 #elif defined( MERRA )
 
@@ -2510,6 +2536,45 @@
       IF ( ITS_TIME_ FOR_I3() ) THEN
          D = GET_I3_TIME()
          CALL MERRA2_READ_I3_2( D(1), D(2), Input_Opt, State_Met )
+
+         ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
+         ! and average as polar caps
+         CALL SET_DRY_SURFACE_PRESSURE( State_Met, 2 )
+         CALL AVGPOLE( State_Met%PS2_DRY )
+
+         ! Compute avg moist pressure at polar caps 
+         CALL AVGPOLE( State_Met%PS2_WET )
+
+      ENDIF
+
+#elif defined( FLEXGRID )
+
+      !==============================================================
+      !  ****** R E A D   F L E X G R I D   F I E L D S  *****
+      !==============================================================
+
+      !---------------------------------
+      ! A-1 fields (1hr time averaged)
+      !---------------------------------
+      IF ( ITS_TIME_FOR_A1() ) THEN
+         D = GET_A1_TIME()
+         CALL FLEXGRID_READ_A1  ( D(1), D(2), Input_Opt, State_Met )
+      ENDIF
+
+      !----------------------------------
+      ! A-3 fields (3-hr time averaged)
+      !----------------------------------
+      IF ( ITS_TIME_FOR_A3() ) THEN
+         D = GET_A3_TIME()
+         CALL FLEXGRID_READ_A3  ( D(1), D(2), Input_Opt, State_Met )
+      ENDIF
+
+      !----------------------------------
+      ! I-3 fields (3-hr instantaneous
+      !----------------------------------
+      IF ( ITS_TIME_ FOR_I3() ) THEN
+         D = GET_I3_TIME()
+         CALL FLEXGRID_READ_I3_2( D(1), D(2), Input_Opt, State_Met )
 
          ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
          ! and average as polar caps

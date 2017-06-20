@@ -218,7 +218,7 @@ ERR_CMPLR            :="Unknown Fortran compiler!  Must be one of ifort, gfortra
 ERR_OSCOMP           :="Makefile_header.mk not set up for this compiler/OS combination"
 
 # Error message for bad MET input
-ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp, MET=merra2)"
+ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp, MET=merra2, MET=flexgrid"
 
 # Error message for bad GRID input
 ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=05x0625, GRID=025x03125"
@@ -623,6 +623,12 @@ ifndef NO_MET_NEEDED
     USER_DEFS        += -DGEOS_FP
   endif
 
+  # %%%%% FLEXGRID %%%%%
+  REGEXP             :=(^[Ff][Ll][Ee][Xx][Gg][Rr][Ii][Dd])
+  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DFLEXGRID
+  endif
+
   # %%%%% REDUCED VERTICAL GRID (default, unless specified otherwise) %%%%
   ifndef NO_REDUCED
     NO_REDUCED       :=no
@@ -633,7 +639,7 @@ ifndef NO_MET_NEEDED
   endif
 
   # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
-  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP|\-DMERRA2)
+  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP|\-DMERRA2|\-DFLEXGRID)
   ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
     $(error $(ERR_MET))
   endif

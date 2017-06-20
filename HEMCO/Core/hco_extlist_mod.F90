@@ -118,6 +118,8 @@ MODULE HCO_ExtList_Mod
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'merra'
 #elif defined( MERRA2 )
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'merra2'
+#elif defined( FLEXGRID )
+  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'flexgrid'
 #elif defined( GCAP )
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'gcap'
 #else

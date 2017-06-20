@@ -7447,6 +7447,10 @@
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
+#elif defined( FLEXGRID )
+      ! Do not need to check directory for FlexGrid
+      ! Metfield directory is set in HEMCO_Config.rc, not input.geos
+
 #elif defined( GCAP )
 
       ! Check GCAP met field directory (starting date)

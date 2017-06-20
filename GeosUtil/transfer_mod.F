@@ -1108,6 +1108,8 @@
          L_COPY = 36       ! MERRA:   Copy up to L=36
 #elif defined( MERRA2  )
          L_COPY = 36       ! MERRA2:  Copy up to L=36
+#elif defined( FLEXGRID  )
+         L_COPY = 36       ! FLEXGRID:Copy up to L=36
 #elif defined( GCAP    )
          L_COPY = LGLOB    ! GCAP:    Copy all levels
 #endif

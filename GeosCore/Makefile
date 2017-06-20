@@ -610,6 +610,9 @@ flexchem_mod.o              : flexchem_mod.F90                               \
                               fast_jx_mod.o           future_emissions_mod.o \
                               tomas_mod.o
 
+flexgrid_read_mod.o         : flexgrid_read_mod.F90                          \
+                              dao_mod.o               diag_mod.o
+
 future_emissions_mod.o      : future_emissions_mod.F
 
 fvdas_convect_mod.o         : fvdas_convect_mod.F                            \
@@ -742,7 +745,8 @@ main.o                      : main.F                                         \
                               ucx_mod.o               vdiff_mod.o            \
                               emissions_mod.o         cleanup.o              \
                               mixing_mod.o            merra2_read_mod.o      \
-                              wetscav_mod.o           rrtmg_rad_transfer_mod.o
+                              wetscav_mod.o         rrtmg_rad_transfer_mod.o \
+                              flexgrid_read_mod.o
 
 mapping_mod.o               : mapping_mod.F90                              
 

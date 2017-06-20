@@ -1937,6 +1937,24 @@
          I2_BC_NA = 29                       ! 4x5  lon index, UR corner
          J2_BC_NA = 41                       ! 4x5  lat index, UR corner
 
+#elif defined( FLEXGRID )
+         !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID (FLEXGRID)
+
+         ! In principle, FlexGrid can also support standard nested runs,
+         ! although it is intended to work with custom nested grids.
+         ! 
+         ! Currently ONLY support one combination, which is
+         ! (nest,global,metfield) = (NA,4x5,GEOSFP)
+         !
+         ! This is just for testing purpose. For users, it is recommended
+         ! to use the custom nesting functionality. 
+         ! (Jiawei Zhuang 2017/6)
+
+         I1_BC_NA = 11                       ! 4x5  lon index, LL corner
+         J1_BC_NA = 26                       ! 4x5  lat index, LL corner
+         I2_BC_NA = 25                       ! 4x5  lon index, UR corner
+         J2_BC_NA = 39                       ! 4x5  lat index, UR corner
+
 #else
          !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
          I1_BC_NA = 9                        ! 4x5  lon index, LL corner

@@ -757,6 +757,16 @@
 #elif defined( MERRA2 ) 
       MODELNAME = 'MERRA2'
 
+      ! This variable is for gamap to extract gridinfo.
+      ! Assume GEOSFP for FLEXGRID simulation.
+      ! As we are moving to NetCDF output, 
+      ! this should have minor effect.
+#elif defined( FLEXGRID ) && defined( GRIDREDUCED )
+      MODELNAME = 'GEOSFP_47L'
+      
+#elif defined( FLEXGRID ) 
+      MODELNAME = 'GEOSFP'
+
 #elif defined( EXTERNAL_FORCING ) || defined ( EXTERNAL_GRID ) 
       MODELNAME = 'EXTERNAL'
 
@@ -802,6 +812,16 @@
 #elif defined( MERRA2 )
       CHARACTER(LEN=6) :: NAME_EXT
       NAME_EXT = 'merra2'
+
+#elif defined( MERRA2 )
+      CHARACTER(LEN=6) :: NAME_EXT
+      NAME_EXT = 'merra2'
+
+#elif defined( FLEXGRID )
+      ! This is an obsolete variable, but we need to keep the definition
+      ! to prevent compilation error
+      CHARACTER(LEN=8) :: NAME_EXT
+      NAME_EXT = 'flexgrid'
 
 #elif defined( EXTERNAL_GRID ) || ( EXTERNAL_FORCING )
       CHARACTER(LEN=5) :: NAME_EXT
