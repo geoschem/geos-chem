@@ -69,7 +69,6 @@
          INTEGER           :: QFLAG(1)
          INTEGER           :: GLINT(1)
          INTEGER           :: GAIN(1)
-         CHARACTER(LEN=22) :: EXP_ID(1)
       ENDTYPE GOS_CH4_OBS  
 
       TYPE(GOS_CH4_OBS)    :: GOS(MAXGOS)
@@ -123,19 +122,19 @@
       INTEGER                        :: YEAR
       CHARACTER(LEN=4)               :: CYEAR
       LOGICAL                        :: EXIST_VAR
-      REAL(fp), ALLOCATABLE          :: pres(:,:)
-      REAL(fp), ALLOCATABLE          :: prior(:,:)
-      REAL(fp), ALLOCATABLE          :: ak(:,:)
-      REAL(fp), ALLOCATABLE          :: lat(:)
-      REAL(fp), ALLOCATABLE          :: lon(:)
-      REAL(fp), ALLOCATABLE          :: time(:)
-      REAL(fp), ALLOCATABLE          :: xch4(:)
-      REAL(fp), ALLOCATABLE          :: xch4_error(:)
+      REAL*4, ALLOCATABLE            :: pres(:,:)
+      REAL*4, ALLOCATABLE            :: prior(:,:)
+      REAL*4, ALLOCATABLE            :: ak(:,:)
+      REAL*4, ALLOCATABLE            :: lat(:)
+      REAL*4, ALLOCATABLE            :: lon(:)
+      REAL*4, ALLOCATABLE            :: time(:)
+      REAL*4, ALLOCATABLE            :: xch4(:)
+      REAL*4, ALLOCATABLE            :: xch4_error(:)
       INTEGER,  ALLOCATABLE          :: qflag(:)
       INTEGER,  ALLOCATABLE          :: glint(:)
       INTEGER,  ALLOCATABLE          :: gain(:)
-      CHARACTER(LEN=22), ALLOCATABLE :: exp_id(:)
-      INTEGER                        :: num_levels
+
+      INTEGER                        :: NLEV
       INTEGER                        :: I, L, AS
 
       ! For reading netCDF file
@@ -167,7 +166,7 @@
       CALL Expand_Date( nc_file, YYYYMMDD, 9999 ) 
 
       ! Construct complete file path
-      dir = '/n/regal/jacob_lab/msulprizio/ExtDataObs/ULGOSAT_v7/' //
+      dir = '/n/regal/jacob_lab/msulprizio/ExtData/Obs/ULGOSAT_v7/' //
      &       CYEAR // '/' 
       nc_file = TRIM( dir ) // TRIM( nc_file )
       WRITE( 6, 10 ) TRIM( nc_file )
@@ -184,84 +183,82 @@
       CALL NcOp_Rd( fId, TRIM( nc_file ) )
 
       ! Read the dimensions from the netCDF file
-      CALL NcGet_DimLen( fId, 'm',   num_levels )
+      CALL NcGet_DimLen( fId, 'm',   NLEV )
       CALL NcGet_DimLen( fId, 'n',   NGOS )
 
-      IF ( num_levels > MAXLEV ) THEN
-         print*,' # Levels this day = ', num_levels
-         print*, 'WARNING: numlevels > MAXLEV. Need to increase'
+      IF ( NLEV > MAXLEV ) THEN
+         print*,' # Levels this day = ', NLEV
+         print*, 'WARNING: NLEV > MAXLEV. Need to increase'
          print*, ' MAXLEV in gosat_ch4_mod.f.'
          CALL GEOS_CHEM_STOP
       ENDIF
 
       print*,' # GOSAT Observations this day = ', NGOS
+      print*, 'levels', NLEV
 
       !--------------------------------
       ! Read 1-D Data
       !--------------------------------
 
+      ALLOCATE( lat(         NGOS ), STAT=AS )
+      ALLOCATE( lon(         NGOS ), STAT=AS )
+      ALLOCATE( time(        NGOS ), STAT=AS )
+      ALLOCATE( qflag(       NGOS ), STAT=AS )
+      ALLOCATE( xch4(        NGOS ), STAT=AS )
+      ALLOCATE( xch4_error(  NGOS ), STAT=AS )
+      ALLOCATE( glint(       NGOS ), STAT=AS )
+      ALLOCATE( gain(        NGOS ), STAT=AS )
+      ALLOCATE( prior( NLEV, NGOS ), STAT=AS )
+      ALLOCATE( pres(  NLEV, NGOS ), STAT=AS )
+      ALLOCATE( ak(    NLEV, NGOS ), STAT=AS )
+
       ! Latitude
       v_name = 'latitude'
-      ALLOCATE( lat( NGOS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAT' )
-      lat(:) = 0e+0_fp
+      st1d   = (/ 1    /)
+      ct1d   = (/ NGOS /)
       CALL NcRd( lat, fId, TRIM(v_name), st1d, ct1d )
 
       ! Longitude
       v_name = 'longitude'
-      ALLOCATE( lon( NGOS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LON' )
-      lon(:) = 0e+0_fp
+      st1d   = (/ 1    /)
+      ct1d   = (/ NGOS /)
       CALL NcRd( lon, fId, TRIM(v_name), st1d, ct1d )
 
       ! Time (seconds since 1970-01-01 00:00)
       v_name = 'time'
-      ALLOCATE( time( NGOS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TIME' )
-      time(:) = 0e+0_fp
+      st1d   = (/ 1    /)
+      ct1d   = (/ NGOS /)
       CALL NcRd( time, fId, TRIM(v_name), st1d, ct1d )
 
       ! Qflag (0=good, 1=bad)
       v_name = 'xch4_quality_flag'
-      ALLOCATE( qflag( NGOS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QFLAG' )
-      qflag(:) = 0e+0_fp
+      st1d   = (/ 1    /)
+      ct1d   = (/ NGOS /)
       CALL NcRd( qflag, fId, TRIM(v_name), st1d, ct1d )
 
       ! Xch4 (ppb)
       v_name = 'xch4'
-      ALLOCATE( xch4( NGOS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'XCH4' )
-      xch4(:) = 0e+0_fp
+      st1d   = (/ 1    /)
+      ct1d   = (/ NGOS /)
       CALL NcRd( xch4, fId, TRIM(v_name), st1d, ct1d )
 
       ! Xch4_Error (ppb)
       v_name = 'xch4_uncertainty'
-      ALLOCATE( xch4_error( NGOS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'XCH4_ERROR' )
-      xch4_error(:) = 0e+0_fp
+      st1d   = (/ 1    /)
+      ct1d   = (/ NGOS /)
       CALL NcRd( xch4_error, fId, TRIM(v_name), st1d, ct1d )
 
       ! Retrieval type flag (0 = land, 1 = glint)
       v_name = 'retr_flag'
-      ALLOCATE( glint( NGOS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLINT' )
-      glint(:) = 0
+      st1d   = (/ 1    /)
+      ct1d   = (/ NGOS /)
       CALL NcRd( glint, fId, TRIM(v_name), st1d, ct1d )
 
       ! Gain mode (1 = high gain, 0 = medium gain)
       v_name = 'gain'
-      ALLOCATE( gain(NGOS), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAIN' )
-      gain(:) = 0e+0_fp
+      st1d   = (/ 1    /)
+      ct1d   = (/ NGOS /)
       CALL NcRd( gain, fId, TRIM(v_name), st1d, ct1d )
-
-      ! Exposure ID
-      v_name = 'exposure_id'
-      ALLOCATE( exp_id(NGOS), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EXP_ID' )
-      exp_id(:) = ''
-      CALL NcRd( exp_id, fId, TRIM(v_name), st1d, ct1d )
 
       !-------------------------------- 
       ! Read 2D Data
@@ -269,23 +266,20 @@
 
       ! APRIORI (ppb)
       v_name = 'ch4_profile_apriori'
-      ALLOCATE( prior( MAXLEV, NGOS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRIOR' )
-      prior(:,:) = 0e+0_fp
+      st2d   = (/ 1,    1    /)
+      ct2d   = (/ NLEV, NGOS /)
       CALL NcRd( prior, fId, TRIM(v_name), st2d, ct2d )
 
       ! Pressure (hPa)
       v_name = 'pressure_levels'
-      ALLOCATE( pres( MAXLEV, NGOS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRES' )
-      pres(:,:) = 0e+0_fp
+      st2d   = (/ 1,    1    /)
+      ct2d   = (/ NLEV, NGOS /)
       CALL NcRd( pres, fId, TRIM(v_name), st2d, ct2d )
 
       ! Averaging Kernel (unitless)
       v_name = 'xch4_averaging_kernel'
-      ALLOCATE( ak( MAXLEV, NGOS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AK' )
-      ak(:,:) = 0e+0_fp
+      st2d   = (/ 1,    1    /)
+      ct2d   = (/ NLEV, NGOS /)
       CALL NcRd( ak, fId, TRIM(v_name), st2d, ct2d )
 
       !-------------------------------- 
@@ -294,7 +288,7 @@
       DO N = 1, NGOS
 
          ! 0-D data
-         GOS(N)%LGOS(1)      = num_levels
+         GOS(N)%LGOS(1)      = NLEV
          GOS(N)%LAT(1)       = lat(N)
          GOS(N)%LON(1)       = lon(N)
          GOS(N)%TIME(1)      = time(N)
@@ -303,10 +297,9 @@
          GOS(N)%QFLAG(1)     = qflag(N)
          GOS(N)%GLINT(1)     = glint(N)
          GOS(N)%GAIN(1)      = gain(N)
-         GOS(N)%EXP_ID(1)    = exp_id(N)
 
          ! 1-D data
-         LGOS = num_levels
+         LGOS = NLEV
          GOS(N)%PRES(1:LGOS)       = pres(1:LGOS,N)
          GOS(N)%PRIOR(1:LGOS)      = prior(1:LGOS,N)
          GOS(N)%AVG_KERNEL(1:LGOS) = ak(1:LGOS,N)
@@ -503,11 +496,10 @@
      &                     'MM', 'DD', 'hh', 'mm', 'ss',
      &                     '         TAU', '       GOSAT', 
      &                     '       model', '       S_OBS', 
-     &                     '    COST_FUN', 'GLINT', 'GAIN',
-     &                     'EXPOSURE_ID'
+     &                     '    COST_FUN', 'GLINT', 'GAIN'
  281     FORMAT( A10,2x,A4,2x,A4,2x,A8,2x,A8,2x,A4,2x,A2,2x,A2,2x,A2,2x,
      &           A2,2x,A2,2x,A12,2x,A12,2x,A12,2x,A12,2x,A12,2x,
-     &           A5,2x,A4,2x,A22)
+     &           A5,2x,A4)
 
          ! Set Total Observations = 0
          TotalObs = 0
@@ -518,7 +510,7 @@
       OLD_COST = COST_FUNC
 
       ! Read Observations at first call and at end of the day
-      IF ( FIRST .OR. ( GET_HOUR() .EQ. 23 ) ) THEN
+      IF ( FIRST .OR. ITS_A_NEW_DAY() ) THEN
  
          ! Read the GOS CH4 file for this day
          YYYYMMDD = 1d4*GET_YEAR() + 1d2*GET_MONTH() + GET_DAY()
@@ -552,6 +544,8 @@
 !         S_OBS_MAT(:,:) = -1d0
 !------------------------------------------------------------------------------
 
+         IF ( FIRST ) FIRST = .FALSE. 
+
       ENDIF 
 
       ! Get indices of GOS observations in the current hour
@@ -561,8 +555,8 @@
       !   made from 18:00 - 18:59
       INDS(:) = 0
       NOBS    = 0
-      print*,'Looking for observations at MONTH, DAY, HOUR = ',
-     &          GET_MONTH(), GET_DAY(), GET_HOUR()
+!      print*,'Looking for observations at MONTH, DAY, HOUR = ',
+!     &          GET_MONTH(), GET_DAY(), GET_HOUR()
       DO NT = 1, NGOS
          IF ( GOS(NT)%MONTH(1) .EQ. GET_MONTH() .AND.
      &        GOS(NT)%DAY(1)   .EQ. GET_DAY()   .AND.
@@ -575,12 +569,11 @@
 
       IF ( NOBS == 0 ) THEN 
          print*, ' No matching GOSAT CH4 obs for this hour'
-         IF ( FIRST ) FIRST = .FALSE. 
          RETURN
       ENDIF 
 
       print*, ' for hour range: ', GET_HOUR(), GET_HOUR()+1
-      print*, ' found # observations: ', NOBS
+      print*, ' found # GOSAT observations: ', NOBS
       
 
 !! need to update this in order to do i/o with this loop parallel 
@@ -738,7 +731,7 @@
 !------------------------------------------------------------------------------
          ! Get species concentrations
          ! Convert from [kg/box] --> [v/v]
-         GC_CH4_NATIVE(:) = State_Chm%Species(I,J,L,id_CH4) * ( AIRMW / 
+         GC_CH4_NATIVE(:) = State_Chm%Species(I,J,:,id_CH4) * ( AIRMW / 
      &                      State_Chm%SpcData(id_CH4)%Info%emMW_g )
 
  
@@ -919,7 +912,7 @@
      &           GOS(NT)%MONTH(1),GOS(NT)%DAY(1), GOS(NT)%HOUR(1), 
      &           GOS(NT)%MINUTE(1), GOS(NT)%SEC(1),
      &           GET_TAU(), GOS_XCH4, GC_XCH4, S_OBS, 0.5d0*FORCE*DIFF,
-     &           GOS(NT)%GLINT(1),GOS(NT)%GAIN(1),GOS(NT)%EXP_ID(1)
+     &           GOS(NT)%GLINT(1),GOS(NT)%GAIN(1)
          ENDIF
 
 

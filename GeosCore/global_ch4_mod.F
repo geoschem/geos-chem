@@ -511,7 +511,7 @@
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,15) =  Ptr2D(:,:) * -1.0_hp
+         CH4_EMIS(:,:,15) =  Ptr2D(:,:)! * -1.0_hp
       ENDIF
       Ptr2D => NULL()
 
@@ -1086,8 +1086,8 @@
       ENDIF
 #endif
 
-      print*,'END CHEMCH4'
-      call flush(6)
+!      print*,'END CHEMCH4'
+!      call flush(6)
 
       ! Free pointer
       Spc => NULL()
@@ -1123,7 +1123,6 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR
       USE TIME_MOD,           ONLY : GET_MONTH
-      USE PhysConstants,      ONLY : XNUMOLAIR
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1213,10 +1212,14 @@
             ! Grid box volume [cm3]
             BOXVL    = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
+            ! Air density [molec/cm3]
+            BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1000e+0_fp   /
+     &                        BOXVL               * AVO / AIRMW
+
             ! Calculate rate coefficients
             KRATE    = 2.45e-12_fp * EXP( -1775e+0_fp /
      &                                    State_Met%T(I,J,L))
-            KRATE_Cl = 9.60e-12+fp * EXP( -1360e+0_fp /
+            KRATE_Cl = 9.60e-12_fp * EXP( -1360e+0_fp /
      &                                    State_Met%T(I,J,L))
 
             ! Conversion from [kg/box] --> [molec/cm3]
@@ -1227,14 +1230,15 @@
             ! CH4 in [molec/cm3]
             GCH4 = Spc(I,J,L,1) * Spc2GCH4
 
-            ! OH in [molec/cm3]. BOH is imported from HEMCO in units of
-            ! kg/m3, convert here to molec/cm3 (ckeller, 9/16/2014)
+            ! OH in [molec/cm3]
+            ! BOH is imported from HEMCO in units of kg/m3, convert
+            !  here to molec/cm3 (ckeller, 9/16/2014)
             C_OH = BOH(I,J,L) * XNUMOL_OH / CM3PERM3
 
-            ! Cl in [molec/cm3]. BCl is imported from HEMCO in units of
-            ! ppbv, convert here to molec/cm3 (mps, 6/16/2017)
-            C_Cl = BCl(I,J,L) * ( State_Met%AD(I,J,L) /
-     &             BOXVL * XNUMOLAIR ) * 1e-9_fp
+            ! Cl in [molec/cm3]
+            ! BCl is imported from HEMCO in units of ppbv, convert
+            !  here to molec/cm3 (mps, 6/16/2017)
+            C_Cl = BCl(I,J,L) * BAIRDENS(I,J,L) * 1e-9_fp
 
 !==============================================================================
 ! Prior to 6/16/17:
@@ -1279,9 +1283,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      print*,'% --- CHEMCH4: CH4_DECAY: TROP DECAY (Tg): ',TROPOCH4/1e9
-      print*,'Trop decay should be over 1Tg per day globally'
-      print*,'    ~ 500Tg/365d ~ 1.37/d'
+!      print*,'% --- CHEMCH4: CH4_DECAY: TROP DECAY (Tg): ',TROPOCH4/1e9
+!      print*,'Trop decay should be over 1Tg per day globally'
+!      print*,'    ~ 500Tg/365d ~ 1.37/d'
 
       ! Free pointers
       Spc => NULL()

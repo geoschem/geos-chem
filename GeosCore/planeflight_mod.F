@@ -1525,8 +1525,8 @@
          !==============================================================
          IF ( PTAU(M) < PTAUS ) THEN
 
-            PRINT*, 'BEGIN PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
-            PRINT*, PTAU(M), PTAUS
+!            PRINT*, 'BEGIN PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
+!            PRINT*, PTAU(M), PTAUS
 
             ! Write all missing values to disk for point #M
             CALL WRITE_VARS_TO_FILE( State_Met, M, VARI )      
@@ -1541,8 +1541,8 @@
          ! (skim, 7/24/13)
          ELSE IF ( PTAU(M) > PTAUE ) THEN
 
-            PRINT*, 'END PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
-            PRINT*, PTAU(M), PTAUE
+!            PRINT*, 'END PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
+!            PRINT*, PTAU(M), PTAUE
 
             ! Exit this loop and the subroutine
             EXIT

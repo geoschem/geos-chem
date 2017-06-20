@@ -4178,7 +4178,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:21' )
       READ( SUBSTRS(1), * ) ND19
-      CALL SET_TINDEX( am_I_Root, 19, ND19, SUBSTRS(2:N), N-1, 1 )
+      CALL SET_TINDEX( am_I_Root, 19, ND19, SUBSTRS(2:N), N-1, PD19 )
 
       !--------------------------
       ! ND21: Opt depths etc.
