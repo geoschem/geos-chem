@@ -236,7 +236,7 @@
       ! Dust and aerosol optical depths
       REAL(fp), ALLOCATABLE :: ODMDUST(:,:,:,:,:)
       REAL(fp), ALLOCATABLE :: ODAER(:,:,:,:,:)
-      REAL(fp), ALLOCATABLE :: ISOPOD(:,:,:,:,:)   ! eam, 2014
+      REAL(fp), ALLOCATABLE :: ISOPOD(:,:,:,:)   ! eam, 2014
 
       INTEGER NJX,NW1,NW2
 
@@ -380,7 +380,7 @@
 
       ! Allocate array for isoprene SOA AOD (eam, 2014):
       ALLOCATE( ISOPOD( IIPAR, JJPAR, LLPAR, NWVAA), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) RETURN
       ISOPOD = 0e+0_fp
 
       !-----------------------------------------------------------------------

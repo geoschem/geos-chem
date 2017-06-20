@@ -100,8 +100,6 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: NARAT_SAV(:,:,:)
      REAL(fp),          POINTER :: ACIDPUR_SAV(:,:,:)
      REAL(fp),          POINTER :: BISUL_SAV(:,:,:)
-     REAL(fp),          POINTER :: FRAC_DIOL(:,:,:,:,:)
-     REAL(fp),          POINTER :: Spc_past(:,:,:,:)
 
   END TYPE ChmState
 !
@@ -414,15 +412,13 @@ CONTAINS
     State_Chm%HgP_Id_List => NULL()
 
     ! For isoprene SOA
-    State_Chm%PH_SAV(:,:,:)        => NULL()
-    State_Chm%HPLUS_SAV(:,:,:)     => NULL()
-    State_Chm%WATER_SAV(:,:,:)     => NULL()
-    State_Chm%SULRAT_SAV(:,:,:)    => NULL()
-    State_Chm%NARAT_SAV(:,:,:)     => NULL()
-    State_Chm%ACIDPUR_SAV(:,:,:)   => NULL()
-    State_Chm%BISUL_SAV(:,:,:)     => NULL()
-    State_Chm%FRAC_DIOL(:,:,:,:,:) => NULL()
-    State_Chm%Spc_past(:,:,:,:)    => NULL()
+    State_Chm%PH_SAV      => NULL()
+    State_Chm%HPLUS_SAV   => NULL()
+    State_Chm%WATER_SAV   => NULL()
+    State_Chm%SULRAT_SAV  => NULL()
+    State_Chm%NARAT_SAV   => NULL()
+    State_Chm%ACIDPUR_SAV => NULL()
+    State_Chm%BISUL_SAV   => NULL()
 
     !=====================================================================
     ! Populate the species database object field
@@ -697,14 +693,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%BISUL_SAV = 0.0_fp
 
-       ALLOCATE( State_Chm%FRAC_DIOL(IM, JM, LM, 2, 2) , STAT=RC)
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%FRAC_DIOL = 0.0_fp
-
-       ALLOCATE( State_Chm%Spc_past(IM, JM, LM, 2) , STAT=RC)
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%Spc_past = 0.0_fp
-
     ENDIF
 
     SpcDataLocal => State_Chm%SpcData
@@ -872,14 +860,6 @@ CONTAINS
 
     IF ( ASSOCIATED( State_Chm%BISUL_SAV ) ) THEN
        DEALLOCATE( State_Chm%BISUL_SAV )
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%FRAC_DIOL ) ) THEN
-       DEALLOCATE( State_Chm%FRAC_DIOL )
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%Spc_past ) ) THEN
-       DEALLOCATE( State_Chm%Spc_past )
     ENDIF
 
     ! Deallocate the species database object field

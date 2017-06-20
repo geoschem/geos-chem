@@ -40,15 +40,6 @@
       REAL(fp), ALLOCATABLE :: SAVEEOH(:,:,:)
       REAL(fp), ALLOCATABLE :: SAVEGLYX(:,:,:)
       REAL(fp), ALLOCATABLE :: SAVEOA(:,:,:)
-
-      ! AEROPH: Save information related to aerosol pH (hotp 8/11/09)
-      REAL(fp), ALLOCATABLE :: PH_SAV(:,:,:)
-      REAL(fp), ALLOCATABLE :: HPLUS_SAV(:,:,:)
-      REAL(fp), ALLOCATABLE :: WATER_SAV(:,:,:)
-      REAL(fp), ALLOCATABLE :: SULRAT_SAV(:,:,:)
-      REAL(fp), ALLOCATABLE :: NARAT_SAV(:,:,:)
-      REAL(fp), ALLOCATABLE :: ACIDPUR_SAV(:,:,:)
-      REAL(fp), ALLOCATABLE :: BISUL_SAV(:,:,:)
 !
 ! !REMARKS:
 !  NOTE: Now NEMPARA = max no. of anthropogenic emissions
@@ -126,13 +117,6 @@
       ALLOCATE( SAVEEOH(     IIPAR, JJPAR, LLPAR ), STAT=RC )
       ALLOCATE( SAVEGLYX(    IIPAR, JJPAR, LLPAR ), STAT=RC )
       ALLOCATE( SAVEOA(      IIPAR, JJPAR, LLPAR ), STAT=RC )
-      ALLOCATE( PH_SAV(      IIPAR, JJPAR, LLPAR ), STAT=RC )
-      ALLOCATE( HPLUS_SAV(   IIPAR, JJPAR, LLPAR ), STAT=RC )
-      ALLOCATE( WATER_SAV(   IIPAR, JJPAR, LLPAR ), STAT=RC )
-      ALLOCATE( SULRAT_SAV(  IIPAR, JJPAR, LLPAR ), STAT=RC )
-      ALLOCATE( NARAT_SAV(   IIPAR, JJPAR, LLPAR ), STAT=RC )
-      ALLOCATE( ACIDPUR_SAV( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      ALLOCATE( BISUL_SAV(   IIPAR, JJPAR, LLPAR ), STAT=AS )
 
       ! Zero arrays
       SAVEOH     = 0e+0_fp
@@ -142,13 +126,6 @@
       SAVEEOH    = 0e+0_fp
       SAVEGLYX   = 0e+0_fp
       SAVEOA     = 0e+0_fp
-      PH_SAV     = 0e+0_fp
-      HPLUS_SAV  = 0e+0_fp
-      WATER_SAV  = 0e+0_fp
-      SULRAT_SAV = 0e+0_fp
-      NARAT_SAV  = 0e+0_fp
-      ACIDPUR_SAV= 0e+0_fp
-      BISUL_SAV  = 0e+0_fp
 
       END SUBROUTINE Init_CMN_O3
 !EOC
@@ -198,13 +175,6 @@
       IF ( ALLOCATED( SAVEEOH     ) ) DEALLOCATE( SAVEEOH     )
       IF ( ALLOCATED( SAVEGLYX    ) ) DEALLOCATE( SAVEGLYX    )
       IF ( ALLOCATED( SAVEOA      ) ) DEALLOCATE( SAVEOA      )
-      IF ( ALLOCATED( PH_SAV      ) ) DEALLOCATE( PH_SAV      )
-      IF ( ALLOCATED( HPLUS_SAV   ) ) DEALLOCATE( HPLUS_SAV   )
-      IF ( ALLOCATED( WATER_SAV   ) ) DEALLOCATE( WATER_SAV   )
-      IF ( ALLOCATED( SULRAT_SAV  ) ) DEALLOCATE( SULRAT_SAV  )
-      IF ( ALLOCATED( NARAT_SAV   ) ) DEALLOCATE( NARAT_SAV   )
-      IF ( ALLOCATED( ACIDPUR_SAV ) ) DEALLOCATE( ACIDPUR_SAV )
-      IF ( ALLOCATED( BISUL_SAV   ) ) DEALLOCATE( BISUL_SAV   )
 
       END SUBROUTINE Cleanup_CMN_O3
 !EOC

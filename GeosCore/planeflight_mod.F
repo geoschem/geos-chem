@@ -1408,8 +1408,6 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_DIAG_MOD,       ONLY : NDUST, NAER
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
-      USE CMN_O3_MOD,         ONLY : HPLUS_SAV,  PH_SAV
-      USE CMN_O3_MOD,         ONLY : BISUL_SAV,  WATER_SAV
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_SIZE_MOD
 #if   defined( TOMAS )
@@ -1489,7 +1487,7 @@
       LOGICAL             :: IS_FULLCHEM, LINTERP
       INTEGER             :: I, IP, IRHN, J, L, M, N, R, RH, V
       INTEGER             :: K, LL, PR
-      INTEGER             :: LPLANE, IWV, ISPC, K
+      INTEGER             :: LPLANE, IWV, ISPC
       REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL(fp)            :: VARI(NPVAR)
       LOGICAL             :: CHEMSTEP
@@ -1976,16 +1974,16 @@
                   ! ISORROPIA H+ and pH (eam, 06/2015)
                   !--------------------------
                   CASE( 5001 )
-                     VARI(V) = HPLUS_SAV(I,J,L)
+                     VARI(V) = State_Chm%HPLUS_SAV(I,J,L)
 
                   CASE( 5002 )
-                     VARI(V) = PH_SAV(I,J,L)
+                     VARI(V) = State_Chm%PH_SAV(I,J,L)
 
                   CASE( 5003 )
-                     VARI(V) = WATER_SAV(I,J,L)
+                     VARI(V) = State_Chm%WATER_SAV(I,J,L)
 
                   CASE( 5004 )
-                     VARI(V) = BISUL_SAV(I,J,L)
+                     VARI(V) = State_Chm%BISUL_SAV(I,J,L)
 
                   !--------------------------
                   ! Local Time (eam, 06/2015)
@@ -2007,14 +2005,14 @@
                      VARI(V) = 0d0
                      ! Radius (cm):
                      IF ( XRH .gt. CRITRH ) THEN
-                        VARI(V) = ERADIUS(JLOOP,8)
+                        VARI(V) = State_Chm%AeroRadi(I,J,L,8)
                      ENDIF
 
                   CASE( 7002 )
                      VARI(V) = 0d0
                      ! Surface area (cm2/cm3):
                      IF ( XRH .gt. CRITRH ) THEN
-                        VARI(V) = TAREA(JLOOP,8)
+                        VARI(V) = State_Chm%AeroArea(I,J,L,8)
                      ENDIF
                         
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -346,9 +346,9 @@
       ! Species ID flags
       INTEGER :: id_ASOG1,   id_ASOG2,  id_ASOG3,  id_ASOA1,  id_ASOA2
       INTEGER :: id_ASOA3,   id_ASOAN,  id_AW1,    id_BCPI,   id_BCPO 
-      INTEGER :: id_BENZ,    id_ECIL1,  id_ECOB1,  id_GLYX,   id_HO2  
+      INTEGER :: id_BENZ,    id_ECIL1,  id_ECOB1,  id_HO2  
       INTEGER :: id_ISOA1,   id_ISOA2,  id_ISOA3,  id_ISOG1,  id_ISOG2
-      INTEGER :: id_ISOG3,   id_ISOP,   id_LIMO,   id_MGLY,   id_MTPA 
+      INTEGER :: id_ISOG3,   id_ISOP,   id_LIMO,   id_MTPA 
       INTEGER :: id_MTPO,    id_NAP,    id_NK1,    id_NH4,    id_NO   
       INTEGER :: id_NO3,     id_OCIL1,  id_OCOB1,  id_O3,     id_OH   
       INTEGER :: id_OCPO,    id_OCPI,   id_OPOA1,  id_OPOG1,  id_OPOA2
@@ -8919,7 +8919,6 @@ ccc
       id_BENZ     = IND_('BENZ'    )
       id_ECIL1    = IND_('ECIL1'   )
       id_ECOB1    = IND_('ECOB1'   )
-      id_GLYX     = IND_('GLYX'    )
       id_HO2      = IND_('HO2'     )
       id_ISOA1    = IND_('ISOA1'   )
       id_ISOA2    = IND_('ISOA2'   )
@@ -8929,7 +8928,6 @@ ccc
       id_ISOG3    = IND_('ISOG3'   )
       id_ISOP     = IND_('ISOP'    )
       id_LIMO     = IND_('LIMO'    )
-      id_MGLY     = IND_('MGLY'    )
       id_MTPA     = IND_('MTPA'    )
       id_MTPO     = IND_('MTPO'    )
       id_NAP      = IND_('NAP'     )

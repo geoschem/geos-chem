@@ -1683,7 +1683,8 @@
 
             ! ND42: SOA concentrations [ug/m3]
             IF ( ND42 > 0 ) THEN
-               CALL DIAG42( Input_Opt, State_Met, State_Chm )
+               CALL DIAG42( am_I_Root, Input_Opt, State_Met,
+     &                      State_Chm, RC )
             ENDIF
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
 

@@ -433,6 +433,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
+      USE CMN_FJX_MOD,        ONLY : ISOPOD
       USE CMN_O3_MOD               ! SAVEOH, SAVEOA
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -522,7 +523,11 @@
       INTEGER, SAVE     :: id_HNO3,     id_HNO4,   id_N2O5, id_NO
       INTEGER, SAVE     :: id_PAN,      id_NPMN,   id_PPN,  id_O3
       INTEGER, SAVE     :: id_R4N2,     id_SALA,   id_SALC, id_NO2
-      INTEGER, SAVE     :: id_IPMN
+      INTEGER, SAVE     :: id_IPMN,     id_SOAIE,  id_SOAME
+      INTEGER, SAVE     :: id_INDIOL,   id_LVOCOA, id_ISN1OA
+      INTEGER, SAVE     :: id_ISOA1,    id_ISOA2,  id_ISOA3
+      INTEGER, SAVE     :: id_SO4,      id_NH4,    id_NIT
+      INTEGER, SAVE     :: id_BCPI,     id_BCPO
 
       ! Scalars
       LOGICAL           :: IS_CHEM,     IS_DIAG,   IS_EMIS
@@ -557,19 +562,33 @@
       IF ( FIRST ) THEN
 
          ! Define species ID flags
-         id_HNO3 = Ind_('HNO3')
-         id_HNO4 = Ind_('HNO4')
-         id_N2O5 = Ind_('N2O5')
-         id_NO   = Ind_('NO'  )
-         id_PAN  = Ind_('PAN' )
-         id_NPMN = Ind_('NPMN' )
-         id_IPMN = Ind_('IPMN' )
-         id_PPN  = Ind_('PPN' )
-         id_O3   = Ind_('O3'  )
-         id_R4N2 = Ind_('R4N2')
-         id_SALA = Ind_('SALA')
-         id_SALC = Ind_('SALC')
-         id_NO2  = Ind_('NO2' )
+         id_HNO3    = Ind_('HNO3'   )
+         id_HNO4    = Ind_('HNO4'   )
+         id_N2O5    = Ind_('N2O5'   )
+         id_NO      = Ind_('NO'     )
+         id_PAN     = Ind_('PAN'    )
+         id_NPMN    = Ind_('NPMN'   )
+         id_IPMN    = Ind_('IPMN'   )
+         id_PPN     = Ind_('PPN'    )
+         id_O3      = Ind_('O3'     )
+         id_R4N2    = Ind_('R4N2'   )
+         id_SALA    = Ind_('SALA'   )
+         id_SALC    = Ind_('SALC'   )
+         id_NO2     = Ind_('NO2'    )
+         id_IPMN    = Ind_('IPMN'   )
+         id_SOAIE   = Ind_('SOAIE'  )
+         id_SOAME   = Ind_('SOAME'  )
+         id_INDIOL  = Ind_('INDIOL' )
+         id_LVOCOA  = Ind_('LVOCOA' )
+         id_ISN1OA  = Ind_('ISN1OA' )
+         id_ISOA1   = Ind_('ISOA1'  )
+         id_ISOA2   = Ind_('ISOA2'  )
+         id_ISOA3   = Ind_('ISOA3'  )
+         id_SO4     = Ind_('SO4'    )
+         id_NH4     = Ind_('NH4'    )
+         id_NIT     = Ind_('NIT'    )
+         id_BCPI    = Ind_('BCPI'   )
+         id_BCPO    = Ind_('BCPO'   )
 
          ! Set logical flags on first call
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )

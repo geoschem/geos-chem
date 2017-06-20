@@ -72,7 +72,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG42( Input_Opt, State_Met, State_Chm, RC )
+      SUBROUTINE DIAG42( am_I_Root, Input_Opt, State_Met, State_Chm, RC)
 !
 ! !USES:
 !
@@ -81,26 +81,34 @@
       USE AEROSOL_MOD,        ONLY : SO4,  NH4,  NIT
       USE AEROSOL_MOD,        ONLY : TSOA, ISOA, ASOA, OPOA
       USE AEROSOL_MOD,        ONLY : PM25
+      USE AEROSOL_MOD,        ONLY : SOAGX,  SOAMG, ISOAAQ
       USE AEROSOL_MOD,        ONLY : OCFPOA, OCFOPOA
       USE CARBON_MOD,         ONLY : BETANOSAVE
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! NDxx flags
       USE CMN_O3_MOD,         ONLY : SAVEOA
+      USE ErrCode_Mod
+      USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PhysConstants,      ONLY : ATM
+      USE PhysConstants,      ONLY : ATM, MWCARB
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
@@ -283,7 +291,7 @@
          ENDIF
 
          ! Add mechanistic isoprene OA
-         IF ( LISOPOA ) THEN
+         IF ( Input_Opt%LISOPOA ) THEN
 
             ! Convert from kg to ugC/m3
             AD42(I,J,L,7) = AD42(I,J,L,7) + (
@@ -301,8 +309,7 @@
      &              ( State_Chm%SpcData(id_LVOCOA)%Info%MW_g* 1e-3_fp ))
      &              + Spc(I,J,L,id_ISN1OA)* ( NCISN1  * MWCARB /
      &              ( State_Chm%SpcData(id_ISN1OA)%Info%MW_g* 1e-3_fp ))
-     &              ) / AIRVOL * FACTOR
-            ENDIF
+     &              ) / AIRVOL(I,J,L) * FACTOR
 
          ENDIF
 
@@ -384,27 +391,27 @@
          ! Isoprene SOA obtained from irreversible uptake of isoprene
          ! SOA precursors IEPOX and IMAE (eam,  2014)
          !--------------------------------------------------------------
-         IF ( LISOPOA ) THEN
+         IF ( Input_Opt%LISOPOA ) THEN
 
             ! IEPOX-OA [ug/m3]:
-            AD42(I,J,L,21) = AD42(I,J,L,22) + 
-     &                       ( Spc(I,J,L,id_SOAIE ) * FACTOR / AIRVOL )
+            AD42(I,J,L,21) = AD42(I,J,L,21) + Spc(I,J,L,id_SOAIE )
+     &                       * FACTOR / AIRVOL(I,J,L) 
 
             ! IMAE-OA [ug/m3]:
-            AD42(I,J,L,22) = AD42(I,J,L,23) + 
-     &                       ( Spc(I,J,L,id_SOAME ) * FACTOR / AIRVOL )
+            AD42(I,J,L,22) = AD42(I,J,L,22) + Spc(I,J,L,id_SOAME )
+     &                       * FACTOR / AIRVOL(I,J,L) 
 
             ! INDIOL [ug/m3]:
-            AD42(I,J,L,23) = AD42(I,J,L,24) + 
-     &                       ( Spc(I,J,L,id_INDIOL) * FACTOR / AIRVOL )
+            AD42(I,J,L,23) = AD42(I,J,L,23) + Spc(I,J,L,id_INDIOL)
+     &                       * FACTOR / AIRVOL(I,J,L)
 
             ! LVOCOA [ug/m3]:
-            AD42(I,J,L,24) = AD42(I,J,L,25) + 
-     &                       ( Spc(I,J,L,id_LVOCOA) * FACTOR / AIRVOL )
+            AD42(I,J,L,24) = AD42(I,J,L,24) + Spc(I,J,L,id_LVOCOA)
+     &                       * FACTOR / AIRVOL(I,J,L)
 
             ! ISN1OA [ug/m3]:
-            AD42(I,J,L,25) = AD42(I,J,L,26) + 
-     &                       ( Spc(I,J,L,id_ISN1OA) * FACTOR / AIRVOL )
+            AD42(I,J,L,25) = AD42(I,J,L,25) + Spc(I,J,L,id_ISN1OA)
+     &                       * FACTOR / AIRVOL(I,J,L)
 
          ENDIF
 

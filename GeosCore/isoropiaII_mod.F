@@ -30,7 +30,6 @@
       PUBLIC  :: CLEANUP_ISOROPIAII
       PUBLIC  :: DO_ISOROPIAII
       PUBLIC  :: GET_GNO3
-      PUBLIC  :: GET_ISRINFO
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -131,12 +130,9 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
-      USE CMN_DIAG_MOD,       ONLY : LD64,   ND64
-      USE CMN_O3_MOD,         ONLY : HPLUS_SAV,  NARAT_SAV,  PH_SAV,
-     &                               SULRAT_SAV, BISUL_SAV,  WATER_SAV,
-     &                               ACIDPUR_SAV
+      USE CMN_DIAG_MOD,       ONLY : LD73,   ND73
       USE CMN_SIZE_MOD 
-      USE DIAG_MOD,           ONLY : AD64
+      USE DIAG_MOD,           ONLY : AD73
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -662,7 +658,7 @@
             SULFTEMP        = 1e-30_fp
             BISULTEMP       = 1e-30_fp
             NITRTEMP        = 1e-30_fp
-            PH_SAV(I,J,L)   = -999e+0_fp
+            State_Chm%PH_SAV(I,J,L) = -999e+0_fp
          ELSE
             HPLUSTEMP       = AERLIQ(1) / AERLIQ(8) * 1e+3_fp/18e+0_fp
             SULFTEMP        = AERLIQ(5) / AERLIQ(8) * 1e+3_fp/18e+0_fp
@@ -670,16 +666,15 @@
             NITRTEMP        = AERLIQ(7) / AERLIQ(8) * 1e+3_fp/18e+0_fp
 
             ! Use SAFELOG10 to prevent NAN
-            PH_SAV(I,J,L)   = -1e+0_fp * SAFELOG10( HPLUSTEMP )
+            State_Chm%PH_SAV(I,J,L) = -1e+0_fp * SAFELOG10( HPLUSTEMP )
          ENDIF
 
          ! Additional Info
-         HPLUS_SAV(I,J,L)   = HPLUSTEMP 
-         ! Water in ug/m3 (convert from mol/m3 air to ug/m3 air) (eam, 07/2015):
-         WATER_SAV(I,J,L)   = AERLIQ(8) * 18e+6_fp
-         SULRAT_SAV(I,J,L)  = SULFTEMP
-         NARAT_SAV(I,J,L)   = NITRTEMP
-         BISUL_SAV(I,J,L)   = BISULTEMP
+         State_Chm%HPLUS_SAV(I,J,L)  = HPLUSTEMP 
+         State_Chm%WATER_SAV(I,J,L)  = AERLIQ(8) * 18e+6_fp ! mol/m3 -> ug/m3
+         State_Chm%SULRAT_SAV(I,J,L) = SULFTEMP
+         State_Chm%NARAT_SAV(I,J,L)  = NITRTEMP
+         State_Chm%BISUL_SAV(I,J,L)  = BISULTEMP
 
          NUM_SAV    = ( Spc(I,J,L,id_NH3) /17e+0_fp         +
      &                  Spc(I,J,L,id_NH4) /18e+0_fp         +
@@ -691,16 +686,16 @@
      &                  Spc(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)
 
          ! Value if DEN_SAV and NUM_SAV too small.
-         ACIDPUR_SAV(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
+         State_Chm%ACIDPUR_SAV(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
      &                                 0e+0_fp,       
      &                                 999e+0_fp)
 
-         IF ( ND64 > 0 ) THEN
+         IF ( ND73 > 0 ) THEN
             ! Archive ISORROPIA H+ and pH values (eam, 04/2015):
-            IF ( L <= LD64 ) THEN
-               AD64(I,J,L,1) = AD64(I,J,L,1) + PH_SAV(   I,J,L)
-               AD64(I,J,L,2) = AD64(I,J,L,2) + HPLUS_SAV(I,J,L)
-               AD64(I,J,L,3) = AD64(I,J,L,3) + WATER_SAV(I,J,L)
+            IF ( L <= LD73 ) THEN
+               AD73(I,J,L,1) = AD73(I,J,L,1)+State_Chm%PH_SAV(   I,J,L)
+               AD73(I,J,L,2) = AD73(I,J,L,2)+State_Chm%HPLUS_SAV(I,J,L)
+               AD73(I,J,L,3) = AD73(I,J,L,3)+State_Chm%WATER_SAV(I,J,L)
             ENDIF
          ENDIF
 
@@ -754,67 +749,6 @@
       ENDIF
 
       END FUNCTION SAFELOG10
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_isrinfo
-!
-! !DESCRIPTION: Subroutine GET\_ISRINFO returns information related to 
-!  aerosol pH.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_ISRINFO( I, J, L, N ) RESULT ( RETURNVALUE )
-!
-! !USES:
-!
-      USE CMN_O3_MOD, ONLY : HPLUS_SAV,  NARAT_SAV,  PH_SAV,
-     &                       SULRAT_SAV, BISUL_SAV,  WATER_SAV,
-     &                       ACIDPUR_SAV
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: I   ! GEOS-Chem longitude index
-      INTEGER, INTENT(IN) :: J   ! GEOS-Chem latitude index
-      INTEGER, INTENT(IN) :: L   ! GEOS-Chem level index
-      INTEGER, INTENT(IN) :: N   ! Flag for which information is desired
-!
-! !RETURN VALUE:
-!
-      REAL(fp)              :: RETURNVALUE
-! 
-! !REVISION HISTORY: 
-!  11 Aug 2009 - H. O. T. Pye - Initial version
-!  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      IF     ( N == 1 ) THEN
-         RETURNVALUE = PH_SAV( I, J, L )
-      ELSEIF ( N == 2 ) THEN
-         RETURNVALUE = HPLUS_SAV( I, J, L ) 
-      ELSEIF ( N == 3 ) THEN
-         RETURNVALUE = WATER_SAV( I, J, L ) 
-      ELSEIF ( N == 4 ) THEN
-         RETURNVALUE = SULRAT_SAV( I, J, L ) 
-      ELSEIF ( N == 5 ) THEN
-         RETURNVALUE = NARAT_SAV( I, J, L ) 
-      ELSEIF ( N == 6 ) THEN
-         RETURNVALUE = ACIDPUR_SAV( I, J, L ) 
-      ELSEIF ( N == 7 ) THEN
-         RETURNVALUE = BISUL_SAV( I, J, L )
-      ELSE
-         ! return large value to indicate problem
-         RETURNVALUE = 99999e+0_fp
-         !FP_ISOP
-         WRITE(*,*) 'VALUE NOT DEFINED IN GET_ISRINFO'
-      ENDIF
-
-      END FUNCTION GET_ISRINFO
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

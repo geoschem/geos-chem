@@ -18,7 +18,6 @@
       USE AEROSOL_MOD,        ONLY : OCPI, OCPO
       USE AEROSOL_MOD,        ONLY : TSOA, ISOA, ASOA, OPOA
       USE AEROSOL_MOD,        ONLY : ISOAAQ
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_O3_MOD,         ONLY : SAVEOA
       USE CMN_SIZE_MOD
       USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
@@ -50,7 +49,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-!$OMP+PRIVATE( TEMP6 )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
