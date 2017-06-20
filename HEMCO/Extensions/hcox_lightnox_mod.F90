@@ -449,6 +449,12 @@ CONTAINS
           CALL GET_OTD_LIS_SCALE( am_I_Root, HcoState, Inst%OTD_LIS_SCALE, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
+
+       ! Make sure the tuning factor set in HEMCO_Config.rc matches the
+       ! hard-coded value.
+       ! (Jiawei Zhuang 2017/6)
+       PRINT*,'(FlexGrid check) lightning tuning factor:',Inst%OTD_LIS_SCALE
+
     ENDIF
 
     ! Eventually get OTD-LIS local redistribution factors from HEMCO.

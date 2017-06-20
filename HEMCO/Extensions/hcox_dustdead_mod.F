@@ -674,6 +674,13 @@
          ENDIF
       ENDIF
 
+      ! Make sure the tuning factor set in HEMCO_Config.rc matches the
+      ! hard-coded value.
+      ! Can also be printed by the verbose mode below, but this is more
+      ! consistent with the lightning factor checking.
+      ! (Jiawei Zhuang 2017/6)
+      PRINT*,'(FlexGrid check) dust tuning factor:',Inst%FLX_MSS_FDG_FCT
+
       ! Verbose mode
       IF ( am_I_Root ) THEN
          MSG = 'Use DEAD dust emissions (extension module)'
