@@ -17,7 +17,7 @@ v11-01g (Sep 2016)
 
  (1) Initial version for FlexChem (MSL,MJE,MPS,EWL)
 
-v11-02a (Mar 2013)
+v11-02a (Mar 2017)
 ----------------------
 
  (1) Update rate constants based on JPL 15-10 (MJE, BHH)
@@ -30,6 +30,11 @@ v11-02a (Mar 2013)
      - Treatment of monoterpene oxidation is adopted from theRACM2 chemical
        mechanism (Goliff et al., 2013), lumping terpenes with one double bond
        (alpha-pinene, beta-pinene, sabinene, delta-3-carene) into one proxy.
+
+v11-02c (Mar 2017)
+----------------------
+
+ (1) Add isoprene SOA updates from Marais2016 (EAM,MPS)
 
 ===============================================================================
 DEVELOPERS (alphabetical order; add your name!)
@@ -55,10 +60,11 @@ TS  : Tomas Sherwen;     ts551@york.ac.uk
 REFERENCES (alphabetical order)
 ===============================================================================
 * Browne2011: Browne et al., 2011, Atmos. Chem. Phys., doi:10.5194/acp-11-4209-2011, 2011.
-* Eastham2014: Eastham et al., Atmos. Env., 10.1016/j.atmosenv.2014.02.001, 2014.
+* Eastham2014: Eastham et al., Atmos. Env., doi:10.1016/j.atmosenv.2014.02.001, 2014.
 * Fischer2014: Fischer et al., Atmos. Chem. Phys., doi:10.5194/acp-14-2679-2014, 2014.
 * JPL 10-6: JPL Publication 10-6, https://jpldataeval.jpl.nasa.gov/previous_evaluations.html, 2011.
 * JPL 15-10: JPL Publication 15-10, https://jpldataeval.jpl.nasa.gov, 2015.
+* Marais2016: Marais et al., Atmos. Chem. Phys, doi:10.5194/acp-16-1603-2016, 2016.
 * Millet2015: Millet et al., Atmos. Chem. Phys., doi:10.5194/acp-15-6283-2015, 2015.
 * Parrella2012: Parrella et al. Atmos. Chem. Phys, doi:10.5194/acp-12-6723-2012, 2012.
 * Paulot2009: Paulot et al., Atmos. Chem. Phys., doi:10.5194/acp-9-1479-2009, 2009a and
@@ -105,6 +111,7 @@ CH3CHOO    = IGNORE; {CH3CHOO; Criegee intermediate}
 CHBr3      = IGNORE; {CHBr3; Tribromethane}
 CO         = IGNORE; {CO; Carbon monoxide}
 CO2        = IGNORE; {CO2; Carbon dioxide}
+DHDN       = IGNORE; {Dihydroxy dinitrate from oxidation of ISOPND and ISOPNB}
 DHMOB      = IGNORE; {HOCH2C(CH3)(OH)C(=O)CHO; See Paulot et al., ACP, 2009}
 DIBOO      = IGNORE; {Dibble peroxy radical}
 DMS        = IGNORE; {(CH3)2S; Dimethylsulfide}
@@ -118,20 +125,27 @@ GLYX       = IGNORE; {CHOCHO; Glyoxal}
 H2O2       = IGNORE; {H2O2; Hydrogen peroxide}
 HAC        = IGNORE; {HOCH2C(O)CH3; Hydroxyacetone}
 HBr        = IGNORE; {HBr; Hypobromic acid}
-HCOOH      = IGNORE; {HCOOH; Formic acid}
+HC187      = IGNORE; {Epoxide oxidation product m/z 187-189}
 HC5        = IGNORE; {HOCH2CH=C(CH3)CHO; Hydroxycarbonyl with 5C}
 HC5OO      = IGNORE; {Peroxy radical from HC5}
+HCOOH      = IGNORE; {HCOOH; Formic acid}
 HNO2       = IGNORE; {HONO; Nitrous acid}
 HNO3       = IGNORE; {HNO3; Nitric acid}
 HNO4       = IGNORE; {HNO4; Pernitric acid}
 HO2        = IGNORE; {HO2; Hydroperoxyl radical}
 HOBr       = IGNORE; {HOBr; Hypobromous acid}
 IAP        = IGNORE; {HOCH2C(CH3)(OOH)CH(OH)CHO; Peroxide from IAO2}
-IEPOX      = IGNORE; {Isoprene epoxide}
+IEPOX      = IGNORE; {C5H10O3; Isoprene epoxide}
 IEPOXOO    = IGNORE; {RO2 from IEPOX}
+IMAE       = IGNORE; {C4H6O3; C4 epoxide from oxidation of PMN}
+IMAO3      = IGNORE; {CH2=C(CH3)C(O)OO; Isoprene peroxyacyl from MVK and MACR}
+INDIOL     = IGNORE; {Generic aerosol phase organonitrate hydrolysis product}
 INO2       = IGNORE; {O2NOCH2C(OO)(CH3)CH=CH2; RP2 from IEPOX}
 INPN       = IGNORE; {O2NOCH2C(OOH)(CH3)CH=CH2; Peroxide from INO2}
-ISN1       = IGNORE; {Nighttime isoprene nitrate}
+IPMN       = IGNORE; {CH2=C(CH3)C(O)OONO2; Isoprene peroxymethacryloyl nitrate}
+ISN1       = IGNORE; {C5H8NO4; Nighttime isoprene nitrate}
+ISN1OA     = IGNORE; {C5H10O8N2; Aerosol-phase second generation hydroxynitrates formed from ISOP+NO3 pathway}
+ISN1OG     = IGNORE; {C5H10O8N2; Gas-phase second generation hydroxynitrates formed from ISOP+NO3 pathway}
 ISNOOA     = IGNORE; {Peroxy radical from ISN1}
 ISNOOB     = IGNORE; {Peroxy radical from ISN1}
 ISNOHOO    = IGNORE; {Peroxy radical from ISN1}
@@ -150,6 +164,8 @@ LNRO2H     = IGNORE; {Dummy spc to track oxidation of NRO2 by HO2}
 LNRO2N     = IGNORE; {Dummy spc to track oxidation of NRO2 by NO}
 LTRO2H     = IGNORE; {Dummy spc to track oxidation of TRO2 by HO2}
 LTRO2N     = IGNORE; {Dummy spc to track oxidation of TRO2 by NO}
+LVOC       = IGNORE; {C5H14O5; Gas-phase low-volatility non-IEPOX product of ISOPOOH (RIP) oxidation}
+LVOCOA     = IGNORE; {C5H14O5; Aerosol-phase low-volatility non-IEPOX product of ISOPOOH (RIP) oxidation}
 LXRO2H     = IGNORE; {Dummy spc to track oxidation of XRO2 by HO2}
 LXRO2N     = IGNORE; {Dummy spc to track oxidation of XRO2 by NO}
 MACR       = IGNORE; {CH2=C(CH3)CHO; Methacrolein}
@@ -157,7 +173,6 @@ MACRN      = IGNORE; {HOCH2C(ONO2)(CH3)CHO; Nitrate from MACR}
 MACRNO2    = IGNORE; {Product of MACRN+OH}
 MACROO     = IGNORE; {Criegee intermediate}
 MAN2       = IGNORE; {HOCH2C(ONO2)(CH3)CHO; RO2 from MACR+NO3}
-MAO3       = IGNORE; {CH2=C(CH3)C(O)OO; Peroxyacyl from MVK and MACR}
 MAOP       = IGNORE; {CH2=C(CH3)C(O)OOH; Peroxide from MAO3}
 MAOPO2     = IGNORE; {CH2OH-CHOO*CH3C(O)OOH; Peroxy radical from MAOP}
 MAP        = IGNORE; {CH3C(O)OOH; Peroxyacetic acid}
@@ -183,9 +198,11 @@ MVKN       = IGNORE; {HOCH2CH(ONO2)C(=O)CH3; Nitrate from MVK}
 MVKOO      = IGNORE; {Criegee intermediate}
 N2O5       = IGNORE; {N2O5; Dinitrogen pentoxide}
 NAP        = IGNORE; {C10H8; Naphthalene; IVOC surrogate}
+NMAO3      = IGNORE; {CH2=C(CH3)C(O)OO; Non-isoprene peroxyacyl from MVK and MACR}
 NO         = IGNORE; {NO; Nitric oxide}
 NO2        = IGNORE; {NO2; Nitrogen dioxide}
 NO3        = IGNORE; {NO3; Nitrate radical}
+NPMN       = IGNORE; {CH2=C(CH3)C(O)OONO2; Non-isoprene peroxymethacryloyl nitrate}
 NRO2       = IGNORE; {Peroxy radical from NAP oxidation}
 O1D        = IGNORE; {O(1D); Excited atomic oxygen}
 O3         = IGNORE; {O3; Ozone}
@@ -196,7 +213,6 @@ ONIT       = IGNORE; {Organic nitrate}
 PAN        = IGNORE; {CH3C(O)OONO2; Peroxyacetylnitrate}
 PIO2       = IGNORE; {RO2 from MTPA}
 PIP        = IGNORE; {Peroxides from MTPA}
-PMN        = IGNORE; {CH2=C(CH3)C(O)OONO2; Peroxymethacryloyl nitrate}
 PMNN       = IGNORE; {Product of PMNO2+NO}
 PMNO2      = IGNORE; {Product of PMN+OH}
 PO2        = IGNORE; {HOCH2CH(OO)CH3; RO2 from isoprene}
@@ -221,6 +237,10 @@ ROH        = IGNORE; {C3H7OH; > C2 alcohols}
 RP         = IGNORE; {CH3CH2C(O)OOH; Peroxide from RCO3}
 SO2        = IGNORE; {SO2; Sulfur dioxide}
 SO4        = IGNORE; {SO4; Sulfate}
+SOAGX      = IGNORE; {CHOCHO; Aerosol-phase glyoxal}
+SOAIE      = IGNORE; {C5H10O3; Aerosol-phase IEPOX}
+SOAME      = IGNORE; {C4H6O3; Aerosol-phase IMAE}
+SOAMG      = IGNORE; {CH3COCHO; Aerosol-phase methylglyoxal}
 TOLU       = IGNORE; {C7H8; Toluene}
 TRO2       = IGNORE; {Peroxy radical from TOLU oxidation}
 VRO2       = IGNORE; {HOCH2CH(OO)C(O)CH3; RO2 from MVK+OH}
@@ -308,13 +328,13 @@ ATO2 + NO = 0.960NO2 + 0.960CH2O +
   0.960MCO3 + 0.040R4N2 :                   GCARR(2.80E-12, 0.0E+00, 300.0);
 KO2 + NO = 0.930NO2 + 0.930ALD2 + 
   0.930MCO3 + 0.070R4N2 :                   GCARR(2.70E-12, 0.0E+00, 350.0);
-RIO2 + NO = 0.883NO2 + 0.783HO2 + 
-  0.660CH2O + 0.400MVK + 0.260MACR + 
-  0.070ISOPND + 0.047ISOPNB + 0.123HC5 + 
-  0.100DIBOO :                              GCARR(2.70E-12, 0.0E+00, 350.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-RIO2 = 2.000HO2 + CH2O + 0.500MGLY + 
-  0.500GLYC + 0.500GLYX + 0.500HAC + 
-  OH :                                      GCARR(4.07E+08, 0.0E+00, -7694.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+RIO2 + NO = 0.930NO2 + 0.830HO2 + 
+  0.710CH2O + 0.414MVK + 0.296MACR + 
+  0.023ISOPND + 0.047ISOPNB + 0.120HC5 + 
+  0.100DIBOO :                              GCARR(2.70E-12, 0.0E+00, 350.0);    {2017/06/14; Marais2016; EAM}
+RIO2 = 2.000HO2 + CH2O + 0.250MGLY + 
+  0.500GLYC + 0.250GLYX + 0.500HAC + 
+  OH :                                      GCARR(4.07E+08, 0.0E+00, -7694.0);  {2017/06/14; Marais2016; EAM}
 VRO2 + NO = 0.880NO2 + 0.350HO2 + 
   0.350CH2O + 0.530MCO3 + 0.530GLYC + 
   0.350MGLY + 0.120MVKN :                   GCARR(2.70E-12, 0.0E+00, 350.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
@@ -334,28 +354,32 @@ INO2 + NO3 = 1.300NO2 + 0.800HO2 +
   0.070CH2O + 0.035MVK :                    GCARR(2.30E-12, 0.0E+00, 0.0);      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 ISN1 + NO3 = 0.600ISNOOA + 0.400ISNOOB + 
   0.600HNO3 :                               GCARR(3.15E-13, 0.0E+00, -448.0);   {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISNOOA + NO3 = NO2 + R4N2 + CO + HO2 :      GCARR(4.00E-12, 0.0E+00, 0.0);      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISNOOA + NO = NO2 + R4N2 + CO + HO2 :       GCARR(6.70E-12, 0.0E+00, 340.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISNOOA + NO2 {+M} = PMN :                   GCJPLPR(9.00E-28, 8.9E+00, 0.0, 7.7E-12, 0.2, 0.0, 0.6, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+ISNOOA + NO3 = NO2 + 0.960R4N2 + CO +
+  HO2 + 0.040ISN1OG :                       GCARR(4.00E-12, 0.0E+00, 0.0);      {2017/06/14; Marais2016; EAM}
+ISNOOA + NO = NO2 + 0.960R4N2 + CO +
+  HO2 + 0.040ISN1OG :                       GCARR(6.70E-12, 0.0E+00, 340.0);    {2017/06/14; Marais2016; EAM}
+ISNOOA + NO2 {+M} = 0.960IPMN +
+  0.040ISN1OG:                              GCJPLPR(9.00E-28, 8.9E+00, 0.0, 7.7E-12, 0.2, 0.0, 0.6, 0.0, 0.0);  {2017/06/14; Marais2016; EAM}
 ISNOOA + HO2 = 0.750RP + 0.250RCOOH + 
-  0.250O3 :                                 GCARR(5.20E-13, 0.0E+00, 980.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISNOOB + NO3 = R4N2 + GLYX + NO2 + NO2 :    GCARR(2.30E-12, 0.0E+00, 0.0);      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISNOOB + NO = 0.940R4N2 + 0.940GLYX + 
-  0.940NO2 + 0.940NO2 :                     GCARR(2.60E-12, 0.0E+00, 380.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISNOOB + HO2 = INPN :                       GCARR(2.06E-13, 0.0E+00, 1300.0);   {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISNOOB + MO2 = 0.700R4N2 + 0.700GLYX + 
+  0.250O3 + 0.960NO2 + 0.040ISN1OG :        GCARR(5.20E-13, 0.0E+00, 980.0);    {2017/06/14; Marais2016; EAM}
+ISNOOB + NO3 = 0.960R4N2 + GLYX + NO2 +
+  NO2 + 0.040ISN1OG :                       GCARR(2.30E-12, 0.0E+00, 0.0);      {2017/06/14; Marais2016; EAM}
+ISNOOB + NO = 0.900R4N2 + 0.940GLYX + 
+  0.940NO2 + 0.940NO2 + 0.040ISN1OG :       GCARR(2.60E-12, 0.0E+00, 380.0);    {2017/06/14; Marais2016; EAM}
+ISNOOB + HO2 = 0.960INPN + 0.040ISN1OG :    GCARR(2.06E-13, 0.0E+00, 1300.0);   {2017/06/14; Marais2016; EAM}
+ISNOOB + MO2 = 0.660R4N2 + 0.700GLYX + 
   0.700NO2 + 0.250CH2O + 0.250MOH + 
-  0.500HO2 + 0.500CH2O :                    GCARR(2.00E-13, 0.0E+00, 0.0);      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+  0.500HO2 + 0.500CH2O + 0.040ISN1OG :      GCARR(2.00E-13, 0.0E+00, 0.0);      {2017/06/14; Marais2016; EAM}
 ISN1 + O3 = 0.300R4N2 + 0.700GLYX + 
   0.700NO2 + 0.250CH2O + 0.250MOH + 
   0.500HO2 + 0.500CH2O :                    GCARR(4.15E-15, 0.0E+00, -1520.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 ISN1 + OH = 0.345ISNOOA + 0.655ISNOHOO :    GCARR(7.48E-12, 0.0E+00, 410.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISNOHOO + NO = 0.934R4N2 + 0.934HO2 + 
-  0.919GLYX :                               GCARR(2.60E-12, 0.0E+00, 380.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISNOHOO + HO2 = INPN :                      GCARR(2.06E-13, 0.0E+00, 1300.0);   {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISNOHOO + MO2 = 0.700R4N2 + 0.700GLYX + 
+ISNOHOO + NO = 0.894R4N2 + 0.934HO2 + 
+  0.919GLYX + 0.040ISN1OG :                 GCARR(2.60E-12, 0.0E+00, 380.0);    {2017/06/14; Marais2016; EAM}
+ISNOHOO + HO2 = 0.960INPN + 0.040ISN1OG :   GCARR(2.06E-13, 0.0E+00, 1300.0);   {2017/06/14; Marais2016; EAM}
+ISNOHOO + MO2 = 0.660R4N2 + 0.700GLYX + 
   0.700HO2 + 0.250CH2O + 0.250MOH + 
-  0.500CH2O + 0.500HO2 :                    GCARR(2.06E-13, 0.0E+00, 0.0);      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+  0.500CH2O + 0.500HO2 + 0.040ISN1OG :      GCARR(2.06E-13, 0.0E+00, 0.0);      {2017/06/14; Marais2016; EAM}
 INO2 + INO2 = 0.300NO2 + 0.800HO2 + 
   0.700ISN1 + 0.230HC5 + 0.035MACR + 
   0.070CH2O + 0.035MVK + 0.500ISN1 + 
@@ -367,10 +391,12 @@ ACTA + OH = MO2 + CO2 + H2O :               GCARR(3.15E-14, 0.0E+00, 920.0);    
 OH + RCHO = RCO3 + H2O :                    GCARR(6.00E-12, 0.0E+00, 410.0);
 RCO3 + NO2 {+M} = PPN :                     GCJPLPR(9.00E-28, 8.9E+00, 0.0, 7.7E-12, 0.2, 0.0, 0.6, 0.0, 0.0); {JPL Eval 17}
 PPN = RCO3 + NO2 :                          GCJPLEQ(9.00E-29, 0.0E+00, 14000.0, 9.00E-28, 8.9E0, 0.0, 7.7E-12, 0.2, 0., 0.6, 0., 0.);
-MAO3 + NO2 {+M} = PMN :                     GCJPLPR(9.00E-28, 8.9E+00, 0.0, 7.7E-12, 0.2, 0.0, 0.6, 0.0, 0.0); {JPL Eval 17 =PPN}
-PMN = MAO3 + NO2 :                          GCJPLEQ(9.00E-29, 0.0E+00, 14000.0, 9.00E-28, 8.9E0, 0.0, 7.7E-12, 0.2, 0., 0.6, 0., 0.); 
+IMAO3 + NO2 {+M} = IPMN :                   GCJPLPR(1.21E-11, 1.1E+00, 0.0, 7.7E-12, 0.2, 0.0, 0.6, 0.0, 0.0);  {2017/06/14; Marais2016; EAM}
+NMAO3 + NO2 {+M} = NPMN :                   GCJPLPR(9.00E-28, 8.9E+00, 0.0, 7.7E-12, 0.2, 0.0, 0.6, 0.0, 0.0);  {2017/06/14; Marais2016; EAM}
+IPMN = IMAO3 + NO2 :                        GCJPLEQ(1.60E+16, 0.0E+00, -13486.0, 9.00E-28, 8.9E0, 0.0, 7.7E-12, 0.2, 0., 0.6, 0., 0.);  {2017/06/14; Marais2016; EAM}
+NPMN = NMAO3 + NO2 :                        GCJPLEQ(9.00E-29, 0.0E+00, 14000.0, 9.00E-28, 8.9E0, 0.0, 7.7E-12, 0.2, 0., 0.6, 0., 0.);   {2017/06/14; Marais2016; EAM}
 RCO3 + NO = NO2 + ETO2 :                    GCARR(6.70E-12, 0.0E+00, 340.0);
-MAO3 + NO = NO2 + 0.500CH2O + 0.500CO + 
+NMAO3 + NO = NO2 + 0.500CH2O + 0.500CO + 
   CO2 + 0.500MO2 + 0.500MCO3 :              GCARR(6.70E-12, 0.0E+00, 340.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 RCHO + NO3 = HNO3 + RCO3 :                  GCARR(6.50E-15, 0.0E+00, 0.0);
 ACET + OH = ATO2 + H2O :                    1.33E-13+3.82E-11*exp(-2000.0_dp/TEMP); {JPL Eval 17, p1-62-D31; EVF}
@@ -385,9 +411,9 @@ ATO2 + HO2 = 0.150MCO3 + 0.150OH +
  0.150CH2O + 0.850ATOOH :                   GCARR(8.60E-13, 0.0E+00, 700.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 KO2 + HO2 = 0.150OH + 0.150ALD2 + 
  0.150MCO3 + 0.850ATOOH :                   GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 4.0, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-RIO2 + HO2 = 0.880RIP + 0.120OH + 
- 0.047MACR + 0.073MVK + 0.120HO2 + 
- 0.120CH2O :                                GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 5.0, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+RIO2 + HO2 = 0.937RIP + 0.063OH + 
+ 0.025MACR + 0.038MVK + 0.063HO2 + 
+ 0.063CH2O :                                GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 5.0, 0.0, 0.0);  {2017/06/14; Marais2016; EAM}
 VRO2 + HO2 = 0.100VRP + 0.680OH + 
  0.578GLYC + 0.578MCO3 + 0.187MEK + 
  0.102HO2 + 0.102CH2O + 0.102MGLY + 
@@ -420,10 +446,10 @@ KO2 + MO2 = 0.500ALD2 + 0.500MCO3 +
  0.250ROH + 0.500HO2 :                      GCARR(8.37E-14, 0.0E+00, 0.0);
 RIO2 + MO2 = 1.100HO2 + 1.220CH2O + 
  0.280MVK + 0.180MACR + 0.300HC5 + 
- 0.240MOH + 0.240ROH :                      GCARR(8.37E-14, 0.0E+00, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-RIO2 + RIO2 = 1.280HO2 + 0.920CH2O + 
- 0.560MVK + 0.360MACR + 0.480ROH + 
- 0.500HC5 :                                 GCARR(1.54E-13, 0.0E+00, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+ 0.240MOH + 0.240ROH :                      GCARR(8.37E-14, 0.0E+00, 0.0);  {2017/06/14; Marais2016; EAM}
+RIO2 + RIO2 = 0.910HO2 + 0.750CH2O + 
+ 0.450MVK + 0.290MACR + 0.090DIBOO + 
+ 1.110HC5 + 0.290CO :                       GCARR(2.30E-12, 0.0E+00, 0.0);  {2017/06/14; Marais2016; EAM}
 HC5OO + MO2 = 0.500HO2 + 0.330CO + 
  0.090H2 + 0.180HAC + 0.130GLYC + 
  0.290MGLY + 0.250MEK + 0.950CH2O + 
@@ -460,7 +486,7 @@ HO2 + MCO3 = 0.410MAP + 0.150ACTA +
  0.150O3 + 0.440OH + 0.440MO2 :             GCARR(5.20E-13, 0.0E+00, 980.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 RCO3 + HO2 = 0.410RP + 0.150RCOOH + 
  0.150O3 + 0.440OH + 0.440ETO2 :            GCARR(4.30E-13, 0.0E+00, 1040.0);   {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-MAO3 + HO2 = 0.440OH + 0.150O3 + 
+NMAO3 + HO2 = 0.440OH + 0.150O3 + 
  0.590CH2O + 0.390MO2 + 0.410MAOP + 
  0.390CO :                                  GCARR(4.30E-13, 0.0E+00, 1040.0);   {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 PRPE + OH {+M} = PO2 :                      GCJPLPR(4.60E-27, 4.0E+00, 0.0, 2.6E-11, 1.3, 0.0, 0.5, 0.0, 0.0);  {2017/02/22; JPL 15-10; BHH,MJE}
@@ -468,8 +494,12 @@ PRPE + O3 = 0.500ALD2 + 0.500CH2O +
  0.120CH3CHOO + 0.100CH4 + 0.120CH2OO + 
  0.280MO2 + 0.560CO + 0.280HO2 + 
  0.360OH :                                  GCARR(5.50E-15, 0.0E+00, -1880.0);  {2015/09/25; Millet2015; DBM,EAM}
-PMN + OH = HAC + CO + NO2 :                 GCARR(2.90E-11, 0.0E+00, 0.0);      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-PMN + O3 = CH2O + MCO3 + NO3 :              GCARR(8.20E-18, 0.0E+00, 0.0);      {2015/07/06; Bug fix (v11-02b); DBM}
+NPMN + OH = HAC + CO + NO2 :                GCARR(2.90E-11, 0.0E+00, 0.0);      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+IPMN + OH = 0.030HAC + 0.030CO +
+  0.810NO3 + 0.781IMAE + 0.190PAN +
+  0.190CH2O + 0.190HO2 :                    GCARR(3.00E-11, 0.0E+00, 0.0);      {2017/06/14; Marais2016; EAM}
+NPMN + O3 = CH2O + MCO3 + NO3 :             GCARR(8.20E-18, 0.0E+00, 0.0);      {2015/07/06; Bug fix (v11-02b); DBM}
+IMAE + OH = OH :                            GCARR(3.48E-12, 0.0E+00, 0.0);      {2017/06/14; Marais2016; EAM}
 GLYC + OH = 0.732CH2O + 0.361CO2 + 
  0.505CO + 0.227OH + 0.773HO2 + 
  0.134GLYX + 0.134HCOOH :                   GC_GLYCOHA(8.00E-12, 0.0E+00, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
@@ -481,7 +511,7 @@ GLYX + NO3 = HNO3 + HO2 + 2.000CO :         GC_GLYXNO3(1.40E-12, 0.0E+00, -1860.
 MGLY + NO3 = HNO3 + CO + MCO3 :             GCARR(3.36E-12, 0.0E+00, -1860.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 ISOP + OH = RIO2 + LISOPOH :                GCARR(3.00E-11, 0.0E+00, 360.0);      {2017/02/22; JPL 15-10; BHH,MJE}
 MVK + OH = VRO2 :                           GCARR(2.70E-12, 0.0E+00, 580.0);      {2017/02/22; JPL 15-10; BHH,MJE}
-MACR + OH = 0.530MAO3 + 0.470MRO2 :         GCARR(9.60E-12, 0.0E+00, 360.0);      {2017/02/22; JPL 15-10; BHH,MJE}
+MACR + OH = 0.530IMAO3 + 0.470MRO2 :        GCARR(9.60E-12, 0.0E+00, 360.0);      {2017/02/22; JPL 15-10; BHH,MJE}
 HAC + OH = MGLY + HO2 :                     GC_HACOHA(2.15E-12, 0.0E+00, 305.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 HAC + OH = 0.500HCOOH + OH + 
  0.500ACTA + 0.500CO2 + 0.500CO + 
@@ -492,24 +522,26 @@ MCO3 + A3O2 = ACTA + RCHO :                 GCARR(1.87E-13, 0.0E+00, 500.0);
 MCO3 + PO2 = ACTA + 0.350RCHO + 
  0.650HAC :                                 GCARR(1.87E-13, 0.0E+00, 500.0);
 ISOP + O3 = 0.200MVK + 0.300MACR + 
- 0.709CH2O + 0.120CH2OO + 0.512CO + 
- 0.044MVKOO + 0.158MCO3 + 0.308HO2 + 
- 0.315OH + 0.128PRPE + 0.051MO2 + 
- 0.066MACROO + 0.054VRO2 :                  GCARR(1.00E-14, 0.0E+00, -1970.0);  {2015/09/25; Millet2015; DBM,EAM}
+ 0.456CH2O + 0.110CH2OO + 0.495CO + 
+ 0.044MVKOO + 0.105MCO3 + 0.237HO2 + 
+ 0.243OH + 0.102PRPE + 0.051MO2 + 
+ 0.044MACROO + 0.054VRO2 :                  GCARR(1.00E-14, 0.0E+00, -1970.0);  {2017/06/14; Marais2016; EAM}
 MVK + O3 = 0.360OH + 0.280HO2 + 
  0.560CO + 0.120MGLOO + 0.100ALD2 + 
  0.500MGLY + 0.600CH2O + 0.280MCO3 + 
  0.120CH2OO :                               GCARR(8.5E-16, 0.0E+00, -1520.0);   {2017/02/22; JPL 15-10; BHH,MJE}
-MACR + O3 = 0.415OH + 0.317HO2 + 
- 0.767CO + 0.211CH2OO + 0.880MGLY + 
- 0.120CH2O + 0.022MGLYOO + 0.099MCO3 :      GCARR(1.50E-15, 0.0E+00, -2110.0);  {2017/02/22; JPL 15-10; BHH,MJE}
+MACR + O3 = 0.239OH + 0.141HO2 + 
+ 0.625CO + 0.326CH2OO + 0.880MGLY + 
+ 0.120CH2O + 0.022MGLYOO + 0.098MCO3 :      GCARR(1.50E-15, 0.0E+00, -2110.0);  {2017/06/14; Marais2016; EAM}
 ISOP + NO3 = INO2 + LISOPNO3 :              GCARR(3.50E-12, 0.0E+00, -450.0);   {2017/02/22; JPL 15-10; BHH,MJE}
 MACR + NO3 = MAN2 :                         GCARR(3.40E-15, 0.0E+00, 0.0);      {2017/02/22; JPL 15-10; BHH,MJE}
-MACR + NO3 = MAO3 + HNO3 :                  GCARR(1.10E-15, 0.0E+00, 0.0);
+MACR + NO3 = 0.500IMAO3 + 0.500HNO3 +
+ 0.500MRO2 + 0.500HO2 + 0.500CO +
+ 0.500MAOP :                                GCARR(1.50E-12, 0.0E+00, -1815.0);  {2017/06/14; Marais2016; EAM}
 RCO3 + MO2 = CH2O + HO2 + ETO2 :            GCARR(1.68E-12, 0.0E+00, 500.0);
-MAO3 + MO2 = CH2O + HO2 + CH2O + MCO3 :     GCARR(1.68E-12, 0.0E+00, 500.0);
+NMAO3 + MO2 = CH2O + HO2 + CH2O + MCO3 :    GCARR(1.68E-12, 0.0E+00, 500.0);
 RCO3 + MO2 = RCOOH + CH2O :                 GCARR(1.87E-13, 0.0E+00, 500.0);
-MAO3 + MO2 = RCOOH + CH2O :                 GCARR(1.87E-13, 0.0E+00, 500.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+NMAO3 + MO2 = RCOOH + CH2O :                GCARR(1.87E-13, 0.0E+00, 500.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 INPN + OH = OH + NO2 + MEK :                GCARR(1.90E-11, 0.0E+00, 390.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 INPN + OH = 0.360INO2 + 0.640R4N2 + 
  0.640OH :                                  GCARR(5.18E-12, 0.0E+00, 200.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
@@ -526,25 +558,30 @@ R4P + OH = 0.791OH + 0.209R4O2 +
 RP + OH = RCO3 :                            GCARR(6.13E-13, 0.0E+00, 200.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 PP + OH = 0.791OH + 0.209PO2 + 
  0.791HAC :                                 GCARR(8.78E-12, 0.0E+00, 200.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-RIP + OH = 0.387RIO2 + 0.613OH + 
- 0.613HC5 :                                 GCARR(4.75E-12, 0.0E+00, 200.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-RIP + OH = OH + IEPOX :                     GCARR(1.90E-11, 0.0E+00, 390.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-IEPOX + OH = IEPOXOO :                      GCARR(5.78E-11, 0.0E+00, -400.0);   {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-IEPOXOO + HO2 = 0.725HAC + 0.275GLYC + 
- 0.275GLYX + 0.275MGLY + 1.125OH + 
- 0.825HO2 + 0.200CO2 + 0.375CH2O + 
- 0.074HCOOH + 0.251CO :                     GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 5.0, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-IEPOXOO + NO = 0.725HAC + 0.275GLYC + 
- 0.275GLYX + 0.275MGLY + 0.125OH + 
- 0.825HO2 + 0.200CO2 + 0.375CH2O + 
- 0.074HCOOH + 0.251CO + NO2 :               GCARR(2.70E-12, 0.0E+00, 350.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+RIP + OH = 0.387RIO2 + 0.598OH + 
+ 0.598HC5 + 0.005LVOC :                     GCARR(4.75E-12, 0.0E+00, 200.0);    {2017/06/14; Marais2016; EAM}
+RIP + OH = 0.985OH + 0.750IEPOX +
+ 0.005LVOC :                                GCARR(1.90E-11, 0.0E+00, 390.0);    {2017/06/14; Marais2016; EAM}
+LVOC + OH = OH :                            GCARR(4.82E-11, 0.0E+00, -400.0);   {2017/06/14; Marais2016; EAM}
+IEPOX + OH = IEPOXOO :                      GCARR(1.37E-10, 0.0E+00, -400.0);   {2017/06/14; Marais2016; EAM}
+IEPOXOO + HO2 = 0.085HAC + 0.025GLYC + 
+ 0.085GLYX + 0.085MGLY + 1.125OH + 
+ 0.825HO2 + 1.100CO2 + 0.375CH2O + 
+ 0.278HCOOH + 0.600CO + 0.440HC187 :        GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 5.0, 0.0, 0.0);  {2017/06/14; Marais2016; EAM}
+IEPOXOO + NO = 0.117HAC + 0.088GLYC + 
+ 0.088GLYX + 0.088MGLY + 0.125OH + 
+ 0.825HO2 + 0.800CO2 + 0.375CH2O + 
+ 0.142HCOOH + 0.678CO + NO2 +
+ 0.473HC187 :                               GCARR(2.70E-12, 0.0E+00, 350.0);    {2017/06/14; Marais2016; EAM}
+HC187 + OH = 0.500MCO3 + 0.500MGLY +
+ 0.500HO2 + 0.500CO + CH2O :                GCARR(1.40E-11, 0.0E+00, 200.0);    {2017/06/14; Marais2016; EAM}
 IAP + OH = 0.654OH + 0.654DHMOB + 
  0.346HC5OO :                               GCARR(5.31E-12, 0.0E+00, 200.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 VRP + OH = 0.791OH + 0.791MEK + 
  0.209VRO2 :                                GCARR(8.78E-12, 0.0E+00, 200.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 MRP + OH = MRO2 :                           GCARR(1.84E-12, 0.0E+00, 200.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 MRP + OH = CO2 + HAC + OH :                 GCARR(4.40E-12, 0.0E+00, 380.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-MAOP + OH = MAO3 :                          GCARR(6.13E-13, 0.0E+00, 200.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+MAOP + OH = NMAO3 :                         GCARR(6.13E-13, 0.0E+00, 200.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 MAOP + OH = MAOPO2 :                        GCARR(3.60E-12, 0.0E+00, 380.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 MCO3 + MAOPO2 = HAC + 2.000CO2 + OH + 
  MO2 :                                      GCARR(1.68E-12, 0.0E+00, 500.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
@@ -608,19 +645,39 @@ B3O2 + MCO3 = ACET + ACTA :                 GCARR(1.87E-13, 0.0E+00, 500.0);
 MCO3 + ETO2 = MO2 + ALD2 + HO2 :            GCARR(1.68E-12, 0.0E+00, 500.0);
 MCO3 + ETO2 = ACTA + ALD2 :                 GCARR(1.87E-13, 0.0E+00, 500.0);
 RCO3 + MCO3 = MO2 + ETO2 :                  GCARR(2.50E-12, 0.0E+00, 500.0);
-MAO3 + MCO3 = MO2 + CH2O + MCO3 :           GCARR(2.50E-12, 0.0E+00, 500.0);
+NMAO3 + MCO3 = MO2 + CH2O + MCO3 :          GCARR(2.50E-12, 0.0E+00, 500.0);
 NO3 + NO3 = 2.000NO2 + O2 :                 GCARR(8.50E-13, 0.0E+00, -2450.0);
 MO2 + NO2 {+M} = MPN {+M} :                 GCJPLPR(1.00E-30, 4.8E+00, 0.0, 7.2E-12, 2.1E0, 0.0, 0.6, 0.0, 0.0);  {2012/02/12; Browne2011; ECB}
 MPN {+M} = MO2 + NO2 :                      GCJPLPR(1.05E-02, 4.8E+00, -11234.0, 7.58E16, 2.1E0, -11234.0, 0.6, 0.0, 0.0);  {2012/02/12; Browne2011; ECB}
-ISOPNB + O3 = 0.610MVKN + 0.390MACRN + 
- 0.270OH + CH2O :                           GCARR(1.06E-16, 0.0E+00, 0.0);      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISOPND + O3 = 0.500PROPNN + 
- 0.500ETHLN + 0.270OH + 0.500GLYC + 
- 0.500HAC :                                 GCARR(5.30E-17, 0.0E+00, 0.0);      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+ISOPNB + O3 = 0.050HO2 + 0.050OH +
+ 0.110MVKN + 0.320MACRN + 0.160HCOOH +
+ 0.500CH2O + 0.360CO2 + 0.210CO +
+ 0.060PROPNN + 0.360PROPNN + 0.100MVKN +
+ 0.410HNO3 + 0.120CH2OO :                   GCARR(5.00E-18, 0.0E+00, 0.0);      {2017/06/14; Marais2016; EAM}
+ISOPND + O3 = 0.060NO2 + 0.370OH +
+ 0.240PROPNN + 0.260ETHLN + 0.260HAC +
+ 0.240GLYC + 0.630CO2 + 0.240MOH +
+ 0.090EOH + 0.110CH2O + 0.100MCO3 +
+ 0.060GLYX + 0.160HAC + 0.140PROPNN +
+ 0.300HNO3 + 0.090CH2OO :                   GCARR(5.30E-17, 0.0E+00, 0.0);      {2017/06/14; Marais2016; EAM}
 HO2 = O2 :                                  HET(ind_HO2,1);                     {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 NO2 = 0.500HNO3 + 0.500HNO2 :               HET(ind_NO2,1);
 NO3 = HNO3 :                                HET(ind_NO3,1);
 N2O5 = 2.000HNO3 :                          HET(ind_N2O5,1);
+GLYX = SOAGX :                              HET(ind_GLYX,1);    {2017/06/15, Marais2016, EAM}
+MGLY = SOAMG :                              HET(ind_MGLY,1);    {2017/06/15, Marais2016, EAM}
+IEPOX = SOAIE :                             HET(ind_IEPOX,1);   {2017/06/15, Marais2016, EAM}
+IMAE = SOAME :                              HET(ind_IMAE,1);    {2017/06/15, Marais2016, EAM}
+LVOC = LVOCOA :                             HET(ind_LVOC,1);    {2017/06/15, Marais2016, EAM}
+ISOPND = INDIOL + NO3 :                     HET(ind_ISOPND,1);  {2017/06/15, Marais2016, EAM}
+ISOPNB = INDIOL + NO3 :                     HET(ind_ISOPNB,1);  {2017/06/15, Marais2016, EAM}
+MACRN = INDIOL + NO3 :                      HET(ind_MACRN,1);   {2017/06/15, Marais2016, EAM}
+MVKN = INDIOL + NO3 :                       HET(ind_MVKN,1);    {2017/06/15, Marais2016, EAM}
+PROPNN = INDIOL + NO3 :                     HET(ind_PROPNN,1);  {2017/06/15, Marais2016, EAM}
+R4N2 = INDIOL + NO3 :                       HET(ind_R4N2,1);    {2017/06/15, Marais2016, EAM}
+ETHLN = INDIOL + NO3 :                      HET(ind_ETHLN,1);   {2017/06/15, Marais2016, EAM}
+ISN1OG = ISN1OA :                           HET(ind_ISN1OG,1);  {2017/06/15, Marais2016, EAM}
+DHDN = INDIOL + 2.000NO3 :                  HET(ind_DHDN,1);    {2017/06/15, Marais2016, EAM}
 DMS + OH = SO2 + MO2 + CH2O :               GCARR(1.20E-11, 0.0E+00, -280.0);
 DMS + OH = 0.750SO2 + 0.250MSA + MO2 :      GC_DMSOH(8.20E-39, 0.0E+00, 5376.0, 1.05E-5, 0.0, 3644.0);
 DMS + NO3 = SO2 + HNO3 + MO2 + CH2O :       GCARR(1.90E-13, 0.0E+00, 530.0);
@@ -659,32 +716,31 @@ HC5OO + NO = NO2 + 0.216GLYX +
 HC5OO + NO = HNO3 :                         GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 HC5OO + HO2 = 0.100IAP + 0.900OH + 
  0.900MGLY + 0.900GLYC + 0.900HO2 :         GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 5.0, 0.0, 0.0);     {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISOPND + OH = ISOPNDO2 :                    GCARR(2.64E-11, 0.0E+00, 380.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISOPNB + OH = ISOPNBO2 :                    GCARR(3.61E-12, 0.0E+00, 380.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISOPNDO2 + NO = 0.070MACRN + 
- 0.310HCOOH + 0.440HAC + 0.130ETHLN + 
- 0.650CH2O + 1.340NO2 + 0.150GLYC + 
- 0.310NO3 + 0.150PROPNN + 0.340MEK + 
- 0.350HO2 :                                 GC_RO2NO('B', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISOPNDO2 + NO = HNO3 :                      GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISOPNDO2 + HO2 = 0.035MACRN + 
- 0.155HCOOH + 0.220HAC + 0.065ETHLN + 
- 0.325CH2O + 0.170NO2 + 0.075GLYC + 
- 0.155NO3 + 0.075PROPNN + 0.170MEK + 
- 0.175HO2 + 0.500OH + 0.500ISNP :           GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 5.0, 0.0, 0.0);     {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISOPNBO2 + NO = 0.600GLYC + 0.600HAC + 
- 0.400CH2O + 0.260MACRN + 0.400HO2 + 
- 0.140MVKN + 1.600NO2 :                     GC_RO2NO('B', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISOPNBO2 + NO = HNO3 :                      GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISOPNBO2 + HO2 = 0.300GLYC + 0.300HAC + 
- 0.200CH2O + 0.130MACRN + 0.070MVKN + 
- 0.300NO2 + 0.200HO2 + 0.500OH + 
- 0.500ISNP :                                GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 5.0, 0.0, 0.0);     {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+ISOPND + OH = 0.900ISOPNDO2 +
+ 0.100IEPOX + 0.100NO2 :                    GCARR(1.92E-11, 0.0E+00, 380.0);    {2017/06/15, Marais2016, EAM}
+ISOPNB + OH = 0.900ISOPNBO2 +
+ 0.100IEPOX + 0.100NO2 :                    GCARR(6.09E-12, 0.0E+00, 380.0);    {2017/06/15, Marais2016, EAM}
+ISOPNDO2 + NO = 0.790NO2 + 0.610HO2 +
+ 0.270DHDN + 0.075MVKN + 0.019MACRN +
+ 0.300PROPNN + 0.210ETHLN + 0.270HAC +
+ 0.300GLYC + 0.057HCOOH +0.150CH2O +
+ 0.057ISOPNDO2 :                            GCARR(2.40E-12, 0.0E+00, 360.0);    {2017/06/15, Marais2016, EAM}
+ISOPNDO2 + HO2 = 0.500HO2 + 0.500OH +
+ 0.500ISNP + 0.060MVKN + 0.010MACRN +
+ 0.230PROPNN + 0.200ETHLN + 0.200HAC + 
+ 0.230GLYC + 0.070CH2O :                    GCARR(8.70E-14, 0.0E+00, 1650.0);   {2017/06/15, Marais2016, EAM}
+ISOPNBO2 + NO = 0.880NO2 + 0.690HO2 +
+ 0.210DHDN + 0.260MVKN + 0.440MACRN +
+ 0.090HAC + 0.090GLYC + 0.690CH2O :         GCARR(2.40E-12, 0.0E+00, 360.0);    {2017/06/15, Marais2016, EAM}
+ISOPNBO2 + HO2 = 0.060NO2 + 0.440HO2 +
+ 0.500OH + 0.160MVKN + 0.280MACRN +
+ 0.060HAC + 0.060GLYC + 0.440CH2O +
+ 0.500ISNP :                                GCARR(8.70E-14, 0.0E+00, 1650.0);   {2017/06/15, Marais2016, EAM}
 ISNP + OH = 0.612OH + 0.612R4N1 + 
  0.193ISOPNBO2 + 0.193ISOPNDO2 :            GCARR(4.75E-12, 0.0E+00, 200.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 MVKN + OH = 0.650HCOOH + NO3 + 
- 0.650MGLY + 0.350CH2O + 0.350PYAC :        GCARR(1.50E-12, 0.0E+00, 380.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-MACRN + OH = MACRNO2 :                      GCARR(1.39E-11, 0.0E+00, 380.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+ 0.650MGLY + 0.350CH2O + 0.350PYAC :        GCARR(4.40E-13, 0.0E+00, 380.0);    {2017/06/15, Marais2016, EAM}
+MACRN + OH = MACRNO2 :                      GCARR(8.79E-13, 0.0E+00, 380.0);    {2017/06/15, Marais2016, EAM}
 MACRNO2 + NO = 0.080ACTA + 0.080CH2O + 
  0.150NO3 + 0.070HCOOH + 0.070MGLY + 
  0.850HAC + 0.850NO2 + 0.930CO2 + NO2 :     GCARR(2.70E-12, 0.0E+00, 350.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
@@ -707,8 +763,8 @@ MOBAOO + NO = HNO3 :                        GC_RO2NO('A', 2.70E-12, 0.0E+00, 350
 MOBAOO + HO2 = 0.500OH + 0.500HO2 + 
  0.500RCHO + 0.500CO2 + 0.500R4P :          GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 4.0, 0.0, 0.0);     {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 MOBA + O3 = OH + HO2 + CO2 + MEK :          GCARR(2.00E-17, 0.0E+00, 0.0);      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ETHLN + OH = CH2O + CO2 + NO2 :             GCARR(1.00E-11, 0.0E+00, 0.0);      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-PROPNN + OH = NO2 + MGLY :                  GCARR(1.00E-15, 0.0E+00, 0.0);      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+ETHLN + OH = CH2O + CO2 + NO2 :             GCARR(2.40E-12, 0.0E+00, 0.0);      {2017/06/15, Marais2016, EAM}
+PROPNN + OH = NO2 + MGLY :                  GCARR(8.00E-13, 0.0E+00, 0.0);      {2017/06/15, Marais2016, EAM}
 CH2OO + NO = CH2O + NO2 :                   GCARR(1.00E-14, 0.0E+00, 0.0);      {2015/09/25; Millet2015; DBM,EAM}
 CH2OO + NO2 = CH2O + NO3 :                  GCARR(1.00E-15, 0.0E+00, 0.0);      {2015/09/25; Millet2015; DBM,EAM}
 CH2OO + SO2 = CH2O + SO4 :                  GCARR(7.00E-14, 0.0E+00, 0.0);      {2015/09/25; Millet2015; DBM,EAM}
@@ -824,7 +880,7 @@ ALD2 + hv = 0.880MO2 + HO2 + 0.880CO +
  0.120MCO3 :                                PHOTOL(61);   {2014/12/19; FAST-JX v7.0 fix; JMAO}
 ALD2 + hv = CH4 + CO :                      PHOTOL(62);
 PAN + hv = 0.700MCO3 + 0.700NO2 + 0.300MO2 +
- 0.300NO3 :                                 PHOTOL(59);
+ 0.300NO3 :                                 PHOTOL(59);   {2014/05/23; Eastham2014; JMAO,SDE}
 RCHO + hv = ETO2 + HO2 + CO :               PHOTOL(70);
 ACET + hv = MCO3 + MO2 :                    PHOTOL(76);
 ACET + hv = 2.000MO2 + CO :                 PHOTOL(77);
@@ -839,6 +895,9 @@ MGLY + hv = MCO3 + CO + HO2 :               PHOTOL(71);
 MVK + hv = PRPE + CO :                      PHOTOL(63);
 MVK + hv = MCO3 + CH2O + CO + HO2 :         PHOTOL(64);
 MVK + hv = MO2 + RCO3 :                     PHOTOL(65);   {2014/05/23; Eastham2014; JMAO,SDE}
+MACR + hv = 0.330IMAO3 + 0.330OH +
+ 0.670HO2 + 0.670MCO3 + 0.330MRO2 +
+ 0.670CO + 0.670CH2O + 0.330MAOP :          PHOTOL(67);   {2017/06/15; Marais2016; EAM}
 MACR + hv = CO + HO2 + CH2O + MCO3 :        PHOTOL(66);   {2014/05/23; Eastham2014; JMAO,SDE}
 HAC + hv = MCO3 + CH2O + HO2 :              PHOTOL(75);
 INPN + hv = OH + HO2 + RCHO + NO2 :         PHOTOL(78);
@@ -849,8 +908,9 @@ RB3P + hv = OH + HO2 + ACET :               PHOTOL(82);
 R4P + hv = OH + HO2 + RCHO :                PHOTOL(83);
 PP + hv = OH + HO2 + ALD2 + CH2O :          PHOTOL(84);
 RP + hv = OH + HO2 + ALD2 :                 PHOTOL(85);
-RIP + hv = OH + HO2 + 0.710CH2O + 0.425MVK +
- 0.285MACR + 0.290HC5 :                     PHOTOL(86);
+RIP + hv = 0.985OH + 0.985HO2 +
+ 0.710CH2O + 0.425MVK + 0.285MACR +
+ 0.275HC5 + 0.005LVOC :                     PHOTOL(86);   {2017/06/15; Marais2016; EAM}
 IAP + hv = OH + HO2 + 0.670CO + 0.190H2 + 
  0.360HAC + 0.260GLYC + 0.580MGLY :         PHOTOL(87);
 ISNP + hv = OH + HO2 + RCHO + NO2 :         PHOTOL(88);
@@ -881,3 +941,7 @@ ISOPND + hv = HC5 + NO2 + HO2 :             PHOTOL(95);   {2013/03/22; Paulot200
 PROPNN + hv = CH2O + NO2 + CO + MO2 :       PHOTOL(96);   {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 ATOOH + hv = OH + CH2O + MCO3 :             PHOTOL(97);   {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 PIP + hv = RCHO + OH + HO2 :                PHOTOL(106);  {2017/03/23; Fischer2014; EVF}
+IPMN +hv = 0.600IMAO3 + 0.600NO2 +
+ 0.400CO2 + 0.400CH2O + 0.400MCO3 +
+ 0.400NO3 :                                 PHOTOL(107);  {2017/06/15; Marais2016; EAM}
+ETHLN + hv = NO2 + CH2O + CO + HO2 :        PHOTOL(108);  {2017/06/15; Marais2016; EAM}

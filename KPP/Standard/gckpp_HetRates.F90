@@ -16,8 +16,6 @@ MODULE GCKPP_HETRATES
 !
   USE CMN_FJX_MOD,        ONLY : NDUST
   USE CMN_FJX_MOD,        ONLY : NAER
-  USE CMN_O3_MOD,         ONLY : HPLUS_SAV, SULRAT_SAV
-  USE CMN_O3_MOD,         ONLY : NARAT_SAV, BISUL_SAV
   USE CMN_SIZE_MOD,       ONLY : LLSTRAT
   USE PHYSCONSTANTS,      ONLY : CONSVAP
   USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -402,16 +400,16 @@ MODULE GCKPP_HETRATES
       !--------------------------------------------------------------------
       ! Proton activity [unitless] and H+ concentration [M]
       ! (assumed equivalent - for now):
-      H_PLUS = HPLUS_SAV(I,J,L)
+      H_PLUS = SC%HPLUS_SAV(I,J,L)
 
       ! Sulfate concentration [M]:
-      MSO4   = SULRAT_SAV(I,J,L)
+      MSO4   = SC%SULRAT_SAV(I,J,L)
 
       ! Nitrate concentration [M]:
-      MNO3   = NARAT_SAV(I,J,L)
+      MNO3   = SC%NARAT_SAV(I,J,L)
 
       ! Bisulfate (general acid) concentration [M]:
-      MHSO4  = BISUL_SAV(I,J,L)
+      MHSO4  = SC%BISUL_SAV(I,J,L)
 
       !--------------------------------------------------------------------
       ! Get fields from State_Met, State_Chm, and Input_Opt
@@ -1381,8 +1379,11 @@ MODULE GCKPP_HETRATES
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
 
+      REAL(fp) :: HSTAR,    H_PLUS,   MSO4,   MNO3,   MHSO4 
+      REAL(fp) :: K_HPLUS,  K_NUC,    K_HSO4, K_HYDRO
+
       ! Initialize
-      HET_IEPOX     = 0.0_fp
+      HET_IEPOX    = 0.0_fp
       ADJUSTEDRATE = 0.0_fp
       XSTKCF       = 0.0_fp
 
@@ -1482,6 +1483,9 @@ MODULE GCKPP_HETRATES
       LOGICAL  :: DO_EDUCT
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
+      REAL(fp) :: HSTAR,    H_PLUS,   MSO4,   MNO3,   MHSO4 
+      REAL(fp) :: K_HPLUS,  K_NUC,    K_HSO4, K_HYDRO
 
       ! Initialize
       HET_IMAE     = 0.0_fp
@@ -1660,6 +1664,9 @@ MODULE GCKPP_HETRATES
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
 
+      REAL(fp) :: HSTAR,    H_PLUS,   MSO4,   MNO3,   MHSO4 
+      REAL(fp) :: K_HPLUS,  K_NUC,    K_HSO4, K_HYDRO
+
       ! Initialize
       HET_ISOPND   = 0.0_fp
       ADJUSTEDRATE = 0.0_fp
@@ -1755,6 +1762,9 @@ MODULE GCKPP_HETRATES
       LOGICAL  :: DO_EDUCT
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
+      REAL(fp) :: HSTAR,    H_PLUS,   MSO4,   MNO3,   MHSO4 
+      REAL(fp) :: K_HPLUS,  K_NUC,    K_HSO4, K_HYDRO
 
       ! Initialize
       HET_ISOPNB   = 0.0_fp
@@ -1853,6 +1863,9 @@ MODULE GCKPP_HETRATES
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
 
+      REAL(fp) :: HSTAR,    H_PLUS,   MSO4,   MNO3,   MHSO4 
+      REAL(fp) :: K_HPLUS,  K_NUC,    K_HSO4, K_HYDRO
+
       ! Initialize
       HET_MACRN    = 0.0_fp
       ADJUSTEDRATE = 0.0_fp
@@ -1948,6 +1961,9 @@ MODULE GCKPP_HETRATES
       LOGICAL  :: DO_EDUCT
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
+      REAL(fp) :: HSTAR,    H_PLUS,   MSO4,   MNO3,   MHSO4 
+      REAL(fp) :: K_HPLUS,  K_NUC,    K_HSO4, K_HYDRO
 
       ! Initialize
       HET_MVKN   = 0.0_fp
@@ -2045,6 +2061,9 @@ MODULE GCKPP_HETRATES
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
 
+      REAL(fp) :: HSTAR,    H_PLUS,   MSO4,   MNO3,   MHSO4 
+      REAL(fp) :: K_HPLUS,  K_NUC,    K_HSO4, K_HYDRO
+
       ! Initialize
       HET_PROPNN   = 0.0_fp
       ADJUSTEDRATE = 0.0_fp
@@ -2140,6 +2159,9 @@ MODULE GCKPP_HETRATES
       LOGICAL  :: DO_EDUCT
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
+      REAL(fp) :: HSTAR,    H_PLUS,   MSO4,   MNO3,   MHSO4 
+      REAL(fp) :: K_HPLUS,  K_NUC,    K_HSO4, K_HYDRO
 
       ! Initialize
       HET_R4N2   = 0.0_fp
@@ -2238,6 +2260,9 @@ MODULE GCKPP_HETRATES
       LOGICAL  :: DO_EDUCT
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
+      REAL(fp) :: HSTAR,    H_PLUS,   MSO4,   MNO3,   MHSO4 
+      REAL(fp) :: K_HPLUS,  K_NUC,    K_HSO4, K_HYDRO
 
       ! Initialize
       HET_ETHLN    = 0.0_fp
@@ -2409,6 +2434,9 @@ MODULE GCKPP_HETRATES
       LOGICAL  :: DO_EDUCT
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
+
+      REAL(fp) :: HSTAR,    H_PLUS,   MSO4,   MNO3,   MHSO4 
+      REAL(fp) :: K_HPLUS,  K_NUC,    K_HSO4, K_HYDRO
 
       ! Initialize
       HET_DHDN     = 0.0_fp
@@ -3179,14 +3207,14 @@ MODULE GCKPP_HETRATES
       REAL(fp), INTENT(IN) :: SQMW     ! Square root of the molecular weight
       REAL(fp), INTENT(IN) :: HENRY    ! Henry's Law constant [M/atm]
       REAL(fp), INTENT(IN) :: KHPLUS   ! 1st order rxn rate (acid-catalyzed ring
-          (fp)                         ! opening)
+                                       ! opening)
       REAL(fp), INTENT(IN) :: HPLUS    ! Proton activity [unitless] and [H+] [M]
       REAL(fp), INTENT(IN) :: KNUC     ! 1st order rxn rate due to specific 
-          (fp)                         ! nucleophiles (SO4, NO3)
+                                       ! nucleophiles (SO4, NO3)
       REAL(fp), INTENT(IN) :: SULF     ! Sulfate concentration [M]
       REAL(fp), INTENT(IN) :: NITR     ! Nitrate concentration [M]
       REAL(fp), INTENT(IN) :: KGACID   ! 1st order rxn rate due to general acids
-          (fp)                         ! (bisulfate in this case)
+                                       ! (bisulfate in this case)
       REAL(fp), INTENT(IN) :: BISULF   ! Bisulfate concentration [M]
       REAL(fp), INTENT(IN) :: KHYDRO   ! Hydrolysis rate of alkylnitrates [1/s]
 !
@@ -3276,8 +3304,8 @@ MODULE GCKPP_HETRATES
       ENDIF
 
       ! Fail safes for negative, very very small, and NAN GAMMA values:
-      IF ( GAMMA  .lt. 0.0e+-_fp )    GAMMA = TINY(1e+0_fp)
-      IF ( IT_IS_NAN( GAMMA ) )       GAMMA = TINY(1e+0_fp)
+      IF ( GAMMA  .lt. 0.0e+0_fp )    GAMMA = TINY(1e+0_fp)
+      !IF ( IT_IS_NAN( GAMMA ) )       GAMMA = TINY(1e+0_fp)
       IF ( GAMMA .lt. TINY(1e+0_fp) ) GAMMA = TINY(1e+0_fp)
 
       END FUNCTION EPOXUPTK

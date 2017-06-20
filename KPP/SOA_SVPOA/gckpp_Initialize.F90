@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Initialize.f90
-! Time                 : Wed Jun  7 10:18:01 2017
-! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/v11-02c/SOA_SVPOA
+! Time                 : Tue Jun 20 15:46:20 2017
+! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/v11-02c_ISOP_SOA/SOA_SVPOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
