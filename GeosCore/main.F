@@ -620,11 +620,49 @@
       !=================================================================
       !        ***** I N I T I A L I Z A T I O N  continued *****
       !=================================================================
+
+      ! To enable FlexGrid, need to initialize HEMCO and run phase 1
+      ! before reading initial metfields.
+      ! (Jiawei Zhuang 2017/6)
+
+      ! Initialize HEMCO. This reads the HEMCO configuration file
+      ! and creates entries for all data files needed for emission
+      ! calculation. Also sets some logical switches in Input_Opt
+      ! (e.g. LSOILNOX).
+      ! Note: always call HEMCO, even if LEMIS is set to FALSE. This
+      ! is to make sure that HEMCO can still be used to read
+      ! non-emission data such as stratospheric Bry fields. If LEMIS
+      ! is set to FALSE, the emissions driver routines will make sure
+      ! that HEMCO does not calculate any emissions (ckeller, 1/12/15).
+      ! 
+      ! This call will also initialize the three built-in HEMCO 
+      ! diagnostics (default, manual, restart).
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_Start( "HEMCO", RC )
+#endif
+
+      CALL EMISSIONS_INIT( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
+
+      ! Stop the run if the HEMCO init sequence dies w/ an error
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL ERROR_STOP( 'Error in EMISSIONS_INIT!', 'main.F' )
+      ENDIF
+       
+      ! Run additional HEMCO phase 1 before reading metfields
+      CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met,
+     &                       State_Chm, ITS_TIME_FOR_EMIS(), 1, RC )
+
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_End ( "HEMCO", RC )
+#endif
+
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_Start( "Reading met fields",  RC )
 #endif
 
       ! Read the initial met fields from disk
+      ! This is called after HEMCO initialization so that FlexGrid works
       CALL READ_INITIAL_MET_FIELDS()
 
 #if defined( USE_TIMERS )
@@ -682,34 +720,6 @@
       IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM ) THEN
          CALL INIT_CHEMISTRY ( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
-
-      ! Initialize HEMCO. This reads the HEMCO configuration file
-      ! and creates entries for all data files needed for emission
-      ! calculation. Also sets some logical switches in Input_Opt
-      ! (e.g. LSOILNOX).
-      ! Note: always call HEMCO, even if LEMIS is set to FALSE. This
-      ! is to make sure that HEMCO can still be used to read
-      ! non-emission data such as stratospheric Bry fields. If LEMIS
-      ! is set to FALSE, the emissions driver routines will make sure
-      ! that HEMCO does not calculate any emissions (ckeller, 1/12/15).
-      ! 
-      ! This call will also initialize the three built-in HEMCO 
-      ! diagnostics (default, manual, restart).
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_Start( "HEMCO", RC )
-#endif
-
-      CALL EMISSIONS_INIT( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
-
-      ! Stop the run if the HEMCO init sequence dies w/ an error
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL ERROR_STOP( 'Error in EMISSIONS_INIT!', 'main.F' )
-      ENDIF
-
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_End ( "HEMCO", RC )
-#endif
 
 #if defined( NC_DIAG )
       ! Initialize diagnostics other than the default HEMCO diagnostics
