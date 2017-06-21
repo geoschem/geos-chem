@@ -293,7 +293,7 @@
       ! Emission timestep
       DTSRCE = HcoState%TS_EMIS
 
-      IF ( ITS_A_CH4_SIM ) THEN
+      IF ( ITS_A_CH4_SIM .and. LPRT ) THEN
          print*,'BEGIN SUBROUTINE: EMISSCH4' 
       ENDIF
 
@@ -395,17 +395,6 @@
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
          CH4_EMIS(:,:,7) =  Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-
-      ! Biofuel 
-      DgnName = 'CH4_BIOFUEL'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         CH4_EMIS(:,:,6) =  Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -563,7 +552,7 @@
       ! =================================================================
  
       ! Only added to SST for offline CH4 simulations.
-      IF ( ITS_A_CH4_SIM ) THEN
+      IF ( ITS_A_CH4_SIM .and. LPRT ) THEN
        WRITE( 6, '(a)' ) '% EMISSCH4 --- Adding Emissions to Spc array.'
       ENDIF
 
@@ -774,7 +763,7 @@
 !      ENDIF
 !==============================================================================
 
-      IF ( ITS_A_CH4_SIM ) THEN
+      IF ( ITS_A_CH4_SIM .and. LPRT ) THEN
          print*,'END SUBROUTINE: EMISSCH4'
       ENDIF
 
@@ -900,6 +889,7 @@
       ! For fields from Input_Opt
       LOGICAL            :: LSPLIT
       LOGICAL            :: LCH4BUDGET
+      LOGICAL            :: LPRT
 
       ! Pointers
       REAL(fp), POINTER  :: Spc(:,:,:,:)
@@ -910,7 +900,6 @@
       !=================================================================
       ! CHEMCH4 begins here!
       !=================================================================
-      WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
 
       ! Assume success
       RC      = GC_SUCCESS
@@ -921,6 +910,7 @@
       ! Copy values from Input_Opt
       LSPLIT     = Input_Opt%LSPLIT
       LCH4BUDGET = Input_Opt%LCH4BUDGET
+      LPRT       = Input_Opt%LPRT
 
       ! Point to the chemical species 
       Spc     => State_Chm%Species
@@ -929,6 +919,9 @@
       ! (0) Calculate each box's air density [molec/cm3]
       !        do this for saving mean OH concentrations (kjw, 6/12/09)
       !=================================================================
+      IF ( LPRT ) THEN
+         WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
+      ENDIF
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR

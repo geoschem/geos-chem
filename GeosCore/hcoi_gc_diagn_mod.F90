@@ -4957,17 +4957,15 @@ CONTAINS
     ExtNr = 0
 
     !-----------------------------------------------------------------
-    ! %%%%% CH4 from oil (Category 1 or species CH4_oi)  %%%%%
+    ! %%%%% CH4 from oil (Category 1 or species CH4_OIL)  %%%%%
     !-----------------------------------------------------------------
 
     ! Check if tagged CH4 simulation
     ! Otherwise, use CH4 category 1 emissions
-    HcoID = HCO_GetHcoID( 'CH4_oi', HcoState )
-    IF ( HcoID > 0 ) THEN
-       Cat   = -1
-    ELSE
+    Cat   = 1
+    HcoID = HCO_GetHcoID( 'CH4_OIL', HcoState )
+    IF ( HcoID <= 0 ) THEN
        HcoID = id_CH4
-       Cat   = 1
     ENDIF
 
     IF ( HcoID > 0 ) THEN 
@@ -4991,17 +4989,15 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! %%%%% CH4 from gas and oil (Category 2 or species CH4_ga)  %%%%%
+    ! %%%%% CH4 from natural gas (Category 2 or species CH4_GAS)  %%%%%
     !-----------------------------------------------------------------
 
     ! Check if tagged CH4 simulation
     ! Otherwise, use CH4 category 1 emissions
-    HcoID = HCO_GetHcoID( 'CH4_ga', HcoState )
-    IF ( HcoID > 0 ) THEN
-       Cat   = -1
-    ELSE
+    Cat   = 2
+    HcoID = HCO_GetHcoID( 'CH4_GAS', HcoState )
+    IF ( HcoID <= 0 ) THEN
        HcoID = id_CH4
-       Cat   = 2
     ENDIF
 
     IF ( HcoID > 0 ) THEN 
@@ -5025,17 +5021,16 @@ CONTAINS
     ENDIF
 
     !----------------------------------------------------------
-    ! %%%%% CH4 from coal (Category 3 or species CH4_co)  %%%%%
+    ! %%%%% CH4 from coal (Category 3 or species CH4_COL)  %%%%%
     !----------------------------------------------------------
 
     ! Check if tagged CH4 simulation
-    HcoID = HCO_GetHcoID( 'CH4_co', HcoState )
-    IF ( HcoID > 0 ) THEN
-       Cat   = -1
-    ELSE
+    Cat   = 3
+    HcoID = HCO_GetHcoID( 'CH4_COL', HcoState )
+    IF ( HcoID <= 0 ) THEN
        HcoID = id_CH4
-       Cat   = 3
     ENDIF
+
     IF ( HcoID > 0 ) THEN 
 
        ! Create diagnostic container
@@ -5057,16 +5052,14 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------
-    ! %%%%% CH4 from livestock (Category 4 or species CH4_ef)  %%%%%
+    ! %%%%% CH4 from livestock (Category 4 or species CH4_LIV)  %%%%%
     !---------------------------------------------------------------
 
     ! Check if tagged CH4 simulation
-    HcoID = HCO_GetHcoID( 'CH4_ef', HcoState )
-    IF ( HcoID > 0 ) THEN
-       Cat   = -1
-    ELSE
+    Cat   = 4
+    HcoID = HCO_GetHcoID( 'CH4_LIV', HcoState )
+    IF ( HcoID <= 0 ) THEN
        HcoID = id_CH4
-       Cat   = 4
     ENDIF
 
     IF ( HcoID > 0 ) THEN 
@@ -5090,16 +5083,14 @@ CONTAINS
     ENDIF   
  
     !---------------------------------------------------------------
-    ! %%%%% CH4 from landfills (Category 5 or species CH4_lf)  %%%%%
+    ! %%%%% CH4 from landfills (Category 5 or species CH4_LDF)  %%%%%
     !---------------------------------------------------------------
 
     ! Check if tagged CH4 simulation
-    HcoID = HCO_GetHcoID( 'CH4_lf', HcoState )
-    IF ( HcoID > 0 ) THEN
-       Cat   = -1
-    ELSE
+    Cat   = 5
+    HcoID = HCO_GetHcoID( 'CH4_LDF', HcoState )
+    IF ( HcoID <= 0 ) THEN
        HcoID = id_CH4
-       Cat   = 5
     ENDIF
 
     IF ( HcoID > 0 ) THEN 
@@ -5123,16 +5114,14 @@ CONTAINS
     ENDIF  
 
     !---------------------------------------------------------------
-    ! %%%%% CH4 from wastewater (Category 6 or species CH4_wa)  %%%%%
+    ! %%%%% CH4 from wastewater (Category 6 or species CH4_WST)  %%%%%
     !---------------------------------------------------------------
 
     ! Check if tagged CH4 simulation
-    HcoID = HCO_GetHcoID( 'CH4_wa', HcoState )
-    IF ( HcoID > 0 ) THEN
-       Cat   = -1
-    ELSE
+    Cat   = 6
+    HcoID = HCO_GetHcoID( 'CH4_WST', HcoState )
+    IF ( HcoID <= 0 ) THEN
        HcoID = id_CH4
-       Cat   = 6
     ENDIF
 
     IF ( HcoID > 0 ) THEN 
@@ -5156,16 +5145,14 @@ CONTAINS
     ENDIF   
  
     !---------------------------------------------------------------
-    ! %%%%% CH4 from rice (Category 7 or species CH4_ri)  %%%%%
+    ! %%%%% CH4 from rice (Category 7 or species CH4_RIC)  %%%%%
     !---------------------------------------------------------------
 
     ! Check if tagged CH4 simulation
-    HcoID = HCO_GetHcoID( 'CH4_ri', HcoState )
-    IF ( HcoID > 0 ) THEN
-       Cat   = -1
-    ELSE
+    Cat   = 7
+    HcoID = HCO_GetHcoID( 'CH4_RIC', HcoState )
+    IF ( HcoID <= 0 ) THEN
        HcoID = id_CH4
-       Cat   = 7
     ENDIF
 
     IF ( HcoID > 0 ) THEN 
@@ -5189,16 +5176,14 @@ CONTAINS
     ENDIF
 
     !-------------------------------------------------------------------------
-    ! %%%%% CH4 from other anth. sources (Category 8 or species CH4_oa)  %%%%%
+    ! %%%%% CH4 from other anth. sources (Category 8 or species CH4_OTA)  %%%%%
     !-------------------------------------------------------------------------
 
     ! Check if tagged CH4 simulation
-    HcoID = HCO_GetHcoID( 'CH4_oa', HcoState )
-    IF ( HcoID > 0 ) THEN
-       Cat   = -1
-    ELSE
+    Cat   = 8
+    HcoID = HCO_GetHcoID( 'CH4_OTA', HcoState )
+    IF ( HcoID <= 0 ) THEN
        HcoID = id_CH4
-       Cat   = 8
     ENDIF
 
     IF ( HcoID > 0 ) THEN 
@@ -5222,16 +5207,14 @@ CONTAINS
     ENDIF
 
     !-------------------------------------------------------------------------
-    ! %%%%% CH4 from biomass burning (Category 9 or species CH4_bm)  %%%%%
+    ! %%%%% CH4 from biomass burning (Category 9 or species CH4_BBN)  %%%%%
     !-------------------------------------------------------------------------
 
     ! Check if tagged CH4 simulation
-    HcoID = HCO_GetHcoID( 'CH4_bm', HcoState )
-    IF ( HcoID > 0 ) THEN
-       Cat   = -1
-    ELSE
+    Cat   = 9
+    HcoID = HCO_GetHcoID( 'CH4_BBN', HcoState )
+    IF ( HcoID <= 0 ) THEN
        HcoID = id_CH4
-       Cat   = 9
     ENDIF
 
     IF ( HcoID > 0 ) THEN 
@@ -5255,16 +5238,14 @@ CONTAINS
     ENDIF
 
     !-------------------------------------------------------------------------
-    ! %%%%% CH4 from wetlands (Category 10 or species CH4_wl)  %%%%%
+    ! %%%%% CH4 from wetlands (Category 10 or species CH4_WTL)  %%%%%
     !-------------------------------------------------------------------------
 
     ! Check if tagged CH4 simulation
-    HcoID = HCO_GetHcoID( 'CH4_wl', HcoState )
-    IF ( HcoID > 0 ) THEN
-       Cat   = -1
-    ELSE
+    Cat   = 10
+    HcoID = HCO_GetHcoID( 'CH4_WTL', HcoState )
+    IF ( HcoID <= 0 ) THEN
        HcoID = id_CH4
-       Cat   = 10
     ENDIF
 
     IF ( HcoID > 0 ) THEN 
@@ -5288,16 +5269,14 @@ CONTAINS
     ENDIF
 
     !-------------------------------------------------------------------------
-    ! %%%%% CH4 from seeps (Category 11 or species CH4_se)  %%%%%
+    ! %%%%% CH4 from seeps (Category 11 or species CH4_SEE)  %%%%%
     !-------------------------------------------------------------------------
 
     ! Check if tagged CH4 simulation
-    HcoID = HCO_GetHcoID( 'CH4_se', HcoState )
-    IF ( HcoID > 0 ) THEN
-       Cat   = -1
-    ELSE
+    Cat   = 11
+    HcoID = HCO_GetHcoID( 'CH4_SEE', HcoState )
+    IF ( HcoID <= 0 ) THEN
        HcoID = id_CH4
-       Cat   = 11
     ENDIF
 
     IF ( HcoID > 0 ) THEN 
@@ -5321,16 +5300,14 @@ CONTAINS
     ENDIF
 
     !-------------------------------------------------------------------------
-    ! %%%%% CH4 from lakes (Category 12 or species CH4_la)  %%%%%
+    ! %%%%% CH4 from lakes (Category 12 or species CH4_LAK)  %%%%%
     !-------------------------------------------------------------------------
 
     ! Check if tagged CH4 simulation
-    HcoID = HCO_GetHcoID( 'CH4_la', HcoState )
-    IF ( HcoID > 0 ) THEN
-       Cat   = -1
-    ELSE
+    Cat   = 12
+    HcoID = HCO_GetHcoID( 'CH4_LAK', HcoState )
+    IF ( HcoID <= 0 ) THEN
        HcoID = id_CH4
-       Cat   = 12
     ENDIF
 
     IF ( HcoID > 0 ) THEN 
@@ -5354,16 +5331,14 @@ CONTAINS
     ENDIF
 
     !-------------------------------------------------------------------------
-    ! %%%%% CH4 from lakes (Category 13 or species CH4_tm)  %%%%%
+    ! %%%%% CH4 from termites (Category 13 or species CH4_TER)  %%%%%
     !-------------------------------------------------------------------------
 
     ! Check if tagged CH4 simulation
-    HcoID = HCO_GetHcoID( 'CH4_tm', HcoState )
-    IF ( HcoID > 0 ) THEN
-       Cat   = -1
-    ELSE
+    Cat   = 13
+    HcoID = HCO_GetHcoID( 'CH4_TER', HcoState )
+    IF ( HcoID <= 0 ) THEN
        HcoID = id_CH4
-       Cat   = 13
     ENDIF
 
     IF ( HcoID > 0 ) THEN 
@@ -5387,16 +5362,14 @@ CONTAINS
     ENDIF
 
     !-------------------------------------------------------------------------
-    ! %%%%% CH4 from soil absorption (Category 14 or species CH4_sa)  %%%%%
+    ! %%%%% CH4 from soil absorption (Category 14 or species CH4_SAB)  %%%%%
     !-------------------------------------------------------------------------
 
     ! Check if tagged CH4 simulation
-    HcoID = HCO_GetHcoID( 'CH4_sa', HcoState )
-    IF ( HcoID > 0 ) THEN
-       Cat   = -1
-    ELSE
+    Cat   = 14
+    HcoID = HCO_GetHcoID( 'CH4_SAB', HcoState )
+    IF ( HcoID <= 0 ) THEN
        HcoID = id_CH4
-       Cat   = 14
     ENDIF
 
     IF ( HcoID > 0 ) THEN 
