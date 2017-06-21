@@ -4408,7 +4408,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:51' )
       READ( SUBSTRS(1), * ) ND52
-      CALL SET_TINDEX( am_I_Root, 52, ND52, SUBSTRS(2:N), N-1, 1 )
+      CALL SET_TINDEX( am_I_Root, 52, ND52, SUBSTRS(2:N), N-1, PD52 )
 
       !--------------------------
       ! ND53: POPS
@@ -4564,6 +4564,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:71' )
       READ( SUBSTRS(1), * ) ND73
+      CALL SET_TINDEX( am_I_Root, 73, ND73, SUBSTRS(2:N), N-1, PD73 )
 
 #if defined( NC_DIAG )
       !----------------------------------------------------------
@@ -4667,6 +4668,7 @@
       Input_Opt%ND70               = ND70
       Input_Opt%ND71               = ND71
       Input_Opt%ND72               = ND72
+      Input_Opt%ND73               = ND73
       Input_Opt%LPRT               = ( ND70 > 0 )
 
       ! Loop over # of diagnostics

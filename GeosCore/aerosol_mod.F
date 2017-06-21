@@ -2180,6 +2180,14 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PM25' )
       PM25 = 0d0
 
+      ALLOCATE( SOAGX( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOAGX' )
+      SOAGX = 0d0
+
+      ALLOCATE( SOAMG( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOAMG' )
+      SOAMG = 0d0
+
       ! Mass of hydrophobic aerosol from Mian Chin
       ALLOCATE( DAERSL(IIPAR,JJPAR,LLPAR,2), STAT=AS)       
       IF ( AS /= 0) CALL ALLOC_ERR( 'DAERSL' )

@@ -1176,7 +1176,7 @@
       IF ( ND73 > 0 ) THEN 
          LD73 = MIN( ND73, LLPAR )
 
-         ALLOCATE( AD73( IIPAR, JJPAR, LD64, PD73 ), STAT=AS )
+         ALLOCATE( AD73( IIPAR, JJPAR, LD73, PD73 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD73' )
 
       ENDIF

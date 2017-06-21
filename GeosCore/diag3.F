@@ -2249,7 +2249,7 @@
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, MM,    
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     LD22,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD22) )
@@ -4919,7 +4919,10 @@
 !  ----------------------------------------------------------------------------
 !  (1): GAMMAHO2  : Uptake coef for HO2              : unitless  : SCALECHEM
 !  (2): GAMMAIEPOX: Uptake coef for IEPOX            : unitless  : SCALECHEM
-!
+!  (3): GAMMAIEPOX: Uptake coef for IMAE             : unitless  : SCALECHEM
+!  (4): GAMMAIEPOX: Uptake coef for ISOPND/ISOPNB    : unitless  : SCALECHEM
+!  (5): GAMMAIEPOX: Uptake coef for DHDN             : unitless  : SCALECHEM
+!  (6): GAMMAIEPOX: Uptake coef for GLYX             : unitless  : SCALECHEM
 !******************************************************************************
       IF ( ND52 > 0 ) THEN
         CATEGORY  = 'GAMMA-$'

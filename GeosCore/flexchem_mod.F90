@@ -67,9 +67,10 @@ CONTAINS
     USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
     USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_CHEMGRID
     USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_STRAT
+    USE CMN_DIAG_MOD,         ONLY : ND52
     USE CMN_FJX_MOD
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
-    USE DIAG_MOD,             ONLY : AD65
+    USE DIAG_MOD,             ONLY : AD65, AD52
     USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
     USE DIAG20_MOD,           ONLY : DIAG20, POx, LOx
     USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
@@ -602,6 +603,17 @@ CONTAINS
 
           ! Set hetchem rates
           CALL SET_HET( I, J, L, State_Chm, State_Met, Input_Opt, SCF )
+
+          IF ( ND52 > 0 ) THEN
+             ! Archive gamma values
+             AD52(I,J,L,1) = AD52(I,J,L,1) + HET(ind_HO2,   1)
+             AD52(I,J,L,2) = AD52(I,J,L,2) + HET(ind_IEPOX, 1)
+             AD52(I,J,L,3) = AD52(I,J,L,3) + HET(ind_IMAE,  1)
+             AD52(I,J,L,4) = AD52(I,J,L,4) + HET(ind_ISOPND,1) &
+                                           + HET(ind_ISOPNB,1)
+             AD52(I,J,L,5) = AD52(I,J,L,5) + HET(ind_DHDN,  1)
+             AD52(I,J,L,6) = AD52(I,J,L,6) + HET(ind_GLYX,  1)
+          ENDIF
 
           ! Copy SCF back into SCOEFF
           SCOEFF(I,J,L,:) = SCF

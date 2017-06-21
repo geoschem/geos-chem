@@ -5385,7 +5385,7 @@
             !------------------
 
             ! Number of tracers
-            NTRAC(22) = 28
+            NTRAC(22) = PD22
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -7643,34 +7643,34 @@
       !-------------------------------------      
       ! ISORROPIA DIAGNOSTICS (ND73)
       !-------------------------------------      
-      IF ( ND64 > 0 ) THEN 
+      IF ( ND73 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(64) = PD64
+         NTRAC(73) = PD73
 
          ! Loop over tracers
-         DO T = 1, NTRAC(64)
+         DO T = 1, NTRAC(73)
 
             ! Define quantities
-            INDEX(T,64) = T + ( SPACING * 85 )
-            MOLC (T,64) = 0
-            MWT  (T,64) = 0e0
-            SCALE(T,64) = 1e0
-            UNIT (T,64) = 'unitless'
+            INDEX(T,73) = T + ( SPACING * 85 )
+            MOLC (T,73) = 0
+            MWT  (T,73) = 0e0
+            SCALE(T,73) = 1e0
+            UNIT (T,73) = 'unitless'
 
             ! Get name, long-name (and others where necessary)
             SELECT CASE( T )
                CASE( 1  )
-                  NAME (T,64) = 'ISORpH'
-                  FNAME(T,64) = 'ISORROPIA pH'
+                  NAME (T,73) = 'ISORpH'
+                  FNAME(T,73) = 'ISORROPIA pH'
                CASE( 2  )
-                  NAME (T,64) = 'ISORH+'
-                  FNAME(T,64) = 'ISORROPIA H+'
-                  UNIT( T,64) = 'mol/L'
+                  NAME (T,73) = 'ISORH+'
+                  FNAME(T,73) = 'ISORROPIA H+'
+                  UNIT( T,73) = 'mol/L'
                CASE( 3  )
-                  NAME (T,64) = 'ISORH2O'
-                  FNAME(T,64) = 'ISORROPIA aerosol H2O'
-                  UNIT( T,64) = 'ug/m3'
+                  NAME (T,73) = 'ISORH2O'
+                  FNAME(T,73) = 'ISORROPIA aerosol H2O'
+                  UNIT( T,73) = 'ug/m3'
                CASE DEFAULT
                   ! Nothing
             END SELECT
