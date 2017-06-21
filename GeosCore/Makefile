@@ -611,7 +611,8 @@ flexchem_mod.o              : flexchem_mod.F90                               \
                               tomas_mod.o
 
 flexgrid_read_mod.o         : flexgrid_read_mod.F90                          \
-                              dao_mod.o               diag_mod.o
+                              dao_mod.o               diag_mod.o             \
+                              get_met_mod.o
 
 future_emissions_mod.o      : future_emissions_mod.F
 
@@ -646,6 +647,8 @@ geosfp_read_mod.o           : geosfp_read_mod.F90                            \
 
 get_global_ch4.o            : get_global_ch4.F                               \
                               future_emissions_mod.o
+
+get_met_mod.o               : get_met_mod.F90
 
 get_ndep_mod.o              : get_ndep_mod.F                              
 
