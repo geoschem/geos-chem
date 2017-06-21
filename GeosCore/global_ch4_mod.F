@@ -500,10 +500,9 @@
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,15) =  Ptr2D(:,:)! * -1.0_hp
+         CH4_EMIS(:,:,15) =  Ptr2D(:,:) * -1.0_hp
       ENDIF
       Ptr2D => NULL()
-
 
       ! =================================================================
       ! Total emission: sum of all emissions - (2*soil absorption)
@@ -530,32 +529,7 @@
          WRITE(*,*) 'Termites     : ', SUM(CH4_EMIS(:,:,14))
          WRITE(*,*) 'Soil absorb  : ', SUM(CH4_EMIS(:,:,15))
       ENDIF
-
-      ! =================================================================
-      ! Modify the chemical species array with emissions rates. 
-      ! (kjw, 5/29/09)
-      ! There are 12 species in the multi-species run.
-      ! One species for total CH4 and one for each emission category.
-      !
-      !  1. Total CH4
-      !  2. Gas and Oil 
-      !  3. Coal
-      !  4. Livestock
-      !  5. Waste
-      !  6. Biofuel
-      !  7. Rice
-      !  8. Other Anthropogenic
-      !  9. Biomass Burning
-      !  10. Wetlands
-      !  11. Soil Absorption
-      !  12. Other Natural
-      ! =================================================================
  
-      ! Only added to SST for offline CH4 simulations.
-      IF ( ITS_A_CH4_SIM .and. LPRT ) THEN
-       WRITE( 6, '(a)' ) '% EMISSCH4 --- Adding Emissions to Spc array.'
-      ENDIF
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, N, AREA_M2 )
