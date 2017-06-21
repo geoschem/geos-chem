@@ -349,27 +349,27 @@ CONTAINS
 
     ! Read FRLAKE
     v_name = "FRLAKE"
-    CALL NcRd( Q, fCN, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FRLAKE = Q
 
     ! Read FRLAND
     v_name = "FRLAND"
-    CALL NcRd( Q, fCN, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FRLAND = Q
 
     ! Read FRLANDIC
     v_name = "FRLANDIC"
-    CALL NcRd( Q, fCN, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FRLANDIC = Q
     
     ! Read FROCEAN
     v_name = "FROCEAN"
-    CALL NcRd( Q, fCN, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FROCEAN = Q
     
     ! Read PHIS
     v_name = "PHIS"
-    CALL NcRd( Q, fCN, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PHIS = Q
 
     ! Echo info
@@ -565,67 +565,67 @@ CONTAINS
 
     ! Read ALBEDO
     v_name = "ALBEDO"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%ALBD = Q
 
     ! Read CLDTOT
     v_name = "CLDTOT"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%CLDFRC = Q
 
     ! Read EFLUX
     v_name = "EFLUX"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%EFLUX = Q
 
     ! Read EVAP
     v_name = "EVAP"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%EVAP = Q
 
     ! Read FRSEAICE
     v_name = "FRSEAICE"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FRSEAICE = Q
 
     ! Read FRSNO
     v_name = "FRSNO"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FRSNO = Q
 
     ! Read GRN
     v_name = "GRN"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%GRN = Q
 
     ! Read GWETROOT
     v_name = "GWETROOT"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%GWETROOT = Q
 
     ! Read GWETTOP
     v_name = "GWETTOP"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%GWETTOP = Q
 
     ! Read HFLUX from file
     v_name = "HFLUX"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%HFLUX = Q
 
     ! Read LAI
     v_name = "LAI"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%LAI = Q
 
     ! Read LWI
     v_name = "LWI"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%LWI = Q
 
     ! Read LWGNT 
     v_name = "LWGNT"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%RADLWG = Q
 
     !-----------------------------------------------------------------------
@@ -638,42 +638,42 @@ CONTAINS
 
     ! Read PARDF
     v_name = "PARDF"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PARDF = Q
 
     ! Read PARDR
     v_name = "PARDR"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PARDR = Q
 
     ! Read PBLH
     v_name = "PBLH"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PBLH = Q
 
     ! Read PRECANV
     v_name = "PRECANV"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PRECANV = Q
 
     ! Read PRECCON
     v_name = "PRECCON"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PRECCON = Q
 
     ! Read PRECLSC
     v_name = "PRECLSC"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PRECLSC = Q
 
     ! Read PRECSNO
     v_name = "PRECSNO"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PRECSNO = Q
 
     ! Read PRECTOT
     v_name = "PRECTOT"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PRECTOT = Q
 
     !-----------------------------------------------------------------------
@@ -686,112 +686,112 @@ CONTAINS
 
     ! Read SEAICE00
     v_name = "SEAICE00"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE00 = Q
 
     ! Read SEAICE10
     v_name = "SEAICE10"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE10 = Q
 
     ! Read SEAICE20
     v_name = "SEAICE20"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE20 = Q
 
     ! Read SEAICE30
     v_name = "SEAICE30"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE30 = Q
 
     ! Read SEAICE40
     v_name = "SEAICE40"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE40 = Q
 
     ! Read SEAICE50
     v_name = "SEAICE50"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE50 = Q
 
     ! Read SEAICE60 
     v_name = "SEAICE60"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE60 = Q
 
     ! Read SEAICE70
     v_name = "SEAICE70"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE70 = Q
 
     ! Read SEAICE80
     v_name = "SEAICE80"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE80 = Q
 
     ! Read SEAICE90
     v_name = "SEAICE90"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE90 = Q
 
     ! Read SLP
     v_name = "SLP"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SLP = Q
 
     ! Read SNODP
     v_name = "SNODP"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SNODP = Q
 
     ! Read SNOMAS
     v_name = "SNOMAS"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SNOMAS = Q
 
     ! Read SWGDN
     v_name = "SWGDN"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SWGDN  = Q
 
     ! Read TO3
     v_name = "TO3"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%TO3 = Q
 
     ! Read TROPPT
     v_name = "TROPPT"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%TROPP = Q
 
     ! Read TS
     v_name = "TS"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%TSKIN = Q
 
     ! Read T2M
     v_name = "T2M"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%TS = Q
 
     ! Read U10M
     v_name = "U10M"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%U10M = Q
 
     ! Read USTAR
     v_name = "USTAR"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%USTAR = Q
 
     ! Read V10M
     v_name = "V10M"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met% V10M = Q
 
     ! Read Z0M
     v_name = "Z0M"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%Z0 = Q
 
     ! Echo info
@@ -1077,33 +1077,33 @@ CONTAINS
 
     ! Read CLOUD
     v_name = "CLOUD"
-    CALL NcRd( Q, fA3cld, TRIM(v_name), st4d, ct4d )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     CALL TRANSFER_3d( Q, State_Met%CLDF )
     
     ! Read OPTDEPTH
     v_name = "OPTDEPTH"
-    CALL NcRd( Q, fA3cld, TRIM(v_name), st4d, ct4d )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     CALL TRANSFER_3d( Q, State_Met%OPTD )
 
     ! Read QI
     v_name = "QI"
-    CALL NcRd( Q, fA3cld, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%QI )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%QI = Q
 
     ! Read QL
     v_name = "QL"
-    CALL NcRd( Q, fA3cld, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%QL )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%QL = Q
 
     ! Read TAUCLI
     v_name = "TAUCLI"
-    CALL NcRd( Q, fA3cld, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%TAUCLI )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%TAUCLI = Q
 
     ! Read TAUCLW
     v_name = "TAUCLW"
-    CALL NcRd( Q, fA3cld, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%TAUCLW )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%TAUCLW = Q
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
@@ -1271,28 +1271,28 @@ CONTAINS
 
     ! Read DTRAIN
     v_name = "DTRAIN"
-    CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%DTRAIN )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%DTRAIN = Q
 
     ! Read OMEGA
     v_name = "OMEGA"
-    CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%OMEGA )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%OMEGA = Q
 
     ! Read RH
     v_name = "RH"
-    CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%RH )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%RH = Q
 
     ! Read U
     v_name = "U"
-    CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%U )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%U = Q
 
     ! Read V
     v_name = "V"
-    CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%V )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%V = Q
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
@@ -1466,23 +1466,23 @@ CONTAINS
 
     ! Read DQRCU  from file
     v_name = "DQRCU"
-    CALL NcRd( Q, fA3mstC, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%DQRCU )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%DQRCU = Q
 
     ! Read DQRLSAN
     v_name = "DQRLSAN"
-    CALL NcRd( Q, fA3mstC, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%DQRLSAN )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%DQRLSAN = Q
 
     ! Read REEVAPCN
     v_name = "REEVAPCN"
-    CALL NcRd( Q, fA3mstC, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%REEVAPCN )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%REEVAPCN = Q
 
     ! Read  from file
     v_name = "REEVAPLS"
-    CALL NcRd( Q, fA3mstC, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%REEVAPLS )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%REEVAPLS = Q
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
@@ -1640,28 +1640,28 @@ CONTAINS
 
     ! Read CMFMC (only in GEOSFP*.nc files)
     v_name = "CMFMC"
-    CALL NcRd( Qe, fA3mstE, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, State_Met%CMFMC )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    State_Met%CMFMC = Qe
 
     ! Read PFICU
     v_name = "PFICU"
-    CALL NcRd( Qe, fA3mstE, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, State_Met%PFICU )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    State_Met%PFICU = Qe
 
     ! Read PFILSAN
     v_name = "PFILSAN"
-    CALL NcRd( Qe, fA3mstE, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, State_Met%PFILSAN )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    State_Met%PFILSAN = Qe
 
     ! Read PFLCU
     v_name = "PFLCU"
-    CALL NcRd( Qe, fA3mstE, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, State_Met%PFLCU )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    State_Met%PFLCU = Qe
 
     ! Read  from file
     v_name = "PFLLSAN"
-    CALL NcRd( Qe, fA3mstE, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, State_Met%PFLLSAN )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    State_Met%PFLLSAN = Qe
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
@@ -1850,7 +1850,7 @@ CONTAINS
 
     ! Read PS
     v_name = "PS"
-    CALL NcRd( Q2, fI3_1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q2, TRIM(v_name) )
     State_Met%PS1_WET = Q2
 
     !-------------------------------------------------
@@ -1873,13 +1873,13 @@ CONTAINS
 
     ! Read QV
     v_name = "QV"
-    CALL NcRd( Q3, fI3_1, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q3, State_Met%SPHU1 )
+    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    State_Met%SPHU1 = Q3
 
     ! Read T
     v_name = "T"
-    CALL NcRd( Q3, fI3_1, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q3, State_Met%TMPU1 )
+    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    State_Met%TMPU1 = Q3
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
@@ -2079,7 +2079,7 @@ CONTAINS
 
     ! Read PS
     v_name = "PS"
-    CALL NcRd( Q2, fI3_2, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q2, TRIM(v_name) )
     State_Met%PS2_WET = Q2
 
     !-------------------------------------------------
@@ -2101,13 +2101,13 @@ CONTAINS
 
     ! Read QV
     v_name = "QV"
-    CALL NcRd( Q3, fI3_2, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q3, State_Met%SPHU2 )
+    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    State_Met%SPHU2 = Q3
 
     ! Read T
     v_name = "T"
-    CALL NcRd( Q3, fI3_2, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q3, State_Met%TMPU2 )
+    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    State_Met%TMPU2 = Q3
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
