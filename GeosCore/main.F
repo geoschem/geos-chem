@@ -649,9 +649,9 @@
          CALL ERROR_STOP( 'Error in EMISSIONS_INIT!', 'main.F' )
       ENDIF
        
-      ! Run additional HEMCO phase 1 before reading metfields
+      ! Run HEMCO phase 0 as simplfied phase 1 to read initial metfields
       CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met,
-     &                       State_Chm, ITS_TIME_FOR_EMIS(), 1, RC )
+     &                       State_Chm, ITS_TIME_FOR_EMIS(), 0, RC )
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End ( "HEMCO", RC )

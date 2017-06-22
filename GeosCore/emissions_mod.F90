@@ -189,7 +189,7 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN 
 
     ! The following only needs to be done in phase 2
-    IF ( Phase /= 1 ) THEN 
+    IF ( Phase == 2 ) THEN 
 
        ! Call carbon emissions module to make sure that sesquiterpene
        ! emissions calculated in HEMCO (SESQ) are passed to the internal

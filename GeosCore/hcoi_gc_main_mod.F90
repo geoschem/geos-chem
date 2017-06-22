@@ -582,7 +582,7 @@ CONTAINS
     ! Reset all emission and deposition values. Do this only if it is time
     ! for emissions, i.e. if those values will be refilled.
     ! ======================================================================
-    IF ( IsEmisTime .AND. Phase /= 1 ) THEN
+    IF ( IsEmisTime .AND. Phase == 2 ) THEN
        CALL HCO_FluxarrReset ( HcoState, HMRC )
        IF ( HMRC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP('ResetArrays', LOC, INS )
@@ -592,11 +592,14 @@ CONTAINS
 
     !=======================================================================
     ! Define pressure edges [Pa] on HEMCO grid.
+    ! At Phase 0, the pressure field is not known yet.
     !=======================================================================
-    CALL GridEdge_Set ( am_I_Root, State_Met, HcoState, HMRC )
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP('GridEdge_Update', LOC, INS )
-       RETURN 
+    IF ( Phase /= 0 ) THEN
+       CALL GridEdge_Set ( am_I_Root, State_Met, HcoState, HMRC )
+       IF ( HMRC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP('GridEdge_Update', LOC, INS )
+          RETURN 
+       ENDIF
     ENDIF
  
     !=======================================================================
@@ -630,7 +633,7 @@ CONTAINS
     !=======================================================================
     ! Do the following only if it's time to calculate emissions 
     !=======================================================================
-    IF ( Phase /= 1 .AND. IsEmisTime ) THEN 
+    IF ( Phase == 2 .AND. IsEmisTime ) THEN 
 
        !-----------------------------------------------------------------
        ! Set / update ExtState fields.

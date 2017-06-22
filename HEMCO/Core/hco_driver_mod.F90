@@ -157,7 +157,7 @@ CONTAINS
     ! content of EmisList. Emissions become written into HcoState.
     ! Do this only if it's time for emissions. 
     !-----------------------------------------------------------------
-    IF ( IsEmisTime .AND. Phase /= 1 ) THEN
+    IF ( IsEmisTime .AND. Phase == 2 ) THEN
 
        ! Use emission data only
        CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC ) 
