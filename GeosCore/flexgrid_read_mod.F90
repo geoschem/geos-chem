@@ -2078,7 +2078,7 @@ CONTAINS
     ct3d   = (/ IIPAR, JJPAR, 1          /)
 
     ! Read PS
-    v_name = "PS1"
+    v_name = "PS2"
     CALL Get_Met_2D( Q2, TRIM(v_name) )
     State_Met%PS2_WET = Q2
 
