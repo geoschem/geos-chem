@@ -1849,7 +1849,7 @@ CONTAINS
     ct3d   = (/ IIPAR, JJPAR, 1          /)
 
     ! Read PS
-    v_name = "PS"
+    v_name = "PS1"
     CALL Get_Met_2D( Q2, TRIM(v_name) )
     State_Met%PS1_WET = Q2
 
@@ -1872,12 +1872,12 @@ CONTAINS
     !----------------------------------------------------------------
 
     ! Read QV
-    v_name = "QV"
+    v_name = "SPHU1"
     CALL Get_Met_3D( Q3, TRIM(v_name) )
     State_Met%SPHU1 = Q3
 
     ! Read T
-    v_name = "T"
+    v_name = "TMPU1"
     CALL Get_Met_3D( Q3, TRIM(v_name) )
     State_Met%TMPU1 = Q3
 
@@ -2078,7 +2078,7 @@ CONTAINS
     ct3d   = (/ IIPAR, JJPAR, 1          /)
 
     ! Read PS
-    v_name = "PS"
+    v_name = "PS1"
     CALL Get_Met_2D( Q2, TRIM(v_name) )
     State_Met%PS2_WET = Q2
 
@@ -2100,12 +2100,12 @@ CONTAINS
     !----------------------------------------------------------------
 
     ! Read QV
-    v_name = "QV"
+    v_name = "SPHU2"
     CALL Get_Met_3D( Q3, TRIM(v_name) )
     State_Met%SPHU2 = Q3
 
     ! Read T
-    v_name = "T"
+    v_name = "TMPU2"
     CALL Get_Met_3D( Q3, TRIM(v_name) )
     State_Met%TMPU2 = Q3
 
