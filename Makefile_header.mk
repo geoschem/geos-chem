@@ -711,9 +711,9 @@ ifndef NO_GRID_NEEDED
   ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
 
     # Ensure that MET=merra2
-    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2)|(^[Mm][Ee][Rr][Rr][Aa].2)
+    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2)|(^[Mm][Ee][Rr][Rr][Aa].2)|(^[Ff][Ll][Ee][Xx][Gg][Rr][Ii][Dd])
     ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-      $(error When GRID=05x0625, you can only use MET=merra2)
+      $(error When GRID=05x0625, you can only use MET=merra2 or flexgrid)
     endif
 
     # Ensure that a nested-grid option is selected
@@ -730,9 +730,9 @@ ifndef NO_GRID_NEEDED
   ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
 
     # Ensure that MET=geosfp
-    REGEXP           :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
+    REGEXP           :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])|(^[Ff][Ll][Ee][Xx][Gg][Rr][Ii][Dd])
     ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-      $(error When GRID=025x03125, you can only use MET=geos-fp)
+      $(error When GRID=025x03125, you can only use MET=geos-fp or flexgrid)
     endif
 
     # Ensure that a nested-grid option is selected
