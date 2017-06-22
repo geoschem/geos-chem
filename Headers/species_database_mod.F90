@@ -1338,9 +1338,9 @@ CONTAINS
 !                              Henry_CR      = 5900.0_f8,                    &
 !------------------------------------------------------------------------------
 #else
-                              DD_Hstar_old  = 3.7e+3_fp,                    &
-                              Henry_K0      = 3.7e+3_f8,                    &
-                              Henry_CR      = 7500.0_f8,                    &
+                              DD_Hstar_old  = 3.6e+5_fp,                    &
+                              Henry_K0      = 3.6e+5_f8,                    &
+                              Henry_CR      = 7200.0_f8,                    &
 #endif
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
@@ -1772,6 +1772,14 @@ CONTAINS
           CASE( 'INDIOL' )
              FullName = 'Generic aerosol-phase organonitrate hydrolysis product'
 
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
+             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /) 
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1841,6 +1849,14 @@ CONTAINS
 
           CASE( 'ISN1OA' )
              FullName      = 'Aer-phase 2nd-gen hydroxynitrates from ISOP+NO3'
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
+             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /) 
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -2062,6 +2078,14 @@ CONTAINS
 
           CASE( 'LVOCOA' )
              FullName = 'Aer-phase low-volatility non-IEPOX product of RIP ox'
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
+             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /) 
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -3440,6 +3464,15 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'SOAIE' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
+             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /) 
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -3459,6 +3492,15 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'SOAGX' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
+             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /) 
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -3478,6 +3520,15 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'SOAME' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
+             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /) 
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -3497,6 +3548,15 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'SOAMG' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
+             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /) 
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &

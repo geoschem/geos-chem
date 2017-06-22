@@ -727,13 +727,6 @@
          CALL SOA_CHEMISTRY( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
 
-         ! Compute SOA chemistry for irreversible uptake of volatile
-         ! polar isoprene oxidation products. This is the Pye et al.
-         ! (2013) and Lin et al. (2013) isoprene SOA mechanism
-         ! (eam, 2014):
-!         CALL IRREV_SOA_UPTAKE( am_I_Root, Input_Opt, 
-!     &                          State_Met, State_Chm, RC )
-
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
          ENDIF
