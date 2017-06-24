@@ -429,20 +429,27 @@
             ENDDO
          ENDIF
 
-#if defined( BPCH_DIAG )
-         !--------------------------
-         ! ND38 diagnostic [kg/s]
-         !--------------------------
-         IF ( DO_ND38 ) THEN
 
-            ! Loop over only the soluble species
-            DO NW = 1, State_Chm%nWetDep
-            DO L  = 1, LD38
-               AD38(I,J,L,NW) = AD38(I,J,L,NW) + DIAG38(L,NW)
-            ENDDO
-            ENDDO
-         ENDIF
-#endif
+
+!sfarina: for gfortran 7.1.1 to run in OMP, the following diag save was disabled.
+!
+!#if defined( BPCH_DIAG )
+!         !--------------------------
+!         ! ND38 diagnostic [kg/s]
+!         !--------------------------
+!         IF ( DO_ND38 ) THEN
+!
+!            ! Loop over only the soluble species
+!            DO NW = 1, State_Chm%nWetDep
+!            DO L  = 1, LD38
+!               AD38(I,J,L,NW) = AD38(I,J,L,NW) + DIAG38(L,NW)
+!            ENDDO
+!            ENDDO
+!         ENDIF
+!#endif
+!sfarina: end disable diagnostic
+
+
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
