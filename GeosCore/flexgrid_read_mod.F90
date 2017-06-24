@@ -32,7 +32,6 @@ MODULE FlexGrid_Read_Mod
   USE ERROR_MOD,     ONLY : ERROR_STOP    ! Stop w/ error message
   USE PhysConstants                       ! Physical constants
   USE TIME_MOD                            ! Date & time routines
-  USE TRANSFER_MOD                        ! Routines for casting 
 
   IMPLICIT NONE
   PRIVATE
@@ -906,17 +905,17 @@ CONTAINS
                                   
     ! Arrays                                 
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
-    REAL*4             :: Q(IIPAR,JJPAR,LGLOB)     ! Temporary data arrray
+    REAL*4             :: Q(IIPAR,JJPAR,LLPAR)     ! Temporary data arrray
 
     ! Read CLOUD
     v_name = "CLOUD"
     CALL Get_Met_3D( Q, TRIM(v_name) )
-    CALL TRANSFER_3d( Q, State_Met%CLDF )
+    State_Met%CLDF = Q
     
     ! Read OPTDEPTH
     v_name = "OPTDEPTH"
     CALL Get_Met_3D( Q, TRIM(v_name) )
-    CALL TRANSFER_3d( Q, State_Met%OPTD )
+    State_Met%OPTD = Q
 
     ! Read QI
     v_name = "QI"
@@ -1033,8 +1032,8 @@ CONTAINS
         
     ! Arrays                                 
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
-    REAL*4             :: Q (IIPAR,JJPAR,LGLOB  )  ! Temporary data arrray
-    REAL*4             :: Qe(IIPAR,JJPAR,LGLOB+1)  ! Temporary data arrray
+    REAL*4             :: Q (IIPAR,JJPAR,LLPAR  )  ! Temporary data arrray
+    REAL*4             :: Qe(IIPAR,JJPAR,LLPAR+1)  ! Temporary data arrray
 
     ! Read DTRAIN
     v_name = "DTRAIN"
@@ -1163,7 +1162,7 @@ CONTAINS
                                     
     ! Arrays                                 
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
-    REAL*4             :: Q (IIPAR,JJPAR,LGLOB)    ! Temporary data arrray
+    REAL*4             :: Q (IIPAR,JJPAR,LLPAR)    ! Temporary data arrray
 
     ! Read DQRCU  from file
     v_name = "DQRCU"
@@ -1271,7 +1270,7 @@ CONTAINS
                                              
     ! Arrays                                 
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
-    REAL*4             :: Qe(IIPAR,JJPAR,LGLOB+1)  ! Temporary data arrray
+    REAL*4             :: Qe(IIPAR,JJPAR,LLPAR+1)  ! Temporary data arrray
 
     ! Read CMFMC (only in GEOSFP*.nc files)
     v_name = "CMFMC"
@@ -1411,7 +1410,7 @@ CONTAINS
     INTEGER            :: st3d(3), ct3d(3)         ! Start & count indices
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
-    REAL*4             :: Q3(IIPAR,JJPAR,LGLOB)    ! 3D temporary data arrray
+    REAL*4             :: Q3(IIPAR,JJPAR,LLPAR)    ! 3D temporary data arrray
 
     !-------------------------------------------------
     ! Read 3D data (2D spatial + 1D time )
@@ -1578,7 +1577,7 @@ CONTAINS
     INTEGER            :: st3d(3), ct3d(3)         ! Start & count indices
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
-    REAL*4             :: Q3(IIPAR,JJPAR,LGLOB)    ! 3D temporary data arrray
+    REAL*4             :: Q3(IIPAR,JJPAR,LLPAR)    ! 3D temporary data arrray
 
     !-------------------------------------------------
     ! Read 3D data (2D spatial + 1D time )
