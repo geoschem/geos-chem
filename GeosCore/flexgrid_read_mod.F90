@@ -141,7 +141,6 @@ CONTAINS
     CHARACTER(LEN=255) :: caller             ! Name of this routine
                                 
     ! Arrays                                 
-    INTEGER            :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
     REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
 
     ! Read FRLAKE
@@ -285,7 +284,6 @@ CONTAINS
     LOGICAL, SAVE      :: first    = .TRUE.  ! First time reading data?
                 
     ! Arrays                                 
-    INTEGER            :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
     REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
 
     !======================================================================
@@ -742,7 +740,6 @@ CONTAINS
     LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                   
     ! Arrays                                 
-    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q(IIPAR,JJPAR,LLPAR)     ! Temporary data arrray
 
     ! Read CLOUD
@@ -869,7 +866,6 @@ CONTAINS
     LOGICAL, SAVE      :: first = .TRUE.           ! First time we read data?
         
     ! Arrays                                 
-    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q (IIPAR,JJPAR,LLPAR  )  ! Temporary data arrray
     REAL*4             :: Qe(IIPAR,JJPAR,LLPAR+1)  ! Temporary data arrray
 
@@ -999,7 +995,6 @@ CONTAINS
     LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                     
     ! Arrays                                 
-    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q (IIPAR,JJPAR,LLPAR)    ! Temporary data arrray
 
     ! Read DQRCU  from file
@@ -1107,7 +1102,6 @@ CONTAINS
     LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                              
     ! Arrays                                 
-    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Qe(IIPAR,JJPAR,LLPAR+1)  ! Temporary data arrray
 
     ! Read CMFMC (only in GEOSFP*.nc files)
@@ -1245,18 +1239,12 @@ CONTAINS
     LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                         
     ! Arrays                                 
-    INTEGER            :: st3d(3), ct3d(3)         ! Start & count indices
-    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
     REAL*4             :: Q3(IIPAR,JJPAR,LLPAR)    ! 3D temporary data arrray
 
     !-------------------------------------------------
     ! Read 3D data (2D spatial + 1D time )
     !-------------------------------------------------
-
-    ! netCDF start & count indices
-    st3d   = (/ 1,     1,     time_index /)
-    ct3d   = (/ IIPAR, JJPAR, 1          /)
 
     ! Read PS
     v_name = "PS1"
@@ -1266,10 +1254,6 @@ CONTAINS
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)
     !-------------------------------------------------
-
-    ! netCDF start + count indices
-    st4d   = (/ 1,     1,     1,     time_index /)
-    ct4d   = (/ IIPAR, JJPAR, LGLOB, 1          /)
 
     !----------------------------------------------------------------
     ! Prior to 2/3/12:
@@ -1412,18 +1396,12 @@ CONTAINS
     LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                     
     ! Arrays                                 
-    INTEGER            :: st3d(3), ct3d(3)         ! Start & count indices
-    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
     REAL*4             :: Q3(IIPAR,JJPAR,LLPAR)    ! 3D temporary data arrray
 
     !-------------------------------------------------
     ! Read 3D data (2D spatial + 1D time )
     !-------------------------------------------------
-
-    ! netCDF start & count indices
-    st3d   = (/ 1,     1,     time_index /)
-    ct3d   = (/ IIPAR, JJPAR, 1          /)
 
     ! Read PS
     v_name = "PS2"
@@ -1433,10 +1411,6 @@ CONTAINS
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)
     !-------------------------------------------------
-
-    ! netCDF start + count indices
-    st4d   = (/ 1,     1,     1,     time_index /)
-    ct4d   = (/ IIPAR, JJPAR, LGLOB, 1          /)
 
     !----------------------------------------------------------------
     ! Prior to 2/3/12:
