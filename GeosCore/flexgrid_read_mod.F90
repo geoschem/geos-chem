@@ -15,11 +15,6 @@ MODULE FlexGrid_Read_Mod
 !
 ! !USES:
 !
-  ! NcdfUtil modules for netCDF I/O
-  USE m_netcdf_io_open                    ! netCDF open
-  USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
-  USE m_netcdf_io_read                    ! netCDF data reads
-  USE m_netcdf_io_close                   ! netCDF close
 
   ! GEOS-Chem modules
   USE CMN_SIZE_MOD                        ! Size parameters
@@ -40,12 +35,10 @@ MODULE FlexGrid_Read_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: Check_Dimensions
   PRIVATE :: FlexGrid_Read_A3cld
   PRIVATE :: FlexGrid_Read_A3dyn
   PRIVATE :: FlexGrid_Read_A3mstC
   PRIVATE :: FlexGrid_Read_A3mstE
-  PRIVATE :: Get_Resolution_String
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
@@ -80,163 +73,8 @@ MODULE FlexGrid_Read_Mod
 !
 ! !LOCAL VARIABLES:
 !
-  ! netCDF file ID's
-  INTEGER :: fA1     = -1
-  INTEGER :: fA3cld  = -1
-  INTEGER :: fA3dyn  = -1
-  INTEGER :: fA3mstC = -1
-  INTEGER :: fA3mstE = -1
-  INTEGER :: fI3_1   = -1
-  INTEGER :: fI3_2   = -1
 
 CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_Resolution_String
-!
-! !DESCRIPTION: Function Get\_Resolution\_String returns the proper filename 
-!  extension for the GEOS-Chem horizontal grid resolution.  This is used to
-!  construct the various file names.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Get_Resolution_String() RESULT( resString )
-!
-! !RETURN VALUE:
-!
-    CHARACTER(LEN=255) :: resString
-! 
-! !REVISION HISTORY:
-!  10 Feb 2012 - R. Yantosca - Initial version
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocssor switch
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-#if   defined( GRID4x5 )
-    resString = '4x5.nc'
-     
-#elif defined( GRID2x25 ) 
-    resString = '2x25.nc'
-
-#elif defined( GRID1x125 )
-    resString = '1x125.nc'
-
-#elif defined( GRID1x1 ) 
-    resString = '1x1.nc'
-
-#elif defined( GRID05x0666 )
-    resString = '05x0666.nc'
-
-#elif defined( GRID025x03125 ) && defined( NESTED_CH )
-    resString = '025x03125.CH.nc'
-
-#elif defined( GRID025x03125 ) && defined( NESTED_EU )
-    resString = '025x03125.EU.nc'
-
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-    resString = '025x03125.NA.nc'
-
-#elif defined( GRID025x03125 )
-    resString = '025x03125.nc'
-
-#endif
-
-  END FUNCTION Get_Resolution_String
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Check_Dimensions
-!
-! !DESCRIPTION: Subroutine CHECK\_DIMENSIONS checks to see if dimensions read 
-!  from the netCDF file match the defined GEOS-Chem dimensions.  If not, then 
-!  it will stop the GEOS-Chem simulation with an error message.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Check_Dimensions( lon, lat, lev, time, time_expected, caller )
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER,          OPTIONAL, INTENT(IN)  :: lon            ! Lon dimension
-    INTEGER,          OPTIONAL, INTENT(IN)  :: lat            ! Lat dimension
-    INTEGER,          OPTIONAL, INTENT(IN)  :: lev            ! Alt dimension
-    INTEGER,          OPTIONAL, INTENT(IN)  :: time           ! Time dimension
-    INTEGER,          OPTIONAL, INTENT(IN)  :: time_expected  ! Expected # of 
-                                                              !  time slots
-    CHARACTER(LEN=*), OPTIONAL, INTENT(IN)  :: caller         ! Name of caller
-                                                              !  routine
-! 
-! !REMARKS:
-!  Call this routine with keyword arguments, e.g
-!     CALL CHECK_DIMENSION( lon=X,  lat=Y,           lev=Z,         &
-!                           time=T, time_expected=8, caller=caller )
-!
-! !REVISION HISTORY:
-!  02 Feb 2012 - R. Yantosca - Initial version
-!  03 Feb 2012 - R. Yantosca - Now pass the caller routine name as an argument
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Error message string
-    CHARACTER(LEN=255) :: errMsg                  
-
-    ! Error check longitude dimension 
-    IF ( PRESENT( lon ) ) THEN
-       IF ( lon /= IIPAR ) THEN
-          WRITE( errMsg, 100 ) lon, IIPAR
- 100      FORMAT( 'Longitude dimension (', i5, &
-                  ' ) does not match IIPAR ( ', i5, ')!' )
-          CALL ERROR_STOP( errMsg, caller )
-       ENDIF
-    ENDIF
-
-
-    ! Error check longitude dimension 
-    IF ( PRESENT( lat ) ) THEN
-       IF ( lat /= JJPAR ) THEN
-          WRITE( errMsg, 110 ) lat, JJPAR
- 110      FORMAT( 'Latitude dimension (', i5, &
-                  ' ) does not match JJPAR ( ', i5, ')!' )
-          CALL ERROR_STOP( errMsg, caller )
-       ENDIF
-    ENDIF
-
-
-    ! Error check longitude dimension 
-    IF ( PRESENT( lev ) ) THEN
-       IF ( lev /= LGLOB ) THEN
-          WRITE( errMsg, 120 ) lev, LGLOB
- 120      FORMAT( 'Levels dimension (', i5, &
-                  ' ) does not match LGLOB ( ', i5, ')!' )
-          CALL ERROR_STOP( errMsg, caller )
-       ENDIF
-    ENDIF
-
-    ! Error check time dimension 
-    IF ( PRESENT( time ) .and. PRESENT( time_expected ) ) THEN
-       IF ( time /= time_expected ) THEN
-          WRITE( errMsg, 130 ) time, time_expected
- 130      FORMAT( 'Time dimension (', i5, &
-                  ' ) does not match expected # of times ( ', i5, ')!' )
-          CALL ERROR_STOP( errMsg, caller )
-       ENDIF
-    ENDIF
-
-  END SUBROUTINE Check_Dimensions
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
