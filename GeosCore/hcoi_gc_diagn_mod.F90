@@ -3202,6 +3202,7 @@ CONTAINS
        ! %%%%% Anthropogenic OCPI %%%%%
        !----------------------------------------
 
+!sfarinaTMP
        ! Only create diagnostic if OCPI is a defined species
        IF ( id_OCPI > 0 ) THEN
 
@@ -5546,7 +5547,7 @@ CONTAINS
                           SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5569,7 +5570,7 @@ CONTAINS
                           SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5592,7 +5593,7 @@ CONTAINS
                           SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5615,7 +5616,7 @@ CONTAINS
                           SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5638,7 +5639,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5661,7 +5662,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5684,7 +5685,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5707,7 +5708,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5740,7 +5741,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5762,7 +5763,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5784,7 +5785,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5807,7 +5808,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5829,13 +5830,13 @@ CONTAINS
                        HcoState  = HcoState,          &
                        cName     = TRIM( DiagnName ), &
                        ExtNr     = ExtNr,             &
-		       Cat       = Cat,               &
+                       Cat       = Cat,               &
                        Hier      = -1,                &
                        HcoID     = HcoID,             &
                        SpaceDim  = 3,                 &
                        LevIDx    = -1,                &
                        OutUnit   = 'kg/m2/s',         &
-		       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                        AutoFill  = 1,                 &
                        RC        = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5848,13 +5849,13 @@ CONTAINS
                        HcoState  = HcoState,          &
                        cName     = TRIM( DiagnName ), &
                        ExtNr     = ExtNr,             &
-		       Cat       = Cat,               &
+                       Cat       = Cat,               &
                        Hier      = -1,                &
                        HcoID     = HcoID,             &
                        SpaceDim  = 2,                 &
                        LevIDx    = -1,                &
                        OutUnit   = 'kg/m2/s',         &
-		       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                        AutoFill  = 1,                 &
                        RC        = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5877,13 +5878,13 @@ CONTAINS
                        HcoState  = HcoState,          &
                        cName     = TRIM( DiagnName ), &
                        ExtNr     = ExtNr,             &
-		       Cat       = Cat,               &
+                       Cat       = Cat,               &
                        Hier      = -1,                &
                        HcoID     = HcoID,             &
                        SpaceDim  = 3,                 &
                        LevIDx    = -1,                &
                        OutUnit   = 'kg/m2/s',         &
-		       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                        AutoFill  = 1,                 &
                        RC        = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
