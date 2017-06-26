@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Parameters.f90
-! Time                 : Wed May  3 17:18:07 2017
+! Time                 : Mon Jun 26 16:07:08 2017
 ! Working directory    : /work/home/ts551/data/all_model_simulations/iodine_runs/iGEOSChem_5.0/code_TMS_new/KPP/Halogens
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -48,9 +48,9 @@ MODULE gckpp_Parameters
 ! NFIXST - Starting of fixed in conc. vect.
   INTEGER, PARAMETER :: NFIXST = 826 
 ! NONZERO - Number of nonzero entries in Jacobian
-  INTEGER, PARAMETER :: NONZERO = 3811 
+  INTEGER, PARAMETER :: NONZERO = 3809 
 ! LU_NONZERO - Number of nonzero entries in LU factoriz. of Jacobian
-  INTEGER, PARAMETER :: LU_NONZERO = 4380 
+  INTEGER, PARAMETER :: LU_NONZERO = 4378 
 ! CNVAR - (NVAR+1) Number of elements in compressed row format
   INTEGER, PARAMETER :: CNVAR = 826 
 ! NLOOKAT - Number of species to look at
@@ -782,13 +782,13 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_ETHLN = 717 
   INTEGER, PARAMETER :: ind_R4P = 718 
   INTEGER, PARAMETER :: ind_BrCl = 719 
-  INTEGER, PARAMETER :: ind_HOI = 720 
-  INTEGER, PARAMETER :: ind_RIP = 721 
-  INTEGER, PARAMETER :: ind_VRP = 722 
-  INTEGER, PARAMETER :: ind_Br2 = 723 
-  INTEGER, PARAMETER :: ind_ATOOH = 724 
-  INTEGER, PARAMETER :: ind_IAP = 725 
-  INTEGER, PARAMETER :: ind_C3H8 = 726 
+  INTEGER, PARAMETER :: ind_C3H8 = 720 
+  INTEGER, PARAMETER :: ind_HOI = 721 
+  INTEGER, PARAMETER :: ind_RIP = 722 
+  INTEGER, PARAMETER :: ind_VRP = 723 
+  INTEGER, PARAMETER :: ind_Br2 = 724 
+  INTEGER, PARAMETER :: ind_ATOOH = 725 
+  INTEGER, PARAMETER :: ind_IAP = 726 
   INTEGER, PARAMETER :: ind_DHMOB = 727 
   INTEGER, PARAMETER :: ind_MOBA = 728 
   INTEGER, PARAMETER :: ind_MP = 729 
@@ -799,10 +799,10 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_ISNOHOO = 734 
   INTEGER, PARAMETER :: ind_ISNP = 735 
   INTEGER, PARAMETER :: ind_ISOPNB = 736 
-  INTEGER, PARAMETER :: ind_IEPOXOO = 737 
+  INTEGER, PARAMETER :: ind_C2H6 = 737 
   INTEGER, PARAMETER :: ind_IONO2 = 738 
-  INTEGER, PARAMETER :: ind_MACRNO2 = 739 
-  INTEGER, PARAMETER :: ind_C2H6 = 740 
+  INTEGER, PARAMETER :: ind_IEPOXOO = 739 
+  INTEGER, PARAMETER :: ind_MACRNO2 = 740 
   INTEGER, PARAMETER :: ind_ROH = 741 
   INTEGER, PARAMETER :: ind_MOBAOO = 742 
   INTEGER, PARAMETER :: ind_DIBOO = 743 
@@ -818,8 +818,8 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_CH4 = 753 
   INTEGER, PARAMETER :: ind_MVKOO = 754 
   INTEGER, PARAMETER :: ind_CH3CHOO = 755 
-  INTEGER, PARAMETER :: ind_GLYX = 756 
-  INTEGER, PARAMETER :: ind_MAOPO2 = 757 
+  INTEGER, PARAMETER :: ind_MAOPO2 = 756 
+  INTEGER, PARAMETER :: ind_GLYX = 757 
   INTEGER, PARAMETER :: ind_PROPNN = 758 
   INTEGER, PARAMETER :: ind_GAOO = 759 
   INTEGER, PARAMETER :: ind_A3O2 = 760 
@@ -868,25 +868,25 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_O1D = 803 
   INTEGER, PARAMETER :: ind_MACR = 804 
   INTEGER, PARAMETER :: ind_MEK = 805 
-  INTEGER, PARAMETER :: ind_MVK = 806 
-  INTEGER, PARAMETER :: ind_CH2O = 807 
+  INTEGER, PARAMETER :: ind_CH2O = 806 
+  INTEGER, PARAMETER :: ind_MVK = 807 
   INTEGER, PARAMETER :: ind_ALD2 = 808 
   INTEGER, PARAMETER :: ind_MCO3 = 809 
   INTEGER, PARAMETER :: ind_SO2 = 810 
-  INTEGER, PARAMETER :: ind_NO = 811 
-  INTEGER, PARAMETER :: ind_NO3 = 812 
+  INTEGER, PARAMETER :: ind_NO3 = 811 
+  INTEGER, PARAMETER :: ind_O = 812 
   INTEGER, PARAMETER :: ind_Cl = 813 
-  INTEGER, PARAMETER :: ind_HO2 = 814 
+  INTEGER, PARAMETER :: ind_CO = 814 
   INTEGER, PARAMETER :: ind_ClO = 815 
-  INTEGER, PARAMETER :: ind_H2O = 816 
-  INTEGER, PARAMETER :: ind_Br = 817 
-  INTEGER, PARAMETER :: ind_NO2 = 818 
+  INTEGER, PARAMETER :: ind_Br = 816 
+  INTEGER, PARAMETER :: ind_MO2 = 817 
+  INTEGER, PARAMETER :: ind_H2O = 818 
   INTEGER, PARAMETER :: ind_O3 = 819 
-  INTEGER, PARAMETER :: ind_CO = 820 
+  INTEGER, PARAMETER :: ind_NO2 = 820 
   INTEGER, PARAMETER :: ind_HCl = 821 
-  INTEGER, PARAMETER :: ind_OH = 822 
-  INTEGER, PARAMETER :: ind_O = 823 
-  INTEGER, PARAMETER :: ind_MO2 = 824 
+  INTEGER, PARAMETER :: ind_HO2 = 822 
+  INTEGER, PARAMETER :: ind_NO = 823 
+  INTEGER, PARAMETER :: ind_OH = 824 
   INTEGER, PARAMETER :: ind_HBr = 825 
 
 ! Index declaration for fixed species in C

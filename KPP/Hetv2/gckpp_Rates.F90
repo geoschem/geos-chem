@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Tue Dec 20 12:28:18 2016
-! Working directory    : /n/home13/seastham/GCStandard/Code/Code.v11-01g-Iodine/KPP/Hetv2
+! Time                 : Mon Jun 26 16:25:46 2017
+! Working directory    : /work/home/ts551/data/all_model_simulations/iodine_runs/iGEOSChem_5.0/code_TMS_new/KPP/Hetv2
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -1018,10 +1018,6 @@ SUBROUTINE Update_RCONST ( )
   RCONST(533) = (HET(ind_HOCl,1))
   RCONST(534) = (HET(ind_HOCl,2))
   RCONST(535) = (HET(ind_HOBr,2))
-  RCONST(536) = (HET(ind_HOBr,3))
-  RCONST(537) = (HET(ind_HBr,3))
-  RCONST(538) = (HET(ind_HOBr,4))
-  RCONST(539) = (HET(ind_HBr,4))
       
 END SUBROUTINE Update_RCONST
 

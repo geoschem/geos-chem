@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Initialize.f90
-! Time                 : Wed Nov 30 14:50:58 2016
-! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/UCX
+! Time                 : Mon Jun 26 16:47:31 2017
+! Working directory    : /work/home/ts551/data/all_model_simulations/iodine_runs/iGEOSChem_5.0/code_TMS_new/KPP/UCX
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 

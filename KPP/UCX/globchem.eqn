@@ -392,10 +392,10 @@
 {299} BrO + OH = Br + HO2 :                            GCARR(1.70E-11, 0.0E+00, 250.0);
 {300} Br + NO3 = BrO + NO2 :                           GCARR(1.60E-11, 0.0E+00, 0.0);
 {301} Br + CH2O = HBr + HO2 + CO :                     GCARR(1.70E-11, 0.0E+00, -800.0);
-{302} Br + ALD2 = HBr + MCO3 + CO :                    GCARR(1.30E-11, 0.0E+00, -360.0);
-{303} Br + ACET = HBr + ATO2 + CO :                    GCARR(1.66E-10, 0.0E+00, -7000.0);
-{304} Br + C2H6 = HBr + ETO2 + CO :                    GCARR(2.36E-10, 0.0E+00, -6411.0);
-{305} Br + C3H8 = HBr + A3O2 + CO :                    GCARR(8.77E-11, 0.0E+00, -4330.0);
+{302} Br + ALD2 = HBr + MCO3 :                         GCARR(1.30E-11, 0.0E+00, -360.0);
+{303} Br + ACET = HBr + ATO2 :                         GCARR(1.66E-10, 0.0E+00, -7000.0);
+{304} Br + C2H6 = HBr + ETO2 :                         GCARR(2.36E-10, 0.0E+00, -6411.0);
+{305} Br + C3H8 = HBr + A3O2 :                         GCARR(8.77E-11, 0.0E+00, -4330.0);
 {306} Br + NO2 {+M} = BrNO2 {+M} :                     GCJPLPR(4.20E-31, 2.4E+00, 0.0, 2.7E-11, 0.0, 0.0, 0.6, 0.0, 0.0);
 {307} BrO + NO2 {+M} = BrNO3 {+M} :                    GCJPLPR(5.20E-31, 3.2E+00, 0.0, 6.9E-12, 2.9E0, 0.0, 0.6, 0.0, 0.0);
 {308} CHBr3 + OH = 3.000Br :                           GCARR(1.35E-12, 0.0E+00, -600.0);
