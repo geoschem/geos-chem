@@ -2174,7 +2174,6 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : GC_Error
       USE Input_Opt_Mod,      ONLY : OptInput     
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -2206,7 +2205,7 @@
 !                                Replace TCVV with spc db MW and phys constant
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
-
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

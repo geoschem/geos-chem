@@ -883,7 +883,6 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE ERROR_MOD,           ONLY : GC_Error
       USE Input_Opt_Mod,       ONLY : OptInput
       USE State_Chm_Mod,       ONLY : ChmState
       USE State_Met_Mod,       ONLY : MetState
@@ -906,8 +905,9 @@
 ! !REMARKS
 !
 ! !REVISION HISTORY: 
-!  04 Sep 2015 - C. Keller    - Initial version 
-!  03 Nov 2016 - C. Keller    - Moved to chemistry_mod
+!  04 Sep 2015 - C. Keller   - Initial version 
+!  03 Nov 2016 - C. Keller   - Moved to chemistry_mod
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

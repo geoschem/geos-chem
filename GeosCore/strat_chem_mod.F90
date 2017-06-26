@@ -1054,7 +1054,6 @@ CONTAINS
 !
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : GC_Error
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
@@ -1096,6 +1095,7 @@ CONTAINS
 !                              species ID from State_Chm%Map_Advect.
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1295,7 +1295,7 @@ CONTAINS
 !
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ALLOC_ERR, GC_Error
+    USE ERROR_MOD,          ONLY : ALLOC_ERR
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
@@ -1339,6 +1339,7 @@ CONTAINS
 !  12 Jul 2016 - R. Yantosca - Now also store advected species ID's
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  20 Sep 2016 - R. Yantosca - Rewrote GMI_TrName statement for Gfortran
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1631,7 +1632,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ERROR_MOD,     ONLY : GC_ERROR
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
     USE State_Chm_Mod, ONLY : ChmState
@@ -1659,6 +1659,7 @@ CONTAINS
 !                              INIT_STRAT_CHEM so that it can be called from
 !                              within DO_STRAT_CHEM (for ESMF applications).
 !  15 Mar 2017 - E. Lundgren - Add unit catch and error handling
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

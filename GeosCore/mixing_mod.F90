@@ -128,12 +128,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_MIXING ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+  SUBROUTINE DO_MIXING( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : GC_Error
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
     USE State_Met_Mod,      ONLY : MetState
@@ -165,6 +164,7 @@ CONTAINS
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

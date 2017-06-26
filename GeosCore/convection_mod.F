@@ -98,7 +98,6 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : CONVFLUP
-      USE ERROR_MOD,          ONLY : GC_Error
       USE UnitConv_Mod
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD38
@@ -199,7 +198,8 @@
 !  07 Jul 2016 - R. Yantosca - Now dimension DIAG14 and DIAG38 for the #
 !                              of soluble species (State_Chm%nWetDep)
 !  07 Jul 2016 - E. Lundgren - Now use spc kg/kg dry instead of kg/kg total
-!   8 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

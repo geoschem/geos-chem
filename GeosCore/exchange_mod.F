@@ -223,7 +223,6 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : GC_Error
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -250,6 +249,7 @@
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
 !  13 Aut 2015 - E. Lundgren - Now input tracer conc in kg/kg not v/v.
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

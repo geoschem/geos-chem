@@ -69,7 +69,6 @@
       USE BPCH2_MOD,          ONLY : GET_MODELNAME
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : GC_ERROR
       USE FILE_MOD,           ONLY : IOERROR
       USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
@@ -126,6 +125,7 @@
 !                              species ID from State_Chm%Map_Advect.
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  29 Nov 2016 - M. Sulprizio- Convert species locally from kg/kg to kg
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

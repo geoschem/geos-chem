@@ -1387,7 +1387,7 @@
 !
       USE CMN_SIZE_MOD                  ! Size parameters
       USE ErrCode_Mod
-      USE ERROR_MOD,               ONLY : ALLOC_ERR, GC_Error
+      USE ERROR_MOD,               ONLY : ALLOC_ERR
       USE GC_GRID_MOD,             ONLY : GET_AREA_M2
       USE GC_GRID_MOD,             ONLY : GET_YMID_R_W
       USE Input_Opt_Mod,           ONLY : OptInput
@@ -1420,6 +1420,7 @@
 !  04 Nov 2015 - M. Sulprizio- Renamed from INIT_GEOSFP_WINDOW_TRANSPORT to
 !                              INIT_WINDOW_TRANSPORT for use with all nested
 !                              grids
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
