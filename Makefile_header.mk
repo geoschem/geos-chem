@@ -1056,22 +1056,45 @@ LINK_HCO             :=$(LINK_HCO) -lNcUtils $(NC_LINK_CMD)
 ###                                                                         ###
 ###  Test if the netCDF library was built with compression enabled          ###
 ###                                                                         ###
+###  NOTE: Compressing the netCDF files will make it impossible to compare  ###
+###  them for identical-ness in a unit test or diff test.  Therefore, we    ###
+###  have added some extra checks to skip the compression if so desired.    ###
+###                                                                         ###
 ###############################################################################
 
-# Test if the "nf_def_var_deflate" function is defined in netcdf.inc
-# Look for netcdf.inc where the netCDF-Fortran library is located
-ifdef GC_F_INCLUDE
-  GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_F_INCLUDE)/netcdf.inc))
-else
-  GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_INCLUDE)/netcdf.inc))
+# Assume we will turn on netCDF compression (if present)
+IS_DEFLATE           :=1
+
+# Unless NC_NODEFLATE=y
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(NC_NODEFLATE)" =~ $(REGEXP) ]] && echo true),true)
+  IS_DEFLATE         :=0
 endif
 
-# Look for the second word of the combined search results
-WORD                 :=$(word 2,"$(GREP)")
+# Or DEBUG=y.  This will make sure unit tests and diff tests aren't affected.
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
+  IS_DEFLATE         :=0
+endif
 
-# If it matches "nf_def_var_deflate", then define Cpp flag NC_HAS_COMPRESSION 
-ifeq ($(WORD),nf_def_var_deflate)
-  USER_DEFS          += -DNC_HAS_COMPRESSION
+# Skip netCDF compression unless it's requested (or not a debug run)
+ifeq ($(IS_DEFLATE),1)
+
+  # Test if the "nf_def_var_deflate" function is defined in netcdf.inc
+  # Look for netcdf.inc where the netCDF-Fortran library is located
+  ifdef GC_F_INCLUDE
+    GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_F_INCLUDE)/netcdf.inc))
+  else
+    GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_INCLUDE)/netcdf.inc))
+  endif
+
+  # Look for the second word of the combined search results
+  WORD               :=$(word 2,"$(GREP)")
+
+  # If it matches "nf_def_var_deflate", then define Cpp flag NC_HAS_COMPRESSION 
+  ifeq ($(WORD),nf_def_var_deflate)
+    USER_DEFS        += -DNC_HAS_COMPRESSION
+  endif
 endif
 
 ###############################################################################
@@ -1146,7 +1169,7 @@ ifeq ($(COMPILER_FAMILY),GNU)
     FFLAGS           += -g -gdwarf-2 -gstrict-dwarf -O0
     FFLAGS           += -Wall -Wextra -Wconversion
     FFLAGS           += -Warray-temporaries -fcheck-array-temporaries
-    TRACEBACK        := yes
+    TRACEBACK        :=yes
     USER_DEFS        += -DDEBUG
   else
     FFLAGS           += $(OPT)
@@ -1282,7 +1305,7 @@ ifeq ($(COMPILER_FAMILY),Intel)
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
     FFLAGS           += -g -O0 -check arg_temp_created -debug all
-    TRACEBACK        := yes
+    TRACEBACK        :=yes
     USER_DEFS        += -DDEBUG
   else
     FFLAGS           += $(OPT) -vec-report0
@@ -1412,6 +1435,7 @@ ifeq ($(COMPILER_FAMILY),PGI)
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
     FFLAGS           += -g -O0
+    TRACEBACK        :=yes
     USER_DEFS        += -DDEBUG
   else
     FFLAGS           += $(OPT)
