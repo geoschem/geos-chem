@@ -437,7 +437,7 @@ CONTAINS
     ENDIF
 
 #if defined( TOMAS )
-    IF ( ExtState%TOMAS_DustDead ) THEN
+    IF ( ExtState%TOMAS_DustDead > 0) THEN
        !print*, 'JACK TOMAS_DustDead is on'
        CALL HCOX_TOMAS_DustDead_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -624,7 +624,7 @@ CONTAINS
        IF ( ExtState%LightNOx > 0  ) CALL HCOX_LIGHTNOX_Final( ExtState )
        IF ( ExtState%DustDead > 0  ) CALL HCOX_DustDead_Final( ExtState )
 #if defined( TOMAS)
-       IF ( ExtState%TOMAS_DustDead )  CALL HCOX_TOMAS_DustDead_Final(ExtState)
+       IF ( ExtState%TOMAS_DustDead > 0)  CALL HCOX_TOMAS_DustDead_Final(ExtState)
 #endif
        IF ( ExtState%DustGinoux    ) CALL HCOX_DustGinoux_Final()
        IF ( ExtState%SeaSalt       ) CALL HCOX_SeaSalt_Final()
