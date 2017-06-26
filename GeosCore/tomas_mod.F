@@ -656,7 +656,6 @@
 
 !vbn         write(890,89)I,J,L,Spc(i,j,l,id_H2SO4)
 
-
          !if(printdebug)          print *,'+++++',I,J,L,'inside Aerophys'
  
          ! Get info on this grid box
@@ -1231,7 +1230,7 @@
 ! Initialize values of Nkf, Mkf, Gcf, and time
       do j=1,icomp-1
          Gc1(j)=Gci(j)
-!         Gcf(j)=Gci(j) !sfarina
+         Gcf(j)=Gci(j)
       enddo
       do k=1,ibins
          Nk1(k)=Nki(k)

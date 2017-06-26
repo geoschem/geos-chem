@@ -5448,7 +5448,6 @@ ccc
       ENDIF 
 
       ! ---------FOSSIL FUEL EMISSIONS IN 3d---------------------------
-      !flatten emissions for now
       DO EMTYPE = 1,4
          SELECT CASE (EMTYPE)
            CASE (1)
@@ -5472,6 +5471,9 @@ ccc
      &                        THISLOC=LOC )
          ELSE
             emis2d(:,:) = 0.0d0
+
+            !flatten emissions into a 2d array for now
+            !they get distributed over the pbl by emithigh or subgridcoag
             DO L = 1, LLPAR
                emis2d(:,:) = emis2d(:,:) + Ptr3D(:,:,L)
             ENDDO
