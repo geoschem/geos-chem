@@ -316,7 +316,7 @@ CONTAINS
     ExtState%GC_POPs        = .FALSE.
     ExtState%Wetland_CH4    = -1 
     ExtState%TOMAS_Jeagle   = .FALSE.
-    ExtState%TOMAS_DustDead = .FALSE.
+    ExtState%TOMAS_DustDead = -1
     ExtState%AeroCom        = -1
 
     !-----------------------------------------------------------------------

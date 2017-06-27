@@ -290,19 +290,27 @@
       REAL(fp), ALLOCATABLE :: GLOB_DARO2(:,:,:,:,:) ! Diagnostic (dkh, 11/10/06) 
 
 #if defined( TOMAS )
-      REAL(fp), ALLOCATABLE :: BCPI_ANTH_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: BCPO_ANTH_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: BCPI_BIOF_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: BCPO_BIOF_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: BCPI_BIOB_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: BCPO_BIOB_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: BCFF(:,:,:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCFF(:,:,:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: BCBF(:,:,:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCBF(:,:,:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: BCBB(:,:,:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCBB(:,:,:,:)
 
-      REAL(fp), ALLOCATABLE :: OCPI_ANTH_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: OCPO_ANTH_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: OCPI_BIOF_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: OCPO_BIOF_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: OCPI_BIOB_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: OCPO_BIOB_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: BCPI_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: BCPO_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCPI_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCPO_ANTH_BULK(:,:)
+
+      REAL(fp), ALLOCATABLE, TARGET :: BCPI_BIOF_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: BCPO_BIOF_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCPI_BIOF_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCPO_BIOF_BULK(:,:)
+
+      REAL(fp), ALLOCATABLE, TARGET :: BCPI_BIOB_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: BCPO_BIOB_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCPI_BIOB_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCPO_BIOB_BULK(:,:)
 
       REAL(fp), ALLOCATABLE :: TERP_ORGC(:,:)
       REAL(fp), ALLOCATABLE :: CO_ANTH(:,:)
@@ -359,7 +367,6 @@
       INTEGER :: id_LTRO2H,  id_LXRO2N, id_LXRO2H, id_LNRO2N, id_LNRO2H
       INTEGER :: id_LISOPOH, id_LISOPNO3
       INTEGER :: id_SOAS,    id_SOAP
-
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -1525,7 +1532,7 @@
      &                        AVO*(XMW*1.e-3_fp)*(XAIRM3*1.e+6_fp)
                      XUPTKSUM = XUPTKSUM + XUPTK1
 
-	            ENDIF
+               ENDIF
            
                ENDDO
 
@@ -4749,7 +4756,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMITSGC( EMISMASS,  CTYPE, 
+      SUBROUTINE EMITSGC( EMISMASS,  CTYPE,
      &                    Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
@@ -4769,6 +4776,7 @@
       USE TOMAS_MOD,          ONLY : SRTOCOB,  SRTSO4,   SRTNH4
       USE TOMAS_MOD,          ONLY : SRTH2O,   MNFIX
       USE TOMAS_MOD,          ONLY : SUBGRIDCOAG
+      USE TOMAS_MOD,          ONLY : SGCTSCALE
       USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
 !
 ! !INPUT PARAMETERS:
@@ -4803,7 +4811,7 @@
       REAL(fp)  :: MDIST(IBINS,ICOMP)
       REAL(fp)  :: NDIST2(IBINS)
       REAL(fp)  :: MDIST2(IBINS,ICOMP)
-      REAL*4    :: TSCALE, BOXVOL, TEMP, PRES
+      REAL*4    :: BOXVOL, TEMP, PRES
       INTEGER   :: I, J, L, K, C, PBL_MAX
       REAL(fp)  :: F_OF_PBL
       LOGICAL   :: ERRORSWITCH, PDBUG
@@ -4825,7 +4833,7 @@
       !=================================================================
       
       IF ( Input_Opt%LNLPBL ) THEN 
-         print *,'Currently subroutine EMITHIGH2 does not support ',
+         print *,'Currently subroutine EMITSGC does not support ',
      &        'the new non-local PBL scheme!'
          stop
       ENDIF
@@ -4854,8 +4862,8 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
       IF ( SUM( EMISMASS(I,J,:) ) == 0.e+0_fp ) GOTO 100
-      DO L = 1, PBL_MAX
 
+      DO L = 1, PBL_MAX
          ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
          F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
 
@@ -4890,30 +4898,6 @@
             MOB0(L,:) = MDIST(:,SRTOCOB)
          ENDIF
 
-      ! Define subgrid coagulation timescale (win, 10/28/08)
-#if   defined( GRID4x5   ) 
-      TSCALE = 10.*3600.        ! 10 hours
-#elif defined( GRID2x25  )
-      TSCALE = 5.*3600.    
-#elif defined( GRID1x125 )
-      TSCALE = 2.*3600.    
-#elif defined( GRID1x1   ) 
-      TSCALE = 2.*3600.    
-#elif defined( GRID05x0666 ) 
-      TSCALE = 1.*3600.
-#elif defined( GRID05x0625 )
-      ! Copy the 05x0666 timescale for now
-      TSCALE = 1.*3600.
-#elif defined( GRID025x03125 )
-      ! Copy the 05x0666 timescale for now
-      ! (skim, 5/20/12)
-      TSCALE = 1.*3600.
-#endif
-        !Prior to 10/28/08 (win)     
-        !TSCALE = 10.*3600.
-!            print *, 'Now doing subgrid coag with timescale ',
-!     &           TSCALE/3600.,'hr'
-
          BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
          TEMP    = State_Met%T(I,J,L)
          PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa
@@ -4927,8 +4911,7 @@
 !temp debug         if( dbg .and. i==ii .and. j==jj .and. l==ll ) PDBUG = .TRUE.
 
          CALL SUBGRIDCOAG( NDISTINIT, NDIST, MDIST, BOXVOL,TEMP,
-!     &                     PRES, TSCALE, NDISTFINAL, MADDFINAL   ) 
-     &                     PRES, TSCALE, NDISTFINAL, MADDFINAL,pdbug)
+     &                     PRES, SGCTSCALE, NDISTFINAL, MADDFINAL,pdbug)
          IF ( PDBUG ) THEN
             PRINT *,'Found error in SUBGRIDCOAG at', I,J,L
             PRINT *,'Nk',Spc(I,J,L,id_NK1:id_NK1+ibins-1)
@@ -5018,17 +5001,18 @@ ccc
       IF ( ND59 > 0 ) THEN 
          DO L = 1, PBL_MAX
          DO K = 1, IBINS
-            IF ( CTYPE == 1 ) THEN
+            SELECT CASE (CTYPE)
+              CASE (1)
                AD59_ECIL(I,J,1,K) = AD59_ECIL(I,J,1,K) + 
      &                              ( MIL1(L,K) - MIL0(L,K) )
                AD59_ECOB(I,J,1,K) = AD59_ECOB(I,J,1,K) + 
      &                              ( MOB1(L,K) - MOB0(L,K) )
-            ELSE
+              CASE (2)
                AD59_OCIL(I,J,1,K) = AD59_OCIL(I,J,1,K) + 
      &                              ( MIL1(L,K) - MIL0(L,K) )
                AD59_OCOB(I,J,1,K) = AD59_OCOB(I,J,1,K) + 
      &                              ( MOB1(L,K) - MOB0(L,K) )
-            ENDIF
+            END SELECT
             AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + 
      &                           ( N1(L,K) - N0(L,K) )
          ENDDO
@@ -5036,10 +5020,10 @@ ccc
       ENDIF
 
  100  CONTINUE
- 
+
       ENDDO ! I loop
       ENDDO ! J loop
-
+ 
       ! Free pointer
       Spc => NULL()
 
@@ -5060,21 +5044,23 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION SCALECARB( BULKEMIS, STYPE, CTYPE ) RESULT( VALUE )
+      FUNCTION SCALECARB( BULKEMIS, STYPE, CTYPE ) RESULT( tomasdist )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE TOMAS_MOD,   ONLY : IBINS
+      USE TOMAS_MOD,   ONLY : OCSCALE30,  ECSCALE30
+      USE TOMAS_MOD,   ONLY : OCSCALE100, ECSCALE100
 !
 ! !INPUT PARAMETERS:
 !
       REAL(fp),  INTENT(IN) :: BULKEMIS(IIPAR, JJPAR)
-      INTEGER, INTENT(IN) :: STYPE,  CTYPE
+      INTEGER,   INTENT(IN) :: STYPE,  CTYPE
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)              :: VALUE(IIPAR, JJPAR, IBINS)
+      REAL(fp)              :: tomasdist(IIPAR, JJPAR, IBINS)
 !
 ! !REMARKS:
 !    STYPE (source type): 1 = Fossil fule
@@ -5098,115 +5084,32 @@ ccc
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, K
-      REAL(fp)              :: ECSCALE30(IBINS), ECSCALE100(IBINS)
-      REAL(fp)              :: OCSCALE30(IBINS), OCSCALE100(IBINS)
+      INTEGER               :: I, J, K
 
-#if  defined( TOMAS12 ) || defined( TOMAS15 )
+      REAL(fp)              :: scalefactor(IBINS)
 
-      data OCSCALE30/
-# if  defined( TOMAS15)
-     & 0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     ,
-# endif
-     & 1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02,
-     & 1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01,
-     & 9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05/! use for fossil fuel (bimodal)
+      scalefactor = 0.0d0
 
-      data OCSCALE100/
-# if  defined( TOMAS15)
-     & 0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     ,
-# endif
-     & 1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03,
-     & 2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01,
-     & 2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04/! use for biomass burning
-
-      data ECSCALE30/
-# if  defined( TOMAS15)
-     & 0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     ,
-# endif
-     & 1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02,
-     & 1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01,
-     & 9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05/! use for fossil fuel (bimodal)
-
-      data ECSCALE100/
-# if  defined( TOMAS15)
-     & 0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     ,
-# endif
-     & 1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03,
-     & 2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01,
-     & 2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04/  ! use for biomass burning
-
-
-#else
-
-      DATA OCSCALE30/      ! use for fossil fuel
-# if  defined( TOMAS40)
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
-# endif
-     &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
-     &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
-     &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
-     &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
-     &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
-     &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
-
-      DATA OCSCALE100/     ! use for biomass burning
-# if  defined( TOMAS40)
-     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
-     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
-# endif
-     &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
-     &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
-     &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
-     &   0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  ,
-     &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
-     &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
-
-      DATA ECSCALE30/      ! use for fossil fuel
-# if  defined( TOMAS40)
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
-# endif
-     &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
-     &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
-     &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
-     &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
-     &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
-     &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
-
-      DATA ECSCALE100/     ! use for biomass burning
-# if  defined( TOMAS40)
-     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
-     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
-# endif
-     &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
-     &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
-     &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
-     &   0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  ,
-     &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
-     &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
-#endif
-
-      DO K = 1, IBINS
-      DO J = 1, JJPAR
+      SELECT CASE (CTYPE)
+        CASE (1)
+          SELECT CASE (STYPE)
+            CASE (1)
+              scalefactor(:) = ECSCALE30(:)
+            CASE (2)
+              scalefactor(:) = ECSCALE100(:)
+          END SELECT
+        CASE (2)
+          SELECT CASE (STYPE)
+            CASE (1)
+              scalefactor(:) = OCSCALE30(:)
+            CASE (2)
+              scalefactor(:) = OCSCALE100(:)
+          END SELECT
+      END SELECT
+      
       DO I = 1, IIPAR
-
-      IF ( CTYPE == 1 ) THEN
-         IF ( STYPE == 1 ) THEN
-            VALUE(I,J,K) = BULKEMIS(I,J)*ECSCALE30(K)
-         ELSE  ! for STYPE 2 and 3
-            VALUE(I,J,K) = BULKEMIS(I,J)*ECSCALE100(K)
-         ENDIF
-      ELSE
-         IF ( STYPE == 1 ) THEN
-            VALUE(I,J,K) = BULKEMIS(I,J)*OCSCALE30(K)
-         ELSE  ! for STYPE 2 and 3
-            VALUE(I,J,K) = BULKEMIS(I,J)*OCSCALE100(K)
-         ENDIF
-      ENDIF
-
-      ENDDO
+      DO J = 1, JJPAR
+         tomasdist(I,J,:) = BULKEMIS(I,J)*scalefactor(:)
       ENDDO
       ENDDO
 
@@ -5454,6 +5357,9 @@ ccc
 !  12 Jun 2015 - R. Yantosca - Bug fix: also add reference to DEBUG_MSG
 !  10 Jul 2015 - R. Yantosca - Fixed typo in ProTeX header
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  25 Jun 2017 - S. Farina   - take 3d emis from hemco, squash it to surface, and
+!                              use subgrid coag or emithigh2 to spread thru pbl.
+!                              real 3d emis might happen next...
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5464,14 +5370,6 @@ ccc
       INTEGER                  :: I, I0, IREF, J, J0, JREF, N
       INTEGER                  :: FLAG, ERR
       REAL(fp)                 :: DTSRCE, AREA_M2
-
-      ! Arrays
-      REAL(fp)                 :: BCFF(IIPAR, JJPAR, IBINS, 2)
-      REAL(fp)                 :: OCFF(IIPAR, JJPAR, IBINS, 2)
-      REAL(fp)                 :: BCBF(IIPAR, JJPAR, IBINS, 2)
-      REAL(fp)                 :: OCBF(IIPAR, JJPAR, IBINS, 2)
-      REAL(fp)                 :: BCBB(IIPAR, JJPAR, IBINS, 2)
-      REAL(fp)                 :: OCBB(IIPAR, JJPAR, IBINS, 2)
 
       REAL(fp)                 :: XTRA_ORG_A(IIPAR, JJPAR)
       REAL(fp)                 :: CO_ANTH_TOTAL
@@ -5490,7 +5388,7 @@ ccc
 
       LOGICAL                  :: SGCOAG = .True.
 
-      INTEGER                  :: K
+      INTEGER                  :: L, K, EMTYPE
 
       INTEGER                  :: ii=53, jj=29
 
@@ -5501,7 +5399,9 @@ ccc
       LOGICAL                  :: LPRT
 
       ! Pointers
+      REAL(fp),        POINTER :: emis2D(:,:)
       REAL(f4),        POINTER :: Ptr2D(:,:)
+      REAL(f4),        POINTER :: Ptr3D(:,:,:)
 
       !=================================================================
       ! EMISSCARBONTOMAS begins here!
@@ -5515,11 +5415,19 @@ ccc
       J0                  = GET_YOFFSET()
 
       ! Initialize pointers
+      emis2d              => NULL()
       Ptr2D               => NULL()
+      Ptr3D               => NULL()
 
       ! Import emissions from HEMCO (through HEMCO state)
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not defined!', LOC )
+      ENDIF
+
+      IF ( .NOT. (id_NK1 > 0 .AND. id_ECIL1 > 0 .AND.
+     &     id_ECOB1 > 0 .AND. id_OCIL1 > 0 .AND.
+     &     id_OCOB1 > 1 )) THEN
+         CALL ERROR_STOP ( 'TOMAS Species not defined!', LOC )
       ENDIF
 
       ! Emission timestep [seconds]
@@ -5539,26 +5447,52 @@ ccc
          RETURN
       ENDIF 
 
-      ! ---------BC---------------------------------------------------
-      DgnName = 'BCPI_ANTH'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
-     &  Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         BCPI_ANTH_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
+      ! ---------FOSSIL FUEL EMISSIONS IN 3d---------------------------
+      DO EMTYPE = 1,4
+         SELECT CASE (EMTYPE)
+           CASE (1)
+               DgnName = 'BCPI_ANTH'
+               emis2d  => BCPI_ANTH_BULK
+           CASE (2)
+               DgnName = 'OCPI_ANTH'
+               emis2d  => OCPI_ANTH_BULK
+           CASE (3)
+               DgnName = 'BCPO_ANTH'
+               emis2d  => BCPO_ANTH_BULK
+           CASE (4)
+               DgnName = 'OCPO_ANTH'
+               emis2d  => OCPO_ANTH_BULK
+         END SELECT
 
-      DgnName = 'BCPO_ANTH'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         BCPO_ANTH_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
+         CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
+     &                     Ptr3D=Ptr3D )
+         IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
+            CALL HCO_WARNING( 'Not found: '//TRIM(DgnName),ERR,
+     &                        THISLOC=LOC )
+         ELSE
+            emis2d(:,:) = 0.0d0
 
+            !flatten emissions into a 2d array for now
+            !they get distributed over the pbl by emithigh or subgridcoag
+            DO L = 1, LLPAR
+               emis2d(:,:) = emis2d(:,:) + Ptr3D(:,:,L)
+            ENDDO
+            ! [kg/box/time step]
+            emis2d(:,:) = emis2d(:,:) * AREA(:,:) * DTSRCE
+         ENDIF
+         emis2d => NULL()
+         Ptr3D  => NULL()
+      ENDDO
+
+      ! ---- SCALE INTO TOMAS BINS ---------------------------
+      BCFF(:,:,:,1) = SCALECARB( BCPI_ANTH_BULK(:,:), 1, 1 )
+      BCFF(:,:,:,2) = SCALECARB( BCPO_ANTH_BULK(:,:), 1, 1 )
+      OCFF(:,:,:,1) = OC2OM * SCALECARB( OCPI_ANTH_BULK(:,:), 1, 2 )
+      OCFF(:,:,:,2) = OC2OM * SCALECARB( OCPO_ANTH_BULK(:,:), 1, 2 )
+
+      !end 3d emis
+
+      ! ---------other EMISSIONS IN 2d---------------------------------
       DgnName = 'BCPI_BF'
       CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
@@ -5574,44 +5508,6 @@ ccc
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
          BCPO_BIOF_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-
-
-      DgnName = 'BCPI_BB'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         BCPI_BIOB_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-
-      DgnName = 'BCPO_BB'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         BCPO_BIOB_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-
-      ! ----- OC -----------------------------------------------------
-      DgnName = 'OCPI_ANTH'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         OCPI_ANTH_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-
-      DgnName = 'OCPO_ANTH'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         OCPO_ANTH_BULK = Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -5631,6 +5527,24 @@ ccc
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
          OCPO_BIOF_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'BCPI_BB'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPI_BIOB_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'BCPO_BB'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPO_BIOB_BULK = Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -5654,57 +5568,37 @@ ccc
       ENDIF
       Ptr2D => NULL()
 
-      ! [kg/box/time step]
-      BCPI_ANTH_BULK = BCPI_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
-      BCPO_ANTH_BULK = BCPO_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
+      !2d emis
       BCPI_BIOF_BULK = BCPI_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
       BCPO_BIOF_BULK = BCPO_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
-      BCPI_BIOB_BULK = BCPI_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
-      BCPO_BIOB_BULK = BCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
-
-      OCPI_ANTH_BULK = OCPI_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
-      OCPO_ANTH_BULK = OCPO_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
       OCPI_BIOF_BULK = OCPI_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
       OCPO_BIOF_BULK = OCPO_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
+
+      BCPI_BIOB_BULK = BCPI_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
+      BCPO_BIOB_BULK = BCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
       OCPI_BIOB_BULK = OCPI_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
       OCPO_BIOB_BULK = OCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
 
-      ! ---- SCALE INTO TOMAS BINS ---------------------------
-      IF ( id_NK1 > 0 .AND. id_ECIL1 > 0 .AND.
-     &     id_ECOB1 > 0 .AND. id_OCIL1 > 0 .AND.
-     &     id_OCOB1 > 1 ) THEN
+      !2d biofuel
+      BCBF(:,:,:,1) = SCALECARB( BCPI_BIOF_BULK(:,:), 2, 1 ) 
+      BCBF(:,:,:,2) = SCALECARB( BCPO_BIOF_BULK(:,:), 2, 1 ) 
+      OCBF(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOF_BULK(:,:), 2, 2 ) 
+      OCBF(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOF_BULK(:,:), 2, 2 )
 
-         BCFF(:,:,:,1) = SCALECARB( BCPI_ANTH_BULK(:,:), 1, 1 )
-         BCBF(:,:,:,1) = SCALECARB( BCPI_BIOF_BULK(:,:), 2, 1 ) 
-         BCBB(:,:,:,1) = SCALECARB( BCPI_BIOB_BULK(:,:), 3, 1 )
+      !2d bioburn
+      BCBB(:,:,:,1) = SCALECARB( BCPI_BIOB_BULK(:,:), 3, 1 )
+      BCBB(:,:,:,2) = SCALECARB( BCPO_BIOB_BULK(:,:), 3, 1 )
+      OCBB(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOB_BULK(:,:), 3, 2 )
+      OCBB(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOB_BULK(:,:), 3, 2 )
 
-         BCFF(:,:,:,2) = SCALECARB( BCPO_ANTH_BULK(:,:), 1, 1 )
-         BCBF(:,:,:,2) = SCALECARB( BCPO_BIOF_BULK(:,:), 2, 1 ) 
-         BCBB(:,:,:,2) = SCALECARB( BCPO_BIOB_BULK(:,:), 3, 1 )
-
-         OCFF(:,:,:,1) = OC2OM * SCALECARB( OCPI_ANTH_BULK(:,:), 1, 2 )
-         OCBF(:,:,:,1) =OC2OM*SCALECARB( OCPI_BIOF_BULK(:,:), 2, 2 ) 
-         OCBB(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOB_BULK(:,:), 3, 2 )
-
-         OCFF(:,:,:,2) = OC2OM * SCALECARB( OCPO_ANTH_BULK(:,:), 1, 2 )
-         OCBF(:,:,:,2) =OC2OM*SCALECARB( OCPO_BIOF_BULK(:,:), 2, 2 )
-         OCBB(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOB_BULK(:,:), 3, 2 )
-
-         ! Add into BCSRC and OCSRC
-         BCSRC(:,:,:,1) = BCFF(:,:,:,1) + BCBF(:,:,:,1) +
-     &        BCBB(:,:,:,1)
-
-         BCSRC(:,:,:,2) = BCFF(:,:,:,2) + BCBF(:,:,:,2) +
-     &        BCBB(:,:,:,2)
-
-         OCSRC(:,:,:,1) = OCFF(:,:,:,1) + OCBF(:,:,:,1) +
-     &        OCBB(:,:,:,1)
-
-         OCSRC(:,:,:,2) = OCFF(:,:,:,2) + OCBF(:,:,:,2) +
-     &        OCBB(:,:,:,2)
+      ! Add into BCSRC and OCSRC
+      BCSRC(:,:,:,1) = BCFF(:,:,:,1) + BCBF(:,:,:,1) + BCBB(:,:,:,1)
+      BCSRC(:,:,:,2) = BCFF(:,:,:,2) + BCBF(:,:,:,2) + BCBB(:,:,:,2)
+      OCSRC(:,:,:,1) = OCFF(:,:,:,1) + OCBF(:,:,:,1) + OCBB(:,:,:,1)
+      OCSRC(:,:,:,2) = OCFF(:,:,:,2) + OCBF(:,:,:,2) + OCBB(:,:,:,2)
 
       IF ( SGCOAG ) THEN
-
+!emitsgc uses total OC or EC mass 
          ! SUM mass terms into TEMP_MASS and pass to EMITSFC
          TMP_MASS = BCSRC(:,:,:,1) + BCSRC(:,:,:,2)
          CALL EMITSGC( TMP_MASS, 1, Input_Opt, State_Met, State_Chm )
@@ -5712,21 +5606,22 @@ ccc
          TMP_MASS = OCSRC(:,:,:,1) + OCSRC(:,:,:,2)
          CALL EMITSGC( TMP_MASS, 2, Input_Opt, State_Met, State_Chm )
       ELSE
-           !-----------------------------------------
-           ! Add emission w/o sub-grid coagulation
-           !-----------------------------------------
+         !-----------------------------------------
+         ! Add emission w/o sub-grid coagulation
+         !-----------------------------------------
 
-           ! Convert the total mass emission to number emisison [No.]
-           DO K = 1, IBINS
-              NUMBSRC(:,:,K) = ( BCSRC(:,:,K,1) + BCSRC(:,:,K,2) +
-     &                          OCSRC(:,:,K,1) + OCSRC(:,:,K,2) )/
-     &                          AVGMASS(K)
-           ENDDO
+         ! Convert the total mass emission to number emisison [No.]
+         DO K = 1, IBINS
+            NUMBSRC(:,:,K) = ( BCSRC(:,:,K,1) + BCSRC(:,:,K,2) +
+     &                         OCSRC(:,:,K,1) + OCSRC(:,:,K,2) )/
+     &                         AVGMASS(K)
+         ENDDO
 
-           CALL EMITHIGH2( BCSRC, OCSRC, NUMBSRC,
-     &                     Input_Opt, State_Chm )
-
+         CALL EMITHIGH2( BCSRC, OCSRC, NUMBSRC,
+     &                   Input_Opt, State_Chm )
       ENDIF  !sgcoag
+
+!end anthro emissions
 
       ! READ IN directly emitted SOAS (sfarina / jkodros)
       Ptr2D => NULL()
@@ -5761,8 +5656,6 @@ ccc
 
       IF ( LPRT )
      &    CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
-
-      ENDIF  ! size resolved > 0
 
       ! Convert State_Chm%Species back to kg (ewl, 9/11/15)
       CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
@@ -6889,7 +6782,7 @@ ccc
 !
       INTEGER              :: I,    J,    L
       REAL(fp)             :: PRES, PSFC, RH2, R0, B0
-		
+
       !=================================================================
       ! GET_VCLDF begins here!
       !=================================================================
@@ -7572,7 +7465,7 @@ ccc
       ELSEIF ( id_OCPI > 0 ) THEN
          MOTEMP = MOTEMP +
      &           ( Spc(I,J,L,id_OCPI) + 
-     &			 Spc(I,J,L,id_OCPO) ) * 2.1e+0_fp
+     &             Spc(I,J,L,id_OCPO) ) * 2.1e+0_fp
       ENDIF
 
       ! Convert Mo from [kg] to [ug/m3]
@@ -8822,6 +8715,9 @@ ccc
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_
       USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
+#if defined( TOMAS )
+      USE TOMAS_MOD,          ONLY : IBINS
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -9002,6 +8898,33 @@ ccc
 
       ! JKODROS
 #if defined( TOMAS )
+      !SFARINA the next six are introduced with the idea that 
+      ! emisscarbontomas needs to be restructured and these
+      ! data structures eliminated
+      ALLOCATE( BCFF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCFF' )
+      BCFF = 0e+0_fp
+
+      ALLOCATE( OCFF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCFF' )
+      OCFF = 0e+0_fp
+
+      ALLOCATE( BCBF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCBF' )
+      BCBF = 0e+0_fp
+
+      ALLOCATE( OCBF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCBF' )
+      OCBF = 0e+0_fp
+
+      ALLOCATE( BCBB( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCBB' )
+      BCBB = 0e+0_fp
+
+      ALLOCATE( OCBB( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCBB' )
+      OCBB = 0e+0_fp
+
       ! BC 
       ALLOCATE( BCPI_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_ANTH_BULK' )
@@ -9169,6 +9092,12 @@ ccc
       IF ( ALLOCATED( SPECSOAEVAP   ) ) DEALLOCATE( SPECSOAEVAP   )
 
 #if defined ( TOMAS )
+      IF ( ALLOCATED( BCFF           )) DEALLOCATE( BCFF          )
+      IF ( ALLOCATED( OCFF           )) DEALLOCATE( OCFF          )
+      IF ( ALLOCATED( BCBF           )) DEALLOCATE( BCBF          )
+      IF ( ALLOCATED( OCBF           )) DEALLOCATE( OCBF          )
+      IF ( ALLOCATED( BCBB           )) DEALLOCATE( BCBB          )
+      IF ( ALLOCATED( OCBB           )) DEALLOCATE( OCBB          )
       IF ( ALLOCATED( BCPI_ANTH_BULK )) DEALLOCATE( BCPI_ANTH_BULK)
       IF ( ALLOCATED( BCPO_ANTH_BULK )) DEALLOCATE( BCPO_ANTH_BULK)
       IF ( ALLOCATED( BCPI_BIOF_BULK )) DEALLOCATE( BCPI_BIOF_BULK)
