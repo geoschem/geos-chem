@@ -597,174 +597,698 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%FROCEAN', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Met%GRN       ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! GRN [1]
+    !-------------------------
+    ALLOCATE( State_Met%GRN( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%GRN', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%GRN      = 0.0_fp 
+    State_Met%GRN = 0.0_fp 
 
-    ALLOCATE( State_Met%GWETROOT  ( IM, JM ), STAT=RC )
+    Desc  = 'Greenness fraction'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'GRN',                         &
+                            Units=Units,      Data2d=State_Met%GRN,         &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%GRN', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! GWETROOT [1]
+    !-------------------------
+    ALLOCATE( State_Met%GWETROOT( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%GWETROOT', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%GWETROOT = 0.0_fp 
 
-    ALLOCATE( State_Met%GWETTOP   ( IM, JM ), STAT=RC )
+    Desc  = 'Root soil wetness'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'GWETROOT',                    &
+                            Units=Units,      Data2d=State_Met%GWETROOT,    &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%GWETROOT', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%GWETTOP  = 0.0_fp 
 
-    ALLOCATE( State_Met%HFLUX     ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! GWETTOP [1]
+    !-------------------------
+    ALLOCATE( State_Met%GWETTOP( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%GWETTOP', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%HFLUX    = 0.0_fp 
+    State_Met%GWETTOP = 0.0_fp 
 
-    ALLOCATE( State_Met%LAI       ( IM, JM ), STAT=RC )
+    Desc  = 'Top soil moisture'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'GWETTOP',                     &
+                            Units=Units,      Data2d=State_Met%GWETTOP,     &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%LAI      = 0.0_fp
 
-    ALLOCATE( State_Met%ITY       ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! HFLUX [W m-2]
+    !-------------------------
+    ALLOCATE( State_Met%HFLUX( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%HFLUX', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%ITY      = 1.d0
+    State_Met%HFLUX = 0.0_fp 
 
-    ALLOCATE( State_Met%LWI       ( IM, JM ), STAT=RC )
+    Desc  = 'Sensible heat flux'
+    Units = 'W m-2'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'HFLUX',                       &
+                            Units=Units,      Data2d=State_Met%HFLUX,       &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%HFLUX', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%LWI      = 0.0_fp
 
-    ALLOCATE( State_Met%PARDR     ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! LAI [1]
+    !-------------------------  
+    ALLOCATE( State_Met%LAI( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%LAI', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%PARDR    = 0.0_fp
+    State_Met%LAI = 0.0_fp
 
-    ALLOCATE( State_Met%PARDF     ( IM, JM ), STAT=RC )
+    Desc  = 'Leaf area index from GMAO'
+    Units = 'm2 m-2'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'LAI',                         &
+                            Units=Units,      Data2d=State_Met%LAI,         &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%LAI', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%PARDF    = 0.0_fp
 
-    ALLOCATE( State_Met%PBLH      ( IM, JM ), STAT=RC )
+
+    !-------------------------
+    ! ITY [1]
+    !-------------------------
+    ALLOCATE( State_Met%ITY( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%ITY', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%PBLH     = 0.0_fp
+    State_Met%ITY = 1.0_fp
 
-    ALLOCATE( State_Met%PBL_TOP_L ( IM, JM ), STAT=RC )
+    Desc  = 'Land surface type index'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'ITY',                         &
+                            Units=Units,      Data2d=State_Met%ITY,         &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%ITY', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! LWI [1]
+    !-------------------------
+    ALLOCATE( State_Met%LWI( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%LWI', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%LWI = 0.0_fp
+
+    Desc  = 'Land-water-ice indices'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'LWI',                         &
+                            Units=Units,      Data2d=State_Met%LWI,         &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%LWI', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! PARDR [W m-2]
+    !-------------------------
+    ALLOCATE( State_Met%PARDR( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%PARDR', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%PARDR = 0.0_fp
+
+    Desc  = 'Direct photosynthetically-active radiation'
+    Units = 'W m-2'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'PARDR',                       &
+                            Units=Units,      Data2d=State_Met%PARDR,       &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%PARDR', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! PARDF [W m-2]
+    !-------------------------
+    ALLOCATE( State_Met%PARDF( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%PARDF', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%PARDF= 0.0_fp
+
+    Desc  = 'Diffuse photosynthetically-active radiation'
+    Units = 'W m-2'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'PARDR',                       &
+                            Units=Units,      Data2d=State_Met%PARDF,       &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%PARDR', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! PBLH [m]
+    !-------------------------
+    ALLOCATE( State_Met%PBLH( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%PBLH', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%PBLH = 0.0_fp
+
+    Desc  = 'Planetary boundary layer height'
+    Units = 'm'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'PBLH',                        &
+                            Units=Units,      Data2d=State_Met%PBLH,        &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%PBLH', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! PBL_TOP_L [1]
+    !-------------------------
+    ALLOCATE( State_Met%PBL_TOP_L( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%PBL_TOP_L', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%PBL_TOP_L = 0
 
-    ALLOCATE( State_Met%PHIS      ( IM, JM ), STAT=RC )
+    Desc  = 'Model layer of the planetary boundary layer top occurs'
+    Units = 'layer'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'PBL_TOP_L',                   &
+                            Units=Units,      Data2dI=State_Met%PBL_TOP_L,  &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%PBL_TOP_L', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%PHIS     = 0.0_fp
 
-    ALLOCATE( State_Met%PRECCON   ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! PHIS [m2 s-2]
+    !-------------------------
+    ALLOCATE( State_Met%PHIS( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%PHIS', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%PRECCON  = 0.0_fp
+    State_Met%PHIS = 0.0_fp
 
-    ALLOCATE( State_Met%PRECSNO   ( IM, JM ), STAT=RC )
+    Desc  = 'Surface geopotential height'
+    Units = 'm2 s-1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'PHIS',                        &
+                            Units=Units,      Data2d=State_Met%PHIS,        &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%PHIS', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%PRECSNO  = 0.0_fp
 
-    ALLOCATE( State_Met%PRECTOT   ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! PRECCON [kg m-2 s-1]
+    !-------------------------
+    ALLOCATE( State_Met%PRECCON( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%PRECCON', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%PRECTOT  = 0.0_fp
+    State_Met%PRECCON = 0.0_fp
 
-    ALLOCATE( State_Met%PS1_WET   ( IM, JM ), STAT=RC )
+    Desc  = 'Convective precipitation at the ground'
+    Units = 'kg m-2 s-1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'PRECCON',                     &
+                            Units=Units,      Data2d=State_Met%PRECCON,     &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%PRECCON', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%PS1_WET  = 0.0_fp
 
-    ALLOCATE( State_Met%PS2_WET   ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! PRECSNO [kg m-2 s-1]
+    !-------------------------
+    ALLOCATE( State_Met%PRECSNO( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%PRECSNO', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%PS2_WET  = 0.0_fp
+    State_Met%PRECSNO = 0.0_fp
 
-    ALLOCATE( State_Met%PSC2_WET  ( IM, JM ), STAT=RC )
+    Desc  = 'Snow precipitation'
+    Units = 'kg m-2 s-1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'PRECSNO',                     &
+                            Units=Units,      Data2d=State_Met%PRECSNO,     &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%PRECSNO', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! PRECTOT [kg m-2 s-1]
+    !-------------------------
+    ALLOCATE( State_Met%PRECTOT( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%PRECTOT', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%PRECTOT = 0.0_fp
+
+    Desc  = 'Total precipitation at the ground'
+    Units = 'kg m-2 s-1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'PRECTOT',                     &
+                            Units=Units,      Data2d=State_Met%PRECTOT,     &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%PRECTOT', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! PS1_WET [hPa]
+    !-------------------------
+    ALLOCATE( State_Met%PS1_WET( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%PS1_WET', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%PS1_WET = 0.0_fp
+
+    Desc  = 'Wet surface pressure at dt start'
+    Units = 'hPa'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'PS1_WET',                     &
+                            Units=Units,      Data2d=State_Met%PS1_WET,     &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%PS1_WET', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! PS2_WET [hPa]
+    !-------------------------
+    ALLOCATE( State_Met%PS2_WET( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%PS2_WET', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%PS2_WET = 0.0_fp
+
+    Desc  = 'Wet surface pressure at dt end'
+    Units = 'hPa'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'PS2_WET',                     &
+                            Units=Units,      Data2d=State_Met%PS2_WET,     &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%PS2_WET', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! PSC2_WET [hPa]
+    !-------------------------
+    ALLOCATE( State_Met%PSC2_WET( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%PSC2_WET', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%PSC2_WET = 0.0_fp
 
-    ALLOCATE( State_Met%PS1_DRY    ( IM, JM ), STAT=RC )
+    Desc  = 'Wet interpolated surface pressure'
+    Units = 'hPa'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'PSC2_WET',                    &
+                            Units=Units,      Data2d=State_Met%PSC2_WET,    &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%PSC2_WET', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%PS1_DRY   = 0.0_fp
 
-    ALLOCATE( State_Met%PS2_DRY    ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! PS1_DRY [hPa]
+    !-------------------------
+    ALLOCATE( State_Met%PS1_DRY( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%PS1_DRY', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%PS1_DRY = 0.0_fp
+
+    Desc  = 'Dry surface pressure at dt start'
+    Units = ''
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'PS1_DRY',                     &
+                            Units=Units,      Data2d=State_Met%PS1_DRY,     &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%PS1_DRY', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! PS2_DRY [hPa]
+    !-------------------------
+    ALLOCATE( State_Met%PS2_DRY( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%PS2_DRY', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%PS2_DRY   = 0.0_fp
 
-    ALLOCATE( State_Met%PSC2_DRY   ( IM, JM ), STAT=RC )
+    Desc  = 'Dry surface pressure at dt end'
+    Units = 'hPa'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'PS2_DRY',                     &
+                            Units=Units,      Data2d=State_Met%PS2_DRY,     &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%PS2_DRY', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%PSC2_DRY  = 0.0_fp
 
-    ALLOCATE( State_Met%RADLWG    ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! PSC2_DRY [hPa]
+    !-------------------------
+    ALLOCATE( State_Met%PSC2_DRY( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%PSC2_DRY', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%RADLWG   = 0.0_fp
+    State_Met%PSC2_DRY = 0.0_fp
 
-    ALLOCATE( State_Met%RADSWG    ( IM, JM ), STAT=RC )
+    Desc  = 'Dry interpolated surface pressure'
+    Units = 'hPA'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'PSC2_DRY',                    &
+                            Units=Units,      Data2d=State_Met%PSC2_DRY,    &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%PSC2_DRY', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%RADSWG   = 0.0_fp
 
-    ALLOCATE( State_Met%SLP       ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! RADLWG [W m-2]
+    !-------------------------
+    ALLOCATE( State_Met%RADLWG( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%RADLWG', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%SLP      = 0.0_fp
+    State_Met%RADLWG = 0.0_fp
 
-    ALLOCATE( State_Met%SNODP     ( IM, JM ), STAT=RC )
+    Desc  = 'Net longwave radiation at ground'
+    Units = 'W m-2'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'RADLWG',                      &
+                            Units=Units,      Data2d=State_Met%RADLWG,      &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%RADLWG', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%SNODP    = 0.0_fp
 
-    ALLOCATE( State_Met%SNOMAS    ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! RADSWG [W m-2]
+    !-------------------------
+    ALLOCATE( State_Met%RADSWG( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%RADSWG', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%SNOMAS   = 0.0_fp
+    State_Met%RADSWG = 0.0_fp
 
-    ALLOCATE( State_Met%SST       ( IM, JM ), STAT=RC )
+    Desc  = 'Shortwave radiation at ground'
+    Units = 'W m-2'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'RADSWG',                      &
+                            Units=Units,      Data2d=State_Met%RADSWG,      &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%RADSWG', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%SST      = 0.0_fp
 
-    ALLOCATE( State_Met%SUNCOS    ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! SLP [hPa]
+    !-------------------------
+    ALLOCATE( State_Met%SLP( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%SLP', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%SUNCOS   = 0.0_fp
+    State_Met%SLP = 0.0_fp
 
-    ALLOCATE( State_Met%SUNCOSmid ( IM, JM ), STAT=RC )
+    Desc  = 'Sea level pressure'
+    Units = 'hPa'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'SLP',                         &
+                            Units=Units,      Data2d=State_Met%SLP,         &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%SLP', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! SNODP [m]
+    !-------------------------
+    ALLOCATE( State_Met%SNODP( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%SNODP', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%SNODP = 0.0_fp
+
+    Desc  = 'Snow depth'
+    Units = 'm'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'SNODP',                       &
+                            Units=Units,      Data2d=State_Met%SNODP,       &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%SNODP', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! SNOMAS [kg m-2]
+    !-------------------------
+    ALLOCATE( State_Met%SNOMAS( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%SNOMAS', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%SNOMAS = 0.0_fp
+
+    Desc  = 'Snow mass'
+    Units = 'kg m-2'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'SNOMAS',                      &
+                            Units=Units,      Data2d=State_Met%SNOMAS,      &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%SNOMAS', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! SST [K]
+    !-------------------------
+    ALLOCATE( State_Met%SST( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%SST', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%SST = 0.0_fp
+
+    Desc  = 'Sea surface temperature'
+    Units = 'K'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'SST',                         &
+                            Units=Units,      Data2d=State_Met%SST,         &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%SST', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! SUNCOS [1]
+    !-------------------------
+    ALLOCATE( State_Met%SUNCOS( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%SUNCOS', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%SUNCOS = 0.0_fp
+
+    Desc  = 'Cosine of solar zenith angle, current time'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'SUNCOS',                      &
+                            Units=Units,      Data2d=State_Met%SUNCOS,      &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%SUNCOS', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! SUNCOSmid [1]
+    !-------------------------
+    ALLOCATE( State_Met%SUNCOSmid( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%SUNCOSmid', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%SUNCOSmid = 0.0_fp
 
-    ALLOCATE( State_Met%SWGDN     ( IM, JM ), STAT=RC )
+    Desc  = 'Cosine of solar zenith angle, at midpoint of chemistry timestep'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'SUNCOSmid',                   &
+                            Units=Units,      Data2d=State_Met%SUNCOSmid,   &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%SUNCOSmid', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%SWGDN    = 0.0_fp
 
-    ALLOCATE( State_Met%TO3       ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! SWGDN [W m-2]
+    !-------------------------
+    ALLOCATE( State_Met%SWGDN( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%SWGDN', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%TO3      = 0.0_fp
+    State_Met%SWGDN = 0.0_fp
 
-    ALLOCATE( State_Met%TROPP     ( IM, JM ), STAT=RC )
+    Desc  = 'Incident shortwave radiation at ground'
+    Units = 'W m-2'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'SWGDN',                       &
+                            Units=Units,      Data2d=State_Met%SWGDN,       &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%SWGDN', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%TROPP    = 0.0_fp
 
-    ALLOCATE( State_Met%TS        ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! TO3 [dobsons]
+    !-------------------------
+    ALLOCATE( State_Met%TO3( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%TO3', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%TS       = 0.0_fp
+    State_Met%TO3 = 0.0_fp
 
-    ALLOCATE( State_Met%TSKIN     ( IM, JM ), STAT=RC )
+    Desc  = 'Total overhead ozone column'
+    Units = 'dobsons'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'TO3',                         &
+                            Units=Units,      Data2d=State_Met%TO3,         &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%TO3', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%TSKIN    = 0.0_fp
 
-    ALLOCATE( State_Met%U10M      ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! TROPP [hPa]
+    !-------------------------
+    ALLOCATE( State_Met%TROPP( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%TROPP', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%U10M     = 0.0_fp
+    State_Met%TROPP = 0.0_fp
 
-    ALLOCATE( State_Met%USTAR     ( IM, JM ), STAT=RC )
+    Desc  = 'Tropopause pressure'
+    Units = 'hPa'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'TROPP',                       &
+                            Units=Units,      Data2d=State_Met%TROPP,       &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%TROPP', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%USTAR    = 0.0_fp
 
-    ALLOCATE( State_Met%UVALBEDO  ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! TS [K]
+    !-------------------------
+    ALLOCATE( State_Met%TS( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%TS', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%TS = 0.0_fp
+
+    Desc  = 'Surface temperature'
+    Units = 'K'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'TS',                          &
+                            Units=Units,      Data2d=State_Met%TS,          &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%TS', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! TSKIN [1]
+    !-------------------------
+    ALLOCATE( State_Met%TSKIN( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%TSKIN', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%TSKIN = 0.0_fp
+
+    Desc  = 'Surface skin temperature'
+    Units = 'K'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'TSKIN',                       &
+                            Units=Units,      Data2d=State_Met%TSKIN,       &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%TSKIN', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! U10M [m s-1]
+    !-------------------------
+    ALLOCATE( State_Met%U10M( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%U10M', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%U10M = 0.0_fp
+
+    Desc  = 'East-west wind at 10 meter height'
+    Units = 'm s-1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'U10M',                        &
+                            Units=Units,      Data2d=State_Met%U10M,        &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%U10M', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! USTAR [m -s]
+    !-------------------------
+    ALLOCATE( State_Met%USTAR( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%USTAR', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%USTAR = 0.0_fp
+
+    Desc  = 'Friction velocity'
+    Units = 'm s-1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'USTAR',                       &
+                            Units=Units,      Data2d=State_Met%USTAR,       &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%USTAR', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! UVALBEDO [1]
+    !-------------------------
+    ALLOCATE( State_Met%UVALBEDO( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%UVALBEDO', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%UVALBEDO = 0.0_fp
 
-    ALLOCATE( State_Met%V10M      ( IM, JM ), STAT=RC )
+    Desc  = 'Ultraviolet surface albedo'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'UVALBEDO',                    &
+                            Units=Units,      Data2d=State_Met%UVALBEDO,    &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%UVALBEDO', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%V10M     = 0.0_fp
 
-    ALLOCATE( State_Met%Z0        ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! V10M [m s-1]
+    !-------------------------
+    ALLOCATE( State_Met%V10M( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%V10M', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%Z0       = 0.0_fp
+    State_Met%V10M = 0.0_fp
+
+    Desc  = 'North-south wind at 10 meter height'
+    Units = 'm s-1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'V10M',                        &
+                            Units=Units,      Data2d=State_Met%V10M,        &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%V10M', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! Z0 [m]
+    !-------------------------
+    ALLOCATE( State_Met%Z0( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%Z0', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%Z0 = 0.0_fp
+
+    Desc  = 'Surface roughness height'
+    Units = 'm'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'Z0',                          &
+                            Units=Units,      Data2d=State_Met%Z0,          &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%Z0', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Convective fractions are not yet a standard GEOS-FP
     ! field. Only available to online model (ckeller, 3/4/16) 
 #if defined( ESMF_ )
-    ALLOCATE( State_Met%CNV_FRC   ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! CNV_FRC [1]
+    !-------------------------
+    ALLOCATE( State_Met%CNV_FRC( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%CNV_FRC', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%CNV_FRC  = 0.0_fp
+    State_Met%CNV_FRC = 0.0_fp
+
+    Desc  = 'Convective fraction'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'CNV_FRC',                     &
+                            Units=Units,      Data2d=State_Met%CNV_FRC,     &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%CNV_FRC', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 
 #if defined( GCAP )
 
     !=======================================================================
     ! GCAP met fields
+    !
+    ! NOTE: Do not add the GCAP fields to the registry, since these
+    !       may be deprecated (GCAP2 is probably used instead).
     !=======================================================================
     ALLOCATE( State_Met%LWI_GISS  ( IM, JM ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -798,6 +1322,9 @@ CONTAINS
 
     !=======================================================================
     ! GEOS-4 met fields
+    !
+    ! NOTE: Do not add the GEOS-4 fields to the registry, since these
+    !       are deprecated and are slated to be removed soon.
     !=======================================================================
     ALLOCATE( State_Met%SNOW      ( IM, JM ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -815,6 +1342,9 @@ CONTAINS
 
     !=======================================================================
     ! GEOS-5 met fields
+    !
+    ! NOTE: Do not add the GCAP fields to the registry, since these
+    !       may be deprecated and are slated to be removed soon.
     !=======================================================================
     ALLOCATE( State_Met%TO31      ( IM, JM ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -1059,6 +1589,9 @@ CONTAINS
 
     !=======================================================================
     ! GCAP met fields
+    !
+    ! NOTE: Do not add the GCAP fields to the registry, since these
+    !       may be deprecated (GCAP2 is probably used instead).
     !=======================================================================
     ALLOCATE( State_Met%DETRAINE  ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -1092,6 +1625,9 @@ CONTAINS
 
     !=======================================================================
     ! GEOS-4 met fields
+    !
+    ! NOTE: Do not add the GEOS-4 fields to the registry, since these
+    !       are deprecated and are slated to be removed soon.
     !=======================================================================
 
     ALLOCATE( State_Met%HKETA     ( IM, JM, LM   ), STAT=RC )
