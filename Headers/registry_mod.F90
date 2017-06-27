@@ -304,27 +304,26 @@ CONTAINS
 !                                                     
 ! !OUTPUT PARAMETERS:                                 
 !                                                     
-    ! Required outputs                                
+    ! Required outputs
     INTEGER,          INTENT(OUT) :: RC               ! Success or failure
-                                                      
-    ! Optional outputs                                
+
+    ! Optional outputs
     CHARACTER(LEN=255),  OPTIONAL :: Description      ! Description of data
     INTEGER,             OPTIONAL :: KindVal          ! Numerical KIND value
     REAL(fp),            OPTIONAL :: MemoryInKb       ! Memory usage
     INTEGER,             OPTIONAL :: Rank             ! Size of data
     CHARACTER(LEN=255),  OPTIONAL :: Units            ! Units of data
-                                                      
-    ! Pointers to floating-point data                 
+
+    ! Pointers to floating-point data
     REAL(fp),   POINTER, OPTIONAL :: Ptr0d            ! Ptr to 0d data
     REAL(fp),   POINTER, OPTIONAL :: Ptr1d (:      )  ! Ptr to 1d data
     REAL(fp),   POINTER, OPTIONAL :: Ptr2d (:,:    )  ! Ptr to 2d data
     REAL(fp),   POINTER, OPTIONAL :: Ptr3d (:,:,:  )  ! Ptr to 3d data
     REAL(fp),   POINTER, OPTIONAL :: Ptr4d (:,:,:,:)  ! Ptr to 4d data
-                                                      
+
     ! Pointers to integer data                        
     INTEGER,    POINTER, OPTIONAL :: Ptr2dI(:,:    )  ! Ptr to 2d int data
     INTEGER,    POINTER, OPTIONAL :: Ptr3dI(:,:,:  )  ! Ptr to 3d int data
-
 !
 ! !REMARKS:
 !  Internally, the REGISTRY ITEM will be refered to by its fullname field,
@@ -335,6 +334,7 @@ CONTAINS
 !  23 Jun 2017 - R. Yantosca - Initial version
 !  26 Jun 2017 - R. Yantosca - Changed "StateName" to "State", "Name" to
 !                              "Variable", and added "MemoryInKb"
+!  27 Jun 2017 - R. Yantosca - Also added "Description" and "KindVal" outputs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -363,36 +363,37 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC            = GC_SUCCESS
-    ErrMsg        = ''
-    ThisLoc       = ' -> at Registry_Lookup (in Headers/registry_mod.F90)'
+    RC             =  GC_SUCCESS
+    Current        => NULL()
+    ErrMsg         =  ''
+    ThisLoc        =  ' -> at Registry_Lookup (in Headers/registry_mod.F90)'
 
     ! Construct a hash for the full name (i.e. "State_Variable"
-    TmpFullName   = TRIM( State ) // '_' // TRIM( Variable )
-    FullName31    = To_UpperCase( TmpFullName )
-    FullHash      = Str2Hash( FullName31 )
+    TmpFullName    =  TRIM( State ) // '_' // TRIM( Variable )
+    FullName31     =  To_UpperCase( TmpFullName )
+    FullHash       =  Str2Hash( FullName31 )
 
     !=======================================================================   
     ! Test if the optional variables are present outside of the main loop.
     !=======================================================================
 
     ! Floating-point data
-    Is_0d          = PRESENT( Ptr0d       )
-    Is_1d          = PRESENT( Ptr1d       )
-    Is_2d          = PRESENT( Ptr2d       )
-    Is_3d          = PRESENT( Ptr3d       )
-    Is_4d          = PRESENT( Ptr4d       )
+    Is_0d          =  PRESENT( Ptr0d       )
+    Is_1d          =  PRESENT( Ptr1d       )
+    Is_2d          =  PRESENT( Ptr2d       )
+    Is_3d          =  PRESENT( Ptr3d       )
+    Is_4d          =  PRESENT( Ptr4d       )
 
     ! Integer data
-    Is_2dI         = PRESENT( Ptr2dI      )
-    Is_3dI         = PRESENT( Ptr3dI      )
+    Is_2dI         =  PRESENT( Ptr2dI      )
+    Is_3dI         =  PRESENT( Ptr3dI      )
 
     ! Metadata
-    Is_Description = PRESENT( Description )
-    Is_KindVal     = PRESENT( KindVal     )
-    Is_MemoryInKb  = PRESENT( MemoryInKb  )
-    Is_Rank        = PRESENT( Rank        )
-    Is_Units       = PRESENT( Units       )
+    Is_Description =  PRESENT( Description )
+    Is_KindVal     =  PRESENT( KindVal     )
+    Is_MemoryInKb  =  PRESENT( MemoryInKb  )
+    Is_Rank        =  PRESENT( Rank        )
+    Is_Units       =  PRESENT( Units       )
 
     !=======================================================================
     ! Search for the specified field in the Registry
