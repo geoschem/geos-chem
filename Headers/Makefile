@@ -181,13 +181,18 @@ state_chm_mod.o        : state_chm_mod.F90        \
 state_met_mod.o        : state_met_mod.F90        \
                          errcode_mod.o            \
                          CMN_SIZE_mod.o           \
-                         precision_mod.o
+                         precision_mod.o          \
+                         registry_mod.o
 
 passive_species_mod.o  : passive_species_mod.F90  \
                          errcode_mod.o            \
                          precision_mod.o
 
 physconstants.o        : physconstants.F          \
+                         precision_mod.o
+
+registry_mod.o         : registry_mod.F90         \
+                         errcode_mod.o            \
                          precision_mod.o
 
 species_mod.o          : species_mod.F90          \

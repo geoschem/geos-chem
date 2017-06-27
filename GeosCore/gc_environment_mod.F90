@@ -271,9 +271,20 @@ CONTAINS
 !                              to match the declaration in INIT_GIGC_STATE_CHM
 !  28 Jan 2016 - M. Sulprizio- Remove NBIOMAX from call to Init_GIGC_State_Chm
 !  30 Jun 2016 - M. Sulprizio- Remove nSpecies from call to Init_GIGC_State_Chm
+!  26 Jun 2017 - R. Yantosca - Now call GC_ERROR to give better error feedback
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    ErrMsg  = ''
+    ThisLoc = ' -> at Init_All (in GeosCore/gc_environment_mod.F90)'
     
     !=======================================================================
     ! Initialize object for met fields
@@ -286,7 +297,11 @@ CONTAINS
                          RC         = RC          )
 
     ! Return upon error
-    IF ( RC /= GC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_State_Met"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !=======================================================================
     ! Initialize object for chemical state
@@ -303,7 +318,11 @@ CONTAINS
                           RC         = RC         )   ! Success or failure
     
     ! Return upon error
-    IF ( RC /= GC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_State_Chm"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
   END SUBROUTINE GC_Init_All
 !EOC

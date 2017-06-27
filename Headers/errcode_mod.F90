@@ -21,6 +21,7 @@ MODULE ErrCode_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: GC_Error
+  PUBLIC :: GC_CheckVar
 !
 ! !DEFINED PARAMETERS: 
 !
@@ -36,6 +37,7 @@ MODULE ErrCode_Mod
 !                              errcode_mod.F90. The "gigc" nomenclature is
 !                              no longer used.
 !  23 Jun 2017 - R. Yantosca - Moved subroutine GC_Error here
+!  27 Jun 2017 - R. Yantosca - Added routine GC_CheckVar
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -91,11 +93,72 @@ CONTAINS
     ENDIF
 
     ! Return with failure, but preserve existing error code
-    !IF ( RC == GC_SUCCESS ) THEN
+    IF ( RC == GC_SUCCESS ) THEN
        RC = GC_FAILURE
-    !ENDIF
+    ENDIF
 
   END SUBROUTINE GC_Error
-
-END MODULE ErrCode_Mod
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GC_CheckVar
+!
+! !DESCRIPTION: Wrapper routine for GC_Error.  Prints an error message
+!  if there is an allocation or registration error.  This is intended to
+!  be called from the state initialization method (e.g. Init_State_Met).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GC_CheckVar( Variable, Operation, RC )
+!
+! !INPUT PARAMETERS: 
+!
+    CHARACTER(LEN=*), INTENT(IN)    :: Variable   ! Name of variable to check
+    INTEGER,          INTENT(IN)    :: Operation  ! 0=Allocate; 1=Register
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER,          INTENT(INOUT) :: RC         ! Success or failure
+!
+! !REMARKS:
+!  You also need to add an 
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!  from the calling routine for proper error handling.
+!
+! !REVISION HISTORY:
+!  27 Jun 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+  ! Strings
+  CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+  
+  !=========================================================================
+  ! Initialize
+  !=========================================================================
+  IF ( Operation == 0 ) THEN
+     ErrMsg = 'Could not allocate ' // TRIM( Variable ) // '!'
+  ELSE
+     ErrMsg = 'Could not register ' // TRIM( Variable ) // '!'
+  ENDIF
+
+  ThisLoc   = ' -> at Init_State_Met (in Headers/state_met_mod.F90)'
+
+  !=========================================================================
+  ! Display error message if necessary
+  !=========================================================================
+  IF ( RC /= GC_SUCCESS ) THEN
+     CALL GC_Error( ErrMsg, RC, ThisLoc )
+  ENDIF
+
+  END SUBROUTINE GC_CheckVar
+!EOC
+END MODULE ErrCode_Mod
+

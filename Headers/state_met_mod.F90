@@ -21,7 +21,8 @@ MODULE State_Met_Mod
 !
 ! USES:
 !
-  USE PRECISION_MOD
+  USE Precision_Mod
+  USE Registry_Mod, ONLY : MetaRegItem
 
   IMPLICIT NONE
   PRIVATE
@@ -41,7 +42,7 @@ MODULE State_Met_Mod
      !----------------------------------------------------------------------
      ! Surface fields
      !----------------------------------------------------------------------
-     REAL(fp), POINTER :: ALBD      (:,:  ) ! Visible surface albedo [1
+     REAL(fp), POINTER :: ALBD      (:,:  ) ! Visible surface albedo [1]
      REAL(fp), POINTER :: CLDFRC    (:,:  ) ! Column cloud fraction [1]
      INTEGER,  POINTER :: CLDTOPS   (:,:  ) ! Max cloud top height [levels]
      REAL(fp), POINTER :: EFLUX     (:,:  ) ! Latent heat flux [W/m2]
@@ -222,6 +223,12 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: XLAI_NATIVE(:,:,:)  ! avg LAI per type (I,J,type)
      REAL(fp), POINTER :: XCHLR_NATIVE(:,:,:) ! avg CHLR per type (I,J,type)
 
+     !----------------------------------------------------------------------
+     ! Registry of variables contained within State_Met
+     !----------------------------------------------------------------------
+     CHARACTER(LEN=4)             :: State     = 'MET '   ! Name of this state
+     TYPE(MetaRegItem), POINTER   :: Registry  => NULL()  ! Registry object  
+
   END TYPE MetState
 !
 ! !REMARKS:
@@ -268,6 +275,7 @@ MODULE State_Met_Mod
 !                              replace modis_lai_mod-level GC_LAI and GC_CHLR
 !  19 Oct 2016 - E. Lundgren - Use NSURFTYPE as the # of land types
 !  03 Feb 2017 - M. Sulprizio- Add OMEGA for use in sulfate_mod.F (Q. Chen)
+!  26 Jun 2017 - R. Yantosca - Added StateName and Registry to type MetState
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -290,8 +298,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod                              ! Error codes
-    USE CMN_SIZE_MOD,    ONLY : NSURFTYPE        ! # of land types
+    USE ErrCode_Mod
+    USE CMN_SIZE_MOD, ONLY : NSURFTYPE
+    USe Registry_Mod, ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -330,17 +339,26 @@ CONTAINS
 !  05 Oct 2016 - R. Yantosca - Swapped order of HKETA and HKBETA allocation
 !  28 Nov 2016 - R. Yantosca - Nullify fields that may or may not be allocated
 !  01 Jun 2017 - C. Keller   - Initialize UPDVVEL to -999.0 to ensure that 
-!                              GET_VUD (wetscav_mod.F) works properly. 
+!                              GET_VUD (wetscav_mod.F) works properly.
+!  26 Jun 2017 - R. Yantosca - Now register each variable after it's allocated
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: LX
+    ! Scalars
+    INTEGER            :: LX
+    
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Desc, Units
 
-    ! Assume success
-    RC = GC_SUCCESS
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC    =  GC_SUCCESS
+    Desc  = ''
+    Units = ''
 
     !=======================================================================
     ! The following fields of State_Met may or may not get allocated
@@ -408,46 +426,177 @@ CONTAINS
     !=======================================================================
     ! Allocate 2-D Fields
     !=======================================================================
-    ALLOCATE( State_Met%ALBD      ( IM, JM ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%ALBD     = 0.0_fp
 
-    ALLOCATE( State_Met%CLDFRC    ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! ALBD [1]
+    !-------------------------
+    ALLOCATE( State_Met%ALBD( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%ALBD', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%CLDFRC   = 0.0_fp
+    State_Met%ALBD = 0.0_fp
 
-    ALLOCATE( State_Met%CLDTOPS   ( IM, JM ), STAT=RC )
+    Desc  = 'Visible surface albedo'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,        &
+                            State_Met%State, 'ALBD',                     &
+                            Units=Units,      Data2d=State_Met%ALBD,     &
+                            Description=Desc, RC=RC                     )
+    CALL GC_CheckVar( 'State_Met%ALBD', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%CLDTOPS  = 0.0_fp
 
-    ALLOCATE( State_Met%EFLUX     ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! CLDFRC [1]
+    !-------------------------
+    ALLOCATE( State_Met%CLDFRC( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%CLDFRC', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%CLDFRC = 0.0_fp
+
+    Desc  = 'Column cloud fraction'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'CLDFRC',                      &
+                            Units=Units,      Data2d=State_Met%CLDFRC,      &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%CLDFRC', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! CLDTOPS [level]
+    !-------------------------
+    ALLOCATE( State_Met%CLDTOPS( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%CLDTOPS', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%CLDTOPS = 0
+
+    Desc  = 'Maximum cloud top height'
+    Units = 'level'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'CLDTOPS',                     &
+                            Units=Units,      Data2dI=State_Met%CLDTOPS,    &
+                            Description=Desc, RC=RC                                          )
+    CALL GC_CheckVar( 'State_Met%CLDTOPS', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! EFLUX [W m-2]
+    !-------------------------
+    ALLOCATE( State_Met%EFLUX( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%EFLUX', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%EFLUX    = 0.0_fp
 
-    ALLOCATE( State_Met%EVAP      ( IM, JM ), STAT=RC )
+    Desc  = 'Latent heat flux'
+    Units = 'W m-2'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'EFLUX',                       &
+                            Units=Units,      Data2d=State_Met%EFLUX,       &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%EFLUX', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%EVAP     = 0.0_fp
 
-    ALLOCATE( State_Met%FRCLND    ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! EVAP [W m-2]
+    !-------------------------
+    ALLOCATE( State_Met%EVAP( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%EVAP', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%FRCLND   = 0.0_fp
+    State_Met%EVAP= 0.0_fp
 
-    ALLOCATE( State_Met%FRLAKE    ( IM, JM ), STAT=RC )
+    Desc  = 'Surface evaporation'
+    Units = 'kg m-2 s-1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'EVAP',                        &
+                            Units=Units,      Data2d=State_Met%EVAP,        &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%EVAP', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%FRLAKE   = 0.0_fp
 
-    ALLOCATE( State_Met%FRLAND    ( IM, JM ), STAT=RC )
+    !-------------------------
+    ! FRCLND [1]
+    !-------------------------
+    ALLOCATE( State_Met%FRCLND( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%FRCLND', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%FRLAND   = 0.0_fp 
+    State_Met%FRCLND = 0.0_fp
 
-    ALLOCATE( State_Met%FRLANDIC  ( IM, JM ), STAT=RC )
+    Desc  = 'Olson land fraction'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'FRCLND',                      &
+                            Units=Units,      Data2d=State_Met%FRCLND,      &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%FRCLND', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! FRLAKE [1]
+    !-------------------------
+    ALLOCATE( State_Met%FRLAKE( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%FRLAKE', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%FRLAKE = 0.0_fp
+
+    Desc  = 'Fraction of lake'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'FRLAKE',                      &
+                            Units=Units,      Data2d=State_Met%FRLAKE,      &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%FRLAKE', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! FRLAND [1]
+    !-------------------------
+    ALLOCATE( State_Met%FRLAND( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%FRLAND', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%FRLAND = 0.0_fp 
+
+    Desc  = 'Fraction of land'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'FRLAND',                      &
+                            Units=Units,      Data2d=State_Met%FRLAND,      &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%FRLAND', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! FRLANDIC [1]
+    !-------------------------
+    ALLOCATE( State_Met%FRLANDIC( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%FRLANDIC', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%FRLANDIC = 0.0_fp 
 
-    ALLOCATE( State_Met%FROCEAN   ( IM, JM ), STAT=RC )
+    Desc  = 'Fraction of land ice'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'FRLANDIC',                    &
+                            Units=Units,      Data2d=State_Met%FRLANDIC,    &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%FRLANDIC', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%FROCEAN  = 0.0_fp
+
+    !-------------------------
+    ! FROCEAN [1]
+    !-------------------------
+    ALLOCATE( State_Met%FROCEAN( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%FROCEAN', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%FROCEAN = 0.0_fp
  
+    Desc  = 'Fraction of ocean'
+    Units = '1'
+    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+                            State_Met%State, 'FROCEAN',                     &
+                            Units=Units,      Data2d=State_Met%FROCEAN,     &
+                            Description=Desc, RC=RC                        )
+    CALL GC_CheckVar( 'State_Met%FROCEAN', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     ALLOCATE( State_Met%GRN       ( IM, JM ), STAT=RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%GRN      = 0.0_fp 
@@ -1079,7 +1228,9 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%XCHLR2    = 0.0_fp
 
-  END SUBROUTINE Init_State_Met
+    CALL Print_State_Met( am_I_Root, State_Met, RC )
+    CALL EXIT( 999 )
+   END SUBROUTINE Init_State_Met
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1098,7 +1249,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod                         ! Error codes
+    USE ErrCode_Mod
+    USE Registry_Mod, ONLY : Registry_Destroy
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1126,8 +1278,17 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-    ! Return success
-    RC = GC_SUCCESS
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !========================================================================
+    ! Initialize
+    !========================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> Cleanup_State_Met (in Headers/state_met_mod.F90)'
 
     !========================================================================
     ! These met fields are used for all data products
@@ -1386,6 +1547,76 @@ CONTAINS
     IF (ASSOCIATED( State_Met%XLAI_NATIVE )) DEALLOCATE( State_Met%XLAI_NATIVE )
     IF (ASSOCIATED( State_Met%XCHLR_NATIVE)) DEALLOCATE( State_Met%XCHLR_NATIVE)
 
-   END SUBROUTINE Cleanup_State_Met
+    !=======================================================================
+    ! Destroy the registry of fields for this module
+    !=======================================================================
+    CALL Registry_Destroy( am_I_Root, State_Met%Registry, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not destroy registry object State_Met%Registry!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Cleanup_State_Met
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Mod1_PrintRegistry
+!
+! !DESCRIPTION: Print information about all the fields of this module that
+!  have been added to the registry.  This is basically a wrapper for routine
+!  REGISTRY_PRINT in registry_mod.F90.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Print_State_Met( am_I_Root, State_Met, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Registry_Mod, ONLY : Registry_Print
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,           INTENT(IN)  :: am_I_Root   ! Root CPU?  
+    TYPE(MetState),    INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,           INTENT(OUT) :: RC          ! Success/failure?
+!
+! !REVISION HISTORY:
+!  23 Jun 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Mod1_Lookup (in mod1.F90)'
+
+    !=======================================================================
+    ! Destroy the registry of fields for this module
+    !=======================================================================
+    CALL Registry_Print( am_I_Root, State_Met%Registry, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not print information from MOD1_REGISTRY!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Print_State_Met
+
 !EOC
 END MODULE State_Met_Mod
