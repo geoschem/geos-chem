@@ -5942,9 +5942,9 @@
      &                     E13.5,' kg = ',F5.1,'%')
                      if(MAXVAL(moxd(:)) > 0e+0_fp) then
                         print 11, L, madd(L),(madd(L)/maddtot)*1.e+2_fp
-                        write(116,11) L,
-     &                        madd(L),(madd(L)/maddtot)*1.e+2_fp
-                        write(117,*) madd(L)  !for accumulating mass loss
+!                        write(116,11) L,
+!     &                        madd(L),(madd(L)/maddtot)*1.e+2_fp
+!                        write(117,*) madd(L)  !for accumulating mass loss
 !                     PRINT *,'Tophat > Xk(31): growth over bin30,Loss%'
 !                     if(moxd >0e+0_fp)print *,madd(L),(madd(L)/maddtot)*1.d2
 !jrp                        errspot = .true.
