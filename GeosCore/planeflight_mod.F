@@ -610,6 +610,7 @@
                IF ( LINE == 'AODC_ORGC'  ) PVAR(N) = 2003
                IF ( LINE == 'AODC_SALA'  ) PVAR(N) = 2004
                IF ( LINE == 'AODC_SALC'  ) PVAR(N) = 2005   
+               IF ( LINE == 'AODC_DUST'  ) PVAR(N) = 2006
 
             !===========================================================
             ! Aerosol optical depths below the plane
@@ -622,6 +623,7 @@
                IF ( LINE == 'AODB_ORGC'  ) PVAR(N) = 3003
                IF ( LINE == 'AODB_SALA'  ) PVAR(N) = 3004
                IF ( LINE == 'AODB_SALC'  ) PVAR(N) = 3005
+               IF ( LINE == 'AODB_DUST'  ) PVAR(N) = 3006
  
             !===========================================================
             ! Hg(II) Partitioning - eds 10/27/11  PVAR offset: 4000
@@ -1527,10 +1529,10 @@
       IF ( .not. DO_PF ) RETURN
 
       ! Update from kyu (03/2015):
-      print*, 'IN PLANEFLIGHT, ELAPSED_MIN', GET_ELAPSED_MIN()
+      !print*, 'IN PLANEFLIGHT, ELAPSED_MIN', GET_ELAPSED_MIN()
       CHEMSTEP = ( MOD(GET_ELAPSED_MIN(), GET_TS_DIAG() ) == 
      &           ( GET_TS_DIAG() / 2) )
-      print*, 'CHEMSTEP', CHEMSTEP
+      !print*, 'CHEMSTEP', CHEMSTEP
 
       ! Get date & time values
       YEAR   = GET_YEAR()
@@ -1571,10 +1573,10 @@
             ENDIF
          ENDIF
          
-         print*, 'PTAUE = ', PTAUE
-         print*, 'PTAUS = ', PTAUS
-         print*, 'PTAU(M) = ', PTAU(M)
-         print*, 'M = ', M
+         !print*, 'PTAUE = ', PTAUE
+         !print*, 'PTAUS = ', PTAUS
+         !print*, 'PTAU(M) = ', PTAU(M)
+         !print*, 'M = ', M
          ! End modification from kyu (eam, 03/2015)
 
          ! Initialize VARI to missing value for this point
@@ -1588,7 +1590,7 @@
          IF ( PTAU(M) < PTAUS ) THEN
 
             PRINT*, 'BEGIN PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
-            PRINT*, PTAU(M), PTAUS
+            !PRINT*, PTAU(M), PTAUS
 
             ! Write all missing values to disk for point #M
             CALL WRITE_VARS_TO_FILE( M, VARI )      
@@ -1604,7 +1606,7 @@
          ELSE IF ( PTAU(M) > PTAUE ) THEN
 
             PRINT*, 'END PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
-            PRINT*, PTAU(M), PTAUE
+            !PRINT*, PTAU(M), PTAUE
 
             ! Exit this loop and the subroutine
             EXIT
@@ -1829,7 +1831,7 @@
                   ! Column aerosol optical 
                   ! depths [unitless]
                   !--------------------------
-                  CASE ( 2001:2005 )
+                  CASE ( 2001:2006 )
                   
                    ! Remove MISSING flag
                    VARI(V) = 0e+0_fp
@@ -1893,7 +1895,7 @@
                   ! Aerosol optical depths
                   ! below plane [unitless]
                   !--------------------------
-                  CASE ( 3001:3005 )
+                  CASE ( 3001:3006 )
                   
                    ! Remove MISSING flag
                    VARI(V) = 0e+0_fp
