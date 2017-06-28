@@ -312,7 +312,7 @@
          GOS(N)%PRES(1:LGOS)       = pres(1:LGOS,N)
          GOS(N)%PRIOR(1:LGOS)      = prior(1:LGOS,N)
          GOS(N)%AVG_KERNEL(1:LGOS) = ak(1:LGOS,N)
-         GOS(N)%AP_WEIGHT(1:LGOS)  = pres_w(1:LGOS,N)
+         GOS(N)%P_WEIGHT(1:LGOS)  = pres_w(1:LGOS,N)
 
       ENDDO
 
