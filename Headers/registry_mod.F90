@@ -176,9 +176,9 @@ CONTAINS
     KbPerElement   = DBLE( fp ) / 1024.0_fp
     ErrMsg         = ''
     ThisLoc        = ' -> at Registry_AddField (in Headers/registry_mod.F90)'
-    TmpState       = State
+    TmpState       = To_UpperCase( State    )
     TmpVariable    = To_UpperCase( Variable )
-    TmpFullname    = TRIM( State ) // '_' // TRIM( Variable )
+    TmpFullname    = TRIM( TmpState ) // '_' // TRIM( TmpVariable )
     TmpDescription = ''
     TmpUnits       = ''
     
