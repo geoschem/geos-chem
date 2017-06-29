@@ -1647,21 +1647,22 @@
          !================================================================
 
          IF ( Input_Opt%GOSAT_CH4_OBS ) THEN
+            IF ( ITS_A_NEW_HOUR() ) THEN
       
 !------------------------------------------------------------------------------
 ! For adjoint model only:
 !            ! Track cost function contributions
 !            CF_PRIOR = COST_FUNC
 !------------------------------------------------------------------------------
+               CALL CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm,
+     &                                    State_Met, COST_FUNC )
 
-            CALL CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm, State_Met,
-     &                                 COST_FUNC )
-      
 !------------------------------------------------------------------------------
 ! For adjoint model only:
 !            ! Track cost function contributions
 !            CF_GOSCH4 = CF_GOSCH4 + COST_FUNC - CF_PRIOR
 !------------------------------------------------------------------------------
+            ENDIF
          ENDIF
 
          CALL TIMESTAMP_DIAG
