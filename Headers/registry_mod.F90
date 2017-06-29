@@ -496,7 +496,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Registry_Print( am_I_Root, Registry, RC )
+  SUBROUTINE Registry_Print( am_I_Root, Registry, RC, ShortFormat )
 !
 ! !USES:
 !
@@ -504,29 +504,38 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    LOGICAL,           INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
+    LOGICAL,           OPTIONAL    :: ShortFormat   ! Print less information
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetaRegItem), POINTER     :: Registry    ! Registry of state fields
+    TYPE(MetaRegItem), POINTER     :: Registry      ! Registry of state fields
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT) :: RC          ! Success or failure?
+    INTEGER,           INTENT(OUT) :: RC            ! Success or failure?
 !
 
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version
 !  26 Jun 2017 - R. Yantosca - Also print memory usage in Kb
 !  27 Jun 2017 - R. Yantosca - Now print numeric KIND value and description
+!  29 Jun 2017 - R. Yantosca - Add SHORTFORMAT option to print less output
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
+    LOGICAL                    :: Use_ShortFormat
+
     ! Strings
     CHARACTER(LEN=255)         :: ErrMsg, ThisLoc
+
+    ! String arrays
+    CHARACTER(LEN=4)           :: DimStr(0:4) = &
+                                  (/ '0   ', 'x   ', 'xy  ', 'xyz ', 'xyzn' /)
 
     ! Objects
     TYPE(MetaRegItem), POINTER :: Current
@@ -546,6 +555,18 @@ CONTAINS
     Current => NULL()
     Item    => NULL()
 
+    ! Save the value of ShortFormat (if passed) in a shadow variable 
+    IF ( PRESENT( ShortFormat ) ) THEN
+       Use_ShortFormat = ShortFormat
+    ELSE
+       Use_ShortFormat = .FALSE.
+    ENDIF
+
+    ! Print header line
+    PRINT*
+    PRINT*, 'Registered variables contained within the State_Met object:'
+    PRINT*, REPEAT( '=', 79 )
+
     !=======================================================================
     ! Print information about each state field stored in the Registry
     !=======================================================================
@@ -562,78 +583,95 @@ CONTAINS
        ! Only print on the root CPU
        IF ( ASSOCIATED( Item ) ) THEN
 
-          ! Print identifying information
-          PRINT*, REPEAT( '-', 70 )
-          PRINT*, 'FullName     : ', TRIM( Item%FullName    )
-          PRINT*, 'State        : ', TRIM( Item%State       )
-          PRINT*, 'Variable     : ', TRIM( Item%Variable    )
-          PRINT*, 'Description  : ', TRIM( Item%Description )
-          PRINT*, 'Units        : ', TRIM( Item%Units       )
-          PRINT*, 'KIND value   : ', Item%KindVal
-          PRINT*, 'Memory (Kb)  : ', Item%MemoryInKb
-          PRINT*, 'Rank of data : ', Item%Rank
+          IF ( Use_ShortFormat ) THEN
 
-          ! 0d data
-          IF ( ASSOCIATED( Item%Ptr0d ) ) THEN 
-             PRINT*, 'Value Ptr0d  : ', Item%Ptr0d
+             !--------------------------------------------------------------
+             ! Just print the name, description, dimension, and units
+             !--------------------------------------------------------------
+             WRITE( 6, 100 ) Item%FullName,     Item%Description, &
+                             DimStr(Item%Rank), Item%Units
+  100        FORMAT( 2x, a20, ' | ', a40, ' | ', a4, ' | ', a15 )
+
+          ELSE
+
+             !--------------------------------------------------------------
+             ! Print full information about this REGISTRY ITEM
+             !--------------------------------------------------------------
+
+             ! Print identifying information
+             PRINT*, REPEAT( '-', 70 )
+             PRINT*, 'FullName     : ', TRIM( Item%FullName    )
+             PRINT*, 'State        : ', TRIM( Item%State       )
+             PRINT*, 'Variable     : ', TRIM( Item%Variable    )
+             PRINT*, 'Description  : ', TRIM( Item%Description )
+             PRINT*, 'Units        : ', TRIM( Item%Units       )
+             PRINT*, 'KIND value   : ', Item%KindVal
+             PRINT*, 'Memory (Kb)  : ', Item%MemoryInKb
+             PRINT*, 'Rank of data : ', Item%Rank, '(', DimStr(Item%Rank), ')'
+
+             ! 0d data
+             IF ( ASSOCIATED( Item%Ptr0d ) ) THEN
+                PRINT*, 'Value Ptr0d  : ', Item%Ptr0d
+             ENDIF
+
+             ! 1d data
+             IF ( ASSOCIATED( Item%Ptr1d ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr1d     )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr1d     )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr1d     )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr1d     )
+             ENDIF
+
+             ! 2d data
+             IF ( ASSOCIATED( Item%Ptr2d ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d     )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2d     )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr2d     )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d, 1  ), &
+                                           SIZE  ( Item%Ptr2d, 2  )
+             ENDIF
+
+             ! 2d data -- Integer
+             IF ( ASSOCIATED( Item%Ptr2dI ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr2dI    )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2dI    )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr2dI    )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2dI, 1 ), &
+                                           SIZE  ( Item%Ptr2dI, 2 )
+             ENDIF
+
+             ! 3d data
+             IF ( ASSOCIATED( Item%Ptr3d ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr3d    )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3d    )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr3d    )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3d, 1 ), &
+                                           SIZE  ( Item%Ptr3d, 2 ), &
+                      SIZE  ( Item%Ptr3d, 3 )
+             ENDIF
+
+             ! 3d data -- Integer
+             IF ( ASSOCIATED( Item%Ptr3dI ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr3dI    )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3dI    )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr3dI    )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3dI, 1 ), &
+                                           SIZE  ( Item%Ptr3dI, 2 ), &
+                                           SIZE  ( Item%Ptr3dI, 3 )
+             ENDIF
+
+             ! 4d data
+             IF ( ASSOCIATED( Item%Ptr4d ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr4d     )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr4d     )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr4d     )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr4d, 1  ), &
+                                           SIZE  ( Item%Ptr4d, 2  ), &
+                                           SIZE  ( Item%Ptr4d, 3  ), &
+                                           SIZE  ( Item%Ptr4d, 4  )
+             ENDIF
           ENDIF
 
-          ! 1d data
-          IF ( ASSOCIATED( Item%Ptr1d ) ) THEN 
-             PRINT*, 'Min value    : ', MINVAL( Item%Ptr1d     )
-             PRINT*, 'Max value    : ', MAXVAL( Item%Ptr1d     )
-             PRINT*, 'Total        : ', SUM   ( Item%Ptr1d     )
-             PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr1d     )
-          ENDIF
-
-          ! 2d data
-          IF ( ASSOCIATED( Item%Ptr2d ) ) THEN
-             PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d     )
-             PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2d     )
-             PRINT*, 'Total        : ', SUM   ( Item%Ptr2d     )
-             PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d, 1  ), &
-                                        SIZE  ( Item%Ptr2d, 2  )
-          ENDIF
-
-          ! 2d data -- Integer
-          IF ( ASSOCIATED( Item%Ptr2dI ) ) THEN
-             PRINT*, 'Min value    : ', MINVAL( Item%Ptr2dI    )
-             PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2dI    )
-             PRINT*, 'Total        : ', SUM   ( Item%Ptr2dI    )
-             PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2dI, 1 ), &
-                                        SIZE  ( Item%Ptr2dI, 2 )
-          ENDIF
-
-          ! 3d data
-          IF ( ASSOCIATED( Item%Ptr3d ) ) THEN
-             PRINT*, 'Min value    : ', MINVAL( Item%Ptr3d    )
-             PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3d    )
-             PRINT*, 'Total        : ', SUM   ( Item%Ptr3d    )
-             PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3d, 1 ), &
-                                        SIZE  ( Item%Ptr3d, 2 ), &
-                                        SIZE  ( Item%Ptr3d, 3 )
-          ENDIF
-
-          ! 3d data -- Integer
-          IF ( ASSOCIATED( Item%Ptr3dI ) ) THEN
-             PRINT*, 'Min value    : ', MINVAL( Item%Ptr3dI    )
-             PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3dI    )
-             PRINT*, 'Total        : ', SUM   ( Item%Ptr3dI    )
-             PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3dI, 1 ), &
-                                        SIZE  ( Item%Ptr3dI, 2 ), &
-                                        SIZE  ( Item%Ptr3dI, 3 )
-          ENDIF
-
-          ! 4d data
-          IF ( ASSOCIATED( Item%Ptr4d ) ) THEN
-             PRINT*, 'Min value    : ', MINVAL( Item%Ptr4d     )
-             PRINT*, 'Max value    : ', MAXVAL( Item%Ptr4d     )
-             PRINT*, 'Total        : ', SUM   ( Item%Ptr4d     )
-             PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr4d, 1  ), &
-                                        SIZE  ( Item%Ptr4d, 2  ), &
-                                        SIZE  ( Item%Ptr4d, 3  ), &
-                                        SIZE  ( Item%Ptr4d, 4  )
-          ENDIF
        ENDIF
 
        ! Point to next node of the Registry

@@ -118,7 +118,9 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     CHARACTER(LEN=*), INTENT(IN)    :: Variable   ! Name of variable to check
-    INTEGER,          INTENT(IN)    :: Operation  ! 0=Allocate; 1=Register
+    INTEGER,          INTENT(IN)    :: Operation  ! 0=Allocate 
+                                                  ! 1=Register
+                                                  ! 2=Deallocate
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -143,12 +145,18 @@ CONTAINS
   !=========================================================================
   ! Initialize
   !=========================================================================
-  IF ( Operation == 0 ) THEN
-     ErrMsg = 'Could not allocate ' // TRIM( Variable ) // '!'
-  ELSE
-     ErrMsg = 'Could not register ' // TRIM( Variable ) // '!'
-  ENDIF
 
+  ! Define error message
+  SELECT CASE( Operation )
+     CASE( 1 )
+        ErrMsg = 'Could not register '   // TRIM( Variable ) // '!'
+     CASE( 2 ) 
+        ErrMsg = 'Could not deallocate ' // TRIM( Variable ) // '!'
+     CASE DEFAULT
+        ErrMsg = 'Could not allocate '   // TRIM( Variable ) // '!'
+  END SELECT
+
+  ! Define location string
   ThisLoc   = ' -> at Init_State_Met (in Headers/state_met_mod.F90)'
 
   !=========================================================================

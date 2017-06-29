@@ -31,6 +31,8 @@ MODULE State_Met_Mod
 !
   PUBLIC :: Init_State_Met
   PUBLIC :: Cleanup_State_Met
+  PUBLIC :: Lookup_State_Met
+  PUBLIC :: Print_State_Met
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -2444,7 +2446,7 @@ CONTAINS
     Desc  = 'Evaporation of convective precipitation (w/r/t dry air)'
     Units = 'kg kg-1 s-1'
     CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
-                            State_Met%State, '',                            &
+                            State_Met%State, 'REEVAPCN',                    &
                             Units=Units,      Data3d=State_Met%REEVAPCN,    &
                             Description=Desc, RC=RC                        )
     CALL GC_CheckVar( 'State_Met%REEVAPCN', 1, RC )
@@ -2779,9 +2781,16 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%XCHLR2', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    !=======================================================================
+    ! Print information about the registered fields (short format)
+    !=======================================================================
+    CALL Print_State_Met( am_I_Root, State_Met, RC, ShortFormat=.TRUE.)
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Print_State_Met"'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-    CALL Print_State_Met( am_I_Root, State_Met, RC )
-    CALL EXIT( 999 )
    END SUBROUTINE Init_State_Met
 !EOC
 !------------------------------------------------------------------------------
@@ -3118,14 +3127,14 @@ CONTAINS
 !
 ! !IROUTINE: Print_State_Met
 !
-! !DESCRIPTION: Print information about all the fields of this module that
-!  have been added to the registry.  This is basically a wrapper for routine
-!  REGISTRY_PRINT in registry_mod.F90.
+! !DESCRIPTION: Print information about all the registered variables
+!  contained within the State_Met object.  This is basically a wrapper for
+!  routine REGISTRY_PRINT in registry_mod.F90.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_State_Met( am_I_Root, State_Met, RC )
+  SUBROUTINE Print_State_Met( am_I_Root, State_Met, RC, ShortFormat )
 !
 ! !USES:
 !
@@ -3136,13 +3145,14 @@ CONTAINS
 !
     LOGICAL,           INTENT(IN)  :: am_I_Root   ! Root CPU?  
     TYPE(MetState),    INTENT(IN)  :: State_Met   ! Meteorology State object
+    LOGICAL,           OPTIONAL    :: ShortFormat ! Print truncated info
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,           INTENT(OUT) :: RC          ! Success/failure?
 !
 ! !REVISION HISTORY:
-!  23 Jun 2017 - R. Yantosca - Initial version
+!  29 Jun 2017 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3156,19 +3166,121 @@ CONTAINS
     !=======================================================================
     RC      = GC_SUCCESS
     ErrMsg  = ''
-    ThisLoc = ' -> at Mod1_Lookup (in mod1.F90)'
+    ThisLoc = ' -> at Print_State_Met (in Headers/state_met_mod.F90)'
 
     !=======================================================================
-    ! Destroy the registry of fields for this module
+    ! Print info about each field in the list
     !=======================================================================
-    CALL Registry_Print( am_I_Root, State_Met%Registry, RC )
+    CALL Registry_Print( am_I_Root   = am_I_Root,           &
+                         Registry    = State_Met%Registry,  &
+                         ShortFormat = ShortFormat,         &
+                         RC          = RC                  )
+
+    ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not print information from MOD1_REGISTRY!'
+       ErrMsg = 'Error encountered in routine "Registry_Print"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
   END SUBROUTINE Print_State_Met
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Lookup_State_Met
+!
+! !DESCRIPTION: Return metadata and/or a pointer to the data for any
+!  variable contained within the State_Met object by searching for its name.
+!  This is basically a wrapper for routine REGISTRY_LOOKUP in registry_mod.F90.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Lookup_State_Met( am_I_Root,   State_Met, Variable,   RC,      &
+                               Description, KindVal,   MemoryInKb, Rank,    &
+                               Units,       Ptr2d,     Ptr3d,      Ptr2dI,  &
+                               Ptr3dI                                      )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Registry_Mod, ONLY : Registry_Lookup
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root      ! Is this the root CPU? 
+    TYPE(MetState),      INTENT(IN)  :: State_Met      ! Meteorology State
+    CHARACTER(LEN=*),    INTENT(IN)  :: Variable       ! Variable name
+!
+! !OUTPUT PARAMETERS:
+!
+    ! Required outputs
+    INTEGER,             INTENT(OUT) :: RC             ! Success or failure?
 
+    ! Optional outputs
+    CHARACTER(LEN=255),  OPTIONAL    :: Description    ! Description of data
+    INTEGER,             OPTIONAL    :: KindVal        ! Numerical KIND value
+    REAL(fp),            OPTIONAL    :: MemoryInKb     ! Memory usage
+    INTEGER,             OPTIONAL    :: Rank           ! Size of data
+    CHARACTER(LEN=255),  OPTIONAL    :: Units          ! Units of data
+
+    ! Pointers to data
+    REAL(fp),   POINTER, OPTIONAL    :: Ptr2d (:,:  )  ! Ptr to 2d data
+    REAL(fp),   POINTER, OPTIONAL    :: Ptr3d (:,:,:)  ! Ptr to 3d data
+    INTEGER,    POINTER, OPTIONAL    :: Ptr2dI(:,:  )  ! Ptr to 2d int data
+    INTEGER,    POINTER, OPTIONAL    :: Ptr3dI(:,:,:)  ! Ptr to 3d int data
+!
+! !REMARKS:
+!  We keep the StateName variable private to this module. Users only have
+!  to supply the name of each module variable.
+!
+! !REVISION HISTORY:
+!  29 Jun 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Lookup_State_Met (in Headers/state_met_mod.F90)'
+
+    !=======================================================================
+    ! Look up a variable; Return metadata and/or a pointer to the data
+    !=======================================================================
+    CALL Registry_Lookup( am_I_Root   = am_I_Root,           &
+                          Registry    = State_Met%Registry,  &
+                          State       = State_Met%State,     &
+                          Variable    = Variable,            &
+                          Description = Description,         &
+                          KindVal     = KindVal,             &
+                          MemoryInKb  = MemoryInKb,          &
+                          Rank        = Rank,                &
+                          Units       = Units,               &
+                          Ptr2d       = Ptr2d,               &
+                          Ptr3d       = Ptr3d,               &
+                          Ptr2dI      = Ptr2dI,              &
+                          Ptr3dI      = Ptr3dI,              &
+                          RC          = RC                  )
+
+    ! Trap error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not find variable ' // TRIM( Variable ) // &
+               ' in the State_Met registry!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Lookup_State_Met
 !EOC
 END MODULE State_Met_Mod
