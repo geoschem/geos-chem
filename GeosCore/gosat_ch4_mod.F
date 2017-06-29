@@ -70,6 +70,7 @@
          INTEGER           :: QFLAG(1)
          INTEGER           :: GLINT(1)
          INTEGER           :: GAIN(1)
+         CHARACTER(LEN=22) :: EXP_ID(1)
       ENDTYPE GOS_CH4_OBS  
 
       TYPE(GOS_CH4_OBS)    :: GOS(MAXGOS)
@@ -135,8 +136,9 @@
       INTEGER,  ALLOCATABLE          :: qflag(:)
       INTEGER,  ALLOCATABLE          :: glint(:)
       INTEGER,  ALLOCATABLE          :: gain(:)
+      CHARACTER(LEN=22),ALLOCATABLE  :: exp_id(:)
 
-      INTEGER                        :: NLEV
+      INTEGER                        :: NLEV, StrLen
       INTEGER                        :: I, L, AS
 
       ! For reading netCDF file
@@ -187,6 +189,7 @@
       ! Read the dimensions from the netCDF file
       CALL NcGet_DimLen( fId, 'm',   NLEV )
       CALL NcGet_DimLen( fId, 'n',   NGOS )
+      CALL NcGet_DimLen( fId, 'string_length', StrLen )
 
       IF ( NLEV > MAXLEV ) THEN
          print*,' # Levels this day = ', NLEV
@@ -210,6 +213,7 @@
       ALLOCATE( xch4_error(  NGOS ), STAT=AS )
       ALLOCATE( glint(       NGOS ), STAT=AS )
       ALLOCATE( gain(        NGOS ), STAT=AS )
+      ALLOCATE( exp_id(      NGOS ), STAT=AS )
       ALLOCATE( prior( NLEV, NGOS ), STAT=AS )
       ALLOCATE( pres(  NLEV, NGOS ), STAT=AS )
       ALLOCATE( ak(    NLEV, NGOS ), STAT=AS )
@@ -263,6 +267,12 @@
       ct1d   = (/ NGOS /)
       CALL NcRd( gain, fId, TRIM(v_name), st1d, ct1d )
 
+      ! Exposure ID
+      v_name = 'exposure_id'
+      st2d   = (/ 1, 1    /)
+      ct2d   = (/ StrLen, NGOS /)
+      CALL NcRd( exp_id, fId, TRIM(v_name), st2d, ct2d )
+
       !-------------------------------- 
       ! Read 2D Data
       !-------------------------------- 
@@ -306,6 +316,7 @@
          GOS(N)%QFLAG(1)     = qflag(N)
          GOS(N)%GLINT(1)     = glint(N)
          GOS(N)%GAIN(1)      = gain(N)
+         GOS(N)%EXP_ID(1)    = exp_id(N)
 
          ! 1-D data
          LGOS = NLEV
@@ -507,10 +518,11 @@
      &                     'MM', 'DD', 'hh', 'mm', 'ss',
      &                     '         TAU', '       GOSAT', 
      &                     '       model', '       S_OBS', 
-     &                     '    COST_FUN', 'GLINT', 'GAIN'
+     &                     '    COST_FUN', 'GLINT', 'GAIN',
+     &                     'EXPOSURE_ID'
  281     FORMAT( A10,2x,A4,2x,A4,2x,A8,2x,A8,2x,A4,2x,A2,2x,A2,2x,A2,2x,
      &           A2,2x,A2,2x,A12,2x,A12,2x,A12,2x,A12,2x,A12,2x,
-     &           A5,2x,A4)
+     &           A5,2x,A4,2x,A22)
 
          ! Set Total Observations = 0
          TotalObs = 0
@@ -929,7 +941,7 @@
      &           GOS(NT)%MONTH(1),GOS(NT)%DAY(1), GOS(NT)%HOUR(1), 
      &           GOS(NT)%MINUTE(1), GOS(NT)%SEC(1),
      &           GET_TAU(), GOS_XCH4, GC_XCH4, S_OBS, 0.5d0*FORCE*DIFF,
-     &           GOS(NT)%GLINT(1),GOS(NT)%GAIN(1)
+     &           GOS(NT)%GLINT(1),GOS(NT)%GAIN(1),GOS(NT)%EXP_ID(1)
          ENDIF
 
 
