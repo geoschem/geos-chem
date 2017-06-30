@@ -6912,8 +6912,20 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:2' )
       READ( SUBSTRS(1:N), * ) Input_Opt%GOSAT_CH4_OBS
                                                 
-      ! Separator line                          
+      ! Do analytical inversion?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:3' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%Analytical_Inv
+
+      ! Emission perturbation
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:4' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%Emis_Pert
+
+      ! Current cluster number
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:5' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%Emis_Pert_Num
+
+      ! Separator line                          
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:6' )
 
       !=================================================================
       ! Print to screen
@@ -6925,6 +6937,13 @@
      &                        Input_Opt%LCH4BUDGET
          WRITE( 6, 100     ) 'Use GOSAT obs operator: ',
      &                        Input_Opt%GOSAT_CH4_OBS
+         WRITE( 6, 100     ) 'Do analytical inversion: ',
+     &                        Input_Opt%Analytical_Inv
+         WRITE( 6, 110     ) 'Emission perturbation: ',
+     &                        Input_Opt%Emis_Pert
+         WRITE( 6, 120     ) 'Current cluster number: ',
+     &                        Input_Opt%Emis_Pert_Num
+
       END IF
 
       ! Error check (kjw)
@@ -6940,6 +6959,8 @@
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
+ 110  FORMAT( A, f6.2  )
+ 120  FORMAT( A, I5  )
 
       ! Return success
       RC = GC_SUCCESS         

@@ -148,6 +148,7 @@
       REAL(f4), POINTER     :: BOH    (:,:,:) => NULL()
       REAL(f4), POINTER     :: BCl    (:,:,:) => NULL()
       REAL(f4), POINTER     :: CH4LOSS(:,:,:) => NULL()
+      REAL(f4), POINTER     :: CLUSTERS(:,:)  => NULL()
 
       ! Online CH4 only
       REAL(fp), ALLOCATABLE :: SUMANTHRO(:,:)
@@ -178,6 +179,7 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD58
+      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -259,6 +261,7 @@
       LOGICAL                  :: ITS_A_FULLCHEM_SIM
       LOGICAL                  :: LPRT
       LOGICAL                  :: prtDebug
+      LOGICAL, SAVE            :: FIRST = .TRUE.
 
       ! Pointers
       REAL(f4),        POINTER :: Ptr2D(:,:)
@@ -295,6 +298,15 @@
 
       IF ( ITS_A_CH4_SIM .and. LPRT ) THEN
          print*,'BEGIN SUBROUTINE: EMISSCH4' 
+      ENDIF
+
+      IF ( FIRST .and. Input_Opt%Analytical_Inv ) THEN
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_CLUSTERS', CLUSTERS,
+     &                    RC)
+         IF ( RC /= HCO_SUCCESS ) 
+     &      CALL ERROR_STOP ( 'Cannot get pointer to CLUSTERS', LOC )
+
+         FIRST = .FALSE.
       ENDIF
 
       ! =================================================================
@@ -530,6 +542,40 @@
          WRITE(*,*) 'Soil absorb  : ', SUM(CH4_EMIS(:,:,15))
       ENDIF
  
+      ! =================================================================
+      ! Do scaling for analytical inversion
+      ! =================================================================
+      IF ( Input_Opt%Analytical_Inv ) THEN
+
+         ! Don't optimize for soil absorption so remove from the total
+         ! emissions array
+         CH4_EMIS(:,:,1) = CH4_EMIS(:,:,1) + CH4_EMIS(:,:,15)
+
+         ! Rescale emissions
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J)	 
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Only apply emission perturbation to current cluster number
+            IF ( CLUSTERS(I,J) == Input_Opt%Emis_Pert_Num ) THEN
+               CH4_EMIS(I,J,1) = CH4_EMIS(I,J,1) * Input_Opt%Emis_Pert
+               Print*, 'Analytical Inv: Scaled cluster ',
+     &                  Input_Opt%Emis_Pert_Num, ' by ',
+     &                  Input_Opt%Emis_Pert
+            ENDIF
+
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+         ! Now that we've done the emission factor scaling, add soil absorption
+         ! back to the total emissions array
+         CH4_EMIS(:,:,1) = CH4_EMIS(:,:,1) - CH4_EMIS(:,:,15)
+
+      ENDIF
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, N, AREA_M2 )
@@ -848,7 +894,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL            :: FIRSTCHEM = .TRUE.
+      LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
       INTEGER            :: I, J, L, K, M, N, NA, nAdvect
       INTEGER            :: NPART
 
