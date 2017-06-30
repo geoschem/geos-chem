@@ -476,7 +476,7 @@ CONTAINS
     Units = 'level'
     CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
                             State_Met%State, 'CLDTOPS',                     &
-                            Units=Units,      Data2dI=State_Met%CLDTOPS,    &
+                            Units=Units,      Data2d_I=State_Met%CLDTOPS,    &
                             Description=Desc, RC=RC                        )
     CALL GC_CheckVar( 'State_Met%CLDTOPS', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -783,7 +783,7 @@ CONTAINS
     Units = 'layer'
     CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
                             State_Met%State, 'PBL_TOP_L',                   &
-                            Units=Units,      Data2dI=State_Met%PBL_TOP_L,  &
+                            Units=Units,      Data2d_I=State_Met%PBL_TOP_L,  &
                             Description=Desc, RC=RC                        )
     CALL GC_CheckVar( 'State_Met%PBL_TOP_L', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -2589,7 +2589,7 @@ CONTAINS
     Units = '1'
     CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
                             State_Met%State, 'IREG',                        &
-                            Units=Units,      Data2dI=State_Met%IREG,       &
+                            Units=Units,      Data2d_I=State_Met%IREG,      &
                             Description=Desc, RC=RC                        )
     CALL GC_CheckVar( 'State_Met%IREG', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -2606,7 +2606,7 @@ CONTAINS
     Units = '1'
     CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
                             State_Met%State, 'ILAND',                       &
-                            Units=Units,      Data3dI=State_Met%ILAND,      &
+                            Units=Units,      Data3d_I=State_Met%ILAND,     &
                             Description=Desc, RC=RC                        )
     CALL GC_CheckVar( 'State_Met%ILAND', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -2623,7 +2623,7 @@ CONTAINS
     Units = 'o/oo'
     CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
                             State_Met%State, 'IUSE',                        &
-                            Units=Units,      Data3dI=State_Met%IUSE,       &
+                            Units=Units,      Data3d_I=State_Met%IUSE,      &
                             Description=Desc, RC=RC                        )
     CALL GC_CheckVar( 'State_Met%IUSE', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -3143,13 +3143,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)  :: am_I_Root   ! Root CPU?  
-    TYPE(MetState),    INTENT(IN)  :: State_Met   ! Meteorology State object
-    LOGICAL,           OPTIONAL    :: ShortFormat ! Print truncated info
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Root CPU?  
+    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+    LOGICAL,        OPTIONAL    :: ShortFormat ! Print truncated info
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT) :: RC          ! Success/failure?
+    INTEGER,        INTENT(OUT) :: RC          ! Success/failure?
 !
 ! !REVISION HISTORY:
 !  29 Jun 2017 - R. Yantosca - Initial version
@@ -3169,8 +3169,15 @@ CONTAINS
     ThisLoc = ' -> at Print_State_Met (in Headers/state_met_mod.F90)'
 
     !=======================================================================
-    ! Print info about each field in the list
+    ! Print info about registered variables
     !=======================================================================
+
+    ! Header line
+    PRINT*
+    PRINT*, 'Registered variables contained within the State_Met object:'
+    PRINT*, REPEAT( '=', 79 )
+
+    ! Print registry info in truncated format
     CALL Registry_Print( am_I_Root   = am_I_Root,           &
                          Registry    = State_Met%Registry,  &
                          ShortFormat = ShortFormat,         &
@@ -3199,10 +3206,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Lookup_State_Met( am_I_Root,   State_Met, Variable,   RC,      &
-                               Description, KindVal,   MemoryInKb, Rank,    &
-                               Units,       Ptr2d,     Ptr3d,      Ptr2dI,  &
-                               Ptr3dI                                      )
+  SUBROUTINE Lookup_State_Met( am_I_Root,   State_Met, Variable,   RC,       &
+                               Description, KindVal,   MemoryInKb, Rank,     &
+                               Units,       Ptr2d,     Ptr3d,      Ptr2d_I,  &
+                               Ptr3d_I                                      )
 !
 ! !USES:
 !
@@ -3211,27 +3218,27 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root      ! Is this the root CPU? 
-    TYPE(MetState),      INTENT(IN)  :: State_Met      ! Meteorology State
-    CHARACTER(LEN=*),    INTENT(IN)  :: Variable       ! Variable name
+    LOGICAL,          INTENT(IN)  :: am_I_Root       ! Is this the root CPU? 
+    TYPE(MetState),   INTENT(IN)  :: State_Met       ! Meteorology State
+    CHARACTER(LEN=*), INTENT(IN)  :: Variable        ! Variable name
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Required outputs
-    INTEGER,             INTENT(OUT) :: RC             ! Success or failure?
+    INTEGER,          INTENT(OUT) :: RC              ! Success or failure?
 
     ! Optional outputs
-    CHARACTER(LEN=255),  OPTIONAL    :: Description    ! Description of data
-    INTEGER,             OPTIONAL    :: KindVal        ! Numerical KIND value
-    REAL(fp),            OPTIONAL    :: MemoryInKb     ! Memory usage
-    INTEGER,             OPTIONAL    :: Rank           ! Size of data
-    CHARACTER(LEN=255),  OPTIONAL    :: Units          ! Units of data
+    CHARACTER(LEN=255),  OPTIONAL :: Description     ! Description of data
+    INTEGER,             OPTIONAL :: KindVal         ! Numerical KIND value
+    REAL(fp),            OPTIONAL :: MemoryInKb      ! Memory usage
+    INTEGER,             OPTIONAL :: Rank            ! Size of data
+    CHARACTER(LEN=255),  OPTIONAL :: Units           ! Units of data
 
     ! Pointers to data
-    REAL(fp),   POINTER, OPTIONAL    :: Ptr2d (:,:  )  ! Ptr to 2d data
-    REAL(fp),   POINTER, OPTIONAL    :: Ptr3d (:,:,:)  ! Ptr to 3d data
-    INTEGER,    POINTER, OPTIONAL    :: Ptr2dI(:,:  )  ! Ptr to 2d int data
-    INTEGER,    POINTER, OPTIONAL    :: Ptr3dI(:,:,:)  ! Ptr to 3d int data
+    REAL(fp),   POINTER, OPTIONAL :: Ptr2d  (:,:  )  ! 2D flex-prec data
+    REAL(fp),   POINTER, OPTIONAL :: Ptr3d  (:,:,:)  ! 3D flex-prec data
+    INTEGER,    POINTER, OPTIONAL :: Ptr2d_I(:,:  )  ! 2D integer data
+    INTEGER,    POINTER, OPTIONAL :: Ptr3d_I(:,:,:)  ! 3D integer data
 !
 ! !REMARKS:
 !  We keep the StateName variable private to this module. Users only have
@@ -3239,6 +3246,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  29 Jun 2017 - R. Yantosca - Initial version
+!  30 Jun 2017 - R. Yantosca - Rename variables Ptr{2,3}*dI to Ptr{2,3}d_I
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3269,8 +3277,8 @@ CONTAINS
                           Units       = Units,               &
                           Ptr2d       = Ptr2d,               &
                           Ptr3d       = Ptr3d,               &
-                          Ptr2dI      = Ptr2dI,              &
-                          Ptr3dI      = Ptr3dI,              &
+                          Ptr2d_I     = Ptr2d_I,             &
+                          Ptr3d_I     = Ptr3d_I,             &
                           RC          = RC                  )
 
     ! Trap error

@@ -306,8 +306,6 @@ CONTAINS
     !=======================================================================
     ! Initialize object for chemical state
     !=======================================================================
-
-    ! Initialize chemistry state
     CALL Init_State_Chm(  am_I_Root  = am_I_Root,  &  ! Root CPU (Y/N)?
                           IM         = IIPAR,      &  ! # of lons
                           JM         = JJPAR,      &  ! # of lats

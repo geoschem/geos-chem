@@ -29,28 +29,45 @@ MODULE Registry_Mod
   !=========================================================================
   TYPE, PUBLIC :: RegItem
 
+     !----------------------------------------------------------------------
      ! Identifying info
-     CHARACTER(LEN=67)          :: FullName         ! e.g. "STATE_VARIABLE"
-     CHARACTER(LEN=4 )          :: State            ! Name of state
-     CHARACTER(LEN=63)          :: Variable         ! Name of variable
+     !----------------------------------------------------------------------
+     CHARACTER(LEN=67)    :: FullName         ! e.g. "STATE_VARIABLE"
+     CHARACTER(LEN=4 )    :: State            ! Name of state
+     CHARACTER(LEN=63)    :: Variable         ! Name of variable
 
+     !----------------------------------------------------------------------
      ! Metadata
-     CHARACTER(LEN=255)         :: Description      ! Longer description
-     REAL(fp)                   :: MemoryInKb       ! Memory use in Kb
-     INTEGER                    :: KindVal          ! Numerical KIND value
-     INTEGER                    :: Rank             ! Dimensions of data
-     CHARACTER(LEN=255)         :: Units            ! Units of data
+     !----------------------------------------------------------------------
+     CHARACTER(LEN=255)   :: Description      ! Longer description
+     REAL(fp)             :: MemoryInKb       ! Memory use in Kb
+     INTEGER              :: KindVal          ! Numerical KIND value
+     INTEGER              :: Rank             ! Dimensions of data
+     CHARACTER(LEN=255)   :: Units            ! Units of data
 
-     ! Pointers to floating-point data
-     REAL(fp),          POINTER :: Ptr0d            ! Pointer to 0D data
-     REAL(fp),          POINTER :: Ptr1d (:      )  ! Pointer to 1D data
-     REAL(fp),          POINTER :: Ptr2d (:,:    )  ! Pointer to 2D dat
-     REAL(fp),          POINTER :: Ptr3d (:,:,:  )  ! Pointer to 3D data
-     REAL(fp),          POINTER :: Ptr4d (:,:,:,:)  ! Pointer to 4D data
+     !----------------------------------------------------------------------
+     ! Pointers to floating point data (flexible precision)
+     !----------------------------------------------------------------------
+     REAL(fp), POINTER    :: Ptr0d            ! For 0D flex-prec data
+     REAL(fp), POINTER    :: Ptr1d  (:    )   ! For 1D flex-prec data
+     REAL(fp), POINTER    :: Ptr2d  (:,:  )   ! For 2D flex-prec data
+     REAL(fp), POINTER    :: Ptr3d  (:,:,:)   ! For 3D flex-prec data
 
+     !----------------------------------------------------------------------
+     ! Pointers to floating point data (4-byte precision)
+     !----------------------------------------------------------------------
+     REAL(f4), POINTER    :: Ptr0d_4          ! For 0D 4-byte data
+     REAL(f4), POINTER    :: Ptr1d_4(:    )   ! For 1D 4-byte data
+     REAL(f4), POINTER    :: Ptr2d_4(:,:  )   ! For 2D 4-byte data
+     REAL(f4), POINTER    :: Ptr3d_4(:,:,:)   ! For 3D 4-byte data
+
+     !----------------------------------------------------------------------
      ! Pointers to integer data
-     INTEGER,           POINTER :: Ptr2dI(:,:    )  ! Pointer to 2d int data
-     INTEGER,           POINTER :: Ptr3dI(:,:,:  )  ! Pointer to 3d int data
+     !----------------------------------------------------------------------
+     INTEGER,  POINTER    :: Ptr0d_I          ! For 0D int data
+     INTEGER,  POINTER    :: Ptr1d_I(:    )   ! For 1D int data
+     INTEGER,  POINTER    :: Ptr2d_I(:,:  )   ! For 2D int data
+     INTEGER,  POINTER    :: Ptr3d_I(:,:,:)   ! For 3D int data
 
   END TYPE RegItem
 
@@ -85,6 +102,8 @@ MODULE Registry_Mod
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version
 !  27 Jun 2017 - R. Yantosca - Added integer data fields, and description
+!  29 Jun 2017 - R. Yantosca - Added Ptr1DI to type RegItem
+!  30 Jun 2017 - R. Yantosca - Add more pointers to 4-byte and integer data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -106,10 +125,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Registry_AddField( am_I_Root, Registry,    State,  Variable,  &
-                                RC,        Description, Units,  Data0d,    &
-                                Data1d,    Data2d,      Data3d, Data4d,    &
-                                Data2dI,   Data3dI                        )
+  SUBROUTINE Registry_AddField( am_I_Root, Registry,  State,        &
+                                Variable,  RC,        Description,  & 
+                                Units,     Data0d,    Data1d,       &
+                                Data2d,    Data3d,    Data0d_4,     &
+                                Data1d_4,  Data2d_4,  Data3d_4,     &
+                                Data0d_I,  Data1d_I,  Data2d_I,     &
+                                Data3d_I                           )
 !
 ! !USES:
 !
@@ -118,22 +140,29 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     ! General identifying information
-    LOGICAL,           INTENT(IN)       :: am_I_Root        ! Is this root CPU?
-    CHARACTER(LEN=*),  INTENT(IN)       :: State            ! Name of state obj
-    CHARACTER(LEN=*),  INTENT(IN)       :: Variable         ! Name of variable
-    CHARACTER(LEN=*),  OPTIONAL         :: Description      ! Long description
-    CHARACTER(LEN=*),  OPTIONAL         :: Units            ! Units of data
+    LOGICAL,           INTENT(IN)       :: am_I_Root       ! Root CPU?
+    CHARACTER(LEN=*),  INTENT(IN)       :: State           ! State name
+    CHARACTER(LEN=*),  INTENT(IN)       :: Variable        ! variable
+    CHARACTER(LEN=*),  OPTIONAL         :: Description     ! Long description
+    CHARACTER(LEN=*),  OPTIONAL         :: Units           ! Units of data
 
-    ! Floating-point data targets
-    REAL(fp),          OPTIONAL, TARGET :: Data0d           ! Ptr to 0d data
-    REAL(fp),          OPTIONAL, TARGET :: Data1d (:      ) ! Ptr to 1d data
-    REAL(fp),          OPTIONAL, TARGET :: Data2d (:,:    ) ! Ptr to 2d data
-    REAL(fp),          OPTIONAL, TARGET :: Data3d (:,:,:  ) ! Ptr to 3d data 
-    REAL(fp),          OPTIONAL, TARGET :: Data4d (:,:,:,:) ! Ptr to 4d data
+    ! Floating-point data targets (flexible precision)
+    REAL(fp),          OPTIONAL, TARGET :: Data0d          ! 0D flex-prec data
+    REAL(fp),          OPTIONAL, TARGET :: Data1d  (:    ) ! 1D flex_prec data
+    REAL(fp),          OPTIONAL, TARGET :: Data2d  (:,:  ) ! 2D flex-prec data
+    REAL(fp),          OPTIONAL, TARGET :: Data3d  (:,:,:) ! 3D flex-prec data 
+
+    ! Floating-point data targets (4-byte precision)
+    REAL(f4),          OPTIONAL, TARGET :: Data0d_4        ! 0D 4-byte data
+    REAL(f4),          OPTIONAL, TARGET :: Data1d_4(:    ) ! 1D 4-byte data
+    REAL(f4),          OPTIONAL, TARGET :: Data2d_4(:,:  ) ! 2D 4-byte data
+    REAL(f4),          OPTIONAL, TARGET :: Data3d_4(:,:,:) ! 3D 4-byte data 
 
     ! Integer data targets
-    INTEGER,           OPTIONAL, TARGET :: Data2dI(:,:    ) ! Ptr to 2d int data
-    INTEGER,           OPTIONAL, TARGET :: Data3dI(:,:,:  ) ! Ptr to 3d int data
+    INTEGER,           OPTIONAL, TARGET :: Data0d_I        ! 1D int data
+    INTEGER,           OPTIONAL, TARGET :: Data1d_I(:    ) ! 1D int data
+    INTEGER,           OPTIONAL, TARGET :: Data2d_I(:,:  ) ! 2D int data
+    INTEGER,           OPTIONAL, TARGET :: Data3d_I(:,:,:) ! 3D int data
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -153,6 +182,7 @@ CONTAINS
 !  26 Jun 2017 - R. Yantosca - Changed "StateName" to "State", "Name" to
 !                              "Variable", and added "MemoryInKb"
 !  27 Jun 2017 - R. Yantosca - Now assigns description and KIND value
+!  29 Jun 2017 - R. Yantosca - Added Data1dI for 1D integer data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -211,38 +241,32 @@ CONTAINS
     Item%Ptr1d         => NULL()
     Item%Ptr2d         => NULL()
     Item%Ptr3d         => NULL()
-    Item%Ptr4d         => NULL()
-    Item%Ptr2dI        => NULL()
-    Item%Ptr3dI        => NULL()
+    Item%Ptr0d_4       => NULL()
+    Item%Ptr1d_4       => NULL()
+    Item%Ptr2d_4       => NULL()
+    Item%Ptr3d_4       => NULL()
+    Item%Ptr0d_I       => NULL()
+    Item%Ptr1d_I       => NULL()
+    Item%Ptr2d_I       => NULL()
+    Item%Ptr3d_I       => NULL()
 
+    !-----------------------------------------------------------------------
     ! Depending on the size of the data being passed,
     ! set the rank appropriately and point to the data.
     ! Also compute the size of the array in bytes.
-    IF ( PRESENT( Data4d ) ) THEN
-       Item%Rank       =  4
-       Item%Ptr4d      => Data4d
-       Item%MemoryInKb =  KbPerElement * SIZE( Data4d  )
-       Item%KindVal    =  KIND( Data4d )
-    ELSE IF ( PRESENT( Data3d  ) ) THEN
+    !
+    ! Assign pointers of the REGISTRY ITEM to flex-precision data targets
+    !-----------------------------------------------------------------------
+    IF ( PRESENT( Data3d  ) ) THEN
        Item%Rank       =  3
        Item%Ptr3d      => Data3d
        Item%MemoryInKb =  KbPerElement * SIZE( Data3d  )
        Item%KindVal    =  KIND( Data3d )
-    ELSE IF ( PRESENT( Data3dI ) ) THEN
-       Item%Rank       =  3
-       Item%Ptr3dI     => Data3dI
-       Item%MemoryInKb =  KbPerElement * SIZE( Data3dI )
-       Item%KindVal    =  KIND( Data3dI )
     ELSE IF ( PRESENT( Data2d  ) ) THEN
        Item%Rank       =  2
        Item%Ptr2d      => Data2d
        Item%MemoryInKb =  KbPerElement * SIZE( Data2d  )
        Item%KindVal    =  KIND( Data2d )
-    ELSE IF ( PRESENT( Data2dI ) ) THEN
-       Item%Rank       =  2
-       Item%Ptr2dI     => Data2dI
-       Item%MemoryInKb =  KbPerElement * SIZE( Data2dI )
-       Item%KindVal    =  KIND( Data2dI )
     ELSE IF ( PRESENT( Data1d  ) ) THEN
        Item%Rank       =  1
        Item%Ptr1d      => Data1d
@@ -253,6 +277,58 @@ CONTAINS
        Item%Ptr0d      => Data0d
        Item%MemoryInKb =  KbPerElement
        Item%KindVal    =  KIND( Data1d )
+
+    !-----------------------------------------------------------------------
+    ! Assign pointers to 4-byte real data targets
+    !-----------------------------------------------------------------------
+    ELSE IF ( PRESENT( Data3d_4 ) ) THEN
+       Item%Rank       =  3
+       Item%Ptr3d_4    => Data3d_4
+       Item%MemoryInKb =  KbPerElement * SIZE( Data3d_4 )
+       Item%KindVal    =  KIND( Data3d_4 )
+    ELSE IF ( PRESENT( Data2d_4 ) ) THEN
+       Item%Rank       =  2
+       Item%Ptr2d_4    => Data2d_4
+       Item%MemoryInKb =  KbPerElement * SIZE( Data2d_4 )
+       Item%KindVal    =  KIND( Data2d_4 )
+    ELSE IF ( PRESENT( Data1d_4 ) ) THEN
+       Item%Rank       =  1
+       Item%Ptr1d_4    => Data1d_4
+       Item%MemoryInKb =  KbPerElement * SIZE( Data1d_4 )
+       Item%KindVal    =  KIND( Data1d_4 )
+    ELSE IF ( PRESENT( Data0d_4 ) ) THEN
+       Item%Rank       =  0
+       Item%Ptr0d_4    => Data0d_4
+       Item%MemoryInKb =  KbPerElement
+       Item%KindVal    =  KIND( Data0d_4 )
+
+    !-----------------------------------------------------------------------
+    ! Assign pointers to integer data targets
+    !-----------------------------------------------------------------------
+    ELSE IF ( PRESENT( Data3d_I ) ) THEN
+       Item%Rank       =  3
+       Item%Ptr3d_I    => Data3d_I
+       Item%MemoryInKb =  KbPerElement * SIZE( Data3d_I )
+       Item%KindVal    =  KIND( Data3d_I )
+    ELSE IF ( PRESENT( Data2d_I ) ) THEN
+       Item%Rank       =  2
+       Item%Ptr2d_I    => Data2d_I
+       Item%MemoryInKb =  KbPerElement * SIZE( Data2d_I )
+       Item%KindVal    =  KIND( Data2d_I )
+    ELSE IF ( PRESENT( Data1d_I  ) ) THEN
+       Item%Rank       =  1
+       Item%Ptr1d_I    => Data1d_I
+       Item%MemoryInKb =  KbPerElement * SIZE( Data1d_I )
+       Item%KindVal    =  KIND( Data1d_I )
+    ELSE IF ( PRESENT( Data0d_I  ) ) THEN
+       Item%Rank       =  0
+       Item%Ptr0d_I    => Data0d_I
+       Item%MemoryInKb =  KbPerElement
+       Item%KindVal    =  KIND( Data0d_I )
+
+    !-----------------------------------------------------------------------
+    ! Exit with error message if no data target is passed
+    !-----------------------------------------------------------------------
     ELSE
        ErrMsg = 'Need to specify a data source!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -288,8 +364,9 @@ CONTAINS
   SUBROUTINE Registry_Lookup( am_I_Root, Registry,    State,   Variable,    &
                               RC,        Description, KindVal, MemoryInKb,  &
                               Rank,      Units,       Ptr0d,   Ptr1d,       &
-                              Ptr2d,     Ptr3d,       Ptr4d,   Ptr2dI,      &
-                              Ptr3dI                                       )
+                              Ptr2d,     Ptr3d,       Ptr0d_4, Ptr1d_4,     &
+                              Ptr2d_4,   Ptr3d_4,     Ptr0d_I, Ptr1d_I,     &
+                              Ptr2d_I,   Ptr3d_I                           )
 !
 ! !USES:
 !
@@ -297,33 +374,40 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN) :: am_I_Root        ! Root CPU?  
-    TYPE(MetaRegItem),    POINTER :: Registry         ! Registry obj
-    CHARACTER(LEN=*),  INTENT(IN) :: State            ! State name
-    CHARACTER(LEN=*),  INTENT(IN) :: Variable         ! Variable name
+    LOGICAL,           INTENT(IN) :: am_I_Root         ! Root CPU?  
+    TYPE(MetaRegItem),    POINTER :: Registry          ! Registry obj
+    CHARACTER(LEN=*),  INTENT(IN) :: State             ! State name
+    CHARACTER(LEN=*),  INTENT(IN) :: Variable          ! Variable name
 !                                                     
 ! !OUTPUT PARAMETERS:                                 
 !                                                     
     ! Required outputs
-    INTEGER,          INTENT(OUT) :: RC               ! Success or failure
+    INTEGER,          INTENT(OUT) :: RC                ! Success or failure
 
     ! Optional outputs
-    CHARACTER(LEN=255),  OPTIONAL :: Description      ! Description of data
-    INTEGER,             OPTIONAL :: KindVal          ! Numerical KIND value
-    REAL(fp),            OPTIONAL :: MemoryInKb       ! Memory usage
-    INTEGER,             OPTIONAL :: Rank             ! Size of data
-    CHARACTER(LEN=255),  OPTIONAL :: Units            ! Units of data
+    CHARACTER(LEN=255),  OPTIONAL :: Description       ! Description of data
+    INTEGER,             OPTIONAL :: KindVal           ! Numerical KIND value
+    REAL(fp),            OPTIONAL :: MemoryInKb        ! Memory usage
+    INTEGER,             OPTIONAL :: Rank              ! Size of data
+    CHARACTER(LEN=255),  OPTIONAL :: Units             ! Units of data
 
-    ! Pointers to floating-point data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr0d            ! Ptr to 0d data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr1d (:      )  ! Ptr to 1d data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr2d (:,:    )  ! Ptr to 2d data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr3d (:,:,:  )  ! Ptr to 3d data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr4d (:,:,:,:)  ! Ptr to 4d data
+    ! Floating-point data pointers (flex-precision)
+    REAL(fp),   POINTER, OPTIONAL :: Ptr0d             ! 0D flex-prec data
+    REAL(fp),   POINTER, OPTIONAL :: Ptr1d (:    )     ! 1D flex-prec data
+    REAL(fp),   POINTER, OPTIONAL :: Ptr2d (:,:  )     ! 2D flex-prec data
+    REAL(fp),   POINTER, OPTIONAL :: Ptr3d (:,:,:)     ! 3D flex-prec data
 
-    ! Pointers to integer data                        
-    INTEGER,    POINTER, OPTIONAL :: Ptr2dI(:,:    )  ! Ptr to 2d int data
-    INTEGER,    POINTER, OPTIONAL :: Ptr3dI(:,:,:  )  ! Ptr to 3d int data
+    ! Floating-point data pointers (4-byte precision)
+    REAL(f4),   POINTER, OPTIONAL :: Ptr0d_4           ! 0D 4-byte data
+    REAL(f4),   POINTER, OPTIONAL :: Ptr1d_4(:    )    ! 1D 4-byte data
+    REAL(f4),   POINTER, OPTIONAL :: Ptr2d_4(:,:  )    ! 2D 4-byte data
+    REAL(f4),   POINTER, OPTIONAL :: Ptr3d_4(:,:,:)    ! 3D 4-byte data
+
+    ! Integer data pointers
+    INTEGER,    POINTER, OPTIONAL :: Ptr0d_I           ! 0D integer data
+    INTEGER,    POINTER, OPTIONAL :: Ptr1d_I(:    )    ! 1D integer data
+    INTEGER,    POINTER, OPTIONAL :: Ptr2d_I(:,:  )    ! 2D integer data
+    INTEGER,    POINTER, OPTIONAL :: Ptr3d_I(:,:,:)    ! 3D integer data
 !
 ! !REMARKS:
 !  Internally, the REGISTRY ITEM will be refered to by its fullname field,
@@ -335,6 +419,7 @@ CONTAINS
 !  26 Jun 2017 - R. Yantosca - Changed "StateName" to "State", "Name" to
 !                              "Variable", and added "MemoryInKb"
 !  27 Jun 2017 - R. Yantosca - Also added "Description" and "KindVal" outputs
+!  30 Jun 2017 - R. Yantosca - Added more pointers for 4-byte and integer data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -345,17 +430,16 @@ CONTAINS
     LOGICAL                    :: Is_Description, Is_KindVal
     LOGICAL                    :: Is_MemoryInKb,  Is_Rank
     LOGICAL                    :: Is_Units
-    LOGICAL                    :: Is_0d,          Is_0dI
-    LOGICAL                    :: Is_1d,          Is_1dI
-    LOGICAL                    :: Is_2d,          Is_2dI
-    LOGICAL                    :: Is_3d,          Is_3dI
-    LOGICAL                    :: Is_4d,          Is_4dI
+    LOGICAL                    :: Is_0d,          Is_0d_4,       Is_0d_I
+    LOGICAL                    :: Is_1d,          Is_1d_4,       Is_1d_I
+    LOGICAL                    :: Is_2d,          Is_2d_4,       Is_2d_I
+    LOGICAL                    :: Is_3d,          Is_3d_4,       Is_3d_I
     INTEGER                    :: FullHash,       ItemHash
 
     ! Strings
-    CHARACTER(LEN=31)          :: FullName31, ItemName31
-    CHARACTER(LEN=255)         :: TmpName,    TmpFullName
-    CHARACTER(LEN=255)         :: ErrMsg,     ThisLoc
+    CHARACTER(LEN=31)          :: FullName31,     ItemName31
+    CHARACTER(LEN=255)         :: TmpName,        TmpFullName
+    CHARACTER(LEN=255)         :: ErrMsg,         ThisLoc
 
     ! Objects
     TYPE(MetaRegItem), POINTER :: Current
@@ -377,16 +461,23 @@ CONTAINS
     ! Test if the optional variables are present outside of the main loop.
     !=======================================================================
 
-    ! Floating-point data
+    ! Floating-point (flex-precision) data pointers
     Is_0d          =  PRESENT( Ptr0d       )
     Is_1d          =  PRESENT( Ptr1d       )
     Is_2d          =  PRESENT( Ptr2d       )
     Is_3d          =  PRESENT( Ptr3d       )
-    Is_4d          =  PRESENT( Ptr4d       )
 
-    ! Integer data
-    Is_2dI         =  PRESENT( Ptr2dI      )
-    Is_3dI         =  PRESENT( Ptr3dI      )
+    ! Floating-point (4-byte) data pointers
+    Is_0d_4        =  PRESENT( Ptr0d_4     )
+    Is_1d_4        =  PRESENT( Ptr1d_4     )
+    Is_2d_4        =  PRESENT( Ptr2d_4     )
+    Is_3d_4        =  PRESENT( Ptr3d_4     )
+
+    ! Integer data pointers
+    Is_0d_I        =  PRESENT( Ptr0d_I     )
+    Is_1d_I        =  PRESENT( Ptr1d_I     )
+    Is_2d_I        =  PRESENT( Ptr2d_I     )
+    Is_3d_I        =  PRESENT( Ptr3d_I     )
 
     ! Metadata
     Is_Description =  PRESENT( Description )
@@ -422,47 +513,59 @@ CONTAINS
           ! Then return a pointer to the field
           SELECT CASE( Current%Item%Rank ) 
 
-             ! 4-d data
-             CASE( 4 ) 
-                IF ( Is_4d ) THEN
-                   Ptr4d  => Current%Item%Ptr4d
-                   RETURN
-                ENDIF
-
              ! 3-d data
              CASE( 3 ) 
                 IF ( Is_3d ) THEN
-                   Ptr3d  => Current%Item%Ptr3d
+                   Ptr3d   => Current%Item%Ptr3d
                    RETURN
-                ELSE IF  ( Is_3dI ) THEN
-                   Ptr3dI => Current%Item%Ptr3dI
+                ELSE IF ( Is_3d_4 ) THEN 
+                   Ptr3d_4 => Current%Item%Ptr3d_4
+                   RETURN                  
+                ELSE IF  ( Is_3d_I ) THEN
+                   Ptr3d_I => Current%Item%Ptr3d_I
                    RETURN
                 ENDIF
                    
              ! 2-d data
              CASE( 2 )
                 IF ( Is_2d ) THEN
-                   Ptr2d  => Current%Item%Ptr2d
+                   Ptr2d   => Current%Item%Ptr2d
                    RETURN
-                ELSE IF ( Is_2dI ) THEN
-                   Ptr2dI => Current%Item%Ptr2dI
+                ELSE IF ( Is_2d_4 ) THEN
+                   Ptr2d_4 => Current%Item%Ptr2d_4
+                   RETURN
+                ELSE IF ( Is_2d_I ) THEN
+                   Ptr2d_I => Current%Item%Ptr2d_I
                    RETURN
                 ENDIF
 
              ! 1-d data
              CASE( 1 )
                 IF ( Is_1d ) THEN
-                   Ptr1d => Current%Item%Ptr1d
+                   Ptr1d   => Current%Item%Ptr1d
+                   RETURN
+                ELSE IF ( Is_1d_4 ) THEN
+                   Ptr1d_4 => Current%Item%Ptr1d_4
+                   RETURN                 
+                ELSE IF ( Is_1d_I ) THEN
+                   Ptr1d_I => Current%Item%Ptr1d_I
                    RETURN
                 ENDIF
-
+                
              ! 0-d data
              CASE( 0 )
                 IF ( Is_0d ) THEN
-                   Ptr0d => Current%Item%Ptr0d
+                   Ptr0d   => Current%Item%Ptr0d
+                   RETURN
+                ELSE IF ( Is_0d_4 ) THEN
+                   Ptr0d_4 => Current%Item%Ptr0d_4
+                   RETURN
+                ELSE IF ( Is_0d_I ) THEN
+                   Ptr0d_I => Current%Item%Ptr0d_I
                    RETURN
                 ENDIF
 
+             ! Error message
              CASE DEFAULT
                 ErrMsg = 'Pointer to data was not passed from calling routine!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -520,6 +623,7 @@ CONTAINS
 !  23 Jun 2017 - R. Yantosca - Initial version
 !  26 Jun 2017 - R. Yantosca - Also print memory usage in Kb
 !  27 Jun 2017 - R. Yantosca - Now print numeric KIND value and description
+!  27 Jun 2017 - R. Yantosca - Also print Ptr1dI, Ptr2dI, Ptr3dI 
 !  29 Jun 2017 - R. Yantosca - Add SHORTFORMAT option to print less output
 !EOP
 !------------------------------------------------------------------------------
@@ -561,11 +665,6 @@ CONTAINS
     ELSE
        Use_ShortFormat = .FALSE.
     ENDIF
-
-    ! Print header line
-    PRINT*
-    PRINT*, 'Registered variables contained within the State_Met object:'
-    PRINT*, REPEAT( '=', 79 )
 
     !=======================================================================
     ! Print information about each state field stored in the Registry
@@ -609,69 +708,106 @@ CONTAINS
              PRINT*, 'Memory (Kb)  : ', Item%MemoryInKb
              PRINT*, 'Rank of data : ', Item%Rank, '(', DimStr(Item%Rank), ')'
 
-             ! 0d data
-             IF ( ASSOCIATED( Item%Ptr0d ) ) THEN
-                PRINT*, 'Value Ptr0d  : ', Item%Ptr0d
-             ENDIF
+             !--------------
+             ! 3D data
+             !--------------
 
-             ! 1d data
-             IF ( ASSOCIATED( Item%Ptr1d ) ) THEN
-                PRINT*, 'Min value    : ', MINVAL( Item%Ptr1d     )
-                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr1d     )
-                PRINT*, 'Total        : ', SUM   ( Item%Ptr1d     )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr1d     )
-             ENDIF
-
-             ! 2d data
-             IF ( ASSOCIATED( Item%Ptr2d ) ) THEN
-                PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d     )
-                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2d     )
-                PRINT*, 'Total        : ', SUM   ( Item%Ptr2d     )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d, 1  ), &
-                                           SIZE  ( Item%Ptr2d, 2  )
-             ENDIF
-
-             ! 2d data -- Integer
-             IF ( ASSOCIATED( Item%Ptr2dI ) ) THEN
-                PRINT*, 'Min value    : ', MINVAL( Item%Ptr2dI    )
-                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2dI    )
-                PRINT*, 'Total        : ', SUM   ( Item%Ptr2dI    )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2dI, 1 ), &
-                                           SIZE  ( Item%Ptr2dI, 2 )
-             ENDIF
-
-             ! 3d data
+             ! Flexible precision
              IF ( ASSOCIATED( Item%Ptr3d ) ) THEN
-                PRINT*, 'Min value    : ', MINVAL( Item%Ptr3d    )
-                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3d    )
-                PRINT*, 'Total        : ', SUM   ( Item%Ptr3d    )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3d, 1 ), &
-                                           SIZE  ( Item%Ptr3d, 2 ), &
-                      SIZE  ( Item%Ptr3d, 3 )
-             ENDIF
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr3d      )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3d      )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr3d      )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3d,   1 ), &
+                                           SIZE  ( Item%Ptr3d,   2 ), &
+                                           SIZE  ( Item%Ptr3d  , 3 )
 
-             ! 3d data -- Integer
-             IF ( ASSOCIATED( Item%Ptr3dI ) ) THEN
-                PRINT*, 'Min value    : ', MINVAL( Item%Ptr3dI    )
-                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3dI    )
-                PRINT*, 'Total        : ', SUM   ( Item%Ptr3dI    )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3dI, 1 ), &
-                                           SIZE  ( Item%Ptr3dI, 2 ), &
-                                           SIZE  ( Item%Ptr3dI, 3 )
-             ENDIF
+             ! 4-byte
+             ELSE IF ( ASSOCIATED( Item%Ptr3d_4 ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr3d_4    )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3d_4    )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr3d_4    )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3d_4, 1 ), &
+                                           SIZE  ( Item%Ptr3d_4, 2 ), &
+                                           SIZE  ( Item%Ptr3d_4, 3 )
 
-             ! 4d data
-             IF ( ASSOCIATED( Item%Ptr4d ) ) THEN
-                PRINT*, 'Min value    : ', MINVAL( Item%Ptr4d     )
-                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr4d     )
-                PRINT*, 'Total        : ', SUM   ( Item%Ptr4d     )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr4d, 1  ), &
-                                           SIZE  ( Item%Ptr4d, 2  ), &
-                                           SIZE  ( Item%Ptr4d, 3  ), &
-                                           SIZE  ( Item%Ptr4d, 4  )
+             ! Integer
+             ELSE IF ( ASSOCIATED( Item%Ptr3d_I ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr3d_I    )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3d_I    )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr3d_I    )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3d_I, 1 ), &
+                                           SIZE  ( Item%Ptr3d_I, 2 ), &
+                                           SIZE  ( Item%Ptr3d_I, 3 )
+             !--------------
+             ! 2D data
+             !--------------
+
+             ! Flexible precision
+             ELSE IF ( ASSOCIATED( Item%Ptr2d ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d      )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2d      )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr2d      )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d, 1   ), &
+                                           SIZE  ( Item%Ptr2d, 2   )
+             ! 4-byte 
+             ELSE IF ( ASSOCIATED( Item%Ptr2d_4 ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d_4    )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2d_4    )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr2d_4    )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d_4, 1 ), &
+                                           SIZE  ( Item%Ptr2d_4, 2 )
+
+             ! Integer
+             ! 2D data -- Integer
+             ELSE IF ( ASSOCIATED( Item%Ptr2d_I ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d_I    )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2d_I    )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr2d_I    )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d_I, 1 ), &
+                                           SIZE  ( Item%Ptr2d_I, 2 )
+             !--------------
+             ! 1D data
+             !--------------
+
+             ! Flexible precision
+             ELSE IF ( ASSOCIATED( Item%Ptr1d ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr1d      )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr1d      )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr1d      )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr1d      )
+
+             ! 4-byte
+             ELSE IF ( ASSOCIATED( Item%Ptr1d_4 ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr1d_4    )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr1d_4    )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr1d_4    )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr1d_4    )
+
+             ! Integer
+             ELSE IF ( ASSOCIATED( Item%Ptr1d_I ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr1d_I    )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr1d_I    )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr1d_I    )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr1d_I    )
+
+             !--------------
+             ! 0D data
+             !--------------
+
+             ! Flexible precision
+             ELSE IF ( ASSOCIATED( Item%Ptr0d ) ) THEN
+                PRINT*, 'Value Ptr0d  : ', Item%Ptr0d
+
+             ! 4-byte
+             ELSE IF ( ASSOCIATED( Item%Ptr0d_4 ) ) THEN
+                PRINT*, 'Value Ptr0d  : ', Item%Ptr0d_4
+
+             ! Integer
+             ELSE IF ( ASSOCIATED( Item%Ptr0d_I ) ) THEN
+                PRINT*, 'Value Ptr0d  : ', Item%Ptr0d_I
+  
              ENDIF
           ENDIF
-
        ENDIF
 
        ! Point to next node of the Registry
@@ -1055,6 +1191,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
+!  29 Jun 2017 - R. Yantosca - Now nullify pointers to integer fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1089,16 +1226,23 @@ CONTAINS
        ! Set the CURRENT pointer to the current METAREGISTRY ITEM
        Current => Node
 
-       ! Free pointers to floating point data in this REGISTRY ITEM
-       Current%Item%Ptr0d  => NULL()
-       Current%Item%Ptr1d  => NULL()
-       Current%Item%Ptr2d  => NULL()
-       Current%Item%Ptr3d  => NULL()
-       Current%Item%Ptr4d  => NULL()
+       ! Free flexible-precision data pointers in this REGISTRY ITEM
+       Current%Item%Ptr0d   => NULL()
+       Current%Item%Ptr1d   => NULL()
+       Current%Item%Ptr2d   => NULL()
+       Current%Item%Ptr3d   => NULL()
 
-       ! Free pointers to integer data in this REGISTRY ITEM
-       Current%Item%Ptr2dI => NULL()
-       Current%Item%Ptr3dI => NULL()
+       ! Free 4-byte data pointers in this REGISTRY ITEM
+       Current%Item%Ptr0d_4 => NULL()
+       Current%Item%Ptr1d_4 => NULL()
+       Current%Item%Ptr2d_4 => NULL()
+       Current%Item%Ptr3d_4 => NULL()
+
+       ! Free integer data pointers in this REGISTRY ITEM
+       Current%Item%Ptr0d_I => NULL()
+       Current%Item%Ptr1d_I => NULL()
+       Current%Item%Ptr2d_I => NULL()
+       Current%Item%Ptr3d_I => NULL()
        
        ! Destroy the REGISTRY ITEM itself
        IF ( ASSOCIATED( Current%Item ) ) DEALLOCATE( Current%Item )
@@ -1220,7 +1364,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION To_UpperCase( Text ) RESULT( UpCaseText)
+  FUNCTION To_UpperCase( Text ) RESULT( UpCaseText )
 !
 ! !INPUT PARAMETERS: 
 !
