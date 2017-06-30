@@ -21,9 +21,10 @@ MODULE State_Chm_Mod
 !
 ! USES:
 !
-  USE PhysConstants    ! Physical constants
-  USE Precision_Mod    ! GEOS-Chem precision types 
-  USE Species_Mod      ! For species database object
+  USE PhysConstants                      ! Physical constants
+  USE Precision_Mod                      ! GEOS-Chem precision types 
+  USE Registry_Mod, ONLY : MetaRegItem   ! Derived type for registry object
+  USE Species_Mod                        ! For species database object
 
   IMPLICIT NONE
   PRIVATE
@@ -33,6 +34,8 @@ MODULE State_Chm_Mod
   PUBLIC :: Ind_
   PUBLIC :: Init_State_Chm
   PUBLIC :: Cleanup_State_Chm
+  PUBLIC :: Lookup_State_Chm
+  PUBLIC :: Print_State_Chm
 !
 ! !PRIVATE DATA MEMBERS:
 !
@@ -45,52 +48,65 @@ MODULE State_Chm_Mod
   !=========================================================================
   TYPE, PUBLIC :: ChmState
 
+     !----------------------------------------------------------------------
      ! Count of each type of species
+     !----------------------------------------------------------------------
      INTEGER                    :: nSpecies             ! # of species
      INTEGER                    :: nAdvect              ! # of advected species
      INTEGER                    :: nDryDep              ! # of drydep species
      INTEGER                    :: nKppSpc              ! # of KPP chem species
      INTEGER                    :: nWetDep              ! # of wetdep species
 
+     !----------------------------------------------------------------------
      ! Mapping vectors to subset types of species
+     !----------------------------------------------------------------------
      INTEGER,           POINTER :: Map_Advect (:      ) ! Advected species ID's
      INTEGER,           POINTER :: Map_DryDep (:      ) ! Drydep species ID's
      INTEGER,           POINTER :: Map_KppSpc (:      ) ! KPP chem species ID's
      INTEGER,           POINTER :: Map_WetDep (:      ) ! Wetdep species IDs'
 
+     !----------------------------------------------------------------------
      ! Physical properties & indices for each species
+     !----------------------------------------------------------------------
      TYPE(SpcPtr),      POINTER :: SpcData    (:      ) ! GC Species database
 
+     !----------------------------------------------------------------------
      ! Chemical species
-     INTEGER,           POINTER :: Spec_Id    (:      ) ! Species ID # 
-     CHARACTER(LEN=14), POINTER :: Spec_Name  (:      ) ! Species names
+     !----------------------------------------------------------------------
      REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species [molec/cm3]
      CHARACTER(LEN=20)          :: Spc_Units            ! Species units
 
+     !----------------------------------------------------------------------
      ! Aerosol quantities
+     !----------------------------------------------------------------------
      INTEGER                    :: nAero                ! # of Aerosol Types
      REAL(fp),          POINTER :: AeroArea   (:,:,:,:) ! Aerosol Area [cm2/cm3]
      REAL(fp),          POINTER :: AeroRadi   (:,:,:,:) ! Aerosol Radius [cm]
      REAL(fp),          POINTER :: WetAeroArea(:,:,:,:) ! Aerosol Area [cm2/cm3]
      REAL(fp),          POINTER :: WetAeroRadi(:,:,:,:) ! Aerosol Radius [cm]
 
-#if defined( ESMF_ )
-     ! Chemical rates & rate parameters
-     INTEGER,           POINTER :: JLOP       (:,:,:  ) ! 1-D SMVGEAR index
-     INTEGER,           POINTER :: JLOP_PREV  (:,:,:  ) ! JLOP, prev timestep
-#endif
-
+     !----------------------------------------------------------------------
      ! Fields for UCX mechanism
+     !----------------------------------------------------------------------
      REAL(f4),          POINTER :: STATE_PSC  (:,:,:  ) ! PSC type (see Kirner
                                                         !  et al. 2011, GMD)
      REAL(fp),          POINTER :: KHETI_SLA  (:,:,:,:) ! Strat. liquid aerosol
                                                         !  reaction cofactors
+
+     !----------------------------------------------------------------------
      ! For the tagged Hg simulation
+     !----------------------------------------------------------------------
      INTEGER                    :: N_HG_CATS            ! # of Hg categories
      INTEGER,           POINTER :: Hg0_Id_List(:      ) ! Hg0 cat <-> tracer #
      INTEGER,           POINTER :: Hg2_Id_List(:      ) ! Hg2 cat <-> tracer #
      INTEGER,           POINTER :: HgP_Id_List(:      ) ! HgP cat <-> tracer #
      CHARACTER(LEN=4),  POINTER :: Hg_Cat_Name(:      ) ! Category names
+
+     !----------------------------------------------------------------------
+     ! Registry of variables contained within State_Chm
+     !----------------------------------------------------------------------
+     CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
+     TYPE(MetaRegItem), POINTER :: Registry  => NULL()  ! Registry object
 
   END TYPE ChmState
 !
@@ -128,6 +144,9 @@ MODULE State_Chm_Mod
 !                              no longer used.
 !  23 Aug 2016 - M. Sulprizio- Remove tracer fields from State_Chm. These are
 !                              now entirely replaced with the species fields.
+!  29 Jun 2017 - R. Yantosca - Add fields of State_Chm to the registry
+!  29 Jun 2017 - R. Yantosca - Remove Spec_Id, it's no longer used
+!  30 Jun 2017 - R. Yantosca - Now register variables of State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -276,13 +295,14 @@ CONTAINS
 !
   SUBROUTINE Init_State_Chm( am_I_Root, IM,        JM,         &   
                              LM,        Input_Opt, State_Chm,  &
-                             nAerosol,  RC         )
+                             nAerosol,  RC                    )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE GCKPP_Parameters,     ONLY : NSPEC
     USE Input_Opt_Mod,        ONLY : OptInput
+    USE Registry_Mod,         ONLY : Registry_AddField
     USE Species_Mod,          ONLY : Species
     USE Species_Mod,          ONLY : Spc_GetNumSpecies
     USE Species_Database_Mod, ONLY : Init_Species_Database
@@ -347,6 +367,10 @@ CONTAINS
     INTEGER                :: N,          C
     INTEGER                :: N_Hg0_CATS, N_Hg2_CATS, N_HgP_CATS
 
+    ! Strings
+    CHARACTER(LEN=255)     :: ErrMsg,     ThisLoc
+    CHARACTER(LEN=255)     :: Variable,   Desc,       Units
+
     ! Pointers
     TYPE(Species), POINTER :: ThisSpc
 
@@ -371,8 +395,6 @@ CONTAINS
     State_Chm%Map_WetDep  => NULL()
 
     ! Chemical species
-    State_Chm%Spec_ID     => NULL()
-    State_Chm%Spec_Name   => NULL()
     State_Chm%Species     => NULL()
     State_Chm%Spc_Units   = ''
 
@@ -432,37 +454,61 @@ CONTAINS
     ! Allocate and initialize mapping vectors to subset species
     !=====================================================================
 
-    ALLOCATE( State_Chm%Map_Advect(             State_Chm%nAdvect  ), STAT=RC )
+    ALLOCATE( State_Chm%Map_Advect( State_Chm%nAdvect  ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%Map_Advect', 0, RC )  
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_Advect = 0
 
-    ALLOCATE( State_Chm%Map_Drydep(             State_Chm%nDryDep  ), STAT=RC )
+    ALLOCATE( State_Chm%Map_Drydep( State_Chm%nDryDep  ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%Map_Drydep', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_DryDep = 0
 
-    ALLOCATE( State_Chm%Map_KppSpc(             NSPEC              ), STAT=RC )
+    ALLOCATE( State_Chm%Map_KppSpc( NSPEC ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%Map_KppSpc', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_KppSpc = 0
 
-    ALLOCATE( State_Chm%Map_WetDep(             State_Chm%nWetDep  ), STAT=RC )
+    ALLOCATE( State_Chm%Map_WetDep( State_Chm%nWetDep  ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%Map_Wetdep', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_WetDep = 0
 
     !=====================================================================
     ! Allocate and initialize chemical species fields
-    !=====================================================================
+    !=====================================================================   
 
-    ALLOCATE( State_Chm%Spec_Id   (             State_Chm%nSpecies ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%Spec_Id = 0
-
-    ALLOCATE( State_Chm%Spec_Name (             State_Chm%nSpecies ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%Spec_Name = ''
-
-    ALLOCATE( State_Chm%Species   ( IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
+    ALLOCATE( State_Chm%Species( IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%Species', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Species = 0.0_fp
+
+    ! Loop over each species
+    DO N = 1, State_Chm%nSpecies
+
+       ! Point to this entry in the species database
+       ThisSpc  => State_Chm%SpcData(N)%Info
+
+       ! Register each species individually )
+       Variable = 'SPC_' // TRIM( ThisSpc%Name )
+       Desc     =  TRIM( Variable ) // ' concentration'
+       Units    = 'TBD'
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                      &
+                               Registry     = State_Chm%Registry,             &
+                               State        = State_Chm%State,                &
+                               Variable     = Variable,                       &
+                               Description  = Desc,                           &
+                               Units        = Units,                          &
+                               Data3d       = State_Chm%Species(:,:,:,N),     &
+                               RC           = RC                             )
+
+       ! Trap errors
+       CALL GC_CheckVar( Variable, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       ! Free pointer
+       ThisSpc => NULL()
+    ENDDO
 
     !=====================================================================
     ! Allocate and initialize aerosol area and radius fields
@@ -470,24 +516,300 @@ CONTAINS
     !=====================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-     State_Chm%nAero = nAerosol
+       ! Save nAerosol to State_Chm
+       State_Chm%nAero = nAerosol
 
-     ALLOCATE( State_Chm%AeroArea   ( IM, JM, LM, State_Chm%nAero  ), STAT=RC )
-     IF ( RC /= GC_SUCCESS ) RETURN
-     State_Chm%AeroArea    = 0.0_fp
+       !------------------------------------------------------------------
+       ! AEROAREA [cm2 cm-3]
+       !------------------------------------------------------------------
+       ALLOCATE( State_Chm%AeroArea( IM, JM, LM, State_Chm%nAero ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AeroArea', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AeroArea = 0.0_fp
 
-     ALLOCATE( State_Chm%AeroRadi   ( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-     IF ( RC /= GC_SUCCESS ) RETURN
-     State_Chm%AeroRadi    = 0.0_fp
+       ! Loop over all entries
+       DO N = 1, State_Chm%nAero
 
-     ALLOCATE( State_Chm%WetAeroArea( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-     IF ( RC /= GC_SUCCESS ) RETURN
-     State_Chm%WetAeroArea = 0.0_fp
+          ! Define variable and description for each entry
+          SELECT CASE( N )
+             CASE( 1  )
+                Variable = 'AEROAREA_MDUST1'
+                Desc     = 'Dry aerosol area for mineral dust (0.15 um)'
+             CASE( 2  )
+                Variable = 'AEROAREA_MDUST2'
+                Desc     = 'Dry aerosol area for mineral dust (0.25 um)'
+             CASE( 3  )
+                Variable = 'AEROAREA_MDUST3'
+                Desc     = 'Dry aerosol area for mineral dust (0.4 um)'
+             CASE( 4  )
+                Variable = 'AEROAREA_MDUST4'
+                Desc     = 'Dry aerosol area for mineral dust (0.8 um)'
+             CASE( 5  )
+                Variable = 'AEROAREA_MDUST5'
+                Desc     = 'Dry aerosol area for mineral dust (1.5 um)'
+             CASE( 6  )
+                Variable = 'AEROAREA_MDUST6'
+                Desc     = 'Dry aerosol area for mineral dust (2.5 um)'
+             CASE( 7  )
+                Variable = 'AEROAREA_MDUST7'
+                Desc     = 'Dry aerosol area for mineral dust (4.0 um)'
+             CASE( 8  )
+                Variable = 'AEROAREA_SULF'
+                Desc     = 'Dry aerosol area for tropospheric sulfate'
+             CASE( 9  )
+                Variable = 'AEROAREA_BC'
+                Desc     = 'Dry aerosol area for black carbon'
+             CASE( 10 )
+                Variable = 'AEROAREA_OC'
+                Desc     = 'Dry aerosol area for organic carbon'
+             CASE( 11 )
+                Variable = 'AEROAREA_SSA'
+                Desc     = 'Dry aerosol area for sea salt, accumulation mode'
+             CASE( 12 )
+                Variable = 'AEROAREA_SSC'
+                Desc     = 'Dry aerosol area for sea salt, coarse mode'
+             CASE( 13 )
+                Variable = 'AEROAREA_BGSULF'
+                Desc     = 'Dry aerosol area for background stratospheric sulfate'
+             CASE( 14 )
+                Variable = 'AEROAREA_ICEI'
+                Desc     = 'Dry aerosol area for irregular ice cloud (Mischenko)'
+          END SELECT
 
-     ALLOCATE( State_Chm%WetAeroRadi( IM, JM, LM, State_Chm%nAero   ), STAT=RC )
-     IF ( RC /= GC_SUCCESS ) RETURN
-     State_Chm%WetAeroRadi = 0.0_fp
+          ! Register each varuable individually
+          Units = 'cm2 cm-3'
+          CALL Registry_AddField( am_I_Root   = am_I_Root,                    &
+                                  Registry    = State_Chm%Registry,           &
+                                  State       = State_Chm%State,              &
+                                  Variable    = Variable,                     &
+                                  Description = Desc,                         &
+                                  Units       = Units,                        &
+                                  Data3d      = State_Chm%AeroArea(:,:,:,N),  &
+                                  RC          = RC                           )
 
+          ! Trap errors
+          CALL GC_CheckVar( Variable, 1, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDDO
+
+       !------------------------------------------------------------------
+       ! AERORADI [cm]
+       !------------------------------------------------------------------
+       ALLOCATE( State_Chm%AeroRadi( IM, JM, LM, State_Chm%nAero ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AeroRadi', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AeroRadi    = 0.0_fp
+
+       ! Loop over all entries
+       DO N = 1, State_Chm%nAero
+
+          ! Define variable and description for each entry
+          SELECT CASE( N )
+             CASE( 1  )
+                Variable = 'AERORADI_MDUST1'
+                Desc     = 'Dry aerosol radius for mineral dust (0.15 um)'
+             CASE( 2  )
+                Variable = 'AERORADI_MDUST2'
+                Desc     = 'Dry aerosol radius for mineral dust (0.25 um)'
+             CASE( 3  )
+                Variable = 'AERORADI_MDUST3'
+                Desc     = 'Dry aerosol radius for mineral dust (0.4 um)'
+             CASE( 4  )
+                Variable = 'AERORADI_MDUST4'
+                Desc     = 'Dry aerosol radius for mineral dust (0.8 um)'
+             CASE( 5  )
+                Variable = 'AERORADI_MDUST5'
+                Desc     = 'Dry aerosol radius for mineral dust (1.5 um)'
+             CASE( 6  )
+                Variable = 'AERORADI_MDUST6'
+                Desc     = 'Dry aerosol radius for mineral dust (2.5 um)'
+             CASE( 7  )
+                Variable = 'AERORADI_MDUST7'
+                Desc     = 'Dry aerosol radius for mineral dust (4.0 um)'
+             CASE( 8  )
+                Variable = 'AERORADI_SULF'
+                Desc     = 'Dry aerosol radius for tropospheric sulfate'
+             CASE( 9  )
+                Variable = 'AERORADI_BC'
+                Desc     = 'Dry aerosol radius for black carbon'
+             CASE( 10 )
+                Variable = 'AERORADI_OC'
+                Desc     = 'Dry aerosol radius for organic carbon'
+             CASE( 11 )
+                Variable = 'AERORADI_SSA'
+                Desc     = 'Dry aerosol radius for sea salt, accumulation mode'
+             CASE( 12 )
+                Variable = 'AERORADI_SSC'
+                Desc     = 'Dry aerosol radius for sea salt, coarse mode'
+             CASE( 13 )
+                Variable = 'AERORADI_BGSULF'
+                Desc     = 'Dry aerosol radius for background stratospheric sulfate'
+             CASE( 14 )
+                Variable = 'AERORADI_ICEI'
+                Desc     = 'Dry aerosol radius for irregular ice cloud (Mischenko)'
+          END SELECT
+
+          ! Register each variable individually
+          Units = 'cm'
+          CALL Registry_AddField( am_I_Root   = am_I_Root,                    &
+                                  Registry    = State_Chm%Registry,           &
+                                  State       = State_Chm%State,              &
+                                  Variable    = Variable,                     &
+                                  Description = Desc,                         &
+                                  Units       = Units,                        &
+                                  Data3d      = State_Chm%AeroRadi(:,:,:,N),  &
+                                  RC          = RC                           )
+
+          ! Trap errors
+          CALL GC_CheckVar( Variable, 1, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDDO
+
+       !------------------------------------------------------------------
+       ! WETAEROAREA [cm2 cm-3]
+       !------------------------------------------------------------------
+       ALLOCATE( State_Chm%WetAeroArea( IM, JM, LM, State_Chm%nAero ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%WetAeroArea', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%WetAeroArea = 0.0_fp
+
+       ! Loop over all entries
+       DO N = 1, State_Chm%nAero
+
+          ! Define variable and description for each entry
+          SELECT CASE( N )
+             CASE( 1  )
+                Variable = 'WETAEROAREA_MDUST1'
+                Desc     = 'Wet aerosol area for mineral dust (0.15 um)'
+             CASE( 2  )
+                Variable = 'WETAEROAREA_MDUST2'
+                Desc     = 'Wet aerosol area for mineral dust (0.25 um)'
+             CASE( 3  )
+                Variable = 'WETAEROAREA_MDUST3'
+                Desc     = 'Wet aerosol area for mineral dust (0.4 um)'
+             CASE( 4  )
+                Variable = 'WETAEROAREA_MDUST4'
+                Desc     = 'Wet aerosol area for mineral dust (0.8 um)'
+             CASE( 5  )
+                Variable = 'WETAEROAREA_MDUST5'
+                Desc     = 'Wet aerosol area for mineral dust (1.5 um)'
+             CASE( 6  )
+                Variable = 'WETAEROAREA_MDUST6'
+                Desc     = 'Wet aerosol area for mineral dust (2.5 um)'
+             CASE( 7  )
+                Variable = 'WETAEROAREA_MDUST7'
+                Desc     = 'Wet aerosol area for mineral dust (4.0 um)'
+             CASE( 8  )
+                Variable = 'WETAEROAREA_SULF'
+                Desc     = 'Wet aerosol area for tropospheric sulfate'
+             CASE( 9  )
+                Variable = 'WETAEROAREA_BC'
+                Desc     = 'Wet aerosol area for black carbon'
+             CASE( 10 )
+                Variable = 'WETAEROAREA_OC'
+                Desc     = 'Wet aerosol area for organic carbon'
+             CASE( 11 )
+                Variable = 'WETAEROAREA_SSA'
+                Desc     = 'Wet aerosol area for sea salt, accumulation mode'
+             CASE( 12 )
+                Variable = 'WETAEROAREA_SSC'
+                Desc     = 'Wet aerosol area for sea salt, coarse mode'
+             CASE( 13 )
+                Variable = 'WETAEROAREA_BGSULF'
+                Desc     = 'Wet aerosol area for background stratospheric sulfate'
+             CASE( 14 )
+                Variable = 'WETAEROAREA_ICEI'
+                Desc     = 'Wet aerosol area for irregular ice cloud (Mischenko)'
+          END SELECT
+
+          ! Register each varuable individually
+          Units = 'cm2 cm-3'
+          CALL Registry_AddField( am_I_Root   = am_I_Root,                    &
+                                  Registry    = State_Chm%Registry,           &
+                                  State       = State_Chm%State,              &
+                                  Variable    = Variable,                     &
+                                  Description = Desc,                         &
+                                  Units       = Units,                        &
+                                  Data3d   = State_Chm%WetAeroArea(:,:,:,N),  &
+                                  RC          = RC                           )
+
+          ! Trap errors
+          CALL GC_CheckVar( Variable, 1, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDDO
+
+       !------------------------------------------------------------------
+       ! WETAERORADI [cm]
+       !------------------------------------------------------------------
+       ALLOCATE( State_Chm%WetAeroRadi( IM, JM, LM, State_Chm%nAero ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%WetAeroRadi', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%WetAeroRadi = 0.0_fp
+
+       ! Loop over all entries
+       DO N = 1, State_Chm%nAero
+
+          ! Define variable and description for each entry
+          SELECT CASE( N )
+             CASE( 1  )
+                Variable = 'WETAERORADI_MDUST1'
+                Desc     = 'Wet aerosol radius for mineral dust (0.15 um)'
+             CASE( 2  )
+                Variable = 'WETAERORADI_MDUST2'
+                Desc     = 'Wet aerosol radius for mineral dust (0.25 um)'
+             CASE( 3  )
+                Variable = 'WETAERORADI_MDUST3'
+                Desc     = 'Wet aerosol radius for mineral dust (0.4 um)'
+             CASE( 4  )
+                Variable = 'WETAERORADI_MDUST4'
+                Desc     = 'Wet aerosol radius for mineral dust (0.8 um)'
+             CASE( 5  )
+                Variable = 'WETAERORADI_MDUST5'
+                Desc     = 'Wet aerosol radius for mineral dust (1.5 um)'
+             CASE( 6  )
+                Variable = 'WETAERORADI_MDUST6'
+                Desc     = 'Wet aerosol radius for mineral dust (2.5 um)'
+             CASE( 7  )
+                Variable = 'WETAERORADI_MDUST7'
+                Desc     = 'Wet aerosol radius for mineral dust (4.0 um)'
+             CASE( 8  )
+                Variable = 'WETAERORADI_SULF'
+                Desc     = 'Wet aerosol radius for tropospheric sulfate'
+             CASE( 9  )
+                Variable = 'WETAERORADI_BC'
+                Desc     = 'Wet aerosol radius for black carbon'
+             CASE( 10 )
+                Variable = 'WETAERORADI_OC'
+                Desc     = 'Wet aerosol radius for organic carbon'
+             CASE( 11 )
+                Variable = 'WETAERORADI_SSA'
+                Desc     = 'Wet aerosol radius for sea salt, accumulation mode'
+             CASE( 12 )
+                Variable = 'WETAERORADI_SSC'
+                Desc     = 'Wet aerosol radius for sea salt, coarse mode'
+             CASE( 13 )
+                Variable = 'WETAERORADI_BGSULF'
+                Desc     = 'Wet aerosol radius for background stratospheric sulfate'
+             CASE( 14 )
+                Variable = 'WETAERORADI_ICEI'
+                Desc     = 'Wet aerosol radius for irregular ice cloud (Mischenko)'
+          END SELECT          
+
+          ! Register each variable individually
+          Units = 'cm'
+          CALL Registry_AddField( am_I_Root   = am_I_Root,                    &
+                                  Registry    = State_Chm%Registry,           &
+                                  State       = State_Chm%State,              &
+                                  Variable    = Variable,                     &
+                                  Description = Desc,                         &
+                                  Units       = Units,                        &
+                                  Data3d   = State_Chm%WetAeroRadi(:,:,:,N),  &
+                                  RC          = RC                           )
+
+          ! Trap errors
+          CALL GC_CheckVar( Variable, 1, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDDO
     ENDIF
 
     !=====================================================================
@@ -495,15 +817,99 @@ CONTAINS
     !=====================================================================
 #if defined( UCX )
 
-    ALLOCATE( State_Chm%STATE_PSC ( IM, JM, LM                     ), STAT=RC )
+    !---------------------------------------------------------------------
+    ! STATE_PSC [1]
+    !---------------------------------------------------------------------
+    ALLOCATE( State_Chm%STATE_PSC( IM, JM, LM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%STATE_PSC', 0, RC )    
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%STATE_PSC = 0.0_f4
 
-    ALLOCATE( State_Chm%KHETI_SLA ( IM, JM, LM, 11                 ), STAT=RC )
+    Variable = 'STATE_PSC'
+    Desc     = 'Polar stratospheric cloud type (cf Kirner et al 2011, GMD)'
+    Units    = 'count'
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                         &
+                            Registry     = State_Chm%Registry,                &
+                            State        = State_Chm%State,                   &
+                            Variable     = Variable,                          &
+                            Description  = Desc,                              &
+                            Units        = Units,                             &
+                            Data3d_4     = State_Chm%STATE_PSC,               &
+                            RC           = RC                                )
+
+    Variable = 'State_Chm%STATE_PSC' // TRIM( Variable )
+    CALL GC_CheckVar( Variable, 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !---------------------------------------------------------------------
+    ! KHETI_SLA [1]
+    !---------------------------------------------------------------------
+    ALLOCATE( State_Chm%KHETI_SLA ( IM, JM, LM, 11  ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%KHETI_SLA', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%KHETI_SLA = 0.0_fp
 
+    ! Loop over all entries
+    DO N = 1, 11
+
+       ! Define variable and description for each entry
+       SELECT CASE( N )
+          CASE( 1  ) 
+             Variable = 'KHSLA_N2O5+H2O'
+             Desc     = 'Sticking coefficient for N2O5 + H2O reaction'
+          CASE( 2  ) 
+             Variable = 'KHSLA_N2O5+HCl'
+             Desc     = 'Sticking coefficient  for N2O5 + H2O reaction'
+          CASE( 3  ) 
+             Variable = 'KHSLA_ClNO3+H2O'
+             Desc     = 'Sticking coefficient for ClNO3 + H2O reaction'
+          CASE( 4  ) 
+             Variable = 'KHSLA_ClNO3+HCl'
+             Desc     = 'Sticking coefficient for ClNO3 + HCl reaction'
+          CASE( 5  ) 
+             Variable = 'KHSLA_ClNO3+HBr'
+             Desc     = 'Sticking coefficient for ClNO3 + HBr reaction'
+          CASE( 6  ) 
+             Variable = 'KHSLA_BrNO3+H2O'
+             Desc     = 'Sticking coefficient for BrNO3 + H2O reaction'
+          CASE( 7  ) 
+             Variable = 'KHSLA_BrNO3+HCl'
+             Desc     = 'Sticking coefficient for BrNO3 + HCl reaction'
+          CASE( 8  ) 
+             Variable = 'KHSLA_HOCl+HCl'
+             Desc     = 'Sticking coefficient for HOCl + HCl reaction'
+          CASE( 9  ) 
+             Variable = 'KHSLA_HOCl+HBr'
+             Desc     = 'Sticking coefficient for HClr + HBr reaction'
+          CASE( 10 ) 
+             Variable = 'KHSLA_HOBr+HCl'
+             Desc     = 'Sticking coefficient for HOBr + HCl reaction'
+          CASE( 11 ) 
+             Variable = 'KHSLA_HOBr+HBr'
+             Desc     = 'Sticking coefficient for HOBr + HBr reaction'
+       END SELECT
+
+       ! Register each species individually )
+       Units = '1'
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                      &
+                               Registry     = State_Chm%Registry,             &
+                               State        = State_Chm%State,                &
+                               Variable     = Variable,                       &
+                               Description  = Desc,                           &
+                               Units        = Units,                          &
+                               Data3d       = State_Chm%KHETI_SLA(:,:,:,N),   &
+                               RC           = RC                             )
+
+       ! Trap errors
+       CALL GC_CheckVar( Variable, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDDO
 #endif
+
+    !=======================================================================
+    ! Print out the list of registered fields
+    !=======================================================================
+    CALL Print_State_Chm( am_I_Root, State_Chm, RC, ShortFormat=.TRUE. )
 
     !=======================================================================
     ! Set up the species mapping vectors
@@ -675,6 +1081,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod 
+    USE Registry_Mod,         ONLY : Registry_Destroy
     USE Species_Database_Mod, ONLY : Cleanup_Species_Database
 !
 ! !INPUT PARAMETERS:
@@ -701,87 +1108,297 @@ CONTAINS
 !  28 Aug 2015 - R. Yantosca - Remove stratospheric chemistry fields; 
 !                              these are all now read in via HEMCO
 !  28 Aug 2015 - R. Yantosca - Also initialize the species database object
+!  29 Jun 2017 - R. Yantosca - Add error checks for deallocations.  Also
+!                              destroy the registry of State_Chm fields.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARAIBLES
+!
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
-    ! Assume success
-    RC = GC_SUCCESS
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Cleanup_State_Chm (in Headers/state_chm_mod.F90)'
 
-    !======================================================================
+    !=======================================================================
     ! Deallocate fields
     !=======================================================================
     IF ( ASSOCIATED( State_Chm%Map_Advect) ) THEN
-       DEALLOCATE( State_Chm%Map_Advect )
+       DEALLOCATE( State_Chm%Map_Advect, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_Advect', 3, RC )
+       RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_DryDep ) ) THEN
-       DEALLOCATE( State_Chm%Map_DryDep )
+       DEALLOCATE( State_Chm%Map_DryDep, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_Drydep', 3, RC )
+       RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_KppSpc ) ) THEN
-       DEALLOCATE( State_Chm%Map_KppSpc )
+       DEALLOCATE( State_Chm%Map_KppSpc, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_KppSpc', 3, RC )
+       RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_WetDep ) ) THEN
-       DEALLOCATE( State_Chm%Map_WetDep )
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%Spec_Id  ) ) THEN
-       DEALLOCATE( State_Chm%Spec_Id )
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%Spec_Name ) ) THEN
-       DEALLOCATE( State_Chm%Spec_Name  )
+       DEALLOCATE( State_Chm%Map_WetDep, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_WetDep', 3, RC )
+       RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Species ) ) THEN
-       NULLIFY( State_Chm%Species )
+       DEALLOCATE( State_Chm%Species, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_Species', 3, RC )
+       RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Hg_Cat_Name ) ) THEN
-       DEALLOCATE( State_Chm%Hg_Cat_Name )
+       DEALLOCATE( State_Chm%Hg_Cat_Name, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Hg_Cat_Name', 3, RC )
+       RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Hg0_Id_List ) ) THEN
-       DEALLOCATE( State_Chm%Hg0_Id_List ) 
+       DEALLOCATE( State_Chm%Hg0_Id_List, STAT=RC ) 
+       CALL GC_CheckVar( 'State_Chm%Hg0_Id_List', 3, RC )
+       RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Hg2_Id_List ) ) THEN
-       DEALLOCATE( State_Chm%Hg2_Id_List )
+       DEALLOCATE( State_Chm%Hg2_Id_List, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Hg2_Id_List', 3, RC )
+       RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%HgP_Id_List ) ) THEN
-       DEALLOCATE( State_Chm%HgP_Id_List )
+       DEALLOCATE( State_Chm%HgP_Id_List, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%HgP_Id_List', 3, RC )
+       RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%AeroArea ) ) THEN
-       DEALLOCATE( State_Chm%AeroArea   )
+       DEALLOCATE( State_Chm%AeroArea, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AeroArea', 3, RC )
+       RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%AeroRadi ) ) THEN
-       DEALLOCATE( State_Chm%AeroRadi )
+       DEALLOCATE( State_Chm%AeroRadi, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AeroRadi', 3, RC )
+       RETURN
     ENDIF
 
-    IF ( ASSOCIATED(State_Chm%WetAeroArea) ) THEN
-       DEALLOCATE(State_Chm%WetAeroArea)
+    IF ( ASSOCIATED( State_Chm%WetAeroArea ) ) THEN
+       DEALLOCATE( State_Chm%WetAeroArea, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%WetAeroArea', 3, RC )
+       RETURN
     ENDIF
 
-    IF ( ASSOCIATED(State_Chm%WetAeroRadi) ) THEN
-       DEALLOCATE(State_Chm%WetAeroRadi)
+    IF ( ASSOCIATED( State_Chm%WetAeroRadi ) ) THEN
+       DEALLOCATE( State_Chm%WetAeroRadi, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%WetAeroRadi', 3, RC )
+       RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%STATE_PSC ) ) THEN
-       DEALLOCATE(State_Chm%STATE_PSC  )
+       DEALLOCATE( State_Chm%STATE_PSC, STAT=RC  )
+       CALL GC_CheckVar( 'State_Chm%State_PSC', 3, RC )
+       RETURN
     ENDIF
        
     IF ( ASSOCIATED( State_Chm%KHETI_SLA ) ) THEN
-       DEALLOCATE( State_Chm%KHETI_SLA  )
+       DEALLOCATE( State_Chm%KHETI_SLA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Chm%KHETI_SLA', 3, RC )
+       RETURN
     ENDIF
 
+    !=======================================================================
     ! Deallocate the species database object field
+    !=======================================================================
     CALL Cleanup_Species_Database( am_I_Root, State_Chm%SpcData, RC )
 
+    !=======================================================================
+    ! Destroy the registry of fields for this module
+    !=======================================================================
+    CALL Registry_Destroy( am_I_Root, State_Chm%Registry, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not destroy registry object State_Chm%Registry!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
   END SUBROUTINE Cleanup_State_Chm
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Print_State_Chm
+!
+! !DESCRIPTION: Print information about all the registered variables
+!  contained within the State_Chm object.  This is basically a wrapper for
+!  routine REGISTRY_PRINT in registry_mod.F90.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Print_State_Chm( am_I_Root, State_Chm, RC, ShortFormat )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Registry_Mod, ONLY : Registry_Print
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Root CPU?  
+    TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+    LOGICAL,        OPTIONAL    :: ShortFormat ! Print truncated info
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC          ! Success/failure?
+!
+! !REVISION HISTORY:
+!  29 Jun 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Print_State_Chm (in Headers/state_chm_mod.F90)'
+
+    !=======================================================================
+    ! Print info about registered variables
+    !=======================================================================
+
+    ! Header line
+    PRINT*
+    PRINT*, 'Registered variables contained within the State_Chm object:'
+    PRINT*, REPEAT( '=', 79 )
+
+    ! Print registry info in truncated format
+    CALL Registry_Print( am_I_Root   = am_I_Root,           &
+                         Registry    = State_Chm%Registry,  &
+                         ShortFormat = ShortFormat,         &
+                         RC          = RC                  )
+
+    ! Trap error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Registry_Print"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Print_State_Chm
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Lookup_State_Chm
+!
+! !DESCRIPTION: Return metadata and/or a pointer to the data for any
+!  variable contained within the State_Met object by searching for its name.
+!  This is basically a wrapper for routine REGISTRY_LOOKUP in registry_mod.F90.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Lookup_State_Chm( am_I_Root,   State_Chm, Variable,   RC,    &
+                               Description, KindVal,   MemoryInKb, Rank,  &
+                               Units,       Ptr3d,     Ptr3d_4           )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Registry_Mod, ONLY : Registry_Lookup
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root       ! Is this the root CPU? 
+    TYPE(ChmState),      INTENT(IN)  :: State_Chm       ! Meteorology State
+    CHARACTER(LEN=*),    INTENT(IN)  :: Variable        ! Variable name
+!
+! !OUTPUT PARAMETERS:
+!
+    ! Required outputs
+    INTEGER,             INTENT(OUT) :: RC              ! Success or failure?
+
+    ! Optional outputs
+    CHARACTER(LEN=255),  OPTIONAL    :: Description     ! Description of data
+    INTEGER,             OPTIONAL    :: KindVal         ! Numerical KIND value
+    REAL(fp),            OPTIONAL    :: MemoryInKb      ! Memory usage
+    INTEGER,             OPTIONAL    :: Rank            ! Size of data
+    CHARACTER(LEN=255),  OPTIONAL    :: Units           ! Units of data
+
+    ! Pointers to data
+    REAL(fp),   POINTER, OPTIONAL    :: Ptr3d  (:,:,:)  ! 3D flex-prec data
+    REAL(f4),   POINTER, OPTIONAL    :: Ptr3d_4(:,:,:)  ! 3D 4-byte data
+!
+! !REMARKS:
+!  We keep the StateName variable private to this module. Users only have
+!  to supply the name of each module variable.
+!
+! !REVISION HISTORY:
+!  29 Jun 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Lookup_State_Chm (in Headers/state_chm_mod.F90)'
+
+    !=======================================================================
+    ! Look up a variable; Return metadata and/or a pointer to the data
+    !=======================================================================
+    CALL Registry_Lookup( am_I_Root   = am_I_Root,           &
+                          Registry    = State_Chm%Registry,  &
+                          State       = State_Chm%State,     &
+                          Variable    = Variable,            &
+                          Description = Description,         &
+                          KindVal     = KindVal,             &
+                          MemoryInKb  = MemoryInKb,          &
+                          Rank        = Rank,                &
+                          Units       = Units,               &
+                          Ptr3d       = Ptr3d,               &
+                          Ptr3d_4     = Ptr3d_4,             &
+                          RC          = RC                  )
+
+    ! Trap error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not find variable ' // TRIM( Variable ) // &
+               ' in the State_Chm registry!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Lookup_State_Chm
 !EOC
 END MODULE State_Chm_Mod

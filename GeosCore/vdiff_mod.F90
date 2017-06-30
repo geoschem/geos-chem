@@ -1950,6 +1950,7 @@ contains
 !  20 Oct 2016 - R. Yantosca - Only write eflx/dflx debug on the root CPU
 !  15 Mar 2017 - C. Keller   - Remove variable trc_id (use N instead) 
 !  16 Mar 2017 - R. Yantosca - Remove N_MEMBERS, it's obsolete
+!  30 Jun 2017 - R. Yantosca - For now, print out eflx/dflx if DEVEL=y
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2502,7 +2503,8 @@ contains
     enddo
 !$OMP END PARALLEL DO
 
-#if defined( DEBUG )
+!#if defined( DEBUG )
+#if defined( DEVEL )
     ! Print debug output for the advected species
     write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
     do NA = 1, nAdvect

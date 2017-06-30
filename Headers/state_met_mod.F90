@@ -2512,7 +2512,7 @@ CONTAINS
     State_Met%SPHU1 = 0.0_fp
 
     Desc  = 'Instantaneous specific humidity at time=T'
-    Units = ''
+    Units = 'g kg-1'
     CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
                             State_Met%State, 'SPHU1',                       &
                             Units=Units,      Data3d=State_Met%SPHU1,       &
@@ -2529,7 +2529,7 @@ CONTAINS
     State_Met%SPHU2 = 0.0_fp
 
     Desc  = 'Instantaneous specific humidity at time=T+dt'
-    Units = ''
+    Units = 'g kg-1'
     CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
                             State_Met%State, 'SPHU2',                       &
                             Units=Units,      Data3d=State_Met%SPHU2,       &
