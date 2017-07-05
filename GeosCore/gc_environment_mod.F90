@@ -215,21 +215,22 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine GC\_INIT\_ALL initializes the top-level data 
 !  structures that are either passed to/from GC or between GC components 
-!  (emis->transport->chem->etc)
+!  (emis->transport->chem->diagnostics->etc)
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Init_All( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+  SUBROUTINE GC_Init_All( am_I_Root,  Input_Opt, State_Chm,  &
+                          State_Diag, State_Met, RC         )
 !
 ! !USES:
 !
-    USE CMN_Size_Mod,       ONLY : IIPAR, JJPAR, LLPAR
-    USE CMN_SIZE_Mod,       ONLY : NDUST, NAER
+    USE CMN_Size_Mod, ONLY : IIPAR, JJPAR, LLPAR, NDUST, NAER
     USE ErrCode_Mod
     USE Input_Opt_Mod
     USE State_Chm_Mod
     USE State_Met_Mod
+    USE State_Diag_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -238,8 +239,9 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -272,6 +274,7 @@ CONTAINS
 !  28 Jan 2016 - M. Sulprizio- Remove NBIOMAX from call to Init_GIGC_State_Chm
 !  30 Jun 2016 - M. Sulprizio- Remove nSpecies from call to Init_GIGC_State_Chm
 !  26 Jun 2017 - R. Yantosca - Now call GC_ERROR to give better error feedback
+!  05 Jul 2017 - R. Yantosca - Now initialize the Diagnostics State object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -287,16 +290,16 @@ CONTAINS
     ThisLoc = ' -> at Init_All (in GeosCore/gc_environment_mod.F90)'
     
     !=======================================================================
-    ! Initialize object for met fields
+    ! Initialize the Meteorology State object
     !=======================================================================
-    CALL Init_State_Met( am_I_Root  = am_I_Root,   &
-                         IM         = IIPAR,       &
-                         JM         = JJPAR,       &
-                         LM         = LLPAR,       &
-                         State_Met  = State_Met,   &
-                         RC         = RC          )
+    CALL Init_State_Met( am_I_Root   = am_I_Root,   & ! Root CPU (T/F?)
+                         IM          = IIPAR,       & ! # of longitudes
+                         JM          = JJPAR,       & ! # of latitudes
+                         LM          = LLPAR,       & ! # of levels
+                         State_Met   = State_Met,   & ! Meteorology State
+                         RC          = RC          )  ! Success or failure?
 
-    ! Return upon error
+    ! Trap errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered within call to "Init_State_Met"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -304,20 +307,38 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Initialize object for chemical state
+    ! Initialize the Chemistry State object
     !=======================================================================
-    CALL Init_State_Chm(  am_I_Root  = am_I_Root,  &  ! Root CPU (Y/N)?
-                          IM         = IIPAR,      &  ! # of lons
-                          JM         = JJPAR,      &  ! # of lats
-                          LM         = LLPAR,      &  ! # of levels
-                          nAerosol   = NDUST+NAER, &  ! # of aerosol types
-                          Input_Opt  = Input_Opt,  &  ! Input Options
-                          State_Chm  = State_Chm,  &  ! Chemistry State
-                          RC         = RC         )   ! Success or failure
+    CALL Init_State_Chm(  am_I_Root  = am_I_Root,   &  ! Root CPU (Y/N)?
+                          IM         = IIPAR,       &  ! # of lons
+                          JM         = JJPAR,       &  ! # of lats
+                          LM         = LLPAR,       &  ! # of levels
+                          nAerosol   = NDUST+NAER,  &  ! # of aerosol types
+                          Input_Opt  = Input_Opt,   &  ! Input Options
+                          State_Chm  = State_Chm,   &  ! Chemistry State
+                          RC         = RC          )   ! Success or failure
     
-    ! Return upon error
+    ! Trap errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered within call to "Init_State_Chm"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Initialize the Diagnostics State object
+    !=======================================================================
+    CALL Init_State_Diag( am_I_Root  = am_I_Root,   &  ! Root CPU (Y/N)?
+                          IM         = IIPAR,       &  ! # of lons
+                          JM         = JJPAR,       &  ! # of lats
+                          LM         = LLPAR,       &  ! # of levels
+                          Input_Opt  = Input_Opt,   &  ! Input Options
+                          State_Diag = State_Diag,  &  ! Chemistry State
+                          RC         = RC          )   ! Success or failure
+    
+    ! Trap errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_State_Diag"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF

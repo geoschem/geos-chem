@@ -44,6 +44,7 @@
       USE REGRID_A2A_MOD        ! For horizontal regridding
       USE RESTART_MOD           ! For restart file I/O
       USE State_Chm_Mod         ! Derived type for Chemistry State object
+      USE State_Diag_Mod        ! Derived type for Diagnostics State object
       USE State_Met_Mod         ! Derived type for Meteorology State object
       USE TIME_MOD              ! For computing date & time 
       USE UnitConv_Mod          ! For gas concentration unit conversion
@@ -328,6 +329,7 @@
       !
       TYPE(OptInput)           :: Input_Opt   ! Input Options object
       TYPE(ChmState)           :: State_Chm   ! Chemistry State object
+      TYPE(DgnState)           :: State_Diag  ! Diagnostics State object
       TYPE(MetState)           :: State_Met   ! Meteorology State object
       !
       ! Also define NI, NJ, NL for more consistent naming w/r/t the 
@@ -550,7 +552,7 @@
       ! (bmy, 3/4/13)
       !
       CALL GC_Init_All
-     &   ( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+     &   ( am_I_Root, Input_Opt, State_Chm, State_Diag, State_Met, RC )
       !
       ! Also allocate arrays in GEOS-Chem modules that have not yet
       ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 
@@ -1858,6 +1860,10 @@
       ! Deallocate fields of the Chemistry State object
       CALL Cleanup_State_Chm( am_I_Root, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_Chm' )
+
+      ! Deallocate fields of the Chemistry State object
+      CALL Cleanup_State_Diag( am_I_Root, State_Diag, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_Diag' )
 
       ! Deallocate fields of the Meteorology State object
       CALL Cleanup_State_Met( am_I_Root, State_Met, RC )
