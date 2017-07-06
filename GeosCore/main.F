@@ -760,6 +760,11 @@
       IF ( LSCHEM ) THEN
          CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, 
      &                         State_Met, RC )
+
+         ! Stop with error
+         IF ( RC /= GC_SUCCESS ) THEN
+            CALL ERROR_STOP( 'Error in INIT_STRAT_CHEM!', 'main.F')
+         ENDIF
       ENDIF
 
       ! Save initial tracer mass [kg] to disk for model benchmarking
