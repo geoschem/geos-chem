@@ -131,9 +131,9 @@ CONTAINS
     !=======================================================================
 
     ! For now, just nullify
-    F_Adv_EW => NULL()
-    F_Adv_NS => NULL()
-    F_Adv_UP => NULL()
+    State_Diag%F_Adv_EW => NULL()
+    State_Diag%F_Adv_NS => NULL()
+    State_Diag%F_Adv_UP => NULL()
     
   END SUBROUTINE Init_State_Diag
 !EOC
@@ -192,9 +192,9 @@ CONTAINS
     !=======================================================================
 
     ! For now, just nullify
-    F_Adv_EW => NULL()
-    F_Adv_NS => NULL()
-    F_Adv_UP => NULL()
+    State_Diag%F_Adv_EW => NULL()
+    State_Diag%F_Adv_NS => NULL()
+    State_Diag%F_Adv_UP => NULL()
 
     !=======================================================================
     ! Destroy the registry of fields for this module
