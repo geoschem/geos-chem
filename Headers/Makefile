@@ -182,6 +182,7 @@ state_chm_mod.o        : state_chm_mod.F90        \
 state_diag_mod.o       : state_diag_mod.F90       \
                          errcode_mod.o            \
                          precision_mod.o          \
+                         input_opt_mod.o          \
                          registry_mod.o
 
 state_met_mod.o        : state_met_mod.F90        \
