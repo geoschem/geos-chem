@@ -8002,11 +8002,18 @@
             TOTMAS = SUM(MK(K,1:ICOMP-1))
 !            PRINT *, TOTMAS,NK(K), TOTMAS/NK(K)
        ENDDO
-        WRITE(6,555)
-     &          TOTMAS, NK(K),
-     &          TOTMAS/ NK(K) 
-        print*,'-----------'
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: NK will be IBINS+1 upon exiting the loop, which will cause an
+!%%% out-of-bounds error.  Comment this out for now, unless it should be
+!%%% inserted into the DOloop
+!        WRITE(6,555)
+!     &          TOTMAS, NK(K),
+!     &          TOTMAS/ NK(K) 
+!        print*,'-----------'
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         call debugprint( NK, MK, 0,0,0,'End of MNFIX')
+
 
 !       write(*,*)'Nk'
 !       write(*,*) NK(1:30)
@@ -8266,7 +8273,7 @@
       INTEGER,          INTENT(IN) :: I,J,L
       CHARACTER(LEN=*), INTENT(IN) :: LOCATION
 
-      INTEGER  :: JC, k
+      INTEGER  :: JC, k, B
 
       WRITE(*,*) LOCATION, I, J, L
 !      write(6,*) 'Nk(1:30)'
@@ -8279,7 +8286,11 @@
      &             'ECIL        ECOB        OCIL       OCOB       ',
      &             'Dust        NH4         Water  '
       DO K = 1, IBINS
-         write(*,110) k,Nk(k), Mk(k, 1:icomp)
+!-------------------------------------------------------------
+! Remove code that causes an array temporary (bmy, 7/7/17)
+!         write(*,110) k,Nk(k), Mk(k, 1:icomp)
+!-------------------------------------------------------------
+         write(*,110) k,Nk(k), ( Mk(K,B), B=1,ICOMP )
       ENDDO
       write(*,*) ' '
  110  FORMAT ( I2, 10E12.5 )

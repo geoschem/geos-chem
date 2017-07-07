@@ -934,18 +934,20 @@
 
 ! Local variables
       ! Fields for TOMAS simulation
-      REAL*8        :: BINMASS(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
-      REAL*8        :: tempnh4(ibins)
-      INTEGER       :: TID, I, J, L
-      REAL*8        :: MK_TEMP(IBINS)
-      INTEGER       :: ii=53, jj=29, ll=1
+      REAL*8           :: BINMASS(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
+      INTEGER          :: TID, I, J, L
+      INTEGER          :: ii=53, jj=29, ll=1
+      REAL(fp)         :: NH4_CONC
 
       ! SAVEd scalars
-      LOGICAL, SAVE :: FIRST = .TRUE.
+      LOGICAL, SAVE    :: FIRST = .TRUE.
       
       ! Pointers
-      REAL*8, POINTER :: Spc(:,:,:,:)
-      REAL(fp), POINTER :: MK_TEMP2(:)
+      REAL*8,  POINTER :: Spc(:,:,:,:)
+
+      ! Arrays
+      REAL(fp)         :: tempnh4(ibins)
+      REAL(fp)         :: MK_TEMP2(IBINS)
 
       !=================================================================
       ! EMISSSULFATETOMAS begins here!
@@ -984,17 +986,20 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TEMPNH4, MK_TEMP2 )
+!$OMP+PRIVATE( I, J, L, TEMPNH4, MK_TEMP2, NH4_CONC )
 !$OMP+SCHEDULE( DYNAMIC )
             DO L=1,LLPAR
             DO J=1,JJPAR
             DO I=1,IIPAR
 
-               MK_TEMP2 => Spc(I,J,L,id_SF1:id_SF1-1+IBINS)
-               CALL NH4BULKTOBIN( MK_TEMP2, Spc(I,J,L,id_NH4), TEMPNH4 )
+               ! Change pointer to a variable to avoid array temporary
+               ! (bmy, 7/7/17)
+               MK_TEMP2 = Spc(I,J,L,id_SF1:id_SF1-1+IBINS)
+               NH4_CONC = Spc(I,J,L,id_NH4)
+               CALL NH4BULKTOBIN( MK_TEMP2, NH4_CONC, TEMPNH4 )
 
                BINMASS(I,J,L,TID:TID+IBINS-1) = TEMPNH4(1:IBINS)
-            Enddo
+            ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
