@@ -166,6 +166,8 @@ CONTAINS
 !  26 Jun 2015 - E. Lundgren - Add L. Zhang new dust size distribution scheme
 !  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  07 Jul 2017 - R. Yantosca - Bug fix: Skip DustAlk IF block unless that
+!                              extension has been turned on in the config file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -392,17 +394,20 @@ CONTAINS
 
        ENDIF
 
-       IF ( HcoIDsAlk(N) > 0 ) THEN
+       ! This block is only relevant if the DustAlk extension
+       ! has been turned on.  Skip othewrise. (bmy, 7/7/17)
+       IF ( ExtNrAlk > 0 ) THEN
+          IF ( HcoIDsAlk(N) > 0 ) THEN
 
-          ! Add flux to emission array
-          CALL HCO_EmisAdd( am_I_Root,    HcoState, FLUX_Alk(:,:,N), & 
-                            HcoIDsAlk(N), RC,       ExtNr=ExtNrAlk   )
-          IF ( RC /= HCO_SUCCESS ) THEN
-             WRITE(MSG,*) 'HCO_EmisAdd error: dust alkalinity bin ', N
-             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
-             RETURN 
+             ! Add flux to emission array
+             CALL HCO_EmisAdd( am_I_Root,    HcoState, FLUX_Alk(:,:,N), &
+                               HcoIDsAlk(N), RC,       ExtNr=ExtNrAlk   )
+             IF ( RC /= HCO_SUCCESS ) THEN
+                WRITE(MSG,*) 'HCO_EmisAdd error: dust alkalinity bin ', N
+                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
+                RETURN
+             ENDIF
           ENDIF
-
        ENDIF
 
     ENDDO
