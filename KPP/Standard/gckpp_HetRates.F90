@@ -1196,6 +1196,8 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  10 Jul 2017 - M. Sulprizio- Update gamma values for glyoxal based on advice from
+!                              E. Marais for consistency with Marais et al., 2016
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1225,15 +1227,15 @@ MODULE GCKPP_HETRATES
             ! Define gamma for GLYX:
             IF ( SUNCOS .gt. 0 ) THEN
 
-               ! Uptake during the day (use Liggio et al., 2005):
-               XSTKCF = 2.9e-3_fp
+               ! Uptake during the day
+               XSTKCF = 9.5e-3_fp
 
             ELSE
 
                ! Uptake at night (lower uptake than day)
                ! Value is within the range 1d-5 to 1d-6
                ! (Faye McNeill personal communication, eam, 2015):
-               XSTKCF = 5.e-6_fp
+               XSTKCF = 1.e-5_fp
 
             ENDIF
 
