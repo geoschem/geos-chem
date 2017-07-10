@@ -2373,6 +2373,13 @@ CONTAINS
  integer i, j, imh, jm1, lmt
  integer js1g1, js2g0, js2g1, jn1g2, jn1g1, jn2g1
 
+      !---------------------------------------------------------------------
+      ! Initialize local variables (bmy, 7/10/17)
+      ar = 0.0
+      al = 0.0
+      a6 = 0.0
+      !---------------------------------------------------------------------
+
       imh = im / 2
       jm1 = jm - 1
 
@@ -2597,6 +2604,10 @@ CONTAINS
  real       r3, r23
  real temp
  parameter (r3 = 1./3., r23 = 2./3.)
+
+ ! Initialize local arrays (bmy, 7/10/17)
+ dp1 = 0.0
+ q4  = 0.0
 
       do k=1,km
          do i=i1,i2

@@ -131,26 +131,26 @@
       REAL(fp), ALLOCATABLE :: SINE_FV(:)
  
       ! Scalar variables
-      LOGICAL             :: PR_DIAG
-      INTEGER             :: LOC_PROC
+      LOGICAL               :: PR_DIAG
+      INTEGER               :: LOC_PROC
       REAL(fp)              :: GEOFAC_PC
       REAL(fp)              :: DLON_FV
 
       ! Dimensions for GMI code (from "imp_dims")
-      INTEGER             :: IMP_NBORDER
-      INTEGER             :: I1_GL,  I2_GL,   JU1_GL,  JV1_GL            
-      INTEGER             :: J2_GL,  K1_GL,   K2_GL,   ILO_GL    
-      INTEGER             :: IHI_GL, JULO_GL, JVLO_GL, JHI_GL    
-      INTEGER             :: I1,     I2,      JU1,     JV1       
-      INTEGER             :: J2,     K1,      K2,      ILO       
-      INTEGER             :: IHI,    JULO,    JVLO,    JHI       
-      INTEGER             :: ILAT,   ILONG,   IVERT,   J1P       
-      INTEGER             :: J2P       
+      INTEGER               :: IMP_NBORDER
+      INTEGER               :: I1_GL,  I2_GL,   JU1_GL,  JV1_GL            
+      INTEGER               :: J2_GL,  K1_GL,   K2_GL,   ILO_GL    
+      INTEGER               :: IHI_GL, JULO_GL, JVLO_GL, JHI_GL    
+      INTEGER               :: I1,     I2,      JU1,     JV1       
+      INTEGER               :: J2,     K1,      K2,      ILO       
+      INTEGER               :: IHI,    JULO,    JVLO,    JHI       
+      INTEGER               :: ILAT,   ILONG,   IVERT,   J1P       
+      INTEGER               :: J2P       
 
       ! Dimensions for nested grids 
-      INTEGER             :: I1_W,     I2_W,      JU1_W       
-      INTEGER             :: J2_W,     J1P_W,     J2P_W
-      INTEGER             :: BUFF_SIZE
+      INTEGER               :: I1_W,     I2_W,      JU1_W       
+      INTEGER               :: J2_W,     J1P_W,     J2P_W
+      INTEGER               :: BUFF_SIZE
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -160,7 +160,7 @@
 !------------------------------------------------------------------------------
 
       SUBROUTINE DO_PJC_PFIX_WINDOW( D_DYN, P1,   P2, 
-     &                                     UWND,  VWND, XMASS, YMASS )
+     &                               UWND,  VWND, XMASS, YMASS )
 !
 !******************************************************************************
 !  Subroutine DO_PJC_PFIX is the driver routine for the Philip Cameron-Smith
@@ -227,7 +227,7 @@
       IF ( FIRST ) THEN
 
          ! Initialize/allocate module variables 
-         CALL INIT_PJC_PFIX
+         CALL INIT_PJC_PFIX()
 
          ! Calculate advection surface-area factors
          CALL CALC_ADVECTION_FACTORS( MCOR, REL_AREA, GEOFAC, GEOFAC_PC)
@@ -293,7 +293,7 @@
       REAL(fp), INTENT(OUT) :: PS_AFTER(IIPAR,JJPAR)
 
       ! Local variables
-      INTEGER             :: I, J, L
+      INTEGER               :: I, J, L
       REAL(fp)              :: DELP(IIPAR,JJPAR,LLPAR)
       REAL(fp)              :: DELP1(IIPAR,JJPAR,LLPAR)
       REAL(fp)              :: PE(IIPAR,LLPAR+1,JJPAR)
@@ -459,6 +459,9 @@
 !      geofac_pc =
 !     &  dp / (2.0e+0_fp * Sum (rel_area(1,ju1_gl:ju1_gl+1)) * ri2_gl)
 
+      ! Make sure to return with a value
+      geofac_pc = 0.0_fp
+
       ! Return to calling program
       END SUBROUTINE Calc_Advection_Factors
 
@@ -518,19 +521,19 @@
       !----------------------
 
       CHARACTER(LEN=*) :: metdata_name_org
-      logical :: do_timinterp_winds
-      logical :: new_met_rec
-      integer :: met_grid_type
-      integer :: advec_consrv_opt
-      integer :: pmet2_opt
-      integer :: press_fix_opt
-      real(fp)  :: tdt
-      real(fp)  :: geofac_pc
-      real(fp)  :: geofac  (ju1_gl:j2_gl)
-      real(fp)  :: cose    (ju1_gl:j2_gl)
-      real(fp)  :: cosp    (ju1_gl:j2_gl)
-      real(fp)  :: dap     (k1:k2)
-      real(fp)  :: dbk     (k1:k2)
+      logical          :: do_timinterp_winds
+      logical          :: new_met_rec
+      integer          :: met_grid_type
+      integer          :: advec_consrv_opt
+      integer          :: pmet2_opt
+      integer          :: press_fix_opt
+      real(fp)         :: tdt
+      real(fp)         :: geofac_pc
+      real(fp)         :: geofac  (ju1_gl:j2_gl)
+      real(fp)         :: cose    (ju1_gl:j2_gl)
+      real(fp)         :: cosp    (ju1_gl:j2_gl)
+      real(fp)         :: dap     (k1:k2)
+      real(fp)         :: dbk     (k1:k2)
 
       !-----------------------------------------------------------------
       !rel_area : relative surface area of grid box (fraction)
@@ -618,7 +621,8 @@
         Write (6, *) 'Adjust_Press called by ', loc_proc
       end if
 
-      dps_ctm(:,:) = 0.0e+0_fp
+      dps     = 0.0_fp    ! (bmy, 7/10/17)
+      dps_ctm = 0.0e+0_fp
 
       dgpress =  Sum ( (pmet2(i1_gl:i2_gl, ju1_gl:j2_gl) -
      &                  pctm1(i1_gl:i2_gl, ju1_gl:j2_gl)   )
@@ -746,32 +750,32 @@
       !----------------------
 
       CHARACTER(LEN=*) :: metdata_name_org
-      integer :: met_grid_type
-      real(fp)  :: geofac_pc
-      real(fp)  :: tdt
-      real(fp)  :: cose    (ju1_gl:j2_gl)
-      real(fp)  :: cosp    (ju1_gl:j2_gl)
-      real(fp)  :: geofac  (ju1_gl:j2_gl)
-      real(fp)  :: dap     (k1:k2)
-      real(fp)  :: dbk     (k1:k2)
+      integer          :: met_grid_type
+      real(fp)         :: geofac_pc
+      real(fp)         :: tdt
+      real(fp)         :: cose    (ju1_gl:j2_gl)
+      real(fp)         :: cosp    (ju1_gl:j2_gl)
+      real(fp)         :: geofac  (ju1_gl:j2_gl)
+      real(fp)         :: dap     (k1:k2)
+      real(fp)         :: dbk     (k1:k2)
 
       !-------------------------------------------------------------
       !dps : change of surface pressure from met field pressure (mb)
       !-------------------------------------------------------------
 
-      real(fp)  :: dps(i1_gl:i2_gl, ju1_gl:j2_gl)
+      real(fp)         :: dps(i1_gl:i2_gl, ju1_gl:j2_gl)
 
       !--------------------------------------------
       !dps_ctm : CTM surface pressure tendency (mb)
       !--------------------------------------------
 
-      real(fp) :: dps_ctm(i1_gl:i2_gl, ju1_gl:j2_gl)
+      real(fp)         :: dps_ctm(i1_gl:i2_gl, ju1_gl:j2_gl)
 
       !-----------------------------------------------------------------
       !rel_area : relative surface area of grid box (fraction)
       !-----------------------------------------------------------------
 
-      real(fp) :: rel_area( i1_gl:i2_gl,   ju1_gl:j2_gl)
+      real(fp)         :: rel_area( i1_gl:i2_gl,   ju1_gl:j2_gl)
             
       !-----------------------------------------------------------------
       !pmet1  : Metfield surface pressure at t1 (mb)
@@ -835,6 +839,14 @@
       if (pr_diag) then
         Write (6,*) 'Init_Press_Fix called by ', loc_proc
       end if
+
+      ! Need to initialize local arrays (bmy, 7/10/17)
+      dpi   = 0.0_fp
+      crx   = 0.0_fp
+      cry   = 0.0_fp
+      delp1 = 0.0_fp
+      delpm = 0.0_fp
+      pu    = 0.0_fp
 
 ! not treat poles (lzh, 07/20/2010)
 !      !========================
@@ -974,24 +986,31 @@
         Write (6,*) 'Do_Press_Fix_Llnl called by ', loc_proc
       end if
 
+      !------------------------------------------------------------
+      ! Initialize variables (bmy, 7/10/17)
+      !------------------------------------------------------------
 
-      ri2 = i2_gl - 2 * BUFF_SIZE
+      ! Arguments
+      xmass_fixed  = xmass
+      ymass_fixed  = ymass
 
-      mmfd(:) = 0.0e+0_fp
-      mmf(:) = 0e+0_fp
-
-      xcolmass_fix(:,:)   = 0.0e+0_fp
-
-      xmass_fixed (:,:,:) = xmass(:,:,:)
-      ymass_fixed (:,:,:) = ymass(:,:,:)
-
-
+      ! Local variables
+      dgpress      = 0.0_fp
+      fxmean       = 0.0_fp
+      ri2          = i2_gl - 2 * BUFF_SIZE
+      fxintegral   = 0.0_fp
+      mmfd         = 0.0_fp
+      mmf          = 0.0_fp
+      ddps         = 0.0_fp
+      dpi          = 0.0_fp
+      xcolmass_fix = 0.0_fp
+      xx           = 0.0_fp
+!
       !------------------------------------------------------------
       !Calculate difference between GCM and LR predicted pressures.
       !------------------------------------------------------------
 
       ddps(:,:) = dps(:,:) - dps_ctm(:,:)
-
 
 c     --------------------------------------
 c     Calculate global-pressure discrepancy.
@@ -1238,24 +1257,24 @@ c     --------------------------------------
         Allocate (dtdx (ju1_gl:j2_gl))
         Allocate (dtdx5(ju1_gl:j2_gl))
 
-        dtdx = 0.0e+0_fp; dtdx5 = 0.0e+0_fp
+        dtdx = 0.0_fp; dtdx5 = 0.0_fp
 
         ri2   = i2_gl
         rj2m1 = j2_gl - 1
 
 #if   defined( GRID025x03125 )
-        dl    = 2.0e+0_fp * PI / 1152e+0_fp
+        dl    = 2.0e+0_fp * PI / 1152.0_fp
         dp    = PI /720e+0_fp
 #elif defined( GRID05x0625 )
-        dl    = 2.0e+0_fp * PI / 576e+0_fp
+        dl    = 2.0e+0_fp * PI / 576.0_fp
         dp    = PI /360e+0_fp
 #elif defined( GRID05x0666 )
-        dl    = 2.0e+0_fp * PI / 540e+0_fp
+        dl    = 2.0e+0_fp * PI / 540.0_fp
         dp    = PI /360e+0_fp
 #endif
 
         dtdy  = tdt / (Re * dp)
-        dtdy5 = 0.5e+0_fp * dtdy
+        dtdy5 = 0.5_fp * dtdy
 
 !-----lzh----------
 !        dtdx (ju1_gl) = 0.0e+0_fp
@@ -1406,17 +1425,17 @@ c     --------------------------------------
         rj2m1 = j2_gl - 1
 
 #if   defined( GRID025x03125 )
-        dl    = 2.0e+0_fp * PI /1152e+0_fp
-        dp    = PI /720e+0_fp
+        dl    = 2.0e+0_fp * PI / 1152.0_fp
+        dp    = PI /720.0_fp
 #elif defined( GRID05x0625 )
-        dl    = 2.0e+0_fp * PI /576e+0_fp
-        dp    = PI /360e+0_fp
+        dl    = 2.0e+0_fp * PI / 576.0_fp
+        dp    = PI /360.0_fp
 #elif defined( GRID05x0666 )
-        dl    = 2.0e+0_fp * PI /540e+0_fp
-        dp    = PI /360e+0_fp
+        dl    = 2.0e+0_fp * PI / 540.0_fp
+        dp    = PI /360.0_fp
 #endif
 
-        facty  = 0.5e+0_fp * tdt / (Re * dp)
+        facty  = 0.5_fp * tdt / (Re * dp)
 
       !-----------------------------------
       !Calculate E-W horizontal mass flux.
@@ -1424,7 +1443,7 @@ c     --------------------------------------
 
       do ij = ju1, j2
 
-       factx = 0.5e+0_fp * tdt / (dl * Re * cosp(ij))
+       factx = 0.5_fp * tdt / (dl * Re * cosp(ij))
 
        do il = i1+1, i2 
         xmass(il,ij,:) = factx *
@@ -1492,7 +1511,7 @@ c     --------------------------------------
       !Argument declarations.
       !----------------------
 
-      logical :: do_reduction
+      logical   :: do_reduction
       real(fp)  :: geofac_pc
       real(fp)  :: geofac(ju1_gl:j2_gl)
       real(fp)  :: dpi   (i1:i2, ju1:j2, k1:k2)
@@ -1504,7 +1523,7 @@ c     --------------------------------------
       !----------------------
 
       integer :: il, ij
-      integer :: jst, jend
+      !integer :: jst, jend
 
       !----------------
       !Begin execution.
@@ -1513,6 +1532,9 @@ c     --------------------------------------
       if (pr_diag) then
         Write (6,*) 'Calc_Divergence called by ', loc_proc
       end if
+
+      ! Initialize DPI, it's an output
+      dpi = 0.0_fp 
 
       !-------------------------
       !Calculate N-S divergence.
@@ -1884,22 +1906,22 @@ c     --------------------------------------
 
       ! Longitude spacing
 #if   defined(GRID025x03125 )
-      DLON_FV    = 2.e+0_fp * PI / DBLE( 1152 )
+      DLON_FV    = 2.0_fp * PI / 1152.0_fp
 #elif defined( GRID05x0625 )
-      DLON_FV    = 2.e+0_fp * PI / DBLE( 576 )
+      DLON_FV    = 2.0_fp * PI / 576.0_fp
 #elif defined( GRID05x0666 )
-      DLON_FV    = 2.e+0_fp * PI / DBLE( 540 )
+      DLON_FV    = 2.0_fp * PI / 540.0_fp
 #endif
        
       ! Latitude edge at south pole [radians]
 !      ELAT_FV(1) = -0.5e+0_fp * PI 
 ! for nested NA or EA (lzh, 07/20/2010) 
 #if defined( GRID025x03125 )
-      ELAT_FV(1) = CLAT_FV(1) - 0.125e+0_fp * PI/DBLE(180)
+      ELAT_FV(1) = CLAT_FV(1) - 0.125_fp * PI / 180.0_fp
 #elif defined( GRID05x0625 )
-      ELAT_FV(1) = CLAT_FV(1) - 0.25e+0_fp * PI/DBLE(180)
+      ELAT_FV(1) = CLAT_FV(1) - 0.25_fp  * PI / 180.0_fp
 #elif defined( GRID05x0666 )
-      ELAT_FV(1) = CLAT_FV(1) - 0.25e+0_fp * PI/DBLE(180)
+      ELAT_FV(1) = CLAT_FV(1) - 0.25_fp  * PI / 180.0_fp
 #endif
 
       ! SIN and COS of lat edge at south pole [unitless]
@@ -1920,11 +1942,11 @@ c     --------------------------------------
 !      ELAT_FV(J2_GL+1) = 0.5e+0_fp * PI
       ! for nested NA or EA (lzh, 07/20/2010) 
 #if   defined( GRID025x03125 )
-      ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.125e+0_fp* PI/DBLE(180)
+      ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.125_fp * PI / 180.0_fp
 #elif defined( GRID05x0625 )
-      ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.25e+0_fp* PI/DBLE(180)
+      ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.25_fp  * PI / 180.0_fp
 #elif defined( GRID05x0666 )
-      ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.25e+0_fp* PI/DBLE(180)
+      ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.25_fp  * PI / 180.0_fp
 #endif
 
       ! SIN of lat edge at North Pole
