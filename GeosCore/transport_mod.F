@@ -925,6 +925,7 @@
 !  20 Jul 2016 - R. Yantosca - Now replace NNPAR with State_Chm%nAdvect
 !  20 Jul 2016 - R. Yantosca - Now pass State_Chm to DiagnUpdate_Transport_Flux
 !  03 Aug 2016 - R. Yantosca - Removed temporary tracer-removal code
+!  11 Jul 2017 - R. Yantosca - Prevent segfault if ND24, ND25, or ND26 are off
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1108,29 +1109,61 @@
      &                              J0_W1+1 : J0_W1+JM_W1        )
                                    
 #if defined( BPCH_DIAG )
-      p_MFLEW => MASSFLEW(          I0_W1+1 : I0_W1+IM_W1,
+      !---------------------------------------------------------------------
+      ! NOTE: If ND24 is off, then MASSFLEW is sized (1,1,1,1), and
+      !       If ND25 is off, then MASSFLNS is sized (1,1,1,1), and
+      !       If ND26 is off, then MASSFLUP is sized (1,1,1,1).
+      !
+      ! Using the window offsets (which are greater than 1) will cause
+      ! an array-out-of-bounds error.  For now if any of ND24, ND25,
+      ! or ND26 is off, just point to the whole array and don't try
+      ! to subset it
+      !
+      ! NOTE: BPCH diagnostics are going away really soon!!! 
+      ! (bmy, 7/11/17)
+      !---------------------------------------------------------------------
+      IF ( Input_Opt%ND24 > 0 ) THEN
+         p_MFLEW => MASSFLEW(       I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
-                                   
-      p_MFLNS => MASSFLNS(          I0_W1+1 : I0_W1+IM_W1,
+      ELSE
+         p_MFLEW => MASSFLEW
+      ENDIF
+
+      IF ( Input_Opt%ND25 > 0 ) THEN
+         p_MFLNS => MASSFLNS(       I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
-                                   
-      p_MFLUP => MASSFLUP(          I0_W1+1 : I0_W1+IM_W1,
+      ELSE
+         p_MFLNS => MASSFLNS
+      ENDIF
+
+      IF ( Input_Opt%ND26 > 0 ) THEN
+         p_MFLUP => MASSFLUP(       I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
+      ELSE
+         p_MFLUP => MASSFLUP
+      ENDIF
+
 #elif defined( NC_DIAG )
-      p_MFLEW => MASSFLEW_NC(       I0_W1+1 : I0_W1+IM_W1,
+      IF ( Input_Opt%ND24 > 0 ) THEN
+         p_MFLEW => MASSFLEW_NC(    I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
-                                   
-      p_MFLNS => MASSFLNS_NC(       I0_W1+1 : I0_W1+IM_W1,
+      ENDIF
+
+      IF ( Input_Opt%ND25 > 0 ) THEN
+         p_MFLNS => MASSFLNS_NC(    I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
-                                   
-      p_MFLUP => MASSFLUP_NC(       I0_W1+1 : I0_W1+IM_W1,
+      ENDIF
+
+      IF ( Input_Opt%ND26 > 0 ) THEN
+         p_MFLUP => MASSFLUP_NC(    I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
+      ENDIF
 #endif
 
 
