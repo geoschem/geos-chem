@@ -1269,7 +1269,7 @@ CONTAINS
                               MW_g          = 46.07_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 2.0_fp,                       &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
@@ -2212,7 +2212,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methylglyoxal',              &
                               MW_g          = 72.0_fp,                      &
-                              Is_Advected   = T,                            &
+                              Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
