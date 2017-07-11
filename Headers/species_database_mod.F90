@@ -2232,7 +2232,7 @@ CONTAINS
 
                               RC            = RC )
 
-          CASE( 'MOBA', 'HC187' )
+          CASE( 'HC187' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
