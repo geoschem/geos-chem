@@ -24,12 +24,13 @@ MODULE History_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
-  PUBLIC  :: History_ReadCollectionNames
-  PUBLIC  :: History_ReadCollectionData
+  PUBLIC  :: History_Init
   PUBLIC  :: History_Cleanup
 !
 ! PRIVATE MEMBER FUNCTIONS:
 
+  PRIVATE :: History_ReadCollectionNames
+  PRIVATE :: History_ReadCollectionData
   PRIVATE :: CleanText
   PRIVATE :: ReadOneLine
 !
@@ -44,21 +45,118 @@ MODULE History_Mod
 ! !LOCAL VARIABLES:
 !
   ! Scalars
-  INTEGER                         :: CollectionCount
+  INTEGER                          :: CollectionCount
 
   ! Strings
-  CHARACTER(LEN=255), ALLOCATABLE :: CollectionName      (:)
-  CHARACTER(LEN=255), ALLOCATABLE :: CollectionTemplate  (:)
-  CHARACTER(LEN=255), ALLOCATABLE :: CollectionSubsetDims(:)
-  CHARACTER(LEN=255), ALLOCATABLE :: CollectionFormat    (:)
-  CHARACTER(LEN=255), ALLOCATABLE :: CollectionFrequency (:)
-  CHARACTER(LEN=255), ALLOCATABLE :: CollectionDuration  (:)
-  CHARACTER(LEN=255), ALLOCATABLE :: CollectionMode      (:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionName      (:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionTemplate  (:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionSubsetDims(:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionFormat    (:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionFrequency (:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionDuration  (:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionMode      (:)
 
   ! Objects
-  TYPE(MetaHistContainer), POINTER     :: CollectionList
+  TYPE(MetaHistContainer), POINTER :: CollectionList
 
 CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: History_Init
+!
+! !DESCRIPTION: Reads the HISTORY.rc file and creates the linked list of
+!  collections (i.e. netCDF diagnostic files containing several data fields
+!  with a specified archival frequency).  The list of fields belonging to
+!  each collection is also determined.  
+!\\
+!\\
+!  Each collection is described by a HISTORY CONTAINER object, which also
+!  contains a linked list of diagnostic quantities (i.e. a METAHISTORY ITEM)
+!  that will be archived to netCDF format.  The list of diagnostic quantities
+!  is determined here by parsing the HISTORY.rc file.
+!\\
+!\\
+!  NOTE: The HISTORY.rc file is read twice.  The first (done by method
+!  History\_ReadCollectionNames) reads the list of all collections.  Then,
+!  for each defined collection, the list of diagnostic quantities belonging
+!  to that collection is determined by routine History\_ReadCollectionData.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE History_Init( am_I_root,  Input_Opt, State_Chm,  &
+                           State_Diag, State_Met, RC         )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod , ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Met_Mod,  ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,          INTENT(IN)  :: am_I_Root
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm
+    TYPE(DgnState),   INTENT(IN)  :: State_Diag
+    TYPE(MetState),   INTENT(IN)  :: State_Met
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER,          INTENT(OUT) :: RC
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = &
+     ' -> at History_Init (in module History/history_mod.F90)'
+
+    !=======================================================================
+    ! First initialize the list of collections
+    ! ("collection" = a netCDF file with a specific archival frequency)
+    !=======================================================================
+    CALL History_ReadCollectionNames( am_I_root,  Input_Opt, State_Chm,  &
+                                      State_Diag, State_Met, RC         )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "History_ReadCollectionNames"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Then determine the fields that will be saved to each collection
+    !=======================================================================
+    CALL History_ReadCollectionData( am_I_root,  Input_Opt, State_Chm,  &
+                                     State_Diag, State_Met, RC         )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "History_ReadCollectionNames"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE History_Init
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -72,22 +170,30 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_ReadCollectionNames( am_I_Root, HistoryInputFile, RC )
+  SUBROUTINE History_ReadCollectionNames( am_I_Root,  Input_Opt, State_Chm,  &
+                                          State_Diag, State_Met, RC         )
 !
 ! !USES:
 !
     USE Charpak_Mod
     USE ErrCode_Mod
-    USE InquireMod,  ONLY : FindFreeLun
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE InquireMod,     ONLY : FindFreeLun
+    USE State_Chm_Mod , ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,                 INTENT(IN)  :: am_I_Root
-    CHARACTER(LEN=255), INTENT(IN)  :: HistoryInputFile
+    LOGICAL,          INTENT(IN)  :: am_I_Root
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm
+    TYPE(DgnState),   INTENT(IN)  :: State_Diag
+    TYPE(MetState),   INTENT(IN)  :: State_Met
 !
 ! !OUTPUT PARAMETERS: 
 !
-    INTEGER,                 INTENT(OUT) :: RC
+    INTEGER,          INTENT(OUT) :: RC
 !
 ! !REMARKS:
 !
@@ -141,9 +247,9 @@ CONTAINS
     fId     = FindFreeLun()
 
     ! Open the file
-    OPEN( fId, FILE=TRIM( HistoryInputFile ), STATUS='OLD', IOSTAT=RC )
+    OPEN( fId, FILE=TRIM(Input_Opt%HistoryInputFile), STATUS='OLD', IOSTAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not open "HistoryInputFile"!'
+       ErrMsg = 'Could not open "' // TRIM(Input_Opt%HistoryInputFile) // '"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -161,8 +267,8 @@ CONTAINS
 
        ! If it's a real I/O error, quit w/ error message
        IF ( IOS > 0 ) THEN
-          ErrMsg = 'Unexpected end-of-file in ' // &
-                    TRIM( HistoryInputFile )    //'!'
+          ErrMsg = 'Unexpected end-of-file in "'       // &
+                    TRIM( Input_Opt%HistoryInputFile ) // '"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -190,8 +296,8 @@ CONTAINS
 
              ! If it's a real I/O error, quit w/ error message
              IF ( IOS > 0 ) THEN
-                ErrMsg = 'Unexpected erroe in ' // &
-                     TRIM( HistoryInputFile )    //'!'
+                ErrMsg = 'Unexpected error in "'        // &
+                     TRIM( Input_Opt%HistoryInputFile ) // '"!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
@@ -312,27 +418,34 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_ReadCollectionData( am_I_Root, HistoryInputFile, RC )
+  SUBROUTINE History_ReadCollectionData( am_I_Root,  Input_Opt, State_Chm,  &
+                                         State_Diag, State_Met, RC         )
 !
 ! !USES:
 !
     USE Charpak_Mod
     USE ErrCode_Mod
+    USE HistContainer_Mod
+    USE HistItem_Mod
+    USE Input_Opt_Mod,         ONLY : OptInput
     USE InquireMod,            ONLY : FindFreeLun
     USE MetaHistContainer_Mod
-    USE HistContainer_Mod
-    USE HistContainer_Mod
     USE MetaHistItem_Mod,
-    USE HistItem_Mod
+    USE State_Chm_Mod ,        ONLY : ChmState
+    USE State_Diag_Mod,        ONLY : DgnState
+    USE State_Met_Mod,         ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,            INTENT(IN)  :: am_I_Root
-    CHARACTER(LEN=255), INTENT(IN)  :: HistoryInputFile
+    LOGICAL,          INTENT(IN)  :: am_I_Root
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm
+    TYPE(DgnState),   INTENT(IN)  :: State_Diag
+    TYPE(MetState),   INTENT(IN)  :: State_Met
 !
 ! !OUTPUT PARAMETERS: 
 !
-    INTEGER,            INTENT(OUT) :: RC
+    INTEGER,          INTENT(OUT) :: RC
 !
 ! !REMARKS:
 !
@@ -400,9 +513,9 @@ CONTAINS
     fId     = FindFreeLun()
 
     ! Open the file
-    OPEN( fId, FILE=TRIM( HistoryInputFile ), STATUS='OLD', IOSTAT=RC )
+    OPEN( fId, FILE=TRIM(Input_Opt%HistoryInputFile), STATUS='OLD', IOSTAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not open "HistoryInputFile"!'
+       ErrMsg = 'Could not open "' //TRIM(Input_Opt%HistoryInputFile) // '"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -420,8 +533,8 @@ CONTAINS
 
        ! If it's a real I/O error, quit w/ error message
        IF ( IOS > 0 ) THEN
-          ErrMsg = 'Unexpected end-of-file in ' // &
-                    TRIM( HistoryInputFile )    //'!'
+          ErrMsg = 'Unexpected end-of-file in "'       // &
+                    TRIM( Input_Opt%HistoryInputFile ) // '"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -560,8 +673,8 @@ CONTAINS
 
                 ! If it's a real I/O error, quit w/ error message
                 IF ( IOS > 0 ) THEN
-                   ErrMsg = 'Unexpected end-of-file in ' // &
-                        TRIM( HistoryInputFile )    //'!'
+                   ErrMsg = 'Unexpected end-of-file in '        // &
+                             TRIM( Input_Opt%HistoryInputFile ) //'!'
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF

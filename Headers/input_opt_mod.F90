@@ -249,6 +249,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! DIAGNOSTIC MENU fields
      !----------------------------------------
+     CHARACTER(LEN=255)          :: HistoryInputFile
      INTEGER                     :: ND01,             LD01
      INTEGER                     :: ND02,             LD02
      INTEGER                     :: ND03,             LD03
@@ -616,6 +617,7 @@ MODULE Input_Opt_Mod
 !  20 Sep 2016 - R. Yantosca - LND51_HDF and LND51b_HDF are now declared
 !                              as LOGICAL, not INTEGER.  This chokes Gfortran.
 !  03 Oct 2016 - R. Yantosca - LWINDO_CU has to be LOGICAL, not INTEGER
+!  12 Jul 2017 - R. Yantosca - Add Input_Opt%HistoryInputFile field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -704,6 +706,7 @@ CONTAINS
 !  13 Jul 2016 - R. Yantosca - Remove ID_TRACER, NUMDEP
 !  16 Mar 2017 - R. Yantosca - Remove obsolete family and drydep variables
 !  17 Mar 2017 - R. Yantosca - Remove IDDEP, DUSTREFF, DUSTDEN
+!  12 Jul 2017 - R. Yantosca - Initialize Input_Opt%HistoryInputFile field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -938,6 +941,7 @@ CONTAINS
     !----------------------------------------
     ! DIAGNOSTIC MENU fields
     !----------------------------------------
+    Input_Opt%HistoryInputFile       = ''
     Input_Opt%DIAG_COLLECTION        = -999
     Input_Opt%TS_DIAG                = 0
     ALLOCATE( Input_Opt%TINDEX( MAX_DIAG, MAX_SPC ), STAT=RC )

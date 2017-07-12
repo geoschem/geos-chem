@@ -84,7 +84,8 @@
       USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
       USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
-      USE DIAGNOSTICS_MOD       ! NetCDF diagnostics module (C. Keller)
+      USE DIAGNOSTICS_MOD       ! Writes out HEMCO diagnostics (C. Keller)
+      USE HISTORY_MOD           ! Updated netCDF diagnostics
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
 
       !-----------------------------------------------------------------
@@ -309,6 +310,7 @@
       INTEGER                  :: id_H2O
       REAL(f8)                 :: TAU,           TAUb         
       CHARACTER(LEN=255)       :: ZTYPE
+      CHARACTER(LEN=255)       :: ErrMsg,        ThisLoc
 
       ! Set cloud flag for RRTMG
       INTEGER                  :: ICLD=0,ISEED=10
@@ -414,9 +416,15 @@
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
+      !
       ! Assume a successful return until otherwise
       !
       RC                      = GC_SUCCESS
+      !
+      ! For error trapping
+      !
+      ErrMsg                  = ''
+      ThisLoc                 = ' -> at GEOS-Chem (in GeosCore/main.F)'
       !
       ! Define NI, NJ, NL dimensions for use below
       !
@@ -571,6 +579,19 @@
       ! Define advected species ID flags for use below
       id_CLOCK = Ind_('CLOCK','A')
       id_H2O   = Ind_('H2O'  ,'A')
+      !
+#if defined( NC_DIAG )
+      ! For now, just hardwire the input file for the History component
+      Input_Opt%HistoryInputFile = './HISTORY.rc'
+      !
+      ! Initialize the GEOS-Chem history component
+      CALL History_Init( am_I_root,  Input_Opt, State_Chm, 
+     &                   State_Diag, State_Met, RC         )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "History_Init"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+#endif      
       !-----------------------------------------------------------------
 
 #if   defined( RRTMG )
@@ -1821,6 +1842,11 @@
       ! Close all files
       CALL CLOSE_FILES
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
+
+#if defined( NC_DIAG )
+      ! Free the list of diagnostic collections
+      CALL History_Cleanup( am_I_Root, RC )
+#endif      
 
       ! Deallocate fields of the Input Options object
       CALL Cleanup_Input_Opt( am_I_Root, Input_Opt, RC )
