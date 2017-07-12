@@ -994,9 +994,6 @@ CONTAINS
        MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ) / DT
 
 #endif
-#if defined( NC_DIAG )
-       MASSFLUP(I,J,K,IQ) = DTC(I,J,K,IQ) / DT
-#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ENDDO
@@ -1483,9 +1480,6 @@ CONTAINS
 #if defined( BPCH_DIAG )
             MFLEW(I,J) = MFLEW(I,J) + DTC
 #endif
-#if defined( NC_DIAG )
-            MFLEW(I,J) = DTC
-#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ENDDO
@@ -1500,9 +1494,6 @@ CONTAINS
  !%%%
 #if defined( BPCH_DIAG )
          MFLEW(IM,J) = MFLEW(I,J) + DTC
-#endif
-#if defined( NC_DIAG )
-         MFLEW(IM,J) = DTC
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1530,9 +1521,6 @@ CONTAINS
 #if defined( BPCH_DIAG )
          MFLNS(I,J) = MFLNS(I,J) + DTC
 #endif
-#if defined( NC_DIAG )
-         MFLNS(I,J) = DTC
-#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ENDDO
@@ -1553,9 +1541,6 @@ CONTAINS
 #if defined( BPCH_DIAG )
             MFLNS(I,1) = MFLNS(I,1) + DTC
 #endif
-#if defined( NC_DIAG )
-            MFLNS(I,1) = DTC
-#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ENDDO
@@ -1575,9 +1560,6 @@ CONTAINS
  !%%%
 #if defined( BPCH_DIAG )
             MFLNS(I,JM) = MFLNS(I,JM) + DTC
-#endif
-#if defined( NC_DIAG )
-            MFLNS(I,JM) = DTC
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

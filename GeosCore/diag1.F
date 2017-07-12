@@ -33,9 +33,6 @@
       USE DIAG_MOD,           ONLY : AD71_LDAY,  AD71_LHR
       USE DIAG_MOD,           ONLY : AD71_COUNT, AD71_HRCT
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
-#if defined( NC_DIAG ) 
-      USE DIAGNOSTICS_MOD,    ONLY : DiagnSpec, DiagnUpdate_Met
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -597,124 +594,6 @@
          AD71_LHR = GET_HOUR()
          AD71_HRCT = AD71_HRCT + 1
       ENDIF
-
-!##############################################################################
-!###                                                                        ###
-!###   NEW GEOS-Chem DIAGNOSTICS VIA HEMCO LINKED LIST --> netCDF output    ###
-!###                                                                        ###
-!##############################################################################
-
-#if defined( NC_DIAG )
-
-      !=================================================================
-      ! ND30: Landmap diagnostics (netCDF diagnostic structure)
-      !=================================================================
-      IF ( Input_Opt%ND30 > 0 ) THEN
-
-         ! Construct diagnostic name
-         ! (better to have function to get it since already defined)
-         DiagnName = 'LANDMAP'
-
-         ! Compute landmap
-         IF ( ND30 > 0 ) THEN  
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               IF ( IS_WATER( I, J, State_Met ) )
-     &           Landmap(I,J) = 0e0
-               IF ( IS_LAND ( I, J, State_Met ) )
-     &           Landmap(I,J) = 1e0
-               IF ( IS_ICE  ( I, J, State_Met ) )
-     &           Landmap(I,J) = 2e0
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-
-         ! Point to the landmap array
-         Ptr2D => Landmap
-    
-         ! Update the landmap diagnostic
-         CALL Diagn_Update( am_I_Root, HcoState,
-     &                      cName   = TRIM( DiagnName ),
-     &                      Array2D = Ptr2D,
-     &                      RC      = RC )
-    
-         ! Free the pointer before error handling
-         Ptr2D => NULL()
-    
-         ! Stop with error if the diagnostics were unsuccessful
-         IF ( RC /= HCO_SUCCESS ) THEN
-            CALL ERROR_STOP(
-     &           'Cannot update landmap diagnostic (ND30)',
-     &           'DIAG1 (diag1.F)')
-         ENDIF
- 
-      ENDIF
-
-      !=================================================================
-      ! ND45: Species concentrations (netCDF diagnostic structure)
-      !=================================================================
-      IF ( Input_Opt%ND45 > 0 ) THEN
-
-         ! Loop over all species
-         DO N = 1, State_Chm%nSpecies
-
-            ! Entry in the species database
-            SpcInfo => State_Chm%SpcData(N)%Info
-
-            ! Only save out chemical species if DiagnSpec option is on
-            IF ( .not. DiagnSpec .and. .not. SpcInfo%Is_Advected ) THEN
-               CYCLE
-            ENDIF
-
-            ! If this species number NN is scheduled for output in input.geos,
-            ! then archive the latest concentration into the diagnostic
-            ! structure
-            IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
-
-               ! Construct diagnostic name
-               DiagnName = 'SPC_' // TRIM( SpcInfo%Name )
-
-               ! Point to the proper slice of the DEPSAV array
-               Ptr3D => Spc_VV(:,:,:,N)
-
-               ! Update the deposition velocity diagostics
-               CALL Diagn_Update( am_I_Root, HcoState,
-     &                            cName   = TRIM( DiagnName ),
-     &                            Array3D = Ptr3D,
-     &                            RC      = RC )
-
-               ! Free the pointer
-               Ptr3D => NULL()
-
-               ! STOP wieth error if the diagnostics were unsuccessful
-               IF ( RC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP(
-     &                 'Cannot update SPC diag diagnostics',
-     &                 'DIAG1 (diag1.F)')
-               ENDIF
-            ENDIF
-
-            ! Free pointer
-            SpcInfo => NULL()
-
-         ENDDO
-
-      ENDIF !ND45
-
-      !=================================================================
-      ! Met diagnostics: ND31, ND55, ND56, ND57, ND66, ND67, ND68, ND69
-      !=================================================================
-
-      ! For now, use ND68 as indicator that Met diagnostic group is on
-      IF ( Input_Opt%ND68 > 0 ) THEN
-         CALL DiagnUpdate_Met( am_I_Root, Input_Opt, State_Met, RC ) 
-      ENDIF
-
-#endif
 
       END SUBROUTINE DIAG1
 !EOC

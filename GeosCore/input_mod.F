@@ -4519,11 +4519,6 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:68' )
       READ( SUBSTRS(1), * ) ND70
-!-----------------------------------------------------------------------------
-! Prior to 7/21/16:
-! Remove PD70 parameter (bmy, 7/21/16)
-!      CALL SET_TINDEX( am_I_Root, 70, ND70, SUBSTRS(2:N), N-1, PD70 )
-!-----------------------------------------------------------------------------
       CALL SET_TINDEX( am_I_Root, 70, ND70, SUBSTRS(2:N), N-1, 0 )
      
       !--------------------------
@@ -4551,31 +4546,6 @@
        MSG = 'If LRAD is true then ND72 diagnostic must be switched on'
        CALL ERROR_STOP( MSG, 'READ_DIAGNOSTIC_MENU ("input_mod.f")' )
       ENDIF
-
-#if defined( NC_DIAG )
-      !----------------------------------------------------------
-      ! NETCDF diagnostic output type (eventually read from file)
-      !----------------------------------------------------------
-      Input_Opt%TRANSPORT_OUTPUT_TYPE    = 'Mean'
-      Input_Opt%WETSCAV_OUTPUT_TYPE      = 'Mean'
-      Input_Opt%DRYDEP_OUTPUT_TYPE       = 'Mean'
-      Input_Opt%SPECIES_CONC_OUTPUT_TYPE  = 'Mean'
-      Input_Opt%SPECIES_EMIS_OUTPUT_TYPE  = 'Mean'
-      Input_Opt%MET_OUTPUT_TYPE          = 'Mean'
-
-      ! placeholders pending grouping of diagnostics
-      Input_Opt%ND01_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND02_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND12_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND14_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND15_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND16_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND17_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND18_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND19_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND30_OUTPUT_TYPE         = 'Mean'
-
-#endif
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:71' )

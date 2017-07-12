@@ -23,17 +23,6 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
       PUBLIC  :: CHEMRnPbBe
-! 
-! !PRIVATE MEMBER FUNCTIONS:
-!
-#if defined( NC_DIAG )
-      PRIVATE :: Diagn_RnPbBe_Update
-#endif
-
-      ! NOTE: WE NEED TO KEEP THIS HERE FOR NOW SINCE IT IS USED
-      ! BY CODE IN mercury_mod.F.  REMOVE IT LATER. (bmy, 7/7/14)
-      ! Removed. (mdy, 12/4/14)
-!      PUBLIC  :: SLQ
 !
 ! !REMARKS:
 !  References:
@@ -287,9 +276,6 @@
                AD02(I,J,L,1)   = AD02(I,J,L,1) 
      &                         + ( Rn_LOST(I,J,L) / DTCHEM )
 #endif
-#if defined( NC_DIAG )
-               RN_DECAY(I,J,L) = RN_LOST(I,J,L) / DTCHEM
-#endif
             ENDIF
 
             ! Subtract Rn_LOST from STT [kg]
@@ -298,23 +284,6 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
-#if defined( NC_DIAG )
-         ! Get species name
-         Spc_Name = State_Chm%SpcData(N)%Info%Name
-
-         ! Make sure ND02 is turned on
-         IF ( Input_Opt%ND02 > 0 ) THEN
-
-            ! Update ND02 diagnostic: Rn lost to decay [kg/s]
-            CALL Diagn_RnPbBe_Update( am_I_Root,
-     &                                'ND02', 
-     &                                Spc_Name, 
-     &                                RN_DECAY, 
-     &                                INput_Opt%DIAG_COLLECTION )
-         ENDIF
-#endif
-         
       ENDIF
 
       !=================================================================
@@ -352,9 +321,6 @@
 #if defined( BPCH_DIAG )
                AD01(I,J,L)     = AD01(I,J,L) + ( ADD_Pb / DTCHEM )
 #endif
-#if defined ( NC_DIAG )
-               PB_EMISS(I,J,L) = ADD_Pb / DTCHEM
-#endif
             ENDIF
 
             ! Add 210Pb gained by decay from 222Rn into STT [kg]
@@ -369,9 +335,6 @@
 #if defined( BPCH_DIAG )
                AD02(I,J,L,2)   = AD02(I,J,L,2) + ( Pb_LOST / DTCHEM )
 #endif
-#if defined( NC_DIAG )
-               PB_DECAY(I,J,L) = Pb_LOST / DTCHEM
-#endif
             ENDIF
 
             ! Subtract 210Pb lost to decay from STT [kg]
@@ -380,35 +343,6 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
-#if defined( NC_DIAG )
-         ! Get species name
-         Spc_Name = State_Chm%SpcData(N)%Info%Name
-
-         ! Make sure ND02 is turned on
-         IF ( Input_Opt%ND02 > 0 ) THEN
-
-            ! Update ND02 diagnostic: Pb lost to decay [kg/s]
-            CALL Diagn_RnPbBe_Update( am_I_Root,
-     &                                'ND02', 
-     &                                Spc_Name, 
-     &                                PB_DECAY, 
-     &                                Input_Opt%DIAG_COLLECTION )
-         ENDIF
-
-         ! Make sure ND01 is turned on
-         IF ( Input_Opt%ND01 > 0 ) THEN
-
-            ! Update ND01 diagnostic: Pb emission [kg/s]
-            CALL Diagn_RnPbBe_Update( am_I_Root,
-     &                                'ND01', 
-     &                                Spc_Name, 
-     &                                PB_EMISS, 
-     &                                Input_Opt%DIAG_COLLECTION )
-         ENDIF
-
-#endif
-
       ENDIF
 
       !=================================================================
@@ -435,9 +369,6 @@
 #if defined( BPCH_DIAG )
                AD02(I,J,L,3)   = AD02(I,J,L,3) + ( Be_LOST / DTCHEM )
 #endif
-#if defined( NC_DIAG )
-               BE_DECAY(I,J,L) = Be_LOST / DTCHEM
-#endif
             ENDIF
 
             ! Subtract amount of 7Be lost to decay from STT [kg]
@@ -446,23 +377,6 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
-#if defined( NC_DIAG )
-         ! Get species name
-         Spc_Name = State_Chm%SpcData(N)%Info%Name
-
-         ! Make sure ND02 is turned on
-         IF ( Input_Opt%ND02 > 0 ) THEN
-
-            ! Update ND02 diagnostic: Be lost to decay [kg/s]
-            CALL Diagn_RnPbBe_Update( am_I_Root,
-     &                                'ND02', 
-     &                                Spc_Name, 
-     &                                BE_DECAY, 
-     &                                Input_Opt%DIAG_COLLECTION )
-         ENDIF
-#endif
-
       ENDIF
 
       ! Free pointer
@@ -470,96 +384,6 @@
 
       END SUBROUTINE CHEMRnPbBe
 !EOC
-
-#if defined( NC_DIAG )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: diagn_rnpbbe_update
-!
-! !DESCRIPTION: Subroutine DIAGN\_RNPBBE\_UPDATE updates the Rn/Pb/Be7
-!  diagnostics ND01 (emissions) and ND02 (loss due to decay) that are 
-!  written to netCDF. ND01 Rn and Be7 emissions diagnostics are included
-!  in HEMCO emissions and are therefore not updated in this subroutine.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE Diagn_RnPbBe_Update( am_I_Root, NDxx, SpeciesName, 
-     &                                DiagArray, ColNo )
-!
-! !USES:
-!
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-      USE HCO_Error_Mod
-      USE Error_Mod
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,            INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
-      CHARACTER(LEN=4),   INTENT(IN)  :: NDxx         ! Diagnostic id
-      CHARACTER(LEN=*),   INTENT(IN)  :: SpeciesName  ! Species name
-      REAL(fp), TARGET,   INTENT(IN)  :: DiagArray(:,:,:)
-      INTEGER,            INTENT(IN)  :: ColNo        ! Diag collection #
-!
-! !REVISION HISTORY:
-!  30 Jan 2015 - E. Lundgren   - Initial version
-! 
-! !REMARKS:
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      CHARACTER(LEN=255)  :: DiagnName
-      CHARACTER(LEN=255)  :: MSG
-      CHARACTER(LEN=255)  :: LOC = 'DIAGN_RNPBBE_UPDATE (RnPbBe_mod.F)'
-      INTEGER             :: HCRC
-      REAL(fp), POINTER   :: Ptr3D(:,:,:) => NULL()
-
-      !=================================================================
-      ! DIAGN_RNPBBE_UPDATE begins here!
-      !=================================================================
-      
-      ! Define the diagnostic name
-      SELECT CASE ( NDxx )
-         CASE ( 'ND01' )
-            DiagnName = 'EMISS_' // TRIM( SpeciesName )
-         CASE ( 'ND02' )
-            DiagnName = 'DECAY_' // TRIM( SpeciesName )
-         CASE DEFAULT
-            MSG = 'Undefined Rn/Pb/Be7 diagnostic: ' // NDxx
-            CALL ERROR_STOP( TRIM( MSG ), LOC )
-      END SELECT
-
-      ! Point to the array
-      Ptr3D => DiagArray
-
-      ! Update container for diagnostic
-      CALL Diagn_Update( am_I_Root, HcoState,
-     &                   cName   = TRIM( DiagnName ),
-     &                   Array3D = Ptr3D,
-     &                   COL     = ColNo,
-     &                   RC      = HCRC )
- 
-      ! Free the pointer before error handling
-      Ptr3D => NULL()
- 
-      ! Stop with error if the diagnostic update was unsuccessful
-      IF ( HCRC /= HCO_SUCCESS ) THEN
-         MSG = 'Cannot update ' // NDxx // ' diagnostic: ' 
-     &         // TRIM( DiagnName )
-         CALL ERROR_STOP( MSG, LOC)
-      ENDIF
-
-      END SUBROUTINE Diagn_RnPbBe_Update 
-!EOC
-#endif
       END MODULE RnPbBe_MOD
 
 

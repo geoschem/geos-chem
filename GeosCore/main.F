@@ -712,13 +712,6 @@
       CALL GEOS_Timer_End ( "HEMCO", RC )
 #endif
 
-#if defined( NC_DIAG )
-      ! Initialize diagnostics other than the default HEMCO diagnostics
-      ! initialized above (ckeller, 1/13/15).
-      CALL Diagnostics_Init( am_I_Root, Input_Opt, 
-     &                       State_Met, State_Chm, RC )
-#endif
-
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
@@ -804,14 +797,6 @@
       !=================================================================
       !      ***** INITIALIZE GEOS-CHEM DIAGNOSTICS AND RESTARTS ***** 
       !=================================================================      
-
-#if defined( NC_DIAG )
-      ! Initialize diagnostics other than the default HEMCO diagnostics
-      ! initialized above (ckeller, 1/13/15).
-      CALL Diagnostics_Init( am_I_Root, Input_Opt, 
-     &                       State_Met, State_Chm, RC )
-#endif 
-
       CALL INIT_GC_RESTART( am_I_Root, Input_Opt, State_Chm, RC )
 
 #if defined( USE_TIMERS )
@@ -1156,11 +1141,6 @@
          ! Consider updating all Met diagnostics here (ewl, 1/22/16) 
 #if defined( BPCH_DIAG )
          IF ( Input_Opt%ND55 > 0 ) THEN
-            CALL DIAG_TROPOPAUSE( am_I_root, Input_Opt, State_Met, RC )
-         ENDIF
-#elif defined( NC_DIAG )
-         ! If netcdf diagnostics, output if Met diagnostic group is on
-         IF ( Input_Opt%ND68 > 0 ) THEN
             CALL DIAG_TROPOPAUSE( am_I_root, Input_Opt, State_Met, RC )
          ENDIF
 #endif
@@ -1756,14 +1736,6 @@
          !   IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a ND52' )
          !ENDIF
 
-!#if defined( NC_DIAG )
-!         ! Write diagnostic data to the GEOS-Chem diagnostics netCDF file.
-!         ! Each diagnostic has a specified averaging period specified 
-!         ! in Input_Opt. (ckeller, bmy, 1/15/15)
-!         CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
-!     &                           .FALSE.,    RC )
-!#endif
-
          !### After diagnostics
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after TIMESERIES' )
 
@@ -1832,14 +1804,6 @@
 
       ! Print the mass-weighted mean OH concentration (if applicable)
       CALL PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
-
-!#if defined( NC_DIAG )
-!      ! Write diagnostic data to the GEOS-Chem restart netCDF file.
-!      ! Each diagnostic has a specified averaging period specified 
-!      ! in Input_Opt. (ckeller, bmy, 1/15/15)
-!      CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
-!     &                        .FALSE.,   RC )
-!#endif
 
       ! Save final tracer mass [kg] to disk for model benchmarking
       ! for Rn-Pb-Be and full-chem benchmark simulations

@@ -1858,12 +1858,6 @@ contains
 
     ! HEMCO update
     USE HCO_INTERFACE_MOD,  ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
-#if defined( NC_DIAG )
-    USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
-    USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-#endif
 
     implicit none
 !
@@ -2018,13 +2012,6 @@ contains
 
     ! For diagnostics
     REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR ) 
-#if defined( NC_DIAG )
-    REAL(fp), POINTER  :: Ptr3D(:,:,:)
-    REAL(fp), POINTER  :: Ptr2D(:,:)
-    REAL(fp)           :: Total
-    INTEGER            :: cID
-    CHARACTER(LEN=30)  :: DiagnName
-#endif
 
     ! PARANOX loss fluxes (kg/m2/s), imported from 
     ! HEMCO PARANOX extension module (ckeller, 4/15/2015)
@@ -2062,10 +2049,6 @@ contains
 
     ! Initialize pointers
     SpcInfo => NULL()
-#if defined( NC_DIAG )
-    Ptr3D   => NULL()
-    Ptr2D   => NULL()
-#endif
 
     ! Initialize local arrays. (ccc, 12/21/10)
     pmid    = 0e+0_fp
@@ -2513,52 +2496,6 @@ contains
     enddo
 #endif
 
-    ! Write (surface) emissions into diagnostics
-#if defined( NC_DIAG )
-
-    ! Allocate temporary data array
-    ALLOCATE(Ptr3D(IIPAR,JJPAR,LLPAR))
-    Ptr3D = 0.0_fp
-
-    ! Loop over only the advected species
-    DO NA = 1, nAdvect
-
-       ! Emission fluxes
-       IF ( ANY(eflx(:,:,NA) > 0.0_fp ) ) THEN
-          Ptr3D(:,:,1) = eflx(:,:,NA)
-          cID = GetHcoID ( SpcID=NA )
-          IF ( cID > 0 ) THEN
-             cID = 10000 + cID
-             ! Total in kg
-             Total = SUM(Ptr3D(:,:,1) * State_Met%AREA_M2(:,:,1)) * dtime 
-             CALL Diagn_Update( am_I_Root, HcoState,                 &
-                                cID     = cID,                       &
-                                Array3D = Ptr3D,                     &
-                                Total   = Total,                     &
-                                COL     = Input_Opt%DIAG_COLLECTION, &
-                                RC      = HCRC                        )
-             Ptr3D = 0.0_fp
-          ENDIF
-       ENDIF
-
-       !! Drydep fluxes
-       !! Now update drydep flux diag below using molec/cm2/s
-       !IF ( (ND44>0) .AND. (ANY(dflx(:,:,N) > 0.0_fp) ) ) THEN
-       !   Ptr2D => dflx(:,:,N)
-       !   cID = 44500 + N
-       !   CALL Diagn_Update( am_I_Root,                           &
-       !                      cID     = cID,                       &
-       !                      Array2D = Ptr2D,                     &
-       !                      COL     = Input_Opt%DIAG_COLLECTION, &
-       !                      RC      = HCRC                        )
-       !   Ptr2D => NULL()
-       !ENDIF
-    ENDDO
-
-    DEALLOCATE(Ptr3D)
-
-#endif
-
     !==============================================================
     ! Calculate ND44 diagnostic: drydep flux loss [molec/cm2/s]
     !==============================================================
@@ -2595,42 +2532,6 @@ contains
 	     AD44(:,:,ND,1) = AD44(:,:,ND,1) + dflx(:,:,N)        &
                              /  (SpcInfo%emMW_g * 1.e-3_fp) * AVO      &
                              * 1.e-4_fp * GET_TS_CONV() / GET_TS_CHEM() 
-          ENDIF
-#endif
-#if defined( NC_DIAG )
-      !===============================================================
-      ! Update dry deposition flux diagnostic for netcdf output (ND44) 
-      !===============================================================
-	  IF( ND44 > 0 .or. LGTMM) THEN                
-
-             ! For netcdf output, save flux in local array before
-             ! passing to HEMCO
-             DryDepFlux = dflx(:,:,N)                    &
-                          / (SpcInfo%emMW_g * 1.e-3_fp)  &
-                          * AVO * 1.e-4_fp * GET_TS_CONV() / GET_TS_CHEM()
-             
-             ! If this tracer is scheduled for output in 
-             ! input.geos, then update the diagnostic
-             IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
-
-                ! Update diagnostic container
-                DiagnName = 'DRYDEP_FLX_MIX_'                &
-                            // TRIM( SpcInfo%Name )
-                Ptr2D => DryDepFlux
-                CALL Diagn_Update( am_I_Root, HcoState,                 &
-                                   cName   = TRIM( DiagnName),          &
-                                   Array2D = Ptr2D,                     & 
-                                   COL     = Input_Opt%DIAG_COLLECTION, &
-                                   RC      = HCRC                        )
-                Ptr2D => NULL()
-             
-                ! Stop with error if the diagnostic was unsuccessful
-                IF ( HCRC /= HCO_SUCCESS ) THEN
-                   CALL ERROR_STOP( 'Cannot update drydep flux' //       & 
-                                    ' diagnostic: ' // TRIM( DiagnName), &
-                                    'VDIFFDR (vdiff_mod.F)')
-                ENDIF
-             ENDIF
           ENDIF
 #endif
 

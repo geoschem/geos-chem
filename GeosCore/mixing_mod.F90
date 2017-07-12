@@ -279,11 +279,6 @@ CONTAINS
 #if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
 #endif
-#if defined( NC_DIAG )
-    USE HCO_ERROR_MOD
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoID
-    USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-#endif
 #if defined( USE_TEND )
     USE TENDENCIES_MOD
 #endif
@@ -346,17 +341,6 @@ CONTAINS
     LOGICAL                 :: PBL_DRYDEP, LSCHEM, ChemGridOnly
     LOGICAL                 :: LEMIS,      LDRYD
     LOGICAL                 :: DryDepSpec, EmisSpec
-
-#if defined( NC_DIAG )
-    ! For netCDF diagnostics
-    INTEGER                 :: cID, spc_id, HCRC
-    CHARACTER(LEN=30)       :: DiagnName
-    REAL(fp), TARGET        :: DryDepFlux( IIPAR, JJPAR, State_Chm%nDryDep ) 
-    REAL(fp), TARGET        :: EMIS( IIPAR, JJPAR, LLPAR, State_Chm%nAdvect) 
-    REAL(fp)                :: TOTFLUX(State_Chm%nAdvect)
-    REAL(fp), POINTER       :: Ptr2D(:,:  )
-    REAL(fp), POINTER       :: Ptr3D(:,:,:)
-#endif
 
     ! PARANOX loss fluxes (kg/m2/s). These are obtained from the 
     ! HEMCO PARANOX extension via the diagnostics module.
@@ -449,13 +433,6 @@ CONTAINS
        ENDIF
        FIRST = .FALSE.
     ENDIF
-
-#if defined( NC_DIAG )
-    ! Initialize local diagnostic variables
-    DryDepFlux  = 0.0_fp
-    EMIS        = 0.0_fp
-    TOTFLUX     = 0.0_fp
-#endif
 
 #if defined( USE_TEND )
     ! Archive concentrations for tendencies (ckeller, 7/15/2015) 
@@ -664,10 +641,6 @@ CONTAINS
                       FLUX = FLUX + ( PNOXLOSS * TS )
                    ENDIF 
 
-#if defined( NC_DIAG )
-                   ! Prior to 1/22/16, archive deposition flux in kg/m2/s:
-                   !DepFluxes(I,J,N) = DepFluxes(I,J,N) + ( FLUX / TS )
-#endif
 !                   IF (AREA_M2 .eq. 0.0_fp) THEN
 !                     PRINT*, "FLUX: ", FLUX
 !                     PRINT*, "MWkg: ", MWkg
@@ -702,12 +675,6 @@ CONTAINS
                       AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX &
                                              * GET_TS_CONV() / GET_TS_CHEM() 
 #endif
-#if defined( NC_DIAG )
-                      ! For netcdf diagnostic, store data in local array
-                      ! Now use same units as bpch for comparison (ewl, 1/22/16)
-                      DryDepFlux(I,J,DryDepID) = DryDepFlux(I,J,DryDepID) &
-                                                + FLUX
-#endif
                    ENDIF
 
                 ENDIF ! apply drydep
@@ -733,12 +700,6 @@ CONTAINS
                    ! Add to species array
                    State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) & 
                                               + FLUX 
-
-#if defined( NC_DIAG )
-                   ! Update new species emissions diagnostics
-                   EMIS(I,J,L,N) = TMP                 ! kg/m2/s
-                   TOTFLUX(N)    = TOTFLUX(N) + FLUX   ! kg/m2/s
-#endif
                 ENDIF
              ENDIF
 
@@ -759,100 +720,6 @@ CONTAINS
       ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
                         State_Chm, 'FLUX', TS, RC )
-#endif
-
-
-#if defined( NC_DIAG )
-    !========================================================      
-    ! ND44: Dry deposition diagnostic [molec/cm2/s] (netcdf) 
-    !========================================================
-    IF ( Input_Opt%ND44 > 0 ) THEN
-
-       ! Assume success
-       HCRC = HCO_SUCCESS
-
-       ! Loop over all drydep species
-       DO D = 1, State_Chm%nDryDep
-
-          ! Get the species ID from the drydep ID
-          spc_id = State_Chm%Map_DryDep(D)
-      
-          ! If this species number is scheduled for output in input.geos, 
-          ! then archive the latest depvel data into the diagnostic structure
-          IF ( ANY( Input_Opt%TINDEX(44,:) == spc_id ) ) THEN
-       
-             ! Define diagnostic name
-             DiagnName = 'DRYDEP_FLX_MIX_' // &
-                         TRIM( State_Chm%SpcData(spc_id)%Info%Name )
-
-             ! Point to data
-             Ptr2D => DryDepFlux(:,:,D)
-
-             ! Update diagnostic container
-             CALL Diagn_Update( am_I_Root, HcoState,                 &
-                                cName   = TRIM( DiagnName),          &
-                                Array2D = Ptr2D,                     &
-                                COL     = Input_Opt%DIAG_COLLECTION, &
-                                RC      = HCRC                          )
-       
-             ! Free the pointer
-             Ptr2D => NULL()
-       
-             ! Stop with error if the diagnostics were unsuccessful
-             IF ( HCRC /= HCO_SUCCESS ) THEN
-                CALL ERROR_STOP( 'Cannot update drydep flux' //       &
-                                 ' diagnostic: ' // TRIM( DiagnName), &
-                                 'DO_TEND (mixing_mod.F)')
-             ENDIF
-          ENDIF
-       ENDDO
-    ENDIF
-
-    ! For now, always output species emissions diagnostic since there
-    ! is no logical switch for it in Input_Mod, nor an entry in input.geos
-    DO NA = 1, nAdvect
-
-       ! Get the species ID from the advected species count
-       N = State_Chm%Map_Advect(NA)
- 
-       ! Skip if there are no emissions
-       IF ( TOTFLUX(N) == 0.0_fp ) CYCLE
-
-       ! Only if HEMCO species is defined
-       ! NOTE: For other netcdf diagnostics we look at Input_Opt%TINDEX
-       ! to see which speciess are turned on for the diagnostic
-       cID = GetHcoID( SpcID=N )
-       IF ( cID > 0 ) THEN 
-
-          ! Entry in the species database
-          SpcInfo => State_Chm%SpcData(N)%Info
-
-          ! Define diagnostics name
-          DiagnName = 'SPECIES_EMIS_' // TRIM( SpcInfo%Name )
-
-          ! Point to species slice 
-          Ptr3D => EMIS(:,:,:,N)
-
-          ! Update the emissions diagnostics
-          CALL Diagn_Update( am_I_Root, HcoState,                 &
-                             cName   = TRIM( DiagnName ),         &
-                             Array3D = Ptr3D,                     &
-                             Total   = TOTFLUX(N),                &
-                             COL     = Input_Opt%DIAG_COLLECTION, &
-                             RC      = HCRC                        )
-
-          ! Free pointers
-          Ptr3D   => NULL()
-          SpcInfo => NULL()
-
-          ! Error check
-          IF ( HCRC /= HCO_SUCCESS ) THEN
-             CALL ERROR_STOP ('Error updating diagnostics: '// DiagnName, &
-                              'DO_TEND (mixing_mod.F90)' )
-          ENDIF
-       ENDIF
-    ENDDO
-
 #endif
 
     ! Convert State_Chm%SPECIES back: kg/m2 --> v/v (ewl, 9/30/15)

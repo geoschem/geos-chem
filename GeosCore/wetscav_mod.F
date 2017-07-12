@@ -250,12 +250,6 @@
 #endif
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE UnitConv_Mod
-#if defined( NC_DIAG )
-      USE SPECIES_MOD
-      USE HCO_ERROR_MOD
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -308,31 +302,12 @@
       LOGICAL  :: doPrt
       REAL(fp) :: DT_TEND
 
-      ! For netCDF diagnostics
-#if defined( NC_DIAG )
-      INTEGER                :: N, NW, L, cID, HCRC
-      CHARACTER(LEN=60)      :: DiagnName
-      REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
-      REAL(fp), POINTER      :: TMP3D(:,:,:)
-      REAL(fp), POINTER      :: TMP2D(:,:  )
-      REAL(fp)               :: DT
-
-      ! Objects
-      TYPE(Species), POINTER :: SpcInfo
-#endif
-
       !=================================================================
       ! Initialize
       !=================================================================
 
       ! Assume success
       RC                =  GC_SUCCESS
-
-#if defined( NC_DIAG )
-      ! Initialize pointers
-      TMP3D             => NULL()
-      TMP2D             => NULL()
-#endif
 
       ! Copy values from Input_Opt to module shadow variables
       LPRT              = Input_Opt%LPRT
@@ -351,16 +326,6 @@
       !=================================================================
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'WETD', RC )
-#endif
-
-#if   defined( NC_DIAG )
-      !=================================================================
-      ! For netCDF diagnostics, mirror old species
-      !=================================================================
-      IF ( Input_Opt%ND39 > 0 ) THEN
-         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,State_Chm%nSpecies) )
-         BEFORE = State_Chm%Species
-      ENDIF
 #endif
 
 #if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
@@ -426,75 +391,6 @@
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
 
 
-#endif
-
-#if   defined( NC_DIAG )
-      !=================================================================
-      ! NetCDF diagnostics 
-      !=================================================================
-
-      ! Use ND38 as indicator for entire wet scavenging diagnostic group
-      IF ( Input_Opt%ND38 > 0 ) THEN
-
-         ! Assume success
-         HCRC = HCO_SUCCESS
-
-         ! Time step
-         DT = GET_TS_DYN() * 60e+0_fp
-
-         ! Allocate temporary pointer
-         ALLOCATE(TMP3D(IIPAR,JJPAR,LLPAR),TMP2D(IIPAR,JJPAR))
-        
-         ! Loop over all wetdep species
-         DO NW = 1, State_Chm%nWetDep
-
-            ! Get species ID from wetdep ID
-            N       =  State_Chm%Map_WetDep(NW)
-
-            ! Get information for this species from the species database
-            SpcInfo => State_Chm%SpcData(N)%Info
-
-            ! Is this a species selected for wetscav diagnostics?
-            IF ( ANY( Input_Opt%TINDEX(38,:) == N ) ) THEN
-
-               ! Convert [kg/kg/s] to [kg/m2/s] so that the vertical
-               ! sum makes physical sense (ewl, 8/14/15)      
-               TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Species(:,:,:,N) )
-     &           * State_Met%DELP_DRY * 1.e+2_fp 
-     &           / ( G0_100 * DT )
-
-               ! Convert loss rate [kg/m2/s] to [kg/s] for diagnostics 
-               ! NOTE: eventually diagnostic unit will be [kg/m2/s]
-               DO L = 1, LLPAR
-                  TMP3d(:,:,L) = TMP3d(:,:,L) * State_Met%AREA_M2(:,:,1)
-               ENDDO
-               TMP2D = SUM(TMP3D,DIM=3)
-
-               ! Update diagnostics using diagnostic name
-               DiagnName = 'WETSCAV_DEPLOSS_' 
-     &                     // TRIM( SpcInfo%Name )
-
-               CALL Diagn_Update ( am_I_Root, HcoState,
-     &                             cName   = DiagnName,
-     &                             Array2D = TMP2D,
-     &                             COL     = Input_Opt%DIAG_COLLECTION,
-     &                             PosOnly = .TRUE., 
-     &                             RC      = HCRC )
-               IF ( HCRC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP ( 'Error updating wetscav wetdep ' 
-     &               // ' loss diagnostic: ' // TRIM( DiagnName ), 
-     &               'DO_WETDEP (wetscav_mod.F)' )
-               ENDIF
-            ENDIF
-
-            ! Free pointer
-            SpcInfo => NULL()
-
-         ENDDO
-
-         ! Cleanup
-         DEALLOCATE( BEFORE, TMP3D, TMP2D )
-      ENDIF
 #endif
 
 #if defined( USE_TEND )

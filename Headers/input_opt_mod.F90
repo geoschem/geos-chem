@@ -332,28 +332,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: DIAG_COLLECTION
      INTEGER                     :: GC_RST_COLLECTION ! Used only for NetCDF
 
-#if defined( NC_DIAG )
-     ! New diagnostic group output types (e.g. 'mean')
-     CHARACTER(LEN=15)           :: TRANSPORT_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: WETSCAV_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: DRYDEP_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: SPECIES_CONC_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: SPECIES_EMIS_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: MET_OUTPUT_TYPE
-
-     ! Placeholders pending grouping of diagnostics
-     CHARACTER(LEN=15)           :: ND01_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND02_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND12_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND14_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND15_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND16_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND17_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND18_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND19_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND30_OUTPUT_TYPE
-#endif
-
      !----------------------------------------
      ! PLANEFLIGHT MENU fields
      !----------------------------------------
