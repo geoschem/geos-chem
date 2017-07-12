@@ -270,6 +270,31 @@ CONTAINS
 #endif                                      
                               RC            = RC )
 
+          CASE( 'ACTA' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Acetic acid',                &
+                              MW_g          = 60.00_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              Is_Photolysis = F,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )                                          
+#else                                                                       
+                              DD_Hstar_Old  = 4.1e+3_fp,                    &
+                              Henry_K0      = 4.1e+3_f8,                    &
+                              Henry_CR      = 6300.0_f8,                    &
+#endif                                      
+                              RC            = RC )
+
+
           CASE( 'ALD2' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -320,7 +345,6 @@ CONTAINS
                               Henry_CR      = 3100.0_f8,                    &
 #endif                                      
                               RC            = RC )
-
 
           CASE( 'ASOA1', 'ASOA2', 'ASOA3', 'ASOAN' )
              FullName = 'Lumped non-volatile aerosol products of light aromatics + IVOCs'
@@ -1062,6 +1086,68 @@ CONTAINS
 #endif                                      
                               RC            = RC )
 
+          CASE( 'DHDN' )
+             ! DHDN uses the same DD_F0 and DD_Hstar_old values as ISOPN
+             ! so that we can compute its drydep velocity explicitly.
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'C5 dihydroxydinitrate',      &
+                              MW_g          = 226.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )                                          
+#else                                                                       
+                              DD_Hstar_Old  = 1.70e+4_fp,                   &
+                              Henry_K0      = 2.00e+6_f8,                   &
+                              Henry_CR      = 9200.0_f8,                    &
+#endif                                      
+                              RC            = RC )
+                              RC            = RC )
+
+          CASE( 'DHDC' )
+             FullName = 'Dihydroxyperoxide dicarbonyl'
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 164.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              RC            = RC )
+
+          CASE( 'DHPCARP' )
+             FullName = 'Dihydroxy a-formyl peroxy radical'
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 181.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              RC            = RC )
+
           CASE( 'DMS' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1275,11 +1361,6 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )
-!------------------------------------------------------------------------------
-! Need to add new values for ethanol (mps, 01/03/17)
-!                              Henry_K0      = 1.30e-01_f8 * To_M_atm,       &
-!                              Henry_CR      = 5900.0_f8,                    &
-!------------------------------------------------------------------------------
 #else
                               DD_Hstar_old  = 1.9e+2_fp,                    &
                               Henry_K0      = 1.9e+2_f8,                    &
@@ -1287,6 +1368,29 @@ CONTAINS
 #endif
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
+
+          CASE( 'ETHLN' )
+             ! ETHLN uses the same DD_F0 and DD_Hstar_old values as ISOPN
+             ! so that we can compute its drydep velocity explicitly.
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Ethanol nitrate',            &
+                              MW_g          = 105.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )
+#else
+                              DD_Hstar_old  = 1.70e+4_fp,                   &
+                              Henry_K0      = 2.0e+6_f8,                    &
+                              Henry_CR      = 9200.0_f8,                    &
+#endif
+                              RC            = RC )
+
 
           CASE( 'GLYC' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1332,11 +1436,6 @@ CONTAINS
                               Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )
-!------------------------------------------------------------------------------
-! Need to add new values for glyoxal (mps, 6/8/17)
-!                              Henry_K0      = 1.30e-01_f8 * To_M_atm,       &
-!                              Henry_CR      = 5900.0_f8,                    &
-!------------------------------------------------------------------------------
 #else
                               DD_Hstar_old  = 3.6e+5_fp,                    &
                               Henry_K0      = 3.6e+5_f8,                    &
@@ -1384,8 +1483,8 @@ CONTAINS
                               Henry_CR      = 6600.0_f8,                    &
                               Henry_pKa     = 11.6_f8,                      &
 #else                                                                       
-                              DD_Hstar_old  = 1e+5_fp,                      &
-                              Henry_K0      = 8.30e+4_f8,                   &
+                              DD_Hstar_old  = 5.00e+7_fp,                   &
+                              Henry_K0      = 5.00e+7_f8,                   &
                               Henry_CR      = 7400.0_f8,                    &
 #endif                                                                      
                               WD_RetFactor  = 5e-2_fp,                      &
@@ -1469,6 +1568,33 @@ CONTAINS
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
                               Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'HC187' )
+             FullName = 'Epoxide oxidation product m/z 187-189'
+
+             ! HC187 uses the same DD_F0 and DD_Hstar_old values as HNO3,
+             ! so that we can compute its drydep velocity explicitly.
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 187.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = F,                            &
+                              DD_F0         = 0.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+                              Henry_K0      = 2.10e-2_f8 * To_M_atm,        &
+                              Henry_CR      = 3400.0_f8,                    &
+#else									    
+                              DD_Hstar_old  = 1.0e+14_fp,                   &
+#endif
                               RC            = RC )
 
           CASE( 'HCFC123' )
@@ -1564,6 +1690,29 @@ CONTAINS
                               Henry_CR      = 11000.0_f8,                   &
 #endif									    
                               WD_RetFactor  = 1.0_fp,                       &
+                              RC            = RC )
+
+          CASE( 'HCOOH' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Formic acid',                &
+                              MW_g          = 46.0_fp,                      &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+#else									    
+                              DD_Hstar_old  = 8.90e+3_fp,                   &
+                              Henry_K0      = 8.90e+3_f8,                   &
+                              Henry_CR      = 6100.0_f8,                    &
+#endif									    
                               RC            = RC )
 
           CASE( 'HNO2' )
@@ -1718,6 +1867,70 @@ CONTAINS
                               Is_Photolysis = T,                            &
                               RC            = RC )
 
+          CASE( 'HONIT' )
+             FullName = '2nd gen monoterpene organic nitrate'
+
+             ! HONIT uses the same DD_F0 and DD_Hstar_old values as ISOPN
+             ! so that we can compute its drydep velocity explicitly.
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 215.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+#else									    
+                              DD_Hstar_old  = 1.70e+4_fp,                   &
+                              Henry_K0      = 2.69e+13_f8,                  &
+                              Henry_CR      = 5487.0_f8,                    &
+#endif									    
+                              RC            = RC )
+
+          CASE( 'HPALD' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Hydroperoxyaldehydes',       &
+                              MW_g          = 116.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = F,                            &
+                              DD_F0         = 0.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+#else									    
+                              DD_Hstar_old  = 4.0e+4_fp,                    &
+#endif									    
+                              RC            = RC )
+
+          CASE( 'HPC52O2' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'OOCC(C(C=O)O)(O[O])C',       &
+                              MW_g          = 165.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              RC            = RC )
+
           CASE( 'IEPOX' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1740,6 +1953,84 @@ CONTAINS
                               ! Update DD_Hstar based on Pye et al. (2013)
                               DD_Hstar_old  = 2.70e+6_fp,                   &
                               Henry_K0      = 1.30e+8_f8,                   &
+                              Henry_CR      = 0.0_f8,                       &
+#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'IEPOXA' )
+             FullName = 'trans-Beta isoprene epoxydiol'
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 118.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+#else									    
+                              DD_Hstar_old  = 8.00e+7_fp,                   &
+                              Henry_K0      = 8.00e+7_f8,                   &
+                              Henry_CR      = 0.0_f8,                       &
+#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'IEPOXB' )
+             FullName = 'cis-Beta isoprene epoxydiol'
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 118.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+#else									    
+                              DD_Hstar_old  = 8.00e+7_fp,                   &
+                              Henry_K0      = 8.00e+7_f8,                   &
+                              Henry_CR      = 0.0_f8,                       &
+#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'IEPOXD' )
+             FullName = 'Delta isoprene epoxydiol'
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 118.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+#else									    
+                              DD_Hstar_old  = 8.00e+7_fp,                   &
+                              Henry_K0      = 8.00e+7_f8,                   &
                               Henry_CR      = 0.0_f8,                       &
 #endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
@@ -1798,6 +2089,38 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
+          CASE( 'IONIT' )
+             FullName = 'Aer-phase organic nitrate from isoprene precursors'
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
+             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /) 
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 14.0_fp,                      &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 0.8_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
           CASE( 'IPMN' )
              FullName = 'Peroxymethacroyl nitrate (PMN) from isoprene oxidation'
 
@@ -1825,8 +2148,9 @@ CONTAINS
 #endif
                               RC            = RC )
 
-
           CASE( 'ISN1' )
+             ! ISN1 uses the same DD_F0 and DD_Hstar_old values as ISOPN
+             ! so that we can compute its drydep velocity explicitly.
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1840,8 +2164,8 @@ CONTAINS
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
 #else									    
-                              DD_Hstar_old  = 2.30e+4_fp,                   &
-                              Henry_K0      = 2.30e+4_f8,                   &
+                              DD_Hstar_old  = 1.70e+4_fp,                   &
+                              Henry_K0      = 2.00e+6_f8,                   &
                               Henry_CR      = 9200.0_f8,                    &
 #endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
@@ -2038,7 +2362,6 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Limonene',                   &
                               MW_g          = 136.23_fp,                    &
-                              MolecRatio    = 1.0_fp,                       &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -2218,11 +2541,6 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )
-!------------------------------------------------------------------------------
-! Need to add new values for methylglyoxal (mps, 01/03/17)
-!                              Henry_K0      = 1.30e-01_f8 * To_M_atm,       &
-!                              Henry_CR      = 5900.0_f8,                    &
-!------------------------------------------------------------------------------
 #else
                               DD_Hstar_old  = 3.7e+3_fp,                    &
                               Henry_K0      = 3.7e+3_f8,                    &
@@ -2232,7 +2550,7 @@ CONTAINS
 
                               RC            = RC )
 
-          CASE( 'HC187' )
+          CASE( 'MOBA' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2254,6 +2572,92 @@ CONTAINS
                               Henry_CR      = 6300.0_f8,                    &
 #endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'MONIT' )
+             FullName = 'Aer-phase organic nitrate from monoterpene precursors'
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
+             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /) 
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 14.0_fp,                      &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 0.8_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'MONITS' )
+             FullName = 'Saturated 1st gen monoterpene organic nitrate'
+
+             ! MONITS uses the same DD_F0 and DD_Hstar_old values as ISOPN
+             ! so that we can compute its drydep velocity explicitly.
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 215.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+#else									    
+                              DD_Hstar_old  = 1.70e+4_fp,                   &
+                              Henry_K0      = 1.70e+4_f8,                   &
+                              Henry_CR      = 9200.0_f8,                    &
+#endif									    
+                              RC            = RC )
+
+          CASE( 'MONITU' )
+             FullName = 'Unsaturated 1st gen monoterpene organic nitrate'
+
+             ! MONITU uses the same DD_F0 and DD_Hstar_old values as ISOPN
+             ! so that we can compute its drydep velocity explicitly.
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 215.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+#else									    
+                              DD_Hstar_old  = 1.70e+4_fp,                   &
+                              Henry_K0      = 1.70e+4_f8,                   &
+                              Henry_CR      = 9200.0_f8,                    &
+#endif									    
                               RC            = RC )
 
           CASE( 'MOPI' )
@@ -3246,6 +3650,81 @@ CONTAINS
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 7.90e+5_f8 * To_M_atm,        &
                               Henry_CR      = 0.0_f8,                       &
+#else									    
+                              DD_Hstar_old  = 1.70e+6_fp,                   &
+                              Henry_K0      = 1.70e+6_f8,                   &
+                              Henry_CR      = 0.0_f8,                       &
+#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'RIPA' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = '1,2-ISOPOOH',                &
+                              MW_g          = 118.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+#else									    
+                              DD_Hstar_old  = 1.70e+6_fp,                   &
+                              Henry_K0      = 1.70e+6_f8,                   &
+                              Henry_CR      = 0.0_f8,                       &
+#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'RIPB' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = '4,3-ISOPOOH',                &
+                              MW_g          = 118.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+#else									    
+                              DD_Hstar_old  = 1.70e+6_fp,                   &
+                              Henry_K0      = 1.70e+6_f8,                   &
+                              Henry_CR      = 0.0_f8,                       &
+#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'RIPD' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'd(1,4 and 4,1)-ISOPOOH',     &
+                              MW_g          = 118.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
 #else									    
                               DD_Hstar_old  = 1.70e+6_fp,                   &
                               Henry_K0      = 1.70e+6_f8,                   &

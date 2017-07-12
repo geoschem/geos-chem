@@ -4175,12 +4175,13 @@
                   ! backwards compatibility with older code.
                   DEPNAME(NUMDEP) = 'NITS' 
 
-               CASE( 'N2O5' )
+               CASE( 'N2O5', 'HPC52O2' )
                   ! %%%%% KLUDGE (bmy, 5/19/16) %%%%%%%%%%%%%%%%%%%%%%
-                  ! N2O5 uses the Vd of HNO3.  We will now explicitly 
-                  ! compute the Vd of N2O5 instead of assigning to N2O5 
-                  ! the Vd of HNO3 from the DVEL array.  This will 
-                  ! prevent duplicate indexing in State_Chm%Map_Drydep.
+                  ! N2O5 and HPC52O2 uses the Vd of HNO3.  We will now
+                  ! explicitly compute the Vd of these species instead
+                  ! of assigning the Vd of HNO3 from the DVEL array.
+                  ! This will prevent duplicate indexing in
+                  ! State_Chm%Map_Drydep.
                   !
                   ! Make sure to set XMW to the MW of HNO3 (63 kg/mol)
                   ! for the computation of Vd to work properly.
@@ -4189,14 +4190,27 @@
                CASE(  'NPMN', 'IPMN', 'PPN', 'R4N2' )
                   ! %%%%% KLUDGE (bmy, 5/19/16) %%%%%%%%%%%%%%%%%%%%%%
                   ! PMN, PPN, and R4N2 all use the Vd of PAN.  We will 
-                  ! now compute the Vd of PMN, PPN, and R4N2 instead of 
-                  ! assigning to these species the the Vd of HNO3 from 
+                  ! now compute the Vd of these species instead of 
+                  ! assigning to these species the Vd of PAN from 
                   ! the DVEL array.  This will prevent duplicate indexing
                   ! in State_Chm%Map_Drydep.
                   !
                   ! Make sure to set XMW to the MW of PAN (121 kg/mol)
                   ! for the computation of Vd to work properly.
                   XMW(NUMDEP) = 121.0e-3_fp
+
+               CASE( 'DHDN', 'ETHLN', 'ISN1', 'MONITS', 'MONITU', 
+     &               'HONIT' )
+                  ! %%%%% KLUDGE (bmy, 5/19/16) %%%%%%%%%%%%%%%%%%%%%%
+                  ! DHDN, ETHLN, ISN1, MONITS, MONITU, and HONIT all use
+                  ! the Vd of ISOPN.  We will now compute the Vd of these
+                  ! species instead of assigning to these species the
+                  ! Vd of ISOPN from the DVEL array.  This will prevent
+                  ! duplicate indexing in State_Chm%Map_Drydep.
+                  !
+                  ! Make sure to set XMW to the MW of ISOPN (147 kg/mol)
+                  ! for the computation of Vd to work properly.
+                  XMW(NUMDEP) = 147.0e-3_fp
 
                CASE( 'SO4s', 'SO4S' )
                   ! DEPNAME for SO4s has to be in all caps, for 
