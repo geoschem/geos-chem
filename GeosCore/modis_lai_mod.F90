@@ -208,7 +208,7 @@ CONTAINS
 ! !DESCRIPTION: Subroutine COMPUTE\_XLAI\_GCHP computes MODIS-based leaf
 !  area indices (LAI) per land type and grid cell. This computation uses 
 !  offline 0.25x0.25 MODIS LAI/CHLR and Olson landmap data regridded to 
-!  the cubed sphere. Variables set include State_Met%XLAI.
+!  the cubed sphere. Variables set include State\_Met%XLAI.
 !\\
 !\\
 ! !INTERFACE:

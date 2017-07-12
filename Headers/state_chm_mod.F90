@@ -1244,8 +1244,8 @@ CONTAINS
 ! !IROUTINE: Print_State_Chm
 !
 ! !DESCRIPTION: Print information about all the registered variables
-!  contained within the State_Chm object.  This is basically a wrapper for
-!  routine REGISTRY_PRINT in registry_mod.F90.
+!  contained within the State\_Chm object.  This is basically a wrapper for
+!  routine REGISTRY\_PRINT in registry\_mod.F90.
 !\\
 !\\
 ! !INTERFACE:
@@ -1316,8 +1316,9 @@ CONTAINS
 ! !IROUTINE: Lookup_State_Chm
 !
 ! !DESCRIPTION: Return metadata and/or a pointer to the data for any
-!  variable contained within the State_Met object by searching for its name.
-!  This is basically a wrapper for routine REGISTRY_LOOKUP in registry_mod.F90.
+!  variable contained within the State\_Chm object by searching for its name.
+!  This is basically a wrapper for routine REGISTRY\_LOOKUP in 
+!  registry\_mod.F90.
 !\\
 !\\
 ! !INTERFACE:

@@ -106,9 +106,9 @@ CONTAINS
 !
 ! !IROUTINE: GC_CheckVar
 !
-! !DESCRIPTION: Wrapper routine for GC_Error.  Prints an error message
+! !DESCRIPTION: Wrapper routine for GC\_Error.  Prints an error message
 !  if there is an allocation or registration error.  This is intended to
-!  be called from the state initialization method (e.g. Init_State_Met).
+!  be called from the state initialization method (e.g. Init\_State\_Met).
 !\\
 !\\
 ! !INTERFACE:

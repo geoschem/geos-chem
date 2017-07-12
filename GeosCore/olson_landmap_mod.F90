@@ -6,7 +6,7 @@
 ! !MODULE: olson_landmap_mod.F90
 !
 ! !DESCRIPTION: Module OLSON\_LANDMAP\_MOD reads the Olson land map and
-!  computes the IREG, ILAND, IUSE, and FRCLND State_Met arrays. 
+!  computes the IREG, ILAND, IUSE, and FRCLND State\_Met arrays. 
 !\\
 !\\
 ! !INTERFACE: 
@@ -239,7 +239,7 @@ CONTAINS
 ! !IROUTINE: compute_olson_landmap_gchp
 !
 ! !DESCRIPTION: Subroutine COMPUTE\_OLSON\_LANDMAP\_GCHP computes the 
-!  GEOS-Chem State_Met variables that are dependent on the Olson Landmap, 
+!  GEOS-Chem State\_Met variables that are dependent on the Olson Landmap, 
 !  specifically IREG, ILAND, IUSE, and FRCLND.
 !\\
 !\\

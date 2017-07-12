@@ -175,9 +175,9 @@ $(CORE)/tagged_o3_mod.F               \
 
 
 # Output file names
-TEX2 := GC_v11-01_Core_Modules.tex
-DVI2 := GC_v11-01_Core_Modules.dvi
-PDF2 := GC_v11-01_Core_Modules.pdf
+TEX2 := GC_v11-02_Core_Modules.tex
+DVI2 := GC_v11-02_Core_Modules.dvi
+PDF2 := GC_v11-02_Core_Modules.pdf
 
 # Make commands
 srcdoc: 

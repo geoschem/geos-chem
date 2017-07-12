@@ -59,6 +59,7 @@ GTMM  :=$(ROOT)/GTMM
 HCO   :=$(ROOT)/HEMCO/
 HDR   :=$(ROOT)/Headers
 HELP  :=$(ROOT)/help
+HIST  :=$(ROOT)/History
 ISO   :=$(ROOT)/ISOROPIA
 NC    :=$(ROOT)/NcdfUtil
 KPP   :=$(ROOT)/KPP
@@ -97,7 +98,8 @@ include ./Makefile_UtilDoc.mk
 include ./Makefile_SrcDoc.mk
 
 # Commands to build the diagnostic modules documentation
-include ./Makefile_DiagsDoc.mk
+#include ./Makefile_DiagsDoc.mk
+include ./Makefile_HistoryDoc.mk
 
 # Commands to build the HEMCO documentation
 include ./Makefile_Hemco.mk

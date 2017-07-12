@@ -216,8 +216,8 @@ CONTAINS
 ! !IROUTINE: Print_State_Diag
 !
 ! !DESCRIPTION: Print information about all the registered variables
-!  contained within the State_Diag object.  This is basically a wrapper for
-!  routine REGISTRY_PRINT in registry_mod.F90.
+!  contained within the State\_Diag object.  This is basically a wrapper for
+!  routine REGISTRY\_PRINT in registry\_mod.F90.
 !\\
 !\\
 ! !INTERFACE:
@@ -288,8 +288,9 @@ CONTAINS
 ! !IROUTINE: Lookup_State_Diag
 !
 ! !DESCRIPTION: Return metadata and/or a pointer to the data for any
-!  variable contained within the State_Diag object by searching for its name.
-!  This is basically a wrapper for routine REGISTRY_LOOKUP in registry_mod.F90.
+!  variable contained within the State\_Diag object by searching for its name.
+!  This is basically a wrapper for routine REGISTRY\_LOOKUP in 
+!  registry\_mod.F90.
 !\\
 !\\
 ! !INTERFACE:

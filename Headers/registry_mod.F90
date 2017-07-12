@@ -889,8 +889,8 @@ CONTAINS
 !
 ! !IROUTINE: MetaRegItem_AddNew
 !
-! !DESCRIPTION: Wrapper for methods MetaRegItem_Create and 
-!  MetaRegItem_Insert.  Will create a METAREGISTRY ITEM (containing a
+! !DESCRIPTION: Wrapper for methods MetaRegItem\_Create and 
+!  MetaRegItem\_Insert.  Will create a METAREGISTRY ITEM (containing a
 !  REGISTRY ITEM) and (1) set it as the head node of a new linked list, or
 !  (2) append it to an existing linked list.
 !\\

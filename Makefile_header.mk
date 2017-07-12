@@ -1041,8 +1041,9 @@ ifeq ($(RRTMG_NEEDED),1)
 endif
 
 # Create linker command to create the GEOS-Chem executable
-LINK                 :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
-LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)
+LINK                 :=$(LINK) -lIsoropia -lHistory -lHCOI -lHCOX -lHCO 
+LINK                 :=$(LINK) -lGeosUtil -lKpp -lHeaders -lNcUtils 
+LINK                 :=$(LINK) $(NC_LINK_CMD)
 
 #----------------------------
 # For the HEMCO standalone
