@@ -587,8 +587,12 @@
       ! Initialize the GEOS-Chem history component
       CALL History_Init( am_I_root,  Input_Opt, State_Chm, 
      &                   State_Diag, State_Met, RC         )
+
+      !### FORCE STOP FOR DEBUGGING
+      RC = GC_FAILURE
       IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "History_Init"!'
+!         ErrMsg = 'Error encountered in "History_Init"!'
+         ErrMsg = 'Forced stop for debugging'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 #endif      

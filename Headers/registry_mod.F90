@@ -437,6 +437,7 @@ CONTAINS
     INTEGER                    :: FullHash,       ItemHash
 
     ! Strings
+    CHARACTER(LEN=5)           :: TmpState
     CHARACTER(LEN=31)          :: FullName31,     ItemName31
     CHARACTER(LEN=255)         :: TmpName,        TmpFullName
     CHARACTER(LEN=255)         :: ErrMsg,         ThisLoc
@@ -452,8 +453,15 @@ CONTAINS
     ErrMsg         =  ''
     ThisLoc        =  ' -> at Registry_Lookup (in Headers/registry_mod.F90)'
 
+    ! Append the state name to the variable (if it's not already there)
+    TmpState       = TRIM( State ) // '_' 
+    IF ( INDEX( Variable, TRIM( TmpState ) ) > 0 ) THEN
+       TmpFullName = Variable
+    ELSE
+       TmpFullName = TRIM( TmpState ) // TRIM( Variable )
+    ENDIF
+
     ! Construct a hash for the full name (i.e. "State_Variable"
-    TmpFullName    =  TRIM( State ) // '_' // TRIM( Variable )
     FullName31     =  To_UpperCase( TmpFullName )
     FullHash       =  Str2Hash( FullName31 )
 
