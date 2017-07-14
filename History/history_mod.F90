@@ -5,7 +5,8 @@
 !
 ! !MODULE: history_mod.F90
 !
-! !DESCRIPTION: Driver module for the new netCDF diagnostics package.
+! !DESCRIPTION: Driver module for GEOS-Chem's netCDF diagnostics package, aka
+!  the "History Component".
 !\\
 !\\
 ! !INTERFACE:
@@ -339,9 +340,8 @@ CONTAINS
     ! Copy the collection names from the temporary array
     DO N = 1, CollectionCount
        CollectionName(N) = TmpCollectionName(N)
-       WRITE( 6, '(i3, ":", a )' ) N, TRIM( CollectionName(N) )
+       !WRITE( 6, '(i3, ":", a )' ) N, TRIM( CollectionName(N) )
     ENDDO
-    CALL FLUSH( 6 )
 
     ! Allocate CollectionTemplate
     IF ( .not. ALLOCATED( CollectionTemplate ) ) THEN
@@ -723,16 +723,20 @@ CONTAINS
              ENDIF
 
              !--------------------------------------------------------------
-             ! Create the
+             ! Create the a HISTORY ITEM object for each diagnostic 
+             ! entry read from HISTORY.rc and add to the given COLLECTION
              !--------------------------------------------------------------
 
-             ! Save a temporary 
+             ! Save the item name in a temporary variable
+             ! so that we can parse it for wild cards
              ItemTemplate = ItemName
 
              ! Test if there are wild cards present, otherwise skip
              IF ( INDEX( ItemTemplate, '?' ) >  0 ) THEN 
 
-                ! Test for further wild cards
+                !-----------------------------------------------------------
+                ! Item name contains wild cards; fill in species names
+                !-----------------------------------------------------------
                 Ind_Adv = INDEX( ItemTemplate, '?ADV?' ) ! Advected species
                 Ind_All = INDEX( ItemTemplate, '?ALL?' ) ! All species
                 Ind_Aer = INDEX( ItemTemplate, '?AER?' ) ! Aerosol species
@@ -750,7 +754,7 @@ CONTAINS
                    ! Point to this entry of the species database 
                    ThisSpc => State_Chm%SpcData(N)%Info
 
-                   ! Skip to next entry if necessary
+                   ! For a given wild card, skip the unnecessary species
                    IF ( Ind_All > 0 ) THEN
                       Ind = Ind_All
                    ELSE IF ( Ind_Adv > 0 ) THEN
@@ -798,137 +802,66 @@ CONTAINS
                    ! Increment the item count
                    ItemCount   = ItemCount + 1
 
-                   !----------------------------------------------------------
-                   ! Get a pointer to the data
-                   !--------------------------------------------------------
-                   IF ( INDEX( ItemName, State_Chm%State ) > 0 ) THEN
-                      CALL Lookup_State_Chm( am_I_Root   = am_I_Root,        &
-                                             State_Chm   = State_Chm,        &
-                                             Variable    = ItemName,         &
-                                             Description = Description,      &
-                                             Units       = Units,            &
-                                             Ptr3d       = Ptr3d,            &
-                                             Ptr3d_4     = Ptr3d_4,          &
-                                             RC          = RC               )
-
-                      ! Trap potential error
-                      IF ( RC /= GC_SUCCESS ) THEN
-                         ErrMsg = 'Error in "Lookup_State_Chm" for ' // &
-                                  ' diagnostic ' // TRIM( ItemName )
-                         CALL GC_Error( ErrMsg, RC, ThisLoc )
-                         RETURN
-                      ENDIF
-                   ENDIF
-
-                   !--------------------------------------------------------
-                   ! After all this setup, create the HISTORY ITEM object 
-                   !--------------------------------------------------------
-                   CALL HistItem_Create( am_I_Root   = am_I_Root,            &
-                                         Item        = Item,                 &
-                                         Id          = ItemCount,            & 
-                                         ContainerId = C,                    &
-                                         Name        = ItemName,             &
-                                         LongName    = Description,          &
-                                         Units       = Units,                &
-                                         SpaceDim    = SpaceDim,             &
-                                         NX          = SubsetDims(1),        &
-                                         NY          = SubsetDims(2),        &
-                                         NZ          = SubsetDims(3),        & 
-                                         RC          = RC                   )
-
+                   ! Create the a HISTORY ITEM object for this diagnostic
+                   ! and add it to the given DIAGNOSTIC COLLECTION
+                   CALL History_AddItemToCollection(                         &
+                            am_I_Root    = am_I_Root,                        &
+                            Input_Opt    = Input_Opt,                        &
+                            State_Chm    = State_Chm,                        &
+                            State_Diag   = State_Diag,                       &
+                            State_Met    = State_Met,                        &
+                            Collection   = Collection,                       &
+                            CollectionId = C,                                &
+                           !SubsetDims   = CollectionSubsetDims(C),          &
+                            ItemName     = ItemName,                         &
+                            ItemCount    = ItemCount,                        &
+                            RC           = RC                               )
 
                    ! Trap potential error
                    IF ( RC /= GC_SUCCESS ) THEN
-                      ErrMsg = 'Could not create Item: ' // TRIM( ItemName )
+                      ErrMsg = 'Could not create add diagnostic :'    //     &
+                               TRIM( ItemName ) // '" to collection: ' //    &
+                               TRIM( CollectionName(C) ) 
                       CALL GC_Error( ErrMsg, RC, ThisLoc )
                       RETURN
                    ENDIF
-                   print*, '### after create!'
-                   call flush(6)
-
-                   !--------------------------------------------------------
-                   ! Attach this HISTORY ITEM to the METAHISTORY ITEM (aka 
-                   ! list of HISTORY ITEMS) belonging to the HISTORY 
-                   ! CONTAINER object for the given collection.
-                   !
-                   ! In other words, this denotes the list of fields that 
-                   ! will be written to the netCDF file, and with the 
-                   ! archiving frequency, specified by this given diagnostic 
-                   ! collection. 
-                   !--------------------------------------------------------
-                   CALL MetaHistItem_AddNew( am_I_Root = am_I_Root,          &
-                                             Node = Collection%HistItems,    &
-                                             Item      = Item,               &
-                                             RC        = RC                 )
-
-                   ! Trap potential error
-                   IF ( RC /= GC_SUCCESS ) THEN
-                      ErrMsg = 'Could not add Item' // TRIM( ItemName ) //  &
-                           ' to ' // TRIM( CollectionName(C) ) // '%HistItems!'
-                      CALL GC_Error( ErrMsg, RC, ThisLoc )
-                      RETURN
-                   ENDIF
-
+         
                    ! Free the species database pointer
                    ThisSpc => NULL()
-
                 ENDDO
 
              ELSE
-             
-                !=========================
-                ! No wild cards present
-                !==========================
+
+                !-----------------------------------------------------------
+                ! Item name does not have wild cards; no special handling
+                !-----------------------------------------------------------
 
                 ! Increment the number of HISTORY items
                 ItemCount = ItemCount + 1
 
-                 !--------------------------------------------------------------
-                 ! After all this setup, create the HISTORY ITEM object itself
-                 !--------------------------------------------------------------
-                CALL HistItem_Create( am_I_Root   = am_I_Root,               &
-                                      Item        = Item,                    &
-                                      Id          = ItemCount,               &
-                                      ContainerId = C,                       &
-                                      Name        = ItemName,                &
-                                      LongName    = ItemName,                &
-                                      Units       = 'TBD',                   &
-                                      SpaceDim    = SpaceDim,                &
-                                      NX          = SubsetDims(1),           &
-                                      NY          = SubsetDims(2),           &
-                                      NZ          = SubsetDims(3),           & 
-                                      RC          = RC                      )
-
+                ! Create the a HISTORY ITEM object for this diagnostic
+                ! and add it to the given DIAGNOSTIC COLLECTION
+                CALL History_AddItemToCollection(                            &
+                         am_I_Root    = am_I_Root,                           &
+                         Input_Opt    = Input_Opt,                           &
+                         State_Chm    = State_Chm,                           &
+                         State_Diag   = State_Diag,                          &
+                         State_Met    = State_Met,                           &
+                         Collection   = Collection,                          &
+                         CollectionId = C,                                   &
+                        !SubsetDims   = CollectionSubsetDims(C),             &
+                         ItemName     = ItemName,                            &
+                         ItemCount    = ItemCount,                           &
+                         RC           = RC                                  )
 
                 ! Trap potential error
                 IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Could not create Item: ' // TRIM( ItemName )
+                   ErrMsg = 'Could not create add diagnostic :'     //       &
+                            TRIM( ItemName ) // '" to collection: ' //       &
+                            TRIM( CollectionName(C) ) 
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF
-
-             !--------------------------------------------------------------
-             ! Attach this HISTORY ITEM to the METAHISTORY ITEM (aka list
-             ! of HISTORY ITEMS) belonging to the HISTORY CONTAINER object
-             ! for the given collection.
-             !
-             ! In other words, this denotes the list of fields that will
-             ! be written to the netCDF file, and with the archiving
-             ! frequency, specified by this given diagnostic collection.
-             !--------------------------------------------------------------
-                CALL MetaHistItem_AddNew( am_I_Root = am_I_Root,             &
-                                          Node      = Collection%HistItems,  &
-                                          Item      = Item,                  &
-                                          RC        = RC                    )
-
-                ! Trap potential error
-                IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Could not add Item' // TRIM( ItemName ) //      &
-                     ' to ' // TRIM( CollectionName(C) ) // '%HistItems!'
-                   CALL GC_Error( ErrMsg, RC, ThisLoc )
-                   RETURN
-                ENDIF
-
              ENDIF
           ENDDO
 
@@ -976,241 +909,280 @@ CONTAINS
 
   END SUBROUTINE History_ReadCollectionData
 !EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: 
-!!
-!! !DESCRIPTION: 
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE History_AddItemToCollection( )
-!!
-!! !USES:
-!!
-!    USE Charpak_Mod
-!    USE ErrCode_Mod
-!    USE HistContainer_Mod
-!    USE HistItem_Mod
-!    USE Input_Opt_Mod,         ONLY : OptInput
-!    USE MetaHistContainer_Mod
-!    USE MetaHistItem_Mod
-!    USE State_Chm_Mod
-!    USE State_Diag_Mod
-!    USE State_Met_Mod
-!!
-!! !INPUT PARAMETERS: 
-!!
-!    LOGICAL,             INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
-!    TYPE(OptInput),      INTENT(IN)  :: Input_Opt     ! Input Options object
-!    TYPE(ChmState),      INTENT(IN)  :: State_Chm     ! Chemistry State object
-!    TYPE(DgnState),      INTENT(IN)  :: State_Diag    ! Diagnostic State object
-!    TYPE(MetState),      INTENT(IN)  :: State_Met     ! Meteorology State object
-!    CHARACTER(LEN=255),  INTENT(IN)  :: ItemName      ! Name of HISTORY ITEM 
-!    INTEGER,             INTENT(IN)  :: ItemCount     ! Index of HISTORY ITEM
-!    INTEGER,             INTENT(IN)  :: CollectionID  ! Collection ID number
-!    INTEGER,             INTENT(IN)  :: SpaceDim      ! Number of dimensions
-!    INTEGER,             INTENT(IN)  :: NX            ! # of longitudes
-!    INTEGER,             INTENT(IN)  :: NY            ! # of latitudes
-!    INTEGER,             INTENT(IN)  :: NZ            ! # of levels
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!    TYPE(HistContainer), POINTER     :: Collection    ! 
-!!
-!! !OUTPUT PARAMETERS: 
-!!
-!    INTEGER,             INTENT(OUT) :: RC            ! Success or failure?
-!!
-!! !RETURN VALUE:
-!!
-!!
-!! !REMARKS:
-!!
-!! !REVISION HISTORY:
-!!  06 Jan 2015 - R. Yantosca - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!  Called from routine History_Init.
-!!
-!! !REVISION HISTORY:
-!!  16 Jun 2017 - R. Yantosca - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!     ! Scalars
-!    LOGICAL                      :: EOF   
-!    INTEGER                      :: C,           N,           W    
-!    INTEGER                      :: fId,         IOS      
-!    INTEGER                      :: nSubs1,      nSubs2
-!    INTEGER                      :: Ind1,        Ind2
-!    INTEGER                      :: ArchivalYmd, ArchivalHms
-!    INTEGER                      :: ItemCount,   SpaceDim
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!    ! Strings
-!    CHARACTER(LEN=255)           :: Line,        FileName
-!    CHARACTER(LEN=255)           :: ErrMsg,      ThisLoc
-!    CHARACTER(LEN=255)           :: MetaData,    Reference
-!    CHARACTER(LEN=255)           :: Title,       Units
-!    CHARACTER(LEN=255)           :: ItemName,    ItemTemplate
-!    CHARACTER(LEN=255)           :: Description
-!    
-!    ! Arrays
-!    INTEGER                      :: SubsetDims(3)
-!    CHARACTER(LEN=255)           :: Subs1(255)
-!    CHARACTER(LEN=255)           :: Subs2(255)
+! !IROUTINE: History_AddItemToCollection
 !
-!    ! Objects
-!    TYPE(HistItem),      POINTER :: Item
+! !DESCRIPTION: Creates a HISTORY ITEM object for a given diagnostic quantity,
+!  and then attaches it to a given diagnostic collection.  Given the name
+!  of the diagnostic quantity, it will obtain metadata (and pointers to the
+!  data array) via the appropriate state registry.
+!\\
+!\\
+! !INTERFACE:
 !
-!    ! Pointer arrays
-!    REAL(fp),            POINTER :: Ptr2d  (:,:  )
-!    REAL(f4),            POINTER :: Ptr2d_4(:,:  )
-!    REAL(fp),            POINTER :: Ptr3d  (:,:,:)
-!    REAL(f4),            POINTER :: Ptr3d_4(:,:,:)
+  SUBROUTINE History_AddItemToCollection( am_I_Root,    Input_Opt,           &
+                                          State_Chm,    State_Diag,          &
+                                          State_Met,    Collection,          &
+                                          CollectionId, ItemName,            &
+                                          ItemCount,    SubsetDims,          &
+                                          RC                                )
 !
-!    !=======================================================================
-!    ! Initialize
-!    !=======================================================================
+! !USES:
 !
+    USE ErrCode_Mod
+    USE HistContainer_Mod
+    USE HistItem_Mod
+    USE Input_Opt_Mod,         ONLY : OptInput
+    USE MetaHistContainer_Mod
+    USE MetaHistItem_Mod
+    USE State_Chm_Mod
+    USE State_Diag_Mod
+    USE State_Met_Mod
 !
+! !INPUT PARAMETERS: 
 !
-!    !=======================================================================
-!    ! For each HISTORY ITEM, find the matching entry in the relevant
-!    ! registry (in State_Chm, State_Diag, State_Met) and get a pointer
-!    ! to the data source 
-!    !=======================================================================
-!    IF ( INDEX( ItemName, State_Chm%State ) > 0 ) THEN
+    ! Required arguments
+    LOGICAL,             INTENT(IN)  :: am_I_Root      ! Are we on the root CPU?
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt      ! Input Options State
+    TYPE(ChmState),      INTENT(IN)  :: State_Chm      ! Chemistry State
+    TYPE(DgnState),      INTENT(IN)  :: State_Diag     ! Diagnostic State
+    TYPE(MetState),      INTENT(IN)  :: State_Met      ! Meteorology State
+    INTEGER,             INTENT(IN)  :: CollectionID   ! Collection ID number
+    CHARACTER(LEN=255),  INTENT(IN)  :: ItemName       ! Name of HISTORY ITEM 
+    INTEGER,             INTENT(IN)  :: ItemCount      ! Index of HISTORY ITEM
+
+    ! Optional arguments
+    INTEGER,             OPTIONAL    :: SubsetDims(3)  ! Dimensions specified
+                                                       !  by the collection
 !
-!       !-------------------------
-!       ! Chemistry State
-!       !-------------------------
-!       CALL Lookup_State_Chm(  am_I_Root   = am_I_Root,                      &
-!                               State_Chm   = State_Chm,                      &
-!                               Variable    = ItemName,                       &
-!                               Description = Description,                    &
-!                               Units       = Units,                          &
-!                               Ptr3d       = Ptr3d,                          &
-!                               Ptr3d_4     = Ptr3d_4,                        &
-!                               RC          = RC                             )
+! !INPUT/OUTPUT PARAMETERS:
 !
-!       ! Trap potential error
-!       IF ( RC /= GC_SUCCESS ) THEN
-!          ErrMsg = 'Error in "Lookup_State_Chm" for diagnostic ' //          &
-!                   TRIM( ItemName )
-!          CALL GC_Error( ErrMsg, RC, ThisLoc )
-!          RETURN
-!       ENDIF
+    TYPE(HistContainer), POINTER     :: Collection     ! Diagnostic Collection
 !
-!    ELSE IF ( INDEX( ItemName, State_Diag%State ) > 0 ) THEN
+! !OUTPUT PARAMETERS: 
 !
-!       !-------------------------
-!       ! Diagnostic State 
-!       !-------------------------
-!       CALL Lookup_State_Diag( am_I_Root   = am_I_Root,                      &
-!                               State_Diag  = State_Met,                      &
-!                               Variable    = ItemName,                       &
-!                               Description = Description,                    &
-!                               Units       = Units,                          &
-!                               Ptr3d       = Ptr3d,                          &
-!                               Ptr3d_4     = Ptr3d_4,                        &
-!                               RC          = RC                             )
+    INTEGER,             INTENT(OUT) :: RC             ! Success or failure?
 !
-!       ! Trap potential error
-!       IF ( RC /= GC_SUCCESS ) THEN
-!          ErrMsg = 'Error in "Lookup_State_Diag for diagnostic ' //          &
-!                   TRIM( ItemName )
-!          CALL GC_Error( ErrMsg, RC, ThisLoc )
-!          RETURN
-!       ENDIF
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!    ELSE IF ( INDEX( ItemName, State_Met%State ) > 0 ) THEN
+! !LOCAL VARIABLES:
 !
-!       !-------------------------
-!       ! Meteorology State
-!       !-------------------------
-!       CALL Lookup_State_Met(  am_I_Root   = am_I_Root,                      &
-!                               State_Met   = State_Met,                      &
-!                               Variable    = ItemName,                       &
-!                               Description = Description,                    &
-!                               Units       = Units,                          &
-!                               Ptr2d       = Ptr2d,                          &
-!                               Ptr2d_4     = Ptr2d_4,                        &
-!                               Ptr3d       = Ptr3d,                          &
-!                               Ptr3d_4     = Ptr3d_4,                        &
-!                               RC          = RC                             )
-!
-!       ! Trap potential error
-!       IF ( RC /= GC_SUCCESS ) THEN
-!          ErrMsg = 'Error in "Lookup_State_Met for diagnostic ' //           &
-!                   TRIM( ItemName )
-!          CALL GC_Error( ErrMsg, RC, ThisLoc )
-!          RETURN
-!       ENDIF
-!
-!
-!
-!    ENDIF
-!
-!    !=======================================================================
-!    ! After all this setup, create the HISTORY ITEM object 
-!    !=======================================================================
-!    CALL HistItem_Create( am_I_Root   = am_I_Root,                           &
-!                          Item        = Item,                                &
-!                          Id          = ItemCount,                           & 
-!                          ContainerId = CollectionId,                        &
-!                          Name        = ItemName,                            &
-!                          LongName    = Description,                         &
-!                          Units       = Units,                               &
-!                          SpaceDim    = SpaceDim,                            &
-!                          NX          = NX,          ,                       &
-!                          NY          = NY,                                  &
-!                          NZ          = NZ,                                  & 
-!                          RC          = RC                                  )
-!
-!
-!    ! Trap potential error
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       ErrMsg = 'Could not create Item: ' // TRIM( ItemName )
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
-!
-!    !=======================================================================
-!    ! Attach this HISTORY ITEM to the METAHISTORY ITEM (aka 
-!    ! list of HISTORY ITEMS) belonging to the HISTORY 
-!    ! CONTAINER object for the given collection.
-!    !
-!    ! In other words, this denotes the list of fields that 
-!    ! will be written to the netCDF file, and with the 
-!    ! archiving frequency, specified by this given diagnostic 
-!    ! collection. 
-!    !=======================================================================
-!    CALL MetaHistItem_AddNew( am_I_Root = am_I_Root,                         &
-!                              Node      = Collection%HistItems,              &
-!                              Item      = Item,                              &
-!                              RC        = RC                                )
-!
-!    ! Trap potential error
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       ErrMsg = 'Could not add Item' // TRIM( ItemName ) //  &
-!            ' to ' // TRIM( CollectionName(C) ) // '%HistItems!'
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
-!
-!  END SUBROUTINE History_AddItemToCollection
-!                 
+    ! Scalars
+    INTEGER                      :: KindVal
+    INTEGER                      :: Rank
+    INTEGER                      :: Dimensions(3)
+    INTEGER                      :: NX, NY, NZ
+
+    ! Strings
+    CHARACTER(LEN=255)           :: Description
+    CHARACTER(LEN=255)           :: ErrMsg
+    CHARACTER(LEN=255)           :: ThisLoc
+    CHARACTER(LEN=255)           :: Units
+
+    ! Objects
+    TYPE(HistItem),      POINTER :: Item
+
+    ! Pointer arrays
+    REAL(fp),            POINTER :: Ptr2d  (:,:  )
+    REAL(f4),            POINTER :: Ptr2d_4(:,:  )
+    INTEGER,             POINTER :: Ptr2d_I(:,:  )
+    REAL(fp),            POINTER :: Ptr3d  (:,:,:)
+    REAL(f4),            POINTER :: Ptr3d_4(:,:,:)
+    INTEGER,             POINTER :: Ptr3d_I(:,:,:)
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC          =  GC_SUCCESS
+    Description =  ''
+    Dimensions  =  0
+    KindVal     =  0
+    Rank        =  0
+    Units       =  ''
+    ErrMsg      =  ''
+    ThisLoc     =  &
+                ' -> History_AddItemToCollection (in History/history_mod.F90)'
+    Ptr2d       => NULL()
+    Ptr2d_4     => NULL()
+    Ptr2d_I     => NULL()
+    Ptr3d       => NULL()
+    Ptr3d_4     => NULL()
+    Ptr3d_I     => NULL()
+
+    !=======================================================================
+    ! For each HISTORY ITEM, find the matching entry in the relevant
+    ! registry (in State_Chm, State_Diag, State_Met) and get a pointer
+    ! to the data source 
+    !=======================================================================
+    IF ( INDEX( ItemName, State_Chm%State ) > 0 ) THEN
+
+       !--------------------------------------------------------------------
+       ! Chemistry State
+       !--------------------------------------------------------------------
+       CALL Lookup_State_Chm(  am_I_Root   = am_I_Root,                      &
+                               State_Chm   = State_Chm,                      &
+                               Variable    = ItemName,                       &
+                               Description = Description,                    &
+                               Dimensions  = Dimensions,                     &
+                               KindVal     = KindVal,                        &
+                               Units       = Units,                          &
+                               Rank        = Rank,                           &
+                               Ptr3d       = Ptr3d,                          &
+                               Ptr3d_4     = Ptr3d_4,                        &
+                               RC          = RC                             )
+
+       ! Trap potential error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error in "Lookup_State_Chm" for diagnostic ' //          &
+                   TRIM( ItemName )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    ELSE IF ( INDEX( ItemName, State_Diag%State ) > 0 ) THEN
+
+       !--------------------------------------------------------------------
+       ! Diagnostic State 
+       !--------------------------------------------------------------------
+       CALL Lookup_State_Diag( am_I_Root   = am_I_Root,                      &
+                               State_Diag  = State_Diag,                     &
+                               Variable    = ItemName,                       &
+                               Description = Description,                    &
+                               Dimensions  = Dimensions,                     &
+                               KindVal     = KindVal,                        &
+                               Rank        = Rank,                           &
+                               Units       = Units,                          &
+                               Ptr2d_4     = Ptr2d_4,                        &
+                               Ptr3d_4     = Ptr3d_4,                        &
+                               RC          = RC                             )
+
+       ! Trap potential error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error in "Lookup_State_Diag for diagnostic ' //          &
+                   TRIM( ItemName )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    ELSE IF ( INDEX( ItemName, State_Met%State ) > 0 ) THEN
+
+       !--------------------------------------------------------------------
+       ! Meteorology State
+       !--------------------------------------------------------------------
+       CALL Lookup_State_Met(  am_I_Root   = am_I_Root,                      &
+                               State_Met   = State_Met,                      &
+                               Variable    = ItemName,                       &
+                               Description = Description,                    &
+                               Dimensions  = Dimensions,                     &
+                               KindVal     = KindVal,                        &
+                               Rank        = Rank,                           &
+                               Units       = Units,                          &
+                               Ptr2d       = Ptr2d,                          &
+                               Ptr2d_I     = Ptr2d_I,                        &
+                               Ptr3d       = Ptr3d,                          &
+                               Ptr3d_I     = Ptr3d_I,                        &
+                               RC          = RC                             )
+
+       ! Trap potential error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error in "Lookup_State_Met for diagnostic ' //           &
+                   TRIM( ItemName )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !=======================================================================
+    ! If the optional SUBSETDIMS argument is passed, then use that to
+    ! size the data arrays.  Otherwise assume the data arrays will be
+    ! the same size as the pointer to the data source (as will be true
+    ! in most cases.) 
+    !=======================================================================
+    IF ( PRESENT( SubsetDims ) ) THEN
+       NX = SubsetDims(1)
+       NY = SubsetDims(2)
+       NZ = SubsetDims(3)
+    ELSE
+       NX = Dimensions(1)
+       NY = Dimensions(2)
+       NZ = Dimensions(3)
+    ENDIF
+
+    !=======================================================================
+    ! Now that we have obtained information (and pointers to the data)
+    ! corresponding to the given diagnostic quantity, use that to create
+    ! a HISTORY ITEM object for that diagnostic quantity.
+    !=======================================================================
+    CALL HistItem_Create( am_I_Root      = am_I_Root,                        &
+                          Item           = Item,                             &
+                          Id             = ItemCount,                        & 
+                          ContainerId    = CollectionId,                     &
+                          Name           = ItemName,                         &
+                          LongName       = Description,                      &
+                          Units          = Units,                            &
+                          SpaceDim       = Rank,                             &
+                          NX             = NX,                               &
+                          NY             = NY,                               &
+                          NZ             = NZ,                               & 
+                          Source_KindVal = KindVal,                          &
+                          Source_2d      = Ptr2d,                            &
+                          Source_2d_4    = Ptr2d_4,                          &
+                          Source_2d_I    = Ptr2d_I,                          &
+                          Source_3d      = Ptr3d,                            &
+                          Source_3d_4    = Ptr3d_4,                          &
+                          Source_3d_I    = Ptr3d_I,                          &
+                          RC             = RC                               )
+
+    ! Trap potential error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not create Item: "' // TRIM( ItemName ) // '"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Attach this HISTORY ITEM to the METAHISTORY ITEM (aka list of HISTORY 
+    ! ITEMS) belonging to the HISTORY CONTAINER object for the given 
+    ! diagnostic collection.
+    !
+    ! In other words, we are adding this diagnostic quantity to the list
+    ! of diagnostic quantities that belong to this diagnostic collection.
+    ! These quantities will be written to the netCDF file described by
+    ! the collection, with the specified archival frequency.
+    !=======================================================================
+    CALL MetaHistItem_AddNew( am_I_Root = am_I_Root,                         &
+                              Node      = Collection%HistItems,              &
+                              Item      = Item,                              &
+                              RC        = RC                                )
+
+    ! Trap potential error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not add Item "' //                                    &
+                TRIM( ItemName )       //  '" to '   //                      &
+                TRIM( CollectionName(CollectionId) ) // '%HistItems!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Cleanup and quit
+    !=======================================================================
+    Ptr2d   => NULL()
+    Ptr2d_4 => NULL()
+    Ptr2d_I => NULL()
+    Ptr3d   => NULL()
+    Ptr3d_4 => NULL()
+    Ptr3d_I => NULL()
+
+  END SUBROUTINE History_AddItemToCollection
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

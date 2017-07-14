@@ -17,6 +17,7 @@ MODULE Registry_Mod
 ! !USES:
 !
   USE Precision_Mod
+  USE Registry_Params_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -94,6 +95,9 @@ MODULE Registry_Mod
   PRIVATE :: MetaRegItem_Destroy
   PRIVATE :: Str2Hash
   PRIVATE :: To_UpperCase
+!
+! !DEFINED PARAMETERS:
+!
 !
 ! !REMARKS:
 !  In Fortran 2003, the maximum variable name length is 63 characers, so we
@@ -183,6 +187,8 @@ CONTAINS
 !                              "Variable", and added "MemoryInKb"
 !  27 Jun 2017 - R. Yantosca - Now assigns description and KIND value
 !  29 Jun 2017 - R. Yantosca - Added Data1dI for 1D integer data
+!  14 Jul 2017 - R. Yantosca - Now use KINDVAL parameters defined at the top
+!                              of the module to denote the different data types
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -211,7 +217,6 @@ CONTAINS
     TmpFullname    = TRIM( TmpState ) // '_' // TRIM( TmpVariable )
     TmpDescription = ''
     TmpUnits       = ''
-    
 
     ! Save optional arguments in shadow variables, if passed
     IF ( PRESENT( Description ) ) TmpDescription = Description
@@ -261,22 +266,22 @@ CONTAINS
        Item%Rank       =  3
        Item%Ptr3d      => Data3d
        Item%MemoryInKb =  KbPerElement * SIZE( Data3d  )
-       Item%KindVal    =  KIND( Data3d )
+       Item%KindVal    =  KINDVAL_FP
     ELSE IF ( PRESENT( Data2d  ) ) THEN
        Item%Rank       =  2
        Item%Ptr2d      => Data2d
        Item%MemoryInKb =  KbPerElement * SIZE( Data2d  )
-       Item%KindVal    =  KIND( Data2d )
+       Item%KindVal    =  KINDVAL_FP
     ELSE IF ( PRESENT( Data1d  ) ) THEN
        Item%Rank       =  1
        Item%Ptr1d      => Data1d
        Item%MemoryInKb =  KbPerElement * SIZE( Data1d  )
-       Item%KindVal    =  KIND( Data1d )
+       Item%KindVal    =  KINDVAL_FP
     ELSE IF ( PRESENT( Data0d  ) ) THEN
        Item%Rank       =  0
        Item%Ptr0d      => Data0d
        Item%MemoryInKb =  KbPerElement
-       Item%KindVal    =  KIND( Data1d )
+       Item%KindVal    =  KINDVAL_FP
 
     !-----------------------------------------------------------------------
     ! Assign pointers to 4-byte real data targets
@@ -285,22 +290,22 @@ CONTAINS
        Item%Rank       =  3
        Item%Ptr3d_4    => Data3d_4
        Item%MemoryInKb =  KbPerElement * SIZE( Data3d_4 )
-       Item%KindVal    =  KIND( Data3d_4 )
+       Item%KindVal    =  KINDVAL_F4
     ELSE IF ( PRESENT( Data2d_4 ) ) THEN
        Item%Rank       =  2
        Item%Ptr2d_4    => Data2d_4
        Item%MemoryInKb =  KbPerElement * SIZE( Data2d_4 )
-       Item%KindVal    =  KIND( Data2d_4 )
+       Item%KindVal    =  KINDVAL_F4
     ELSE IF ( PRESENT( Data1d_4 ) ) THEN
        Item%Rank       =  1
        Item%Ptr1d_4    => Data1d_4
        Item%MemoryInKb =  KbPerElement * SIZE( Data1d_4 )
-       Item%KindVal    =  KIND( Data1d_4 )
+       Item%KindVal    =  KINDVAL_F4
     ELSE IF ( PRESENT( Data0d_4 ) ) THEN
        Item%Rank       =  0
        Item%Ptr0d_4    => Data0d_4
        Item%MemoryInKb =  KbPerElement
-       Item%KindVal    =  KIND( Data0d_4 )
+       Item%KindVal    =  KINDVAL_F4
 
     !-----------------------------------------------------------------------
     ! Assign pointers to integer data targets
@@ -309,22 +314,22 @@ CONTAINS
        Item%Rank       =  3
        Item%Ptr3d_I    => Data3d_I
        Item%MemoryInKb =  KbPerElement * SIZE( Data3d_I )
-       Item%KindVal    =  KIND( Data3d_I )
+       Item%KindVal    =  KINDVAL_I4
     ELSE IF ( PRESENT( Data2d_I ) ) THEN
        Item%Rank       =  2
        Item%Ptr2d_I    => Data2d_I
        Item%MemoryInKb =  KbPerElement * SIZE( Data2d_I )
-       Item%KindVal    =  KIND( Data2d_I )
+       Item%KindVal    =  KINDVAL_I4
     ELSE IF ( PRESENT( Data1d_I  ) ) THEN
        Item%Rank       =  1
        Item%Ptr1d_I    => Data1d_I
        Item%MemoryInKb =  KbPerElement * SIZE( Data1d_I )
-       Item%KindVal    =  KIND( Data1d_I )
+       Item%KindVal    =  KINDVAL_I4
     ELSE IF ( PRESENT( Data0d_I  ) ) THEN
        Item%Rank       =  0
        Item%Ptr0d_I    => Data0d_I
        Item%MemoryInKb =  KbPerElement
-       Item%KindVal    =  KIND( Data0d_I )
+       Item%KindVal    =  KINDVAL_I4
 
     !-----------------------------------------------------------------------
     ! Exit with error message if no data target is passed
@@ -334,7 +339,7 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-
+    
     !=======================================================================
     ! Add the REGISTRY ITEM to the METAREGISTRY ITEM, which represents
     ! the list of all data fields contained in a module.
@@ -361,12 +366,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Registry_Lookup( am_I_Root, Registry,    State,   Variable,    &
-                              RC,        Description, KindVal, MemoryInKb,  &
-                              Rank,      Units,       Ptr0d,   Ptr1d,       &
-                              Ptr2d,     Ptr3d,       Ptr0d_4, Ptr1d_4,     &
-                              Ptr2d_4,   Ptr3d_4,     Ptr0d_I, Ptr1d_I,     &
-                              Ptr2d_I,   Ptr3d_I                           )
+  SUBROUTINE Registry_Lookup( am_I_Root,  Registry,    State,      Variable,  &
+                              RC,         Description, Dimensions, KindVal,   & 
+                              MemoryInKb, Rank,        Units,      Ptr0d,     &
+                              Ptr1d,      Ptr2d,       Ptr3d,      Ptr0d_4,   &
+                              Ptr1d_4,    Ptr2d_4,     Ptr3d_4,    Ptr0d_I,   &
+                              Ptr1d_I,    Ptr2d_I,     Ptr3d_I               )
 !
 ! !USES:
 !
@@ -389,7 +394,9 @@ CONTAINS
     INTEGER,             OPTIONAL :: KindVal           ! Numerical KIND value
     REAL(fp),            OPTIONAL :: MemoryInKb        ! Memory usage
     INTEGER,             OPTIONAL :: Rank              ! Size of data
+    INTEGER,             OPTIONAL :: Dimensions(3)     ! Dimensions of data
     CHARACTER(LEN=255),  OPTIONAL :: Units             ! Units of data
+
 
     ! Floating-point data pointers (flex-precision)
     REAL(fp),   POINTER, OPTIONAL :: Ptr0d             ! 0D flex-prec data
@@ -420,6 +427,11 @@ CONTAINS
 !                              "Variable", and added "MemoryInKb"
 !  27 Jun 2017 - R. Yantosca - Also added "Description" and "KindVal" outputs
 !  30 Jun 2017 - R. Yantosca - Added more pointers for 4-byte and integer data
+!  14 Jul 2017 - R. Yantosca - Now return the appropriate pointer variable
+!                              based on the KINDVAL parameter, and set other
+!                              passed pointer arguments to NULL.
+!  14 Jul 2017 - R. Yantosca - Now throw an error if the variable cannot
+!                              be found in the registry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -427,14 +439,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                    :: Is_Description, Is_KindVal
-    LOGICAL                    :: Is_MemoryInKb,  Is_Rank
-    LOGICAL                    :: Is_Units
+    LOGICAL                    :: Found
+    LOGICAL                    :: Is_Description, Is_Dimensions, Is_KindVal
+    LOGICAL                    :: Is_MemoryInKb,  Is_Rank,       Is_Units
     LOGICAL                    :: Is_0d,          Is_0d_4,       Is_0d_I
     LOGICAL                    :: Is_1d,          Is_1d_4,       Is_1d_I
     LOGICAL                    :: Is_2d,          Is_2d_4,       Is_2d_I
     LOGICAL                    :: Is_3d,          Is_3d_4,       Is_3d_I
-    INTEGER                    :: FullHash,       ItemHash
+    INTEGER                    :: FullHash,       ItemHash,      N
 
     ! Strings
     CHARACTER(LEN=5)           :: TmpState
@@ -465,6 +477,9 @@ CONTAINS
     FullName31     =  To_UpperCase( TmpFullName )
     FullHash       =  Str2Hash( FullName31 )
 
+    ! Set a flag to denote that we've found the field
+    Found          = .FALSE.
+
     !=======================================================================   
     ! Test if the optional variables are present outside of the main loop.
     !=======================================================================
@@ -489,10 +504,27 @@ CONTAINS
 
     ! Metadata
     Is_Description =  PRESENT( Description )
+    Is_Dimensions  =  PRESENT( Dimensions  )
     Is_KindVal     =  PRESENT( KindVal     )
     Is_MemoryInKb  =  PRESENT( MemoryInKb  )
     Is_Rank        =  PRESENT( Rank        )
     Is_Units       =  PRESENT( Units       )
+
+    !=======================================================================
+    ! Nullify all optional pointer arguments that are passed
+    !=======================================================================
+    If ( Is_0d   ) Ptr0d   => NULL()
+    IF ( Is_0d_4 ) Ptr0d_4 => NULL()
+    IF ( Is_0d_I ) Ptr0d_I => NULL()
+    IF ( Is_1d   ) Ptr1d   => NULL()
+    IF ( Is_1d_4 ) Ptr1d_4 => NULL()
+    IF ( Is_1d_I ) Ptr1d_I => NULL()
+    IF ( Is_2d   ) Ptr2d   => NULL()
+    IF ( Is_2d_4 ) Ptr2d_4 => NULL()
+    IF ( Is_2d_I ) Ptr2d_I => NULL()
+    IF ( Is_3d   ) Ptr3d   => NULL()
+    IF ( Is_3d_4 ) Ptr3d_4 => NULL()
+    IF ( Is_3d_I ) Ptr3d_I => NULL()
 
     !=======================================================================
     ! Search for the specified field in the Registry
@@ -521,56 +553,140 @@ CONTAINS
           ! Then return a pointer to the field
           SELECT CASE( Current%Item%Rank ) 
 
-             ! 3-d data
+             ! Return the appropriate 3D DATA POINTER (and dimensions)
              CASE( 3 ) 
-                IF ( Is_3d ) THEN
-                   Ptr3d   => Current%Item%Ptr3d
-                   RETURN
-                ELSE IF ( Is_3d_4 ) THEN 
-                   Ptr3d_4 => Current%Item%Ptr3d_4
-                   RETURN                  
-                ELSE IF  ( Is_3d_I ) THEN
-                   Ptr3d_I => Current%Item%Ptr3d_I
-                   RETURN
+                IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
+                   IF ( Is_3d ) THEN 
+                      Ptr3d => Current%Item%Ptr3d
+                      Found =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr3d, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
+                   IF ( Is_3d_4 ) THEN
+                      Ptr3d_4 => Current%Item%Ptr3d_4
+                      Found   =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr3d_4, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_I4 ) THEN
+                   IF ( Is_3d_I ) THEN
+                      Ptr3d_I => Current%Item%Ptr3d_I
+                      Found   =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr3d_I, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
                 ENDIF
                    
-             ! 2-d data
+             ! Return the appropriate 2D DATA POINTER (and dimensions)
              CASE( 2 )
-                IF ( Is_2d ) THEN
-                   Ptr2d   => Current%Item%Ptr2d
-                   RETURN
-                ELSE IF ( Is_2d_4 ) THEN
-                   Ptr2d_4 => Current%Item%Ptr2d_4
-                   RETURN
-                ELSE IF ( Is_2d_I ) THEN
-                   Ptr2d_I => Current%Item%Ptr2d_I
-                   RETURN
+                IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
+                   IF ( Is_2d ) THEN
+                      Ptr2d => Current%Item%Ptr2d
+                      Found =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr2d, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
+                   IF ( Is_2d_4 ) THEN
+                      Ptr2d_4 => Current%Item%Ptr2d_4
+                      Found   =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr2d_4, N )
+                         ENDDO
+                      ENDIF                      
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_I4 ) THEN
+                   IF ( Is_2d_I ) THEN
+                      Ptr2d_I => Current%Item%Ptr2d_I
+                      Found =    .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr2d_I, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
                 ENDIF
 
-             ! 1-d data
+             ! Return the appropriate 1D DATA POINTER (and dimensions)
              CASE( 1 )
-                IF ( Is_1d ) THEN
-                   Ptr1d   => Current%Item%Ptr1d
-                   RETURN
-                ELSE IF ( Is_1d_4 ) THEN
-                   Ptr1d_4 => Current%Item%Ptr1d_4
-                   RETURN                 
-                ELSE IF ( Is_1d_I ) THEN
-                   Ptr1d_I => Current%Item%Ptr1d_I
-                   RETURN
+                IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
+                   IF ( Is_1d ) THEN
+                      Ptr1d => Current%Item%Ptr1d
+                      Found =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr1d, N )
+                         ENDDO
+                      ENDIF                     
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
+                   IF ( Is_1d_4 ) THEN
+                      Ptr1d_4 => Current%Item%Ptr1d_4
+                      Found =    .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr1d_4, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_I4 ) THEN
+                   IF ( Is_1d_I ) THEN
+                      Ptr1d_I => Current%Item%Ptr1d_I
+                      Found =    .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr1d_I, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
                 ENDIF
                 
-             ! 0-d data
+             ! Return the appropriate 0D DATA POINTER (and dimensions)
              CASE( 0 )
-                IF ( Is_0d ) THEN
-                   Ptr0d   => Current%Item%Ptr0d
-                   RETURN
-                ELSE IF ( Is_0d_4 ) THEN
-                   Ptr0d_4 => Current%Item%Ptr0d_4
-                   RETURN
-                ELSE IF ( Is_0d_I ) THEN
-                   Ptr0d_I => Current%Item%Ptr0d_I
-                   RETURN
+                IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
+                   IF ( Is_0d ) THEN
+                      Ptr0d  => Current%Item%Ptr0d
+                      Found =   .TRUE.
+                      IF ( Is_Dimensions ) Dimensions = (/1,1,1/)
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
+                   IF ( Is_0d_4 ) THEN
+                      Ptr0d_4 => Current%Item%Ptr0d_4
+                      Found =    .TRUE.
+                      IF ( Is_Dimensions ) Dimensions = (/1,1,1/)
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_I4 ) THEN
+                   IF ( Is_0d_I ) THEN
+                      Ptr0d_I => Current%Item%Ptr0d_I
+                      Found =    .TRUE.
+                      IF ( Is_Dimensions ) Dimensions = (/1,1,1/)
+                   ENDIF
+                   EXIT
                 ENDIF
 
              ! Error message
@@ -589,7 +705,13 @@ CONTAINS
     !=======================================================================
     ! Cleanup and quit
     !=======================================================================
+999 CONTINUE
+
+    ! Free pointer
     Current => NULL()
+
+    ! Throw an error if not found
+    IF ( .not. Found ) RC = GC_FAILURE
 
   END SUBROUTINE Registry_Lookup
 !EOC

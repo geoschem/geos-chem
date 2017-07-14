@@ -295,11 +295,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Lookup_State_Diag( am_I_Root,  State_Diag,  Variable,  & 
-                                RC,         Description, KindVal,   & 
-                                MemoryInKb, Rank,        Units,     &    
-                                Ptr2d_4,    Ptr3d_4,     Ptr2d_I,   &
-                                Ptr3d_I                            )
+  SUBROUTINE Lookup_State_Diag( am_I_Root,  State_Diag,  Variable,    & 
+                                RC,         Description, Dimensions,  &
+                                KindVal,    MemoryInKb,  Rank,        & 
+                                Units,      Ptr2d_4,     Ptr3d_4,     &
+                                Ptr2d_I,    Ptr3d_I                  )
 !
 ! !USES:
 !
@@ -319,6 +319,7 @@ CONTAINS
 
     ! Optional outputs
     CHARACTER(LEN=255),  OPTIONAL :: Description     ! Description of data
+    INTEGER,             OPTIONAL :: Dimensions(3)   ! Dimensions of data
     INTEGER,             OPTIONAL :: KindVal         ! Numerical KIND value
     REAL(fp),            OPTIONAL :: MemoryInKb      ! Memory usage
     INTEGER,             OPTIONAL :: Rank            ! Size of data
@@ -360,6 +361,7 @@ CONTAINS
                           State       = State_Diag%State,     &
                           Variable    = Variable,             &
                           Description = Description,          &
+                          Dimensions  = Dimensions,           &
                           KindVal     = KindVal,              &
                           MemoryInKb  = MemoryInKb,           &
                           Rank        = Rank,                 &
@@ -372,8 +374,8 @@ CONTAINS
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not find variable ' // TRIM( Variable ) // &
-               ' in the State_Diag registry!'
+       ErrMsg = 'Could not find variable "' // TRIM( Variable ) // &
+               '" in the State_Diag registry!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF

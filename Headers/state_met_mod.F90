@@ -228,7 +228,7 @@ MODULE State_Met_Mod
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Met
      !----------------------------------------------------------------------
-     CHARACTER(LEN=4)             :: State     = 'MET '   ! Name of this state
+     CHARACTER(LEN=3)             :: State     = 'MET'    ! Name of this state
      TYPE(MetaRegItem), POINTER   :: Registry  => NULL()  ! Registry object  
 
   END TYPE MetState
@@ -3207,10 +3207,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Lookup_State_Met( am_I_Root,   State_Met, Variable,   RC,       &
-                               Description, KindVal,   MemoryInKb, Rank,     &
-                               Units,       Ptr2d,     Ptr3d,      Ptr2d_I,  &
-                               Ptr3d_I                                      )
+  SUBROUTINE Lookup_State_Met( am_I_Root, State_Met,   Variable,    &
+                               RC,        Description, Dimensions,  &
+                               KindVal,   MemoryInKb,  Rank,        &
+                               Units,     Ptr2d,       Ptr3d,       &
+                               Ptr2d_I,   Ptr3d_I                  )
 !
 ! !USES:
 !
@@ -3230,6 +3231,7 @@ CONTAINS
 
     ! Optional outputs
     CHARACTER(LEN=255),  OPTIONAL :: Description     ! Description of data
+    INTEGER,             OPTIONAL :: Dimensions(3)   ! Dimensions of data
     INTEGER,             OPTIONAL :: KindVal         ! Numerical KIND value
     REAL(fp),            OPTIONAL :: MemoryInKb      ! Memory usage
     INTEGER,             OPTIONAL :: Rank            ! Size of data
@@ -3272,6 +3274,7 @@ CONTAINS
                           State       = State_Met%State,     &
                           Variable    = Variable,            &
                           Description = Description,         &
+                          Dimensions  = Dimensions,          &
                           KindVal     = KindVal,             &
                           MemoryInKb  = MemoryInKb,          &
                           Rank        = Rank,                &
@@ -3284,8 +3287,8 @@ CONTAINS
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not find variable ' // TRIM( Variable ) // &
-               ' in the State_Met registry!'
+       ErrMsg = 'Could not find variable "' // TRIM( Variable ) // &
+               '" in the State_Met registry!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF

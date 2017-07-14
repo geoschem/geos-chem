@@ -55,6 +55,8 @@ MODULE HistItem_Mod
      !----------------------------------------------------------------------
      ! Pointers to the data in State_Chm, State_Diag, or State_Met
      !----------------------------------------------------------------------
+     INTEGER            :: Source_KindVal        ! Identifies the source type
+
      REAL(fp), POINTER  :: Source_0d             ! Ptr to 0D flex-prec data
      REAL(f4), POINTER  :: Source_0d_4           ! Ptr to 0D 4-byte    data
      INTEGER,  POINTER  :: Source_0d_I           ! Ptr to 0D integer   data
@@ -115,34 +117,55 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistItem_Create( am_I_Root,    Item,         Id,          &
-                              ContainerId,  Name,         RC,          &
-                              LongName,     Units,        SpaceDim,    &
-                              NX,           NY,           NZ,          & 
-                              AddOffset,    MissingValue, ScaleFactor )
+  SUBROUTINE HistItem_Create( am_I_Root,      Item,         Id,              &
+                              ContainerId,    Name,         RC,              &
+                              LongName,       Units,        SpaceDim,        &
+                              NX,             NY,           NZ,              &
+                              AddOffset,      MissingValue, ScaleFactor,     &
+                              Source_KindVal, Source_0d,    Source_0d_4,     &
+                              Source_0d_I,    Source_1d,    Source_1d_4,     &
+                              Source_1d_I,    Source_2d,    Source_2d_4,     &
+                              Source_2d_I,    Source_3d,    Source_3d_4,     &
+                              Source_3d_I                                   )
 !
 ! !USES:
 !
   USE ErrCode_Mod
+  USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS: 
 !
     ! Required arguments
-    LOGICAL,           INTENT(IN)  :: am_I_Root       ! Root CPU?
-    INTEGER,           INTENT(IN)  :: Id              ! History item Id #
-    INTEGER,           INTENT(IN)  :: ContainerId     ! Container Id #
-    CHARACTER(LEN=*),  INTENT(IN)  :: Name            ! Item's short name
-    CHARACTER(LEN=*),  INTENT(IN)  :: LongName        ! Item's long name
-    CHARACTER(LEN=*),  INTENT(IN)  :: Units           ! Units of the data
-    INTEGER,           INTENT(IN)  :: SpaceDim        ! Dimension of data
+    LOGICAL,           INTENT(IN)  :: am_I_Root          ! Root CPU?
+    INTEGER,           INTENT(IN)  :: Id                 ! History item Id #
+    INTEGER,           INTENT(IN)  :: ContainerId        ! Container Id #
+    CHARACTER(LEN=*),  INTENT(IN)  :: Name               ! Item's short name
+    CHARACTER(LEN=*),  INTENT(IN)  :: LongName           ! Item's long name
+    CHARACTER(LEN=*),  INTENT(IN)  :: Units              ! Units of the data
+    INTEGER,           INTENT(IN)  :: SpaceDim           ! Dimension of data
     
     ! Optional arguments
-    INTEGER,           OPTIONAL    :: NX              ! # boxes in X-direction
-    INTEGER,           OPTIONAL    :: NY              ! # boxes in Y-direction
-    INTEGER,           OPTIONAL    :: NZ              ! # boxes in Z-direction
-    REAL(f4),          OPTIONAL    :: AddOffset       ! COARDS-compliant 
-    REAL(f4),          OPTIONAL    :: MissingValue    !  attributes for 
-    REAL(f4),          OPTIONAL    :: ScaleFactor     !  netCDF output
+    INTEGER,           OPTIONAL    :: NX                 ! # boxes in X-dim
+    INTEGER,           OPTIONAL    :: NY                 ! # boxes in Y-dim
+    INTEGER,           OPTIONAL    :: NZ                 ! # boxes in Z-dim
+    REAL(f4),          OPTIONAL    :: AddOffset          ! COARDS-compliant 
+    REAL(f4),          OPTIONAL    :: MissingValue       !  attributes for 
+    REAL(f4),          OPTIONAL    :: ScaleFactor        !  netCDF output
+
+    ! Optional pointers to data targets
+    INTEGER,           OPTIONAL    :: Source_KindVal     ! Type of source data
+    REAL(fp), POINTER, OPTIONAL    :: Source_0d          ! 0D flex-prec data
+    REAL(f4), POINTER, OPTIONAL    :: Source_0d_4        ! 0D 4-byte    data
+    INTEGER,  POINTER, OPTIONAL    :: Source_0d_I        ! 0D integer   data
+    REAL(fp), POINTER, OPTIONAL    :: Source_1d  (:    ) ! 1D flex-prec data
+    REAL(f4), POINTER, OPTIONAL    :: Source_1d_4(:    ) ! 1D 4-byte    data
+    INTEGER,  POINTER, OPTIONAL    :: Source_1d_I(:    ) ! 1D integer   data
+    REAL(fp), POINTER, OPTIONAL    :: Source_2d  (:,:  ) ! 2D flex-prec data
+    REAL(f4), POINTER, OPTIONAL    :: Source_2d_4(:,:  ) ! 2D 4-byte    data
+    INTEGER,  POINTER, OPTIONAL    :: Source_2d_I(:,:  ) ! 2D integer   data
+    REAL(fp), POINTER, OPTIONAL    :: Source_3d  (:,:,:) ! 3D flex-prec data
+    REAL(f4), POINTER, OPTIONAL    :: Source_3d_4(:,:,:) ! 3D 4-byte    data
+    INTEGER,  POINTER, OPTIONAL    :: Source_3d_I(:,:,:) ! 3D integer   data
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -165,19 +188,21 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
+    LOGICAL            :: Is_0d,  Is_0d_4,  Is_0d_I
+    LOGICAL            :: Is_1d,  Is_1d_4,  Is_1d_I
+    LOGICAL            :: Is_2d,  Is_2d_4,  Is_2d_I
+    LOGICAL            :: Is_3d,  Is_3d_4,  Is_3d_I
+
     ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, TempStr
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc,  TempStr
 
     !========================================================================
     ! Initialize
     !========================================================================
-
-    ! Assume success
-    RC      = GC_SUCCESS
-
-    ! For error output
-    ErrMsg  = ''
-    ThisLoc = ' -> at HistItem_Create (in History/histitem_mod.F90)'
+    RC               =  GC_SUCCESS
+    ErrMsg           =  ''
+    ThisLoc          =  ' -> at HistItem_Create (in History/histitem_mod.F90)'
 
     ! Allocate the Item object
     ALLOCATE( Item, STAT=RC )
@@ -186,6 +211,40 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    ! Zero the data fields
+    Item%Data_0d     =  0.0_f4
+    Item%Data_1d     => NULL()
+    Item%Data_2d     => NULL()
+    Item%Data_3d     => NULL()
+   
+    ! Determine if the optional source pointers are passed
+    Is_0d            =  PRESENT( Source_0d   )
+    Is_0d_4          =  PRESENT( Source_0d_4 )
+    Is_0d_I          =  PRESENT( Source_0d_I )
+    Is_1d            =  PRESENT( Source_1d   )
+    Is_1d_4          =  PRESENT( Source_1d_4 )
+    Is_1d_I          =  PRESENT( Source_1d_I )
+    Is_2d            =  PRESENT( Source_2d   )
+    Is_2d_4          =  PRESENT( Source_2d_4 )
+    Is_2d_I          =  PRESENT( Source_2d_I )
+    Is_3d            =  PRESENT( Source_3d   )
+    Is_3d_4          =  PRESENT( Source_3d_4 )
+    Is_3d_I          =  PRESENT( Source_3d_I )
+
+    ! Zero optional source pointers
+    IF ( Is_0d   ) Item%Source_0d   => NULL()
+    IF ( Is_0d_4 ) Item%Source_0d_4 => NULL()
+    IF ( Is_0d_I ) Item%Source_0d_I => NULL()
+    IF ( Is_1d   ) Item%Source_1d   => NULL()
+    IF ( Is_1d_4 ) Item%Source_1d_4 => NULL()
+    IF ( Is_1d_I ) Item%Source_1d_I => NULL()
+    IF ( Is_2d   ) Item%Source_2d   => NULL()
+    IF ( Is_2d_4 ) Item%Source_2d_4 => NULL()
+    IF ( Is_2d_I ) Item%Source_2d_I => NULL()
+    IF ( Is_3d   ) Item%Source_3d   => NULL()
+    IF ( Is_3d_4 ) Item%Source_3d_4 => NULL()
+    IF ( Is_3d_I ) Item%Source_3d_I => NULL()
     
     !========================================================================
     ! Required inputs, handle these first
@@ -252,6 +311,8 @@ CONTAINS
     !=======================================================================
     ! Data fields: Allocate data fields (0-3 dimensions)
     !=======================================================================
+
+    ! Make sure the dimension is in the range 0-3
     IF ( SpaceDim < 0 .or. SpaceDim > 3 ) THEN
        ErrMsg = 'SpaceDim must be in the range 0-3!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -259,26 +320,6 @@ CONTAINS
     ELSE
        Item%SpaceDim = SpaceDim
     ENDIF
-
-    ! Nullify pointers to source fields
-    Item%Source_0d   => NULL()
-    Item%Source_0d_4 => NULL()
-    Item%Source_0d_I => NULL()
-    Item%Source_1d   => NULL()
-    Item%Source_1d_4 => NULL()
-    Item%Source_1d_I => NULL()
-    Item%Source_2d   => NULL()
-    Item%Source_2d_4 => NULL()
-    Item%Source_2d_I => NULL()
-    Item%Source_3d   => NULL()
-    Item%Source_3d_4 => NULL()
-    Item%Source_3d_I => NULL()
-    
-    ! Nullify data fields
-    Item%Data_0d     =  0.0_f4
-    Item%Data_1d     => NULL()
-    Item%Data_2d     => NULL()
-    Item%Data_3d     => NULL()
 
     ! Allocate data field, based on SpaceDim
     SELECT CASE( Item%SpaceDim )
@@ -348,6 +389,74 @@ CONTAINS
     ELSE
        Item%ScaleFactor = 1.0_f4
     ENDIF
+
+    !--------------------------------------------
+    ! Source_KindVal
+    !--------------------------------------------
+    IF ( PRESENT( Source_KindVal ) ) THEN
+       Item%Source_KindVal = Source_KindVal
+    ELSE
+       Item%Source_KindVal = KINDVAL_FP
+    ENDIF
+
+    !========================================================================
+    ! Attach pointers to the data source
+    !========================================================================
+    SELECT CASE( Item%SpaceDim ) 
+
+       ! Attach pointer to 3D data source, depending on its type
+       CASE( 3 )
+          IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
+             IF ( Is_3d   ) Item%Source_3d   => Source_3d
+             RETURN
+          ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
+             IF ( Is_3d_4 ) Item%Source_3d_4 => Source_3d_4
+             RETURN
+          ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
+             IF ( Is_3d_I ) Item%Source_3d_I => Source_3d_I
+             RETURN
+          ENDIF
+
+       ! Attach pointer to 2D data source, depending on its type
+       CASE( 2 )
+          IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
+             IF ( Is_2d   ) Item%Source_2d   => Source_2d
+             RETURN
+          ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
+             IF ( Is_2d_4 ) Item%Source_2d_4 => Source_2d_4
+             RETURN
+          ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
+             IF ( Is_2d_I ) Item%Source_2d_I => Source_2d_I
+             RETURN
+          ENDIF
+
+       ! Attach pointer to 1D data source, depending on its type
+       CASE( 1 )
+          IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
+             IF ( Is_1d   ) Item%Source_1d   => Source_1d
+             RETURN
+          ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
+             IF ( Is_1d_4 ) Item%Source_1d_4 => Source_1d_4
+             RETURN
+          ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
+             IF ( Is_1d_I ) Item%Source_1d_I => Source_1d_I
+             RETURN
+          ENDIF
+
+       ! Attach pointer to 0D data source, depending on its type
+       CASE( 0 )
+          IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
+             IF ( Is_0d   ) Item%Source_0d   => Source_0d
+             RETURN
+          ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
+             IF ( Is_0d_4 ) Item%Source_0d_4 => Source_0d_4
+             RETURN
+          ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
+             IF ( Is_0d_I ) Item%Source_0d_I => Source_0d_I
+             RETURN
+          ENDIF
+
+    END SELECT
 
   END SUBROUTINE HistItem_Create
 !EOC

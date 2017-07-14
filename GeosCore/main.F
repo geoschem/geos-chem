@@ -587,12 +587,18 @@
       ! Initialize the GEOS-Chem history component
       CALL History_Init( am_I_root,  Input_Opt, State_Chm, 
      &                   State_Diag, State_Met, RC         )
+!---------------------------------------------------------------------
+!     !### FORCE STOP FOR DEBUGGING
+!      RC = GC_FAILURE
+!     IF ( RC /= GC_SUCCESS ) THEN
+!        ErrMsg = 'Forced stop for debugging'
+!        CALL Error_Stop( ErrMsg, ThisLoc )
+!     ENDIF
+!---------------------------------------------------------------------
 
-      !### FORCE STOP FOR DEBUGGING
-      RC = GC_FAILURE
+      ! Trap error
       IF ( RC /= GC_SUCCESS ) THEN
-!         ErrMsg = 'Error encountered in "History_Init"!'
-         ErrMsg = 'Forced stop for debugging'
+         ErrMsg = 'Error encountered in "History_Init"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 #endif      
@@ -1763,6 +1769,12 @@
 
          !### After diagnostics
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after TIMESERIES' )
+
+#if defined( NC_DIAG )
+         !==============================================================
+         !          ***** H I S T O R Y   U P D A T E *****
+         !==============================================================
+#endif
 
          !==============================================================
          !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****

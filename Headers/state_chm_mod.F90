@@ -1323,9 +1323,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Lookup_State_Chm( am_I_Root,   State_Chm, Variable,   RC,    &
-                               Description, KindVal,   MemoryInKb, Rank,  &
-                               Units,       Ptr3d,     Ptr3d_4           )
+  SUBROUTINE Lookup_State_Chm( am_I_Root, State_Chm,   Variable,    &
+                               RC,        Description, Dimensions,  &
+                               KindVal,   MemoryInKb,  Rank,        &
+                               Units,     Ptr3d,       Ptr3d_4     )
 !
 ! !USES:
 !
@@ -1345,6 +1346,7 @@ CONTAINS
 
     ! Optional outputs
     CHARACTER(LEN=255),  OPTIONAL    :: Description     ! Description of data
+    INTEGER,             OPTIONAL    :: Dimensions(3)   ! Dimensions of data
     INTEGER,             OPTIONAL    :: KindVal         ! Numerical KIND value
     REAL(fp),            OPTIONAL    :: MemoryInKb      ! Memory usage
     INTEGER,             OPTIONAL    :: Rank            ! Size of data
@@ -1384,6 +1386,7 @@ CONTAINS
                           State       = State_Chm%State,     &
                           Variable    = Variable,            &
                           Description = Description,         &
+                          Dimensions  = Dimensions,          &
                           KindVal     = KindVal,             &
                           MemoryInKb  = MemoryInKb,          &
                           Rank        = Rank,                &
@@ -1394,8 +1397,8 @@ CONTAINS
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not find variable ' // TRIM( Variable ) // &
-               ' in the State_Chm registry!'
+       ErrMsg = 'Could not find variable "' // TRIM( Variable ) // &
+               '" in the State_Chm registry!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF

@@ -59,6 +59,7 @@
 #                              with physconstants.F
 #  30 Jun 2016 - M. Sulprizio- Remove comode_loop_mod.F
 #  05 Jul 2017 - R. Yantosca - Add state_diag_mod.F90
+#  14 Jul 2017 - R. Yantosca - Add registry_params_mod.F90
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -200,6 +201,9 @@ physconstants.o        : physconstants.F          \
 
 registry_mod.o         : registry_mod.F90         \
                          errcode_mod.o            \
+                         precision_mod.o
+
+registry_params_mod.o  : registry_params_mod.F90 \
                          precision_mod.o
 
 species_mod.o          : species_mod.F90          \
