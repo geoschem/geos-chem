@@ -5461,6 +5461,18 @@
                      NAME(T,22) = 'JIPMN'
                   CASE( 31 )
                      NAME(T,22) = 'JETHLN'
+                  CASE( 32 )
+                     NAME(T,22) = 'JDHDN'
+                  CASE( 33 )
+                     NAME(T,22) = 'JHPALD'
+                  CASE( 34 )
+                     NAME(T,22) = 'JISN1'
+                  CASE( 35 )
+                     NAME(T,22) = 'JMONITS'
+                  CASE( 36 )
+                     NAME(T,22) = 'JMONITU'
+                  CASE( 37 )
+                     NAME(T,22) = 'JHONIT'
                  CASE DEFAULT
                   ! Nothing
                END SELECT

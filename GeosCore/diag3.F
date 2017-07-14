@@ -2218,6 +2218,12 @@
 !  (29 ) JPIP  : PIP   J-value                 : s-1   : SCALE_JV
 !  (30 ) JIPMN : IPMN  J-value                 : s-1   : SCALE_JV
 !  (31 ) JETHLN: ETHLN J-value                 : s-1   : SCALE_JV
+!  (32 ) JDHDN : DHDN  J-value                 : s-1   : SCALE_JV
+!  (33 ) JHPALD: HPALD J-value                 : s-1   : SCALE_JV
+!  (34 ) JISN1 : ISN1  J-value                 : s-1   : SCALE_JV
+!  (35 ) JMONITS: MONITS J-value               : s-1   : SCALE_JV
+!  (36 ) JMONITU: MONITU J-value               : s-1   : SCALE_JV
+!  (37 ) JHONIT: HONIT J-value                 : s-1   : SCALE_JV
 !  (71 ) JCH3I : CH3I  J-value (s^-1)          : s-1   : SCALE_JV
 !  (81 ) JHCN  : HCN   J-value (s^-1)          : s-1   : SCALE_JV
 !

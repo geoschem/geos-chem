@@ -494,8 +494,8 @@
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
       CALL DEPVEL( am_I_Root, Input_Opt, State_Met,  State_Chm,     
-     &             RADIAT,    TC0,       SUNCOS_MID, F0,         
-     &             HSTAR,     FLAG,      XMW,        AIROSOL,           
+     &             RADIAT,    TC0,       SUNCOS_MID,           
+     &             F0,        HSTAR,     XMW,        AIROSOL,           
      &             USTAR,     CZ1,       OBK,        CFRAC,               
      &             ZH,        LSNOW,     DVEL,       AZO,              
      &             RHB,       PRESSU,    W10,        RC            )
@@ -924,8 +924,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,    
-     &                   RADIAT,    TEMP,      SUNCOS,    F0,
-     &                   HSTAR,     FLAG,      XMW,       AIROSOL,     
+     &                   RADIAT,    TEMP,      SUNCOS,            
+     &                   F0,        HSTAR,     XMW,       AIROSOL,     
      &                   USTAR,     CZ1,       OBK,       CFRAC,           
      &                   ZH,        LSNOW,     DVEL,      ZO,            
      &                   RHB,       PRESSU,    W10,       RC          )
@@ -953,7 +953,6 @@
       REAL(f8), INTENT(IN) :: F0     (NUMDEP)      ! React. factor for oxidation
                                                    !  of biological substances
       REAL(f8), INTENT(IN) :: HSTAR  (NUMDEP)      ! Henry's law constant
-      REAL(f8), INTENT(IN) :: FLAG   (NUMDEP)      ! Drydep scaling flag
       REAL(f8), INTENT(IN) :: XMW    (NUMDEP)      ! Molecular weight [kg/mol]
       REAL(f8), INTENT(IN) :: USTAR  (IIPAR,JJPAR) ! Friction velocity [m/s]
       REAL(f8), INTENT(IN) :: CZ1    (IIPAR,JJPAR) ! Alt @ which Vd is computed

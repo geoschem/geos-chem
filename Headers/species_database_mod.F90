@@ -1110,7 +1110,6 @@ CONTAINS
                               Henry_CR      = 9200.0_f8,                    &
 #endif                                      
                               RC            = RC )
-                              RC            = RC )
 
           CASE( 'DHDC' )
              FullName = 'Dihydroxyperoxide dicarbonyl'
