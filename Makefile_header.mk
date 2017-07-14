@@ -464,13 +464,14 @@ else
   IS_NC_DIAG         :=0
 endif
 
-# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is %%%%%
-# %%%%% selected.  Now use a numeric test which is more robust.    %%%%%
-ifeq ($(IS_BPCH_DIAG),1)
-  ifeq ($(IS_NC_DIAG),1)
-    $(error $(ERR_DIAG))
-  endif
-endif 
+# Disable for testing (bmy, 7/14/17)
+## %%%%% ERROR CHECK!  Make sure only one diagnostic output type is %%%%%
+## %%%%% selected.  Now use a numeric test which is more robust.    %%%%%
+#ifeq ($(IS_BPCH_DIAG),1)
+#  ifeq ($(IS_NC_DIAG),1)
+#    $(error $(ERR_DIAG))
+#  endif
+#endif 
 
 #------------------------------------------------------------------------------
 # KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
