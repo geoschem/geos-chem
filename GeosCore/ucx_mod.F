@@ -5478,9 +5478,22 @@
          ENDIF
       ELSE
          IF (am_I_Root ) THEN
+#if defined(ESMF_)
+         ! ExtData and HEMCO behave ambiguously - if the file was found
+         ! but was full of zeros throughout the domain of interest, it
+         ! will result in the same output from ExtData as if the field
+         ! was missing from the file. As such, HEMCO cannot distinguish
+         ! between a missing file and a field of zeros
+         WRITE(6,*) '    - UCX: PSC restart either all zeros in the '
+         WRITE(6,*) '           root domain, or the restart file did '
+         WRITE(6,*) '           not contain STATE_PSC. Root domain '
+         WRITE(6,*) '           will be initialized PSC-free'
+         ENDIF
+#else
          WRITE(6,*) 
      &      '    - UCX: PSC restart not found, initialize PSC-free'
          ENDIF
+#endif
       ENDIF
 
       END SUBROUTINE READ_PSC_FILE
