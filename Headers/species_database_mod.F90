@@ -84,7 +84,6 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,       ONLY : OptInput
-    USE Passive_Species_Mod, ONLY : PASSIVE_SPECIES_INQUIRE
     USE Species_Mod
 !
 ! !INPUT PARAMETERS: 
@@ -158,7 +157,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER             :: C,      N,   nSpecies
+    INTEGER             :: C,      N,   P,       nSpecies
     REAL(fp)            :: Radius, KOA, MW_g,    BackgroundVV, HStar
     REAL(f8)            :: K0,     CR
 
@@ -4841,11 +4840,23 @@ CONTAINS
           !==================================================================
           CASE DEFAULT
   
-             ! Test if this is a passive species
-             CALL PASSIVE_SPECIES_INQUIRE( NameAllCaps,                     &
-                                           IsPassive = IsPassive,           &
-                                           MW        = MW_g,                &
-                                           InitConc  = BackgroundVV  )
+             ! Check if passive species
+             IsPassive = .FALSE.
+             MW_g = 0.0_fp
+             BackgroundVV = 0.0_fp
+             IF ( Input_Opt%NPASSIVE > 0 ) THEN 
+             
+                ! Loop over all passive species
+                DO P = 1, Input_Opt%NPASSIVE
+                   IF ( TRIM(NameAllCaps) ==    &
+                        TRIM(Input_Opt%PASSIVE_NAME(P)) ) THEN
+                      IsPassive = .TRUE.
+                      BackgroundVV = Input_Opt%PASSIVE_INITCONC(P)
+                      MW_g   = Input_Opt%PASSIVE_MW(P)
+                      EXIT
+                   ENDIF
+                ENDDO
+             ENDIF
 
              !---------------------------------------------------------------
              ! Add passive species if it is listed in the optional passive

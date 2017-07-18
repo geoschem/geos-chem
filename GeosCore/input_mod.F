@@ -7185,8 +7185,6 @@
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,         ONLY : OptInput
-      USE PASSIVE_SPECIES_MOD,   ONLY : INIT_PASSIVE_SPECIES
-      USE PASSIVE_SPECIES_MOD,   ONLY : ADD_PASSIVE_SPECIES
 !
 ! !INPUT PARAMETERS:
 !
@@ -7202,6 +7200,8 @@
 ! 
 ! !REVISION HISTORY: 
 !  04 Sep 2015 - C. Keller   - Initial version
+!  14 Jul 2017 - E. Lundgren - Store passive species values in Input_Opt and
+!                              remove dependency on passive_species_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7209,7 +7209,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: I, N, nPassive
+      INTEGER            :: I, N, P, IDX, nPassive
       CHARACTER(LEN=31)  :: SpcName
       REAL(fp)           :: SpcMW, SpcTau, SpcInitConc
 
@@ -7226,9 +7226,7 @@
       ! # of passive speciess
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_passive_species_menu:1')
       READ( SUBSTRS(1), * ) nPassive
-
-      ! Initialize passive species module arrays
-      CALL INIT_PASSIVE_SPECIES ( am_I_Root, nPassive, RC )
+      Input_Opt%NPASSIVE = nPassive
 
       ! Read passive species information for each passive species
       ! Every passive species line is expected to have 3 entries:
@@ -7237,7 +7235,7 @@
       ! - Atmospheric lifetime (s)
       ! - Default atmospheric concentration (v/v)
       IF ( nPassive > 0 ) THEN
-         DO I = 1, nPassive
+         DO N = 1, Input_Opt%NPASSIVE
             ! Read values into substrings
             CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 
      &                           'read_passive_species_menu:2' )
@@ -7247,15 +7245,53 @@
             READ( SUBSTRS(2), * ) SpcMW
             READ( SUBSTRS(3), * ) SpcTau
             READ( SUBSTRS(4), * ) SpcInitConc 
-      
-            ! Register as passive species 
-            CALL ADD_PASSIVE_SPECIES( am_I_Root, SpcName, 
-     &                                SpcTau,    SpcInitConc,
-     &                                SpcMW,     RC )
-            IF ( RC /= GC_SUCCESS ) RETURN 
 
+            ! Find empty slot
+            IDX = -1
+            DO P = 1, Input_Opt%NPASSIVE
+               IF ( Input_Opt%PASSIVE_ID(P) < 0 ) THEN
+                  IDX = P
+                  EXIT
+               ENDIF
+            ENDDO
+            IF ( IDX <= 0 ) THEN
+               WRITE(*,*) 'Cannot add passive species ', TRIM(SpcName), 
+     &                    ': all ', Input_Opt%NPASSIVE,               
+     &                    ' species slots are already being used.'
+               RC = GC_FAILURE
+               RETURN 
+            ENDIF 
+
+            ! Store species information
+            Input_Opt%PASSIVE_ID(IDX)       = IDX
+            Input_Opt%PASSIVE_NAME(IDX)     = TRIM(SpcName)
+            Input_Opt%PASSIVE_TAU(IDX)      = SpcTau 
+            Input_Opt%PASSIVE_INITCONC(IDX) = SpcInitConc 
+            Input_Opt%PASSIVE_MW(IDX)       = SpcMW
+
+            ! Verbose
+            IF ( am_I_Root ) THEN
+               WRITE( 6, '(a)' ) 'Added passive species: '
+               WRITE( 6, 110   ) ' - Species name                : ', 
+     &               Input_Opt%PASSIVE_NAME(IDX) 
+               WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ', 
+     &               Input_Opt%PASSIVE_MW(IDX)
+               WRITE( 6, 120   ) ' - Lifetime [s]                : ', 
+     &               Input_Opt%PASSIVE_TAU(IDX)
+               WRITE( 6, 130   ) ' - Default concentration [v/v] : ', 
+     &               Input_Opt%PASSIVE_INITCONC(IDX)
+            ENDIF
          ENDDO
+      ELSE
+         WRITE(*,*) 'Cannot add passive species ', TRIM(SpcName),
+     &        ': # of passive species is smaller than 1!'
+         RC = GC_FAILURE
+         RETURN 
       ENDIF
+
+ 110  FORMAT( A, A )
+ 120  FORMAT( A, F10.2  )
+ 130  FORMAT( A, ES10.2 )
 
       ! All done
       RC = GC_SUCCESS

@@ -592,6 +592,9 @@
       ! MAXMEM increased from 20 to 22 for bromine (jpp, mpayer, 12/28/11)
       INTEGER,    PARAMETER :: MAXMEM = 22
 
+      ! MAXPASV -- Max number of passive spcies (ewl, 7/14/17) 
+      INTEGER,    PARAMETER :: MAXPASV = 20
+
       ! MAXPL increased from 100 to 500 and moved from diag_pl_mod
       ! to here by FP (hotp 7/31/09)
       INTEGER,    PARAMETER :: MAXPL = 500

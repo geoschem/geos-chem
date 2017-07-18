@@ -886,8 +886,6 @@
       USE State_Chm_Mod,       ONLY : ChmState
       USE State_Met_Mod,       ONLY : MetState
       USE State_Chm_Mod,       ONLY : ind_ 
-      USE PASSIVE_SPECIES_MOD, ONLY : PASSIVE_SPECIES_GETRATE
-      USE PASSIVE_SPECIES_MOD, ONLY : NPASSIVE, PASSIVE_NAME 
       USE TIME_MOD,            ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
@@ -906,16 +904,19 @@
 ! !REVISION HISTORY: 
 !  04 Sep 2015 - C. Keller    - Initial version 
 !  03 Nov 2016 - C. Keller    - Moved to chemistry_mod
+!  14 Jul 2017 - E. Lundgren  - Remove dependency on passive_species_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: N,  GCID
-      REAL(fp)           :: DT, Rate
+      INTEGER            :: N, GCID
+      REAL(fp)           :: DT, Rate, Decay
       CHARACTER(LEN=255) :: MSG
       CHARACTER(LEN=255) :: LOC='CHEM_PASSIVE_SPECIES (chemistry_mod.F)'
+   
+      REAL(fp), PARAMETER :: ln2 = 0.693147181E+00_fp
 
       DT = GET_TS_CHEM() * 60.0_fp
 
@@ -923,7 +924,7 @@
       RC = GC_SUCCESS
 
       ! Return if there are no passive species
-      IF ( NPASSIVE <= 0 ) RETURN
+      IF ( Input_Opt%NPASSIVE <= 0 ) RETURN
 
       ! Prosa
       IF ( am_I_Root ) THEN
@@ -931,17 +932,25 @@
       ENDIF
 
       ! Do for every passive species
-      DO N = 1, NPASSIVE
+      DO N = 1, Input_Opt%NPASSIVE
 
-         ! Sanity check (GCID should never be negative) 
-         GCID = ind_( TRIM(PASSIVE_NAME(N)) )
+         ! Sanity check (GCID should never be negative)
+         GCID = ind_( TRIM(Input_Opt%PASSIVE_NAME(N)) )
          IF ( GCID <= 0 ) CYCLE
+         
+         ! No loss needed if tau is zero or negative;
+         ! otherwise, calculate rate
+         IF ( Input_Opt%PASSIVE_TAU(N) <= 0.0_fp ) THEN
+            Rate = 1.0_fp
+         ELSE 
+            Decay    = ln2 / Input_Opt%PASSIVE_TAU(N)
+            Rate     = EXP( - DT * Decay )
+         ENDIF
 
-         ! Calculate decay rate (unitless)
-         CALL PASSIVE_SPECIES_GETRATE( am_I_Root, PASSIVE_NAME(N), 
-     &                                DT, RATE, RC )
+         ! Error check
          IF ( RC /= GC_SUCCESS ) THEN
-            MSG = 'Passive species rate error: '//TRIM(PASSIVE_NAME(N))
+            MSG = 'Passive species rate error: ' // 
+     &      TRIM(Input_Opt%PASSIVE_NAME(N))
             CALL GC_Error( MSG, RC, LOC )
             RETURN
          ENDIF
@@ -953,7 +962,7 @@
          ! Prosa
          IF ( am_I_Root ) THEN
             write(*,*) '- Pass. species, Species ID, loss rate: ', 
-     &         TRIM(PASSIVE_NAME(N)), GCID, Rate
+     &         TRIM(Input_Opt%PASSIVE_NAME(N)), GCID, Rate
          ENDIF
 
       ENDDO
