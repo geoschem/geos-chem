@@ -8336,6 +8336,11 @@
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
+      IF ( Input_Opt%LISOPOA .and. ( .NOT. Input_Opt%LSOA ) ) THEN
+         MSG = 'Mechanistic isoprene OA requires COMPLEX SOA (LSOA=T)'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
       ! SOAupdate: Error check (hotp 8/24/09)
       ! OCPI and OCPO are the non-volatile POA species
       ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA species
@@ -8389,9 +8394,7 @@
       !=================================================================
 
       ! Check for complex SOA species
-      I = MAX( Ind_('LIMO' ,'A'), 0 )
-     &  + MAX( Ind_('MTPO' ,'A'), 0 )
-     &  + MAX( Ind_('TSOA1','A'), 0 )
+      I = MAX( Ind_('TSOA1','A'), 0 )
      &  + MAX( Ind_('TSOA2','A'), 0 )
      &  + MAX( Ind_('TSOA3','A'), 0 )
      &  + MAX( Ind_('ISOA1','A'), 0 )
@@ -8421,36 +8424,6 @@
       IF ( Input_Opt%LSOA ) THEN
          IF ( I > 0 ) THEN
             MSG = 'Cannot use SIMPLE SOA species if LSOA=T!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
-
-      !=================================================================
-      ! Error check ISOPRENE ORGANIC AEROSOLS
-      !=================================================================
-
-      ! Check for mechanistic isoprene OA
-      I = MAX( Ind_('IPMN'  ,'A'), 0 )
-     &  + MAX( Ind_('IMAE'  ,'A'), 0 )
-     &  + MAX( Ind_('SOAIE' ,'A'), 0 )
-     &  + MAX( Ind_('SOAME' ,'A'), 0 )
-     &  + MAX( Ind_('INDIOL','A'), 0 )
-     &  + MAX( Ind_('SOAGX' ,'A'), 0 )
-     &  + MAX( Ind_('SOAMG' ,'A'), 0 )
-     &  + MAX( Ind_('LVOC'  ,'A'), 0 )
-     &  + MAX( Ind_('LVOCOA','A'), 0 )
-     &  + MAX( Ind_('ISN1'  ,'A'), 0 )
-     &  + MAX( Ind_('ISN1OG','A'), 0 )
-     &  + MAX( Ind_('ISN1OA','A'), 0 )
-
-      IF ( Input_Opt%LISOPOA ) THEN
-         IF ( I == 0 ) THEN
-            MSG = 'LISOPOA=T but ISOPRENE SOA species are undefined!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ELSE
-         IF ( I > 0 ) THEN
-            MSG = 'Cannot use ISOPRENE SOA species if LISOPOA=F!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF

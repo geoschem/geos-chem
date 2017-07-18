@@ -284,14 +284,11 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
-                              Is_Photolysis = F,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )                                          
-#else                                                                       
                               DD_Hstar_Old  = 4.1e+3_fp,                    &
                               Henry_K0      = 4.1e+3_f8,                    &
                               Henry_CR      = 6300.0_f8,                    &
-#endif                                      
+                              WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
 
@@ -778,7 +775,7 @@ CONTAINS
                               Henry_K0      = 3.2e+1_f8 * To_M_atm,         &
                               Henry_CR      = 6800.0_f8,                    &
 #else									    
-                              DD_Hstar_old  = 6.0e+3_fp,                    &
+                              DD_Hstar_old  = 3.0e+3_fp,                    &
                               Henry_K0      = 3.0e+3_f8,                    &
                               Henry_CR      = 7200.0_f8,                    &
 #endif									    
@@ -1103,12 +1100,10 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )                                          
-#else                                                                       
-                              DD_Hstar_Old  = 1.70e+4_fp,                   &
+                              DD_Hstar_Old  = 2.00e+6_fp,                   &
                               Henry_K0      = 2.00e+6_f8,                   &
                               Henry_CR      = 9200.0_f8,                    &
-#endif                                      
+                              WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
           CASE( 'DHDC' )
@@ -1359,12 +1354,9 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )
-#else
                               DD_Hstar_old  = 1.9e+2_fp,                    &
                               Henry_K0      = 1.9e+2_f8,                    &
                               Henry_CR      = 6600.0_f8,                    &
-#endif
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
@@ -1382,12 +1374,10 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )
-#else
-                              DD_Hstar_old  = 1.70e+4_fp,                   &
-                              Henry_K0      = 2.0e+6_f8,                    &
+                              DD_Hstar_old  = 2.00e+6_fp,                   &
+                              Henry_K0      = 2.00e+6_f8,                   &
                               Henry_CR      = 9200.0_f8,                    &
-#endif
+                              WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
 
@@ -1434,12 +1424,9 @@ CONTAINS
                               Is_Wetdep     = T,                            & !
                               Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )
-#else
                               DD_Hstar_old  = 3.6e+5_fp,                    &
                               Henry_K0      = 3.6e+5_f8,                    &
                               Henry_CR      = 7200.0_f8,                    &
-#endif
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
@@ -1511,9 +1498,9 @@ CONTAINS
                               Henry_K0      = 7.70e+1_f8 * To_M_atm,        &
                               Henry_CR      = 0.0_f8,                       &
 #else									    
-                              DD_Hstar_old  = 2.90e+3_fp,                   &
-                              Henry_K0      = 2.927e+3_f8,                  &
-                              Henry_CR      = 0.0_f8,                       &
+                              DD_Hstar_old  = 1.40e+6_fp,                   &
+                              Henry_K0      = 1.40e+6_f8,                   &
+                              Henry_CR      = 7200.0_f8,                    &
 #endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
@@ -1682,12 +1669,9 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
                               DD_Hstar_old  = 2.05e+6_fp,                   &
                               Henry_K0      = 7.10e+15_f8,                  &
                               Henry_CR      = 11000.0_f8,                   &
-#endif									    
                               WD_RetFactor  = 1.0_fp,                       &
                               RC            = RC )
 
@@ -1706,12 +1690,10 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
                               DD_Hstar_old  = 8.90e+3_fp,                   &
                               Henry_K0      = 8.90e+3_f8,                   &
                               Henry_CR      = 6100.0_f8,                    &
-#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
           CASE( 'HNO2' )
@@ -1885,12 +1867,10 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
-                              DD_Hstar_old  = 1.70e+4_fp,                   &
+                              DD_Hstar_old  = 2.00e+6_fp,                   &
                               Henry_K0      = 2.69e+13_f8,                  &
                               Henry_CR      = 5487.0_f8,                    &
-#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
           CASE( 'HPALD' )
@@ -1908,10 +1888,7 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
                               DD_F0         = 0.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
                               DD_Hstar_old  = 4.0e+4_fp,                    &
-#endif									    
                               RC            = RC )
 
           CASE( 'HPC52O2' )
@@ -1930,32 +1907,32 @@ CONTAINS
                               Is_Wetdep     = F,                            &
                               RC            = RC )
 
-          CASE( 'IEPOX' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Isoprene epoxide',           &
-                              MW_g          = 118.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-                              Henry_K0      = 7.60e+5_f8 * To_M_atm,        &
-                              Henry_CR      = 0.0_f8,                       &
-#else									    
-                              ! Update DD_Hstar based on Pye et al. (2013)
-                              DD_Hstar_old  = 2.70e+6_fp,                   &
-                              Henry_K0      = 1.30e+8_f8,                   &
-                              Henry_CR      = 0.0_f8,                       &
-#endif									    
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+!          CASE( 'IEPOX' )
+!             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+!                              ThisSpc       = SpcData(N)%Info,              &
+!                              ModelID       = N,                            &
+!                              KppSpcId      = KppSpcId(N),                  &
+!                              KppVarId      = KppVarId(N),                  &
+!                              KppFixId      = KppFixId(N),                  &
+!                              Name          = NameAllCaps,                  &
+!                              FullName      = 'Isoprene epoxide',           &
+!                              MW_g          = 118.0_fp,                     &
+!                              Is_Advected   = Is_Advected,                  &
+!                              Is_Gas        = T,                            &
+!                              Is_Drydep     = T,                            &
+!                              Is_Wetdep     = T,                            &
+!                              DD_F0         = 1.0_fp,                       &
+!#if defined( NEW_HENRY_CONSTANTS )					    
+!                              Henry_K0      = 7.60e+5_f8 * To_M_atm,        &
+!                              Henry_CR      = 0.0_f8,                       &
+!#else									    
+!                              ! Update DD_Hstar based on Pye et al. (2013)
+!                              DD_Hstar_old  = 2.70e+6_fp,                   &
+!                              Henry_K0      = 1.30e+8_f8,                   &
+!                              Henry_CR      = 0.0_f8,                       &
+!#endif									    
+!                              WD_RetFactor  = 2.0e-2_fp,                    &
+!                              RC            = RC )
 
           CASE( 'IEPOXA' )
              FullName = 'trans-Beta isoprene epoxydiol'
@@ -1974,12 +1951,9 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
                               DD_Hstar_old  = 8.00e+7_fp,                   &
                               Henry_K0      = 8.00e+7_f8,                   &
                               Henry_CR      = 0.0_f8,                       &
-#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
@@ -2000,12 +1974,9 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
                               DD_Hstar_old  = 8.00e+7_fp,                   &
                               Henry_K0      = 8.00e+7_f8,                   &
                               Henry_CR      = 0.0_f8,                       &
-#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
@@ -2026,12 +1997,9 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
                               DD_Hstar_old  = 8.00e+7_fp,                   &
                               Henry_K0      = 8.00e+7_f8,                   &
                               Henry_CR      = 0.0_f8,                       &
-#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
@@ -2049,13 +2017,10 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
                               ! DD_Hstar based on Pye et al. (2013)
                               DD_Hstar_old  = 1.20e+5_fp,                   &
                               Henry_K0      = 1.20e+5_f8,                   &
                               Henry_CR      = 7200.0_f8,                    &
-#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
@@ -2088,7 +2053,7 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
-          CASE( 'IONIT' )
+          CASE( 'IONITA' )
              FullName = 'Aer-phase organic nitrate from isoprene precursors'
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -2161,12 +2126,9 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
-                              DD_Hstar_old  = 1.70e+4_fp,                   &
+                              DD_Hstar_old  = 2.00e+6_fp,                   &
                               Henry_K0      = 2.00e+6_f8,                   &
                               Henry_CR      = 9200.0_f8,                    &
-#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
@@ -2213,12 +2175,9 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
                               DD_Hstar_old  = 2.30e+4_fp,                   &
                               Henry_K0      = 2.30e+4_f8,                   &
                               Henry_CR      = 9200.0_f8,                    &
-#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
@@ -2318,8 +2277,8 @@ CONTAINS
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 1.97e+4_f8 * To_M_atm,        &
 #else									    
-                              DD_Hstar_old  = 1.70e+4_fp,                   &
-                              Henry_K0      = 1.70e+4_f8,                   &
+                              DD_Hstar_old  = 2.00e+6_fp,                   &
+                              Henry_K0      = 2.00e+6_f8,                   &
                               Henry_CR      = 9200.0_f8,                    &
 #endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
@@ -2344,8 +2303,8 @@ CONTAINS
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 1.97e+4_f8 * To_M_atm,        &
 #else									    
-                              DD_Hstar_old  = 1.70e+4_fp,                   &
-                              Henry_K0      = 1.70e+4_f8,                   &
+                              DD_Hstar_old  = 2.00e+6_fp,                   &
+                              Henry_K0      = 2.00e+6_f8,                   &
                               Henry_CR      = 9200.0_f8,                    &
 #endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
@@ -2366,12 +2325,9 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
                               DD_Hstar_old  = 7.00e-2_fp,                   &
                               Henry_K0      = 7.00e-2_f8,                   &
                               Henry_CR      = 0.0_f8,                       &
-#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
      
@@ -2389,12 +2345,9 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
                               DD_Hstar_old  = 1.00e+8_fp,                   &
                               Henry_K0      = 1.00e+8_f8,                   &
                               Henry_CR      = 7200.0_f8,                    &
-#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
@@ -2470,8 +2423,8 @@ CONTAINS
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 1.97e+4_f8 * To_M_atm,        &
 #else									    
-                              DD_Hstar_old  = 1.70e+4_fp,                   &
-                              Henry_K0      = 1.70e+4_f8,                   &
+                              DD_Hstar_old  = 2.00e+6_fp,                   &
+                              Henry_K0      = 2.00e+6_f8,                   &
                               Henry_CR      = 9200.0_f8,                    &
 #endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
@@ -2539,12 +2492,9 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )
-#else
                               DD_Hstar_old  = 3.7e+3_fp,                    &
                               Henry_K0      = 3.7e+3_f8,                    &
                               Henry_CR      = 7500.0_f8,                    &
-#endif
                               WD_RetFactor  = 2.0e-2_fp,                    &
 
                               RC            = RC )
@@ -2573,7 +2523,7 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-          CASE( 'MONIT' )
+          CASE( 'MONITA' )
              FullName = 'Aer-phase organic nitrate from monoterpene precursors'
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -2624,12 +2574,10 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
-                              DD_Hstar_old  = 1.70e+4_fp,                   &
+                              DD_Hstar_old  = 2.00e+6_fp,                   &
                               Henry_K0      = 1.70e+4_f8,                   &
                               Henry_CR      = 9200.0_f8,                    &
-#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
           CASE( 'MONITU' )
@@ -2651,12 +2599,10 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
-                              DD_Hstar_old  = 1.70e+4_fp,                   &
+                              DD_Hstar_old  = 2.00e+6_fp,                   &
                               Henry_K0      = 1.70e+4_f8,                   &
                               Henry_CR      = 9200.0_f8,                    &
-#endif									    
+                              WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
           CASE( 'MOPI' )
@@ -2813,12 +2759,9 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
                               DD_Hstar_old  = 4.90e-2_fp,                   &
                               Henry_K0      = 4.90e-2_f8,                   &
                               Henry_CR      = 0.0_f8,                       &
-#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
@@ -2888,8 +2831,8 @@ CONTAINS
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 1.97e+4_f8 * To_M_atm,        &
 #else									    
-                              DD_Hstar_old  = 1.70e+4_fp,                   &
-                              Henry_K0      = 1.70e+4_f8,                   &
+                              DD_Hstar_old  = 2.00e+6_fp,                   &
+                              Henry_K0      = 2.00e+6_f8,                   &
                               Henry_CR      = 9200.0_f8,                    &
 #endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
@@ -3575,8 +3518,8 @@ CONTAINS
                               Henry_K0      = 4.93e+3_f8 * To_M_atm,        &
                               Henry_CR      = 0.0_f8,                       &
 #else									    
-                              DD_Hstar_old  = 1.00e+3_fp,                   &
-                              Henry_K0      = 1.00e+3_f8,                   &
+                              DD_Hstar_old  = 5.00e+5_fp,                   &
+                              Henry_K0      = 5.00e+5_f8,                   &
                               Henry_CR      = 0.0_f8,                       &
 #endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
@@ -3627,33 +3570,10 @@ CONTAINS
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 9.5e-2_f8 * To_M_atm,         &
                               Henry_CR      = 6200.0_f8,                    &
+#else
+                              Henry_K0      = 4.20e+3_f8,                   &
+                              Henry_CR      = 0.0_f8,                       &
 #endif
-                              RC            = RC )
-
-          CASE( 'RIP' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxide from RIO2',         &
-                              MW_g          = 118.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-                              Henry_K0      = 7.90e+5_f8 * To_M_atm,        &
-                              Henry_CR      = 0.0_f8,                       &
-#else									    
-                              DD_Hstar_old  = 1.70e+6_fp,                   &
-                              Henry_K0      = 1.70e+6_f8,                   &
-                              Henry_CR      = 0.0_f8,                       &
-#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
@@ -3673,12 +3593,9 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
                               DD_Hstar_old  = 1.70e+6_fp,                   &
                               Henry_K0      = 1.70e+6_f8,                   &
                               Henry_CR      = 0.0_f8,                       &
-#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
@@ -3698,12 +3615,9 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
                               DD_Hstar_old  = 1.70e+6_fp,                   &
                               Henry_K0      = 1.70e+6_f8,                   &
                               Henry_CR      = 0.0_f8,                       &
-#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
@@ -3723,12 +3637,9 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
                               DD_Hstar_old  = 1.70e+6_fp,                   &
                               Henry_K0      = 1.70e+6_f8,                   &
                               Henry_CR      = 0.0_f8,                       &
-#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
