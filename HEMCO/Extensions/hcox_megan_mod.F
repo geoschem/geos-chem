@@ -184,6 +184,7 @@
 !  05 Nov 2015 - C. Keller   - Reorganize restart variables to running averages.
 !  08 Dec 2015 - C. Keller   - Now treat previous' day LAI as running avg, too.
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
+!  17 Jul 2017 - C. Keller   - Now normalize LAI by PFTs.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -198,6 +199,7 @@
          REAL(hp)                :: ISOP_SCALING ! Isoprene emissions scaling
          REAL(hp)                :: GLOBCO2      ! Global CO2 conc (ppmv)
          LOGICAL                 :: LISOPCO2     ! Include CO2 inhibition of ISOP?
+         LOGICAL                 :: NORMLAI      ! Normalize LAI by PFT? 
    
          ! Physical parameter
          REAL(hp)                :: D2RAD  ! Degrees to radians 
@@ -261,7 +263,10 @@
    
          ! previous LAI values (ckeller, 10/09/2014)
          REAL(sp), POINTER       :: LAI_PREVDAY(:,:)      ! LAI of prev. day
-   
+  
+         ! Array for PFT
+         REAL(hp), POINTER       :: ARRAY_16(:,:,:)
+ 
          ! Days between mid-months (updated by HEMCO clock)
          INTEGER                 :: DAYS_BTW_M
 
@@ -283,6 +288,9 @@
       REAL(hp), PARAMETER  :: TAU_HOURS      = 12.0_hp  ! e-folding time to be applied to
                                                         ! short-term past conditions (in hours)
       REAL(hp), PARAMETER  :: WM2_TO_UMOLM2S = 4.766_hp ! W/m2 -> umol/m2/s
+
+      ! Maximum LAI value
+      REAL(hp), PARAMETER  :: LAI_MAX        = 6.0_hp   ! cm2/cm2
 
 
       ! testing only
@@ -1782,6 +1790,7 @@
 !                              routine for all MEGAN compounds
 !  15 Sep 2015 - M. Sulprizio- Add CO2 inhibition effect on isoprene emissions
 !                              from Amos Tai (Jan 2013)
+!  17 Jul 2017 - C. Keller   - Now normalize LAI by PFT's.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1802,6 +1811,7 @@
       REAL(hp)  :: BETA, LDF, CT1, CEO
       REAL(hp)  :: ANEW, AGRO, AMAT, AOLD
       REAL(hp)  :: ISOLAI, PMISOLAI, MISOLAI
+      REAL(hp)  :: PFTSUM
       LOGICAL   :: BIDIR    
 
       !=================================================================
@@ -1841,6 +1851,16 @@
       ! Convert Q_DIR and Q_DIFF from (W/m2) to (micromol/m2/s)
       Q_DIR_2  = ExtState%PARDR%Arr%Val(I,J) * WM2_TO_UMOLM2S
       Q_DIFF_2 = ExtState%PARDF%Arr%Val(I,J) * WM2_TO_UMOLM2S
+  
+      ! Eventually normalize LAI by PFT (if setting is set
+      ! accordingly). ckeller, 7/17/17.
+      IF ( Inst%NORMLAI ) THEN
+         PFTSUM = SUM( Inst%ARRAY_16(I,J,2:16) )
+         IF ( PFTSUM > 0.0_hp ) THEN
+            MISOLAI  = MIN( MISOLAI  / PFTSUM, LAI_MAX )
+            PMISOLAI = MIN( PMISOLAI / PFTSUM, LAI_MAX )
+         ENDIF
+      ENDIF
 
       ! --------------------------------------------
       ! Get MEGAN parameters for this compound
@@ -1878,12 +1898,10 @@
      &                                      Inst%PARDF_LASTXDAYS(I,J) )
 !     &                                      PARDR_15_AVG(I,J),
 !     &                                      PARDF_15_AVG(I,J)  )
-
          ELSE             
  
             ! If night
             GAMMA_PAR = 0.0_hp  
-            
          ENDIF 
 
          ! --------------------------------------------------
@@ -2727,14 +2745,15 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_GAMMA_LAI( CMLAI, BIDIREXCH ) RESULT( GAMMA_LAI )
+      FUNCTION GET_GAMMA_LAI( CMLAI, BIDIREXCH ) 
+     &   RESULT( GAMMA_LAI )
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(hp), INTENT(IN) :: CMLAI       ! Current month's LAI [cm2/cm2]
-      LOGICAL,  INTENT(IN) :: BIDIREXCH   ! Logical flag indicating whether
-                                          ! the compound undergoes bidirectional
-                                          ! exchange
+      REAL(hp),     INTENT(IN) :: CMLAI       ! Current month's LAI [cm2/cm2]
+      LOGICAL,      INTENT(IN) :: BIDIREXCH   ! Logical flag indicating whether
+                                              ! the compound undergoes bidirectional
+                                              ! exchange
 !
 ! !RETURN VALUE:
 !
@@ -2758,7 +2777,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
       !-----------------------
       ! Compute GAMMA_LAI
       !-----------------------
@@ -3444,6 +3462,7 @@
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  10 Jun 2015 - M. Sulprizio- Bug fix: Now convert sesquiterpenes (FARN, BCAR,
 !                              OSQT) from ug compound/m2/h to kg C/m2/s
+!  17 Jul 2017 - C. Keller   - PFT values (ARRAY_16) are now stored in Inst object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3452,7 +3471,7 @@
 !
       INTEGER                 :: I, J, P, ARR_IND
       REAL(hp)                :: FACTOR, SPECIES2CARBON
-      REAL(hp)                :: ARRAY_16(HcoState%NX,HcoState%NY,16)
+      !REAL(hp)                :: ARRAY_16(HcoState%NX,HcoState%NY,16)
       REAL(hp)                :: PFT_EF_OMON(15), PFT_EF_MOHX(15)
       REAL(hp)                :: PFT_EF_ACET(15), PFT_EF_BIDR(15)
       REAL(hp)                :: PFT_EF_STRS(15), PFT_EF_OTHR(15)
@@ -3670,22 +3689,22 @@
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! Copy PFTs into ARRAY_16
-      ARRAY_16(:,:, 1) = PFT_BARE
-      ARRAY_16(:,:, 2) = PFT_NDLF_EVGN_TMPT_TREE
-      ARRAY_16(:,:, 3) = PFT_NDLF_EVGN_BORL_TREE
-      ARRAY_16(:,:, 4) = PFT_NDLF_DECD_BORL_TREE
-      ARRAY_16(:,:, 5) = PFT_BDLF_EVGN_TROP_TREE
-      ARRAY_16(:,:, 6) = PFT_BDLF_EVGN_TMPT_TREE
-      ARRAY_16(:,:, 7) = PFT_BDLF_DECD_TROP_TREE
-      ARRAY_16(:,:, 8) = PFT_BDLF_DECD_TMPT_TREE
-      ARRAY_16(:,:, 9) = PFT_BDLF_DECD_BORL_TREE
-      ARRAY_16(:,:,10) = PFT_BDLF_EVGN_SHRB
-      ARRAY_16(:,:,11) = PFT_BDLF_DECD_TMPT_SHRB
-      ARRAY_16(:,:,12) = PFT_BDLF_DECD_BORL_SHRB
-      ARRAY_16(:,:,13) = PFT_C3_ARCT_GRSS
-      ARRAY_16(:,:,14) = PFT_C3_NARC_GRSS
-      ARRAY_16(:,:,15) = PFT_C4_GRSS
-      ARRAY_16(:,:,16) = PFT_CROP
+      Inst%ARRAY_16(:,:, 1) = PFT_BARE
+      Inst%ARRAY_16(:,:, 2) = PFT_NDLF_EVGN_TMPT_TREE
+      Inst%ARRAY_16(:,:, 3) = PFT_NDLF_EVGN_BORL_TREE
+      Inst%ARRAY_16(:,:, 4) = PFT_NDLF_DECD_BORL_TREE
+      Inst%ARRAY_16(:,:, 5) = PFT_BDLF_EVGN_TROP_TREE
+      Inst%ARRAY_16(:,:, 6) = PFT_BDLF_EVGN_TMPT_TREE
+      Inst%ARRAY_16(:,:, 7) = PFT_BDLF_DECD_TROP_TREE
+      Inst%ARRAY_16(:,:, 8) = PFT_BDLF_DECD_TMPT_TREE
+      Inst%ARRAY_16(:,:, 9) = PFT_BDLF_DECD_BORL_TREE
+      Inst%ARRAY_16(:,:,10) = PFT_BDLF_EVGN_SHRB
+      Inst%ARRAY_16(:,:,11) = PFT_BDLF_DECD_TMPT_SHRB
+      Inst%ARRAY_16(:,:,12) = PFT_BDLF_DECD_BORL_SHRB
+      Inst%ARRAY_16(:,:,13) = PFT_C3_ARCT_GRSS
+      Inst%ARRAY_16(:,:,14) = PFT_C3_NARC_GRSS
+      Inst%ARRAY_16(:,:,15) = PFT_C4_GRSS
+      Inst%ARRAY_16(:,:,16) = PFT_CROP
 
       ! --------------------------------------------------------------------------------
       ! PFT-specific EFs from Table 2 in Guenther et al., 2012
@@ -3846,76 +3865,76 @@
 ! ---> Now compute EFs for a-pinene and myrcene as well (dbm, 12/2012)
             ! a-pinene: 100% of category
             Inst%AEF_APIN(:,:) = Inst%AEF_APIN(:,:) + 
-     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_APIN(P)
+     &           Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_APIN(P)
 
             ! Myrcene: 100% of category
             Inst%AEF_MYRC(:,:) = Inst%AEF_MYRC(:,:) + 
-     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_MYRC(P)
+     &           Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_MYRC(P)
 ! <---
             ! Other monoterpenes: 100% of category
             Inst%AEF_OMON(:,:) = Inst%AEF_OMON(:,:) + 
-     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_OMON(P)
+     &           Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_OMON(P)
 
             ! a-Farnesene: 100% of category
             Inst%AEF_FARN(:,:) = Inst%AEF_FARN(:,:) + 
-     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_FARN(P)
+     &           Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_FARN(P)
 
             ! b-Caryophyllene: 100% of category
             Inst%AEF_BCAR(:,:) = Inst%AEF_BCAR(:,:) + 
-     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_BCAR(P)
+     &           Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_BCAR(P)
 
             ! Other sesquiterpenes: 100% of category
             Inst%AEF_OSQT(:,:) = Inst%AEF_OSQT(:,:) + 
-     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_OSQT(P)
+     &           Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_OSQT(P)
 
          ENDIF
 
          ! Methanol: 100% of category
          Inst%AEF_MOHX(:,:) = Inst%AEF_MOHX(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_MOHX(P)
+     &        Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_MOHX(P)
 
          ! Acetone: 100% of category
          Inst%AEF_ACET(:,:) = Inst%AEF_ACET(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_ACET(P)
+     &        Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_ACET(P)
 
          ! Ethanol: variable fraction of category
          Inst%AEF_ETOH(:,:) = Inst%AEF_ETOH(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_BIDR(P) * EM_FRAC_ETOH(P)
+     &        Inst%ARRAY_16(:,:,ARR_IND)*PFT_EF_BIDR(P)*EM_FRAC_ETOH(P)
 
          ! Formaldehyde: variable fraction of category
          Inst%AEF_CH2O(:,:) = Inst%AEF_CH2O(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_BIDR(P) * EM_FRAC_CH2O(P)
+     &        Inst%ARRAY_16(:,:,ARR_IND)*PFT_EF_BIDR(P)*EM_FRAC_CH2O(P)
 
          ! Acetaldehyde: variable fraction of category
          Inst%AEF_ALD2(:,:) = Inst%AEF_ALD2(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_BIDR(P) * EM_FRAC_ALD2(P)
+     &        Inst%ARRAY_16(:,:,ARR_IND)*PFT_EF_BIDR(P)*EM_FRAC_ALD2(P)
 
          ! Formic acid: variable fraction of category
          Inst%AEF_FAXX(:,:) = Inst%AEF_FAXX(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_BIDR(P) * EM_FRAC_FAXX(P)
+     &        Inst%ARRAY_16(:,:,ARR_IND)*PFT_EF_BIDR(P)*EM_FRAC_FAXX(P)
 
          ! Acetic acid: variable fraction of category
          Inst%AEF_AAXX(:,:) = Inst%AEF_AAXX(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_BIDR(P) * EM_FRAC_AAXX(P)
+     &        Inst%ARRAY_16(:,:,ARR_IND)*PFT_EF_BIDR(P)*EM_FRAC_AAXX(P)
 
          ! Ethene: 58% of "stress" category for all PFTs
          Inst%AEF_C2H4(:,:) = Inst%AEF_C2H4(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_STRS(P) * 0.58_hp
+     &        Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_STRS(P) * 0.58_hp
 
          ! Toluene: 3% of "stress" category for all PFTs
          Inst%AEF_TOLU(:,:) = Inst%AEF_TOLU(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_STRS(P) * 0.03_hp
+     &        Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_STRS(P) * 0.03_hp
 
          ! HCN: 1.5% of "stress" category for all PFTs
          Inst%AEF_HCNX(:,:) = Inst%AEF_HCNX(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_STRS(P) * 0.015_hp
+     &        Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_STRS(P) * 0.015_hp
 
          ! Propene: 48% of "other" category for all PFTs
          ! Butene:  24% of "other" category for all PFTs
          ! Larger alkenes: 0.2% of "other" category for all PFTs
          ! Total: 72.2% 
          Inst%AEF_PRPE(:,:) = Inst%AEF_PRPE(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_OTHR(P) * 0.722_hp
+     &        Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_OTHR(P) * 0.722_hp
          
       ENDDO
 
@@ -4052,6 +4071,7 @@
 !  18 Feb 2015 - M. Sulprizio- Now allocate AEF arrays for species not read
 !                              from file
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  17 Jul 2017 - C. Keller   - Added optional setting NORMLAI
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4061,7 +4081,7 @@
       INTEGER                        :: ExtNr
       INTEGER                        :: I, nSpc, AS, NX, NY
       INTEGER, ALLOCATABLE           :: HcoIDs(:)
-      LOGICAL                        :: FOUND
+      LOGICAL                        :: FOUND, TorF
       REAL*8                         :: PI_180
       REAL(hp), POINTER              :: Ptr2D(:,:)
       TYPE(MyInst), POINTER          :: Inst
@@ -4112,6 +4132,14 @@
      &                 'CO2 conc (ppmv)', 
      &                 OptValHp=Inst%GLOBCO2, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
+      ! Normalize LAI by PFT? Default setting is 'yes'
+      ! ckeller, 7/17/17.
+      Inst%NORMLAI = .TRUE.
+      CALL GetExtOpt( HcoState%Config, ExtNr, 
+     &                 'Normalize LAI', OptValBool=TorF, 
+     &                 Found=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+      IF ( FOUND ) Inst%NORMLAI = TorF
 
       ! Check GLOBCO2 if CO2 inhibition is turned on (LISOPCO2 = .TRUE.)
       ! GLOBCO2 should be between 150-1250 ppmv. Isoprene response to
@@ -4186,6 +4214,9 @@
          CALL HCO_MSG(HcoState%Config%Err,MSG )
          WRITE(MSG,*) ' --> Global atmospheric CO2 concentration : ', 
      &                Inst%GLOBCO2, ' ppmv'
+         CALL HCO_MSG(HcoState%Config%Err,MSG )
+         WRITE(MSG,*) ' --> Normalize LAI by PFT: ', 
+     &                Inst%NORMLAI
          CALL HCO_MSG(HcoState%Config%Err,MSG )
       ENDIF
 
@@ -4382,6 +4413,14 @@
         RETURN
       ENDIF
       Inst%LAI_PREVDAY = 0.0_sp
+
+      ALLOCATE( Inst%ARRAY_16( NX, NY, 16 ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+        CALL HCO_ERROR( HcoState%Config%Err,
+     &                  'ARRAY_16', RC )
+        RETURN
+      ENDIF
+      Inst%ARRAY_16 = 0.0_hp
 
       ! Normalization factor
       ! There should be a different normalization factor for each compound, but
