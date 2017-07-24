@@ -170,7 +170,6 @@ HONIT      = IGNORE; {2nd gen monoterpene organic nitrate}
 HPALD      = IGNORE; {C5H8O3; Hydroperoxyaldehydes}
 HPC52O2    = IGNORE; {OOCC(C(C=O)O)(O[O])C}
 IAP        = IGNORE; {HOCH2C(CH3)(OOH)CH(OH)CHO; Peroxide from IAO2}
-IEPOX      = IGNORE; {C5H10O3; Isoprene epoxide}
 IEPOXA     = IGNORE; {C5H10O3; trans-Beta isoprene epoxydiol}
 IEPOXB     = IGNORE; {C5H10O3; cis-Beta isoprene epoxydiol}
 IEPOXD     = IGNORE; {C5H10O3; Delta isoprene epoxydiol}
@@ -751,10 +750,10 @@ HC5OO + NO = NO2 + 0.216GLYX +
 HC5OO + NO = HNO3 :                         GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 5.0, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 HC5OO + HO2 = 0.100IAP + 0.900OH + 
  0.900MGLY + 0.900GLYC + 0.900HO2 :         GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 5.0, 0.0, 0.0);     {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-ISOPND + OH = 0.100IEPOX +
+ISOPND + OH = 0.100IEPOXD +
  0.900ISOPNDO2 +0.100NO2 :                  GCARR(1.20E-11, 0.0E+00, 652.0);    {2017/07/14; Jacobs2014,Lee2014; KRT,JAF,CCM,EAM,KHB,RHS}
 ISOPNB + OH = 0.900ISOPNBO2 +
- 0.100IEPOX + 0.100NO2 :                    GCARR(2.40E-12, 0.0E+00, 745.0);    {2017/07/14; Jacobs2014,Lee2014; KRT,JAF,CCM,EAM,KHB,RHS}
+ 0.067IEPOXA + 0.033IEPOXB + 0.100NO2 :     GCARR(2.40E-12, 0.0E+00, 745.0);    {2017/07/14; Jacobs2014,Lee2014; KRT,JAF,CCM,EAM,KHB,RHS}
 ISOPNDO2 + NO = 0.019MACRN + 
  0.057HCOOH + 0.270HAC + 0.210ETHLN + 
  0.150CH2O + 0.790NO2 + 0.300GLYC + 
@@ -936,7 +935,9 @@ DHPCARP = RCOOH + CO + OH :                 GCARR(2.90E+07, 0.0E+00, -5300.0); {
 DHPCARP = DHDC :                            GCARR(1.28E+07, 0.0E+00, -5300.0); {2017/07/14; Crounse2012; KRT,JAF,CCM,EAM,KHB,RHS}
 GLYX = SOAGX :                              HET(ind_GLYX,1);                   {2017/06/15, Marais2016, EAM}
 MGLY = SOAMG :                              HET(ind_MGLY,1);                   {2017/06/15, Marais2016, EAM}
-IEPOX = SOAIE :                             HET(ind_IEPOX,1);                  {2017/06/15, Marais2016, EAM}
+IEPOXA = SOAIE :                            HET(ind_IEPOXA,1);                 {2017/06/15, Marais2016, EAM}
+IEPOXB = SOAIE :                            HET(ind_IEPOXB,1);                 {2017/06/15, Marais2016, EAM}
+IEPOXD = SOAIE :                            HET(ind_IEPOXD,1);                 {2017/06/15, Marais2016, EAM}
 IMAE = SOAME :                              HET(ind_IMAE,1);                   {2017/06/15, Marais2016, EAM}
 LVOC = LVOCOA :                             HET(ind_LVOC,1);                   {2017/06/15, Marais2016, EAM}
 ISN1OG = ISN1OA :                           HET(ind_ISN1OG,1);                 {2017/06/15, Marais2016, EAM}

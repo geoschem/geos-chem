@@ -607,7 +607,9 @@ CONTAINS
           IF ( ND52 > 0 ) THEN
              ! Archive gamma values
              AD52(I,J,L,1) = AD52(I,J,L,1) + HET(ind_HO2,   1)
-             AD52(I,J,L,2) = AD52(I,J,L,2) + HET(ind_IEPOX, 1)
+             AD52(I,J,L,2) = AD52(I,J,L,2) + HET(ind_IEPOXA,1) &
+                                           + HET(ind_IEPOXB,1) &
+                                           + HET(ind_IEPOXD,1)
              AD52(I,J,L,3) = AD52(I,J,L,3) + HET(ind_IMAE,  1)
              AD52(I,J,L,4) = AD52(I,J,L,4) + HET(ind_ISOPND,1) &
                                            + HET(ind_ISOPNB,1)
