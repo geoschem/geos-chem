@@ -925,7 +925,7 @@ CONTAINS
 
        ! GEOS-Chem Species Database entry for species # N
        ThisSpc => State_Chm%SpcData(N)%Info
- 
+
        !--------------------------------------------------------------------
        ! Set up the mapping for ADVECTED SPECIES
        !--------------------------------------------------------------------

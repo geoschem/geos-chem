@@ -159,6 +159,7 @@
 #  23 Jun 2016 - R. Yantosca - Remove references to GeosApm
 #  30 Jun 2016 - M. Sulprizio- Remove readchem.F, reader.F, jsparse.F, ksparse.F
 #  09 Aug 2016 - M. Sulprizio- Remove diag_pl_mod and add diag20_mod
+#  13 Jul 2017 - E. Lundgren - Remove passive_species_mod.F90
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -460,11 +461,12 @@ chemistry_mod.o             : chemistry_mod.F                                \
                               c2h6_mod.o              carbon_mod.o           \
                               dust_mod.o              drydep_mod.o           \
                               global_ch4_mod.o        mercury_mod.o          \
-                              pops_mod.o              rpmares_mod.o          \
-                              RnPbBe_mod.o            seasalt_mod.o          \
-                              strat_chem_mod.o        sulfate_mod.o          \
-                              tagged_co_mod.o         tagged_o3_mod.o        \
-                              tomas_mod.o             flexchem_mod.o
+                              pops_mod.o             \
+                              rpmares_mod.o           RnPbBe_mod.o           \
+                              seasalt_mod.o           strat_chem_mod.o       \
+                              sulfate_mod.o           tagged_co_mod.o        \
+                              tagged_o3_mod.o         tomas_mod.o            \
+                              flexchem_mod.o
 
 cleanup.o                   : cleanup.F                                      \
                               aerosol_mod.o                                  \
