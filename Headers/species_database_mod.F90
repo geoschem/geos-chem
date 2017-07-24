@@ -173,6 +173,7 @@ CONTAINS
     CHARACTER(LEN=31)   :: NameAllCaps
     CHARACTER(LEN=31)   :: Name
     CHARACTER(LEN=80)   :: FullName
+    CHARACTER(LEN=80)   :: Formula
 
     ! For Tagged Hg species
     INTEGER             :: Hg0_CAT
@@ -251,6 +252,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Acetone',                    &
+                              Formula       = 'CH3C(O)CH3',                 &
                               MW_g          = 58.08_fp,                     &
                               EmMW_g        = 12.00_fp,                     &
                               MolecRatio    = 3.0_fp,                       &
@@ -279,6 +281,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Acetic acid',                &
+                              Formula       = 'CH3C(O)OH',                  &
                               MW_g          = 60.00_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -301,6 +304,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Acetaldehyde',               &
+                              Formula       = 'CH3CHO',                     &
                               MW_g          = 44.05_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 2.0_fp,                       &
@@ -330,6 +334,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Lumped >= C4 Alkanes',       &
+                              Formula       = '',                           &
                               MW_g          = 58.12_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 4.3_fp,                       &
@@ -362,6 +367,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 150.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -385,6 +391,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 150.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -438,6 +445,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
@@ -462,6 +470,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Benzene',                    &
+                              Formula       = 'C6H6',                       &
                               MW_g          = 78.11_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 6.0_fp,                       &
@@ -480,6 +489,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'Br',                         &
                               FullName      = 'Atomic bromine',             &
+                              Formula       = 'Br',                         &
                               MW_g          = 80.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -500,6 +510,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'Br2',                        &
                               FullName      = 'Molecular Bromine',          &
+                              Formula       = 'Br2',                        &
                               MW_g          = 160.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -527,6 +538,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'BrCl',                       &
                               FullName      = 'Bromine chloride',           &
+                              Formula       = 'BrCl',                       &
                               MW_g          = 115.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -544,6 +556,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'BrNO2',                      &
                               FullName      = 'Nitryl bromide',             &
+                              Formula       = 'BrNO2',                      &
                               MW_g          = 126.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -561,6 +574,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'BrNO3',                      &
                               FullName      = 'Bromine nitrate',            &
+                              Formula       = 'BrNO3',                      &
                               MW_g          = 142.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -580,6 +594,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'BrO',                        &
                               FullName      = 'Bromine monoxide',           &
+                              Formula       = 'BrO',                        &
                               MW_g          = 96.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -597,6 +612,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Ethane',                     &
+                              Formula       = 'C2H6',                       &
                               MW_g          = 30.07_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 2.0_fp,                       &
@@ -620,6 +636,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Propane',                    &
+                              Formula       = 'C3H8',                       &
                               MW_g          = 44.1_fp,                      &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 3.0_fp,                       &
@@ -642,6 +659,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CCl4',                       &
                               FullName      = 'Carbon tetrachloride',       &
+                              Formula       = 'CCl4',                       &
                               MW_g          = 152.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -659,6 +677,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'CFC-11',                     &
+                              Formula       = 'CCl3F',                      &
                               MW_g          = 137.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -676,6 +695,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'CFC-12',                     &
+                              Formula       = 'CCl2F2',                     &
                               MW_g          = 121.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -693,6 +713,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'CFC-113',                    &
+                              Formula       = 'C2Cl3F3',                    &
                               MW_g          = 187.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -710,6 +731,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'CFC-114',                    &
+                              Formula       = 'C2Cl2F4',                    &
                               MW_g          = 187.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -727,6 +749,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'CFC-115',                    &
+                              Formula       = 'C2ClF5',                     &
                               MW_g          = 187.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -744,6 +767,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH2Br2',                     &
                               FullName      = 'Dibromomethane',             &
+                              Formula       = 'CH3Br2',                     &
                               MW_g          = 174.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -763,6 +787,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH2O',                       &
                               FullName      = 'Formaldehyde',               &
+                              Formula       = 'CH2O',                       &
                               MW_g          = 30.0_fp,                      &
                               BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
@@ -791,6 +816,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH3Br',                      &
                               FullName      = 'Methyl bromide',             &
+                              Formula       = 'CH3Br',                      &
                               MW_g          = 95.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -810,6 +836,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH3Cl',                      &
                               FullName      = 'Chloromethane',              &
+                              Formula       = 'CH3Cl',                      &
                               MW_g          = 50.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -827,6 +854,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH3CCl3',                    &
                               FullName      = 'Methyl chloroform',          &
+                              Formula       = 'CH3CCl3',                    &
                               MW_g          = 133.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -844,6 +872,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methane',                    &
+                              Formula       = 'CH4',                        &
                               MW_g          = 16.0_fp,                      &
                               BackgroundVV  = 1.7e-06_fp,                   &
                               Is_Advected   = Is_Advected,                  &
@@ -861,6 +890,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CHBr3',                      &
                               FullName      = 'Bromoform',                  &
+                              Formula       = 'CHBr3',                      &
                               MW_g          = 253.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -878,6 +908,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'Cl',                         &
                               FullName      = 'Atomic chlorine',            &
+                              Formula       = 'Cl',                         &
                               MW_g          = 35.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -894,6 +925,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'Cl2',                        &
                               FullName      = 'Molecular chlorine',         &
+                              Formula       = 'Cl2',                        &
                               MW_g          = 71.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -911,6 +943,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'Cl2O2',                      &
                               FullName      = 'Dichlorine dioxide',         &
+                              Formula       = 'Cl2O2',                      &
                               MW_g          = 103.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -928,6 +961,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'ClNO2',                      &
                               FullName      = 'Nitryl chloride',            &
+                              Formula       = 'ClNO2',                      &
                               MW_g          = 81.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -944,6 +978,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'ClNO3',                      &
                               FullName      = 'Chlorine nitrate',           &
+                              Formula       = 'ClNO3',                      &
                               MW_g          = 97.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -961,6 +996,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'ClO',                        &
                               FullName      = 'Chlorine monoxide',          &
+                              Formula       = 'ClO',                        &
                               MW_g          = 51.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -969,15 +1005,7 @@ CONTAINS
                               Is_Photolysis = T,                            &
                               RC            = RC )
 
-          CASE( 'CLOO', 'OCLO' )
-
-             ! These have identical properties except for the names
-             SELECT CASE( NameAllCaps )
-                CASE( 'CLOO' )
-                   Name     = 'ClOO'
-                CASE( 'OCLO' )
-                   Name     = 'OClO'
-             END SELECT
+          CASE( 'CLOO' )
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -985,8 +1013,9 @@ CONTAINS
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              Name          = Name,                         &
+                              Name          = 'ClOO',                       &
                               FullName      = 'Chlorine dioxide',           &
+                              Formula       = 'ClOO',                       &
                               MW_g          = 67.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1071,6 +1100,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = Name,                         &
                               FullName      = FullName,                     &
+                              Formula       = 'CO',                         &
                               MW_g          = 28.0_fp,                      &
                               BackgroundVV  = BackgroundVV,                 &
                               Is_Advected   = Is_Advected,                  &
@@ -1081,29 +1111,6 @@ CONTAINS
                               Henry_K0      = 9.70e-6_f8 * To_M_atm,        &
                               Henry_CR      = 1300.0_f8,                    &
 #endif                                      
-                              RC            = RC )
-
-          CASE( 'DHDN' )
-             ! DHDN uses the same DD_F0 and DD_Hstar_old values as ISOPN
-             ! so that we can compute its drydep velocity explicitly.
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'C5 dihydroxydinitrate',      &
-                              MW_g          = 226.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_Old  = 2.00e+6_fp,                   &
-                              Henry_K0      = 2.00e+6_f8,                   &
-                              Henry_CR      = 9200.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
           CASE( 'DHDC' )
@@ -1117,11 +1124,37 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = 'C5H8O6',                     &
                               MW_g          = 164.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              RC            = RC )
+
+          CASE( 'DHDN' )
+             ! DHDN uses the same DD_F0 and DD_Hstar_old values as ISOPN
+             ! so that we can compute its drydep velocity explicitly.
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'C5 dihydroxydinitrate',      &
+                              Formula       = 'C5H10O8N2',                  &
+                              MW_g          = 226.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
+                              DD_F0         = 1.0_fp,                       &
+                              DD_Hstar_Old  = 2.00e+6_fp,                   &
+                              Henry_K0      = 2.00e+6_f8,                   &
+                              Henry_CR      = 9200.0_f8,                    &
+                              WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
           CASE( 'DHPCARP' )
@@ -1135,6 +1168,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = 'C5H9O7',                     &
                               MW_g          = 181.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1151,6 +1185,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Dimethyl sulfide',           &
+                              Formula       = '(CH3)2S',                    &
                               MW_g          = 62.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -1189,6 +1224,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 29.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -1233,6 +1269,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 29.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -1278,6 +1315,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 29.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -1324,6 +1362,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 29.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -1346,6 +1385,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Ethanol',                    &
+                              Formula       = 'C2H5OH',                     &
                               MW_g          = 46.07_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 2.0_fp,                       &
@@ -1368,11 +1408,13 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Ethanol nitrate',            &
+                              Formula       = 'CHOCH2ONO2',                 &
                               MW_g          = 105.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
                               DD_Hstar_old  = 2.00e+6_fp,                   &
                               Henry_K0      = 2.00e+6_f8,                   &
@@ -1390,6 +1432,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Glycoaldehyde',              &
+                              Formula       = 'HOCH2CHO',                   &
                               MW_g          = 60.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1417,17 +1460,72 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Glyoxal',                    &
+                              Formula       = 'CHOCHO',                     &
                               MW_g          = 58.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            & 
-                              Is_Wetdep     = T,                            & !
+                              Is_Wetdep     = T,                            &
                               Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
                               DD_Hstar_old  = 3.6e+5_fp,                    &
                               Henry_K0      = 3.6e+5_f8,                    &
                               Henry_CR      = 7200.0_f8,                    &
                               WD_RetFactor  = 2.0e-2_fp,                    &
+                              RC            = RC )
+
+          CASE( 'H1211' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Halon 1211, Freon 12B1',     &
+                              Formula       = 'CBrClF2',                    &
+                              MW_g          = 165.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'H1301' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Halon 1301, Freon 13B1',     &
+                              Formula       = 'CBrF3',                      &
+                              MW_g          = 149.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'H2402' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              FullName      = 'Halon 2402',                 &
+                              Formula       = 'C2Br2F4',                    &
+                              MW_g          = 260.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'H2O' )
@@ -1439,6 +1537,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Water vapor',                &
+                              Formula       = 'H2O',                        &
                               MW_g          = 18.0_fp,                      &
                               BackgroundVV  = 1.839e-02_fp,                 &
                               Is_Advected   = Is_Advected,                  &
@@ -1456,6 +1555,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hydrogen peroxide',          &
+                              Formula       = 'H2O2',                       &
                               MW_g          = 34.0_fp,                      &
                               BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
@@ -1487,6 +1587,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hydroxyacetone',             &
+                              Formula       = 'HOCH2C(O)CH3',               &
                               MW_g          = 74.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1505,55 +1606,31 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-          CASE( 'H1211' )
+          CASE( 'HBR' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'H-1211',                     &
-                              MW_g          = 165.0_fp,                     &
+                              Name          = 'HBr',                        &
+                              FullName      = 'Hypobromic acid',            &
+                              Formula       = 'HBr',                        &
+                              MW_g          = 81.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
-
-          CASE( 'H1301' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'H-1301',                     &
-                              MW_g          = 149.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
-
-          CASE( 'H2402' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              FullName      = 'H-2402',                     &
-                              MW_g          = 260.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )					    
+                              Henry_K0      = 2.40e-1_f8 * To_M_atm,        &
+                              Henry_CR      = 370.0_f8,                     &
+#else									    
+                              DD_Hstar_old  = 7.10e+15_fp,                  &
+                              Henry_K0      = 7.10e+13_f8,                  &
+                              Henry_CR      = 10200.0_f8,                   &
+#endif									    
+                              WD_RetFactor  = 1.0_fp,                       &
                               RC            = RC )
 
           CASE( 'HC187' )
@@ -1569,6 +1646,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 187.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1592,7 +1670,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
-                              FullName      = 'HCFC-123',                   &
+                              FullName      = 'HCFC-123, Freon 123',        &
+                              Formula       = 'C2HCl2F3',                   &
                               MW_g          = 117.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1610,7 +1689,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'HCFC141b',                   &
-                              FullName      = 'HCFC-141b',                  &
+                              FullName      = 'HCFC-141b, Freon 141b',      &
+                              Formula       = 'C(CH3)Cl2F',                 &
                               MW_g          = 117.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1628,7 +1708,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'HCFC142b',                   &
-                              FullName      = 'HCFC-142b',                  &
+                              FullName      = 'HCFC-142b, Freon 142b',      &
+                              Formula       = 'C(CH3)ClF2',                 &
                               MW_g          = 117.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1645,7 +1726,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
-                              FullName      = 'HCFC-22',                    &
+                              FullName      = 'HCFC-22, Freon 22',          &
+                              Formula       = 'CHClF2',                     &
                               MW_g          = 86.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1663,6 +1745,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'HCl',                        &
                               FullName      = 'Hydrochloric acid',          &
+                              Formula       = 'HCl',                        &
                               MW_g          = 36.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1684,6 +1767,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Formic acid',                &
+                              Formula       = 'HCOOH',                      &
                               MW_g          = 46.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1705,6 +1789,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrous acid',               &
+                              Formula       = 'HNO2',                       &
                               MW_g          = 47.0_fp,                      &
                               BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
@@ -1735,6 +1820,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitric acid',                &
+                              Formula       = 'HNO3',                       &
                               MW_g          = 63.0_fp,                      &
                               BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
@@ -1764,7 +1850,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
-                              FullName      = 'Pernitric acid',             &
+                              FullName      = 'Peroxynitric acid',          &
+                              Formula       = 'HNO4',                       &
                               MW_g          = 79.0_fp,                      &
                               BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
@@ -1778,32 +1865,6 @@ CONTAINS
 #endif									    
                               RC            = RC )
 
-          CASE( 'HBR' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'HBr',                        &
-                              FullName      = 'Hypobromic acid',            &
-                              MW_g          = 81.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-                              Henry_K0      = 2.40e-1_f8 * To_M_atm,        &
-                              Henry_CR      = 370.0_f8,                     &
-#else									    
-                              DD_Hstar_old  = 7.10e+15_fp,                  &
-                              Henry_K0      = 7.10e+13_f8,                  &
-                              Henry_CR      = 10200.0_f8,                   &
-#endif									    
-                              WD_RetFactor  = 1.0_fp,                       &
-                              RC            = RC )
-
           CASE( 'HOBR' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1813,6 +1874,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'HOBr',                       &
                               FullName      = 'Hypobromous acid',           &
+                              Formula       = 'HOBr',                       &
                               MW_g          = 97.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1840,6 +1902,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'HOCl',                       &
                               FullName      = 'Hypochlorous acid',          &
+                              Formula       = 'HOCl',                       &
                               MW_g          = 52.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1861,11 +1924,13 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 215.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
                               DD_Hstar_old  = 2.00e+6_fp,                   &
                               Henry_K0      = 2.69e+13_f8,                  &
@@ -1882,11 +1947,13 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hydroperoxyaldehydes',       &
+                              Formula       = 'C5H8O3',                     &
                               MW_g          = 116.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 4.0e+4_fp,                    &
                               RC            = RC )
@@ -1899,7 +1966,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
-                              FullName      = 'OOCC(C(C=O)O)(O[O])C',       &
+                              FullName      = 'HOC52O2',                    &
+                              Formula       = 'OOCC(C(C=O)O)(O[O])C',       &
                               MW_g          = 165.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1916,6 +1984,7 @@ CONTAINS
 !                              KppFixId      = KppFixId(N),                  &
 !                              Name          = NameAllCaps,                  &
 !                              FullName      = 'Isoprene epoxide',           &
+!                              Formula       = 'C5H10O3',                    &
 !                              MW_g          = 118.0_fp,                     &
 !                              Is_Advected   = Is_Advected,                  &
 !                              Is_Gas        = T,                            &
@@ -1945,6 +2014,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = 'C5H10O3',                    &
                               MW_g          = 118.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1968,6 +2038,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = 'C5H10O3',                    &
                               MW_g          = 118.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -1991,6 +2062,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = 'C5H10O3',                    &
                               MW_g          = 118.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2011,6 +2083,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = 'C4H6O3',                     &
                               MW_g          = 102.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2040,6 +2113,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 102.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -2072,6 +2146,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 14.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -2099,11 +2174,13 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = 'CH2=C(CH3)C(O)OONO2',        &
                               MW_g          = 147.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 1.70e-2_f8 * To_M_atm,        &
@@ -2120,11 +2197,13 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nighttime isoprene nitrate', &
+                              Formula       = 'C5H8NO4',                    &
                               MW_g          = 147.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
                               DD_Hstar_old  = 2.00e+6_fp,                   &
                               Henry_K0      = 2.00e+6_f8,                   &
@@ -2148,6 +2227,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 226.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -2169,6 +2249,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 226.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2182,7 +2263,7 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'ISOA1', 'ISOA2', 'ISOA3' )
-             FullName = 'Lumped semivolatile gas products of isoprene oxidation'
+             FullName = 'Lumped semivolatile aer products of isoprene oxidation'
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
@@ -2200,6 +2281,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 150.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -2224,6 +2306,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 150.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2245,6 +2328,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Isoprene',                   &
+                              Formula       = 'CH2=C(CH3)CH=CH2',           &
                               MW_g          = 68.12_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 5e+0_fp,                      &
@@ -2267,6 +2351,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Isoprene nitrate Beta',      &
+                              Formula       = 'C5H9NO4',                    &
                               MW_g          = 147.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2293,6 +2378,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Isoprene nitrate Delta',     &
+                              Formula       = 'C5H9NO4',                    &
                               MW_g          = 147.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2319,6 +2405,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Limonene',                   &
+                              Formula       = 'C10H16',                     &
                               MW_g          = 136.23_fp,                    &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2339,6 +2426,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = 'C5H14O5',                    &
                               MW_g          = 154.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2367,6 +2455,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = 'C5H14O5',                    &
                               MW_g          = 154.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -2389,6 +2478,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methacrolein',               &
+                              Formula       = 'CH2=C(CH3)CHO',              &
                               MW_g          = 70.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2413,6 +2503,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrate from MACR',          &
+                              Formula       = 'HOCH2C(ONO2)(CH3)CHO',       &
                               MW_g          = 149.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2439,6 +2530,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Peroxyacetic acid',          &
+                              Formula       = 'CH3C(O)OOH',                 &
                               MW_g          = 76.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2466,6 +2558,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methyl Ethyl Ketone',        &
+                              Formula       = 'RC(O)R',                     &
                               MW_g          = 72.11_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 4.0_fp,                       &
@@ -2486,11 +2579,13 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methylglyoxal',              &
+                              Formula       = 'CH3COCHO',                   &
                               MW_g          = 72.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
                               DD_Hstar_old  = 3.7e+3_fp,                    &
                               Henry_K0      = 3.7e+3_f8,                    &
@@ -2508,6 +2603,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = '5C acid from isoprene',      &
+                              Formula       = 'HOC(=O)C(CH3)=CHCHO',        &
                               MW_g          = 114.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2542,6 +2638,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 14.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -2568,11 +2665,13 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 215.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
                               DD_Hstar_old  = 2.00e+6_fp,                   &
                               Henry_K0      = 1.70e+4_f8,                   &
@@ -2593,11 +2692,13 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 215.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_Photolysis = T,                            &
                               DD_F0         = 1.0_fp,                       &
                               DD_Hstar_old  = 2.00e+6_fp,                   &
                               Henry_K0      = 1.70e+4_f8,                   &
@@ -2622,6 +2723,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hydrophilic marine OC',      &
+                              Formula       = '',                           &
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
@@ -2650,6 +2752,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hydrophobic marine OC',      &
+                              Formula       = '',                           &
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
@@ -2672,6 +2775,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'MP',                         &
                               FullName      = 'Methyl hydro peroxide',      &
+                              Formula       = 'CH3OOH',                     &
                               MW_g          = 48.0_fp,                      &
                               BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
@@ -2698,6 +2802,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methyl peroxy nitrate',      &
+                              Formula       = 'CH3O2NO2',                   &
                               MW_g          = 93.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2729,6 +2834,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methyl sulfonic acid',       &
+                              Formula       = 'CH4SO3',                     &
                               MW_g          = 96.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -2753,6 +2859,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 136.23_fp,                    &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2775,6 +2882,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 136.23_fp,                    &
                               MolecRatio    = 1.0_fp,                       &
                               Is_Advected   = Is_Advected,                  &
@@ -2797,6 +2905,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methyl vinyl ketone',        &
+                              Formula       = 'CH2=CHC(=O)CH3',             &
                               MW_g          = 70.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2821,6 +2930,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrate from MVK',           &
+                              Formula       = 'HOCH2CH(ONO2)C(=O)CH3',      &
                               MW_g          = 149.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2838,24 +2948,6 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-          CASE( 'NAP' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Naphtalene/IVOC surrogate',  &
-                              MW_g          = 128.27_fp,                    &
-                              EmMw_g        = 12.0_fp,                      &
-                              MolecRatio    = 10.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
-
           CASE( 'N2O' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -2865,6 +2957,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrous oxide',              &
+                              Formula       = 'N2O',                        &
                               MW_g          = 44.0_fp,                      &
                               BackgroundVV  = 3.0e-07_fp,                   &
                               Is_Advected   = Is_Advected,                  &
@@ -2887,6 +2980,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Dinitrogen pentoxide',       &
+                              Formula       = 'N2O5',                       &
                               MW_g          = 108.0_fp,                     &
                               BackgroundVV  = 4.0e-15_fp,                   &
                               Is_Advected   = Is_Advected,                  &
@@ -2901,6 +2995,26 @@ CONTAINS
 #else									    
                               DD_Hstar_old  = 1.0e+14_fp,                   &
 #endif									    
+                              RC            = RC )
+
+
+          CASE( 'NAP' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Naphtalene/IVOC surrogate',  &
+                              Formula       = 'C10H8',                      &
+                              MW_g          = 128.17_fp,                    &
+                              EmMw_g        = 12.0_fp,                      &
+                              MolecRatio    = 10.0_fp,                      &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
                               RC            = RC )
 
           CASE( 'NH3' )
@@ -2919,6 +3033,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Ammonia',                    &
+                              Formula       = 'NH3',                        &
                               MW_g          = 17.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -2963,6 +3078,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Ammonium',                   &
+                              Formula       = 'NH4',                        &
                               MW_g          = 18.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -3000,6 +3116,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Inorganic nitrates',         &
+                              Formula       = '',                           &
                               MW_g          = 62.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -3050,6 +3167,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'NITs',                       &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 31.4_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -3074,6 +3192,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrogen oxide',             &
+                              Formula       = 'NO',                         &
                               MW_g          = 30.0_fp,                      &
                               BackgroundVV  = 4.0e-13_fp,                   &
                               Is_Advected   = Is_Advected,                  &
@@ -3098,6 +3217,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrogen dioxide',           &
+                              Formula       = 'NO2',                        &
                               MW_g          = 46.0_fp,                      &
                               BackgroundVV  = 4.0e-13_fp,                   &
                               Is_Advected   = Is_Advected,                  &
@@ -3123,6 +3243,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrate radical',            &
+                              Formula       = 'NO3',                        &
                               MW_g          = 62.0_fp,                      &
                               BackgroundVV  = 4.0e-15_fp,                   &
                               MolecRatio    = 1.0_fp,                       &
@@ -3151,6 +3272,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = 'CH2=C(CH3)C(O)OONO2 ',       &
                               MW_g          = 147.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -3228,6 +3350,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = Name,                         &
                               FullName      = FullName,                     &
+                              Formula       = 'O3',                         &
                               MW_g          = 48.0_fp,                      &
                               BackgroundVV  = BackgroundVV,                 &
                               Is_Advected   = Is_Advected,                  &
@@ -3242,6 +3365,25 @@ CONTAINS
 #else                                                                       
                               DD_Hstar_old  = 1.0e-2_fp,                    &
 #endif                                      
+                              RC            = RC )
+
+          CASE( 'OCLO' )
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = 'OClO',                       &
+                              FullName      = 'Chlorine dioxide',           &
+                              Formula       = 'OClO',                       &
+                              MW_g          = 67.0_fp,                      &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'OCPI', 'OCPO' )
@@ -3279,6 +3421,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
@@ -3292,6 +3435,25 @@ CONTAINS
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'OCS' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Carbonyl sulfide',           &
+                              Formula       = 'COS',                        &
+                              MW_g          = 60.0_fp,                      &
+                              BackgroundVV  = 9.0e-15_fp,                   &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
                               RC            = RC )
 
           CASE( 'OPOA1', 'OPOA2' )
@@ -3313,6 +3475,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
@@ -3338,6 +3501,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
@@ -3352,24 +3516,6 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-          CASE( 'OCS' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Carbonyl sulfide',           &
-                              MW_g          = 60.0_fp,                      &
-                              BackgroundVV  = 9.0e-15_fp,                   &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
-
           CASE( 'PAN' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -3379,6 +3525,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Peroxyacetyl nitrate',       &
+                              Formula       = 'CH3C(O)OONO2',               &
                               MW_g          = 121.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -3392,33 +3539,6 @@ CONTAINS
 #else                                                                       
                               DD_Hstar_old  = 3.60e+0_fp,                   &
 #endif                                      
-                              RC            = RC )
-
-          CASE( 'PPN' )
-             ! PPN uses the same DD_F0 and DD_Hstar_old values as PAN
-             ! so that we can compute its drydep velocity explicitly.
-             ! (bmy, 5/19/16)
-             FullName = 'Lumped peroxypropionyl nitrate'
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FULLNAME,                     &
-                              MW_g          = 135.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              DD_F0         = 1.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )                                          
-                              Henry_K0      = 2.9e-2_f8 * To_M_atm,         &
-                              Henry_CR      = _f8,                          &
-#else                                                                       
-                              DD_Hstar_old  = 3.60_fp,                      &
-#endif                                                                      
                               RC            = RC )
 
           CASE( 'POA1', 'POA2' )
@@ -3437,6 +3557,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      ='Lumped aerosol primary SVOCs',&
+                              Formula       = '',                           &
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
@@ -3462,6 +3583,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Lumped gas primary SVOCs',   &
+                              Formula       = '',                           &
                               MW_g          = 12.01_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
@@ -3476,6 +3598,34 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
+          CASE( 'PPN' )
+             ! PPN uses the same DD_F0 and DD_Hstar_old values as PAN
+             ! so that we can compute its drydep velocity explicitly.
+             ! (bmy, 5/19/16)
+             FullName = 'Lumped peroxypropionyl nitrate'
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              Formula       = 'CH3CH2C(O)OONO2', &
+                              MW_g          = 135.0_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = F,                            &
+                              DD_F0         = 1.0_fp,                       &
+#if defined( NEW_HENRY_CONSTANTS )                                          
+                              Henry_K0      = 2.9e-2_f8 * To_M_atm,         &
+                              Henry_CR      = _f8,                          &
+#else                                                                       
+                              DD_Hstar_old  = 3.60_fp,                      &
+#endif                                                                      
+                              RC            = RC )
+
           CASE( 'PRPE' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -3485,6 +3635,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Lumped >= C3 alkenes',       &
+                              Formula       = 'C3H6',                       &
                               MW_g          = 42.08_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 3.0_fp,                       &
@@ -3507,6 +3658,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Propanone nitrate',          &
+                              Formula       = 'CH3C(=O)CH2ONO2',            &
                               MW_g          = 119.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -3536,6 +3688,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Lumped alkyl nitrate',       &
+                              Formula       = 'RO2NO',                      &
                               MW_g          = 119.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -3561,6 +3714,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Lumped aldehyde >= C3',      &
+                              Formula       = 'CH3CH2CHO',                  &
                               MW_g          = 58.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -3586,6 +3740,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = '1,2-ISOPOOH',                &
+                              Formula       = 'C5H10O3',                    &
                               MW_g          = 118.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -3608,6 +3763,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = '4,3-ISOPOOH',                &
+                              Formula       = 'C5H10O3',                    &
                               MW_g          = 118.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -3630,6 +3786,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'd(1,4 and 4,1)-ISOPOOH',     &
+                              Formula       = 'C5H10O3',                    &
                               MW_g          = 118.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -3663,6 +3820,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = Fullname,                     &
+                              Formula       = '',                           &
                               MW_g          = 31.4_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -3698,6 +3856,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = Fullname,                     &
+                              Formula       = '',                           &
                               MW_g          = 31.4_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -3741,6 +3900,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Sulfur dioxide',             &
+                              Formula       = 'SO2',                        &
                               MW_g          = 64.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -3783,6 +3943,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'SO4',                        &
                               FullName      = 'Sulfate',                    &
+                              Formula       = 'SO4',                        &
                               MW_g          = 96.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -3837,6 +3998,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'SO4s',                       &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 31.4_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -3867,6 +4029,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Aerosol-phase IEPOX',        &
+                              Formula       = 'C5H10O3',                    &
                               MW_g          = 118.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -3895,6 +4058,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Aerosol-phase glyoxal',      &
+                              Formula       = 'C2H2O2',                     &
                               MW_g          = 58.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -3923,6 +4087,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Aerosol-phase IMAE',         &
+                              Formula       = 'C4H6O3',                     &
                               MW_g          = 102.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -3951,6 +4116,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Aerosol-phase methylglyoxal',&
+                              Formula       = 'C3H4O2',                     &
                               MW_g          = 72.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -3969,13 +4135,6 @@ CONTAINS
 
              !SOAPis not removed because it is a simple parameterization,
              !not a physical model
-
-             ! Zero Kc (cloud condensate -> precip) rate
-             KcScale = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
-
-             ! Turn off rainout only
-             RainEff = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
-
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -3984,16 +4143,12 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 150.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.00e+0_fp,                   &
-                              Henry_K0      = 0.00e+0_f8,                   &
-                              Henry_CR      = 0.0e+0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
           CASE( 'SOAS' )
@@ -4016,6 +4171,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 150.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -4038,6 +4194,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Toluene',                    &
+                              Formula       = 'C7H8',                       &
                               MW_g          = 92.14_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 7.0_fp,                       &
@@ -4066,6 +4223,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 150.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -4089,6 +4247,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 150.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4110,6 +4269,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Xylene',                     &
+                              Formula       = 'C8H10',                      &
                               MW_g          = 106.16_fp,                    &
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 8.0_fp,                       &
@@ -4129,6 +4289,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = 'Rn',                         &
                               FullName      = 'Radon-222 isotope',          &
+                              Formula       = 'Rn',                         &
                               MW_g          = 222.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -4150,6 +4311,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = 'Pb',                         &
                               FullName      = 'Lead-210 isotope',           &
+                              Formula       = 'Pb',                         &
                               MW_g          = 210.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -4177,6 +4339,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = 'Be7',                        &
                               FullName      = 'Beryllium-7 isotope',        &
+                              Formula       = 'Be',                         &
                               MW_g          = 7.0_fp,                       &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -4297,6 +4460,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = Name,                         &
                               FullName      = FullName,                     &
+                              Formula       = 'Hg',                         &
                               MW_g          = 201.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4410,6 +4574,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = Name,                         &
                               FullName      = FullName,                     &
+                              Formula       = 'Hg',                         &
                               MW_g          = 201.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4565,6 +4730,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = Name,                         &
                               FullName      = FullName,                     &
+                              Formula       = 'Hg',                         &
                               MW_g          = 201.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -4640,6 +4806,7 @@ CONTAINS
              SELECT CASE( TRIM( Input_Opt%POP_TYPE ) )
                 CASE( 'PHE' )
                    FullName = 'Phenanthrene (gas phase)'
+                   Formula  = 'C14H10'
                    MW_g     = 178.23_fp
                    KOA      = 4.37e+7_fp  * 0.0409_fp  * 0.8_fp
                    Hstar    = 1.0_fp      / 1.74e-3_fp * 0.0409_fp
@@ -4647,6 +4814,7 @@ CONTAINS
                    CR       = 47.0_f8     / 8.32e-3_f8
                 CASE( 'PYR' )
                    FullName = 'Pyrene (gas phase)'
+                   Formula  = 'C16H10'
                    MW_g     = 202.25_fp
                    KOA      = 7.24e+8_fp  * 0.0409_fp  * 0.8_fp
                    Hstar    = 1.0_fp      / 5.37e-4_fp * 0.0409_fp
@@ -4654,6 +4822,7 @@ CONTAINS
                    CR       = 43.0_f8     / 8.32e-3_f8
                 CASE( 'BaP' )
                    FullName = 'Benzo(a)pyrene (gas phase)' 
+                   Formula  = 'C20H12'
                    MW_g     = 252.31_fp
                    KOA      = 3.02e+11_fp * 0.0409_fp  * 0.8_fp
                    Hstar    = 1.0_fp      / 3.10e-5_fp * 0.0409_fp
@@ -4666,6 +4835,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = Formula,                      &
                               MW_g          = MW_g,                         &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4686,12 +4856,15 @@ CONTAINS
                 CASE( 'PHE' )
                    MW_g     = 178.23_fp
                    FullName = 'Phenanthrene particles on'
+                   Formula  = 'C14H10'
                 CASE( 'PYR' )
                    MW_g     = 202.25_fp
                    FullName = 'Pyrene particles on'
+                   Formula  = 'C16H10'
                 CASE( 'BaP' )
                    MW_g     = 252.31_fp
                    FullName = 'Benzo(a)pyrene particles on'
+                   Formula  = 'C20H12'
              END SELECT
 
              ! ... and the names and rainout efficiencies.
@@ -4699,6 +4872,7 @@ CONTAINS
 
                 CASE( 'POPPBCPO' ) 
                    FullName = TRIM( FullName ) // ' hydrophobic black carbon'
+                   Formula  = ''
 
                    ! Halve the Kc (cloud condensate -> precip) rate
                    ! for the temperature range 237 K <= T < 258 K.
@@ -4710,6 +4884,7 @@ CONTAINS
 
                 CASE( 'POPPOCPO' )
                    FullName = TRIM( FullName ) // ' hydrophobic organic carbon'
+                   Formula  = ''
 
                    ! For all temperatures:
                    ! (1) Halve the Kc (cloud condensate -> precip) rate
@@ -4724,6 +4899,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = Formula,                      &
                               MW_g          = MW_g,                         &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -4744,20 +4920,25 @@ CONTAINS
                 CASE( 'PHE' )
                    MW_g     = 178.23_fp
                    FullName = 'Phenanthrene particles on'
+                   Formula  = 'C14H10'
                 CASE( 'PYR' )
                    MW_g     = 202.25_fp
                    FullName = 'Pyrene particles on'
+                   Formula  = 'C16H10'
                 CASE( 'BaP' )
                    MW_g     = 252.31_fp
                    FullName = 'Benzo(a)pyrene particles on'
+                   Formula  = 'C20H12'
              END SELECT
 
              ! ... and the names
              SELECT CASE( TRIM( NameAllCaps ) ) 
                 CASE( 'POPPBCPI' ) 
                    FullName = TRIM( FullName ) // ' hydrophilic black carbon'
+                   Formula  = ''
                 CASE( 'POPPOCPI' )
                    FullName = TRIM( FullName ) // ' hydrophilic organic carbon'
+                   Formula  = ''
              END SELECT
              
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -4772,6 +4953,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = Formula,                      &
                               MW_g          = MW_g,                         &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -4847,6 +5029,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = Name,                         &
                               FullName      = FullName,                     &
+                              Formula       = 'CO2',                        &
                               MW_g          = 44.0_fp,                      &
                               BackgroundVV  = BackgroundVV,                 &
                               Is_Advected   = Is_Advected,                  &
@@ -4888,6 +5071,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 18.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -4932,6 +5116,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 100.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -4976,6 +5161,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 12.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -5020,6 +5206,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 12.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -5052,6 +5239,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Sulfuric acid',              &
+                              Formula       = 'H2SO4',                      &
                               MW_g          = 98.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
                               Is_Advected   = Is_Advected,                  &
@@ -5097,6 +5285,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 1.0_fp,                       &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -5142,6 +5331,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 12.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -5186,6 +5376,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 12.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -5228,6 +5419,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 96.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -5270,6 +5462,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
+                              Formula       = '',                           &
                               MW_g          = 58.5_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -5299,6 +5492,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
+                              FullName      = 'Molecular oxygen',           &
+                              Formula       = 'O2',                         &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -5314,6 +5509,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
+                              FullName      = 'Peroxide from INO2',         &
+                              Formula       = 'O2NOCH2C(OOH)(CH3)CH=CH2',   &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -5329,6 +5526,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
+                              FullName      = 'Peroxide from PRN1',         &
+                              Formula       = 'O2NOCH2CH(OOH)CH3',          &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -5344,6 +5543,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
+                              FullName      = 'Ethylhydroperoxide',         &
+                              Formula       = 'CH3CH2OOH ',                 &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -5359,6 +5560,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
+                              FullName      = 'Peroxide from A3O2',         &
+                              Formula       = 'CH3CH2CH2OOH',               &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -5374,6 +5577,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
+                              FullName      = 'Peroxide from B3O2',         &
+                              Formula       = 'CH3CH(OOH)CH3',              &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -5389,6 +5594,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
+                              FullName      = 'Peroxide from R4O2',         &
+                              Formula       = 'CH3CH2CH2CH2OOH',            &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -5404,6 +5611,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
+                              FullName      = 'Peroxide from PO2',          &
+                              Formula       = 'HOCH2CH(OOH)CH3',            &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -5419,6 +5628,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
+                              FullName      = 'Peroxide from RCO3',         &
+                              Formula       = 'CH3CH2C(O)OOH',              &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -5434,6 +5645,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
+                              FullName      = 'Peroxide from IAO2',         &
+                              Formula       = 'HOCH2C(CH3)(OOH)CH(OH)CHO',  &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -5448,6 +5661,8 @@ CONTAINS
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
+                              FullName      = 'Isoprene nitrate',           &
+                              Formula       = 'HOCH2C(OOH)(CH3)CH(ONO2)CH2OH',&
                               Name          = NameAllCaps,                  &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
@@ -5464,6 +5679,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
+                              FullName      = 'Peroxide from VRO2',         &
+                              Formula       = 'HOCH2CH(OOH)C(O)CH3',        &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -5479,6 +5696,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
+                              FullName      = 'Peroxide from MRO2',         &
+                              Formula       = 'HOCH2C(OOH)(CH3)CHO ',       &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -5494,6 +5713,8 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
+                              FullName      = 'Peroxide from MAO3',         &
+                              Formula       = 'CH2=C(CH3)C(O)OOH',          &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -5509,6 +5730,25 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
+                              FullName      = 'ATO2 peroxide',              &
+                              Formula       = 'CH3C(O)CH2OOH ',             &
+                              Is_Advected   = F,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              Is_Photolysis = T,                            &
+                              RC            = RC )
+
+          CASE( 'PIP' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Peroxide from MTPA',         &
+                              Formula       = '',                           &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -5524,6 +5764,8 @@ CONTAINS
                                  KppVarId      = KppVarId(N),               &
                                  KppFixId      = KppFixId(N),               &
                                  Name          = NameAllCaps,               &
+                                 FullName      = 'Hydroperoxyl radical',    &
+                                 Formula       = 'HO2',                     &
                                  BackgroundVV  = 4.0e-15_fp,                &
                                  Is_Advected   = F,                         &
                                  Is_Gas        = T,                         &
@@ -5539,6 +5781,8 @@ CONTAINS
                                  KppVarId      = KppVarId(N),               &
                                  KppFixId      = KppFixId(N),               &
                                  Name          = NameAllCaps,               &
+                                 FullName      = 'Methylperoxy radical',    &
+                                 Formula       = 'CH3O2',                   &
                                  BackgroundVV  = 4.0e-15_fp,                &
                                  Is_Advected   = F,                         &
                                  Is_Gas        = T,                         &
@@ -5554,6 +5798,8 @@ CONTAINS
                                  KppVarId      = KppVarId(N),               &
                                  KppFixId      = KppFixId(N),               &
                                  Name          = NameAllCaps,               &
+                                 FullName      = 'Hydroxyl radical',        &
+                                 Formula       = 'OH',                      &
                                  BackgroundVV  = 4.0e-15_fp,                &
                                  Is_Advected   = F,                         &
                                  Is_Gas        = T,                         &
@@ -5569,6 +5815,8 @@ CONTAINS
                                  KppVarId      = KppVarId(N),               &
                                  KppFixId      = KppFixId(N),               &
                                  Name          = NameAllCaps,               &
+                                 FullName      = 'Molecular hydrogen',      &
+                                 Formula       = 'H2',                      &
                                  BackgroundVV  = 5.0e-07_fp,                &
                                  Is_Advected   = F,                         &
                                  Is_Gas        = T,                         &
@@ -5584,6 +5832,8 @@ CONTAINS
                                  KppVarId      = KppVarId(N),               &
                                  KppFixId      = KppFixId(N),               &
                                  Name          = NameAllCaps,               &
+                                 FullName      = 'Atomic nitrogen',         &
+                                 Formula       = 'N',                       &
                                  BackgroundVV  = 4.0e-20_fp,                &
                                  Is_Advected   = F,                         &
                                  Is_Gas        = T,                         &
@@ -5599,6 +5849,8 @@ CONTAINS
                                  KppVarId      = KppVarId(N),               &
                                  KppFixId      = KppFixId(N),               &
                                  Name          = NameAllCaps,               &
+                                 FullName      = 'Excited atomic oxygen (1D)',&
+                                 Formula       = 'O(1D)',                   &
 #if defined( UCX )
                                  BackgroundVV  = 1.0e-15_fp,                &
 #else
