@@ -3255,6 +3255,7 @@ MODULE GCKPP_HETRATES
 ! !USES:
 !
       USE Input_Opt_Mod, ONLY : OptInput
+      USE PhysConstants, ONLY : RGASLATM
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3338,7 +3339,9 @@ MODULE GCKPP_HETRATES
       VAL2 = ( 1.e+0_fp/MACOEFF )
 
       ! Account for small reaction rates:
-      IF ( KPART .LT. 1.e-8_fp ) THEN
+      IF ( KPART   .LT. 1.e-8_fp .or. &
+           AERAREA .LE. 0e0_fp   .or. &
+           AERVOL  .LE. 0e0_fp ) THEN
 
          ! Avoid div by zero (don't calculate 3rd variable). This is only
          ! really an issue at the first time step when ISORROPIA values are 

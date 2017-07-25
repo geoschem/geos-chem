@@ -90,7 +90,7 @@
       INTEGER, PARAMETER ::  WX_   = 18
 
       ! X_   = dim = max no. of X-section data sets (input data)
-      INTEGER, PARAMETER ::  X_    = 72
+      INTEGER, PARAMETER ::  X_    = 75
 
       ! A_   = dim = no. of Aerosol/cloud Mie sets (input data)
       INTEGER, PARAMETER ::  A_    = 56
