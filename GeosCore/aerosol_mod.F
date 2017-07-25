@@ -1721,7 +1721,7 @@
                !    AQ AEROSOL VOL = (RADIUS * AREA)/3
                !==============================================================
                ! Aqueous aerosol only:
-               IF ( N .eq. 1 ) THEN 
+               IF ( ND21 > 0 .and. N .eq. 1 ) THEN 
                   ! Initialize:
                   TAERVOL = 0d0
 
