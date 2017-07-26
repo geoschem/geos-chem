@@ -17,7 +17,6 @@ MODULE GCKPP_HETRATES
   USE CMN_FJX_MOD,        ONLY : NDUST
   USE CMN_FJX_MOD,        ONLY : NAER
   USE CMN_SIZE_MOD,       ONLY : LLSTRAT
-  USE PHYSCONSTANTS,      ONLY : CONSVAP
   USE ERROR_MOD,          ONLY : ERROR_STOP
   USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
   USE ERROR_MOD,          ONLY : IS_SAFE_DIV
@@ -28,7 +27,7 @@ MODULE GCKPP_HETRATES
   USE State_Chm_Mod,      ONLY : Ind_
   USE State_Met_Mod,      ONLY : MetState
   USE Input_Opt_Mod,      ONLY : OptInput
-  USE PhysConstants,      ONLY : AVO, RGASLATM, HSTAR_EPOX
+  USE PhysConstants,      ONLY : AVO, RGASLATM, HSTAR_EPOX, CONSVAP
   USE Precision_Mod,      ONLY : fp
 
   IMPLICIT NONE
@@ -1210,9 +1209,7 @@ MODULE GCKPP_HETRATES
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
       REAL(fp) :: TMP1,   TMP2
-!
-! !DEFINED PARAMETERS:
-!
+
       ! Initialize
       HET_N2O5     = 0.0_fp
       ADJUSTEDRATE = 0.0_fp
@@ -3126,6 +3123,7 @@ MODULE GCKPP_HETRATES
 ! !USES:
 !
       USE Input_Opt_Mod, ONLY : OptInput
+      Use PhysConstants, ONLY : AVO, RGASLATM
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3184,13 +3182,8 @@ MODULE GCKPP_HETRATES
 !
 ! !DEFINED PARAMETERS:
 !
-      !%%% NOTE: WE SHOULD EVENTUALLY USE THE VALUES FROM physconsts.F %%%
-
-      ! Avogadro's number
-      REAL(fp),  PARAMETER :: Na = 6.022e+23_fp
-
-      ! Ideal gas constant [atm cm3/mol/K], Raq
-      REAL(fp),  PARAMETER :: Raq=82.e+0_fp
+      ! Ideal gas constant [atm cm3/mol/K]
+      REAL(fp),  PARAMETER :: Raq = RGASLATM * 1e+3_fp
 
       !=================================================================
       ! HO2 begins here!
@@ -3287,7 +3280,7 @@ MODULE GCKPP_HETRATES
             !use quadratic formula to obtain [O2-] in particle of radius RADIUS
             A = -2e+0_fp * kaq
             B = -3e+0_fp * kmt / RADIUS / (H_eff * 0.082 * TEMP)
-            C =  3e+0_fp * kmt * HO2DENS * 1000e+0_fp / RADIUS / Na
+            C =  3e+0_fp * kmt * HO2DENS * 1000e+0_fp / RADIUS / AVO
 
             ! Error check that B^2-(4e+0_fp*A*C) is not negative
             TEST= B**2-(4e+0_fp*A*C)
@@ -3298,7 +3291,7 @@ MODULE GCKPP_HETRATES
                 o2_ss= ( -B  -sqrt(B**2-(4e+0_fp*A*C)) )/(2e+0_fp*A)
 
                 ! Calculate the reactive flux
-                fluxrxn = kmt*HO2DENS - o2_ss*Na*kmt/H_eff/Raq/TEMP
+                fluxrxn = kmt*HO2DENS - o2_ss*AVO*kmt/H_eff/Raq/TEMP
 
                 IF ( fluxrxn <= 0e0_fp ) THEN
                    GAMMA = 0e+0_fp
@@ -3501,6 +3494,7 @@ MODULE GCKPP_HETRATES
 ! !USES:
 !
       USE State_Met_Mod, ONLY : MetState
+      USE PhysConstants, ONLY : RSTARG, PI
 !
 ! !INPUT PARAMETERS:
 !
@@ -3557,12 +3551,11 @@ MODULE GCKPP_HETRATES
       ! Cloud droplet radius in marine warm clouds [cm]
       REAL(fp), PARAMETER :: XCLDR_MARI = 10.e-4_fp
 
-      !%%% NOTE: WE SHOULD EVENTUALLY USE THE VALUES FROM physconsts.F %%%
+      ! Sticking coefficient
+      REAL(fp), PARAMETER :: alpha = 0.3_fp
 
-      REAL(fp), PARAMETER :: R = 8.314472                  ! [J/mol/K]
-      rEAL(fp), PARAMETER :: pi = 3.14159265358979323846e+0_fp ! [unitless]
-      REAL(fp), PARAMETER :: alpha = 0.3                   ! sticking coefficient
-      REAL(fp), PARAMETER :: dens_h2o = 0.001e+0_fp            ! [kg/cm3]
+      ! Density of H2O [kg/cm3]
+      REAL(fp), PARAMETER :: dens_h2o = 0.001e+0_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -3648,7 +3641,8 @@ MODULE GCKPP_HETRATES
       !   calculate the mean molecular speed of the
       !   molecules given the temperature.
       ! ----------------------------------------------
-      nu   = sqrt( 8.e+0_fp * R * T(I,J,L) / ((MW_BrNO3*1.e-3_fp) * pi) )
+      nu   = sqrt( 8.e+0_fp * RSTARG * T(I,J,L) / &
+                   ((MW_BrNO3*1.e-3_fp) * PI) )
 
       ! ----------------------------------------------
       ! Test conditions to see if we want to continue
