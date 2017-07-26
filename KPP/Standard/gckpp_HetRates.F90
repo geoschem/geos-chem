@@ -27,7 +27,7 @@ MODULE GCKPP_HETRATES
   USE State_Chm_Mod,      ONLY : Ind_
   USE State_Met_Mod,      ONLY : MetState
   USE Input_Opt_Mod,      ONLY : OptInput
-  USE PhysConstants,      ONLY : AVO, RGASLATM, HSTAR_EPOX, CONSVAP
+  USE PhysConstants,      ONLY : AVO, RGASLATM, CONSVAP
   USE Precision_Mod,      ONLY : fp
 
   IMPLICIT NONE
@@ -1505,8 +1505,7 @@ MODULE GCKPP_HETRATES
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
 
-      REAL(fp) :: HSTAR,    H_PLUS,   MSO4,   MNO3,   MHSO4 
-      REAL(fp) :: K_HPLUS,  K_NUC,    K_HSO4, K_HYDRO
+      REAL(fp) :: HSTAR, K_HPLUS, K_NUC, K_HSO4
 
       ! Initialize
       HET_IEPOX    = 0.0_fp
@@ -1522,27 +1521,21 @@ MODULE GCKPP_HETRATES
          ! Only consider inorganic aqueous aerosols with RH > 35%.
          IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
 
-            ! Replace all of this with a constant value
-            ! (eam, 03/2015)
             ! Define Henry's Law constant.
-            ! Changes H* for IEPOX again to accommodate
-            ! reduction in yields of RIP, precursor
-            ! of IEPOX (eam, 07/2015):
-            HSTAR = HSTAR_EPOX  ! (Nguyen et al., 2014)
+            HSTAR = 1.7e+8_fp  ! (Gaston et al., 2014)
 
             ! Define first-order particle phase reaction rates 
             ! specific to IEPOX (from Gaston et al., 2014):
             K_HPLUS = 3.6e-2_fp   ! Alternate: 1.2d-3 (Edding)
             K_NUC   = 2.e-4_fp    ! Alternate: 5.2d-1 (Piletic)
             K_HSO4  = 7.3e-4_fp
-            K_HYDRO = 0.e0_fp
 
             ! Get GAMMA for IEPOX hydrolysis:
             XSTKCF = EPOXUPTK( XAREA(N), XRADI(N),            &
                                TEMPK,    (A**0.5_fp),         &
                                HSTAR,    K_HPLUS,    H_PLUS,  &
                                K_NUC,    MSO4,       MNO3,    &
-                               K_HSO4,   MHSO4,      K_HYDRO )
+                               K_HSO4,   MHSO4 )
 
          ENDIF
 
@@ -1610,8 +1603,7 @@ MODULE GCKPP_HETRATES
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
 
-      REAL(fp) :: HSTAR,    H_PLUS,   MSO4,   MNO3,   MHSO4 
-      REAL(fp) :: K_HPLUS,  K_NUC,    K_HSO4, K_HYDRO
+      REAL(fp) :: HSTAR, K_HPLUS, K_NUC, K_HSO4
 
       ! Initialize
       HET_IMAE     = 0.0_fp
@@ -1627,27 +1619,21 @@ MODULE GCKPP_HETRATES
          ! Only consider inorganic aqueous aerosols with RH > 35%.
          IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
 
-            ! Replace all of this with a constant value
-            ! (eam, 03/2015)
             ! Define Henry's Law constant.
-            ! Changes H* for IEPOX again to accommodate
-            ! reduction in yields of RIP, precursor
-            ! of IEPOX (eam, 07/2015):
-            HSTAR = HSTAR_EPOX  ! (Nguyen et al., 2014)
+            HSTAR = 1.2e+5_fp ! (Pye et al., 2013)
 
             ! Define first-order particle phase reaction rates 
-            ! specific to IEPOX (from Gaston et al., 2014):
-            K_HPLUS = 3.6e-2_fp   ! Alternate: 1.2d-3 (Edding)
-            K_NUC   = 2.e-4_fp    ! Alternate: 5.2d-1 (Piletic)
-            K_HSO4  = 7.3e-4_fp
-            K_HYDRO = 0.e+0_fp
+            ! specific to IMAE (from Pye et al., 2014):
+            K_HPLUS = 1.2e-3_fp  ! 30x slower than IEPOX (Piletic et al., 2013)
+            K_NUC   = 6.7e-6_fp  ! Assume others are also 30x slower.
+            K_HSO4  = 2.4e-5_fp
 
-            ! Get GAMMA for IEPOX hydrolysis:
+            ! Get GAMMA for IMAE hydrolysis:
             XSTKCF = EPOXUPTK( XAREA(N), XRADI(N),            &
                                TEMPK,    (A**0.5_fp),         &
                                HSTAR,    K_HPLUS,    H_PLUS,  &
                                K_NUC,    MSO4,       MNO3,    &
-                               K_HSO4,   MHSO4,      K_HYDRO )
+                               K_HSO4,   MHSO4 )
 
             ! Scale down gamma if H+ > 8d-5 (Riedel et al., 2015)
             IF ( H_PLUS .gt. 8.e-5_fp ) THEN
@@ -3353,7 +3339,7 @@ MODULE GCKPP_HETRATES
 !
     FUNCTION EPOXUPTK( AERAREA, AERRAD,  TEMP,  SQMW,              &
                        HENRY,   KHPLUS,  HPLUS, KNUC,  SULF, NITR, &
-                       KGACID,  BISULF,  KHYDRO ) &
+                       KGACID,  BISULF   ) &
              RESULT( GAMMA )
 !
 ! !USES:
@@ -3378,7 +3364,6 @@ MODULE GCKPP_HETRATES
       REAL(fp), INTENT(IN) :: KGACID   ! 1st order rxn rate due to general acids
                                        ! (bisulfate in this case)
       REAL(fp), INTENT(IN) :: BISULF   ! Bisulfate concentration [M]
-      REAL(fp), INTENT(IN) :: KHYDRO   ! Hydrolysis rate of alkylnitrates [1/s]
 !
 ! !RETURN VALUE:
 !
@@ -3406,6 +3391,7 @@ MODULE GCKPP_HETRATES
       REAL(fp)             :: KPART    ! Particle-phase reaction rate [1/s]
       REAL(fp)             :: XMMS     ! Mean molecular speed [cm/s]
       REAL(fp)             :: VAL1, VAL2, VAL3  ! Terms for calculating GAMMA
+      REAL(fp)             :: VALTMP
 !
 ! !DEFINED PARAMETERS:
 !
@@ -3419,8 +3405,15 @@ MODULE GCKPP_HETRATES
       ! EPOXUPTK begins here!
       !=================================================================
 
-      ! Initialize GAMMA:
-      GAMMA = 0.0_fp
+      ! Initialize
+      GAMMA  = 0.0_fp
+      AERVOL = 0.0_fp
+      KPART  = 0.0_fp
+      XMMS   = 0.0_fp
+      VAL1   = 0.0_fp
+      VAL2   = 0.0_fp
+      VAL3   = 0.0_fp
+      VALTMP = 0.0_fp
       
       ! Calculate aerosol volume (use formula in aerosol_mod.F):
       AERVOL = (AERAREA * AERRAD)/3.0e+0_fp
@@ -3430,11 +3423,9 @@ MODULE GCKPP_HETRATES
 
       ! Calculate first-order particle-phase reaction rate:
       ! (assume [H+] = proton activity)
-      ! k_hydro is only important for alkylnitrates.
       KPART = ( KHPLUS*HPLUS )               + &
               ( KNUC*HPLUS*( NITR + SULF ) ) + &
-              ( KGACID*BISULF )              + &
-              ( KHYDRO )
+              ( KGACID*BISULF )
       
       ! Calculate the first uptake parameterization term:
       VAL1 = ( AERRAD * XMMS )/( 4.e+0_fp * DIFF_N2O5_STD )
@@ -3442,35 +3433,26 @@ MODULE GCKPP_HETRATES
       ! Calculate the second uptake parameterization term:
       VAL2 = ( 1.e+0_fp/MACOEFF )
 
-      ! Account for small reaction rates:
-      IF ( KPART   .LT. 1.e-8_fp .or. &
-           AERAREA .LE. 0e0_fp   .or. &
-           AERVOL  .LE. 0e0_fp ) THEN
-
-         ! Avoid div by zero (don't calculate 3rd variable). This is only
-         ! really an issue at the first time step when ISORROPIA values are 
-         ! zero, as ISORROPIA is called after PHYSPROC and CALCRATE.
+      ! Calculate the third uptake parameterization term:
+      VALTMP = ( 4.e+0_fp * AERVOL * RGASLATM * TEMP * HENRY * KPART ) / &
+               ( AERRAD * XMMS )
+      IF ( VALTMP .GT. 0 ) THEN
+         VAL3 = 1.e+0_fp / VALTMP
+      ELSE
          VAL3 = 0.0e+0_fp
+      ENDIF
 
-         ! Return very small gamma value:
-         GAMMA = TINY(1e+0_fp)
+      ! Account for small reaction rates:
+      IF ( KPART .LT. 1.e-8_fp ) THEN
+
+         GAMMA = 0.0e+0_fp
 
       ELSE
-
-         ! Calculate 3rd variable:
-         VAL3 = 1.e+0_fp/ &
-            ( ( 4.e+0_fp * AERVOL * RGASLATM * TEMP * HENRY * KPART ) / &
-            ( AERAREA * XMMS ) )
          
          ! Calculate the uptake coefficient:
          GAMMA = 1.e+0_fp/( VAL1 + VAL2 + VAL3 )
 
       ENDIF
-
-      ! Fail safes for negative, very very small, and NAN GAMMA values:
-      IF ( GAMMA  .lt. 0.0e+0_fp )    GAMMA = TINY(1e+0_fp)
-      !IF ( IT_IS_NAN( GAMMA ) )       GAMMA = TINY(1e+0_fp)
-      IF ( GAMMA .lt. TINY(1e+0_fp) ) GAMMA = TINY(1e+0_fp)
 
       END FUNCTION EPOXUPTK
 !EOC
