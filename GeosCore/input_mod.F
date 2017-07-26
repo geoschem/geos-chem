@@ -1588,7 +1588,7 @@
       LOGICAL            :: LSVPOA,     LDUST,      LDSTUP
       LOGICAL            :: LSSALT,     LCRYST,     LDICARB
       LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
-      LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA
+      LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA, LISOPOA
       INTEGER            :: N,          T,          I 
       CHARACTER(LEN=255) :: MSG,        LOCATION
       REAL(fp)           :: T_NAT_SUPERCOOL, P_ICE_SUPERSAT
@@ -1633,6 +1633,10 @@
       ! SOAupdate: Add Semi-volatile POA switch (hotp 8/9/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
       READ( SUBSTRS(1:N), * ) LSVPOA
+
+      ! Use mechanistic isoprene OA (eam, 08/2015):
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6b' )
+      READ( SUBSTRS(1:N), * ) LISOPOA
 
       ! Use online dust aerosols ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
@@ -1722,6 +1726,7 @@
          LSSALT = .FALSE.
          LMPOA  = .FALSE.
          LSVPOA = .FALSE.
+         LISOPOA= .FALSE.
       ENDIF
 
       !%%% The cryst/aq code is currently under development so make
@@ -1738,6 +1743,7 @@
       Input_Opt%LBRC               = LBRC
       Input_Opt%LSOA               = LSOA 
       Input_Opt%LSVPOA             = LSVPOA
+      Input_Opt%LISOPOA            = LISOPOA
       Input_Opt%LDUST              = LDUST 
       Input_Opt%LDSTUP             = LDSTUP
       Input_Opt%LSSALT             = LSSALT
@@ -1766,6 +1772,7 @@
          WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ', LBRC
          WRITE( 6, 100     ) 'Online COMPLEX SOA?         : ', LSOA
          WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
+         WRITE( 6, 100     ) 'Mechanistic isoprene OA?    : ', LISOPOA
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
          WRITE( 6, 100     ) 'Acid uptake on dust?        : ', LDSTUP
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
@@ -4397,11 +4404,11 @@
      &                 47, ND47, SUBSTRS(2:N), N-1, N_ADVECT )
 
       !--------------------------
-      ! ND52: GAMMA HO2
+      ! ND52: GAMMA values
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:51' )
       READ( SUBSTRS(1), * ) ND52
-      CALL SET_TINDEX( am_I_Root, 52, ND52, SUBSTRS(2:N), N-1, 1 )
+      CALL SET_TINDEX( am_I_Root, 52, ND52, SUBSTRS(2:N), N-1, PD52 )
 
       !--------------------------
       ! ND53: POPS
@@ -4552,6 +4559,13 @@
        CALL ERROR_STOP( MSG, 'READ_DIAGNOSTIC_MENU ("input_mod.f")' )
       ENDIF
 
+      !--------------------------
+      ! ND73: ISORROPIA pH and H+
+      !--------------------------
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:71' )
+      READ( SUBSTRS(1), * ) ND73
+      CALL SET_TINDEX( am_I_Root, 73, ND73, SUBSTRS(2:N), N-1, PD73 )
+
 #if defined( NC_DIAG )
       !----------------------------------------------------------
       ! NETCDF diagnostic output type (eventually read from file)
@@ -4654,6 +4668,7 @@
       Input_Opt%ND70               = ND70
       Input_Opt%ND71               = ND71
       Input_Opt%ND72               = ND72
+      Input_Opt%ND73               = ND73
       Input_Opt%LPRT               = ( ND70 > 0 )
 
       ! Loop over # of diagnostics
@@ -8357,6 +8372,11 @@
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
+      IF ( Input_Opt%LISOPOA .and. ( .NOT. Input_Opt%LSOA ) ) THEN
+         MSG = 'Mechanistic isoprene OA requires COMPLEX SOA (LSOA=T)'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
       ! SOAupdate: Error check (hotp 8/24/09)
       ! OCPI and OCPO are the non-volatile POA species
       ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA species
@@ -8410,9 +8430,7 @@
       !=================================================================
 
       ! Check for complex SOA species
-      I = MAX( Ind_('LIMO' ,'A'), 0 )
-     &  + MAX( Ind_('MTPO' ,'A'), 0 )
-     &  + MAX( Ind_('TSOA1','A'), 0 )
+      I = MAX( Ind_('TSOA1','A'), 0 )
      &  + MAX( Ind_('TSOA2','A'), 0 )
      &  + MAX( Ind_('TSOA3','A'), 0 )
      &  + MAX( Ind_('ISOA1','A'), 0 )
@@ -8422,8 +8440,6 @@
      &  + MAX( Ind_('ASOA2','A'), 0 )
      &  + MAX( Ind_('ASOA3','A'), 0 )
      &  + MAX( Ind_('ASOAN','A'), 0 )
-     &  + MAX( Ind_('SOAG' ,'A'), 0 )
-     &  + MAX( Ind_('SOAM' ,'A'), 0 )
 
       IF ( Input_Opt%LSOA ) THEN
          IF ( I == 0 ) THEN

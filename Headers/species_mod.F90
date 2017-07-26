@@ -72,6 +72,7 @@ MODULE Species_Mod
      ! Names
      CHARACTER(LEN=31)  :: Name             ! Short name
      CHARACTER(LEN=80)  :: FullName         ! Long name
+     CHARACTER(LEN=80)  :: Formula          ! Chemical formula
      INTEGER            :: NameHash         ! Integer hash for short name
 
      ! Logical switches
@@ -493,6 +494,7 @@ CONTAINS
 !
   SUBROUTINE Spc_Create( am_I_Root,     ThisSpc,       ModelID,        &
                          DryDepID,      Name,          FullName,       &
+                         Formula,                                      &
                          MW_g,          EmMW_g,        MolecRatio,     &
                          BackgroundVV,  Henry_K0,      Henry_CR,       &
                          Henry_PKA,     Density,       Radius,         &
@@ -505,7 +507,7 @@ CONTAINS
                          Is_Drydep,     Is_Wetdep,     Is_Photolysis,  &
                          Is_InRestart,  Is_Hg0,        Is_Hg2,         &
                          Is_HgP,        KppSpcId,      KppVarId,       &
-                         KppFixId,      RC             )
+                         KppFixId,      RC )
 !
 ! !USES:
 !
@@ -519,6 +521,7 @@ CONTAINS
     INTEGER,          OPTIONAL    :: DryDepID         ! Drydep ID number
     CHARACTER(LEN=*), OPTIONAL    :: Name             ! Short name of species
     CHARACTER(LEN=*), OPTIONAL    :: FullName         ! Long name of species
+    CHARACTER(LEN=*), OPTIONAL    :: Formula          ! Chemical formula
     REAL(fp),         OPTIONAL    :: MW_g             ! Molecular weight [g]
     REAL(fp),         OPTIONAL    :: EmMW_g           ! Emissions mol. wt [g]
     REAL(fp),         OPTIONAL    :: MolecRatio       ! Molec ratio
@@ -666,6 +669,17 @@ CONTAINS
           ThisSpc%FullName = ''
        ENDIF
     ENDIF
+
+    !---------------------------------------------------------------------
+    ! Chemical formula
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Formula ) ) THEN
+       ThisSpc%Formula = Formula
+    ELSE
+       ThisSpc%Formula = ''
+    ENDIF
+
+
 
     !---------------------------------------------------------------------
     ! Molecular weight [g]
@@ -1203,6 +1217,7 @@ CONTAINS
        WRITE( 6, 100 ) 'Species ID            ',  ThisSpc%ModelID
        WRITE( 6, 110 ) 'Name                  ',  TRIM( ThisSpc%Name     )
        WRITE( 6, 110 ) 'FullName              ',  TRIM( ThisSpc%FullName )
+       WRITE( 6, 110 ) 'Formula               ',  TRIM( ThisSpc%Formula  )
        WRITE( 6, 120 ) 'Molecular weight [g]  ',  ThisSpc%MW_g
        WRITE( 6, 120 ) 'Emitted mol. wt [g]   ',  ThisSpc%EmMW_g
        WRITE( 6, 120 ) 'Molecular ratio       ',  ThisSpc%MolecRatio

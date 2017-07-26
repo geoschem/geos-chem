@@ -248,6 +248,7 @@
       INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
       INTEGER                        :: id_ACET,  id_ALD2
       INTEGER                        :: id_NK1
+      INTEGER                        :: id_HNO3,  id_PAN,   id_ISOPND
 
       ! Arrays for Baldocchi drydep polynomial coefficients
       REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
@@ -272,6 +273,7 @@
       ! Arrays that hold information about the dry-depositing species
       LOGICAL,           ALLOCATABLE :: AIROSOL (:    ) ! Is Aerosol? (T/F)
       INTEGER,           ALLOCATABLE :: NDVZIND (:    ) ! Drydep index
+      INTEGER,           ALLOCATABLE :: FLAG    (:    ) ! Drydep scaling flag
       INTEGER,           ALLOCATABLE :: NTRAIND (:    ) ! Species index
       REAL(f8),          ALLOCATABLE :: HSTAR   (:    ) ! Henry's K0 [M/atm]
       REAL(f8),          ALLOCATABLE :: KOA     (:    ) ! POP's KOA
@@ -411,6 +413,8 @@
 !  18 Jul 2016 - M. Sulprizio- Remove special handling for ISOPN and MVKN for
 !                              ND44 netCDF diagnostic. Family tracers have been
 !                              eliminated.
+!  13 Jul 2017 - M. Sulprizio- Add scaling of species drydep relative to HNO3,
+!                              PAN, and ISOPN (from K. Travis, J. Fisher)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -489,12 +493,12 @@
      &             RHB,       PRESSU, W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
-      CALL DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,     
-     &             RADIAT,    TC0,       SUNCOS_MID,          
-     &             F0,        HSTAR,     XMW,       AIROSOL,           
-     &             USTAR,     CZ1,       OBK,       CFRAC,               
-     &             ZH,        LSNOW,     DVEL,      AZO,              
-     &             RHB,       PRESSU,    W10,       RC             )
+      CALL DEPVEL( am_I_Root, Input_Opt, State_Met,  State_Chm,     
+     &             RADIAT,    TC0,       SUNCOS_MID,           
+     &             F0,        HSTAR,     XMW,        AIROSOL,           
+     &             USTAR,     CZ1,       OBK,        CFRAC,               
+     &             ZH,        LSNOW,     DVEL,       AZO,              
+     &             RHB,       PRESSU,    W10,        RC            )
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -531,6 +535,27 @@
 
             ! Dry deposition velocity [cm/s]
             DVZ     =  DVEL(I,J,NDVZ) * 100.e+0_f8
+
+            ! Scale relative to specified species (krt, 3/1/15)
+            IF ( FLAG(D) .eq. 1 )  THEN
+
+               ! Scale species to HNO3 
+               DVZ = DVZ * sqrt(State_Chm%SpcData(id_HNO3)%Info%MW_g)
+     &                   / sqrt(SpcInfo%MW_g)
+
+            ELSE IF ( FLAG(D) .eq. 2 ) THEN
+
+               ! Scale species to PAN
+               DVZ = DVZ * sqrt(State_Chm%SpcData(id_PAN)%Info%MW_g)
+     &                   / sqrt(SpcInfo%MW_g)         
+
+            ELSE IF ( FLAG(D) .eq. 3 ) THEN
+
+               ! Scale species to ISOPN
+               DVZ = DVZ * sqrt(State_Chm%SpcData(id_ISOPND)%Info%MW_g)
+     &                   / sqrt(SpcInfo%MW_g)            
+
+            ENDIF
 
             !-----------------------------------------------------------
             ! Special treatment for snow vs. ice
@@ -4002,6 +4027,8 @@
 !                              as module variables on the first call
 !  18 Jul 2016 - M. Sulprizio- Remove special handling for ISOPN and MVKN.
 !                              Family tracers have been eliminated.
+!  13 Jul 2017 - M. Sulprizio- Add scaling of species drydep relative to HNO3,
+!                              PAN, and ISOPN (from K. Travis, J. Fisher)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4034,9 +4061,14 @@
       ! Count of drydep species
       NUMDEP  = 0
 
-      ! Flag to identify acetone
-      id_ACET = 0
-      id_ALD2 = 0
+      ! Flag to identify species
+      id_ACET   = 0
+      id_ALD2   = 0
+
+      ! Define species IDs
+      id_HNO3   = IND_('HNO3'  )
+      id_PAN    = IND_('PAN'   )
+      id_ISOPND = IND_('ISOPND')
 
       !===================================================================
       ! Arrays that hold information about dry-depositing species
@@ -4083,6 +4115,11 @@
          ALLOCATE( NDVZIND( State_Chm%nDryDep ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'NDVZIND' )
          NDVZIND = 0
+
+         ! Drydep scaling flag
+         ALLOCATE( FLAG( State_Chm%nDryDep ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FLAG' )
+         FLAG = 0
 
          ! Species indices
          ALLOCATE( NTRAIND( State_Chm%nDryDep ), STAT=AS )
@@ -4175,28 +4212,43 @@
                   ! backwards compatibility with older code.
                   DEPNAME(NUMDEP) = 'NITS' 
 
-               CASE( 'N2O5' )
-                  ! %%%%% KLUDGE (bmy, 5/19/16) %%%%%%%%%%%%%%%%%%%%%%
-                  ! N2O5 uses the Vd of HNO3.  We will now explicitly 
-                  ! compute the Vd of N2O5 instead of assigning to N2O5 
-                  ! the Vd of HNO3 from the DVEL array.  This will 
-                  ! prevent duplicate indexing in State_Chm%Map_Drydep.
-                  !
-                  ! Make sure to set XMW to the MW of HNO3 (63 kg/mol)
-                  ! for the computation of Vd to work properly.
-                  XMW(NUMDEP) = 63.0e-3_fp
 
-               CASE(  'PMN', 'PPN', 'R4N2' )
-                  ! %%%%% KLUDGE (bmy, 5/19/16) %%%%%%%%%%%%%%%%%%%%%%
-                  ! PMN, PPN, and R4N2 all use the Vd of PAN.  We will 
-                  ! now compute the Vd of PMN, PPN, and R4N2 instead of 
-                  ! assigning to these species the the Vd of HNO3 from 
-                  ! the DVEL array.  This will prevent duplicate indexing
-                  ! in State_Chm%Map_Drydep.
+               CASE( 'N2O5', 'HC187' )
+                  ! These species scale to the Vd of HNO3. We will
+                  ! explicitly compute the Vd of these species instead
+                  ! of assigning the Vd of HNO3 from the DVEL array.
+                  ! The scaling is applied in DO_DRYDEP using FLAG=1.
                   !
-                  ! Make sure to set XMW to the MW of PAN (121 kg/mol)
+                  ! Make sure to set XMW to the MW of HNO3
                   ! for the computation of Vd to work properly.
-                  XMW(NUMDEP) = 121.0e-3_fp
+                  XMW(NUMDEP)  = State_Chm%SpcData(id_HNO3)%Info%MW_g
+     &                           * 1e-3_fp
+                  FLAG(NUMDEP) = 1
+
+               CASE(  'NPMN', 'IPMN', 'PPN', 'R4N2' )
+                  ! These specied scale to the Vd of PAN.  We will 
+                  ! explicitly compute the Vd of these species instead 
+                  ! of assigning the Vd of PAN from the DVEL array.
+                  ! The scaling is applied in DO_DRYDEP using FLAG=2.
+                  !
+                  ! Make sure to set XMW to the MW of PAN
+                  ! for the computation of Vd to work properly.
+                  XMW(NUMDEP)  = State_Chm%SpcData(id_PAN)%Info%MW_g
+     &                           * 1e-3_fp
+                  FLAG(NUMDEP) = 2
+
+               CASE( 'DHDN', 'ETHLN', 'ISN1', 'MONITS', 'MONITU', 
+     &               'HONIT' )
+                  ! These species scale to the Vd of ISOPN. We will
+                  ! explicitly compute the Vd of these species instead
+                  ! of assigning the Vd of ISOPN from the DVEL array.
+                  ! The scaling is applied in DO_DRYDEP using FLAG=3.
+                  !
+                  ! Make sure to set XMW to the MW of ISOPN
+                  ! for the computation of Vd to work properly.
+                  XMW(NUMDEP)  = State_Chm%SpcData(id_ISOPND)%Info%MW_g
+     &                           * 1e-3_fp
+                  FLAG(NUMDEP) = 3
 
                CASE( 'SO4s', 'SO4S' )
                   ! DEPNAME for SO4s has to be in all caps, for 

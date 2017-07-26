@@ -87,6 +87,17 @@
       !   (ewl, 1/4/16)
       REAL(fp), PARAMETER :: CONSVAP  = 6.1078e+03_fp /
      &                                  ( BOLTZ * 1e+7_fp )
+
+      ! Gas constant in: [L.atm/K.mole]
+      REAL(fp), PARAMETER :: RGASLATM = 8.2057e-2_fp
+
+      ! Molecular weight of carbon (kg/mol)
+      REAL(fp), PARAMETER :: MWCARB    = 12.01e-3_fp
+
+      ! Effective Henry's Law constant of IEPOX for reactive
+      ! uptake to aqueous aerosols (M/atm)
+      ! (used in gckpp_HetRates.F90)
+      REAL(fp), PARAMETER :: HSTAR_EPOX = 3.3e+7_fp  ! Nguyen (2015)
 !
 ! !REFERENCES:
 ! (1) NIST, 2014. Website: http://physics.nist.gov/cuu/Constants/index.html
