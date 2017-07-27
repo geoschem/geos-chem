@@ -1505,7 +1505,7 @@ MODULE GCKPP_HETRATES
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
 
-      REAL(fp) :: HSTAR, K_HPLUS, K_NUC, K_HSO4
+      REAL(fp) :: HSTAR, K_HPLUS, K_NUC, K_HSO4, K_HYDRO
 
       ! Initialize
       HET_IEPOX    = 0.0_fp
@@ -1529,13 +1529,14 @@ MODULE GCKPP_HETRATES
             K_HPLUS = 3.6e-2_fp   ! Alternate: 1.2d-3 (Edding)
             K_NUC   = 2.e-4_fp    ! Alternate: 5.2d-1 (Piletic)
             K_HSO4  = 7.3e-4_fp
+            K_HYDRO = 0.0e+0_fp
 
             ! Get GAMMA for IEPOX hydrolysis:
             XSTKCF = EPOXUPTK( XAREA(N), XRADI(N),            &
                                TEMPK,    (A**0.5_fp),         &
                                HSTAR,    K_HPLUS,    H_PLUS,  &
                                K_NUC,    MSO4,       MNO3,    &
-                               K_HSO4,   MHSO4 )
+                               K_HSO4,   MHSO4,      K_HYDRO )
 
          ENDIF
 
@@ -1603,7 +1604,7 @@ MODULE GCKPP_HETRATES
       INTEGER  :: N
       REAL(fp) :: XSTKCF, ADJUSTEDRATE
 
-      REAL(fp) :: HSTAR, K_HPLUS, K_NUC, K_HSO4
+      REAL(fp) :: HSTAR, K_HPLUS, K_NUC, K_HSO4, K_HYDRO
 
       ! Initialize
       HET_IMAE     = 0.0_fp
@@ -1627,18 +1628,14 @@ MODULE GCKPP_HETRATES
             K_HPLUS = 1.2e-3_fp  ! 30x slower than IEPOX (Piletic et al., 2013)
             K_NUC   = 6.7e-6_fp  ! Assume others are also 30x slower.
             K_HSO4  = 2.4e-5_fp
+            K_HYDRO = 0.0e+0_fp
 
             ! Get GAMMA for IMAE hydrolysis:
             XSTKCF = EPOXUPTK( XAREA(N), XRADI(N),            &
                                TEMPK,    (A**0.5_fp),         &
                                HSTAR,    K_HPLUS,    H_PLUS,  &
                                K_NUC,    MSO4,       MNO3,    &
-                               K_HSO4,   MHSO4 )
-
-            ! Scale down gamma if H+ > 8d-5 (Riedel et al., 2015)
-            IF ( H_PLUS .gt. 8.e-5_fp ) THEN
-               XSTKCF = XSTKCF / 30.e+0_fp
-            ENDIF
+                               K_HSO4,   MHSO4,      K_HYDRO )
 
          ENDIF
 
@@ -3339,13 +3336,14 @@ MODULE GCKPP_HETRATES
 !
     FUNCTION EPOXUPTK( AERAREA, AERRAD,  TEMP,  SQMW,              &
                        HENRY,   KHPLUS,  HPLUS, KNUC,  SULF, NITR, &
-                       KGACID,  BISULF   ) &
+                       KGACID,  BISULF,  KHYDRO ) &
              RESULT( GAMMA )
 !
 ! !USES:
 !
       USE Input_Opt_Mod, ONLY : OptInput
       USE PhysConstants, ONLY : RGASLATM
+      USE ERROR_MOD,     ONLY : IT_IS_NAN
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3364,6 +3362,7 @@ MODULE GCKPP_HETRATES
       REAL(fp), INTENT(IN) :: KGACID   ! 1st order rxn rate due to general acids
                                        ! (bisulfate in this case)
       REAL(fp), INTENT(IN) :: BISULF   ! Bisulfate concentration [M]
+      REAL(fp), INTENT(IN) :: KHYDRO   ! Hydrolysis rate of alkylnitrates [1/s]
 !
 ! !RETURN VALUE:
 !
@@ -3423,9 +3422,11 @@ MODULE GCKPP_HETRATES
 
       ! Calculate first-order particle-phase reaction rate:
       ! (assume [H+] = proton activity)
+      ! KHYDRO is only important for alkylnitrates (not currently used).
       KPART = ( KHPLUS*HPLUS )               + &
               ( KNUC*HPLUS*( NITR + SULF ) ) + &
-              ( KGACID*BISULF )
+              ( KGACID*BISULF )              + &
+              ( KHYDRO )
       
       ! Calculate the first uptake parameterization term:
       VAL1 = ( AERRAD * XMMS )/( 4.e+0_fp * DIFF_N2O5_STD )
@@ -3435,7 +3436,7 @@ MODULE GCKPP_HETRATES
 
       ! Calculate the third uptake parameterization term:
       VALTMP = ( 4.e+0_fp * AERVOL * RGASLATM * TEMP * HENRY * KPART ) / &
-               ( AERRAD * XMMS )
+               ( AERAREA * XMMS )
       IF ( VALTMP .GT. 0 ) THEN
          VAL3 = 1.e+0_fp / VALTMP
       ELSE
@@ -3445,7 +3446,7 @@ MODULE GCKPP_HETRATES
       ! Account for small reaction rates:
       IF ( KPART .LT. 1.e-8_fp ) THEN
 
-         GAMMA = 0.0e+0_fp
+         GAMMA = TINY(1e+0_fp)
 
       ELSE
          
@@ -3453,6 +3454,11 @@ MODULE GCKPP_HETRATES
          GAMMA = 1.e+0_fp/( VAL1 + VAL2 + VAL3 )
 
       ENDIF
+
+      ! Fail safes for negative, very very small, and NAN GAMMA values:
+      IF ( GAMMA  .lt. 0.0e+0_fp )    GAMMA = TINY(1e+0_fp)
+      IF ( IT_IS_NAN( GAMMA ) )       GAMMA = TINY(1e+0_fp)
+      IF ( GAMMA .lt. TINY(1e+0_fp) ) GAMMA = TINY(1e+0_fp)
 
       END FUNCTION EPOXUPTK
 !EOC
