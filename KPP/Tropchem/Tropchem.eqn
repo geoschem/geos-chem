@@ -41,6 +41,7 @@ v11-02c (Jul 2017)
       - Add Muller2014 fast photolysis of carbonyl nitrates
       - Add HNO2 chemistry from Lee2014 
       - Updated product yields and rx rate for RIO2+RIO2 (Xie2013)
+ (3) Add fixes for carbon-creating reactions (SAS,BHH,MJE)
 
 ===============================================================================
 DEVELOPERS (alphabetical order; add your name!)
@@ -64,6 +65,7 @@ MJE : Mat Evans;               mat.evans@york.ac.uk
 MPS : Melissa Sulprizio;       mpayer@seas.harvard.edu
 MSL : Mike Long;               mlong@seas.harvard.edu
 RHS : Rebecca Schwantes;       rschwant@caltech.edu 
+SAS : Sarah Safieddine;        sarahsaf@mit.edu
 SDE : Sebastian Eastham;       seastham@seas.harvard.edu
 TS  : Tomas Sherwen;           ts551@york.ac.uk
 
@@ -363,10 +365,9 @@ R4O2 + NO = NO2 + 0.320ACET + 0.190MEK +
  0.140RCHO + 0.050A3O2 + 0.180B3O2 + 
  0.320ETO2 :                                GC_RO2NO('B', 2.70E-12, 0.0E+00, 350.0, 4.5E0, 0.0, 0.0);  {2017/02/23; ALK4 lumping fix; BHH}
 R4O2 + NO = R4N2 :                          GC_RO2NO('A', 2.70E-12, 0.0E+00, 350.0, 4.5E0, 0.0, 0.0);
-R4N1 + NO = 2.000NO2 + 0.390CH2O + 
- 0.750ALD2 + 0.570RCHO + 0.300R4O2 :        GCARR(2.70E-12, 0.0E+00, 350.0);
-ATO2 + NO = 0.960NO2 + 0.960CH2O + 
- 0.960MCO3 + 0.040R4N2 :                    GCARR(2.80E-12, 0.0E+00, 300.0);
+R4N1 + NO = 2.000NO2 + 0.570RCHO +
+ 0.860ALD2 + 0.570CH2O :                    GCARR(2.70E-12, 0.0E+00, 350.0);    {2017/07/27; Fix C creation; SAS,BHH,MJE}
+ATO2 + NO = NO2 + CH2O + MCO3 :             GCARR(2.80E-12, 0.0E+00, 300.0);    {2017/07/27; Fix C creation; SAS,BHH,MJE}
 KO2 + NO = 0.930NO2 + 0.930ALD2 + 
  0.930MCO3 + 0.070R4N2 :                    GCARR(2.70E-12, 0.0E+00, 350.0);
 RIO2 + NO = 0.910NO2 + 0.820HO2 + 
@@ -460,7 +461,8 @@ VRO2 + HO2 = 0.100VRP + 0.680OH +
 MRO2 + HO2 = MRP :                          GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 4.0, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 MAN2 + HO2 = 0.075PROPNN + 0.075CO + 
  0.075HO2 + 0.075MGLY + 0.075CH2O + 
- 0.075NO2 + 0.150OH + 0.850ISNP :           GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 4.0, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+ 0.075NO2 + 0.150OH + 0.850MAOP +
+ 0.85NO2 :                                  GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 4.0, 0.0, 0.0);  {2017/07/27; Fix C creation; SAS,BHH,MJE}
 B3O2 + HO2 = RB3P :                         GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 3.0, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 INO2 + HO2 = INPN :                         GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 5.0, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 PRN1 + HO2 = PRPN :                         GC_RO2HO2(2.91E-13, 0.0E+00, 1300.0, 3.0, 0.0, 0.0);  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
@@ -679,7 +681,7 @@ INO2 + MCO3 = MO2 + 0.700ISN1 +
  0.070CH2O + 0.300NO2 + 0.230HC5 :          GCARR(1.68E-12, 0.0E+00, 500.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 PRN1 + MCO3 = MO2 + NO2 + CH2O + ALD2 :     GCARR(1.68E-12, 0.0E+00, 500.0);
 R4O2 + MCO3 = MEK + ACTA :                  GCARR(1.87E-13, 0.0E+00, 500.0);
-ATO2 + MCO3 = MEK + ACTA :                  GCARR(1.87E-13, 0.0E+00, 500.0);
+ATO2 + MCO3 = MGLY + ACTA :                 GCARR(1.87E-13, 0.0E+00, 500.0);    {2017/07/27; Fix C creation; SAS,BHH,MJE}
 KO2 + MCO3 = MEK + ACTA :                   GCARR(1.87E-13, 0.0E+00, 500.0);
 RIO2 + MCO3 = MEK + ACTA :                  GCARR(1.87E-13, 0.0E+00, 500.0);
 HC5OO + MCO3 = MEK + ACTA :                 GCARR(1.87E-13, 0.0E+00, 500.0);    {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
@@ -728,10 +730,10 @@ Br2 + OH = HOBr + Br :                      GCARR(2.10E-11, 0.0E+00, 240.0);    
 BrO + OH = Br + HO2 :                       GCARR(1.70E-11, 0.0E+00, 250.0);    {2012/06/07; Parrella2012; JPP}
 Br + NO3 = BrO + NO2 :                      GCARR(1.60E-11, 0.0E+00, 0.0);      {2012/06/07; Parrella2012; JPP}
 Br + CH2O = HBr + HO2 + CO :                GCARR(1.70E-11, 0.0E+00, -800.0);   {2012/06/07; Parrella2012; JPP}
-Br + ALD2 = HBr + MCO3 + CO :               GCARR(1.80E-11, 0.0E+00, -460.0);   {2017/02/22; JPL 15-10; BHH,MJE}
-Br + ACET = HBr + ATO2 + CO :               GCARR(1.66E-10, 0.0E+00, -7000.0);  {2012/06/07; Parrella2012; JPP}
-Br + C2H6 = HBr + ETO2 + CO :               GCARR(2.36E-10, 0.0E+00, -6411.0);  {2012/06/07; Parrella2012; JPP}
-Br + C3H8 = HBr + A3O2 + CO :               GCARR(8.77E-11, 0.0E+00, -4330.0);  {2012/06/07; Parrella2012; JPP}
+Br + ALD2 = HBr + MCO3 :                    GCARR(1.80E-11, 0.0E+00, -460.0);   {2017/07/27; Parrella2012,Fix C creation; SAS,BHH,MJE}
+Br + ACET = HBr + ATO2 :                    GCARR(1.66E-10, 0.0E+00, -7000.0);  {2017/07/27; Parrella2012,Fix C creation; SAS,BHH,MJE}
+Br + C2H6 = HBr + ETO2 :                    GCARR(2.36E-10, 0.0E+00, -6411.0);  {2017/07/27; Parrella2012,Fix C creation; SAS,BHH,MJE}
+Br + C3H8 = HBr + A3O2 :                    GCARR(8.77E-11, 0.0E+00, -4330.0);  {2017/07/27; Parrella2012,Fix C creation; SAS,BHH,MJE}
 Br + NO2 {+M} = BrNO2 {+M} :                GCJPLPR(4.20E-31, 2.4E+00, 0.0, 2.7E-11, 0.0, 0.0, 0.6, 0.0, 0.0);  {2012/06/07; Parrella2012; JPP}
 BrO + NO2 {+M} = BrNO3 {+M} :               GCJPLPR(5.40E-31, 3.1E+00, 0.0, 6.5E-12, 2.9, 0.0, 0.6, 0.0, 0.0);  {2017/02/22; JPL 15-10; BHH,MJE}
 CHBr3 + OH = 3.000Br :                      GCARR(9.00E-13, 0.0E+00, -360.0);   {2017/02/22; JPL 15-10; BHH,MJE}
