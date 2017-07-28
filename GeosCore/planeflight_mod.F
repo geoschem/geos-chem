@@ -132,8 +132,8 @@
       INTEGER,           PARAMETER   :: MAXPOINTS = 10000
       INTEGER,           PARAMETER   :: MAXREAC   = 50
       INTEGER,           PARAMETER   :: MAXRO2    = 45
-      INTEGER,           PARAMETER   :: MAXAN     = 10 ! FP 04/01/2010 (AN) 
-      INTEGER,           PARAMETER   :: MAXNOY    = 12 ! FP 04/01/2010 (NOy)
+      INTEGER,           PARAMETER   :: MAXAN     = 15
+      INTEGER,           PARAMETER   :: MAXNOY    = 15
 
       ! For specifying flight track points
       INTEGER                        :: NPOINTS           
@@ -660,7 +660,7 @@
             !===========================================================
             CASE( 'GAMM' )
 
-               ! Skip if not SMVGEAR!
+               ! Skip if not full-chemistry
                IF ( IS_FULLCHEM ) THEN 
 
                   ! Increment reaction counter:
@@ -1240,7 +1240,7 @@
 
          SELECT CASE( TRIM( SpcInfo%Name ) )
 
-           CASE ( 'NO', 'NO2', 'NO3', 'HNO2', 'HNO4', 'HNO3',
+           CASE ( 'NO',  'NO2',   'NO3',  'HNO2', 'HNO4', 'HNO3',
      &            'PAN', 'PYPAN', 'IPMN', 'NPMN', 'PPN')
 
                NPNOY       = NPNOY + 1
@@ -1355,9 +1355,9 @@
          ! the AN global array, and increment counter
          SELECT CASE( TRIM( SpcInfo%Name ) )
 
-           CASE ( 'ISOPNB', 'ISOPND', 'MVKN',  'MACRN',
-     &            'ISN2',   'MNO3',   'ISNO3', 'R4N2',
-     &            'PROPNN', 'ETHLN' ) 
+           CASE ( 'ISOPNB', 'ISOPND', 'MVKN',  'MACRN', 'R4N2',
+     &            'ISN1',   'PROPNN', 'ETHLN', 'DHDN',  'HONIT',
+     &            'MONITU', 'MONITS', 'INPN' )
 
                NPAN       = NPAN + 1
                P_AN(NPAN) = M
@@ -1424,6 +1424,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -1629,6 +1630,9 @@
             ! Initialize production count:
             PR = 0
 
+            ! Convert species units from [kg/kg] to [v/v]
+            CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC )
+
             ! Initialize GEOS-Chem species array [kg]
             Spc => State_Chm%Species
 
@@ -1647,8 +1651,10 @@
                      ! Only archive where chemistry is done
                      ! Save as mixing ratio [v/v]
                      IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
-                        VARI(V) = State_Chm%Species(I,J,L,PVAR(V)) / 
-     &                            State_Met%AIRNUMDEN(I,J,L)
+
+                        ! Species concentration [v/v]
+                        VARI(V) = Spc(I,J,L,PVAR(V))
+
                      ENDIF
 
                   ! FP 04/01/2010
@@ -1665,11 +1671,11 @@
      &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
 
                         DO N = 1, NPNOY
-                           VARI(V) = VARI(V) +
-     &                               State_Chm%Species(I,J,L,PNOY(N))
-                        ENDDO
 
-                        VARI(V) = VARI(V) / State_Met%AIRNUMDEN(I,J,L)
+                           ! Species concentration [v/v]
+                           VARI(V) = VARI(V) + Spc(I,J,L,PNOY(N))
+
+                        ENDDO
 
                      ENDIF
 
@@ -1687,11 +1693,11 @@
      &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
 
                         DO N = 1, NPAN
-                           VARI(V) = VARI(V) +
-     &                               State_Chm%Species(I,J,L,P_AN(N))
-                        ENDDO
 
-                        VARI(V) = VARI(V) / State_Met%AIRNUMDEN(I,J,L)
+                           ! Species concentration [v/v]
+                           VARI(V) = VARI(V) + Spc(I,J,L,P_AN(N))
+
+                        ENDDO
 
                      ENDIF
 
@@ -1708,11 +1714,11 @@
      &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
 
                         DO N = 1, NPRO2
-                           VARI(V) = VARI(V) +
-     &                               State_Chm%Species(I,J,L,PRO2(N))
+
+                           ! Species concentration [v/v]
+                           VARI(V) = VARI(V) + Spc(I,J,L,PRO2(N))
+
                         ENDDO
-                           
-                        VARI(V) = VARI(V) / State_Met%AIRNUMDEN(I,J,L)
 
                      ENDIF
 
@@ -2071,9 +2077,8 @@
                      ! Remove offset from PVAR
                      N = PVAR(V) - 100000
                      
-                     ! Convert from [kg/kg] --> [v/v] (ewl, 8/11/15)
-                     VARI(V) = Spc(I,J,L,N) * ( AIRMW / 
-     &                         State_Chm%SpcData(N)%Info%emMW_g )
+                     ! Species concentration [v/v]
+                     VARI(V) = Spc(I,J,L,N)
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 
@@ -2106,6 +2111,9 @@
 
                END SELECT
             ENDDO
+
+            ! Convert species units from [v/v] back to [kg/kg]
+            CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root, State_Chm, RC )
 
             ! Free pointer
             NULLIFY( Spc )
