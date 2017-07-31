@@ -1588,7 +1588,7 @@
       LOGICAL            :: LSVPOA,     LDUST,      LDSTUP
       LOGICAL            :: LSSALT,     LCRYST,     LDICARB
       LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
-      LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA
+      LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA, LISOPOA
       INTEGER            :: N,          T,          I 
       CHARACTER(LEN=255) :: MSG,        LOCATION
       REAL(fp)           :: T_NAT_SUPERCOOL, P_ICE_SUPERSAT
@@ -1633,6 +1633,10 @@
       ! SOAupdate: Add Semi-volatile POA switch (hotp 8/9/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
       READ( SUBSTRS(1:N), * ) LSVPOA
+
+      ! Use mechanistic isoprene OA (eam, 08/2015):
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6b' )
+      READ( SUBSTRS(1:N), * ) LISOPOA
 
       ! Use online dust aerosols ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
@@ -1722,6 +1726,7 @@
          LSSALT = .FALSE.
          LMPOA  = .FALSE.
          LSVPOA = .FALSE.
+         LISOPOA= .FALSE.
       ENDIF
 
       !%%% The cryst/aq code is currently under development so make
@@ -1738,6 +1743,7 @@
       Input_Opt%LBRC               = LBRC
       Input_Opt%LSOA               = LSOA 
       Input_Opt%LSVPOA             = LSVPOA
+      Input_Opt%LISOPOA            = LISOPOA
       Input_Opt%LDUST              = LDUST 
       Input_Opt%LDSTUP             = LDSTUP
       Input_Opt%LSSALT             = LSSALT
@@ -1766,6 +1772,7 @@
          WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ', LBRC
          WRITE( 6, 100     ) 'Online COMPLEX SOA?         : ', LSOA
          WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
+         WRITE( 6, 100     ) 'Mechanistic isoprene OA?    : ', LISOPOA
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
          WRITE( 6, 100     ) 'Acid uptake on dust?        : ', LDSTUP
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
@@ -4397,11 +4404,11 @@
      &                 47, ND47, SUBSTRS(2:N), N-1, N_ADVECT )
 
       !--------------------------
-      ! ND52: GAMMA HO2
+      ! ND52: GAMMA values
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:51' )
       READ( SUBSTRS(1), * ) ND52
-      CALL SET_TINDEX( am_I_Root, 52, ND52, SUBSTRS(2:N), N-1, 1 )
+      CALL SET_TINDEX( am_I_Root, 52, ND52, SUBSTRS(2:N), N-1, PD52 )
 
       !--------------------------
       ! ND53: POPS
@@ -4547,6 +4554,13 @@
        CALL ERROR_STOP( MSG, 'READ_DIAGNOSTIC_MENU ("input_mod.f")' )
       ENDIF
 
+      !--------------------------
+      ! ND73: ISORROPIA pH and H+
+      !--------------------------
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:71' )
+      READ( SUBSTRS(1), * ) ND73
+      CALL SET_TINDEX( am_I_Root, 73, ND73, SUBSTRS(2:N), N-1, PD73 )
+
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:71' )
 
@@ -4624,6 +4638,7 @@
       Input_Opt%ND70               = ND70
       Input_Opt%ND71               = ND71
       Input_Opt%ND72               = ND72
+      Input_Opt%ND73               = ND73
       Input_Opt%LPRT               = ( ND70 > 0 )
 
       ! Loop over # of diagnostics
@@ -7157,8 +7172,6 @@
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,         ONLY : OptInput
-      USE PASSIVE_SPECIES_MOD,   ONLY : INIT_PASSIVE_SPECIES
-      USE PASSIVE_SPECIES_MOD,   ONLY : ADD_PASSIVE_SPECIES
 !
 ! !INPUT PARAMETERS:
 !
@@ -7174,6 +7187,8 @@
 ! 
 ! !REVISION HISTORY: 
 !  04 Sep 2015 - C. Keller   - Initial version
+!  14 Jul 2017 - E. Lundgren - Store passive species values in Input_Opt and
+!                              remove dependency on passive_species_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7181,7 +7196,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: I, N, nPassive
+      INTEGER            :: I, N, P, IDX, nPassive
       CHARACTER(LEN=31)  :: SpcName
       REAL(fp)           :: SpcMW, SpcTau, SpcInitConc
 
@@ -7198,9 +7213,7 @@
       ! # of passive speciess
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_passive_species_menu:1')
       READ( SUBSTRS(1), * ) nPassive
-
-      ! Initialize passive species module arrays
-      CALL INIT_PASSIVE_SPECIES ( am_I_Root, nPassive, RC )
+      Input_Opt%NPASSIVE = nPassive
 
       ! Read passive species information for each passive species
       ! Every passive species line is expected to have 3 entries:
@@ -7209,7 +7222,7 @@
       ! - Atmospheric lifetime (s)
       ! - Default atmospheric concentration (v/v)
       IF ( nPassive > 0 ) THEN
-         DO I = 1, nPassive
+         DO N = 1, Input_Opt%NPASSIVE
             ! Read values into substrings
             CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 
      &                           'read_passive_species_menu:2' )
@@ -7219,15 +7232,53 @@
             READ( SUBSTRS(2), * ) SpcMW
             READ( SUBSTRS(3), * ) SpcTau
             READ( SUBSTRS(4), * ) SpcInitConc 
-      
-            ! Register as passive species 
-            CALL ADD_PASSIVE_SPECIES( am_I_Root, SpcName, 
-     &                                SpcTau,    SpcInitConc,
-     &                                SpcMW,     RC )
-            IF ( RC /= GC_SUCCESS ) RETURN 
 
+            ! Find empty slot
+            IDX = -1
+            DO P = 1, Input_Opt%NPASSIVE
+               IF ( Input_Opt%PASSIVE_ID(P) < 0 ) THEN
+                  IDX = P
+                  EXIT
+               ENDIF
+            ENDDO
+            IF ( IDX <= 0 ) THEN
+               WRITE(*,*) 'Cannot add passive species ', TRIM(SpcName), 
+     &                    ': all ', Input_Opt%NPASSIVE,               
+     &                    ' species slots are already being used.'
+               RC = GC_FAILURE
+               RETURN 
+            ENDIF 
+
+            ! Store species information
+            Input_Opt%PASSIVE_ID(IDX)       = IDX
+            Input_Opt%PASSIVE_NAME(IDX)     = TRIM(SpcName)
+            Input_Opt%PASSIVE_TAU(IDX)      = SpcTau 
+            Input_Opt%PASSIVE_INITCONC(IDX) = SpcInitConc 
+            Input_Opt%PASSIVE_MW(IDX)       = SpcMW
+
+            ! Verbose
+            IF ( am_I_Root ) THEN
+               WRITE( 6, '(a)' ) 'Added passive species: '
+               WRITE( 6, 110   ) ' - Species name                : ', 
+     &               Input_Opt%PASSIVE_NAME(IDX) 
+               WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ', 
+     &               Input_Opt%PASSIVE_MW(IDX)
+               WRITE( 6, 120   ) ' - Lifetime [s]                : ', 
+     &               Input_Opt%PASSIVE_TAU(IDX)
+               WRITE( 6, 130   ) ' - Default concentration [v/v] : ', 
+     &               Input_Opt%PASSIVE_INITCONC(IDX)
+            ENDIF
          ENDDO
+      ELSE
+         WRITE(*,*) 'Cannot add passive species ', TRIM(SpcName),
+     &        ': # of passive species is smaller than 1!'
+         RC = GC_FAILURE
+         RETURN 
       ENDIF
+
+ 110  FORMAT( A, A )
+ 120  FORMAT( A, F10.2  )
+ 130  FORMAT( A, ES10.2 )
 
       ! All done
       RC = GC_SUCCESS
@@ -8291,6 +8342,11 @@
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
+      IF ( Input_Opt%LISOPOA .and. ( .NOT. Input_Opt%LSOA ) ) THEN
+         MSG = 'Mechanistic isoprene OA requires COMPLEX SOA (LSOA=T)'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
       ! SOAupdate: Error check (hotp 8/24/09)
       ! OCPI and OCPO are the non-volatile POA species
       ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA species
@@ -8344,9 +8400,7 @@
       !=================================================================
 
       ! Check for complex SOA species
-      I = MAX( Ind_('LIMO' ,'A'), 0 )
-     &  + MAX( Ind_('MTPO' ,'A'), 0 )
-     &  + MAX( Ind_('TSOA1','A'), 0 )
+      I = MAX( Ind_('TSOA1','A'), 0 )
      &  + MAX( Ind_('TSOA2','A'), 0 )
      &  + MAX( Ind_('TSOA3','A'), 0 )
      &  + MAX( Ind_('ISOA1','A'), 0 )
@@ -8356,8 +8410,6 @@
      &  + MAX( Ind_('ASOA2','A'), 0 )
      &  + MAX( Ind_('ASOA3','A'), 0 )
      &  + MAX( Ind_('ASOAN','A'), 0 )
-     &  + MAX( Ind_('SOAG' ,'A'), 0 )
-     &  + MAX( Ind_('SOAM' ,'A'), 0 )
 
       IF ( Input_Opt%LSOA ) THEN
          IF ( I == 0 ) THEN

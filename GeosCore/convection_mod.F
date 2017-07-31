@@ -231,8 +231,9 @@
       !=================================================================
       ! DO_CONVECT begins here!
       !=================================================================
-#if defined ( NETCDF )
       ! Initialize pointers
+      p_FSOL => NULL()
+#if defined ( NETCDF )
       Tmp2d => NULL()
       Tmp3d => NULL()
 #endif
@@ -348,7 +349,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( J,      I,      AREA_M2, L, F  ) 
-!$OMP_PRIVATE( DIAG14, DIAG38, RC,      N, NA,    NW )
+!$OMP+PRIVATE( DIAG14, DIAG38, RC,      N, NA,    NW )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR

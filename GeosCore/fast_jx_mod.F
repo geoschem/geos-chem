@@ -3421,6 +3421,24 @@ C-----------------------------------------------------------------------
      &                                ZPJ(L,75,ILON,ILAT)
                AD22(ILON,ILAT,L,28) = AD22(ILON,ILAT,L,28) +  ! JGLYC
      &                                ZPJ(L,68,ILON,ILAT)
+               AD22(ILON,ILAT,L,29) = AD22(ILON,ILAT,L,29) +  ! JPIP
+     &                                ZPJ(L,106,ILON,ILAT)
+               AD22(ILON,ILAT,L,30) = AD22(ILON,ILAT,L,30) +  ! JIPMN
+     &                                ZPJ(L,107,ILON,ILAT)
+               AD22(ILON,ILAT,L,31) = AD22(ILON,ILAT,L,31) +  ! JETHLN
+     &                                ZPJ(L,108,ILON,ILAT)
+               AD22(ILON,ILAT,L,32) = AD22(ILON,ILAT,L,32) +  ! JDHDN
+     &                                ZPJ(L,109,ILON,ILAT)
+               AD22(ILON,ILAT,L,33) = AD22(ILON,ILAT,L,33) +  ! JHPALD
+     &                                ZPJ(L,110,ILON,ILAT)
+               AD22(ILON,ILAT,L,34) = AD22(ILON,ILAT,L,34) +  ! JISN1
+     &                                ZPJ(L,111,ILON,ILAT)
+               AD22(ILON,ILAT,L,35) = AD22(ILON,ILAT,L,35) +  ! JMONITS
+     &                                ZPJ(L,112,ILON,ILAT)
+               AD22(ILON,ILAT,L,36) = AD22(ILON,ILAT,L,36) +  ! JMONITU
+     &                                ZPJ(L,113,ILON,ILAT)
+               AD22(ILON,ILAT,L,37) = AD22(ILON,ILAT,L,37) +  ! JHONIT
+     &                                ZPJ(L,114,ILON,ILAT)
             ENDDO
 
          ENDIF

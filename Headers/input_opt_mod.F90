@@ -79,6 +79,16 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: HcoConfigFile
 
      !----------------------------------------
+     ! PASSIVE SPECIES MENU fields
+     !----------------------------------------
+     INTEGER                     :: NPASSIVE
+     CHARACTER(LEN=63), POINTER  :: PASSIVE_NAME    (:)
+     INTEGER,           POINTER  :: PASSIVE_ID      (:)
+     REAL(fp),          POINTER  :: PASSIVE_MW      (:)
+     REAL(fp),          POINTER  :: PASSIVE_TAU     (:)
+     REAL(fp),          POINTER  :: PASSIVE_INITCONC(:)
+
+     !----------------------------------------
      ! ADVECTED SPECIES MENU fields
      !----------------------------------------
      INTEGER                     :: N_ADVECT
@@ -112,6 +122,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LSOA
      LOGICAL                     :: LMPOA
      LOGICAL                     :: LSVPOA
+     LOGICAL                     :: LISOPOA
      LOGICAL                     :: LDUST              
      LOGICAL                     :: LDEAD              
      LOGICAL                     :: LSSALT             
@@ -321,6 +332,7 @@ MODULE Input_Opt_Mod
      INTEGER                     :: ND70,             LD70
      INTEGER                     :: ND71,             LD71
      INTEGER                     :: ND72,             LD72
+     INTEGER                     :: ND73,             LD73
 
      INTEGER                     :: TS_DIAG
      LOGICAL                     :: LPRT
@@ -618,6 +630,7 @@ MODULE Input_Opt_Mod
 !                              as LOGICAL, not INTEGER.  This chokes Gfortran.
 !  03 Oct 2016 - R. Yantosca - LWINDO_CU has to be LOGICAL, not INTEGER
 !  12 Jul 2017 - R. Yantosca - Add Input_Opt%HistoryInputFile field
+!  13 Jul 2017 - E. Lundgren - Add passive species variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -640,7 +653,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod,     ONLY : NDSTBIN
+    USE CMN_SIZE_Mod,     ONLY : NDSTBIN, MAXPASV
     USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
@@ -762,7 +775,23 @@ CONTAINS
     Input_Opt%NESTED_I0              = 0
     Input_Opt%NESTED_J0              = 0
     Input_Opt%HcoConfigFile          = ''
-     
+
+    !----------------------------------------
+    ! PASSIVE SPECIES MENU fields
+    !----------------------------------------
+    ALLOCATE( Input_Opt%PASSIVE_NAME    ( MAXPASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_ID      ( MAXPASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_MW      ( MAXPASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_TAU     ( MAXPASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_INITCONC( MAXPASV ), STAT=RC )
+
+    Input_Opt%NPASSIVE               = 0           
+    Input_Opt%PASSIVE_NAME    (:)    = ''
+    Input_Opt%PASSIVE_ID      (:)    = -999
+    Input_Opt%PASSIVE_MW      (:)    = 0.0_fp
+    Input_Opt%PASSIVE_TAU     (:)    = 0.0_fp
+    Input_Opt%PASSIVE_INITCONC(:)    = 0.0_fp
+                                  
     !----------------------------------------
     ! ADVECTED SPECIES MENU fields
     !----------------------------------------
@@ -802,6 +831,7 @@ CONTAINS
     Input_Opt%LSOA                   = .FALSE.
     Input_Opt%LMPOA                  = .FALSE.
     Input_Opt%LSVPOA                 = .FALSE.
+    Input_Opt%LISOPOA                = .FALSE.
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
     Input_Opt%LDSTUP                 = .FALSE.
@@ -1020,6 +1050,7 @@ CONTAINS
     Input_Opt%ND70                   = 0
     Input_Opt%ND71                   = 0
     Input_Opt%ND72                   = 0
+    Input_Opt%ND73                   = 0
     Input_Opt%LD01                   = 0
     Input_Opt%LD02                   = 0
     Input_Opt%LD03                   = 0
@@ -1092,6 +1123,7 @@ CONTAINS
     Input_Opt%LD70                   = 0
     Input_Opt%LD71                   = 0
     Input_Opt%LD72                   = 0
+    Input_Opt%LD73                   = 0
     Input_Opt%LPRT                   = .FALSE.
     Input_Opt%TINDEX(:,:)            = 0
     Input_Opt%TCOUNT(:)              = 0	  
@@ -1395,6 +1427,26 @@ CONTAINS
     !======================================================================
     ! Deallocate fields of the Input Options object
     !======================================================================
+    IF ( ASSOCIATED( Input_Opt%PASSIVE_NAME ) ) THEN
+       DEALLOCATE( Input_Opt%PASSIVE_NAME )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%PASSIVE_ID ) ) THEN
+       DEALLOCATE( Input_Opt%PASSIVE_ID )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%PASSIVE_MW ) ) THEN
+       DEALLOCATE( Input_Opt%PASSIVE_MW )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%PASSIVE_TAU ) ) THEN
+       DEALLOCATE( Input_Opt%PASSIVE_TAU )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%PASSIVE_INITCONC ) ) THEN
+       DEALLOCATE( Input_Opt%PASSIVE_INITCONC )
+    ENDIF
+
     IF ( ASSOCIATED( Input_Opt%AdvectSpc_Name ) ) THEN
        DEALLOCATE( Input_Opt%AdvectSpc_Name )
     ENDIF

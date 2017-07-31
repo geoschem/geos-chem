@@ -103,6 +103,17 @@ MODULE State_Chm_Mod
      CHARACTER(LEN=4),  POINTER :: Hg_Cat_Name(:      ) ! Category names
 
      !----------------------------------------------------------------------
+     ! For isoprene SOA
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: PH_SAV(:,:,:)        ! ISORROPIA aerosol pH
+     REAL(fp),          POINTER :: HPLUS_SAV(:,:,:)     ! H+ concentration [M]
+     REAL(fp),          POINTER :: WATER_SAV(:,:,:)     ! ISORROPIA aerosol H2O
+     REAL(fp),          POINTER :: SULRAT_SAV(:,:,:)    ! Sulfate conc [M]
+     REAL(fp),          POINTER :: NARAT_SAV(:,:,:)     ! Nitrate conc [M]
+     REAL(fp),          POINTER :: ACIDPUR_SAV(:,:,:)   !
+     REAL(fp),          POINTER :: BISUL_SAV(:,:,:)     ! Bisulfate conc [M]
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -144,6 +155,7 @@ MODULE State_Chm_Mod
 !                              no longer used.
 !  23 Aug 2016 - M. Sulprizio- Remove tracer fields from State_Chm. These are
 !                              now entirely replaced with the species fields.
+!  08 Jun 2017 - M. Sulprizio- Add fields for isoprene SOA updates from E.Marais
 !  29 Jun 2017 - R. Yantosca - Add fields of State_Chm to the registry
 !  29 Jun 2017 - R. Yantosca - Remove Spec_Id, it's no longer used
 !  30 Jun 2017 - R. Yantosca - Now register variables of State_Chm
@@ -422,6 +434,15 @@ CONTAINS
     State_Chm%Hg0_Id_List => NULL()
     State_Chm%Hg2_Id_List => NULL()
     State_Chm%HgP_Id_List => NULL()
+
+    ! For isoprene SOA
+    State_Chm%PH_SAV      => NULL()
+    State_Chm%HPLUS_SAV   => NULL()
+    State_Chm%WATER_SAV   => NULL()
+    State_Chm%SULRAT_SAV  => NULL()
+    State_Chm%NARAT_SAV   => NULL()
+    State_Chm%ACIDPUR_SAV => NULL()
+    State_Chm%BISUL_SAV   => NULL()
 
     !=====================================================================
     ! Populate the species database object field
@@ -925,7 +946,7 @@ CONTAINS
 
        ! GEOS-Chem Species Database entry for species # N
        ThisSpc => State_Chm%SpcData(N)%Info
- 
+
        !--------------------------------------------------------------------
        ! Set up the mapping for ADVECTED SPECIES
        !--------------------------------------------------------------------
@@ -1046,6 +1067,182 @@ CONTAINS
        
     ENDIF
    
+    !=====================================================================
+    ! Allocate and initialize isoprene SOA fields
+    ! These are only relevant for fullchem or aerosol-only simulations
+    !=====================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+
+       !------------------------------------------------------------------
+       ! PH_SAV [1]
+       !------------------------------------------------------------------
+       ALLOCATE( State_Chm%PH_SAV( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%PH_SAV', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%PH_SAV = 0.0_fp
+
+       Variable = 'PH_SAV'
+       Desc     = 'ISORROPIA aerosol pH'
+       Units    = 'unitless'
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                      &
+                               Registry     = State_Chm%Registry,             &
+                               State        = State_Chm%State,                &
+                               Variable     = Variable,                       &
+                               Description  = Desc,                           &
+                               Units        = Units,                          &
+                               Data3d_4     = State_Chm%STATE_PSC,            &
+                               RC           = RC                              )
+
+       Variable = 'State_Chm%PH_SAV' // TRIM( Variable )
+       CALL GC_CheckVar( Variable, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! HPLUS_SAV [1]
+       !------------------------------------------------------------------
+       ALLOCATE( State_Chm%HPLUS_SAV( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%HPLUS_SAV', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%HPLUS_SAV = 0.0_fp
+
+       Variable = 'HPLUS_SAV'
+       Desc     = 'ISORROPIA H+ concentration'
+       Units    = 'mol/L'
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                      &
+                               Registry     = State_Chm%Registry,             &
+                               State        = State_Chm%State,                &
+                               Variable     = Variable,                       &
+                               Description  = Desc,                           &
+                               Units        = Units,                          &
+                               Data3d_4     = State_Chm%STATE_PSC,            &
+                               RC           = RC                              )
+
+       Variable = 'State_Chm%HPLUS_SAV' // TRIM( Variable )
+       CALL GC_CheckVar( Variable, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! WATER_SAV [1]
+       !------------------------------------------------------------------
+       ALLOCATE( State_Chm%WATER_SAV( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%WATER_SAV', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%WATER_SAV = 0.0_fp
+
+       Variable = 'WATER_SAV'
+       Desc     = 'ISORROPIA aerosol water concentration'
+       Units    = 'ug/m3'
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                      &
+                               Registry     = State_Chm%Registry,             &
+                               State        = State_Chm%State,                &
+                               Variable     = Variable,                       &
+                               Description  = Desc,                           &
+                               Units        = Units,                          &
+                               Data3d_4     = State_Chm%STATE_PSC,            &
+                               RC           = RC                              )
+
+       Variable = 'State_Chm%WATER_SAV' // TRIM( Variable )
+       CALL GC_CheckVar( Variable, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! SULRAT_SAV [1]
+       !------------------------------------------------------------------
+       ALLOCATE( State_Chm%SULRAT_SAV( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SULRAT_SAV', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SULRAT_SAV = 0.0_fp
+
+       Variable = 'SULRAT_SAV'
+       Desc     = 'ISORROPIA sulfate concentration'
+       Units    = 'M'
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                      &
+                               Registry     = State_Chm%Registry,             &
+                               State        = State_Chm%State,                &
+                               Variable     = Variable,                       &
+                               Description  = Desc,                           &
+                               Units        = Units,                          &
+                               Data3d_4     = State_Chm%STATE_PSC,            &
+                               RC           = RC                              )
+
+       Variable = 'State_Chm%SULRAT_SAV' // TRIM( Variable )
+       CALL GC_CheckVar( Variable, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! NARAT_SAV [1]
+       !------------------------------------------------------------------
+       ALLOCATE( State_Chm%NARAT_SAV( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%NARAT_SAV', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%NARAT_SAV = 0.0_fp
+
+       Variable = 'NARAT_SAV'
+       Desc     = 'ISORROPIA sulfate concentration'
+       Units    = 'M'
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                      &
+                               Registry     = State_Chm%Registry,             &
+                               State        = State_Chm%State,                &
+                               Variable     = Variable,                       &
+                               Description  = Desc,                           &
+                               Units        = Units,                          &
+                               Data3d_4     = State_Chm%STATE_PSC,            &
+                               RC           = RC                              )
+
+       Variable = 'State_Chm%NARAT_SAV' // TRIM( Variable )
+       CALL GC_CheckVar( Variable, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! ACIDPUR_SAV [1]
+       !------------------------------------------------------------------
+       ALLOCATE( State_Chm%ACIDPUR_SAV( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%ACIDPUR_SAV', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%ACIDPUR_SAV = 0.0_fp
+
+       Variable = 'ACIDPUR_SAV'
+       Desc     = 'ISORROPIA ACIDPUR'
+       Units    = 'M'
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                      &
+                               Registry     = State_Chm%Registry,             &
+                               State        = State_Chm%State,                &
+                               Variable     = Variable,                       &
+                               Description  = Desc,                           &
+                               Units        = Units,                          &
+                               Data3d_4     = State_Chm%STATE_PSC,            &
+                               RC           = RC                              )
+
+       Variable = 'State_Chm%ACIDPUR_SAV' // TRIM( Variable )
+       CALL GC_CheckVar( Variable, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! BISUL_SAV [1]
+       !------------------------------------------------------------------
+       ALLOCATE( State_Chm%BISUL_SAV( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BISUL_SAV', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%BISUL_SAV = 0.0_fp
+
+       Variable = 'BISUL_SAV'
+       Desc     = 'ISORROPIA Bisulfate (general acid) concentration'
+       Units    = 'M'
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                      &
+                               Registry     = State_Chm%Registry,             &
+                               State        = State_Chm%State,                &
+                               Variable     = Variable,                       &
+                               Description  = Desc,                           &
+                               Units        = Units,                          &
+                               Data3d_4     = State_Chm%STATE_PSC,            &
+                               RC           = RC                              )
+
+       Variable = 'State_Chm%BISUL_SAV' // TRIM( Variable )
+       CALL GC_CheckVar( Variable, 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+    ENDIF
+
     SpcDataLocal => State_Chm%SpcData
 
     ! Free pointer for safety's sake
@@ -1216,6 +1413,48 @@ CONTAINS
     IF ( ASSOCIATED( State_Chm%KHETI_SLA ) ) THEN
        DEALLOCATE( State_Chm%KHETI_SLA, STAT=RC  )
        CALL GC_CheckVar( 'State_Chm%KHETI_SLA', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%PH_SAV ) ) THEN
+       DEALLOCATE( State_Chm%PH_SAV, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%PH_SAV', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%HPLUS_SAV ) ) THEN
+       DEALLOCATE( State_Chm%HPLUS_SAV, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%HPLUS_SAV', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%WATER_SAV ) ) THEN
+       DEALLOCATE( State_Chm%WATER_SAV, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%WATER_SAV', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SULRAT_SAV ) ) THEN
+       DEALLOCATE( State_Chm%SULRAT_SAV, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SULRAT_SAV', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%NARAT_SAV ) ) THEN
+       DEALLOCATE( State_Chm%NARAT_SAV, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%NARAT_SAV', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%ACIDPUR_SAV ) ) THEN
+       DEALLOCATE( State_Chm%ACIDPUR_SAV, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%ACIDPUR_SAV', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BISUL_SAV ) ) THEN
+       DEALLOCATE( State_Chm%BISUL_SAV, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BISUL_SAV', 3, RC )
        RETURN
     ENDIF
 
