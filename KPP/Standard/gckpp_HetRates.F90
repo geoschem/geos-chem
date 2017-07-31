@@ -3435,8 +3435,10 @@ MODULE GCKPP_HETRATES
       VAL2 = ( 1.e+0_fp/MACOEFF )
 
       ! Calculate the third uptake parameterization term:
-      VALTMP = ( 4.e+0_fp * AERVOL * RGASLATM * TEMP * HENRY * KPART ) / &
-               ( AERAREA * XMMS )
+      IF ( AERAREA > 0.0_fp .and. XMMS > 0.0_fp ) THEN
+         VALTMP = ( 4.e+0_fp * AERVOL * RGASLATM * TEMP * HENRY * KPART ) / &
+                  ( AERAREA * XMMS )
+      ENDIF
       IF ( VALTMP .GT. 0 ) THEN
          VAL3 = 1.e+0_fp / VALTMP
       ELSE
