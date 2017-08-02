@@ -894,6 +894,11 @@ CONTAINS
     ! Close the file
     CLOSE( fId )
 
+    ! Write output
+    WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
+    WRITE( 6, '(a  )' ) 'DEFINED DIAGNOSTIC COLLECTIONS:'
+    WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
+
     DO C = 1, CollectionCount
        print*, 'Collection       ', TRIM( CollectionName      (C) )
        print*, '  -> Template    ', TRIM( CollectionTemplate  (C) )
@@ -906,6 +911,9 @@ CONTAINS
 
     ! Print information about each diagnostic collection
     CALL MetaHistContainer_Print( am_I_Root, CollectionList, RC )
+
+    ! Write spacer
+    WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )   
 
   END SUBROUTINE History_ReadCollectionData
 !EOC

@@ -1533,9 +1533,9 @@ CONTAINS
     !=======================================================================
 
     ! Header line
-    PRINT*
-    PRINT*, 'Registered variables contained within the State_Chm object:'
-    PRINT*, REPEAT( '=', 79 )
+    WRITE( 6, 10 )
+ 10 FORMAT( /, 'Registered variables contained within the State_Chm object:' )
+    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
     ! Print registry info in truncated format
     CALL Registry_Print( am_I_Root   = am_I_Root,           &

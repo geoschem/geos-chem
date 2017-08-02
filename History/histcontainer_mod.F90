@@ -394,8 +394,8 @@ CONTAINS
     ! only if we are on the root CPU
     !=======================================================================
     IF ( ASSOCIATED( Container ) .and. am_I_Root ) THEN
-       PRINT*, REPEAT( '=', 79 )
-       PRINT*, REPEAT( '=', 79 )
+       PRINT*, REPEAT( '-', 78 )
+       PRINT*, REPEAT( '-', 78 )
        PRINT*, 'Container Name : ', TRIM( Container%Name         )
        PRINT*, 'Container Id # : ', Container%Id
        PRINT*, 'ArchivalYmd    : ', Container%ArchivalYmd

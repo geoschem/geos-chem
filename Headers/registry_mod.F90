@@ -818,8 +818,8 @@ CONTAINS
              ! Just print the name, description, dimension, and units
              !--------------------------------------------------------------
              WRITE( 6, 100 ) Item%FullName,     Item%Description, &
-                             DimStr(Item%Rank), Item%Units
-  100        FORMAT( 2x, a20, ' | ', a40, ' | ', a4, ' | ', a15 )
+                             DimStr(Item%Rank), TRIM( Item%Units )
+  100        FORMAT( 1x, a20, ' | ', a40, ' | ', a4, ' | ', a )
 
           ELSE
 
