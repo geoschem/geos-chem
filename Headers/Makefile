@@ -198,7 +198,8 @@ physconstants.o        : physconstants.F          \
 
 registry_mod.o         : registry_mod.F90         \
                          errcode_mod.o            \
-                         precision_mod.o
+                         precision_mod.o          \
+                         registry_params_mod.o
 
 registry_params_mod.o  : registry_params_mod.F90 \
                          precision_mod.o
