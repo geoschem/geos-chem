@@ -7189,6 +7189,9 @@
 !  04 Sep 2015 - C. Keller   - Initial version
 !  14 Jul 2017 - E. Lundgren - Store passive species values in Input_Opt and
 !                              remove dependency on passive_species_mod.F90
+!  02 Aug 2017 - R. Yantosca - Bug fix: Now use NP as the loop index over
+!                              passive species so as to not conflict with
+!                              the returned # of substrings
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7196,7 +7199,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: I, N, P, IDX, nPassive
+      INTEGER            :: I, N, NP, P, IDX, nPassive
       CHARACTER(LEN=31)  :: SpcName
       REAL(fp)           :: SpcMW, SpcTau, SpcInitConc
 
@@ -7221,14 +7224,17 @@
       ! - Species molecular weight 
       ! - Atmospheric lifetime (s)
       ! - Default atmospheric concentration (v/v)
-      IF ( nPassive > 0 ) THEN
-         DO N = 1, Input_Opt%NPASSIVE
-            ! Read values into substrings
+      IF ( Input_Opt%NPASSIVE > 0 ) THEN
+
+         ! Loop over the number of listed passive species
+         DO NP = 1, Input_Opt%NPASSIVE
+
+            ! Expect 4 metadata parameters to define the passive species
             CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 
      &                           'read_passive_species_menu:2' )
      
             ! Pass to temporary variables
-            SpcName = TRIM(SUBSTRS(1))
+            SpcName = TRIM( SUBSTRS(1) )
             READ( SUBSTRS(2), * ) SpcMW
             READ( SUBSTRS(3), * ) SpcTau
             READ( SUBSTRS(4), * ) SpcInitConc 

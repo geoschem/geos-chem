@@ -907,6 +907,7 @@
 !  03 Nov 2016 - C. Keller   - Moved to chemistry_mod
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !  14 Jul 2017 - E. Lundgren - Remove dependency on passive_species_mod.F90
+!  02 Aug 2017 - R. Yantosca - Turn off debug print unless ND70 is activated
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -929,7 +930,7 @@
       IF ( Input_Opt%NPASSIVE <= 0 ) RETURN
 
       ! Prosa
-      IF ( am_I_Root ) THEN
+      IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
          WRITE(*,*) '### Passive species chemistry: '
       ENDIF
 
@@ -962,7 +963,7 @@
      &      State_Chm%Species(:,:,:,GCID) * Rate
 
          ! Prosa
-         IF ( am_I_Root ) THEN
+         IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
             write(*,*) '- Pass. species, Species ID, loss rate: ', 
      &         TRIM(Input_Opt%PASSIVE_NAME(N)), GCID, Rate
          ENDIF
