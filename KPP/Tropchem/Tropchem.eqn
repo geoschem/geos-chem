@@ -81,6 +81,7 @@ REFERENCES (alphabetical order)
 * Fischer2014:  Fischer et al., Atmos. Chem. Phys., doi:10.5194/acp-14-2679-2014, 2014.
 * Fisher2016:   Fisher et al., Atmos. Chem. Phys., doi:10.5194/acp-16-5969-2016, 2016.
 * Fry2014:      Fry et al. Environ. Sci. Technol., doi:10.1021/es502204x, 2014.
+* Gill2002:     Gill and Hites, J. Phys. Chem. A, doi:10.1021/jp013532, 2002.
 * Goliff2013:   Goliff et al., Atmos. Environ., doi:10.1016/j.atmosenv.2012.11.038, 2013.
 * Jacobs2014:   Jacobs et al., Atmos. Chem. Phys., doi:10.5194/acp-14-8933-2014, 2014.
 * Jenkin2015:   Jenkin et al., Atmos. Chem. Phys., doi:10.5194/acp-15-11433-2015, 2015.
@@ -870,7 +871,7 @@ MTPA + O3 = 0.850OH + 0.100HO2 +
  0.620KO2 + 0.140CO + 0.020H2O2 +
  0.650RCHO + 0.530MEK :                     GCARR(5.00E-16, 0.0E+00, -530.0);  {2017/07/14; Atkinson2003; KRT,JAF,CCM,EAM,KHB,RHS}
 MTPA + NO3 = 0.100OLNN + 0.900OLND :        GCARR(8.33E-13, 0.0E+00, 490.0);   {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
-LIMO + OH = LIMO2 :                         GCARR(4.20E-11, 0.0E+00, -401.0);  {2017/07/14; Atkinson2003; KRT,JAF,CCM,EAM,KHB,RHS}
+LIMO + OH = LIMO2 :                         GCARR(4.20E-11, 0.0E+00, 401.0);   {2017/07/14; Gill2002; KRT,JAF,CCM,EAM,KHB,RHS}
 LIMO + O3 = 0.850OH + 0.100HO2 +
  0.160ETO2 + 0.420KO2 + 0.020H2O2 +
  0.140CO + 0.460PRPE + 0.040CH2O +
