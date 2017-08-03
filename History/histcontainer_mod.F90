@@ -440,7 +440,7 @@ CONTAINS
        PRINT*, 'Reference      : ', TRIM( Container%Reference    )
        PRINT*, 'Title          : ', TRIM( Container%Title        )
        PRINT*
-       PRINT*, 'Items archived in this collection'
+       PRINT*, 'Items archived in this collection:'
 
        IF ( ASSOCIATED( Container%HistItems ) ) THEN 
           

@@ -15,7 +15,6 @@ MODULE History_Mod
 !
 ! !USES:
 !
-  USE History_Params_Mod
   USE Precision_Mod
   USE HistContainer_MOd,     ONLY : HistContainer
   USE MetaHistContainer_Mod, ONLY : MetaHistContainer
@@ -40,6 +39,7 @@ MODULE History_Mod
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  02 Aug 2017 - R. Yantosca - Added History_Update routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -96,10 +96,11 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Chm_Mod , ONLY : ChmState
-    USE State_Diag_Mod, ONLY : DgnState
-    USE State_Met_Mod,  ONLY : MetState
+    USE History_Params_Mod
+    USE Input_Opt_Mod,     ONLY : OptInput
+    USE State_Chm_Mod ,    ONLY : ChmState
+    USE State_Diag_Mod,    ONLY : DgnState
+    USE State_Met_Mod,     ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -435,6 +436,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HistContainer_Mod
     USE HistItem_Mod
+    USE History_Params_Mod
     USE Input_Opt_Mod,         ONLY : OptInput
     USE InquireMod,            ONLY : FindFreeLun
     USE MetaHistContainer_Mod
@@ -603,7 +605,7 @@ CONTAINS
        ENDIF
 
        IF ( INDEX( Line, 'duration' ) > 0 ) THEN
-          CALL GetCollectionMetaData( Line, 'format',     MetaData, C )
+          CALL GetCollectionMetaData( Line, 'duration',   MetaData, C )
           CollectionDuration(C) = Metadata
        ENDIF
 
@@ -670,7 +672,7 @@ CONTAINS
                                      Operation    = Operation,              &
                                      Conventions  = 'COARDS',               &
                                      FileTemplate = CollectionTemplate(C),  & 
-                                     NcFormat     = 'netCDF-4',             &
+                                     NcFormat     = CollectionFormat(C),    &
                                      Reference    = Reference,              &
                                      Title        = Title,                  &
                                      RC           = RC                     )
@@ -1229,8 +1231,10 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HistItem_Mod,          ONLY : HistItem
+    USE History_Params_Mod
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE MetaHistItem_Mod,      ONLY : MetaHistItem
+    USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1292,8 +1296,209 @@ CONTAINS
           ! of the linked list of HISTORY ITEMS for this COLLECTION
           Item => Current%Item
 
-          ! Add 
-          print*, '@@@', Item%ContainerId, TRIM( Item%Name ), Item%Operation
+          ! Test the rank of the data
+          SELECT CASE( Item%SpaceDim ) 
+
+             !--------------------------------------------------------------
+             ! Update 3-D data field
+             !--------------------------------------------------------------
+             CASE( 3 )
+
+                ! Flex-precision floating point
+                IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
+
+                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                      Item%Data_3d  = Item%Source_3d
+                      Item%nUpdates = 1
+                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d
+                      Item%nUpdates = Item%nUpdates + 1
+                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
+                      Item%Data_3d  = Item%Data_3d * Item%Source_3d
+                      Item%nUpdates = Item%nUpdates + 1
+                   ENDIF
+
+                ! 4-byte floating point
+                ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
+
+                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                      Item%Data_3d  = Item%Source_3d_4
+                      Item%nUpdates = 1
+                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d_4
+                      Item%nUpdates = Item%nUpdates + 1
+                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
+                      Item%Data_3d  = Item%Data_3d  * Item%Source_3d_4
+                      Item%nUpdates = Item%nUpdates + 1
+                   ENDIF
+
+                ! Integer
+                ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
+
+                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                      Item%Data_3d  = Item%Source_3d_I
+                      Item%nUpdates = 1
+                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d_I
+                      Item%nUpdates = Item%nUpdates + 1
+                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
+                      Item%Data_3d  = Item%Data_3d  * Item%Source_3d_I
+                      Item%nUpdates = Item%nUpdates + 1
+                   ENDIF
+
+                ENDIF
+
+             !--------------------------------------------------------------
+             ! Update 2-D data field
+             !--------------------------------------------------------------
+             CASE( 2 )
+
+                ! Flex-precision floating point
+                IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
+
+                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                      Item%Data_2d  = Item%Source_2d
+                      Item%nUpdates = 1
+                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                      Item%Data_2d  = Item%Data_2d  + Item%Source_2d
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
+                      Item%Data_2d  = Item%Data_2d  * Item%Source_2d
+                      Item%nUpdates = Item%nUpdates + 1
+                   ENDIF
+
+                ! 4-byte floating point
+                ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
+
+                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                      Item%Data_2d  = Item%Source_2d_4
+                      Item%nUpdates = 1
+                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                      Item%Data_2d  = Item%Data_2d + Item%Source_2d_4
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
+                      Item%Data_2d  = Item%Data_2d * Item%Source_2d_4
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ENDIF
+
+                ! Integer
+                ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
+
+                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                      Item%Data_2d  = Item%Source_2d_I
+                      Item%nUpdates = 1
+                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                      Item%Data_2d  = Item%Data_2d  + Item%Source_2d_I
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
+                      Item%Data_2d  = Item%Data_2d  * Item%Source_2d_I
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ENDIF
+
+                ENDIF
+
+             !--------------------------------------------------------------
+             ! Update 1-D data field
+             !--------------------------------------------------------------
+             CASE( 1 )
+
+                ! Flex-precision floating point
+                IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
+
+                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                      Item%Data_1d  = Item%Source_1d
+                      Item%nUpdates = 1
+                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
+                      Item%Data_1d  = Item%Data_1d  * Item%Source_1d
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ENDIF
+
+                ! 4-byte floating point
+                ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
+
+                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                      Item%Data_1d  = Item%Source_1d_4
+                      Item%nUpdates = 1
+                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d_4
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
+                      Item%Data_1d  = Item%Data_1d  * Item%Source_1d_4
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ENDIF
+
+                ! Integer
+                ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
+
+                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                      Item%Data_1d  = Item%Source_1d_I
+                      Item%nUpdates = 1
+                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d_I
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
+                      Item%Data_1d  = Item%Data_1d  * Item%Source_1d_I
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ENDIF
+
+                ENDIF
+
+             !--------------------------------------------------------------
+             ! Update 0-D data field
+             !--------------------------------------------------------------
+             CASE( 0 )
+
+                ! Flex-precision floating point
+                IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
+
+                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                      Item%Data_0d  = Item%Source_0d
+                      Item%nUpdates = 1
+                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                      Item%Data_0d  = Item%Data_0d  + Item%Source_0d
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
+                      Item%Data_0d  = Item%Data_0d  * Item%Source_0d
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ENDIF
+
+                ! 4-byte floating point
+                ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
+
+                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                      Item%Data_0d  = Item%Source_0d_4
+                      Item%nUpdates = 1
+                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                      Item%Data_0d  = Item%Data_0d  + Item%Source_0d_4
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
+                      Item%Data_0d  = Item%Data_0d  * Item%Source_0d_4
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ENDIF
+
+                ! Integer
+                ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
+
+                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                      Item%Data_0d  = Item%Source_0d_I
+                      Item%nUpdates = 1
+                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                      Item%Data_0d  = Item%Data_0d  + Item%Source_0d_I
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
+                      Item%Data_0d  = Item%Data_0d  * Item%Source_0d_I
+                      Item%nUpdates = Item%nUpdates + 1 
+                   ENDIF
+
+                ENDIF
+
+          END SELECT
+
+          ! Debug
+          !print*, '@@@', Item%ContainerId, TRIM( Item%Name ), sum( Item%data_3d), sum( item%source_3d ), item%nUpdates
     
           ! Free pointer
           Item => NULL()
@@ -1469,32 +1674,52 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  03 Aug 2017 - R. Yantosca - Make search algorithm more robust
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-     INTEGER                 :: C, Ind, nSubStr
+     ! Scalars
+     INTEGER            :: C, Ind, nSubStr
+
+     ! Strings
+     CHARACTER(LEN=255) :: Name
      CHARACTER(LEN=255) :: SubStr(255)
      
      !======================================================================
      ! Find the metadata for the given collection
      !======================================================================
-
+     
+     ! The collection name is between column 1 and the first "." character
+     Ind  = INDEX( Line, '.' )
+     Name = Line(1:Ind-1) 
+     
      ! Loop over all collection names
      DO C = 1, CollectionCount
 
+        ! Check to see if the current line matches the collection name
         ! Then check to see which collection this is in
-        Ind = INDEX( Line, TRIM( CollectionName(C) ) )
+        Ind = INDEX( Name, TRIM( CollectionName(C) ) )
 
-        ! If we find a match, then return it
+        ! If the we match the current collection, then ...
         IF ( Ind > 0 ) THEN
+
+           ! Split the line on the the colon
            CALL StrSplit( Line, ':', SubStr, nSubStr )
+
+           ! If there are 2 substrings ...
            IF ( nSubStr == 2 ) THEN
-              nCollection = C
-              MetaData    = CleanText( SubStr(2) )
-              EXIT
+
+              ! Make sure the first substring matches the name 
+              ! of the metadata field we would like to obtain.
+              ! if it does, then we have found a match, and so return
+              IF ( INDEX( TRIM( SubStr(1) ), Pattern ) > 0 ) THEN
+                 nCollection = C
+                 MetaData    = CleanText( SubStr(2) )
+                 EXIT
+              ENDIF
            ENDIF
         ENDIF
      ENDDO
