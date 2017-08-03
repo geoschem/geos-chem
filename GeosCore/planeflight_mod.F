@@ -940,6 +940,15 @@
             CALL GEOS_CHEM_STOP
          ENDIF
         
+         ! Skip observations outside the nested domain
+#if   defined( NESTED_NA )
+         IF ( LAT <   10e0 .OR. LAT >  70e0  .OR. 
+     &        LON < -140e0 .OR. LON > -40e0 ) THEN
+            PRINT*, ' Outside nested domain, skipping record ', N
+            CYCLE
+         ENDIF
+#endif
+
          ! Convert from altitude to pressure if we have CCCG data or
          ! tower data
          NAME = ADJUSTL(PTYPE(N))
@@ -2225,6 +2234,15 @@
 
       LON_TMP = REAL(PLON(IND),4)
       LAT_TMP = REAL(PLAT(IND),4)
+
+      ! Skip observations outside the nested domain
+#if   defined( NESTED_NA )
+      IF ( LAT_TMP <   10e0 .OR. LAT_TMP >  70e0  .OR. 
+     &     LON_TMP < -140e0 .OR. LON_TMP > -40e0 ) THEN
+         PRINT*, ' Outside nested domain, skipping record ', IND
+         RETURN
+      ENDIF
+#endif
 
       ! Get Lat, Lon, and Pressure indicies (ajt, 5/26/13)
       IIJJ = GET_IJ( LON_TMP, LAT_TMP )
