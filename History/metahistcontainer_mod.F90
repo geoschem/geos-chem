@@ -490,7 +490,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Strings
-    CHARACTER(LEN=255)          :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)               :: ErrMsg, ThisLoc
 
     ! Objects
     TYPE(MetaHistcontainer), POINTER :: Current

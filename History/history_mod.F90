@@ -27,6 +27,7 @@ MODULE History_Mod
 ! 
   PUBLIC  :: History_Init
   PUBLIC  :: History_Cleanup
+  PUBLIC  :: History_Update
 !
 ! PRIVATE MEMBER FUNCTIONS:
 
@@ -340,7 +341,6 @@ CONTAINS
     ! Copy the collection names from the temporary array
     DO N = 1, CollectionCount
        CollectionName(N) = TmpCollectionName(N)
-       !WRITE( 6, '(i3, ":", a )' ) N, TRIM( CollectionName(N) )
     ENDDO
 
     ! Allocate CollectionTemplate
@@ -461,6 +461,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
+!  03 Aug 2017 - R. Yantosca - Pass OPERATION to History_AddItemToCollection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -470,11 +471,11 @@ CONTAINS
      ! Scalars
     LOGICAL                      :: EOF   
     INTEGER                      :: C,           N,           W    
-    INTEGER                      :: fId,         IOS      
+    INTEGER                      :: fId,         IOS
     INTEGER                      :: nSubs1,      nSubs2
     INTEGER                      :: Ind1,        Ind2
     INTEGER                      :: ArchivalYmd, ArchivalHms
-    INTEGER                      :: ItemCount,   SpaceDim
+    INTEGER                      :: ItemCount,   SpaceDim,    Operation
     INTEGER                      :: Ind_All,     Ind_Adv,     Ind_Aer
     INTEGER                      :: Ind_Dry,     Ind_Fix,     Ind_Gas
     INTEGER                      :: Ind_Kpp,     Ind_Pho,     Ind_Rst
@@ -486,7 +487,7 @@ CONTAINS
     CHARACTER(LEN=255)           :: MetaData,    Reference
     CHARACTER(LEN=255)           :: Title,       Units
     CHARACTER(LEN=255)           :: ItemName,    ItemTemplate
-    CHARACTER(LEN=255)           :: Description
+    CHARACTER(LEN=255)           :: Description, TmpMode
     
     ! Arrays
     INTEGER                      :: SubsetDims(3)
@@ -643,16 +644,30 @@ CONTAINS
           ! Create title string for collection
           Title = 'GEOS-Chem diagnostic collection: ' //                    &
                    TRIM( CollectionName(C) )
-          
+
+          ! Determine the operation code (i.e. copy or add the source
+          ! pointer data to the Item's data array for further analysis)
+          ! based on the value of the CollectionMode.
+          TmpMode = CollectionMode(C)
+          CALL TranUc( TmpMode )
+          SELECT CASE( TmpMode )
+             CASE( 'HOURLY', 'DAILY', 'MONTHLY', 'ANNUAL', 'YEARLY' )
+                Operation = ADD_SOURCE
+             CASE DEFAULT
+                Operation = COPY_SOURCE
+          END SELECT
+
           !=================================================================
           ! Create a HISTORY CONTAINER object for this collection
           !=================================================================
           CALL HistContainer_Create( am_I_Root    = am_I_Root,              &
                                      Container    = Collection,             &
-                                     Name         = CollectionName(C),      &
                                      Id           = C,                      &
+                                     Name         = CollectionName(C),      &
+                                     ArchivalMode = CollectionMode(C),      &
                                      ArchivalYmd  = ArchivalYmd,            &
                                      ArchivalHms  = ArchivalHms,            &
+                                     Operation    = Operation,              &
                                      Conventions  = 'COARDS',               &
                                      FileTemplate = CollectionTemplate(C),  & 
                                      NcFormat     = 'netCDF-4',             &
@@ -977,6 +992,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  03 Aug 2017 - R. Yantosca - Inherit operation code from the Collection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1140,6 +1156,7 @@ CONTAINS
                           NX             = NX,                               &
                           NY             = NY,                               &
                           NZ             = NZ,                               & 
+                          Operation      = Collection%Operation,             &
                           Source_KindVal = KindVal,                          &
                           Source_2d      = Ptr2d,                            &
                           Source_2d_4    = Ptr2d_4,                          &
@@ -1191,6 +1208,113 @@ CONTAINS
     Ptr3d_I => NULL()
 
   END SUBROUTINE History_AddItemToCollection
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: History_Update
+!
+! !DESCRIPTION: For each HISTORY ITEM belonging to a diagnostic COLLECTION,
+!  the data from the target variable is copied or added or multiplied into
+!  the HISTORY ITEM's data field for further analysis.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE History_Update( am_I_Root, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HistItem_Mod,          ONLY : HistItem
+    USE MetaHistContainer_Mod, ONLY : MetaHistContainer
+    USE MetaHistItem_Mod,      ONLY : MetaHistItem
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL, INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER, INTENT(OUT) :: RC        ! Success or failure
+!
+! !REMARKS:
+!  This routine is called from the main program at the end of each 
+!  "heartbeat" timestep.
+!
+! !REVISION HISTORY:
+!  03 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255)               :: ErrMsg, ThisLoc
+
+    ! Objects
+    TYPE(MetaHistContainer), POINTER :: Collection
+    TYPE(MetaHistItem),      POINTER :: Current
+    TYPE(HistItem),          POINTER :: Item
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC         =  GC_SUCCESS
+    Collection => NULL()
+    Current    => NULL()
+    Item       => NULL()
+    ErrMsg     =  ''
+    ThisLoc    =  &
+      ' -> at History_UpdateCollections (in History/history_mod.F90)' 
+
+    !=======================================================================
+    ! Loop through each DIAGNOSTIC COLLECTION in the master list, and
+    ! then loop through the HISTORY ITEMS belonnging to each COLLECTION.
+    !=======================================================================
+
+    ! Point to the first COLLECTION in the master collection list
+    Collection => CollectionList
+    
+    ! As long as this current COLLECTION is valid ...
+    DO WHILE( ASSOCIATED( Collection ) ) 
+
+       ! Point to the first HISTORY ITEM belonging to this COLLECTION
+       Current => Collection%Container%HistItems
+
+       ! As long as this HISTORY ITEM is valid ...
+       DO WHILE ( ASSOCIATED( Current ) )
+
+          ! Get the HISTORY ITEM object contained in this node
+          ! of the linked list of HISTORY ITEMS for this COLLECTION
+          Item => Current%Item
+
+          ! Add 
+          print*, '@@@', Item%ContainerId, TRIM( Item%Name ), Item%Operation
+    
+          ! Free pointer
+          Item => NULL()
+
+          ! Go to the next HISTORY item
+          Current => Current%Next
+       ENDDO
+
+       ! Free the pointer
+       Current => NULL()
+
+       ! Go to the next entry in the list of collections
+       Collection => Collection%Next
+    ENDDO
+
+    ! Free pointers
+    Collection => NULL()
+    Current    => NULL()
+    Item       => NULL()
+
+  END SUBROUTINE History_Update
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1376,7 +1500,6 @@ CONTAINS
      ENDDO
 
  END SUBROUTINE GetCollectionMetaData
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

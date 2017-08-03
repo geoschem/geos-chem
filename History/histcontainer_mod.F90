@@ -22,7 +22,6 @@ MODULE HistContainer_Mod
 !
 ! !USES:
 !
-  USE History_Params_Mod
   USE MetaHistItem_Mod,  ONLY: MetaHistItem
   USE Precision_Mod
 
@@ -60,6 +59,7 @@ MODULE HistContainer_Mod
      !----------------------------------------------------------------------
      ! Time-averaging information                     
      !----------------------------------------------------------------------
+     CHARACTER(LEN=255)          :: ArchivalMode        ! Archival mode
      INTEGER                     :: ArchivalYmd         ! Archival freq
      INTEGER                     :: ArchivalHms         !  in YMD and hms
      INTEGER                     :: Operation           ! Operation code
@@ -108,16 +108,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistContainer_Create( am_I_Root,   Container,    Id,            &
-                                   Name,        RC,           ArchivalYmd,   &
-                                   ArchivalHms, FileId,       FilePrefix,    &
-                                   FileName,    FileTemplate, Conventions,   &
-                                   NcFormat,    History,      ProdDateTime,  &
-                                   Reference,   Title                       )
+  SUBROUTINE HistContainer_Create( am_I_Root,    Container,    Id,           &
+                                   Name,         RC,           ArchivalMode, &
+                                   ArchivalYmd,  ArchivalHms,  Operation,    &
+                                   FileId,       FilePrefix,   FileName,     &
+                                   FileTemplate, Conventions,  NcFormat,     &
+                                   History,      ProdDateTime, Reference,    &
+                                   Title                                    )
 !
 ! !USES:
 !
   USE ErrCode_Mod
+  USE History_Params_Mod
   USE MetaHistItem_Mod, ONLY : MetaHistItem
 !
 ! !INPUT PARAMETERS: 
@@ -127,9 +129,16 @@ CONTAINS
     INTEGER,             INTENT(IN)  :: Id            ! Container Id #
     CHARACTER(LEN=*),    INTENT(IN)  :: Name          ! Container name
 
-    ! Optional inputs    
+    ! Optional inputs: data archival
+    CHARACTER(LEN=*),    OPTIONAL    :: ArchivalMode  ! Archival mode
     INTEGER,             OPTIONAL    :: ArchivalYmd   ! Frequency in YY/MM/DD
     INTEGER,             OPTIONAL    :: ArchivalHms   ! Frequency in hh:mm:ss
+    INTEGER,             OPTIONAL    :: Operation     ! Operation code
+                                                      !  0=copy
+                                                      !  1=add
+                                                      !  2=multiply
+
+    ! Optional inputs: filename and metadata
     INTEGER,             OPTIONAL    :: FileId        ! netCDF file ID
     CHARACTER(LEN=*),    OPTIONAL    :: FilePrefix    ! Filename prefix
     CHARACTER(LEN=*),    OPTIONAL    :: FileTemplate  ! YMDhms template
@@ -219,6 +228,15 @@ CONTAINS
     !========================================================================
 
     !---------------------------------
+    ! Archival mode
+    !---------------------------------
+    IF ( PRESENT( ArchivalMode ) ) THEN
+       Container%ArchivalMode = ArchivalMode
+    ELSE
+       Container%ArchivalMode = ''
+    ENDIF
+
+    !---------------------------------
     ! Archival frequency in YY/MM/DD
     !---------------------------------
     IF ( PRESENT( ArchivalYmd ) ) THEN
@@ -234,6 +252,15 @@ CONTAINS
        Container%ArchivalHms = ArchivalHms 
     ELSE
        Container%ArchivalHms = 0
+    ENDIF
+
+    !---------------------------------
+    ! Operation code
+    !---------------------------------
+    IF ( PRESENT( Operation ) ) THEN
+       Container%Operation = Operation
+    ELSE
+       Container%Operation = COPY_SOURCE
     ENDIF
 
     !---------------------------------
@@ -398,8 +425,10 @@ CONTAINS
        PRINT*, REPEAT( '-', 78 )
        PRINT*, 'Container Name : ', TRIM( Container%Name         )
        PRINT*, 'Container Id # : ', Container%Id
+       PRINT*, 'ArchivalMode   : ', TRIM( Container%ArchivalMode )
        PRINT*, 'ArchivalYmd    : ', Container%ArchivalYmd
        PRINT*, 'ArchivalHms    : ', Container%ArchivalHms
+       PRINT*, 'Operation code : ', Container%Operation
        PRINT*, 'FileId         : ', Container%FileId
        PRINT*, 'FilePrefix     : ', TRIM( Container%FilePrefix   )
        PRINT*, 'FileTemplate   : ', TRIM( Container%FileTemplate )

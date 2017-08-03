@@ -1526,7 +1526,7 @@ CONTAINS
     UpCaseText = Text
 
     ! Loop over all characters
-    DO C = 1, LEN( UpCaseText )
+    DO C = 1, LEN_TRIM( UpCaseText )
 
        ! Get the ASCII code for each character
        Ascii = ICHAR( UpCaseText(C:C) )

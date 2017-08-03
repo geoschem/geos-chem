@@ -16,7 +16,6 @@ MODULE HistItem_Mod
 !
 ! !USES:
 !
-  USE History_Params_Mod
   USE Precision_Mod
 
   IMPLICIT NONE
@@ -50,7 +49,7 @@ MODULE HistItem_Mod
      CHARACTER(LEN=255) :: Units                 ! Units of data
      REAL(f4)           :: AddOffset             
      REAL(f4)           :: MissingValue         
-     REAL(f4)           :: ScaleFactor          
+     REAL(f4)           :: ScaleFactor
 
      !----------------------------------------------------------------------
      ! Pointers to the data in State_Chm, State_Diag, or State_Met
@@ -87,7 +86,7 @@ MODULE HistItem_Mod
      !----------------------------------------------------------------------
      REAL(f4)           :: nUpdates              ! # of times updated
      INTEGER            :: Operation             ! Operation code
-                                                 !  0=nothing
+                                                 !  0=copy
                                                  !  1=add
                                                  !  2=multiply
    END TYPE HistItem
@@ -122,15 +121,16 @@ CONTAINS
                               LongName,       Units,        SpaceDim,        &
                               NX,             NY,           NZ,              &
                               AddOffset,      MissingValue, ScaleFactor,     &
-                              Source_KindVal, Source_0d,    Source_0d_4,     &
-                              Source_0d_I,    Source_1d,    Source_1d_4,     &
-                              Source_1d_I,    Source_2d,    Source_2d_4,     &
-                              Source_2d_I,    Source_3d,    Source_3d_4,     &
-                              Source_3d_I                                   )
+                              Source_KindVal, Operation,    Source_0d,       &
+                              Source_0d_4,    Source_0d_I,  Source_1d,       &
+                              Source_1d_4,    Source_1d_I,  Source_2d,       &
+                              Source_2d_4,    Source_2d_I,  Source_3d,       &
+                              Source_3d_4,    Source_3d_I                   )
 !
 ! !USES:
 !
   USE ErrCode_Mod
+  USE History_Params_Mod
   USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS: 
@@ -151,6 +151,10 @@ CONTAINS
     REAL(f4),          OPTIONAL    :: AddOffset          ! COARDS-compliant 
     REAL(f4),          OPTIONAL    :: MissingValue       !  attributes for 
     REAL(f4),          OPTIONAL    :: ScaleFactor        !  netCDF output
+    INTEGER,           OPTIONAL    :: Operation          ! Operation code
+                                                         !  0=copy
+                                                         !  1=add
+                                                         !  2=multiply
 
     ! Optional pointers to data targets
     INTEGER,           OPTIONAL    :: Source_KindVal     ! Type of source data
@@ -181,7 +185,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Jun 2017 - R. Yantosca - Initial version
-
+!  03 Aug 2017 - R. Yantosca - Add OPERATION as an optional argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -399,6 +403,24 @@ CONTAINS
        Item%Source_KindVal = KINDVAL_FP
     ENDIF
 
+    !--------------------------------------------
+    ! Source_KindVal
+    !--------------------------------------------
+    IF ( PRESENT( Source_KindVal ) ) THEN
+       Item%Source_KindVal = Source_KindVal
+    ELSE
+       Item%Source_KindVal = KINDVAL_FP
+    ENDIF  
+  
+    !--------------------------------------------
+    ! Operation
+    !--------------------------------------------
+    IF ( PRESENT( Operation ) ) THEN
+       Item%Operation = Operation
+    ELSE
+       Item%Operation = COPY_SOURCE
+    ENDIF  
+
     !========================================================================
     ! Attach pointers to the data source
     !========================================================================
@@ -477,6 +499,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE History_Params_Mod
 !
 ! !INPUT PARAMETERS: 
 !
