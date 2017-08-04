@@ -76,19 +76,17 @@ MODULE HistItem_Mod
      ! Data arrays 
      !----------------------------------------------------------------------
      INTEGER            :: SpaceDim              ! # of dims (0-3)
-     REAL(f4)           :: Data_0d               ! 0D scalar 
-     REAL(f4), POINTER  :: Data_1d(:    )        ! 1D vector
-     REAL(f4), POINTER  :: Data_2d(:,:  )        ! 2D array
-     REAL(f4), POINTER  :: Data_3d(:,:,:)        ! 3D array
+     REAL(fp)           :: Data_0d               ! 0D scalar 
+     REAL(fp), POINTER  :: Data_1d(:    )        ! 1D vector
+     REAL(fp), POINTER  :: Data_2d(:,:  )        ! 2D array
+     REAL(fp), POINTER  :: Data_3d(:,:,:)        ! 3D array
 
-     !----------------------------------------------------------------------
-     ! Data archival
+     !----------------------------------------------------------------------     ! Data archival
      !----------------------------------------------------------------------
      REAL(f4)           :: nUpdates              ! # of times updated
      INTEGER            :: Operation             ! Operation code
-                                                 !  0=copy
-                                                 !  1=add
-                                                 !  2=multiply
+                                                 !  0=copy from source 
+                                                 !  1=accumulate from source
    END TYPE HistItem
 !
 ! !REMARKS:
@@ -98,6 +96,8 @@ MODULE HistItem_Mod
 ! !REVISION HISTORY:
 !  13 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
 !  06 Jul 2017 - R. Yantosca - Add source pointers to 4-byte and integer data
+!  04 Aug 2017 - R. Yantosca - Declare Data_* accumulator arrays as REAL(fp),
+!                              which should avoid roundoff for long runs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -152,9 +152,8 @@ CONTAINS
     REAL(f4),          OPTIONAL    :: MissingValue       !  attributes for 
     REAL(f4),          OPTIONAL    :: ScaleFactor        !  netCDF output
     INTEGER,           OPTIONAL    :: Operation          ! Operation code
-                                                         !  0=copy
-                                                         !  1=add
-                                                         !  2=multiply
+                                                         !  0=copy  from source
+                                                         !  1=accum from source
 
     ! Optional pointers to data targets
     INTEGER,           OPTIONAL    :: Source_KindVal     ! Type of source data
@@ -418,7 +417,7 @@ CONTAINS
     IF ( PRESENT( Operation ) ) THEN
        Item%Operation = Operation
     ELSE
-       Item%Operation = COPY_SOURCE
+       Item%Operation = COPY_FROM_SOURCE
     ENDIF  
 
     !========================================================================

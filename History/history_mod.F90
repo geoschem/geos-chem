@@ -16,7 +16,7 @@ MODULE History_Mod
 ! !USES:
 !
   USE Precision_Mod
-  USE HistContainer_MOd,     ONLY : HistContainer
+  USE HistContainer_Mod,     ONLY : HistContainer
   USE MetaHistContainer_Mod, ONLY : MetaHistContainer
 
   IMPLICIT NONE
@@ -40,7 +40,7 @@ MODULE History_Mod
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  02 Aug 2017 - R. Yantosca - Added History_Update routine
-!EOP
+!EOPt
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -601,7 +601,15 @@ CONTAINS
        IF ( INDEX( Line, 'frequency' ) > 0 ) THEN
           CALL GetCollectionMetaData( Line, 'frequency',  MetaData, C )
           CollectionFrequency(C) = Metadata
-          READ( CollectionFrequency(C), '(i6.6)' ) ArchivalHms
+
+          ! NOTE: If CollectionFrequency is 6 digits long, then assume that
+          ! to be ArchivalHms.  If longer, then assume that it is specifying
+          ! both ArchivalYmd and ArchivalHms. (sde, bmy, 8/4/17)
+          IF ( LEN_TRIM( CollectionFrequency(C) ) == 6 ) THEN
+             READ( CollectionFrequency(C), '(i6.6)'  ) ArchivalHms
+          ELSE
+             READ( CollectionFrequency(C), '(2i6.6)' ) ArchivalYmd, ArchivalHms
+          ENDIF
        ENDIF
 
        IF ( INDEX( Line, 'duration' ) > 0 ) THEN
@@ -647,16 +655,16 @@ CONTAINS
           Title = 'GEOS-Chem diagnostic collection: ' //                    &
                    TRIM( CollectionName(C) )
 
-          ! Determine the operation code (i.e. copy or add the source
-          ! pointer data to the Item's data array for further analysis)
-          ! based on the value of the CollectionMode.
+          ! Determine the operation code (i.e. copy or accumulate from the 
+          ! source pointer to Item's data array for further analysis), 
+          ! based on the value of CollectionMode.
           TmpMode = CollectionMode(C)
           CALL TranUc( TmpMode )
           SELECT CASE( TmpMode )
-             CASE( 'HOURLY', 'DAILY', 'MONTHLY', 'ANNUAL', 'YEARLY' )
-                Operation = ADD_SOURCE
+             CASE( 'TIME-AVERAGED', 'TIMEAVERAGED' )
+                Operation = ACCUM_FROM_SOURCE
              CASE DEFAULT
-                Operation = COPY_SOURCE
+                Operation = COPY_FROM_SOURCE
           END SELECT
 
           !=================================================================
@@ -1225,7 +1233,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Update( am_I_Root, RC )
+  SUBROUTINE History_Update( am_I_Root, yyyymmdd, hhmmss, RC )
 !
 ! !USES:
 !
@@ -1239,6 +1247,8 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL, INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+    INTEGER, INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
+    INTEGER, INTENT(IN)  :: hhmmss    ! Current hour/minute/second
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -1256,8 +1266,16 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
+    LOGICAL                          :: DoArchive
+
     ! Strings
-    CHARACTER(LEN=255)               :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)               :: ErrMsg
+    CHARACTER(LEN=255)               :: ThisLoc
+
+    ! Pointers
+    INTEGER,                 POINTER :: ArchivalYmd
+    INTEGER,                 POINTER :: ArchivalHms
 
     ! Objects
     TYPE(MetaHistContainer), POINTER :: Collection
@@ -1267,13 +1285,16 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC         =  GC_SUCCESS
-    Collection => NULL()
-    Current    => NULL()
-    Item       => NULL()
-    ErrMsg     =  ''
-    ThisLoc    =  &
-      ' -> at History_UpdateCollections (in History/history_mod.F90)' 
+    RC          =  GC_SUCCESS
+    DoArchive   = .FALSE.
+    ArchivalYmd => NULL()
+    ArchivalHms => NULL()
+    Collection  => NULL()
+    Current     => NULL()
+    Item        => NULL()
+    ErrMsg      =  ''
+    ThisLoc     =  &
+      ' -> at History_Update (in History/history_mod.F90)' 
 
     !=======================================================================
     ! Loop through each DIAGNOSTIC COLLECTION in the master list, and
@@ -1285,6 +1306,57 @@ CONTAINS
     
     ! As long as this current COLLECTION is valid ...
     DO WHILE( ASSOCIATED( Collection ) ) 
+
+       !--------------------------------------------------------------------
+       ! Determine if it is time to update this collection.  Compare the
+       ! the ArchivalYmd and ArchivalHms fields to the current date/time.
+       !--------------------------------------------------------------------
+       
+       ! Initialize
+       ArchivalYmd => Collection%Container%ArchivalYmd
+       ArchivalHms => Collection%Container%ArchivalHms
+       DoArchive   = .FALSE.
+
+       ! Test if the archival period is less than one day
+       ! (i.e. current time modulo ArchivalHms)
+       IF ( ArchivalHms > 0 ) THEN
+          DoArchive = ( MOD( hhmmss, ArchivalHms ) == 0 ) 
+       ENDIF
+       
+       !%%% NOTE: The testing of whether to update or not for
+       !%%% periods greater than a day is very iffy.
+       !%%% but this might be OK.  But this might be OK since
+       !%%% we probably want to archive at least once / day
+       !%%% and then write out at longer intervals.
+
+       ! Then test if the archival period is greater than one day
+       ! (i.e. current date modulo ArchivalYmd)
+       IF ( .not. DoArchive ) THEN
+          IF ( ArchivalYmd > 0 ) THEN 
+             DoArchive = ( MOD( yyyymmdd, ArchivalYmd ) == 0 )
+          ENDIF
+       ENDIF
+
+#if defined( DEBUG )
+       WRITE(6, '(i8.8,1x,i6.6,L2)') yyyymmdd, hhmmss, DoArchive
+#endif
+       
+       ! Free pointers
+       ArchivalYmd => NULL()
+       ArchivalHms => NULL()
+       
+       ! If it isn't time to update the current collection,
+       ! then skip to the next collection.
+       IF ( .not. DoArchive ) THEN
+          Collection => Collection%Next
+          CYCLE
+       ENDIF
+       
+       !--------------------------------------------------------------------
+       ! If it is time to update the collection, then loop through all of
+       ! the associated HISTORY ITEMS and either copy or accumulate the
+       ! data from the source pointer into the HISTORY ITEM's data array.
+       !--------------------------------------------------------------------
 
        ! Point to the first HISTORY ITEM belonging to this COLLECTION
        Current => Collection%Container%HistItems
@@ -1307,42 +1379,33 @@ CONTAINS
                 ! Flex-precision floating point
                 IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
 
-                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d  = Item%Source_3d
                       Item%nUpdates = 1
-                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                   ELSE
                       Item%Data_3d  = Item%Data_3d  + Item%Source_3d
-                      Item%nUpdates = Item%nUpdates + 1
-                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
-                      Item%Data_3d  = Item%Data_3d * Item%Source_3d
                       Item%nUpdates = Item%nUpdates + 1
                    ENDIF
 
                 ! 4-byte floating point
                 ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
 
-                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d  = Item%Source_3d_4
                       Item%nUpdates = 1
-                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                   ELSE
                       Item%Data_3d  = Item%Data_3d  + Item%Source_3d_4
-                      Item%nUpdates = Item%nUpdates + 1
-                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
-                      Item%Data_3d  = Item%Data_3d  * Item%Source_3d_4
                       Item%nUpdates = Item%nUpdates + 1
                    ENDIF
 
                 ! Integer
                 ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
 
-                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d  = Item%Source_3d_I
                       Item%nUpdates = 1
-                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                   ELSE
                       Item%Data_3d  = Item%Data_3d  + Item%Source_3d_I
-                      Item%nUpdates = Item%nUpdates + 1
-                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
-                      Item%Data_3d  = Item%Data_3d  * Item%Source_3d_I
                       Item%nUpdates = Item%nUpdates + 1
                    ENDIF
 
@@ -1356,42 +1419,33 @@ CONTAINS
                 ! Flex-precision floating point
                 IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
 
-                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d
                       Item%nUpdates = 1
-                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                   ELSE 
                       Item%Data_2d  = Item%Data_2d  + Item%Source_2d
                       Item%nUpdates = Item%nUpdates + 1 
-                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
-                      Item%Data_2d  = Item%Data_2d  * Item%Source_2d
-                      Item%nUpdates = Item%nUpdates + 1
                    ENDIF
 
                 ! 4-byte floating point
                 ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
 
-                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d_4
                       Item%nUpdates = 1
-                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                   ELSE
                       Item%Data_2d  = Item%Data_2d + Item%Source_2d_4
-                      Item%nUpdates = Item%nUpdates + 1 
-                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
-                      Item%Data_2d  = Item%Data_2d * Item%Source_2d_4
                       Item%nUpdates = Item%nUpdates + 1 
                    ENDIF
 
                 ! Integer
                 ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
 
-                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d_I
                       Item%nUpdates = 1
-                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                   ELSE 
                       Item%Data_2d  = Item%Data_2d  + Item%Source_2d_I
-                      Item%nUpdates = Item%nUpdates + 1 
-                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
-                      Item%Data_2d  = Item%Data_2d  * Item%Source_2d_I
                       Item%nUpdates = Item%nUpdates + 1 
                    ENDIF
 
@@ -1405,42 +1459,33 @@ CONTAINS
                 ! Flex-precision floating point
                 IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
 
-                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d
                       Item%nUpdates = 1
-                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                   ELSE 
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d
-                      Item%nUpdates = Item%nUpdates + 1 
-                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
-                      Item%Data_1d  = Item%Data_1d  * Item%Source_1d
                       Item%nUpdates = Item%nUpdates + 1 
                    ENDIF
 
                 ! 4-byte floating point
                 ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
 
-                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d_4
                       Item%nUpdates = 1
-                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                   ELSE 
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d_4
-                      Item%nUpdates = Item%nUpdates + 1 
-                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
-                      Item%Data_1d  = Item%Data_1d  * Item%Source_1d_4
                       Item%nUpdates = Item%nUpdates + 1 
                    ENDIF
 
                 ! Integer
                 ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
 
-                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d_I
                       Item%nUpdates = 1
-                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                   ELSE
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d_I
-                      Item%nUpdates = Item%nUpdates + 1 
-                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
-                      Item%Data_1d  = Item%Data_1d  * Item%Source_1d_I
                       Item%nUpdates = Item%nUpdates + 1 
                    ENDIF
 
@@ -1454,42 +1499,33 @@ CONTAINS
                 ! Flex-precision floating point
                 IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
 
-                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_0d  = Item%Source_0d
                       Item%nUpdates = 1
-                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                   ELSE
                       Item%Data_0d  = Item%Data_0d  + Item%Source_0d
-                      Item%nUpdates = Item%nUpdates + 1 
-                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
-                      Item%Data_0d  = Item%Data_0d  * Item%Source_0d
                       Item%nUpdates = Item%nUpdates + 1 
                    ENDIF
 
                 ! 4-byte floating point
                 ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
 
-                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_0d  = Item%Source_0d_4
                       Item%nUpdates = 1
-                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+                   ELSE
                       Item%Data_0d  = Item%Data_0d  + Item%Source_0d_4
-                      Item%nUpdates = Item%nUpdates + 1 
-                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
-                      Item%Data_0d  = Item%Data_0d  * Item%Source_0d_4
                       Item%nUpdates = Item%nUpdates + 1 
                    ENDIF
 
                 ! Integer
                 ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
 
-                   IF ( Item%Operation == COPY_SOURCE ) THEN
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_0d  = Item%Source_0d_I
-                      Item%nUpdates = 1
-                   ELSE IF ( Item%Operation == ADD_SOURCE ) THEN
+s                      Item%nUpdates = 1
+                   ELSE
                       Item%Data_0d  = Item%Data_0d  + Item%Source_0d_I
-                      Item%nUpdates = Item%nUpdates + 1 
-                   ELSE IF ( Item%Operation == MULT_SOURCE ) THEN
-                      Item%Data_0d  = Item%Data_0d  * Item%Source_0d_I
                       Item%nUpdates = Item%nUpdates + 1 
                    ENDIF
 
@@ -1497,9 +1533,11 @@ CONTAINS
 
           END SELECT
 
-          ! Debug
-          !print*, '@@@', Item%ContainerId, TRIM( Item%Name ), sum( Item%data_3d), sum( item%source_3d ), item%nUpdates
-    
+
+#if defined( DEBUG )
+          WRITE(6,*) Item%ContainerId, TRIM( Item%Name ), &
+               Item%data_3d(23,34,1), item%source_3d(23,34,1), Item%nUpdates
+#endif
           ! Free pointer
           Item => NULL()
 

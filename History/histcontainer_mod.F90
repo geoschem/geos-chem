@@ -134,9 +134,8 @@ CONTAINS
     INTEGER,             OPTIONAL    :: ArchivalYmd   ! Frequency in YY/MM/DD
     INTEGER,             OPTIONAL    :: ArchivalHms   ! Frequency in hh:mm:ss
     INTEGER,             OPTIONAL    :: Operation     ! Operation code
-                                                      !  0=copy
-                                                      !  1=add
-                                                      !  2=multiply
+                                                      !  0=copy  from source
+                                                      !  1=accum from source
 
     ! Optional inputs: filename and metadata
     INTEGER,             OPTIONAL    :: FileId        ! netCDF file ID
@@ -260,7 +259,7 @@ CONTAINS
     IF ( PRESENT( Operation ) ) THEN
        Container%Operation = Operation
     ELSE
-       Container%Operation = COPY_SOURCE
+       Container%Operation = COPY_FROM_SOURCE
     ENDIF
 
     !---------------------------------
