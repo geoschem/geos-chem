@@ -25,8 +25,9 @@ MODULE History_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
   PUBLIC  :: History_Init
-  PUBLIC  :: History_Cleanup
   PUBLIC  :: History_Update
+  PUBLIC  :: History_Write
+  PUBLIC  :: History_Cleanup
 !
 ! PRIVATE MEMBER FUNCTIONS:
 
@@ -1227,8 +1228,8 @@ CONTAINS
 ! !IROUTINE: History_Update
 !
 ! !DESCRIPTION: For each HISTORY ITEM belonging to a diagnostic COLLECTION,
-!  the data from the target variable is copied or added or multiplied into
-!  the HISTORY ITEM's data field for further analysis.
+!  the data from the target variable is copied or accumulated into the 
+!  HISTORY ITEM's data field for further analysis.
 !\\
 !\\
 ! !INTERFACE:
@@ -1323,22 +1324,21 @@ CONTAINS
           DoArchive = ( MOD( hhmmss, ArchivalHms ) == 0 ) 
        ENDIF
        
-       !%%% NOTE: The testing of whether to update or not for
-       !%%% periods greater than a day is very iffy.
-       !%%% but this might be OK.  But this might be OK since
-       !%%% we probably want to archive at least once / day
-       !%%% and then write out at longer intervals.
-
-       ! Then test if the archival period is greater than one day
+       ! Then test if the archival period is greater than one day.
+       ! Also check if the hour of the day is 0 GMT so that we will
+       ! only archive at least once per day.  We can eventually change
+       ! the archival hour if so desired (but maybe only for GC-Classic).
        ! (i.e. current date modulo ArchivalYmd)
        IF ( .not. DoArchive ) THEN
           IF ( ArchivalYmd > 0 ) THEN 
-             DoArchive = ( MOD( yyyymmdd, ArchivalYmd ) == 0 )
+             DoArchive = ( ( MOD( yyyymmdd, ArchivalYmd ) == 0      ) .and.  &
+                           ( hhmmss                       == 000000 )       )
           ENDIF
        ENDIF
 
 #if defined( DEBUG )
-       WRITE(6, '(i8.8,1x,i6.6,L2)') yyyymmdd, hhmmss, DoArchive
+       WRITE(6, '(a12,i8.8,1x,i6.6,L2)') &
+            Collection%Container%Name, yyyymmdd, hhmmss, DoArchive
 #endif
        
        ! Free pointers
@@ -1523,7 +1523,7 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_0d  = Item%Source_0d_I
-s                      Item%nUpdates = 1
+                      Item%nUpdates = 1
                    ELSE
                       Item%Data_0d  = Item%Data_0d  + Item%Source_0d_I
                       Item%nUpdates = Item%nUpdates + 1 
@@ -1558,6 +1558,140 @@ s                      Item%nUpdates = 1
     Item       => NULL()
 
   END SUBROUTINE History_Update
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: History_Update
+!
+! !DESCRIPTION: For each HISTORY ITEM belonging to a diagnostic COLLECTION,
+!  the data from the target variable is copied or accumulated into the 
+!  HISTORY ITEM's data field for further analysis.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE History_Write( am_I_Root, yyyymmdd, hhmmss, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HistItem_Mod,          ONLY : HistItem
+    USE History_Params_Mod
+    USE MetaHistContainer_Mod, ONLY : MetaHistContainer
+    USE MetaHistItem_Mod,      ONLY : MetaHistItem
+    USE Registry_Params_Mod
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL, INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+    INTEGER, INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
+    INTEGER, INTENT(IN)  :: hhmmss    ! Current hour/minute/second
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER, INTENT(OUT) :: RC        ! Success or failure
+!
+! !REMARKS:
+!  This routine is called from the main program at the end of each 
+!  "heartbeat" timestep.
+!
+! !REVISION HISTORY:
+!  03 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL                          :: DoWrite
+
+    ! Strings
+    CHARACTER(LEN=255)               :: ErrMsg
+    CHARACTER(LEN=255)               :: ThisLoc
+
+    ! Pointers
+    INTEGER,                 POINTER :: ArchivalYmd
+    INTEGER,                 POINTER :: ArchivalHms
+
+    ! Objects
+    TYPE(MetaHistContainer), POINTER :: Collection
+    TYPE(MetaHistItem),      POINTER :: Current
+    TYPE(HistItem),          POINTER :: Item
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC          =  GC_SUCCESS
+    DoWrite     = .FALSE.
+    ArchivalYmd => NULL()
+    ArchivalHms => NULL()
+    Collection  => NULL()
+    Current     => NULL()
+    Item        => NULL()
+    ErrMsg      =  ''
+    ThisLoc     =  &
+      ' -> at History_Update (in History/history_mod.F90)' 
+
+    !=======================================================================
+    ! Loop through each DIAGNOSTIC COLLECTION in the master list, and
+    ! then loop through the HISTORY ITEMS belonnging to each COLLECTION.
+    !=======================================================================
+
+    ! Point to the first COLLECTION in the master collection list
+    Collection => CollectionList
+    
+    ! As long as this current COLLECTION is valid ...
+    DO WHILE( ASSOCIATED( Collection ) ) 
+
+       !--------------------------------------------------------------------
+       ! Determine if it is time to update this collection.  Compare the
+       ! the ArchivalYmd and ArchivalHms fields to the current date/time.
+       !--------------------------------------------------------------------
+       
+!       ! Initialize
+!       ArchivalYmd => Collection%Container%ArchivalYmd
+!       ArchivalHms => Collection%Container%ArchivalHms
+!       DoWrite     = .FALSE.
+!
+!
+!       ! Then test if the archival period is greater than one day
+!       ! (i.e. current date modulo ArchivalYmd)
+!       IF ( .not. DoArchive ) THEN
+!          IF ( ArchivalYmd > 0 ) THEN 
+!             DoArchive = ( MOD( yyyymmdd, ArchivalYmd ) == 0 )
+!          ENDIF
+!       ENDIF
+!
+!#if defined( DEBUG )
+!       WRITE(6, '(i8.8,1x,i6.6,L2)') yyyymmdd, hhmmss, DoArchive
+!#endif
+!       
+!       ! Free pointers
+!       ArchivalYmd => NULL()
+!       ArchivalHms => NULL()
+!       
+!       ! If it isn't time to update the current collection,
+!       ! then skip to the next collection.
+!       IF ( .not. DoArchive ) THEN
+!          Collection => Collection%Next
+!          CYCLE
+!       ENDIF
+!  
+!       CALL History_NcDefine( Collection%Container )
+ 
+       ! Skip to the next collection
+       Collection => Collection%Next
+     
+    ENDDO
+
+    ! Free pointers
+    Collection => NULL()
+
+  END SUBROUTINE History_Write
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

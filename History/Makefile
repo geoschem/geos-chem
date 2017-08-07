@@ -120,6 +120,8 @@ debug:
 ###                                                                         ###
 ###############################################################################
 
+history_params_mod.o    : history_params_mod.F90
+
 history_mod.o           : history_mod.F90            \
                           history_params_mod.o       \
                           metahistcontainer_mod.o    \
@@ -127,7 +129,10 @@ history_mod.o           : history_mod.F90            \
                           metahistitem_mod.o         \
                           histitem_mod.o
 
-history_params_mod.o    : history_params_mod.F90
+history_netcdf_mod.o    : history_netcdf_mod.F90     \
+	                  metahistcontainer_mod.o    \
+                          histcontainer_mod.o        \
+	                  histitem_mod.o
 
 histitem_mod.o          : histitem_mod.F90           \
                           history_params_mod.o

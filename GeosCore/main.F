@@ -940,6 +940,11 @@
          CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
      &                           .FALSE.,   RC)
 
+#if defined( NC_DIAG ) 
+         ! Write netCDF diagnostics to disk
+         CALL History_Write( am_I_Root, Nymd, Nhms, RC )
+#endif
+
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "HEMCO", RC )
 #endif
