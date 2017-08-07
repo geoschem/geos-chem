@@ -48,7 +48,7 @@ MODULE HistContainer_Mod
      !----------------------------------------------------------------------
      CHARACTER(LEN=255)          :: Name                ! Container name
      INTEGER                     :: Id                  !  and ID number
-                                                      
+
      !----------------------------------------------------------------------
      ! List of history items in this collection       
      !----------------------------------------------------------------------
@@ -63,10 +63,11 @@ MODULE HistContainer_Mod
      INTEGER                     :: ArchivalYmd         ! Archival freq
      INTEGER                     :: ArchivalHms         !  in YMD and hms
      INTEGER                     :: Operation           ! Operation code
-                                                        !  0=nothing
-                                                        !  1=add
-                                                        !  2=multiply
-                                                      
+                                                        !  0=copy from source
+                                                        !  1=accum from source
+     INTEGER                     :: FileWriteYmd        ! File write frequency
+     INTEGER                     :: FileWriteHms        !  in YMD and hms
+                                              
      !----------------------------------------------------------------------
      ! netCDF file info and attributes                
      !----------------------------------------------------------------------
@@ -89,6 +90,7 @@ MODULE HistContainer_Mod
 !
 ! !REVISION HISTORY:
 !  12 Jun 2017 - R. Yantosca - Initial version, based on history_list_mod.F90
+!  07 Aug 2017 - R. Yantosca - Add FileWriteYmd, FileWriteHms
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -111,10 +113,10 @@ CONTAINS
   SUBROUTINE HistContainer_Create( am_I_Root,    Container,    Id,           &
                                    Name,         RC,           ArchivalMode, &
                                    ArchivalYmd,  ArchivalHms,  Operation,    &
-                                   FileId,       FilePrefix,   FileName,     &
-                                   FileTemplate, Conventions,  NcFormat,     &
-                                   History,      ProdDateTime, Reference,    &
-                                   Title                                    )
+                                   FileWriteYmd, FileWriteHms, FileId,       &
+                                   FilePrefix,   FileName,     FileTemplate, &
+                                   Conventions,  NcFormat,     History,      &
+                                   ProdDateTime, Reference,    Title        )
 !
 ! !USES:
 !
@@ -131,11 +133,13 @@ CONTAINS
 
     ! Optional inputs: data archival
     CHARACTER(LEN=*),    OPTIONAL    :: ArchivalMode  ! Archival mode
-    INTEGER,             OPTIONAL    :: ArchivalYmd   ! Frequency in YY/MM/DD
-    INTEGER,             OPTIONAL    :: ArchivalHms   ! Frequency in hh:mm:ss
-    INTEGER,             OPTIONAL    :: Operation     ! Operation code
+    INTEGER,             OPTIONAL    :: ArchivalYmd   ! Archival frequency
+    INTEGER,             OPTIONAL    :: ArchivalHms   !  in both YMD and hms
+    INTEGER,             OPTIONAL    :: Operation     ! Operation code:
                                                       !  0=copy  from source
                                                       !  1=accum from source
+    INTEGER,             OPTIONAL    :: FileWriteYmd  ! File write frequency
+    INTEGER,             OPTIONAL    :: FileWriteHms  !  in both YMD and hms
 
     ! Optional inputs: filename and metadata
     INTEGER,             OPTIONAL    :: FileId        ! netCDF file ID
@@ -163,6 +167,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on history_list_mod.F90
+!  07 Aug 2017 - R. Yantosca - Add FileWriteYmd and FileWriteHms
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -226,54 +231,72 @@ CONTAINS
     ! Optional inputs, handle these next
     !========================================================================
 
-    !---------------------------------
+    !----------------------------------
     ! Archival mode
-    !---------------------------------
+    !----------------------------------
     IF ( PRESENT( ArchivalMode ) ) THEN
        Container%ArchivalMode = ArchivalMode
     ELSE
        Container%ArchivalMode = ''
     ENDIF
 
-    !---------------------------------
+    !----------------------------------
     ! Archival frequency in YY/MM/DD
-    !---------------------------------
+    !----------------------------------
     IF ( PRESENT( ArchivalYmd ) ) THEN
        Container%ArchivalYmd = ArchivalYmd 
     ELSE
        Container%ArchivalYmd = 0
     ENDIF
 
-    !---------------------------------
+    !----------------------------------
     ! Archival frequency in hh:mm:ss
-    !---------------------------------
+    !----------------------------------
     IF ( PRESENT( ArchivalHms ) ) THEN
        Container%ArchivalHms = ArchivalHms 
     ELSE
        Container%ArchivalHms = 0
     ENDIF
 
-    !---------------------------------
+    !----------------------------------
     ! Operation code
-    !---------------------------------
+    !----------------------------------
     IF ( PRESENT( Operation ) ) THEN
        Container%Operation = Operation
     ELSE
        Container%Operation = COPY_FROM_SOURCE
     ENDIF
 
-    !---------------------------------
+    !----------------------------------
+    ! File write frequency in YY/MM/DD
+    !----------------------------------
+    IF ( PRESENT( FileWriteYmd ) ) THEN
+       Container%FileWriteYmd = FileWriteYmd 
+    ELSE
+       Container%FileWriteYmd = 0
+    ENDIF
+
+    !----------------------------------
+    ! File write frequency in hh:mm:ss
+    !----------------------------------
+    IF ( PRESENT( FileWriteHms ) ) THEN
+       Container%FileWriteHms = FileWriteHms 
+    ELSE
+       Container%FileWriteHms = 0
+    ENDIF
+
+    !----------------------------------
     ! File Id
-    !---------------------------------
+    !----------------------------------
     IF ( PRESENT( FileId ) ) THEN
        Container%FileId = FileId
     ELSE
        Container%FileId = -1
     ENDIF
 
-    !---------------------------------
+    !----------------------------------
     ! File Prefix
-    !---------------------------------
+    !----------------------------------
     IF ( LEN_TRIM( FilePrefix ) > 0 ) THEN
        TempStr              = FilePrefix
        Container%FilePrefix = TempStr
@@ -281,9 +304,9 @@ CONTAINS
        Container%FilePrefix = 'GEOSChem.History.' // TRIM( Name ) // '.'
     ENDIF
 
-    !---------------------------------
+    !----------------------------------
     ! File Template
-    !---------------------------------
+    !----------------------------------
     IF ( LEN_TRIM( FileTemplate) > 0 ) THEN
        TempStr                = FileTemplate
        Container%FileTemplate = TempStr
@@ -291,9 +314,9 @@ CONTAINS
        Container%FileTemplate = ''
     ENDIF
 
-    !---------------------------------
+    !----------------------------------
     ! File Name
-    !---------------------------------
+    !----------------------------------
     IF ( LEN_TRIM( FileName ) > 0 ) THEN
        TempStr            = FileName
        Container%FileName = TempStr
@@ -302,9 +325,9 @@ CONTAINS
                             TRIM( Container%FileTemplate )
     ENDIF
 
-    !---------------------------------
+    !----------------------------------
     ! Conventions
-    !---------------------------------
+    !----------------------------------
     IF ( PRESENT( Conventions ) ) THEN
        TempStr               = Conventions
        Container%Conventions = TempStr
@@ -312,9 +335,9 @@ CONTAINS
        Container%Conventions = ''
     ENDIF
 
-    !---------------------------------
+    !----------------------------------
     ! NcFormat
-    !---------------------------------
+    !----------------------------------
     IF ( PRESENT( NcFormat ) ) THEN
        TempStr            = NcFormat
        Container%NcFormat = TempStr
@@ -322,9 +345,9 @@ CONTAINS
        Container%NcFormat = ''
     ENDIF
 
-    !---------------------------------
+    !----------------------------------
     ! History
-    !---------------------------------
+    !----------------------------------
     IF ( PRESENT( History ) ) THEN
        TempStr           = History
        Container%History = TempStr
@@ -332,9 +355,9 @@ CONTAINS
        Container%History = ''
     ENDIF
 
-    !---------------------------------
+    !----------------------------------
     ! ProdDateTime
-    !---------------------------------
+    !----------------------------------
     IF ( PRESENT( ProdDateTime ) ) THEN
        TempStr                = ProdDateTime
        Container%ProdDateTime = TempStr
@@ -342,9 +365,9 @@ CONTAINS
        Container%ProdDateTime = ''
     ENDIF
 
-    !---------------------------------
+    !----------------------------------
     ! Reference
-    !---------------------------------
+    !----------------------------------
     IF ( PRESENT( Reference ) ) THEN
        TempStr             = Reference
        Container%Reference = TempStr
@@ -352,9 +375,9 @@ CONTAINS
        Container%Reference = ''
     ENDIF
 
-    !---------------------------------
+    !----------------------------------
     ! Title
-    !---------------------------------
+    !----------------------------------
     IF ( PRESENT( Title ) ) THEN
        TempStr         = Title
        Container%Title = TempStr
@@ -420,27 +443,38 @@ CONTAINS
     ! only if we are on the root CPU
     !=======================================================================
     IF ( ASSOCIATED( Container ) .and. am_I_Root ) THEN
-       PRINT*, REPEAT( '-', 78 )
-       PRINT*, REPEAT( '-', 78 )
-       PRINT*, 'Container Name : ', TRIM( Container%Name         )
-       PRINT*, 'Container Id # : ', Container%Id
-       PRINT*, 'ArchivalMode   : ', TRIM( Container%ArchivalMode )
-       PRINT*, 'ArchivalYmd    : ', Container%ArchivalYmd
-       PRINT*, 'ArchivalHms    : ', Container%ArchivalHms
-       PRINT*, 'Operation code : ', Container%Operation
-       PRINT*, 'FileId         : ', Container%FileId
-       PRINT*, 'FilePrefix     : ', TRIM( Container%FilePrefix   )
-       PRINT*, 'FileTemplate   : ', TRIM( Container%FileTemplate )
-       PRINT*, 'Filename       : ', TRIM( Container%FileName     )
-       PRINT*, 'Conventions    : ', TRIM( Container%Conventions  )
-       PRINT*, 'NcFormat       : ', TRIM( Container%NcFormat     )
-       PRINT*, 'History        : ', TRIM( Container%History      )
-       PRINT*, 'ProdDateTime   : ', TRIM( Container%ProdDateTime )
-       PRINT*, 'Reference      : ', TRIM( Container%Reference    )
-       PRINT*, 'Title          : ', TRIM( Container%Title        )
-       PRINT*
-       PRINT*, 'Items archived in this collection:'
+       WRITE( 6, 110 ) REPEAT( '-', 78 )
+       WRITE( 6, 110 ) REPEAT( '-', 78 )
+       WRITE( 6, 120 ) 'Container Name : ', TRIM( Container%Name  )
+       WRITE( 6, 130 ) 'Container Id # : ', Container%Id
+       WRITE( 6, 120 ) 'ArchivalMode   : ', TRIM( Container%ArchivalMode )
+       WRITE( 6, 135 ) 'ArchivalYmd    : ', Container%ArchivalYmd
+       WRITE( 6, 145 ) 'ArchivalHms    : ', Container%ArchivalHms
+       WRITE( 6, 130 ) 'Operation code : ', Container%Operation
+       WRITE( 6, 135 ) 'FileWriteYmd   : ', Container%FileWriteYmd
+       WRITE( 6, 145 ) 'FileWriteHms   : ', Container%FileWriteHms
+       WRITE( 6, 130 ) 'FileId         : ', Container%FileId
+       WRITE( 6, 120 ) 'FilePrefix     : ', TRIM( Container%FilePrefix   )
+       WRITE( 6, 120 ) 'FileTemplate   : ', TRIM( Container%FileTemplate )
+       WRITE( 6, 120 ) 'Filename       : ', TRIM( Container%FileName     )
+       WRITE( 6, 120 ) 'Conventions    : ', TRIM( Container%Conventions  )
+       WRITE( 6, 120 ) 'NcFormat       : ', TRIM( Container%NcFormat     )
+       WRITE( 6, 120 ) 'History        : ', TRIM( Container%History      )
+       WRITE( 6, 120 ) 'ProdDateTime   : ', TRIM( Container%ProdDateTime )
+       WRITE( 6, 120 ) 'Reference      : ', TRIM( Container%Reference    )
+       WRITE( 6, 120 ) 'Title          : ', TRIM( Container%Title        )
+       WRITE( 6, 110 ) ''
+       WRITE( 6, 110 ) 'Items archived in this collection:'
 
+       ! FORMAT statements
+ 110   FORMAT( 1x, a       )
+ 120   FORMAT( 1x, a, a    )
+ 130   FORMAT( 1x, a, i8   )
+ 135   FORMAT( 1x, a, i8.8 )
+ 140   FORMAT( 1x, a, i6   )
+ 145   FORMAT( 1x, a, i6.6 )
+
+       ! If there are HISTORY ITEMS belonging to this container ...
        IF ( ASSOCIATED( Container%HistItems ) ) THEN 
           
           ! Point to the start of the list of HISTORY ITEMS
@@ -470,7 +504,9 @@ CONTAINS
                              Current%Item%LongName,  &
                              DimStr,                 &
                              Current%Item%Units
-  100        FORMAT( 2x, a20, ' | ', a35, ' | ', a3, ' | ', a15 )
+ 100         FORMAT( 2x, a20, ' | ', a35, ' | ', a3, ' | ', a15 )
+
+             ! Skip to net item
              Current => Current%Next
           ENDDO
 
@@ -479,6 +515,8 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! Format statements
+ 
   END SUBROUTINE HistContainer_Print
 !EOC
 !------------------------------------------------------------------------------

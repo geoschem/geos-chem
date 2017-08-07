@@ -943,6 +943,10 @@
 #if defined( NC_DIAG ) 
          ! Write netCDF diagnostics to disk
          CALL History_Write( am_I_Root, Nymd, Nhms, RC )
+
+         !### For debugging
+         !! Exit and quit run gracefully
+         !GOTO 9999
 #endif
 
 #if defined( USE_TIMERS )

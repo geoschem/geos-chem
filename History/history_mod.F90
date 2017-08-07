@@ -203,7 +203,7 @@ CONTAINS
     INTEGER,          INTENT(OUT) :: RC           ! Success or failure?
 !
 ! !REMARKS:
-!  Called from routine History_Init.
+!  Private routine, called from routine History_Init.
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
@@ -460,7 +460,7 @@ CONTAINS
     INTEGER,          INTENT(OUT) :: RC           ! Success or failure?
 !
 ! !REMARKS:
-!  Called from routine History_Init.
+!  Private routine, called from History_Init.
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
@@ -473,24 +473,25 @@ CONTAINS
 !
      ! Scalars
     LOGICAL                      :: EOF   
-    INTEGER                      :: C,           N,           W    
-    INTEGER                      :: fId,         IOS
-    INTEGER                      :: nSubs1,      nSubs2
-    INTEGER                      :: Ind1,        Ind2
-    INTEGER                      :: ArchivalYmd, ArchivalHms
-    INTEGER                      :: ItemCount,   SpaceDim,    Operation
-    INTEGER                      :: Ind_All,     Ind_Adv,     Ind_Aer
-    INTEGER                      :: Ind_Dry,     Ind_Fix,     Ind_Gas
-    INTEGER                      :: Ind_Kpp,     Ind_Pho,     Ind_Rst
-    INTEGER                      :: Ind_Var,     Ind_Wet,     Ind
+    INTEGER                      :: C,            N,            W    
+    INTEGER                      :: fId,          IOS
+    INTEGER                      :: nSubs1,       nSubs2
+    INTEGER                      :: Ind1,         Ind2
+    INTEGER                      :: ArchivalYmd,  ArchivalHms
+    INTEGER                      :: FileWriteYmd, FileWriteHms
+    INTEGER                      :: ItemCount,    SpaceDim,     Operation
+    INTEGER                      :: Ind_All,      Ind_Adv,      Ind_Aer
+    INTEGER                      :: Ind_Dry,      Ind_Fix,      Ind_Gas
+    INTEGER                      :: Ind_Kpp,      Ind_Pho,      Ind_Rst
+    INTEGER                      :: Ind_Var,      Ind_Wet,      Ind
 
     ! Strings
-    CHARACTER(LEN=255)           :: Line,        FileName
-    CHARACTER(LEN=255)           :: ErrMsg,      ThisLoc
-    CHARACTER(LEN=255)           :: MetaData,    Reference
-    CHARACTER(LEN=255)           :: Title,       Units
-    CHARACTER(LEN=255)           :: ItemName,    ItemTemplate
-    CHARACTER(LEN=255)           :: Description, TmpMode
+    CHARACTER(LEN=255)           :: Line,         FileName
+    CHARACTER(LEN=255)           :: ErrMsg,       ThisLoc
+    CHARACTER(LEN=255)           :: MetaData,     Reference
+    CHARACTER(LEN=255)           :: Title,        Units
+    CHARACTER(LEN=255)           :: ItemName,     ItemTemplate
+    CHARACTER(LEN=255)           :: Description,  TmpMode
     
     ! Arrays
     INTEGER                      :: SubsetDims(3)
@@ -511,28 +512,30 @@ CONTAINS
     !=======================================================================
 
     ! Assume success
-    RC          =  GC_SUCCESS
+    RC           =  GC_SUCCESS
 
     ! Initialize variables
-    ArchivalYmd =  0 
-    ArchivalHms =  0
-    SpaceDim    =  0
-    SubsetDims  =  0 
+    ArchivalYmd  =  0 
+    ArchivalHms  =  0
+    FileWriteYmd =  0
+    FileWriteHms =  0
+    SpaceDim     =  0
+    SubsetDims   =  0 
 
     ! Initialize objects and pointers
-    Collection  => NULL()
-    Item        => NULL()
-    Ptr3d       => NULL()
-    Ptr3d_4     => NULL()
-    ThisSpc     => NULL()
+    Collection   => NULL()
+    Item         => NULL()
+    Ptr3d        => NULL()
+    Ptr3d_4      => NULL()
+    ThisSpc      => NULL()
 
     ! Initialize Strings
-    Description =  ''
-    ErrMsg      =  ''
-    Reference   =  'www.geos-chem.org; wiki.geos-chem.org'
-    ThisLoc     =  &
+    Description  =  ''
+    ErrMsg       =  ''
+    Reference    =  'www.geos-chem.org; wiki.geos-chem.org'
+    ThisLoc      =  &
      ' -> at History_ReadCollectionData (in module History/history_mod.F90)'
-    Units       =  ''
+    Units        =  ''
 
     !=======================================================================
     ! Open the file containing the list of requested diagnostics
@@ -607,15 +610,26 @@ CONTAINS
           ! to be ArchivalHms.  If longer, then assume that it is specifying
           ! both ArchivalYmd and ArchivalHms. (sde, bmy, 8/4/17)
           IF ( LEN_TRIM( CollectionFrequency(C) ) == 6 ) THEN
-             READ( CollectionFrequency(C), '(i6.6)'  ) ArchivalHms
+             READ( CollectionFrequency(C), '(i6.6)'  )    ArchivalHms
           ELSE
-             READ( CollectionFrequency(C), '(2i6.6)' ) ArchivalYmd, ArchivalHms
+             READ( CollectionFrequency(C), '(2i6.6)' )    ArchivalYmd, &
+                                                          ArchivalHms
           ENDIF
        ENDIF
 
        IF ( INDEX( Line, 'duration' ) > 0 ) THEN
           CALL GetCollectionMetaData( Line, 'duration',   MetaData, C )
           CollectionDuration(C) = Metadata
+
+          ! NOTE: If CollectionDuration is 6 digits long, then assume that
+          ! to be ArchivalHms.  If longer, then assume that it is specifying
+          ! both FileWriteYmd and FileWriteHms. (sde, bmy, 8/4/17)
+         IF ( LEN_TRIM( CollectionDuration(C) ) == 6 ) THEN
+             READ( CollectionDuration(C), '(i6.6)'  )     FileWriteHms
+          ELSE
+             READ( CollectionDuration(C), '(2i6.6)' )     FileWriteYmd, &
+                                                          FileWriteHms
+          ENDIF
        ENDIF
 
        IF ( INDEX( Line, 'mode' ) > 0 ) THEN
@@ -679,6 +693,8 @@ CONTAINS
                                      ArchivalYmd  = ArchivalYmd,            &
                                      ArchivalHms  = ArchivalHms,            &
                                      Operation    = Operation,              &
+                                     FileWriteYmd = FileWriteYmd,           &
+                                     FileWriteHms = FileWriteHms,           &
                                      Conventions  = 'COARDS',               &
                                      FileTemplate = CollectionTemplate(C),  & 
                                      NcFormat     = CollectionFormat(C),    &
@@ -1001,6 +1017,9 @@ CONTAINS
 !
     INTEGER,             INTENT(OUT) :: RC             ! Success or failure?
 !
+! !REMARKS:
+!  Private routine, called from History_Init.
+!
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  03 Aug 2017 - R. Yantosca - Inherit operation code from the Collection
@@ -1208,6 +1227,9 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Increment number of HISTORY ITEMS in this collection
+    Collection%nHistItems = Collection%nHistItems + 1
+
     !=======================================================================
     ! Cleanup and quit
     !=======================================================================
@@ -1336,11 +1358,6 @@ CONTAINS
           ENDIF
        ENDIF
 
-#if defined( DEBUG )
-       WRITE(6, '(a12,i8.8,1x,i6.6,L2)') &
-            Collection%Container%Name, yyyymmdd, hhmmss, DoArchive
-#endif
-       
        ! Free pointers
        ArchivalYmd => NULL()
        ArchivalHms => NULL()
@@ -1534,10 +1551,10 @@ CONTAINS
           END SELECT
 
 
-#if defined( DEBUG )
-          WRITE(6,*) Item%ContainerId, TRIM( Item%Name ), &
-               Item%data_3d(23,34,1), item%source_3d(23,34,1), Item%nUpdates
-#endif
+!#if defined( DEBUG )
+!          WRITE(6,*) Item%ContainerId, TRIM( Item%Name ), &
+!               Item%data_3d(23,34,1), item%source_3d(23,34,1), Item%nUpdates
+!#endif
           ! Free pointer
           Item => NULL()
 
@@ -1579,6 +1596,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HistItem_Mod,          ONLY : HistItem
+    USE History_Netcdf_Mod
     USE History_Params_Mod
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE MetaHistItem_Mod,      ONLY : MetaHistItem
@@ -1614,8 +1632,8 @@ CONTAINS
     CHARACTER(LEN=255)               :: ThisLoc
 
     ! Pointers
-    INTEGER,                 POINTER :: ArchivalYmd
-    INTEGER,                 POINTER :: ArchivalHms
+    INTEGER,                 POINTER :: FileWriteYmd
+    INTEGER,                 POINTER :: FileWriteHms
 
     ! Objects
     TYPE(MetaHistContainer), POINTER :: Collection
@@ -1625,15 +1643,15 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC          =  GC_SUCCESS
-    DoWrite     = .FALSE.
-    ArchivalYmd => NULL()
-    ArchivalHms => NULL()
-    Collection  => NULL()
-    Current     => NULL()
-    Item        => NULL()
-    ErrMsg      =  ''
-    ThisLoc     =  &
+    RC           =  GC_SUCCESS
+    DoWrite      = .FALSE.
+    FileWriteYmd => NULL()
+    FileWriteHms => NULL()
+    Collection   => NULL()
+    Current      => NULL()
+    Item         => NULL()
+    ErrMsg       =  ''
+    ThisLoc      =  &
       ' -> at History_Update (in History/history_mod.F90)' 
 
     !=======================================================================
@@ -1652,36 +1670,48 @@ CONTAINS
        ! the ArchivalYmd and ArchivalHms fields to the current date/time.
        !--------------------------------------------------------------------
        
-!       ! Initialize
-!       ArchivalYmd => Collection%Container%ArchivalYmd
-!       ArchivalHms => Collection%Container%ArchivalHms
-!       DoWrite     = .FALSE.
-!
-!
-!       ! Then test if the archival period is greater than one day
-!       ! (i.e. current date modulo ArchivalYmd)
-!       IF ( .not. DoArchive ) THEN
-!          IF ( ArchivalYmd > 0 ) THEN 
-!             DoArchive = ( MOD( yyyymmdd, ArchivalYmd ) == 0 )
-!          ENDIF
-!       ENDIF
-!
-!#if defined( DEBUG )
-!       WRITE(6, '(i8.8,1x,i6.6,L2)') yyyymmdd, hhmmss, DoArchive
-!#endif
-!       
-!       ! Free pointers
-!       ArchivalYmd => NULL()
-!       ArchivalHms => NULL()
-!       
-!       ! If it isn't time to update the current collection,
-!       ! then skip to the next collection.
-!       IF ( .not. DoArchive ) THEN
-!          Collection => Collection%Next
-!          CYCLE
-!       ENDIF
-!  
-!       CALL History_NcDefine( Collection%Container )
+       ! Initialize
+       FileWriteYmd => Collection%Container%FileWriteYmd
+       FileWriteHms => Collection%Container%FileWriteHms
+       DoWrite     = .FALSE.
+
+       ! Test if the file writing frequency is less than one day
+       ! (i.e. current time modulo FileWrite)
+       IF ( FileWriteHms > 0 ) THEN
+          DoWrite = ( MOD( hhmmss, FileWriteHms ) == 0 ) 
+       ENDIF
+       
+       ! Then test if the file writing frequency is greater than one day.
+       ! Also check if the hour of the day is 0 GMT so that we will
+       ! only archive at least once per day.  We can eventually change
+       ! the archival hour if so desired (but maybe only for GC-Classic).
+       ! (i.e. current date modulo FileWriteYmd)
+       IF ( .not. DoWrite ) THEN
+          IF ( FileWriteYmd > 0 ) THEN 
+             DoWrite = ( ( MOD( yyyymmdd, FileWriteYmd ) == 0      ) .and.   &
+                         ( hhmmss                        == 000000 )      )
+          ENDIF
+       ENDIF
+
+       ! Free pointers
+       FileWriteYmd => NULL()
+       FileWriteHms => NULL()
+       
+       ! If it isn't time to update the current collection,
+       ! then skip to the next collection.
+       IF ( .not. DoWrite ) THEN
+          Collection => Collection%Next
+          CYCLE
+       ENDIF
+      
+       !--------------------------------------------------------------------
+       ! Start the writing process
+       !--------------------------------------------------------------------
+       CALL History_Netcdf_Define( am_I_Root  = am_I_Root,                   &
+                                   Container  = Collection%Container,        &
+                                   yyyymmdd   = yyyymmdd,                    &
+                                   hhmmss     = hhmmss,                      &
+                                   RC         = RC                          )
  
        ! Skip to the next collection
        Collection => Collection%Next
@@ -1717,7 +1747,7 @@ CONTAINS
 !
 ! !RETURN VALUE
 !
-    CHARACTER(LEN=255)      :: CleanStr   ! Cleaned-up string
+    CHARACTER(LEN=255)           :: CleanStr   ! Cleaned-up string
 !
 ! !REMARKS:
 !
