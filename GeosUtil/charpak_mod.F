@@ -30,7 +30,7 @@
       PUBLIC  :: TRANLC     
       PUBLIC  :: TRANUC     
       PUBLIC  :: TXT2INUM   
-      PUBLIC  :: TXTEXT     
+      PUBLIC  :: TXTEXT 
 !
 ! !REMARKS:
 !  CHARPAK routines by Robert D. Stewart, 1992.  Subsequent modifications 
@@ -54,30 +54,48 @@
 !        STRREPL, to allow us to replace tabs w/ spaces. (bmy, 7/20/04)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  07 Aug 2017 - R. Yantosca - Add ProTeX headers for subroutines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CntMat
+!
+! !DESCRIPTION: Counts the number of characters in str1 that match
+!  a character in str2.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CntMat(str1,str2,imat)
 !
-!     Count the number of characters in str1 that match
-!     a character in str2.
+! !INPUT PARAMETERS: 
 !
-!     CODE DEPENDENCIES:
-!      Routine Name                  File
-!          LENTRIM                CharPak
+      CHARACTER(LEN=*) str1,str2
 !
+! !OUTPUT PARAMETERS: 
+!
+      INTEGER          imat
+!
+! !REVISION HISTORY:
 !     DATE:   JAN. 6, 1995
 !     AUTHOR: R.D. STEWART
 !     COMMENTS: Revised slightly (2-5-1996) so that trailing
 !               blanks in str1 are ignored.  Revised again
 !               on 3-6-1996.
+!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      CHARACTER*(*) str1,str2
-      INTEGER imat
+! !LOCAL VARIABLES:
+!
       INTEGER L1,L2,i,j
       LOGICAL again
 
@@ -99,29 +117,47 @@
         ENDDO
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE CntMat
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CopyTxt
+!
+! !DESCRIPTION: Write all of the characters in str1 into variable
+!               str2 beginning at column, col.  If the length of str1
+!               + col is longer than the number of characters str2
+!               can store, some characters will not be transfered to
+!               str2.  Any characters already existing in str2 will
+!               will be overwritten.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CopyTxt(col,str1,str2)
 !
-c     PURPOSE: Write all of the characters in str1 into variable
-!              str2 beginning at column, col.  If the length of str1
-!              + col is longer than the number of characters str2
-!              can store, some characters will not be transfered to
-!              str2.  Any characters already existing in str2 will
-!              will be overwritten.
+! !INPUT PARAMETERS: 
 !
-!     CODE DEPENDENCIES:
-!      Routine Name                  File
-!        N/A
+      INTEGER          col
+      CHARACTER(LEN=*) str1
 !
+! !OUTPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*) str2
+!
+! !REVISION HISTORY:
 !     DATE:   DEC. 24, 1993
 !     AUTHOR: R.D. STEWART
+!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      CHARACTER*(*) str2,str1
-      INTEGER col,ilt1,i1,i,j,ic
+! !LOCAL VARIABLES:
+!
+      INTEGER ilt1,i1,i,j,ic
 
       i1 = LEN(str2)
       IF (i1.GT.0) THEN
@@ -138,27 +174,41 @@ c     PURPOSE: Write all of the characters in str1 into variable
         ENDIF
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE CopyTxt
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Cstrip
+!
+! !DESCRIPTION: Strip blanks and null characters for the variable TEXT.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CSTRIP(text)
 !
-!     PURPOSE: Strip blanks and null characters for the variable TEXT.
+! !INPUT/OUTPUT PARAMETERS: 
 !
-!     COMMENTS: The original "text" is destroyed upon exit.
+      CHARACTER(LEN=*) TEXT
 !
-!     CODE DEPENDENCIES:
-!      Routine Name                  File
-!        N/A
+! !REMARKS:
+!  The original "text" is destroyed upon exit.
 !
+! !REVISION HISTORY:
 !      AUTHOR: Robert D. Stewart
 !        DATE: May 19, 1992
+!  07 Aug 2017 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      CHARACTER*(*) TEXT
+! !LOCAL VARIABLES:
+!
       INTEGER ilen,iasc,icnt,i
-      CHARACTER*1 ch
+      CHARACTER(LEN=1) ch
 
       ilen = LEN(text)
       IF (ilen.GT.1) THEN
@@ -178,26 +228,40 @@ c     PURPOSE: Write all of the characters in str1 into variable
         ENDDO
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE CSTRIP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: IsDigit
+!
+! !DESCRIPTION: Returned as true if ch is a numeric character (i.e., one of
+!  the numbers from 0 to 9).
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ISDIGIT( ch ) RESULT( LNUM )
 !
-!     Returned as true if ch is a numeric character (i.e., one of
-!     the numbers from 0 to 9).
+! !INPUT PARAMETERS: 
 !
-!     CODE DEPENDENCIES:
-!      Routine Name                  File
-!        N/A
+      CHARACTER(LEN=1) :: ch
 !
+! !REMARKS:
+!  NOTE: Changed name from ISNUM to ISDIGIT (bmy, 7/15/04)
+!
+! !REVISION HISTORY:
 !     DATE:   NOV. 11, 1993
 !     AUTHOR: R.D. STEWART
+!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!     NOTE: Changed name from ISNUM to ISDIGIT (bmy, 7/15/04)
+! !LOCAL VARIABLES:
 !  
-      CHARACTER*1 ch
       INTEGER iasc
       LOGICAL lnum
 
@@ -207,106 +271,140 @@ c     PURPOSE: Write all of the characters in str1 into variable
         lnum = .TRUE.
       ENDIF
 
-      ! Return to calling program
       END FUNCTION ISDIGIT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: StrRepl
+!
+! !DESCRIPTION: Subroutine StrRepl replaces all instances of PATTERN within
+!  a string STR with replacement text REPLTXT. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE StrRepl( STR, PATTERN, REPLTXT )
-
-      !=================================================================
-      ! Subroutine STRREPL replaces all instances of PATTERN within
-      ! a string STR with replacement text REPLTXT. 
-      ! (bmy, 6/25/02, 7/20/04)
-      !
-      ! Arguments as Input:
-      ! ----------------------------------------------------------------
-      ! (1 ) STR     : String to be searched
-      ! (2 ) PATTERN : Pattern of characters to replace w/in STR
-      ! (3 ) REPLTXT : Replacement text for PATTERN
-      !
-      ! Arguments as Output:
-      ! ----------------------------------------------------------------
-      ! (1 ) STR     : String with new replacement text 
-      !
-      ! NOTES
-      ! (1 ) REPLTXT must have the same # of characters as PATTERN.
-      ! (2 ) Replace LEN_TRIM with LEN (bmy, 7/20/04)
-      !=================================================================
-
-      ! Arguments
-      CHARACTER(LEN=*), INTENT(INOUT) :: STR
-      CHARACTER(LEN=*), INTENT(IN)    :: PATTERN, REPLTXT
-      
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN)    :: PATTERN   ! Pattern to search for
+      CHARACTER(LEN=*), INTENT(IN)    :: REPLTXT   ! Text to replace
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(INOUT) :: STR       ! String to be manipulated
+!
+! !REMARKS:
+!  PATTERN and REPLTXT can now have a different number of characters.
+!
+! !REVISION HISTORY:
+!  25 Jun 2002 - R. Yantosca - Initial version
+!  07 Aug 2017 - R. Yantosca - Updated algorithm to allow PATTERN and
+!                              REPLTXT to have different numbers of characters
+!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! Local variables
-      INTEGER                         :: I1, I2
+      INTEGER :: I1, I2
 
       !=================================================================
-      ! STRREPL begins here!
+      ! StrRepl begins here!
       !=================================================================
+!-----------------------------------------------------------------------------
+! Prior to 8/7/17:
+! Remove restriction that PATTERN and REPLXT have to have same # of chars
+! (bmy, 8/7/17)
+!      ! Error check: make sure PATTERN and REPLTXT have the same # of chars
+!      IF ( LEN( PATTERN ) /= LEN( REPLTXT ) ) THEN 
+!         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!         WRITE( 6, '(a)' ) 
+!     &    'STRREPL: PATTERN and REPLTXT must have same # of characters!'
+!         WRITE( 6, '(a)' ) 'STOP in STRREPL (charpak_mod.f)'
+!         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!         STOP
+!      ENDIF
+!
+!      ! Loop over all instances of PATTERN in STR
+!      DO 
+!
+!         ! I1 is the starting location of PATTERN w/in STR  
+!         I1 = INDEX( STR, PATTERN )
+!
+!         ! If pattern is not found, then return to calling program
+!         IF ( I1 < 1 ) RETURN
+!
+!         ! I2 is the ending location of PATTERN w/in STR
+!         I2 = I1 + LEN_TRIM( PATTERN ) - 1
+!      
+!         ! Replace text
+!         STR(I1:I2) = REPLTXT
+!          print*, '### str: ', trim(str)
+!
+!      ENDDO
+!-----------------------------------------------------------------------------
 
-      ! Error check: make sure PATTERN and REPLTXT have the same # of chars
-      IF ( LEN( PATTERN ) /= LEN( REPLTXT ) ) THEN 
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         WRITE( 6, '(a)' ) 
-     &    'STRREPL: PATTERN and REPLTXT must have same # of characters!'
-         WRITE( 6, '(a)' ) 'STOP in STRREPL (charpak_mod.f)'
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         STOP
-      ENDIF
-
-      ! Loop over all instances of PATTERN in STR
       DO 
 
-         ! I1 is the starting location of PATTERN w/in STR  
-         I1 = INDEX( STR, PATTERN )
-
-         ! If pattern is not found, then return to calling program
+         ! I1 is the first character that matches the search pattern;
+         ! it must be 1 or larger.  Otherwise exit the routine.
+         I1 = INDEX( Str, Pattern )        
          IF ( I1 < 1 ) RETURN
 
-         ! I2 is the ending location of PATTERN w/in STR
-         I2 = I1 + LEN_TRIM( PATTERN ) - 1
-      
-         ! Replace text
-         STR(I1:I2) = REPLTXT
+         ! Replace the text.  I2 is the starting position of the
+         ! string following the point of text replacement.
+         I2 = I1 + LEN( Pattern )
+         Str = Str(1:I1-1) // ReplTxt // Str(I2:)
 
       ENDDO
-         
-      ! Return to calling program
+
       END SUBROUTINE StrRepl
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: StrSplit
+!
+! !DESCRIPTION: Subroutine STRSPLIT returns substrings in a string, separated 
+!  by a separator character (similar to IDL's StrSplit function).  This is 
+!  mainly a convenience wrapper for CHARPAK routine TxtExt.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE StrSplit( STR, SEP, RESULT, N_SUBSTRS )
 !
-!******************************************************************************
-!  Subroutine STRSPLIT returns substrings in a string, separated by a 
-!  separator character (similar to IDL's StrSplit function).  This is mainly
-!  a convenience wrapper for CHARPAK routine TxtExt. (bmy, 7/11/02)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) STR       (CHARACTER*(*)) : String to be searched (variable length)  
-!  (2 ) SEP       (CHARACTER*1  ) : Separator character
+      CHARACTER(LEN=*), INTENT(IN)  :: STR           ! String to be searched
+      CHARACTER(LEN=1), INTENT(IN)  :: SEP           ! Separator character
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (3 ) RESULT    (CHARACTER*255) : Array containing substrings (255 elements)
-!  (4 ) N_SUBSTRS (INTEGER      ) : Number of substrings returned (optional)
+! !OUTPUT PARAMETERS: 
 !
-!  NOTES:
+      CHARACTER(LEN=*), INTENT(OUT) :: RESULT(255)   ! Returned substrings
+      INTEGER,          OPTIONAL    :: N_SUBSTRS     ! # of substrings
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  11 Jul 2002 - R. Yantosca - Initial version
 !  30 Sep 2014 - R. Yantosca - WORD now has 2047 chars for extra-long strings
-!******************************************************************************
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Arguments
-      CHARACTER(LEN=*), INTENT(IN)            :: STR
-      CHARACTER(LEN=1), INTENT(IN)            :: SEP
-      CHARACTER(LEN=*), INTENT(OUT)           :: RESULT(255)
-      INTEGER,          INTENT(OUT), OPTIONAL :: N_SUBSTRS
-
-      ! Local variables
-      INTEGER                                 :: I, IFLAG, COL
-      CHARACTER(LEN=2047)                     :: WORD
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: I, IFLAG, COL
+      CHARACTER(LEN=2047) :: WORD
 
       !=================================================================
       ! STRSPLIT begins here!
@@ -333,55 +431,75 @@ c     PURPOSE: Write all of the characters in str1 into variable
       ! Optional argument: return # of substrings found
       IF ( PRESENT( N_SUBSTRS ) ) N_SUBSTRS = I
 
-      ! Return to calling program
       END SUBROUTINE StrSplit
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: StrSqueeze
+!
+! !DESCRIPTION: Subroutine STRSQUEEZE strips white space from both ends of a 
+!  string.  White space in the middle of the string (i.e. between characters) 
+!  will be preserved as-is.  Somewhat similar (though not exactly) to IDL's 
+!  STRCOMPRESS function.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE StrSqueeze( STR )
 !
-!******************************************************************************
-!  Subroutine STRSQUEEZE strips white space from both ends of a string.  
-!  White space in the middle of the string (i.e. between characters) will
-!  be preserved as-is.  Somewhat similar (though not exactly) to IDL's 
-!  STRCOMPRESS function. (bmy, 7/11/02)
+! !INPUT/OUTPUT PARAMETERS: 
 !
-!  Arguments as Input/Output:
-!  ============================================================================
-!  (1 ) STR (CHAR*(*)) : String to be squeezed (will be overwritten in place!)
+      CHARACTER(LEN=*), INTENT(INOUT) :: STR   ! String to be squeezed
 !
-!  NOTES:
-!******************************************************************************
-!      
-      ! Arguments
-      CHARACTER(LEN=*), INTENT(INOUT) :: STR
-
+! !REVISION HISTORY:
+!  11 Jul 2002 - R. Yantosca - Initial version
+!  07 Aug 2017 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! STRSQUEEZE begins here!
       !=================================================================
       STR = ADJUSTR( TRIM( STR ) )
       STR = ADJUSTL( TRIM( STR ) )
 
-      ! Return to calling program
       END SUBROUTINE StrSqueeze
-      
+!EOC      
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: TranLc
+!
+! !DESCRIPTION: Tranlate a character variable to all lowercase letters.
+!               Non-alphabetic characters are not affected.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TRANLC(text)
 !
-!     PURPOSE: Tranlate a character variable to all lowercase letters.
-!              Non-alphabetic characters are not affected.
+! !INPUT/OUTPUT PARAMETERS: 
 !
-!    COMMENTS: The original "text" is destroyed.
+      CHARACTER(LEN=*) :: text
 !
-!     CODE DEPENDENCIES:
-!      Routine Name                  File
-!        N/A
+! !REMARKS:
+!  The original "text" is destroyed.
 !
+! !REVISION HISTORY:
 !      AUTHOR: Robert D. Stewart
 !        DATE: May 19, 1992
+!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      CHARACTER*(*) text
+! !LOCAL VARIABLES:
+!
       INTEGER iasc,i,ilen
 
       ilen = LEN(text)
@@ -392,26 +510,40 @@ c     PURPOSE: Write all of the characters in str1 into variable
         ENDIF
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE TRANLC
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: TranUc 
+!
+! !DESCRIPTION: Tranlate a character variable to all upper case letters.
+!               Non-alphabetic characters are not affected.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TRANUC(text)
 !
-!     PURPOSE: Tranlate a character variable to all upper case letters.
-!              Non-alphabetic characters are not affected.
+! !INPUT/OUTPUT PARAMETERS: 
 !
-!    COMMENTS: The original "text" is destroyed.
+      CHARACTER(LEN=*) :: text
 !
-!     CODE DEPENDENCIES:
-!      Routine Name                  File
-!        N/A
+! !REMARKS:
+!  The original "text" is destroyed.
 !
+! !REVISION HISTORY:
 !      AUTHOR: Robert D. Stewart
 !        DATE: May 19, 1992
+!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      CHARACTER*(*) text
+! !LOCAL VARIABLES:
+!
       INTEGER iasc,i,ilen
 
       ilen = LEN(text)
@@ -422,81 +554,113 @@ c     PURPOSE: Write all of the characters in str1 into variable
         ENDIF
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE TRANUC
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Txt2Inum
+!
+! !DESCRIPTION: Subroutine TXT2INUM attempts to convert the string of 
+!  characters in TXT into a integer number.  FMAT is the VALID format 
+!  specifier to use in the internal read statement.  IFLG is returned as a 
+!  status flag indicating the success or failure of the operation.  
+!  IFLG <=0 if the operation was successful, and > 0 if it failed.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE Txt2Inum(fmat,txt,Inum,iflg)
 !
-!     <Txt2Inum> attempts to convert the string of characters
-!     in txt into a integer number.  fmat is the
-!     VALID format specifier to use in the internal read
-!     statement.  iflg is returned as a status flag indicating
-!     the success or failure of the operation.  iflg <=0 if the
-!     operation was successful, and > 0 if it failed.
+! !INPUT PARAMETERS: 
 !
-!     COMMENTS: Generally, the Fxx.0 format should be used to convert
-!               string of characters to a number.
+      CHARACTER(LEN=*) txt,fmat
 !
-!      AUTHOR: Robert D. Stewart
-!        DATE: DEC 24, 1992
+! !OUTPUT PARAMETERS: 
 !
-!     CODE DEPENDENCIES:
-!      Routine Name                  File
-!        N/A
-!
-      CHARACTER*(*) txt,fmat
       INTEGER inum
       INTEGER iflg
+!
+! !REMARKS:
+!  Generally, the Fxx.0 format should be used to convert
+!  string of characters to a number.
+!
+! !REVISION HISTORY:
+!      AUTHOR: Robert D. Stewart
+!        DATE: DEC 24, 1992
+!  07 Aug 2017 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
 
       READ(txt,fmt=fmat,iostat=iflg) inum
 
-      ! Return to calling program
       END SUBROUTINE Txt2Inum
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: TxtExt
+!
+! !DESCRIPTION: TxtExt extracts a sequence of characters from
+!               text and transfers them to word.  The extraction
+!               procedure uses a set of character "delimiters"
+!               to denote the desired sequence of characters.
+!               For example if ch=' ', the first character sequence
+!               bracketed by blank spaces will be returned in word.
+!               The extraction procedure begins in column, col,
+!               of TEXT.  If text(col:col) = ch (any character in
+!               the character string), the text is returned beginning
+!               with col+1 in text (i.e., the first match with ch
+!               is ignored).
+!\\
+!\\
+!               After completing the extraction, col is incremented to
+!               the location of the first character following the
+!               end of the extracted text.
+!\\
+!\\
+!               A status flag is also returned with the following
+!               meaning(s)
+!\\
+!\\
+!               IF iflg = -1, found a text block, but no more characters
+!                             are available in TEXT
+!                  iflg = 0,  task completed sucessfully (normal term)
+!                  iflg = 1,  ran out of text before finding a block of
+!                             text.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TxtExt(ch,text,col,word,iflg)
 !
-!     PURPOSE: TxtExt extracts a sequence of characters from
-!              text and transfers them to word.  The extraction
-!              procedure uses a set of character "delimiters"
-!              to denote the desired sequence of characters.
-!              For example if ch=' ', the first character sequence
-!              bracketed by blank spaces will be returned in word.
-!              The extraction procedure begins in column, col,
-!              of TEXT.  If text(col:col) = ch (any character in
-!              the character string), the text is returned beginning
-!              with col+1 in text (i.e., the first match with ch
-!              is ignored).
+! !INPUT PARAMETERS: 
 !
-!              After completing the extraction, col is incremented to
-!              the location of the first character following the
-!              end of the extracted text.
+      CHARACTER(LEN=*) :: ch,text
 !
-!              A status flag is also returned with the following
-!              meaning(s)
+! !INPUT/OUTPUT PARAMETERS: 
 !
-!                 IF iflg = -1, found a text block, but no more characters
-!                               are available in TEXT
-!                    iflg = 0, task completed sucessfully (normal term)
-!                    iflg = 1, ran out of text before finding a block of
-!                              text.
+      INTEGER          :: col
 !
-!       COMMENTS: TxtExt is short for Text Extraction.  This routine
-!                 provides a set of powerful line-by-line
-!                 text search and extraction capabilities in
-!                 standard FORTRAN.
+! !OUTPUT PARAMETERS: 
 !
-!     CODE DEPENDENCIES:
-!      Routine Name                  File
-!        CntMat                    CHARPAK.FOR
-!        TxtExt                    CHARPAK.FOR
-!        FillStr                   CHARPAK.FOR
-!        CopyTxt                   CHARPAK.FOR
+      CHARACTER(LEN=*) :: word
+      INTEGER          :: iflg
+
 !
-!        other routines are indirectly called.
+! !REMARKS:
+!  TxtExt is short for Text Extraction.  This routine provides a set of 
+!  powerful line-by-line text search and extraction capabilities in
+!  standard FORTRAN.
+!
+! !REVISION HISTORY:
 !      AUTHOR: Robert D. Stewart
 !        DATE: Jan. 1st, 1995
 !
@@ -508,8 +672,13 @@ c     PURPOSE: Write all of the characters in str1 into variable
 !      MODIFICATIONS by Bob Yantosca (6/25/02)
 !        (1) Replace call to FILLSTR with F90 intrinsic REPEAT
 !
-      CHARACTER*(*) ch,text,word
-      INTEGER col,iflg
+!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER Tmax,T1,T2,imat
       LOGICAL again,prev
 
@@ -597,7 +766,6 @@ c     PURPOSE: Write all of the characters in str1 into variable
         ENDIF
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE TxtExt
 !EOC
       END MODULE CHARPAK_MOD
