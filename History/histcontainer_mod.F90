@@ -50,7 +50,7 @@ MODULE HistContainer_Mod
      INTEGER                     :: Id                  !  and ID number
 
      !----------------------------------------------------------------------
-     ! List of history items in this collection       
+     ! List of history items in this collection
      !----------------------------------------------------------------------
      TYPE(MetaHistItem), POINTER :: HistItems => NULL() ! List and # of 
      INTEGER                     :: nHistItems          !  HISTORY ITEMS
@@ -65,11 +65,16 @@ MODULE HistContainer_Mod
      INTEGER                     :: Operation           ! Operation code
                                                         !  0=copy from source
                                                         !  1=accum from source
+     !----------------------------------------------------------------------
+     ! File definition and I/O information
+     !----------------------------------------------------------------------
+     LOGICAL                     :: IsFileDefined       ! Have we done netCDF
+                                                        !  define mode yet?
      INTEGER                     :: FileWriteYmd        ! File write frequency
      INTEGER                     :: FileWriteHms        !  in YMD and hms
                                               
      !----------------------------------------------------------------------
-     ! netCDF file info and attributes                
+     ! netCDF file identifiers and attributes
      !----------------------------------------------------------------------
      INTEGER                     :: FileId              ! netCDF file ID
      CHARACTER(LEN=255)          :: FilePrefix          ! Filename prefix
@@ -110,13 +115,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistContainer_Create( am_I_Root,    Container,    Id,           &
-                                   Name,         RC,           ArchivalMode, &
-                                   ArchivalYmd,  ArchivalHms,  Operation,    &
-                                   FileWriteYmd, FileWriteHms, FileId,       &
-                                   FilePrefix,   FileName,     FileTemplate, &
-                                   Conventions,  NcFormat,     History,      &
-                                   ProdDateTime, Reference,    Title        )
+  SUBROUTINE HistContainer_Create( am_I_Root,     Container,    Id,           &
+                                   Name,          RC,           ArchivalMode, &
+                                   ArchivalYmd,   ArchivalHms,  Operation,    &
+                                   IsFileDefined, FileWriteYmd, FileWriteHms, &
+                                   FileId,        FilePrefix,   FileName,     &
+                                   FileTemplate,  Conventions,  NcFormat,     &
+                                   History,       ProdDateTime, Reference,    & 
+                                   Title                                     )
 !
 ! !USES:
 !
@@ -126,22 +132,33 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    ! Required inputs
+    !-----------------------------------------------------------------------
+    ! REQUIRED INPUTS
+    !-----------------------------------------------------------------------
     LOGICAL,             INTENT(IN)  :: am_I_Root     ! Root CPU?
     INTEGER,             INTENT(IN)  :: Id            ! Container Id #
     CHARACTER(LEN=*),    INTENT(IN)  :: Name          ! Container name
 
-    ! Optional inputs: data archival
+    !-----------------------------------------------------------------------
+    ! OPTIONAL INPUTS: data archival
+    !-----------------------------------------------------------------------
     CHARACTER(LEN=*),    OPTIONAL    :: ArchivalMode  ! Archival mode
     INTEGER,             OPTIONAL    :: ArchivalYmd   ! Archival frequency
     INTEGER,             OPTIONAL    :: ArchivalHms   !  in both YMD and hms
     INTEGER,             OPTIONAL    :: Operation     ! Operation code:
                                                       !  0=copy  from source
                                                       !  1=accum from source
+    !-----------------------------------------------------------------------
+    ! OPTIONAL INPUTS: File definition and I/O info
+    !-----------------------------------------------------------------------
+    LOGICAL,             OPTIONAL    :: IsFileDefined ! Have we done netCDF
+                                                      !  define mode yet?
     INTEGER,             OPTIONAL    :: FileWriteYmd  ! File write frequency
     INTEGER,             OPTIONAL    :: FileWriteHms  !  in both YMD and hms
 
-    ! Optional inputs: filename and metadata
+    !-----------------------------------------------------------------------
+    ! OPTIONAL INPUTS: netCDF file identifiers and metadata
+    !-----------------------------------------------------------------------
     INTEGER,             OPTIONAL    :: FileId        ! netCDF file ID
     CHARACTER(LEN=*),    OPTIONAL    :: FilePrefix    ! Filename prefix
     CHARACTER(LEN=*),    OPTIONAL    :: FileTemplate  ! YMDhms template
@@ -168,6 +185,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on history_list_mod.F90
 !  07 Aug 2017 - R. Yantosca - Add FileWriteYmd and FileWriteHms
+!  08 Aug 2017 - R. Yantosca - Add IsFileDefined
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -265,6 +283,15 @@ CONTAINS
        Container%Operation = Operation
     ELSE
        Container%Operation = COPY_FROM_SOURCE
+    ENDIF
+
+    !----------------------------------
+    ! Have we done netCDF def mode?
+    !----------------------------------
+    IF ( PRESENT( IsFileDefined ) ) THEN
+       Container%IsFileDefined = IsFileDefined
+    ELSE
+       Container%IsFileDefined = .FALSE.
     ENDIF
 
     !----------------------------------
@@ -451,6 +478,7 @@ CONTAINS
        WRITE( 6, 135 ) 'ArchivalYmd    : ', Container%ArchivalYmd
        WRITE( 6, 145 ) 'ArchivalHms    : ', Container%ArchivalHms
        WRITE( 6, 130 ) 'Operation code : ', Container%Operation
+       WRITE( 6, 150 ) 'IsFileDefined  : ', Container%IsFileDefined
        WRITE( 6, 135 ) 'FileWriteYmd   : ', Container%FileWriteYmd
        WRITE( 6, 145 ) 'FileWriteHms   : ', Container%FileWriteHms
        WRITE( 6, 130 ) 'FileId         : ', Container%FileId
@@ -473,6 +501,7 @@ CONTAINS
  135   FORMAT( 1x, a, i8.8 )
  140   FORMAT( 1x, a, i6   )
  145   FORMAT( 1x, a, i6.6 )
+ 150   FORMAT( 1x, a, L3   )
 
        ! If there are HISTORY ITEMS belonging to this container ...
        IF ( ASSOCIATED( Container%HistItems ) ) THEN 

@@ -615,6 +615,13 @@ CONTAINS
              READ( CollectionFrequency(C), '(2i6.6)' )    ArchivalYmd, &
                                                           ArchivalHms
           ENDIF
+
+          ! SPECIAL CASE: If ArchivalHms is 240000 then set
+          ! and set ArchivalYmd=000001 and ArchivalHms=000000
+          IF ( FileWriteHms == 240000 ) THEN
+             FileWriteYmd = 000001
+             FileWriteHms = 000000
+          ENDIF
        ENDIF
 
        IF ( INDEX( Line, 'duration' ) > 0 ) THEN
@@ -624,11 +631,18 @@ CONTAINS
           ! NOTE: If CollectionDuration is 6 digits long, then assume that
           ! to be ArchivalHms.  If longer, then assume that it is specifying
           ! both FileWriteYmd and FileWriteHms. (sde, bmy, 8/4/17)
-         IF ( LEN_TRIM( CollectionDuration(C) ) == 6 ) THEN
+          IF ( LEN_TRIM( CollectionDuration(C) ) == 6 ) THEN
              READ( CollectionDuration(C), '(i6.6)'  )     FileWriteHms
           ELSE
              READ( CollectionDuration(C), '(2i6.6)' )     FileWriteYmd, &
                                                           FileWriteHms
+          ENDIF
+
+          ! SPECIAL CASE: If FileWriteHms is 240000 then set
+          ! and set FileWriteYmd=000001 and FileWriteYmd=000000
+          IF ( FileWriteHms == 240000 ) THEN
+             FileWriteYmd = 000001
+             FileWriteHms = 000000
           ENDIF
        ENDIF
 

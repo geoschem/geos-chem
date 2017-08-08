@@ -127,15 +127,16 @@ CONTAINS
     CALL StrRepl( FileName, '%s2', SecondStr )
    
 #if defined( DEBUG )
-    ! Debug output for development
-    PRINT*, '##################################################'
-    PRINT*, '### Time to write : ', TRIM( Container%Name )
-    PRINT*, '### YYYYMMDD      : ', yyyymmdd
-    PRINT*, '### hhmmss        : ', hhmmss
-    PRINT*, '### FileWriteYmd  : ', Container%FileWriteYmd
-    PRINT*, '### FileWriteHms  : ', Container%FileWriteHms
-    PRINT*, '### FileName      : ', TRIM( FileName )
-    PRINT*, '##################################################'
+    !###  Debug output for development
+    WRITE(6,'(a     )') REPEAT( '#', 79 )
+    WRITE(6,'(a,a   )') '### Time to write : ', TRIM( Container%Name )
+    WRITE(6,'(a,i8.8)') '### YYYYMMDD      : ', yyyymmdd
+    WRITE(6,'(a,i6.6)') '### hhmmss        : ', hhmmss
+    WRITE(6,'(a,L3  )') '### IsFileDefined : ', Container%IsFileDefined
+    WRITE(6,'(a,i8.8)') '### FileWriteYmd  : ', Container%FileWriteYmd
+    WRITE(6,'(a,i6.6)') '### FileWriteHms  : ', Container%FileWriteHms
+    WRITE(6,'(a,a   )') '### FileName      : ', TRIM( FileName )
+    WRITE(6,'(a     )') REPEAT( '#', 79 )
 #endif
 
 !    CALL Nc_Define( ncFile = FileName, &
