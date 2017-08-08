@@ -3281,33 +3281,45 @@ CONTAINS
 !
 ! !IROUTINE: Nc_Create
 !
-! !DESCRIPTION: Creates a new netCDF file. 
+! !DESCRIPTION: Creates a new netCDF file and defines several global
+!  attributes.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_CREATE( NcFile, title, nLon,  nLat,  nLev,   &
-                        nTime,  fId,   lonID, latId, levId,  &
-                        timeId, VarCt, CREATE_NC4 )
+  SUBROUTINE Nc_Create( NcFile,       Title,     nLon,        nLat,      &
+                        nLev,         nTime,     fId,         lonID,     & 
+                        latId,        levId,     timeId,      VarCt,     &     
+                        Create_NC4,   NcFormat,  Conventions, History,   &
+                        ProdDateTime, Reference, Contact                )
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN   )  :: ncFile   ! ncdf file path + name 
-    CHARACTER(LEN=*), INTENT(IN   )  :: title    ! ncdf file title
-    INTEGER,          INTENT(IN   )  :: nLon     ! # of lons 
-    INTEGER,          INTENT(IN   )  :: nLat     ! # of lats 
-    INTEGER,          INTENT(IN   )  :: nLev     ! # of levs 
-    INTEGER,          INTENT(IN   )  :: nTime    ! # of times 
-    LOGICAL,          OPTIONAL       :: CREATE_NC4 ! Save output as netCDF-4
+    ! Required arguments
+    CHARACTER(LEN=*), INTENT(IN   )  :: ncFile       ! ncdf file path + name 
+    CHARACTER(LEN=*), INTENT(IN   )  :: title        ! ncdf file title
+    INTEGER,          INTENT(IN   )  :: nLon         ! # of lons 
+    INTEGER,          INTENT(IN   )  :: nLat         ! # of lats 
+    INTEGER,          INTENT(IN   )  :: nLev         ! # of levs 
+    INTEGER,          INTENT(IN   )  :: nTime        ! # of times 
+
+    ! Optional arguments (mostly global attributes)
+    LOGICAL,          OPTIONAL       :: Create_Nc4   ! Save output as netCDF-4
+    CHARACTER(LEN=*), OPTIONAL       :: NcFormat     ! e.g. netCDF-4
+    CHARACTER(LEN=*), OPTIONAL       :: Conventions  ! e.g. COARDS, CF, etc.
+    CHARACTER(LEN=*), OPTIONAL       :: History      ! History glob attribute
+    CHARACTER(LEN=*), OPTIONAL       :: ProdDateTime ! Time/date of production
+    CHARACTER(LEN=*), OPTIONAL       :: Reference    ! Reference string
+    CHARACTER(LEN=*), OPTIONAL       :: Contact      ! People to contact
 !
 ! !OUTPUT PARAMETERS:
 ! 
-    INTEGER,          INTENT(  OUT)  :: fId        ! file id 
-    INTEGER,          INTENT(  OUT)  :: lonId      ! lon id 
-    INTEGER,          INTENT(  OUT)  :: latId      ! lat id 
-    INTEGER,          INTENT(  OUT)  :: levId      ! lev id 
-    INTEGER,          INTENT(  OUT)  :: timeId     ! time id 
-    INTEGER,          INTENT(  OUT)  :: VarCt      ! variable counter 
+    INTEGER,          INTENT(  OUT)  :: fId          ! file id 
+    INTEGER,          INTENT(  OUT)  :: lonId        ! lon id 
+    INTEGER,          INTENT(  OUT)  :: latId        ! lat id 
+    INTEGER,          INTENT(  OUT)  :: levId        ! lev id 
+    INTEGER,          INTENT(  OUT)  :: timeId       ! time id 
+    INTEGER,          INTENT(  OUT)  :: VarCt        ! variable counter 
 !
 ! !REMARKS:
 !  Assumes that you have:
@@ -3321,21 +3333,83 @@ CONTAINS
 !  15 Jun 2012 - C. Keller   - Initial version
 !  11 Jan 2016 - R. Yantosca - Added optional CREATE_NC4 to save as netCDF-4
 !  14 Jan 2016 - E. Lundgren - Pass title string for netcdf metadata
+!  08 Aug 2017 - R. Yantosca - Add more optional arguments (mostly global atts)
+!   8 Aug 2017 - R. Yantosca - Now define in dims in order: time,lev,lat,lon
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: omode
-    LOGICAL :: SAVE_AS_NC4
+    ! Scalars
+    INTEGER            :: omode
+    LOGICAL            :: Save_As_Nc4
 
-    ! Save a shadow variable 
-    IF ( PRESENT( CREATE_NC4 ) ) THEN
-       SAVE_AS_NC4 = CREATE_NC4
+    ! Strings
+    CHARACTER(LEN=255) :: ThisHistory
+    CHARACTER(LEN=255) :: ThisNcFormat
+    CHARACTER(LEN=255) :: ThisConv
+    CHARACTER(LEN=255) :: ThisPdt
+    CHARACTER(LEN=255) :: ThisReference
+    CHARACTER(LEN=255) :: ThisContact
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+
+    ! Create file as NetCDF4?
+    IF ( PRESENT( Create_Nc4 ) ) THEN
+       Save_As_Nc4 = Create_Nc4
     ELSE
-       SAVE_AS_NC4 = .FALSE.
+       Save_As_Nc4 = .FALSE.
     ENDIF
+
+    ! History global attribute
+    IF ( PRESENT( History ) ) THEN
+       ThisHistory = TRIM( History )
+    ELSE
+       ThisHistory = 'Created by routine NC_CREATE (in ncdf_mod.F90)'
+    ENDIF
+    
+    ! NetCDF format global attribute
+    IF ( PRESENT( NcFormat ) ) Then
+       ThisNcFormat = NcFormat
+    ELSE
+       IF ( Save_As_Nc4 ) THEN
+          ThisNcFormat = 'NetCDF-4'
+       ELSE
+          ThisNcFormat = 'NetCDF-3'
+       ENDIF
+    ENDIF
+
+    ! Conventions global attribute (assume COARDS)
+    IF ( PRESENT( Conventions ) ) THEN
+       ThisConv = TRIM( Conventions )
+    ELSE
+       ThisConv = 'COARDS'
+    ENDIF
+
+    ! Conventions global attribute (assume COARDS)
+    IF ( PRESENT( ProdDateTime ) ) THEN
+       ThisPdt= TRIM( ProdDateTime )
+    ENDIF
+
+    ! Conventions global attribute (assume COARDS)
+    IF ( PRESENT( Reference ) ) THEN
+       ThisReference = TRIM( Reference )
+    ELSE
+       ThisReference = ''
+    ENDIF
+
+    ! Conventions global attribute (assume COARDS)
+    IF ( PRESENT( Contact ) ) THEN
+       ThisContact = TRIM( Contact )
+    ENDIF
+
+    !=======================================================================
+    ! Open the file
+    !=======================================================================
+
 
     ! Open filename.  Save file in netCDF-4 format if requested by user.
     CALL NcCr_Wr( fId, TRIM(ncFile), SAVE_AS_NC4 )
@@ -3343,28 +3417,43 @@ CONTAINS
     ! Turn filling off
     CALL NcSetFill( fId, NF_NOFILL, omode )     
 
-    !--------------------------------
-    ! SET GLOBAL ATTRIBUTES
-    !--------------------------------
-    CALL NcDef_Glob_Attributes(    fId, 'title',   TRIM(title)         ) 
-    CALL NcDef_Glob_Attributes(    fId, 'history', 'NC_CREATE.F90'     ) 
-    IF ( SAVE_AS_NC4 ) THEN
-       CALL NcDef_Glob_Attributes( fId, 'format',  'netCDF-4'          )
-    ELSE
-       CALL NcDef_Glob_Attributes( fId, 'format',  'netCDF-3'          )
+    !=======================================================================
+    ! Set global attributes
+    !=======================================================================
+    CALL NcDef_Glob_Attributes(  fId, 'title',        TRIM( Title         ) ) 
+    CALL NcDef_Glob_Attributes(  fId, 'history',      TRIM( ThisHistory   ) )
+    CALL NcDef_Glob_Attributes(  fId, 'format',       TRIM( ThisNcFormat  ) )
+    CALL NcDef_Glob_Attributes(  fId, 'conventions',  TRIM( ThisConv      ) )
+
+    IF ( PRESENT( ProdDateTime ) ) THEN 
+     CALL NcDef_Glob_Attributes( fId, 'ProdDateTime', TRIM( ThisPdt       ) )
+    ENDIF
+       
+    IF ( PRESENT( Reference ) ) THEN
+     CALL NcDef_Glob_Attributes( fId, 'reference',    TRIM( ThisReference ) )
     ENDIF
 
-    !--------------------------------
-    ! SET DIMENSIONS
-    !--------------------------------
-    CALL NcDef_Dimension ( fId, 'lon',  nLon,  lonId  ) 
-    CALL NcDef_Dimension ( fId, 'lat',  nLat,  latId  ) 
+    IF ( PRESENT( Contact ) ) THEN
+     CALL NcDef_Glob_Attributes( fId, 'contact',      TRIM( ThisContact   ) )
+    ENDIF
+
+    !=======================================================================
+    ! Set dimensions
+    !=======================================================================
+
+    ! Time
+    CALL NcDef_Dimension   ( fId, 'time', nTime, TimeId ) 
+
+    ! Lev
     IF ( nLev > 0 ) THEN
-       CALL NcDef_Dimension ( fId, 'lev',  nLev,  levId  )
+       CALL NcDef_Dimension( fId, 'lev',  nLev,  levId  )
     ELSE
        levId = -1
     ENDIF
-    CALL NcDef_Dimension ( fId, 'time', nTime, TimeId ) 
+
+    ! Lat and lon
+    CALL NcDef_Dimension   ( fId, 'lat',  nLat,  latId  ) 
+    CALL NcDef_Dimension   ( fId, 'lon',  nLon,  lonId  ) 
   
     ! Close definition section
     CALL NcEnd_Def( fId )
@@ -3372,7 +3461,7 @@ CONTAINS
     ! Initialize variable counter
     VarCt = -1
 
-  END SUBROUTINE NC_CREATE
+  END SUBROUTINE Nc_Create
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
