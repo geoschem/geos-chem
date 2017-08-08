@@ -3287,11 +3287,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Nc_Create( NcFile,       Title,     nLon,        nLat,      &
-                        nLev,         nTime,     fId,         lonID,     & 
-                        latId,        levId,     timeId,      VarCt,     &     
-                        Create_NC4,   NcFormat,  Conventions, History,   &
-                        ProdDateTime, Reference, Contact                )
+  SUBROUTINE Nc_Create( NcFile,     Title,        nLon,      nLat,           &
+                        nLev,       nTime,        fId,       lonID,          & 
+                        latId,      levId,        timeId,    VarCt,          &
+                        Create_NC4, KeepDefMode,  NcFormat,  Conventions,    &
+                        History,    ProdDateTime, Reference, Contact        )
 !
 ! !INPUT PARAMETERS:
 !
@@ -3305,6 +3305,8 @@ CONTAINS
 
     ! Optional arguments (mostly global attributes)
     LOGICAL,          OPTIONAL       :: Create_Nc4   ! Save output as netCDF-4
+    LOGICAL,          OPTIONAL       :: KeepDefMode  ! If = T, then don't exit
+                                                     !  define mode 
     CHARACTER(LEN=*), OPTIONAL       :: NcFormat     ! e.g. netCDF-4
     CHARACTER(LEN=*), OPTIONAL       :: Conventions  ! e.g. COARDS, CF, etc.
     CHARACTER(LEN=*), OPTIONAL       :: History      ! History glob attribute
@@ -3334,7 +3336,10 @@ CONTAINS
 !  11 Jan 2016 - R. Yantosca - Added optional CREATE_NC4 to save as netCDF-4
 !  14 Jan 2016 - E. Lundgren - Pass title string for netcdf metadata
 !  08 Aug 2017 - R. Yantosca - Add more optional arguments (mostly global atts)
-!   8 Aug 2017 - R. Yantosca - Now define in dims in order: time,lev,lat,lon
+!  08 Aug 2017 - R. Yantosca - Now define in dims in order: time,lev,lat,lon
+!  08 Aug 2017 - R. Yantosca - Add optional KeepDefMode argument so that we can
+!                              stay in netCDF define mode upon leaving this
+!                              routine (i.e. to define variables afterwards)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3344,6 +3349,7 @@ CONTAINS
     ! Scalars
     INTEGER            :: omode
     LOGICAL            :: Save_As_Nc4
+    LOGICAL            :: QuitDefMode
 
     ! Strings
     CHARACTER(LEN=255) :: ThisHistory
@@ -3362,6 +3368,13 @@ CONTAINS
        Save_As_Nc4 = Create_Nc4
     ELSE
        Save_As_Nc4 = .FALSE.
+    ENDIF
+
+    ! Should we exit netCDF define mode before leaving this routine?
+    IF ( PRESENT( KeepDefMode ) ) THEN
+       QuitDefMode = ( .not. KeepDefMode ) 
+    ELSE
+       QuitDefMode = .TRUE.
     ENDIF
 
     ! History global attribute
@@ -3410,9 +3423,8 @@ CONTAINS
     ! Open the file
     !=======================================================================
 
-
     ! Open filename.  Save file in netCDF-4 format if requested by user.
-    CALL NcCr_Wr( fId, TRIM(ncFile), SAVE_AS_NC4 )
+    CALL NcCr_Wr( fId, TRIM( ncFile ), Save_As_Nc4 )
 
     ! Turn filling off
     CALL NcSetFill( fId, NF_NOFILL, omode )     
@@ -3456,7 +3468,9 @@ CONTAINS
     CALL NcDef_Dimension   ( fId, 'lon',  nLon,  lonId  ) 
   
     ! Close definition section
-    CALL NcEnd_Def( fId )
+    IF ( QuitDefMode ) THEN
+       CALL NcEnd_Def( fId )
+    ENDIF
 
     ! Initialize variable counter
     VarCt = -1
@@ -3476,91 +3490,127 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_VAR_DEF ( fId, lonId, latId, levId, TimeId, &
-                          VarName, VarLongName, VarUnit,    &
-                          DataType, VarCt, DefMode, Compress )
+  SUBROUTINE NC_Var_Def( fId,       lonId,        latId,       levId,     &
+                         TimeId,    VarName,      VarLongName, VarUnit,   &
+                         DataType,  VarCt,        DefMode,     Compress,  & 
+                         AddOffset, MissingValue, ScaleFactor            )
 !
 ! !INPUT PARAMETERS:
 ! 
-    INTEGER,          INTENT(IN   ) :: fId          ! file ID 
-    INTEGER,          INTENT(IN   ) :: lonId 
-    INTEGER,          INTENT(IN   ) :: latId 
-    INTEGER,          INTENT(IN   ) :: levId 
-    INTEGER,          INTENT(IN   ) :: TimeId 
-    CHARACTER(LEN=*), INTENT(IN   ) :: VarName
-    CHARACTER(LEN=*), INTENT(IN   ) :: VarLongName
-    CHARACTER(LEN=*), INTENT(IN   ) :: VarUnit
-    INTEGER,          INTENT(IN   ) :: DataType     ! 1=Int, 4=float, 8=double
-    LOGICAL, OPTIONAL,INTENT(IN   ) :: DefMode
-    LOGICAL, OPTIONAL,INTENT(IN   ) :: Compress
+    ! Required inputs
+    INTEGER,           INTENT(IN   ) :: fId           ! file ID  
+    INTEGER,           INTENT(IN   ) :: lonId         ! ID of lon  (X) dim
+    INTEGER,           INTENT(IN   ) :: latId         ! ID of lat  (Y) dim
+    INTEGER,           INTENT(IN   ) :: levId         ! ID of lev  (Z) dim
+    INTEGER,           INTENT(IN   ) :: TimeId        ! ID of time (T) dim
+    CHARACTER(LEN=*),  INTENT(IN   ) :: VarName       ! Variable name
+    CHARACTER(LEN=*),  INTENT(IN   ) :: VarLongName   ! Long name description
+    CHARACTER(LEN=*),  INTENT(IN   ) :: VarUnit       ! Units
+    INTEGER,           INTENT(IN   ) :: DataType      ! 1=Int, 4=float, 8=double
+
+    ! Optional inputs
+    LOGICAL,           OPTIONAL      :: DefMode       ! Toggles define mode
+    LOGICAL,           OPTIONAL      :: Compress      ! Toggles compression
+    REAL*4,            OPTIONAL      :: AddOffset     ! Add offset attribute
+    REAL*4,            OPTIONAL      :: MissingValue  ! Missing value attribute
+    REAL*4,            OPTIONAL      :: ScaleFactor   ! Scale factor attribute
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT) :: VarCt        ! variable counter 
+    INTEGER,           INTENT(INOUT) :: VarCt         ! variable counter 
 !
 ! !REMARKS:
 !  Assumes that you have:
 !  (1) A netCDF library (either v3 or v4) installed on your system
 !  (2) The NcdfUtilities package (from Bob Yantosca) source code
-!                                                                             .
-!  Although this routine was generated automatically, some further
-!  hand-editing may be required.
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
 !  21 Jan 2017 - C. Holmes   - Added optional DefMode argument to avoid excessive switching between define and data modes
 !  18 Feb 2017 - C. Holmes   - Enable netCDF-4 compression
+!  08 Aug 2017 - R. Yantosca - Add more optional arguments for variable atts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! Arrays
     INTEGER, ALLOCATABLE :: VarDims(:) 
+
+    ! Scalars
     INTEGER              :: nDim, Pos
     INTEGER              :: NF_TYPE
     LOGICAL              :: isDefMode
+    REAL*4               :: This_AddOff
+    REAL*4               :: This_MissVal
+    REAL*4               :: This_ScaleFac
 
-    !--------------------------------
-    ! DEFINE VARIABLE 
-    !--------------------------------
-  
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+
     ! Assume file is not in define mode unless explicitly told otherwise
-    isDefMode = .False.
-    if (present(DefMode)) isDefMode = DefMode
+    IF ( PRESENT( DefMode ) ) THEN
+       isDefMode = DefMode
+    ELSE
+       isDefMode = .FALSE.
+    ENDIF
+
+    IF ( PRESENT( AddOffset ) ) THEN
+       This_AddOff = AddOffset
+    ELSE
+       This_AddOff = 0e0
+    ENDIF
+
+    IF ( PRESENT( MissingValue ) ) THEN
+       This_MissVal = MissingValue
+    ELSE
+       This_MissVal = 1e15
+    ENDIF
+
+    IF ( PRESENT( ScaleFactor ) ) THEN
+       This_ScaleFac = ScaleFactor
+    ELSE
+       This_ScaleFac = 1e0
+    ENDIF
+
+    !=======================================================================
+    ! DEFINE VARIABLE 
+    !=======================================================================
 
     ! Reopen definition section, if necessary
-    if (.not. isDefMode) CALL NcBegin_Def( fId )
+    IF ( .not. isDefMode ) CALL NcBegin_Def( fId )
     
     ! Increate variable counter
     VarCt = VarCt + 1
     
     ! number of dimensions
     nDim = 0
-    if ( lonId  >= 0 ) nDim = nDim + 1
-    if ( latId  >= 0 ) nDim = nDim + 1
-    if ( levId  >= 0 ) nDim = nDim + 1
+    IF ( lonId  >= 0 ) nDim = nDim + 1
+    IF ( latId  >= 0 ) nDim = nDim + 1
+    IF ( levId  >= 0 ) nDim = nDim + 1
     if ( timeId >= 0 ) nDim = nDim + 1
 
     ! write dimensions
-    allocate( VarDims(nDim) )
+    ALLOCATE( VarDims(nDim) )
     Pos = 1
-    if ( lonId >= 0 ) then
+    IF ( lonId >= 0 ) THEN
        VarDims(Pos) = lonId
        Pos          = Pos + 1
-    endif
-    if ( latId >= 0 ) then
+    ENDIF
+    IF ( latId >= 0 ) THEN
        VarDims(Pos) = latId
        Pos          = Pos + 1
-    endif
-    if ( levId >= 0 ) then
+    ENDIF
+    IF ( levId >= 0 ) THEN
        VarDims(Pos) = levId
        Pos          = Pos + 1
-    endif
-    if ( timeId >= 0 ) then
+    ENDIF
+    IF ( timeId >= 0 ) THEN
        VarDims(Pos) = timeId
        Pos          = Pos + 1
-    endif
+    ENDIF
 
     ! Set data type
     IF ( DataType == 1 ) THEN
@@ -3574,18 +3624,22 @@ CONTAINS
     ENDIF
  
     ! Define variable
-    CALL NcDef_Variable( fId,  TRIM(VarName), NF_TYPE,   &
+    CALL NcDef_Variable( fId,  TRIM(VarName), NF_TYPE,              &
                          nDim, VarDims,       VarCt,     Compress  )
-    deallocate( VarDims )
+    DEALLOCATE( VarDims )
 
     ! Define variable atttibutes
-    CALL NcDef_Var_Attributes( fId, VarCt, 'long_name', TRIM(VarLongName) )
-    CALL NcDef_Var_Attributes( fId, VarCt, 'units',     TRIM(VarUnit    ) )
+    CALL NcDef_Var_Attributes( fId, VarCt, 'long_name',     TRIM(VarLongName) )
+    CALL NcDef_Var_Attributes( fId, VarCt, 'units',         TRIM(VarUnit    ) )
+    CALL NcDef_Var_Attributes( fId, VarCt, 'add_offset',    This_AddOff       )
+    CALL NcDef_Var_Attributes( fId, VarCt, 'scale_factor',  This_ScaleFac     )
+    CALL NcDef_Var_Attributes( fId, VarCt, 'missing_value', This_MissVal      )
+    CALL NcDef_Var_Attributes( fId, VarCt, '_FillValue',    This_MissVal      )
 
     ! Close definition section, if necessary
-    if (.not. isDefMode) CALL NcEnd_Def( fId )
+    IF ( .not. isDefMode ) CALL NcEnd_Def( fId )
 
-  END SUBROUTINE NC_VAR_DEF
+  END SUBROUTINE NC_Var_Def
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
