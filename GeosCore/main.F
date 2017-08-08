@@ -942,11 +942,14 @@
 
 #if defined( NC_DIAG ) 
          ! Write netCDF diagnostics to disk
-         CALL History_Write( am_I_Root, Nymd, Nhms, RC )
+         ! Skip if it's the first timestep of the model
+         IF ( .not. ( NYMD == NYMDb .and. NHMS == NHMSb ) ) THEN
+            CALL History_Write( am_I_Root, Nymd, Nhms, RC )
 
-         !### For debugging
-         !! Exit and quit run gracefully
-         !GOTO 9999
+            !### For debugging
+            !! Exit and quit run gracefully
+            !GOTO 9999
+         ENDIF
 #endif
 
 #if defined( USE_TIMERS )

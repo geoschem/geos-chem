@@ -434,6 +434,7 @@ CONTAINS
 ! !USES:
 !
     USE Charpak_Mod
+    USE CMN_Size_Mod,          ONLY : IIPAR, JJPAR, LLPAR
     USE ErrCode_Mod
     USE HistContainer_Mod
     USE HistItem_Mod
@@ -473,7 +474,8 @@ CONTAINS
 !
      ! Scalars
     LOGICAL                      :: EOF   
-    INTEGER                      :: C,            N,            W    
+    INTEGER                      :: C,            N,            W
+    INTEGER                      :: nX,           nY,           nZ
     INTEGER                      :: fId,          IOS
     INTEGER                      :: nSubs1,       nSubs2
     INTEGER                      :: Ind1,         Ind2
@@ -492,7 +494,8 @@ CONTAINS
     CHARACTER(LEN=255)           :: Title,        Units
     CHARACTER(LEN=255)           :: ItemName,     ItemTemplate
     CHARACTER(LEN=255)           :: Description,  TmpMode
-    
+    CHARACTER(LEN=255)           :: Contact
+
     ! Arrays
     INTEGER                      :: SubsetDims(3)
     CHARACTER(LEN=255)           :: Subs1(255)
@@ -532,6 +535,7 @@ CONTAINS
     ! Initialize Strings
     Description  =  ''
     ErrMsg       =  ''
+    Contact      =  'GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)'
     Reference    =  'www.geos-chem.org; wiki.geos-chem.org'
     ThisLoc      =  &
      ' -> at History_ReadCollectionData (in module History/history_mod.F90)'
@@ -696,12 +700,20 @@ CONTAINS
                 Operation = COPY_FROM_SOURCE
           END SELECT
 
+          !### For now set nX, nY, nZ to IIPAR, JJPAR, LLPAR
+          nX = IIPAR
+          nY = JJPAR
+          nZ = LLPAR
+
           !=================================================================
           ! Create a HISTORY CONTAINER object for this collection
           !=================================================================
           CALL HistContainer_Create( am_I_Root    = am_I_Root,              &
                                      Container    = Collection,             &
                                      Id           = C,                      &
+                                     nX           = nX,                     &
+                                     nY           = nY,                     &
+                                     nZ           = nZ,                     &
                                      Name         = CollectionName(C),      &
                                      ArchivalMode = CollectionMode(C),      &
                                      ArchivalYmd  = ArchivalYmd,            &
@@ -714,6 +726,7 @@ CONTAINS
                                      NcFormat     = CollectionFormat(C),    &
                                      Reference    = Reference,              &
                                      Title        = Title,                  &
+                                     Contact      = Contact,                &
                                      RC           = RC                     )
 
           ! Trap potential error

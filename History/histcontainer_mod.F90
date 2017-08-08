@@ -48,6 +48,9 @@ MODULE HistContainer_Mod
      !----------------------------------------------------------------------
      CHARACTER(LEN=255)          :: Name                ! Container name
      INTEGER                     :: Id                  !  and ID number
+     INTEGER                     :: nX                  ! X (or lon) dim size
+     INTEGER                     :: nY                  ! Y (or lat) dim size
+     INTEGER                     :: nZ                  ! Z (or lev) dim size
 
      !----------------------------------------------------------------------
      ! List of history items in this collection
@@ -77,6 +80,10 @@ MODULE HistContainer_Mod
      ! netCDF file identifiers and attributes
      !----------------------------------------------------------------------
      INTEGER                     :: FileId              ! netCDF file ID
+     INTEGER                     :: xId                 ! X (or lon ) dim ID
+     INTEGER                     :: yId                 ! Y (or lat ) dim ID
+     INTEGER                     :: zId                 ! Z (or lev ) dim ID
+     INTEGER                     :: tId                 ! T (or time) dim ID
      CHARACTER(LEN=255)          :: FilePrefix          ! Filename prefix
      CHARACTER(LEN=255)          :: FileTemplate        ! YMDhms template
      CHARACTER(LEN=255)          :: FileName            ! Name of nc file
@@ -85,6 +92,7 @@ MODULE HistContainer_Mod
      CHARACTER(LEN=255)          :: History             ! History
      CHARACTER(LEN=255)          :: ProdDateTime        ! When produced
      CHARACTER(LEN=255)          :: Reference           ! Reference string
+     CHARACTER(LEN=255)          :: Contact             ! Contact string
      CHARACTER(LEN=255)          :: Title               ! Title string
 
   END TYPE HistContainer
@@ -96,6 +104,8 @@ MODULE HistContainer_Mod
 ! !REVISION HISTORY:
 !  12 Jun 2017 - R. Yantosca - Initial version, based on history_list_mod.F90
 !  07 Aug 2017 - R. Yantosca - Add FileWriteYmd, FileWriteHms
+!  08 Aug 2017 - R. Yantosca - Add IsFileDefined, nX, nY, nZ and the 
+!                              ouptuts xId, yId, zId, tId
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -116,13 +126,14 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HistContainer_Create( am_I_Root,     Container,    Id,           &
-                                   Name,          RC,           ArchivalMode, &
+                                   Name,          nX,           nY,           &
+                                   nZ,            RC,           ArchivalMode, &
                                    ArchivalYmd,   ArchivalHms,  Operation,    &
                                    IsFileDefined, FileWriteYmd, FileWriteHms, &
                                    FileId,        FilePrefix,   FileName,     &
                                    FileTemplate,  Conventions,  NcFormat,     &
                                    History,       ProdDateTime, Reference,    & 
-                                   Title                                     )
+                                   Title,         Contact                    )
 !
 ! !USES:
 !
@@ -138,7 +149,10 @@ CONTAINS
     LOGICAL,             INTENT(IN)  :: am_I_Root     ! Root CPU?
     INTEGER,             INTENT(IN)  :: Id            ! Container Id #
     CHARACTER(LEN=*),    INTENT(IN)  :: Name          ! Container name
-
+    INTEGER,             INTENT(IN)  :: nX            ! X (or lon) dim size
+    INTEGER,             INTENT(IN)  :: nY            ! Y (or lat) dim size
+    INTEGER,             INTENT(IN)  :: nZ            ! Z (or lev) dim size
+    
     !-----------------------------------------------------------------------
     ! OPTIONAL INPUTS: data archival
     !-----------------------------------------------------------------------
@@ -169,6 +183,7 @@ CONTAINS
     CHARACTER(LEN=*),    OPTIONAL    :: ProdDateTime  ! When produced
     CHARACTER(LEN=*),    OPTIONAL    :: Reference     ! Reference string
     CHARACTER(LEN=*),    OPTIONAL    :: Title         ! Title string
+    CHARACTER(LEN=*),    OPTIONAL    :: Contact       ! Contact string
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -185,7 +200,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on history_list_mod.F90
 !  07 Aug 2017 - R. Yantosca - Add FileWriteYmd and FileWriteHms
-!  08 Aug 2017 - R. Yantosca - Add IsFileDefined
+!  08 Aug 2017 - R. Yantosca - Add IsFileDefined, nX, ny, and, nZ
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -244,6 +259,13 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    !-----------------------
+    ! nX, nY, nZ
+    !-----------------------
+    Container%nX = nX
+    Container%nY = nY
+    Container%nZ = nZ
 
     !========================================================================
     ! Optional inputs, handle these next
@@ -312,14 +334,14 @@ CONTAINS
        Container%FileWriteHms = 0
     ENDIF
 
-    !----------------------------------
-    ! File Id
-    !----------------------------------
-    IF ( PRESENT( FileId ) ) THEN
-       Container%FileId = FileId
-    ELSE
-       Container%FileId = -1
-    ENDIF
+!    !----------------------------------
+!   ! File Id
+!    !----------------------------------
+!    IF ( PRESENT( FileId ) ) THEN
+!       Container%FileId = FileId
+!    ELSE
+!       Container%FileId = -1
+!    ENDIF
 
     !----------------------------------
     ! File Prefix
@@ -412,6 +434,26 @@ CONTAINS
        Container%Title = ''
     ENDIF
 
+    !----------------------------------
+    ! Contact
+    !----------------------------------
+    IF ( PRESENT( Contact ) ) THEN
+       TempStr           = Contact
+       Container%Contact = TempStr
+    ELSE
+       Container%Contact = ''
+    ENDIF
+
+    !=======================================================================
+    ! File and dimension ID values.  These will not be defined until
+    ! we create the netCDF file, so set these all to -1 for now.
+    !=======================================================================
+    Container%FileId = -1
+    Container%xId    = -1
+    Container%yId    = -1
+    Container%zId    = -1
+    Container%tId    = -1
+
   END SUBROUTINE HistContainer_Create
 !EOC
 !------------------------------------------------------------------------------
@@ -452,6 +494,11 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255)          :: DimStr
 
+    ! String arrays
+    CHARACTER(LEN=22)           :: OpCode(0:1) =                  &
+                                     (/ 'Copy from source      ',  &
+                                        'Accumulate from source' /)
+
     ! Objects
     TYPE(MetaHistItem), POINTER :: Current
 
@@ -474,14 +521,21 @@ CONTAINS
        WRITE( 6, 110 ) REPEAT( '-', 78 )
        WRITE( 6, 120 ) 'Container Name : ', TRIM( Container%Name  )
        WRITE( 6, 130 ) 'Container Id # : ', Container%Id
+       WRITE( 6, 130 ) 'nX             : ', Container%nX
+       WRITE( 6, 130 ) 'nY             : ', Container%nY
+       WRITE( 6, 130 ) 'nZ             : ', Container%nZ
        WRITE( 6, 120 ) 'ArchivalMode   : ', TRIM( Container%ArchivalMode )
        WRITE( 6, 135 ) 'ArchivalYmd    : ', Container%ArchivalYmd
        WRITE( 6, 145 ) 'ArchivalHms    : ', Container%ArchivalHms
-       WRITE( 6, 130 ) 'Operation code : ', Container%Operation
+       WRITE( 6, 120 ) 'Operation      : ', OpCode( Container%Operation )
        WRITE( 6, 150 ) 'IsFileDefined  : ', Container%IsFileDefined
        WRITE( 6, 135 ) 'FileWriteYmd   : ', Container%FileWriteYmd
        WRITE( 6, 145 ) 'FileWriteHms   : ', Container%FileWriteHms
        WRITE( 6, 130 ) 'FileId         : ', Container%FileId
+       WRITE( 6, 130 ) 'xId            : ', Container%xId 
+       WRITE( 6, 130 ) 'yId            : ', Container%yId 
+       WRITE( 6, 130 ) 'zId            : ', Container%zId 
+       WRITE( 6, 130 ) 'tId            : ', Container%tId 
        WRITE( 6, 120 ) 'FilePrefix     : ', TRIM( Container%FilePrefix   )
        WRITE( 6, 120 ) 'FileTemplate   : ', TRIM( Container%FileTemplate )
        WRITE( 6, 120 ) 'Filename       : ', TRIM( Container%FileName     )
@@ -491,6 +545,7 @@ CONTAINS
        WRITE( 6, 120 ) 'ProdDateTime   : ', TRIM( Container%ProdDateTime )
        WRITE( 6, 120 ) 'Reference      : ', TRIM( Container%Reference    )
        WRITE( 6, 120 ) 'Title          : ', TRIM( Container%Title        )
+       WRITE( 6, 120 ) 'Contact        : ', TRIM( Container%Contact      )
        WRITE( 6, 110 ) ''
        WRITE( 6, 110 ) 'Items archived in this collection:'
 
@@ -501,7 +556,7 @@ CONTAINS
  135   FORMAT( 1x, a, i8.8 )
  140   FORMAT( 1x, a, i6   )
  145   FORMAT( 1x, a, i6.6 )
- 150   FORMAT( 1x, a, L3   )
+ 150   FORMAT( 1x, a, L8   )
 
        ! If there are HISTORY ITEMS belonging to this container ...
        IF ( ASSOCIATED( Container%HistItems ) ) THEN 

@@ -15,9 +15,21 @@ MODULE History_Netcdf_Mod
 ! !USES:
 !
   USE Precision_Mod
-
+  USE Ncdf_Mod
+  USE m_netcdf_io_open
+  USE m_netcdf_io_get_dimlen
+  USE m_netcdf_io_read
+  USE m_netcdf_io_readattr
+  USE m_netcdf_io_close
+  USE m_netcdf_io_create
+  USE m_netcdf_io_define
+  USE m_netcdf_io_write
+  USE m_netcdf_io_checks
+  
   IMPLICIT NONE
   PRIVATE
+
+# include "netcdf.inc"
 !
 ! !PUBLIC MEMBER FUNCTIONS
 !
@@ -54,9 +66,8 @@ CONTAINS
 !
     USE Charpak_Mod,       ONLY : StrRepl
     USE ErrCode_Mod
-    USE HistContainer_Mod, ONLY : HistContainer
+    USE HistContainer_Mod, ONLY : HistContainer, HistContainer_Print
     USE HistItem_Mod,      ONLY : HistItem
-    USE Ncdf_Mod
     USE Time_Mod,          ONLY : Ymd_Extract
 !
 ! !INPUT PARAMETERS: 
@@ -81,14 +92,22 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                 :: N
-    INTEGER                 :: Year, Month,  Day
-    INTEGER                 :: Hour, Minute, Second
+    INTEGER                 :: N,        VarCt
+    INTEGER                 :: Year,     Month,      Day
+    INTEGER                 :: Hour,     Minute,     Second
 
     ! Strings
-    CHARACTER(LEN=2)        :: MonthStr, DayStr, HourStr, MinuteStr, SecondStr
+    CHARACTER(LEN=2)        :: MonthStr, DayStr 
+    CHARACTER(LEN=2)        :: HourStr,  MinuteStr,  SecondStr
     CHARACTER(LEN=4)        :: YearStr
-    CHARACTER(LEN=255)      :: FileName
+    CHARACTER(LEN=5)        :: Z
+    CHARACTER(LEN=8)        :: D
+    CHARACTER(LEN=10)       :: T
+    CHARACTER(LEN=255)      :: FileName, TimeString
+    CHARACTER(LEN=255)      :: ErrMsg,   ThisLoc
+
+    ! Arrays
+    INTEGER                 :: V(8)
 
     ! Objects
     TYPE(HistItem), POINTER :: Item
@@ -96,8 +115,10 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC   =  GC_SUCCESS
-    Item => NULL()
+    RC      =  GC_SUCCESS
+    Item    => NULL()
+    ErrMsg  =  ''
+    ThisLoc =  ' -> at History_Netcdf_Define (in History/history_mod.F90)'
 
     !=======================================================================
     ! Construct the file name using the passed date and time
@@ -139,12 +160,64 @@ CONTAINS
     WRITE(6,'(a     )') REPEAT( '#', 79 )
 #endif
 
+    !=======================================================================
+    ! Create the timestamp for the 
+    !=======================================================================
+
+    ! Call F90 intrinsic DATE_AND_TIME Function
+    D = 'ccyymmdd'
+    T = 'hhmmss.sss'
+    CALL Date_And_Time( Date=D, Time=T, Zone=Z, Values=V )  ! GMT time
+     
+    ! Create timestamp strings
+    WRITE( Container%History,      10 ) V(1), V(2), V(3), V(5), V(6), V(7), Z
+    WRITE( Container%ProdDateTime, 10 ) V(1), V(2), V(3), V(5), V(6), V(7), Z
+ 10 FORMAT( 'Produced on ', i4.4, '/', i2.2, '/', i2.2, 1x,                  &
+                            i2.2, ':', i2.2, ':', i2.2, ' UTC', a           )
+
+    !=======================================================================
+    ! Create tge netCDF file with global attributes
+    !=======================================================================
+    CALL Nc_Create( Create_Nc4   = .TRUE.,                                   &
+                    NcFile       = FileName,                                 &
+                    nLon         = Container%nX,                             &
+                    nLat         = Container%nY,                             &
+                    nLev         = Container%nZ,                             &
+                    nTime        = NF_UNLIMITED,                             &
+                    NcFormat     = Container%NcFormat,                       &
+                    Conventions  = Container%Conventions,                    &
+                    History      = Container%History,                        &
+                    ProdDateTime = Container%ProdDateTime,                   &
+                    Reference    = Container%Reference,                      &
+                    Title        = Container%Title,                          &
+                    Contact      = Container%Contact,                        &
+                    fId          = Container%FileId,                         &
+                    TimeId       = Container%tId,                            &
+                    LevId        = Container%zId,                            &
+                    LatId        = Container%yId,                            &
+                    LonId        = Container%xId,                            &
+                    Varct        = VarCt                                    )
+         
+    ! Handle potential error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error in Nc_Create!'
+       CALL Gc_Error( ErrMsg, Rc, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Ser
+    Container%IsFileDefined = .TRUE.
+
+    CALL HistContainer_Print( am_I_Root, Container, RC )
+
+
 !    CALL Nc_Define( ncFile = FileName, &
 !                    nLon   = nLon,    
 !    
 !    SUBROUTINE NC_DEFINE ( ncFile,  nLon,    nLat,    nLev,    nTime,&
 !                         timeUnit, ncVars,  ncUnits, ncLongs, ncShorts, fId )
 !
+    STOP
 
   END SUBROUTINE History_NetCdf_Define
 !EOC
