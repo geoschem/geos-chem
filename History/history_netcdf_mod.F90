@@ -15,16 +15,6 @@ MODULE History_Netcdf_Mod
 ! !USES:
 !
   USE Precision_Mod
-  USE Ncdf_Mod
-  USE m_netcdf_io_open
-  USE m_netcdf_io_get_dimlen
-  USE m_netcdf_io_read
-  USE m_netcdf_io_readattr
-  USE m_netcdf_io_close
-  USE m_netcdf_io_create
-  USE m_netcdf_io_define
-  USE m_netcdf_io_write
-  USE m_netcdf_io_checks
   
   IMPLICIT NONE
   PRIVATE
@@ -60,26 +50,28 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE History_NetCdf_Define( am_I_Root, Container,                    &
-                                    yyyymmdd,  hhmmss,     RC               )
+                                    yyyymmdd,  hhmmss,    RC                )
 !
 ! !USES:
 !
-    USE Charpak_Mod,       ONLY : StrRepl
+    USE Charpak_Mod,        ONLY : StrRepl
     USE ErrCode_Mod
-    USE HistContainer_Mod, ONLY : HistContainer, HistContainer_Print
-    USE HistItem_Mod,      ONLY : HistItem
-    USE Time_Mod,          ONLY : Ymd_Extract
+    USE HistContainer_Mod,  ONLY : HistContainer, HistContainer_Print
+    USE HistItem_Mod,       ONLY : HistItem,      HistItem_Print
+    USE MetaHistItem_Mod,   ONLY : MetaHistItem
+    USE Ncdf_Mod
+    USE Time_Mod,           ONLY : Ymd_Extract
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
-    TYPE(HistContainer), POINTER     :: Container  ! Diagnostic collection obj
-    INTEGER,             INTENT(IN)  :: yyyymmdd   ! Current Year/month/day
-    INTEGER,             INTENT(IN)  :: hhmmss     ! Current hour/minute/second
+    LOGICAL,             INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+    TYPE(HistContainer), POINTER     :: Container ! Diagnostic collection obj
+    INTEGER,             INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
+    INTEGER,             INTENT(IN)  :: hhmmss    ! Current hour/minute/second
 !
 ! !OUTPUT PARAMETERS: 
 !
-    INTEGER,             INTENT(OUT) :: RC         ! Success or failure
+    INTEGER,             INTENT(OUT) :: RC        ! Success or failure
 !
 ! !REMARKS:
 !
@@ -92,30 +84,32 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                 :: N,        VarCt
-    INTEGER                 :: Year,     Month,      Day
-    INTEGER                 :: Hour,     Minute,     Second
+    INTEGER                     :: N,        VarCt
+    INTEGER                     :: Year,     Month,      Day
+    INTEGER                     :: Hour,     Minute,     Second
 
-    ! Strings
-    CHARACTER(LEN=2)        :: MonthStr, DayStr 
-    CHARACTER(LEN=2)        :: HourStr,  MinuteStr,  SecondStr
-    CHARACTER(LEN=4)        :: YearStr
-    CHARACTER(LEN=5)        :: Z
-    CHARACTER(LEN=8)        :: D
-    CHARACTER(LEN=10)       :: T
-    CHARACTER(LEN=255)      :: FileName, TimeString
-    CHARACTER(LEN=255)      :: ErrMsg,   ThisLoc
+    ! Strings                   
+    CHARACTER(LEN=2)            :: MonthStr, DayStr 
+    CHARACTER(LEN=2)            :: HourStr,  MinuteStr,  SecondStr
+    CHARACTER(LEN=4)            :: YearStr
+    CHARACTER(LEN=5)            :: Z
+    CHARACTER(LEN=8)            :: D
+    CHARACTER(LEN=10)           :: T
+    CHARACTER(LEN=255)          :: FileName, TimeString
+    CHARACTER(LEN=255)          :: ErrMsg,   ThisLoc
 
     ! Arrays
-    INTEGER                 :: V(8)
+    INTEGER                     :: V(8)
 
     ! Objects
-    TYPE(HistItem), POINTER :: Item
+    TYPE(MetaHistItem), POINTER :: Current
+    TYPE(HistItem),     POINTER :: Item
     
     !=======================================================================
     ! Initialize
     !=======================================================================
     RC      =  GC_SUCCESS
+    Current => NULL()
     Item    => NULL()
     ErrMsg  =  ''
     ThisLoc =  ' -> at History_Netcdf_Define (in History/history_mod.F90)'
@@ -176,48 +170,120 @@ CONTAINS
                             i2.2, ':', i2.2, ':', i2.2, ' UTC', a           )
 
     !=======================================================================
-    ! Create tge netCDF file with global attributes
+    ! Close the previous file in this collection if it is still open,
+    ! so that we can generate the file for the next iteration.
     !=======================================================================
-    CALL Nc_Create( Create_Nc4   = .TRUE.,                                   &
-                    NcFile       = FileName,                                 &
-                    nLon         = Container%nX,                             &
-                    nLat         = Container%nY,                             &
-                    nLev         = Container%nZ,                             &
-                    nTime        = NF_UNLIMITED,                             &
-                    NcFormat     = Container%NcFormat,                       &
-                    Conventions  = Container%Conventions,                    &
-                    History      = Container%History,                        &
-                    ProdDateTime = Container%ProdDateTime,                   &
-                    Reference    = Container%Reference,                      &
-                    Title        = Container%Title,                          &
-                    Contact      = Container%Contact,                        &
-                    fId          = Container%FileId,                         &
-                    TimeId       = Container%tId,                            &
-                    LevId        = Container%zId,                            &
-                    LatId        = Container%yId,                            &
-                    LonId        = Container%xId,                            &
-                    Varct        = VarCt                                    )
-         
-    ! Handle potential error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error in Nc_Create!'
-       CALL Gc_Error( ErrMsg, Rc, ThisLoc )
-       RETURN
+    IF ( Container%IsFileOpen ) THEN
+       CALL Nc_Close( Container%FileId )
+       Container%IsFileOpen    = .FALSE.
+       Container%IsFileDefined = .FALSE.
     ENDIF
 
-    ! Ser
+    !=======================================================================
+    ! Create the netCDF file with global attributes
+    ! Do not exit netCDF define mode just yet
+    !=======================================================================
+    IF ( .not. Container%IsFileOpen ) THEN
+
+       ! Create the file and add global attributes
+       ! Remain in netCDF define mode upon exiting this routine
+       CALL Nc_Create( Create_Nc4   = .TRUE.,                                &
+                       NcFile       = FileName,                              &
+                       nLon         = Container%nX,                          &
+                       nLat         = Container%nY,                          &
+                       nLev         = Container%nZ,                          &
+                       nTime        = NF_UNLIMITED,                          &
+                       NcFormat     = Container%NcFormat,                    &
+                       Conventions  = Container%Conventions,                 &
+                       History      = Container%History,                     &
+                       ProdDateTime = Container%ProdDateTime,                &
+                       Reference    = Container%Reference,                   &
+                       Title        = Container%Title,                       &
+                       Contact      = Container%Contact,                     &
+                       fId          = Container%FileId,                      &
+                       TimeId       = Container%tDimId,                      &
+                       LevId        = Container%zDimId,                      &
+                       LatId        = Container%yDimId,                      &
+                       LonId        = Container%xDimId,                      &
+                       KeepDefMode  = .TRUE.,                                &
+                       Varct        = VarCt                                 )
+         
+!       ! Handle potential error (and exit define mode)
+!       IF ( RC /= GC_SUCCESS ) THEN
+!          ErrMsg = 'Error in Nc_Create!'
+!          CALL Gc_Error( ErrMsg, Rc, ThisLoc )
+!          CALL Nc_Set_DefMode( Container%FileId, Off=.TRUE. )
+!          RETURN
+!       ENDIF
+
+       ! Denote that the file has been created and is open
+       Container%IsFileOpen = .TRUE.
+    ENDIF
+
+    !=======================================================================
+    ! Define all of the Create the netCDF file with global attributes
+    !=======================================================================
+    IF ( .not. Container%IsFileDefined ) THEN
+
+       !--------------------------------------------------------------------
+       ! Add the index dimension data
+       !--------------------------------------------------------------------
+
+
+       !--------------------------------------------------------------------
+       ! Then define each HISTORY ITEM belonging to this collection
+       !--------------------------------------------------------------------
+
+       ! Set CURRENT to the first node in the list of HISTORY ITEMS
+       Current => Container%HistItems
+
+       ! As long as this node of the list is valid ...
+       DO WHILE( ASSOCIATED( Current ) )
+
+          ! Define each HISTORY ITEM in this collection to the netCDF file
+          CALL Nc_Var_Def( fId          = Container%FileId,                  &
+                           timeId       = Container%tDimId,                  &
+                           levId        = Container%zDimId,                  &
+                           latId        = Container%yDimId,                  &
+                           lonId        = Container%xDimId,                  &
+                           VarName      = Current%Item%Name,                 &
+                           VarLongName  = Current%Item%LongName,             &
+                           VarUnit      = Current%Item%Units,                &
+                           AddOffset    = Current%Item%AddOffset,            &
+                           MissingValue = Current%Item%MissingValue,         &
+                           ScaleFactor  = Current%Item%ScaleFactor,          &
+                           DataType     = 4,                                 &
+                           VarCt        = VarCt,                             &
+                           DefMode      = .TRUE.,                            &
+                           Compress     = .TRUE.                            ) 
+
+          ! Save the returned netCDF variable Id to this HISTORY ITEM
+          Current%Item%NcVarId = VarCt
+
+          ! Debug print
+          !CALL HistItem_Print( am_I_Root, Current%Item, RC )
+
+          ! Go to next entry in the list of HISTORY ITEMS
+          Current => Current%Next
+       ENDDO
+
+       ! Free pointers
+       Current => NULL()
+    ENDIF
+
+    !=======================================================================
+    ! Cleanup and quit
+    !=======================================================================
+
+    ! Close definition section
+    CALL Nc_Set_DefMode( Container%FileId, Off=.TRUE. )
+
+    ! We can now consider this collection to have been "defined"
     Container%IsFileDefined = .TRUE.
 
-    CALL HistContainer_Print( am_I_Root, Container, RC )
+    !CALL HistContainer_Print( am_I_Root, Container, RC )
 
-
-!    CALL Nc_Define( ncFile = FileName, &
-!                    nLon   = nLon,    
-!    
-!    SUBROUTINE NC_DEFINE ( ncFile,  nLon,    nLat,    nLev,    nTime,&
-!                         timeUnit, ncVars,  ncUnits, ncLongs, ncShorts, fId )
-!
-    STOP
+    !STOP
 
   END SUBROUTINE History_NetCdf_Define
 !EOC

@@ -1700,7 +1700,7 @@ CONTAINS
        ! Initialize
        FileWriteYmd => Collection%Container%FileWriteYmd
        FileWriteHms => Collection%Container%FileWriteHms
-       DoWrite     = .FALSE.
+       DoWrite      = .FALSE.
 
        ! Test if the file writing frequency is less than one day
        ! (i.e. current time modulo FileWrite)
@@ -1731,15 +1731,26 @@ CONTAINS
           CYCLE
        ENDIF
       
+#if defined( ESMF )
+       
        !--------------------------------------------------------------------
-       ! Start the writing process
+       ! Start the writing process for GEOS-Chem HP (with ESMF and MAPL)
        !--------------------------------------------------------------------
-       CALL History_Netcdf_Define( am_I_Root  = am_I_Root,                   &
-                                   Container  = Collection%Container,        &
-                                   yyyymmdd   = yyyymmdd,                    &
-                                   hhmmss     = hhmmss,                      &
-                                   RC         = RC                          )
+    
+       ! ... stub for now ...
+#else
+
+       !--------------------------------------------------------------------
+       ! Start the writing process for GEOS-Chem "Classic"
+       ! (i.e. not using ESMF/MAPL)
+       !--------------------------------------------------------------------
+       CALL History_Netcdf_Define( am_I_Root  = am_I_Root,               &
+                                   Container  = Collection%Container,    &
+                                   yyyymmdd   = yyyymmdd,                &
+                                   hhmmss     = hhmmss,                  &
+                                   RC         = RC                      )
  
+#endif
        ! Skip to the next collection
        Collection => Collection%Next
      

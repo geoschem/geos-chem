@@ -45,6 +45,7 @@ MODULE HistItem_Mod
      !----------------------------------------------------------------------
      ! netCDF variable attributes (for COARDS-compliance)
      !----------------------------------------------------------------------
+     INTEGER            :: NcVarId               ! netCDF variable ID
      CHARACTER(LEN=255) :: LongName              ! Item description
      CHARACTER(LEN=255) :: Units                 ! Units of data
      REAL(f4)           :: AddOffset             
@@ -185,6 +186,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  13 Jun 2017 - R. Yantosca - Initial version
 !  03 Aug 2017 - R. Yantosca - Add OPERATION as an optional argument
+!  08 Aug 2017 - R. Yantosca - Now assign NcVarId a default value
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -420,6 +422,7 @@ CONTAINS
        Item%Operation = COPY_FROM_SOURCE
     ENDIF  
 
+
     !========================================================================
     ! Attach pointers to the data source
     !========================================================================
@@ -478,6 +481,12 @@ CONTAINS
           ENDIF
 
     END SELECT
+
+    !========================================================================
+    ! The following fields will not be defined until we enter
+    ! netCDF define mode, so set these to default values for now
+    !========================================================================
+    Item%NcVarId = -1
 
   END SUBROUTINE HistItem_Create
 !EOC
@@ -569,6 +578,7 @@ CONTAINS
           PRINT*, ''
           PRINT*, 'Id             : ', Item%ID
           PRINT*, 'CollectionId   : ', Item%ContainerId
+          PRINT*, 'NetCDF var ID  : ', Item%NcVarId
           PRINT*, ''
           PRINT*, 'nUpdates       : ', Item%nUpdates
           PRINT*, 'Operation      : ', Item%Operation

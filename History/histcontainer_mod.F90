@@ -69,21 +69,23 @@ MODULE HistContainer_Mod
                                                         !  0=copy from source
                                                         !  1=accum from source
      !----------------------------------------------------------------------
-     ! File definition and I/O information
+     ! File definition and I/O status information
      !----------------------------------------------------------------------
-     LOGICAL                     :: IsFileDefined       ! Have we done netCDF
-                                                        !  define mode yet?
      INTEGER                     :: FileWriteYmd        ! File write frequency
      INTEGER                     :: FileWriteHms        !  in YMD and hms
-                                              
+     LOGICAL                     :: IsFileDefined       ! Have we done netCDF
+                                                        !  define mode yet?
+     LOGICAL                     :: IsFileOpen          ! Is the netCDF file
+                                                        !  currently open?
+                                             
      !----------------------------------------------------------------------
      ! netCDF file identifiers and attributes
      !----------------------------------------------------------------------
      INTEGER                     :: FileId              ! netCDF file ID
-     INTEGER                     :: xId                 ! X (or lon ) dim ID
-     INTEGER                     :: yId                 ! Y (or lat ) dim ID
-     INTEGER                     :: zId                 ! Z (or lev ) dim ID
-     INTEGER                     :: tId                 ! T (or time) dim ID
+     INTEGER                     :: xDimId              ! X (or lon ) dim ID
+     INTEGER                     :: yDimId              ! Y (or lat ) dim ID
+     INTEGER                     :: zDimId              ! Z (or lev ) dim ID
+     INTEGER                     :: tDimId              ! T (or time) dim ID
      CHARACTER(LEN=255)          :: FilePrefix          ! Filename prefix
      CHARACTER(LEN=255)          :: FileTemplate        ! YMDhms template
      CHARACTER(LEN=255)          :: FileName            ! Name of nc file
@@ -104,8 +106,8 @@ MODULE HistContainer_Mod
 ! !REVISION HISTORY:
 !  12 Jun 2017 - R. Yantosca - Initial version, based on history_list_mod.F90
 !  07 Aug 2017 - R. Yantosca - Add FileWriteYmd, FileWriteHms
-!  08 Aug 2017 - R. Yantosca - Add IsFileDefined, nX, nY, nZ and the 
-!                              ouptuts xId, yId, zId, tId
+!  08 Aug 2017 - R. Yantosca - Add IsFileDefined, IsFileOpen, nX, nY, nZ and 
+!                              the ouptuts xDimId, yIDimd, zDimId, tDimId
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -125,15 +127,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistContainer_Create( am_I_Root,     Container,    Id,           &
-                                   Name,          nX,           nY,           &
-                                   nZ,            RC,           ArchivalMode, &
-                                   ArchivalYmd,   ArchivalHms,  Operation,    &
-                                   IsFileDefined, FileWriteYmd, FileWriteHms, &
-                                   FileId,        FilePrefix,   FileName,     &
-                                   FileTemplate,  Conventions,  NcFormat,     &
-                                   History,       ProdDateTime, Reference,    & 
-                                   Title,         Contact                    )
+  SUBROUTINE HistContainer_Create( am_I_Root,    Container,    Id,           &
+                                   Name,         nX,           nY,           &
+                                   nZ,           RC,           ArchivalMode, &
+                                   ArchivalYmd,  ArchivalHms,  Operation,    &
+                                   FileWriteYmd, FileWriteHms, FileId,       &
+                                   FilePrefix,   FileName,     FileTemplate, &
+                                   Conventions,  NcFormat,     History,      & 
+                                   ProdDateTime, Reference,    Title,        &
+                                   Contact                                   )
 !
 ! !USES:
 !
@@ -165,8 +167,6 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! OPTIONAL INPUTS: File definition and I/O info
     !-----------------------------------------------------------------------
-    LOGICAL,             OPTIONAL    :: IsFileDefined ! Have we done netCDF
-                                                      !  define mode yet?
     INTEGER,             OPTIONAL    :: FileWriteYmd  ! File write frequency
     INTEGER,             OPTIONAL    :: FileWriteHms  !  in both YMD and hms
 
@@ -200,7 +200,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on history_list_mod.F90
 !  07 Aug 2017 - R. Yantosca - Add FileWriteYmd and FileWriteHms
-!  08 Aug 2017 - R. Yantosca - Add IsFileDefined, nX, ny, and, nZ
+!  09 Aug 2017 - R. Yantosca - Add nX, ny, and, nZ
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -308,15 +308,6 @@ CONTAINS
     ENDIF
 
     !----------------------------------
-    ! Have we done netCDF def mode?
-    !----------------------------------
-    IF ( PRESENT( IsFileDefined ) ) THEN
-       Container%IsFileDefined = IsFileDefined
-    ELSE
-       Container%IsFileDefined = .FALSE.
-    ENDIF
-
-    !----------------------------------
     ! File write frequency in YY/MM/DD
     !----------------------------------
     IF ( PRESENT( FileWriteYmd ) ) THEN
@@ -333,15 +324,6 @@ CONTAINS
     ELSE
        Container%FileWriteHms = 0
     ENDIF
-
-!    !----------------------------------
-!   ! File Id
-!    !----------------------------------
-!    IF ( PRESENT( FileId ) ) THEN
-!       Container%FileId = FileId
-!    ELSE
-!       Container%FileId = -1
-!    ENDIF
 
     !----------------------------------
     ! File Prefix
@@ -445,14 +427,16 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! File and dimension ID values.  These will not be defined until
-    ! we create the netCDF file, so set these all to -1 for now.
+    ! These fields will not be set until we create the netCDF file,
+    ! so for now set them to undefined values.
     !=======================================================================
-    Container%FileId = -1
-    Container%xId    = -1
-    Container%yId    = -1
-    Container%zId    = -1
-    Container%tId    = -1
+    Container%IsFileDefined = .FALSE.
+    Container%IsFileOpen    = .FALSE.
+    Container%FileId        = UNDEFINED_INT
+    Container%xDimId        = UNDEFINED_INT
+    Container%yDimId        = UNDEFINED_INT
+    Container%zDimId        = UNDEFINED_INT
+    Container%tDimId        = UNDEFINED_INT
 
   END SUBROUTINE HistContainer_Create
 !EOC
@@ -529,13 +513,14 @@ CONTAINS
        WRITE( 6, 145 ) 'ArchivalHms    : ', Container%ArchivalHms
        WRITE( 6, 120 ) 'Operation      : ', OpCode( Container%Operation )
        WRITE( 6, 150 ) 'IsFileDefined  : ', Container%IsFileDefined
+       WRITE( 6, 150 ) 'IsFileOpen     : ', Container%IsFileOpen
        WRITE( 6, 135 ) 'FileWriteYmd   : ', Container%FileWriteYmd
        WRITE( 6, 145 ) 'FileWriteHms   : ', Container%FileWriteHms
        WRITE( 6, 130 ) 'FileId         : ', Container%FileId
-       WRITE( 6, 130 ) 'xId            : ', Container%xId 
-       WRITE( 6, 130 ) 'yId            : ', Container%yId 
-       WRITE( 6, 130 ) 'zId            : ', Container%zId 
-       WRITE( 6, 130 ) 'tId            : ', Container%tId 
+       WRITE( 6, 130 ) 'xDimId         : ', Container%xDimId 
+       WRITE( 6, 130 ) 'yDimId         : ', Container%yDimId 
+       WRITE( 6, 130 ) 'zDimId         : ', Container%zDimId 
+       WRITE( 6, 130 ) 'tDimId         : ', Container%tDimId 
        WRITE( 6, 120 ) 'FilePrefix     : ', TRIM( Container%FilePrefix   )
        WRITE( 6, 120 ) 'FileTemplate   : ', TRIM( Container%FileTemplate )
        WRITE( 6, 120 ) 'Filename       : ', TRIM( Container%FileName     )
@@ -587,8 +572,8 @@ CONTAINS
              WRITE( 6, 100 ) Current%Item%Name,      &
                              Current%Item%LongName,  &
                              DimStr,                 &
-                             Current%Item%Units
- 100         FORMAT( 2x, a20, ' | ', a35, ' | ', a3, ' | ', a15 )
+                             TRIM( Current%Item%Units )
+ 100         FORMAT( 2x, a20, ' | ', a35, ' | ', a3, ' | ', a )
 
              ! Skip to net item
              Current => Current%Next

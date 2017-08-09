@@ -20,8 +20,9 @@ MODULE History_Params_Mod
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Missing data value for netCDF
-  REAL(f4), PARAMETER, PUBLIC :: UNDEFINED = -9.999e-30_f4
+  ! Missing data values
+  INTEGER,  PARAMETER, PUBLIC :: UNDEFINED_INT = -999
+  REAL(f4), PARAMETER, PUBLIC :: UNDEFINED     = -9.999e-30_f4
 
   ! Operation codes:
   ! 0 = Copy       data from source pointer to the HISTORY ITEM data array
@@ -33,6 +34,7 @@ MODULE History_Params_Mod
 !  16 Jun 2017 - R. Yantosca - Initial version
 !  03 Aug 2017 - R. Yantosca - Add operation code parameters
 !  04 Aug 2017 - R. Yantosca - Rename operation code parameters
+!  09 Aug 2017 - R. Yantosca - Add UNDEFINED_INT
 !EOP
 !------------------------------------------------------------------------------
 !BOC

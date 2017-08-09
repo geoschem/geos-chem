@@ -587,14 +587,6 @@
       ! Initialize the GEOS-Chem history component
       CALL History_Init( am_I_root,  Input_Opt, State_Chm, 
      &                   State_Diag, State_Met, RC         )
-!---------------------------------------------------------------------
-!     !### FORCE STOP FOR DEBUGGING
-!      RC = GC_FAILURE
-!     IF ( RC /= GC_SUCCESS ) THEN
-!        ErrMsg = 'Forced stop for debugging'
-!        CALL Error_Stop( ErrMsg, ThisLoc )
-!     ENDIF
-!---------------------------------------------------------------------
 
       ! Trap error
       IF ( RC /= GC_SUCCESS ) THEN
@@ -941,15 +933,8 @@
      &                           .FALSE.,   RC)
 
 #if defined( NC_DIAG ) 
-         ! Write netCDF diagnostics to disk
-         ! Skip if it's the first timestep of the model
-         IF ( .not. ( NYMD == NYMDb .and. NHMS == NHMSb ) ) THEN
-            CALL History_Write( am_I_Root, Nymd, Nhms, RC )
-
-            !### For debugging
-            !! Exit and quit run gracefully
-            !GOTO 9999
-         ENDIF
+         ! Write netCDF diagnostics to disk 
+         CALL History_Write( am_I_Root, Nymd, Nhms, RC )
 #endif
 
 #if defined( USE_TIMERS )
