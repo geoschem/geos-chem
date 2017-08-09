@@ -297,19 +297,23 @@
          ! menus in the input file; however, a few guidelines apply:
          !
          ! (1) SIMULATION MENU should be listed first.
-         ! (2) ADVECTED SPECIES MENU should be listed second.
-         ! (3) EMISSIONS, AEROSOL, CHEMISTRY, TRANSPORT, CONVECTION, 
+         ! (2) TIMESTEP MENU should be listed second.
+         ! (3) ADVECTED SPECIES MENU should be listed third.
+         ! (4) EMISSIONS, AEROSOL, CHEMISTRY, TRANSPORT, CONVECTION, 
          !      and DEPOSITION menus (in any order) should follow.
-         ! (4) Diagnostic menus, including OUTPUT, DIAGNOSTIC,
+         ! (5) Diagnostic menus, including OUTPUT, DIAGNOSTIC,
          !      PLANEFLIGHT, ND48, ND49, ND50, ND51, and PROD_LOSS
          !      menus (in any order) should follow next.
-         ! (5) The following menus have no other restriction and
+         ! (6) The following menus have no other restriction and
          !      can be placed anywhere (but by convention we will
          !      place them after the diagnostic menu): NESTED GRID
          !      UNIX CMDS, ARCHIVED OH, and O3PL menus.
          !=============================================================
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
             CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
+
+         ELSE IF ( INDEX( LINE, 'TIMESTEP MENU' ) > 0 ) THEN
+            CALL READ_TIMESTEP_MENU( am_I_Root, Input_Opt, RC )
 
          ELSE IF ( INDEX( LINE, 'ADVECTED SPECIES MENU' ) > 0 ) THEN
             CALL READ_ADVECTED_SPECIES_MENU( am_I_Root, Input_Opt, RC )
@@ -1279,6 +1283,117 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: read_timestep_menu
+!
+! !DESCRIPTION: Subroutine READ\_TIMESTEP\_MENU reads the TIMESTEP MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_TIMESTEP_MENU( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  09 Aug 2017 - M. Sulprizio- Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER            :: N, TS_DYN, TS_CHEM
+
+      ! Arrays
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_TIMESTEP_MENU begins here!
+      !=================================================================
+
+      ! Transport/convection timestep
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_timestep_menu:1' )
+      READ( SUBSTRS(1:N), * ) TS_DYN
+
+      ! Chemistry/emissions timestep
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_timestep_menu:2' )
+      READ( SUBSTRS(1:N), * ) TS_CHEM
+
+      ! Separator line                          
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_timestep_menu:3' )
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
+      !
+      ! In an ESMF environment, all time steps must become defined 
+      ! externally previous to the READ_INPUT_FILE call!
+      ! (ckeller, 11/24/14)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to initialize 
+      ! the fields Input_Opt%TS_DYN, Input_Opt%TS_CHEM with the values
+      ! read in from input.geos. (bmy, 12/6/12)
+      !
+      ! For the centralizing chemistry timestep modification:
+      !  convection should be done at the same time as dynamics
+      !  emissions  should be done at the same time as chemistry
+      !-----------------------------------------------------------------
+      Input_Opt%TS_DYN  = TS_DYN
+      Input_Opt%TS_CONV = TS_DYN
+      Input_Opt%TS_CHEM = TS_CHEM
+      Input_Opt%TS_EMIS = TS_CHEM
+#endif
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'TIMESTEP MENU'
+         WRITE( 6, '(  a)' ) '---------------'
+         WRITE( 6, 100     ) 'Transport/Convection [min]  : ', 
+     &                        Input_Opt%TS_DYN
+         WRITE( 6, 100     ) 'Chemistry/Emissions  [min]  : ', 
+     &                        Input_Opt%TS_CHEM
+      ENDIF
+
+      ! Format statements
+ 100  FORMAT( A, I5  )
+
+      ! Return success
+      RC = GC_SUCCESS
+
+      END SUBROUTINE READ_TIMESTEP_MENU
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: read_advected_species_menu
 !
 ! !DESCRIPTION: Subroutine READ\_ADVECTED\_SPECIES\_MENU reads the ADVECTED
@@ -2111,7 +2226,6 @@
       LOGICAL            :: LSETN2O,  LSETH2SO4,    LBASICEMIS
       LOGICAL            :: LCH4CHEM, LFUTURECFC
       INTEGER            :: N,       HISTYR
-      INTEGER            :: TS_EMIS 
       CHARACTER(LEN=255) :: MSG,     LOC
       CHARACTER(LEN=255) :: HcoConfigFile
 
@@ -2135,10 +2249,6 @@
       ! Turn on emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:1' )
       READ( SUBSTRS(1:N), * ) LEMIS
-
-      ! Emissions timestep
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:2' )
-      READ( SUBSTRS(1:N), * ) TS_EMIS
 
       ! HEMCO Input file 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:3' )
@@ -2307,12 +2417,8 @@
 
       !=================================================================
       ! Set fields of Input Options object
-      ! Input_Opt%TS_EMIS is set externally in ESMF environment!
       !=================================================================
       Input_Opt%LEMIS          = LEMIS
-#if !defined( EXTERNAL_FORCING )
-      Input_Opt%TS_EMIS        = TS_EMIS
-#endif
       Input_Opt%HcoConfigFile  = HcoConfigFile
       Input_Opt%LFIX_PBL_BRO   = LFIX_PBL_BRO
       Input_Opt%LCH4EMIS       = LCH4EMIS
@@ -2351,8 +2457,6 @@
         WRITE( 6, '(/,a)' ) 'EMISSIONS MENU'
         WRITE( 6, '(  a)' ) '--------------'
         WRITE( 6, 100 ) 'Turn on emissions?          : ', LEMIS
-        WRITE( 6, 110 ) 'Emissions timestep [min]    : ', 
-     &                    Input_Opt%TS_EMIS
         WRITE( 6, 130 ) 'HEMCO Configuration file    : ',
      &                    TRIM( HcoConfigFile )
         WRITE( 6, 100 ) 'Set day PBL BrO conc to 1ppt: ', LFIX_PBL_BRO
@@ -2759,7 +2863,6 @@
       LOGICAL            :: LCHEM,    LSCHEM,   LLINOZ, LUCX
       LOGICAL            :: LO3FJX,   LCH4CHEM, LACTIVEH2O
       INTEGER            :: N
-      INTEGER            :: TS_CHEM
       CHARACTER(LEN=255) :: MSG, LOCATION
 
       ! Arrays
@@ -2802,10 +2905,6 @@
       ! Turn on online stratospheric H2O?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
       READ( SUBSTRS(1:N), * ) LACTIVEH2O
-
-      ! Chemistry timestep
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
-      READ( SUBSTRS(1:N), * ) TS_CHEM
 
       ! Use online ozone in extinction calculations for FAST-JX?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:11' )
@@ -2856,54 +2955,6 @@
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
-#if defined( ESMF_ ) && defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-      !
-      ! If we are connecting to the ESMF interface, we need to take
-      ! the chemistry timestep as defined in the ESMF resource file.
-      ! (i.e. GEOSCHEMchem_GridComp_mod.rc) instead of those in 
-      ! input.geos.  This is because the ESMF Clock object needs to be
-      ! defined at the highest level (in the driver routine), before 
-      ! input.geos is ever read.
-      !
-      ! Therefore, we will assign the chemistry timestep field (i.e.
-      ! Input_Opt%TS_CHEM) in the Gridded Component module file
-      ! GEOSCHEMchem_GridComp_Mod.F90 (i.e. two levels higher
-      ! in the code).  We don'need to define those fields here, so
-      ! we have bracketed this with an #ifdef. 
-      !
-      ! Also pass the chemistry timestep value directly to module
-      ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
-      !
-      ! Ideallly it would be good to have one single version of 
-      ! "input.geos" that can double as the GEOS-Chem input file as 
-      ! well as the ESMF resource.  We may be a way off from that.
-      ! One potential solution is to use a Perl script to generate
-      ! both the input.geos file and the ESMF resource file, so that
-      ! both files are consistent with each other.
-      ! (bmy, 12/6/12)
-      ! 
-      ! Now avoid call to time_mod.F because this is already covered by
-      ! CHECK_TIME_STEPS lateron. In an ESMF environment, all time steps
-      ! must become defined externally previous to the READ_INPUT_FILE
-      ! call!
-      ! (ckeller, 11/24/14)
-      !-----------------------------------------------------------------
-      
-      ! Save to local variables for printing below
-      TS_CHEM                 = Input_Opt%TS_CHEM
-#else
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to initialize 
-      ! the field Input_OPt%TS_CHEM with the value read in from 
-      ! input.geos. (bmy, 12/6/12)
-      !-----------------------------------------------------------------
-      Input_Opt%TS_CHEM       = TS_CHEM
-
-#endif
       Input_Opt%LCHEM         = LCHEM
       Input_Opt%LSCHEM        = LSCHEM
       Input_Opt%LLINOZ        = LLINOZ
@@ -2927,19 +2978,14 @@
          WRITE( 6, 100     ) 'Enable UCX?                 : ', LUCX
          WRITE( 6, 100     ) 'Online CH4 chemistry?       : ', LCH4CHEM
          WRITE( 6, 100     ) 'Online strat. H2O?          : ',LACTIVEH2O
-         WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', 
-     &        Input_Opt%TS_CHEM
          WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ', LO3FJX
-         WRITE( 6, 140     ) 'GAMMA HO2                   : ',
-     &      Input_Opt%GAMMA_HO2
+         WRITE( 6, 110     ) 'GAMMA HO2                   : ',
+     &                        Input_Opt%GAMMA_HO2
       ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
- 110  FORMAT( A, I5  )
- 120  FORMAT( A, 2I5 )
- 130  FORMAT( A, A   )
- 140  FORMAT( A, F4.2 )
+ 110  FORMAT( A, F4.2 )
 
       END SUBROUTINE READ_CHEMISTRY_MENU  
 !EOC
@@ -3212,7 +3258,6 @@
       LOGICAL            :: LFILL, LTRAN
       INTEGER            :: N,     IORD,    JORD,    KORD
       INTEGER            :: J1,    KS,      MAX_DYN
-      INTEGER            :: TS_DYN
       CHARACTER(LEN=255) :: MSG,   LOCATION
 
       ! Arrays
@@ -3244,33 +3289,8 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 3, 'read_transport_menu:4' )
       READ( SUBSTRS(1:N), * ) IORD, JORD, KORD
 
-      ! Transport timestep
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:5' )
-      READ( SUBSTRS(1:N), * ) TS_DYN
-
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:6' )
-
-      !=================================================================
-      ! Error check settings
-      !=================================================================      
-      
-      ! Define maximum timestep for transport
-#if   defined( GRID4x5   ) 
-      MAX_DYN = 30
-#elif defined( GRID2x25  )
-      MAX_DYN = 15
-#elif defined( GRID1x125 )
-      MAX_DYN = 10
-#elif defined( GRID1x1   ) 
-      MAX_DYN = 10
-#elif defined( GRID05x0666   ) || defined( GRID05x0625 )
-      MAX_DYN = 10 
-#elif defined( GRID025x03125 )
-      MAX_DYN = 5
-#elif defined( EXTERNAL_FORCING )
-      MAX_DYN = 60
-#endif
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:7' )
 
       !=================================================================
       ! Set fields of Input Options object
@@ -3280,68 +3300,6 @@
       Input_Opt%TPCORE_IORD = IORD
       Input_Opt%TPCORE_JORD = JORD
       Input_Opt%TPCORE_KORD = KORD
-
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-      !
-      ! If we are connecting to the ESMF interface, we need to take
-      ! the dynamic timestep as defined in the ESMF resource file.
-      ! (i.e. GEOSCHEMchem_GridComp_mod.rc) instead of that in 
-      ! input.geos.  This is because the ESMF Clock object needs to be
-      ! defined at the highest level (in the driver routine), before 
-      ! input.geos is ever read.
-      !
-      ! Therefore, we will assign the chemistry timestep field (i.e.
-      ! Input_Opt%TS_CHEM) in the Gridded Component module file
-      ! GEOSCHEMchem_GridComp_Mod.F90 (i.e. two levels higher
-      ! in the code).  We don'need to define those fields here, so
-      ! we have bracketed this with an #ifdef. 
-      !
-      ! Also pass the chemistry timestep value directly to module
-      ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
-      !
-      ! Ideally it would be good to have one single version of 
-      ! "input.geos" that can double as the GEOS-Chem input file as 
-      ! well as the ESMF resource.  We may be a way off from that.
-      ! One potential solution is to use a Perl script to generate
-      ! both the input.geos file and the ESMF resource file, so that
-      ! both files are consistent with each other.
-      ! (bmy, 12/6/12)
-      ! 
-      ! Now avoid call to time_mod.F because this is already covered by
-      ! CHECK_TIME_STEPS lateron. In an ESMF environment, all time steps
-      ! must become defined externally previous to the READ_INPUT_FILE
-      ! call!
-      ! (ckeller, 11/24/14)
-      !-----------------------------------------------------------------
-      
-      ! Save to local variables for printing below
-      ! In GCHP, this is irrelevant since dynamics is a separate ESMF
-      ! component. It's settings cannot be controlled through the
-      ! chemistry component (where we are now) - MSL.
-      TS_DYN                = Input_Opt%TS_DYN
-#else
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to initialize 
-      ! the field Input_Optt%TS_DYN with the value read in from 
-      ! input.geos. (bmy, 12/6/12)
-      !-----------------------------------------------------------------
-      Input_Opt%TS_DYN      = TS_DYN
-
-      ! If TS_DYN is greater than MAX_DYN, then stop w/ error
-      IF ( .not. Input_Opt%HPC ) THEN
-         IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
-            WRITE( MSG, 300 ) 'Transport timestep exceeds max:',
-     &                        Input_Opt%TS_DYN, MAX_DYN
- 300        FORMAT( a, i8, ' >', i8 ) 
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
-
-#endif
 
       ! Return success
       RC = GC_SUCCESS
@@ -3355,15 +3313,13 @@
          WRITE( 6, 100     ) 'Turn on transport?          : ', LTRAN
          WRITE( 6, 100     ) 'Let TPCORE Fill negatives?  : ', LFILL
          WRITE( 6, 110     ) 'IORD, JORD, KORD for TPCORE?: ', IORD, 
-     &                                                   JORD, KORD
-         WRITE( 6, 120     ) 'Transport timestep [min]    : ', 
-     &      Input_Opt%TS_DYN
+     &                                                         JORD,
+     &                                                         KORD
       ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
  110  FORMAT( A, 5I5 )
- 120  FORMAT( A, I5  )
       
       !=================================================================
       ! Call setup routines from other F90 modules
@@ -3435,7 +3391,7 @@
 !
       ! Scalars
       LOGICAL            :: LCONV, LTURB, LNLPBL
-      INTEGER            :: N,     TS_CONV
+      INTEGER            :: N
       CHARACTER(LEN=255) :: MSG
 
       ! Arrays
@@ -3464,12 +3420,8 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:3' )
       READ( SUBSTRS(1:N), * ) LNLPBL
 
-      ! Convection timestep
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:4' )
-      READ( SUBSTRS(1:N), * ) TS_CONV
-
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:6' )
 
       !=================================================================
       ! Further error checks and initializations
@@ -3496,23 +3448,7 @@
       Input_Opt%LTURB   = LTURB
       Input_Opt%LNLPBL  = LNLPBL
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-      !
-      ! In an ESMF environment, all time steps must become defined 
-      ! externally previous to the READ_INPUT_FILE call!
-      ! (ckeller, 11/24/14)
-      !-----------------------------------------------------------------
-
-      ! Set TS_CONV from Input_Opt%TS_DYN
-      TS_CONV           = Input_Opt%TS_CONV
-#else
-      Input_Opt%TS_CONV = TS_CONV
-#endif
-
       ! Return success
-    
       RC = GC_SUCCESS
 
       !=================================================================
@@ -3524,13 +3460,10 @@
          WRITE( 6, 100     ) 'Turn on cloud convection?   : ', LCONV
          WRITE( 6, 100     ) 'Turn on PBL mixing?         : ', LTURB
          WRITE( 6, 100     ) 'Turn on non-local PBL?      : ', LNLPBL
-         WRITE( 6, 110     ) 'Convection timestep [min]   : ', 
-     &      Input_Opt%TS_CONV
       ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
- 110  FORMAT( A, I5 )
       
       END SUBROUTINE READ_CONVECTION_MENU
 !EOC
@@ -7607,6 +7540,7 @@
 !
 ! !USES:
 !
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_TIMESTEPS
@@ -7645,15 +7579,20 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: LCONV, LCHEM,       LDRYD 
-      LOGICAL :: LEMIS, LTRAN,       LTURB 
-      INTEGER :: I,     J,           K 
-      INTEGER :: L,     TS_SMALLEST, TS_DIAG
-      INTEGER :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN, TS_UNIT, TS_RAD
+      LOGICAL            :: LCONV, LCHEM,       LDRYD 
+      LOGICAL            :: LEMIS, LTRAN,       LTURB 
+      INTEGER            :: I,     J,           K 
+      INTEGER            :: L,     TS_SMALLEST, TS_DIAG
+      INTEGER            :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN
+      INTEGER            :: TS_UNIT, TS_RAD,  MAX_DYN
+      CHARACTER(LEN=255) :: MSG,   LOCATION
 
       !=================================================================
       ! CHECK_TIME_STEPS begins here!
       !=================================================================
+
+      ! Location for err msg
+      LOCATION = 'CHECK_TIME_STEPS ("input_mod.f")'
 
       ! Copy fields from Input_Opt
       LCONV = Input_Opt%LCONV
@@ -7672,28 +7611,31 @@
       ! NUNIT is time step in minutes for unit conversion
       TS_UNIT = -1
 
-      ! For the centralizing chemistry timestep modification, the emissions 
-      ! should be done at the same time as chemistry.  Stop the run if the
-      ! emissions timestep differs from the chemistry timestep. (bmy, 10/7/11)
-      IF ( TS_EMIS /= TS_CHEM ) THEN 
-         IF ( am_I_Root ) THEN
-          WRITE(6,*) 'The emission time step should equal the chemistry'
-          WRITE(6,*) 'timestep.  This is required for the new central'
-          WRITE(6,*) 'chemistry timestep algorithm.'
-         ENDIF
-         CALL GEOS_CHEM_STOP
-      ENDIF
+      ! Define maximum timestep for transport
+#if   defined( GRID4x5   ) 
+      MAX_DYN = 30
+#elif defined( GRID2x25  )
+      MAX_DYN = 15
+#elif defined( GRID1x125 )
+      MAX_DYN = 10
+#elif defined( GRID1x1   ) 
+      MAX_DYN = 10
+#elif defined( GRID05x0666   ) || defined( GRID05x0625 )
+      MAX_DYN = 10 
+#elif defined( GRID025x03125 )
+      MAX_DYN = 5
+#elif defined( EXTERNAL_FORCING )
+      MAX_DYN = 60
+#endif
 
-      ! For the centralizing chemistry timestep modification, the convection 
-      ! should be done at the same time as dynamics.  Stop the run if the
-      ! convection timestep differs from the dynamic timestep. (bmy, 10/7/11)
-      IF ( TS_CONV /= TS_DYN ) THEN 
-         IF ( am_I_Root ) THEN
-          WRITE(6,*) 'The convection time step should equal the dynamic'
-          WRITE(6,*) 'timestep.  This is required for the new central'
-          WRITE(6,*) 'chemistry timestep algorithm.'
+      ! If TS_DYN is greater than MAX_DYN, then stop w/ error
+      IF ( .not. Input_Opt%HPC ) THEN
+         IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
+            WRITE( MSG, 300 ) 'Transport timestep exceeds max:',
+     &                        Input_Opt%TS_DYN, MAX_DYN
+ 300        FORMAT( a, i8, ' >', i8 ) 
+            CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
-         CALL GEOS_CHEM_STOP
       ENDIF
 
       ! Only do unit conversion if necessary
