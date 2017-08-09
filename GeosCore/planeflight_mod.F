@@ -1633,7 +1633,7 @@
             ! Convert species units from [kg/kg] to [v/v]
             CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC )
 
-            ! Initialize GEOS-Chem species array [kg]
+            ! Initialize GEOS-Chem species array
             Spc => State_Chm%Species
 
             ! Loop over all variables to save out
@@ -1643,17 +1643,17 @@
                SELECT CASE ( PVAR(V) )
 
                   !-------------------------
-                  ! Chemical species
+                  ! GEOS-Chem Chemical species [molec/cm3]
                   !-------------------------
                   !997 and 998 are now special flags for NOy and AN
                   CASE ( 1:996) !( 1:998 )
 
                      ! Only archive where chemistry is done
-                     ! Save as mixing ratio [v/v]
                      IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
 
-                        ! Species concentration [v/v]
-                        VARI(V) = Spc(I,J,L,PVAR(V))
+                        ! Species concentration [v/v] -> [molec/cm3]
+                        VARI(V) = Spc(I,J,L,PVAR(V)) * 
+     &                            State_Met%AIRNUMDEN(I,J,L)
 
                      ENDIF
 
@@ -2070,7 +2070,7 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                   !--------------------------
-                  ! GEOS-CHEM species [v/v]
+                  ! GEOS-CHEM advected species [v/v]
                   !--------------------------
                   CASE( 100000:199999 )
 

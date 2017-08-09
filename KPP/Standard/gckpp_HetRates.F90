@@ -128,6 +128,10 @@ MODULE GCKPP_HETRATES
 
   ! Critical RH for uptake of GLYX, MGLYX, and GLYC:
   REAL(fp), PARAMETER :: CRITRH = 35.0e+0_fp
+
+  ! Effective Henry's Law constant of IEPOX for reactive
+  ! uptake to aqueous aerosols (M/atm)
+  REAL(fp), PARAMETER :: HSTAR_EPOX = 3.3e+7_fp
 !
 ! !REMARKS:
 !  Need 
@@ -1521,8 +1525,11 @@ MODULE GCKPP_HETRATES
          ! Only consider inorganic aqueous aerosols with RH > 35%.
          IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
 
-            ! Define Henry's Law constant.
-            HSTAR = 1.7e+8_fp  ! (Gaston et al., 2014)
+            ! Define Henry's Law constant
+            ! Changes H* for IEPOX again to accommodate
+            ! reduction in yields of RIP, precursor
+            ! of IEPOX (eam, 07/2015):
+            HSTAR = HSTAR_EPOX    ! (Nguyen et al., 2014)
 
             ! Define first-order particle phase reaction rates 
             ! specific to IEPOX (from Gaston et al., 2014):
@@ -1621,14 +1628,17 @@ MODULE GCKPP_HETRATES
          IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
 
             ! Define Henry's Law constant.
-            HSTAR = 1.2e+5_fp ! (Pye et al., 2013)
+            ! Changes H* for IEPOX again to accommodate
+            ! reduction in yields of RIP, precursor
+            ! of IEPOX (eam, 07/2015):
+            HSTAR = HSTAR_EPOX   ! (Nguyen et al., 2014)
 
             ! Define first-order particle phase reaction rates 
-            ! specific to IMAE (from Pye et al., 2014):
-            K_HPLUS = 1.2e-3_fp  ! 30x slower than IEPOX (Piletic et al., 2013)
-            K_NUC   = 6.7e-6_fp  ! Assume others are also 30x slower.
-            K_HSO4  = 2.4e-5_fp
-            K_HYDRO = 0.0e+0_fp
+            ! specific to IEPOX (from Gaston et al., 2014):
+            K_HPLUS = 3.6e-2_fp   ! Alternate: 1.2d-3 (Edding)
+            K_NUC   = 2.6e-4_fp   ! Alternate: 5.2d-1 (Piletic)
+            K_HSO4  = 7.3e-4_fp
+            K_HYDRO = 0.e+0_fp
 
             ! Get GAMMA for IMAE hydrolysis:
             XSTKCF = EPOXUPTK( XAREA(N), XRADI(N),            &
@@ -1636,6 +1646,12 @@ MODULE GCKPP_HETRATES
                                HSTAR,    K_HPLUS,    H_PLUS,  &
                                K_NUC,    MSO4,       MNO3,    &
                                K_HSO4,   MHSO4,      K_HYDRO )
+
+            ! Scale down gamma if H+ > 8d-5 (30x less than gamma for IEPOX)
+            ! (Riedel et al., 2015)
+            IF ( H_PLUS .gt. 8.e-5_fp ) THEN
+               XSTKCF = XSTKCF / 30.e+0_fp
+            ENDIF
 
          ENDIF
 
