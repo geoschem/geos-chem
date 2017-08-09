@@ -35,6 +35,7 @@ MODULE NCDF_MOD
 !
   PUBLIC  :: NC_OPEN
   PUBLIC  :: NC_CREATE
+  PUBLIC  :: NC_SET_DEFMODE
   PUBLIC  :: NC_VAR_DEF
   PUBLIC  :: NC_VAR_WRITE
   PUBLIC  :: NC_CLOSE
@@ -92,6 +93,7 @@ MODULE NCDF_MOD
 !  10 Apr 2017 - R. Yantosca - Renamed routine NC_READ_TIME_YYYYMMDDhh to 
 !                              NC_READ_TIME_YYYYMMDDhhmm, to indicate that
 !                              it will now uses YYYYYMMDDhhmm format
+!  09 Aug 2017 - R. Yantosca - Add public routine NC_SET_DEFMODE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -205,6 +207,61 @@ CONTAINS
     CALL NcCl( fID )
 
   END SUBROUTINE NC_CLOSE
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Set_DefMode
+!
+! !DESCRIPTION: Toggles netCDF define mode on or off. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Nc_Set_DefMode( fId, On, Off )
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER, INTENT(IN) :: fId   ! netCDF file ID
+    LOGICAL, OPTIONAL   :: On    ! On=T   will turn on  netCDF define mode
+    LOGICAL, OPTIONAL   :: Off   ! Off=T  will turn off netCDF define mdoe
+!
+! !REMARKS:
+!  This is a convenience wrapper for routines NcBegin_Def and NcEnd_Def in 
+!  NcdfUtil module m_netcdf_define_mod.F90.
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! If the ON switch is passed then ...
+    IF ( PRESENT( On ) ) THEN
+       IF ( On ) THEN 
+          CALL NcBegin_Def( fId )  ! Turn define mode on
+          RETURN
+       ELSE
+          CALL NcEnd_Def( fId )    ! Turn define mode off
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! If the OFF switch is passed then ,,,
+    IF ( PRESENT( Off ) ) THEN
+       IF ( Off ) THEN 
+          CALL NcEnd_Def( fId )      ! Turn define mode off
+          RETURN
+       ELSE
+          CALL NcBegin_Def( fId )    ! Turn define mode on
+          RETURN
+       ENDIF
+    ENDIF
+
+
+  END SUBROUTINE Nc_Set_DefMode
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
