@@ -15,6 +15,7 @@ MODULE History_Netcdf_Mod
 ! !USES:
 !
   USE Precision_Mod
+  USE MetaHistItem_Mod, ONLY : MetaHistItem
   
   IMPLICIT NONE
   PRIVATE
@@ -23,10 +24,13 @@ MODULE History_Netcdf_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS
 !
-  PUBLIC :: HIstory_Netcdf_Define
+  PUBLIC  :: History_Netcdf_Define
+  PUBLIC  :: History_Netcdf_Init
+  PUBLIC  :: History_Netcdf_Cleanup
 !
-! PRIVATE MEMBER FUNCTIONS:
+! !PRIVATE MEMBER FUNCTIONS:
 !
+!  PRIVATE :: History_Netcdf_DefineDims
 !
 ! !REMARKS:
 !
@@ -35,6 +39,11 @@ MODULE History_Netcdf_Mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
+  TYPE(MetaHistItem), POINTER :: DimensionList => NULL()
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -229,6 +238,41 @@ CONTAINS
        ! Add the index dimension data
        !--------------------------------------------------------------------
 
+       ! Set CURRENT to the first node in the list of HISTORY ITEMS
+       Current => DimensionList
+
+       ! As long as this node of the list is valid ...
+       DO WHILE( ASSOCIATED( Current ) )
+
+          !%%% NOTE: Need to block out the lon, lev, lat iD's
+          !%%% maybe with a CASE statement on the name here.
+
+          ! Define each HISTORY ITEM in this collection to the netCDF file
+          CALL Nc_Var_Def( fId          = Container%FileId,                  &
+                           timeId       = Container%tDimId,                  &
+                           levId        = Container%zDimId,                  &
+                           latId        = Container%yDimId,                  &
+                           lonId        = Container%xDimId,                  &
+                           VarName      = Current%Item%Name,                 &
+                           VarLongName  = Current%Item%LongName,             &
+                           VarUnit      = Current%Item%Units,                &
+                           DataType     = 4,                                 &
+                           VarCt        = VarCt,                             &
+                           DefMode      = .TRUE.,                            &
+                           Compress     = .TRUE.                            ) 
+
+          ! Save the returned netCDF variable Id to this HISTORY ITEM
+          Current%Item%NcVarId = VarCt
+
+          ! Debug print
+          !CALL HistItem_Print( am_I_Root, Current%Item, RC )
+
+          ! Go to next entry in the list of HISTORY ITEMS
+          Current => Current%Next
+       ENDDO
+
+       ! Free pointers
+       Current => NULL()
 
        !--------------------------------------------------------------------
        ! Then define each HISTORY ITEM belonging to this collection
@@ -285,7 +329,215 @@ CONTAINS
 
     !STOP
 
-  END SUBROUTINE History_NetCdf_Define
+  END SUBROUTINE History_Netcdf_Define
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: History_Netcdf_Init
+!
+! !DESCRIPTION: Creates a HISTORY ITEM for each netCDF variable (e.g.
+!  lon, lat, area) and adds it to the module variable DimensionList.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE History_Netcdf_Init( am_I_Root, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE GC_Grid_Mod,      ONLY : Lookup_Grid
+    USE HistItem_Mod
+    USE MetaHistItem_Mod
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL, INTENT(IN)  :: am_I_Root
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER, INTENT(OUT) :: RC
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                  :: N
+    INTEGER                  :: KindVal
+    INTEGER                  :: Rank
+    INTEGER                  :: Dimensions(3)
+
+    ! Strings
+    CHARACTER(LEN=255)       :: Description
+    CHARACTER(LEN=255)       :: ErrMsg
+    CHARACTER(LEN=255)       :: ThisLoc
+    CHARACTER(LEN=255)       :: Units
+    CHARACTER(LEN=9)         :: ItemName(3)
+
+    ! Pointer arrays
+    REAL(fp),        POINTER :: Ptr1d  (:    )
+    REAL(fp),        POINTER :: Ptr2d  (:,:  )
+
+    ! Objects
+    TYPE(HistItem),  POINTER :: Item
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC          =  GC_SUCCESS
+    Description =  ''
+    Dimensions  =  0
+    KindVal     =  0
+    Rank        =  0
+    Units       =  ''
+    ErrMsg      =  ''
+    ThisLoc     =  &
+                ' -> History_Netcdf_Init (in History/history_mod.F90)'
+    ItemName    = (/ 'GRID_AREA', 'GRID_LAT ', 'GRID_LON ' /)
+    Ptr1d       => NULL()
+    Ptr2d       => NULL()
+
+    !=======================================================================
+    ! Create a HISTORY ITEM for each of the index fields (lon, lat, area)
+    ! of gc_grid_mod.F90 and add them to a METAHISTORY ITEM list
+    !=======================================================================
+    DO N = 1, SIZE( ItemName )
+
+       !---------------------------------------------------------------------
+       ! Look up one of the index fields from gc_grid_mod.F90
+       !---------------------------------------------------------------------
+       CALL Lookup_Grid( am_I_Root   = am_I_Root,                            &
+                         Variable    = TRIM( ItemName(N) ),                  &
+                         Description = Description,                          &
+                         Dimensions  = Dimensions,                           &
+                         KindVal     = KindVal,                              &
+                         Rank        = Rank,                                 &
+                         Units       = Units,                                &
+                         Ptr1d       = Ptr1d,                                &
+                         Ptr2d       = Ptr2d,                                &
+                         RC          = RC                                   )
+
+       ! Trap potential error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error in "Lookup_State_Chm" for diagnostic ' //          &
+                   TRIM( ItemName(N) )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Create a HISTORY ITEM for this index field
+       !---------------------------------------------------------------------
+       CALL HistItem_Create( am_I_Root      = am_I_Root,                     &
+                             Item           = Item,                          &
+                             Id             = N,                             & 
+                             ContainerId    = 0,                             &
+                             Name           = ItemName(N),                   &
+                             LongName       = Description,                   &
+                             Units          = Units,                         &
+                             SpaceDim       = Rank,                          &
+                             NX             = Dimensions(1),                 &
+                             NY             = Dimensions(2),                 &
+                             NZ             = Dimensions(3),                 & 
+                             Operation      = 0,                             &
+                             Source_KindVal = KindVal,                       &
+                             Source_1d      = Ptr1d,                         &
+                             Source_2d      = Ptr2d,                         &
+                             RC             = RC                            )
+
+       ! Trap potential error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not create Item: "' // TRIM( ItemName(N) ) // '"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Add this item to the Dimension list
+       !---------------------------------------------------------------------
+       CALL MetaHistItem_AddNew( am_I_Root = am_I_Root,                      &
+                                 Node      = DimensionList,                  &
+                                 Item      = Item,                           &
+                                 RC        = RC                             )
+
+       ! Trap potential error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not add Item "' // TRIM( ItemName(N) ) //          &
+                   '" to Dimensionlist!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE History_Netcdf_Init
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE History_Netcdf_Cleanup( am_I_Root, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE MetaHistItem_Mod, ONLY: MetaHistItem_Destroy
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL, INTENT(IN)  :: am_I_Root
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER, INTENT(OUT) :: RC
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  =  ''
+    ThisLoc =  ' -> at MetaHistItem_Destroy (in History/metahistitem_mod.F90)'
+
+    !=======================================================================
+    ! Destroy the METAHISTORY ITEM list of index variables for netCDF
+    !=======================================================================
+    CALL MetaHistItem_Destroy( am_I_Root, DimensionList, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Cannot deallocate the "DimensionListt" META HISTORY ITEM!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE History_Netcdf_Cleanup
 !EOC
 END MODULE History_Netcdf_Mod
 

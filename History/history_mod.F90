@@ -97,11 +97,12 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE History_Netcdf_Mod, ONLY : History_Netcdf_Init
     USE History_Params_Mod
-    USE Input_Opt_Mod,     ONLY : OptInput
-    USE State_Chm_Mod ,    ONLY : ChmState
-    USE State_Diag_Mod,    ONLY : DgnState
-    USE State_Met_Mod,     ONLY : MetState
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod ,     ONLY : ChmState
+    USE State_Diag_Mod,     ONLY : DgnState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -137,6 +138,16 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = &
      ' -> at History_Init (in module History/history_mod.F90)'
+
+    !=======================================================================
+    ! Initialize the history_netcdf_mod.F90 module
+    !=======================================================================
+    CALL History_Netcdf_Init( am_I_Root, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "HistoryNetCdfInit"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !=======================================================================
     ! First initialize the list of collections
@@ -1965,6 +1976,7 @@ CONTAINS
      ENDDO
 
  END SUBROUTINE GetCollectionMetaData
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1982,6 +1994,7 @@ CONTAINS
 ! !USES:
 !
      USE ErrCode_Mod
+     USE History_Netcdf_Mod, ONLY : History_Netcdf_Cleanup
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2011,6 +2024,11 @@ CONTAINS
 
      ErrMsg  = ''
      ThisLoc = ' -> History_Cleanup (in module History/history_mod.F90'
+
+     !======================================================================
+     ! First, finalize the history_netcdf_mod.F90 module
+     !======================================================================
+     CALL History_Netcdf_Cleanup( am_I_Root, RC )
 
      !======================================================================
      ! Deallocate module variables

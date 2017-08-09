@@ -17,9 +17,10 @@ MODULE GC_Grid_Mod
 ! 
 ! !USES:
 !
-  USE Error_Mod        ! Error-handling routines
-  USE Precision_Mod    ! For GEOS-Chem Precision (fp)
-  USE PhysConstants    ! Physical constants
+  USE Error_Mod                        ! Error-handling routines
+  USE Precision_Mod                    ! For GEOS-Chem Precision (fp)
+  USE PhysConstants                    ! Physical constants
+  USE Registry_Mod, ONLY : MetaRegItem
 
   IMPLICIT NONE
   PRIVATE
@@ -48,6 +49,8 @@ MODULE GC_Grid_Mod
   PUBLIC  :: Set_yOffSet
   PUBLIC  :: SetGridFromCtr
   PUBLIC  :: RoundOff
+  PUBLIC  :: Lookup_Grid
+  PUBLIC  :: Print_Grid
 
 ! Make some arrays public
   PUBLIC  :: XMID, YMID, XEDGE, YEDGE, YSIN, AREA_M2
@@ -70,6 +73,8 @@ MODULE GC_Grid_Mod
 !  26 Mar 2015 - R. Yantosca - Removed obsolete, commented-out code
 !  29 Nov 2016 - R. Yantosca - Renamed to gc_grid_mod.F90 to avoid namespace
 !                              conflicts when interfacing GCHP to the BCC model
+!  09 Aug 2017 - R. Yantosca - Now register lon (slice of XMID), lat (slice of
+!                              YMID) and AREA_M2.  Added registry routines etc.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -93,6 +98,10 @@ MODULE GC_Grid_Mod
   REAL(fp), ALLOCATABLE, TARGET :: YEDGE_R_W(:,:,:) ! Lat edges nest grid [rad]
   REAL(fp), ALLOCATABLE, TARGET :: AREA_M2  (:,:,:) ! Grid box areas [m2]
 
+  ! Registry of variables contained within gc_grid_mod.F90
+  CHARACTER(LEN=4)              :: State     = 'GRID'   ! Name of this state
+  TYPE(MetaRegItem),    POINTER :: Registry  => NULL()  ! Registry object
+  
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -1478,7 +1487,8 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE Registry_Mod,  ONLY : Registry_AddField   
 !
 ! !INPUT PARAMETERS:
 !
@@ -1505,7 +1515,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 ! 
-    INTEGER :: L, AS
+    ! Scalars
+    INTEGER            :: L,        AS
+
+    ! Strings
+    CHARACTER(LEN=255) :: Variable, Desc, Units
 
     !======================================================================
     ! Initialize module variables
@@ -1563,6 +1577,72 @@ CONTAINS
        YMID_R_W = 0e+0_fp
     ENDIF
 
+    !======================================================================
+    ! Register the fields
+    !======================================================================
+
+    !------------------------------
+    ! lon (1-D slice of XMID)
+    !------------------------------
+    Variable = 'lon'
+    Desc     = 'Longitude at the center of each grid box'
+    Units    = 'degrees_east'
+    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
+                            Registry    = Registry,                          &
+                            State       = State,                             &
+                            Variable    = Variable,                          &
+                            Description = Desc,                              &
+                            Units       = Units,                             &
+                            Data1d      = XMID(:,1,1),                       &
+                            RC          = RC                                )
+
+    Variable = TRIM( State ) // 'lon'
+    CALL GC_CheckVar( Variable, 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !------------------------------
+    ! lat (1-D slice of XMID)
+    !------------------------------
+    Variable = 'lat'
+    Desc     = 'Latitude at the center of each grid box'
+    Units    = 'degrees_north'
+    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
+                            Registry    = Registry,                          &
+                            State       = State,                             &
+                            Variable    = Variable,                          &
+                            Description = Desc,                              &
+                            Units       = Units,                             &
+                            Data1d      = YMID(1,:,1),                       &
+                            RC          = RC                                )
+
+    Variable = TRIM( State ) // 'lon'
+    CALL GC_CheckVar( Variable, 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !------------------------------
+    ! AREA_M2 (1-D slice of XMID)
+    !------------------------------
+    Variable = 'AREA'
+    Desc     = 'Surface area'
+    Units    = 'm2'
+    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
+                            Registry    = Registry,                          &
+                            State       = State,                             &
+                            Variable    = Variable,                          &
+                            Description = Desc,                              &
+                            Units       = Units,                             &
+                            Data2d      = AREA_M2(:,:,1),                    &
+                            RC          = RC                                )
+
+    Variable = TRIM( State ) // 'lon'
+    CALL GC_CheckVar( Variable, 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !------------------------------
+    ! Print list of fields
+    !------------------------------
+    CALL Print_Grid( am_I_Root, RC, ShortFormat=.TRUE. )
+
   END SUBROUTINE Init_Grid
 !EOC
 !------------------------------------------------------------------------------
@@ -1570,20 +1650,49 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Cleanup_GC_Grid
+! !IROUTINE: Cleanup_Grid
 !
-! !DESCRIPTION: Subroutine CLEANUP\_GC\_GRID deallocates all module arrays.
+! !DESCRIPTION: Subroutine CLEANUP\__GRID deallocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_Grid
+  SUBROUTINE Cleanup_Grid( am_I_Root, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Registry_Mod, ONLY : Registry_Destroy
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN)  :: am_I_Root
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(OUT) :: RC
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! ! LOCAL VARIABLES
+!
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Cleanup_Grid (in GeosUtil/gc_grid_mod.F90)'
+
+    !=======================================================================
+    ! Deallocate module variables
+    !=======================================================================
     IF ( ALLOCATED( XMID     ) ) DEALLOCATE( XMID     )
     IF ( ALLOCATED( XEDGE    ) ) DEALLOCATE( XEDGE    )
     IF ( ALLOCATED( YMID     ) ) DEALLOCATE( YMID     )
@@ -1594,6 +1703,16 @@ CONTAINS
     IF ( ALLOCATED( YEDGE_R  ) ) DEALLOCATE( YEDGE_R  )
     IF ( ALLOCATED( AREA_M2  ) ) DEALLOCATE( AREA_M2  )
     
+    !=======================================================================
+    ! Destroy the registry of fields for this module
+    !=======================================================================
+    CALL Registry_Destroy( am_I_Root, Registry, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not destroy registry object State_Chm%Registry!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
   END SUBROUTINE Cleanup_Grid
 !EOC
 !------------------------------------------------------------------------------
@@ -1699,5 +1818,172 @@ CONTAINS
     Y = INT( NINT( X*(10.0_f8**(N+1)) + SIGN( 5.0_f8, X ) ) / 10.0_f8 ) / (10.0_f8**N)
 
   END FUNCTION RoundOff_f8
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Print_Grid
+!
+! !DESCRIPTION: Print information about all the registered variables
+!  contained within the gc\_grid\_mod.F90 module. This is basically a wrapper 
+!  for routine REGISTRY\_PRINT in registry\_mod.F90.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Print_Grid( am_I_Root, RC, ShortFormat )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Registry_Mod, ONLY : Registry_Print
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Root CPU?  
+    LOGICAL,        OPTIONAL    :: ShortFormat ! Print truncated info
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC          ! Success/failure?
+!
+! !REVISION HISTORY:
+!  29 Jun 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Print_GC_Grid (in GeosUtil/gc_grid_mod.F90)'
+
+    !=======================================================================
+    ! Print info about registered variables
+    !=======================================================================
+
+    ! Header line
+    WRITE( 6, 10 )
+ 10 FORMAT( /, 'Registered variables contained within gc_grid_mod.F90:' )
+    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
+    ! Print registry info in truncated format
+    CALL Registry_Print( am_I_Root   = am_I_Root,           &
+                         Registry    = Registry,            &
+                         ShortFormat = ShortFormat,         &
+                         RC          = RC                  )
+
+    ! Trap error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Registry_Print"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Print_Grid
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Lookup_Grid
+!
+! !DESCRIPTION: Return metadata and/or a pointer to the data for any
+!  variable contained within the State\_Chm object by searching for its name.
+!  This is basically a wrapper for routine REGISTRY\_LOOKUP in 
+!  registry\_mod.F90.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Lookup_Grid( am_I_Root,   Variable,   RC,                       &
+                          Description, Dimensions, KindVal,                  &
+                          MemoryInKb,  Rank,       Units,                    &
+                          Ptr1d,       Ptr2d                                )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Registry_Mod, ONLY : Registry_Lookup
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root       ! Is this the root CPU? 
+    CHARACTER(LEN=*),    INTENT(IN)  :: Variable        ! Variable name
+!
+! !OUTPUT PARAMETERS:
+!
+    ! Required outputs
+    INTEGER,             INTENT(OUT) :: RC              ! Success or failure?
+
+    ! Optional outputs
+    CHARACTER(LEN=255),  OPTIONAL    :: Description     ! Description of data
+    INTEGER,             OPTIONAL    :: Dimensions(3)   ! Dimensions of data
+    INTEGER,             OPTIONAL    :: KindVal         ! Numerical KIND value
+    REAL(fp),            OPTIONAL    :: MemoryInKb      ! Memory usage
+    INTEGER,             OPTIONAL    :: Rank            ! Size of data
+    CHARACTER(LEN=255),  OPTIONAL    :: Units           ! Units of data
+
+    ! Pointers to data
+    REAL(fp),   POINTER, OPTIONAL    :: Ptr1d(:  )      ! 1D flex-prec data
+    REAL(fp),   POINTER, OPTIONAL    :: Ptr2d(:,:)      ! 2D flex-prec data
+!
+! !REMARKS:
+!  We keep the StateName variable private to this module. Users only have
+!  to supply the name of each module variable.
+!
+! !REVISION HISTORY:
+!  29 Jun 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Lookup_Grid (in GeosUtil/gc_grid_mod.F90)'
+
+    !=======================================================================
+    ! Look up a variable; Return metadata and/or a pointer to the data
+    !=======================================================================
+    CALL Registry_Lookup( am_I_Root   = am_I_Root,           &
+                          Registry    = Registry,            &
+                          State       = State,               &
+                          Variable    = Variable,            &
+                          Description = Description,         &
+                          Dimensions  = Dimensions,          &
+                          KindVal     = KindVal,             &
+                          MemoryInKb  = MemoryInKb,          &
+                          Rank        = Rank,                &
+                          Units       = Units,               &
+                          Ptr1d       = Ptr1d,               &
+                          Ptr2d       = Ptr2d,               &
+                          RC          = RC                  )
+
+    ! Trap error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not find variable "' // TRIM( Variable ) // &
+               '" in the gc_grid_mod.F90 registry!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Lookup_Grid
 !EOC
 END MODULE GC_Grid_Mod

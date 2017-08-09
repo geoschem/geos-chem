@@ -240,6 +240,7 @@
 !  18 May 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE; it's obsolete
 !  30 Jun 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE_LOOP; it's obsolete
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  09 Aug 2017 - R. Yantosca - Pass am_I_Root, RC to Cleanup_Grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -280,7 +281,7 @@
       CALL CLEANUP_DUST()
       CALL CLEANUP_FLEXCHEM()
       CALL CLEANUP_GLOBAL_CH4()
-      CALL CLEANUP_GRID()
+      CALL CLEANUP_GRID( am_I_Root, RC )
       CALL CLEANUP_HDF()
       CALL CLEANUP_ISOROPIAII()
       CALL CLEANUP_LINOZ()
