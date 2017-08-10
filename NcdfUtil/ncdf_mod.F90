@@ -3542,39 +3542,44 @@ CONTAINS
 !
 ! !IROUTINE: Nc_Var_Def
 !
-! !DESCRIPTION: Defines a new variable. 
+! !DESCRIPTION: Defines a new netCDF variable along with its attributes. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_Var_Def( fId,       lonId,        latId,       levId,     &
-                         TimeId,    VarName,      VarLongName, VarUnit,   &
-                         DataType,  VarCt,        DefMode,     Compress,  & 
-                         AddOffset, MissingValue, ScaleFactor            )
+  SUBROUTINE NC_Var_Def( fId,       lonId,        latId,       levId,        &
+                         TimeId,    VarName,      VarLongName, VarUnit,      &
+                         DataType,  VarCt,        DefMode,     Compress,     & 
+                         AddOffset, MissingValue, ScaleFactor, Calendar,     &
+                         Axis,      AvgMethod,    Positive                  )
 !
 ! !INPUT PARAMETERS:
 ! 
     ! Required inputs
-    INTEGER,           INTENT(IN   ) :: fId           ! file ID  
-    INTEGER,           INTENT(IN   ) :: lonId         ! ID of lon  (X) dim
-    INTEGER,           INTENT(IN   ) :: latId         ! ID of lat  (Y) dim
-    INTEGER,           INTENT(IN   ) :: levId         ! ID of lev  (Z) dim
-    INTEGER,           INTENT(IN   ) :: TimeId        ! ID of time (T) dim
-    CHARACTER(LEN=*),  INTENT(IN   ) :: VarName       ! Variable name
-    CHARACTER(LEN=*),  INTENT(IN   ) :: VarLongName   ! Long name description
-    CHARACTER(LEN=*),  INTENT(IN   ) :: VarUnit       ! Units
-    INTEGER,           INTENT(IN   ) :: DataType      ! 1=Int, 4=float, 8=double
+    INTEGER,          INTENT(IN   ) :: fId          ! file ID  
+    INTEGER,          INTENT(IN   ) :: lonId        ! ID of lon  (X) dim
+    INTEGER,          INTENT(IN   ) :: latId        ! ID of lat  (Y) dim
+    INTEGER,          INTENT(IN   ) :: levId        ! ID of lev  (Z) dim
+    INTEGER,          INTENT(IN   ) :: TimeId       ! ID of time (T) dim
+    CHARACTER(LEN=*), INTENT(IN   ) :: VarName      ! Variable name
+    CHARACTER(LEN=*), INTENT(IN   ) :: VarLongName  ! Long name description
+    CHARACTER(LEN=*), INTENT(IN   ) :: VarUnit      ! Units
+    INTEGER,          INTENT(IN   ) :: DataType     ! 1=Int, 4=float, 8=double
 
     ! Optional inputs
-    LOGICAL,           OPTIONAL      :: DefMode       ! Toggles define mode
-    LOGICAL,           OPTIONAL      :: Compress      ! Toggles compression
-    REAL*4,            OPTIONAL      :: AddOffset     ! Add offset attribute
-    REAL*4,            OPTIONAL      :: MissingValue  ! Missing value attribute
-    REAL*4,            OPTIONAL      :: ScaleFactor   ! Scale factor attribute
+    LOGICAL,          OPTIONAL      :: DefMode      ! Toggles define mode
+    LOGICAL,          OPTIONAL      :: Compress     ! Toggles compression
+    REAL*4,           OPTIONAL      :: AddOffset    ! Add offset attribute
+    REAL*4,           OPTIONAL      :: MissingValue ! Missing value attribute
+    REAL*4,           OPTIONAL      :: ScaleFactor  ! Scale factor attribute
+    CHARACTER(LEN=*), OPTIONAL      :: Calendar     ! Calendar for time var
+    CHARACTER(LEN=*), OPTIONAL      :: Axis         ! Axis for index vars
+    CHARACTER(LEN=*), OPTIONAL      :: AvgMethod    ! Averaging method
+    CHARACTER(LEN=*), OPTIONAL      :: Positive     ! Positive dir (up or down)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(INOUT) :: VarCt         ! variable counter 
+    INTEGER,          INTENT(INOUT) :: VarCt        ! variable counter 
 !
 ! !REMARKS:
 !  Assumes that you have:
@@ -3599,10 +3604,10 @@ CONTAINS
     INTEGER              :: nDim, Pos
     INTEGER              :: NF_TYPE
     LOGICAL              :: isDefMode
-    REAL*4               :: This_AddOff
-    REAL*4               :: This_MissVal
-    REAL*4               :: This_ScaleFac
 
+    ! Strings 
+    CHARACTER(LEN=80)    :: Att
+    
     !=======================================================================
     ! Initialize
     !=======================================================================
@@ -3612,24 +3617,6 @@ CONTAINS
        isDefMode = DefMode
     ELSE
        isDefMode = .FALSE.
-    ENDIF
-
-    IF ( PRESENT( AddOffset ) ) THEN
-       This_AddOff = AddOffset
-    ELSE
-       This_AddOff = 0e0
-    ENDIF
-
-    IF ( PRESENT( MissingValue ) ) THEN
-       This_MissVal = MissingValue
-    ELSE
-       This_MissVal = 1e15
-    ENDIF
-
-    IF ( PRESENT( ScaleFactor ) ) THEN
-       This_ScaleFac = ScaleFactor
-    ELSE
-       This_ScaleFac = 1e0
     ENDIF
 
     !=======================================================================
@@ -3679,19 +3666,75 @@ CONTAINS
     ELSE
        NF_TYPE = NF_FLOAT
     ENDIF
- 
+
+    !-----------------------------------------------------------------------
     ! Define variable
+    !-----------------------------------------------------------------------
     CALL NcDef_Variable( fId,  TRIM(VarName), NF_TYPE,              &
                          nDim, VarDims,       VarCt,     Compress  )
     DEALLOCATE( VarDims )
 
-    ! Define variable atttibutes
-    CALL NcDef_Var_Attributes( fId, VarCt, 'long_name',     TRIM(VarLongName) )
-    CALL NcDef_Var_Attributes( fId, VarCt, 'units',         TRIM(VarUnit    ) )
-    CALL NcDef_Var_Attributes( fId, VarCt, 'add_offset',    This_AddOff       )
-    CALL NcDef_Var_Attributes( fId, VarCt, 'scale_factor',  This_ScaleFac     )
-    CALL NcDef_Var_Attributes( fId, VarCt, 'missing_value', This_MissVal      )
-    CALL NcDef_Var_Attributes( fId, VarCt, '_FillValue',    This_MissVal      )
+    !-----------------------------------------------------------------------
+    ! Define variable atttibutes (some are optional)
+    !-----------------------------------------------------------------------
+
+    ! long_name (reuired)
+    Att = 'long_name'
+    CALL NcDef_Var_Attributes(  fId, VarCt, TRIM(Att), TRIM(VarLongName) )
+
+    ! units (requited)
+    Att = 'units'
+    CALL NcDef_Var_Attributes(  fId, VarCt, TRIM(Att),  TRIM(VarUnit) )
+
+    ! add_offset (optional)
+    IF ( PRESENT( AddOffset ) ) THEN
+       Att = 'add_offset'
+       CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), AddOffset )
+    ENDIF
+    
+    ! scale_factor (optional)
+    IF ( PRESENT( ScaleFactor ) ) THEN
+       Att = 'scale_factor'
+       CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), ScaleFactor )
+    ENDIF
+
+    ! missing_value (optional but recommended)
+    IF ( PRESENT( MissingValue ) ) THEN
+       Att = '_FillValue'
+       CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att),  MissingValue )
+    ENDIF
+
+    ! calendar (only used for time) -- skip if null string
+    IF ( PRESENT( Calendar ) ) THEN
+       IF ( LEN_TRIM( Calendar ) > 0 ) THEN
+          Att = 'calendar'
+          CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), TRIM(Calendar) )
+       ENDIF
+    ENDIF
+
+    ! axis (only used for index variables) -- skip if null string
+    IF ( PRESENT( Axis ) ) THEN
+       IF ( LEN_TRIM( Axis ) > 0 ) THEN
+          Att = 'axis'
+          CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), TRIM(Axis) )
+       ENDIF
+    ENDIF
+
+    ! averaging_method (optional) -- skip if null string
+    IF ( PRESENT( AvgMethod ) ) THEN
+       IF ( LEN_TRIM( AvgMethod ) > 0 ) THEN
+          Att = 'averaging_method'
+          CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), TRIM(AvgMethod) )
+       ENDIF
+    ENDIF
+
+    ! averaging_method (optional) -- skip if null string
+    IF ( PRESENT( Positive ) ) THEN
+       IF ( LEN_TRIM( Positive ) > 0 ) THEN
+          Att = 'positive'
+          CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), TRIM(Positive) )
+       ENDIF
+    ENDIF
 
     ! Close definition section, if necessary
     IF ( .not. isDefMode ) CALL NcEnd_Def( fId )
