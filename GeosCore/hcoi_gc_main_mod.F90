@@ -2292,6 +2292,13 @@ CONTAINS
        CALL ERROR_STOP( 'GetExtOpt +STATE_PSC+', LOC, INS )
     ENDIF
     IF ( FOUND ) THEN
+#if defined( ESMF_ )
+       ! If this is in an ESMF environment, then we should not get STATE_PSC
+       ! through HEMCO - instead it is an internal restart variable
+       If (LTMP) Then
+          Call ERROR_STOP( 'ESMF +STATE_PSC+', LOC, INS )
+       End If
+#else
        IF ( Input_Opt%LUCX .neqv. LTMP ) THEN
           WRITE(*,*) ' '
           WRITE(*,*) 'Setting +STATE_PSC+ in the HEMCO configuration'
@@ -2299,17 +2306,34 @@ CONTAINS
           WRITE(*,*) 'settings in input.geos. This may be inefficient' 
           WRITE(*,*) 'and/or yield to wrong results!' 
        ENDIF
+#endif
     ELSE
+#if defined( ESMF_ )
+       OptName = '+STATE_PSC+ : false'
+#else
        IF ( Input_Opt%LUCX ) THEN
           OptName = '+STATE_PSC+ : true'
        ELSE
           OptName = '+STATE_PSC+ : false'
        ENDIF
+#endif
        CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC ) 
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP( 'AddExtOpt +STATE_PSC+', LOC, INS )
        ENDIF
     ENDIF 
+
+#if defined( ESMF_ )
+    ! Also check that HEMCO_RESTART is not set
+    CALL GetExtOpt( HcoConfig, -999, 'HEMCO_RESTART', OptValBool=LTMP, &
+                    FOUND=FOUND,     RC=RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP( 'GetExtOpt HEMCO_RESTART', LOC, INS )
+    ENDIF
+    If ( FOUND .and. LTMP ) Then
+       Call ERROR_STOP( 'ESMF HEMCO_RESTART', LOC, INS )
+    End If
+#endif
 
     !-----------------------------------------------------------------------
     ! NON-EMISSIONS DATA #3: GMI linear stratospheric chemistry
