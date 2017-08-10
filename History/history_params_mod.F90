@@ -22,7 +22,7 @@ MODULE History_Params_Mod
 !
   ! Missing data values
   INTEGER,  PARAMETER, PUBLIC :: UNDEFINED_INT = -999
-  REAL(f4), PARAMETER, PUBLIC :: UNDEFINED     = -9.999e-30_f4
+  REAL(f4), PARAMETER, PUBLIC :: UNDEFINED     = -1.0e+31_f4
 
   ! Operation codes:
   ! 0 = Copy       data from source pointer to the HISTORY ITEM data array

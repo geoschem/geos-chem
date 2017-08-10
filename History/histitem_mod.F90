@@ -48,9 +48,10 @@ MODULE HistItem_Mod
      INTEGER            :: NcVarId               ! netCDF variable ID
      CHARACTER(LEN=255) :: LongName              ! Item description
      CHARACTER(LEN=255) :: Units                 ! Units of data
-     REAL(f4)           :: AddOffset             
-     REAL(f4)           :: MissingValue         
-     REAL(f4)           :: ScaleFactor
+     REAL(f4)           :: AddOffset             ! Offset and scale factor
+     REAL(f4)           :: ScaleFactor           !  for packed data
+     REAL(f4)           :: MissingValue          ! Missing value
+     CHARACTER(LEN=255) :: AvgMethod             ! Averaging method
 
      !----------------------------------------------------------------------
      ! Pointers to the data in State_Chm, State_Diag, or State_Met
@@ -198,6 +199,8 @@ CONTAINS
     LOGICAL            :: Is_1d,  Is_1d_4,  Is_1d_I
     LOGICAL            :: Is_2d,  Is_2d_4,  Is_2d_I
     LOGICAL            :: Is_3d,  Is_3d_4,  Is_3d_I
+    LOGICAL            :: Is_NX,  Is_NY,    Is_NZ
+    INTEGER            :: Tmp_NX, Tmp_NY,   Tmp_NZ
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc,  TempStr
@@ -208,6 +211,9 @@ CONTAINS
     RC               =  GC_SUCCESS
     ErrMsg           =  ''
     ThisLoc          =  ' -> at HistItem_Create (in History/histitem_mod.F90)'
+    Tmp_NX           =  UNDEFINED_INT
+    Tmp_NY           =  UNDEFINED_INT
+    Tmp_NZ           =  UNDEFINED_INT
 
     ! Allocate the Item object
     ALLOCATE( Item, STAT=RC )
@@ -250,7 +256,7 @@ CONTAINS
     IF ( Is_3d   ) Item%Source_3d   => NULL()
     IF ( Is_3d_4 ) Item%Source_3d_4 => NULL()
     IF ( Is_3d_I ) Item%Source_3d_I => NULL()
-    
+     
     !========================================================================
     ! Required inputs, handle these first
     !========================================================================
@@ -313,56 +319,11 @@ CONTAINS
        RETURN
     ENDIF
 
-    !=======================================================================
-    ! Data fields: Allocate data fields (0-3 dimensions)
-    !=======================================================================
-
-    ! Make sure the dimension is in the range 0-3
-    IF ( SpaceDim < 0 .or. SpaceDim > 3 ) THEN
-       ErrMsg = 'SpaceDim must be in the range 0-3!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ELSE
-       Item%SpaceDim = SpaceDim
-    ENDIF
-
-    ! Allocate data field, based on SpaceDim
-    SELECT CASE( Item%SpaceDim )
-
-      CASE( 3 )
-          ALLOCATE( Item%Data_3d( NX, NY, NZ ), STAT=RC )
-          IF ( RC == GC_SUCCESS ) THEN
-             Item%Data_3d = 0.0_f4
-          ELSE
-             ErrMsg = 'Could not allocate "Item%Data_3d" array!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-       CASE( 2 )
-          ALLOCATE( Item%Data_2d( NX, NY ), STAT=RC )
-          IF ( RC == GC_SUCCESS ) THEN
-             Item%Data_2d = 0.0_f4
-          ELSE
-             ErrMsg = 'Could not allocate "Item%Data_2d" array!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN           
-          ENDIF
-
-       CASE( 1 )
-          ALLOCATE( Item%Data_1d( NX ), STAT=RC )
-          IF ( RC == GC_SUCCESS ) THEN
-             Item%Data_1d  = 0.0_f4
-          ELSE
-             ErrMsg = 'Could not allocate "Item%Data_1d" array!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN             
-          ENDIF
-
-       CASE DEFAULT
-          ! Do Nothing
-
-    END SELECT
+    !--------------------------------------------
+    ! NcVarId won't be defined until we enter
+    ! netCDF define mode, so set it to undefined
+    !--------------------------------------------
+    Item%NcVarId = UNDEFINED_INT
 
     !========================================================================
     ! Optional inputs, handle these next
@@ -422,9 +383,72 @@ CONTAINS
        Item%Operation = COPY_FROM_SOURCE
     ENDIF  
 
+    !--------------------------------------------
+    ! Averaging method (define from Operation)
+    !--------------------------------------------
+    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+       TempStr        = 'instananeous'
+       Item%AvgMethod = TempStr
+    ELSE
+       TempStr        = 'time-averaged'
+       Item%AvgMethod = TempStr
+    ENDIF
+
+    !=======================================================================
+    ! Data fields: Allocate data fields (0-3 dimensions)
+    !=======================================================================
+ 99 CONTINUE
+
+    ! Make sure the dimension is in the range 0-3
+    IF ( SpaceDim < 0 .or. SpaceDim > 3 ) THEN
+       ErrMsg = 'SpaceDim must be in the range 0-3!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ELSE
+       Item%SpaceDim = SpaceDim
+    ENDIF
+
+    ! Allocate data field, based on SpaceDim
+    SELECT CASE( Item%SpaceDim )
+
+      CASE( 3 )
+          ALLOCATE( Item%Data_3d( NX, NY, NZ ), STAT=RC )
+          IF ( RC == GC_SUCCESS ) THEN
+             Item%Data_3d = 0.0_f4
+          ELSE
+             ErrMsg = 'Could not allocate "Item%Data_3d" array!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+       CASE( 2 )
+          ALLOCATE( Item%Data_2d( NX, NY ), STAT=RC )
+          IF ( RC == GC_SUCCESS ) THEN
+             Item%Data_2d = 0.0_f4
+          ELSE
+             ErrMsg = 'Could not allocate "Item%Data_2d" array!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN           
+          ENDIF
+
+       CASE( 1 )
+          ALLOCATE( Item%Data_1d( NX ), STAT=RC )
+          IF ( RC == GC_SUCCESS ) THEN
+             Item%Data_1d  = 0.0_f4
+          ELSE
+             ErrMsg = 'Could not allocate "Item%Data_1d" array!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN             
+          ENDIF
+
+       CASE DEFAULT
+          ! Do Nothing
+
+    END SELECT
 
     !========================================================================
     ! Attach pointers to the data source
+    ! Also get the siz
     !========================================================================
     SELECT CASE( Item%SpaceDim ) 
 
@@ -481,12 +505,6 @@ CONTAINS
           ENDIF
 
     END SELECT
-
-    !========================================================================
-    ! The following fields will not be defined until we enter
-    ! netCDF define mode, so set these to default values for now
-    !========================================================================
-    Item%NcVarId = -1
 
   END SUBROUTINE HistItem_Create
 !EOC

@@ -42,7 +42,7 @@ MODULE History_Netcdf_Mod
 !
 ! !PRIVATE TYPES:
 !
-  TYPE(MetaHistItem), POINTER :: DimensionList => NULL()
+  TYPE(MetaHistItem), POINTER :: IndexVarList => NULL()
 
 CONTAINS
 !EOC
@@ -93,22 +93,30 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                     :: N,        VarCt
-    INTEGER                     :: Year,     Month,      Day
-    INTEGER                     :: Hour,     Minute,     Second
+    INTEGER                     :: N,           VarCt
+    INTEGER                     :: Year,        Month,       Day
+    INTEGER                     :: Hour,        Minute,      Second
+    INTEGER                     :: VarXDimId,   VarYDimId
+    INTEGER                     :: VarZDimId,   VarTDimId
 
     ! Strings                   
-    CHARACTER(LEN=2)            :: MonthStr, DayStr 
-    CHARACTER(LEN=2)            :: HourStr,  MinuteStr,  SecondStr
+    CHARACTER(LEN=2)            :: MonthStr,    DayStr 
+    CHARACTER(LEN=2)            :: HourStr,     MinuteStr,   SecondStr
     CHARACTER(LEN=4)            :: YearStr
     CHARACTER(LEN=5)            :: Z
     CHARACTER(LEN=8)            :: D
     CHARACTER(LEN=10)           :: T
-    CHARACTER(LEN=255)          :: FileName, TimeString
-    CHARACTER(LEN=255)          :: ErrMsg,   ThisLoc
+    CHARACTER(LEN=255)          :: FileName,    TimeString
+    CHARACTER(LEN=255)          :: ErrMsg,      ThisLoc
+    CHARACTER(LEN=255)          :: VarName,     VarAxis    
+    CHARACTER(LEN=255)          :: VarPositive, VarCalendar
 
     ! Arrays
     INTEGER                     :: V(8)
+
+    ! Pointers
+    REAL(fp),           POINTER :: Data1d(:)
+    REAL(fp),           POINTER :: Data2d(:)
 
     ! Objects
     TYPE(MetaHistItem), POINTER :: Current
@@ -194,8 +202,10 @@ CONTAINS
     !=======================================================================
     IF ( .not. Container%IsFileOpen ) THEN
 
+       !--------------------------------------------------------------------
        ! Create the file and add global attributes
        ! Remain in netCDF define mode upon exiting this routine
+       !--------------------------------------------------------------------
        CALL Nc_Create( Create_Nc4   = .TRUE.,                                &
                        NcFile       = FileName,                              &
                        nLon         = Container%nX,                          &
@@ -217,15 +227,9 @@ CONTAINS
                        KeepDefMode  = .TRUE.,                                &
                        Varct        = VarCt                                 )
          
-!       ! Handle potential error (and exit define mode)
-!       IF ( RC /= GC_SUCCESS ) THEN
-!          ErrMsg = 'Error in Nc_Create!'
-!          CALL Gc_Error( ErrMsg, Rc, ThisLoc )
-!          CALL Nc_Set_DefMode( Container%FileId, Off=.TRUE. )
-!          RETURN
-!       ENDIF
-
+       !--------------------------------------------------------------------
        ! Denote that the file has been created and is open
+       !--------------------------------------------------------------------
        Container%IsFileOpen = .TRUE.
     ENDIF
 
@@ -239,30 +243,45 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! Set CURRENT to the first node in the list of HISTORY ITEMS
-       Current => DimensionList
+       Current => IndexVarList
 
        ! As long as this node of the list is valid ...
        DO WHILE( ASSOCIATED( Current ) )
 
-          !%%% NOTE: Need to block out the lon, lev, lat iD's
-          !%%% maybe with a CASE statement on the name here.
+          ! Get the dimension ID's that are relevant to each HISTORY ITEM
+          ! (non-relevant dimensions will be given the value UNDEFINED_INT).
+          ! Also get the Axis and Calendar attributes for index variables
+          CALL Get_Var_DimIds( Item        = Current%Item,                   & 
+                               xDimId      = Container%xDimId,               &
+                               yDimId      = Container%yDimId,               &
+                               zDimId      = Container%zDimId,               &
+                               tDimId      = Container%tDimId,               &
+                               VarName     = VarName,                        &
+                               VarXDimId   = VarXDimId,                      &
+                               VarYDimId   = VarYDimId,                      &
+                               VarZDimId   = VarZDimId,                      &
+                               VarTDimId   = VarTDimId,                      &
+                               VarAxis     = VarAxis,                        &
+                               VarPositive = VarPositive,                    &
+                               VarCalendar = VarCalendar                    )
+          
 
           ! Define each HISTORY ITEM in this collection to the netCDF file
-          CALL Nc_Var_Def( fId          = Container%FileId,                  &
-                           timeId       = Container%tDimId,                  &
-                           levId        = Container%zDimId,                  &
-                           latId        = Container%yDimId,                  &
-                           lonId        = Container%xDimId,                  &
-                           VarName      = Current%Item%Name,                 &
+          CALL Nc_Var_Def( DefMode      = .TRUE.,                            &
+                           Compress     = .TRUE.,                            &
+                           fId          = Container%FileId,                  &
+                           DataType     = 8,                                 &
+                           VarName      = VarName,                           &
+                           timeId       = VarTDimId,                         &
+                           levId        = VarZDimId,                         &
+                           latId        = VarYDimId,                         &
+                           lonId        = VarXDimId,                         &
                            VarLongName  = Current%Item%LongName,             &
                            VarUnit      = Current%Item%Units,                &
-                           DataType     = 4,                                 &
-                           VarCt        = VarCt,                             &
-                           DefMode      = .TRUE.,                            &
-                           Compress     = .TRUE.                            ) 
-
-          ! Save the returned netCDF variable Id to this HISTORY ITEM
-          Current%Item%NcVarId = VarCt
+                           Axis         = VarAxis,                           &
+                           Calendar     = VarCalendar,                       &
+                           Positive     = VarPositive,                       &
+                           VarCt        = Current%Item%NcVarId              )
 
           ! Debug print
           !CALL HistItem_Print( am_I_Root, Current%Item, RC )
@@ -284,28 +303,78 @@ CONTAINS
        ! As long as this node of the list is valid ...
        DO WHILE( ASSOCIATED( Current ) )
 
+          ! Get the dimension ID's that are relevant to each HISTORY ITEM
+          ! (non-defined dimensions will be given -1)
+          CALL Get_Var_DimIds( Item      = Current%Item,                     & 
+                               xDimId    = Container%xDimId,                 &
+                               yDimId    = Container%yDimId,                 &
+                               zDimId    = Container%zDimId,                 &
+                               tDimId    = Container%tDimId,                 &
+                               VarName   = VarName,                          &
+                               VarXDimId = VarXDimId,                        &
+                               VarYDimId = VarYDimId,                        &
+                               VarZDimId = VarZDimId,                        &
+                               VarTDimId = VarTDimId                        )
+
           ! Define each HISTORY ITEM in this collection to the netCDF file
-          CALL Nc_Var_Def( fId          = Container%FileId,                  &
-                           timeId       = Container%tDimId,                  &
-                           levId        = Container%zDimId,                  &
-                           latId        = Container%yDimId,                  &
-                           lonId        = Container%xDimId,                  &
-                           VarName      = Current%Item%Name,                 &
+          CALL Nc_Var_Def( DefMode      = .TRUE.,                            &
+                           Compress     = .TRUE.,                            &
+                           fId          = Container%FileId,                  &
+                           DataType     = 4,                                 &
+                           VarName      = VarName,                           &
+                           timeId       = VarTDimId,                         &
+                           levId        = VarZDimId,                         &
+                           latId        = VarYDimId,                         &
+                           lonId        = VarXDimId,                         &
                            VarLongName  = Current%Item%LongName,             &
                            VarUnit      = Current%Item%Units,                &
-                           AddOffset    = Current%Item%AddOffset,            &
                            MissingValue = Current%Item%MissingValue,         &
-                           ScaleFactor  = Current%Item%ScaleFactor,          &
-                           DataType     = 4,                                 &
-                           VarCt        = VarCt,                             &
-                           DefMode      = .TRUE.,                            &
-                           Compress     = .TRUE.                            ) 
+                           AvgMethod    = Current%Item%AvgMethod,            &
+                           VarCt        = Current%Item%NcVarId              )
+           
+          ! Go to next entry in the list of HISTORY ITEMS
+          Current => Current%Next
+       ENDDO
 
-          ! Save the returned netCDF variable Id to this HISTORY ITEM
-          Current%Item%NcVarId = VarCt
+       ! Free pointers
+       Current => NULL()
+ 
+       !--------------------------------------------------------------------
+       ! Write the index variable data
+       !--------------------------------------------------------------------
 
-          ! Debug print
-          !CALL HistItem_Print( am_I_Root, Current%Item, RC )
+       ! Close definition section
+       CALL Nc_Set_DefMode( Container%FileId, Off=.TRUE. )
+
+       ! Set CURRENT to the first node in the list of HISTORY ITEMS
+       Current => IndexVarList
+
+       ! As long as this node of the list is valid ...
+       DO WHILE( ASSOCIATED( Current ) )
+
+          ! Write the data to the netCDF file
+          SELECT CASE( TRIM( Current%Item%Name ) ) 
+             CASE( 'GRID_AREA' ) 
+                CALL Nc_Var_Write( fId     = Container%FileId,               &
+                                   VarName = 'AREA',                         &
+                                   Arr2d   = Current%Item%Source_2d         )
+             CASE( 'GRID_TIME' ) 
+                CALL Nc_Var_Write( fId     = Container%FileId,               &
+                                   VarName = 'time',                         &
+                                   Arr1d   = Current%Item%Source_1d         )
+             CASE( 'GRID_LEV' ) 
+                CALL Nc_Var_Write( fId     = Container%FileId,               &
+                                   VarName = 'lev',                          &
+                                   Arr1d   = Current%Item%Source_1d         )
+             CASE( 'GRID_LAT' ) 
+                CALL Nc_Var_Write( fId     = Container%FileId,               &
+                                   VarName = 'lat',                          &
+                                   Arr1d   = Current%Item%Source_1d         )
+             CASE( 'GRID_LON' ) 
+                CALL Nc_Var_Write( fId     = Container%FileId,               &
+                                   VarName = 'lon',                          &
+                                   Arr1d   = Current%Item%Source_1d         )
+           END SELECT
 
           ! Go to next entry in the list of HISTORY ITEMS
           Current => Current%Next
@@ -313,21 +382,13 @@ CONTAINS
 
        ! Free pointers
        Current => NULL()
+
+       !--------------------------------------------------------------------
+       ! We can now consider this collection to have been "defined"
+       !--------------------------------------------------------------------
+       Container%IsFileDefined = .TRUE.
+
     ENDIF
-
-    !=======================================================================
-    ! Cleanup and quit
-    !=======================================================================
-
-    ! Close definition section
-    CALL Nc_Set_DefMode( Container%FileId, Off=.TRUE. )
-
-    ! We can now consider this collection to have been "defined"
-    Container%IsFileDefined = .TRUE.
-
-    !CALL HistContainer_Print( am_I_Root, Container, RC )
-
-    !STOP
 
   END SUBROUTINE History_Netcdf_Define
 !EOC
@@ -336,10 +397,148 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Get_Var_DimIds
+!
+! !DESCRIPTION: For a given HISTORY ITEM, returns the name and the netCDF
+!  dimension ID's pertaining to the data array.  Dimension ID's that do not
+!  pertain to the data will be set to UNDEFINED_INT.  Also, the name of
+!  index variables will be adjusted for COARDS compliance (i.e. "GRID_LON"
+!  will be changed to "lon", etc).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_Var_DimIds( Item,       xDimId,    yDimId,    zDimId,       &
+                             tDimID,     VarName,   VarXDimId, VarYDimId,    &
+                             VarZDimId,  VarTDimId, VarAxis,   VarCalendar,  &
+                             VarPositive                                    )
+!
+! !USES:
+!
+    USE History_Params_Mod
+    USE HistItem_Mod,       ONLY : HistItem
+!
+! !INPUT PARAMETERS: 
+!
+    TYPE(HistItem),     POINTER     :: Item        ! HISTORY ITEM object
+    INTEGER,            INTENT(IN)  :: xDimId      ! Id # of netCDF X dimension 
+    INTEGER,            INTENT(IN)  :: yDimId      ! Id # of netCDF Y dimension 
+    INTEGER,            INTENT(IN)  :: zDimId      ! Id # of netCDF Z dimension 
+    INTEGER,            INTENT(IN)  :: tDimId      ! Id # of netCDF T dimension 
+!
+! !OUTPUT PARAMETERS
+!
+    CHARACTER(LEN=255), INTENT(OUT) :: VarName     ! Adjusted name for netCDF
+    INTEGER,            INTENT(OUT) :: VarXDimId   ! Adjusted X dimension ID
+    INTEGER,            INTENT(OUT) :: VarYDimId   ! Adjusted Y dimension ID
+    INTEGER,            INTENT(OUT) :: VarZDimId   ! Adjusted Z dimension ID
+    INTEGER,            INTENT(OUT) :: VarTDimId   ! Adjusted T dimension ID
+    CHARACTER(LEN=255), OPTIONAL    :: VarAxis     ! Axis attr for index vars
+    CHARACTER(LEN=255), OPTIONAL    :: VarCalendar ! Calendar attr for time
+    CHARACTER(LEN=255), OPTIONAL    :: VarPositive ! Positive attr for lev
+!
+! !REMARKS:
+!  Call this routine before calling NC_VAR_DEF.
+!
+! !REVISION HISTORY:
+!  10 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: TmpAxis, TmpCalendar, TmpPositive
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    VarXDimId   = UNDEFINED_INT
+    VarYDimId   = UNDEFINED_INT
+    VarZDimId   = UNDEFINED_INT
+    VarTDimId   = UNDEFINED_INT
+    TmpAxis     = ''
+    TmpCalendar = ''
+    TmpPositive = ''
+
+    !=======================================================================
+    ! Return relevant dim ID's and metadata for the HISTORY ITEM
+    !=======================================================================
+    SELECT CASE( TRIM( Item%Name ) )
+
+       ! lon
+       CASE( 'GRID_LON' )
+          VarName     = 'lon'
+          VarXDimId   = xDimId
+          TmpAxis     = 'X'
+
+       ! lat
+       CASE( 'GRID_LAT' )
+          VarName     = 'lat'
+          VarYDimId   = yDimId
+          TmpAxis     = 'Y'
+
+       ! lev
+       CASE( 'GRID_LEV' )
+          VarName     = 'lev'
+          VarZDimId   = zDimId
+          TmpAxis     = 'Z'
+          TmpPositive = 'up'
+
+       ! time
+       CASE( 'GRID_TIME' )
+          VarName     = 'time'
+          VarTDimId   = tDimId
+          TmpAxis     = 'T'
+          TmpCalendar = 'gregorian'
+
+       ! area
+       CASE( 'GRID_AREA' )
+          VarName     = 'AREA'
+          VarXDimId   = xDimId
+          VarYDimId   = yDimId
+
+       ! All other variable names
+       CASE DEFAULT
+          VarName = Item%Name
+
+          SELECT CASE( Item%SpaceDim )
+             CASE( 3 )
+                VarXDimId = xDimId
+                VarYDimId = yDimId
+                VarZDimId = ZDimId
+                VartDimId = tDimId
+             CASE( 2 )
+                VarXDimId = xDimId
+                VarYDimId = yDimId
+                VartDimId = tDimId
+             CASE( 1 )
+                ! NOTE: Need a way to resolve X Y Z
+                VarXDimId = xDimId
+                VartDimId = tDimId
+             CASE DEFAULT
+                ! Nothing
+          END SELECT
+
+    END SELECT      
+    
+    ! Return optional attributes for index variables: axis and calendar
+    IF ( PRESENT( VarAxis     ) ) VarAxis     = TmpAxis
+    IF ( PRESENT( VarCalendar ) ) VarCalendar = TmpCalendar
+    IF ( PRESENT( VarPositive ) ) VarPositive = TmpPositive
+
+  END SUBROUTINE Get_Var_DimIds
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: History_Netcdf_Init
 !
-! !DESCRIPTION: Creates a HISTORY ITEM for each netCDF variable (e.g.
-!  lon, lat, area) and adds it to the module variable DimensionList.
+! !DESCRIPTION: Creates a HISTORY ITEM for each netCDF index variable (e.g.
+!  lon, lat, lev, time, area) and adds it to the METAHISTORY ITEM IndexVarList.
 !\\
 !\\
 ! !INTERFACE:
@@ -364,7 +563,7 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
+!  10 Aug 2017 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -382,7 +581,7 @@ CONTAINS
     CHARACTER(LEN=255)       :: ErrMsg
     CHARACTER(LEN=255)       :: ThisLoc
     CHARACTER(LEN=255)       :: Units
-    CHARACTER(LEN=9)         :: ItemName(3)
+    CHARACTER(LEN=9)         :: ItemName(5)
 
     ! Pointer arrays
     REAL(fp),        POINTER :: Ptr1d  (:    )
@@ -403,7 +602,8 @@ CONTAINS
     ErrMsg      =  ''
     ThisLoc     =  &
                 ' -> History_Netcdf_Init (in History/history_mod.F90)'
-    ItemName    = (/ 'GRID_AREA', 'GRID_LAT ', 'GRID_LON ' /)
+    ItemName    = (/ 'GRID_AREA', 'GRID_TIME', 'GRID_LEV ',                  &
+                     'GRID_LAT ', 'GRID_LON '                              /)
     Ptr1d       => NULL()
     Ptr2d       => NULL()
 
@@ -448,7 +648,7 @@ CONTAINS
                              SpaceDim       = Rank,                          &
                              NX             = Dimensions(1),                 &
                              NY             = Dimensions(2),                 &
-                             NZ             = Dimensions(3),                 & 
+                             NZ             = Dimensions(3),                 &
                              Operation      = 0,                             &
                              Source_KindVal = KindVal,                       &
                              Source_1d      = Ptr1d,                         &
@@ -466,7 +666,7 @@ CONTAINS
        ! Add this item to the Dimension list
        !---------------------------------------------------------------------
        CALL MetaHistItem_AddNew( am_I_Root = am_I_Root,                      &
-                                 Node      = DimensionList,                  &
+                                 Node      = IndexVarList,                   &
                                  Item      = Item,                           &
                                  RC        = RC                             )
 
@@ -486,9 +686,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: History_Netcdf_Cleanup
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Finalizes all module variables (e.g. IndexVarList).
 !\\
 !\\
 ! !INTERFACE:
@@ -511,7 +711,7 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
+!  10 Aug 2017 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -530,9 +730,9 @@ CONTAINS
     !=======================================================================
     ! Destroy the METAHISTORY ITEM list of index variables for netCDF
     !=======================================================================
-    CALL MetaHistItem_Destroy( am_I_Root, DimensionList, RC )
+    CALL MetaHistItem_Destroy( am_I_Root, IndexVarList, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Cannot deallocate the "DimensionListt" META HISTORY ITEM!'
+       ErrMsg = 'Cannot deallocate the "IndexVarListt" META HISTORY ITEM!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF

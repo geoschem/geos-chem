@@ -97,6 +97,7 @@ MODULE GC_Grid_Mod
   REAL(fp), ALLOCATABLE, TARGET :: YMID_R_W (:,:,:) ! Lat ctrs  nest grid [rad]
   REAL(fp), ALLOCATABLE, TARGET :: YEDGE_R_W(:,:,:) ! Lat edges nest grid [rad]
   REAL(fp), ALLOCATABLE, TARGET :: AREA_M2  (:,:,:) ! Grid box areas [m2]
+  REAL(fp), ALLOCATABLE, TARGET :: LEVEL_IND(:    ) ! Grid box level index
 
   ! Registry of variables contained within gc_grid_mod.F90
   CHARACTER(LEN=4)              :: State     = 'GRID'   ! Name of this state
@@ -1518,6 +1519,8 @@ CONTAINS
     ! Scalars
     INTEGER            :: L,        AS
 
+    REAL(fp), SAVE     :: TIME_IND(1)
+
     ! Strings
     CHARACTER(LEN=255) :: Variable, Desc, Units
 
@@ -1578,50 +1581,23 @@ CONTAINS
     ENDIF
 
     !======================================================================
+    ! Level index (used for netCDF index variable)
+    !======================================================================
+    ALLOCATE( LEVEL_IND( LM ), STAT=RC )
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'LEVEL_IND' )   
+    DO L = 1, LM
+       LEVEL_IND(L) = DBLE( L )
+    ENDDO
+
+    TIME_IND = 0.0_fp
+
+    !======================================================================
     ! Register the fields
     !======================================================================
 
-    !------------------------------
-    ! lon (1-D slice of XMID)
-    !------------------------------
-    Variable = 'lon'
-    Desc     = 'Longitude at the center of each grid box'
-    Units    = 'degrees_east'
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = XMID(:,1,1),                       &
-                            RC          = RC                                )
-
-    Variable = TRIM( State ) // 'lon'
-    CALL GC_CheckVar( Variable, 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !------------------------------
-    ! lat (1-D slice of XMID)
-    !------------------------------
-    Variable = 'lat'
-    Desc     = 'Latitude at the center of each grid box'
-    Units    = 'degrees_north'
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = YMID(1,:,1),                       &
-                            RC          = RC                                )
-
-    Variable = TRIM( State ) // 'lon'
-    CALL GC_CheckVar( Variable, 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !------------------------------
-    ! AREA_M2 (1-D slice of XMID)
-    !------------------------------
+    !-------------------------------
+    ! AREA (2-D slice of AREA_M2)
+    !-------------------------------
     Variable = 'AREA'
     Desc     = 'Surface area'
     Units    = 'm2'
@@ -1634,7 +1610,83 @@ CONTAINS
                             Data2d      = AREA_M2(:,:,1),                    &
                             RC          = RC                                )
 
-    Variable = TRIM( State ) // 'lon'
+    Variable = TRIM( State ) // '_' // TRIM( Variable )
+    CALL GC_CheckVar( Variable, 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------------
+    ! TIME (currently set to Null)
+    !-------------------------------
+    Variable = 'TIME'
+    Desc     = 'Time'
+    Units    = 'minutes since YYYY-MM-DD hh:mm:ss GMT'
+    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
+                            Registry    = Registry,                          &
+                            State       = State,                             &
+                            Variable    = Variable,                          &
+                            Description = Desc,                              &
+                            Units       = Units,                             &
+                            Data1d      = TIME_IND,                          &
+                            RC          = RC                                )
+
+    Variable = TRIM( State ) // '_' // TRIM( Variable )
+    CALL GC_CheckVar( Variable, 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------------
+    ! LEV (1-D slice of LEVEL_IND)
+    !-------------------------------
+    Variable = 'LEV'
+    Desc     = 'GEOS-Chem level'
+    Units    = '1'
+    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
+                            Registry    = Registry,                          &
+                            State       = State,                             &
+                            Variable    = Variable,                          &
+                            Description = Desc,                              &
+                            Units       = Units,                             &
+                            Data1d      = LEVEL_IND,                         &
+                            RC          = RC                                )
+
+    Variable = TRIM( State ) // '_' // TRIM( Variable )
+    CALL GC_CheckVar( Variable, 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !------------------------------
+    ! LAT (1-D slice of XMID)
+    !------------------------------
+    Variable = 'LAT'
+    Desc     = 'Latitude'
+    Units    = 'degrees_north'
+    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
+                            Registry    = Registry,                          &
+                            State       = State,                             &
+                            Variable    = Variable,                          &
+                            Description = Desc,                              &
+                            Units       = Units,                             &
+                            Data1d      = YMID(1,:,1),                       &
+                            RC          = RC                                )
+
+    Variable = TRIM( State ) // '_' // TRIM( Variable )
+    CALL GC_CheckVar( Variable, 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------------
+    ! LON (1-D slice of XMID)
+    !-------------------------------
+    Variable = 'LON'
+    Desc     = 'Longitude'
+    Units    = 'degrees_east'
+    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
+                            Registry    = Registry,                          &
+                            State       = State,                             &
+                            Variable    = Variable,                          &
+                            Description = Desc,                              &
+                            Units       = Units,                             &
+                            Data1d      = XMID(:,1,1),                       &
+                            RC          = RC                                )
+
+    Variable = TRIM( State ) // '_' // TRIM( Variable )
     CALL GC_CheckVar( Variable, 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -1642,6 +1694,9 @@ CONTAINS
     ! Print list of fields
     !------------------------------
     CALL Print_Grid( am_I_Root, RC, ShortFormat=.TRUE. )
+
+    ! Write spacer line for log file
+    WRITE( 6, '(a)' )
 
   END SUBROUTINE Init_Grid
 !EOC
@@ -1693,15 +1748,16 @@ CONTAINS
     !=======================================================================
     ! Deallocate module variables
     !=======================================================================
-    IF ( ALLOCATED( XMID     ) ) DEALLOCATE( XMID     )
-    IF ( ALLOCATED( XEDGE    ) ) DEALLOCATE( XEDGE    )
-    IF ( ALLOCATED( YMID     ) ) DEALLOCATE( YMID     )
-    IF ( ALLOCATED( YEDGE    ) ) DEALLOCATE( YEDGE    )
-    IF ( ALLOCATED( YSIN     ) ) DEALLOCATE( YSIN     )
-    IF ( ALLOCATED( YMID_R   ) ) DEALLOCATE( YMID_R   )
-    IF ( ALLOCATED( YMID_R_W ) ) DEALLOCATE( YMID_R_W )  
-    IF ( ALLOCATED( YEDGE_R  ) ) DEALLOCATE( YEDGE_R  )
-    IF ( ALLOCATED( AREA_M2  ) ) DEALLOCATE( AREA_M2  )
+    IF ( ALLOCATED( XMID      ) ) DEALLOCATE( XMID      )
+    IF ( ALLOCATED( XEDGE     ) ) DEALLOCATE( XEDGE     )
+    IF ( ALLOCATED( YMID      ) ) DEALLOCATE( YMID      )
+    IF ( ALLOCATED( YEDGE     ) ) DEALLOCATE( YEDGE     )
+    IF ( ALLOCATED( YSIN      ) ) DEALLOCATE( YSIN      ) 
+    IF ( ALLOCATED( YMID_R    ) ) DEALLOCATE( YMID_R    )
+    IF ( ALLOCATED( YMID_R_W  ) ) DEALLOCATE( YMID_R_W  )  
+    IF ( ALLOCATED( YEDGE_R   ) ) DEALLOCATE( YEDGE_R   )
+    IF ( ALLOCATED( AREA_M2   ) ) DEALLOCATE( AREA_M2   )
+    IF ( ALLOCATED( LEVEL_IND ) ) DEALLOCATE( LEVEL_IND )
     
     !=======================================================================
     ! Destroy the registry of fields for this module
