@@ -45,6 +45,10 @@ MODULE HistItem_Mod
      !----------------------------------------------------------------------
      ! netCDF variable attributes (for COARDS-compliance)
      !----------------------------------------------------------------------
+     INTEGER            :: NcXDimId              ! Id of netCDF X (lon)  dim
+     INTEGER            :: NcYdimId              ! Id of netCDF Y (lat)  dim
+     INTEGER            :: NcZDimId              ! Id of netCDF Z (lev)  dim
+     INTEGER            :: NcTdimId              ! Id of netCDF T (time) dim
      INTEGER            :: NcVarId               ! netCDF variable ID
      CHARACTER(LEN=255) :: LongName              ! Item description
      CHARACTER(LEN=255) :: Units                 ! Units of data
@@ -57,10 +61,6 @@ MODULE HistItem_Mod
      ! Pointers to the data in State_Chm, State_Diag, or State_Met
      !----------------------------------------------------------------------
      INTEGER            :: Source_KindVal        ! Identifies the source type
-
-     REAL(fp), POINTER  :: Source_0d             ! Ptr to 0D flex-prec data
-     REAL(f4), POINTER  :: Source_0d_4           ! Ptr to 0D 4-byte    data
-     INTEGER,  POINTER  :: Source_0d_I           ! Ptr to 0D integer   data
 
      REAL(fp), POINTER  :: Source_1d  (:    )    ! Ptr to 1D flex-prec data
      REAL(f4), POINTER  :: Source_1d_4(:    )    ! Ptr to 1D 4-byte    data
@@ -78,12 +78,14 @@ MODULE HistItem_Mod
      ! Data arrays 
      !----------------------------------------------------------------------
      INTEGER            :: SpaceDim              ! # of dims (0-3)
-     REAL(fp)           :: Data_0d               ! 0D scalar 
      REAL(fp), POINTER  :: Data_1d(:    )        ! 1D vector
      REAL(fp), POINTER  :: Data_2d(:,:  )        ! 2D array
      REAL(fp), POINTER  :: Data_3d(:,:,:)        ! 3D array
+     CHARACTER(LEN=3)   :: DimNames              ! Used to specify if data is
+                                                 !  "xyz", "yz", "x", "y" etc.
 
-     !----------------------------------------------------------------------     ! Data archival
+     !----------------------------------------------------------------------
+     ! Data archival
      !----------------------------------------------------------------------
      REAL(f4)           :: nUpdates              ! # of times updated
      INTEGER            :: Operation             ! Operation code
@@ -100,6 +102,7 @@ MODULE HistItem_Mod
 !  06 Jul 2017 - R. Yantosca - Add source pointers to 4-byte and integer data
 !  04 Aug 2017 - R. Yantosca - Declare Data_* accumulator arrays as REAL(fp),
 !                              which should avoid roundoff for long runs
+!  11 Aug 2017 - R. Yantosca - Remove 0d pointers and data arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -123,14 +126,14 @@ CONTAINS
                               LongName,       Units,        SpaceDim,        &
                               NX,             NY,           NZ,              &
                               AddOffset,      MissingValue, ScaleFactor,     &
-                              Source_KindVal, Operation,    Source_0d,       &
-                              Source_0d_4,    Source_0d_I,  Source_1d,       &
-                              Source_1d_4,    Source_1d_I,  Source_2d,       &
-                              Source_2d_4,    Source_2d_I,  Source_3d,       &
-                              Source_3d_4,    Source_3d_I                   )
+                              Source_KindVal, Operation,    DimNames,        &
+                              Source_1d,      Source_1d_4,  Source_1d_I,     &
+                              Source_2d,      Source_2d_4,  Source_2d_I,     &
+                              Source_3d,      Source_3d_4,  Source_3d_I     )
 !
 ! !USES:
 !
+  USE CharPak_Mod,         ONLY : TranLc
   USE ErrCode_Mod
   USE History_Params_Mod
   USE Registry_Params_Mod
@@ -156,12 +159,12 @@ CONTAINS
     INTEGER,           OPTIONAL    :: Operation          ! Operation code
                                                          !  0=copy  from source
                                                          !  1=accum from source
-
+    CHARACTER(LEN=3),  OPTIONAL    :: DimNames           ! Use this to specify
+                                                         !  dimensions of data
+                                                         !  ("yz", "z", etc.)
+                                                       
     ! Optional pointers to data targets
     INTEGER,           OPTIONAL    :: Source_KindVal     ! Type of source data
-    REAL(fp), POINTER, OPTIONAL    :: Source_0d          ! 0D flex-prec data
-    REAL(f4), POINTER, OPTIONAL    :: Source_0d_4        ! 0D 4-byte    data
-    INTEGER,  POINTER, OPTIONAL    :: Source_0d_I        ! 0D integer   data
     REAL(fp), POINTER, OPTIONAL    :: Source_1d  (:    ) ! 1D flex-prec data
     REAL(f4), POINTER, OPTIONAL    :: Source_1d_4(:    ) ! 1D 4-byte    data
     INTEGER,  POINTER, OPTIONAL    :: Source_1d_I(:    ) ! 1D integer   data
@@ -188,6 +191,8 @@ CONTAINS
 !  13 Jun 2017 - R. Yantosca - Initial version
 !  03 Aug 2017 - R. Yantosca - Add OPERATION as an optional argument
 !  08 Aug 2017 - R. Yantosca - Now assign NcVarId a default value
+!  11 Aug 2017 - R. Yantosca - Remove 0d pointers and data arrays
+!  11 Aug 2017 - R. Yantosca - Added optional DimNames argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -195,15 +200,15 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: Is_0d,  Is_0d_4,  Is_0d_I
-    LOGICAL            :: Is_1d,  Is_1d_4,  Is_1d_I
-    LOGICAL            :: Is_2d,  Is_2d_4,  Is_2d_I
-    LOGICAL            :: Is_3d,  Is_3d_4,  Is_3d_I
-    LOGICAL            :: Is_NX,  Is_NY,    Is_NZ
-    INTEGER            :: Tmp_NX, Tmp_NY,   Tmp_NZ
+    LOGICAL            :: Is_1d,      Is_1d_4,  Is_1d_I
+    LOGICAL            :: Is_2d,      Is_2d_4,  Is_2d_I
+    LOGICAL            :: Is_3d,      Is_3d_4,  Is_3d_I
+    LOGICAL            :: Is_NX,      Is_NY,    Is_NZ
+    LOGICAL            :: Is_DimNames
 
     ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc,  TempStr
+    CHARACTER(LEN=3  ) :: TmpDimNames
+    CHARACTER(LEN=255) :: ErrMsg,     ThisLoc,  TempStr
 
     !========================================================================
     ! Initialize
@@ -211,9 +216,6 @@ CONTAINS
     RC               =  GC_SUCCESS
     ErrMsg           =  ''
     ThisLoc          =  ' -> at HistItem_Create (in History/histitem_mod.F90)'
-    Tmp_NX           =  UNDEFINED_INT
-    Tmp_NY           =  UNDEFINED_INT
-    Tmp_NZ           =  UNDEFINED_INT
 
     ! Allocate the Item object
     ALLOCATE( Item, STAT=RC )
@@ -224,15 +226,11 @@ CONTAINS
     ENDIF
 
     ! Zero the data fields
-    Item%Data_0d     =  0.0_f4
     Item%Data_1d     => NULL()
     Item%Data_2d     => NULL()
     Item%Data_3d     => NULL()
    
     ! Determine if the optional source pointers are passed
-    Is_0d            =  PRESENT( Source_0d   )
-    Is_0d_4          =  PRESENT( Source_0d_4 )
-    Is_0d_I          =  PRESENT( Source_0d_I )
     Is_1d            =  PRESENT( Source_1d   )
     Is_1d_4          =  PRESENT( Source_1d_4 )
     Is_1d_I          =  PRESENT( Source_1d_I )
@@ -244,9 +242,6 @@ CONTAINS
     Is_3d_I          =  PRESENT( Source_3d_I )
 
     ! Zero optional source pointers
-    IF ( Is_0d   ) Item%Source_0d   => NULL()
-    IF ( Is_0d_4 ) Item%Source_0d_4 => NULL()
-    IF ( Is_0d_I ) Item%Source_0d_I => NULL()
     IF ( Is_1d   ) Item%Source_1d   => NULL()
     IF ( Is_1d_4 ) Item%Source_1d_4 => NULL()
     IF ( Is_1d_I ) Item%Source_1d_I => NULL()
@@ -256,7 +251,7 @@ CONTAINS
     IF ( Is_3d   ) Item%Source_3d   => NULL()
     IF ( Is_3d_4 ) Item%Source_3d_4 => NULL()
     IF ( Is_3d_I ) Item%Source_3d_I => NULL()
-     
+
     !========================================================================
     ! Required inputs, handle these first
     !========================================================================
@@ -320,10 +315,14 @@ CONTAINS
     ENDIF
 
     !--------------------------------------------
-    ! NcVarId won't be defined until we enter
-    ! netCDF define mode, so set it to undefined
+    ! These won't be defined until we enter
+    ! netCDF define mode, so set them undefined
     !--------------------------------------------
-    Item%NcVarId = UNDEFINED_INT
+    Item%NcXDimId = UNDEFINED_INT
+    Item%NcYDimId = UNDEFINED_INT
+    Item%NcZDimId = UNDEFINED_INT
+    Item%NcTdimId = UNDEFINED_INT
+    Item%NcVarId  = UNDEFINED_INT
 
     !========================================================================
     ! Optional inputs, handle these next
@@ -384,6 +383,16 @@ CONTAINS
     ENDIF  
 
     !--------------------------------------------
+    ! DimNames
+    !--------------------------------------------
+    IF ( PRESENT( DimNames ) ) THEN
+       TmpDimNames = DimNames
+       CALL TranLc( TmpDimNames )
+    ELSE
+       TmpDimNames = '  '
+    ENDIF
+
+    !--------------------------------------------
     ! Averaging method (define from Operation)
     !--------------------------------------------
     IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
@@ -399,9 +408,9 @@ CONTAINS
     !=======================================================================
  99 CONTINUE
 
-    ! Make sure the dimension is in the range 0-3
-    IF ( SpaceDim < 0 .or. SpaceDim > 3 ) THEN
-       ErrMsg = 'SpaceDim must be in the range 0-3!'
+    ! Make sure the dimension is in the range 1-3
+    IF ( SpaceDim < 1 .or. SpaceDim > 3 ) THEN
+       ErrMsg = 'SpaceDim must be in the range 1-3!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ELSE
@@ -413,6 +422,7 @@ CONTAINS
 
       CASE( 3 )
           ALLOCATE( Item%Data_3d( NX, NY, NZ ), STAT=RC )
+          Item%DimNames = 'xyz'
           IF ( RC == GC_SUCCESS ) THEN
              Item%Data_3d = 0.0_f4
           ELSE
@@ -422,7 +432,24 @@ CONTAINS
           ENDIF
 
        CASE( 2 )
-          ALLOCATE( Item%Data_2d( NX, NY ), STAT=RC )
+
+          ! Allocate to the proper size
+          SELECT CASE( TmpDimNames ) 
+             CASE( 'xy' )
+                ALLOCATE( Item%Data_2d( NX, NY ), STAT=RC )
+                Item%DimNames = 'xy '
+             CASE( 'yz' )
+                ALLOCATE( Item%Data_2d( NY, NZ ), STAT=RC )
+                Item%DimNames = 'yz '
+             CASE( 'xz' )
+                ALLOCATE( Item%Data_2d( NX, NZ ), STAT=RC )
+                Item%DimNames = 'xz '
+             CASE DEFAULT
+                ALLOCATE( Item%Data_2d( NX, NY ), STAT=RC )
+                Item%DimNames = 'xy '
+          END SELECT
+
+          ! Initialize array or trap error
           IF ( RC == GC_SUCCESS ) THEN
              Item%Data_2d = 0.0_f4
           ELSE
@@ -432,7 +459,24 @@ CONTAINS
           ENDIF
 
        CASE( 1 )
-          ALLOCATE( Item%Data_1d( NX ), STAT=RC )
+          
+          ! Pick the proper dimensions
+          SELECT CASE( TmpDimNames ) 
+             CASE( 'x' )
+                ALLOCATE( Item%Data_1d( NX ), STAT=RC )
+                Item%DimNames = 'x  '
+             CASE( 'y' )
+                ALLOCATE( Item%Data_1d( NY ), STAT=RC )
+                Item%DimNames = 'y  '
+             CASE( 'z' )
+                ALLOCATE( Item%Data_1d( NZ ), STAT=RC )
+                Item%DimNames = 'z  '
+             CASE DEFAULT
+                ALLOCATE( Item%Data_1d( NX ), STAT=RC )
+                Item%DimNames = 'x  '
+          END SELECT
+
+          ! Trap potential errors
           IF ( RC == GC_SUCCESS ) THEN
              Item%Data_1d  = 0.0_f4
           ELSE
@@ -441,14 +485,10 @@ CONTAINS
              RETURN             
           ENDIF
 
-       CASE DEFAULT
-          ! Do Nothing
-
     END SELECT
 
     !========================================================================
     ! Attach pointers to the data source
-    ! Also get the siz
     !========================================================================
     SELECT CASE( Item%SpaceDim ) 
 
@@ -491,19 +531,6 @@ CONTAINS
              RETURN
           ENDIF
 
-       ! Attach pointer to 0D data source, depending on its type
-       CASE( 0 )
-          IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
-             IF ( Is_0d   ) Item%Source_0d   => Source_0d
-             RETURN
-          ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
-             IF ( Is_0d_4 ) Item%Source_0d_4 => Source_0d_4
-             RETURN
-          ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
-             IF ( Is_0d_I ) Item%Source_0d_I => Source_0d_I
-             RETURN
-          ENDIF
-
     END SELECT
 
   END SUBROUTINE HistItem_Create
@@ -540,6 +567,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  13 Jun 2017 - R. Yantosca - Initial version
 !  06 Jul 2017 - R. Yantosca - Add option to print truncated output format
+!  11 Aug 2017 - R. Yantosca - Remove 0d pointers and data arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -548,10 +576,6 @@ CONTAINS
 !
     ! Scalars
     LOGICAL          :: Use_ShortFormat
-
-    ! String arrays
-    CHARACTER(LEN=4) :: DimStr(0:4) = &
-                        (/ '0   ', 'x   ', 'xy  ', 'xyz ', 'xyzn' /)
 
     !=======================================================================
     ! Initialize
@@ -577,9 +601,9 @@ CONTAINS
           !-----------------------------------------------------------------
           ! Use truncated output format
           !-----------------------------------------------------------------
-          WRITE( 6, 100 ) TRIM( Item%Name ),     TRIM( Item%LongName ),  &
-                          DimStr(Item%SpaceDim), TRIM( Item%Units    )
- 100      FORMAT( 2x, a20, ' | ', a40, ' | ', a4, ' | ', a15 )
+          WRITE( 6, 100 ) Item%Name,     Item%LongName,    &
+                          Item%DimNames, TRIM( Item%Units )
+ 100      FORMAT( 2x, a20, ' | ', a40, ' | ', a3, ' | ', a )
 
        ELSE
 
@@ -587,9 +611,9 @@ CONTAINS
           ! Use expanded output format
           !-----------------------------------------------------------------
           PRINT*, REPEAT( '-', 70 )
-          PRINT*, 'Name           : ', TRIM( Item%Name      )
+          PRINT*, 'Name           : ', TRIM( Item%Name     )
           PRINT*, 'Long_Name      : ', TRIM( Item%LongName )
-          PRINT*, 'Units          : ', TRIM( Item%Units     )
+          PRINT*, 'Units          : ', TRIM( Item%Units    )
           PRINT*, 'Add_Offset     : ', Item%AddOffset
           PRINT*, 'Missing_Value  : ', Item%MissingValue
           PRINT*, 'Scale_Factor   : ', Item%ScaleFactor
@@ -597,13 +621,15 @@ CONTAINS
           PRINT*, 'Id             : ', Item%ID
           PRINT*, 'CollectionId   : ', Item%ContainerId
           PRINT*, 'NetCDF var ID  : ', Item%NcVarId
+          PRINT*, 'NetCDF xDim Id : ', Item%NcXDimId
+          PRINT*, 'NetCDF yDim Id : ', Item%NcYDimId
+          PRINT*, 'NetCDF zDim Id : ', Item%NcZDimId
+          PRINT*, 'NetCDF tDim Id : ', Item%NcTDimId
           PRINT*, ''
           PRINT*, 'nUpdates       : ', Item%nUpdates
           PRINT*, 'Operation      : ', Item%Operation
           PRINT*, ''
-          PRINT*, 'SpaceDim       : ', Item%SpaceDim, ' (',         &
-                                       DimStr(Item%SpaceDim), ')'
-          PRINT*, 'Data_0d        : ', Item%Data_0d
+          PRINT*, 'SpaceDim       : ', Item%SpaceDim, ' (', Item%DimNames, ')'
        
           IF ( ASSOCIATED( Item%Data_1d ) ) THEN 
              PRINT*, 'Min   Data_1d  : ', MINVAL( Item%Data_1d    )
@@ -670,6 +696,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  13 Jun 2017 - R. Yantosca - Initial version
 !  06 Jul 2017 - R. Yantosca - Nullify source pointers to 4-byte & integer data
+!  11 Aug 2017 - R. Yantosca - Remove 0d pointers and data arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -688,9 +715,6 @@ CONTAINS
     !=======================================================================
     ! Nullify fields that are just pointing to other objects   
     !======================================================================
-    Item%Source_0d   => NULL()
-    Item%Source_0d_4 => NULL()
-    Item%Source_0d_I => NULL()
     Item%Source_1d   => NULL()
     Item%Source_1d_4 => NULL()
     Item%Source_1d_I => NULL()

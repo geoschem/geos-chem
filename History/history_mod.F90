@@ -1321,6 +1321,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
+!  11 Aug 2017 - R. Yantosca - Remove references to 0d pointers, data arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1541,46 +1542,6 @@ CONTAINS
                       Item%nUpdates = 1
                    ELSE
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d_I
-                      Item%nUpdates = Item%nUpdates + 1 
-                   ENDIF
-
-                ENDIF
-
-             !--------------------------------------------------------------
-             ! Update 0-D data field
-             !--------------------------------------------------------------
-             CASE( 0 )
-
-                ! Flex-precision floating point
-                IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
-
-                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
-                      Item%Data_0d  = Item%Source_0d
-                      Item%nUpdates = 1
-                   ELSE
-                      Item%Data_0d  = Item%Data_0d  + Item%Source_0d
-                      Item%nUpdates = Item%nUpdates + 1 
-                   ENDIF
-
-                ! 4-byte floating point
-                ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
-
-                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
-                      Item%Data_0d  = Item%Source_0d_4
-                      Item%nUpdates = 1
-                   ELSE
-                      Item%Data_0d  = Item%Data_0d  + Item%Source_0d_4
-                      Item%nUpdates = Item%nUpdates + 1 
-                   ENDIF
-
-                ! Integer
-                ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
-
-                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
-                      Item%Data_0d  = Item%Source_0d_I
-                      Item%nUpdates = 1
-                   ELSE
-                      Item%Data_0d  = Item%Data_0d  + Item%Source_0d_I
                       Item%nUpdates = Item%nUpdates + 1 
                    ENDIF
 

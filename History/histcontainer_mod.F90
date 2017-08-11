@@ -68,11 +68,18 @@ MODULE HistContainer_Mod
      INTEGER                     :: Operation           ! Operation code
                                                         !  0=copy from source
                                                         !  1=accum from source
+     INTEGER                     :: ReferenceYmd        ! Reference YMD & hms 
+     INTEGER                     :: ReferenceHms        !  for the "time" dim
+     INTEGER                     :: CurrTimeSlice       ! Current time slice
+                                                        !  for the "time" dim
+
      !----------------------------------------------------------------------
      ! File definition and I/O status information
      !----------------------------------------------------------------------
      INTEGER                     :: FileWriteYmd        ! File write frequency
      INTEGER                     :: FileWriteHms        !  in YMD and hms
+     INTEGER                     :: FileCloseYmd        ! File closing time
+     INTEGER                     :: FileCloseHms        !  in YMD and hms
      LOGICAL                     :: IsFileDefined       ! Have we done netCDF
                                                         !  define mode yet?
      LOGICAL                     :: IsFileOpen          ! Is the netCDF file
@@ -201,6 +208,8 @@ CONTAINS
 !  16 Jun 2017 - R. Yantosca - Initial version, based on history_list_mod.F90
 !  07 Aug 2017 - R. Yantosca - Add FileWriteYmd and FileWriteHms
 !  09 Aug 2017 - R. Yantosca - Add nX, ny, and, nZ
+!  11 Aug 2017 - R. Yantosca - Add FileCloseYmd, FileCloseHms, ReferenceYmd,
+!                              ReferenceHms, and CurrTimeSlice 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -428,7 +437,7 @@ CONTAINS
 
     !=======================================================================
     ! These fields will not be set until we create the netCDF file,
-    ! so for now set them to undefined values.
+    ! so for now set them to UNDEFINED values.
     !=======================================================================
     Container%IsFileDefined = .FALSE.
     Container%IsFileOpen    = .FALSE.
@@ -437,6 +446,11 @@ CONTAINS
     Container%yDimId        = UNDEFINED_INT
     Container%zDimId        = UNDEFINED_INT
     Container%tDimId        = UNDEFINED_INT
+    Container%FileCloseYmd  = UNDEFINED_INT
+    Container%FileCloseHms  = UNDEFINED_INT
+    Container%ReferenceYmd  = UNDEFINED_INT
+    Container%ReferenceHms  = UNDEFINED_INT
+    Container%CurrTimeSlice = UNDEFINED_INT
 
   END SUBROUTINE HistContainer_Create
 !EOC
@@ -514,8 +528,13 @@ CONTAINS
        WRITE( 6, 120 ) 'Operation      : ', OpCode( Container%Operation )
        WRITE( 6, 150 ) 'IsFileDefined  : ', Container%IsFileDefined
        WRITE( 6, 150 ) 'IsFileOpen     : ', Container%IsFileOpen
+       WRITE( 6, 135 ) 'ReferenceYmd   : ', Container%ReferenceYmd
+       WRITE( 6, 145 ) 'ReferenceHms   : ', Container%ReferenceHms
        WRITE( 6, 135 ) 'FileWriteYmd   : ', Container%FileWriteYmd
        WRITE( 6, 145 ) 'FileWriteHms   : ', Container%FileWriteHms
+       WRITE( 6, 135 ) 'FileCloseYmd   : ', Container%FileCloseYmd
+       WRITE( 6, 145 ) 'FileCloseHms   : ', Container%FileCloseHms
+       WRITE( 6, 130 ) 'CurrTimeSlice  : ', Container%CurrTimeSlice
        WRITE( 6, 130 ) 'FileId         : ', Container%FileId
        WRITE( 6, 130 ) 'xDimId         : ', Container%xDimId 
        WRITE( 6, 130 ) 'yDimId         : ', Container%yDimId 
@@ -565,8 +584,6 @@ CONTAINS
                    Dimstr = 'xy'
                 CASE( 1 )
                    Dimstr = 'x'
-                CASE( 0 )
-                   DimStr = '0'
              END SELECT
 
              WRITE( 6, 100 ) Current%Item%Name,      &
