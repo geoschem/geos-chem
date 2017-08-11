@@ -30,7 +30,7 @@ MODULE History_Netcdf_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-!  PRIVATE :: History_Netcdf_DefineDims
+  PRIVATE :: History_Expand_Date
 !
 ! !REMARKS:
 !
@@ -63,14 +63,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Charpak_Mod,        ONLY : StrRepl
     USE ErrCode_Mod
     USE HistContainer_Mod,  ONLY : HistContainer, HistContainer_Print
     USE HistItem_Mod,       ONLY : HistItem,      HistItem_Print
     USE History_Params_Mod
     USE MetaHistItem_Mod,   ONLY : MetaHistItem
     USE Ncdf_Mod
-    USE Time_Mod,           ONLY : Ymd_Extract
 !
 ! !INPUT PARAMETERS: 
 !
@@ -95,20 +93,15 @@ CONTAINS
 !
     ! Scalars
     INTEGER                     :: N,         VarCt
-    INTEGER                     :: Year,      Month,       Day
-    INTEGER                     :: Hour,      Minute,      Second
     INTEGER                     :: VarXDimId, VarYDimId
     INTEGER                     :: VarZDimId, VarTDimId
 
     ! Strings                   
-    CHARACTER(LEN=2)            :: MonthStr,  DayStr 
-    CHARACTER(LEN=2)            :: HourStr,   MinuteStr,   SecondStr
-    CHARACTER(LEN=4)            :: YearStr
     CHARACTER(LEN=5)            :: Z
     CHARACTER(LEN=8)            :: D
     CHARACTER(LEN=10)           :: T
-    CHARACTER(LEN=255)          :: FileName,  TimeString
-    CHARACTER(LEN=255)          :: ErrMsg,    ThisLoc
+    CHARACTER(LEN=255)          :: FileName
+    CHARACTER(LEN=255)          :: ErrMsg,    ThisLoc,     VarUnits
     CHARACTER(LEN=255)          :: VarAxis,   VarPositive, VarCalendar
 
     ! Arrays
@@ -120,17 +113,19 @@ CONTAINS
 
     ! Objects
     TYPE(MetaHistItem), POINTER :: Current
-    TYPE(HistItem),     POINTER :: Item
     
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC      =  GC_SUCCESS
-    Current => NULL()
-    Item    => NULL()
-    ErrMsg  =  ''
-    ThisLoc =  ' -> at History_Netcdf_Define (in History/history_mod.F90)'
-
+    RC          =  GC_SUCCESS
+    Current     => NULL()
+    ErrMsg      =  ''
+    ThisLoc     =  ' -> at History_Netcdf_Define (in History/history_mod.F90)'
+    VarAxis     =  ''
+    VarCalendar =  ''
+    VarPositive =  ''
+    VarUnits    =  ''
+    
     !=======================================================================
     ! Construct the file name using the passed date and time
     !=======================================================================
@@ -138,25 +133,8 @@ CONTAINS
     ! Save the collection's file name in a temporary variable
     FileName = TRIM( Container%FileName )
 
-    ! Extract year/month/day and hour/minute/seconds from the time
-    CALL Ymd_Extract( yyyymmdd, Year, Month,  Day    )
-    CALL Ymd_Extract( hhmmss,   Hour, Minute, Second )
-
-    ! Convert to strings
-    WRITE( YearStr,   '(i4.4)' ) Year
-    WRITE( MonthStr,  '(i2.2)' ) Month
-    WRITE( DayStr,    '(i2.2)' ) Day
-    WRITE( HourStr,   '(i2.2)' ) Hour
-    WRITE( MinuteStr, '(i2.2)' ) Minute
-    WRITE( SecondStr, '(i2.2)' ) Second
-
-    ! Replace
-    CALL StrRepl( FileName, '%y4', YearStr   )
-    CALL StrRepl( FileName, '%m2', MonthStr  )
-    CALL StrRepl( FileName, '%d2', DayStr    )
-    CALL StrRepl( FileName, '%h2', HourStr   )
-    CALL StrRepl( FileName, '%n2', MinuteStr )
-    CALL StrRepl( FileName, '%s2', SecondStr )
+    ! Replace date and time tokens in the file name
+    CALL History_Expand_Date( FileName, yyyymmdd, hhmmss, MAPL_Style=.TRUE. )
    
 #if defined( DEBUG )
     !###  Debug output for development
@@ -172,7 +150,7 @@ CONTAINS
 #endif
 
     !=======================================================================
-    ! Create the timestamp for the 
+    ! Create the timestamp for the History and ProdDateTime attributes
     !=======================================================================
 
     ! Call F90 intrinsic DATE_AND_TIME Function
@@ -206,12 +184,14 @@ CONTAINS
        ! As long as this node of the list is valid ...
        DO WHILE( ASSOCIATED( Current ) )
 
-          ! Undefine the netCDF dimension and variable ID's
-          Current%Item%NcXDimId = UNDEFINED_INT
-          Current%Item%NcYDimId = UNDEFINED_INT
-          Current%Item%NcZDimId = UNDEFINED_INT
-          Current%Item%NcTDimId = UNDEFINED_INT
-          Current%Item%NcVarId  = UNDEFINED_INT
+          ! Undefine quantities for the file we just closed
+          Container%ReferenceYmd = 0
+          Container%ReferenceHms = 0
+          Current%Item%NcXDimId  = UNDEFINED_INT
+          Current%Item%NcYDimId  = UNDEFINED_INT
+          Current%Item%NcZDimId  = UNDEFINED_INT
+          Current%Item%NcTDimId  = UNDEFINED_INT
+          Current%Item%NcVarId   = UNDEFINED_INT
           
           ! Go to the next HISTORY ITEM
           Current => Current%Next
@@ -231,6 +211,12 @@ CONTAINS
        ! Create the file and add global attributes
        ! Remain in netCDF define mode upon exiting this routine
        !--------------------------------------------------------------------
+
+       ! Set the reference time
+       Container%ReferenceYmd = yyyymmdd
+       Container%ReferenceHms = hhmmss
+
+       ! Create the file
        CALL Nc_Create( Create_Nc4   = .TRUE.,                                &
                        NcFile       = FileName,                              &
                        nLon         = Container%nX,                          &
@@ -254,8 +240,9 @@ CONTAINS
          
        !--------------------------------------------------------------------
        ! Denote that the file has been created and is open
+       ! Also set the reference time and date accordingly
        !--------------------------------------------------------------------
-       Container%IsFileOpen = .TRUE.
+       Container%IsFileOpen   = .TRUE.
     ENDIF
 
     !=======================================================================
@@ -274,32 +261,36 @@ CONTAINS
        DO WHILE( ASSOCIATED( Current ) )
 
           ! Get the dimension ID's that are relevant to each HISTORY ITEM
-          ! Also get Axis, Calendar, and Positive attributes for index vars
+          ! Also get Axis, Calendar, and Positive attributes for index vars,
+          ! and replace time & date tokens in the units string for "time".
           CALL Get_Var_DimIds( Item        = Current%Item,                   & 
                                xDimId      = Container%xDimId,               &
                                yDimId      = Container%yDimId,               &
                                zDimId      = Container%zDimId,               &
                                tDimId      = Container%tDimId,               &
+                               RefDate     = Container%ReferenceYmd,         &
+                               RefTime     = Container%ReferenceHms,         &
                                VarAxis     = VarAxis,                        &
                                VarPositive = VarPositive,                    &
-                               VarCalendar = VarCalendar                    )
-          
+                               VarCalendar = VarCalendar,                    &
+                               VarUnits    = VarUnits                       )
+
           ! Define each HISTORY ITEM in this collection to the netCDF file
           CALL Nc_Var_Def( DefMode      = .TRUE.,                            &
                            Compress     = .TRUE.,                            &
                            fId          = Container%FileId,                  &
                            DataType     = 8,                                 &
                            VarName      = Current%Item%Name,                 &
+                           VarCt        = Current%Item%NcVarId,              &
                            timeId       = Current%Item%NcTDimId,             &
                            levId        = Current%Item%NcZDimId,             &
                            latId        = Current%Item%NcYDimId,             &
                            lonId        = Current%Item%NcXDimId,             &
                            VarLongName  = Current%Item%LongName,             &
-                           VarUnit      = Current%Item%Units,                &
+                           VarUnit      = VarUnits,                          &
                            Axis         = VarAxis,                           &
                            Calendar     = VarCalendar,                       &
-                           Positive     = VarPositive,                       &
-                           VarCt        = Current%Item%NcVarId              )
+                           Positive     = VarPositive                       )
 
           ! Debug print
           !CALL HistItem_Print( am_I_Root, Current%Item, RC )
@@ -335,6 +326,7 @@ CONTAINS
                            fId          = Container%FileId,                  &
                            DataType     = 4,                                 &
                            VarName      = Current%Item%Name,                 &
+                           VarCt        = Current%Item%NcVarId,              &
                            timeId       = Current%Item%NcTDimId,             &
                            levId        = Current%Item%NcZDimId,             &
                            latId        = Current%Item%NcYDimId,             &
@@ -342,8 +334,7 @@ CONTAINS
                            VarLongName  = Current%Item%LongName,             &
                            VarUnit      = Current%Item%Units,                &
                            MissingValue = Current%Item%MissingValue,         &
-                           AvgMethod    = Current%Item%AvgMethod,            &
-                           VarCt        = Current%Item%NcVarId              )
+                           AvgMethod    = Current%Item%AvgMethod            )
            
           ! Go to next entry in the list of HISTORY ITEMS
           Current => Current%Next
@@ -402,15 +393,17 @@ CONTAINS
 !
 ! !DESCRIPTION: For a given HISTORY ITEM, returns the name and the netCDF
 !  dimension ID's pertaining to the data array.  Dimension ID's that do not
-!  pertain to the data will be set to UNDEFINED_INT.  Also, the name of
-!  index variables will be adjusted for COARDS compliance (i.e. "GRID_LON"
-!  will be changed to "lon", etc).
+!  pertain to the data will be set to UNDEFINED_INT.  Certain metadata for
+!  netCDF index variables will also be returned.  In particular, the unit 
+!  string for the "time" index variable will be updated with the reference 
+!  date and time.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Var_DimIds( Item,   xDimId,  yDimId,      zDimId,          &
-                             tDimID, VarAxis, VarCalendar, VarPositive     )
+  SUBROUTINE Get_Var_DimIds( Item,        xDimId,      yDimId,  zDimId,      &
+                             tDimID,      RefDate,     RefTime, VarAxis,     &
+                             VarCalendar, VarPositive, VarUnits             )
 !
 ! !USES:
 !
@@ -424,12 +417,15 @@ CONTAINS
     INTEGER,            INTENT(IN)  :: yDimId      ! Id # of netCDF Y dimension 
     INTEGER,            INTENT(IN)  :: zDimId      ! Id # of netCDF Z dimension 
     INTEGER,            INTENT(IN)  :: tDimId      ! Id # of netCDF T dimension 
+    INTEGER,            OPTIONAL    :: RefDate     ! Ref YMD for "time" variable
+    INTEGER,            OPTIONAL    :: RefTime     ! Ref hms for "time" variable
 !
 ! !OUTPUT PARAMETERS
 !
     CHARACTER(LEN=255), OPTIONAL    :: VarAxis     ! Axis attr for index vars
-    CHARACTER(LEN=255), OPTIONAL    :: VarCalendar ! Calendar attr for time
-    CHARACTER(LEN=255), OPTIONAL    :: VarPositive ! Positive attr for lev
+    CHARACTER(LEN=255), OPTIONAL    :: VarCalendar ! Calendar attr for "time"
+    CHARACTER(LEN=255), OPTIONAL    :: VarPositive ! Positive attr for "lev"
+    CHARACTER(LEN=255), OPTIONAL    :: VarUnits    ! Unit string
 !
 ! !REMARKS:
 !  Call this routine before calling NC_VAR_DEF.
@@ -442,19 +438,41 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
+    INTEGER            :: ReferenceYmd, ReferenceHms  
+    INTEGER            :: Year,         Month,        Day
+    INTEGER            :: Hour,         Minute,       Second
+
     ! Strings
-    CHARACTER(LEN=255) :: TmpAxis, TmpCalendar, TmpPositive
+    CHARACTER(LEN=2)   :: MonthStr,     DayStr 
+    CHARACTER(LEN=2)   :: HourStr,      MinuteStr,    SecondStr
+    CHARACTER(LEN=4)   :: YearStr
+    CHARACTER(LEN=255) :: TmpAxis,      TmpCalendar
+    CHARACTER(LEN=255) :: TmpPositive,  TmpUnits
 
     !=======================================================================
     ! Initialize
     !=======================================================================
-    TmpAxis       = ''
-    TmpCalendar   = ''
-    TmpPositive   = ''
-    Item%NcXDimId = UNDEFINED_INT
-    Item%NcYDimId = UNDEFINED_INT
-    Item%NcZDimId = UNDEFINED_INT
-    Item%NcTDimId = UNDEFINED_INT
+    TmpAxis         = ''
+    TmpCalendar     = ''
+    TmpPositive     = ''
+    TmpUnits        = Item%Units
+    Item%NcXDimId   = UNDEFINED_INT
+    Item%NcYDimId   = UNDEFINED_INT
+    Item%NcZDimId   = UNDEFINED_INT
+    Item%NcTDimId   = UNDEFINED_INT
+    
+    IF ( PRESENT( RefDate ) ) THEN
+       ReferenceYmd = RefDate
+    ELSE
+       ReferenceYmd = UNDEFINED_INT
+    ENDIF
+
+    IF ( PRESENT( RefTime ) ) THEN
+       ReferenceHms = RefTime
+    ELSE
+       ReferenceHms = UNDEFINED_INT
+    ENDIF
 
     !=======================================================================
     ! Return relevant dim ID's and metadata for the HISTORY ITEM
@@ -482,6 +500,12 @@ CONTAINS
           Item%NcTDimId = tDimId
           TmpAxis       = 'T'
           TmpCalendar   = 'gregorian'
+
+          ! Replace date and time tokens in the unit string
+          ! with the netCDF file's reference date and time
+          IF ( ReferenceYmd > 0 ) THEN
+             CALL History_Expand_Date( TmpUnits, ReferenceYmd, ReferenceHms )
+          ENDIF
 
        ! area
        CASE( 'AREA' )
@@ -527,6 +551,7 @@ CONTAINS
     IF ( PRESENT( VarAxis     ) ) VarAxis     = TmpAxis
     IF ( PRESENT( VarCalendar ) ) VarCalendar = TmpCalendar
     IF ( PRESENT( VarPositive ) ) VarPositive = TmpPositive
+    IF ( PRESENT( VarUnits    ) ) VarUnits    = TmpUnits
 
   END SUBROUTINE Get_Var_DimIds
 !EOC
@@ -586,8 +611,8 @@ CONTAINS
     CHARACTER(LEN=255)       :: Units
 
     ! Pointer arrays
-    REAL(fp),        POINTER :: Ptr1d  (:    )
-    REAL(fp),        POINTER :: Ptr2d  (:,:  )
+    REAL(fp),        POINTER :: Ptr1d(:    )
+    REAL(fp),        POINTER :: Ptr2d(:,:  )
 
     ! Objects
     TYPE(HistItem),  POINTER :: Item
@@ -745,6 +770,110 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE History_Netcdf_Cleanup
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: History_Expand_Date
+!
+! !DESCRIPTION: Replaces date and time tokens in a string with actual 
+!  date and time values.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE History_Expand_Date( DateStr, yyyymmdd, hhmmss, MAPL_Style )
+!
+! !USES:
+!
+    USE Charpak_Mod, ONLY : StrRepl
+    USE Time_Mod,    ONLY : Ymd_Extract
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER,          INTENT(IN)    :: yyyymmdd    ! Date in YYYYMMDD format
+    INTEGER,          INTENT(IN)    :: hhmmss      ! Time in hhmmss format
+    LOGICAL,          OPTIONAL      :: MAPL_Style  ! Use MAPL-style tokens
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+    CHARACTER(LEN=*), INTENT(INOUT) :: DateStr     ! String with date tokens
+!
+! !REMARKS:
+!  Based on EXPAND_DATE from GeosUtil/time_mod.F.
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL          :: Is_Mapl_Style 
+    INTEGER          :: Year,          Month,      Day
+    INTEGER          :: Hour,          Minute,     Second
+
+    ! Strings
+    CHARACTER(LEN=2) :: MonthStr,      DayStr 
+    CHARACTER(LEN=2) :: HourStr,       MinuteStr,  SecondStr
+    CHARACTER(LEN=4) :: YearStr
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    IF ( PRESENT( MAPL_Style ) ) THEN
+       Is_Mapl_Style = MAPL_Style
+    ELSE
+       Is_Mapl_Style = .FALSE.
+    ENDIF
+
+    !=======================================================================
+    ! Split the date and time into individal variables
+    !=======================================================================
+
+    ! Extract year/month/day and hour/minute/seconds from the time
+    CALL Ymd_Extract( yyyymmdd, Year, Month,  Day    )
+    CALL Ymd_Extract( hhmmss,   Hour, Minute, Second )
+
+    ! Convert to strings
+    WRITE( YearStr,   '(i4.4)' ) Year
+    WRITE( MonthStr,  '(i2.2)' ) Month
+    WRITE( DayStr,    '(i2.2)' ) Day
+    WRITE( HourStr,   '(i2.2)' ) Hour
+    WRITE( MinuteStr, '(i2.2)' ) Minute
+    WRITE( SecondStr, '(i2.2)' ) Second
+
+    !=======================================================================
+    ! Replace the date and time tokens in the string
+    !=======================================================================
+
+    IF ( Is_Mapl_Style ) THEN
+       
+       ! Use MAPL-style tokens
+       CALL StrRepl( DateStr, '%y4',  YearStr   )
+       CALL StrRepl( DateStr, '%m2',  MonthStr  )
+       CALL StrRepl( DateStr, '%d2',  DayStr    )
+       CALL StrRepl( DateStr, '%h2',  HourStr   )
+       CALL StrRepl( DateStr, '%n2',  MinuteStr )
+       CALL StrRepl( DateStr, '%s2',  SecondStr )
+
+    ELSE
+       
+       ! Use GEOS-Chem style tokens
+       CALL StrRepl( DateStr, 'YYYY', YearStr   )
+       CALL StrRepl( DateStr, 'MM',   MonthStr  )
+       CALL StrRepl( DateStr, 'DD',   DayStr    )
+       CALL StrRepl( DateStr, 'hh',   HourStr   )
+       CALL StrRepl( DateStr, 'mm',   MinuteStr )
+       CALL StrRepl( DateStr, 'ss',   SecondStr )
+
+    ENDIF
+
+  END SUBROUTINE History_Expand_Date
 !EOC
 END MODULE History_Netcdf_Mod
 

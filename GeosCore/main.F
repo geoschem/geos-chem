@@ -934,6 +934,8 @@
 
 #if defined( NC_DIAG ) 
          ! Write netCDF diagnostics to disk 
+         !%%% NOTE: Need to find a way to prevent opening a new
+         !%%% file on the last timestep, unless it is a restart file
          CALL History_Write( am_I_Root, Nymd, Nhms, RC )
 #endif
 

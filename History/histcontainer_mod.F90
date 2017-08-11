@@ -446,10 +446,10 @@ CONTAINS
     Container%yDimId        = UNDEFINED_INT
     Container%zDimId        = UNDEFINED_INT
     Container%tDimId        = UNDEFINED_INT
-    Container%FileCloseYmd  = UNDEFINED_INT
-    Container%FileCloseHms  = UNDEFINED_INT
-    Container%ReferenceYmd  = UNDEFINED_INT
-    Container%ReferenceHms  = UNDEFINED_INT
+    Container%FileCloseYmd  = 0
+    Container%FileCloseHms  = 0
+    Container%ReferenceYmd  = 0
+    Container%ReferenceHms  = 0
     Container%CurrTimeSlice = UNDEFINED_INT
 
   END SUBROUTINE HistContainer_Create
