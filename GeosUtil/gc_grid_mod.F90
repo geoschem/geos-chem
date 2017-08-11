@@ -97,8 +97,8 @@ MODULE GC_Grid_Mod
   REAL(fp), ALLOCATABLE, TARGET :: YMID_R_W (:,:,:) ! Lat ctrs  nest grid [rad]
   REAL(fp), ALLOCATABLE, TARGET :: YEDGE_R_W(:,:,:) ! Lat edges nest grid [rad]
   REAL(fp), ALLOCATABLE, TARGET :: AREA_M2  (:,:,:) ! Grid box areas [m2]
-  REAL(fp), ALLOCATABLE, TARGET :: LAT      (:    ) ! Lat values  (for registry)
   REAL(fp), ALLOCATABLE, TARGET :: LEVEL_IND(:    ) ! Lev indices (for registry)
+  REAL(fp), POINTER             :: LAT(:) => NULL() ! Lat values  (for registry)
 
   ! Registry of variables contained within gc_grid_mod.F90
   CHARACTER(LEN=4)              :: State     = 'GRID'   ! Name of this state
@@ -1584,9 +1584,7 @@ CONTAINS
     !======================================================================
     ! Level index (used for netCDF index variable)
     !======================================================================
-    ALLOCATE( LAT( JM ), STAT=RC )
-    IF ( RC /= 0 ) CALL ALLOC_ERR( 'LAT' )
-    LAT = YMID(1,:,1)
+    LAT => YMID(1,:,1)
 
     !======================================================================
     ! Level index (used for netCDF index variable)
@@ -1765,8 +1763,10 @@ CONTAINS
     IF ( ALLOCATED( YMID_R_W  ) ) DEALLOCATE( YMID_R_W  )  
     IF ( ALLOCATED( YEDGE_R   ) ) DEALLOCATE( YEDGE_R   )
     IF ( ALLOCATED( AREA_M2   ) ) DEALLOCATE( AREA_M2   )
-    IF ( ALLOCATED( LAT       ) ) DEALLOCATE( LAT       )
     IF ( ALLOCATED( LEVEL_IND ) ) DEALLOCATE( LEVEL_IND )
+
+    ! Free pointer
+    LAT => NULL()
     
     !=======================================================================
     ! Destroy the registry of fields for this module
