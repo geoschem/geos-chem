@@ -5,7 +5,9 @@
 !
 ! !MODULE: history_netcdf_mod.F90 
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Contains routines to create a netCDF file for each GEOS-Chem
+!  diagnostic collection (as specified by each HISTORY CONTAINER in the 
+!  master collection list located within in history_mod.F90).
 !\\
 !\\
 ! !INTERFACE:
@@ -24,24 +26,29 @@ MODULE History_Netcdf_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS
 !
+  PUBLIC  :: History_Netcdf_Close
   PUBLIC  :: History_Netcdf_Define
   PUBLIC  :: History_Netcdf_Init
   PUBLIC  :: History_Netcdf_Cleanup
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
+  PRIVATE :: Compute_Julian_Date
+  PRIVATE :: Get_Var_DimIds
   PRIVATE :: History_Expand_Date
+  PRIVATE :: History_Set_RefDateTime
 !
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
+!  10 Aug 2017 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
+  ! Linked list of HISTORY ITEMS for netCDF index varaibles (lon, lat, etc)
   TYPE(MetaHistItem), POINTER :: IndexVarList => NULL()
 
 CONTAINS
@@ -51,9 +58,117 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: History_Netcdf_Close
+!
+! !DESCRIPTION: Closes the netCDF file specified by the the given HISTORY 
+!  CONTAINER object.  Also resets the relevant fields of the HISTORY CONTAINER 
+!  object (as well as the fields in each HISTORY ITEM contained within the
+!  HISTORY CONTAINER) to undefined values.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE History_Netcdf_Close( am_I_Root, Container, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HistContainer_Mod,     ONLY : HistContainer
+    USE History_Params_Mod
+    USE MetaHistContainer_Mod, ONLY : MetaHistContainer
+    USE Ncdf_Mod
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+    TYPE(HistContainer), POINTER     :: Container   ! HISTORY CONTAINER obj
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER,             INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This had been part of History_Netcdf_Define, but is now its own routine.
+!
+! !REVISION HISTORY:
+!  14 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(MetaHIstItem), POINTER :: Current
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      =  GC_SUCCESS
+    Current => NULL()
+
+    !=======================================================================
+    ! Close the previous file in this collection if it is still open
+    !=======================================================================
+    IF ( Container%IsFileOpen .or. Container%IsFileDefined ) THEN
+
+       !--------------------------------------------------------------------
+       ! Close file and undefine fields of the HISTORY CONTAINER object
+       !--------------------------------------------------------------------
+
+       ! Close the netCDF file
+       CALL Nc_Close( Container%FileId )
+
+       ! Undefine fields
+       Container%IsFileOpen    = .FALSE.
+       Container%IsFileDefined = .FALSE.
+       Container%ReferenceYmd  = 0
+       Container%ReferenceHms  = 0
+       Container%ReferenceJd   = 0.0_f8
+
+       !--------------------------------------------------------------------
+       ! Undefine relevant fields of each HISTORY ITEM object
+       ! belonging to this HISTORY CONTAINER object
+       !--------------------------------------------------------------------
+
+       ! Set CURRENT to the first entry in the list of 
+       ! HISTORY ITEMS belonging to this collection
+       Current => Container%HistItems
+
+       ! As long as this node of the list is valid ...
+       DO WHILE( ASSOCIATED( Current ) )
+
+          ! Undefine quantities for the file we just closed
+          Current%Item%NcXDimId  = UNDEFINED_INT
+          Current%Item%NcYDimId  = UNDEFINED_INT
+          Current%Item%NcZDimId  = UNDEFINED_INT
+          Current%Item%NcTDimId  = UNDEFINED_INT
+          Current%Item%NcVarId   = UNDEFINED_INT
+          
+          ! Go to the next entry in the list of HISTORY ITEMS
+          Current => Current%Next
+       ENDDO
+
+       ! Free pointer
+       Current => NULL()
+    ENDIF
+
+  END SUBROUTINE History_Netcdf_Close
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: History_Netcdf_Define
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Creates the netCDF file specified by each HISTORY CONTAINER
+!  object, and defines the variables specified by the HISTORY ITEMS beloinging
+!  to the HISTORY CONTAINER.  Index variables lon, lat, lev, time, as well
+!  as the AREA variable, are written to the netCDF file with the proper
+!  metadata.
 !\\
 !\\
 ! !INTERFACE:
@@ -84,7 +199,7 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
+!  08  - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -113,7 +228,7 @@ CONTAINS
 
     ! Objects
     TYPE(MetaHistItem), POINTER :: Current
-    
+
     !=======================================================================
     ! Initialize
     !=======================================================================
@@ -121,85 +236,18 @@ CONTAINS
     Current     => NULL()
     ErrMsg      =  ''
     ThisLoc     =  ' -> at History_Netcdf_Define (in History/history_mod.F90)'
+    FileName    =  ''
     VarAxis     =  ''
     VarCalendar =  ''
     VarPositive =  ''
     VarUnits    =  ''
     
     !=======================================================================
-    ! Construct the file name using the passed date and time
+    ! If the netCDF file specified by this collection is open, then
+    ! close it and reset all relevant object fields to undefined.  This 
+    ! lets us re-open the netCDF file for the current averaging interval.
     !=======================================================================
-
-    ! Save the collection's file name in a temporary variable
-    FileName = TRIM( Container%FileName )
-
-    ! Replace date and time tokens in the file name
-    CALL History_Expand_Date( FileName, yyyymmdd, hhmmss, MAPL_Style=.TRUE. )
-   
-#if defined( DEBUG )
-    !###  Debug output for development
-    WRITE(6,'(a     )') REPEAT( '#', 79 )
-    WRITE(6,'(a,a   )') '### Time to write : ', TRIM( Container%Name )
-    WRITE(6,'(a,i8.8)') '### YYYYMMDD      : ', yyyymmdd
-    WRITE(6,'(a,i6.6)') '### hhmmss        : ', hhmmss
-    WRITE(6,'(a,L3  )') '### IsFileDefined : ', Container%IsFileDefined
-    WRITE(6,'(a,i8.8)') '### FileWriteYmd  : ', Container%FileWriteYmd
-    WRITE(6,'(a,i6.6)') '### FileWriteHms  : ', Container%FileWriteHms
-    WRITE(6,'(a,a   )') '### FileName      : ', TRIM( FileName )
-    WRITE(6,'(a     )') REPEAT( '#', 79 )
-#endif
-
-    !=======================================================================
-    ! Create the timestamp for the History and ProdDateTime attributes
-    !=======================================================================
-
-    ! Call F90 intrinsic DATE_AND_TIME Function
-    D = 'ccyymmdd'
-    T = 'hhmmss.sss'
-    CALL Date_And_Time( Date=D, Time=T, Zone=Z, Values=V )  ! GMT time
-     
-    ! Create timestamp strings
-    WRITE( Container%History,      10 ) V(1), V(2), V(3), V(5), V(6), V(7), Z
-    WRITE( Container%ProdDateTime, 10 ) V(1), V(2), V(3), V(5), V(6), V(7), Z
- 10 FORMAT( 'Produced on ', i4.4, '/', i2.2, '/', i2.2, 1x,                  &
-                            i2.2, ':', i2.2, ':', i2.2, ' UTC', a           )
-
-    !=======================================================================
-    ! Close the previous file in this collection if it is still open,
-    ! so that we can generate the file for the next iteration.
-    !=======================================================================
-    IF ( Container%IsFileOpen ) THEN
-
-       ! Close the netCDF file
-       CALL Nc_Close( Container%FileId )
-
-       ! Set fields to denotet his file is closed
-       Container%IsFileOpen    = .FALSE.
-       Container%IsFileDefined = .FALSE.
-
-       ! Set CURRENT to the first node in the list of 
-       ! HISTORY ITEMS belonging to this collection
-       Current => Container%HistItems
-
-       ! As long as this node of the list is valid ...
-       DO WHILE( ASSOCIATED( Current ) )
-
-          ! Undefine quantities for the file we just closed
-          Container%ReferenceYmd = 0
-          Container%ReferenceHms = 0
-          Current%Item%NcXDimId  = UNDEFINED_INT
-          Current%Item%NcYDimId  = UNDEFINED_INT
-          Current%Item%NcZDimId  = UNDEFINED_INT
-          Current%Item%NcTDimId  = UNDEFINED_INT
-          Current%Item%NcVarId   = UNDEFINED_INT
-          
-          ! Go to the next HISTORY ITEM
-          Current => Current%Next
-       ENDDO
-
-       ! Free pointer
-       Current => NULL()
-    ENDIF
+    CALL History_Netcdf_Close( am_I_Root, Container, RC )
 
     !=======================================================================
     ! Create the netCDF file with global attributes
@@ -208,15 +256,62 @@ CONTAINS
     IF ( .not. Container%IsFileOpen ) THEN
 
        !--------------------------------------------------------------------
-       ! Create the file and add global attributes
-       ! Remain in netCDF define mode upon exiting this routine
+       ! Replace time and date tokens in the netCDF file name
        !--------------------------------------------------------------------
 
-       ! Set the reference time
-       Container%ReferenceYmd = yyyymmdd
-       Container%ReferenceHms = hhmmss
+       ! Save the collection's file name in a temporary variable
+       FileName = TRIM( Container%FileName )
 
-       ! Create the file
+       ! Replace date and time tokens in the file name
+       CALL History_Expand_Date( FileName, yyyymmdd, hhmmss, MAPL_Style=.TRUE. )
+   
+#if defined( DEBUG )
+       !###  Debug output for development
+       WRITE(6,'(a     )') REPEAT( '#', 79 )
+       WRITE(6,'(a,a   )') '### Time to write : ', TRIM( Container%Name )
+       WRITE(6,'(a,i8.8)') '### YYYYMMDD      : ', yyyymmdd
+       WRITE(6,'(a,i6.6)') '### hhmmss        : ', hhmmss
+       WRITE(6,'(a,L3  )') '### IsFileDefined : ', Container%IsFileDefined
+       WRITE(6,'(a,i8.8)') '### FileWriteYmd  : ', Container%FileWriteYmd
+       WRITE(6,'(a,i6.6)') '### FileWriteHms  : ', Container%FileWriteHms
+       WRITE(6,'(a,a   )') '### FileName      : ', TRIM( FileName )
+       WRITE(6,'(a     )') REPEAT( '#', 79 )
+#endif
+
+       !--------------------------------------------------------------------
+       ! Compute reference date and time fields in the HISTORY CONTAINER
+       ! These are needed to compute the time stamps for each data field
+       ! that is written to the netCDF file.
+       !--------------------------------------------------------------------
+       CALL History_Set_RefDateTime( am_I_Root = am_I_Root,                  &
+                                     Container = Container,                  &
+                                     yyyymmdd  = yyyymmdd,                   &
+                                     hhmmss    = hhmmss,                     &
+                                     RC        = RC                         )
+
+       !--------------------------------------------------------------------
+       ! Create the timestamp for the History and ProdDateTime attributes
+       !--------------------------------------------------------------------
+
+       ! Call F90 intrinsic DATE_AND_TIME Function
+       D = 'ccyymmdd'
+       T = 'hhmmss.sss'
+       CALL Date_And_Time( Date=D, Time=T, Zone=Z, Values=V )  ! GMT time
+     
+       ! Create timestamp strings
+       WRITE( Container%History,      10 ) V(1),V(2),V(3),V(5),V(6),V(7),Z
+       WRITE( Container%ProdDateTime, 10 ) V(1),V(2),V(3),V(5),V(6),V(7),Z
+ 10    FORMAT( 'Produced on ', i4.4, '/', i2.2, '/', i2.2, 1x,               &
+                               i2.2, ':', i2.2, ':', i2.2, ' UTC', a        )
+
+       !--------------------------------------------------------------------
+       ! Create the file and add global attributes
+       ! Remain in netCDF define mode upon exiting this routine
+       !
+       ! NOTE: Container%Reference is a global attribute lists the GEOS-Chem
+       ! web and wiki page.  It has nothing to do with the reference date
+       ! and time fields that are computed by History_Set_RefDateTime.
+       !--------------------------------------------------------------------
        CALL Nc_Create( Create_Nc4   = .TRUE.,                                &
                        NcFile       = FileName,                              &
                        nLon         = Container%nX,                          &
@@ -242,7 +337,7 @@ CONTAINS
        ! Denote that the file has been created and is open
        ! Also set the reference time and date accordingly
        !--------------------------------------------------------------------
-       Container%IsFileOpen   = .TRUE.
+       Container%IsFileOpen = .TRUE.
     ENDIF
 
     !=======================================================================
@@ -560,6 +655,129 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: History_Set_RefDateTime
+!
+! !DESCRIPTION: Defines the reference date and time fields of the HISTORY
+!  CONTAINER object.  These are needed to compute the time stamp of each
+!  H
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE History_Set_RefDateTime( am_I_Root, Container,                  &
+                                      yyyymmdd,  hhmmss,    RC              )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HistContainer_Mod, ONLY : HistContainer
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+    INTEGER,             INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
+    INTEGER,             INTENT(IN)  :: hhmmss    ! Current hour/minute/second
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HistContainer), POINTER     :: Container ! Diagnostic collection obj
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER,             INTENT(OUT) :: RC        ! Success or failure
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC = GC_SUCCESS
+
+    !=======================================================================
+    ! Compute the reference date/time quantities
+    !=======================================================================
+
+    ! Reference date
+    Container%ReferenceYmd = yyyymmdd
+
+    ! Reference time
+    Container%ReferenceHms = hhmmss
+
+    ! Corresponding astronomical Julian date
+    CALL Compute_Julian_Date( yyyymmdd, hhmmss, Container%ReferenceJd )
+
+  END SUBROUTINE History_Set_RefDateTime
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Compute_Julian_Date
+!
+! !DESCRIPTION: Computes the Astronomical Julian Date corresponding to a 
+!  given date and time.  This is useful for computing elapsed times.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Compute_Julian_Date( yyyymmdd, hhmmss, Jd )
+!
+! !USES:
+!
+    USE Julday_Mod, ONLY : Julday
+    USE Time_Mod,   ONLY : Ymd_Extract
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER,  INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
+    INTEGER,  INTENT(IN)  :: hhmmss    ! Current hour/minute/second
+!
+! !OUTPUT PARAMETERS: 
+!
+    REAL(fp), INTENT(OUT) :: Jd        ! Astronomical Julian date
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER  :: Year, Month, Day, Hour, Minute, Second
+    REAL(f8) :: FracDay
+
+    ! Extract year/month/day and hour/minute/seconds from the time
+    CALL Ymd_Extract( yyyymmdd, Year, Month,  Day    )
+    CALL Ymd_Extract( hhmmss,   Hour, Minute, Second )
+
+    ! Compute the fractional day
+    FracDay = DBLE( Day ) + ( DBLE( Hour   ) / 24.0_f8    )  +               & 
+                            ( DBLE( Minute ) / 1440.0_f8  )  +               &
+                            ( DBLE( Second ) / 86400.0_f8 ) 
+
+    ! Return the Astronomical Julian Date
+    Jd = JulDay( Year, Month, FracDay )
+
+  END SUBROUTINE Compute_Julian_Date
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: History_Netcdf_Init
 !
 ! !DESCRIPTION: Creates a HISTORY ITEM for each netCDF index variable (e.g.
@@ -730,7 +948,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE MetaHistItem_Mod, ONLY: MetaHistItem_Destroy
+    USE MetaHistItem_Mod,  ONLY: MetaHistItem_Destroy
 !
 ! !INPUT PARAMETERS: 
 !
@@ -750,6 +968,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================

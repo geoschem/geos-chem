@@ -70,8 +70,12 @@ MODULE HistContainer_Mod
                                                         !  1=accum from source
      INTEGER                     :: ReferenceYmd        ! Reference YMD & hms 
      INTEGER                     :: ReferenceHms        !  for the "time" dim
+     REAL(fp)                    :: ReferenceJD         ! Astronomical Julian
+                                                        !  date @ ref date/time
      INTEGER                     :: CurrTimeSlice       ! Current time slice
                                                         !  for the "time" dim
+     REAL(fp)                    :: TimeStamp           ! Elapsed minutes
+                                                        !  w/r/t ref date/time
 
      !----------------------------------------------------------------------
      ! File definition and I/O status information
@@ -450,6 +454,8 @@ CONTAINS
     Container%FileCloseHms  = 0
     Container%ReferenceYmd  = 0
     Container%ReferenceHms  = 0
+    Container%ReferenceJd   = 0.0_fp
+    Container%TimeStamp     = 0.0_fp
     Container%CurrTimeSlice = UNDEFINED_INT
 
   END SUBROUTINE HistContainer_Create
@@ -530,6 +536,7 @@ CONTAINS
        WRITE( 6, 150 ) 'IsFileOpen     : ', Container%IsFileOpen
        WRITE( 6, 135 ) 'ReferenceYmd   : ', Container%ReferenceYmd
        WRITE( 6, 145 ) 'ReferenceHms   : ', Container%ReferenceHms
+       WRITE( 6, 160 ) 'ReferenceJd    : ', Container%ReferenceJd
        WRITE( 6, 135 ) 'FileWriteYmd   : ', Container%FileWriteYmd
        WRITE( 6, 145 ) 'FileWriteHms   : ', Container%FileWriteHms
        WRITE( 6, 135 ) 'FileCloseYmd   : ', Container%FileCloseYmd
@@ -554,13 +561,14 @@ CONTAINS
        WRITE( 6, 110 ) 'Items archived in this collection:'
 
        ! FORMAT statements
- 110   FORMAT( 1x, a       )
- 120   FORMAT( 1x, a, a    )
- 130   FORMAT( 1x, a, i8   )
- 135   FORMAT( 1x, a, i8.8 )
- 140   FORMAT( 1x, a, i6   )
- 145   FORMAT( 1x, a, i6.6 )
- 150   FORMAT( 1x, a, L8   )
+ 110   FORMAT( 1x, a        )
+ 120   FORMAT( 1x, a, a     )
+ 130   FORMAT( 1x, a, i8    )
+ 135   FORMAT( 1x, a, i8.8  )
+ 140   FORMAT( 1x, a, i6    )
+ 145   FORMAT( 1x, a, i6.6  )
+ 150   FORMAT( 1x, a, L8    )
+ 160   FORMAT( 1x, a, f13.4 )
 
        ! If there are HISTORY ITEMS belonging to this container ...
        IF ( ASSOCIATED( Container%HistItems ) ) THEN 

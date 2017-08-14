@@ -1580,7 +1580,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: History_Update
+! !IROUTINE: History_Write
 !
 ! !DESCRIPTION: For each HISTORY ITEM belonging to a diagnostic COLLECTION,
 !  the data from the target variable is copied or accumulated into the 
@@ -1637,7 +1637,6 @@ CONTAINS
     ! Objects
     TYPE(MetaHistContainer), POINTER :: Collection
     TYPE(MetaHistItem),      POINTER :: Current
-    TYPE(HistItem),          POINTER :: Item
 
     !=======================================================================
     ! Initialize
@@ -1648,7 +1647,6 @@ CONTAINS
     FileWriteHms => NULL()
     Collection   => NULL()
     Current      => NULL()
-    Item         => NULL()
     ErrMsg       =  ''
     ThisLoc      =  &
       ' -> at History_Update (in History/history_mod.F90)' 
@@ -1704,28 +1702,41 @@ CONTAINS
        ENDIF
       
 #if defined( ESMF )
-       
-       !--------------------------------------------------------------------
-       ! Start the writing process for GEOS-Chem HP (with ESMF and MAPL)
-       !--------------------------------------------------------------------
+
+       !=====================================================================
+       ! GCHP (using ESMF/MAPL to save history data to disk)
+       !=====================================================================
     
        ! ... stub for now ...
 #else
 
+       !=====================================================================
+       ! GEOS-Chem "Classic" (not using ESMF/MAPL)
+       !=====================================================================
+
+
        !--------------------------------------------------------------------
-       ! Start the writing process for GEOS-Chem "Classic"
-       ! (i.e. not using ESMF/MAPL)
+       ! Create the netCDF file specified by this HISTORY CONTAINER object,
+       ! if it isn't already open.  Defines each variable, saves global
+       ! attributes, and writes the index variable data to the file.
        !--------------------------------------------------------------------
-       CALL History_Netcdf_Define( am_I_Root  = am_I_Root,               &
-                                   Container  = Collection%Container,    &
-                                   yyyymmdd   = yyyymmdd,                &
-                                   hhmmss     = hhmmss,                  &
-                                   RC         = RC                      )
- 
+       CALL History_Netcdf_Define( am_I_Root  = am_I_Root,                   &
+                                   Container  = Collection%Container,        &
+                                   yyyymmdd   = yyyymmdd,                    &
+                                   hhmmss     = hhmmss,                      &
+                                   RC         = RC                          )
+
+       !--------------------------------------------------------------------
+       ! Write data to the netCDF file.  If time-averaged data, then
+       ! divide by the number of archival increments.
+       !--------------------------------------------------------------------
+
+
 #endif
+
        ! Skip to the next collection
        Collection => Collection%Next
-     
+
     ENDDO
 
     ! Free pointers
@@ -1945,7 +1956,8 @@ CONTAINS
 !
 ! !IROUTINE: History_Cleanup
 !
-! !DESCRIPTION: Deallocates all module variables and objects.
+! !DESCRIPTION: Deallocates all module variables and objects.  Also closes
+!  any remaining open netCDF files.
 !\\
 !\\
 ! !INTERFACE:
@@ -1955,7 +1967,9 @@ CONTAINS
 ! !USES:
 !
      USE ErrCode_Mod
-     USE History_Netcdf_Mod, ONLY : History_Netcdf_Cleanup
+     USE History_Netcdf_Mod,    ONLY : History_Netcdf_Cleanup
+     USE History_Netcdf_Mod,    ONLY : History_Netcdf_Close
+     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1967,6 +1981,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
+!  14 Aug 2017 - R. Yantosca - Call History_Netcdf_Close to close open files
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1974,25 +1989,49 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
      ! Strings
-     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+     CHARACTER(LEN=255)               :: ErrMsg, ThisLoc
+
+     ! Objects
+     TYPE(MetaHistContainer), POINTER :: Current
 
      !======================================================================
      ! Initialize
      !======================================================================
-
-     ! Assume success
-     RC      = GC_SUCCESS
-
-     ErrMsg  = ''
-     ThisLoc = ' -> History_Cleanup (in module History/history_mod.F90'
+     RC      =  GC_SUCCESS
+     Current => NULL()
+     ErrMsg  =  ''
+     ThisLoc =  ' -> at History_Cleanup (in module History/history_mod.F90)'
 
      !======================================================================
-     ! First, finalize the history_netcdf_mod.F90 module
+     ! Close any remanining netCDF files
+     !======================================================================
+     
+     ! Set CURRENT to the first entry in the list of HISTORY CONTAINERS
+     Current => CollectionList
+
+     ! If this entry is not null ...
+     DO WHILE ( ASSOCIATED( Current ) )
+        
+        ! Close the file (if it's open) and reset all relevant fields
+        ! in the HISTORY CONTAINER object
+        CALL History_Netcdf_Close( am_I_Root = am_I_Root,                    &
+                                   Container = Current%Container,            &
+                                   RC        = RC                           )
+        
+        ! Go to the next entry in the list of HISTORY CONTAINERS
+        Current => Current%Next
+     ENDDO
+
+     ! Free pointer
+     Current => NULL()
+     
+     !======================================================================
+     ! Then finalize the history_netcdf_mod.F90 module
      !======================================================================
      CALL History_Netcdf_Cleanup( am_I_Root, RC )
 
      !======================================================================
-     ! Deallocate module variables
+     ! And deallocate variables belonging to history_mod.F90
      !======================================================================
 
      IF ( ASSOCIATED( CollectionList ) ) THEN
