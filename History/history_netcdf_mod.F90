@@ -26,10 +26,12 @@ MODULE History_Netcdf_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS
 !
+  PUBLIC  :: History_Netcdf_Average
+  PUBLIC  :: History_Netcdf_Cleanup
   PUBLIC  :: History_Netcdf_Close
   PUBLIC  :: History_Netcdf_Define
   PUBLIC  :: History_Netcdf_Init
-  PUBLIC  :: History_Netcdf_Cleanup
+  PUBLIC  :: History_Netcdf_Write
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -188,9 +190,12 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,             INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
-    TYPE(HistContainer), POINTER     :: Container ! Diagnostic collection obj
     INTEGER,             INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
     INTEGER,             INTENT(IN)  :: hhmmss    ! Current hour/minute/second
+!
+! !INPUT/OUTPUT PARAMETERS           ::
+!
+    TYPE(HistContainer), POINTER     :: Container ! Diagnostic collection obj
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -199,7 +204,8 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  08  - R. Yantosca - Initial version
+!  03 Aug 2017 - R. Yantosca - Initial version
+!  14 Aug 2017 - R. Yantosca - Call History_Netcdf_Close from 1 level higher
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -241,13 +247,6 @@ CONTAINS
     VarCalendar =  ''
     VarPositive =  ''
     VarUnits    =  ''
-    
-    !=======================================================================
-    ! If the netCDF file specified by this collection is open, then
-    ! close it and reset all relevant object fields to undefined.  This 
-    ! lets us re-open the netCDF file for the current averaging interval.
-    !=======================================================================
-    CALL History_Netcdf_Close( am_I_Root, Container, RC )
 
     !=======================================================================
     ! Create the netCDF file with global attributes
@@ -269,13 +268,18 @@ CONTAINS
        !###  Debug output for development
        WRITE(6,'(a     )') REPEAT( '#', 79 )
        WRITE(6,'(a,a   )') '### Time to write : ', TRIM( Container%Name )
-       WRITE(6,'(a,i8.8)') '### YYYYMMDD      : ', yyyymmdd
-       WRITE(6,'(a,i6.6)') '### hhmmss        : ', hhmmss
+       WRITE(6, 100      ) '### date/time     : ', yyyymmdd, hhmmss
        WRITE(6,'(a,L3  )') '### IsFileDefined : ', Container%IsFileDefined
-       WRITE(6,'(a,i8.8)') '### FileWriteYmd  : ', Container%FileWriteYmd
-       WRITE(6,'(a,i6.6)') '### FileWriteHms  : ', Container%FileWriteHms
+       WRITE(6, 100      ) '### Archival      : ', Container%ArchivalYmd,  &
+                                                   Container%ArchivalHms
+       WRITE(6, 100      ) '### FileCloseYmd  : ', Container%FileCloseYmd, &
+                                                   Container%FileCloseHms
+       WRITE(6, 100      ) '### FileWrite     : ', Container%FileWriteYmd, &
+                                                   Container%FileWriteHms
        WRITE(6,'(a,a   )') '### FileName      : ', TRIM( FileName )
        WRITE(6,'(a     )') REPEAT( '#', 79 )
+
+100    FORMAT( a, i8.8, 1x,i6.6 )
 #endif
 
        !--------------------------------------------------------------------
@@ -658,8 +662,8 @@ CONTAINS
 ! !IROUTINE: History_Set_RefDateTime
 !
 ! !DESCRIPTION: Defines the reference date and time fields of the HISTORY
-!  CONTAINER object.  These are needed to compute the time stamp of each
-!  H
+!  CONTAINER object.  These are needed to compute the timestamps along the
+!  time dimension of each HISTORY ITEM.
 !\\
 !\\
 ! !INTERFACE:
@@ -772,6 +776,197 @@ CONTAINS
     Jd = JulDay( Year, Month, FracDay )
 
   END SUBROUTINE Compute_Julian_Date
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: History_Netcdf_Average
+!
+! !DESCRIPTION: 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE History_Netcdf_Average( am_I_Root, Container,                   &
+                                     yyyymmdd,  hhmmss,    RC               )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HistContainer_Mod, ONLY : HistContainer
+    USE MetaHistItem_Mod,  ONLY : MetaHistItem
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+    INTEGER,             INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
+    INTEGER,             INTENT(IN)  :: hhmmss    ! Current hour/minute/second
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HistContainer), POINTER     :: Container ! Diagnostic collection obj
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER,             INTENT(OUT) :: RC        ! Success or failure
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                     :: NcVarId
+    REAL(f8)                    :: Jd,      ElapsedMin
+
+    ! Strings
+    CHARACTER(LEN=255)          :: ErrMsg,  ThisLoc
+
+    ! Objects
+    TYPE(MetaHistItem), POINTER :: Current
+    
+    !=======================================================================
+    ! Initialize 
+    !=======================================================================
+    RC      =  GC_SUCCESS
+    Current => NULL()
+    ErrMsg  =  ''
+    ThisLoc =  &
+         ' -> at History_Netcdf_Average (in History/history_netcdf_mod.F90)'
+
+    !=======================================================================
+    ! 
+    !=======================================================================
+
+!       ! Set CURRENT to the first node in the list of HISTORY ITEMS
+!       Current => Container%HistItems
+!
+!       ! As long as this node of the list is valid ...
+!       DO WHILE( ASSOCIATED( Current ) )
+!
+!          !
+!          NcVarId = Current%Item%NcVarId
+!
+!          ! Go to next entry in the list of HISTORY ITEMS
+!          Current => Current%Next
+!       ENDDO
+!
+!       ! Free pointers
+!       Current => NULL()
+
+  END SUBROUTINE History_Netcdf_Average
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: History_Netcdf_Write
+!
+! !DESCRIPTION: 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE History_Netcdf_Write( am_I_Root, Container,                     &
+                                   yyyymmdd,  hhmmss,    RC                 )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HistContainer_Mod, ONLY : HistContainer
+    USE MetaHistItem_Mod,  ONLY : MetaHistItem
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+    INTEGER,             INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
+    INTEGER,             INTENT(IN)  :: hhmmss    ! Current hour/minute/second
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HistContainer), POINTER     :: Container ! Diagnostic collection obj
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER,             INTENT(OUT) :: RC        ! Success or failure
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                     :: NcVarId
+    REAL(f8)                    :: Jd,      ElapsedMin
+
+    ! Strings
+    CHARACTER(LEN=255)          :: ErrMsg,  ThisLoc
+
+    ! Objects
+    TYPE(MetaHistItem), POINTER :: Current
+    
+    !=======================================================================
+    ! Initialize 
+    !=======================================================================
+    RC      =  GC_SUCCESS
+    Current => NULL()
+    ErrMsg  =  ''
+    ThisLoc =  &
+         ' -> at History_Netcdf_Write (in History/history_netcdf_mod.F90)'
+
+    !=======================================================================
+    ! Compute time elapsed since the reference time
+    !=======================================================================
+    IF ( ( .not. Container%IsFileOpen   )    .and.                          &
+         ( .not. Container%IsFileDefined ) ) THEN 
+       ! error
+    ENDIF
+    
+    !=======================================================================
+    ! Compute time elapsed since the reference time
+    !=======================================================================
+
+    ! Compute the Astronomical Julian Date at this time
+    CALL Compute_Julian_Date( yyyymmdd, hhmmss, Jd )
+
+    ! Compute the time in minutes elapsed since the reference time
+    ElapsedMin = ( ( Jd - Container%ReferenceJd ) * 1440.0_f8 )
+
+    !=======================================================================
+    ! 
+    !=======================================================================
+
+!       ! Set CURRENT to the first node in the list of HISTORY ITEMS
+!       Current => Container%HistItems
+!
+!       ! As long as this node of the list is valid ...
+!       DO WHILE( ASSOCIATED( Current ) )
+!
+!          !
+!          NcVarId = Current%Item%NcVarId
+!
+!          ! Go to next entry in the list of HISTORY ITEMS
+!          Current => Current%Next
+!       ENDDO
+!
+!       ! Free pointers
+!       Current => NULL()
+
+
+  END SUBROUTINE History_NetCdf_Write
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

@@ -142,11 +142,11 @@ CONTAINS
                                    Name,         nX,           nY,           &
                                    nZ,           RC,           ArchivalMode, &
                                    ArchivalYmd,  ArchivalHms,  Operation,    &
-                                   FileWriteYmd, FileWriteHms, FileId,       &
-                                   FilePrefix,   FileName,     FileTemplate, &
-                                   Conventions,  NcFormat,     History,      & 
-                                   ProdDateTime, Reference,    Title,        &
-                                   Contact                                   )
+                                   FileWriteYmd, FileWriteHms, FileCloseYmd, &
+                                   FileCloseHms, FileId,       FilePrefix,   &
+                                   FileName,     FileTemplate, Conventions,  &
+                                   NcFormat,     History,      ProdDateTime, &
+                                   Reference,    Title,        Contact       )
 !
 ! !USES:
 !
@@ -180,6 +180,8 @@ CONTAINS
     !-----------------------------------------------------------------------
     INTEGER,             OPTIONAL    :: FileWriteYmd  ! File write frequency
     INTEGER,             OPTIONAL    :: FileWriteHms  !  in both YMD and hms
+    INTEGER,             OPTIONAL    :: FileCloseYmd  ! File closing frequency
+    INTEGER,             OPTIONAL    :: FileCloseHms  !  in both YMD and hms
 
     !-----------------------------------------------------------------------
     ! OPTIONAL INPUTS: netCDF file identifiers and metadata
@@ -214,6 +216,7 @@ CONTAINS
 !  09 Aug 2017 - R. Yantosca - Add nX, ny, and, nZ
 !  11 Aug 2017 - R. Yantosca - Add FileCloseYmd, FileCloseHms, ReferenceYmd,
 !                              ReferenceHms, and CurrTimeSlice 
+!  14 Aug 2017 - R. Yantosca - Add FileCloseYmd and FileCloseHms arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -339,6 +342,24 @@ CONTAINS
     ENDIF
 
     !----------------------------------
+    ! File close frequency in YY/MM/DD
+    !----------------------------------
+    IF ( PRESENT( FileCloseYmd ) ) THEN
+       Container%FileCloseYmd = FileCloseYmd 
+    ELSE
+       Container%FileCloseYmd = 0
+    ENDIF
+
+    !----------------------------------
+    ! File close frequency in hh:mm:ss
+    !----------------------------------
+    IF ( PRESENT( FileCloseHms ) ) THEN
+       Container%FileCloseHms = FileCloseHms 
+    ELSE
+       Container%FileCloseHms = 0
+    ENDIF
+
+    !----------------------------------
     ! File Prefix
     !----------------------------------
     IF ( LEN_TRIM( FilePrefix ) > 0 ) THEN
@@ -450,8 +471,6 @@ CONTAINS
     Container%yDimId        = UNDEFINED_INT
     Container%zDimId        = UNDEFINED_INT
     Container%tDimId        = UNDEFINED_INT
-    Container%FileCloseYmd  = 0
-    Container%FileCloseHms  = 0
     Container%ReferenceYmd  = 0
     Container%ReferenceHms  = 0
     Container%ReferenceJd   = 0.0_fp

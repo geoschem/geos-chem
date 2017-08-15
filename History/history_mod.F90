@@ -41,6 +41,8 @@ MODULE History_Mod
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  02 Aug 2017 - R. Yantosca - Added History_Update routine
+!  14 Aug 2017 - R. Yantosca - Now read the "acc_interval" field for
+!                              time-averaged data collections
 !EOPt
 !------------------------------------------------------------------------------
 !BOC
@@ -51,13 +53,14 @@ MODULE History_Mod
   INTEGER                          :: CollectionCount
 
   ! Strings
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionName      (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionTemplate  (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionSubsetDims(:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionFormat    (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionFrequency (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionDuration  (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionMode      (:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionName       (:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionTemplate   (:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionSubsetDims (:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionFormat     (:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionFrequency  (:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionAccInterval(:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionDuration   (:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionMode       (:)
 
   ! Objects
   TYPE(MetaHistContainer), POINTER :: CollectionList
@@ -195,11 +198,12 @@ CONTAINS
 !
     USE Charpak_Mod
     USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE InquireMod,     ONLY : FindFreeLun
-    USE State_Chm_Mod , ONLY : ChmState
-    USE State_Diag_Mod, ONLY : DgnState
-    USE State_Met_Mod,  ONLY : MetState
+    USE History_Params_Mod
+    USE Input_Opt_Mod,     ONLY : OptInput
+    USE InquireMod,        ONLY : FindFreeLun
+    USE State_Chm_Mod ,    ONLY : ChmState
+    USE State_Diag_Mod,    ONLY : DgnState
+    USE State_Met_Mod,     ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -218,6 +222,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
+!  15 Aug 2017 - R. Yantosca - Now initialize string arrays to UNDEFINED_STR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -364,7 +369,7 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-       CollectionTemplate = ''
+       CollectionTemplate = UNDEFINED_STR
     ENDIF
 
     ! Allocate CollectionFormat
@@ -375,7 +380,7 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-       CollectionFormat = ''
+       CollectionFormat = UNDEFINED_STR
     ENDIF
 
     ! Allocate CollectionFrequency
@@ -386,7 +391,18 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-       CollectionFrequency = ''
+       CollectionFrequency = UNDEFINED_STR
+    ENDIF
+
+    ! Allocate CollectionAccInterval
+    IF ( .not. ALLOCATED( CollectionAccInterval ) ) THEN
+       ALLOCATE( CollectionAccInterval( CollectionCount ), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN 
+          ErrMsg = 'Could not allocate "CollectionAccInterval"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       CollectionAccInterval = UNDEFINED_STR
     ENDIF
 
     ! Allocate CollectionDuration
@@ -397,7 +413,7 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-       CollectionDuration = ''
+       CollectionDuration = UNDEFINED_STR
     ENDIF
 
     ! Allocate CollectionSubsetDims
@@ -408,7 +424,7 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-       CollectionSubsetDims = ''
+       CollectionSubsetDims = UNDEFINED_STR
     ENDIF
 
     ! Allocate CollectionMode
@@ -419,7 +435,7 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-       CollectionMode = ''
+       CollectionMode = UNDEFINED_STR
     ENDIF
 
   END SUBROUTINE History_ReadCollectionNames
@@ -477,6 +493,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
 !  03 Aug 2017 - R. Yantosca - Pass OPERATION to History_AddItemToCollection
+!  14 Aug 2017 - R. Yantosca - FileWrite{Ymd,Hms} and FileClose{Ymd,Hms} are
+!                              now computed properly, w/r/t acc_interval
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -491,6 +509,7 @@ CONTAINS
     INTEGER                      :: nSubs1,       nSubs2
     INTEGER                      :: Ind1,         Ind2
     INTEGER                      :: ArchivalYmd,  ArchivalHms
+    INTEGER                      :: FileCloseYmd, FileCloseHms
     INTEGER                      :: FileWriteYmd, FileWriteHms
     INTEGER                      :: ItemCount,    SpaceDim,     Operation
     INTEGER                      :: Ind_All,      Ind_Adv,      Ind_Aer
@@ -505,7 +524,7 @@ CONTAINS
     CHARACTER(LEN=255)           :: Title,        Units
     CHARACTER(LEN=255)           :: ItemName,     ItemTemplate
     CHARACTER(LEN=255)           :: Description,  TmpMode
-    CHARACTER(LEN=255)           :: Contact
+    CHARACTER(LEN=255)           :: Contact,      Pattern
 
     ! Arrays
     INTEGER                      :: SubsetDims(3)
@@ -531,6 +550,8 @@ CONTAINS
     ! Initialize variables
     ArchivalYmd  =  0 
     ArchivalHms  =  0
+    FileCloseYmd =  0
+    FileCloseHms =  0
     FileWriteYmd =  0
     FileWriteHms =  0
     SpaceDim     =  0
@@ -607,81 +628,72 @@ CONTAINS
        ! assume that the collections are in the same order as they
        ! are listed under the COLLECTIONS section.
        !====================================================================
-       IF ( INDEX( Line, 'template' ) > 0 ) THEN 
-          CALL GetCollectionMetaData( Line, 'template',   MetaData, C )
-          CollectionTemplate(C) = Metadata
+
+       ! "template": Specifies the year/month/day/hr/min/sec in filenames
+       Pattern = 'template'
+       IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN 
+          CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
+          IF ( C > 0 ) CollectionTemplate(C) = Metadata
+       ENDIF       
+
+       ! "format": Specifies the file output format (e.g. netCDF-4, CFIO)
+       Pattern = 'format'
+       IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
+          CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
+          IF ( C > 0 ) CollectionFormat(C) = Metadata
        ENDIF
 
-       IF ( INDEX( Line, 'format' ) > 0 ) THEN
-          CALL GetCollectionMetaData( Line, 'format',     MetaData, C )
-          CollectionFormat(C) = Metadata
+       ! "frequency": Specifies how often diagnostics are updated
+       Pattern = 'frequency'
+       IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
+          CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
+          IF ( C > 0 ) CollectionFrequency(C) = Metadata
        ENDIF
 
-       IF ( INDEX( Line, 'frequency' ) > 0 ) THEN
-          CALL GetCollectionMetaData( Line, 'frequency',  MetaData, C )
-          CollectionFrequency(C) = Metadata
-
-          ! NOTE: If CollectionFrequency is 6 digits long, then assume that
-          ! to be ArchivalHms.  If longer, then assume that it is specifying
-          ! both ArchivalYmd and ArchivalHms. (sde, bmy, 8/4/17)
-          IF ( LEN_TRIM( CollectionFrequency(C) ) == 6 ) THEN
-             READ( CollectionFrequency(C), '(i6.6)'  )    ArchivalHms
-          ELSE
-             READ( CollectionFrequency(C), '(2i6.6)' )    ArchivalYmd, &
-                                                          ArchivalHms
-          ENDIF
-
-          ! SPECIAL CASE: If ArchivalHms is 240000 then set
-          ! and set ArchivalYmd=000001 and ArchivalHms=000000
-          IF ( FileWriteHms == 240000 ) THEN
-             FileWriteYmd = 000001
-             FileWriteHms = 000000
-          ENDIF
+       ! "acc_interval": Specifies how often time-averaged diagnostics
+       ! are updated.  Defaults to "frequncy"
+       Pattern = 'acc_interval'
+       IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
+          CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
+          IF ( C > 0 ) CollectionAccInterval(C) = Metadata
        ENDIF
 
-       IF ( INDEX( Line, 'duration' ) > 0 ) THEN
-          CALL GetCollectionMetaData( Line, 'duration',   MetaData, C )
-          CollectionDuration(C) = Metadata
-
-          ! NOTE: If CollectionDuration is 6 digits long, then assume that
-          ! to be ArchivalHms.  If longer, then assume that it is specifying
-          ! both FileWriteYmd and FileWriteHms. (sde, bmy, 8/4/17)
-          IF ( LEN_TRIM( CollectionDuration(C) ) == 6 ) THEN
-             READ( CollectionDuration(C), '(i6.6)'  )     FileWriteHms
-          ELSE
-             READ( CollectionDuration(C), '(2i6.6)' )     FileWriteYmd, &
-                                                          FileWriteHms
-          ENDIF
-
-          ! SPECIAL CASE: If FileWriteHms is 240000 then set
-          ! and set FileWriteYmd=000001 and FileWriteYmd=000000
-          IF ( FileWriteHms == 240000 ) THEN
-             FileWriteYmd = 000001
-             FileWriteHms = 000000
-          ENDIF
+       ! "duration:: Specifies how often files will be written
+       ! Defaults to "frequency"
+       Pattern = 'duration'
+       IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
+          CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
+          IF ( C > 0 ) CollectionDuration(C) = Metadata
        ENDIF
 
-       IF ( INDEX( Line, 'mode' ) > 0 ) THEN
-          CALL GetCollectionMetaData( Line, 'mode',       MetaData, C )
-          CollectionMode(C) = Metadata
+       ! "mode": Specifies instantaneous or time-averaged archiving
+       Pattern = 'mode'
+       IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
+          CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
+          IF ( C > 0 ) CollectionMode(C) = Metadata
        ENDIF
 
-       IF ( INDEX( Line, 'subsetdims' ) > 0 ) THEN
+       ! "subsetdims": Specifies a subset of the data grid
+       ! NOTE: Currently not used at the present time
+       Pattern = 'subsetdims'
+       IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
           
           ! First split the line by colon
           CALL StrSplit( Line, ":", Subs1, nSubs1 )
-          CollectionSubsetDims(C) = Subs1(2)
-
-          ! Then split by spaces and convert to INTEGER
-          CALL StrSplit( CollectionSubsetDims(C), " ", Subs2, nSubs2 )          
-          IF ( nSubs2 > 0 ) THEN
-             DO N = 1, nSubs2
-                READ( Subs2(N), '(i10)' ) SubsetDims(N)
-             ENDDO
-
-             ! Define the number of dimensions
-             SpaceDim = nSubs2
-             IF ( SpaceDim == 2 ) SubsetDims(3) = 1
+          IF ( C > 0 ) THEN
+             CollectionSubsetDims(C) = Subs1(2)
+          
+             ! Then split by spaces and convert to INTEGER
+             CALL StrSplit( CollectionSubsetDims(C), " ", Subs2, nSubs2 )
+             IF ( nSubs2 > 0 ) THEN
+                DO N = 1, nSubs2
+                   READ( Subs2(N), '(i10)' ) SubsetDims(N)
+                ENDDO
+          
+                ! Define the number of dimensions
+                SpaceDim = nSubs2
+                IF ( SpaceDim == 2 ) SubsetDims(3) = 1
+             ENDIF
           ENDIF
        ENDIF
 
@@ -690,7 +702,7 @@ CONTAINS
        ! collection.  We need to create the collection object and
        ! an object for each history item stored in the collection.
        !====================================================================
-       IF ( INDEX( Line, 'fields' ) > 0 ) THEN
+       IF ( INDEX( TRIM( Line ), 'fields' ) > 0 ) THEN
 
           ! Zero the counter of items
           ItemCount = 0
@@ -699,9 +711,11 @@ CONTAINS
           Title = 'GEOS-Chem diagnostic collection: ' //                    &
                    TRIM( CollectionName(C) )
 
+          !-----------------------------------------------------------------
           ! Determine the operation code (i.e. copy or accumulate from the 
           ! source pointer to Item's data array for further analysis), 
           ! based on the value of CollectionMode.
+          !-----------------------------------------------------------------
           TmpMode = CollectionMode(C)
           CALL TranUc( TmpMode )
           SELECT CASE( TmpMode )
@@ -711,6 +725,88 @@ CONTAINS
                 Operation = COPY_FROM_SOURCE
           END SELECT
 
+          !-----------------------------------------------------------------
+          ! Define ArchivalHms and ArchivalYmd
+          ! 
+          ! NOTE: If CollectionFrequency is 6 digits long, then assume that
+          ! to be ArchivalHms.  If longer, then assume that it is specifying
+          ! both ArchivalYmd and ArchivalHms. (sde, bmy, 8/4/17)
+          !-----------------------------------------------------------------
+          IF ( LEN_TRIM( CollectionFrequency(C) ) == 6 ) THEN
+             READ( CollectionFrequency(C), '(i6.6)'  ) ArchivalHms
+          ELSE
+             READ( CollectionFrequency(C), '(2i6.6)' ) ArchivalYmd, &
+                                                       ArchivalHms
+          ENDIF
+
+          ! SPECIAL CASE: If ArchivalHms is 240000 then set
+          ! and set ArchivalYmd=000001 and ArchivalHms=000000
+          IF ( ArchivalHms == 240000 ) THEN
+             ArchivalYmd = 000001
+             ArchivalHms = 000000
+          ENDIF
+
+          !-----------------------------------------------------------------
+          ! Define FileWriteYmd and FileWriteHms
+          !-----------------------------------------------------------------
+          IF ( Operation == COPY_FROM_SOURCE ) THEN
+
+             ! Instantaneous data: this defaults to the frequency attribute
+             ! in the HISTORY.rc file, which is ArchivalYmd, ArchivalHms
+             FileWriteYmd = ArchivalYmd
+             FileWriteHms = ArchivalHms
+
+          ELSE
+             
+             ! Time-averaged data: Use the acc_interval field to denote
+             ! when it is time to write to disk.  If acc_interval is not
+             ! specified, then default to ArchivalYmd and ArchivalHms,
+             ! which are specified by the "frequency" attribute.
+             IF ( TRIM( CollectionAccInterval(C) ) == UNDEFINED_STR ) THEN
+                FileWriteYmd = ArchivalYmd
+                FileWriteHms = ArchivalHms
+             ELSE IF ( LEN_TRIM( CollectionAccInterval(C) ) == 6 ) THEN
+                READ( CollectionAccInterval(C), '(i6.6)'  ) FileWriteHms
+             ELSE
+                READ( CollectionAccInterval(C), '(2i6.6)' ) FileWriteYmd, &
+                                                            FileWriteHms
+             ENDIF
+          ENDIF
+          
+          ! SPECIAL CASE: If FileWriteYmd is 240000 then set
+          ! and set FileWriteYmd=000001 and FileWriteHms=000000
+          IF ( FileWriteHms == 240000 ) THEN
+             FileWriteYmd = 000001
+             FileWriteHms = 000000
+          ENDIF
+   
+          !-----------------------------------------------------------------
+          ! Define FileCloseHms and FileCloseYmd
+          !
+          ! NOTE: If CollectionDuration is 6 digits long, then assume that
+          ! to be ArchivalHms.  If longer, then assume that it is specifying
+          ! both FileWriteYmd and FileWriteHms. (sde, bmy, 8/4/17)
+          !
+          ! ALSO NOTE: If "duration" is not found, then default to th
+          ! same values specified by the "frequency" attribute.
+          !-----------------------------------------------------------------
+          IF ( TRIM( CollectionDuration(C) ) == UNDEFINED_STR ) THEN
+             FileCloseYmd = ArchivalYmd
+             FileCloseHms = ArchivalHms
+          ELSE IF ( LEN_TRIM( CollectionDuration(C) ) == 6 ) THEN
+             READ( CollectionDuration(C), '(i6.6)'  ) FileCloseHms
+          ELSE
+             READ( CollectionDuration(C), '(2i6.6)' ) FileCloseYmd, &
+                                                      FileCloseHms
+          ENDIF
+
+          ! SPECIAL CASE: If FileCloseHms is 240000 then set
+          ! and set FileCloseYmd=000001 and FileCloseYmd=000000
+          IF ( FileCloseHms == 240000 ) THEN
+             FileCloseYmd = 000001
+             FileCloseHms = 000000
+          ENDIF
+          
           !### For now set nX, nY, nZ to IIPAR, JJPAR, LLPAR
           nX = IIPAR
           nY = JJPAR
@@ -732,6 +828,8 @@ CONTAINS
                                      Operation    = Operation,              &
                                      FileWriteYmd = FileWriteYmd,           &
                                      FileWriteHms = FileWriteHms,           &
+                                     FileCloseYmd = FileCloseYmd,           &
+                                     FileCloseHms = FileCloseHms,           &
                                      Conventions  = 'COARDS',               &
                                      FileTemplate = CollectionTemplate(C),  & 
                                      NcFormat     = CollectionFormat(C),    &
@@ -980,13 +1078,14 @@ CONTAINS
     WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
 
     DO C = 1, CollectionCount
-       print*, 'Collection       ', TRIM( CollectionName      (C) )
-       print*, '  -> Template    ', TRIM( CollectionTemplate  (C) )
-       print*, '  -> Format      ', TRIM( CollectionFormat    (C) )
-       print*, '  -> Frequency   ', TRIM( CollectionFrequency (C) )
-       print*, '  -> Duration    ', TRIM( CollectionDuration  (C) )
-       print*, '  -> Subset Dims ', TRIM( CollectionSubsetDims(C) )
-       print*, '  -> Mode        ', TRIM( CollectionMode      (C) )
+       print*, 'Collection        ', TRIM( CollectionName       (C) )
+       print*, '  -> Template     ', TRIM( CollectionTemplate   (C) )
+       print*, '  -> Format       ', TRIM( CollectionFormat     (C) )
+       print*, '  -> Frequency    ', TRIM( CollectionFrequency  (C) )
+       print*, '  -> Acc_Interval ', TRIM( CollectionAccInterval(C) )
+       print*, '  -> Duration     ', TRIM( CollectionDuration   (C) )
+       print*, '  -> Subset Dims  ', TRIM( CollectionSubsetDims (C) )
+       print*, '  -> Mode         ', TRIM( CollectionMode       (C) )
     ENDDO
 
     ! Print information about each diagnostic collection
@@ -1549,11 +1648,6 @@ CONTAINS
 
           END SELECT
 
-
-!#if defined( DEBUG )
-!          WRITE(6,*) Item%ContainerId, TRIM( Item%Name ), &
-!               Item%data_3d(23,34,1), item%source_3d(23,34,1), Item%nUpdates
-!#endif
           ! Free pointer
           Item => NULL()
 
@@ -1624,6 +1718,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL                          :: DoClose
     LOGICAL                          :: DoWrite
 
     ! Strings
@@ -1631,8 +1726,8 @@ CONTAINS
     CHARACTER(LEN=255)               :: ThisLoc
 
     ! Pointers
-    INTEGER,                 POINTER :: FileWriteYmd
-    INTEGER,                 POINTER :: FileWriteHms
+    INTEGER,                 POINTER :: FileCloseYmd, FileWriteYmd
+    INTEGER,                 POINTER :: FileCloseHms, FileWriteHms
 
     ! Objects
     TYPE(MetaHistContainer), POINTER :: Collection
@@ -1642,6 +1737,7 @@ CONTAINS
     ! Initialize
     !=======================================================================
     RC           =  GC_SUCCESS
+    DoClose      = .FALSE.
     DoWrite      = .FALSE.
     FileWriteYmd => NULL()
     FileWriteHms => NULL()
@@ -1663,8 +1759,42 @@ CONTAINS
     DO WHILE( ASSOCIATED( Collection ) ) 
 
        !--------------------------------------------------------------------
-       ! Determine if it is time to update this collection.  Compare the
-       ! the ArchivalYmd and ArchivalHms fields to the current date/time.
+       ! Determine if it is time to close the existing netCDF file and
+       ! create a new one.  This is done by comparing the FileCloseYmd
+       ! and FileCloseHms fields of the Container to the current date/time.
+       !--------------------------------------------------------------------
+       
+       ! Initialize
+       FileCloseYmd => Collection%Container%FileCloseYmd
+       FileCloseHms => Collection%Container%FileCloseHms
+       DoClose      = .FALSE.
+
+       ! Test if the file closing frequency is less than one day
+       ! (i.e. current time modulo FileWrite)
+       IF ( FileCloseHms > 0 ) THEN
+          DoClose = ( MOD( hhmmss, FileCloseHms ) == 0 ) 
+       ENDIF
+       
+       ! Then test if the file closing frequency is greater than one day.
+       ! Also check if the hour of the day is 0 GMT so that we will
+       ! only archive at least once per day.  We can eventually change
+       ! the archival hour if so desired (but maybe only for GC-Classic).
+       ! (i.e. current date modulo FileCloseYmd)
+       IF ( .not. DoClose ) THEN
+          IF ( FileCloseYmd > 0 ) THEN 
+             DoClose = ( ( MOD( yyyymmdd, FileCloseYmd ) == 0      ) .and.   &
+                         ( hhmmss                        == 000000 )      )
+          ENDIF
+       ENDIF
+
+       ! Free pointers
+       FileCloseYmd => NULL()
+       FileCloseHms => NULL()
+
+       !--------------------------------------------------------------------
+       ! Determine if it is time to write data to the  netCDF file.  This
+       ! is done by comparing the FileWriteYmd and FileWriteHms fields of
+       ! the current diagnostic collection to the current date & time.
        !--------------------------------------------------------------------
        
        ! Initialize
@@ -1693,45 +1823,85 @@ CONTAINS
        ! Free pointers
        FileWriteYmd => NULL()
        FileWriteHms => NULL()
-       
-       ! If it isn't time to update the current collection,
-       ! then skip to the next collection.
-       IF ( .not. DoWrite ) THEN
-          Collection => Collection%Next
-          CYCLE
-       ENDIF
-      
+     
+
 #if defined( ESMF )
 
-       !=====================================================================
-       ! GCHP (using ESMF/MAPL to save history data to disk)
-       !=====================================================================
-    
-       ! ... stub for now ...
+          ! ... stub for now ...
 #else
+      
+       !====================================================================
+       ! %%% GEOS-Chem "Classic" %%%
+       !
+       ! It is time to create a new netCDF file (closing the old one)
+       !====================================================================
+       IF ( DoClose ) THEN
+         
+#if defined( DEBUG )  
+          WRITE( 6, 100 ) trim( Collection%container%name ), &
+                          yyyymmdd, hhmmss
+ 100 FORMAT( '     - Opening file for ', a, ' at ', i8.8, 1x, i6.6 )
+#endif
 
-       !=====================================================================
-       ! GEOS-Chem "Classic" (not using ESMF/MAPL)
-       !=====================================================================
+          ! If the netCDF file specified by this collection is open, 
+          ! then close it and undefine all relevant object fields.
+          CALL History_Netcdf_Close( am_I_Root = am_I_Root,                  &
+                                     Container = Collection%Container,       &
+                                     RC        = RC                         )
 
+          ! Trap error
+          IF ( RC /= GC_SUCCESS ) THEN
+             ! add this later
+          ENDIF
 
-       !--------------------------------------------------------------------
-       ! Create the netCDF file specified by this HISTORY CONTAINER object,
-       ! if it isn't already open.  Defines each variable, saves global
-       ! attributes, and writes the index variable data to the file.
-       !--------------------------------------------------------------------
-       CALL History_Netcdf_Define( am_I_Root  = am_I_Root,                   &
-                                   Container  = Collection%Container,        &
-                                   yyyymmdd   = yyyymmdd,                    &
-                                   hhmmss     = hhmmss,                      &
-                                   RC         = RC                          )
+          ! Create the netCDF file for this HISTORY CONTAINER object,
+          ! Defines each variable, saves global attributes, and writes 
+          ! the index variable data to the file.
+          CALL History_Netcdf_Define( am_I_Root  = am_I_Root,                &
+                                      Container  = Collection%Container,     &
+                                      yyyymmdd   = yyyymmdd,                 &
+                                      hhmmss     = hhmmss,                   &
+                                      RC         = RC                       )
 
-       !--------------------------------------------------------------------
-       ! Write data to the netCDF file.  If time-averaged data, then
-       ! divide by the number of archival increments.
-       !--------------------------------------------------------------------
+          ! Trap error
+          IF ( RC /= GC_SUCCESS ) THEN
+             ! add this later
+          ENDIF
+       ENDIF
 
+       !=================================================================
+       ! %%% GEOS-Chem "Classic" %%%
+       !
+       ! It is time to write data to the netCDF file
+       !=================================================================
+       IF ( DoWrite ) THEN
 
+#if defined( DEBUG )  
+          WRITE( 6, 110 ) trim( Collection%container%name ), &
+                          yyyymmdd, hhmmss
+ 110 FORMAT( '     - Writing data to ', a, ' at ', i8.8, 1x, i6.6 )
+#endif
+
+          ! For time-averaged collections, divide by the number of updates,
+          ! or for instantaneous collections,
+          CALL History_Netcdf_Average( am_I_Root = am_I_Root,                &
+                                       Container = Collection%Container,     &
+                                       yyyymmdd  = yyyymmdd,                 &
+                                       hhmmss    = hhmmss,                   &
+                                       RC        = RC                       )
+
+          ! Write the HISTORY ITEMS for each collection to the netCDF file.  
+          CALL History_Netcdf_Write( am_I_Root = am_I_Root,                  &
+                                     Container = Collection%Container,       &
+                                     yyyymmdd  = yyyymmdd,                   &
+                                     hhmmss    = hhmmss,                     &
+                                     RC        = RC                         )
+
+          ! Trap error
+          IF ( RC /= GC_SUCCESS ) THEN
+             ! add this later
+          ENDIF
+       ENDIF
 #endif
 
        ! Skip to the next collection
@@ -1872,7 +2042,8 @@ CONTAINS
 !
 ! !IROUTINE: GetCollectionMetaData
 !
-! !DESCRIPTION: tbd
+! !DESCRIPTION: Parses a line of the HISTORY.rc file and returns metadata
+!  for a given attribute (e.g. "frequency", "template", etc.)
 !\\
 !\\
 ! !INTERFACE:
@@ -1881,23 +2052,26 @@ CONTAINS
 !
 ! !USES:
 !
-     USE Charpak_Mod, ONLY: StrSplit
+     USE Charpak_Mod,       ONLY: StrSplit
+     USE History_Params_Mod
 !
 ! !INPUT PARAMETERS: 
 !
-     CHARACTER(LEN=*),   INTENT(IN)  :: Line
-     CHARACTER(LEN=*),   INTENT(IN)  :: Pattern
+     CHARACTER(LEN=*),   INTENT(IN)  :: Line          ! Line to be searched
+     CHARACTER(LEN=*),   INTENT(IN)  :: Pattern       ! Search pattern
 !
 ! !OUTPUT PARAMETERS:
 !
-     CHARACTER(LEN=255), INTENT(OUT) :: MetaData
-     INTEGER,            INTENT(OUT) :: nCollection
+     CHARACTER(LEN=255), INTENT(OUT) :: MetaData      ! Metadata value
+     INTEGER,            INTENT(OUT) :: nCollection   ! Collection Id
 !
-! !REMARKS:
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  03 Aug 2017 - R. Yantosca - Make search algorithm more robust
+!  14 Aug 2017 - R. Yantosca - Initialize MetaData and nCollection
+!  15 Aug 2017 - R. Yantosca - Bug fix: TRIM string arguments to INDEX, and
+!                              initialize output arguments to undefined values
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1912,19 +2086,25 @@ CONTAINS
      CHARACTER(LEN=255) :: SubStr(255)
      
      !======================================================================
+     ! Initialize
+     !======================================================================
+     nCollection = UNDEFINED_INT
+     MetaData    = UNDEFINED_STR
+
+     !======================================================================
      ! Find the metadata for the given collection
      !======================================================================
      
      ! The collection name is between column 1 and the first "." character
-     Ind  = INDEX( Line, '.' )
+     Ind  = INDEX( TRIM( Line ), '.' )
      Name = Line(1:Ind-1) 
-     
+
      ! Loop over all collection names
      DO C = 1, CollectionCount
 
         ! Check to see if the current line matches the collection name
         ! Then check to see which collection this is in
-        Ind = INDEX( Name, TRIM( CollectionName(C) ) )
+        Ind = INDEX( TRIM( Name ), TRIM( CollectionName(C) ) )
 
         ! If the we match the current collection, then ...
         IF ( Ind > 0 ) THEN
@@ -1938,7 +2118,7 @@ CONTAINS
               ! Make sure the first substring matches the name 
               ! of the metadata field we would like to obtain.
               ! if it does, then we have found a match, and so return
-              IF ( INDEX( TRIM( SubStr(1) ), Pattern ) > 0 ) THEN
+              IF ( INDEX( TRIM( SubStr(1) ), TRIM( Pattern ) ) > 0 ) THEN
                  nCollection = C
                  MetaData    = CleanText( SubStr(2) )
                  EXIT
@@ -2083,6 +2263,15 @@ CONTAINS
         DEALLOCATE( CollectionFrequency, STAT=RC )
         IF ( RC /= GC_SUCCESS ) THEN
            ErrMsg = 'Could not deallocate "CollectionFrequency"!'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
+     ENDIF
+
+     IF ( ALLOCATED( CollectionAccInterval ) ) THEN
+        DEALLOCATE( CollectionAccInterval, STAT=RC )
+        IF ( RC /= GC_SUCCESS ) THEN
+           ErrMsg = 'Could not deallocate "CollectionAccInterval"!'
            CALL GC_Error( ErrMsg, RC, ThisLoc )
            RETURN
         ENDIF
