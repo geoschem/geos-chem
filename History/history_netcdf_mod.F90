@@ -26,7 +26,6 @@ MODULE History_Netcdf_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS
 !
-  PUBLIC  :: History_Netcdf_Average
   PUBLIC  :: History_Netcdf_Cleanup
   PUBLIC  :: History_Netcdf_Close
   PUBLIC  :: History_Netcdf_Define
@@ -339,7 +338,6 @@ CONTAINS
          
        !--------------------------------------------------------------------
        ! Denote that the file has been created and is open
-       ! Also set the reference time and date accordingly
        !--------------------------------------------------------------------
        Container%IsFileOpen = .TRUE.
     ENDIF
@@ -691,6 +689,7 @@ CONTAINS
     INTEGER,             INTENT(OUT) :: RC        ! Success or failure
 !
 ! !REMARKS:
+!  Also initializes the Container%CurrTimeSlice field.
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
@@ -709,11 +708,14 @@ CONTAINS
     ! Compute the reference date/time quantities
     !=======================================================================
 
+    ! Current time slice (will increment this in History_Netcdf_Write)
+    Container%CurrTimeSlice = 0
+
     ! Reference date
-    Container%ReferenceYmd = yyyymmdd
+    Container%ReferenceYmd  = yyyymmdd
 
     ! Reference time
-    Container%ReferenceHms = hhmmss
+    Container%ReferenceHms  = hhmmss
 
     ! Corresponding astronomical Julian date
     CALL Compute_Julian_Date( yyyymmdd, hhmmss, Container%ReferenceJd )
@@ -782,92 +784,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: History_Netcdf_Average
-!
-! !DESCRIPTION: 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE History_Netcdf_Average( am_I_Root, Container,                   &
-                                     yyyymmdd,  hhmmss,    RC               )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE HistContainer_Mod, ONLY : HistContainer
-    USE MetaHistItem_Mod,  ONLY : MetaHistItem
-!
-! !INPUT PARAMETERS: 
-!
-    LOGICAL,             INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
-    INTEGER,             INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
-    INTEGER,             INTENT(IN)  :: hhmmss    ! Current hour/minute/second
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(HistContainer), POINTER     :: Container ! Diagnostic collection obj
-!
-! !OUTPUT PARAMETERS: 
-!
-    INTEGER,             INTENT(OUT) :: RC        ! Success or failure
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER                     :: NcVarId
-    REAL(f8)                    :: Jd,      ElapsedMin
-
-    ! Strings
-    CHARACTER(LEN=255)          :: ErrMsg,  ThisLoc
-
-    ! Objects
-    TYPE(MetaHistItem), POINTER :: Current
-    
-    !=======================================================================
-    ! Initialize 
-    !=======================================================================
-    RC      =  GC_SUCCESS
-    Current => NULL()
-    ErrMsg  =  ''
-    ThisLoc =  &
-         ' -> at History_Netcdf_Average (in History/history_netcdf_mod.F90)'
-
-    !=======================================================================
-    ! 
-    !=======================================================================
-
-!       ! Set CURRENT to the first node in the list of HISTORY ITEMS
-!       Current => Container%HistItems
-!
-!       ! As long as this node of the list is valid ...
-!       DO WHILE( ASSOCIATED( Current ) )
-!
-!          !
-!          NcVarId = Current%Item%NcVarId
-!
-!          ! Go to next entry in the list of HISTORY ITEMS
-!          Current => Current%Next
-!       ENDDO
-!
-!       ! Free pointers
-!       Current => NULL()
-
-  END SUBROUTINE History_Netcdf_Average
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: History_Netcdf_Write
 !
 ! !DESCRIPTION: 
@@ -881,8 +797,11 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HistContainer_Mod, ONLY : HistContainer
-    USE MetaHistItem_Mod,  ONLY : MetaHistItem
+    USE HistItem_Mod,       ONLY : HistItem
+    USE HistContainer_Mod,  ONLY : HistContainer
+    USE History_Params_Mod
+    USE M_NetCdf_Io_Write,  ONLY : NcWr
+    USE MetaHistItem_Mod,   ONLY : MetaHistItem
 !
 ! !INPUT PARAMETERS: 
 !
@@ -909,35 +828,56 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                     :: NcVarId
-    REAL(f8)                    :: Jd,      ElapsedMin
+    INTEGER                     :: NcFileId,         NcVarId
+    INTEGER                     :: Dim1,             Dim2,       Dim3
+    REAL(f8)                    :: ElapsedMin,       Jd
 
     ! Strings
-    CHARACTER(LEN=255)          :: ErrMsg,  ThisLoc
+    CHARACTER(LEN=255)          :: ErrMsg,           ThisLoc
+
+    ! Arrays
+    INTEGER                     :: St1d(1),          Ct1d(1)
+    INTEGER                     :: St2d(2),          Ct2d(2)
+    INTEGER                     :: St3d(3),          Ct3d(3)
+    INTEGER                     :: St4d(4),          Ct4d(4)
+    REAL(f4),       ALLOCATABLE :: NcData_1d(:    )
+    REAL(f4),       ALLOCATABLE :: NcData_2d(:,:  )
+    REAL(f4),       ALLOCATABLE :: NcData_3d(:,:,:)
+    REAL(fp)                    :: NcTimeVal(1    )
 
     ! Objects
-    TYPE(MetaHistItem), POINTER :: Current
-    
+    TYPE(MetaHistItem), POINTER :: Current 
+    TYPE(HistItem),     POINTER :: Item
+
+    !=======================================================================
+    ! Make sure the netCDF file is open
+    !=======================================================================
+    IF ( ( .not. Container%IsFileOpen   )    .and.                          &
+         ( .not. Container%IsFileDefined ) ) THEN 
+       RC = GC_FAILURE
+       ! error
+    ENDIF
+
     !=======================================================================
     ! Initialize 
     !=======================================================================
-    RC      =  GC_SUCCESS
-    Current => NULL()
-    ErrMsg  =  ''
-    ThisLoc =  &
+    RC        =  GC_SUCCESS
+    Dim1      =  UNDEFINED_INT
+    Dim2      =  UNDEFINED_INT
+    Dim3      =  UNDEFINED_INT
+    NcFileId  =  Container%FileId
+    Current   => NULL()
+    Item      => NULL()
+    ErrMsg    =  ''
+    ThisLoc   =  &
          ' -> at History_Netcdf_Write (in History/history_netcdf_mod.F90)'
 
     !=======================================================================
     ! Compute time elapsed since the reference time
     !=======================================================================
-    IF ( ( .not. Container%IsFileOpen   )    .and.                          &
-         ( .not. Container%IsFileDefined ) ) THEN 
-       ! error
-    ENDIF
-    
-    !=======================================================================
-    ! Compute time elapsed since the reference time
-    !=======================================================================
+
+    ! Increment the time index for the netCDF file
+    Container%CurrTimeSlice = Container%CurrTimeSlice + 1
 
     ! Compute the Astronomical Julian Date at this time
     CALL Compute_Julian_Date( yyyymmdd, hhmmss, Jd )
@@ -945,26 +885,171 @@ CONTAINS
     ! Compute the time in minutes elapsed since the reference time
     ElapsedMin = ( ( Jd - Container%ReferenceJd ) * 1440.0_f8 )
 
+    ! Set the timestamp for instantaneous or time-averaged
+    ! NOTE: For now, assume integral minutes (since our heartbeat timestep 
+    ! is probably not going to be less than 5 or 10 minutes).  If this is
+    ! a problem we could round up.
+    IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
+       Container%TimeStamp = NINT( ElapsedMin          )
+    ELSE
+       ! NOTE: this is incorrect, need to offset by 1/2 of the interval
+       Container%TimeStamp = NINT( ElapsedMin / 2.0_fp )
+    ENDIF
+
+    print*, '### ElapsedMin: ', ElapsedMin
+    print*, '### TimeStamp : ', Container%TimeStamp
+
+    ! Write the time index
+    St1d      = (/ Container%CurrTimeSlice /)
+    Ct1d      = (/ 1                       /)
+    NcTimeVal = (/ Container%TimeStamp     /)
+
+    CALL NcWr( NcTimeVal, NcFileId, 'time', St1d, Ct1d )
+    
+    RETURN
+
     !=======================================================================
-    ! 
+    ! Loop over all of the HISTORY ITEMS belonging to this collection
     !=======================================================================
 
-!       ! Set CURRENT to the first node in the list of HISTORY ITEMS
-!       Current => Container%HistItems
-!
-!       ! As long as this node of the list is valid ...
-!       DO WHILE( ASSOCIATED( Current ) )
-!
-!          !
-!          NcVarId = Current%Item%NcVarId
-!
-!          ! Go to next entry in the list of HISTORY ITEMS
-!          Current => Current%Next
-!       ENDDO
-!
-!       ! Free pointers
-!       Current => NULL()
+    ! Set CURRENT to the first entry in the list of HISTORY ITEMS
+    Current => Container%HistItems
 
+    ! As long as this entry of the list is valid ...
+    DO WHILE( ASSOCIATED( Current ) )
+
+       ! Point to the HISTORY ITEM object in this entry
+       Item => Current%Item
+
+       !--------------------------------------------------------------------
+       ! For instantaneous diagnostic quantities:
+       ! (1) Copy the Item's data array to the 4-byte local array
+       ! (2) Zero the Item's data array
+       ! (3) Zero the Item's update counter
+       !
+       ! For time-averaged diagnostic quantities:
+       ! (1) Divide the Item's data array by the number diagnostic updates
+       ! (2) Copy the Item's data array to the 4-byte local array
+       ! (3) Zero the Item's data array
+       ! (4) Zero the Item's update counter
+       !--------------------------------------------------------------------
+       SELECT CASE( Item%SpaceDim )
+          
+          !------------
+          ! 3-D data
+          !------------
+          CASE( 3 )   
+             
+             ! Get dimensions of data
+             Dim1 = SIZE( Item%Data_3d, 1 )
+             Dim2 = SIZE( Item%Data_3d, 2 )
+             Dim3 = SIZE( Item%Data_3d, 3 )
+
+             ! Allocate the REAL*4 output array
+             ALLOCATE( NcData_3d( Dim1, Dim2, Dim3 ), STAT=RC )
+
+             ! Copy or average the data and store in a REAL*4 array
+             IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+                NcData_3d     = Item%Data_3d
+                Item%Data_3d  = 0.0_f8
+                Item%nUpdates = 0
+             ELSE
+                Item%Data_3d  = Item%Data_3d / DBLE( Item%nUpdates )
+                NcData_3d     = Item%Data_3d
+                Item%Data_3d  = 0.0_f8
+                Item%nUpdates = 0
+             ENDIF
+
+             ! Compute start and count fields
+             St4d = (/ 1,    1,    1,    Container%CurrTimeSlice /)
+             Ct4d = (/ Dim1, Dim2, Dim3, 1                       /)
+
+             ! Write data to disk
+             CALL NcWr( NcData_3d, NcFileId, Item%Name, St4d, Ct4d )
+             
+             ! Deallocate output array
+             DEALLOCATE( NcData_3d, STAT=RC )
+
+          !------------
+          ! 2-D data
+          !------------
+          CASE( 2 )
+
+             ! Get dimensions of data
+             Dim1 = SIZE( Item%Data_3d, 1 )
+             Dim2 = SIZE( Item%Data_3d, 2 )
+
+             ! Allocate the REAL*4 output array
+             ALLOCATE( NcData_2d( Dim1, Dim2 ), STAT=RC )
+ 
+             ! Copy or average the data and store in a REAL*4 array
+             IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+                NcData_2d     = Item%Data_2d
+                Item%Data_2d  = 0.0_f8
+                Item%nUpdates = 0
+             ELSE
+                Item%Data_2d  = Item%Data_2d / DBLE( Item%nUpdates )
+                NcData_2d     = Item%Data_2d
+                Item%Data_2d  = 0.0_f8
+                Item%nUpdates = 0
+             ENDIF
+
+             ! Compute start and count fields
+             St3d = (/ 1,    1,    Container%CurrTimeSlice /)
+             Ct3d = (/ Dim1, Dim2, 1                       /)
+
+             ! Write data to disk
+             CALL NcWr( NcData_3d, NcFileId, Item%Name, St3d, Ct3d )
+             
+             ! Deallocate output array
+             DEALLOCATE( NcData_2d, STAT=RC )
+
+          !------------
+          ! 1-D data
+          !------------
+          CASE( 1 )
+
+             ! Get dimensions of data
+             Dim1 = SIZE( Item%Data_3d, 1 )
+
+             ! Allocate the REAL*4 output array
+             ALLOCATE( NcData_1d( Dim1 ), STAT=RC )
+
+             ! Copy or average the data and store in a REAL*4 array
+             IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+                NcData_1d     = Item%Data_1d
+                Item%Data_1d  = 0.0_f8
+                Item%nUpdates = 0
+             ELSE
+                Item%Data_1d  = Item%Data_1d / DBLE( Item%nUpdates )
+                NcData_1d     = Item%Data_1d
+                Item%Data_1d  = 0.0_f8
+                Item%nUpdates = 0
+             ENDIF
+
+
+             ! Compute start and count fields
+             St2d = (/ 1,    Container%CurrTimeSlice /)
+             Ct2d = (/ Dim1, 1                       /)
+
+             ! Write data to disk
+             CALL NcWr( NcData_1d, NcFileId, Item%Name, St2d, Ct2d )
+             
+             ! Deallocate output array
+             DEALLOCATE( NcData_2d, STAT=RC )
+
+        END SELECT
+
+        !-------------------------------------------------------------------
+        ! Go to next entry in the list of HISTORY ITEMS
+        !------------------------------------------------------------------- 
+        Current => Current%Next
+        Item    => NULL()
+     ENDDO
+
+     ! Free pointers
+     Current => NULL()
+     Item    => NULL()
 
   END SUBROUTINE History_NetCdf_Write
 !EOC

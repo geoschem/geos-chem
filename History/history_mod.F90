@@ -1882,14 +1882,14 @@ CONTAINS
  110 FORMAT( '     - Writing data to ', a, ' at ', i8.8, 1x, i6.6 )
 #endif
 
-          ! For time-averaged collections, divide by the number of updates,
-          ! or for instantaneous collections,
-          CALL History_Netcdf_Average( am_I_Root = am_I_Root,                &
-                                       Container = Collection%Container,     &
-                                       yyyymmdd  = yyyymmdd,                 &
-                                       hhmmss    = hhmmss,                   &
-                                       RC        = RC                       )
-
+!          ! For time-averaged collections, divide by the number of updates,
+!          ! or for instantaneous collections,
+!          CALL History_Netcdf_Average( am_I_Root = am_I_Root,                &
+!                                       Container = Collection%Container,     &
+!                                       yyyymmdd  = yyyymmdd,                 &
+!                                       hhmmss    = hhmmss,                   &
+!                                       RC        = RC                       )
+!
           ! Write the HISTORY ITEMS for each collection to the netCDF file.  
           CALL History_Netcdf_Write( am_I_Root = am_I_Root,                  &
                                      Container = Collection%Container,       &
