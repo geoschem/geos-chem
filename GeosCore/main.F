@@ -580,7 +580,13 @@
       id_CLOCK = Ind_('CLOCK','A')
       id_H2O   = Ind_('H2O'  ,'A')
       !
+      !-----------------------------------------------------------------
+
 #if defined( NC_DIAG )
+      !=================================================================
+      !    ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
+      !=================================================================
+
       ! For now, just hardwire the input file for the History component
       Input_Opt%HistoryInputFile = './HISTORY.rc'
       !
@@ -594,7 +600,6 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 #endif      
-      !-----------------------------------------------------------------
 
 #if   defined( RRTMG )
       ! Initialize surface rad fields
@@ -931,13 +936,6 @@
          ! (ckeller, 4/1/15). 
          CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
      &                           .FALSE.,   RC)
-
-#if defined( NC_DIAG ) 
-         ! Write netCDF diagnostics to disk 
-         !%%% NOTE: Need to find a way to prevent opening a new
-         !%%% file on the last timestep, unless it is a restart file
-         CALL History_Write( am_I_Root, Nymd, Nhms, RC )
-#endif
 
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "HEMCO", RC )
@@ -1772,9 +1770,15 @@
 
 #if defined( NC_DIAG )
          !==============================================================
-         !          ***** H I S T O R Y   U P D A T E *****
+         !  ***** H I S T O R Y   U P D A T E   A N D   W R I T E *****
          !==============================================================
+
+         ! Update each HISTORY ITEM from its data source
          CALL History_Update( am_I_Root, NYMD, NHMS, RC )
+
+         ! Write HISTORY ITEMS in each diagnostic collection to disk
+         ! (or skip writing if it is not the proper output time.
+         CALL History_Write( am_I_Root, Nymd, Nhms, RC )
 #endif
 
          !==============================================================
@@ -1858,12 +1862,10 @@
 
       ! Close all files
       CALL CLOSE_FILES
-      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
-
-#if defined( NC_DIAG )
-      ! Free the list of diagnostic collections
-      CALL History_Cleanup( am_I_Root, RC )
-#endif      
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )   
+ 
+      !%%% NOTE: Call HISTORY_CLEANUP from cleanup.F.  This will
+      !%%% close all netCDF files upon both normal or abnormal exits.
 
       ! Deallocate fields of the Input Options object
       CALL Cleanup_Input_Opt( am_I_Root, Input_Opt, RC )

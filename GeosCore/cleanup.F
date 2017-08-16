@@ -41,6 +41,7 @@
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GC_GRID_MOD,             ONLY : CLEANUP_GRID
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
+      USE History_Mod,             ONLY : History_Cleanup
       USE Input_Opt_Mod,           ONLY : OptInput
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
@@ -241,6 +242,7 @@
 !  30 Jun 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE_LOOP; it's obsolete
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  09 Aug 2017 - R. Yantosca - Pass am_I_Root, RC to Cleanup_Grid
+!  16 Aug 2017 - R. Yantosca - Now call History_Cleanup from here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -253,6 +255,16 @@
          WRITE( 6, 100 ) 
       ENDIF
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
+
+#if defined( NC_DIAG )
+      !=================================================================
+      !         ***** H I S T O R Y   C L E A N U P *****
+      !
+      ! Finalize the History Component.
+      ! Also closes all netCDF files that may still be open.
+      !=================================================================
+      CALL History_Cleanup( am_I_Root, RC )
+#endif
 
       ! UCX needs to be cleaned up before emissions, because the UCX 
       ! restart variables needs to be passed to the HEMCO diagnostics
@@ -334,6 +346,6 @@
 #elif defined( MERRA2 )
       CALL Cleanup_Merra2_Read()
 #endif
-      
+
       END SUBROUTINE CLEANUP
 !EOC

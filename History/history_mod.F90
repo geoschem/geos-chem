@@ -27,6 +27,7 @@ MODULE History_Mod
   PUBLIC  :: History_Init
   PUBLIC  :: History_Update
   PUBLIC  :: History_Write
+  PUBLIC  :: History_Close_AllFiles
   PUBLIC  :: History_Cleanup
 !
 ! PRIVATE MEMBER FUNCTIONS:
@@ -48,7 +49,9 @@ MODULE History_Mod
 !                              time-averaged data collections
 !  16 Aug 2017 - R. Yantosca - Add subroutine TestTimeForAction to avoid
 !                              duplicating similar code
-!EOPt
+!  16 Aug 2017 - R. Yantosca - Now close all netCDF files in routine
+!                              History_Close_AllFiles
+!EOP
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -99,8 +102,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Init( am_I_root,  Input_Opt, State_Chm,  &
-                           State_Diag, State_Met, RC         )
+  SUBROUTINE History_Init( am_I_root,  Input_Opt, State_Chm,                 &
+                           State_Diag, State_Met, RC                        )
 !
 ! !USES:
 !
@@ -1399,7 +1402,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE History_Update( am_I_Root, yyyymmdd, hhmmss, RC )
-!
+! 
 ! !USES:
 !
     USE ErrCode_Mod
@@ -1411,13 +1414,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
-    INTEGER, INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
-    INTEGER, INTENT(IN)  :: hhmmss    ! Current hour/minute/second
+    LOGICAL, INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+    INTEGER, INTENT(IN)  :: yyyymmdd   ! Current Year/month/day
+    INTEGER, INTENT(IN)  :: hhmmss     ! Current hour/minute/second
 !
 ! !OUTPUT PARAMETERS: 
 !
-    INTEGER, INTENT(OUT) :: RC        ! Success or failure
+    INTEGER, INTENT(OUT) :: RC         ! Success or failure
 !
 ! !REMARKS:
 !  This routine is called from the main program at the end of each 
@@ -1814,7 +1817,9 @@ CONTAINS
 
           ! Trap error
           IF ( RC /= GC_SUCCESS ) THEN
-             ! add this later
+             ErrMsg = 'Error returned from "History_Netcdf_Close"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
           ENDIF
 
           !-----------------------------------------------------------------
@@ -1830,7 +1835,9 @@ CONTAINS
 
           ! Trap error
           IF ( RC /= GC_SUCCESS ) THEN
-             ! add this later
+             ErrMsg = 'Error returend from "History_Netcdf_Define"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
           ENDIF
        ENDIF
 
@@ -1858,7 +1865,9 @@ CONTAINS
 
           ! Trap error
           IF ( RC /= GC_SUCCESS ) THEN
-             ! add this later
+             ErrMsg = 'Error returned from "History_Netcdf_Write"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
           ENDIF
        ENDIF
 #endif
@@ -2218,6 +2227,99 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: History_Close_AllFiles
+!
+! !DESCRIPTION: Closes the netCDF file described by each HISTORY CONTAINER
+!  object in the master list of diagnostic collections.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE History_Close_AllFiles( am_I_Root, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE History_Netcdf_Mod,    ONLY : History_Netcdf_Close
+    USE MetaHistContainer_Mod, ONLY : MetaHistContainer
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER, INTENT(OUT) :: RC          ! Success or failure
+!
+! !REMARKS:
+!  This is called from History_Cleanup, but may also be called in other
+!  locations (e.g. when processing abnormal exits)
+!
+! !REVISION HISTORY:
+!  16 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255)               :: ErrMsg, ThisLoc
+
+    ! Objects
+    TYPE(MetaHistContainer), POINTER :: Current
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      =  GC_SUCCESS
+    Current => NULL()
+    ErrMsg  =  ''
+    ThisLoc =  &
+       ' -> at History_Close_AllFiles (in module History/history_mod.F90)'
+
+    !=======================================================================
+    ! Close the netCDF file for each diagnostic collection
+    !=======================================================================
+
+    ! Set CURRENT to the first entry in the list of HISTORY CONTAINERS
+    Current => CollectionList
+
+    ! If this entry is not null ...
+    DO WHILE ( ASSOCIATED( Current ) )
+
+       ! Close the file (if it's open) and reset all relevant fields
+       ! in the HISTORY CONTAINER object
+       CALL History_Netcdf_Close( am_I_Root = am_I_Root,                    &
+                                  Container = Current%Container,            &
+                                  RC        = RC                           )
+
+       ! Trap error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error returned from "History_Netcdf_Close"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          Current => NULL()
+          RETURN
+       ENDIF
+       
+       ! Go to the next entry in the list of HISTORY CONTAINERS
+       Current => Current%Next
+    ENDDO
+
+    !=======================================================================
+    ! Cleanup and quit
+    !=======================================================================
+
+    ! Free pointer
+    Current => NULL()
+
+  END SUBROUTINE History_Close_AllFiles
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: History_Cleanup
 !
 ! !DESCRIPTION: Deallocates all module variables and objects.  Also closes
@@ -2226,14 +2328,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-   SUBROUTINE History_Cleanup( am_I_Root, RC )
+  SUBROUTINE History_Cleanup( am_I_Root, RC )
 !
 ! !USES:
 !
-     USE ErrCode_Mod
-     USE History_Netcdf_Mod,    ONLY : History_Netcdf_Cleanup
-     USE History_Netcdf_Mod,    ONLY : History_Netcdf_Close
-     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
+    USE ErrCode_Mod
+    USE History_Netcdf_Mod, ONLY : History_Netcdf_Cleanup
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2246,6 +2346,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
 !  14 Aug 2017 - R. Yantosca - Call History_Netcdf_Close to close open files
+!  16 Aug 2017 - R. Yantosca - Move netCDF close code to History_Close_AllFIles
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2267,28 +2368,10 @@ CONTAINS
      ThisLoc =  ' -> at History_Cleanup (in module History/history_mod.F90)'
 
      !======================================================================
-     ! Close any remanining netCDF files
+     ! Close all remanining netCDF files
      !======================================================================
-     
-     ! Set CURRENT to the first entry in the list of HISTORY CONTAINERS
-     Current => CollectionList
+     CALL History_Close_AllFiles( am_I_Root, RC )
 
-     ! If this entry is not null ...
-     DO WHILE ( ASSOCIATED( Current ) )
-        
-        ! Close the file (if it's open) and reset all relevant fields
-        ! in the HISTORY CONTAINER object
-        CALL History_Netcdf_Close( am_I_Root = am_I_Root,                    &
-                                   Container = Current%Container,            &
-                                   RC        = RC                           )
-        
-        ! Go to the next entry in the list of HISTORY CONTAINERS
-        Current => Current%Next
-     ENDDO
-
-     ! Free pointer
-     Current => NULL()
-     
      !======================================================================
      ! Then finalize the history_netcdf_mod.F90 module
      !======================================================================

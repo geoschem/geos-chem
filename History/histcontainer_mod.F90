@@ -70,11 +70,11 @@ MODULE HistContainer_Mod
                                                         !  1=accum from source
      INTEGER                     :: ReferenceYmd        ! Reference YMD & hms 
      INTEGER                     :: ReferenceHms        !  for the "time" dim
-     REAL(fp)                    :: ReferenceJD         ! Astronomical Julian
+     REAL(f8)                    :: ReferenceJD         ! Astronomical Julian
                                                         !  date @ ref date/time
      INTEGER                     :: CurrTimeSlice       ! Current time slice
                                                         !  for the "time" dim
-     REAL(fp)                    :: TimeStamp           ! Elapsed minutes
+     REAL(f8)                    :: TimeStamp           ! Elapsed minutes
                                                         !  w/r/t ref date/time
 
      !----------------------------------------------------------------------

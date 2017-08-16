@@ -35,6 +35,7 @@ MODULE History_Netcdf_Mod
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: Compute_Julian_Date
+  PRIVATE :: Compute_TimeAvgOffset
   PRIVATE :: Expand_Date_Time
   PRIVATE :: Get_Var_DimIds
   PRIVATE :: Set_RefDateTime
@@ -266,28 +267,11 @@ CONTAINS
        ! Replace date and time tokens in the file name
        CALL Expand_Date_Time( FileName, yyyymmdd, hhmmss, MAPL_Style=.TRUE. )
    
-#if defined( DEBUG )
-       !###  Debug output for development
-       WRITE(6,'(a     )') REPEAT( '#', 79 )
-       WRITE(6,'(a,a   )') '### Time to write : ', TRIM( Container%Name )
-       WRITE(6, 100      ) '### date/time     : ', yyyymmdd, hhmmss
-       WRITE(6,'(a,L3  )') '### IsFileDefined : ', Container%IsFileDefined
-       WRITE(6, 100      ) '### Update        : ', Container%UpdateYmd,  &
-                                                   Container%UpdateHms
-       WRITE(6, 100      ) '### FileCloseYmd  : ', Container%FileCloseYmd, &
-                                                   Container%FileCloseHms
-       WRITE(6, 100      ) '### FileWrite     : ', Container%FileWriteYmd, &
-                                                   Container%FileWriteHms
-       WRITE(6,'(a,a   )') '### FileName      : ', TRIM( FileName )
-       WRITE(6,'(a     )') REPEAT( '#', 79 )
-
-100    FORMAT( a, i8.8, 1x,i6.6 )
-#endif
-
        !--------------------------------------------------------------------
        ! Compute reference date and time fields in the HISTORY CONTAINER
        ! These are needed to compute the time stamps for each data field
-       ! that is written to the netCDF file.
+       ! that is written to the netCDF file.  Also resets the current
+       ! time slice index.
        !--------------------------------------------------------------------
        CALL Set_RefDateTime( Container, yyyymmdd, hhmmss )
 
@@ -533,7 +517,7 @@ CONTAINS
     ! Scalars
     INTEGER                     :: NcFileId,         NcVarId
     INTEGER                     :: Dim1,             Dim2,       Dim3
-    REAL(f8)                    :: ElapsedMin,       Jd
+    REAL(f8)                    :: ElapsedMin,       Jd,         OffsetMin
 
     ! Strings
     CHARACTER(LEN=255)          :: ErrMsg,           ThisLoc
@@ -546,19 +530,22 @@ CONTAINS
     REAL(f4),       ALLOCATABLE :: NcData_1d(:    )
     REAL(f4),       ALLOCATABLE :: NcData_2d(:,:  )
     REAL(f4),       ALLOCATABLE :: NcData_3d(:,:,:)
-    REAL(fp)                    :: NcTimeVal(1    )
+    REAL(f8)                    :: NcTimeVal(1    )
 
     ! Objects
     TYPE(MetaHistItem), POINTER :: Current 
     TYPE(HistItem),     POINTER :: Item
 
     !=======================================================================
-    ! Make sure the netCDF file is open
+    ! Make sure the netCDF file is open and defined
     !=======================================================================
     IF ( ( .not. Container%IsFileOpen   )    .and.                          &
          ( .not. Container%IsFileDefined ) ) THEN 
-       RC = GC_FAILURE
-       ! error
+       RC     = GC_FAILURE
+       ErrMsg = 'NetCDF file is not open or defined for collection: ' // &
+                 TRIM( Container%Name ) 
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
     ENDIF
 
     !=======================================================================
@@ -592,29 +579,29 @@ CONTAINS
     ! if we have fractional minutes as time values.
     ElapsedMin = RoundOff( ElapsedMin, 5 )
 
-    ! Set the timestamp for instantaneous or time-averaged
-    ! NOTE: For now, assume integral minutes (since our heartbeat timestep 
-    ! is probably not going to be less than 5 or 10 minutes).  If this is
-    ! a problem we could round up.
-    IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
-       Container%TimeStamp = ElapsedMin
-    ELSE
-       ! NOTE: this is incorrect, need to offset by 1/2 of the interval
-       Container%TimeStamp = ElapsedMin !+ Container%TimeAvgOffset
-    ENDIF
+    !=======================================================================
+    ! Compute the time stamp value for the current time slice
+    !=======================================================================
 
-    print*, '### name      : ', TRIM( Container%name )
-    print*, '### ElapsedMin: ', ElapsedMin
-    print*, '### TimeStamp : ', Container%TimeStamp
+    ! Compute the timestamp offset
+    CALL Compute_TimeAvgOffset( Container, yyyymmdd, hhmmss, OffsetMin )
 
-    ! Write the time index
+    ! Time stamp for current time slice
+    Container%TimeStamp = ElapsedMin + OffsetMin
+
+    !=======================================================================
+    ! Write the time stamp to the netCDF File
+    !=======================================================================
+
+    ! netCDF start and count arrays
     St1d      = (/ Container%CurrTimeSlice /)
     Ct1d      = (/ 1                       /)
+
+    ! Time stamp value
     NcTimeVal = (/ Container%TimeStamp     /)
 
+    ! Write the time stamp to the file
     CALL NcWr( NcTimeVal, NcFileId, 'time', St1d, Ct1d )
-    
-    RETURN
 
     !=======================================================================
     ! Loop over all of the HISTORY ITEMS belonging to this collection
@@ -746,18 +733,22 @@ CONTAINS
              ! Deallocate output array
              DEALLOCATE( NcData_2d, STAT=RC )
 
-        END SELECT
+       END SELECT
 
-        !-------------------------------------------------------------------
-        ! Go to next entry in the list of HISTORY ITEMS
-        !------------------------------------------------------------------- 
-        Current => Current%Next
-        Item    => NULL()
-     ENDDO
+       !--------------------------------------------------------------------
+       ! Go to next entry in the list of HISTORY ITEMS
+       !-------------------------------------------------------------------- 
+       Current => Current%Next
+       Item    => NULL()
+    ENDDO
 
-     ! Free pointers
-     Current => NULL()
-     Item    => NULL()
+    !========================================================================
+    ! Cleanup and quit
+    !========================================================================
+
+    ! Free pointers
+    Current => NULL()
+    Item    => NULL()
 
   END SUBROUTINE History_NetCdf_Write
 !EOC
@@ -788,7 +779,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS: 
 !
-    REAL(fp), INTENT(OUT) :: Jd        ! Astronomical Julian date
+    REAL(f8), INTENT(OUT) :: Jd        ! Astronomical Julian date
 !
 ! !REMARKS:
 !
@@ -823,7 +814,94 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: History_Expand_Date
+! !IROUTINE: Compute_TimeAvgOffset
+!
+! !DESCRIPTION: Computes the offset (in minutes) for the netCDF timestamp. 
+!  Instantaneous data will have an offset of zero.  Time-averaged data will
+!  have an offset of 1/2 the accumulation interval.
+!\\
+!\\
+! !INTERFACE:
+!
+ SUBROUTINE Compute_TimeAvgOffset( Container, yyyymmdd, hhmmss, OffsetMin )
+!
+! !USES:
+!
+   USE HistContainer_Mod,  ONLY : HistContainer
+   USE History_Params_Mod
+   USE Time_Mod,           ONLY : Ymd_Extract
+!
+! !INPUT PARAMETERS:
+!
+   TYPE(HistContainer), POINTER     :: Container   ! HISTORY CONTAINER object
+   INTEGER,             INTENT(IN)  :: yyyymmdd    ! Current date in YMD
+   INTEGER,             INTENT(IN)  :: hhmmss      ! Current time in hms
+!
+! !OUTPUT PARAMETERS:
+!
+   REAL(f8),            INTENT(OUT) :: OffsetMin   ! Timestamp offset in min
+!
+! !REMARKS:
+!  Instantaneous data has an offset of 0.0 minutes.
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+   INTEGER :: Year, Month, Day, Hour, Minute, Second
+
+   IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
+
+      !------------------------------------------
+      ! Instantaneous data: offset is zero.
+      !------------------------------------------
+      OffsetMin = 0.0_f8
+      RETURN
+
+   ELSE
+
+      !------------------------------------------
+      ! Time averaged data: compute offset
+      !------------------------------------------
+      OffsetMin = 0.0_f8
+
+      ! Split file writing date & times into individual constitutents
+      CALL Ymd_Extract( Container%FileWriteYmd, Year, Month,  Day    )
+      CALL Ymd_Extract( Container%FileWriteHms, Hour, Minute, Second )
+
+      IF ( Day > 0 ) THEN
+         OffsetMin = OffsetMin + ( DBLE( Day    ) * 1440.0_f8 )
+      ENDIF
+
+      IF ( Hour > 0 ) THEN
+         OffsetMin = OffsetMin + ( DBLE( Hour   ) * 60.0_f8   )
+      ENDIF
+
+      IF ( Minute > 0 ) THEN
+         OffsetMin = OffsetMin + ( DBLE( Minute )             )
+      ENDIF
+
+      IF ( Second > 0 ) THEN
+         OffsetMin = OffsetMin + ( DBLE( Second ) / 60.0_f8   )
+      ENDIF
+
+      ! Take the midpoint of the interval
+      OffsetMin = OffsetMin * 0.5_f8
+
+   ENDIF
+
+ END SUBROUTINE Compute_TimeAvgOffset
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Expand_Date_Time
 !
 ! !DESCRIPTION: Replaces date and time tokens in a string with actual 
 !  date and time values.
@@ -1112,6 +1190,7 @@ CONTAINS
 ! !USES:
 !
     USE HistContainer_Mod, ONLY : HistContainer
+    USE Time_Mod,          ONLY :
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1130,6 +1209,7 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
     !=======================================================================
     ! Compute the reference date/time quantities
     !=======================================================================
