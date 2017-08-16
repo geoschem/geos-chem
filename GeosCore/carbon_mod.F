@@ -367,9 +367,6 @@
       INTEGER :: id_LTRO2H,  id_LXRO2N, id_LXRO2H, id_LNRO2N, id_LNRO2H
       INTEGER :: id_LISOPOH, id_LISOPNO3
       INTEGER :: id_SOAS,    id_SOAP
-      INTEGER :: id_GLYX,    id_SOAGX,  id_MGLY,   id_SOAMG,  id_GLYC
-      INTEGER :: id_SOAIE,   id_SOAME,  id_IEPOX,  id_LVOCOA, id_IMAE
-      INTEGER :: id_INDIOL,  id_ISN1OA
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -8868,18 +8865,6 @@ ccc
       id_LNRO2H   = IND_('LNRO2H'  )
       id_LISOPOH  = IND_('LISOPOH' )
       id_LISOPNO3 = IND_('LISOPNO3')
-      id_GLYX     = IND_('GLYX'    )
-      id_SOAGX    = IND_('SOAGX'   )
-      id_MGLY     = IND_('MGLY'    )
-      id_SOAMG    = IND_('SOAMG'   )
-      id_GLYC     = IND_('GLYC'    )
-      id_SOAIE    = IND_('SOAIE'   )
-      id_SOAME    = IND_('SOAME'   )
-      id_IEPOX    = IND_('IEPOX'   )
-      id_LVOCOA   = IND_('LVOCOA'  )
-      id_IMAE     = IND_('IMAE'    )
-      id_INDIOL   = IND_('INDIOL'  )
-      id_ISN1OA   = IND_('ISN1OA'  )
 
       ! Some parent hydrocarbons are lumped together into 1 or more
       ! semivolatiles. Map the parent HC to lumped semivolatiles here

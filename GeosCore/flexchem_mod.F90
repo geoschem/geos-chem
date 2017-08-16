@@ -691,7 +691,6 @@ CONTAINS
        ENDIF
 
        C(ind_ACTA)  = 0.0_dp
-       C(ind_EOH)   = 0.0_dp
        C(ind_HCOOH) = 0.0_dp
 #if defined( UCX )
        C(ind_O2) = 0.2095e+0_dp * NUMDEN
@@ -918,7 +917,6 @@ CONTAINS
           ENDIF
        ENDDO
 #endif
-
 
     ENDDO
     ENDDO
