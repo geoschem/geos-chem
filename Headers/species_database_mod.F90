@@ -1405,6 +1405,9 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Ethanol nitrate',            &
                               Formula       = 'CHOCH2ONO2',                 &
@@ -2080,6 +2083,9 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               Formula       = 'C4H6O3',                     &
@@ -2110,6 +2116,9 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               Formula       = '',                           &
@@ -2194,6 +2203,9 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nighttime isoprene nitrate', &
                               Formula       = 'C5H8NO4',                    &
@@ -2224,6 +2236,9 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               Formula       = '',                           &
@@ -2246,6 +2261,9 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               Formula       = '',                           &
@@ -2423,6 +2441,9 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               Formula       = 'C5H14O5',                    &
@@ -2452,6 +2473,9 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               Formula       = 'C5H14O5',                    &
@@ -4026,6 +4050,9 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Aerosol-phase IEPOX',        &
                               Formula       = 'C5H10O3',                    &
@@ -4055,6 +4082,9 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Aerosol-phase glyoxal',      &
                               Formula       = 'C2H2O2',                     &
@@ -4084,6 +4114,9 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Aerosol-phase IMAE',         &
                               Formula       = 'C4H6O3',                     &
@@ -4113,6 +4146,9 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Aerosol-phase methylglyoxal',&
                               Formula       = 'C3H4O2',                     &
