@@ -33,16 +33,21 @@ MODULE History_Mod
 
   PRIVATE :: History_ReadCollectionNames
   PRIVATE :: History_ReadCollectionData
+  PRIVATE :: History_AddItemToCollection
   PRIVATE :: CleanText
   PRIVATE :: ReadOneLine
+  PRIVATE :: TestTimeForAction
 !
 ! !REMARKS:
+!  
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  02 Aug 2017 - R. Yantosca - Added History_Update routine
 !  14 Aug 2017 - R. Yantosca - Now read the "acc_interval" field for
 !                              time-averaged data collections
+!  16 Aug 2017 - R. Yantosca - Add subroutine TestTimeForAction to avoid
+!                              duplicating similar code
 !EOPt
 !------------------------------------------------------------------------------
 !BOC
@@ -76,7 +81,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Reads the HISTORY.rc file and creates the linked list of
 !  collections (i.e. netCDF diagnostic files containing several data fields
-!  with a specified archival frequency).  The list of fields belonging to
+!  with a specified update frequency).  The list of fields belonging to
 !  each collection is also determined.  
 !\\
 !\\
@@ -154,7 +159,7 @@ CONTAINS
 
     !=======================================================================
     ! First initialize the list of collections
-    ! ("collection" = a netCDF file with a specific archival frequency)
+    ! ("collection" = a netCDF file with a specific update frequency)
     !=======================================================================
     CALL History_ReadCollectionNames( am_I_root,  Input_Opt, State_Chm,  &
                                       State_Diag, State_Met, RC         )
@@ -182,7 +187,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Read_Collection_Names
+! !IROUTINE: History_Read_Collection_Names
 !
 ! !DESCRIPTION: Reads the History input file (e.g. HISTORY.rc) and determines
 !  the names of each individual diagnostic collection.  It stores this 
@@ -445,12 +450,12 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Read_Collection_Data
+! !IROUTINE: History_Read_Collection_Data
 !
 ! !DESCRIPTION: Parses the History input file (e.g. HISTORY.rc) and compiles
 !  the list of diagnostic quantities belonging to each collection.  In other
 !  words, this is the list of individual fields that will be archived to a
-!  particular netCDF file with a given archival frequency.
+!  particular netCDF file with a given update frequency.
 !\\
 !\\
 ! !INTERFACE:
@@ -508,7 +513,7 @@ CONTAINS
     INTEGER                      :: fId,          IOS
     INTEGER                      :: nSubs1,       nSubs2
     INTEGER                      :: Ind1,         Ind2
-    INTEGER                      :: ArchivalYmd,  ArchivalHms
+    INTEGER                      :: UpdateYmd,    UpdateHms
     INTEGER                      :: FileCloseYmd, FileCloseHms
     INTEGER                      :: FileWriteYmd, FileWriteHms
     INTEGER                      :: ItemCount,    SpaceDim,     Operation
@@ -548,8 +553,8 @@ CONTAINS
     RC           =  GC_SUCCESS
 
     ! Initialize variables
-    ArchivalYmd  =  0 
-    ArchivalHms  =  0
+    UpdateYmd    =  0 
+    UpdateHms    =  0
     FileCloseYmd =  0
     FileCloseHms =  0
     FileWriteYmd =  0
@@ -726,24 +731,24 @@ CONTAINS
           END SELECT
 
           !-----------------------------------------------------------------
-          ! Define ArchivalHms and ArchivalYmd
+          ! Define UpdateHms and UpdateYmd
           ! 
           ! NOTE: If CollectionFrequency is 6 digits long, then assume that
-          ! to be ArchivalHms.  If longer, then assume that it is specifying
-          ! both ArchivalYmd and ArchivalHms. (sde, bmy, 8/4/17)
+          ! to be UpdateHms.  If longer, then assume that it is specifying
+          ! both UpdateYmd and UpdateHms. (sde, bmy, 8/4/17)
           !-----------------------------------------------------------------
           IF ( LEN_TRIM( CollectionFrequency(C) ) == 6 ) THEN
-             READ( CollectionFrequency(C), '(i6.6)'  ) ArchivalHms
+             READ( CollectionFrequency(C), '(i6.6)'  ) UpdateHms
           ELSE
-             READ( CollectionFrequency(C), '(2i6.6)' ) ArchivalYmd, &
-                                                       ArchivalHms
+             READ( CollectionFrequency(C), '(2i6.6)' ) UpdateYmd, &
+                                                       UpdateHms
           ENDIF
 
-          ! SPECIAL CASE: If ArchivalHms is 240000 then set
-          ! and set ArchivalYmd=000001 and ArchivalHms=000000
-          IF ( ArchivalHms == 240000 ) THEN
-             ArchivalYmd = 000001
-             ArchivalHms = 000000
+          ! SPECIAL CASE: If UpdateHms is 240000 then set
+          ! and set UpdateYmd=000001 and UpdateHms=000000
+          IF ( UpdateHms == 240000 ) THEN
+             UpdateYmd = 000001
+             UpdateHms = 000000
           ENDIF
 
           !-----------------------------------------------------------------
@@ -752,19 +757,19 @@ CONTAINS
           IF ( Operation == COPY_FROM_SOURCE ) THEN
 
              ! Instantaneous data: this defaults to the frequency attribute
-             ! in the HISTORY.rc file, which is ArchivalYmd, ArchivalHms
-             FileWriteYmd = ArchivalYmd
-             FileWriteHms = ArchivalHms
+             ! in the HISTORY.rc file, which is UpdateYmd, UpdateHms
+             FileWriteYmd = UpdateYmd
+             FileWriteHms = UpdateHms
 
           ELSE
              
              ! Time-averaged data: Use the acc_interval field to denote
              ! when it is time to write to disk.  If acc_interval is not
-             ! specified, then default to ArchivalYmd and ArchivalHms,
+             ! specified, then default to UpdateYmd and UpdateHms,
              ! which are specified by the "frequency" attribute.
              IF ( TRIM( CollectionAccInterval(C) ) == UNDEFINED_STR ) THEN
-                FileWriteYmd = ArchivalYmd
-                FileWriteHms = ArchivalHms
+                FileWriteYmd = UpdateYmd
+                FileWriteHms = UpdateHms
              ELSE IF ( LEN_TRIM( CollectionAccInterval(C) ) == 6 ) THEN
                 READ( CollectionAccInterval(C), '(i6.6)'  ) FileWriteHms
              ELSE
@@ -784,15 +789,15 @@ CONTAINS
           ! Define FileCloseHms and FileCloseYmd
           !
           ! NOTE: If CollectionDuration is 6 digits long, then assume that
-          ! to be ArchivalHms.  If longer, then assume that it is specifying
+          ! to be UpdateHms.  If longer, then assume that it is specifying
           ! both FileWriteYmd and FileWriteHms. (sde, bmy, 8/4/17)
           !
           ! ALSO NOTE: If "duration" is not found, then default to th
           ! same values specified by the "frequency" attribute.
           !-----------------------------------------------------------------
           IF ( TRIM( CollectionDuration(C) ) == UNDEFINED_STR ) THEN
-             FileCloseYmd = ArchivalYmd
-             FileCloseHms = ArchivalHms
+             FileCloseYmd = UpdateYmd
+             FileCloseHms = UpdateHms
           ELSE IF ( LEN_TRIM( CollectionDuration(C) ) == 6 ) THEN
              READ( CollectionDuration(C), '(i6.6)'  ) FileCloseHms
           ELSE
@@ -822,9 +827,9 @@ CONTAINS
                                      nY           = nY,                     &
                                      nZ           = nZ,                     &
                                      Name         = CollectionName(C),      &
-                                     ArchivalMode = CollectionMode(C),      &
-                                     ArchivalYmd  = ArchivalYmd,            &
-                                     ArchivalHms  = ArchivalHms,            &
+                                     UpdateMode   = CollectionMode(C),      &
+                                     UpdateYmd    = UpdateYmd,              &
+                                     UpdateHms    = UpdateHms,              &
                                      Operation    = Operation,              &
                                      FileWriteYmd = FileWriteYmd,           &
                                      FileWriteHms = FileWriteHms,           &
@@ -1348,7 +1353,7 @@ CONTAINS
     ! In other words, we are adding this diagnostic quantity to the list
     ! of diagnostic quantities that belong to this diagnostic collection.
     ! These quantities will be written to the netCDF file described by
-    ! the collection, with the specified archival frequency.
+    ! the collection, with the specified update frequency.
     !=======================================================================
     CALL MetaHistItem_AddNew( am_I_Root = am_I_Root,                         &
                               Node      = Collection%HistItems,              &
@@ -1421,6 +1426,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
 !  11 Aug 2017 - R. Yantosca - Remove references to 0d pointers, data arrays
+!  16 Aug 2017 - R. Yantosca - Now call TestTimeForAction to test if it is
+!                              time to update the diagnostic collection.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1428,15 +1435,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                          :: DoArchive
+    LOGICAL                          :: DoUpdate
 
     ! Strings
     CHARACTER(LEN=255)               :: ErrMsg
     CHARACTER(LEN=255)               :: ThisLoc
-
-    ! Pointers
-    INTEGER,                 POINTER :: ArchivalYmd
-    INTEGER,                 POINTER :: ArchivalHms
 
     ! Objects
     TYPE(MetaHistContainer), POINTER :: Collection
@@ -1446,20 +1449,18 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC          =  GC_SUCCESS
-    DoArchive   = .FALSE.
-    ArchivalYmd => NULL()
-    ArchivalHms => NULL()
-    Collection  => NULL()
-    Current     => NULL()
-    Item        => NULL()
-    ErrMsg      =  ''
-    ThisLoc     =  &
-      ' -> at History_Update (in History/history_mod.F90)' 
+    RC         =  GC_SUCCESS
+    DoUpdate   = .FALSE.
+    Collection => NULL()
+    Current    => NULL()
+    Item       => NULL()
+    ErrMsg     =  ''
+    ThisLoc    =  ' -> at History_Update (in History/history_mod.F90)' 
 
     !=======================================================================
     ! Loop through each DIAGNOSTIC COLLECTION in the master list, and
     ! then loop through the HISTORY ITEMS belonnging to each COLLECTION.
+    ! Update each HISTORY ITEM if it is the proper time.
     !=======================================================================
 
     ! Point to the first COLLECTION in the master collection list
@@ -1469,40 +1470,29 @@ CONTAINS
     DO WHILE( ASSOCIATED( Collection ) ) 
 
        !--------------------------------------------------------------------
-       ! Determine if it is time to update this collection.  Compare the
-       ! the ArchivalYmd and ArchivalHms fields to the current date/time.
+       ! Determine if it is time to update each HISTORY ITEM belongiing
+       ! to this diagnostic collection with data from its source pointer.
        !--------------------------------------------------------------------
+       CALL TestTimeForAction( am_I_Root  = am_I_Root,                       &
+                               Container  = Collection%Container,            &
+                               yyyymmdd   = yyyymmdd,                        &
+                               hhmmss     = hhmmss,                          &
+                               ActionType = ACTION_UPDATE,                   &
+                               DoAction   = DoUpdate,                        &
+                               RC         = RC                              )
        
-       ! Initialize
-       ArchivalYmd => Collection%Container%ArchivalYmd
-       ArchivalHms => Collection%Container%ArchivalHms
-       DoArchive   = .FALSE.
-
-       ! Test if the archival period is less than one day
-       ! (i.e. current time modulo ArchivalHms)
-       IF ( ArchivalHms > 0 ) THEN
-          DoArchive = ( MOD( hhmmss, ArchivalHms ) == 0 ) 
-       ENDIF
-       
-       ! Then test if the archival period is greater than one day.
-       ! Also check if the hour of the day is 0 GMT so that we will
-       ! only archive at least once per day.  We can eventually change
-       ! the archival hour if so desired (but maybe only for GC-Classic).
-       ! (i.e. current date modulo ArchivalYmd)
-       IF ( .not. DoArchive ) THEN
-          IF ( ArchivalYmd > 0 ) THEN 
-             DoArchive = ( ( MOD( yyyymmdd, ArchivalYmd ) == 0      ) .and.  &
-                           ( hhmmss                       == 000000 )       )
-          ENDIF
+       ! Trap error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error in "TestTimeForAction" for ACTION_UPDATE!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
 
-       ! Free pointers
-       ArchivalYmd => NULL()
-       ArchivalHms => NULL()
-       
+       !--------------------------------------------------------------------
        ! If it isn't time to update the current collection,
        ! then skip to the next collection.
-       IF ( .not. DoArchive ) THEN
+       !--------------------------------------------------------------------
+       IF ( .not. DoUpdate ) THEN
           Collection => Collection%Next
           CYCLE
        ENDIF
@@ -1662,6 +1652,10 @@ CONTAINS
        Collection => Collection%Next
     ENDDO
 
+    !=======================================================================   
+    ! Cleanup and quit
+    !=======================================================================
+
     ! Free pointers
     Collection => NULL()
     Current    => NULL()
@@ -1725,10 +1719,6 @@ CONTAINS
     CHARACTER(LEN=255)               :: ErrMsg
     CHARACTER(LEN=255)               :: ThisLoc
 
-    ! Pointers
-    INTEGER,                 POINTER :: FileCloseYmd, FileWriteYmd
-    INTEGER,                 POINTER :: FileCloseHms, FileWriteHms
-
     ! Objects
     TYPE(MetaHistContainer), POINTER :: Collection
     TYPE(MetaHistItem),      POINTER :: Current
@@ -1736,15 +1726,13 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC           =  GC_SUCCESS
-    DoClose      = .FALSE.
-    DoWrite      = .FALSE.
-    FileWriteYmd => NULL()
-    FileWriteHms => NULL()
-    Collection   => NULL()
-    Current      => NULL()
-    ErrMsg       =  ''
-    ThisLoc      =  &
+    RC         =  GC_SUCCESS
+    DoClose    = .FALSE.
+    DoWrite    = .FALSE.
+    Collection => NULL()
+    Current    => NULL()
+    ErrMsg     =  ''
+    ThisLoc    =  &
       ' -> at History_Update (in History/history_mod.F90)' 
 
     !=======================================================================
@@ -1763,67 +1751,40 @@ CONTAINS
        ! create a new one.  This is done by comparing the FileCloseYmd
        ! and FileCloseHms fields of the Container to the current date/time.
        !--------------------------------------------------------------------
+       CALL TestTimeForAction( am_I_Root  = am_I_Root,                       &
+                               Container  = Collection%Container,            &
+                               yyyymmdd   = yyyymmdd,                        &
+                               hhmmss     = hhmmss,                          &
+                               ActionType = ACTION_FILE_CLOSE,               &
+                               DoAction   = DoClose,                         &
+                               RC         = RC                              )
        
-       ! Initialize
-       FileCloseYmd => Collection%Container%FileCloseYmd
-       FileCloseHms => Collection%Container%FileCloseHms
-       DoClose      = .FALSE.
-
-       ! Test if the file closing frequency is less than one day
-       ! (i.e. current time modulo FileWrite)
-       IF ( FileCloseHms > 0 ) THEN
-          DoClose = ( MOD( hhmmss, FileCloseHms ) == 0 ) 
+       ! Trap error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error in "TestTimeForAction" for ACTION_FILE_CLOSE!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
-       
-       ! Then test if the file closing frequency is greater than one day.
-       ! Also check if the hour of the day is 0 GMT so that we will
-       ! only archive at least once per day.  We can eventually change
-       ! the archival hour if so desired (but maybe only for GC-Classic).
-       ! (i.e. current date modulo FileCloseYmd)
-       IF ( .not. DoClose ) THEN
-          IF ( FileCloseYmd > 0 ) THEN 
-             DoClose = ( ( MOD( yyyymmdd, FileCloseYmd ) == 0      ) .and.   &
-                         ( hhmmss                        == 000000 )      )
-          ENDIF
-       ENDIF
-
-       ! Free pointers
-       FileCloseYmd => NULL()
-       FileCloseHms => NULL()
 
        !--------------------------------------------------------------------
-       ! Determine if it is time to write data to the  netCDF file.  This
+       ! Determine if it is time to write data to netCDF file.  This
        ! is done by comparing the FileWriteYmd and FileWriteHms fields of
        ! the current diagnostic collection to the current date & time.
        !--------------------------------------------------------------------
+       CALL TestTimeForAction( am_I_Root  = am_I_Root,                       &
+                               Container  = Collection%Container,            &
+                               yyyymmdd   = yyyymmdd,                        &
+                               hhmmss     = hhmmss,                          &
+                               ActionType = ACTION_FILE_WRITE,               &
+                               DoAction   = DoWrite,                         &
+                               RC         = RC                              )
        
-       ! Initialize
-       FileWriteYmd => Collection%Container%FileWriteYmd
-       FileWriteHms => Collection%Container%FileWriteHms
-       DoWrite      = .FALSE.
-
-       ! Test if the file writing frequency is less than one day
-       ! (i.e. current time modulo FileWrite)
-       IF ( FileWriteHms > 0 ) THEN
-          DoWrite = ( MOD( hhmmss, FileWriteHms ) == 0 ) 
+       ! Trap error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error in "TestTimeForAction" for ACTION_FILE_WRITE!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
-       
-       ! Then test if the file writing frequency is greater than one day.
-       ! Also check if the hour of the day is 0 GMT so that we will
-       ! only archive at least once per day.  We can eventually change
-       ! the archival hour if so desired (but maybe only for GC-Classic).
-       ! (i.e. current date modulo FileWriteYmd)
-       IF ( .not. DoWrite ) THEN
-          IF ( FileWriteYmd > 0 ) THEN 
-             DoWrite = ( ( MOD( yyyymmdd, FileWriteYmd ) == 0      ) .and.   &
-                         ( hhmmss                        == 000000 )      )
-          ENDIF
-       ENDIF
-
-       ! Free pointers
-       FileWriteYmd => NULL()
-       FileWriteHms => NULL()
-     
 
 #if defined( ESMF )
 
@@ -1843,8 +1804,10 @@ CONTAINS
  100 FORMAT( '     - Opening file for ', a, ' at ', i8.8, 1x, i6.6 )
 #endif
 
+          !-----------------------------------------------------------------
           ! If the netCDF file specified by this collection is open, 
           ! then close it and undefine all relevant object fields.
+          !-----------------------------------------------------------------
           CALL History_Netcdf_Close( am_I_Root = am_I_Root,                  &
                                      Container = Collection%Container,       &
                                      RC        = RC                         )
@@ -1854,9 +1817,11 @@ CONTAINS
              ! add this later
           ENDIF
 
+          !-----------------------------------------------------------------
           ! Create the netCDF file for this HISTORY CONTAINER object,
           ! Defines each variable, saves global attributes, and writes 
           ! the index variable data to the file.
+          !-----------------------------------------------------------------
           CALL History_Netcdf_Define( am_I_Root  = am_I_Root,                &
                                       Container  = Collection%Container,     &
                                       yyyymmdd   = yyyymmdd,                 &
@@ -1882,15 +1847,9 @@ CONTAINS
  110 FORMAT( '     - Writing data to ', a, ' at ', i8.8, 1x, i6.6 )
 #endif
 
-!          ! For time-averaged collections, divide by the number of updates,
-!          ! or for instantaneous collections,
-!          CALL History_Netcdf_Average( am_I_Root = am_I_Root,                &
-!                                       Container = Collection%Container,     &
-!                                       yyyymmdd  = yyyymmdd,                 &
-!                                       hhmmss    = hhmmss,                   &
-!                                       RC        = RC                       )
-!
-          ! Write the HISTORY ITEMS for each collection to the netCDF file.  
+          !-----------------------------------------------------------------
+          ! Write the HISTORY ITEMS for this collection to the netCDF file.  
+          !-----------------------------------------------------------------
           CALL History_Netcdf_Write( am_I_Root = am_I_Root,                  &
                                      Container = Collection%Container,       &
                                      yyyymmdd  = yyyymmdd,                   &
@@ -1958,7 +1917,7 @@ CONTAINS
     ! Remove commas and quotes
     CALL StrRepl   ( CleanStr, ",", " " )
     CALL StrRepl   ( CleanStr, "'", " " )
-
+    
     ! Remove leading and trailing spaces
     CALL StrSqueeze( CleanStr           ) 
 
@@ -1999,7 +1958,7 @@ CONTAINS
 ! !RETURN VALUE:
 !
     CHARACTER(LEN=255)   :: Line       ! Single line from the input file
-    ! 
+! 
 ! !REVISION HISTORY: 
 !  16 Jun 2017 - R. Yantosca - Initial version, based on GEOS-Chem
 !EOP
@@ -2033,7 +1992,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-   END FUNCTION ReadOneLine
+  END FUNCTION ReadOneLine
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2048,22 +2007,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-   SUBROUTINE GetCollectionMetaData( Line, Pattern, MetaData, nCollection )
+  SUBROUTINE GetCollectionMetaData( Line, Pattern, MetaData, nCollection )
 !
 ! !USES:
 !
-     USE Charpak_Mod,       ONLY: StrSplit
-     USE History_Params_Mod
+    USE Charpak_Mod,       ONLY: StrSplit
+    USE History_Params_Mod
 !
 ! !INPUT PARAMETERS: 
 !
-     CHARACTER(LEN=*),   INTENT(IN)  :: Line          ! Line to be searched
-     CHARACTER(LEN=*),   INTENT(IN)  :: Pattern       ! Search pattern
+    CHARACTER(LEN=*),   INTENT(IN)  :: Line          ! Line to be searched
+    CHARACTER(LEN=*),   INTENT(IN)  :: Pattern       ! Search pattern
 !
 ! !OUTPUT PARAMETERS:
 !
-     CHARACTER(LEN=255), INTENT(OUT) :: MetaData      ! Metadata value
-     INTEGER,            INTENT(OUT) :: nCollection   ! Collection Id
+    CHARACTER(LEN=255), INTENT(OUT) :: MetaData      ! Metadata value
+    INTEGER,            INTENT(OUT) :: nCollection   ! Collection Id
 !
 !
 ! !REVISION HISTORY:
@@ -2078,56 +2037,181 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-     ! Scalars
-     INTEGER            :: C, Ind, nSubStr
+    ! Scalars
+    INTEGER            :: C, Ind, nSubStr
 
-     ! Strings
-     CHARACTER(LEN=255) :: Name
-     CHARACTER(LEN=255) :: SubStr(255)
+    ! Strings
+    CHARACTER(LEN=255) :: Name
+    CHARACTER(LEN=255) :: SubStr(255)
      
-     !======================================================================
-     ! Initialize
-     !======================================================================
-     nCollection = UNDEFINED_INT
-     MetaData    = UNDEFINED_STR
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    nCollection = UNDEFINED_INT
+    MetaData    = UNDEFINED_STR
 
-     !======================================================================
-     ! Find the metadata for the given collection
-     !======================================================================
+    !=======================================================================
+    ! Find the metadata for the given collection
+    !=======================================================================
      
-     ! The collection name is between column 1 and the first "." character
-     Ind  = INDEX( TRIM( Line ), '.' )
-     Name = Line(1:Ind-1) 
+    ! The collection name is between column 1 and the first "." character
+    Ind  = INDEX( TRIM( Line ), '.' )
+    Name = Line(1:Ind-1) 
 
-     ! Loop over all collection names
-     DO C = 1, CollectionCount
+    ! Loop over all collection names
+    DO C = 1, CollectionCount
 
-        ! Check to see if the current line matches the collection name
-        ! Then check to see which collection this is in
-        Ind = INDEX( TRIM( Name ), TRIM( CollectionName(C) ) )
+       ! Check to see if the current line matches the collection name
+       ! Then check to see which collection this is in
+       Ind = INDEX( TRIM( Name ), TRIM( CollectionName(C) ) )
 
-        ! If the we match the current collection, then ...
-        IF ( Ind > 0 ) THEN
+       ! If the we match the current collection, then ...
+       IF ( Ind > 0 ) THEN
 
-           ! Split the line on the the colon
-           CALL StrSplit( Line, ':', SubStr, nSubStr )
+          ! Split the line on the the colon
+          CALL StrSplit( Line, ':', SubStr, nSubStr )
 
-           ! If there are 2 substrings ...
-           IF ( nSubStr == 2 ) THEN
+          ! If there are 2 substrings ...
+          IF ( nSubStr == 2 ) THEN
 
-              ! Make sure the first substring matches the name 
-              ! of the metadata field we would like to obtain.
+             ! Make sure the first substring matches the name 
+             ! of the metadata field we would like to obtain.
               ! if it does, then we have found a match, and so return
-              IF ( INDEX( TRIM( SubStr(1) ), TRIM( Pattern ) ) > 0 ) THEN
-                 nCollection = C
-                 MetaData    = CleanText( SubStr(2) )
-                 EXIT
-              ENDIF
-           ENDIF
-        ENDIF
-     ENDDO
+             IF ( INDEX( TRIM( SubStr(1) ), TRIM( Pattern ) ) > 0 ) THEN
+                nCollection = C
+                MetaData    = CleanText( SubStr(2) )
+                EXIT
+             ENDIF
+          ENDIF
+       ENDIF
+    ENDDO
 
- END SUBROUTINE GetCollectionMetaData
+  END SUBROUTINE GetCollectionMetaData
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: TestTimeForAction
+!
+! !DESCRIPTION: Tests if it is time to (1) update each HISTORY ITEM from
+!  the pointer to its data source; (2) write each HISTORY ITEM to the 
+!  netCDF file specified by the HISTORY CONTAINER, or; (3) Close the netCDF
+!  file specified by the HISTORY CONTAINER and reopen it for the next
+!  diagnostic interval.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE TestTimeForAction( am_I_Root,  Container, yyyymmdd, hhmmss,     &
+                                ActionType, DoAction,  RC                   )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HistContainer_Mod, ONLY : HistContainer
+    USE History_Params_Mod
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(HistContainer), POINTER     :: Container   ! Diagnostic container obj
+    INTEGER,             INTENT(IN)  :: yyyymmdd    ! Current date in YMD
+    INTEGER,             INTENT(IN)  :: hhmmss      ! Current time in HMS
+    INTEGER,             INTENT(IN)  :: ActionType  ! 0 = Archive (aka update)
+                                                    ! 1 = FileWrite
+                                                    ! 2 = FileClose
+!
+! !OUTPUT PARAMETERS: 
+!
+    LOGICAL,             INTENT(OUT) :: DoAction    ! Should we do the action?
+    INTEGER,             INTENT(OUT) :: RC          ! Success or failure
+!
+! !REMARKS:
+!  This is a convenience routine to avoid repetition of the same code.
+!
+! !REVISION HISTORY:
+!  16 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Pointers
+    INTEGER, POINTER   :: ContainerYmd, ContainerHms
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg,       ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC           =  GC_SUCCESS
+    ContainerYmd => NULL()
+    ContainerHms => NULL()
+    DoAction     = .FALSE.
+    ErrMsg       = ''
+    ThisLoc      = ' -> at TestTimeForAction (in History/history_mod.F90)'
+
+    !=======================================================================
+    ! Point to the proper YMD and HMS fields in the container
+    ! for the given action (update, file write, file close).
+    !=======================================================================
+    IF ( ActionType == ACTION_UPDATE ) THEN
+
+       ! Get the date & time when each HISTORY ITEM should be updated
+       ContainerYmd => Container%UpdateYmd
+       ContainerHms => Container%UpdateHms
+
+    ELSE IF ( ActionType == ACTION_FILE_WRITE ) THEN
+
+       ! Get the date & time when data should be written to the netCDF file
+       ContainerYmd => Container%FileWriteYmd
+       ContainerHms => Container%FileWriteHms
+
+    ELSE IF ( ActionType == ACTION_FILE_CLOSE ) THEN
+
+       ! Get the date & time when the netCDF file should be closed
+       ContainerYmd => Container%FileCloseYmd
+       ContainerHms => Container%FileCloseHms
+
+    ELSE
+
+       ! Trap error and exit
+       ErrMsg = 'Invalid value for "ActionType"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+
+    ENDIF
+
+    !=======================================================================
+    ! Test if the action period is less than one day
+    ! (i.e. current time modulo ContainerHms)
+    !=======================================================================
+    IF ( ContainerHms > 0 ) THEN
+       DoAction = ( MOD( hhmmss, ContainerHms ) == 0 ) 
+    ENDIF
+
+    !=======================================================================    
+    ! Then test if the action period is greater than one day.  Also check 
+    ! if the hour of the day is 0 GMT so that we will only perform the 
+    ! action at least once per day.  We can eventually change the action
+    ! hour if so desired (but maybe only for GC-Classic). 
+    !=======================================================================
+    IF ( .not. DoAction ) THEN
+       IF ( ContainerYmd > 0 ) THEN 
+          DoAction = ( ( MOD( yyyymmdd, ContainerYmd ) == 0      ) .and.  &
+                            ( hhmmss                   == 000000 )       )
+       ENDIF
+    ENDIF
+    
+    ! Free pointers
+    ContainerYmd => NULL()
+    ContainerHms => NULL()
+    
+  END SUBROUTINE TestTimeForAction
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

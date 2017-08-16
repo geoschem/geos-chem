@@ -26,23 +26,25 @@ MODULE History_Netcdf_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS
 !
-  PUBLIC  :: History_Netcdf_Cleanup
   PUBLIC  :: History_Netcdf_Close
   PUBLIC  :: History_Netcdf_Define
-  PUBLIC  :: History_Netcdf_Init
   PUBLIC  :: History_Netcdf_Write
+  PUBLIC  :: History_Netcdf_Init
+  PUBLIC  :: History_Netcdf_Cleanup
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: Compute_Julian_Date
+  PRIVATE :: Expand_Date_Time
   PRIVATE :: Get_Var_DimIds
-  PRIVATE :: History_Expand_Date
-  PRIVATE :: History_Set_RefDateTime
+  PRIVATE :: Set_RefDateTime
 !
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
 !  10 Aug 2017 - R. Yantosca - Initial version
+!  16 Aug 2017 - R. Yantosca - Reorder placement of routines
+!  16 Aug 2017 - R. Yantosca - Rename History_Expand_Date to Expand_Date_Time
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -128,6 +130,7 @@ CONTAINS
        Container%ReferenceYmd  = 0
        Container%ReferenceHms  = 0
        Container%ReferenceJd   = 0.0_f8
+       Container%CurrTimeSlice = UNDEFINED_INT
 
        !--------------------------------------------------------------------
        ! Undefine relevant fields of each HISTORY ITEM object
@@ -261,7 +264,7 @@ CONTAINS
        FileName = TRIM( Container%FileName )
 
        ! Replace date and time tokens in the file name
-       CALL History_Expand_Date( FileName, yyyymmdd, hhmmss, MAPL_Style=.TRUE. )
+       CALL Expand_Date_Time( FileName, yyyymmdd, hhmmss, MAPL_Style=.TRUE. )
    
 #if defined( DEBUG )
        !###  Debug output for development
@@ -269,8 +272,8 @@ CONTAINS
        WRITE(6,'(a,a   )') '### Time to write : ', TRIM( Container%Name )
        WRITE(6, 100      ) '### date/time     : ', yyyymmdd, hhmmss
        WRITE(6,'(a,L3  )') '### IsFileDefined : ', Container%IsFileDefined
-       WRITE(6, 100      ) '### Archival      : ', Container%ArchivalYmd,  &
-                                                   Container%ArchivalHms
+       WRITE(6, 100      ) '### Update        : ', Container%UpdateYmd,  &
+                                                   Container%UpdateHms
        WRITE(6, 100      ) '### FileCloseYmd  : ', Container%FileCloseYmd, &
                                                    Container%FileCloseHms
        WRITE(6, 100      ) '### FileWrite     : ', Container%FileWriteYmd, &
@@ -286,11 +289,7 @@ CONTAINS
        ! These are needed to compute the time stamps for each data field
        ! that is written to the netCDF file.
        !--------------------------------------------------------------------
-       CALL History_Set_RefDateTime( am_I_Root = am_I_Root,                  &
-                                     Container = Container,                  &
-                                     yyyymmdd  = yyyymmdd,                   &
-                                     hhmmss    = hhmmss,                     &
-                                     RC        = RC                         )
+       CALL Set_RefDateTime( Container, yyyymmdd, hhmmss )
 
        !--------------------------------------------------------------------
        ! Create the timestamp for the History and ProdDateTime attributes
@@ -476,308 +475,10 @@ CONTAINS
        ! We can now consider this collection to have been "defined"
        !--------------------------------------------------------------------
        Container%IsFileDefined = .TRUE.
-
     ENDIF
 
   END SUBROUTINE History_Netcdf_Define
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_Var_DimIds
-!
-! !DESCRIPTION: For a given HISTORY ITEM, returns the name and the netCDF
-!  dimension ID's pertaining to the data array.  Dimension ID's that do not
-!  pertain to the data will be set to UNDEFINED_INT.  Certain metadata for
-!  netCDF index variables will also be returned.  In particular, the unit 
-!  string for the "time" index variable will be updated with the reference 
-!  date and time.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Get_Var_DimIds( Item,        xDimId,      yDimId,  zDimId,      &
-                             tDimID,      RefDate,     RefTime, VarAxis,     &
-                             VarCalendar, VarPositive, VarUnits             )
-!
-! !USES:
-!
-    USE History_Params_Mod
-    USE HistItem_Mod,       ONLY : HistItem
-!
-! !INPUT PARAMETERS: 
-!
-    TYPE(HistItem),     POINTER     :: Item        ! HISTORY ITEM object
-    INTEGER,            INTENT(IN)  :: xDimId      ! Id # of netCDF X dimension 
-    INTEGER,            INTENT(IN)  :: yDimId      ! Id # of netCDF Y dimension 
-    INTEGER,            INTENT(IN)  :: zDimId      ! Id # of netCDF Z dimension 
-    INTEGER,            INTENT(IN)  :: tDimId      ! Id # of netCDF T dimension 
-    INTEGER,            OPTIONAL    :: RefDate     ! Ref YMD for "time" variable
-    INTEGER,            OPTIONAL    :: RefTime     ! Ref hms for "time" variable
-!
-! !OUTPUT PARAMETERS
-!
-    CHARACTER(LEN=255), OPTIONAL    :: VarAxis     ! Axis attr for index vars
-    CHARACTER(LEN=255), OPTIONAL    :: VarCalendar ! Calendar attr for "time"
-    CHARACTER(LEN=255), OPTIONAL    :: VarPositive ! Positive attr for "lev"
-    CHARACTER(LEN=255), OPTIONAL    :: VarUnits    ! Unit string
-!
-! !REMARKS:
-!  Call this routine before calling NC_VAR_DEF.
-!
-! !REVISION HISTORY:
-!  10 Aug 2017 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER            :: ReferenceYmd, ReferenceHms  
-    INTEGER            :: Year,         Month,        Day
-    INTEGER            :: Hour,         Minute,       Second
 
-    ! Strings
-    CHARACTER(LEN=2)   :: MonthStr,     DayStr 
-    CHARACTER(LEN=2)   :: HourStr,      MinuteStr,    SecondStr
-    CHARACTER(LEN=4)   :: YearStr
-    CHARACTER(LEN=255) :: TmpAxis,      TmpCalendar
-    CHARACTER(LEN=255) :: TmpPositive,  TmpUnits
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    TmpAxis         = ''
-    TmpCalendar     = ''
-    TmpPositive     = ''
-    TmpUnits        = Item%Units
-    Item%NcXDimId   = UNDEFINED_INT
-    Item%NcYDimId   = UNDEFINED_INT
-    Item%NcZDimId   = UNDEFINED_INT
-    Item%NcTDimId   = UNDEFINED_INT
-    
-    IF ( PRESENT( RefDate ) ) THEN
-       ReferenceYmd = RefDate
-    ELSE
-       ReferenceYmd = UNDEFINED_INT
-    ENDIF
-
-    IF ( PRESENT( RefTime ) ) THEN
-       ReferenceHms = RefTime
-    ELSE
-       ReferenceHms = UNDEFINED_INT
-    ENDIF
-
-    !=======================================================================
-    ! Return relevant dim ID's and metadata for the HISTORY ITEM
-    !=======================================================================
-    SELECT CASE( TRIM( Item%Name ) )
-
-       ! lon
-       CASE( 'lon' )
-          Item%NcXDimId = xDimId
-          TmpAxis       = 'X'
-
-       ! lat
-       CASE( 'lat' )
-          Item%NcYDimId = yDimId
-          TmpAxis       = 'Y'
-
-       ! lev
-       CASE( 'lev' )
-          Item%NcZDimId = zDimId
-          TmpAxis       = 'Z'
-          TmpPositive   = 'up'
-
-       ! time
-       CASE( 'time' )
-          Item%NcTDimId = tDimId
-          TmpAxis       = 'T'
-          TmpCalendar   = 'gregorian'
-
-          ! Replace date and time tokens in the unit string
-          ! with the netCDF file's reference date and time
-          IF ( ReferenceYmd > 0 ) THEN
-             CALL History_Expand_Date( TmpUnits, ReferenceYmd, ReferenceHms )
-          ENDIF
-
-       ! area
-       CASE( 'AREA' )
-          Item%NcXDimId = xDimId
-          Item%NcYDimId = yDimId
-
-       ! All other variable names
-       CASE DEFAULT
-
-          ! Pick the 
-          SELECT CASE( TRIM( Item%DimNames ) )
-             CASE( 'xyz' )
-                Item%NcXDimId = xDimId
-                Item%NcYDimId = yDimId
-                Item%NcZDimId = ZDimId
-                Item%NcTDimId = tDimId
-             CASE( 'xy'  )
-                Item%NcXDimId = xDimId
-                Item%NcYDimId = yDimId
-                Item%NcTDimId = tDimId
-             CASE( 'yz'  )
-                Item%NcYDimId = yDimId
-                Item%NcZDimId = zDimId
-                Item%NcTDimId = tDimId
-             CASE( 'xz'  )
-                Item%NcXDimId = xDimId
-                Item%NcZDimId = zDimId
-                Item%NcTDimId = tDimId
-             CASE( 'x'   )
-                Item%NcXDimId = xDimId
-                Item%NcTDimId = tDimId
-             CASE( 'y'   )
-                Item%NcYDimId = yDimId
-                Item%NcTDimId = tDimId
-             CASE( 'z'   )
-                Item%NcZDimId = zDimId
-                Item%NcTDimId = tDimId
-          END SELECT
-
-    END SELECT      
-    
-    ! Return optional attributes for index variables: axis and calendar
-    IF ( PRESENT( VarAxis     ) ) VarAxis     = TmpAxis
-    IF ( PRESENT( VarCalendar ) ) VarCalendar = TmpCalendar
-    IF ( PRESENT( VarPositive ) ) VarPositive = TmpPositive
-    IF ( PRESENT( VarUnits    ) ) VarUnits    = TmpUnits
-
-  END SUBROUTINE Get_Var_DimIds
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: History_Set_RefDateTime
-!
-! !DESCRIPTION: Defines the reference date and time fields of the HISTORY
-!  CONTAINER object.  These are needed to compute the timestamps along the
-!  time dimension of each HISTORY ITEM.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE History_Set_RefDateTime( am_I_Root, Container,                  &
-                                      yyyymmdd,  hhmmss,    RC              )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE HistContainer_Mod, ONLY : HistContainer
-!
-! !INPUT PARAMETERS: 
-!
-    LOGICAL,             INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
-    INTEGER,             INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
-    INTEGER,             INTENT(IN)  :: hhmmss    ! Current hour/minute/second
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(HistContainer), POINTER     :: Container ! Diagnostic collection obj
-!
-! !OUTPUT PARAMETERS: 
-!
-    INTEGER,             INTENT(OUT) :: RC        ! Success or failure
-!
-! !REMARKS:
-!  Also initializes the Container%CurrTimeSlice field.
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC = GC_SUCCESS
-
-    !=======================================================================
-    ! Compute the reference date/time quantities
-    !=======================================================================
-
-    ! Current time slice (will increment this in History_Netcdf_Write)
-    Container%CurrTimeSlice = 0
-
-    ! Reference date
-    Container%ReferenceYmd  = yyyymmdd
-
-    ! Reference time
-    Container%ReferenceHms  = hhmmss
-
-    ! Corresponding astronomical Julian date
-    CALL Compute_Julian_Date( yyyymmdd, hhmmss, Container%ReferenceJd )
-
-  END SUBROUTINE History_Set_RefDateTime
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Compute_Julian_Date
-!
-! !DESCRIPTION: Computes the Astronomical Julian Date corresponding to a 
-!  given date and time.  This is useful for computing elapsed times.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Compute_Julian_Date( yyyymmdd, hhmmss, Jd )
-!
-! !USES:
-!
-    USE Julday_Mod, ONLY : Julday
-    USE Time_Mod,   ONLY : Ymd_Extract
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER,  INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
-    INTEGER,  INTENT(IN)  :: hhmmss    ! Current hour/minute/second
-!
-! !OUTPUT PARAMETERS: 
-!
-    REAL(fp), INTENT(OUT) :: Jd        ! Astronomical Julian date
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER  :: Year, Month, Day, Hour, Minute, Second
-    REAL(f8) :: FracDay
-
-    ! Extract year/month/day and hour/minute/seconds from the time
-    CALL Ymd_Extract( yyyymmdd, Year, Month,  Day    )
-    CALL Ymd_Extract( hhmmss,   Hour, Minute, Second )
-
-    ! Compute the fractional day
-    FracDay = DBLE( Day ) + ( DBLE( Hour   ) / 24.0_f8    )  +               & 
-                            ( DBLE( Minute ) / 1440.0_f8  )  +               &
-                            ( DBLE( Second ) / 86400.0_f8 ) 
-
-    ! Return the Astronomical Julian Date
-    Jd = JulDay( Year, Month, FracDay )
-
-  END SUBROUTINE Compute_Julian_Date
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -786,7 +487,8 @@ CONTAINS
 !
 ! !IROUTINE: History_Netcdf_Write
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Writes the data contained in each HISTORY ITEM to the netCDF
+!  file specified by a given HISTORY CONTAINER object.
 !\\
 !\\
 ! !INTERFACE:
@@ -797,6 +499,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE Gc_Grid_Mod,        ONLY : RoundOff
     USE HistItem_Mod,       ONLY : HistItem
     USE HistContainer_Mod,  ONLY : HistContainer
     USE History_Params_Mod
@@ -885,17 +588,22 @@ CONTAINS
     ! Compute the time in minutes elapsed since the reference time
     ElapsedMin = ( ( Jd - Container%ReferenceJd ) * 1440.0_f8 )
 
+    ! Round off to 5 decimal places, this should be OK even
+    ! if we have fractional minutes as time values.
+    ElapsedMin = RoundOff( ElapsedMin, 5 )
+
     ! Set the timestamp for instantaneous or time-averaged
     ! NOTE: For now, assume integral minutes (since our heartbeat timestep 
     ! is probably not going to be less than 5 or 10 minutes).  If this is
     ! a problem we could round up.
     IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
-       Container%TimeStamp = NINT( ElapsedMin          )
+       Container%TimeStamp = ElapsedMin
     ELSE
        ! NOTE: this is incorrect, need to offset by 1/2 of the interval
-       Container%TimeStamp = NINT( ElapsedMin / 2.0_fp )
+       Container%TimeStamp = ElapsedMin !+ Container%TimeAvgOffset
     ENDIF
 
+    print*, '### name      : ', TRIM( Container%name )
     print*, '### ElapsedMin: ', ElapsedMin
     print*, '### TimeStamp : ', Container%TimeStamp
 
@@ -1052,6 +760,393 @@ CONTAINS
      Item    => NULL()
 
   END SUBROUTINE History_NetCdf_Write
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Compute_Julian_Date
+!
+! !DESCRIPTION: Computes the Astronomical Julian Date corresponding to a 
+!  given date and time.  This is useful for computing elapsed times.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Compute_Julian_Date( yyyymmdd, hhmmss, Jd )
+!
+! !USES:
+!
+    USE Julday_Mod, ONLY : Julday
+    USE Time_Mod,   ONLY : Ymd_Extract
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER,  INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
+    INTEGER,  INTENT(IN)  :: hhmmss    ! Current hour/minute/second
+!
+! !OUTPUT PARAMETERS: 
+!
+    REAL(fp), INTENT(OUT) :: Jd        ! Astronomical Julian date
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER  :: Year, Month, Day, Hour, Minute, Second
+    REAL(f8) :: FracDay
+
+    ! Extract year/month/day and hour/minute/seconds from the time
+    CALL Ymd_Extract( yyyymmdd, Year, Month,  Day    )
+    CALL Ymd_Extract( hhmmss,   Hour, Minute, Second )
+
+    ! Compute the fractional day
+    FracDay = DBLE( Day ) + ( DBLE( Hour   ) / 24.0_f8    )  +               & 
+                            ( DBLE( Minute ) / 1440.0_f8  )  +               &
+                            ( DBLE( Second ) / 86400.0_f8 ) 
+
+    ! Return the Astronomical Julian Date
+    Jd = JulDay( Year, Month, FracDay )
+
+  END SUBROUTINE Compute_Julian_Date
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: History_Expand_Date
+!
+! !DESCRIPTION: Replaces date and time tokens in a string with actual 
+!  date and time values.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Expand_Date_Time( DateStr, yyyymmdd, hhmmss, MAPL_Style )
+!
+! !USES:
+!
+    USE Charpak_Mod, ONLY : StrRepl
+    USE Time_Mod,    ONLY : Ymd_Extract
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER,          INTENT(IN)    :: yyyymmdd    ! Date in YYYYMMDD format
+    INTEGER,          INTENT(IN)    :: hhmmss      ! Time in hhmmss format
+    LOGICAL,          OPTIONAL      :: MAPL_Style  ! Use MAPL-style tokens
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+    CHARACTER(LEN=*), INTENT(INOUT) :: DateStr     ! String with date tokens
+!
+! !REMARKS:
+!  Based on EXPAND_DATE from GeosUtil/time_mod.F.
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL          :: Is_Mapl_Style 
+    INTEGER          :: Year,          Month,      Day
+    INTEGER          :: Hour,          Minute,     Second
+
+    ! Strings
+    CHARACTER(LEN=2) :: MonthStr,      DayStr 
+    CHARACTER(LEN=2) :: HourStr,       MinuteStr,  SecondStr
+    CHARACTER(LEN=4) :: YearStr
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    IF ( PRESENT( MAPL_Style ) ) THEN
+       Is_Mapl_Style = MAPL_Style
+    ELSE
+       Is_Mapl_Style = .FALSE.
+    ENDIF
+
+    !=======================================================================
+    ! Split the date and time into individal variables
+    !=======================================================================
+
+    ! Extract year/month/day and hour/minute/seconds from the time
+    CALL Ymd_Extract( yyyymmdd, Year, Month,  Day    )
+    CALL Ymd_Extract( hhmmss,   Hour, Minute, Second )
+
+    ! Convert to strings
+    WRITE( YearStr,   '(i4.4)' ) Year
+    WRITE( MonthStr,  '(i2.2)' ) Month
+    WRITE( DayStr,    '(i2.2)' ) Day
+    WRITE( HourStr,   '(i2.2)' ) Hour
+    WRITE( MinuteStr, '(i2.2)' ) Minute
+    WRITE( SecondStr, '(i2.2)' ) Second
+
+    !=======================================================================
+    ! Replace the date and time tokens in the string
+    !=======================================================================
+
+    IF ( Is_Mapl_Style ) THEN
+       
+       ! Use MAPL-style tokens
+       CALL StrRepl( DateStr, '%y4',  YearStr   )
+       CALL StrRepl( DateStr, '%m2',  MonthStr  )
+       CALL StrRepl( DateStr, '%d2',  DayStr    )
+       CALL StrRepl( DateStr, '%h2',  HourStr   )
+       CALL StrRepl( DateStr, '%n2',  MinuteStr )
+       CALL StrRepl( DateStr, '%s2',  SecondStr )
+
+    ELSE
+       
+       ! Use GEOS-Chem style tokens
+       CALL StrRepl( DateStr, 'YYYY', YearStr   )
+       CALL StrRepl( DateStr, 'MM',   MonthStr  )
+       CALL StrRepl( DateStr, 'DD',   DayStr    )
+       CALL StrRepl( DateStr, 'hh',   HourStr   )
+       CALL StrRepl( DateStr, 'mm',   MinuteStr )
+       CALL StrRepl( DateStr, 'ss',   SecondStr )
+
+    ENDIF
+
+  END SUBROUTINE Expand_Date_Time
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_Var_DimIds
+!
+! !DESCRIPTION: For a given HISTORY ITEM, returns the name and the netCDF
+!  dimension ID's pertaining to the data array.  Dimension ID's that do not
+!  pertain to the data will be set to UNDEFINED_INT.  Certain metadata for
+!  netCDF index variables will also be returned.  In particular, the unit 
+!  string for the "time" index variable will be updated with the reference 
+!  date and time.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_Var_DimIds( Item,        xDimId,      yDimId,  zDimId,      &
+                             tDimID,      RefDate,     RefTime, VarAxis,     &
+                             VarCalendar, VarPositive, VarUnits             )
+!
+! !USES:
+!
+    USE History_Params_Mod
+    USE HistItem_Mod,       ONLY : HistItem
+!
+! !INPUT PARAMETERS: 
+!
+    TYPE(HistItem),     POINTER     :: Item        ! HISTORY ITEM object
+    INTEGER,            INTENT(IN)  :: xDimId      ! Id # of netCDF X dimension 
+    INTEGER,            INTENT(IN)  :: yDimId      ! Id # of netCDF Y dimension 
+    INTEGER,            INTENT(IN)  :: zDimId      ! Id # of netCDF Z dimension 
+    INTEGER,            INTENT(IN)  :: tDimId      ! Id # of netCDF T dimension 
+    INTEGER,            OPTIONAL    :: RefDate     ! Ref YMD for "time" variable
+    INTEGER,            OPTIONAL    :: RefTime     ! Ref hms for "time" variable
+!
+! !OUTPUT PARAMETERS
+!
+    CHARACTER(LEN=255), OPTIONAL    :: VarAxis     ! Axis attr for index vars
+    CHARACTER(LEN=255), OPTIONAL    :: VarCalendar ! Calendar attr for "time"
+    CHARACTER(LEN=255), OPTIONAL    :: VarPositive ! Positive attr for "lev"
+    CHARACTER(LEN=255), OPTIONAL    :: VarUnits    ! Unit string
+!
+! !REMARKS:
+!  Call this routine before calling NC_VAR_DEF.
+!
+! !REVISION HISTORY:
+!  10 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: ReferenceYmd, ReferenceHms  
+    INTEGER            :: Year,         Month,        Day
+    INTEGER            :: Hour,         Minute,       Second
+
+    ! Strings
+    CHARACTER(LEN=2)   :: MonthStr,     DayStr 
+    CHARACTER(LEN=2)   :: HourStr,      MinuteStr,    SecondStr
+    CHARACTER(LEN=4)   :: YearStr
+    CHARACTER(LEN=255) :: TmpAxis,      TmpCalendar
+    CHARACTER(LEN=255) :: TmpPositive,  TmpUnits
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    TmpAxis         = ''
+    TmpCalendar     = ''
+    TmpPositive     = ''
+    TmpUnits        = Item%Units
+    Item%NcXDimId   = UNDEFINED_INT
+    Item%NcYDimId   = UNDEFINED_INT
+    Item%NcZDimId   = UNDEFINED_INT
+    Item%NcTDimId   = UNDEFINED_INT
+    
+    IF ( PRESENT( RefDate ) ) THEN
+       ReferenceYmd = RefDate
+    ELSE
+       ReferenceYmd = UNDEFINED_INT
+    ENDIF
+
+    IF ( PRESENT( RefTime ) ) THEN
+       ReferenceHms = RefTime
+    ELSE
+       ReferenceHms = UNDEFINED_INT
+    ENDIF
+
+    !=======================================================================
+    ! Return relevant dim ID's and metadata for the HISTORY ITEM
+    !=======================================================================
+    SELECT CASE( TRIM( Item%Name ) )
+
+       ! lon
+       CASE( 'lon' )
+          Item%NcXDimId = xDimId
+          TmpAxis       = 'X'
+
+       ! lat
+       CASE( 'lat' )
+          Item%NcYDimId = yDimId
+          TmpAxis       = 'Y'
+
+       ! lev
+       CASE( 'lev' )
+          Item%NcZDimId = zDimId
+          TmpAxis       = 'Z'
+          TmpPositive   = 'up'
+
+       ! time
+       CASE( 'time' )
+          Item%NcTDimId = tDimId
+          TmpAxis       = 'T'
+          TmpCalendar   = 'gregorian'
+
+          ! Replace date and time tokens in the unit string
+          ! with the netCDF file's reference date and time
+          IF ( ReferenceYmd > 0 ) THEN
+             CALL Expand_Date_Time( TmpUnits, ReferenceYmd, ReferenceHms )
+          ENDIF
+
+       ! area
+       CASE( 'AREA' )
+          Item%NcXDimId = xDimId
+          Item%NcYDimId = yDimId
+
+       ! All other variable names
+       CASE DEFAULT
+
+          ! Pick the 
+          SELECT CASE( TRIM( Item%DimNames ) )
+             CASE( 'xyz' )
+                Item%NcXDimId = xDimId
+                Item%NcYDimId = yDimId
+                Item%NcZDimId = ZDimId
+                Item%NcTDimId = tDimId
+             CASE( 'xy'  )
+                Item%NcXDimId = xDimId
+                Item%NcYDimId = yDimId
+                Item%NcTDimId = tDimId
+             CASE( 'yz'  )
+                Item%NcYDimId = yDimId
+                Item%NcZDimId = zDimId
+                Item%NcTDimId = tDimId
+             CASE( 'xz'  )
+                Item%NcXDimId = xDimId
+                Item%NcZDimId = zDimId
+                Item%NcTDimId = tDimId
+             CASE( 'x'   )
+                Item%NcXDimId = xDimId
+                Item%NcTDimId = tDimId
+             CASE( 'y'   )
+                Item%NcYDimId = yDimId
+                Item%NcTDimId = tDimId
+             CASE( 'z'   )
+                Item%NcZDimId = zDimId
+                Item%NcTDimId = tDimId
+          END SELECT
+
+    END SELECT      
+    
+    ! Return optional attributes for index variables: axis and calendar
+    IF ( PRESENT( VarAxis     ) ) VarAxis     = TmpAxis
+    IF ( PRESENT( VarCalendar ) ) VarCalendar = TmpCalendar
+    IF ( PRESENT( VarPositive ) ) VarPositive = TmpPositive
+    IF ( PRESENT( VarUnits    ) ) VarUnits    = TmpUnits
+
+  END SUBROUTINE Get_Var_DimIds
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_RefDateTime
+!
+! !DESCRIPTION: Defines the reference date and time fields of the HISTORY
+!  CONTAINER object.  These are needed to compute the timestamps along the
+!  time dimension of each HISTORY ITEM.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_RefDateTime( Container, yyyymmdd, hhmmss )
+!
+! !USES:
+!
+    USE HistContainer_Mod, ONLY : HistContainer
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER,             INTENT(IN) :: yyyymmdd   ! Current Year/month/day
+    INTEGER,             INTENT(IN) :: hhmmss     ! Current hour/minute/second
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HistContainer), POINTER    :: Container  ! Diagnostic collection obj
+!
+! !REMARKS:
+!  Also initializes the Container%CurrTimeSlice field.
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    !=======================================================================
+    ! Compute the reference date/time quantities
+    !=======================================================================
+
+    ! Current time slice (will increment this in History_Netcdf_Write)
+    Container%CurrTimeSlice = 0
+
+    ! Reference date
+    Container%ReferenceYmd  = yyyymmdd
+
+    ! Reference time
+    Container%ReferenceHms  = hhmmss
+
+    ! Corresponding astronomical Julian date
+    CALL Compute_Julian_Date( yyyymmdd, hhmmss, Container%ReferenceJd )
+
+  END SUBROUTINE Set_RefDateTime
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1269,110 +1364,6 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE History_Netcdf_Cleanup
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: History_Expand_Date
-!
-! !DESCRIPTION: Replaces date and time tokens in a string with actual 
-!  date and time values.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE History_Expand_Date( DateStr, yyyymmdd, hhmmss, MAPL_Style )
-!
-! !USES:
-!
-    USE Charpak_Mod, ONLY : StrRepl
-    USE Time_Mod,    ONLY : Ymd_Extract
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER,          INTENT(IN)    :: yyyymmdd    ! Date in YYYYMMDD format
-    INTEGER,          INTENT(IN)    :: hhmmss      ! Time in hhmmss format
-    LOGICAL,          OPTIONAL      :: MAPL_Style  ! Use MAPL-style tokens
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-    CHARACTER(LEN=*), INTENT(INOUT) :: DateStr     ! String with date tokens
-!
-! !REMARKS:
-!  Based on EXPAND_DATE from GeosUtil/time_mod.F.
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    LOGICAL          :: Is_Mapl_Style 
-    INTEGER          :: Year,          Month,      Day
-    INTEGER          :: Hour,          Minute,     Second
-
-    ! Strings
-    CHARACTER(LEN=2) :: MonthStr,      DayStr 
-    CHARACTER(LEN=2) :: HourStr,       MinuteStr,  SecondStr
-    CHARACTER(LEN=4) :: YearStr
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    IF ( PRESENT( MAPL_Style ) ) THEN
-       Is_Mapl_Style = MAPL_Style
-    ELSE
-       Is_Mapl_Style = .FALSE.
-    ENDIF
-
-    !=======================================================================
-    ! Split the date and time into individal variables
-    !=======================================================================
-
-    ! Extract year/month/day and hour/minute/seconds from the time
-    CALL Ymd_Extract( yyyymmdd, Year, Month,  Day    )
-    CALL Ymd_Extract( hhmmss,   Hour, Minute, Second )
-
-    ! Convert to strings
-    WRITE( YearStr,   '(i4.4)' ) Year
-    WRITE( MonthStr,  '(i2.2)' ) Month
-    WRITE( DayStr,    '(i2.2)' ) Day
-    WRITE( HourStr,   '(i2.2)' ) Hour
-    WRITE( MinuteStr, '(i2.2)' ) Minute
-    WRITE( SecondStr, '(i2.2)' ) Second
-
-    !=======================================================================
-    ! Replace the date and time tokens in the string
-    !=======================================================================
-
-    IF ( Is_Mapl_Style ) THEN
-       
-       ! Use MAPL-style tokens
-       CALL StrRepl( DateStr, '%y4',  YearStr   )
-       CALL StrRepl( DateStr, '%m2',  MonthStr  )
-       CALL StrRepl( DateStr, '%d2',  DayStr    )
-       CALL StrRepl( DateStr, '%h2',  HourStr   )
-       CALL StrRepl( DateStr, '%n2',  MinuteStr )
-       CALL StrRepl( DateStr, '%s2',  SecondStr )
-
-    ELSE
-       
-       ! Use GEOS-Chem style tokens
-       CALL StrRepl( DateStr, 'YYYY', YearStr   )
-       CALL StrRepl( DateStr, 'MM',   MonthStr  )
-       CALL StrRepl( DateStr, 'DD',   DayStr    )
-       CALL StrRepl( DateStr, 'hh',   HourStr   )
-       CALL StrRepl( DateStr, 'mm',   MinuteStr )
-       CALL StrRepl( DateStr, 'ss',   SecondStr )
-
-    ENDIF
-
-  END SUBROUTINE History_Expand_Date
 !EOC
 END MODULE History_Netcdf_Mod
 

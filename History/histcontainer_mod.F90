@@ -62,9 +62,9 @@ MODULE HistContainer_Mod
      !----------------------------------------------------------------------
      ! Time-averaging information                     
      !----------------------------------------------------------------------
-     CHARACTER(LEN=255)          :: ArchivalMode        ! Archival mode
-     INTEGER                     :: ArchivalYmd         ! Archival freq
-     INTEGER                     :: ArchivalHms         !  in YMD and hms
+     CHARACTER(LEN=255)          :: UpdateMode          ! e.g. inst or time-avg
+     INTEGER                     :: UpdateYmd           ! Update frequency
+     INTEGER                     :: UpdateHms           !  in YMD and hms
      INTEGER                     :: Operation           ! Operation code
                                                         !  0=copy from source
                                                         !  1=accum from source
@@ -119,6 +119,7 @@ MODULE HistContainer_Mod
 !  07 Aug 2017 - R. Yantosca - Add FileWriteYmd, FileWriteHms
 !  08 Aug 2017 - R. Yantosca - Add IsFileDefined, IsFileOpen, nX, nY, nZ and 
 !                              the ouptuts xDimId, yIDimd, zDimId, tDimId
+!  16 Aug 2017 - R. Yantosca - Rename Archival* variables to Update*
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -140,8 +141,8 @@ CONTAINS
 !
   SUBROUTINE HistContainer_Create( am_I_Root,    Container,    Id,           &
                                    Name,         nX,           nY,           &
-                                   nZ,           RC,           ArchivalMode, &
-                                   ArchivalYmd,  ArchivalHms,  Operation,    &
+                                   nZ,           RC,           UpdateMode,   &
+                                   UpdateYmd,    UpdateHms,    Operation,    &
                                    FileWriteYmd, FileWriteHms, FileCloseYmd, &
                                    FileCloseHms, FileId,       FilePrefix,   &
                                    FileName,     FileTemplate, Conventions,  &
@@ -169,9 +170,9 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! OPTIONAL INPUTS: data archival
     !-----------------------------------------------------------------------
-    CHARACTER(LEN=*),    OPTIONAL    :: ArchivalMode  ! Archival mode
-    INTEGER,             OPTIONAL    :: ArchivalYmd   ! Archival frequency
-    INTEGER,             OPTIONAL    :: ArchivalHms   !  in both YMD and hms
+    CHARACTER(LEN=*),    OPTIONAL    :: UpdateMode    ! e.g. inst or time-avg
+    INTEGER,             OPTIONAL    :: UpdateYmd     ! Update frequency
+    INTEGER,             OPTIONAL    :: UpdateHms     !  in both YMD and hms
     INTEGER,             OPTIONAL    :: Operation     ! Operation code:
                                                       !  0=copy  from source
                                                       !  1=accum from source
@@ -217,6 +218,7 @@ CONTAINS
 !  11 Aug 2017 - R. Yantosca - Add FileCloseYmd, FileCloseHms, ReferenceYmd,
 !                              ReferenceHms, and CurrTimeSlice 
 !  14 Aug 2017 - R. Yantosca - Add FileCloseYmd and FileCloseHms arguments
+!  16 Aug 2017 - R. Yantosca - Renamed Archival* variables to Update*
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -288,30 +290,30 @@ CONTAINS
     !========================================================================
 
     !----------------------------------
-    ! Archival mode
+    ! Update mode
     !----------------------------------
-    IF ( PRESENT( ArchivalMode ) ) THEN
-       Container%ArchivalMode = ArchivalMode
+    IF ( PRESENT( UpdateMode ) ) THEN
+       Container%UpdateMode = UpdateMode
     ELSE
-       Container%ArchivalMode = ''
+       Container%UpdateMode = ''
     ENDIF
 
     !----------------------------------
-    ! Archival frequency in YY/MM/DD
+    ! Update frequency in YY/MM/DD
     !----------------------------------
-    IF ( PRESENT( ArchivalYmd ) ) THEN
-       Container%ArchivalYmd = ArchivalYmd 
+    IF ( PRESENT( UpdateYmd ) ) THEN
+       Container%UpdateYmd = UpdateYmd 
     ELSE
-       Container%ArchivalYmd = 0
+       Container%UpdateYmd = 0
     ENDIF
 
     !----------------------------------
-    ! Archival frequency in hh:mm:ss
+    ! Update frequency in hh:mm:ss
     !----------------------------------
-    IF ( PRESENT( ArchivalHms ) ) THEN
-       Container%ArchivalHms = ArchivalHms 
+    IF ( PRESENT( UpdateHms ) ) THEN
+       Container%UpdateHms = UpdateHms 
     ELSE
-       Container%ArchivalHms = 0
+       Container%UpdateHms = 0
     ENDIF
 
     !----------------------------------
@@ -508,6 +510,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
+!  16 Aug 2017 - R. Yantosca - Renamed Archival* variables to Update*
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -547,9 +550,9 @@ CONTAINS
        WRITE( 6, 130 ) 'nX             : ', Container%nX
        WRITE( 6, 130 ) 'nY             : ', Container%nY
        WRITE( 6, 130 ) 'nZ             : ', Container%nZ
-       WRITE( 6, 120 ) 'ArchivalMode   : ', TRIM( Container%ArchivalMode )
-       WRITE( 6, 135 ) 'ArchivalYmd    : ', Container%ArchivalYmd
-       WRITE( 6, 145 ) 'ArchivalHms    : ', Container%ArchivalHms
+       WRITE( 6, 120 ) 'UpdateMode     : ', TRIM( Container%UpdateMode )
+       WRITE( 6, 135 ) 'UpdateYmd      : ', Container%UpdateYmd
+       WRITE( 6, 145 ) 'UpdateHms      : ', Container%UpdateHms
        WRITE( 6, 120 ) 'Operation      : ', OpCode( Container%Operation )
        WRITE( 6, 150 ) 'IsFileDefined  : ', Container%IsFileDefined
        WRITE( 6, 150 ) 'IsFileOpen     : ', Container%IsFileOpen
