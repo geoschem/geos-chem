@@ -23,7 +23,6 @@ MODULE MetaHistContainer_Mod
 !
 ! !USES:
 !
-  USE History_Params_Mod
   USE HistContainer_Mod, ONLY : HistContainer
   USE Precision_Mod
 

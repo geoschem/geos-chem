@@ -135,7 +135,7 @@ CONTAINS
 !
   USE CharPak_Mod,         ONLY : TranLc
   USE ErrCode_Mod
-  USE History_Params_Mod
+  USE History_Util_Mod
   USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS: 
@@ -552,7 +552,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE History_Params_Mod
+    USE History_Util_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -677,7 +677,7 @@ CONTAINS
 ! !USES:
 !
   USE ErrCode_Mod
-  USE History_Params_Mod
+  USE History_Util_Mod
 !
 ! !INPUT PARAMETERS:
 !

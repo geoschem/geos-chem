@@ -102,14 +102,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Init( am_I_root,  Input_Opt, State_Chm,                 &
-                           State_Diag, State_Met, RC                        )
+  SUBROUTINE History_Init( am_I_root, Input_Opt, State_Chm, State_Diag,      &
+                           State_Met, yyyymmdd,  hhmmss,    RC              )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE History_Netcdf_Mod, ONLY : History_Netcdf_Init
-    USE History_Params_Mod
+    USE History_Util_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod ,     ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -122,6 +122,8 @@ CONTAINS
     TYPE(ChmState),   INTENT(IN)  :: State_Chm
     TYPE(DgnState),   INTENT(IN)  :: State_Diag
     TYPE(MetState),   INTENT(IN)  :: State_Met
+    INTEGER,          INTENT(IN)  :: yyyymmdd
+    INTEGER,          INTENT(IN)  :: hhmmss
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -164,8 +166,8 @@ CONTAINS
     ! First initialize the list of collections
     ! ("collection" = a netCDF file with a specific update frequency)
     !=======================================================================
-    CALL History_ReadCollectionNames( am_I_root,  Input_Opt, State_Chm,  &
-                                      State_Diag, State_Met, RC         )
+    CALL History_ReadCollectionNames( am_I_root,  Input_Opt, State_Chm,      &
+                                      State_Diag, State_Met, RC             )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "History_ReadCollectionNames"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -175,8 +177,9 @@ CONTAINS
     !=======================================================================
     ! Then determine the fields that will be saved to each collection
     !=======================================================================
-    CALL History_ReadCollectionData( am_I_root,  Input_Opt, State_Chm,  &
-                                     State_Diag, State_Met, RC         )
+    CALL History_ReadCollectionData( am_I_root,  Input_Opt, State_Chm,       &
+                                     State_Diag, State_Met, yyyymmdd,        &
+                                     hhmmss,     RC                         )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "History_ReadCollectionNames"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -206,7 +209,7 @@ CONTAINS
 !
     USE Charpak_Mod
     USE ErrCode_Mod
-    USE History_Params_Mod
+    USE History_Util_Mod
     USE Input_Opt_Mod,     ONLY : OptInput
     USE InquireMod,        ONLY : FindFreeLun
     USE State_Chm_Mod ,    ONLY : ChmState
@@ -464,7 +467,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE History_ReadCollectionData( am_I_Root,  Input_Opt, State_Chm,  &
-                                         State_Diag, State_Met, RC         )
+                                         State_Diag, State_Met, yyyymmdd,   &
+                                         hhmmss,     RC                    )
 !
 ! !USES:
 !
@@ -473,7 +477,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HistContainer_Mod
     USE HistItem_Mod
-    USE History_Params_Mod
+    USE History_Util_Mod
     USE Input_Opt_Mod,         ONLY : OptInput
     USE InquireMod,            ONLY : FindFreeLun
     USE MetaHistContainer_Mod
@@ -489,7 +493,9 @@ CONTAINS
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt    ! Input Options object
     TYPE(ChmState),   INTENT(IN)  :: State_Chm    ! Chemistry State object
     TYPE(DgnState),   INTENT(IN)  :: State_Diag   ! Diagnostic State object
-    TYPE(MetState),   INTENT(IN)  :: State_Met
+    TYPE(MetState),   INTENT(IN)  :: State_Met    ! Meteorology State object
+    INTEGER,          INTENT(IN)  :: yyyymmdd     ! Current date in YMD
+    INTEGER,          INTENT(IN)  :: hhmmss       ! Current time in hms
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -511,28 +517,31 @@ CONTAINS
 !
      ! Scalars
     LOGICAL                      :: EOF   
-    INTEGER                      :: C,            N,            W
-    INTEGER                      :: nX,           nY,           nZ
-    INTEGER                      :: fId,          IOS
-    INTEGER                      :: nSubs1,       nSubs2
-    INTEGER                      :: Ind1,         Ind2
-    INTEGER                      :: UpdateYmd,    UpdateHms
-    INTEGER                      :: FileCloseYmd, FileCloseHms
-    INTEGER                      :: FileWriteYmd, FileWriteHms
-    INTEGER                      :: ItemCount,    SpaceDim,     Operation
-    INTEGER                      :: Ind_All,      Ind_Adv,      Ind_Aer
-    INTEGER                      :: Ind_Dry,      Ind_Fix,      Ind_Gas
-    INTEGER                      :: Ind_Kpp,      Ind_Pho,      Ind_Rst
-    INTEGER                      :: Ind_Var,      Ind_Wet,      Ind
+    INTEGER                      :: C,              N,             W
+    INTEGER                      :: nX,             nY,            nZ
+    INTEGER                      :: fId,            IOS
+    INTEGER                      :: nSubs1,         nSubs2
+    INTEGER                      :: Ind1,           Ind2
+    INTEGER                      :: UpdateYmd,      UpdateHms    
+    INTEGER                      :: FileCloseYmd,   FileCloseHms
+    INTEGER                      :: FileWriteYmd,   FileWriteHms
+    INTEGER                      :: ItemCount,      SpaceDim,      Operation
+    INTEGER                      :: Ind_All,        Ind_Adv,       Ind_Aer
+    INTEGER                      :: Ind_Dry,        Ind_Fix,       Ind_Gas
+    INTEGER                      :: Ind_Kpp,        Ind_Pho,       Ind_Rst
+    INTEGER                      :: Ind_Var,        Ind_Wet,       Ind
+    REAL(f8)                     :: UpdateAlarm,    ReferenceJd
+    REAL(f8)                     :: FileWriteAlarm, FileCloseAlarm
+
 
     ! Strings
-    CHARACTER(LEN=255)           :: Line,         FileName
-    CHARACTER(LEN=255)           :: ErrMsg,       ThisLoc
-    CHARACTER(LEN=255)           :: MetaData,     Reference
-    CHARACTER(LEN=255)           :: Title,        Units
-    CHARACTER(LEN=255)           :: ItemName,     ItemTemplate
-    CHARACTER(LEN=255)           :: Description,  TmpMode
-    CHARACTER(LEN=255)           :: Contact,      Pattern
+    CHARACTER(LEN=255)           :: Line,           FileName
+    CHARACTER(LEN=255)           :: ErrMsg,         ThisLoc
+    CHARACTER(LEN=255)           :: MetaData,       Reference
+    CHARACTER(LEN=255)           :: Title,          Units
+    CHARACTER(LEN=255)           :: ItemName,       ItemTemplate
+    CHARACTER(LEN=255)           :: Description,    TmpMode
+    CHARACTER(LEN=255)           :: Contact,        Pattern
 
     ! Arrays
     INTEGER                      :: SubsetDims(3)
@@ -821,6 +830,13 @@ CONTAINS
           nZ = LLPAR
 
           !=================================================================
+          ! Compute time quantities
+          !=================================================================
+
+          ! Current astronomical Julian Date
+          CALL Compute_Julian_Date( yyyymmdd, hhmmss, ReferenceJd )
+
+          !=================================================================
           ! Create a HISTORY CONTAINER object for this collection
           !=================================================================
           CALL HistContainer_Create( am_I_Root    = am_I_Root,              &
@@ -830,6 +846,9 @@ CONTAINS
                                      nY           = nY,                     &
                                      nZ           = nZ,                     &
                                      Name         = CollectionName(C),      &
+                                     ReferenceYmd = yyyymmdd,               &
+                                     ReferenceHms = hhmmss,                 &
+                                     ReferenceJd  = ReferenceJd,            &
                                      UpdateMode   = CollectionMode(C),      &
                                      UpdateYmd    = UpdateYmd,              &
                                      UpdateHms    = UpdateHms,              &
@@ -1407,7 +1426,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HistItem_Mod,          ONLY : HistItem
-    USE History_Params_Mod
+    USE History_Util_Mod
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE MetaHistItem_Mod,      ONLY : MetaHistItem
     USE Registry_Params_Mod
@@ -1687,7 +1706,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HistItem_Mod,          ONLY : HistItem
     USE History_Netcdf_Mod
-    USE History_Params_Mod
+    USE History_Util_Mod
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE MetaHistItem_Mod,      ONLY : MetaHistItem
     USE Registry_Params_Mod
@@ -2021,7 +2040,7 @@ CONTAINS
 ! !USES:
 !
     USE Charpak_Mod,       ONLY: StrSplit
-    USE History_Params_Mod
+    USE History_Util_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2120,7 +2139,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HistContainer_Mod, ONLY : HistContainer
-    USE History_Params_Mod
+    USE History_Util_Mod
 !
 ! !INPUT PARAMETERS: 
 !

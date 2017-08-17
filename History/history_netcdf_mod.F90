@@ -34,7 +34,6 @@ MODULE History_Netcdf_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: Compute_Julian_Date
   PRIVATE :: Compute_TimeAvgOffset
   PRIVATE :: Expand_Date_Time
   PRIVATE :: Get_Var_DimIds
@@ -46,6 +45,7 @@ MODULE History_Netcdf_Mod
 !  10 Aug 2017 - R. Yantosca - Initial version
 !  16 Aug 2017 - R. Yantosca - Reorder placement of routines
 !  16 Aug 2017 - R. Yantosca - Rename History_Expand_Date to Expand_Date_Time
+!  17 Aug 2017 - R. Yantosca - Now make Compute_Julian_Date a public routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -78,7 +78,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HistContainer_Mod,     ONLY : HistContainer
-    USE History_Params_Mod
+    USE History_Util_Mod
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE Ncdf_Mod
 !
@@ -186,7 +186,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HistContainer_Mod,  ONLY : HistContainer, HistContainer_Print
     USE HistItem_Mod,       ONLY : HistItem,      HistItem_Print
-    USE History_Params_Mod
+    USE History_Util_Mod
     USE MetaHistItem_Mod,   ONLY : MetaHistItem
     USE Ncdf_Mod
 !
@@ -486,7 +486,7 @@ CONTAINS
     USE Gc_Grid_Mod,        ONLY : RoundOff
     USE HistItem_Mod,       ONLY : HistItem
     USE HistContainer_Mod,  ONLY : HistContainer
-    USE History_Params_Mod
+    USE History_Util_Mod
     USE M_NetCdf_Io_Write,  ONLY : NcWr
     USE MetaHistItem_Mod,   ONLY : MetaHistItem
 !
@@ -757,63 +757,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Compute_Julian_Date
-!
-! !DESCRIPTION: Computes the Astronomical Julian Date corresponding to a 
-!  given date and time.  This is useful for computing elapsed times.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Compute_Julian_Date( yyyymmdd, hhmmss, Jd )
-!
-! !USES:
-!
-    USE Julday_Mod, ONLY : Julday
-    USE Time_Mod,   ONLY : Ymd_Extract
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER,  INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
-    INTEGER,  INTENT(IN)  :: hhmmss    ! Current hour/minute/second
-!
-! !OUTPUT PARAMETERS: 
-!
-    REAL(f8), INTENT(OUT) :: Jd        ! Astronomical Julian date
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER  :: Year, Month, Day, Hour, Minute, Second
-    REAL(f8) :: FracDay
-
-    ! Extract year/month/day and hour/minute/seconds from the time
-    CALL Ymd_Extract( yyyymmdd, Year, Month,  Day    )
-    CALL Ymd_Extract( hhmmss,   Hour, Minute, Second )
-
-    ! Compute the fractional day
-    FracDay = DBLE( Day ) + ( DBLE( Hour   ) / 24.0_f8    )  +               & 
-                            ( DBLE( Minute ) / 1440.0_f8  )  +               &
-                            ( DBLE( Second ) / 86400.0_f8 ) 
-
-    ! Return the Astronomical Julian Date
-    Jd = JulDay( Year, Month, FracDay )
-
-  END SUBROUTINE Compute_Julian_Date
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Compute_TimeAvgOffset
 !
 ! !DESCRIPTION: Computes the offset (in minutes) for the netCDF timestamp. 
@@ -828,7 +771,7 @@ CONTAINS
 ! !USES:
 !
    USE HistContainer_Mod,  ONLY : HistContainer
-   USE History_Params_Mod
+   USE History_Util_Mod
    USE Time_Mod,           ONLY : Ymd_Extract
 !
 ! !INPUT PARAMETERS:
@@ -1023,7 +966,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE History_Params_Mod
+    USE History_Util_Mod
     USE HistItem_Mod,       ONLY : HistItem
 !
 ! !INPUT PARAMETERS: 
@@ -1189,6 +1132,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE History_Util_Mod,  ONLY : Compute_Julian_Date
     USE HistContainer_Mod, ONLY : HistContainer
     USE Time_Mod,          ONLY :
 !

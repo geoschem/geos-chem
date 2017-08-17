@@ -23,8 +23,7 @@ MODULE MetaHistItem_Mod
 !
 ! !USES:
 !
-  USE History_Params_Mod
-  USE HistItem_Mod,      ONLY : HistItem
+  USE HistItem_Mod, ONLY : HistItem
   USE Precision_Mod
 
   IMPLICIT NONE

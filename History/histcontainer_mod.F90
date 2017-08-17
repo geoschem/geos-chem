@@ -72,6 +72,8 @@ MODULE HistContainer_Mod
      INTEGER                     :: ReferenceHms        !  for the "time" dim
      REAL(f8)                    :: ReferenceJD         ! Astronomical Julian
                                                         !  date @ ref date/time
+     REAL(f8)                    :: CurrentJd           ! Astronomical Julian
+                                                        !  date @ current time
      INTEGER                     :: CurrTimeSlice       ! Current time slice
                                                         !  for the "time" dim
      REAL(f8)                    :: TimeStamp           ! Elapsed minutes
@@ -88,7 +90,15 @@ MODULE HistContainer_Mod
                                                         !  define mode yet?
      LOGICAL                     :: IsFileOpen          ! Is the netCDF file
                                                         !  currently open?
-                                             
+
+     !----------------------------------------------------------------------
+     ! Alarms (Astronomical Julian Date) to determine when it is time to ...
+     !----------------------------------------------------------------------
+     REAL(f8)                    :: UpdateAlarm         ! Update container
+     REAL(f8)                    :: FileCloseAlarm      ! Close file (and
+                                                        !  create new one)
+     REAL(f8)                    :: FileWriteAlarm      ! Write data to file
+                                   
      !----------------------------------------------------------------------
      ! netCDF file identifiers and attributes
      !----------------------------------------------------------------------
@@ -120,6 +130,7 @@ MODULE HistContainer_Mod
 !  08 Aug 2017 - R. Yantosca - Add IsFileDefined, IsFileOpen, nX, nY, nZ and 
 !                              the ouptuts xDimId, yIDimd, zDimId, tDimId
 !  16 Aug 2017 - R. Yantosca - Rename Archival* variables to Update*
+!  17 Aug 2017 - R. Yantosca - Added the *Alarm variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -139,20 +150,28 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistContainer_Create( am_I_Root,    Container,    Id,           &
-                                   Name,         nX,           nY,           &
-                                   nZ,           RC,           UpdateMode,   &
-                                   UpdateYmd,    UpdateHms,    Operation,    &
-                                   FileWriteYmd, FileWriteHms, FileCloseYmd, &
-                                   FileCloseHms, FileId,       FilePrefix,   &
-                                   FileName,     FileTemplate, Conventions,  &
-                                   NcFormat,     History,      ProdDateTime, &
-                                   Reference,    Title,        Contact       )
+  SUBROUTINE HistContainer_Create( am_I_Root,      Container,                &
+                                   Id,             Name,                     &
+                                   nX,             nY,                       &
+                                   nZ,             RC,                       &
+                                   UpdateMode,     UpdateYmd,                &
+                                   UpdateHms,      UpdateAlarm,              &
+                                   Operation,      FileWriteYmd,             & 
+                                   FileWriteHms,   FileWriteAlarm,           &
+                                   FileCloseYmd,   FileCloseHms,             &
+                                   FileCloseAlarm, ReferenceYmd,             &
+                                   ReferenceHms,   ReferenceJd,              &
+                                   FileId,         FilePrefix,               &
+                                   FileName,       FileTemplate,             &
+                                   Conventions,    NcFormat,                 &
+                                   History,        ProdDateTime,             &
+                                   Reference,      Title,                    &
+                                   Contact                                  )
 !
 ! !USES:
 !
   USE ErrCode_Mod
-  USE History_Params_Mod
+  USE History_Util_Mod
   USE MetaHistItem_Mod, ONLY : MetaHistItem
 !
 ! !INPUT PARAMETERS: 
@@ -160,52 +179,61 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! REQUIRED INPUTS
     !-----------------------------------------------------------------------
-    LOGICAL,             INTENT(IN)  :: am_I_Root     ! Root CPU?
-    INTEGER,             INTENT(IN)  :: Id            ! Container Id #
-    CHARACTER(LEN=*),    INTENT(IN)  :: Name          ! Container name
-    INTEGER,             INTENT(IN)  :: nX            ! X (or lon) dim size
-    INTEGER,             INTENT(IN)  :: nY            ! Y (or lat) dim size
-    INTEGER,             INTENT(IN)  :: nZ            ! Z (or lev) dim size
-    
+    LOGICAL,             INTENT(IN)  :: am_I_Root      ! Root CPU?
+    INTEGER,             INTENT(IN)  :: Id             ! Container Id #
+    CHARACTER(LEN=*),    INTENT(IN)  :: Name           ! Container name
+    INTEGER,             INTENT(IN)  :: nX             ! X (or lon) dim size
+    INTEGER,             INTENT(IN)  :: nY             ! Y (or lat) dim size
+    INTEGER,             INTENT(IN)  :: nZ             ! Z (or lev) dim size
+
     !-----------------------------------------------------------------------
-    ! OPTIONAL INPUTS: data archival
+    ! OPTIONAL INPUTS: data update parameters
     !-----------------------------------------------------------------------
-    CHARACTER(LEN=*),    OPTIONAL    :: UpdateMode    ! e.g. inst or time-avg
-    INTEGER,             OPTIONAL    :: UpdateYmd     ! Update frequency
-    INTEGER,             OPTIONAL    :: UpdateHms     !  in both YMD and hms
-    INTEGER,             OPTIONAL    :: Operation     ! Operation code:
-                                                      !  0=copy  from source
-                                                      !  1=accum from source
+    CHARACTER(LEN=*),    OPTIONAL    :: UpdateMode     ! e.g. inst or time-avg
+    INTEGER,             OPTIONAL    :: UpdateYmd      ! Update frequency
+    INTEGER,             OPTIONAL    :: UpdateHms      !  in both YMD and hms
+    REAL(f8),            OPTIONAL    :: UpdateAlarm    ! JD for data update
+    INTEGER,             OPTIONAL    :: Operation      ! Operation code:
+                                                       !  0=copy  from source
+                                                       !  1=accum from source
+
     !-----------------------------------------------------------------------
     ! OPTIONAL INPUTS: File definition and I/O info
     !-----------------------------------------------------------------------
-    INTEGER,             OPTIONAL    :: FileWriteYmd  ! File write frequency
-    INTEGER,             OPTIONAL    :: FileWriteHms  !  in both YMD and hms
-    INTEGER,             OPTIONAL    :: FileCloseYmd  ! File closing frequency
-    INTEGER,             OPTIONAL    :: FileCloseHms  !  in both YMD and hms
+    INTEGER,             OPTIONAL    :: ReferenceYmd   ! Ref YMD for "time" var
+    INTEGER,             OPTIONAL    :: ReferenceHms   ! Ref hms for "time" var
+    REAL(f8),            OPTIONAL    :: ReferenceJd    ! Ref in Julian date
+
+    INTEGER,             OPTIONAL    :: FileWriteYmd   ! File write frequency
+    INTEGER,             OPTIONAL    :: FileWriteHms   !  in both YMD and hms
+    REAL(f8),            OPTIONAL    :: FileWriteAlarm ! JD for file write
+
+    INTEGER,             OPTIONAL    :: FileCloseYmd   ! File close/open freq
+    INTEGER,             OPTIONAL    :: FileCloseHms   !  in both YMD and hm
+    REAL(f8),            OPTIONAL    :: FileCloseAlarm ! JD for file close
 
     !-----------------------------------------------------------------------
     ! OPTIONAL INPUTS: netCDF file identifiers and metadata
     !-----------------------------------------------------------------------
-    INTEGER,             OPTIONAL    :: FileId        ! netCDF file ID
-    CHARACTER(LEN=*),    OPTIONAL    :: FilePrefix    ! Filename prefix
-    CHARACTER(LEN=*),    OPTIONAL    :: FileTemplate  ! YMDhms template
-    CHARACTER(LEN=*),    OPTIONAL    :: Conventions   ! e.g. "COARDS"
-    CHARACTER(LEN=*),    OPTIONAL    :: Filename      ! Name of nc file
-    CHARACTER(LEN=*),    OPTIONAL    :: NcFormat      ! e.g. "netCDF-4"
-    CHARACTER(LEN=*),    OPTIONAL    :: History       ! History
-    CHARACTER(LEN=*),    OPTIONAL    :: ProdDateTime  ! When produced
-    CHARACTER(LEN=*),    OPTIONAL    :: Reference     ! Reference string
-    CHARACTER(LEN=*),    OPTIONAL    :: Title         ! Title string
-    CHARACTER(LEN=*),    OPTIONAL    :: Contact       ! Contact string
+    INTEGER,             OPTIONAL    :: FileId         ! netCDF file ID
+    CHARACTER(LEN=*),    OPTIONAL    :: FilePrefix     ! Filename prefix
+    CHARACTER(LEN=*),    OPTIONAL    :: FileTemplate   ! YMDhms template
+    CHARACTER(LEN=*),    OPTIONAL    :: Conventions    ! e.g. "COARDS"
+    CHARACTER(LEN=*),    OPTIONAL    :: Filename       ! Name of nc file
+    CHARACTER(LEN=*),    OPTIONAL    :: NcFormat       ! e.g. "netCDF-4"
+    CHARACTER(LEN=*),    OPTIONAL    :: History        ! History
+    CHARACTER(LEN=*),    OPTIONAL    :: ProdDateTime   ! When produced
+    CHARACTER(LEN=*),    OPTIONAL    :: Reference      ! Reference string
+    CHARACTER(LEN=*),    OPTIONAL    :: Title          ! Title string
+    CHARACTER(LEN=*),    OPTIONAL    :: Contact        ! Contact string
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    TYPE(HistContainer), POINTER     :: Container     ! Collection object
+    TYPE(HistContainer), POINTER     :: Container      ! Collection object
 !
 ! !OUTPUT PARAMETERS: 
 !
-    INTEGER,             INTENT(OUT) :: RC            ! Success or failure
+    INTEGER,             INTENT(OUT) :: RC             ! Success or failure
 !
 ! !REMARKS:
 !  (1) We need to copy string data to a temporary string of length 255 
@@ -219,6 +247,7 @@ CONTAINS
 !                              ReferenceHms, and CurrTimeSlice 
 !  14 Aug 2017 - R. Yantosca - Add FileCloseYmd and FileCloseHms arguments
 !  16 Aug 2017 - R. Yantosca - Renamed Archival* variables to Update*
+!  17 Aug 2017 - R. Yantosca - Add *Alarm and Reference* arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -299,7 +328,7 @@ CONTAINS
     ENDIF
 
     !----------------------------------
-    ! Update frequency in YY/MM/DD
+    ! Update frequency in YYYYMMDD
     !----------------------------------
     IF ( PRESENT( UpdateYmd ) ) THEN
        Container%UpdateYmd = UpdateYmd 
@@ -308,12 +337,21 @@ CONTAINS
     ENDIF
 
     !----------------------------------
-    ! Update frequency in hh:mm:ss
+    ! Update frequency in hhmmss
     !----------------------------------
     IF ( PRESENT( UpdateHms ) ) THEN
        Container%UpdateHms = UpdateHms 
     ELSE
        Container%UpdateHms = 0
+    ENDIF
+
+    !----------------------------------
+    ! Update alarm (Julian date)
+    !----------------------------------
+    IF ( PRESENT( UpdateAlarm ) ) THEN
+       Container%UpdateAlarm = UpdateAlarm
+    ELSE
+       Container%UpdateAlarm = UNDEFINED_DBL
     ENDIF
 
     !----------------------------------
@@ -326,7 +364,7 @@ CONTAINS
     ENDIF
 
     !----------------------------------
-    ! File write frequency in YY/MM/DD
+    ! File write frequency in YYYYMMDD
     !----------------------------------
     IF ( PRESENT( FileWriteYmd ) ) THEN
        Container%FileWriteYmd = FileWriteYmd 
@@ -335,7 +373,7 @@ CONTAINS
     ENDIF
 
     !----------------------------------
-    ! File write frequency in hh:mm:ss
+    ! File write frequency in hhmmss
     !----------------------------------
     IF ( PRESENT( FileWriteHms ) ) THEN
        Container%FileWriteHms = FileWriteHms 
@@ -344,7 +382,16 @@ CONTAINS
     ENDIF
 
     !----------------------------------
-    ! File close frequency in YY/MM/DD
+    ! File write alarm (Julian date)
+    !----------------------------------
+    IF ( PRESENT( FileWriteAlarm ) ) THEN
+       Container%FileWriteAlarm = FileWriteAlarm
+    ELSE
+       Container%FileWriteAlarm = UNDEFINED_DBL
+    ENDIF
+
+    !----------------------------------
+    ! File close frequency in YYYYMMDD
     !----------------------------------
     IF ( PRESENT( FileCloseYmd ) ) THEN
        Container%FileCloseYmd = FileCloseYmd 
@@ -353,12 +400,48 @@ CONTAINS
     ENDIF
 
     !----------------------------------
-    ! File close frequency in hh:mm:ss
+    ! File close frequency in hhmmss
     !----------------------------------
     IF ( PRESENT( FileCloseHms ) ) THEN
        Container%FileCloseHms = FileCloseHms 
     ELSE
        Container%FileCloseHms = 0
+    ENDIF
+
+    !----------------------------------
+    ! File close alarm (Julian date)
+    !----------------------------------
+    IF ( PRESENT( FileCloseAlarm ) ) THEN
+       Container%FileCloseAlarm = FileCloseAlarm
+    ELSE
+       Container%FileCloseAlarm = UNDEFINED_DBL
+    ENDIF
+
+    !----------------------------------
+    ! Reference date in YYYMMDD
+    !----------------------------------
+    IF ( PRESENT( ReferenceYmd ) ) THEN
+       Container%ReferenceYmd = ReferenceYmd
+    ELSE
+       Container%ReferenceYmd = 0
+    ENDIF
+
+    !----------------------------------
+    ! ReferenceHms in hh:mm:ss
+    !----------------------------------
+    IF ( PRESENT( ReferenceHms ) ) THEN
+       Container%ReferenceHms = ReferenceHms
+    ELSE
+       Container%ReferenceHms = 0
+    ENDIF
+
+    !----------------------------------
+    ! Reference Julian Date
+    !----------------------------------
+    IF ( PRESENT( ReferenceJd ) ) THEN
+       Container%ReferenceJd = ReferenceJd
+    ELSE
+       Container%ReferenceJd = UNDEFINED_DBL
     ENDIF
 
     !----------------------------------
@@ -464,20 +547,19 @@ CONTAINS
 
     !=======================================================================
     ! These fields will not be set until we create the netCDF file,
-    ! so for now set them to UNDEFINED values.
     !=======================================================================
-    Container%IsFileDefined = .FALSE.
-    Container%IsFileOpen    = .FALSE.
-    Container%FileId        = UNDEFINED_INT
-    Container%xDimId        = UNDEFINED_INT
-    Container%yDimId        = UNDEFINED_INT
-    Container%zDimId        = UNDEFINED_INT
-    Container%tDimId        = UNDEFINED_INT
-    Container%ReferenceYmd  = 0
-    Container%ReferenceHms  = 0
-    Container%ReferenceJd   = 0.0_fp
-    Container%TimeStamp     = 0.0_fp
-    Container%CurrTimeSlice = UNDEFINED_INT
+    Container%IsFileDefined  = .FALSE.
+    Container%IsFileOpen     = .FALSE.
+    Container%FileId         = UNDEFINED_INT
+    Container%xDimId         = UNDEFINED_INT
+    Container%yDimId         = UNDEFINED_INT
+    Container%zDimId         = UNDEFINED_INT
+    Container%tDimId         = UNDEFINED_INT
+    Container%TimeStamp      = 0.0_fp
+    Container%CurrTimeSlice  = UNDEFINED_INT
+    
+    ! For now set CurrentJd to the ReferenceJd
+    Container%CurrentJd      = Container%ReferenceJd
 
   END SUBROUTINE HistContainer_Create
 !EOC
@@ -511,6 +593,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
 !  16 Aug 2017 - R. Yantosca - Renamed Archival* variables to Update*
+!  17 Aug 2017 - R. Yantosca - Now print *Alarm variables.  Also use the
+!                              Item%DimNames field to print the data dims
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -553,6 +637,7 @@ CONTAINS
        WRITE( 6, 120 ) 'UpdateMode     : ', TRIM( Container%UpdateMode )
        WRITE( 6, 135 ) 'UpdateYmd      : ', Container%UpdateYmd
        WRITE( 6, 145 ) 'UpdateHms      : ', Container%UpdateHms
+       WRITE( 6, 160 ) 'UpdateAlarm    : ', Container%UpdateAlarm
        WRITE( 6, 120 ) 'Operation      : ', OpCode( Container%Operation )
        WRITE( 6, 150 ) 'IsFileDefined  : ', Container%IsFileDefined
        WRITE( 6, 150 ) 'IsFileOpen     : ', Container%IsFileOpen
@@ -561,8 +646,10 @@ CONTAINS
        WRITE( 6, 160 ) 'ReferenceJd    : ', Container%ReferenceJd
        WRITE( 6, 135 ) 'FileWriteYmd   : ', Container%FileWriteYmd
        WRITE( 6, 145 ) 'FileWriteHms   : ', Container%FileWriteHms
+       WRITE( 6, 160 ) 'FileWriteAlarm : ', Container%FileWriteAlarm
        WRITE( 6, 135 ) 'FileCloseYmd   : ', Container%FileCloseYmd
        WRITE( 6, 145 ) 'FileCloseHms   : ', Container%FileCloseHms
+       WRITE( 6, 160 ) 'FileCloseAlarm : ', Container%FileCloseAlarm
        WRITE( 6, 130 ) 'CurrTimeSlice  : ', Container%CurrTimeSlice
        WRITE( 6, 130 ) 'FileId         : ', Container%FileId
        WRITE( 6, 130 ) 'xDimId         : ', Container%xDimId 
@@ -598,27 +685,16 @@ CONTAINS
           ! Point to the start of the list of HISTORY ITEMS
           Current => Container%HistItems
 
-          ! Print the name, long-name, and units of each HISTORY ITEM 
-          ! that is stored in the METAHISTORY ITEM belonging to this 
-          ! HISTORY CONTAINER.  In other words, these are the diagnostic
-          ! quantities that will get archived to the netCDF file.
+          ! As long as this HISTORY ITEM is valid ...
           DO WHILE ( ASSOCIATED( Current ) ) 
 
-             DimStr = ''
-             
-             ! Pick a string for the # of dimensions
-             SELECT CASE( Current%Item%SpaceDim )
-                CASE( 3 )
-                   DimStr = 'xyz'
-                CASE( 2 )
-                   Dimstr = 'xy'
-                CASE( 1 )
-                   Dimstr = 'x'
-             END SELECT
-
-             WRITE( 6, 100 ) Current%Item%Name,      &
-                             Current%Item%LongName,  &
-                             DimStr,                 &
+             ! Print the name, long-name, and units of each HISTORY ITEM 
+             ! that is stored in the METAHISTORY ITEM belonging to this 
+             ! HISTORY CONTAINER.  In other words, these are the diagnostic
+             ! quantities that will get archived to the netCDF file.
+             WRITE( 6, 100 ) Current%Item%Name,        &
+                             Current%Item%LongName,    &
+                             Current%Item%DimNames,    &
                              TRIM( Current%Item%Units )
  100         FORMAT( 2x, a20, ' | ', a35, ' | ', a3, ' | ', a )
 
@@ -631,8 +707,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Format statements
- 
   END SUBROUTINE HistContainer_Print
 !EOC
 !------------------------------------------------------------------------------
