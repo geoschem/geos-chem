@@ -671,8 +671,8 @@ CONTAINS
           CASE( 2 )
 
              ! Get dimensions of data
-             Dim1 = SIZE( Item%Data_3d, 1 )
-             Dim2 = SIZE( Item%Data_3d, 2 )
+             Dim1 = SIZE( Item%Data_2d, 1 )
+             Dim2 = SIZE( Item%Data_2d, 2 )
 
              ! Allocate the REAL*4 output array
              ALLOCATE( NcData_2d( Dim1, Dim2 ), STAT=RC )
@@ -694,7 +694,7 @@ CONTAINS
              Ct3d = (/ Dim1, Dim2, 1                       /)
 
              ! Write data to disk
-             CALL NcWr( NcData_3d, NcFileId, Item%Name, St3d, Ct3d )
+             CALL NcWr( NcData_2d, NcFileId, Item%Name, St3d, Ct3d )
              
              ! Deallocate output array
              DEALLOCATE( NcData_2d, STAT=RC )
@@ -705,7 +705,7 @@ CONTAINS
           CASE( 1 )
 
              ! Get dimensions of data
-             Dim1 = SIZE( Item%Data_3d, 1 )
+             Dim1 = SIZE( Item%Data_1d, 1 )
 
              ! Allocate the REAL*4 output array
              ALLOCATE( NcData_1d( Dim1 ), STAT=RC )
@@ -731,7 +731,7 @@ CONTAINS
              CALL NcWr( NcData_1d, NcFileId, Item%Name, St2d, Ct2d )
              
              ! Deallocate output array
-             DEALLOCATE( NcData_2d, STAT=RC )
+             DEALLOCATE( NcData_1d, STAT=RC )
 
        END SELECT
 
