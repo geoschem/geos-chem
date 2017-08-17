@@ -6887,6 +6887,7 @@
 !  16 Jun 2017 - M. Sulprizio- Remove emission options since they are now
 !                              handled by HEMCO
 !  16 Jun 2017 - M. Sulprizio- Add option for GOSAT CH4 observation operator
+!  17 Aug 2017 - M. Sulprizio- Add option for TCCON CH4 observation operator
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6911,21 +6912,25 @@
       ! Use GOSAT CH4 observation operator?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:2' )
       READ( SUBSTRS(1:N), * ) Input_Opt%GOSAT_CH4_OBS
-                                                
-      ! Do analytical inversion?
+
+      ! Use TCCON CH4 observation operator?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:3' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%TCCON_CH4_OBS
+                                 
+      ! Do analytical inversion?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:4' )
       READ( SUBSTRS(1:N), * ) Input_Opt%Analytical_Inv
 
       ! Emission perturbation
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:5' )
       READ( SUBSTRS(1:N), * ) Input_Opt%Emis_Pert
 
       ! Current cluster number
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:6' )
       READ( SUBSTRS(1:N), * ) Input_Opt%Emis_Pert_Num
 
       ! Separator line                          
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:7' )
 
       !=================================================================
       ! Print to screen
@@ -6937,6 +6942,8 @@
      &                        Input_Opt%LCH4BUDGET
          WRITE( 6, 100     ) 'Use GOSAT obs operator: ',
      &                        Input_Opt%GOSAT_CH4_OBS
+         WRITE( 6, 100     ) 'Use TCCON obs operator: ',
+     &                        Input_Opt%TCCON_CH4_OBS
          WRITE( 6, 100     ) 'Do analytical inversion: ',
      &                        Input_Opt%Analytical_Inv
          WRITE( 6, 110     ) 'Emission perturbation: ',

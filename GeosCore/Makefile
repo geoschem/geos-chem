@@ -862,6 +862,9 @@ tagged_o3_mod.o             : tagged_o3_mod.F                                \
                               drydep_mod.o            hco_interface_mod.o    \
                               pbl_mix_mod.o
 
+tccon_ch4_mod.o             : tccon_ch4_mod.F
+
+
 tendencies_mod.o            : tendencies_mod.F90                             \
                               hco_interface_mod.o
 

@@ -85,6 +85,7 @@
       USE DIAGNOSTICS_MOD       ! NetCDF diagnostics module (C. Keller)
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
       USE GOSAT_CH4_MOD         ! For GOSAT observation operator
+      USE TCCON_CH4_MOD         ! For TCCON observation operator
 
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
@@ -286,6 +287,7 @@
 !  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  16 Jun 2017 - M. Sulprizio- Add call for GOSAT CH4 observation operator
+!  17 Aug 2017 - M. Sulprizio- Add call for TCCON CH4 observation operator
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -1643,7 +1645,7 @@
          ENDIF
 
          !================================================================
-         ! CH4 columns from the GOSAT instrument (mps, 6/16/17
+         ! CH4 columns from the GOSAT instrument (mps, 6/16/17)
          !================================================================
 
          IF ( Input_Opt%GOSAT_CH4_OBS ) THEN
@@ -1654,7 +1656,32 @@
 !            ! Track cost function contributions
 !            CF_PRIOR = COST_FUNC
 !------------------------------------------------------------------------------
+
                CALL CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm,
+     &                                    State_Met, COST_FUNC )
+
+!------------------------------------------------------------------------------
+! For adjoint model only:
+!            ! Track cost function contributions
+!            CF_GOSCH4 = CF_GOSCH4 + COST_FUNC - CF_PRIOR
+!------------------------------------------------------------------------------
+            ENDIF
+         ENDIF
+
+         !================================================================
+         ! CH4 columns from the TCCON instrument (mps, 8/17/17)
+         !================================================================
+
+         IF ( Input_Opt%TCCON_CH4_OBS ) THEN
+            IF ( ITS_A_NEW_HOUR() ) THEN
+      
+!------------------------------------------------------------------------------
+! For adjoint model only:
+!            ! Track cost function contributions
+!            CF_PRIOR = COST_FUNC
+!------------------------------------------------------------------------------
+
+               CALL CALC_TCCON_CH4_FORCE( Input_Opt, State_Chm,
      &                                    State_Met, COST_FUNC )
 
 !------------------------------------------------------------------------------
