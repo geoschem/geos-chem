@@ -1790,7 +1790,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_Grid( am_I_Root, RC, ShortForqmat )
+  SUBROUTINE Print_Grid( am_I_Root, RC, ShortFormat )
 !
 ! !USES:
 !

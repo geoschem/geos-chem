@@ -34,6 +34,7 @@ MODULE HistContainer_Mod
   PUBLIC :: HistContainer_Print
   PUBLIC :: HistContainer_Destroy
   PUBLIC :: HistContainer_AlarmSet
+  PUBLIC :: HistContainer_ElapsedTime
 !
 ! !PUBLIC TYPES:
 !
@@ -143,6 +144,7 @@ MODULE HistContainer_Mod
 !  18 Aug 2017 - R. Yantosca - Added EpochJd so that we can compute Julian
 !                              dates as relative to the start of the run
 !  18 Aug 2017 - R. Yantosca - Added ElapsedMin
+!  18 Aug 2017 - R. Yantosca - Add HistContainer_ElapsedTime routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -657,13 +659,13 @@ CONTAINS
        WRITE( 6, 130 ) 'nX             : ', Container%nX
        WRITE( 6, 130 ) 'nY             : ', Container%nY
        WRITE( 6, 130 ) 'nZ             : ', Container%nZ
+       WRITE( 6, 160 ) 'EpochJd        : ', Container%EpochJd
+       WRITE( 6, 160 ) 'ElapsedMin     : ', Container%ElapsedMin
        WRITE( 6, 120 ) 'UpdateMode     : ', TRIM( Container%UpdateMode )
        WRITE( 6, 135 ) 'UpdateYmd      : ', Container%UpdateYmd
        WRITE( 6, 145 ) 'UpdateHms      : ', Container%UpdateHms
        WRITE( 6, 160 ) 'UpdateAlarm    : ', Container%UpdateAlarm
        WRITE( 6, 120 ) 'Operation      : ', OpCode( Container%Operation )
-       WRITE( 6, 150 ) 'IsFileDefined  : ', Container%IsFileDefined
-       WRITE( 6, 150 ) 'IsFileOpen     : ', Container%IsFileOpen
        WRITE( 6, 135 ) 'ReferenceYmd   : ', Container%ReferenceYmd
        WRITE( 6, 145 ) 'ReferenceHms   : ', Container%ReferenceHms
        WRITE( 6, 160 ) 'ReferenceJd    : ', Container%ReferenceJd
@@ -674,6 +676,8 @@ CONTAINS
        WRITE( 6, 145 ) 'FileCloseHms   : ', Container%FileCloseHms
        WRITE( 6, 160 ) 'FileCloseAlarm : ', Container%FileCloseAlarm
        WRITE( 6, 130 ) 'CurrTimeSlice  : ', Container%CurrTimeSlice
+       WRITE( 6, 150 ) 'IsFileOpen     : ', Container%IsFileOpen
+       WRITE( 6, 150 ) 'IsFileDefined  : ', Container%IsFileDefined
        WRITE( 6, 130 ) 'FileId         : ', Container%FileId
        WRITE( 6, 130 ) 'xDimId         : ', Container%xDimId 
        WRITE( 6, 130 ) 'yDimId         : ', Container%yDimId 
@@ -824,7 +828,7 @@ CONTAINS
 !\\
 !\\
 ! !INTERFACE:
-  !
+!
   SUBROUTINE HistContainer_AlarmSet( am_I_Root, Container, yyyymmdd,        &
                                      hhmmss,    AlarmType, RC              )
 !
@@ -852,7 +856,7 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
+!  18 Aug 2017 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -866,14 +870,16 @@ CONTAINS
     REAL(f8)           :: AlarmJd,   AlarmMins
 
     ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255) :: ErrMsg,    ThisLoc
 
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = &
+    RC        = GC_SUCCESS
+    AlarmJd   = 0.0_f8
+    AlarmMins = 0.0_f8
+    ErrMsg    = ''
+    ThisLoc   = &
        ' -> at HistContainer_AlarmSet (in History/histcontainer_mod.F90)'
 
     !=======================================================================
@@ -937,19 +943,25 @@ CONTAINS
 
     ! Check days
     SELECT CASE ( Month )
+
+       ! 30 days hath September, April, June, and November.
+       CASE( 4, 6, 9, 11 )
+          IF ( Day > 30 ) THEN
+             Day   = Day   - 30
+             Month = Month + 1
+          ENDIF
+
+       ! All the rest have 31.
        CASE( 1, 3, 5, 7, 8, 10, 12 )
           IF ( Day > 31 ) THEN
              Day   = Day   - 31
              Month = Month + 1
           ENDIF
 
-        CASE( 4, 6, 9, 11 )
-           IF ( Day > 30 ) THEN
-              Day   = Day   - 30
-              Month = Month + 1
-           ENDIF
-        
-        CASE( 2 )
+       ! February has 28 alone.
+       ! Except for leap years, that's the time
+       ! when February's days are 29.
+       CASE( 2 )
            IF ( Its_A_LeapYear( Year ) ) THEN
               IF ( Day > 29 ) THEN
                  Day   = Day - 29
@@ -979,14 +991,22 @@ CONTAINS
     AlarmDate = ( Year * 10000 ) + ( Month  * 100 ) + Day
     AlarmTime = ( Hour * 10000 ) + ( Minute * 100 ) + Second
     
-    ! Compute the correspoinding Astronomical Julian Date
-    CALL Compute_Julian_Date( AlarmDate, AlarmTime, AlarmJd )
+    ! Compute the elapsed minutes since the start of the 
+    ! simulation, corresponding to AlarmDate and AlarmTime
+    CALL HistContainer_ElapsedTime( am_I_Root  = am_I_Root,                  &
+                                    Container  = Container,                  &
+                                    yyyymmdd   = AlarmDate,                  &
+                                    hhmmss     = AlarmTime,                  &
+                                    TimeBase   = FROM_START_OF_SIM,          &
+                                    ElapsedMin = AlarmMins,                  &
+                                    RC         = RC                         )
 
-    ! Convert the alarm Julian date to a relative Julian date
-    ! (i.e. since simulation start) and convert to elapesd minutes.
-    ! Rounding off should prevent numerical noise.
-    AlarmMins = ( AlarmJd - Container%EpochJd ) * 1440.0_f8
-    AlarmMins = Roundoff( AlarmMins, 5 )
+    ! Trap potential error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "HistContainer_ElapsedTime"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     ! Update the relevant alarm
     IF ( AlarmType == ALARM_UPDATE ) THEN
@@ -1008,6 +1028,111 @@ CONTAINS
     ENDIF
     
   END SUBROUTINE HistContainer_AlarmSet
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HistContainer_ElapsedTime
+!
+! !DESCRIPTION: Computes elapsed time in minutes, with respect to either
+!  the start of the simulation or the netCDF file reference date/time.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HistContainer_ElapsedTime( am_I_Root, Container, yyyymmdd,      &
+                                        hhmmss,    TimeBase,  ElapsedMin,    &
+                                        RC                                  )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE History_Util_Mod
+    USE Roundoff_Mod
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(HistContainer), POINTER     :: Container  ! HISTORY CONTAINER object
+    INTEGER,             INTENT(IN)  :: yyyymmdd   ! Current date in YMD
+    INTEGER,             INTENT(IN)  :: hhmmss     ! Current time in hms
+    INTEGER,             INTENT(IN)  :: TimeBase   ! 0=From start of simulation
+                                                   ! 1=From netCDF ref date
+!
+! !OUTPUT PARAMETERS: 
+!
+    REAL(f8),            INTENT(OUT) :: ElapsedMin ! Time in elapsed minutes
+    INTEGER,             INTENT(OUT) :: RC         ! Success or failure
+!
+! !REMARKS:
+!  The netCDF file reference date and time are given by the ReferenceYmd,
+!  ReferenceHms, and ReferenceJd fields of the Container object.  This
+!  denotes the simulation date & time when the netCDF file was created.
+!
+! !REVISION HISTORY:
+!  18 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    REAL(f8)           :: JulianDate, TimeBaseJd
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg,     ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC         = GC_SUCCESS
+    ElapsedMin = 0.0_f8
+    JulianDate = 0.0_f8
+    TimeBaseJd = 0.0_f8
+    ErrMsg     = ''
+    ThisLoc    = &
+       ' -> at HistContainer_ElapsedTime (in History/histcontainer_mod.F90)'
+
+    !=======================================================================
+    ! Get the reference time
+    !=======================================================================
+    IF ( TimeBase == FROM_START_OF_SIM ) THEN
+       
+       ! Reference time is the start of the simulation
+       TimeBaseJd = Container%EpochJd
+       
+    ELSE IF ( TimeBase == FROM_FILE_CREATE ) THEN
+
+       ! Reference time is the netCDF file reference time/date
+       ! (which is the model date & time when the file was created)
+       TimeBaseJd = Container%ReferenceJd
+
+    ELSE
+
+       ! Trap potential error
+       ErrMsg = 'Invalid value for TimeBase, must be 0 or 1!"'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+
+    ENDIF
+
+    !=======================================================================
+    ! Compute the elapsed time in minutes, via the Julian date
+    !=======================================================================
+
+    ! Compute the current Astronomical Julian Date
+    CALL Compute_Julian_Date( yyyymmdd, hhmmss, JulianDate )
+
+    ! Convert the Julian date to elapsed minutes
+    ElapsedMin = ( JulianDate - TimeBaseJd ) * 1440.0_f8
+
+    ! Round off to a few decimal places to avoid numerical noise
+    ElapsedMin = Roundoff( ElapsedMin, ROUNDOFF_DECIMALS )
+
+  END SUBROUTINE HistContainer_ElapsedTime
 !EOC
 END MODULE HistContainer_Mod
 
