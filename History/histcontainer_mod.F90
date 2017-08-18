@@ -34,6 +34,7 @@ MODULE HistContainer_Mod
   PUBLIC :: HistContainer_Print
   PUBLIC :: HistContainer_Destroy
   PUBLIC :: HistContainer_AlarmSet
+  PUBLIC :: HistContainer_AlarmCheck
   PUBLIC :: HistContainer_ElapsedTime
 !
 ! !PUBLIC TYPES:
@@ -67,6 +68,8 @@ MODULE HistContainer_Mod
      REAL(f8)                    :: EpochJd             ! Astronomical Julian
                                                         !  date @ start of sim
                                                         !  1=accum from source
+     REAL(f8)                    :: CurrentJd           ! Astronomical Julian
+                                                        !  date @ current time
      REAL(f8)                    :: ElapsedMin          ! Elapsed minutes
                                                         !  since start of sim
      REAL(f8)                    :: UpdateAlarm         ! Alarm (elapsed min)
@@ -265,6 +268,7 @@ CONTAINS
 !  14 Aug 2017 - R. Yantosca - Add FileCloseYmd and FileCloseHms arguments
 !  16 Aug 2017 - R. Yantosca - Renamed Archival* variables to Update*
 !  17 Aug 2017 - R. Yantosca - Add *Alarm and Reference* arguments
+!  18 Aug 2017 - R. Yantosca - Now initialize CurrentJd with EpochJd
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -583,6 +587,7 @@ CONTAINS
     Container%zDimId         = UNDEFINED_INT
     Container%tDimId         = UNDEFINED_INT
     Container%CurrTimeSlice  = UNDEFINED_INT
+    Container%CurrentJd      = Container%EpochJd
     Container%ElapsedMin     = 0.0_f8
     Container%TimeStamp      = 0.0_f8
 
@@ -660,6 +665,7 @@ CONTAINS
        WRITE( 6, 130 ) 'nY             : ', Container%nY
        WRITE( 6, 130 ) 'nZ             : ', Container%nZ
        WRITE( 6, 160 ) 'EpochJd        : ', Container%EpochJd
+       WRITE( 6, 160 ) 'CurrentJd      : ', Container%CurrentJd
        WRITE( 6, 160 ) 'ElapsedMin     : ', Container%ElapsedMin
        WRITE( 6, 120 ) 'UpdateMode     : ', TRIM( Container%UpdateMode )
        WRITE( 6, 135 ) 'UpdateYmd      : ', Container%UpdateYmd
@@ -1034,17 +1040,19 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HistContainer_ElapsedTime
+! !IROUTINE: HistContainer_AlarmCheck
 !
-! !DESCRIPTION: Computes elapsed time in minutes, with respect to either
-!  the start of the simulation or the netCDF file reference date/time.
+! !DESCRIPTION: Checks if is time to: (1) Update the HISTORY ITEMS belonging
+!  to the given HISTORY CONTAINER object; (2) Write the HISTORY ITEMS to the
+!  netCDF file specified by this HISTORY CONTAINER object, or; (3) Close
+!  the netCDF file and reopen it for the next diagnostic interval.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistContainer_ElapsedTime( am_I_Root, Container, yyyymmdd,      &
-                                        hhmmss,    TimeBase,  ElapsedMin,    &
-                                        RC                                  )
+  SUBROUTINE HistContainer_AlarmCheck( am_I_Root, Container, yyyymmdd,      &
+                                       hhmmss,    RC,        DoUpdate,      &
+                                       DoWrite,   DoClose                  )
 !
 ! !USES:
 !
@@ -1058,6 +1066,119 @@ CONTAINS
     TYPE(HistContainer), POINTER     :: Container  ! HISTORY CONTAINER object
     INTEGER,             INTENT(IN)  :: yyyymmdd   ! Current date in YMD
     INTEGER,             INTENT(IN)  :: hhmmss     ! Current time in hms
+!
+! !OUTPUT PARAMETERS: 
+!
+    LOGICAL,             OPTIONAL    :: DoUpdate   ! Is it time for update?
+    LOGICAL,             OPTIONAL    :: DoWrite    ! Is it time for file write? 
+    LOGICAL,             OPTIONAL    :: DoClose    ! Is it time for file close?
+    INTEGER,             INTENT(OUT) :: RC         ! Success or failure
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    REAL(f8)           :: DiffMin, ElapsedMin
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC         = GC_SUCCESS
+    DiffMin    = 0.0_f8
+    ElapsedMin = 0.0_f8
+    ErrMsg     = ''
+    ThisLoc    = &
+       ' -> at HistContainer_ElapsedTime (in History/histcontainer_mod.F90)'
+
+    !=======================================================================
+    ! First, compute the elapsed time
+    !=======================================================================
+
+    ! Compute the elapsed time since the start of the simulation
+    CALL HistContainer_ElapsedTime( am_I_Root  = am_I_Root,                  &
+                                    Container  = Container,                  &
+                                    yyyymmdd   = yyyymmdd,                   &
+                                    hhmmss     = hhmmss,                     &
+                                    TimeBase   = FROM_START_OF_SIM,          &
+                                    ElapsedMin = Container%ElapsedMin,       &
+                                    RC         = RC                         )
+
+    ! Trap potential error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "HistContainer_ElapsedTime"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+       
+    !=======================================================================
+    ! Epsilon-test the current time against the UpdateAlarm time to see
+    ! if it is time to update the HISTORY ITEMS in this collection
+    !=======================================================================
+    IF ( PRESENT( DoUpdate ) ) THEN
+       DiffMin  = ABS( Container%UpdateAlarm - Container%ElapsedMin )
+       DoUpdate = ( DiffMin < EPSILON )  
+!       print*, '@@@@@: ', TRIM( Container%Name ), DiffMin, DoUpdate
+    ENDIF
+
+    !=======================================================================
+    ! Epsilon-test the current time against the FileWriteAlarm time to see
+    ! if it is time to write the HISTORY ITEMS to the netCDF file
+    !=======================================================================
+    IF ( PRESENT( DoWrite ) ) THEN
+       DiffMin  = ABS( Container%FileWriteAlarm - Container%ElapsedMin )
+       DoWrite  = ( DiffMin < EPSILON )  
+    ENDIF
+
+    !=======================================================================
+    ! Epsilon-test the current time against the FileCloseAlarm time to see
+    ! if it is time to close this file and reopen it for the next interval
+    !=======================================================================
+    IF ( PRESENT( DoClose ) ) THEN
+       DiffMin  = ABS( Container%FileCloseAlarm - Container%ElapsedMin )
+       DoClose  = ( DiffMin < EPSILON )
+    ENDIF
+
+  END SUBROUTINE HistContainer_AlarmCheck
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HistContainer_ElapsedTime
+!
+! !DESCRIPTION: Computes elapsed time in minutes, with respect to either
+!  the start of the simulation or the netCDF file reference date/time.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HistContainer_ElapsedTime( am_I_Root,  Container, TimeBase,      &
+                                        ElapsedMin, RC,        yyyymmdd,      &
+                                        hhmmss                               )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE History_Util_Mod
+    USE Roundoff_Mod
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(HistContainer), POINTER     :: Container  ! HISTORY CONTAINER object
+    INTEGER,             OPTIONAL    :: yyyymmdd   ! Current date in YMD
+    INTEGER,             OPTIONAL    :: hhmmss     ! Current time in hms
     INTEGER,             INTENT(IN)  :: TimeBase   ! 0=From start of simulation
                                                    ! 1=From netCDF ref date
 !
@@ -1067,6 +1188,11 @@ CONTAINS
     INTEGER,             INTENT(OUT) :: RC         ! Success or failure
 !
 ! !REMARKS:
+!  If yyyymmdd and hhmmss are passed, then routine Compute_Julian_Date
+!  will be called to obtain the corresponding Astronomical Julian Date.
+!  Otherwise, the Julian Date will be taken from the Container%CurrentJd
+!  field.
+!
 !  The netCDF file reference date and time are given by the ReferenceYmd,
 !  ReferenceHms, and ReferenceJd fields of the Container object.  This
 !  denotes the simulation date & time when the netCDF file was created.
@@ -1080,10 +1206,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    REAL(f8)           :: JulianDate, TimeBaseJd
+    REAL(f8)           :: JulianDate
 
     ! Strings
-    CHARACTER(LEN=255) :: ErrMsg,     ThisLoc
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
     ! Initialize
@@ -1091,24 +1217,46 @@ CONTAINS
     RC         = GC_SUCCESS
     ElapsedMin = 0.0_f8
     JulianDate = 0.0_f8
-    TimeBaseJd = 0.0_f8
     ErrMsg     = ''
     ThisLoc    = &
        ' -> at HistContainer_ElapsedTime (in History/histcontainer_mod.F90)'
 
     !=======================================================================
-    ! Get the reference time
+    ! Get the Astronomical Julian Date for the given time
+    !=======================================================================
+    IF ( PRESENT( yyyymmdd ) .and. PRESENT( hhmmss ) ) THEN
+       
+       ! If yyyymmdd and hhhmms arguments are present, then
+       ! compute the corresponding Astronomical Julian Date
+       CALL Compute_Julian_Date( yyyymmdd, hhmmss, JulianDate )
+
+    ELSE
+
+       ! Otherwise, take the current Julian Date value 
+       ! from this HISTORY CONTAINER object.
+       JulianDate = Container%CurrentJd
+          
+    ENDIF
+
+    !=======================================================================
+    ! Compute the elapsed time
     !=======================================================================
     IF ( TimeBase == FROM_START_OF_SIM ) THEN
        
-       ! Reference time is the start of the simulation
-       TimeBaseJd = Container%EpochJd
+       ! Compute elapsed minutes since start of simulation
+       ElapsedMin = ( JulianDate - Container%EpochJd ) * 1440.0_f8
+
+       ! Round off to a few places to avoid numerical noise 
+       ElapsedMin = Roundoff( ElapsedMin, ROUNDOFF_DECIMALS )
        
     ELSE IF ( TimeBase == FROM_FILE_CREATE ) THEN
 
        ! Reference time is the netCDF file reference time/date
        ! (which is the model date & time when the file was created)
-       TimeBaseJd = Container%ReferenceJd
+       ElapsedMin = ( JulianDate - Container%ReferenceJd ) * 1440.0_f8
+
+       ! Round off to a few places to avoid numerical noise 
+       ElapsedMin = Roundoff( ElapsedMin, ROUNDOFF_DECIMALS )
 
     ELSE
 
@@ -1118,19 +1266,6 @@ CONTAINS
        RETURN
 
     ENDIF
-
-    !=======================================================================
-    ! Compute the elapsed time in minutes, via the Julian date
-    !=======================================================================
-
-    ! Compute the current Astronomical Julian Date
-    CALL Compute_Julian_Date( yyyymmdd, hhmmss, JulianDate )
-
-    ! Convert the Julian date to elapsed minutes
-    ElapsedMin = ( JulianDate - TimeBaseJd ) * 1440.0_f8
-
-    ! Round off to a few decimal places to avoid numerical noise
-    ElapsedMin = Roundoff( ElapsedMin, ROUNDOFF_DECIMALS )
 
   END SUBROUTINE HistContainer_ElapsedTime
 !EOC

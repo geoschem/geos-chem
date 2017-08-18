@@ -902,6 +902,11 @@
             CALL DEBUG_MSG( '### MAIN: a SET_CURRENT_TIME' )
          ENDIf
 
+#if defined( NC_DIAG )
+         ! Pass the current timestep information to the History Component
+         CALL History_SetTime( am_I_Root, Nymd, Nhms, RC )
+#endif
+
          !==============================================================
          !       ***** R U N   H E M C O   P H A S E   1 *****
          ! 

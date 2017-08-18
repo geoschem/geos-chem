@@ -485,6 +485,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HistItem_Mod,       ONLY : HistItem
     USE HistContainer_Mod,  ONLY : HistContainer
+    USE HistContainer_Mod,  ONLY : HistContainer_ElapsedTime
     USE History_Util_Mod
     USE M_Netcdf_Io_Write,  ONLY : NcWr
     USE MetaHistItem_Mod,   ONLY : MetaHistItem
@@ -572,15 +573,22 @@ CONTAINS
     ! Increment the time index for the netCDF file
     Container%CurrTimeSlice = Container%CurrTimeSlice + 1
 
-    ! Compute the Astronomical Julian Date at this time
-    CALL Compute_Julian_Date( yyyymmdd, hhmmss, Jd )
+    ! Compute the elapsed minutes since the start of the 
+    ! simulation, corresponding to AlarmDate and AlarmTime
+    CALL HistContainer_ElapsedTime( am_I_Root  = am_I_Root,                  &
+                                    Container  = Container,                  &
+                                    yyyymmdd   = yyyymmdd,                   &
+                                    hhmmss     = hhmmss,                     &
+                                    TimeBase   = FROM_FILE_CREATE,           &
+                                    ElapsedMin = ElapsedMin,                 &
+                                    RC         = RC                         )
 
-    ! Compute the time in minutes elapsed since the reference time
-    ElapsedMin = ( ( Jd - Container%ReferenceJd ) * 1440.0_f8 )
-
-    ! Round off to 5 decimal places, this should be OK even
-    ! if we have fractional minutes as time values.
-    ElapsedMin = RoundOff( ElapsedMin, 5 )
+    ! Trap potential error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "HistContainer_ElapsedTime"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !=======================================================================
     ! Compute the time stamp value for the current time slice

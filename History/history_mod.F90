@@ -25,6 +25,7 @@ MODULE History_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
   PUBLIC  :: History_Init
+  PUBLIC  :: History_SetTime
   PUBLIC  :: History_Update
   PUBLIC  :: History_Write
   PUBLIC  :: History_Close_AllFiles
@@ -1171,7 +1172,6 @@ CONTAINS
     ! Write spacer
     WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )   
 
-    STOP
   END SUBROUTINE History_ReadCollectionData
 !EOC
 !------------------------------------------------------------------------------
@@ -1462,6 +1462,117 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: History_SetTime
+!
+! !DESCRIPTION: Sets the time values for each HISTORY CONTAINER object
+!  that specifies a diagnostic collection. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE History_SetTime( am_I_Root, yyyymmdd, hhmmss, RC )
+! 
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HistContainer_Mod,     ONLY : HistContainer_ElapsedTime
+    USE History_Util_Mod
+    USE MetaHistContainer_Mod, ONLY : MetaHistContainer
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL, INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+    INTEGER, INTENT(IN)  :: yyyymmdd   ! Current Year/month/day
+    INTEGER, INTENT(IN)  :: hhmmss     ! Current hour/minute/second
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER, INTENT(OUT) :: RC         ! Success or failure
+!
+! !REMARKS:
+!  This routine is intended to be called from the top of the "heartbeat"
+!  timestepping loop.
+!
+! !REVISION HISTORY:
+!  18 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    REAL(f8)                         :: ElapsedMin
+    REAL(f8)                         :: JulianDate
+
+    ! Strings
+    CHARACTER(LEN=255)               :: ErrMsg
+    CHARACTER(LEN=255)               :: ThisLoc
+
+    ! Objects
+    TYPE(MetaHistContainer), POINTER :: Collection
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC         =  GC_SUCCESS
+    Collection => NULL()
+    ErrMsg     =  ''
+    ThisLoc    =  ' -> at History_SetTime (in History/history_mod.F90)' 
+
+    ! Compute the Julian date from the date and time
+    ! (This will be the same for all simulations
+    CALL Compute_Julian_Date( yyyymmdd, hhmmss, JulianDate )
+
+    !=======================================================================
+    ! Loop through each DIAGNOSTIC COLLECTION in the master list
+    !=======================================================================
+
+    ! Point to the first COLLECTION in the master collection list
+    Collection => CollectionList
+    
+    ! As long as this current COLLECTION is valid ...
+    DO WHILE( ASSOCIATED( Collection ) ) 
+
+       ! Update the current Julian date for this container
+       Collection%Container%CurrentJd = JulianDate
+
+       ! Compute the elapsed minutes since the start of the 
+       ! simulation, corresponding to AlarmDate and AlarmTime
+       CALL HistContainer_ElapsedTime( am_I_Root  = am_I_Root,               &
+                                       Container  = Collection%Container,    &
+                                       TimeBase   = FROM_START_OF_SIM,       &
+                                       ElapsedMin = ElapsedMin,              &
+                                       RC         = RC                      )
+
+       ! Trap potential error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HistContainer_ElapsedTime"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Set the elapsed minutes field
+       Collection%Container%ElapsedMin = ElapsedMin
+
+       ! Go to next collection
+       Collection => Collection%Next
+    ENDDO
+
+    !=======================================================================
+    ! Cleanup and quit
+    !=======================================================================
+
+    ! Free pointers
+    Collection => NULL()
+
+  END SUBROUTINE History_SetTime
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: History_Update
 !
 ! !DESCRIPTION: For each HISTORY ITEM belonging to a diagnostic COLLECTION,
@@ -1477,6 +1588,8 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HistItem_Mod,          ONLY : HistItem
+    USE HistContainer_Mod,     ONLY : HistContainer_AlarmSet
+    USE HistContainer_Mod,     ONLY : HistContainer_AlarmCheck
     USE History_Util_Mod
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE MetaHistItem_Mod,      ONLY : MetaHistItem
@@ -1543,20 +1656,18 @@ CONTAINS
     ! As long as this current COLLECTION is valid ...
     DO WHILE( ASSOCIATED( Collection ) ) 
 
-       ! Compute the current julian date
-       CALL Compute_Julian_Date( yyyymmdd, hhmmss, JulianDate )
-
        !--------------------------------------------------------------------
        ! Determine if it is time to update each HISTORY ITEM belongiing
        ! to this diagnostic collection with data from its source pointer.
        !--------------------------------------------------------------------
-       CALL TestTimeForAction( am_I_Root  = am_I_Root,                       &
-                               Container  = Collection%Container,            &
-                               yyyymmdd   = yyyymmdd,                        &
-                               hhmmss     = hhmmss,                          &
-                               ActionType = ALARM_UPDATE,                    &
-                               DoAction   = DoUpdate,                        &
-                               RC         = RC                              )
+
+       ! Check to see if it is time to update the collection
+       CALL HistContainer_AlarmCheck( am_I_Root  = am_I_Root,               &
+                                      Container  = Collection%Container,    &
+                                      yyyymmdd   = yyyymmdd,                &
+                                      hhmmss     = hhmmss,                  &
+                                      DoUpdate   = DoUpdate,                &
+                                      RC         = RC                      )
        
        ! Trap error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1715,12 +1826,38 @@ CONTAINS
 
           END SELECT
 
+!#if defined( DEBUG ) 
+!          print*, TRIM( Item%Name ), ':', Item%ContainerId, Item%nUpdates
+!#endif
+
           ! Free pointer
           Item => NULL()
 
           ! Go to the next HISTORY item
           Current => Current%Next
        ENDDO
+
+       !------------------------------------------------------------------
+       ! Update the alarm time for the current HISTORY CONTAINER 
+       ! object for the next diagnostic updating interval
+       !------------------------------------------------------------------    
+       CALL HistContainer_AlarmSet( am_I_Root = am_I_Root,                   &
+                                    Container = Collection%Container,        &
+                                    yyyymmdd  = yyyymmdd,                    &
+                                    hhmmss    = hhmmss,                      &
+                                    AlarmType = ALARM_UPDATE,                &
+                                    RC        = RC                          )
+
+       ! Trap potential error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered when setting ALARM_FILE_CLOSE!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !------------------------------------------------------------------
+       ! Prepare to go to the next collection
+       !------------------------------------------------------------------ 
 
        ! Free the pointer
        Current => NULL()

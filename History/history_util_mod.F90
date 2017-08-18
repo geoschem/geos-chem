@@ -68,12 +68,12 @@ MODULE History_Util_Mod
   INTEGER,          PARAMETER, PUBLIC :: FROM_FILE_CREATE  = 1
 
   !-------------------------------------------------------------------------
-  ! ROUNDOFF_DECIMALS:
-  ! Specifies the number of decimal digits for rounding, 
-  ! when converting Julian Dates to elapsed time values.
+  ! ROUNDING AND NUMERICAL TESTING PARAMETRS
+  ! Specifies the number of decimal digits for rounding, as well as an
+  ! epsilon value that can be used for floating point equality testing.
   !-------------------------------------------------------------------------
   INTEGER,          PARAMETER, PUBLIC :: ROUNDOFF_DECIMALS = 5
-
+  REAL(f8),         PARAMETER, PUBLIC :: EPSILON           = 1e-5_f8
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
