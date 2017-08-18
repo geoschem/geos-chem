@@ -48,17 +48,11 @@ MODULE GC_Grid_Mod
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
   PUBLIC  :: SetGridFromCtr
-  PUBLIC  :: RoundOff
   PUBLIC  :: Lookup_Grid
   PUBLIC  :: Print_Grid
 
 ! Make some arrays public
   PUBLIC  :: XMID, YMID, XEDGE, YEDGE, YSIN, AREA_M2
-
-  INTERFACE RoundOff 
-     MODULE PROCEDURE RoundOff_F4
-     MODULE PROCEDURE RoundOff_F8 
-  END INTERFACE
 !
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
@@ -75,6 +69,7 @@ MODULE GC_Grid_Mod
 !                              conflicts when interfacing GCHP to the BCC model
 !  09 Aug 2017 - R. Yantosca - Now register lon (slice of XMID), lat (slice of
 !                              YMID) and AREA_M2.  Added registry routines etc.
+!  18 Aug 2017 - R. Yantosca - Move roundoff routines to roundoff_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -715,6 +710,7 @@ CONTAINS
 ! USES
 !
     USE ErrCode_Mod
+    USE Roundoff_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1781,110 +1777,6 @@ CONTAINS
   END SUBROUTINE Cleanup_Grid
 !EOC
 !------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: RoundOff_f4
-!
-! !DESCRIPTION: Rounds a number X to N decimal places of precision.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION RoundOff_f4( X, N ) RESULT( Y )
-!
-! !INPUT PARAMETERS:
-! 
-    REAL(f4), INTENT(IN) :: X   ! Number to be rounded
-    INTEGER,  INTENT(IN) :: N   ! Number of decimal places to keep
-!
-! !RETURN VALUE:
-!
-    REAL(f4)             :: Y   ! Number rounded to N decimal places
-!
-! !REMARKS:
-!  The algorithm to round X to N decimal places is as follows:
-!  (1) Multiply X by 10**(N+1)
-!  (2) If X < 0, then add -5 to X; otherwise add 5 to X
-!  (3) Round X to nearest integer
-!  (4) Divide X by 10**(N+1)
-!  (5) Truncate X to N decimal places: INT( X * 10**N ) / 10**N
-!                                                                             .
-!  Rounding algorithm from: Hultquist, P.F, "Numerical Methods for Engineers 
-!   and Computer Scientists", Benjamin/Cummings, Menlo Park CA, 1988, p. 20.
-!                                                                             .
-!  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
-!                                                                             .
-!  The two algorithms have been merged together for efficiency.
-!
-! !REVISION HISTORY:
-!  14 Jul 2010 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    ! Round and truncate X to N decimal places
-    Y = INT( NINT( X*(10.0_f4**(N+1)) + SIGN( 5.0_f4, X ) ) / 10.0_f4 ) / (10.0_f4**N)
-
-  END FUNCTION RoundOff_f4
-!EOC
-!------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: RoundOff_f8
-!
-! !DESCRIPTION: Rounds a number X to N decimal places of precision.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION RoundOff_f8( X, N ) RESULT( Y )
-!
-! !INPUT PARAMETERS:
-! 
-    REAL(f8), INTENT(IN) :: X   ! Number to be rounded
-    INTEGER,  INTENT(IN) :: N   ! Number of decimal places to keep
-!
-! !RETURN VALUE:
-!
-    REAL(f8)             :: Y   ! Number rounded to N decimal places
-!
-! !REMARKS:
-!  The algorithm to round X to N decimal places is as follows:
-!  (1) Multiply X by 10**(N+1)
-!  (2) If X < 0, then add -5 to X; otherwise add 5 to X
-!  (3) Round X to nearest integer
-!  (4) Divide X by 10**(N+1)
-!  (5) Truncate X to N decimal places: INT( X * 10**N ) / 10**N
-!                                                                             .
-!  Rounding algorithm from: Hultquist, P.F, "Numerical Methods for Engineers 
-!   and Computer Scientists", Benjamin/Cummings, Menlo Park CA, 1988, p. 20.
-!                                                                             .
-!  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
-!                                                                             .
-!  The two algorithms have been merged together for efficiency.
-!
-! !REVISION HISTORY:
-!  14 Jul 2010 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    ! Round and truncate X to N decimal places
-    Y = INT( NINT( X*(10.0_f8**(N+1)) + SIGN( 5.0_f8, X ) ) / 10.0_f8 ) / (10.0_f8**N)
-
-  END FUNCTION RoundOff_f8
-!EOC
-!------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -1898,7 +1790,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_Grid( am_I_Root, RC, ShortFormat )
+  SUBROUTINE Print_Grid( am_I_Root, RC, ShortForqmat )
 !
 ! !USES:
 !
