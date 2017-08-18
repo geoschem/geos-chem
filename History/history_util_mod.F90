@@ -38,13 +38,13 @@ MODULE History_Util_Mod
   INTEGER,          PARAMETER, PUBLIC :: COPY_FROM_SOURCE  = 0
   INTEGER,          PARAMETER, PUBLIC :: ACCUM_FROM_SOURCE = 1
 
-  ! Action codes (used for testing if it is time to do something)
+  ! Alarm codes (used for testing if it is time to do something)
   ! 0 = Update (aka archive) data from the source into the HISTORY ITEM
   ! 1 = Write data to the netCDF file
   ! 2 = Close the current netCDF file and open the one for the next interval
-  INTEGER,          PARAMETER, PUBLIC :: ACTION_UPDATE     = 0
-  INTEGER,          PARAMETER, PUBLIC :: ACTION_FILE_WRITE = 1
-  INTEGER,          PARAMETER, PUBLIC :: ACTION_FILE_CLOSE = 2
+  INTEGER,          PARAMETER, PUBLIC :: ALARM_UPDATE     = 0
+  INTEGER,          PARAMETER, PUBLIC :: ALARM_FILE_WRITE = 1
+  INTEGER,          PARAMETER, PUBLIC :: ALARM_FILE_CLOSE = 2
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
@@ -55,6 +55,8 @@ MODULE History_Util_Mod
 !  16 Aug 2017 - R. Yantosca - Added ACTION_* parameters
 !  17 Aug 2017 - R. Yantosca - Renamed to history_util_mod.F90; added routine
 !                              Compute_Julian_Date
+!  18 Aug 2017 - R. Yantosca - Renamed ACTION_* parameter to ALARM_*
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC

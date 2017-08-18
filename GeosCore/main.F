@@ -582,25 +582,6 @@
       !
       !-----------------------------------------------------------------
 
-#if defined( NC_DIAG )
-      !=================================================================
-      !    ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
-      !=================================================================
-
-      ! For now, just hardwire the input file for the History component
-      Input_Opt%HistoryInputFile = './HISTORY.rc'
-      !
-      ! Initialize the GEOS-Chem history component
-      CALL History_Init( am_I_root, Input_Opt, State_Chm, State_Diag,
-     &                   State_Met, NymdB,     NhmsB,     RC          )
-
-      ! Trap error
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "History_Init"!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
-      ENDIF
-#endif      
-
 #if   defined( RRTMG )
       ! Initialize surface rad fields
       ! from rrtmg_rad_transfer_mod.F
@@ -614,7 +595,6 @@
       ! Initialization
        CALL RRTMG_LW_INI()
        CALL RRTMG_SW_INI()
-
 #endif
 
       ! Initialize diagnostic arrays and counters
@@ -645,6 +625,25 @@
       NYMDb = GET_NYMDb()
       TAU   = GET_TAU()
       TAUb  = GET_TAUb()
+
+#if defined( NC_DIAG )
+      !=================================================================
+      !    ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
+      !=================================================================
+
+      ! For now, just hardwire the input file for the History component
+      Input_Opt%HistoryInputFile = './HISTORY.rc'
+      !
+      ! Initialize the GEOS-Chem history component
+      CALL History_Init( am_I_root, Input_Opt, State_Chm, State_Diag,
+     &                   State_Met, NymdB,     NhmsB,     RC          )
+
+      ! Trap error
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "History_Init"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+#endif  
 
       !=================================================================
       !        ***** I N I T I A L I Z A T I O N  continued *****

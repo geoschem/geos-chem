@@ -530,7 +530,7 @@ CONTAINS
     INTEGER                      :: Ind_Dry,        Ind_Fix,       Ind_Gas
     INTEGER                      :: Ind_Kpp,        Ind_Pho,       Ind_Rst
     INTEGER                      :: Ind_Var,        Ind_Wet,       Ind
-    REAL(f8)                     :: UpdateAlarm,    ReferenceJd
+    REAL(f8)                     :: UpdateAlarm,    JulianDate
     REAL(f8)                     :: FileWriteAlarm, FileCloseAlarm
 
 
@@ -549,7 +549,7 @@ CONTAINS
     CHARACTER(LEN=255)           :: Subs2(255)
 
     ! Objects
-    TYPE(HistContainer), POINTER :: Collection
+    TYPE(HistContainer), POINTER :: Container
     TYPE(HistItem),      POINTER :: Item
     TYPE(Species),       POINTER :: ThisSpc
 
@@ -575,7 +575,7 @@ CONTAINS
     SubsetDims   =  0 
 
     ! Initialize objects and pointers
-    Collection   => NULL()
+    Container    => NULL()
     Item         => NULL()
     Ptr3d        => NULL()
     Ptr3d_4      => NULL()
@@ -597,7 +597,7 @@ CONTAINS
     ! Find a free file unit
     fId     = FindFreeLun()
 
-    ! Open the file
+    ! Open the filei
     OPEN( fId, FILE=TRIM(Input_Opt%HistoryInputFile), STATUS='OLD', IOSTAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not open "' //TRIM(Input_Opt%HistoryInputFile) // '"!'
@@ -725,7 +725,7 @@ CONTAINS
           ItemCount = 0
 
           ! Create title string for collection
-          Title = 'GEOS-Chem diagnostic collection: ' //                    &
+          Title = 'GEOS-Chem diagnostic collection: ' //                     &
                    TRIM( CollectionName(C) )
 
           !-----------------------------------------------------------------
@@ -752,7 +752,7 @@ CONTAINS
           IF ( LEN_TRIM( CollectionFrequency(C) ) == 6 ) THEN
              READ( CollectionFrequency(C), '(i6.6)'  ) UpdateHms
           ELSE
-             READ( CollectionFrequency(C), '(2i6.6)' ) UpdateYmd, &
+             READ( CollectionFrequency(C), '(2i6.6)' ) UpdateYmd,            &
                                                        UpdateHms
           ENDIF
 
@@ -785,7 +785,7 @@ CONTAINS
              ELSE IF ( LEN_TRIM( CollectionAccInterval(C) ) == 6 ) THEN
                 READ( CollectionAccInterval(C), '(i6.6)'  ) FileWriteHms
              ELSE
-                READ( CollectionAccInterval(C), '(2i6.6)' ) FileWriteYmd, &
+                READ( CollectionAccInterval(C), '(2i6.6)' ) FileWriteYmd,    &
                                                             FileWriteHms
              ENDIF
           ENDIF
@@ -813,7 +813,7 @@ CONTAINS
           ELSE IF ( LEN_TRIM( CollectionDuration(C) ) == 6 ) THEN
              READ( CollectionDuration(C), '(i6.6)'  ) FileCloseHms
           ELSE
-             READ( CollectionDuration(C), '(2i6.6)' ) FileCloseYmd, &
+             READ( CollectionDuration(C), '(2i6.6)' ) FileCloseYmd,          &
                                                       FileCloseHms
           ENDIF
 
@@ -830,40 +830,41 @@ CONTAINS
           nZ = LLPAR
 
           !=================================================================
-          ! Compute time quantities
-          !=================================================================
-
-          ! Current astronomical Julian Date
-          CALL Compute_Julian_Date( yyyymmdd, hhmmss, ReferenceJd )
-
-          !=================================================================
           ! Create a HISTORY CONTAINER object for this collection
           !=================================================================
-          CALL HistContainer_Create( am_I_Root    = am_I_Root,              &
-                                     Container    = Collection,             &
-                                     Id           = C,                      &
-                                     nX           = nX,                     &
-                                     nY           = nY,                     &
-                                     nZ           = nZ,                     &
-                                     Name         = CollectionName(C),      &
-                                     ReferenceYmd = yyyymmdd,               &
-                                     ReferenceHms = hhmmss,                 &
-                                     ReferenceJd  = ReferenceJd,            &
-                                     UpdateMode   = CollectionMode(C),      &
-                                     UpdateYmd    = UpdateYmd,              &
-                                     UpdateHms    = UpdateHms,              &
-                                     Operation    = Operation,              &
-                                     FileWriteYmd = FileWriteYmd,           &
-                                     FileWriteHms = FileWriteHms,           &
-                                     FileCloseYmd = FileCloseYmd,           &
-                                     FileCloseHms = FileCloseHms,           &
-                                     Conventions  = 'COARDS',               &
-                                     FileTemplate = CollectionTemplate(C),  & 
-                                     NcFormat     = CollectionFormat(C),    &
-                                     Reference    = Reference,              &
-                                     Title        = Title,                  &
-                                     Contact      = Contact,                &
-                                     RC           = RC                     )
+
+          ! Compute the Astronomical Julian Date corresponding to 
+          ! the initial yyyymmdd and hhmmss of the simulation.
+          ! This is needed to set the EpochJd and ReferenceJd fields
+          CALL Compute_Julian_Date( yyyymmdd, hhmmss, JulianDate )
+          
+          ! Create the HISTORY CONTAINER object itself
+          CALL HistContainer_Create( am_I_Root    = am_I_Root,               &
+                                     Container    = Container,               &
+                                     Id           = C,                       &
+                                     nX           = nX,                      &
+                                     nY           = nY,                      &
+                                     nZ           = nZ,                      &
+                                     Name         = CollectionName(C),       &
+                                     EpochJd      = JulianDate,              &
+                                     ReferenceYmd = yyyymmdd,                &
+                                     ReferenceHms = hhmmss,                  &
+                                     ReferenceJd  = JulianDate,              &
+                                     UpdateMode   = CollectionMode(C),       &
+                                     UpdateYmd    = UpdateYmd,               &
+                                     UpdateHms    = UpdateHms,               &
+                                     Operation    = Operation,               &
+                                     FileWriteYmd = FileWriteYmd,            &
+                                     FileWriteHms = FileWriteHms,            &
+                                     FileCloseYmd = FileCloseYmd,            &
+                                     FileCloseHms = FileCloseHms,            &
+                                     Conventions  = 'COARDS',                &
+                                     FileTemplate = CollectionTemplate(C),   & 
+                                     NcFormat     = CollectionFormat(C),     &
+                                     Reference    = Reference,               &
+                                     Title        = Title,                   &
+                                     Contact      = Contact,                 &
+                                     RC           = RC                      )
 
           ! Trap potential error
           IF ( RC /= GC_SUCCESS ) THEN
@@ -872,7 +873,56 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
+
+          !=================================================================
+          ! Set the initial alarm times for update, file write, file close
+          !=================================================================
          
+          ! Set the initial alarm time for UPDATE
+          CALL HistContainer_AlarmSet( am_I_Root = am_I_Root,                &
+                                       Container = Container,                &
+                                       yyyymmdd  = yyyymmdd,                 &
+                                       hhmmss    = hhmmss,                   &
+                                       AlarmType = ALARM_UPDATE,             &
+                                       RC        = RC                       )
+
+          ! Trap potential error
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered when setting ALARM_UPDATE!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+          ! Set the initial alarm for FILE_WRITE
+          CALL HistContainer_AlarmSet( am_I_Root = am_I_Root,                &
+                                       Container = Container,                &
+                                       yyyymmdd  = yyyymmdd,                 &
+                                       hhmmss    = hhmmss,                   &
+                                       AlarmType = ALARM_FILE_WRITE,         &
+                                       RC        = RC                       )
+
+          ! Trap potential error
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered when setting ALARM_FILE_WRITE!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+          ! Set the initial alarm for FILE_CLOSE
+          CALL HistContainer_AlarmSet( am_I_Root = am_I_Root,                &
+                                       Container = Container,                &
+                                       yyyymmdd  = yyyymmdd,                 &
+                                       hhmmss    = hhmmss,                   &
+                                       AlarmType = ALARM_FILE_CLOSE,         &
+                                       RC        = RC                       )
+
+          ! Trap potential error
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered when setting ALARM_FILE_CLOSE!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
           !=================================================================
           ! Create a list of HISTORY ITEMS that will be contained in this
           ! collection, for each entry under the "fields" tag.
@@ -1015,7 +1065,7 @@ CONTAINS
                             State_Chm    = State_Chm,                        &
                             State_Diag   = State_Diag,                       &
                             State_Met    = State_Met,                        &
-                            Collection   = Collection,                       &
+                            Collection   = Container,                        &
                             CollectionId = C,                                &
                            !SubsetDims   = CollectionSubsetDims(C),          &
                             ItemName     = ItemName,                         &
@@ -1052,7 +1102,7 @@ CONTAINS
                          State_Chm    = State_Chm,                           &
                          State_Diag   = State_Diag,                          &
                          State_Met    = State_Met,                           &
-                         Collection   = Collection,                          &
+                         Collection   = Container,                           &
                          CollectionId = C,                                   &
                         !SubsetDims   = CollectionSubsetDims(C),             &
                          ItemName     = ItemName,                            &
@@ -1076,7 +1126,7 @@ CONTAINS
           !=================================================================
           CALL MetaHistContainer_AddNew( am_I_Root   = am_I_Root,            &
                                          Node        = CollectionList,       &
-                                         Container   = Collection,           &
+                                         Container   = Container,            &
                                          RC          = RC                   )
 
           ! Trap potential error
@@ -1121,6 +1171,7 @@ CONTAINS
     ! Write spacer
     WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )   
 
+    STOP
   END SUBROUTINE History_ReadCollectionData
 !EOC
 !------------------------------------------------------------------------------
@@ -1458,6 +1509,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL                          :: DoUpdate
+    REAL(fp)                         :: JulianDate
 
     ! Strings
     CHARACTER(LEN=255)               :: ErrMsg
@@ -1491,6 +1543,9 @@ CONTAINS
     ! As long as this current COLLECTION is valid ...
     DO WHILE( ASSOCIATED( Collection ) ) 
 
+       ! Compute the current julian date
+       CALL Compute_Julian_Date( yyyymmdd, hhmmss, JulianDate )
+
        !--------------------------------------------------------------------
        ! Determine if it is time to update each HISTORY ITEM belongiing
        ! to this diagnostic collection with data from its source pointer.
@@ -1499,7 +1554,7 @@ CONTAINS
                                Container  = Collection%Container,            &
                                yyyymmdd   = yyyymmdd,                        &
                                hhmmss     = hhmmss,                          &
-                               ActionType = ACTION_UPDATE,                   &
+                               ActionType = ALARM_UPDATE,                    &
                                DoAction   = DoUpdate,                        &
                                RC         = RC                              )
        
@@ -1777,7 +1832,7 @@ CONTAINS
                                Container  = Collection%Container,            &
                                yyyymmdd   = yyyymmdd,                        &
                                hhmmss     = hhmmss,                          &
-                               ActionType = ACTION_FILE_CLOSE,               &
+                               ActionType = ALARM_FILE_CLOSE,                &
                                DoAction   = DoClose,                         &
                                RC         = RC                              )
        
@@ -1797,7 +1852,7 @@ CONTAINS
                                Container  = Collection%Container,            &
                                yyyymmdd   = yyyymmdd,                        &
                                hhmmss     = hhmmss,                          &
-                               ActionType = ACTION_FILE_WRITE,               &
+                               ActionType = ALARM_FILE_WRITE,                &
                                DoAction   = DoWrite,                         &
                                RC         = RC                              )
        
@@ -2187,19 +2242,19 @@ CONTAINS
     ! Point to the proper YMD and HMS fields in the container
     ! for the given action (update, file write, file close).
     !=======================================================================
-    IF ( ActionType == ACTION_UPDATE ) THEN
+    IF ( ActionType == ALARM_UPDATE ) THEN
 
        ! Get the date & time when each HISTORY ITEM should be updated
        ContainerYmd => Container%UpdateYmd
        ContainerHms => Container%UpdateHms
 
-    ELSE IF ( ActionType == ACTION_FILE_WRITE ) THEN
+    ELSE IF ( ActionType == ALARM_FILE_WRITE ) THEN
 
        ! Get the date & time when data should be written to the netCDF file
        ContainerYmd => Container%FileWriteYmd
        ContainerHms => Container%FileWriteHms
 
-    ELSE IF ( ActionType == ACTION_FILE_CLOSE ) THEN
+    ELSE IF ( ActionType == ALARM_FILE_CLOSE ) THEN
 
        ! Get the date & time when the netCDF file should be closed
        ContainerYmd => Container%FileCloseYmd

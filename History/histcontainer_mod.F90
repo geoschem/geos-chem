@@ -33,6 +33,7 @@ MODULE HistContainer_Mod
   PUBLIC :: HistContainer_Create
   PUBLIC :: HistContainer_Print
   PUBLIC :: HistContainer_Destroy
+  PUBLIC :: HistContainer_AlarmSet
 !
 ! !PUBLIC TYPES:
 !
@@ -58,29 +59,45 @@ MODULE HistContainer_Mod
      TYPE(MetaHistItem), POINTER :: HistItems => NULL() ! List and # of 
      INTEGER                     :: nHistItems          !  HISTORY ITEMS
                                                         !  in this container 
-                                                      
+
      !----------------------------------------------------------------------
-     ! Time-averaging information                     
+     ! Time quantities measured since start of simulation             
+     !----------------------------------------------------------------------
+     REAL(f8)                    :: EpochJd             ! Astronomical Julian
+                                                        !  date @ start of sim
+                                                        !  1=accum from source
+     REAL(f8)                    :: ElapsedMin          ! Elapsed minutes
+                                                        !  since start of sim
+     REAL(f8)                    :: UpdateAlarm         ! Alarm (elapsed min)
+                                                        !  for data updating
+     REAL(f8)                    :: FileCloseAlarm      ! Alarm (elapsed min)
+                                                        !  for file close/open
+     REAL(f8)                    :: FileWriteAlarm      ! Alarm (elapsed min)
+                                                        !  for file write
+
+     !----------------------------------------------------------------------
+     ! Time quantities measured since the time of netCDF file creation          
+     !----------------------------------------------------------------------
+     INTEGER                     :: ReferenceYmd        ! Reference YMD & hms 
+     INTEGER                     :: ReferenceHms        !  for the "time" dim
+     REAL(f8)                    :: ReferenceJD         ! Julian Date at the
+                                                        !  reference YMD & hms
+     INTEGER                     :: CurrTimeSlice       ! Current time slice
+                                                        !  for the "time" dim
+     REAL(f8)                    :: TimeStamp           ! Elapsed minutes w/r/t
+                                                        !  reference YMD & hms
+
+     !----------------------------------------------------------------------
+     ! Quantities that govern the updating/time averaging of data
      !----------------------------------------------------------------------
      CHARACTER(LEN=255)          :: UpdateMode          ! e.g. inst or time-avg
      INTEGER                     :: UpdateYmd           ! Update frequency
      INTEGER                     :: UpdateHms           !  in YMD and hms
      INTEGER                     :: Operation           ! Operation code
                                                         !  0=copy from source
-                                                        !  1=accum from source
-     INTEGER                     :: ReferenceYmd        ! Reference YMD & hms 
-     INTEGER                     :: ReferenceHms        !  for the "time" dim
-     REAL(f8)                    :: ReferenceJD         ! Astronomical Julian
-                                                        !  date @ ref date/time
-     REAL(f8)                    :: CurrentJd           ! Astronomical Julian
-                                                        !  date @ current time
-     INTEGER                     :: CurrTimeSlice       ! Current time slice
-                                                        !  for the "time" dim
-     REAL(f8)                    :: TimeStamp           ! Elapsed minutes
-                                                        !  w/r/t ref date/time
 
      !----------------------------------------------------------------------
-     ! File definition and I/O status information
+     ! Quantities for file creation, writing, and I/O status
      !----------------------------------------------------------------------
      INTEGER                     :: FileWriteYmd        ! File write frequency
      INTEGER                     :: FileWriteHms        !  in YMD and hms
@@ -91,14 +108,6 @@ MODULE HistContainer_Mod
      LOGICAL                     :: IsFileOpen          ! Is the netCDF file
                                                         !  currently open?
 
-     !----------------------------------------------------------------------
-     ! Alarms (Astronomical Julian Date) to determine when it is time to ...
-     !----------------------------------------------------------------------
-     REAL(f8)                    :: UpdateAlarm         ! Update container
-     REAL(f8)                    :: FileCloseAlarm      ! Close file (and
-                                                        !  create new one)
-     REAL(f8)                    :: FileWriteAlarm      ! Write data to file
-                                   
      !----------------------------------------------------------------------
      ! netCDF file identifiers and attributes
      !----------------------------------------------------------------------
@@ -131,6 +140,9 @@ MODULE HistContainer_Mod
 !                              the ouptuts xDimId, yIDimd, zDimId, tDimId
 !  16 Aug 2017 - R. Yantosca - Rename Archival* variables to Update*
 !  17 Aug 2017 - R. Yantosca - Added the *Alarm variables
+!  18 Aug 2017 - R. Yantosca - Added EpochJd so that we can compute Julian
+!                              dates as relative to the start of the run
+!  18 Aug 2017 - R. Yantosca - Added ElapsedMin
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -159,14 +171,14 @@ CONTAINS
                                    Operation,      FileWriteYmd,             & 
                                    FileWriteHms,   FileWriteAlarm,           &
                                    FileCloseYmd,   FileCloseHms,             &
-                                   FileCloseAlarm, ReferenceYmd,             &
-                                   ReferenceHms,   ReferenceJd,              &
-                                   FileId,         FilePrefix,               &
-                                   FileName,       FileTemplate,             &
-                                   Conventions,    NcFormat,                 &
-                                   History,        ProdDateTime,             &
-                                   Reference,      Title,                    &
-                                   Contact                                  )
+                                   FileCloseAlarm, EpochJd,                  &
+                                   ReferenceYmd,   ReferenceHms,             &
+                                   ReferenceJd,    FileId,                   &
+                                   FilePrefix,     FileName,                 &
+                                   FileTemplate,   Conventions,              &
+                                   NcFormat,       History,                  &
+                                   ProdDateTime,   Reference,                &
+                                   Title,          Contact                  )
 !
 ! !USES:
 !
@@ -200,9 +212,12 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! OPTIONAL INPUTS: File definition and I/O info
     !-----------------------------------------------------------------------
+    REAL(f8),            OPTIONAL    :: EpochJd        ! Astronomical Julian
+                                                       !  date @ start of sim
     INTEGER,             OPTIONAL    :: ReferenceYmd   ! Ref YMD for "time" var
     INTEGER,             OPTIONAL    :: ReferenceHms   ! Ref hms for "time" var
-    REAL(f8),            OPTIONAL    :: ReferenceJd    ! Ref in Julian date
+    REAL(f8),            OPTIONAL    :: ReferenceJd    ! Relative Julian date
+                                                       !  @ ref date/time
 
     INTEGER,             OPTIONAL    :: FileWriteYmd   ! File write frequency
     INTEGER,             OPTIONAL    :: FileWriteHms   !  in both YMD and hms
@@ -352,6 +367,15 @@ CONTAINS
        Container%UpdateAlarm = UpdateAlarm
     ELSE
        Container%UpdateAlarm = UNDEFINED_DBL
+    ENDIF
+
+    !----------------------------------
+    ! EpochJd (Julian date @ start)
+    !----------------------------------
+    IF ( PRESENT( EpochJd ) ) THEN
+       Container%EpochJd = EpochJd
+    ELSE
+       Container%EpochJd = UNDEFINED_DBL
     ENDIF
 
     !----------------------------------
@@ -546,7 +570,8 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! These fields will not be set until we create the netCDF file,
+    ! Set these fields to initial or undefined values
+    ! Many of these won't be used until we open the netCDF file.
     !=======================================================================
     Container%IsFileDefined  = .FALSE.
     Container%IsFileOpen     = .FALSE.
@@ -555,11 +580,9 @@ CONTAINS
     Container%yDimId         = UNDEFINED_INT
     Container%zDimId         = UNDEFINED_INT
     Container%tDimId         = UNDEFINED_INT
-    Container%TimeStamp      = 0.0_fp
     Container%CurrTimeSlice  = UNDEFINED_INT
-    
-    ! For now set CurrentJd to the ReferenceJd
-    Container%CurrentJd      = Container%ReferenceJd
+    Container%ElapsedMin     = 0.0_f8
+    Container%TimeStamp      = 0.0_f8
 
   END SUBROUTINE HistContainer_Create
 !EOC
@@ -785,6 +808,206 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE HistContainer_Destroy
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HistContainer_AlarmSet
+!
+! !DESCRIPTION: Given the current date and time, as well as in interval,
+!  this routine computes the "alarm time" for data updating, file writing,
+!  and file closing.  An "alarm time", which is represented in elapsed minutes
+!  since the start of the simulation, represents the next date/time for which 
+!  a given operation will occur.
+!\\
+!\\
+! !INTERFACE:
+  !
+  SUBROUTINE HistContainer_AlarmSet( am_I_Root, Container, yyyymmdd,        &
+                                     hhmmss,    AlarmType, RC              )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE History_Util_Mod
+    USE Roundoff_Mod,     ONLY : Roundoff
+    USE Time_Mod,         ONLY : Its_A_LeapYear, Ymd_Extract
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(HistContainer), POINTER     :: Container  ! HISTORY CONTAINER object
+    INTEGER,             INTENT(IN)  :: yyyymmdd   ! Current date in YMD
+    INTEGER,             INTENT(IN)  :: hhmmss     ! Current time in hms
+    INTEGER,             INTENT(IN)  :: AlarmType  ! 0=update
+                                                   ! 1=file write
+                                                   ! 2=file close/reopen
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER,             INTENT(OUT) :: RC         ! Success or failure
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: Year,      Month,      Day
+    INTEGER            :: Hour,      Minute,     Second
+    INTEGER            :: AlarmDate, AlarmTime
+    REAL(f8)           :: AlarmJd,   AlarmMins
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = &
+       ' -> at HistContainer_AlarmSet (in History/histcontainer_mod.F90)'
+
+    !=======================================================================
+    ! Add the relevant time interval to the current date & time
+    !=======================================================================
+    IF ( AlarmType == ALARM_UPDATE ) THEN
+
+       ! We are setting the UPDATE alarm
+       ! Add the date & time interval to the current date & time
+       AlarmDate = yyyymmdd + Container%UpdateYmd
+       AlarmTime = hhmmss   + Container%UpdateHms
+
+    ELSE IF ( AlarmType == ALARM_FILE_WRITE ) THEN
+
+       ! We are setting the FILE WRITE alarm
+       ! Add the date & time interval to the current date & time
+       AlarmDate = yyyymmdd + Container%FileWriteYmd
+       AlarmTime = hhmmss   + Container%FileWriteHms
+
+    ELSE IF ( AlarmType == ALARM_FILE_CLOSE ) THEN
+
+       ! We are setting the FILE CLOSE/REOPEN alarm
+       ! Add the date & time interval to the current date & time
+       AlarmDate = yyyymmdd + Container%FileCloseYmd
+       AlarmTime = hhmmss   + Container%FileCloseHms
+
+    ELSE
+
+       ! Trap potential error
+       ErrMsg = 'Invalid value for AlarmType!"'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+
+    ENDIF
+
+    !=======================================================================
+    ! Compute the alarm time as elapsed minutes since start of simulation.
+    !=======================================================================
+
+    ! Split the current date/time into constituent fields
+    CALL Ymd_Extract( AlarmDate, Year, Month,  Day    )
+    CALL Ymd_Extract( AlarmTime, Hour, Minute, Second )
+
+    ! Check seconds
+    IF ( Second > 59 ) THEN
+       Second = Second - 60
+       Minute = Minute + 1
+    ENDIF
+
+    ! Check minutes
+    IF ( Minute > 59 ) THEN
+       Minute = Minute - 60
+       Hour   = Hour   + 1
+    ENDIF
+
+    ! Check hours
+    IF ( Hour > 23 ) THEN
+       Hour   = Hour   - 24
+       Day    = Day    + 1
+    ENDIF
+
+    ! Check days
+    SELECT CASE ( Month )
+       CASE( 1, 3, 5, 7, 8, 10, 12 )
+          IF ( Day > 31 ) THEN
+             Day   = Day   - 31
+             Month = Month + 1
+          ENDIF
+
+        CASE( 4, 6, 9, 11 )
+           IF ( Day > 30 ) THEN
+              Day   = Day   - 30
+              Month = Month + 1
+           ENDIF
+        
+        CASE( 2 )
+           IF ( Its_A_LeapYear( Year ) ) THEN
+              IF ( Day > 29 ) THEN
+                 Day   = Day - 29
+                 Month = 3
+              ENDIF
+           ELSE
+              IF ( Day > 28 ) THEN
+                 Day   = Day - 28
+                 Month = 3
+              ENDIF
+           ENDIF
+        
+    END SELECT
+
+    ! Check months
+    IF ( Month > 12 ) THEN
+       Month = Month - 12
+       Year  = Year  + 1
+    ENDIF
+           
+    !=======================================================================
+    ! Compute the alarm time and update the HISTORY CONTAINER object
+    !=======================================================================
+
+    ! Reconstruct the alarm date and alarm time, after having corrected
+    ! the individual year, month, day, hour, minute, second values
+    AlarmDate = ( Year * 10000 ) + ( Month  * 100 ) + Day
+    AlarmTime = ( Hour * 10000 ) + ( Minute * 100 ) + Second
+    
+    ! Compute the correspoinding Astronomical Julian Date
+    CALL Compute_Julian_Date( AlarmDate, AlarmTime, AlarmJd )
+
+    ! Convert the alarm Julian date to a relative Julian date
+    ! (i.e. since simulation start) and convert to elapesd minutes.
+    ! Rounding off should prevent numerical noise.
+    AlarmMins = ( AlarmJd - Container%EpochJd ) * 1440.0_f8
+    AlarmMins = Roundoff( AlarmMins, 5 )
+
+    ! Update the relevant alarm
+    IF ( AlarmType == ALARM_UPDATE ) THEN
+
+       ! Alarm for updating data values
+       Container%UpdateAlarm = AlarmMins
+       
+    ELSE IF ( AlarmType == ALARM_FILE_WRITE ) THEN
+
+       ! Alarm for writing to the netCDF file
+       Container%FileWriteAlarm = AlarmMins
+
+    ELSE IF ( AlarmType == ALARM_FILE_CLOSE ) THEN
+
+       ! Alarm for closing the current netCDF file and 
+       ! reopening it for the next diagnostic interval
+       Container%FileCloseAlarm = AlarmMins
+
+    ENDIF
+    
+  END SUBROUTINE HistContainer_AlarmSet
 !EOC
 END MODULE HistContainer_Mod
 

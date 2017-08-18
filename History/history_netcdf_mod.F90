@@ -483,12 +483,12 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Gc_Grid_Mod,        ONLY : RoundOff
     USE HistItem_Mod,       ONLY : HistItem
     USE HistContainer_Mod,  ONLY : HistContainer
     USE History_Util_Mod
-    USE M_NetCdf_Io_Write,  ONLY : NcWr
+    USE M_Netcdf_Io_Write,  ONLY : NcWr
     USE MetaHistItem_Mod,   ONLY : MetaHistItem
+    USE Roundoff_Mod,       ONLY : RoundOff
 !
 ! !INPUT PARAMETERS: 
 !
@@ -505,6 +505,9 @@ CONTAINS
     INTEGER,             INTENT(OUT) :: RC        ! Success or failure
 !
 ! !REMARKS:
+!  Use routine NcWr from NcdfUtil/m_netcdf_io_write.F90 instead of the
+!  NC_VAR_WRITE routine from NcdfUtil/netcdf_mod.F90, because this gives us
+!  better control of the start and count values.
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
