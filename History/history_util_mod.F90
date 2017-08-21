@@ -23,6 +23,7 @@ MODULE History_Util_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Compute_Julian_Date
+  PUBLIC :: Compute_Elapsed_Time
 !
 ! !DEFINED PARAMETERS:
 !
@@ -31,10 +32,10 @@ MODULE History_Util_Mod
   !
   ! Specify missing data values for various numeric types.
   !-------------------------------------------------------------------------
-  INTEGER,          PARAMETER, PUBLIC :: UNDEFINED_INT     = -999
-  REAL(f4),         PARAMETER, PUBLIC :: UNDEFINED         = -1.0e+31_f4
-  REAL(f8),         PARAMETER, PUBLIC :: UNDEFINED_DBL     = -1.0e+31_f8
-  CHARACTER(LEN=9), PARAMETER, PUBLIC :: UNDEFINED_STR     = 'not found'
+  INTEGER,          PARAMETER, PUBLIC :: UNDEFINED_INT      = -999
+  REAL(f4),         PARAMETER, PUBLIC :: UNDEFINED          = -1.0e+31_f4
+  REAL(f8),         PARAMETER, PUBLIC :: UNDEFINED_DBL      = -1.0e+31_f8
+  CHARACTER(LEN=9), PARAMETER, PUBLIC :: UNDEFINED_STR      = 'not found'
 
   !-------------------------------------------------------------------------
   ! OPERATION CODES:
@@ -42,38 +43,29 @@ MODULE History_Util_Mod
   ! 0 = Copy       data from source pointer to the HISTORY ITEM data array
   ! 1 = Accumulate data from source pointer to the HISTORY ITEM data array
   !-------------------------------------------------------------------------
-  INTEGER,          PARAMETER, PUBLIC :: COPY_FROM_SOURCE  = 0
-  INTEGER,          PARAMETER, PUBLIC :: ACCUM_FROM_SOURCE = 1
-
-  !-------------------------------------------------------------------------
-  ! ALARM CODES:
-  ! Used to define the alarms that denote when to perform a given action
-  ! 
-  ! 0 = Update (aka archive) data from the source into the HISTORY ITEM
-  ! 1 = Write data to the netCDF file
-  ! 2 = Close the current netCDF file and reopen it for the next interval
-  !-------------------------------------------------------------------------
-  INTEGER,          PARAMETER, PUBLIC :: ALARM_UPDATE      = 0
-  INTEGER,          PARAMETER, PUBLIC :: ALARM_FILE_WRITE  = 1
-  INTEGER,          PARAMETER, PUBLIC :: ALARM_FILE_CLOSE  = 2
-
-  !-------------------------------------------------------------------------
-  ! ELAPSED TIME CODES: 
-  ! Define the base time from which to compute the time elapsed in minutes.  
-  !
-  ! 0 = Since start of run
-  ! 1 = Since netCDF file creation (i.e. ReferenceYmd, ReferenceHms)
-  !-------------------------------------------------------------------------
-  INTEGER,          PARAMETER, PUBLIC :: FROM_START_OF_SIM = 0
-  INTEGER,          PARAMETER, PUBLIC :: FROM_FILE_CREATE  = 1
+  INTEGER,          PARAMETER, PUBLIC :: COPY_FROM_SOURCE   = 0
+  INTEGER,          PARAMETER, PUBLIC :: ACCUM_FROM_SOURCE  = 1
 
   !-------------------------------------------------------------------------
   ! ROUNDING AND NUMERICAL TESTING PARAMETRS
   ! Specifies the number of decimal digits for rounding, as well as an
   ! epsilon value that can be used for floating point equality testing.
   !-------------------------------------------------------------------------
-  INTEGER,          PARAMETER, PUBLIC :: ROUNDOFF_DECIMALS = 5
-  REAL(f8),         PARAMETER, PUBLIC :: EPSILON           = 1e-5_f8
+  INTEGER,          PARAMETER, PUBLIC :: ROUNDOFF_DECIMALS  = 4
+  REAL(f8),         PARAMETER, PUBLIC :: EPS                = 1e-5_f8
+
+  !-------------------------------------------------------------------------
+  ! TIME CONVERSION PARAMETERS
+  ! Specifies the number of minutes and seconds per day, etc.
+  !-------------------------------------------------------------------------
+  REAL(f8),         PARAMETER, PUBLIC :: HOURS_PER_DAY      = 24.0_f8
+  REAL(f8),         PARAMETER, PUBLIC :: HOURS_PER_MINUTE   = 60.0_f8
+  REAL(f8),         PARAMETER, PUBLIC :: MINUTES_PER_DAY    = 1440.0_f8
+  REAL(f8),         PARAMETER, PUBLIC :: MINUTES_PER_HOUR   = 60.0_f8
+  REAL(f8),         PARAMETER, PUBLIC :: SECONDS_PER_DAY    = 86400.0_f8
+  REAL(f8),         PARAMETER, PUBLIC :: SECONDS_PER_HOUR   = 3600.0_f8
+  REAL(f8),         PARAMETER, PUBLIC :: SECONDS_PER_MINUTE = 60.0_f8
+
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
@@ -84,8 +76,8 @@ MODULE History_Util_Mod
 !  16 Aug 2017 - R. Yantosca - Added ACTION_* parameters
 !  17 Aug 2017 - R. Yantosca - Renamed to history_util_mod.F90; added routine
 !                              Compute_Julian_Date
-!  18 Aug 2017 - R. Yantosca - Renamed ACTION_* parameter to ALARM_*
-!  18 Aug 2017 - R. Yantosca - Add FROM_* parameters for elapsed time
+!  21 Aug 2017 - R. Yantosca - Removed some parameters that weren't needed
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -149,5 +141,56 @@ CONTAINS
     Jd = JulDay( Year, Month, FracDay )
 
   END SUBROUTINE Compute_Julian_Date
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Compute_Elapsed_Time
+!
+! !DESCRIPTION: Computes elapsed time in minutes, given the current
+!  Astronomical Julian Date value, plus a reference Julian Date.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Compute_Elapsed_Time( CurrentJd, TimeBaseJd, ElapsedMin )
+!
+! !USES:
+!
+    USE Roundoff_Mod
+!
+! !INPUT PARAMETERS: 
+!
+    REAL(f8), INTENT(IN)  :: CurrentJd    ! Current astronomical Julian date
+    REAL(f8), INTENT(IN)  :: TimeBaseJd   ! Reference astronomical Julian date
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(f8), INTENT(OUT) :: ElapsedMin   ! Elapsed time in minutes
+!
+! !REMARKS:
+!  The netCDF file reference date and time are given by the ReferenceYmd,
+!  ReferenceHms, and ReferenceJd fields of the Container object.  This
+!  denotes the simulation date & time when the netCDF file was created.
+!
+! !REVISION HISTORY:
+!  18 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=======================================================================
+    ! Compute elapsed time in minutes
+    !=======================================================================
+       
+    ! Compute elapsed minutes since start of simulation
+    ElapsedMin = ( CurrentJd - TimeBaseJd ) * MINUTES_PER_DAY
+       
+    ! Round off to a few places to avoid numerical noise 
+    ElapsedMin = Roundoff( ElapsedMin, ROUNDOFF_DECIMALS )
+
+  END SUBROUTINE Compute_Elapsed_Time
 !EOC
 END MODULE History_Util_Mod

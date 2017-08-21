@@ -308,7 +308,8 @@
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
       INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
       INTEGER                  :: id_H2O
-      REAL(f8)                 :: TAU,           TAUb         
+      REAL(f8)                 :: TAU,           TAUb      
+      REAL(f8)                 :: HeartBeatDtMin
       CHARACTER(LEN=255)       :: ZTYPE
       CHARACTER(LEN=255)       :: ErrMsg,        ThisLoc
 
@@ -869,6 +870,9 @@
       ! Get dynamic timestep in seconds
       N_DYN  = 60e+0_fpp * GET_TS_DYN()
 
+      ! Get the "heartbeat" (aka dynamic) timestep in min (cast to REAL*8)
+      HeartBeatDtMin = GET_TS_DYN()
+
       !=================================================================
       !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
       !=================================================================
@@ -901,11 +905,6 @@
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### MAIN: a SET_CURRENT_TIME' )
          ENDIf
-
-#if defined( NC_DIAG )
-         ! Pass the current timestep information to the History Component
-         CALL History_SetTime( am_I_Root, Nymd, Nhms, RC )
-#endif
 
          !==============================================================
          !       ***** R U N   H E M C O   P H A S E   1 *****
@@ -1778,11 +1777,29 @@
          !==============================================================
 
          ! Update each HISTORY ITEM from its data source
-         CALL History_Update( am_I_Root, NYMD, NHMS, RC )
+         CALL History_Update( am_I_Root, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_Update"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
+         ! Increment the timestep values by the heartbeat time
+         ! This is becasue we need to write out data with the timestamp
+         ! at the end of the heartbeat timestep (i.e. at end of run)
+         CALL History_SetTime( am_I_Root, HeartBeatDtMin, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_SetTime"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
 
          ! Write HISTORY ITEMS in each diagnostic collection to disk
          ! (or skip writing if it is not the proper output time.
-         CALL History_Write( am_I_Root, Nymd, Nhms, RC )
+         CALL History_Write( am_I_Root, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_Write"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
 #endif
 
          !==============================================================

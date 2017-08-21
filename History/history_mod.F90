@@ -38,7 +38,6 @@ MODULE History_Mod
   PRIVATE :: History_AddItemToCollection
   PRIVATE :: CleanText
   PRIVATE :: ReadOneLine
-  PRIVATE :: TestTimeForAction
 !
 ! !REMARKS:
 !  
@@ -52,6 +51,7 @@ MODULE History_Mod
 !                              duplicating similar code
 !  16 Aug 2017 - R. Yantosca - Now close all netCDF files in routine
 !                              History_Close_AllFiles
+!  18 Aug 2017 - R. Yantosca - Added routine History_SetTime
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -836,10 +836,11 @@ CONTAINS
 
           ! Compute the Astronomical Julian Date corresponding to 
           ! the initial yyyymmdd and hhmmss of the simulation.
-          ! This is needed to set the EpochJd and ReferenceJd fields
+          ! This is needed to set the EpochJd field.
           CALL Compute_Julian_Date( yyyymmdd, hhmmss, JulianDate )
           
-          ! Create the HISTORY CONTAINER object itself
+          ! Create the HISTORY CONTAINER object itself.
+          ! This will also define the alarm intervals and initial alarm times
           CALL HistContainer_Create( am_I_Root    = am_I_Root,               &
                                      Container    = Container,               &
                                      Id           = C,                       &
@@ -848,9 +849,8 @@ CONTAINS
                                      nZ           = nZ,                      &
                                      Name         = CollectionName(C),       &
                                      EpochJd      = JulianDate,              &
-                                     ReferenceYmd = yyyymmdd,                &
-                                     ReferenceHms = hhmmss,                  &
-                                     ReferenceJd  = JulianDate,              &
+                                     CurrentYmd   = yyyymmdd,                &
+                                     CurrentHms   = hhmmss,                  &
                                      UpdateMode   = CollectionMode(C),       &
                                      UpdateYmd    = UpdateYmd,               &
                                      UpdateHms    = UpdateHms,               &
@@ -875,51 +875,17 @@ CONTAINS
              RETURN
           ENDIF
 
-          !=================================================================
-          ! Set the initial alarm times for update, file write, file close
-          !=================================================================
-         
-          ! Set the initial alarm time for UPDATE
-          CALL HistContainer_AlarmSet( am_I_Root = am_I_Root,                &
-                                       Container = Container,                &
-                                       yyyymmdd  = yyyymmdd,                 &
-                                       hhmmss    = hhmmss,                   &
-                                       AlarmType = ALARM_UPDATE,             &
-                                       RC        = RC                       )
+          ! Set elapsed time quantities in the HISTORY CONTAINER object
+          CALL HistContainer_SetTime( am_I_Root   = am_I_Root,               &
+                                      Container   = Container,               &
+                                      HeartBeatDt = 0.0_f8,                  &
+                                      RC          = RC                      )
+
 
           ! Trap potential error
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered when setting ALARM_UPDATE!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-          ! Set the initial alarm for FILE_WRITE
-          CALL HistContainer_AlarmSet( am_I_Root = am_I_Root,                &
-                                       Container = Container,                &
-                                       yyyymmdd  = yyyymmdd,                 &
-                                       hhmmss    = hhmmss,                   &
-                                       AlarmType = ALARM_FILE_WRITE,         &
-                                       RC        = RC                       )
-
-          ! Trap potential error
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered when setting ALARM_FILE_WRITE!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-          ! Set the initial alarm for FILE_CLOSE
-          CALL HistContainer_AlarmSet( am_I_Root = am_I_Root,                &
-                                       Container = Container,                &
-                                       yyyymmdd  = yyyymmdd,                 &
-                                       hhmmss    = hhmmss,                   &
-                                       AlarmType = ALARM_FILE_CLOSE,         &
-                                       RC        = RC                       )
-
-          ! Trap potential error
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered when setting ALARM_FILE_CLOSE!'
+             ErrMsg = 'Error encountered in "HistContainer_SetTime"'   //    &
+                      ' for collection: ' // TRIM( CollectionName(C) ) 
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -1470,28 +1436,27 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_SetTime( am_I_Root, yyyymmdd, hhmmss, RC )
+  SUBROUTINE History_SetTime( am_I_Root, HeartBeatDtMin, RC )
 ! 
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HistContainer_Mod,     ONLY : HistContainer_ElapsedTime
+    USE HistContainer_Mod,     ONLY : HistContainer_SetTime
     USE History_Util_Mod
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
-    INTEGER, INTENT(IN)  :: yyyymmdd   ! Current Year/month/day
-    INTEGER, INTENT(IN)  :: hhmmss     ! Current hour/minute/second
+    LOGICAL,  INTENT(IN)  :: am_I_Root        ! Are we on the root CPU?
+    REAL(f8), INTENT(IN)  :: HeartBeatDtMin   ! Heartbeat timestep [min]
 !
 ! !OUTPUT PARAMETERS: 
 !
-    INTEGER, INTENT(OUT) :: RC         ! Success or failure
+    INTEGER,  INTENT(OUT) :: RC               ! Success or failure
 !
 ! !REMARKS:
-!  This routine is intended to be called from the top of the "heartbeat"
-!  timestepping loop.
+!  This routine is meant to be called after History_Update() but before
+!  History_Write().
 !
 ! !REVISION HISTORY:
 !  18 Aug 2017 - R. Yantosca - Initial version
@@ -1502,8 +1467,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    REAL(f8)                         :: ElapsedMin
-    REAL(f8)                         :: JulianDate
+    REAL(f8)                         :: HeartBeatDtDays
 
     ! Strings
     CHARACTER(LEN=255)               :: ErrMsg
@@ -1515,14 +1479,11 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC         =  GC_SUCCESS
-    Collection => NULL()
-    ErrMsg     =  ''
-    ThisLoc    =  ' -> at History_SetTime (in History/history_mod.F90)' 
-
-    ! Compute the Julian date from the date and time
-    ! (This will be the same for all simulations
-    CALL Compute_Julian_Date( yyyymmdd, hhmmss, JulianDate )
+    RC              =  GC_SUCCESS
+    Collection      => NULL()
+    HeartBeatDtDays = ( HeartBeatDtMin / MINUTES_PER_DAY ) ! convert to days
+    ErrMsg          =  ''
+    ThisLoc         =  ' -> at History_SetTime (in History/history_mod.F90)' 
 
     !=======================================================================
     ! Loop through each DIAGNOSTIC COLLECTION in the master list
@@ -1534,26 +1495,19 @@ CONTAINS
     ! As long as this current COLLECTION is valid ...
     DO WHILE( ASSOCIATED( Collection ) ) 
 
-       ! Update the current Julian date for this container
-       Collection%Container%CurrentJd = JulianDate
+       ! Update the time settings for the next timestep
+       CALL HistContainer_SetTime( am_I_Root   = am_I_Root,                  &
+                                   Container   = Collection%Container,       &
+                                   HeartBeatDt = HeartBeatDtDays,            &
+                                   RC          = RC                         )
 
-       ! Compute the elapsed minutes since the start of the 
-       ! simulation, corresponding to AlarmDate and AlarmTime
-       CALL HistContainer_ElapsedTime( am_I_Root  = am_I_Root,               &
-                                       Container  = Collection%Container,    &
-                                       TimeBase   = FROM_START_OF_SIM,       &
-                                       ElapsedMin = ElapsedMin,              &
-                                       RC         = RC                      )
-
-       ! Trap potential error
+       ! Trap error
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "HistContainer_ElapsedTime"!'
+          ErrMsg = 'Error encountered in "HistContainer_SetTime" ' //        &
+                   ' for container : ' // TRIM( Collection%Container%Name )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
-       ! Set the elapsed minutes field
-       Collection%Container%ElapsedMin = ElapsedMin
 
        ! Go to next collection
        Collection => Collection%Next
@@ -1582,14 +1536,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Update( am_I_Root, yyyymmdd, hhmmss, RC )
+  SUBROUTINE History_Update( am_I_Root, RC )
 ! 
 ! !USES:
 !
     USE ErrCode_Mod
     USE HistItem_Mod,          ONLY : HistItem
-    USE HistContainer_Mod,     ONLY : HistContainer_AlarmSet
-    USE HistContainer_Mod,     ONLY : HistContainer_AlarmCheck
+    USE HistContainer_Mod,     ONLY : HistContainer
     USE History_Util_Mod
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE MetaHistItem_Mod,      ONLY : MetaHistItem
@@ -1598,8 +1551,6 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL, INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
-    INTEGER, INTENT(IN)  :: yyyymmdd   ! Current Year/month/day
-    INTEGER, INTENT(IN)  :: hhmmss     ! Current hour/minute/second
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -1614,6 +1565,7 @@ CONTAINS
 !  11 Aug 2017 - R. Yantosca - Remove references to 0d pointers, data arrays
 !  16 Aug 2017 - R. Yantosca - Now call TestTimeForAction to test if it is
 !                              time to update the diagnostic collection.
+!  21 Aug 2017 - R. Yantosca - Now get yyyymmdd, hhmmss from the container
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1622,14 +1574,14 @@ CONTAINS
 !
     ! Scalars
     LOGICAL                          :: DoUpdate
-    REAL(fp)                         :: JulianDate
-
+    
     ! Strings
     CHARACTER(LEN=255)               :: ErrMsg
     CHARACTER(LEN=255)               :: ThisLoc
 
     ! Objects
     TYPE(MetaHistContainer), POINTER :: Collection
+    TYPE(HistContainer),     POINTER :: Container
     TYPE(MetaHistItem),      POINTER :: Current
     TYPE(HistItem),          POINTER :: Item
 
@@ -1639,6 +1591,7 @@ CONTAINS
     RC         =  GC_SUCCESS
     DoUpdate   = .FALSE.
     Collection => NULL()
+    Container  => NULL()
     Current    => NULL()
     Item       => NULL()
     ErrMsg     =  ''
@@ -1656,31 +1609,19 @@ CONTAINS
     ! As long as this current COLLECTION is valid ...
     DO WHILE( ASSOCIATED( Collection ) ) 
 
-       !--------------------------------------------------------------------
-       ! Determine if it is time to update each HISTORY ITEM belongiing
-       ! to this diagnostic collection with data from its source pointer.
-       !--------------------------------------------------------------------
-
-       ! Check to see if it is time to update the collection
-       CALL HistContainer_AlarmCheck( am_I_Root  = am_I_Root,               &
-                                      Container  = Collection%Container,    &
-                                      yyyymmdd   = yyyymmdd,                &
-                                      hhmmss     = hhmmss,                  &
-                                      DoUpdate   = DoUpdate,                &
-                                      RC         = RC                      )
-       
-       ! Trap error
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error in "TestTimeForAction" for ACTION_UPDATE!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       ! Point to the HISTORY CONTAINER object in this COLLECTION
+       Container => Collection%Container
 
        !--------------------------------------------------------------------
-       ! If it isn't time to update the current collection,
-       ! then skip to the next collection.
+       ! Test if it is time to update this collection
        !--------------------------------------------------------------------
+
+       ! Test if the "UpdateAlarm" is ringing
+       DoUpdate = ( ( Container%UpdateAlarm - Container%ElapsedMin ) < EPS )
+
+       ! Skip to next collection if it isn't
        IF ( .not. DoUpdate ) THEN
+          Container  => NULL()
           Collection => Collection%Next
           CYCLE
        ENDIF
@@ -1691,8 +1632,9 @@ CONTAINS
        ! data from the source pointer into the HISTORY ITEM's data array.
        !--------------------------------------------------------------------
 
-       ! Point to the first HISTORY ITEM belonging to this COLLECTION
-       Current => Collection%Container%HistItems
+       ! Point to the first HISTORY ITEM belonging to the 
+       ! HISTORY CONTAINER object for the current COLLECTION
+       Current => Container%HistItems
 
        ! As long as this HISTORY ITEM is valid ...
        DO WHILE ( ASSOCIATED( Current ) )
@@ -1714,10 +1656,10 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d  = Item%Source_3d
-                      Item%nUpdates = 1
+                      Item%nUpdates = 1.0_f8
                    ELSE
                       Item%Data_3d  = Item%Data_3d  + Item%Source_3d
-                      Item%nUpdates = Item%nUpdates + 1
+                      Item%nUpdates = Item%nUpdates + 1.0_f8
                    ENDIF
 
                 ! 4-byte floating point
@@ -1725,10 +1667,10 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d  = Item%Source_3d_4
-                      Item%nUpdates = 1
+                      Item%nUpdates = 1.0_f8
                    ELSE
                       Item%Data_3d  = Item%Data_3d  + Item%Source_3d_4
-                      Item%nUpdates = Item%nUpdates + 1
+                      Item%nUpdates = Item%nUpdates + 1.0_f8
                    ENDIF
 
                 ! Integer
@@ -1736,10 +1678,10 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d  = Item%Source_3d_I
-                      Item%nUpdates = 1
+                      Item%nUpdates = 1.0_f8
                    ELSE
                       Item%Data_3d  = Item%Data_3d  + Item%Source_3d_I
-                      Item%nUpdates = Item%nUpdates + 1
+                      Item%nUpdates = Item%nUpdates + 1.0_f8
                    ENDIF
 
                 ENDIF
@@ -1754,10 +1696,10 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d
-                      Item%nUpdates = 1
+                      Item%nUpdates = 1.0_f8
                    ELSE 
                       Item%Data_2d  = Item%Data_2d  + Item%Source_2d
-                      Item%nUpdates = Item%nUpdates + 1 
+                      Item%nUpdates = Item%nUpdates + 1.0_f8
                    ENDIF
 
                 ! 4-byte floating point
@@ -1765,10 +1707,10 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d_4
-                      Item%nUpdates = 1
+                      Item%nUpdates = 1.0_f8
                    ELSE
                       Item%Data_2d  = Item%Data_2d + Item%Source_2d_4
-                      Item%nUpdates = Item%nUpdates + 1 
+                      Item%nUpdates = Item%nUpdates + 1.0_f8 
                    ENDIF
 
                 ! Integer
@@ -1776,10 +1718,10 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d_I
-                      Item%nUpdates = 1
+                      Item%nUpdates = 1.0_f8
                    ELSE 
                       Item%Data_2d  = Item%Data_2d  + Item%Source_2d_I
-                      Item%nUpdates = Item%nUpdates + 1 
+                      Item%nUpdates = Item%nUpdates + 1.0_f8 
                    ENDIF
 
                 ENDIF
@@ -1794,10 +1736,10 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d
-                      Item%nUpdates = 1
+                      Item%nUpdates = 1.0_f8
                    ELSE 
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d
-                      Item%nUpdates = Item%nUpdates + 1 
+                      Item%nUpdates = Item%nUpdates + 1.0_f8 
                    ENDIF
 
                 ! 4-byte floating point
@@ -1805,10 +1747,10 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d_4
-                      Item%nUpdates = 1
+                      Item%nUpdates = 1.0_f8
                    ELSE 
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d_4
-                      Item%nUpdates = Item%nUpdates + 1 
+                      Item%nUpdates = Item%nUpdates + 1.0_f8  
                    ENDIF
 
                 ! Integer
@@ -1816,19 +1758,21 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d_I
-                      Item%nUpdates = 1
+                      Item%nUpdates = 1.0_f8 
                    ELSE
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d_I
-                      Item%nUpdates = Item%nUpdates + 1 
+                      Item%nUpdates = Item%nUpdates + 1.0_f8 
                    ENDIF
 
                 ENDIF
 
           END SELECT
 
-!#if defined( DEBUG ) 
-!          print*, TRIM( Item%Name ), ':', Item%ContainerId, Item%nUpdates
-!#endif
+#if defined( DEBUG ) 
+          ! Debug output
+          WRITE( 6, 100 ) TRIM(Container%Name), TRIM(Item%Name), Item%nUpdates
+ 100      FORMAT( a20, 1x, a20, 1x, f7.1 )
+#endif
 
           ! Free pointer
           Item => NULL()
@@ -1838,29 +1782,16 @@ CONTAINS
        ENDDO
 
        !------------------------------------------------------------------
-       ! Update the alarm time for the current HISTORY CONTAINER 
-       ! object for the next diagnostic updating interval
-       !------------------------------------------------------------------    
-       CALL HistContainer_AlarmSet( am_I_Root = am_I_Root,                   &
-                                    Container = Collection%Container,        &
-                                    yyyymmdd  = yyyymmdd,                    &
-                                    hhmmss    = hhmmss,                      &
-                                    AlarmType = ALARM_UPDATE,                &
-                                    RC        = RC                          )
-
-       ! Trap potential error
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered when setting ALARM_FILE_CLOSE!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       !------------------------------------------------------------------
        ! Prepare to go to the next collection
        !------------------------------------------------------------------ 
 
-       ! Free the pointer
-       Current => NULL()
+       ! Update the "UpdateAlarm" time for the next updating interval
+       Container%UpdateAlarm = Container%UpdateAlarm +                       &
+                               Container%UpdateIvalMin
+
+       ! Free pointers
+       Current    => NULL()
+       Container  => NULL()
 
        ! Go to the next entry in the list of collections
        Collection => Collection%Next
@@ -1872,6 +1803,7 @@ CONTAINS
 
     ! Free pointers
     Collection => NULL()
+    Container  => NULL()
     Current    => NULL()
     Item       => NULL()
 
@@ -1891,11 +1823,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Write( am_I_Root, yyyymmdd, hhmmss, RC )
+  SUBROUTINE History_Write( am_I_Root, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
+    USE HistContainer_Mod,     ONLY : HistContainer
     USE HistItem_Mod,          ONLY : HistItem
     USE History_Netcdf_Mod
     USE History_Util_Mod
@@ -1906,8 +1839,6 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL, INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
-    INTEGER, INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
-    INTEGER, INTENT(IN)  :: hhmmss    ! Current hour/minute/second
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -1919,6 +1850,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
+!  21 Aug 2017 - R. Yantosca - Now get yyyymmdd, hhmmss from the container
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1935,6 +1867,7 @@ CONTAINS
 
     ! Objects
     TYPE(MetaHistContainer), POINTER :: Collection
+    TYPE(HistContainer),     POINTER :: Container
     TYPE(MetaHistItem),      POINTER :: Current
 
     !=======================================================================
@@ -1960,45 +1893,18 @@ CONTAINS
     ! As long as this current COLLECTION is valid ...
     DO WHILE( ASSOCIATED( Collection ) ) 
 
-       !--------------------------------------------------------------------
-       ! Determine if it is time to close the existing netCDF file and
-       ! create a new one.  This is done by comparing the FileCloseYmd
-       ! and FileCloseHms fields of the Container to the current date/time.
-       !--------------------------------------------------------------------
-       CALL TestTimeForAction( am_I_Root  = am_I_Root,                       &
-                               Container  = Collection%Container,            &
-                               yyyymmdd   = yyyymmdd,                        &
-                               hhmmss     = hhmmss,                          &
-                               ActionType = ALARM_FILE_CLOSE,                &
-                               DoAction   = DoClose,                         &
-                               RC         = RC                              )
-       
-       ! Trap error
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error in "TestTimeForAction" for ACTION_FILE_CLOSE!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       ! Point to the HISTORY CONTAINER object in this COLLECTION
+       Container => Collection%Container
 
-       !--------------------------------------------------------------------
-       ! Determine if it is time to write data to netCDF file.  This
-       ! is done by comparing the FileWriteYmd and FileWriteHms fields of
-       ! the current diagnostic collection to the current date & time.
-       !--------------------------------------------------------------------
-       CALL TestTimeForAction( am_I_Root  = am_I_Root,                       &
-                               Container  = Collection%Container,            &
-                               yyyymmdd   = yyyymmdd,                        &
-                               hhmmss     = hhmmss,                          &
-                               ActionType = ALARM_FILE_WRITE,                &
-                               DoAction   = DoWrite,                         &
-                               RC         = RC                              )
-       
-       ! Trap error
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error in "TestTimeForAction" for ACTION_FILE_WRITE!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       !====================================================================
+       ! Test if it is time to close/repopen the file or to write data
+       !====================================================================
+
+       ! Test if the "FileCloseAlarm" is ringing
+       DoClose = ( ( Container%FileCloseAlarm - Container%ElapsedMin ) < EPS )
+
+       ! Test if the "FileWriteAlarm" is ringing
+       DoWrite = ( ( Container%FileWriteAlarm - Container%ElapsedMin ) < EPS )
 
 #if defined( ESMF )
 
@@ -2013,9 +1919,9 @@ CONTAINS
        IF ( DoClose ) THEN
          
 #if defined( DEBUG )  
-          WRITE( 6, 100 ) trim( Collection%container%name ), &
-                          yyyymmdd, hhmmss
- 100 FORMAT( '     - Opening file for ', a, ' at ', i8.8, 1x, i6.6 )
+          WRITE( 6, 100 ) TRIM( Container%name ),                            &
+                          Container%CurrentYmd, Container%CurrentHms
+ 100      FORMAT( '     - Creating file for ', a, ' at ', i8.8, 1x, i6.6 )
 #endif
 
           !-----------------------------------------------------------------
@@ -2023,7 +1929,7 @@ CONTAINS
           ! then close it and undefine all relevant object fields.
           !-----------------------------------------------------------------
           CALL History_Netcdf_Close( am_I_Root = am_I_Root,                  &
-                                     Container = Collection%Container,       &
+                                     Container = Container,                  &
                                      RC        = RC                         )
 
           ! Trap error
@@ -2040,8 +1946,6 @@ CONTAINS
           !-----------------------------------------------------------------
           CALL History_Netcdf_Define( am_I_Root  = am_I_Root,                &
                                       Container  = Collection%Container,     &
-                                      yyyymmdd   = yyyymmdd,                 &
-                                      hhmmss     = hhmmss,                   &
                                       RC         = RC                       )
 
           ! Trap error
@@ -2050,6 +1954,13 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
+
+          !-----------------------------------------------------------------
+          ! Update "FileClose" alarm for next interval
+          !-----------------------------------------------------------------
+          Container%FileCloseAlarm = Container%FileCloseAlarm                &
+                                   + Container%FileCloseIvalMin
+
        ENDIF
 
        !=================================================================
@@ -2060,9 +1971,9 @@ CONTAINS
        IF ( DoWrite ) THEN
 
 #if defined( DEBUG )  
-          WRITE( 6, 110 ) trim( Collection%container%name ), &
-                          yyyymmdd, hhmmss
- 110 FORMAT( '     - Writing data to ', a, ' at ', i8.8, 1x, i6.6 )
+          WRITE( 6, 110 ) TRIM( Container%name ),                            &
+                          Container%CurrentYmd, Container%CurrentHms
+ 110      FORMAT( '     - Writing data to ', a, ' at ', i8.8, 1x, i6.6 )
 #endif
 
           !-----------------------------------------------------------------
@@ -2070,8 +1981,6 @@ CONTAINS
           !-----------------------------------------------------------------
           CALL History_Netcdf_Write( am_I_Root = am_I_Root,                  &
                                      Container = Collection%Container,       &
-                                     yyyymmdd  = yyyymmdd,                   &
-                                     hhmmss    = hhmmss,                     &
                                      RC        = RC                         )
 
           ! Trap error
@@ -2080,15 +1989,24 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
+
+          !-----------------------------------------------------------------
+          ! Update "FileClose" alarm for next interval
+          !-----------------------------------------------------------------
+          Container%FileWriteAlarm = Container%FileWriteAlarm                &
+                                   + Container%FileWriteIvalMin
        ENDIF
 #endif
 
+
        ! Skip to the next collection
+       Container  => NULL()
        Collection => Collection%Next
 
     ENDDO
 
     ! Free pointers
+    Container  => NULL()
     Collection => NULL()
 
   END SUBROUTINE History_Write
@@ -2307,131 +2225,6 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE GetCollectionMetaData
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: TestTimeForAction
-!
-! !DESCRIPTION: Tests if it is time to (1) update each HISTORY ITEM from
-!  the pointer to its data source; (2) write each HISTORY ITEM to the 
-!  netCDF file specified by the HISTORY CONTAINER, or; (3) Close the netCDF
-!  file specified by the HISTORY CONTAINER and reopen it for the next
-!  diagnostic interval.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE TestTimeForAction( am_I_Root,  Container, yyyymmdd, hhmmss,     &
-                                ActionType, DoAction,  RC                   )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE HistContainer_Mod, ONLY : HistContainer
-    USE History_Util_Mod
-!
-! !INPUT PARAMETERS: 
-!
-    LOGICAL,             INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-    TYPE(HistContainer), POINTER     :: Container   ! Diagnostic container obj
-    INTEGER,             INTENT(IN)  :: yyyymmdd    ! Current date in YMD
-    INTEGER,             INTENT(IN)  :: hhmmss      ! Current time in HMS
-    INTEGER,             INTENT(IN)  :: ActionType  ! 0 = Archive (aka update)
-                                                    ! 1 = FileWrite
-                                                    ! 2 = FileClose
-!
-! !OUTPUT PARAMETERS: 
-!
-    LOGICAL,             INTENT(OUT) :: DoAction    ! Should we do the action?
-    INTEGER,             INTENT(OUT) :: RC          ! Success or failure
-!
-! !REMARKS:
-!  This is a convenience routine to avoid repetition of the same code.
-!
-! !REVISION HISTORY:
-!  16 Aug 2017 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Pointers
-    INTEGER, POINTER   :: ContainerYmd, ContainerHms
-
-    ! Strings
-    CHARACTER(LEN=255) :: ErrMsg,       ThisLoc
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC           =  GC_SUCCESS
-    ContainerYmd => NULL()
-    ContainerHms => NULL()
-    DoAction     = .FALSE.
-    ErrMsg       = ''
-    ThisLoc      = ' -> at TestTimeForAction (in History/history_mod.F90)'
-
-    !=======================================================================
-    ! Point to the proper YMD and HMS fields in the container
-    ! for the given action (update, file write, file close).
-    !=======================================================================
-    IF ( ActionType == ALARM_UPDATE ) THEN
-
-       ! Get the date & time when each HISTORY ITEM should be updated
-       ContainerYmd => Container%UpdateYmd
-       ContainerHms => Container%UpdateHms
-
-    ELSE IF ( ActionType == ALARM_FILE_WRITE ) THEN
-
-       ! Get the date & time when data should be written to the netCDF file
-       ContainerYmd => Container%FileWriteYmd
-       ContainerHms => Container%FileWriteHms
-
-    ELSE IF ( ActionType == ALARM_FILE_CLOSE ) THEN
-
-       ! Get the date & time when the netCDF file should be closed
-       ContainerYmd => Container%FileCloseYmd
-       ContainerHms => Container%FileCloseHms
-
-    ELSE
-
-       ! Trap error and exit
-       ErrMsg = 'Invalid value for "ActionType"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-
-    ENDIF
-
-    !=======================================================================
-    ! Test if the action period is less than one day
-    ! (i.e. current time modulo ContainerHms)
-    !=======================================================================
-    IF ( ContainerHms > 0 ) THEN
-       DoAction = ( MOD( hhmmss, ContainerHms ) == 0 ) 
-    ENDIF
-
-    !=======================================================================    
-    ! Then test if the action period is greater than one day.  Also check 
-    ! if the hour of the day is 0 GMT so that we will only perform the 
-    ! action at least once per day.  We can eventually change the action
-    ! hour if so desired (but maybe only for GC-Classic). 
-    !=======================================================================
-    IF ( .not. DoAction ) THEN
-       IF ( ContainerYmd > 0 ) THEN 
-          DoAction = ( ( MOD( yyyymmdd, ContainerYmd ) == 0      ) .and.  &
-                            ( hhmmss                   == 000000 )       )
-       ENDIF
-    ENDIF
-    
-    ! Free pointers
-    ContainerYmd => NULL()
-    ContainerHms => NULL()
-    
-  END SUBROUTINE TestTimeForAction
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

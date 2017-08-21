@@ -78,16 +78,16 @@ MODULE HistItem_Mod
      ! Data arrays 
      !----------------------------------------------------------------------
      INTEGER            :: SpaceDim              ! # of dims (0-3)
-     REAL(fp), POINTER  :: Data_1d(:    )        ! 1D vector
-     REAL(fp), POINTER  :: Data_2d(:,:  )        ! 2D array
-     REAL(fp), POINTER  :: Data_3d(:,:,:)        ! 3D array
+     REAL(f8), POINTER  :: Data_1d(:    )        ! 1D vector
+     REAL(f8), POINTER  :: Data_2d(:,:  )        ! 2D array
+     REAL(f8), POINTER  :: Data_3d(:,:,:)        ! 3D array
      CHARACTER(LEN=3)   :: DimNames              ! Used to specify if data is
                                                  !  "xyz", "yz", "x", "y" etc.
 
      !----------------------------------------------------------------------
      ! Data archival
      !----------------------------------------------------------------------
-     REAL(f4)           :: nUpdates              ! # of times updated
+     REAL(f8)           :: nUpdates              ! # of times updated
      INTEGER            :: Operation             ! Operation code
                                                  !  0=copy from source 
                                                  !  1=accumulate from source

@@ -34,10 +34,8 @@ MODULE History_Netcdf_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: Compute_TimeAvgOffset
   PRIVATE :: Expand_Date_Time
   PRIVATE :: Get_Var_DimIds
-  PRIVATE :: Set_RefDateTime
 !
 ! !REMARKS:
 !
@@ -131,6 +129,7 @@ CONTAINS
        Container%ReferenceYmd  = 0
        Container%ReferenceHms  = 0
        Container%ReferenceJd   = 0.0_f8
+       Container%RefElapsedMin = 0.0_f8
        Container%CurrTimeSlice = UNDEFINED_INT
 
        !--------------------------------------------------------------------
@@ -178,8 +177,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Netcdf_Define( am_I_Root, Container,                    &
-                                    yyyymmdd,  hhmmss,    RC                )
+  SUBROUTINE History_Netcdf_Define( am_I_Root, Container, RC )
 !
 ! !USES:
 !
@@ -192,23 +190,22 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
-    INTEGER,             INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
-    INTEGER,             INTENT(IN)  :: hhmmss    ! Current hour/minute/second
+    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
 !
-! !INPUT/OUTPUT PARAMETERS           ::
+! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HistContainer), POINTER     :: Container ! Diagnostic collection obj
+    TYPE(HistContainer), POINTER     :: Container  ! Diagnostic collection obj
 !
 ! !OUTPUT PARAMETERS: 
 !
-    INTEGER,             INTENT(OUT) :: RC        ! Success or failure
+    INTEGER,             INTENT(OUT) :: RC         ! Success or failure
 !
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
 !  14 Aug 2017 - R. Yantosca - Call History_Netcdf_Close from 1 level higher
+!  21 Aug 2017 - R. Yantosca - Now get yyyymmdd & hhmmms from the Container
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -219,6 +216,7 @@ CONTAINS
     INTEGER                     :: N,         VarCt
     INTEGER                     :: VarXDimId, VarYDimId
     INTEGER                     :: VarZDimId, VarTDimId
+    INTEGER                     :: yyyymmdd,  hhmmss
 
     ! Strings                   
     CHARACTER(LEN=5)            :: Z
@@ -250,6 +248,8 @@ CONTAINS
     VarCalendar =  ''
     VarPositive =  ''
     VarUnits    =  ''
+    yyyymmdd    =  Container%CurrentYmd
+    hhmmss      =  Container%CurrentHms
 
     !=======================================================================
     ! Create the netCDF file with global attributes
@@ -273,7 +273,11 @@ CONTAINS
        ! that is written to the netCDF file.  Also resets the current
        ! time slice index.
        !--------------------------------------------------------------------
-       CALL Set_RefDateTime( Container, yyyymmdd, hhmmss )
+       Container%CurrTimeSlice = 0
+       Container%ReferenceYmd  = Container%CurrentYmd
+       Container%ReferenceHms  = Container%CurrentHms
+       Container%ReferenceJd   = Container%CurrentJd
+       Container%RefElapsedMin = 0.0_f8
 
        !--------------------------------------------------------------------
        ! Create the timestamp for the History and ProdDateTime attributes
@@ -462,7 +466,6 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE History_Netcdf_Define
-
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -477,15 +480,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Netcdf_Write( am_I_Root, Container,                     &
-                                   yyyymmdd,  hhmmss,    RC                 )
+  SUBROUTINE History_Netcdf_Write( am_I_Root, Container, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE HistItem_Mod,       ONLY : HistItem
     USE HistContainer_Mod,  ONLY : HistContainer
-    USE HistContainer_Mod,  ONLY : HistContainer_ElapsedTime
     USE History_Util_Mod
     USE M_Netcdf_Io_Write,  ONLY : NcWr
     USE MetaHistItem_Mod,   ONLY : MetaHistItem
@@ -494,8 +495,6 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,             INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
-    INTEGER,             INTENT(IN)  :: yyyymmdd  ! Current Year/month/day
-    INTEGER,             INTENT(IN)  :: hhmmss    ! Current hour/minute/second
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -521,7 +520,7 @@ CONTAINS
     ! Scalars
     INTEGER                     :: NcFileId,         NcVarId
     INTEGER                     :: Dim1,             Dim2,       Dim3
-    REAL(f8)                    :: ElapsedMin,       Jd,         OffsetMin
+    REAL(f8)                    :: ElapsedMin,       Jd
 
     ! Strings
     CHARACTER(LEN=255)          :: ErrMsg,           ThisLoc
@@ -573,33 +572,20 @@ CONTAINS
     ! Increment the time index for the netCDF file
     Container%CurrTimeSlice = Container%CurrTimeSlice + 1
 
-    ! Compute the elapsed minutes since the start of the 
-    ! simulation, corresponding to AlarmDate and AlarmTime
-    CALL HistContainer_ElapsedTime( am_I_Root  = am_I_Root,                  &
-                                    Container  = Container,                  &
-                                    yyyymmdd   = yyyymmdd,                   &
-                                    hhmmss     = hhmmss,                     &
-                                    TimeBase   = FROM_FILE_CREATE,           &
-                                    ElapsedMin = ElapsedMin,                 &
-                                    RC         = RC                         )
-
-    ! Trap potential error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "HistContainer_ElapsedTime"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
     !=======================================================================
     ! Compute the time stamp value for the current time slice
     !=======================================================================
 
-    ! Compute the timestamp offset
-    CALL Compute_TimeAvgOffset( Container, yyyymmdd, hhmmss, OffsetMin )
-
     ! Time stamp for current time slice
-    Container%TimeStamp = ElapsedMin + OffsetMin
+    Container%TimeStamp = Container%RefElapsedMin
 
+    ! For time-averaged collections, offset the timestamp 
+    ! by 1/2 of the file averaging interval in minutes
+    IF ( Container%Operation == ACCUM_FROM_SOURCE ) THEN
+       Container%TimeStamp = Container%TimeStamp -                          &
+                             ( Container%FileWriteIvalMin * 0.5_f8 )
+    ENDIF
+    
     !=======================================================================
     ! Write the time stamp to the netCDF File
     !=======================================================================
@@ -660,7 +646,7 @@ CONTAINS
                 Item%Data_3d  = 0.0_f8
                 Item%nUpdates = 0
              ELSE
-                Item%Data_3d  = Item%Data_3d / DBLE( Item%nUpdates )
+                Item%Data_3d  = Item%Data_3d / Item%nUpdates
                 NcData_3d     = Item%Data_3d
                 Item%Data_3d  = 0.0_f8
                 Item%nUpdates = 0
@@ -694,7 +680,7 @@ CONTAINS
                 Item%Data_2d  = 0.0_f8
                 Item%nUpdates = 0
              ELSE
-                Item%Data_2d  = Item%Data_2d / DBLE( Item%nUpdates )
+                Item%Data_2d  = Item%Data_2d / Item%nUpdates
                 NcData_2d     = Item%Data_2d
                 Item%Data_2d  = 0.0_f8
                 Item%nUpdates = 0
@@ -727,7 +713,7 @@ CONTAINS
                 Item%Data_1d  = 0.0_f8
                 Item%nUpdates = 0
              ELSE
-                Item%Data_1d  = Item%Data_1d / DBLE( Item%nUpdates )
+                Item%Data_1d  = Item%Data_1d / Item%nUpdates
                 NcData_1d     = Item%Data_1d
                 Item%Data_1d  = 0.0_f8
                 Item%nUpdates = 0
@@ -762,93 +748,6 @@ CONTAINS
     Item    => NULL()
 
   END SUBROUTINE History_NetCdf_Write
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Compute_TimeAvgOffset
-!
-! !DESCRIPTION: Computes the offset (in minutes) for the netCDF timestamp. 
-!  Instantaneous data will have an offset of zero.  Time-averaged data will
-!  have an offset of 1/2 the accumulation interval.
-!\\
-!\\
-! !INTERFACE:
-!
- SUBROUTINE Compute_TimeAvgOffset( Container, yyyymmdd, hhmmss, OffsetMin )
-!
-! !USES:
-!
-   USE HistContainer_Mod,  ONLY : HistContainer
-   USE History_Util_Mod
-   USE Time_Mod,           ONLY : Ymd_Extract
-!
-! !INPUT PARAMETERS:
-!
-   TYPE(HistContainer), POINTER     :: Container   ! HISTORY CONTAINER object
-   INTEGER,             INTENT(IN)  :: yyyymmdd    ! Current date in YMD
-   INTEGER,             INTENT(IN)  :: hhmmss      ! Current time in hms
-!
-! !OUTPUT PARAMETERS:
-!
-   REAL(f8),            INTENT(OUT) :: OffsetMin   ! Timestamp offset in min
-!
-! !REMARKS:
-!  Instantaneous data has an offset of 0.0 minutes.
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-   INTEGER :: Year, Month, Day, Hour, Minute, Second
-
-   IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
-
-      !------------------------------------------
-      ! Instantaneous data: offset is zero.
-      !------------------------------------------
-      OffsetMin = 0.0_f8
-      RETURN
-
-   ELSE
-
-      !------------------------------------------
-      ! Time averaged data: compute offset
-      !------------------------------------------
-      OffsetMin = 0.0_f8
-
-      ! Split file writing date & times into individual constitutents
-      CALL Ymd_Extract( Container%FileWriteYmd, Year, Month,  Day    )
-      CALL Ymd_Extract( Container%FileWriteHms, Hour, Minute, Second )
-
-      IF ( Day > 0 ) THEN
-         OffsetMin = OffsetMin + ( DBLE( Day    ) * 1440.0_f8 )
-      ENDIF
-
-      IF ( Hour > 0 ) THEN
-         OffsetMin = OffsetMin + ( DBLE( Hour   ) * 60.0_f8   )
-      ENDIF
-
-      IF ( Minute > 0 ) THEN
-         OffsetMin = OffsetMin + ( DBLE( Minute )             )
-      ENDIF
-
-      IF ( Second > 0 ) THEN
-         OffsetMin = OffsetMin + ( DBLE( Second ) / 60.0_f8   )
-      ENDIF
-
-      ! Take the midpoint of the interval
-      OffsetMin = OffsetMin * 0.5_f8
-
-   ENDIF
-
- END SUBROUTINE Compute_TimeAvgOffset
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1124,64 +1023,6 @@ CONTAINS
     IF ( PRESENT( VarUnits    ) ) VarUnits    = TmpUnits
 
   END SUBROUTINE Get_Var_DimIds
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Set_RefDateTime
-!
-! !DESCRIPTION: Defines the reference date and time fields of the HISTORY
-!  CONTAINER object.  These are needed to compute the timestamps along the
-!  time dimension of each HISTORY ITEM.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Set_RefDateTime( Container, yyyymmdd, hhmmss )
-!
-! !USES:
-!
-    USE History_Util_Mod,  ONLY : Compute_Julian_Date
-    USE HistContainer_Mod, ONLY : HistContainer
-    USE Time_Mod,          ONLY :
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER,             INTENT(IN) :: yyyymmdd   ! Current Year/month/day
-    INTEGER,             INTENT(IN) :: hhmmss     ! Current hour/minute/second
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(HistContainer), POINTER    :: Container  ! Diagnostic collection obj
-!
-! !REMARKS:
-!  Also initializes the Container%CurrTimeSlice field.
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    !=======================================================================
-    ! Compute the reference date/time quantities
-    !=======================================================================
-
-    ! Current time slice (will increment this in History_Netcdf_Write)
-    Container%CurrTimeSlice = 0
-
-    ! Reference date
-    Container%ReferenceYmd  = yyyymmdd
-
-    ! Reference time
-    Container%ReferenceHms  = hhmmss
-
-    ! Corresponding astronomical Julian date
-    CALL Compute_Julian_Date( yyyymmdd, hhmmss, Container%ReferenceJd )
-
-  END SUBROUTINE Set_RefDateTime
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
