@@ -126,10 +126,9 @@ CONTAINS
        ! Undefine fields
        Container%IsFileOpen    = .FALSE.
        Container%IsFileDefined = .FALSE.
-       Container%ReferenceYmd  = 0
-       Container%ReferenceHms  = 0
-       Container%ReferenceJd   = 0.0_f8
-       Container%RefElapsedMin = 0.0_f8
+       Container%ReferenceYmd  = UNDEFINED_DBL
+       Container%ReferenceHms  = UNDEFINED_DBL
+       Container%ReferenceJd   = UNDEFINED_DBL
        Container%CurrTimeSlice = UNDEFINED_INT
 
        !--------------------------------------------------------------------
@@ -184,6 +183,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HistContainer_Mod,  ONLY : HistContainer, HistContainer_Print
     USE HistItem_Mod,       ONLY : HistItem,      HistItem_Print
+    USE JulDay_Mod,         ONLY : CalDate
     USE History_Util_Mod
     USE MetaHistItem_Mod,   ONLY : MetaHistItem
     USE Ncdf_Mod
@@ -256,6 +256,30 @@ CONTAINS
     ! Do not exit netCDF define mode just yet
     !=======================================================================
     IF ( .not. Container%IsFileOpen ) THEN
+ 
+       !--------------------------------------------------------------------
+       ! Compute reference date and time fields in the HISTORY CONTAINER
+       ! These are needed to compute the time stamps for each data field
+       ! that is written to the netCDF file.  Also resets the current
+       ! time slice index.
+       !--------------------------------------------------------------------
+
+       ! Reset the current time slice index
+       Container%CurrTimeSlice = 0
+
+       ! Subtract the file write interval that we added
+       Container%ReferenceJd   = Container%CurrentJd  
+
+       IF ( Container%Operation == ACCUM_FROM_SOURCE ) THEN
+          Container%ReferenceJd = Container%ReferenceJd                      &
+                                - ( Container%FileWriteIvalMin /             &
+                                    MINUTES_PER_DAY                         )
+       ENDIF
+
+       ! Recompute the ReferenceYmd and ReferenceHms fields
+       CALL CalDate( JulianDay = Container%ReferenceJd,                      &
+                     yyyymmdd  = Container%ReferenceYmd,                     &
+                     hhmmss    = Container%ReferenceHms                     )
 
        !--------------------------------------------------------------------
        ! Replace time and date tokens in the netCDF file name
@@ -265,19 +289,20 @@ CONTAINS
        FileName = TRIM( Container%FileName )
 
        ! Replace date and time tokens in the file name
-       CALL Expand_Date_Time( FileName, yyyymmdd, hhmmss, MAPL_Style=.TRUE. )
+       CALL Expand_Date_Time( DateStr    = FileName,                         &
+                              yyyymmdd   = Container%ReferenceYmd,           &
+                              hhmmss     = Container%ReferenceHms,           &
+                              MAPL_Style = .TRUE. )
    
-       !--------------------------------------------------------------------
-       ! Compute reference date and time fields in the HISTORY CONTAINER
-       ! These are needed to compute the time stamps for each data field
-       ! that is written to the netCDF file.  Also resets the current
-       ! time slice index.
-       !--------------------------------------------------------------------
-       Container%CurrTimeSlice = 0
-       Container%ReferenceYmd  = Container%CurrentYmd
-       Container%ReferenceHms  = Container%CurrentHms
-       Container%ReferenceJd   = Container%CurrentJd
-       Container%RefElapsedMin = 0.0_f8
+#if defined( DEBUG )  
+       WRITE( 6, 100 ) TRIM( Container%name ),                               &
+                       Container%ReferenceYmd, Container%ReferenceHms
+       write( 6, 110 ) trim( FileName       )
+ 100   FORMAT( '     - Creating file for ', a, '; reference = ', i8.8,1x,i6.6 )
+ 110   FORMAT( '       with filename = ', a                                   )
+
+       print*, '### currentymd: ', container%currentymd, container%currenthms
+#endif
 
        !--------------------------------------------------------------------
        ! Create the timestamp for the History and ProdDateTime attributes
@@ -511,6 +536,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -576,16 +602,23 @@ CONTAINS
     ! Compute the time stamp value for the current time slice
     !=======================================================================
 
-    ! Time stamp for current time slice
-    Container%TimeStamp = Container%RefElapsedMin
+    ! Compute the elapsed time in minutes since the file creation
+    CALL Compute_Elapsed_Time( CurrentJd  = Container%CurrentJd,             &
+                               TimeBaseJd = Container%ReferenceJd,           & 
+                               ElapsedMin = Container%TimeStamp             )
 
     ! For time-averaged collections, offset the timestamp 
     ! by 1/2 of the file averaging interval in minutes
     IF ( Container%Operation == ACCUM_FROM_SOURCE ) THEN
-       Container%TimeStamp = Container%TimeStamp -                          &
+       Container%TimeStamp = Container%TimeStamp -                           &
                              ( Container%FileWriteIvalMin * 0.5_f8 )
     ENDIF
-    
+
+#if defined( DEBUG )  
+    WRITE( 6, 110 ) TRIM( Container%name ), Container%TimeStamp
+110 FORMAT( '     - Writing data to ', a, '; timestamp = ', f13.4 )
+#endif
+
     !=======================================================================
     ! Write the time stamp to the netCDF File
     !=======================================================================

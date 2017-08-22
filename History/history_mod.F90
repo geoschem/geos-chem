@@ -1333,6 +1333,17 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+
+    ELSE
+
+       !--------------------------------------------------------------------
+       ! ERROR! Item name could not be found in a registry!
+       !-------------------------------------------------------------------- 
+       ErrMsg = 'Could not locate ' // TRIM( ItemName )  // '. Try prefacing the state name ("CHEM_", "MET_", "DIAG_") to the item name.'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+
     ENDIF
 
     !=======================================================================
@@ -1906,11 +1917,6 @@ CONTAINS
        ! Test if the "FileWriteAlarm" is ringing
        DoWrite = ( ( Container%FileWriteAlarm - Container%ElapsedMin ) < EPS )
 
-#if defined( ESMF )
-
-          ! ... stub for now ...
-#else
-      
        !====================================================================
        ! %%% GEOS-Chem "Classic" %%%
        !
@@ -1918,12 +1924,6 @@ CONTAINS
        !====================================================================
        IF ( DoClose ) THEN
          
-#if defined( DEBUG )  
-          WRITE( 6, 100 ) TRIM( Container%name ),                            &
-                          Container%CurrentYmd, Container%CurrentHms
- 100      FORMAT( '     - Creating file for ', a, ' at ', i8.8, 1x, i6.6 )
-#endif
-
           !-----------------------------------------------------------------
           ! If the netCDF file specified by this collection is open, 
           ! then close it and undefine all relevant object fields.
@@ -1945,7 +1945,7 @@ CONTAINS
           ! the index variable data to the file.
           !-----------------------------------------------------------------
           CALL History_Netcdf_Define( am_I_Root  = am_I_Root,                &
-                                      Container  = Collection%Container,     &
+                                      Container  = Container,                &
                                       RC         = RC                       )
 
           ! Trap error
@@ -1970,17 +1970,11 @@ CONTAINS
        !=================================================================
        IF ( DoWrite ) THEN
 
-#if defined( DEBUG )  
-          WRITE( 6, 110 ) TRIM( Container%name ),                            &
-                          Container%CurrentYmd, Container%CurrentHms
- 110      FORMAT( '     - Writing data to ', a, ' at ', i8.8, 1x, i6.6 )
-#endif
-
           !-----------------------------------------------------------------
           ! Write the HISTORY ITEMS for this collection to the netCDF file.  
           !-----------------------------------------------------------------
           CALL History_Netcdf_Write( am_I_Root = am_I_Root,                  &
-                                     Container = Collection%Container,       &
+                                     Container = Container,                  &
                                      RC        = RC                         )
 
           ! Trap error
@@ -1996,8 +1990,6 @@ CONTAINS
           Container%FileWriteAlarm = Container%FileWriteAlarm                &
                                    + Container%FileWriteIvalMin
        ENDIF
-#endif
-
 
        ! Skip to the next collection
        Container  => NULL()

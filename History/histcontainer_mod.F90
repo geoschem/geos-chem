@@ -86,8 +86,6 @@ MODULE HistContainer_Mod
      INTEGER                     :: ReferenceHms        !  for the "time" dim
      REAL(f8)                    :: ReferenceJD         ! Julian Date at the
                                                         !  reference YMD & hms
-     REAL(f8)                    :: RefElapsedMin       ! Elapsed minutes w/r/t
-                                                        !  the ref date & time
      INTEGER                     :: CurrTimeSlice       ! Current time slice
                                                         !  for the "time" dim
      REAL(f8)                    :: TimeStamp           ! Elapsed minutes w/r/t
@@ -588,7 +586,7 @@ CONTAINS
     ! These fields won't get defined until we open the netCDF file
     Container%IsFileDefined = .FALSE.
     Container%IsFileOpen    = .FALSE.
-    Container%FileId        =   UNDEFINED_INT
+    Container%FileId        = UNDEFINED_INT
     Container%xDimId        = UNDEFINED_INT
     Container%yDimId        = UNDEFINED_INT
     Container%zDimId        = UNDEFINED_INT
@@ -602,7 +600,6 @@ CONTAINS
 
     ! These other time fields will be defined later
     Container%ElapsedMin    = 0.0_f8
-    Container%RefElapsedMin = 0.0_f8
     Container%CurrTimeSlice = UNDEFINED_INT
     Container%TimeStamp     = 0.0_f8
 
@@ -620,13 +617,23 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Use the intervals to compute the first update and file write time
+    ! Set the initial update and file write alarms to the increment 
+    ! values (measured in elapsed minutes since the start of the simulation)
     Container%UpdateAlarm    = Container%UpdateIvalMin
     Container%FileWriteAlarm = Container%FileWriteIvalMin
 
-    ! But open the file on the first timestep 
-    ! so that we can start writing data to it immediately
-    Container%FileCloseAlarm = 0.0_fp
+    IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
+
+       ! Open the file as soon as possible
+       Container%FileCloseAlarm = 0.0_f8
+
+    ELSE
+
+       ! Set the initial file close/reopen to the first write time
+       ! (We will subtract this off when computing the reference time)
+       Container%FileCloseAlarm = Container%FileWriteIvalMin
+
+    ENDIF
 
   END SUBROUTINE HistContainer_Create
 !EOC
@@ -715,7 +722,6 @@ CONTAINS
        WRITE( 6, 135 ) 'ReferenceYmd     : ', Container%ReferenceYmd
        WRITE( 6, 145 ) 'ReferenceHms     : ', Container%ReferenceHms
        WRITE( 6, 160 ) 'ReferenceJd      : ', Container%ReferenceJd
-       WRITE( 6, 160 ) 'RefElapsedMin    : ', Container%RefElapsedMin
        WRITE( 6, 135 ) 'FileWriteYmd     : ', Container%FileWriteYmd
        WRITE( 6, 145 ) 'FileWriteHms     : ', Container%FileWriteHms
        WRITE( 6, 160 ) 'FileWriteIvalMin : ', Container%FileWriteIvalMin
@@ -1020,6 +1026,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  21 Aug 2017 - R. Yantosca - Initial version
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1057,11 +1064,6 @@ CONTAINS
     CALL Compute_Elapsed_Time( CurrentJd  = Container%CurrentJd,             &
                                TimeBaseJd = Container%EpochJd,               &
                                ElapsedMin = Container%ElapsedMin            )
-
-    ! Compute the elapsed time in minutes since the file creation
-    CALL Compute_Elapsed_Time( CurrentJd  = Container%CurrentJd,             &
-                               TimeBaseJd = Container%ReferenceJd,           &
-                               ElapsedMin = Container%RefElapsedMin         )
 
   END SUBROUTINE HistContainer_SetTime
 !EOC
