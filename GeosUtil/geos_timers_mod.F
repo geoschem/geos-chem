@@ -43,6 +43,7 @@
 ! !REVISION HISTORY:
 !  23 Jul 2015 - M. Yannetti - Initial version.
 !  05 Feb 2016 - R. Yantosca - Increased timer count from 15 to 16
+!  23 Aug 2017 - R. Yantosca - Increased timer count to 18
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -69,9 +70,10 @@
 
       ! Current number of timers. Starts at 0.
       INTEGER                    :: TimerCurrentSize = 0
+
       ! Maximum Supported Timers. Increasing will increase memory
       ! footprint.
-      INTEGER, PARAMETER         :: TimerMaxSize = 17
+      INTEGER, PARAMETER         :: TimerMaxSize = 18
 
       ! The definition of the GEOS_Timer type.
       TYPE GEOS_Timer
@@ -84,7 +86,6 @@
 
       ! The array of timers. Determined by TimerMaxSize.
       TYPE(GEOS_Timer), DIMENSION(TimerMaxSize) :: SavedTimers
-
 
       CONTAINS
 !EOC

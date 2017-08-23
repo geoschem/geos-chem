@@ -40,6 +40,7 @@
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GC_GRID_MOD,             ONLY : CLEANUP_GRID
+      USE GEOS_TIMERS_MOD
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE History_Mod,             ONLY : History_Cleanup
       USE Input_Opt_Mod,           ONLY : OptInput
@@ -243,6 +244,7 @@
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  09 Aug 2017 - R. Yantosca - Pass am_I_Root, RC to Cleanup_Grid
 !  16 Aug 2017 - R. Yantosca - Now call History_Cleanup from here
+!  23 Aug 2017 - R. Yantosca - Now time how long HISTORY_CLEANUP takes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -263,7 +265,16 @@
       ! Finalize the History Component.
       ! Also closes all netCDF files that may still be open.
       !=================================================================
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_Start( "History", RC )
+#endif
+
+      ! Finalize the history component
       CALL History_Cleanup( am_I_Root, RC )
+
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_End( "History", RC )
+#endif
 #endif
 
       ! UCX needs to be cleaned up before emissions, because the UCX 

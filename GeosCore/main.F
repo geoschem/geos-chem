@@ -287,6 +287,7 @@
 !                              when we are running specialty simulations
 !  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  23 Aug 2017 - R. Yantosca - Now add at timer for the History component
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -469,6 +470,8 @@
 #if defined( USE_TIMERS )
       ! Call timer initilization
       CALL GEOS_Timer_Setup( 1 )
+
+      ! Add timers for various operations
       CALL GEOS_Timer_Add( "GEOS-Chem",           RC )
       CALL GEOS_Timer_Add( "Initialization",      RC )
       CALL GEOS_Timer_Add( "Timesteps",           RC )
@@ -483,9 +486,14 @@
       CALL GEOS_Timer_Add( "Wet deposition",      RC )
       CALL GEOS_Timer_Add( "RRTMG",               RC )
       CALL GEOS_Timer_Add( "Diagnostics",         RC )
+#if defined( NC_DIAG )
+      CALL GEOS_Timer_Add( 'History',             RC )
+#endif
       CALL GEOS_Timer_Add( "Reading met fields",  RC )
       CALL GEOS_Timer_Add( "Reading restart file",RC )
       CALL GEOS_Timer_Add( "Writing restart file",RC )
+
+      ! Start running the main and initialization timer
       CALL GEOS_Timer_Start( "GEOS-Chem",         RC )
       CALL GEOS_Timer_Start( "Initialization",    RC )
 #endif
@@ -631,6 +639,9 @@
       !=================================================================
       !    ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
       !=================================================================
+#if defined( USE_TIMERS ) 
+      CALL GEOS_Timer_Start( "History",  RC )
+#endif
 
       ! For now, just hardwire the input file for the History component
       Input_Opt%HistoryInputFile = './HISTORY.rc'
@@ -644,6 +655,10 @@
          ErrMsg = 'Error encountered in "History_Init"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
+
+#if defined( USE_TIMERS ) 
+      CALL GEOS_Timer_End( "History",  RC )
+#endif
 #endif  
 
       !=================================================================
@@ -1775,6 +1790,9 @@
          !==============================================================
          !  ***** H I S T O R Y   U P D A T E   A N D   W R I T E *****
          !==============================================================
+#if defined( USE_TIMERS ) 
+         CALL GEOS_Timer_Start( "History", RC )
+#endif
 
          ! Update each HISTORY ITEM from its data source
          CALL History_Update( am_I_Root, RC )
@@ -1800,6 +1818,9 @@
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
+#if defined( USE_TIMERS ) 
+         CALL GEOS_Timer_End( "History", RC )
+#endif
 #endif
 
          !==============================================================
