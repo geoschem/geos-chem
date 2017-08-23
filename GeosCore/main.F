@@ -41,6 +41,7 @@
       USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
       USE PhysConstants         ! Physical constants
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
+      USE Grid_Registry_Mod     ! Registers horizontal/vertical grid metadata
       USE REGRID_A2A_MOD        ! For horizontal regridding
       USE RESTART_MOD           ! For restart file I/O
       USE State_Chm_Mod         ! Derived type for Chemistry State object
@@ -614,6 +615,14 @@
       ! Initialize the new hybrid pressure module.  Define Ap and Bp.
       CALL INIT_PRESSURE( am_I_Root )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_PRESSURE' )
+
+      ! Register the horizontal and vertical grid information so that 
+      ! the History component can use it for netCDF metadata (bmy, 8/23/17)
+      CALL Init_Grid_Registry( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_Grid_Registry"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
 
       ! Read annual mean tropopause if not a variable tropopause
       ! read_tropopause is obsolete with variable tropopause

@@ -41,6 +41,7 @@
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GC_GRID_MOD,             ONLY : CLEANUP_GRID
       USE GEOS_TIMERS_MOD
+      USE Grid_Registry_Mod,       ONLY : Cleanup_Grid_Registry
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE History_Mod,             ONLY : History_Cleanup
       USE Input_Opt_Mod,           ONLY : OptInput
@@ -245,6 +246,7 @@
 !  09 Aug 2017 - R. Yantosca - Pass am_I_Root, RC to Cleanup_Grid
 !  16 Aug 2017 - R. Yantosca - Now call History_Cleanup from here
 !  23 Aug 2017 - R. Yantosca - Now time how long HISTORY_CLEANUP takes
+!  23 Aug 2017 - R. Yantosca - Now call Cleanup_Grid_Registry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -305,7 +307,8 @@
       CALL CLEANUP_FLEXCHEM()
       CALL CLEANUP_GLOBAL_CH4()
       CALL CLEANUP_GRID( am_I_Root, RC )
-      CALL CLEANUP_HDF()
+      CALL Cleanup_Grid_Registry( am_I_Root, RC )
+      CALL CLEANUP_HDF()  
       CALL CLEANUP_ISOROPIAII()
       CALL CLEANUP_LINOZ()
       CALL CLEANUP_MAP_A2A()
@@ -333,9 +336,9 @@
 #endif
 
 #if   defined( RRTMG )
-      CALL CLEANUP_SURFACE_RAD  ! Cleanup arrays for surface properties
-      CALL CLEANUP_STRAT_CLIM
-      CALL CLEANUP_MCICA_CLOUDS
+      CALL CLEANUP_SURFACE_RAD()  ! Cleanup arrays for surface properties
+      CALL CLEANUP_STRAT_CLIM()
+      CALL CLEANUP_MCICA_CLOUDS()
 #endif
 
 #if   defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)

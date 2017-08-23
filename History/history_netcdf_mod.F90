@@ -1075,7 +1075,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE GC_Grid_Mod,      ONLY : Lookup_Grid
+    USE Grid_Registry_Mod, ONLY : Lookup_Grid
     USE HistItem_Mod
     USE MetaHistItem_Mod
 !
