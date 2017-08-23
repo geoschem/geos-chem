@@ -4047,7 +4047,7 @@
          IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
             M = 1
          ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN  ! Ask Helen
-            M = 2
+            M = 3
          ELSE
             M = nDryDep
          ENDIF
