@@ -1015,11 +1015,14 @@
          ENDDO
       ENDIF
 
-      !=================================================================
-      ! (4) Save OH concentrations for printing of global mean [OH] and
-      !     CH3CCLl3 at end of simulation.
-      !=================================================================
-      CALL CH4_OHSAVE( State_Met, State_Chm )
+!------------------------------------------------------------------------------
+! Comment out to speed up nested NA simulations (mps, 8/17/17)
+!      !=================================================================
+!      ! (4) Save OH concentrations for printing of global mean [OH] and
+!      !     CH3CCLl3 at end of simulation.
+!      !=================================================================
+!      CALL CH4_OHSAVE( State_Met, State_Chm )
+!------------------------------------------------------------------------------
 
       !=================================================================
       ! (5) If multi-CH4 species, we store the CH4 total conc. to
