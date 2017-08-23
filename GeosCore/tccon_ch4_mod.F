@@ -349,7 +349,7 @@
       ! Read 2-D Data
       !-------------------------------- 
 
-      ! APRIORI (ppm)
+      ! APRIORI (ppb)
       v_name = 'ch4_apriori'
       st2d   = (/ 1,    1    /)
       ct2d   = (/ NLEV, NTCC /)
@@ -418,7 +418,7 @@
          ! 1-D data
          LTCC = NLEV
          TCC(N)%PRES(1:LTCC)       = pres(1:LTCC,N)
-         TCC(N)%PRIOR(1:LTCC)      = prior(1:LTCC,N) * 1d-6 ! ppm --> v/v
+         TCC(N)%PRIOR(1:LTCC)      = prior(1:LTCC,N) * 1d-9 ! ppb --> v/v
          TCC(N)%AVG_KERNEL(1:LTCC) = ak(1:LTCC,N)
          TCC(N)%GRAVITY(1:LTCC)    = grav_apri(1:LTCC,N)
          TCC(N)%H2O(1:LTCC)        = tccon_h2o(1:LTCC,N)
