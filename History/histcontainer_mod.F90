@@ -127,6 +127,7 @@ MODULE HistContainer_Mod
      INTEGER                     :: xDimId              ! X (or lon ) dim ID
      INTEGER                     :: yDimId              ! Y (or lat ) dim ID
      INTEGER                     :: zDimId              ! Z (or lev ) dim ID
+     INTEGER                     :: iDimId              ! I (or ilev) dim ID
      INTEGER                     :: tDimId              ! T (or time) dim ID
      CHARACTER(LEN=255)          :: FilePrefix          ! Filename prefix
      CHARACTER(LEN=255)          :: FileTemplate        ! YMDhms template
@@ -157,6 +158,8 @@ MODULE HistContainer_Mod
 !  18 Aug 2017 - R. Yantosca - Added ElapsedMin
 !  18 Aug 2017 - R. Yantosca - Add HistContainer_ElapsedTime routine
 !  21 Aug 2017 - R. Yantosca - Removed *_AlarmCheck, *_AlarmSet routines
+!  24 Aug 2017 - R. Yantosca - Added iDimId as the dimension ID for ilev,
+!                               which is the vertical dimension on interfaces
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -282,6 +285,7 @@ CONTAINS
 !  21 Aug 2017 - R. Yantosca - Reorganize arguments, now define several time
 !                              fields from EpochJd, CurrentYmd, CurrentHms
 !  21 Aug 2017 - R. Yantosca - Now define initial alarm intervals and alarms
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -590,6 +594,7 @@ CONTAINS
     Container%xDimId        = UNDEFINED_INT
     Container%yDimId        = UNDEFINED_INT
     Container%zDimId        = UNDEFINED_INT
+    Container%iDimId        = UNDEFINED_INT
     Container%tDimId        = UNDEFINED_INT
     
     ! Set the other time/date fields from EpochJd, CurrentYmd, CurrentHms

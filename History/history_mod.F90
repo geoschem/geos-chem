@@ -1213,8 +1213,11 @@ CONTAINS
     ! Scalars
     INTEGER                      :: KindVal
     INTEGER                      :: Rank
-    INTEGER                      :: Dimensions(3)
     INTEGER                      :: NX, NY, NZ
+
+    ! Arrays
+    INTEGER                      :: Dimensions(3)
+    INTEGER                      :: ItemDims(3)
 
     ! Strings
     CHARACTER(LEN=255)           :: Description
@@ -1375,9 +1378,6 @@ CONTAINS
                           LongName       = Description,                      &
                           Units          = Units,                            &
                           SpaceDim       = Rank,                             &
-                          NX             = NX,                               &
-                          NY             = NY,                               &
-                          NZ             = NZ,                               & 
                           Operation      = Collection%Operation,             &
                           Source_KindVal = KindVal,                          &
                           Source_2d      = Ptr2d,                            &
@@ -1386,6 +1386,7 @@ CONTAINS
                           Source_3d      = Ptr3d,                            &
                           Source_3d_4    = Ptr3d_4,                          &
                           Source_3d_I    = Ptr3d_I,                          &
+                          Dimensions     = ItemDims,                         &
                           RC             = RC                               )
 
     ! Trap potential error

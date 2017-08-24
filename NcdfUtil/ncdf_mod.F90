@@ -3348,7 +3348,8 @@ CONTAINS
                         nLev,       nTime,        fId,       lonID,          & 
                         latId,      levId,        timeId,    VarCt,          &
                         Create_NC4, KeepDefMode,  NcFormat,  Conventions,    &
-                        History,    ProdDateTime, Reference, Contact        )
+                        History,    ProdDateTime, Reference, Contact,        &
+                        nIlev,      iLevId                                  )
 !
 ! !INPUT PARAMETERS:
 !
@@ -3357,8 +3358,9 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )  :: title        ! ncdf file title
     INTEGER,          INTENT(IN   )  :: nLon         ! # of lons 
     INTEGER,          INTENT(IN   )  :: nLat         ! # of lats 
-    INTEGER,          INTENT(IN   )  :: nLev         ! # of levs 
+    INTEGER,          INTENT(IN   )  :: nLev         ! # of level midpoints
     INTEGER,          INTENT(IN   )  :: nTime        ! # of times 
+    INTEGER,          OPTIONAL       :: nILev        ! # of level interfaces
 
     ! Optional arguments (mostly global attributes)
     LOGICAL,          OPTIONAL       :: Create_Nc4   ! Save output as netCDF-4
@@ -3374,11 +3376,12 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 ! 
     INTEGER,          INTENT(  OUT)  :: fId          ! file id 
-    INTEGER,          INTENT(  OUT)  :: lonId        ! lon id 
-    INTEGER,          INTENT(  OUT)  :: latId        ! lat id 
-    INTEGER,          INTENT(  OUT)  :: levId        ! lev id 
-    INTEGER,          INTENT(  OUT)  :: timeId       ! time id 
+    INTEGER,          INTENT(  OUT)  :: lonId        ! lon  dimension id 
+    INTEGER,          INTENT(  OUT)  :: latId        ! lat  dimension id 
+    INTEGER,          INTENT(  OUT)  :: levId        ! lev  dimension id 
+    INTEGER,          INTENT(  OUT)  :: timeId       ! time dimension id 
     INTEGER,          INTENT(  OUT)  :: VarCt        ! variable counter 
+    INTEGER,          OPTIONAL       :: ilevId       ! ilev dimension id
 !
 ! !REMARKS:
 !  Assumes that you have:
@@ -3397,6 +3400,8 @@ CONTAINS
 !  08 Aug 2017 - R. Yantosca - Add optional KeepDefMode argument so that we can
 !                              stay in netCDF define mode upon leaving this
 !                              routine (i.e. to define variables afterwards)
+!  24 Aug 2017 - R. Yantosca - Added nIlev and iLevId variables so that we can
+!                               create the iLev dimension (level interfaces)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3511,18 +3516,27 @@ CONTAINS
     !=======================================================================
 
     ! Time
-    CALL NcDef_Dimension   ( fId, 'time', nTime, TimeId ) 
+    CALL NcDef_Dimension( fId, 'time', nTime, TimeId ) 
 
-    ! Lev
+    ! Level midpoints
     IF ( nLev > 0 ) THEN
        CALL NcDef_Dimension( fId, 'lev',  nLev,  levId  )
     ELSE
        levId = -1
     ENDIF
 
+    ! Optional ILev dimension: level interfaces
+    IF ( PRESENT( nIlev ) .and. PRESENT( iLevId ) ) THEN
+       IF ( nILev > 0 ) THEN
+          CALL NcDef_Dimension( fId, 'ilev', nIlev, iLevId )
+       ELSE
+          iLevId = -1
+       ENDIF
+    ENDIF
+
     ! Lat and lon
-    CALL NcDef_Dimension   ( fId, 'lat',  nLat,  latId  ) 
-    CALL NcDef_Dimension   ( fId, 'lon',  nLon,  lonId  ) 
+    CALL NcDef_Dimension( fId, 'lat',  nLat,  latId  ) 
+    CALL NcDef_Dimension( fId, 'lon',  nLon,  lonId  ) 
   
     ! Close definition section
     IF ( QuitDefMode ) THEN
@@ -3547,20 +3561,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_Var_Def( fId,       lonId,        latId,       levId,        &
-                         TimeId,    VarName,      VarLongName, VarUnit,      &
-                         DataType,  VarCt,        DefMode,     Compress,     & 
-                         AddOffset, MissingValue, ScaleFactor, Calendar,     &
-                         Axis,      AvgMethod,    Positive                  )
+  SUBROUTINE NC_Var_Def( fId,       lonId,        latId,        levId,       &
+                         TimeId,    VarName,      VarLongName,  VarUnit,     &
+                         DataType,  VarCt,        DefMode,      Compress,    & 
+                         AddOffset, MissingValue, ScaleFactor,  Calendar,    &
+                         Axis,      StandardName, FormulaTerms, AvgMethod,   &
+                         Positive,  iLevId                                  )
 !
 ! !INPUT PARAMETERS:
 ! 
     ! Required inputs
     INTEGER,          INTENT(IN   ) :: fId          ! file ID  
-    INTEGER,          INTENT(IN   ) :: lonId        ! ID of lon  (X) dim
-    INTEGER,          INTENT(IN   ) :: latId        ! ID of lat  (Y) dim
-    INTEGER,          INTENT(IN   ) :: levId        ! ID of lev  (Z) dim
-    INTEGER,          INTENT(IN   ) :: TimeId       ! ID of time (T) dim
+    INTEGER,          INTENT(IN   ) :: lonId        ! ID of lon      (X) dim
+    INTEGER,          INTENT(IN   ) :: latId        ! ID of lat      (Y) dim
+    INTEGER,          INTENT(IN   ) :: levId        ! ID of lev ctr  (Z) dim
+    INTEGER,          OPTIONAL      :: iLevId       ! ID of lev edge (I) dim
+    INTEGER,          INTENT(IN   ) :: TimeId       ! ID of time     (T) dim
     CHARACTER(LEN=*), INTENT(IN   ) :: VarName      ! Variable name
     CHARACTER(LEN=*), INTENT(IN   ) :: VarLongName  ! Long name description
     CHARACTER(LEN=*), INTENT(IN   ) :: VarUnit      ! Units
@@ -3574,6 +3590,8 @@ CONTAINS
     REAL*4,           OPTIONAL      :: ScaleFactor  ! Scale factor attribute
     CHARACTER(LEN=*), OPTIONAL      :: Calendar     ! Calendar for time var
     CHARACTER(LEN=*), OPTIONAL      :: Axis         ! Axis for index vars
+    CHARACTER(LEN=*), OPTIONAL      :: StandardName ! Standard name attribute
+    CHARACTER(LEN=*), OPTIONAL      :: FormulaTerms ! Formula for vert coords
     CHARACTER(LEN=*), OPTIONAL      :: AvgMethod    ! Averaging method
     CHARACTER(LEN=*), OPTIONAL      :: Positive     ! Positive dir (up or down)
 !
@@ -3588,9 +3606,13 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  21 Jan 2017 - C. Holmes   - Added optional DefMode argument to avoid excessive switching between define and data modes
+!  21 Jan 2017 - C. Holmes   - Added optional DefMode argument to avoid 
+!                              excessive switching between define & data modes
 !  18 Feb 2017 - C. Holmes   - Enable netCDF-4 compression
 !  08 Aug 2017 - R. Yantosca - Add more optional arguments for variable atts
+!  24 Aug 2017 - R. Yantosca - Added StandardName, FormulaTerms arguments
+!  24 Aug 2017 - R. Yantosca - Added optional Ilev dimension so that we can
+!                               define variables on level interfaces
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3601,8 +3623,8 @@ CONTAINS
     INTEGER, ALLOCATABLE :: VarDims(:) 
 
     ! Scalars
-    INTEGER              :: nDim, Pos
-    INTEGER              :: NF_TYPE
+    INTEGER              :: nDim,     Pos
+    INTEGER              :: NF_TYPE,  tmpIlevId
     LOGICAL              :: isDefMode
 
     ! Strings 
@@ -3619,6 +3641,13 @@ CONTAINS
        isDefMode = .FALSE.
     ENDIF
 
+    ! Test if iLevId (dimension for level interfaces) is present
+    IF ( PRESENT( iLevId ) ) THEN
+       tmpIlevId = iLevId
+    ELSE
+       tmpIlevId = -1
+    ENDIF
+
     !=======================================================================
     ! DEFINE VARIABLE 
     !=======================================================================
@@ -3626,15 +3655,15 @@ CONTAINS
     ! Reopen definition section, if necessary
     IF ( .not. isDefMode ) CALL NcBegin_Def( fId )
     
-    ! Increate variable counter
     VarCt = VarCt + 1
     
     ! number of dimensions
     nDim = 0
-    IF ( lonId  >= 0 ) nDim = nDim + 1
-    IF ( latId  >= 0 ) nDim = nDim + 1
-    IF ( levId  >= 0 ) nDim = nDim + 1
-    if ( timeId >= 0 ) nDim = nDim + 1
+    IF ( lonId     >= 0 ) nDim = nDim + 1
+    IF ( latId     >= 0 ) nDim = nDim + 1
+    IF ( levId     >= 0 ) nDim = nDim + 1
+    IF ( tmpIlevId >= 0 ) nDim = nDim + 1
+    if ( timeId    >= 0 ) nDim = nDim + 1
 
     ! write dimensions
     ALLOCATE( VarDims(nDim) )
@@ -3649,6 +3678,10 @@ CONTAINS
     ENDIF
     IF ( levId >= 0 ) THEN
        VarDims(Pos) = levId
+       Pos          = Pos + 1
+    ENDIF
+    IF ( tmpIlevId >= 0 ) THEN
+       VarDims(Pos) = tmpIlevId
        Pos          = Pos + 1
     ENDIF
     IF ( timeId >= 0 ) THEN
@@ -3733,6 +3766,22 @@ CONTAINS
        IF ( LEN_TRIM( Positive ) > 0 ) THEN
           Att = 'positive'
           CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), TRIM(Positive) )
+       ENDIF
+    ENDIF
+
+    ! Standard name (optional) -- skip if null string
+    IF ( PRESENT( StandardName ) ) THEN
+       IF ( LEN_TRIM( StandardName ) > 0 ) THEN
+          Att = 'standard_Name'
+          CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), TRIM(StandardName))
+       ENDIF
+    ENDIF
+
+    ! Formula terms (optional) -- skip if null string
+    IF ( PRESENT( FormulaTerms ) ) THEN
+       IF ( LEN_TRIM( FormulaTerms ) > 0 ) THEN
+          Att = 'formula_terms'
+          CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), TRIM(FormulaTerms))
        ENDIF
     ENDIF
 

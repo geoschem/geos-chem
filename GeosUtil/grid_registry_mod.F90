@@ -34,6 +34,7 @@ MODULE Grid_Registry_Mod
 !
 ! !REVISION HISTORY:
 !  23 Aug 2017 - R. Yantosca - Initial version
+!  24 Aug 2017 - R. Yantosca - Rename variables to be consistent w/ convention
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -41,16 +42,16 @@ MODULE Grid_Registry_Mod
 ! !PRIVATE TYPES:
 !
   ! Module variables
-  REAL(f8), ALLOCATABLE, TARGET :: Area        (:,:)
-  REAL(f8), ALLOCATABLE, TARGET :: Ap_Center   (:  )
-  REAL(f8), ALLOCATABLE, TARGET :: B_Center    (:  )
-  REAL(f8), ALLOCATABLE, TARGET :: Ap_Edge     (:  )
-  REAL(f8), ALLOCATABLE, TARGET :: B_Edge      (:  )
-  REAL(f8), ALLOCATABLE, TARGET :: Latitude    (:  )
-  REAL(f8), ALLOCATABLE, TARGET :: Level_Center(:  )
-  REAL(f8), ALLOCATABLE, TARGET :: Level_Edge  (:  )
-  REAL(f8), ALLOCATABLE, TARGET :: Longitude   (:  )
-  REAL(f8), ALLOCATABLE, TARGET :: Time        (:  )
+  REAL(f8), ALLOCATABLE, TARGET :: Area(:,:)  ! Surface area 
+  REAL(f8), ALLOCATABLE, TARGET :: Time(:  )  ! Time
+  REAL(f8), ALLOCATABLE, TARGET :: HyAm(:  )  ! Hybrid Ap at level midpoint
+  REAL(f8), ALLOCATABLE, TARGET :: HyBm(:  )  ! Hybrid B  at level midpoint
+  REAL(f8), ALLOCATABLE, TARGET :: Lev (:  )  ! Level midpoint coordinate
+  REAL(f8), ALLOCATABLE, TARGET :: HyAi(:  )  ! Hybrid Ap at level interface
+  REAL(f8), ALLOCATABLE, TARGET :: HyBi(:  )  ! Hybrid B  at level interface
+  REAL(f8), ALLOCATABLE, TARGET :: ILev(:  )  ! Level interface coordinate
+  REAL(f8), ALLOCATABLE, TARGET :: Lat (:  )  ! Latitude
+  REAL(f8), ALLOCATABLE, TARGET :: Lon (:  )  ! Longitude
 
   ! Registry of variables contained within gc_grid_mod.F90
   CHARACTER(LEN=4)              :: State     = 'GRID'   ! Name of this state
@@ -134,140 +135,21 @@ CONtAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data2d      = Area,                              &
-                            RC          = RC                                )
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = Registry,                         &
+                            State        = State,                            &
+                            Variable     = Variable,                         &
+                            Description  = Desc,                             &
+                            Units        = Units,                            &
+                            DimNames     = 'xy',                             &
+                            Data2d       = Area,                             &
+                            RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_AREA', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !======================================================================
-    ! Allocate and register AP_EDGE
-    !======================================================================
-    Variable = 'AP_EDGE'
-    Desc     = 'Hybrid Ap at level edges'
-    Units    = 'hPa'
-
-    ! Allocate
-    ALLOCATE( Ap_Edge( LLPAR+1 ), STAT=RC )
-    CALL GC_CheckVar( 'GRID_AP_EDGE', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    ! Initialize
-    DO L = 1, LLPAR+1
-       Ap_Edge(L) = Get_Ap( L )
-    ENDDO
-
-    ! Register
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = Ap_Edge,                           &
-                            RC          = RC                                )
-
-    CALL GC_CheckVar( 'GRID_AP_EDGE', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !======================================================================
-    ! Allocate and register B_EDGE
-    !======================================================================
-    Variable = 'B_EDGE'
-    Desc     = 'Hybrid B at level edges'
-    Units    = '1'
-
-    ! Allocate
-    ALLOCATE( B_Edge( LLPAR+1 ), STAT=RC )
-    CALL GC_CheckVar( 'GRID_B_EDGE', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    ! Initialize
-    DO L = 1, LLPAR+1
-       B_Edge(L) = Get_Bp( L )
-    ENDDO
-
-    ! Register
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = B_Edge,                            &
-                            RC          = RC                                )
-
-    CALL GC_CheckVar( 'GRID_B_EDGE', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !======================================================================
-    ! Allocate and register AP_CENTER
-    !======================================================================
-    Variable = 'AP_CNTR'
-    Desc     = 'Hybrid Ap at level centers'
-    Units    = 'hPa'
-
-    ! Allocate
-    ALLOCATE( Ap_Center( LLPAR ), STAT=RC )
-    CALL GC_CheckVar( 'GRID_AP_CNTR', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    ! Initialize
-    DO L = 1, LLPAR
-       Ap_Center(L) = ( Ap_Edge(L) + Ap_Edge(L+1) ) * 0.5_f8
-    ENDDO
-
-    ! Register
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = Ap_Center,                         &
-                            RC          = RC                                )
-
-    CALL GC_CheckVar( 'GRID_AP_CNTR', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !======================================================================
-    ! Allocate and register B_EDGE
-    !======================================================================
-    Variable = 'B_CNTR'
-    Desc     = 'Hybrid B at level centers'
-    Units    = '1'
-
-    ! Allocate
-    ALLOCATE( B_Center( LLPAR ), STAT=RC )
-    CALL GC_CheckVar( 'GRID_B_CNTR', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    ! Initialize
-    DO L = 1, LLPAR
-       B_Center(L) = ( B_Edge(L) + B_Edge(L+1) ) * 0.5_f8
-    ENDDO
-
-    ! Register
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = B_Center,                          &
-                            RC          = RC                                )
-
-    CALL GC_CheckVar( 'GRID_B_CNTR', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !======================================================================
-    ! Allocate and register TIME
+    ! Allocate and register Time
     !======================================================================
     Variable = 'TIME'
     Desc     = 'Time'
@@ -282,72 +164,206 @@ CONtAINS
     Time = 0.0_f8
 
     ! Register
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = Time,                              &
-                            RC          = RC                                )
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = Registry,                         &
+                            State        = State,                            &
+                            Variable     = Variable,                         &
+                            Description  = Desc,                             &
+                            Units        = Units,                            &
+                            DimNames     = 't',                              &
+                            Data1d       = Time,                             &
+                            RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_TIME', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !======================================================================
-    ! Allocate and register LEV_CNTR
+    ! Allocate and register HyAm
     !======================================================================
-    Variable = 'LEV_CNTR'
-    Desc     = 'atmosphere_hybrid_sigma_pressure_coordinate'
-    Units    = 'a: ap b: b" ps: ps'
+    Variable = 'HYAM'
+    Desc     = 'hybrid A coefficient at layer midpoints'
+    Units    = 'hPa'
 
     ! Allocate
-    ALLOCATE( Level_Center( LLPAR ), STAT=RC )
-    CALL GC_CheckVar( 'GRID_LEV_CNTR', 0, RC )
+    ALLOCATE( HyAm( LLPAR ), STAT=RC )
+    CALL GC_CheckVar( 'GRID_HYAM', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize
-    Level_Center = 0.0_fp
+    DO L = 1, LLPAR
+       HyAm(L) = ( Get_Ap( L ) + Get_Ap( L+1 ) ) * 0.5_f8
+    ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = Level_Center,                      &
-                            RC          = RC                                )
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = Registry,                         &
+                            State        = State,                            &
+                            Variable     = Variable,                         &
+                            Description  = Desc,                             &
+                            Units        = Units,                            &
+                            DimNames     = 'z',                              &
+                            Data1d       = HyAm,                             &
+                            RC           = RC                               )
 
-    CALL GC_CheckVar( 'GRID_LEV_CNTR', 1, RC )
+    CALL GC_CheckVar( 'GRID_HYAM', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !======================================================================
-    ! Allocate and register LEV_EDGE
+    ! Allocate and register HyBm
     !======================================================================
-    Variable = 'LEV_EDGE'
-    Desc     = 'atmosphere_hybrid_sigma_pressure_coordinate'
-    Units    = 'a: ap b: b" ps: ps'
+    Variable = 'HYBM'
+    Desc     = 'hybrid B coefficient at layer midpoints'
+    Units    = '1'
 
     ! Allocate
-    ALLOCATE( Level_Edge( LLPAR+1 ), STAT=RC )
-    CALL GC_CheckVar( 'GRID_LEV_EDGE', 0, RC )
+    ALLOCATE( HyBm( LLPAR ), STAT=RC )
+    CALL GC_CheckVar( 'GRID_HYBM', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize
-    Level_Edge = 0.0_fp
+    DO L = 1, LLPAR
+       HyBm(L) = ( Get_Bp( L ) + Get_Bp( L+1 ) ) * 0.5_f8
+    ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = Level_Edge,                        &
-                            RC          = RC                                )
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = Registry,                         &
+                            State        = State,                            &
+                            Variable     = Variable,                         &
+                            Description  = Desc,                             &
+                            Units        = Units,                            &
+                            DimNames     = 'z',                              &
+                            Data1d       = HyBm,                             &
+                            RC           = RC                               )
 
-    CALL GC_CheckVar( 'GRID_LEV_EDGE', 1, RC )
+    CALL GC_CheckVar( 'GRID_HYBM', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !======================================================================
+    ! Allocate and register Lev
+    !======================================================================
+    Variable = 'LEV'
+    Desc     = 'hybrid level at midpoints ((A/1000)+B)'
+    Units    = 'level'
+
+    ! Allocate
+    ALLOCATE( Lev( LLPAR ), STAT=RC )
+    CALL GC_CheckVar( 'GRID_LEV', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize
+    DO L = 1, LLPAR
+       Lev(L) = ( HyAm(L) / 1000.0_f8 ) + HyBm(L)
+    ENDDO
+
+    ! Register
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = Registry,                         &
+                            State        = State,                            &
+                            Variable     = Variable,                         &
+                            Description  = Desc,                             &
+                            Units        = Units,                            &
+                            DimNames     = 'z',                              &
+                            Data1d       = Lev,                              &
+                            RC           = RC                               )
+
+    CALL GC_CheckVar( 'GRID_LEV', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !======================================================================
+    ! Allocate and register HyAi
+    !======================================================================
+    Variable = 'HYAI'
+    Desc     = 'hybrid A coefficient at layer interfaces'
+    Units    = 'hPa'
+
+    ! Allocate
+    ALLOCATE( HyAi( LLPAR+1 ), STAT=RC )
+    CALL GC_CheckVar( 'GRID_HYAI', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize
+    DO L = 1, LLPAR+1
+       HyAi(L) = Get_Ap(L)
+    ENDDO
+
+    ! Register
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = Registry,                         &
+                            State        = State,                            &
+                            Variable     = Variable,                         & 
+                            Description  = Desc,                             &
+                            Units        = Units,                            &
+                            DimNames     = 'z',                              &
+                            OnLevelEdges = .TRUE.,                           &
+                            Data1d       = HyAi,                             &
+                            RC           = RC                               )
+
+    CALL GC_CheckVar( 'GRID_HYAI', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !======================================================================
+    ! Allocate and register HyBi
+    !======================================================================
+    Variable = 'HYBI'
+    Desc     = 'hybrid B coefficient at layer interfaces'
+    Units    = '1'
+
+    ! Allocate
+    ALLOCATE( HyBi( LLPAR+1 ), STAT=RC )
+    CALL GC_CheckVar( 'GRID_HYBI', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize
+    DO L = 1, LLPAR+1
+       HyBi(L) = Get_Bp(L)
+    ENDDO
+
+    ! Register
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = Registry,                         &
+                            State        = State,                            &
+                            Variable     = Variable,                         &
+                            Description  = Desc,                             &
+                            Units        = Units,                            &
+                            DimNames     = 'z',                              &
+                            OnLevelEdges = .TRUE.,                           &
+                            Data1d       = HyBi,                             &
+                            RC           = RC                               )
+
+    CALL GC_CheckVar( 'GRID_HYBI', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !======================================================================
+    ! Allocate and register ILev
+    !======================================================================
+    Variable = 'ILEV'
+    Desc     = 'hybrid level at interfaces ((A/1000)+B)'
+    Units    = 'level'
+
+    ! Allocate
+    ALLOCATE( ILev( LLPAR+1 ), STAT=RC )
+    CALL GC_CheckVar( 'GRID_ILEV', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize
+    DO L = 1, LLPAR+1
+       ILev(L) = ( HyAi(L) / 1000.0_f8 ) + HyBi(L)
+    ENDDO
+
+    ! Register
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = Registry,                         &
+                            State        = State,                            &
+                            Variable     = Variable,                         &
+                            Description  = Desc,                             &
+                            Units        = Units,                            &
+                            DimNames     = 'z',                              &
+                            OnLevelEdges = .TRUE.,                           &
+                            Data1d       = ILev,                             &
+                            RC           = RC                               )
+
+    CALL GC_CheckVar( 'GRID_ILEV', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !======================================================================
@@ -358,24 +374,25 @@ CONtAINS
     Units    = 'degrees_north'
 
     ! Allocate
-    ALLOCATE( Latitude( JJPAR ), STAT=RC )
+    ALLOCATE( Lat( JJPAR ), STAT=RC )
     CALL GC_CheckVar( 'GRID_LAT', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize
     DO J = 1, JJPAR
-       Latitude(J) = Get_YMid( 1, J, 1 )
+       Lat(J) = Get_YMid( 1, J, 1 )
     ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = Latitude,                          &
-                            RC          = RC                                )
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = Registry,                         &
+                            State        = State,                            &
+                            Variable     = Variable,                         &
+                            Description  = Desc,                             &
+                            Units        = Units,                            &
+                            DimNames     = 'y',                              &
+                            Data1d       = Lat,                              &
+                            RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_LAT', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -388,24 +405,25 @@ CONtAINS
     Units    = 'degrees_east'
 
     ! Allocate
-    ALLOCATE( Longitude( IIPAR ), STAT=RC )
+    ALLOCATE( Lon( IIPAR ), STAT=RC )
     CALL GC_CheckVar( 'GRID_LON', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize
     DO I = 1, IIPAR
-       Longitude(I) = Get_XMid( I, 1, 1 )
+       Lon(I) = Get_XMid( I, 1, 1 )
     ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = Longitude,                         &
-                            RC          = RC                                )
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = Registry,                         &
+                            State        = State,                            &
+                            Variable     = Variable,                         &
+                            Description  = Desc,                             &
+                            Units        = Units,                            &
+                            DimNames     = 'x',                              &
+                            Data1d       = Lon,                              &
+                            RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_LON', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -477,57 +495,57 @@ CONtAINS
        RETURN
     ENDIF
 
-    IF ( ALLOCATED( Ap_Center ) ) THEN
-       DEALLOCATE( Ap_Center ) 
-       CALL GC_CheckVar( 'GRID_AP_CNTR', 3, RC )
+    IF ( ALLOCATED( Time ) ) THEN
+       DEALLOCATE( Time ) 
+       CALL GC_CheckVar( 'GRID_TIME', 3, RC )
        RETURN
     ENDIF
 
-    IF ( ALLOCATED( Ap_Edge ) ) THEN
-       DEALLOCATE( Ap_Edge ) 
-       CALL GC_CheckVar( 'GRID_AP_EDGE', 3, RC )
+    IF ( ALLOCATED( Lev ) ) THEN
+       DEALLOCATE( Lev ) 
+       CALL GC_CheckVar( 'GRID_LEV', 3, RC )
        RETURN
     ENDIF
 
-    IF ( ALLOCATED( B_Center ) ) THEN
-       DEALLOCATE( B_Center ) 
-       CALL GC_CheckVar( 'GRID_B_CNTR', 3, RC )
+    IF ( ALLOCATED( HyAm ) ) THEN
+       DEALLOCATE( HyAm ) 
+       CALL GC_CheckVar( 'GRID_HYAM', 3, RC )
        RETURN
     ENDIF
 
-    IF ( ALLOCATED( B_Edge ) ) THEN
-       DEALLOCATE( B_Edge ) 
-       CALL GC_CheckVar( 'GRID_B_EDGE', 3, RC )
+    IF ( ALLOCATED( HyBm ) ) THEN
+       DEALLOCATE( HyBm ) 
+       CALL GC_CheckVar( 'GRID_HYBM', 3, RC )
        RETURN
     ENDIF
 
-    IF ( ALLOCATED( Latitude ) ) THEN
-       DEALLOCATE( Latitude ) 
+    IF ( ALLOCATED( ILev ) ) THEN
+       DEALLOCATE( ILev ) 
+       CALL GC_CheckVar( 'GRID_ILEV', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ALLOCATED( HyAi ) ) THEN
+       DEALLOCATE( HyAi ) 
+       CALL GC_CheckVar( 'GRID_HYAI', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ALLOCATED( HyBi ) ) THEN
+       DEALLOCATE( HyBi ) 
+       CALL GC_CheckVar( 'GRID_HYBI', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ALLOCATED( Lat ) ) THEN
+       DEALLOCATE( Lat ) 
        CALL GC_CheckVar( 'GRID_LAT', 3, RC )
        RETURN
     ENDIF
 
-    IF ( ALLOCATED( Level_Center ) ) THEN
-       DEALLOCATE( Level_Center ) 
-       CALL GC_CheckVar( 'GRID_LEV_CNTR', 3, RC )
-       RETURN
-    ENDIF
-
-    IF ( ALLOCATED( Level_Edge ) ) THEN
-       DEALLOCATE( Level_Edge ) 
-       CALL GC_CheckVar( 'GRID_LEV_EDGE', 3, RC )
-       RETURN
-    ENDIF
-
-    IF ( ALLOCATED( Longitude ) ) THEN
-       DEALLOCATE( Longitude ) 
+    IF ( ALLOCATED( Lon ) ) THEN
+       DEALLOCATE( Lon ) 
        CALL GC_CheckVar( 'GRID_LON', 3, RC )
-       RETURN
-    ENDIF
-
-    IF ( ALLOCATED( Time ) ) THEN
-       DEALLOCATE( Time ) 
-       CALL GC_CheckVar( 'GRID_TIME', 3, RC )
        RETURN
     ENDIF
 
@@ -629,10 +647,9 @@ CONtAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Lookup_Grid( am_I_Root,   Variable,   RC,                       &
-                          Description, Dimensions, KindVal,                  &
-                          MemoryInKb,  Rank,       Units,                    &
-                          Ptr1d,       Ptr2d                                )
+  SUBROUTINE Lookup_Grid( am_I_Root,  Variable,     RC,         Description, &
+                          Dimensions, KindVal,      MemoryInKb, Rank,        &
+                          Units,      OnLevelEdges, Ptr1d,      Ptr2d       )
 !
 ! !USES:
 !
@@ -656,6 +673,9 @@ CONtAINS
     REAL(fp),            OPTIONAL    :: MemoryInKb      ! Memory usage
     INTEGER,             OPTIONAL    :: Rank            ! Size of data
     CHARACTER(LEN=255),  OPTIONAL    :: Units           ! Units of data
+    LOGICAL,             OPTIONAL    :: OnLevelEdges    ! =T if data is defined
+                                                        !  on vertical grid
+                                                        !  edges; =F if center
 
     ! Pointers to data
     REAL(fp),   POINTER, OPTIONAL    :: Ptr1d(:  )      ! 1D flex-prec data
@@ -667,6 +687,7 @@ CONtAINS
 !
 ! !REVISION HISTORY:
 !  23 Aug 2017 - R. Yantosca - Initial version
+!  24 Aug 2017 - R. Yantosca - Added optional OnLevelEdges argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -686,19 +707,20 @@ CONtAINS
     !=======================================================================
     ! Look up a variable; Return metadata and/or a pointer to the data
     !=======================================================================
-    CALL Registry_Lookup( am_I_Root   = am_I_Root,           &
-                          Registry    = Registry,            &
-                          State       = State,               &
-                          Variable    = Variable,            &
-                          Description = Description,         &
-                          Dimensions  = Dimensions,          &
-                          KindVal     = KindVal,             &
-                          MemoryInKb  = MemoryInKb,          &
-                          Rank        = Rank,                &
-                          Units       = Units,               &
-                          Ptr1d       = Ptr1d,               &
-                          Ptr2d       = Ptr2d,               &
-                          RC          = RC                  )
+    CALL Registry_Lookup( am_I_Root    = am_I_Root,                          &
+                          Registry     = Registry,                           &
+                          State        = State,                              & 
+                          Variable     = Variable,                           &
+                          Description  = Description,                        &
+                          Dimensions   = Dimensions,                         &
+                          KindVal      = KindVal,                            &
+                          MemoryInKb   = MemoryInKb,                         &
+                          Rank         = Rank,                               &
+                          Units        = Units,                              &
+                          OnLevelEdges = OnLevelEdges,                       &
+                          Ptr1d        = Ptr1d,                              &
+                          Ptr2d        = Ptr2d,                              &
+                          RC           = RC                                 )
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
