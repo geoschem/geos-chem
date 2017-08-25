@@ -34,15 +34,9 @@ MODULE Diagnostics_Mod
 !  29 Jan 2016 - E. Lundgren - Update diagnostics for recent HEMCO updates
 !  20 Jul 2016 - R. Yantosca - Replace #ifdef DEVEL with #ifdef DIAG_DEVEL
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  12 Jul 2017 - R. Yantosca - Remove everything in #if defined( NC_DIaG )
+!  12 Jul 2017 - R. Yantosca - Remove everything in #if defined( NC_DIAG )
 !EOP
 !------------------------------------------------------------------------------
-!BOC
-!
-! !PRIVATE TYPES:
-!
-  ! Species ID flags
-  INTEGER :: id_Rn, id_Pb, id_Be7
 !BOC
 CONTAINS
 !EOC

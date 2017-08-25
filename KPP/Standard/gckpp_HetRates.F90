@@ -131,7 +131,7 @@ MODULE GCKPP_HETRATES
 
   ! Effective Henry's Law constant of IEPOX for reactive
   ! uptake to aqueous aerosols (M/atm)
-  REAL(fp), PARAMETER :: HSTAR_EPOX = 3.3e+7_fp
+  REAL(fp), PARAMETER :: HSTAR_EPOX = 5.0e+6_fp
 !
 ! !REMARKS:
 !  Need 
@@ -1322,8 +1322,6 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
-!  10 Jul 2017 - M. Sulprizio- Update gamma values for glyoxal based on advice from
-!                              E. Marais for consistency with Marais et al., 2016
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1353,17 +1351,15 @@ MODULE GCKPP_HETRATES
             ! Define gamma for GLYX:
             IF ( SUNCOS .gt. 0 ) THEN
 
-               ! Uptake during the day
-               ! Increase gamma value from 2.9e-3 to 9.5e-3 (eam, 7/10/17)
-               XSTKCF = 9.5e-3_fp
+               ! Uptake during the day (use Liggio et al., 2005):
+               XSTKCF = 2.9e-3_fp
 
             ELSE
 
                ! Uptake at night (lower uptake than day)
                ! Value is within the range 1d-5 to 1d-6
                ! (Faye McNeill personal communication, eam, 2015):
-               ! Increase gamma value from 5.6e-6 to 1.0e-5 (eam, 7/10/17)
-               XSTKCF = 1.0e-5_fp
+               XSTKCF = 5.0e-6_fp
 
             ENDIF
 

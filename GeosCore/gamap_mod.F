@@ -140,7 +140,7 @@
       INTEGER :: id_NAP,   id_NH3,   id_NK1,   id_NO
       INTEGER :: id_OCPI,  id_OCPO,  id_OPOA1, id_OPOG1
       INTEGER :: id_PAN,   id_POA1,  id_PRPE  
-      INTEGER :: id_SO2,   id_TSOA1 
+      INTEGER :: id_SO2,   id_TSOA1, id_POG1,  id_POG2  
       INTEGER :: id_TOLU,  id_XYLE,  id_HNO3
 
       CONTAINS
@@ -5709,22 +5709,40 @@
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
-         IF ( id_OCPI > 0 .or. id_POA1 > 0 ) THEN
+         IF ( id_OCPI > 0  ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
             NAME (T,28) = 'OC'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-            ! SOAupdate: allow non-vol or semi-vol POA (hotp 8/24/09)
-            IF ( id_OCPI > 0 ) THEN
-               INDEX(T,28) = id_OCPI + ( SPACING * 45 )
-            ELSE IF ( id_POA1  > 0 ) THEN
-               INDEX(T,28) = id_POA1 + ( SPACING * 45 )
-            ENDIF
+            INDEX(T,28) = id_OCPI + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
             MOLC (T,28) = 1
             UNIT (T,28) = 'atoms C/cm2/s'
             SCALE(T,28) = 1e0
          ENDIF
+         IF ( id_POG1 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'POG1'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = id_POG1 + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( id_POG2 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'POG2'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = id_POG2 + ( SPACING * 45 )            
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         
          IF ( id_CH4 > 0 ) THEN
             T           = T         + 1
             NTRAC(  28) = NTRAC(28) + 1
@@ -5842,7 +5860,7 @@
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
             INDEX(T,28) = id_NAP + ( SPACING * 45 )
             MWT  (T,28) = 12e-3
-            MOLC (T,28) = 1
+            MOLC (T,28) = 10
             UNIT (T,28) = 'atoms C/cm2/s' 
             SCALE(T,28) = 1e0
          ENDIF
@@ -7830,6 +7848,8 @@
       id_TSOA1 = Ind_('TSOA1')
       id_TOLU  = Ind_('TOLU' )
       id_XYLE  = Ind_('XYLE' )
+      id_POG1  = Ind_('POG1' )
+      id_POG2  = Ind_('POG2' )
 
       !=================================================================
       ! Allocate module arrays
