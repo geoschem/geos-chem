@@ -801,6 +801,7 @@ CONTAINS
 !  29 Jun 2017 - R. Yantosca - Add SHORTFORMAT option to print less output
 !  23 Aug 2017 - R. Yantosca - Now print OnLevelEdges in full format
 !  24 Aug 2017 - R. Yantosca - Now use the DimNames field when printing
+!  25 Aug 2017 - R. Yantosca - Now print the vertical cell position: C or E
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -811,7 +812,8 @@ CONTAINS
     LOGICAL                    :: Use_ShortFormat
 
     ! Strings
-    CHARACTER(LEN=255)         :: ErrMsg, ThisLoc
+    CHARACTER(LEN=1)           :: CellPos
+    CHARACTER(LEN=255)         :: ErrMsg,  ThisLoc
 
     ! Objects
     TYPE(MetaRegItem), POINTER :: Current
@@ -859,9 +861,20 @@ CONTAINS
              !--------------------------------------------------------------
              ! Just print the name, description, dimension, and units
              !--------------------------------------------------------------
-             WRITE( 6, 100 ) Item%FullName, Item%Description,                &
-                             Item%DimNames, TRIM( Item%Units )
-  100        FORMAT( 1x, a20, ' | ', a40, ' | ', a3, ' | ', a )
+
+             ! Denote if the data is defined on 
+             ! level edges (E) or centers (C)
+             IF ( Item%OnLevelEdges ) THEN
+                CellPos = 'E'
+             ELSE
+                CellPos = 'C'
+             ENDIF
+
+             ! Print information
+             WRITE( 6, 100 ) Item%FullName,    Item%Description,             &
+                             Item%DimNames,    CellPos,                      &
+                             TRIM( Item%Units )
+  100        FORMAT( 1x, a20, ' | ', a38, ' | ', a3, ' ', a1, ' | ', a )
 
           ELSE
 

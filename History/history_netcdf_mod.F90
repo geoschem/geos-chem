@@ -477,7 +477,8 @@ CONTAINS
        ! As long as this node of the list is valid ...
        DO WHILE( ASSOCIATED( Current ) )
 
-          ! Write the data to the netCDF file
+          ! Write data for index variables to the netCDF file
+          ! AREA is the only 2-D variable
           SELECT CASE( TRIM( Current%Item%Name ) ) 
              CASE( 'AREA' ) 
                 CALL Nc_Var_Write( fId     = Container%FileId,               &
@@ -700,9 +701,6 @@ CONTAINS
              ! Compute start and count fields
              St4d = (/ 1,    1,    1,    Container%CurrTimeSlice /)
              Ct4d = (/ Dim1, Dim2, Dim3, 1                       /)
-
-             print*, '@@@ st4d: ', st4d
-             print*, '@@@ cd4d: ', ct4d
 
              ! Write data to disk
              CALL NcWr( NcData_3d, NcFileId, Item%Name, St4d, Ct4d )
@@ -1177,6 +1175,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Aug 2017 - R. Yantosca - Initial version
+!  25 Aug 2017 - R. Yantosca - Added index arrays for data on level edges
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1228,39 +1227,39 @@ CONTAINS
 
     ! Fields saved in the Registry object in GeosUtil/grid_registry_mod.F90
     RegistryName(1 ) = 'GRID_AREA'
-    RegistryName(2 ) = 'GRID_TIME'
-    RegistryName(3 ) = 'GRID_LEV'
-    RegistryName(4 ) = 'GRID_ILEV'
-    RegistryName(5 ) = 'GRID_LAT'
+    RegistryName(2 ) = 'GRID_HYBI'
+    RegistryName(3 ) = 'GRID_HYAI'
+    RegistryName(4 ) = 'GRID_HYBM'
+    RegistryName(5 ) = 'GRID_HYAM'
     RegistryName(6 ) = 'GRID_LON'
-    RegistryName(7 ) = 'GRID_HYAM'
-    RegistryName(8 ) = 'GRID_HYBM'
-    RegistryName(9 ) = 'GRID_HYAI'
-    RegistryName(10) = 'GRID_HYBI'
+    RegistryName(7 ) = 'GRID_LAT'
+    RegistryName(8 ) = 'GRID_ILEV'
+    RegistryName(9 ) = 'GRID_LEV'
+    RegistryName(10) = 'GRID_TIME'
    
     ! Name for each HISTORY ITEM
     ItemName(1 )     = 'AREA'
-    ItemName(2 )     = 'time'
-    ItemName(3 )     = 'lev'
-    ItemName(4 )     = 'ilev'
-    ItemName(5 )     = 'lat'
+    ItemName(2 )     = 'hybi'
+    ItemName(3 )     = 'hyai'
+    ItemName(4 )     = 'hybm'
+    ItemName(5 )     = 'hyam'
     ItemName(6 )     = 'lon'
-    ItemName(7 )     = 'hyam'
-    ItemName(9 )     = 'hybm'
-    ItemName(8 )     = 'hyai'
-    ItemName(10)     = 'hybi'
+    ItemName(7 )     = 'lat'
+    ItemName(8 )     = 'ilev'
+    ItemName(9 )     = 'lev'
+    ItemName(10)     = 'time'
 
     ! Dimensions for each HISTORY ITEM
     ItemDimName(1 )  = 'xy'
-    ItemDimName(2 )  = 't'
+    ItemDimName(2 )  = 'z'
     ItemDimName(3 )  = 'z'
     ItemDimName(4 )  = 'z'
-    ItemDimName(5 )  = 'y'
+    ItemDimName(5 )  = 'z'
     ItemDimName(6 )  = 'x'
-    ItemDimName(7 )  = 'z'
+    ItemDimName(7 )  = 'y'
     ItemDimName(8 )  = 'z'
     ItemDimName(9 )  = 'z'
-    ItemDimName(10)  = 'z'
+    ItemDimName(10)  = 't'
 
     !=======================================================================
     ! Create a HISTORY ITEM for each of the index fields (lon, lat, area)

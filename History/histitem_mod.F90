@@ -637,6 +637,7 @@ CONTAINS
 !  11 Aug 2017 - R. Yantosca - Remove 0d pointers and data arrays
 !  24 Aug 2017 - R. Yantosca - Now print OnLevelEdges for the full format
 !  24 Aug 2017 - R. Yantosca - Now print NcIDimId for the full format
+!  25 Aug 2017 - R. Yantosca - Now print the vertical cell position: C or E
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -645,6 +646,9 @@ CONTAINS
 !
     ! Scalars
     LOGICAL          :: Use_ShortFormat
+
+    ! Strings
+    CHARACTER(LEN=1) :: CellPos
 
     !=======================================================================
     ! Initialize
@@ -670,9 +674,19 @@ CONTAINS
           !-----------------------------------------------------------------
           ! Use truncated output format
           !-----------------------------------------------------------------
-          WRITE( 6, 100 ) Item%Name,     Item%LongName,    &
-                          Item%DimNames, TRIM( Item%Units )
- 100      FORMAT( 2x, a20, ' | ', a40, ' | ', a3, ' | ', a )
+
+          ! Denote if the data is defined on 
+          ! level edges (E) or centers (C)
+          IF ( Item%OnLevelEdges ) THEN
+             CellPos = 'E'
+          ELSE
+             CellPos = 'C'
+          ENDIF
+
+          ! Print information
+          WRITE( 6, 100 ) Item%Name,     Item%LongName,                      &
+                          Item%DimNames, CellPos,       TRIM( Item%Units )
+ 100      FORMAT( 2x, a20, ' | ', a38, ' | ', a3, ' ', a1, ' | ', a )
 
        ELSE
 
