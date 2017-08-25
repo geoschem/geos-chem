@@ -64,6 +64,7 @@ MODULE NCDF_MOD
   PRIVATE :: NC_VAR_WRITE_R4_2D
   PRIVATE :: NC_VAR_WRITE_R4_3D
   PRIVATE :: NC_VAR_WRITE_R4_4D
+  PRIVATE :: NC_VAR_WRITE_R8_0D
   PRIVATE :: NC_VAR_WRITE_R8_1D
   PRIVATE :: NC_VAR_WRITE_R8_2D
   PRIVATE :: NC_VAR_WRITE_R8_3D
@@ -94,6 +95,7 @@ MODULE NCDF_MOD
 !                              NC_READ_TIME_YYYYMMDDhhmm, to indicate that
 !                              it will now uses YYYYYMMDDhhmm format
 !  09 Aug 2017 - R. Yantosca - Add public routine NC_SET_DEFMODE
+!  25 Aug 2017 - R. Yantosca - Add NC_Var_Write_*_0D routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,14 +123,17 @@ MODULE NCDF_MOD
   END INTERFACE NC_GET_SIGMA_LEVELS
 
   INTERFACE NC_VAR_WRITE
+     MODULE PROCEDURE NC_VAR_WRITE_INT_0D
      MODULE PROCEDURE NC_VAR_WRITE_INT_1D
      MODULE PROCEDURE NC_VAR_WRITE_INT_2D
      MODULE PROCEDURE NC_VAR_WRITE_INT_3D
      MODULE PROCEDURE NC_VAR_WRITE_INT_4D
+     MODULE PROCEDURE NC_VAR_WRITE_R4_0D
      MODULE PROCEDURE NC_VAR_WRITE_R4_1D
      MODULE PROCEDURE NC_VAR_WRITE_R4_2D
      MODULE PROCEDURE NC_VAR_WRITE_R4_3D
      MODULE PROCEDURE NC_VAR_WRITE_R4_4D
+     MODULE PROCEDURE NC_VAR_WRITE_R8_0D
      MODULE PROCEDURE NC_VAR_WRITE_R8_1D
      MODULE PROCEDURE NC_VAR_WRITE_R8_2D
      MODULE PROCEDURE NC_VAR_WRITE_R8_3D
@@ -172,6 +177,7 @@ CONTAINS
 
     ! Open netCDF file
     CALL Ncop_Rd( fId, TRIM(FileName) )
+
 
   END SUBROUTINE NC_OPEN
 !EOC
@@ -3796,6 +3802,52 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Nc_Var_Write_R8_0d
+!
+! !DESCRIPTION: Writes data of a 0-D double precision variable.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_R8_0D( fId, VarName, Var )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN)  :: fId           ! file ID 
+    CHARACTER(LEN=*), INTENT(IN)  :: VarName       ! variable name      
+    REAL(kind=8)                  :: Var           ! Variable to be written
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  25 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    ! Write to netCDF file
+    CALL NcWr( Var, fId, VarName )
+
+  END SUBROUTINE NC_VAR_WRITE_R8_0d
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Nc_Var_Write_R8_1d
 !
 ! !DESCRIPTION: Writes data of a 1-D double precision variable.
@@ -4034,6 +4086,52 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Nc_Var_Write_R4_0d
+!
+! !DESCRIPTION: Writes data of a 0-D single-precision variable.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_R4_0d( fId, VarName, Var )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN)  :: fId           ! file ID 
+    CHARACTER(LEN=*), INTENT(IN)  :: VarName       ! variable name      
+    REAL(kind=4)                  :: Var           ! Variable to be written
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  25 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    ! Write to netCDF file
+    CALL NcWr( Var, fId, VarName )
+
+  END SUBROUTINE NC_VAR_WRITE_R4_0D
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Nc_Var_Write_r4_1d
 !
 ! !DESCRIPTION: Writes data of a single precision variable. 
@@ -4264,6 +4362,52 @@ CONTAINS
     CALL NcWr( Arr4d, fId, VarName, St4d, Ct4d )
 
   END SUBROUTINE NC_VAR_WRITE_R4_4D
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Var_Write_Int_0d
+!
+! !DESCRIPTION: Writes data of a 0-D integer variable.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_INT_0d( fId, VarName, Var )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN)  :: fId           ! file ID 
+    CHARACTER(LEN=*), INTENT(IN)  :: VarName       ! variable name      
+    INTEGER                       :: Var           ! Variable to be written
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  25 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    ! Write to netCDF file
+    CALL NcWr( Var, fId, VarName )
+
+  END SUBROUTINE NC_VAR_WRITE_INT_0D
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
