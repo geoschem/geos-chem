@@ -410,20 +410,16 @@
             ! Directly use OPTDEPTH = TAUCLD * CLDTOT
             !===========================================================
 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
             ! Column cloud fraction (not less than zero)
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
                
-            ! For GEOS-5, GEOS-FP, MERRA, and MERRA2 met fields, the optical
+            ! NOTE: For GEOS-FP and MERRA-2 met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 
             ! NOT been multiplied by cloud fraction yet.  Therefore, we can
             ! just apply the ! we can just apply the linear overlap formula 
             ! as written above (i.e. multiply by cloud fraction).
             OPTD = OPTD * CLDF1D
-
-#endif
 
             ! Call FAST-JX routines to compute J-values
             CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
@@ -443,24 +439,13 @@
             ! Column cloud fraction (not less than zero)
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
-               
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
-            ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
+            ! NOTE: For GEOS-FP and MERRA-2 met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 
             ! NOT been multiplied by cloud fraction yet.  Therefore, we can
             ! just apply the approximate random overlap formula as written 
             ! above (i.e. multiply by cloud fraction^1.5).
             OPTD = OPTD * ( CLDF1D )**1.5e+0_fp
-            
-#else
-            ! Otherwise, OPTD is the grid-box optical depth and has 
-            ! already been multiplied by  the cloud fraction.  Therefore 
-            ! we only need to multiply by the square root of the cloud 
-            ! fraction here for the approximate random overlap option. 
-            OPTD = OPTD * SQRT( CLDF1D )
-
-#endif
 
             ! Call FAST-JX routines to compute J-values
             CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
@@ -549,9 +534,7 @@
 !                  ! Max cloud fraction
 !                  FMAX(KK) = MAXVAL( CLDF1D(KBOT(KK):KTOP(KK)) )
 !
-!#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-!
-!                  ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
+!                  ! NOTE: for the GEOS-FP and MERRA-2 met fields (i.e. with
 !                  ! optical depth & cloud fractions regridded with RegridTau)
 !                  ! OPTD is the in-cloud optical depth.  At this point it has
 !                  ! NOT been multiplied by cloud fraction yet.  Therefore,
@@ -560,17 +543,6 @@
 !                  ! ODNEW is adjusted in-cloud OD vertical distrib.
 !                  ODNEW(KBOT(KK):KTOP(KK)) = OPTD(KBOT(KK):KTOP(KK))
 !
-!#else
-!
-!                  ! Otherwise, OPTD is the grid-box optical depth.  
-!                  ! Therefore, we must divide out by the cloud fraction
-!                  ! and thus set ODNEW = OPTD / FMAX. (bmy, hyl, 10/24/08)
-!
-!                  ! ODNEW is adjusted in-cloud OD vertical distrib.
-!                  ODNEW(KBOT(KK):KTOP(KK)) = OPTD(KBOT(KK):KTOP(KK)) / 
-!     &                                       FMAX(KK)
-!
-!#endif
 !               ENDDO
 !            
 !               !--------------------------------------------------------

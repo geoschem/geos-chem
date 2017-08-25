@@ -207,6 +207,9 @@
 !  28 Jun 2016 - M. Sulprizio- Add species ID's for L*RO2N/H and LISOP* to
 !                              replace uses of IL*RO2N/H and ILISOP* from
 !                              comode_loop_mod.F
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
+!                              MERRA; Also remove functions GET_VCLDF and
+!                              GET_LWC, they're no longer needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -315,9 +318,6 @@
       REAL(fp), ALLOCATABLE :: TERP_ORGC(:,:)
       REAL(fp), ALLOCATABLE :: CO_ANTH(:,:)
 #endif 
-      ! Cloud fraction - for cloud droplet uptake of dicarbonyls 
-      ! (tmf, 12/07/07) 
-      REAL(fp), ALLOCATABLE :: VCLDF(:,:,:)
 
       ! Diagnostic that tracks how much SOA is formed/evaporated
       ! (hotp 6/5/10)
@@ -1854,7 +1854,6 @@
       USE State_Met_Mod,      ONLY : MetState
       USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,      GET_MONTH
-      USE TIME_MOD,           ONLY : ITS_TIME_FOR_BPCH
 !
 ! !INPUT PARAMETERS:
 !
@@ -6754,156 +6753,6 @@ ccc
 
       END FUNCTION GET_DOH
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_vcldf
-!
-! !DESCRIPTION: Subroutine GET\_VCLDF computes the volume cloud fraction for
-!  SO2 chemistry. (rjp, bdf, bmy, 9/23/02)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GET_VCLDF( State_Met )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE State_Met_Mod,      ONLY : MetState
-!
-! !INPUT PARAMETERS:
-!
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !REMARKS:
-!  References:
-!  ============================================================================
-!  (1) Sundqvist et al. [1989]
-!
-! !REVISION HISTORY:
-!  (1 ) Copied from 'sulfate_mod.f' for cloud uptake of GLYX and MGLY (tmf,
-!       2/26/07)
-!  14 Jan 2011 - R. Yantosca - Return if VCLDF is not allocated
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
-!                              State_Met%PEDGE and State_Met%PMID.
-!                              Remove dependency on pressure_mod.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-      REAL(fp),  PARAMETER :: ZRT = 0.60e+0_fp
-      REAL(fp),  PARAMETER :: ZRS = 0.99e+0_fp
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: I,    J,    L
-      REAL(fp)             :: PRES, PSFC, RH2, R0, B0
-
-      !=================================================================
-      ! GET_VCLDF begins here!
-      !=================================================================
-
-      ! Exit if we VCLDF is not allocated.  We will now get the cloud
-      ! fraction from the GEOS-5 or MERRA met fields. (skim, bmy, 1/14/10)
-      IF ( .not. ALLOCATED( VCLDF ) ) RETURN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, PSFC, PRES, RH2, R0, B0 )
-      DO L = 1, LLCHEM
-      DO J = 1, JJPAR 
-      DO I = 1, IIPAR
-
-         ! Surface pressure
-         PSFC = State_Met%PEDGE(I,J,1)
-
-         ! Pressure at the center of the grid box
-         PRES = State_Met%PMID(I,J,L)
-
-         ! RH (from "dao_mod.f") is relative humidity [%]
-         ! Convert to fraction and store in RH2
-         RH2  = State_Met%RH(I,J,L) * 1.0e-2_fp
-
-         ! Terms from Sundqvist ???
-         R0   = ZRT + ( ZRS - ZRT ) * EXP( 1e+0_fp - 
-     &          ( PSFC / PRES )**2.5 )
-         B0   = ( RH2 - R0 ) / ( 1e+0_fp - R0 )
-   
-         ! Force B0 into the range 0-1
-         IF ( RH2 < R0  ) B0 = 0e+0_fp
-         IF ( B0  > 1e+0_fp ) B0 = 1e+0_fp
-
-         ! Volume cloud fraction
-         VCLDF(I,J,L) = 1e+0_fp - SQRT( 1e+0_fp - B0 )
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE GET_VCLDF
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_lwc
-!
-! !DESCRIPTION: Function GET\_LWC returns the cloud liquid water content
-!  [g H2O/m3 air] at a GEOS-CHEM grid box as a function of temperature.
-!  (rjp, bmy, 10/31/02, 1/14/03)
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_LWC( T ) RESULT( LWC )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL(fp), INTENT(IN) :: T     ! Temperature [K]
-!
-! !RETURN VALUE:
-!
-      REAL(fp)             :: LWC   ! Cloud liquid water content [g H2O/m3 air]
-!
-! !REVISION HISTORY:
-!  (1 ) Copied from 'sulfate_mod.f' for cloud uptake of GLYX and MGLY (tmf, 2/26/07)
-!  18 Jan 2011 - R. Yantosca - Updated comments
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-      !=================================================================
-      ! GET_LWC begins here!
-      !=================================================================
-
-      ! Compute Liquid water content in [g/m3]
-      IF ( T > 293e+0_fp ) THEN
-         LWC = 0.2e+0_fp
-
-      ELSE IF ( T >= 280.e+0_fp .AND. T <= 293.e+0_fp ) THEN
-         LWC = 0.32e+0_fp - 0.0060e+0_fp * ( T - 273.e+0_fp ) 
- 
-      ELSE IF ( T >= 248.e+0_fp .AND. T < 280.e+0_fp ) THEN
-         LWC = 0.23e+0_fp + 0.0065e+0_fp * ( T - 273.e+0_fp )
-
-      ELSE IF ( T < 248.e+0_fp ) THEN
-         LWC = 0.07e+0_fp
-
-      ENDIF
-
-      END FUNCTION GET_LWC
-!EOC
 !==============================================================================
 ! Prior to 6/13/17:
 ! This code has been moved to calcrate.F (eam, 2014):
@@ -7041,13 +6890,6 @@ ccc
 !         ! GET gas mixing ratio [v/v]
 !         XGASMIX = XGASM / XMW / ( XAIRM / AIRMW )
 !
-!#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-!
-!         !---------------------------------------------
-!         ! GEOS-5/MERRA: Get LWC, FC from met fields
-!         ! (skim, bmy, 1/14/11)
-!         !---------------------------------------------
-!
 !         ! Get cloud fraction from met fields
 !         FC      = State_Met%CLDF(I,J,L)
 !
@@ -7058,19 +6900,6 @@ ccc
 !
 !         !%%% NOTE: Someone should investigate effect of dividing LWC by the
 !         !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
-!
-!#else
-!         !---------------------------------------------
-!         ! Otherwise, compute FC, LWC as before
-!         !---------------------------------------------
-!
-!         ! Volume cloud fraction (Sundqvist et al 1989) [unitless]
-!         FC      = VCLDF(I,J,L)
-!
-!         ! Liquid water content in cloudy area of grid box [g/m3]
-!         LWC     = GET_LWC( XTEMP ) * FC
-!
-!#endif
 !
 !         !==============================================================
 !         ! If (1) there is cloud, (2) there is GLYX present, and 
@@ -7279,13 +7108,6 @@ ccc
 !         ! GET gas mixing ratio [v/v]
 !         XGASMIX = XGASM / XMW / ( XAIRM / AIRMW )
 !
-!#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-!
-!         !---------------------------------------------
-!         ! GEOS-5/MERRA: Get LWC, FC from met fields
-!         ! (skim, bmy, 1/14/11)
-!         !---------------------------------------------
-!
 !         ! Get cloud fraction from met fields [unitless]
 !         FC      = State_Met%CLDF(I,J,L)
 !
@@ -7293,19 +7115,6 @@ ccc
 !         ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
 !         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) *
 !     &             1e+3_fp
-!
-!#else
-!         !---------------------------------------------
-!         ! Otherwise, compute FC, LWC as before
-!         !---------------------------------------------
-!
-!         ! Volume cloud fraction (Sundqvist et al 1989) [unitless]
-!         FC      = VCLDF(I,J,L)
-!
-!         ! Liquid water content in cloudy area of grid box [g/m3]
-!         LWC     = GET_LWC( XTEMP ) * FC
-!
-!#endif
 !
 !         !==============================================================
 !         ! If (1) there is cloud, (2) there is MGLY present, and 
@@ -9024,14 +8833,6 @@ ccc
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
          ORVC_SESQ = 0e+0_fp
 
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
-         ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
-         ! directly from the met fields.  (skim, bmy, 1/14/10)
-         ALLOCATE( VCLDF( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'VCLDF' )
-         VCLDF = 0e+0_fp
-#endif
-
          ! diagnostic  (dkh, 11/11/06) 
          ! increase last dimension by 1 to add NAP (hotp 7/22/09)
          ALLOCATE( GLOB_DARO2( IIPAR, JJPAR, LLPAR,2,4), STAT=AS )
@@ -9107,7 +8908,6 @@ ccc
       IF ( ALLOCATED( OCCONV        ) ) DEALLOCATE( OCCONV        )
       IF ( ALLOCATED( TCOSZ         ) ) DEALLOCATE( TCOSZ         )
       IF ( ALLOCATED( ORVC_SESQ     ) ) DEALLOCATE( ORVC_SESQ     )
-      IF ( ALLOCATED( VCLDF         ) ) DEALLOCATE( VCLDF         )
       IF ( ALLOCATED( GLOB_DARO2    ) ) DEALLOCATE( GLOB_DARO2    )
       IF ( ALLOCATED( POAEMISS      ) ) DEALLOCATE( POAEMISS      )
       IF ( ALLOCATED( GLOB_POGRXN   ) ) DEALLOCATE( GLOB_POGRXN   )

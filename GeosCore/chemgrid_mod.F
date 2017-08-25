@@ -67,6 +67,8 @@
 !  20 Feb 2014 - M. Sulprizio  - Removed "define.h", this is now obsolete
 !  21 Feb 2014 - M. Sulprizio  - Now make INIT_CHEMGRID a public function
 !  06 Nov 2014 - M. Yannetti   - Added PRECISION_MOD
+!  24 Aug 2017 - M. Sulprizio  - Remove support for GCAP, GEOS-4, GEOS-5 and
+!                                MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1084,7 +1086,6 @@
 !                              State_Met%PEDGE and State_Met%PMID.
 !                              Remove dependency on pressure_mod.
 !  21 Jan 2016 - E. Lundgren - Update diagnostic for netcdf output using HEMCO
-
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
@@ -1094,15 +1095,9 @@
 ! !LOCAL VARIABLES:
 !
       !Scalars
-      INTEGER :: I, J, L
-
-      ! Met-specific variables
-#if defined( GCAP )
-      REAL(fp)  :: H(IIPAR,JJPAR,LLPAR)
-#else
+      INTEGER   :: I, J, L
       INTEGER   :: L_TP
       REAL(fp)  :: H, FRAC, Pb, Pt
-#endif
 
 #if defined( NC_DIAG )
       ! NetCDF diagnostic variables
@@ -1135,79 +1130,12 @@
       Ptr2d => NULL()
 #endif
       
-#if defined( GCAP)
       !=================================================================
-      ! %%%%% GCAP MET FIELDS ONLY %%%%%
-      !
-      ! We compute tropopause pressure from the tropopause level (which 
-      ! is taken from the thermally-derived annual mean tropopause data 
-      ! read from disk).
-      !
-      ! NOTE: Keep the existing algorithm for backwards compatibility.
-      !=================================================================
-
-      ! Find height of the midpoint of the first level
-      ! H (in m) is the height of the midpoint of layer L (hyl, 03/28/99)
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         H(I,J,1) = State_Met%BXHEIGHT(I,J,1) / 2.e+0_fp
-      ENDDO
-      ENDDO
-
-      ! Add to H 1/2 of the sum of the two adjacent boxheights
-      DO L = 1, LLPAR-1
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         H(I,J,L+1) = H(I,J,L) + 
-     &               ( State_Met%BXHEIGHT(I,J,L) +
-     &                 State_Met%BXHEIGHT(I,J,L+1) ) / 2.e+0_fp
-      ENDDO
-      ENDDO
-      ENDDO
-
-      !=================================================================
-      ! ND55: Tropopause level, height [ km ], and pressure [ mb ]
-      !=================================================================
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Get the tropopause level
-         L           = GET_TPAUSE_LEVEL( I, J, State_Met )
-
-         ! If we are using the variable tropopause, then (I,J,L) is the
-         ! highest purely tropospheric grid box.  The grid box in which
-         ! the tropopause actually occurs is then (I,J,L+1).
-         IF ( LVARTROP ) L = L + 1
-
-#if defined( BPCH_DIAG )
-         ! Archive level at which tropopause occurs
-         AD55(I,J,1) = AD55(I,J,1) + L
-
-         ! Archive tropopause height [km]
-         AD55(I,J,2) = AD55(I,J,2) + H(I,J,L) / 1.0e+3_fp ! m --> km
-
-         ! We have to estimate the tropopause pressure from the 
-         ! tropopause level.  Archive the pressure at the midpoint
-         ! of the level in which the tropopause occurs.  NOTE: this may
-         ! result in lower minimum tropopause pressure than reality.
-         AD55(I,J,3) = AD55(I,J,3) + State_Met%PMID(I,J,L)
-#endif
-#if defined( NC_DIAG )
-         TRPAUSE_L(I,J) = L                       ! tropopause level
-         TRPAUSE_H(I,J) = H(I,J,L) / 1.0e+3_fp    ! tropopause height [km]
-         TRPAUSE_P(I,J) = State_Met%PMID(I,J,L)   ! tropopause press [hPa]
-#endif
-      ENDDO
-      ENDDO
-#else
-      !=================================================================
-      ! %%%%% GEOS-4, GEOS-5, GEOS-FP, MERRA, MERRA2 met fields %%%%%
-      !
       ! We get tropopause pressure directly from the met field archive
       ! Compute tropopause height to be consistent w/ the pressure
       !=================================================================
 
-         ! Loop over surface grid boxes
+      ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L_TP, H, Pb, Pt, FRAC )
@@ -1292,8 +1220,6 @@
          ENDIF 
  
       ENDDO
-#endif
-
 #endif
 
       END SUBROUTINE DIAG_TROPOPAUSE

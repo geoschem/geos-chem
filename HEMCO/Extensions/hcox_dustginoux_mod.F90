@@ -808,6 +808,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  11 Dec 2013 - C. Keller   - Initial version 
 !  25 Sep 2014 - R. Yantosca - Updated for TOMAS
+!  24 Aug 2017 - M. Sulprizio- Remove support for GRID1x1
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -823,19 +824,6 @@ CONTAINS
     ! All 4x5 simulations (including TOMAS)
     !-----------------------------------------------------------------------
     CH_DUST  = 9.375d-10
-
-#elif defined( GRID1x1 ) && defined( NESTED_CH )
-
-    !-----------------------------------------------------------------------
-    ! Note: monthly emission over the China nested-grid domain is about
-    !       2 times higher compared to the same domain in 4x5 resolution
-    !       Thus applying 1/2  factor to correct the emission.
-    !
-    !%%% NOTE: MAY NEED TO UPDATE THIS STATEMENT FOR HIGHER RESOLUTION
-    !%%% NESTED GRIDS.  THIS WAS ORIGINALLY DONE FOR THE GEOS-3 1x1
-    !%%% NESTED GRID.  LOOK INTO THIS LATER.  (bmy, 9/25/14)
-    !-----------------------------------------------------------------------
-    CH_DUST  = 9.375d-10 * 0.5d0
 
 #else
 

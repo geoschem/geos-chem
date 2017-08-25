@@ -2432,10 +2432,6 @@ CONTAINS
     ! This is not currently used, but keep for possible later use/editing
     Collection = Input_Opt%DIAG_COLLECTION
 
-    ! For now, only update if GEOS-FP or MERRA2 since diagnostics
-    ! for those are stored in State_Met and are therefore accessible here.
-#if defined( GEOS_FP ) || defined ( MERRA2 )
-
     ! Set number of 3D and 2D MET diagnostics that are updated 
     Num2d = 23
     Num3d = 14
@@ -2642,8 +2638,6 @@ CONTAINS
           CALL ERROR_STOP( MSG, LOC ) 
        ENDIF
     ENDDO
-
-#endif
 
   END SUBROUTINE DiagnUpdate_Met
 !EOC

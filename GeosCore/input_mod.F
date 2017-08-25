@@ -153,6 +153,9 @@
 !  28 Jul 2016 - M. Sulprizio- Rename subroutine READ_TRACER_MENU to
 !                              READ_ADVECTED_SPECIES_MENU
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
+!                              MERRA; Also remove LUNZIP, LWAIT, and TEMP_DIR
+!                              options since they were only used for BPCH met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -704,8 +707,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LUNZIP
-      LOGICAL            :: LWAIT,   LVARTROP
+      LOGICAL            :: LVARTROP
       INTEGER            :: I0,      J0
       INTEGER            :: N,       NDIAGTIME
       INTEGER            :: NYMDb,   NHMSb 
@@ -746,25 +748,9 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:7' )
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%DATA_DIR
 
-      ! GCAP subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:8' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%GCAP_DIR
-
-      ! GEOS-4 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:9' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%GEOS_4_DIR
-
-      ! GEOS-5 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:10' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%GEOS_5_DIR
-
-      ! GEOS-5.7.x subdir
+      ! GEOS-FP subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%GEOS_FP_DIR
-
-      ! MERRA subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%MERRA_DIR
 
       ! MERRA2 subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
@@ -810,29 +796,15 @@
       ! Define resolution-specific directory name RES_DIR
       !-----------------------------------------------------------------
 #if   defined( GRID4x5 )
-# if defined( GCAP )
-      Input_Opt%RES_DIR = 'GCAP_4x5/'
-# else
       Input_Opt%RES_DIR = 'GEOS_4x5/'
-# endif
 #elif defined( GRID2x25 ) 
       Input_Opt%RES_DIR = 'GEOS_2x2.5/'
-#elif defined( GRID1x125 ) 
-      Input_Opt%RES_DIR = 'GEOS_1x1.25/'
-#elif defined( GRID1x1 ) 
-      Input_Opt%RES_DIR = 'GEOS_1x1/'
 #elif defined( GRID05x0625 ) && defined( NESTED_AS )
       Input_Opt%RES_DIR = 'GEOS_0.5x0.625_AS/'
 #elif defined( GRID05x0625 ) && defined( NESTED_EU )
       Input_Opt%RES_DIR = 'GEOS_0.5x0.625_EU/'
 #elif defined( GRID05x0625 ) && defined( NESTED_NA )
       Input_Opt%RES_DIR = 'GEOS_0.5x0.625_NA/'
-#elif defined( GRID05x0666 ) && defined( NESTED_CH )
-      Input_Opt%RES_DIR = 'GEOS_0.5x0.666_CH/'
-#elif defined( GRID05x0666 ) && defined( NESTED_EU )
-      Input_Opt%RES_DIR = 'GEOS_0.5x0.666_EU/'
-#elif defined( GRID05x0666 ) && defined( NESTED_NA )
-      Input_Opt%RES_DIR = 'GEOS_0.5x0.666_NA/'
 #elif defined( GRID025x03125 ) && defined( NESTED_CH ) 
       Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_CH/'
 #elif defined( GRID025x03125 ) && defined( NESTED_EU ) 
@@ -845,37 +817,13 @@
       ! Append the resolution specific directory name 
       ! to each of the met field subdirectories
       !-----------------------------------------------------------------
-      Input_Opt%GCAP_DIR    = 'GCAP_4x5/'                   // 
-     &                        TRIM( Input_Opt%GCAP_DIR    )
-
-      Input_Opt%GEOS_4_DIR  = TRIM( Input_Opt%RES_DIR     ) //
-     &                        TRIM( Input_Opt%GEOS_4_DIR  )
-
-      Input_Opt%GEOS_5_DIR  = TRIM( Input_Opt%RES_DIR     ) //
-     &                        TRIM( Input_Opt%GEOS_5_DIR  )
-
       Input_Opt%GEOS_FP_DIR = TRIM( Input_Opt%RES_DIR     ) //
      &                        TRIM( Input_Opt%GEOS_FP_DIR )
-
-      Input_Opt%MERRA_DIR  =  TRIM( Input_Opt%RES_DIR     ) //
-     &                        TRIM( Input_Opt%MERRA_DIR   )
 
       Input_Opt%MERRA2_DIR =  TRIM( Input_Opt%RES_DIR     ) //
      &                        TRIM( Input_Opt%MERRA2_DIR  )
 
 !##############################################################################
-
-      ! Temp dir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TEMP_DIR
-
-      ! Unzip met fields
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
-      READ( SUBSTRS(1:N), *     ) LUNZIP
-
-      ! Wait for met fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
-      READ( SUBSTRS(1:N), *     ) LWAIT
 
       ! Variable Tropopause
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
@@ -888,14 +836,6 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
-
-      !=================================================================
-      ! Add safety checks for logical switches
-      !=================================================================
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-      ! Turn unzipping off for MERRA met fields
-      LUNZIP = .FALSE. 
-#endif
 
       !=================================================================
       ! Set fields of Input Options object
@@ -951,8 +891,6 @@
       Input_Opt%NYMDe         = NYMDe
       Input_Opt%NHMSe         = NHMSe
 #endif
-      Input_Opt%LUNZIP        = LUNZIP
-      Input_Opt%LWAIT         = LWAIT
       Input_Opt%LVARTROP      = LVARTROP
 
       !=================================================================
@@ -982,24 +920,14 @@
      &                    TRIM( Input_Opt%CHEM_INPUTS_DIR )
          WRITE( 6, 110 ) 'Resolution-specific dir     : ',
      &                    TRIM( Input_Opt%RES_DIR )
-         WRITE( 6, 110 ) 'GCAP       sub-directory    : ', 
-     &                    TRIM( Input_Opt%GCAP_DIR )
-         WRITE( 6, 110 ) 'GEOS-4     sub-directory    : ', 
-     &                    TRIM( Input_Opt%GEOS_4_DIR )
-         WRITE( 6, 110 ) 'GEOS-5     sub-directory    : ', 
-     &                    TRIM( Input_Opt%GEOS_5_DIR )
          WRITE( 6, 110 ) 'GEOS-FP    sub-directory    : ', 
      &                    TRIM( Input_Opt%GEOS_FP_DIR )
-         WRITE( 6, 110 ) 'MERRA      sub-directory    : ', 
-     &                    TRIM( Input_Opt%MERRA_DIR )
+         WRITE( 6, 110 ) 'MERRA-2    sub-directory    : ', 
+     &                    TRIM( Input_Opt%MERRA2_DIR )
          WRITE( 6, 110 ) '1x1 Emissions etc Data Dir  : ',
      &                    TRIM( Input_Opt%DATA_DIR_1x1 )
-         WRITE( 6, 110 ) 'Temporary Directory         : ', 
-     &                    TRIM( Input_Opt%TEMP_DIR )
          WRITE( 6, 110 ) 'Input restart file          : ', 
      &                    TRIM( Input_Opt%IN_RST_FILE )
-         WRITE( 6, 120 ) 'Unzip met fields?           : ', LUNZIP
-         WRITE( 6, 120 ) 'Wait for met fields?        : ', LWAIT
          WRITE( 6, 120 ) 'Use variable tropopause?    : ', LVARTROP
          WRITE( 6, 120 ) 'Is this a nested-grid sim?  : ', 
      &                    Input_Opt%ITS_A_NESTED_GRID
@@ -1155,10 +1083,8 @@
       JNP           = JM_WORLD           ! Lat index of N pole
       DLON          = 5.0e+0_fp          ! Delta-longitude array [degrees]
       DLAT          = 4.0e+0_fp          ! Delta-latitude array [degrees]
-# if !defined( GCAP )
-      DLAT(:,JSP,:) = 2.0e+0_fp          !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 2.0e+0_fp          !  Half-sized N Pole boxes
-# endif
+      DLAT(:,JSP,:) = 2.0e+0_fp          ! Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 2.0e+0_fp          ! Half-sized N Pole boxes
 
 #elif defined( GRID2x25 )
 
@@ -1169,48 +1095,8 @@
       JNP           = JM_WORLD           ! Lat index of N pole
       DLON          = 2.5e+0_fp          ! Delta-longitude array [degrees]
       DLAT          = 2.0e+0_fp          ! Delta-latitude array [degrees]
-# if !defined( GCAP )
-      DLAT(:,JSP,:) = 1.0e+0_fp          !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 1.0e+0_fp          !  Half-sized N Pole boxes
-# endif
-
-#elif defined( GRID1x125 )
-
-      !-----------------------------
-      ! Global 1 x 1.25 grid
-      !-----------------------------
-      JSP           = 1                  ! Lat index of S Pole
-      JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 1.25e+0_fp         ! Delta-longitude array [degrees]
-      DLAT          = 1.0e+0_fp          ! Delta-latitude array [degrees]
-# if !defined( GCAP )
-      DLAT(:,JSP,:) = 0.5e+0_fp          !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 0.5e+0_fp          !  Half-sized N Pole boxes
-# endif
-
-#elif defined( GRID1x1 )
-
-      !-----------------------------
-      ! Global 1 x 1 
-      !-----------------------------
-      JSP           = 1                  ! Lat index of S Pole
-      JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 1.0e+0_fp          ! Delta-longitude array [degrees]
-      DLAT          = 1.0e+0_fp          ! Delta-latitude array [degrees]
-# if !defined( GCAP )
-      DLAT(:,JSP,:) = 0.5e+0_fp          !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 0.5e+0_fp          !  Half-sized N Pole boxes
-# endif
-
-#elif defined( GRID05x0666 )
-
-      !-------------------=---------
-      ! Nested 0.5 x 0.666 grids
-      !-----------------------------
-      JSP           = 0                  ! Lat index of S Pole
-      JNP           = 0                  ! Lat index of N pole
-      DLON          = 2e+0_fp/3e+0_fp    ! Delta-longitude array [degrees]
-      DLAT          = 0.5e+0_fp          ! Delta-latitude array [degrees]
+      DLAT(:,JSP,:) = 1.0e+0_fp          ! Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 1.0e+0_fp          ! Half-sized N Pole boxes
 
 #elif defined( GRID05x0625 )
 
@@ -2376,22 +2262,6 @@
          LSETNOYSTRAT   = .FALSE.
          LSETCFC        = .FALSE. 
       ENDIF
-      
-#if    defined( GCAP )
-
-      !--------------------------------
-      ! GCAP error message 
-      !--------------------------------
-
-      IF ( Input_Opt%LOTDLOC ) THEN
-            MSG = 'Lightning rescaling not available nor very ' //
-     &            'appropriate for GCAP sim because of window ' // 
-     &            'of OTD/LIS satellite observations.  Select ' //
-     &            'one of the raw params without redist.'
-         CALL ERROR_STOP( MSG, LOC )
-       ENDIF
-
-#endif
 
 #if defined( MASSCONS )
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2749,14 +2619,6 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_future_menu:4' )
-
-#if   !defined( GCAP )
-      !### TEMPORARY KLUDGE: right now, future emissions are only defined
-      !### for the GCAP met fields.  Set LFUTURE=F for other met fields
-      !### for the time being.  We will implement the future emissions for
-      !### other met fields at a later date. (swu, bmy, 6/1/06)
-      LFUTURE = .FALSE. 
-#endif
 
       !=================================================================
       ! Set fields of Input Options object
@@ -3424,24 +3286,6 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:6' )
 
       !=================================================================
-      ! Further error checks and initializations
-      !=================================================================
-
-#if !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
-      ! The non-local PBL scheme is valid only with GEOS-5/MERRA/GEOS-FP
-      IF ( LNLPBL ) THEN
-         IF( am_I_Root ) THEN
-            WRITE(6,*) REPEAT( '=', 79 )
-            WRITE(6,*) 'The non-local PBL scheme is only valid for'
-            WRITE(6,*) 'GEOS-5, GEOS-FP, MERRA, and MERRA2 met fields!'
-            WRITE(6,*) 'LNLPBL is automatically turned to false !'
-            WRITE(6,*) REPEAT( '=', 79 )
-         ENDIF
-         LNLPBL = .FALSE.
-      ENDIF
-#endif
-
-      !=================================================================
       ! Set fields of Input Options object
       !=================================================================
       Input_Opt%LCONV   = LCONV
@@ -3574,17 +3418,6 @@
       IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_C2H6_SIM    ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
-
-#if   defined( GEOS_FP ) || defined( MERRA2 )
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% KLUDGE FOR TESTING GEOS-FP (bmy, 3/26/12)
-      !%%% Use the Olson 2001 land map, which is at 0.25 x 0.25 resolution
-      !%%% in order to facilitate the SEAC4RS simulations.  Eventually
-      !%%% this will replace Olson 1992 for all other met field types,
-      !%%% once more rigorous testing & validation has been done.
-      Input_Opt%USE_OLSON_2001 = .TRUE.
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#endif
 
       ! Set the PBL drydep flag. This determines if dry deposition is 
       ! applied (and drydep frequencies are calculated) over the entire 
@@ -6451,17 +6284,6 @@
       !=================================================================
       ! Error checks
       !=================================================================
-#if !defined( MERRA2 ) && !defined( GEOS_FP) 
-      IF ( LWINDO_AS ) THEN
-         IF ( am_I_Root ) THEN
-            WRITE(6,*) REPEAT( '=', 79 )
-            WRITE(6,*) 'The nested AS grid only works with GEOS-FP and '
-            WRITE(6,*) 'MERRA-2 met fields! Setting LWINDO_AS to false!'
-            WRITE(6,*) REPEAT( '=', 79 )
-         ENDIF
-         LWINDO_AS = .FALSE.
-      ENDIF
-#endif
 #if defined( MERRA2 )
       IF ( LWINDO_CH ) THEN
          MSG = 'MERRA-2 is not set up for the nested CH grid, use ' //
@@ -7333,11 +7155,6 @@
       CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%CHEM_INPUTS_DIR )
       CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%RUN_DIR         )
 
-      ! Only validate the TEMP_DIR if we are unzipping met fields
-      IF ( Input_Opt%LUNZIP ) THEN
-         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TEMP_DIR )
-      ENDIF
-
       ! Only validate the TPCORE BC directory if we need it
       IF ( ITS_A_NESTED_GRID() ) THEN
 #if   defined( NESTED_NA)
@@ -7367,35 +7184,7 @@
          CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_AS )
       ENDIF
 
-#if   defined( GEOS_4 )
-
-      ! Check GEOS-4 met field directory (starting date)
-      DIR = Input_Opt%GEOS_4_DIR
-      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR )
-
-      ! Check GEOS-4 met field directory (ending date)
-      DIR = Input_Opt%GEOS_4_DIR
-      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR )
-
-#elif defined( GEOS_5 )
-
-      ! Check GEOS-5 met field directory (starting date)
-      DIR = Input_Opt%GEOS_5_DIR
-      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR )
-
-      ! Check GEOS-5 met field directory (ending date)
-      DIR = Input_Opt%GEOS_5_DIR
-      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR )
-
-#elif defined( GEOS_FP )
+#if defined( GEOS_FP )
 
       ! Check GEOS-FP met field directory (starting date)
       DIR = Input_Opt%GEOS_FP_DIR
@@ -7405,20 +7194,6 @@
 
       ! Check GEOS-FP met field directory (ending date)
       DIR = Input_Opt%GEOS_FP_DIR
-      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR )
-
-#elif defined( MERRA )
-
-      ! Check MERRA met field directory (starting date)
-      DIR = Input_Opt%MERRA_DIR
-      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR )
-
-      ! Check MERRA met field directory (ending date)
-      DIR = Input_Opt%MERRA_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
@@ -7433,20 +7208,6 @@
 
       ! Check MERRA2 met field directory (ending date)
       DIR = Input_Opt%MERRA2_DIR
-      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR )
-
-#elif defined( GCAP )
-
-      ! Check GCAP met field directory (starting date)
-      DIR = Input_Opt%GCAP_DIR
-      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR )
-
-      ! Check GCAP met field directory (ending date)
-      DIR = Input_Opt%GCAP_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
@@ -7616,11 +7377,7 @@
       MAX_DYN = 30
 #elif defined( GRID2x25  )
       MAX_DYN = 15
-#elif defined( GRID1x125 )
-      MAX_DYN = 10
-#elif defined( GRID1x1   ) 
-      MAX_DYN = 10
-#elif defined( GRID05x0666   ) || defined( GRID05x0625 )
+#elif defined( GRID05x0625 )
       MAX_DYN = 10 
 #elif defined( GRID025x03125 )
       MAX_DYN = 5

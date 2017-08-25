@@ -1354,11 +1354,6 @@
       COEF = 1.e+0_fp
 #elif defined( GRID2x25 )
       COEF = 1.e+0_fp
-#elif defined( GRID1x1  ) && defined( NESTED_CH )
-      COEF = 0.77e+0_fp
-      ! Note: monthly emission over the China nested-grid domain is about
-      !       1.3 times higher compared to the same domain in 4x5 resolution
-      !       Thus applying 1/1.30 = 0.77 factor to correct the emission.
 #else
       CALL ERROR_STOP('Adjust seasalt emiss coeff for your model res.?',
      &                'SRCSALT30: seasalt_mod.f')

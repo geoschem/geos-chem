@@ -7306,16 +7306,8 @@
                   NAME(T,66) = 'SPHU'
                   UNIT(T,66) = 'g/kg'
                CASE( 5 )
-#if   defined( GEOS_4 )
-                  NAME(T,66) = 'ZMMU'
-                  UNIT(T,66) = 'Pa/s'
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
                   NAME(T,66) = 'CMFMC'
                   UNIT(T,66) = 'kg/m2/s'
-#else
-                  NAME(T,66) = 'CLDMAS'
-                  UNIT(T,66) = 'kg/m2/s'
-#endif
                CASE( 6 )
                   NAME(T,66) = 'DTRAIN'
                   UNIT(T,66) = 'kg/m2/s'

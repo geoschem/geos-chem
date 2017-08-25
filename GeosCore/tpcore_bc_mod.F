@@ -158,6 +158,7 @@
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio- Remove support for GEOS-5 nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1308,8 +1309,8 @@
 !
 ! !REMARKS:
 !  NOTE: This routine was originally written for the 1 x 1 nested grid,
-!  but this now works for the GEOS-5 0.5 x 0.666 nested grid data.  Keep
-!  variable names I_1x1, J_1x1, etc. unchanged for the present.
+!  but this now works for other nested grid data.  Keep variable names
+!  I_1x1, J_1x1, etc. unchanged for the present.
 !                                                                             .
 !  For now we will assume that we have saved tracer concentrations from 
 !  a  4x5 window which overlays the corresponding 1x1 WINDOW REGION.  
@@ -1462,8 +1463,8 @@
 !
 ! !REMARKS:
 !  NOTE: This routine was originally written for the 1 x 1 nested grid,
-!  but this now works for the GEOS-5 0.5 x 0.666 nested grid data.  Keep
-!  variable names I_1x1, J_1x1, etc. unchanged for the present.
+!  but this now works for other nested grid data.  Keep variable names
+!  I_1x1, J_1x1, etc. unchanged for the present.
 !                                                                             .
 !  For now we will assume that we have saved tracer concentrations from 
 !  a  4x5 window which overlays the corresponding 1x1 WINDOW REGION.  
@@ -1544,8 +1545,8 @@
 !
 ! !REMARKS:
 !  NOTE: This routine was originally written for the 1 x 1 nested grid,
-!  but this now works for the GEOS-5 0.5 x 0.666 nested grid data.  Keep
-!  variable names I_1x1, J_1x1, etc. unchanged for the present.
+!  but this now works for other nested grid data.  Keep variable names
+!  I_1x1, J_1x1, etc. unchanged for the present.
 !                                                                             .
 !  For now we will assume that we have saved tracer concentrations from 
 !  a 2 x 2.5 window which overlays the corresponding NESTED WINDOW REGION.  
@@ -1697,8 +1698,8 @@
 !
 ! !REMARKS:
 !  NOTE: This routine was originally written for the 1 x 1 nested grid,
-!  but this now works for the GEOS-5 0.5 x 0.666 nested grid data.  Keep
-!  variable names I_1x1, J_1x1, etc. unchanged for the present.
+!  but this now works for other nested grid data.  Keep variable names
+!  I_1x1, J_1x1, etc. unchanged for the present.
 !                                                                             .
 !  For now we will assume that we have saved tracer concentrations from 
 !  a 2 x 2.5 window which overlays the corresponding NESTED WINDOW REGION.  
@@ -1937,12 +1938,6 @@
          I2_BC_NA = 29                       ! 4x5  lon index, UR corner
          J2_BC_NA = 41                       ! 4x5  lat index, UR corner
 
-#else
-         !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
-         I1_BC_NA = 9                        ! 4x5  lon index, LL corner
-         J1_BC_NA = 26                       ! 4x5  lat index, LL corner
-         I2_BC_NA = 29                       ! 4x5  lon index, UR corner
-         J2_BC_NA = 41                       ! 4x5  lat index, UR corner
 #endif
 
 #endif
@@ -1965,12 +1960,6 @@
          I2_BC_NA = 57                       ! 2x25 lon index, UR corner
          J2_BC_NA = 81                       ! 2x25 lat index, UR corner
 
-#else
-         !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
-         I1_BC_NA = 17                       ! 2x25 lon index, LL corner
-         J1_BC_NA = 51                       ! 2x25 lat index, LL corner
-         I2_BC_NA = 57                       ! 2x25 lon index, UR corner
-         J2_BC_NA = 81                       ! 2x25 lat index, UR corner
 #endif
 
 #endif
@@ -2032,13 +2021,6 @@
          J1_BC_CH = 27                       ! 4x5 lat index, LL corner
          I2_BC_CH = 65                       ! 4x5 lon index, UR corner
          J2_BC_CH = 37                       ! 4x5 lat index, UR corner
-#else
-         !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
-         !%%%%% GEOS-5 CHINA NESTED GRID (GEOS-5 only) %%%%%
-         I1_BC_CH = 51                       ! 4x5 lon index, LL corner
-         J1_BC_CH = 21                       ! 4x5 lat index, LL corner
-         I2_BC_CH = 67                       ! 4x5 lon index, UR corner
-         J2_BC_CH = 37                       ! 4x5 lat index, UR corner
 #endif
 
 #endif
@@ -2053,13 +2035,6 @@
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 53                       ! 2x25 lat index, LL corner
          I2_BC_CH = 129                      ! 2x25 lon index, UR corner
-         J2_BC_CH = 74                       ! 2x25 lat index, UR corner
-#else
-         !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
-         !%%%%% GEOS-5 CHINA NESTED GRID (GEOS-5 only)  %%%%%
-         I1_BC_CH = 101                      ! 2x25 lon index, LL corner
-         J1_BC_CH = 40                       ! 2x25 lat index, LL corner
-         I2_BC_CH = 133                      ! 2x25 lon index, UR corner
          J2_BC_CH = 74                       ! 2x25 lat index, UR corner
 #endif
 

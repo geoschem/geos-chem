@@ -61,16 +61,9 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: DATA_DIR           
      CHARACTER(LEN=255)          :: CHEM_INPUTS_DIR
      CHARACTER(LEN=255)          :: RES_DIR
-     CHARACTER(LEN=255)          :: GCAP_DIR           
-     CHARACTER(LEN=255)          :: GEOS_4_DIR         
-     CHARACTER(LEN=255)          :: GEOS_5_DIR         
      CHARACTER(LEN=255)          :: GEOS_FP_DIR        
-     CHARACTER(LEN=255)          :: MERRA_DIR          
      CHARACTER(LEN=255)          :: MERRA2_DIR          
      CHARACTER(LEN=255)          :: DATA_DIR_1x1       
-     CHARACTER(LEN=255)          :: TEMP_DIR           
-     LOGICAL                     :: LUNZIP             
-     LOGICAL                     :: LWAIT              
      LOGICAL                     :: LVARTROP           
      LOGICAL                     :: LCAPTROP
      REAL(fp)                    :: OZONOPAUSE
@@ -651,6 +644,8 @@ MODULE Input_Opt_Mod
 !                              as LOGICAL, not INTEGER.  This chokes Gfortran.
 !  03 Oct 2016 - R. Yantosca - LWINDO_CU has to be LOGICAL, not INTEGER
 !  13 Jul 2017 - E. Lundgren - Add passive species variables
+!  24 Aug 2017 - M. Sulprizio- Remove obsolete options: GCAP_DIR, GEOS_4_DIR,
+!                              GEOS_5_DIR, MERRA_DIR, TEMP_DIR, LUNZIP, LWAIT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -778,16 +773,9 @@ CONTAINS
     Input_Opt%RES_DIR                = './'
     Input_Opt%CHEM_INPUTS_DIR        = './'
     Input_Opt%RES_DIR                = './'
-    Input_Opt%GCAP_DIR               = './'
-    Input_Opt%GEOS_4_DIR             = './'
-    Input_Opt%GEOS_5_DIR             = './'
     Input_Opt%GEOS_FP_DIR            = './'
-    Input_Opt%MERRA_DIR              = './'
     Input_Opt%MERRA2_DIR             = './'
     Input_Opt%DATA_DIR_1x1           = './'      ! NOTE: Now deprecated!
-    Input_Opt%TEMP_DIR               = './'
-    Input_Opt%LUNZIP                 = .FALSE.   ! NOTE: Now deprecated!
-    Input_Opt%LWAIT                  = .FALSE.   ! NOTE: Now deprecated!
     Input_Opt%LVARTROP               = .FALSE.
     Input_Opt%LCAPTROP               = .FALSE.
     Input_Opt%OZONOPAUSE             = -999.0 

@@ -2347,31 +2347,10 @@ contains
           ! Turn off Hg(0) deposition to snow and ice because we haven't yet
           ! included emission from these surfaces and most field studies
           ! suggest Hg(0) emissions exceed deposition during sunlit hours.
-
-          ! Except in MERRA, we assume entire grid box is water or ice
-          ! if conditions are met (jaf, 4/26/11)
-          FRAC_NO_HG0_DEP = 1e+0_fp
-
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
           FRAC_NO_HG0_DEP = MIN( State_Met%FROCEAN(I,J) + &
                                  State_Met%FRSNO(I,J)   + &
                                  State_Met%FRLANDIC(I,J), 1e+0_fp)
           ZERO_HG0_DEP    = ( FRAC_NO_HG0_DEP > 0e+0_fp )
-
-#elif defined( GEOS_5 )
-          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-          ZERO_HG0_DEP = (( State_Met%LWI(I,J) == 0      )  .OR.  &
-                          ( IS_ICE ( I, J, State_Met     )) .OR.  &
-                          ( IS_LAND( I, J, State_Met     )  .AND. &
-                            State_Met%SNOMAS(I,J) > 10e+0_fp ))
-
-#else
-          ! GEOS1-4 snow heigt (water equivalent) in mm
-          ZERO_HG0_DEP = (( State_Met%LWI(I,J) == 0      )  .OR.  &
-                          ( IS_ICE ( I, J, State_Met     )) .OR.  &
-                          ( IS_LAND( I, J, State_Met     )  .AND. &
-                            State_Met%SNOW(I,J)   > 10e+0_fp ))
-#endif
           
           IF ( IS_Hg .AND. SpcInfo%Is_Hg0 ) THEN
              IF ( ZERO_HG0_DEP ) THEN

@@ -81,6 +81,7 @@ MODULE HCOI_GC_Main_Mod
 !  20 Jun 2016 - R. Yantosca - Now define species ID's as module variables
 !                              so that we can define them in HCOI_GC_INIT
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1131,15 +1132,9 @@ CONTAINS
             'ALBD_FOR_EMIS',    HCRC, FIRST, State_Met%ALBD )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-#if defined ( GCAP )
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%WLI, &
-             'WLI_FOR_EMIS',    HCRC, FIRST, State_Met%LWI_GISS  )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-#else
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%WLI, &
              'WLI_FOR_EMIS',    HCRC, FIRST, State_Met%LWI  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
-#endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%T2M, &
              'T2M_FOR_EMIS',    HCRC, FIRST, State_Met%TS   )
@@ -1181,21 +1176,9 @@ CONTAINS
             'PSC2_WET_FOR_EMIS', HCRC, FIRST, State_Met%PSC2_WET  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-    ! NOTE: State_Met%RADSWG is net radiation at ground for all
-    ! MET fields except GEOS-FP and MERRA2. For those data sets,
-    ! net radiation was not processed and so we use incident radiation 
-    ! at ground (SWGDN). For simplicity we store radiation as a single 
-    ! variable in HEMCO. SWGDN is also available for MERRA but is not 
-    ! used in HEMCO to preserve legacy usage of net radiation (ewl, 9/23/15)
-#if defined ( GEOS_FP ) || defined( MERRA2 )
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%RADSWG, &
            'RADSWG_FOR_EMIS',   HCRC, FIRST, State_Met%SWGDN  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
-#else
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%RADSWG, &
-           'RADSWG_FOR_EMIS',   HCRC, FIRST, State_Met%RADSWG  )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-#endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRCLND, &
            'FRCLND_FOR_EMIS',   HCRC, FIRST, State_Met%FRCLND  )
@@ -1205,27 +1188,6 @@ CONTAINS
             'CLDFRC_FOR_EMIS',   HCRC, FIRST, State_Met%CLDFRC  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-#if defined( GEOS_4 ) 
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
-          'SNOWHGT_FOR_EMIS',   HCRC, FIRST, State_Met%SNOW     )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNODP, &
-            'SNODP_FOR_EMIS',   HCRC, FIRST, State_Met%SNOW   )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-#elif defined ( GCAP )
-   CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
-         'SNOWHGT_FOR_EMIS',   HCRC, FIRST, State_Met%SNOW     )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNODP, &
-            'SNODP_FOR_EMIS',   HCRC, FIRST, State_Met%SNOW   )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNICE, &
-            'SNICE_FOR_EMIS',   HCRC, FIRST, State_Met%SNICE  )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-#else
     ! SNOWHGT is is mm H2O, which is the same as kg H2O/m2.
     ! This is the unit of SNOMAS.
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
@@ -1236,7 +1198,6 @@ CONTAINS
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNODP, &
             'SNODP_FOR_EMIS',   HCRC, FIRST, State_Met%SNODP  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
-#endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRLAND, &
            'FRLAND_FOR_EMIS',   HCRC, FIRST, State_Met%FRLAND  )
@@ -2399,9 +2360,7 @@ CONTAINS
        CALL ERROR_STOP( 'GetExtOpt +TOMS_SBUV_O3+', LOC, INS )
     ENDIF
 
-#if defined( GEOS_FP ) || defined( MERRA2 )
-    
-    ! Disable for GEOS-FP met fields no matter what it is set to in the 
+    ! Disable TOMS/SBUV O3 no matter what it is set to in the 
     ! HEMCO configuration file unless it is a mercury simulation done 
     ! with photo-reducible HgII(aq) to UV-B radiation turned on (jaf)
     IF ( Input_Opt%ITS_A_MERCURY_SIM .and.   &
@@ -2414,47 +2373,6 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP( 'AddExtOpt GEOS-FP +TOMS_SBUV_O3+', LOC, INS )
     ENDIF
-
-#else
-
-    IF ( FOUND ) THEN
-
-       ! Print a warning if this collection is defined in the HEMCO config
-       ! file, but is set to a value inconsistent with input.geos file.
-       IF ( Input_Opt%LCHEM .neqv. LTMP .and.                       &
-            .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
-          WRITE(*,*) ' '
-          WRITE(*,*) 'Setting +TOMS_SBUV_O3+ in the HEMCO configuration'
-          WRITE(*,*) 'file does not agree with the chemistry settings'
-          WRITE(*,*) 'in input.geos. This may be inefficient and/or' 
-          WRITE(*,*) 'may yield wrong results!' 
-       ENDIF
-
-    ELSE
-
-       ! If this collection is not found in the HEMCO config file, then
-       ! activate it only for those simulations that use photolysis 
-       ! (e.g. fullchem or aerosol) and only when chemistry is turned on,
-       ! or when a mercury simulation is done with photo-reducible
-       ! HgII(aq) to UV-B radiation turned on.
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
-            Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-          IF ( Input_Opt%LCHEM ) THEN
-             OptName = '+TOMS_SBUV_O3+ : true'
-          ENDIF
-       ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM .and. &
-                 Input_Opt%LKRedUV ) THEN
-          OptName = '+TOMS_SBUV_O3+ : true'
-       ELSE
-          OptName = '+TOMS_SBUV_O3+ : false'
-       ENDIF
-       CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC )
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'AddExtOpt +TOMS_SBUV_O3+', LOC, INS )
-       ENDIF
-    ENDIF 
-
-#endif
 
     !-----------------------------------------------------------------
     ! NON-EMISSIONS DATA #5: Ocean Hg input data (for Hg sims only)

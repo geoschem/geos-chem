@@ -109,16 +109,8 @@
       ! GEOS-Chem met field I/O modules
       !-----------------------------------------------------------------
       USE DAO_MOD               ! Met field definitions
-      USE GCAP_READ_MOD         ! For reading GCAP met data
       USE GEOSFP_READ_MOD       ! For reading GEOS-FP data
       USE MERRA2_READ_MOD       ! For reading MERRA2 data
-      USE MERRA_A1_MOD          ! For reading MERRA A1 data
-      USE MERRA_A3_MOD          ! For reading MERRA A3 data
-      USE MERRA_CN_MOD          ! For reading MERRA CN data
-      USE MERRA_I6_MOD          ! For reading MERRA I6 data
-      USE A3_READ_MOD           ! For reading A3 data (all other met)
-      USE A6_READ_MOD           ! For reading A6 data (all other met)
-      USE I6_READ_MOD           ! For reading I6 data (all other met)
 #if defined( EXCHANGE )
       USE EXCHANGE_MOD          ! For two-way coupled simulations
 #endif
@@ -286,6 +278,7 @@
 !                              when we are running specialty simulations
 !  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -380,9 +373,7 @@
       LOGICAL                  :: LTRAN
       LOGICAL                  :: LTURB
       LOGICAL                  :: LUCX
-      LOGICAL                  :: LUNZIP
       LOGICAL                  :: LVARTROP
-      LOGICAL                  :: LWAIT
       LOGICAL                  :: LWETD
       LOGICAL                  :: LWINDO
       LOGICAL                  :: USE_OLSON_2001
@@ -516,12 +507,9 @@
       LTRAN               =  Input_Opt%LTRAN
       LTURB               =  Input_Opt%LTURB
       LUCX                =  Input_Opt%LUCX
-      LUNZIP              =  Input_Opt%LUNZIP
       LVARTROP            =  Input_Opt%LVARTROP
-      LWAIT               =  Input_Opt%LWAIT
       LWETD               =  Input_Opt%LWETD
       LWINDO              =  Input_Opt%LWINDO
-      USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
 
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug            = ( LPRT .and. am_I_Root )
@@ -819,7 +807,7 @@
 #endif
 
       !=================================================================
-      !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****
+      !      ***** 3 - H O U R   T I M E S T E P   L O O P  *****
       !=================================================================      
  
 #if defined( USE_TIMERS )
@@ -834,11 +822,7 @@
       WRITE( 6, '(a)' ) 
 
       ! NSTEP is the number of dynamic timesteps w/in the outer loop
-#if   defined( GEOS_FP ) || defined( MERRA2 )
-      N_DYN_STEPS = 180 / GET_TS_DYN()     ! GEOS-FP/MERRA2 have a 3hr interval
-#else
-      N_DYN_STEPS = 360 / GET_TS_DYN()     ! All other met has a 6hr interval
-#endif
+      N_DYN_STEPS = 180 / GET_TS_DYN()     ! 3hr interval
 
       ! Start a new outer loop
       DO 
@@ -1051,28 +1035,16 @@
          CALL GEOS_Timer_End( "Reading met fields",  RC )
 #endif
 
-#if   defined( GEOS_5 )
+#if defined( GEOS_FP ) || defined( MERRA2 )
 
-         ! When TOMS data is not available, then we will use
-         ! the O3 columns directly from the met fields.  
-         ! Currently, this is only done for GEOS-5 met.
-         IF ( YEAR > LAST_TOMS_YEAR ) THEN
-            Input_Opt%USE_O3_FROM_MET = .TRUE.
-         ELSE
-            Input_Opt%USE_O3_FROM_MET = .FALSE.
-         ENDIF
-
-#elif defined( GEOS_FP ) || defined( MERRA2 )
-
-         ! For GEOS-FP met, always use the O3 columns
+         ! For GEOS-FP and MERRA-2 met, always use the O3 columns
          ! from the A1 met field files (bmy, 11/14/13)
          Input_Opt%USE_O3_FROM_MET = .TRUE.
 
 #else
 
          ! When TOMS data is not available, then we will use
-         ! the TOMS data from the last valid year.  This is
-         ! done for all met field products other than GEOS-5.
+         ! the TOMS data from the last valid year.
          Input_Opt%USE_O3_FROM_MET = .FALSE.
 
 #endif
@@ -1503,7 +1475,7 @@
          ENDIF 
 
          ! Check State_Chm tracers (yxw)   
-#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
+#if defined( GRID05x0625 ) || defined( GRID025x03125 )
          CALL CHECK_SPC_NESTED( State_Chm, Input_Opt,
      &                          'after chemistry' )
 #endif 
@@ -1779,7 +1751,7 @@
          ! Sometimes tracers in the stratosphere can be negative at 
          ! the nested-grid domain edges. Force them to be zero before
          ! CHECK_SPC. (yxw)
-#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
+#if defined( GRID05x0625 ) || defined( GRID025x03125)
             CALL CHECK_SPC_NESTED( State_Chm, Input_Opt,
      &                             'End of Dynamic Loop' )
 #else
@@ -1812,24 +1784,6 @@
       !         ***** C L E A N U P   A N D   Q U I T *****
       !=================================================================
  9999 CONTINUE
-
-      ! Remove all files from temporary directory 
-      IF ( LUNZIP ) THEN
-         
-         ! Type of operation
-         ZTYPE = 'remove all'
-
-         ! Remove A3, A6, I6 fields
-         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE )
-         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE )
-         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE )
-
-#if   defined( GCAP )
-         ! Remove GCAP PHIS field (if necessary)
-         CALL UNZIP_GCAP_FIELDS( Input_Opt, ZTYPE )
-#endif
-
-      ENDIF
 
       ! Print the mass-weighted mean OH concentration (if applicable)
       CALL PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
@@ -1968,24 +1922,6 @@
      &    '   S T A R T I N G   2 x 2.5   G E O S - C H E M   '      //
      &    REPEAT( '*', 13 )
 
-#elif defined( GRID1x125 )
-      WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G   1 x 1.25   G E O S - C H E M   '     //
-     &    REPEAT( '*', 13 )
-
-#elif defined( GRID1x1 )
-      WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G   1 x 1   G E O S - C H E M   '        //
-     &    REPEAT( '*', 13 )
-
-#elif defined( GRID05x0666 )
-      WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G   0.5 x 0.666   G E O S - C H E M   '  //
-     &    REPEAT( '*', 13 )
-
 #elif defined( GRID05x0625 )
       WRITE( 6, '(a)' ) 
      &    REPEAT( '*', 13 )                                          // 
@@ -2030,18 +1966,10 @@
       !-------------------------------------------------
       ! Print met field info
       !-------------------------------------------------
-#if   defined( GEOS_4 )
-      WRITE( 6, '(a)' ) 'Using GMAO GEOS-4 met fields'
-#elif defined( GEOS_5 )
-      WRITE( 6, '(a)' ) 'Using GMAO GEOS-5 met fields'
-#elif defined( GEOS_FP )
+#if defined( GEOS_FP )
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-FP met fields'
-#elif defined( MERRA )
-      WRITE( 6, '(a)' ) 'Using GMAO MERRA met fields'
 #elif defined( MERRA2 )
-      WRITE( 6, '(a)' ) 'Using GMAO MERRA2 met fields'
-#elif defined( GCAP  )
-      WRITE( 6, '(a)' ) 'Using GCAP/GISS met fields'
+      WRITE( 6, '(a)' ) 'Using GMAO MERRA-2 met fields'
 #endif
 
       !-------------------------------------------------
@@ -2255,143 +2183,6 @@
       D = GET_FIRST_I3_TIME()
       CALL MERRA2_READ_I3_1( D(1), D(2), Input_Opt, State_Met )
 
-#elif defined( MERRA )
-
-      !=================================================================
-      !    *****  R E A D   M E R R A   M E T   F I E L D S  *****
-      !    *****  At the start of the GEOS-Chem simulation   *****
-      !
-      !    Handle MERRA met fields separately from other met products
-      !=================================================================
-
-      ! Open constant fields
-      D = (/ 20000101, 000000 /)
-      CALL OPEN_MERRA_CN_FIELDS ( D(1), D(2), Input_Opt               )
-      CALL GET_MERRA_CN_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### MAIN: a 1st MERRA CN TIME' )
-      ENDIF
-
-      ! Open and read A-1 fields
-      D = GET_FIRST_A1_TIME()
-      CALL OPEN_MERRA_A1_FIELDS ( D(1), D(2), Input_Opt, RESET=.TRUE. )
-      CALL GET_MERRA_A1_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
-      ENDIF
-
-      ! Open and read A-3 fields
-      D = GET_FIRST_A3_TIME()
-      CALL OPEN_MERRA_A3_FIELDS ( D(1), D(2), Input_Opt               )
-      CALL GET_MERRA_A3_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
-      ENDIF
-
-      ! Open & read I-6 fields
-      D = GET_FIRST_I6_TIME()
-      CALL OPEN_MERRA_I6_FIELDS ( D(1), D(2), Input_Opt               )
-      CALL GET_MERRA_I6_FIELDS_1( D(1), D(2), Input_Opt, State_Met    )
-      IF ( LPRT ) THEN 
-         CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
-      ENDIF
-
-#else
-
-      !=================================================================
-      !    *****      U N Z I P   M E T   F I E L D S        *****
-      !    ***** At at the start of the GEOS-Chem simulation *****
-      !
-      !   Here we unzip the initial GEOS-3, GEOS-4, GEOS-5, GCAP data
-      !=================================================================
-      IF ( Input_Opt%LUNZIP ) THEN
-
-         !---------------------
-         ! Remove all files
-         !---------------------
-
-         ! Type of unzip operation
-         ZTYPE = 'remove all'
-         
-         ! Remove any leftover A-3, A-6, I-6, in temp dir
-         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE )
-         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE )
-         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE )
-
-#if   defined( GCAP )
-         ! Unzip GCAP PHIS field (if necessary)
-         CALL UNZIP_GCAP_FIELDS( Input_Opt, ZTYPE )
-#endif
-
-         !---------------------
-         ! Unzip in foreground
-         !---------------------
-
-         ! Type of unzip operation
-         ZTYPE = 'unzip foreground'
-
-         ! Unzip A-3, A-6, I-6 files for START of run
-         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE, NYMDb )
-         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE, NYMDb )
-         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE, NYMDb )
-
-#if   defined( GCAP )
-         ! Unzip GCAP PHIS field (if necessary)
-         CALL UNZIP_GCAP_FIELDS( Input_Opt, ZTYPE )
-#endif
-
-         !### Debug output
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a UNZIP' )
-      ENDIF
-
-      !=================================================================
-      !      *****      R E A D   M E T   F I E L D S       *****
-      !      ***** At the start of the GEOS-Chem simulation *****
-      !
-      !  Here we read in the initial GEOS-3, GEOS-4, GEOS-5, GCAP data
-      !=================================================================
-
-      ! Open and read A-3 fields
-      D = GET_FIRST_A3_TIME()
-      CALL OPEN_A3_FIELDS ( D(1), D(2), Input_Opt, RESET=.TRUE. )
-      CALL GET_A3_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
-      ENDIF
-
-      ! Open & read A-6 fields
-      D = GET_FIRST_A6_TIME()
-      CALL OPEN_A6_FIELDS ( D(1), D(2), Input_Opt               )
-      CALL GET_A6_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )      
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
-      ENDIF
-
-      ! Open & read I-6 fields
-      D = GET_FIRST_I6_TIME()
-      CALL OPEN_I6_FIELDS ( D(1), D(2), Input_Opt               )
-      CALL GET_I6_FIELDS_1( D(1), D(2), Input_Opt, State_Met    )
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
-      ENDIF
-
-#if   defined( GCAP )
-
-      !-----------------------------------------------------------------
-      ! Read additional fields for GCAP meteorology
-      !-----------------------------------------------------------------
-
-      ! Read GCAP PHIS and LWI fields (if necessary)
-      CALL OPEN_GCAP_FIELDS( Input_Opt            )
-      CALL GET_GCAP_FIELDS ( Input_Opt, State_Met )
-
-      ! Remove temporary file (if necessary)
-      IF ( LUNZIP ) THEN
-         CALL UNZIP_GCAP_FIELDS( Input_Opt, 'remove date' )
-      ENDIF
-
-#endif
-
 #endif
 
 #if defined( RRTMG )
@@ -2480,7 +2271,7 @@
       !----------------------------------
       ! I-3 fields (3-hr instantaneous
       !----------------------------------
-      IF ( ITS_TIME_ FOR_I3() ) THEN
+      IF ( ITS_TIME_FOR_I3() ) THEN
          D = GET_I3_TIME()
          CALL GEOSFP_READ_I3_2( D(1), D(2), Input_Opt, State_Met )
 
@@ -2519,7 +2310,7 @@
       !----------------------------------
       ! I-3 fields (3-hr instantaneous
       !----------------------------------
-      IF ( ITS_TIME_ FOR_I3() ) THEN
+      IF ( ITS_TIME_FOR_I3() ) THEN
          D = GET_I3_TIME()
          CALL MERRA2_READ_I3_2( D(1), D(2), Input_Opt, State_Met )
 
@@ -2529,159 +2320,6 @@
          CALL AVGPOLE( State_Met%PS2_DRY )
 
          ! Compute avg moist pressure at polar caps 
-         CALL AVGPOLE( State_Met%PS2_WET )
-
-      ENDIF
-
-#elif defined( MERRA )
-
-      !==============================================================
-      !    ***** R E A D   M E R R A   A - 1   F I E L D S *****
-      !
-      !    The MERRA archive contains hourly surface data fields.
-      !==============================================================
-      IF ( ITS_TIME_FOR_A1() ) THEN
-
-         ! Get the date/time for the next A-3 data block
-         D = GET_A1_TIME()
-
-         ! Open & read A-3 fields
-         CALL OPEN_MERRA_A1_FIELDS ( D(1), D(2), Input_Opt            )
-         CALL GET_MERRA_A1_FIELDS  ( D(1), D(2), Input_Opt, State_Met )
-      ENDIf
-
-      !==============================================================
-      !    ***** R E A D   M E R R A   A - 3   F I E L D S *****
-      !
-      !     The MERRA archive contains 3-hourly 3-D data fields.
-      !==============================================================
-      IF ( ITS_TIME_FOR_A3() ) THEN
-         
-         ! Get the date/time for the next A-6 data block
-         D = GET_A3_TIME()
-
-         ! Open and read A-6 fields
-         CALL OPEN_MERRA_A3_FIELDS ( D(1), D(2), Input_Opt            )
-         CALL GET_MERRA_A3_FIELDS  ( D(1), D(2), Input_Opt, State_Met )
-      ENDIF
-
-      !==============================================================
-      !    ***** R E A D   M E R R A   I - 6   F I E L D S *****
-      !
-      !    The MERRA archive contains 6-hourly instantaneous data.
-      !==============================================================
-      IF ( ITS_TIME_FOR_I6() ) THEN
-
-         ! Get the date/time for the next I-6 data block
-         D = GET_I6_TIME()
-
-         ! Open and read files
-         CALL OPEN_MERRA_I6_FIELDS ( D(1), D(2), Input_Opt            )
-         CALL GET_MERRA_I6_FIELDS_2( D(1), D(2), Input_Opt, State_Met )
-
-         ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
-         ! and average as polar caps
-         CALL SET_DRY_SURFACE_PRESSURE( State_Met, 2 )
-         CALL AVGPOLE( State_Met%PS2_DRY )
-
-         ! Compute avg moist pressure at polar caps 
-         CALL AVGPOLE( State_Met%PS2_WET )
-
-      ENDIF
-
-#else
-
-      !===============================================================
-      !         ***** U N Z I P   M E T   F I E L D S *****
-      !
-      !      Some met data (except MERRA) are stored compressed.
-      !===============================================================
-      IF ( LUNZIP .and. ITS_TIME_FOR_UNZIP() ) THEN
-         
-         ! Get the date & time for 12h (720 mins) from now
-         DATE = GET_TIME_AHEAD( 720 )
-      
-         ! If LWAIT=T then wait for the met fields to be
-         ! fully unzipped before proceeding w/ the run.
-         ! Otherwise, unzip fields in the background
-         IF ( LWAIT ) THEN
-            ZTYPE = 'unzip foreground'
-         ELSE
-            ZTYPE = 'unzip background'
-         ENDIF
-         
-         ! Unzip A3, A6, I6 fields
-         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE, DATE(1) )
-         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE, DATE(1) )
-         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE, DATE(1) )
-      
-      ENDIF
-
-      !===============================================================
-      !        ***** R E M O V E   M E T   F I E L D S *****  
-      !===============================================================
-      IF ( LUNZIP .and. ITS_TIME_FOR_DEL() ) THEN
-
-         ! Type of operation
-         ZTYPE = 'remove date'
-
-         ! Remove A-3, A-6, and I-6 files only for the current date
-         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE, NYMD )
-         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE, NYMD )
-         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE, NYMD )
-
-      ENDIF  
-
-      !==============================================================
-      !          ***** R E A D   A - 3   F I E L D S *****
-      !
-      !  All met data (except MERRA) contain 3-hourly surface data.
-      !==============================================================
-      IF ( ITS_TIME_FOR_A3() ) THEN
-
-         ! Get the date/time for the next A-3 data block
-         D = GET_A3_TIME()
-
-         ! Open & read A-3 fields
-         CALL OPEN_A3_FIELDS( D(1), D(2), Input_Opt            ) 
-         CALL GET_A3_FIELDS ( D(1), D(2), Input_Opt, State_Met )
-
-      ENDIF
-
-      !==============================================================
-      !          ***** R E A D   A - 6   F I E L D S *****  
-      !
-      !      All other met fields contain 6-hourly 3-D data. 
-      !==============================================================
-      IF ( ITS_TIME_FOR_A6() ) THEN
-         
-         ! Get the date/time for the next A-6 data block
-         D = GET_A6_TIME()
-
-         ! Open and read A-6 fields
-         CALL OPEN_A6_FIELDS( D(1), D(2), Input_Opt            )
-         CALL GET_A6_FIELDS(  D(1), D(2), Input_Opt, State_Met )      
-
-      ENDIF
-
-      !==============================================================
-      !          ***** R E A D   I - 6   F I E L D S *****   
-      !==============================================================
-      IF ( ITS_TIME_FOR_I6() ) THEN
-
-         ! Get the date/time for the next I-6 data block
-         D = GET_I6_TIME()
-
-         ! Open and read files
-         CALL OPEN_I6_FIELDS ( D(1), D(2), Input_Opt            )
-         CALL GET_I6_FIELDS_2( D(1), D(2), Input_Opt, State_Met )
-
-         ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
-         ! and average as polar caps
-         CALL SET_DRY_SURFACE_PRESSURE( State_Met, 2 )
-         CALL AVGPOLE( State_Met%PS2_DRY )
-
-         ! Compute avg pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2_WET )
 
       ENDIF

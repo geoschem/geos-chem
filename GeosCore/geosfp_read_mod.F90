@@ -127,15 +127,6 @@ CONTAINS
 #elif defined( GRID2x25 ) 
     resString = '2x25.nc'
 
-#elif defined( GRID1x125 )
-    resString = '1x125.nc'
-
-#elif defined( GRID1x1 ) 
-    resString = '1x1.nc'
-
-#elif defined( GRID05x0666 )
-    resString = '05x0666.nc'
-
 #elif defined( GRID025x03125 ) && defined( NESTED_CH )
     resString = '025x03125.CH.nc'
 

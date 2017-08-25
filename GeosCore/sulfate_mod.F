@@ -160,6 +160,9 @@
 !  05 Jan 2016 - E. Lundgren   - Use global physical parameters
 !  04 Aug 2016 - M. Yannetti   - Replace TCVV with spc db MW and phys constant
 !  29 Nov 2016 - R. Yantosca   - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio  - Remove support for GCAP, GEOS-4, GEOS-5 and
+!                                MERRA; Also remove functions GET_VCLDF and
+!                                GET_LWC, they're no longer needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -221,7 +224,6 @@
       ! PSO2_DMS   : P(SO2) from DMS                  [v/v/timestep]
       ! PSO4_SO2   : P(SO4) from SO2                  [v/v/timestep]
       ! SSTEMP     : Sea surface temperatures         [K]
-      ! VCLDF      : Volume cloud frac. for SO2 aq.   [unitless]
       ! Eev        : SO2 em. from eruptive volcanoes  [kg SO2/box/s]
       ! Env        : SO2 em. from non-erup volcanoes  [kg SO2/box/s]
       ! TCOSZ      : Sum of cos(SZA) for offline run  [unitless] 
@@ -247,7 +249,6 @@
       REAL(fp),  ALLOCATABLE :: SSTEMP(:,:)
       REAL(fp),  ALLOCATABLE :: TCOSZ(:,:)
       REAL(fp),  ALLOCATABLE :: TTDAY(:,:)
-      REAL(fp),  ALLOCATABLE :: VCLDF(:,:,:)
       REAL(fp),  ALLOCATABLE :: COSZM(:,:)
 
 #if   defined( TOMAS )
@@ -300,168 +301,6 @@
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
       CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_vcldf
-!
-! !DESCRIPTION: Subroutine GET\_VCLDF computes the volume cloud fraction for
-!  SO2 chemistry. (rjp, bdf, bmy, 9/23/02)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GET_VCLDF( am_I_Root, State_Met, RC )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE ErrCode_Mod
-      USE State_Met_Mod,      ONLY : MetState
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  References:
-!  ============================================================================
-!  (1) Sundqvist et al. [1989]
-!
-! !REVISION HISTORY: 
-!  14 Jan 2011 - R. Yantosca - Return if VCLDF is not allocated
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  14 Nov 2012 - R. Yantosca - Added am_I_Root, RC arguments
-!  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE with 
-!                              State_Met%PMID and State_Met%PEDGE.
-!                              Remove dependency on pressure_mod.
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-      REAL(fp),  PARAMETER :: ZRT = 0.60e+0_fp, ZRS = 0.99e+0_fp
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: I,    J,    L
-      REAL(fp)             :: PRES, PSFC, RH2, R0, B0
-	
-      !=================================================================
-      ! GET_VCLDF begins here!
-      !=================================================================
-
-      ! Assume success
-      RC  = GC_SUCCESS
-
-      ! Exit if VCLDF is not allocated.  We will now get the cloud
-      ! fraction from the GEOS-5 or MERRA met fields. (skim, bmy, 1/14/10)
-      IF ( .not. ALLOCATED( VCLDF ) ) RETURN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, PSFC, PRES, RH2, R0, B0 )
-      DO L = 1, LLCHEM
-      DO J = 1, JJPAR 
-      DO I = 1, IIPAR
-	
-         ! Surface pressure
-         PSFC = State_Met%PEDGE(I,J,1)
-
-         ! Pressure at the center of the grid box
-         PRES = State_Met%PMID(I,J,L)
-
-         ! RH (from "dao_mod.f") is relative humidity [%]
-         ! Convert to fraction and store in RH2
-         RH2  = State_Met%RH(I,J,L) * 1.0e-2_fp
-
-         ! Terms from Sundqvist ???
-         R0   = ZRT + ( ZRS - ZRT ) * EXP( 1e+0_fp 
-     &      - ( PSFC / PRES )**2.5 )
-         B0   = ( RH2 - R0 ) / ( 1e+0_fp - R0 )
-	   
-         ! Force B0 into the range 0-1
-         IF ( RH2 < R0  ) B0 = 0e+0_fp
-         IF ( B0  > 1e+0_fp ) B0 = 1e+0_fp
-
-         ! Volume cloud fraction
-         VCLDF(I,J,L) = 1e+0_fp - SQRT( 1e+0_fp - B0 )
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE GET_VCLDF
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_lwc
-!
-! !DESCRIPTION: Function GET\_LWC returns the cloud liquid water content
-!  [m3 H2O/m3 air] at a  GEOS-CHEM grid box as a function of temperature.
-!  (rjp, bmy, 10/31/02, 1/14/03)
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_LWC( T ) RESULT( LWC )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL(fp), INTENT(IN) :: T ! Temperature value at a GEOS-CHEM grid box [K]
-!
-! !RETURN VALUE:
-!
-      REAL(fp)             :: LWC
-! 
-! !REVISION HISTORY: 
-!  18 Jan 2011 - R. Yantosca - Updated comments 
-!  22 Dec 2011 - M. Payer    - Added ProTeX header
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-
-      !=================================================================
-      ! GET_LWC begins here!
-      !=================================================================
-
-      ! Compute Liquid water content in [g/m3]
-      IF ( T > 293e+0_fp ) THEN
-         LWC = 0.2e+0_fp
-
-      ELSE IF ( T >= 280.e+0_fp .AND. T <= 293.e+0_fp ) THEN
-         LWC = 0.32e+0_fp - 0.0060e+0_fp * ( T - 273.e+0_fp ) 
- 
-      ELSE IF ( T >= 248.e+0_fp .AND. T < 280.e+0_fp ) THEN
-         LWC = 0.23e+0_fp + 0.0065e+0_fp * ( T - 273.e+0_fp )
-
-      ELSE IF ( T < 248.e+0_fp ) THEN
-         LWC = 0.07e+0_fp
-
-      ENDIF
-
-      ! Convert from [g/m3] to [m3/m3]
-      ! Units: [g H2O/m3 air] * [1 kg H2O/1000g H2O] * [m3 H2O/1000kg H2O]
-      LWC = LWC * 1.e-6_fp         
-
-      END FUNCTION GET_LWC
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -822,11 +661,6 @@
 
       ENDIF
 
-      CALL GET_VCLDF( am_I_Root, State_Met, RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: a get VCLDF' )
-      ENDIF
-
       ! SO2
       ! CHEM_SO2 now includes the effect of dust chemistry  tdf 04/07/08
       CALL CHEM_SO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -1179,11 +1013,9 @@
             TSCALE = 10.*3600.  ! 10 hours
 #elif defined( GRID2x25  )
             TSCALE = 5.*3600.
-#elif defined( GRID1x125 )
-            TSCALE = 2.*3600.
-#elif defined( GRID1x1   )
-            TSCALE = 2.*3600.
-#elif defined( GRID05x0666 )
+#elif defined( GRID05x0625 )
+            !%%% KLUDGE, just copied the 0.5 x 0.666 value
+            !%%% Someone needs to add the right value (bmy, 2/16/12)
             TSCALE = 1.*3600.
 #elif defined( GRID025x03125 )
             !%%% KLUDGE, just copied the 0.5 x 0.666 value
@@ -2993,12 +2825,6 @@
          ! Update SO2 concentration after cloud chemistry          
          ! SO2 chemical loss rate = SO4 production rate [v/v/timestep]
          !==============================================================
-#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-         !---------------------------------------------
-         ! GEOS-5/MERRA: Get LWC, FC from met fields
-         ! (jaf, bmy, 6/30/10)
-         !---------------------------------------------
 
          ! Get cloud fraction from met fields
          FC      = State_Met%CLDF(I,J,L)
@@ -3015,25 +2841,6 @@
          ! multiplying these quantities by FC AFTER computing the aqueous 
          ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)
          LWC     = SAFE_DIV( LWC, FC, 0e+0_fp )
-
-#else
-         !---------------------------------------------
-         ! Otherwise, compute FC, LWC as before
-         !---------------------------------------------
-
-         ! Volume cloud fraction (Sundqvist et al 1989) [unitless]
-         FC      = VCLDF(I,J,L)
-
-         ! Liquid water content in cloudy area of grid box [m3/m3]
-         ! LWC as returned from the GET_LWC function is the in-cloud liquid
-         ! water content.  To improve the representation of sulfate chemistry, 
-         ! we use this LWC to compute the aqueous sulfate chemistry.  We then
-         ! get the appropriate grid-box averaged mass of SO2 and sulfate by 
-         ! multiplying by FC AFTER computing the aqueous sulfur chemistry
-         ! within the cloud. (lzh, jaf, bmy, 5/27/11)
-         LWC = GET_LWC( TK )
-
-#endif
 
          ! Zero variables
          KaqH2O2 = 0.e+0_fp
@@ -7591,14 +7398,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
       SOx_SCALE = 0e+0_fp
 
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
-      ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
-      ! directly from the met fields.  (skim, bmy, 1/14/10)
-      ALLOCATE( VCLDF( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VCLDF' )
-      VCLDF = 0e+0_fp
-#endif
-
 #if   defined( TOMAS )
       ! Allocate for TOMAS microphysics
       ALLOCATE( PSO4_SO2AQ( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -7764,7 +7563,6 @@
       IF ( ALLOCATED( SSTEMP     ) ) DEALLOCATE( SSTEMP     )
       IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
       IF ( ALLOCATED( TTDAY      ) ) DEALLOCATE( TTDAY      )          
-      IF ( ALLOCATED( VCLDF      ) ) DEALLOCATE( VCLDF      )
       IF ( ALLOCATED( COSZM      ) ) DEALLOCATE( COSZM      )
 
       ! Free pointers

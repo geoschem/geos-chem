@@ -318,14 +318,12 @@
          ! Now reset timesteps here for now 
          CALL SET_CT_A1(   RESET=.TRUE. )
          CALL SET_CT_A3(   RESET=.TRUE. )
-         CALL SET_CT_A6(   RESET=.TRUE. )
          CALL SET_CT_CHEM( RESET=.TRUE. )
          CALL SET_CT_RAD ( RESET=.TRUE. )
          CALL SET_CT_CONV( RESET=.TRUE. )
          CALL SET_CT_DYN(  RESET=.TRUE. )
          CALL SET_CT_EMIS( RESET=.TRUE. )
          CALL SET_CT_I3(   RESET=.TRUE. )
-         CALL SET_CT_I6(   RESET=.TRUE. )
          CALL SET_CT_XTRA( RESET=.TRUE. )
          CALL SET_CT_DIAG( RESET=.TRUE. )
 
