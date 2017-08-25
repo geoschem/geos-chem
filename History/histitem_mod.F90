@@ -63,7 +63,10 @@ MODULE HistItem_Mod
      !----------------------------------------------------------------------
      INTEGER            :: Source_KindVal        ! Identifies the source type
 
+     REAL(f8), POINTER  :: Source_0d_8           ! Ptr to 0D 8-byte    data
+
      REAL(fp), POINTER  :: Source_1d  (:    )    ! Ptr to 1D flex-prec data
+     REAL(f8), POINTER  :: Source_1d_8(:    )    ! Ptr to 1D 8-byte    data
      REAL(f4), POINTER  :: Source_1d_4(:    )    ! Ptr to 1D 4-byte    data
      INTEGER,  POINTER  :: Source_1d_I(:    )    ! Ptr to 1D integer   data
 
@@ -79,6 +82,7 @@ MODULE HistItem_Mod
      ! Data arrays 
      !----------------------------------------------------------------------
      INTEGER            :: SpaceDim              ! # of dims (0-3)
+     REAL(f8), POINTER  :: Data_0d               ! 0D scalar
      REAL(f8), POINTER  :: Data_1d(:    )        ! 1D vector
      REAL(f8), POINTER  :: Data_2d(:,:  )        ! 2D array
      REAL(f8), POINTER  :: Data_3d(:,:,:)        ! 3D array
@@ -107,6 +111,7 @@ MODULE HistItem_Mod
 !  04 Aug 2017 - R. Yantosca - Declare Data_* accumulator arrays as REAL(fp),
 !                              which should avoid roundoff for long runs
 !  11 Aug 2017 - R. Yantosca - Remove 0d pointers and data arrays
+!  25 Aug 2017 - R. Yantosca - Added Source_0d_8 and Source_1d_8 pointers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -130,10 +135,11 @@ CONTAINS
                               LongName,     Units,          SpaceDim,        &
                               OnLevelEdges, AddOffset,      MissingValue,    &
                               ScaleFactor,  Source_KindVal, Operation,       &
-                              DimNames,     Source_1d,      Source_1d_4,     &
+                              DimNames,     Dimensions,     Source_0d_8,     &
+                              Source_1d,    Source_1d_8,    Source_1d_4,     &
                               Source_1d_I,  Source_2d,      Source_2d_4,     &
                               Source_2d_I,  Source_3d,      Source_3d_4,     &
-                              Source_3d_I,  Dimensions                      )
+                              Source_3d_I                                   )  
 !
 ! !USES:
 !
@@ -169,7 +175,9 @@ CONTAINS
                                                        
     ! Optional pointers to data targets
     INTEGER,           OPTIONAL    :: Source_KindVal     ! Type of source data
+    REAL(fp), POINTER, OPTIONAL    :: Source_0d_8        ! 0D 8-byte    data
     REAL(fp), POINTER, OPTIONAL    :: Source_1d  (:    ) ! 1D flex-prec data
+    REAL(fp), POINTER, OPTIONAL    :: Source_1d_8(:    ) ! 1D 8-byte    data
     REAL(f4), POINTER, OPTIONAL    :: Source_1d_4(:    ) ! 1D 4-byte    data
     INTEGER,  POINTER, OPTIONAL    :: Source_1d_I(:    ) ! 1D integer   data
     REAL(fp), POINTER, OPTIONAL    :: Source_2d  (:,:  ) ! 2D flex-prec data
@@ -201,6 +209,7 @@ CONTAINS
 !  24 Aug 2017 - R. Yantosca - Now size the data accumulator array from
 !                              the size of the data pointer
 !  24 Aug 2017 - R. Yantosca - Set the NcILevDim field to undefined
+!  25 Aug 2017 - R. Yantosca - Added Source_0d_8 and Source_1d_8 arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,6 +218,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: Is_DimNames
+    LOGICAL            :: Is_0d_8,    Is_1d_8
     LOGICAL            :: Is_1d,      Is_1d_4,  Is_1d_I
     LOGICAL            :: Is_2d,      Is_2d_4,  Is_2d_I
     LOGICAL            :: Is_3d,      Is_3d_4,  Is_3d_I
@@ -238,12 +248,15 @@ CONTAINS
     ENDIF
 
     ! Zero the data fields
+    Item%Data_0d     => NULL()
     Item%Data_1d     => NULL()
     Item%Data_2d     => NULL()
     Item%Data_3d     => NULL()
 
     ! Determine if the optional source pointers are passed
+    Is_0d_8          =  PRESENT( Source_0d_8 )
     Is_1d            =  PRESENT( Source_1d   )
+    Is_1d_8          =  PRESENT( Source_1d_8 )
     Is_1d_4          =  PRESENT( Source_1d_4 )
     Is_1d_I          =  PRESENT( Source_1d_I )
     Is_2d            =  PRESENT( Source_2d   )
@@ -254,7 +267,9 @@ CONTAINS
     Is_3d_I          =  PRESENT( Source_3d_I )
 
     ! Zero optional source pointers
+    IF ( Is_0d_8 ) Item%Source_0d_8 => NULL()
     IF ( Is_1d   ) Item%Source_1d   => NULL()
+    IF ( Is_1d_8 ) Item%Source_1d_8 => NULL()
     IF ( Is_1d_4 ) Item%Source_1d_4 => NULL()
     IF ( Is_1d_I ) Item%Source_1d_I => NULL()
     IF ( Is_2d   ) Item%Source_2d   => NULL()
@@ -426,10 +441,10 @@ CONTAINS
     ENDIF
 
     !========================================================================
-    ! Make sure the spatial dimension is in the range 1-3
+    ! Make sure the spatial dimension is in the range 0-3
     !========================================================================
-    IF ( SpaceDim < 1 .or. SpaceDim > 3 ) THEN
-       ErrMsg = 'SpaceDim must be in the range 1-3!'
+    IF ( SpaceDim < 0 .or. SpaceDim > 3 ) THEN
+       ErrMsg = 'SpaceDim must be in the range 0-3!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ELSE
@@ -508,6 +523,14 @@ CONTAINS
                 ENDDO
                 GOTO 99
              ENDIF
+          ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+             IF ( Is_1d_8 ) THEN
+                Item%Source_1d_8 => Source_1d_8
+                DO N = 1, Item%SpaceDim
+                   Dims(N) = SIZE( Source_1d_8, N )
+                ENDDO
+                GOTO 99
+             ENDIF
           ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
              IF ( Is_1d_4 ) THEN
                 Item%Source_1d_4 => Source_1d_4
@@ -523,6 +546,15 @@ CONTAINS
                    Dims(N) = SIZE( Source_1d_I, N )
                 ENDDO
                 GOTO 99
+             ENDIF
+          ENDIF
+
+       ! Attach pointer to 0D data source, depending on its type
+       CASE( 0 )
+          IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+             IF ( Is_0d_8 ) THEN
+                Item%Source_0d_8 => Source_0d_8
+                Dims             =  0
              ENDIF
           ENDIF
 
@@ -569,6 +601,17 @@ CONTAINS
              RETURN             
           ENDIF
 
+       ! 0-D data
+       CASE( 0 )
+          ALLOCATE( Item%Data_0d, STAT=RC )
+          IF ( RC == GC_SUCCESS ) THEN
+             Item%Data_0d  = 0.0_f8
+          ELSE
+             ErrMsg = 'Could not allocate "Item%Data_0d" variable!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN             
+          ENDIF
+
     END SELECT
 
     !=======================================================================
@@ -590,6 +633,8 @@ CONTAINS
              Item%DimNames = 'xy '
           CASE( 1 )
              Item%DimNames = 'x  '
+          CASE( 0 )
+             Item%DimNames = '-  '
        END SELECT
 
     ENDIF
@@ -655,7 +700,8 @@ CONTAINS
     !=======================================================================
 
     ! Assume success
-    RC = GC_SUCCESS
+    RC      = GC_SUCCESS
+    CellPos = ''
 
     ! Define
     IF ( PRESENT( ShortFormat ) ) THEN
@@ -677,10 +723,12 @@ CONTAINS
 
           ! Denote if the data is defined on 
           ! level edges (E) or centers (C)
-          IF ( Item%OnLevelEdges ) THEN
-             CellPos = 'E'
-          ELSE
-             CellPos = 'C'
+          IF ( Item%SpaceDim == 3 ) THEN
+             IF ( Item%OnLevelEdges ) THEN
+                CellPos = 'E'
+             ELSE
+                CellPos = 'C'
+             ENDIF
           ENDIF
 
           ! Print information
@@ -716,6 +764,10 @@ CONTAINS
           PRINT*, ''
           PRINT*, 'SpaceDim       : ', Item%SpaceDim, ' (', Item%DimNames, ')'
        
+          IF ( ASSOCIATED( Item%Data_0d ) ) THEN 
+             PRINT*, 'Value Data_0d  : ', Item%Data_0d
+          ENDIF
+
           IF ( ASSOCIATED( Item%Data_1d ) ) THEN 
              PRINT*, 'Min   Data_1d  : ', MINVAL( Item%Data_1d    )
              PRINT*, 'Max   Data_1d  : ', MAXVAL( Item%Data_1d    )

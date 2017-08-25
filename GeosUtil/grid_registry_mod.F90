@@ -42,7 +42,7 @@ MODULE Grid_Registry_Mod
 ! !PRIVATE TYPES:
 !
   ! Module variables
-  REAL(f8), ALLOCATABLE, TARGET :: Area(:,:)  ! Surface area 
+  REAL(f4), ALLOCATABLE, TARGET :: Area(:,:)  ! Surface area 
   REAL(f8), ALLOCATABLE, TARGET :: Time(:  )  ! Time
   REAL(f8), ALLOCATABLE, TARGET :: HyAm(:  )  ! Hybrid Ap at level midpoint
   REAL(f8), ALLOCATABLE, TARGET :: HyBm(:  )  ! Hybrid B  at level midpoint
@@ -52,6 +52,7 @@ MODULE Grid_Registry_Mod
   REAL(f8), ALLOCATABLE, TARGET :: ILev(:  )  ! Level interface coordinate
   REAL(f8), ALLOCATABLE, TARGET :: Lat (:  )  ! Latitude
   REAL(f8), ALLOCATABLE, TARGET :: Lon (:  )  ! Longitude
+  REAL(f8),              TARGET :: P0         ! Reference pressure
 
   ! Registry of variables contained within gc_grid_mod.F90
   CHARACTER(LEN=4)              :: State     = 'GRID'   ! Name of this state
@@ -96,6 +97,8 @@ CONtAINS
 !
 ! !REVISION HISTORY:
 !  23 Aug 2017 - R. Yantosca - Initial version
+!  25 Aug 2017 - R. Yantosca - Now register the P0 as 0-D REAL*8; AREA as
+!                              2-D REAL*4, and all others as 1-D REAL*8
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -142,10 +145,34 @@ CONtAINS
                             Description  = Desc,                             &
                             Units        = Units,                            &
                             DimNames     = 'xy',                             &
-                            Data2d       = Area,                             &
+                            Data2d_4     = Area,                             &
                             RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_AREA', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !======================================================================
+    ! Allocate and register P0
+    !======================================================================
+    Variable = 'P0'
+    Desc     = 'reference pressure'
+    Units    = 'hPa'
+
+    ! Initialize
+    P0       = 1000.0_f8
+
+    ! Register
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = Registry,                         &
+                            State        = State,                            &
+                            Variable     = Variable,                         &
+                            Description  = Desc,                             &
+                            Units        = Units,                            &
+                            DimNames     = '-',                              &
+                            Data0d_8     = P0,                               &
+                            RC           = RC                               )
+
+    CALL GC_CheckVar( 'GRID_P0', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !======================================================================
@@ -171,7 +198,7 @@ CONtAINS
                             Description  = Desc,                             &
                             Units        = Units,                            &
                             DimNames     = 't',                              &
-                            Data1d       = Time,                             &
+                            Data1d_8     = Time,                             &
                             RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_TIME', 1, RC )
@@ -202,7 +229,7 @@ CONtAINS
                             Description  = Desc,                             &
                             Units        = Units,                            &
                             DimNames     = 'z',                              &
-                            Data1d       = HyAm,                             &
+                            Data1d_8     = HyAm,                             &
                             RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_HYAM', 1, RC )
@@ -233,7 +260,7 @@ CONtAINS
                             Description  = Desc,                             &
                             Units        = Units,                            &
                             DimNames     = 'z',                              &
-                            Data1d       = HyBm,                             &
+                            Data1d_8     = HyBm,                             &
                             RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_HYBM', 1, RC )
@@ -243,7 +270,7 @@ CONtAINS
     ! Allocate and register Lev
     !======================================================================
     Variable = 'LEV'
-    Desc     = 'hybrid level at midpoints ((A/1000)+B)'
+    Desc     = 'hybrid level at midpoints ((A/P0)+B)'
     Units    = 'level'
 
     ! Allocate
@@ -253,7 +280,7 @@ CONtAINS
 
     ! Initialize
     DO L = 1, LLPAR
-       Lev(L) = ( HyAm(L) / 1000.0_f8 ) + HyBm(L)
+       Lev(L) = ( HyAm(L) / P0 ) + HyBm(L)
     ENDDO
 
     ! Register
@@ -264,7 +291,7 @@ CONtAINS
                             Description  = Desc,                             &
                             Units        = Units,                            &
                             DimNames     = 'z',                              &
-                            Data1d       = Lev,                              &
+                            Data1d_8     = Lev,                              &
                             RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_LEV', 1, RC )
@@ -296,7 +323,7 @@ CONtAINS
                             Units        = Units,                            &
                             DimNames     = 'z',                              &
                             OnLevelEdges = .TRUE.,                           &
-                            Data1d       = HyAi,                             &
+                            Data1d_8     = HyAi,                             &
                             RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_HYAI', 1, RC )
@@ -328,7 +355,7 @@ CONtAINS
                             Units        = Units,                            &
                             DimNames     = 'z',                              &
                             OnLevelEdges = .TRUE.,                           &
-                            Data1d       = HyBi,                             &
+                            Data1d_8     = HyBi,                             &
                             RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_HYBI', 1, RC )
@@ -338,7 +365,7 @@ CONtAINS
     ! Allocate and register ILev
     !======================================================================
     Variable = 'ILEV'
-    Desc     = 'hybrid level at interfaces ((A/1000)+B)'
+    Desc     = 'hybrid level at interfaces ((A/P0)+B)'
     Units    = 'level'
 
     ! Allocate
@@ -348,7 +375,7 @@ CONtAINS
 
     ! Initialize
     DO L = 1, LLPAR+1
-       ILev(L) = ( HyAi(L) / 1000.0_f8 ) + HyBi(L)
+       ILev(L) = ( HyAi(L) / P0 ) + HyBi(L)
     ENDDO
 
     ! Register
@@ -360,7 +387,7 @@ CONtAINS
                             Units        = Units,                            &
                             DimNames     = 'z',                              &
                             OnLevelEdges = .TRUE.,                           &
-                            Data1d       = ILev,                             &
+                            Data1d_8     = ILev,                             &
                             RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_ILEV', 1, RC )
@@ -391,7 +418,7 @@ CONtAINS
                             Description  = Desc,                             &
                             Units        = Units,                            &
                             DimNames     = 'y',                              &
-                            Data1d       = Lat,                              &
+                            Data1d_8     = Lat,                              &
                             RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_LAT', 1, RC )
@@ -422,7 +449,7 @@ CONtAINS
                             Description  = Desc,                             &
                             Units        = Units,                            &
                             DimNames     = 'x',                              &
-                            Data1d       = Lon,                              &
+                            Data1d_8     = Lon,                              &
                             RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_LON', 1, RC )
@@ -649,7 +676,8 @@ CONtAINS
 !
   SUBROUTINE Lookup_Grid( am_I_Root,  Variable,     RC,         Description, &
                           Dimensions, KindVal,      MemoryInKb, Rank,        &
-                          Units,      OnLevelEdges, Ptr1d,      Ptr2d       )
+                          Units,      OnLevelEdges, Ptr0d_8,    Ptr1d_8,     &
+                          Ptr2d_4                                           )
 !
 ! !USES:
 !
@@ -678,8 +706,9 @@ CONtAINS
                                                         !  edges; =F if center
 
     ! Pointers to data
-    REAL(fp),   POINTER, OPTIONAL    :: Ptr1d(:  )      ! 1D flex-prec data
-    REAL(fp),   POINTER, OPTIONAL    :: Ptr2d(:,:)      ! 2D flex-prec data
+    REAL(f8),   POINTER, OPTIONAL    :: Ptr0d_8         ! 0D 8-byte data
+    REAL(f8),   POINTER, OPTIONAL    :: Ptr1d_8(:  )    ! 1D 8-byte data
+    REAL(f4),   POINTER, OPTIONAL    :: Ptr2d_4(:,:)    ! 2D 4-byte data
 !
 ! !REMARKS:
 !  We keep the StateName variable private to this module. Users only have
@@ -718,14 +747,15 @@ CONtAINS
                           Rank         = Rank,                               &
                           Units        = Units,                              &
                           OnLevelEdges = OnLevelEdges,                       &
-                          Ptr1d        = Ptr1d,                              &
-                          Ptr2d        = Ptr2d,                              &
+                          Ptr0d_8      = Ptr0d_8,                            &
+                          Ptr1d_8      = Ptr1d_8,                            &
+                          Ptr2d_4      = Ptr2d_4,                            &
                           RC           = RC                                 )
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not find variable "' // TRIM( Variable ) // &
-               '" in the gc_grid_mod.F90 registry!'
+               '" in the grid_registry_mod.F90 registry!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF

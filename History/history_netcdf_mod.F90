@@ -376,20 +376,21 @@ CONTAINS
           ! Get the dimension ID's that are relevant to each HISTORY ITEM
           ! Also get Axis, Calendar, and Positive attributes for index vars,
           ! and replace time & date tokens in the units string for "time".
-          CALL Get_Var_DimIds( xDimId      = Container%xDimId,               &
-                               yDimId      = Container%yDimId,               &
-                               zDimId      = Container%zDimId,               &
-                               iDimId      = Container%iDimId,               &
-                               tDimId      = Container%tDimId,               &
-                               RefDate     = Container%ReferenceYmd,         &
-                               RefTime     = Container%ReferenceHms,         &
-                               Item        = Current%Item,                   &
-                               VarAxis     = VarAxis,                        &
-                               VarPositive = VarPositive,                    &
-                               VarCalendar = VarCalendar,                    &
-                               VarUnits    = VarUnits,                       &
-                               VarStdName  = VarStdName,                     &
-                               VarFormula  = VarFormula                     )
+          CALL Get_Var_DimIds( xDimId       = Container%xDimId,              &
+                               yDimId       = Container%yDimId,              &
+                               zDimId       = Container%zDimId,              &
+                               iDimId       = Container%iDimId,              &
+                               tDimId       = Container%tDimId,              &
+                               RefDate      = Container%ReferenceYmd,        &
+                               RefTime      = Container%ReferenceHms,        &
+                               OnLevelEdges = Container%OnLevelEdges,        &
+                               Item         = Current%Item,                  &
+                               VarAxis      = VarAxis,                       &
+                               VarPositive  = VarPositive,                   &
+                               VarCalendar  = VarCalendar,                   &
+                               VarUnits     = VarUnits,                      &
+                               VarStdName   = VarStdName,                    &
+                               VarFormula   = VarFormula                    )
 
           ! Define each HISTORY ITEM in this collection to the netCDF file
           CALL Nc_Var_Def( DefMode      = .TRUE.,                            &
@@ -478,16 +479,20 @@ CONTAINS
        DO WHILE( ASSOCIATED( Current ) )
 
           ! Write data for index variables to the netCDF file
-          ! AREA is the only 2-D variable
+          ! AREA is the only 2-D variable and P0 is the only scalar
           SELECT CASE( TRIM( Current%Item%Name ) ) 
              CASE( 'AREA' ) 
                 CALL Nc_Var_Write( fId     = Container%FileId,               &
                                    VarName = Current%Item%Name,              &
-                                   Arr2d   = Current%Item%Data_2d           )
+                                   Arr2d   = Current%Item%Source_2d_4       )
+             CASE( 'P0' ) 
+                CALL Nc_Var_Write( fId     = Container%FileId,               &
+                                   VarName = Current%Item%Name,              &
+                                   Arr1d   = Current%Item%Source_0d_8       )
              CASE DEFAULT 
                 CALL Nc_Var_Write( fId     = Container%FileId,               &
                                    VarName = Current%Item%Name,              &
-                                   Arr1d   = Current%Item%Data_1d           )
+                                   Arr1d   = Current%Item%Source_1d_8       )
            END SELECT
 
           ! Go to next entry in the list of HISTORY ITEMS
@@ -916,10 +921,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Var_DimIds( Item,       xDimId,      yDimId,      zDimId,   &
-                             iDimId,     tDimID,      RefDate,     RefTime,  &
-                             VarAxis,    VarCalendar, VarPositive, VarUnits, &
-                             VarStdName, VarFormula                          )  
+  SUBROUTINE Get_Var_DimIds( Item,     xDimId,      yDimId,                  &
+                             zDimId,   iDimId,      tDimID,                  &
+                             RefDate,  RefTime,     OnLevelEdges,            &
+                             VarAxis,  VarCalendar, VarPositive,             &
+                             VarUnits, VarStdName,  VarFormula              )  
 !
 ! !USES:
 !
@@ -928,26 +934,27 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    INTEGER,            INTENT(IN)  :: xDimId      ! Id # of X (lon     ) dim
-    INTEGER,            INTENT(IN)  :: yDimId      ! Id # of Y (lat     ) dim
-    INTEGER,            INTENT(IN)  :: zDimId      ! Id # of Z (lev cntr) dim
-    INTEGER,            INTENT(IN)  :: iDimId      ! Id # of I (lev edge) dim
-    INTEGER,            INTENT(IN)  :: tDimId      ! Id # of T (time    ) dim
-    INTEGER,            OPTIONAL    :: RefDate     ! Ref YMD for "time" variable
-    INTEGER,            OPTIONAL    :: RefTime     ! Ref hms for "time" variable
+    INTEGER,            INTENT(IN)  :: xDimId       ! Id # of X (lon     ) dim
+    INTEGER,            INTENT(IN)  :: yDimId       ! Id # of Y (lat     ) dim
+    INTEGER,            INTENT(IN)  :: zDimId       ! Id # of Z (lev cntr) dim
+    INTEGER,            INTENT(IN)  :: iDimId       ! Id # of I (lev edge) dim
+    INTEGER,            INTENT(IN)  :: tDimId       ! Id # of T (time    ) dim
+    INTEGER,            OPTIONAL    :: RefDate      ! Ref YMD for "time" var
+    INTEGER,            OPTIONAL    :: RefTime      ! Ref hms for "time" var
+    LOGICAL,            OPTIONAL    :: OnLevelEdges ! Is 3D data on lvl edges?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HistItem),     POINTER     :: Item        ! HISTORY ITEM object
+    TYPE(HistItem),     POINTER     :: Item         ! HISTORY ITEM object
 !
 ! !OUTPUT PARAMETERS
 !
-    CHARACTER(LEN=255), OPTIONAL    :: VarAxis     ! Axis attr for index vars
-    CHARACTER(LEN=255), OPTIONAL    :: VarCalendar ! Calendar attr for "time"
-    CHARACTER(LEN=255), OPTIONAL    :: VarPositive ! Positive attr for "lev"
-    CHARACTER(LEN=255), OPTIONAL    :: VarUnits    ! Unit string
-    CHARACTER(LEN=255), OPTIONAL    :: VarStdName  ! Standard name
-    CHARACTER(LEN=255), OPTIONAL    :: VarFormula  ! Formula terms
+    CHARACTER(LEN=255), OPTIONAL    :: VarAxis      ! Axis attr for index vars
+    CHARACTER(LEN=255), OPTIONAL    :: VarCalendar  ! Calendar attr for "time"
+    CHARACTER(LEN=255), OPTIONAL    :: VarPositive  ! Positive attr for "lev"
+    CHARACTER(LEN=255), OPTIONAL    :: VarUnits     ! Unit string
+    CHARACTER(LEN=255), OPTIONAL    :: VarStdName   ! Standard name
+    CHARACTER(LEN=255), OPTIONAL    :: VarFormula   ! Formula terms
 
 !
 ! !REMARKS:
@@ -962,16 +969,17 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: ReferenceYmd, ReferenceHms  
-    INTEGER            :: Year,         Month,        Day
-    INTEGER            :: Hour,         Minute,       Second
+    LOGICAL            :: IsOnLevelEdges
+    INTEGER            :: ReferenceYmd,   ReferenceHms  
+    INTEGER            :: Year,           Month,        Day
+    INTEGER            :: Hour,           Minute,       Second
 
     ! Strings
-    CHARACTER(LEN=2)   :: MonthStr,     DayStr 
-    CHARACTER(LEN=2)   :: HourStr,      MinuteStr,    SecondStr
+    CHARACTER(LEN=2)   :: MonthStr,       DayStr 
+    CHARACTER(LEN=2)   :: HourStr,        MinuteStr,    SecondStr
     CHARACTER(LEN=4)   :: YearStr
-    CHARACTER(LEN=255) :: TmpAxis,      TmpCalendar,  TmpStdName
-    CHARACTER(LEN=255) :: TmpPositive,  TmpUnits,     TmpFormula
+    CHARACTER(LEN=255) :: TmpAxis,        TmpCalendar,  TmpStdName
+    CHARACTER(LEN=255) :: TmpPositive,    TmpUnits,     TmpFormula
 
     !=======================================================================
     ! Initialize
@@ -1000,6 +1008,12 @@ CONTAINS
        ReferenceHms = UNDEFINED_INT
     ENDIF
 
+    IF ( PRESENT( OnLevelEdges ) ) THEN
+       IsOnLevelEdges = OnLevelEdges
+    ELSE
+       IsOnLevelEdges = .FALSE.
+    ENDIF
+
     !=======================================================================
     ! Return relevant dim ID's and metadata for the HISTORY ITEM
     !=======================================================================
@@ -1023,8 +1037,9 @@ CONTAINS
           TmpStdName    = 'atmosphere_hybrid_sigma_pressure_coordinate'
           TmpFormula    = 'a: hyam b: hybm p0: P0 ps: PS'
 
-          ! If the data is level-centered, then "lev" is the "Z" axis
-          IF ( .not. Item%OnLevelEdges ) THEN
+          ! If the collection contains is level-centered data
+          ! then "lev" (and not "ilev") is the "Z" axis
+          IF ( .not. IsOnLevelEdges ) THEN
              TmpAxis    = 'Z'
           ENDIF
 
@@ -1036,8 +1051,9 @@ CONTAINS
           TmpStdName    = 'atmosphere_hybrid_sigma_pressure_coordinate'
           TmpFormula    = 'a: hyai b: hybi p0: P0 ps: PS'
 
-          ! If the data is level-edged then "ilev" is the Z-axis
-          IF ( Item%OnLevelEdges ) THEN
+          ! If the collection contains is level-centered data
+          ! then "ilev" (and not "lev") is the "Z" axis
+          IF ( IsOnLevelEdges ) THEN
              TmpAxis    = 'Z'
           ENDIF
 
@@ -1127,6 +1143,9 @@ CONTAINS
                    Item%NcZDimId = zDimId
                 ENDIF
 
+             CASE DEFAULT
+                ! Nothing
+
           END SELECT
 
     END SELECT      
@@ -1190,17 +1209,18 @@ CONTAINS
     INTEGER                  :: Dimensions(3)
 
     ! Strings
-    CHARACTER(LEN=20)        :: ItemDimName(10)
-    CHARACTER(LEN=20)        :: ItemName(10)
-    CHARACTER(LEN=20)        :: RegistryName(10)
+    CHARACTER(LEN=20)        :: ItemDimName(11)
+    CHARACTER(LEN=20)        :: ItemName(11)
+    CHARACTER(LEN=20)        :: RegistryName(11)
     CHARACTER(LEN=255)       :: Description
     CHARACTER(LEN=255)       :: ErrMsg
     CHARACTER(LEN=255)       :: ThisLoc
     CHARACTER(LEN=255)       :: Units
 
     ! Pointer arrays
-    REAL(fp),        POINTER :: Ptr1d(:    )
-    REAL(fp),        POINTER :: Ptr2d(:,:  )
+    REAL(f8),        POINTER :: Ptr0d_8
+    REAL(f8),        POINTER :: Ptr1d_8(:    )
+    REAL(f4),        POINTER :: Ptr2d_4(:,:  )
 
     ! Objects
     TYPE(HistItem),  POINTER :: Item
@@ -1217,8 +1237,9 @@ CONTAINS
     ErrMsg       =  ''
     ThisLoc      =  &
                 ' -> at History_Netcdf_Init (in History/history_mod.F90)'
-    Ptr1d        => NULL()
-    Ptr2d        => NULL()
+    Ptr0d_8      => NULL()
+    Ptr1d_8      => NULL()
+    Ptr2d_4      => NULL()
 
     !=======================================================================
     ! Define the names that will be used to create the HISTORY ITEMS
@@ -1227,39 +1248,42 @@ CONTAINS
 
     ! Fields saved in the Registry object in GeosUtil/grid_registry_mod.F90
     RegistryName(1 ) = 'GRID_AREA'
-    RegistryName(2 ) = 'GRID_HYBI'
-    RegistryName(3 ) = 'GRID_HYAI'
-    RegistryName(4 ) = 'GRID_HYBM'
-    RegistryName(5 ) = 'GRID_HYAM'
-    RegistryName(6 ) = 'GRID_LON'
-    RegistryName(7 ) = 'GRID_LAT'
-    RegistryName(8 ) = 'GRID_ILEV'
-    RegistryName(9 ) = 'GRID_LEV'
-    RegistryName(10) = 'GRID_TIME'
+    RegistryName(2 ) = 'GRID_P0'
+    RegistryName(3 ) = 'GRID_HYBI'
+    RegistryName(4 ) = 'GRID_HYAI'
+    RegistryName(5 ) = 'GRID_HYBM'
+    RegistryName(6 ) = 'GRID_HYAM'
+    RegistryName(7 ) = 'GRID_LON'
+    RegistryName(8 ) = 'GRID_LAT'
+    RegistryName(9 ) = 'GRID_ILEV'
+    RegistryName(10) = 'GRID_LEV'
+    RegistryName(11) = 'GRID_TIME'
    
     ! Name for each HISTORY ITEM
     ItemName(1 )     = 'AREA'
-    ItemName(2 )     = 'hybi'
-    ItemName(3 )     = 'hyai'
-    ItemName(4 )     = 'hybm'
-    ItemName(5 )     = 'hyam'
-    ItemName(6 )     = 'lon'
-    ItemName(7 )     = 'lat'
-    ItemName(8 )     = 'ilev'
-    ItemName(9 )     = 'lev'
-    ItemName(10)     = 'time'
+    ItemName(2 )     = 'P0'
+    ItemName(3 )     = 'hybi'
+    ItemName(4 )     = 'hyai'
+    ItemName(5 )     = 'hybm'
+    ItemName(6 )     = 'hyam'
+    ItemName(7 )     = 'lon'
+    ItemName(8 )     = 'lat'
+    ItemName(9 )     = 'ilev'
+    ItemName(10)     = 'lev'
+    ItemName(11)     = 'time'
 
     ! Dimensions for each HISTORY ITEM
     ItemDimName(1 )  = 'xy'
-    ItemDimName(2 )  = 'z'
+    ItemDimName(2 )  = '-'
     ItemDimName(3 )  = 'z'
     ItemDimName(4 )  = 'z'
     ItemDimName(5 )  = 'z'
-    ItemDimName(6 )  = 'x'
-    ItemDimName(7 )  = 'y'
-    ItemDimName(8 )  = 'z'
+    ItemDimName(6 )  = 'z'
+    ItemDimName(7 )  = 'x'
+    ItemDimName(8 )  = 'y'
     ItemDimName(9 )  = 'z'
-    ItemDimName(10)  = 't'
+    ItemDimName(10)  = 'z'
+    ItemDimName(11)  = 't'
 
     !=======================================================================
     ! Create a HISTORY ITEM for each of the index fields (lon, lat, area)
@@ -1278,8 +1302,9 @@ CONTAINS
                          Rank         = Rank,                                &
                          Units        = Units,                               &
                          OnLevelEdges = OnLevelEdges,                        &
-                         Ptr1d        = Ptr1d,                               &
-                         Ptr2d        = Ptr2d,                               &
+                         Ptr0d_8      = Ptr0d_8,                             &
+                         Ptr1d_8      = Ptr1d_8,                             &
+                         Ptr2d_4      = Ptr2d_4,                             &
                          RC           = RC                                  )
 
        ! Trap potential error
@@ -1305,8 +1330,9 @@ CONTAINS
                              DimNames       = ItemDimName(N),                &
                              Operation      = 0,                             &
                              Source_KindVal = KindVal,                       &
-                             Source_1d      = Ptr1d,                         &
-                             Source_2d      = Ptr2d,                         &
+                             Source_0d_8    = Ptr0d_8,                       &
+                             Source_1d_8    = Ptr1d_8,                       &
+                             Source_2d_4    = Ptr2d_4,                       &
                              RC             = RC                            )
 
        ! Trap potential error
@@ -1314,16 +1340,6 @@ CONTAINS
           ErrMsg = 'Could not create Item: "' // TRIM( ItemName(N) ) // '"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
-       ENDIF
-
-       !---------------------------------------------------------------------
-       ! Copy the data from the source pointer to the data array
-       ! All variables are REAL*8 here, and AREA is the only 2-D array
-       !---------------------------------------------------------------------
-       IF ( Item%SpaceDim == 2 ) THEN
-          Item%Data_2d = Item%Source_2d
-       ELSE
-          Item%Data_1d = Item%Source_1d
        ENDIF
 
        !### Debug: Print full info about this HISTORY ITEM

@@ -52,7 +52,10 @@ MODULE HistContainer_Mod
      INTEGER                     :: nX                  ! X (or lon) dim size
      INTEGER                     :: nY                  ! Y (or lat) dim size
      INTEGER                     :: nZ                  ! Z (or lev) dim size
-
+     LOGICAL                     :: OnLevelEdges        ! =T if data is defined
+                                                        !    on level edges;
+                                                        ! =F if on centers
+     
      !----------------------------------------------------------------------
      ! List of history items in this collection
      !----------------------------------------------------------------------
@@ -181,21 +184,19 @@ CONTAINS
 !
   SUBROUTINE HistContainer_Create( am_I_Root,      Container,                &
                                    Id,             Name,                     &
-                                   nX,             nY,                       &
-                                   nZ,             RC,                       &
-                                   EpochJd,        CurrentYmd,               &
-                                   CurrentHms,     UpdateMode,               &
-                                   UpdateYmd,      UpdateHms,                &
-                                   UpdateAlarm,    Operation,                &
-                                   FileWriteYmd,   FileWriteHms,             &
-                                   FileWriteAlarm, FileCloseYmd,             & 
-                                   FileCloseHms,   FileCloseAlarm,           &
-                                   FileId,         FilePrefix,               &
-                                   FileName,       FileTemplate,             &
-                                   Conventions,    NcFormat,                 &
-                                   History,        ProdDateTime,             &
-                                   Reference,      Title,                    &
-                                   Contact                                  )
+                                   RC,             EpochJd,                  &
+                                   CurrentYmd,     CurrentHms,               &
+                                   UpdateMode,     UpdateYmd,                &
+                                   UpdateHms,      UpdateAlarm,              &
+                                   Operation,      FileWriteYmd,             &
+                                   FileWriteHms,   FileWriteAlarm,           &
+                                   FileCloseYmd,   FileCloseHms,             &
+                                   FileCloseAlarm, FileId,                   &
+                                   FilePrefix,     FileName,                 &
+                                   FileTemplate,   Conventions,              &
+                                   NcFormat,       History,                  &
+                                   ProdDateTime,   Reference,                &
+                                   Title,          Contact                  )
 !
 ! !USES:
 !
@@ -211,9 +212,6 @@ CONTAINS
     LOGICAL,             INTENT(IN)  :: am_I_Root      ! Root CPU?
     INTEGER,             INTENT(IN)  :: Id             ! Container Id #
     CHARACTER(LEN=*),    INTENT(IN)  :: Name           ! Container name
-    INTEGER,             INTENT(IN)  :: nX             ! X (or lon) dim size
-    INTEGER,             INTENT(IN)  :: nY             ! Y (or lat) dim size
-    INTEGER,             INTENT(IN)  :: nZ             ! Z (or lev) dim size
 
     !-----------------------------------------------------------------------
     ! OPTIONAL INPUTS: Time and date quantities
@@ -344,13 +342,6 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-
-    !-----------------------
-    ! nX, nY, nZ
-    !-----------------------
-    Container%nX = nX
-    Container%nY = nY
-    Container%nZ = nZ
 
     !========================================================================
     ! Optional inputs, handle these next
@@ -607,6 +598,13 @@ CONTAINS
     Container%ElapsedMin    = 0.0_f8
     Container%CurrTimeSlice = UNDEFINED_INT
     Container%TimeStamp     = 0.0_f8
+
+    ! Spatial information fields will be defined according to the
+    ! dimensions of the HISTORY TTEMS belonging to the collection
+    Container%NX            = UNDEFINED_INT
+    Container%NY            = UNDEFINED_INT
+    Container%NZ            = UNDEFINED_INT
+    Container%OnLevelEdges  = .FALSE.
 
     !=======================================================================
     ! Initialize the alarms

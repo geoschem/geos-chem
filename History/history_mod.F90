@@ -844,9 +844,6 @@ CONTAINS
           CALL HistContainer_Create( am_I_Root    = am_I_Root,               &
                                      Container    = Container,               &
                                      Id           = C,                       &
-                                     nX           = nX,                      &
-                                     nY           = nY,                      &
-                                     nZ           = nZ,                      &
                                      Name         = CollectionName(C),       &
                                      EpochJd      = JulianDate,              &
                                      CurrentYmd   = yyyymmdd,                &
@@ -1128,7 +1125,7 @@ CONTAINS
        print*, '  -> Frequency    ', TRIM( CollectionFrequency  (C) )
        print*, '  -> Acc_Interval ', TRIM( CollectionAccInterval(C) )
        print*, '  -> Duration     ', TRIM( CollectionDuration   (C) )
-       print*, '  -> Subset Dims  ', TRIM( CollectionSubsetDims (C) )
+!       print*, '  -> Subset Dims  ', TRIM( CollectionSubsetDims (C) )
        print*, '  -> Mode         ', TRIM( CollectionMode       (C) )
     ENDDO
 
@@ -1167,6 +1164,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HistContainer_Mod
     USE HistItem_Mod
+    USE History_Util_Mod,      ONLY : UNDEFINED_INT
     USE Input_Opt_Mod,         ONLY : OptInput
     USE MetaHistContainer_Mod
     USE MetaHistItem_Mod
@@ -1420,12 +1418,75 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Increment number of HISTORY ITEMS in this collection
-    Collection%nHistItems = Collection%nHistItems + 1
+    !=======================================================================
+    ! Define the dimensions of the collection from the HISTORY ITEMS,
+    ! and also whether vertical data is on the level centers or edges
+    !=======================================================================
+
+    ! Define the X dimension of the collection from the 
+    ! first HISTORY ITEM that has an X dimension
+    IF ( Collection%NX == UNDEFINED_INT ) THEN
+       SELECT CASE( Item%DimNames )
+          CASE( 'xyz', 'xz', 'xy', 'x' )
+             Collection%NX = ItemDims(1)
+          CASE DEFAULT
+             ! Nothing
+       END SELECT
+    ENDIF
+
+    ! Define the Y dimension of the collection from the
+    ! first HISTORY ITEM that has a Y dimension
+    IF ( Collection%NY == UNDEFINED_INT ) THEN
+       SELECT CASE( Item%DimNames )
+          CASE( 'xyz', 'xy' )
+             Collection%NY = ItemDims(2)
+          CASE( 'yz', 'y' )
+             Collection%NY = ItemDims(1)
+          CASE DEFAULT
+             ! Nothing
+       END SELECT
+    ENDIF
+
+    ! Define the Z dimension of the collection from the first HISTORY ITEM 
+    ! that has a Z dimension. Also define whether the collection will
+    ! contain data that is centered or edged on vertical levels.
+    IF ( Collection%NZ == UNDEFINED_INT ) THEN
+       SELECT CASE( Item%DimNames )
+          CASE( 'xyz' )
+             Collection%NZ = ItemDims(3)
+          CASE( 'xz', 'yz' )
+             Collection%NZ = ItemDims(2)
+          CASE( 'z' )
+             Collection%NZ = ItemDims(1)
+          CASE DEFAULT
+             ! Nothing
+       END SELECT
+
+       Collection%OnLevelEdges = Item%OnLevelEdges
+    ENDIF
+
+    !=======================================================================
+    ! Make sure that all the HISTORY ITEMS in this collection are 
+    ! placed on the level centers or edges, but not both.  The netCDF
+    ! COARDS/CF conventions do not allow for data on more than one 
+    ! vertical dimension per file.
+    !=======================================================================
+    IF ( Collection%OnLevelEdges .neqv. Item%OnLevelEdges ) THEN
+       ErrMsg = TRIM( Item%Name )                                   //      &
+                ' has the wrong vertical alignment for collection ' //      &
+                TRIM( Collection%Name )
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !=======================================================================
     ! Cleanup and quit
     !=======================================================================
+
+    ! Increment number of HISTORY ITEMS in this collection
+    Collection%nHistItems = Collection%nHistItems + 1
+
+    ! Free pointers
     Ptr2d   => NULL()
     Ptr2d_4 => NULL()
     Ptr2d_I => NULL()
