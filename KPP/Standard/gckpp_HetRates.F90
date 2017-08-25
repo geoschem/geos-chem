@@ -131,7 +131,7 @@ MODULE GCKPP_HETRATES
 
   ! Effective Henry's Law constant of IEPOX for reactive
   ! uptake to aqueous aerosols (M/atm)
-  REAL(fp), PARAMETER :: HSTAR_EPOX = 6.6e+6_fp
+  REAL(fp), PARAMETER :: HSTAR_EPOX = 5.0e+6_fp
 !
 ! !REMARKS:
 !  Need 
