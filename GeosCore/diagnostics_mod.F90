@@ -2900,7 +2900,10 @@ CONTAINS
             N /= Ind_('DST4' ) .AND. N /= Ind_('SALA'  ) .AND. &
             N /= Ind_('SALC' ) .AND. N /= Ind_('Br2'   ) .AND. &
             N /= Ind_('BrO'  ) .AND. N /= Ind_('CH2Br2') .AND. &
-            N /= Ind_('CH3Br') .AND. N /= Ind_('O3'    )        ) THEN
+            N /= Ind_('CH3Br') .AND. N /= Ind_('O3'    ) .AND. &
+            N /= Ind_('NAP'  ) .AND. N /= Ind_('POG1'  ) .AND. &
+            N /= Ind_('MTPA' ) .AND. N /= Ind_('BENZ'  ) .AND. &
+            N /= Ind_('TOLU' ) .AND. N /= Ind_('XYLE'  ) THEN
           ID = -1
        ENDIF
  
