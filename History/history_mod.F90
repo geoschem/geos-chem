@@ -1209,6 +1209,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL                      :: OnLevelEdges
     INTEGER                      :: KindVal
     INTEGER                      :: Rank
     INTEGER                      :: NX, NY, NZ
@@ -1263,17 +1264,18 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Chemistry State
        !--------------------------------------------------------------------
-       CALL Lookup_State_Chm(  am_I_Root   = am_I_Root,                      &
-                               State_Chm   = State_Chm,                      &
-                               Variable    = ItemName,                       &
-                               Description = Description,                    &
-                               Dimensions  = Dimensions,                     &
-                               KindVal     = KindVal,                        &
-                               Units       = Units,                          &
-                               Rank        = Rank,                           &
-                               Ptr3d       = Ptr3d,                          &
-                               Ptr3d_4     = Ptr3d_4,                        &
-                               RC          = RC                             )
+       CALL Lookup_State_Chm(  am_I_Root    = am_I_Root,                     &
+                               State_Chm    = State_Chm,                     &
+                               Variable     = ItemName,                      &
+                               Description  = Description,                   &
+                               Dimensions   = Dimensions,                    &
+                               KindVal      = KindVal,                       &
+                               Units        = Units,                         &
+                               OnLevelEdges = OnLevelEdges,                  &
+                               Rank         = Rank,                          &
+                               Ptr3d        = Ptr3d,                         &
+                               Ptr3d_4      = Ptr3d_4,                       &
+                               RC           = RC                            )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1288,17 +1290,18 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Diagnostic State 
        !--------------------------------------------------------------------
-       CALL Lookup_State_Diag( am_I_Root   = am_I_Root,                      &
-                               State_Diag  = State_Diag,                     &
-                               Variable    = ItemName,                       &
-                               Description = Description,                    &
-                               Dimensions  = Dimensions,                     &
-                               KindVal     = KindVal,                        &
-                               Rank        = Rank,                           &
-                               Units       = Units,                          &
-                               Ptr2d_4     = Ptr2d_4,                        &
-                               Ptr3d_4     = Ptr3d_4,                        &
-                               RC          = RC                             )
+       CALL Lookup_State_Diag( am_I_Root    =  am_I_Root,                    &
+                               State_Diag   = State_Diag,                    &
+                               Variable     = ItemName,                      &
+                               Description  = Description,                   &
+                               Dimensions   = Dimensions,                    &
+                               KindVal      = KindVal,                       &
+                               Rank         = Rank,                          &
+                               Units        = Units,                         &
+                               OnLevelEdges = OnLevelEdges,                  &
+                               Ptr2d_4      = Ptr2d_4,                       &
+                               Ptr3d_4      = Ptr3d_4,                       &
+                               RC           = RC                            )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1313,19 +1316,20 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Meteorology State
        !--------------------------------------------------------------------
-       CALL Lookup_State_Met(  am_I_Root   = am_I_Root,                      &
-                               State_Met   = State_Met,                      &
-                               Variable    = ItemName,                       &
-                               Description = Description,                    &
-                               Dimensions  = Dimensions,                     &
-                               KindVal     = KindVal,                        &
-                               Rank        = Rank,                           &
-                               Units       = Units,                          &
-                               Ptr2d       = Ptr2d,                          &
-                               Ptr2d_I     = Ptr2d_I,                        &
-                               Ptr3d       = Ptr3d,                          &
-                               Ptr3d_I     = Ptr3d_I,                        &
-                               RC          = RC                             )
+       CALL Lookup_State_Met(  am_I_Root    = am_I_Root,                     &
+                               State_Met    = State_Met,                     &
+                               Variable     = ItemName,                      &
+                               Description  = Description,                   &
+                               Dimensions   = Dimensions,                    &
+                               KindVal      = KindVal,                       &
+                               Rank         = Rank,                          &
+                               Units        = Units,                         &
+                               OnLevelEdges = OnLevelEdges,                  &
+                               Ptr2d        = Ptr2d,                         &
+                               Ptr2d_I      = Ptr2d_I,                       &
+                               Ptr3d        = Ptr3d,                         &
+                               Ptr3d_I      = Ptr3d_I,                       &
+                               RC           = RC                            )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1375,6 +1379,7 @@ CONTAINS
                           Name           = ItemName,                         &
                           LongName       = Description,                      &
                           Units          = Units,                            &
+                          OnLevelEdges   = OnLevelEdges,                     &
                           SpaceDim       = Rank,                             &
                           Operation      = Collection%Operation,             &
                           Source_KindVal = KindVal,                          &
@@ -1844,11 +1849,12 @@ CONTAINS
 
           END SELECT
 
-#if defined( DEBUG ) 
-          ! Debug output
-          WRITE( 6, 100 ) TRIM(Container%Name), TRIM(Item%Name), Item%nUpdates
- 100      FORMAT( a20, 1x, a20, 1x, f7.1 )
-#endif
+! Uncomment debug output if you need it!
+!#if defined( DEBUG ) 
+!          ! Debug output
+!          WRITE( 6, 100 ) TRIM(Container%Name), TRIM(Item%Name), Item%nUpdates
+! 100      FORMAT( a20, 1x, a20, 1x, f7.1 )
+!#endif
 
           ! Free pointer
           Item => NULL()

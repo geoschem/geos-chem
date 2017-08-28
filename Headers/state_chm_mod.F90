@@ -1538,10 +1538,10 @@ CONTAINS
     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
     ! Print registry info in truncated format
-    CALL Registry_Print( am_I_Root   = am_I_Root,           &
-                         Registry    = State_Chm%Registry,  &
-                         ShortFormat = ShortFormat,         &
-                         RC          = RC                  )
+    CALL Registry_Print( am_I_Root   = am_I_Root,                            &
+                         Registry    = State_Chm%Registry,                   &
+                         ShortFormat = ShortFormat,                          &
+                         RC          = RC                                   )
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1567,10 +1567,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Lookup_State_Chm( am_I_Root, State_Chm,   Variable,    &
-                               RC,        Description, Dimensions,  &
-                               KindVal,   MemoryInKb,  Rank,        &
-                               Units,     Ptr3d,       Ptr3d_4     )
+  SUBROUTINE Lookup_State_Chm( am_I_Root, State_Chm,    Variable,            &
+                               RC,        Description,  Dimensions,          &
+                               KindVal,   MemoryInKb,   Rank,                &
+                               Units,     OnLevelEdges, Ptr3d,               &
+                               Ptr3d_4                                      )
 !
 ! !USES:
 !
@@ -1595,6 +1596,9 @@ CONTAINS
     REAL(fp),            OPTIONAL    :: MemoryInKb      ! Memory usage
     INTEGER,             OPTIONAL    :: Rank            ! Size of data
     CHARACTER(LEN=255),  OPTIONAL    :: Units           ! Units of data
+    LOGICAL,             OPTIONAL    :: OnLevelEdges    ! =T if data is defined
+                                                        !    on level edges
+                                                        ! =F if on centers
 
     ! Pointers to data
     REAL(fp),   POINTER, OPTIONAL    :: Ptr3d  (:,:,:)  ! 3D flex-prec data
@@ -1606,6 +1610,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  29 Jun 2017 - R. Yantosca - Initial version
+!  28 Aug 2017 - R. Yantosca - Now add optional argument OnLevelEdges
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1625,19 +1630,20 @@ CONTAINS
     !=======================================================================
     ! Look up a variable; Return metadata and/or a pointer to the data
     !=======================================================================
-    CALL Registry_Lookup( am_I_Root   = am_I_Root,           &
-                          Registry    = State_Chm%Registry,  &
-                          State       = State_Chm%State,     &
-                          Variable    = Variable,            &
-                          Description = Description,         &
-                          Dimensions  = Dimensions,          &
-                          KindVal     = KindVal,             &
-                          MemoryInKb  = MemoryInKb,          &
-                          Rank        = Rank,                &
-                          Units       = Units,               &
-                          Ptr3d       = Ptr3d,               &
-                          Ptr3d_4     = Ptr3d_4,             &
-                          RC          = RC                  )
+    CALL Registry_Lookup( am_I_Root    = am_I_Root,                          &
+                          Registry     = State_Chm%Registry,                 &
+                          State        = State_Chm%State,                    &
+                          Variable     = Variable,                           &
+                          Description  = Description,                        &
+                          Dimensions   = Dimensions,                         &
+                          KindVal      = KindVal,                            &
+                          MemoryInKb   = MemoryInKb,                         &
+                          Rank         = Rank,                               &
+                          Units        = Units,                              &
+                          OnLevelEdges = OnLevelEdges,                       &
+                          Ptr3d        = Ptr3d,                              &
+                          Ptr3d_4      = Ptr3d_4,                            &
+                          RC           = RC                                 )
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN

@@ -3211,11 +3211,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Lookup_State_Met( am_I_Root, State_Met,   Variable,    &
-                               RC,        Description, Dimensions,  &
-                               KindVal,   MemoryInKb,  Rank,        &
-                               Units,     Ptr2d,       Ptr3d,       &
-                               Ptr2d_I,   Ptr3d_I                  )
+  SUBROUTINE Lookup_State_Met( am_I_Root, State_Met,    Variable,            &
+                               RC,        Description,  Dimensions,          &
+                               KindVal,   MemoryInKb,   Rank,                &
+                               Units,     OnLevelEdges, Ptr2d,               &
+                               Ptr3d,     Ptr2d_I,      Ptr3d_I             )
 !
 ! !USES:
 !
@@ -3240,6 +3240,9 @@ CONTAINS
     REAL(fp),            OPTIONAL :: MemoryInKb      ! Memory usage
     INTEGER,             OPTIONAL :: Rank            ! Size of data
     CHARACTER(LEN=255),  OPTIONAL :: Units           ! Units of data
+    LOGICAL,             OPTIONAL :: OnLevelEdges    ! =T if data is defined
+                                                     !    on level edges
+                                                     ! =F if on centers
 
     ! Pointers to data
     REAL(fp),   POINTER, OPTIONAL :: Ptr2d  (:,:  )  ! 2D flex-prec data
@@ -3273,21 +3276,22 @@ CONTAINS
     !=======================================================================
     ! Look up a variable; Return metadata and/or a pointer to the data
     !=======================================================================
-    CALL Registry_Lookup( am_I_Root   = am_I_Root,           &
-                          Registry    = State_Met%Registry,  &
-                          State       = State_Met%State,     &
-                          Variable    = Variable,            &
-                          Description = Description,         &
-                          Dimensions  = Dimensions,          &
-                          KindVal     = KindVal,             &
-                          MemoryInKb  = MemoryInKb,          &
-                          Rank        = Rank,                &
-                          Units       = Units,               &
-                          Ptr2d       = Ptr2d,               &
-                          Ptr3d       = Ptr3d,               &
-                          Ptr2d_I     = Ptr2d_I,             &
-                          Ptr3d_I     = Ptr3d_I,             &
-                          RC          = RC                  )
+    CALL Registry_Lookup( am_I_Root    = am_I_Root,                         &
+                          Registry     = State_Met%Registry,                &
+                          State        = State_Met%State,                   &
+                          Variable     = Variable,                          &
+                          Description  = Description,                       &
+                          Dimensions   = Dimensions,                        &
+                          KindVal      = KindVal,                           &
+                          MemoryInKb   = MemoryInKb,                        &
+                          Rank         = Rank,                              &
+                          Units        = Units,                             &
+                          OnLevelEdges = OnLevelEdges,                      &
+                          Ptr2d        = Ptr2d,                             &
+                          Ptr3d        = Ptr3d,                             &
+                          Ptr2d_I      = Ptr2d_I,                           &
+                          Ptr3d_I      = Ptr3d_I,                           &
+                          RC           = RC                                )
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
