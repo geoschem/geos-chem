@@ -1821,7 +1821,7 @@
 
          ! Write HISTORY ITEMS in each diagnostic collection to disk
          ! (or skip writing if it is not the proper output time.
-         CALL History_Write( am_I_Root, RC )
+         CALL History_Write( am_I_Root, State_Chm%Spc_Units, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "History_Write"!'
             CALL Error_Stop( ErrMsg, ThisLoc )

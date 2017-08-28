@@ -126,12 +126,14 @@ MODULE HistContainer_Mod
      !----------------------------------------------------------------------
      ! netCDF file identifiers and attributes
      !----------------------------------------------------------------------
+     LOGICAL                     :: FirstInst           ! 1st inst file write?
      INTEGER                     :: FileId              ! netCDF file ID
      INTEGER                     :: xDimId              ! X (or lon ) dim ID
      INTEGER                     :: yDimId              ! Y (or lat ) dim ID
      INTEGER                     :: zDimId              ! Z (or lev ) dim ID
      INTEGER                     :: iDimId              ! I (or ilev) dim ID
      INTEGER                     :: tDimId              ! T (or time) dim ID
+     CHARACTER(LEN=20)           :: Spc_Units           ! Units of SC%Species
      CHARACTER(LEN=255)          :: FilePrefix          ! Filename prefix
      CHARACTER(LEN=255)          :: FileTemplate        ! YMDhms template
      CHARACTER(LEN=255)          :: FileName            ! Name of nc file
@@ -163,6 +165,7 @@ MODULE HistContainer_Mod
 !  21 Aug 2017 - R. Yantosca - Removed *_AlarmCheck, *_AlarmSet routines
 !  24 Aug 2017 - R. Yantosca - Added iDimId as the dimension ID for ilev,
 !                               which is the vertical dimension on interfaces
+!  28 Aug 2017 - R. Yantosca - Added SpcUnits, FirstInst to type HistContainer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -283,7 +286,7 @@ CONTAINS
 !  21 Aug 2017 - R. Yantosca - Reorganize arguments, now define several time
 !                              fields from EpochJd, CurrentYmd, CurrentHms
 !  21 Aug 2017 - R. Yantosca - Now define initial alarm intervals and alarms
-
+!  28 Aug 2017 - R. Yantosca - Now initialize Container%Spc_Units to null str
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -578,7 +581,7 @@ CONTAINS
     ! Set other fields to initial or undefined values
     !=======================================================================
     
-    ! These fields won't get defined until we open the netCDF file
+    ! These fields won't get defined until we open/write the netCDF file
     Container%IsFileDefined = .FALSE.
     Container%IsFileOpen    = .FALSE.
     Container%FileId        = UNDEFINED_INT
@@ -587,7 +590,8 @@ CONTAINS
     Container%zDimId        = UNDEFINED_INT
     Container%iDimId        = UNDEFINED_INT
     Container%tDimId        = UNDEFINED_INT
-    
+    Container%Spc_Units     = ''
+
     ! Set the other time/date fields from EpochJd, CurrentYmd, CurrentHms
     Container%CurrentJd     = Container%EpochJd
     Container%ReferenceJd   = Container%EpochJd
@@ -605,6 +609,16 @@ CONTAINS
     Container%NY            = UNDEFINED_INT
     Container%NZ            = UNDEFINED_INT
     Container%OnLevelEdges  = .FALSE.
+    
+    ! If the collection is instantaneous, then set a flag to denote that
+    ! first the netCDF file reference date/time should be the start-of-the- 
+    ! simulation time.  This will ensure that all timestamps and filenames
+    ! for instantaneous collections are consistent.
+    IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
+       Container%FirstInst  = .TRUE.
+    ELSE
+       Container%FirstInst  = .FALSE.
+    ENDIF
 
     !=======================================================================
     ! Initialize the alarms

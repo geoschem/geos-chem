@@ -181,12 +181,13 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HistContainer_Mod,  ONLY : HistContainer, HistContainer_Print
-    USE HistItem_Mod,       ONLY : HistItem,      HistItem_Print
-    USE JulDay_Mod,         ONLY : CalDate
+    USE HistContainer_Mod,   ONLY : HistContainer, HistContainer_Print
+    USE HistItem_Mod,        ONLY : HistItem,      HistItem_Print
+    USE JulDay_Mod,          ONLY : CalDate
     USE History_Util_Mod
-    USE MetaHistItem_Mod,   ONLY : MetaHistItem
+    USE MetaHistItem_Mod,    ONLY : MetaHistItem
     USE Ncdf_Mod
+    USE Registry_Params_MOd, ONLY : KINDVAL_F4
 !
 ! !INPUT PARAMETERS: 
 !
@@ -207,6 +208,8 @@ CONTAINS
 !  14 Aug 2017 - R. Yantosca - Call History_Netcdf_Close from 1 level higher
 !  21 Aug 2017 - R. Yantosca - Now get yyyymmdd & hhmmms from the Container
 !  24 Aug 2017 - R. Yantosca - Now can save data on vertical interfaces
+!  28 Aug 2017 - R. Yantosca - Now make sure AREA is written as REAL(f4)
+!  28 Aug 2017 - R. Yantosca - Replace "TBD" in units w/ species units
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -218,6 +221,7 @@ CONTAINS
     INTEGER                     :: VarXDimId,  VarYDimId
     INTEGER                     :: VarZDimId,  VarTDimId
     INTEGER                     :: yyyymmdd,   hhmmss
+    INTEGER                     :: DataType
 
     ! Strings                   
     CHARACTER(LEN=5)            :: Z
@@ -269,13 +273,37 @@ CONTAINS
        ! Reset the current time slice index
        Container%CurrTimeSlice = 0
 
-       ! Subtract the file write interval that we added
-       Container%ReferenceJd   = Container%CurrentJd  
-
        IF ( Container%Operation == ACCUM_FROM_SOURCE ) THEN
-          Container%ReferenceJd = Container%ReferenceJd                      &
+
+          !-----------------------------
+          ! TIME-AVERAGED COLLECTIONS
+          !----------------------------- 
+
+          ! Subtract the file write alarm interval that we added to
+          ! the current date/time (CurrentJd) field at initialization
+          Container%ReferenceJd = Container%CurrentJd                        &
                                 - ( Container%FileWriteIvalMin /             &
                                     MINUTES_PER_DAY                         )
+
+       ELSE
+
+          !-----------------------------
+          ! INSTANTANEOUS COLLECTIONS
+          !----------------------------- 
+         
+          ! If this is the first time we are writing a file, then set
+          ! the reference date/time to the date/time at the start of
+          ! the simulation (EpochJd).  This will make sure the file names
+          ! and timestamps in all instantaneous files will be consistent.
+          ! For all future file writes, set the reference date/time to the
+          ! current date/time (CurrentJd).
+          IF ( Container%FirstInst ) THEN
+             Container%ReferenceJd = Container%EpochJd
+             Container%FirstInst   = .FALSE.
+          ELSE
+             Container%ReferenceJd = Container%CurrentJd
+          ENDIF
+
        ENDIF
 
        ! Recompute the ReferenceYmd and ReferenceHms fields
@@ -392,11 +420,18 @@ CONTAINS
                                VarStdName   = VarStdName,                    &
                                VarFormula   = VarFormula                    )
 
+          ! Set a flag for the precision of the data
+          IF ( Current%Item%Source_KindVal == KINDVAL_F4 ) THEN
+             DataType = 4
+          ELSE
+             DataType = 8
+          ENDIF
+
           ! Define each HISTORY ITEM in this collection to the netCDF file
           CALL Nc_Var_Def( DefMode      = .TRUE.,                            &
                            Compress     = .TRUE.,                            &
                            fId          = Container%FileId,                  &
-                           DataType     = 8,                                 &
+                           DataType     = DataType,                          &
                            VarName      = Current%Item%Name,                 &
                            VarCt        = Current%Item%NcVarId,              &
                            timeId       = Current%Item%NcTDimId,             &
@@ -434,12 +469,19 @@ CONTAINS
 
           ! Get the dimension ID's that are relevant to each HISTORY ITEM
           ! and save them in fields of the HISTORY ITEM
-          CALL Get_Var_DimIds( xDimId = Container%xDimId,                    &
-                               yDimId = Container%yDimId,                    &
-                               zDimId = Container%zDimId,                    &
-                               iDimId = Container%iDimId,                    &
-                               tDimId = Container%tDimId,                    &
-                               Item   = Current%Item                        )
+          CALL Get_Var_DimIds( xDimId   = Container%xDimId,                  &
+                               yDimId   = Container%yDimId,                  &
+                               zDimId   = Container%zDimId,                  &
+                               iDimId   = Container%iDimId,                  &
+                               tDimId   = Container%tDimId,                  &
+                               Item     = Current%Item,                      &
+                               VarUnits = VarUnits                          )
+
+
+          ! Replace "TBD"  with the current units of State_Chm%Species
+          IF ( TRIM( VarUnits ) == 'TBD' ) THEN
+             VarUnits = Container%Spc_Units
+          ENDIF
 
           ! Define each HISTORY ITEM in this collection 
           ! as a variable in the netCDF file
@@ -454,7 +496,7 @@ CONTAINS
                            latId        = Current%Item%NcYDimId,             &
                            lonId        = Current%Item%NcXDimId,             &
                            VarLongName  = Current%Item%LongName,             &
-                           VarUnit      = Current%Item%Units,                &
+                           VarUnit      = VarUnits,                          &
                            MissingValue = Current%Item%MissingValue,         &
                            AvgMethod    = Current%Item%AvgMethod            )
            
@@ -479,21 +521,29 @@ CONTAINS
        DO WHILE( ASSOCIATED( Current ) )
 
           ! Write data for index variables to the netCDF file
-          ! AREA is the only 2-D variable and P0 is the only scalar
-          SELECT CASE( TRIM( Current%Item%Name ) ) 
-             CASE( 'AREA' ) 
-                CALL Nc_Var_Write( fId     = Container%FileId,               &
-                                   VarName = Current%Item%Name,              &
-                                   Arr2d   = Current%Item%Source_2d_4       )
-             CASE( 'P0' ) 
-                CALL Nc_Var_Write( fId     = Container%FileId,               &
-                                   VarName = Current%Item%Name,              &
-                                   Arr1d   = Current%Item%Source_0d_8       )
-             CASE DEFAULT 
-                CALL Nc_Var_Write( fId     = Container%FileId,               &
-                                   VarName = Current%Item%Name,              &
-                                   Arr1d   = Current%Item%Source_1d_8       )
-           END SELECT
+          IF ( Current%Item%SpaceDim == 2 ) THEN
+
+             ! AREA is the only 2-D array (4-byte precison)
+             CALL Nc_Var_Write( fId     = Container%FileId,                  &
+                                VarName = Current%Item%Name,                 &
+                                Arr2d   = Current%Item%Source_2d_4          )
+
+          ELSE IF ( Current%Item%SpaceDim == 1 ) THEN
+
+             ! All other index fields are 1-D (8-byte precision) ...
+             CALL Nc_Var_Write( fId     = Container%FileId,                  &
+                                VarName = Current%Item%Name,                 &
+                                Arr1d   = Current%Item%Source_1d_8          )
+
+
+          ELSE 
+
+             ! ... except P0, which is a scalar (8-byte precision)
+             CALL Nc_Var_Write( fId     = Container%FileId,                  &
+                                VarName = Current%Item%Name,                 &
+                                Var     = Current%Item%Source_0d_8          )
+
+          ENDIF
 
           ! Go to next entry in the list of HISTORY ITEMS
           Current => Current%Next

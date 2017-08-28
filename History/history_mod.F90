@@ -1692,6 +1692,9 @@ CONTAINS
        ! Test if the "UpdateAlarm" is ringing
        DoUpdate = ( ( Container%UpdateAlarm - Container%ElapsedMin ) < EPS )
 
+       ! Force updating on the first instantaneous file open time
+       IF ( Container%FirstInst ) DoUpdate = .TRUE.
+
        ! Skip to next collection if it isn't
        IF ( .not. DoUpdate ) THEN
           Container  => NULL()
@@ -1896,7 +1899,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Write( am_I_Root, RC )
+  SUBROUTINE History_Write( am_I_Root, Spc_Units, RC )
 !
 ! !USES:
 !
@@ -1911,11 +1914,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+    LOGICAL,          INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    CHARACTER(LEN=*), INTENT(IN)  :: Spc_Units   ! Units of SC%Species array 
 !
 ! !OUTPUT PARAMETERS: 
 !
-    INTEGER, INTENT(OUT) :: RC        ! Success or failure
+    INTEGER,          INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REMARKS:
 !  This routine is called from the main program at the end of each 
@@ -1924,6 +1928,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
 !  21 Aug 2017 - R. Yantosca - Now get yyyymmdd, hhmmss from the container
+!  28 Aug 2017 - R. Yantosca - Now save the species units to the container
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1935,6 +1940,7 @@ CONTAINS
     LOGICAL                          :: DoWrite
 
     ! Strings
+    CHARACTER(LEN=20)                :: TmpUnits
     CHARACTER(LEN=255)               :: ErrMsg
     CHARACTER(LEN=255)               :: ThisLoc
 
@@ -1985,6 +1991,12 @@ CONTAINS
        ! It is time to create a new netCDF file (closing the old one)
        !====================================================================
        IF ( DoClose ) THEN
+
+          ! Save the units of State_Chm%Species in the container, 
+          ! so that we can redefine the unit string from "TBD".
+          ! Copy into a temp variable so that Gfortran won't choke.
+          TmpUnits            = Spc_Units
+          Container%Spc_Units = TmpUnits
          
           !-----------------------------------------------------------------
           ! If the netCDF file specified by this collection is open, 
