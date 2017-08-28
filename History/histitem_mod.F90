@@ -88,6 +88,7 @@ MODULE HistItem_Mod
      REAL(f8), POINTER  :: Data_3d(:,:,:)        ! 3D array
      CHARACTER(LEN=3)   :: DimNames              ! Used to specify if data is
                                                  !  "xyz", "yz", "x", "y" etc.
+     INTEGER, POINTER   :: NcChunkSizes(:)       ! Chunk sizes for netCDF
      LOGICAL            :: OnLevelEdges          ! =T if data is defined on
                                                  !    vertical level edges;
                                                  ! =F if on level centers
@@ -210,6 +211,7 @@ CONTAINS
 !                              the size of the data pointer
 !  24 Aug 2017 - R. Yantosca - Set the NcILevDim field to undefined
 !  25 Aug 2017 - R. Yantosca - Added Source_0d_8 and Source_1d_8 arguments
+!  28 Aug 2017 - R. Yantosca - Now define the NcChunkSizes field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -451,6 +453,31 @@ CONTAINS
        Item%SpaceDim = SpaceDim
     ENDIF
 
+    !=======================================================================
+    ! Set the DimNames field of the HISTORY ITEM
+    !=======================================================================
+    IF ( PRESENT( DimNames ) ) THEN
+
+       ! If the DimNames argument was passed, use it
+       Item%DimNames = DimNames
+
+    ELSE
+
+       ! Set default values if the DimNames argument isn't passed
+       ! Most of the time we deal with either xy or xyz spatial data
+       SELECT CASE( Item%SpaceDim )
+          CASE( 3 )
+             Item%DimNames = 'xyz'
+          CASE( 2 )
+             Item%DimNames = 'xy '
+          CASE( 1 )
+             Item%DimNames = 'x  '
+          CASE( 0 )
+             Item%DimNames = '-  '
+       END SELECT
+
+    ENDIF
+
     !========================================================================
     ! Attach pointers to the data source.  Also get the values of NX, NY, 
     ! and NZ from the relevant source pointer if they were not passed.
@@ -568,8 +595,12 @@ CONTAINS
     ! Allocate data field, based on SpaceDim
     SELECT CASE( Item%SpaceDim )
        
+       !------------
        ! 3-D data
+       !------------
        CASE( 3 )
+
+          ! Allocate the data array
           ALLOCATE( Item%Data_3d( Dims(1), Dims(2), Dims(3) ), STAT=RC )
           IF ( RC == GC_SUCCESS ) THEN
              Item%Data_3d = 0.0_f8
@@ -578,8 +609,20 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
+
+          ! Allocate the NcChunkSizes array
+          ALLOCATE( Item%NcChunkSizes( 4 ), STAT=rC )
+          IF ( RC == GC_SUCCESS ) THEN
+             Item%NcChunkSizes = (/ Dims(1), Dims(2), 1, 1 /)
+          ELSE
+             ErrMsg = 'Could not allocate "Item%NcChunkSizes" array!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
           
+       !------------
        ! 2-D data
+       !------------
        CASE( 2 )
           ALLOCATE( Item%Data_2d( Dims(1), Dims(2) ), STAT=RC )
           IF ( RC == GC_SUCCESS ) THEN
@@ -590,7 +633,24 @@ CONTAINS
              RETURN
           ENDIF
 
+          ! Allocate the NcChunkSizes array
+          ALLOCATE( Item%NcChunkSizes( 3 ), STAT=rC )
+          IF ( RC == GC_SUCCESS ) THEN
+             IF ( TRIM( Item%DimNames ) == 'xy' ) THEN
+                Item%NcChunkSizes = (/ Dims(1), Dims(2), 1 /)   ! xy
+             ELSE
+                Item%NcChunkSizes = (/ Dims(1), 1,       1 /)   ! xz or yz
+             ENDIF
+
+          ELSE
+             ErrMsg = 'Could not allocate "Item%NcChunkSizes" array!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+       !------------
        ! 1-D data
+       !------------
        CASE( 1 )
           ALLOCATE( Item%Data_1d( Dims(1) ), STAT=RC )
           IF ( RC == GC_SUCCESS ) THEN
@@ -601,7 +661,23 @@ CONTAINS
              RETURN             
           ENDIF
 
+          ! Allocate the NcChunkSizes array
+          ALLOCATE( Item%NcChunkSizes( 2 ), STAT=rC )
+          IF ( RC == GC_SUCCESS ) THEN
+             IF ( TRIM( Item%DimNames ) == 'z' ) THEN
+                Item%NcChunkSizes = (/ 1,       1 /)   ! z
+             ELSE
+                Item%NcChunkSizes = (/ Dims(1), 1 /)   ! x or y
+             ENDIF
+          ELSE
+             ErrMsg = 'Could not allocate "Item%NcChunkSizes" array!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+       !------------
        ! 0-D data
+       !------------
        CASE( 0 )
           ALLOCATE( Item%Data_0d, STAT=RC )
           IF ( RC == GC_SUCCESS ) THEN
@@ -613,31 +689,6 @@ CONTAINS
           ENDIF
 
     END SELECT
-
-    !=======================================================================
-    ! Set the DimNames field of the HISTORY ITEM
-    !=======================================================================
-    IF ( PRESENT( DimNames ) ) THEN
-       
-       ! If the DimNames argument was passed, use it
-       Item%DimNames = DimNames
-       
-    ELSE
-       
-       ! Set default values if the DimNames argument isn't passed
-       ! Most of the time we deal with either xy or xyz spatial data
-       SELECT CASE( Item%SpaceDim )
-          CASE( 3 )
-             Item%DimNames = 'xyz'
-          CASE( 2 )
-             Item%DimNames = 'xy '
-          CASE( 1 )
-             Item%DimNames = 'x  '
-          CASE( 0 )
-             Item%DimNames = '-  '
-       END SELECT
-
-    ENDIF
 
     !=======================================================================
     ! Return to the calling program the spatial dimensions of the data
@@ -683,6 +734,7 @@ CONTAINS
 !  24 Aug 2017 - R. Yantosca - Now print OnLevelEdges for the full format
 !  24 Aug 2017 - R. Yantosca - Now print NcIDimId for the full format
 !  25 Aug 2017 - R. Yantosca - Now print the vertical cell position: C or E
+!  28 Aug 2017 - R. Yantosca - Now prints the netCDF chunksizes (full format)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -763,6 +815,7 @@ CONTAINS
           PRINT*, 'Operation      : ', Item%Operation
           PRINT*, ''
           PRINT*, 'SpaceDim       : ', Item%SpaceDim, ' (', Item%DimNames, ')'
+          PRINT*, 'NcChunkSizes   : ', Item%NcChunkSizes
        
           IF ( ASSOCIATED( Item%Data_0d ) ) THEN 
              PRINT*, 'Value Data_0d  : ', Item%Data_0d
@@ -791,6 +844,8 @@ CONTAINS
                                           SIZE  ( Item%Data_3d, 2 ), &
                                           SIZE  ( Item%Data_3d, 3 )
           ENDIF
+
+
        ENDIF
     ENDIF
 
@@ -834,6 +889,7 @@ CONTAINS
 !  13 Jun 2017 - R. Yantosca - Initial version
 !  06 Jul 2017 - R. Yantosca - Nullify source pointers to 4-byte & integer data
 !  11 Aug 2017 - R. Yantosca - Remove 0d pointers and data arrays
+!  28 Aug 2017 - R. Yantosca - Deallocate Data_0d and NcChunkSizes fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -852,7 +908,10 @@ CONTAINS
     !=======================================================================
     ! Nullify fields that are just pointing to other objects   
     !======================================================================
+
+    Item%Source_0d_8 => NULL()
     Item%Source_1d   => NULL()
+    Item%Source_1d_8 => NULL()
     Item%Source_1d_4 => NULL()
     Item%Source_1d_I => NULL()
     Item%Source_2d   => NULL()
@@ -863,12 +922,12 @@ CONTAINS
     Item%Source_3d_I => NULL()
 
     !=======================================================================
-    ! Free allocated fields
+    ! Free allocated pointer-based fields
     !=======================================================================
     IF ( ASSOCIATED( Item%Data_3d ) ) THEN
        DEALLOCATE( Item%Data_3d, STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "Item%Data_3d" array'
+          ErrMsg = 'Could not deallocate "Item%Data_3d" array!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -877,7 +936,7 @@ CONTAINS
     IF ( ASSOCIATED( Item%Data_2d ) ) THEN
        DEALLOCATE( Item%Data_2d, STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "Item%Data_2d" array'
+          ErrMsg = 'Could not deallocate "Item%Data_2d" array!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -886,7 +945,26 @@ CONTAINS
     IF ( ASSOCIATED( Item%Data_1d ) ) THEN
        DEALLOCATE( Item%Data_1d, STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "Item%Data_1d" array'
+          ErrMsg = 'Could not deallocate "Item%Data_1d" array!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( Item%Data_0d ) ) THEN
+       DEALLOCATE( Item%Data_1d, STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "Item%Data_0d" variable!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+
+    IF ( ASSOCIATED( Item%NcChunkSizes ) ) THEN
+       DEALLOCATE( Item%NcChunkSizes, STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "Item%NcChunkSizes" array!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

@@ -37,6 +37,7 @@ MODULE NCDF_MOD
   PUBLIC  :: NC_CREATE
   PUBLIC  :: NC_SET_DEFMODE
   PUBLIC  :: NC_VAR_DEF
+  PUBLIC  :: NC_VAR_CHUNK
   PUBLIC  :: NC_VAR_WRITE
   PUBLIC  :: NC_CLOSE
   PUBLIC  :: NC_READ_TIME
@@ -3795,6 +3796,49 @@ CONTAINS
     IF ( .not. isDefMode ) CALL NcEnd_Def( fId )
 
   END SUBROUTINE NC_Var_Def
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Var_Chunk
+!
+! !DESCRIPTION: Turns on chunking for a netCDF variable.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Nc_Var_Chunk( fId, vId, ChunkSizes, RC )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER, INTENT(IN)  :: fId            ! NetCDF file ID
+    INTEGER, INTENT(IN)  :: vId            ! NetCDF variable ID
+    INTEGER, INTENT(IN)  :: ChunkSizes(:)  ! NetCDF chunk sizes for each dim
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(OUT) :: RC             ! Success or failure?
+!
+! !REMARKS:
+!  RC will return an error (nonzero) status if chunking cannot be activated.
+!  Most often, this is because support for netCDF-4 compression is disabled,
+!  or if the netCDF file is not a netCDF-4 file.  In this case, RC will have
+!  an error code of -111.
+!
+! !REVISION HISTORY:
+!  28 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Turn on chunking for this variable
+    RC = NF_Def_Var_Chunking( fId, vId, NF_CHUNKED, ChunkSizes )
+
+  END SUBROUTINE Nc_Var_Chunk
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
