@@ -952,7 +952,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( Item%Data_0d ) ) THEN
-       DEALLOCATE( Item%Data_1d, STAT=RC )
+       DEALLOCATE( Item%Data_0d, STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not deallocate "Item%Data_0d" variable!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )

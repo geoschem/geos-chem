@@ -868,6 +868,7 @@ CONTAINS
 !  24 Aug 2017 - R. Yantosca - Now use the DimNames field when printing
 !  25 Aug 2017 - R. Yantosca - Now print the vertical cell position: C or E
 !  25 Aug 2017 - R. Yantosca - Now print info about Data0d_8 and Data1d_8
+!  29 Aug 2017 - R. Yantosca - Minor fix, skip C/E printing for non-3D fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -929,14 +930,15 @@ CONTAINS
              ! Just print the name, description, dimension, and units
              !--------------------------------------------------------------
 
-             ! Denote if the data is defined on 
-             ! level edges (E) or centers (C)
+             ! Denote if 3-D data is defined on level edges (E) or centers (C)
              IF ( Item%Rank == 3 ) THEN
                 IF ( Item%OnLevelEdges ) THEN
                    CellPos = 'E'
                 ELSE
                    CellPos = 'C'
                 ENDIF
+             ELSE
+                CellPos = ''
              ENDIF
 
              ! Print information

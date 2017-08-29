@@ -43,7 +43,6 @@ MODULE History_Netcdf_Mod
 !  10 Aug 2017 - R. Yantosca - Initial version
 !  16 Aug 2017 - R. Yantosca - Reorder placement of routines
 !  16 Aug 2017 - R. Yantosca - Rename History_Expand_Date to Expand_Date_Time
-!  17 Aug 2017 - R. Yantosca - Now make Compute_Julian_Date a public routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -324,15 +323,13 @@ CONTAINS
                               hhmmss     = Container%ReferenceHms,           &
                               MAPL_Style = .TRUE. )
    
-#if defined( DEBUG )  
-       WRITE( 6, 100 ) TRIM( Container%name ),                               &
-                       Container%ReferenceYmd, Container%ReferenceHms
-       write( 6, 110 ) trim( FileName       )
+       ! Echo info about the file we are creating
+       WRITE( 6, 100 ) TRIM( Container%Name ),                               &
+                       Container%ReferenceYmd,                               &
+                       Container%ReferenceHms
+       write( 6, 110 ) TRIM( FileName       )
  100   FORMAT( '     - Creating file for ', a, '; reference = ', i8.8,1x,i6.6 )
  110   FORMAT( '       with filename = ', a                                   )
-
-       print*, '### currentymd: ', container%currentymd, container%currenthms
-#endif
 
        !--------------------------------------------------------------------
        ! Create the timestamp for the History and ProdDateTime attributes

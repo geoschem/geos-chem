@@ -287,6 +287,8 @@ CONTAINS
 !                              fields from EpochJd, CurrentYmd, CurrentHms
 !  21 Aug 2017 - R. Yantosca - Now define initial alarm intervals and alarms
 !  28 Aug 2017 - R. Yantosca - Now initialize Container%Spc_Units to null str
+!  29 Aug 2017 - R. Yantosca - Reset NcFormat if netCDF compression is off
+!                              for GEOS-Chem "Classic" simulations.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -526,6 +528,15 @@ CONTAINS
     ELSE
        Container%NcFormat = ''
     ENDIF
+
+#if !defined( ESMF_ ) && !defined( NC_HAS_COMPRESSION )
+
+    ! For GEOS-Chem Classic simulations compiled with either DEBUG=y or
+    ! NC_NODEFLATE=y, set NcFormat to "NetCDF-3 with large file support",
+    ! in order to denote that compression and chunking are disabled.
+    Container%NcFormat = 'NetCDF-3 with large file support'
+
+#endif
 
     !----------------------------------
     ! History

@@ -825,11 +825,6 @@ CONTAINS
              FileCloseHms = 000000
           ENDIF
           
-          !### For now set nX, nY, nZ to IIPAR, JJPAR, LLPAR
-          nX = IIPAR
-          nY = JJPAR
-          nZ = LLPAR
-
           !=================================================================
           ! Create a HISTORY CONTAINER object for this collection
           !=================================================================
@@ -1476,12 +1471,14 @@ CONTAINS
     ! COARDS/CF conventions do not allow for data on more than one 
     ! vertical dimension per file.
     !=======================================================================
-    IF ( Collection%OnLevelEdges .neqv. Item%OnLevelEdges ) THEN
-       ErrMsg = TRIM( Item%Name )                                   //      &
-                ' has the wrong vertical alignment for collection ' //      &
-                TRIM( Collection%Name )
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+    IF ( Item%SpaceDim == 3 ) THEN
+       IF ( Collection%OnLevelEdges .neqv. Item%OnLevelEdges ) THEN
+          ErrMsg = TRIM( Item%Name )                                    //   &
+                   ' has the wrong vertical alignment for collection> ' //   &
+                   TRIM( Collection%Name )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !=======================================================================
