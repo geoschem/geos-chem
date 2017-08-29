@@ -311,7 +311,6 @@
       INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
       INTEGER                  :: id_H2O
       REAL(f8)                 :: TAU,           TAUb      
-      REAL(f8)                 :: HeartBeatDtMin
       CHARACTER(LEN=255)       :: ZTYPE
       CHARACTER(LEN=255)       :: ErrMsg,        ThisLoc
 
@@ -656,7 +655,7 @@
       Input_Opt%HistoryInputFile = './HISTORY.rc'
       !
       ! Initialize the GEOS-Chem history component
-      CALL History_Init( am_I_root, Input_Opt, State_Chm, State_Diag,
+      CALL History_Init( am_I_root, Input_Opt, State_Chm, State_Diag, 
      &                   State_Met, NymdB,     NhmsB,     RC          )
 
       ! Trap error
@@ -893,9 +892,6 @@
 
       ! Get dynamic timestep in seconds
       N_DYN  = 60e+0_fpp * GET_TS_DYN()
-
-      ! Get the "heartbeat" (aka dynamic) timestep in min (cast to REAL*8)
-      HeartBeatDtMin = GET_TS_DYN()
 
       !=================================================================
       !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
@@ -1813,7 +1809,7 @@
          ! Increment the timestep values by the heartbeat time
          ! This is becasue we need to write out data with the timestamp
          ! at the end of the heartbeat timestep (i.e. at end of run)
-         CALL History_SetTime( am_I_Root, HeartBeatDtMin, RC )
+         CALL History_SetTime( am_I_Root, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "History_SetTime"!'
             CALL Error_Stop( ErrMsg, ThisLoc )

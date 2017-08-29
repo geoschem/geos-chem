@@ -104,6 +104,10 @@ MODULE HistContainer_Mod
                                                         !  in minutes
      INTEGER                     :: Operation           ! Operation code
                                                         !  0=copy from source
+     REAL(f8)                    :: HeartBeatDtMin      ! The "heartbeat"
+                                                        !  timestep [min]
+     REAL(f8)                    :: HeartBeatDtDays     ! The "heartbeat"
+                                                        !  timestep [days]
 
      !----------------------------------------------------------------------
      ! Quantities for file creation, writing, and I/O status
@@ -191,15 +195,16 @@ CONTAINS
                                    CurrentYmd,     CurrentHms,               &
                                    UpdateMode,     UpdateYmd,                &
                                    UpdateHms,      UpdateAlarm,              &
-                                   Operation,      FileWriteYmd,             &
-                                   FileWriteHms,   FileWriteAlarm,           &
-                                   FileCloseYmd,   FileCloseHms,             &
-                                   FileCloseAlarm, FileId,                   &
-                                   FilePrefix,     FileName,                 &
-                                   FileTemplate,   Conventions,              &
-                                   NcFormat,       History,                  &
-                                   ProdDateTime,   Reference,                &
-                                   Title,          Contact                  )
+                                   Operation,      HeartBeatDtMin,           &
+                                   FileWriteYmd,   FileWriteHms,             &
+                                   FileWriteAlarm, FileCloseYmd,             &
+                                   FileCloseHms,   FileCloseAlarm,           &
+                                   FileId,         FilePrefix,               &
+                                   FileName,       FileTemplate,             &
+                                   Conventions,    NcFormat,                 &
+                                   History,        ProdDateTime,             &
+                                   Reference,      Title,                    &
+                                   Contact                                  )
 !
 ! !USES:
 !
@@ -234,6 +239,8 @@ CONTAINS
     INTEGER,             OPTIONAL    :: Operation      ! Operation code:
                                                        !  0=copy  from source
                                                        !  1=accum from source
+    REAL(f8),            OPTIONAL    :: HeartBeatDtMin ! Model "heartbeat" 
+                                                       !  timestep [min]
 
     !-----------------------------------------------------------------------
     ! OPTIONAL INPUTS: quantities controlling file write and close/reopen
@@ -289,6 +296,7 @@ CONTAINS
 !  28 Aug 2017 - R. Yantosca - Now initialize Container%Spc_Units to null str
 !  29 Aug 2017 - R. Yantosca - Reset NcFormat if netCDF compression is off
 !                              for GEOS-Chem "Classic" simulations.
+!  29 Aug 2017 - R. Yantosca - Now define the heartbeat timestep fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -422,6 +430,15 @@ CONTAINS
        Container%Operation = Operation
     ELSE
        Container%Operation = COPY_FROM_SOURCE
+    ENDIF
+
+    !----------------------------------
+    ! Heartbeat timestep [min]
+    !----------------------------------
+    IF ( PRESENT( HeartBeatDtMin ) ) THEN
+       Container%HeartBeatDtMin = HeartBeatDtMin
+    ELSE
+       Container%HeartBeatDtMin = UNDEFINED_DBL
     ENDIF
 
     !----------------------------------
@@ -593,42 +610,43 @@ CONTAINS
     !=======================================================================
     
     ! These fields won't get defined until we open/write the netCDF file
-    Container%IsFileDefined = .FALSE.
-    Container%IsFileOpen    = .FALSE.
-    Container%FileId        = UNDEFINED_INT
-    Container%xDimId        = UNDEFINED_INT
-    Container%yDimId        = UNDEFINED_INT
-    Container%zDimId        = UNDEFINED_INT
-    Container%iDimId        = UNDEFINED_INT
-    Container%tDimId        = UNDEFINED_INT
-    Container%Spc_Units     = ''
+    Container%IsFileDefined   = .FALSE.
+    Container%IsFileOpen      = .FALSE.
+    Container%FileId          = UNDEFINED_INT
+    Container%xDimId          = UNDEFINED_INT
+    Container%yDimId          = UNDEFINED_INT
+    Container%zDimId          = UNDEFINED_INT
+    Container%iDimId          = UNDEFINED_INT
+    Container%tDimId          = UNDEFINED_INT
+    Container%Spc_Units       = ''
 
-    ! Set the other time/date fields from EpochJd, CurrentYmd, CurrentHms
-    Container%CurrentJd     = Container%EpochJd
-    Container%ReferenceJd   = Container%EpochJd
-    Container%ReferenceYmd  = Container%CurrentYmd
-    Container%ReferenceHms  = Container%CurrentHms
+    ! Set the other time/date fields from EpochJd, CurrentYmd, CurrentHms, etc.
+    Container%CurrentJd       = Container%EpochJd
+    Container%ReferenceJd     = Container%EpochJd
+    Container%ReferenceYmd    = Container%CurrentYmd
+    Container%ReferenceHms    = Container%CurrentHms
+    Container%HeartBeatDtDays = Container%HeartBeatDtMin / MINUTES_PER_DAY
 
     ! These other time fields will be defined later
-    Container%ElapsedMin    = 0.0_f8
-    Container%CurrTimeSlice = UNDEFINED_INT
-    Container%TimeStamp     = 0.0_f8
+    Container%ElapsedMin      = 0.0_f8
+    Container%CurrTimeSlice   = UNDEFINED_INT
+    Container%TimeStamp       = 0.0_f8
 
     ! Spatial information fields will be defined according to the
     ! dimensions of the HISTORY TTEMS belonging to the collection
-    Container%NX            = UNDEFINED_INT
-    Container%NY            = UNDEFINED_INT
-    Container%NZ            = UNDEFINED_INT
-    Container%OnLevelEdges  = .FALSE.
+    Container%NX              = UNDEFINED_INT
+    Container%NY              = UNDEFINED_INT
+    Container%NZ              = UNDEFINED_INT
+    Container%OnLevelEdges    = .FALSE.
     
     ! If the collection is instantaneous, then set a flag to denote that
     ! first the netCDF file reference date/time should be the start-of-the- 
     ! simulation time.  This will ensure that all timestamps and filenames
     ! for instantaneous collections are consistent.
     IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
-       Container%FirstInst  = .TRUE.
+       Container%FirstInst    = .TRUE.
     ELSE
-       Container%FirstInst  = .FALSE.
+       Container%FirstInst    = .FALSE.
     ENDIF
 
     !=======================================================================
@@ -651,6 +669,13 @@ CONTAINS
     Container%FileWriteAlarm = Container%FileWriteIvalMin
 
     IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
+
+       ! For the first instantaneous file update, make sure that we update
+       ! the HISTORY ITEMS in this container on the timestep just before
+       ! the first file write.  This will ensure that we archive interpolated
+       ! data fields (like MET_T for GEOS-FP) properly.
+       Container%UpdateAlarm    = Container%UpdateAlarm                      &
+                                - Container%HeartBeatDtMin
 
        ! Open the file as soon as possible
        Container%FileCloseAlarm = 0.0_f8
@@ -747,6 +772,8 @@ CONTAINS
        WRITE( 6, 160 ) 'UpdateIvalMin    : ', Container%UpdateIvalMin
        WRITE( 6, 160 ) 'UpdateAlarm      : ', Container%UpdateAlarm
        WRITE( 6, 120 ) 'Operation        : ', OpCode( Container%Operation )
+       WRITE( 6, 160 ) 'HeartBeatDtMin   : ', Container%HeartBeatDtMin
+       WRITE( 6, 160 ) 'HeartBeatDtDays  : ', Container%HeartBeatDtDays
        WRITE( 6, 135 ) 'ReferenceYmd     : ', Container%ReferenceYmd
        WRITE( 6, 145 ) 'ReferenceHms     : ', Container%ReferenceHms
        WRITE( 6, 160 ) 'ReferenceJd      : ', Container%ReferenceJd
@@ -1040,7 +1067,7 @@ CONTAINS
 !
     LOGICAL,             INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(HistContainer), POINTER     :: Container   ! HISTORY CONTAINER object
-    REAL(f8),            INTENT(IN)  :: HeartBeatDt ! Heartbeat increment for
+    REAL(f8),            OPTIONAL    :: HeartBeatDt ! Heartbeat increment for
                                                     !  for timestepping [days]
 !
 ! !OUTPUT PARAMETERS: 
@@ -1054,7 +1081,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  21 Aug 2017 - R. Yantosca - Initial version
-
+!  29 Aug 2017 - R. Yantosca - Now make HeartBeatDt an optional field; if not
+!                              specified, use Container%HeartBeatDtDays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1076,9 +1104,13 @@ CONTAINS
     ! Update the current Julian date by the heartbeat time (in days)
     !========================================================================
 
-    ! Update the Julian date by the heart beat interval in decimal days
-    Container%CurrentJd = Container%CurrentJd + HeartBeatDt
-
+    ! Update the Julian date by the heart beat interval in decimal dayS
+    IF ( PRESENT( HeartBeatDt ) ) THEN
+       Container%CurrentJd = Container%CurrentJd + HeartBeatDt
+    ELSE
+       Container%CurrentJd = Container%CurrentJd + Container%HeartBeatDtDays
+    ENDIF
+       
     ! Convert the Julian Day to year/month/day and hour/minutes/seconds
     CALL CalDate( JulianDay = Container%CurrentJd,                           &
                   yyyymmdd  = Container%CurrentYmd,                          &

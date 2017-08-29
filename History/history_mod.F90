@@ -533,7 +533,7 @@ CONTAINS
     INTEGER                      :: Ind_Var,        Ind_Wet,       Ind
     REAL(f8)                     :: UpdateAlarm,    JulianDate
     REAL(f8)                     :: FileWriteAlarm, FileCloseAlarm
-
+    REAL(f8)                     :: HeartBeatDtMin
 
     ! Strings
     CHARACTER(LEN=255)           :: Line,           FileName
@@ -563,33 +563,35 @@ CONTAINS
     !=======================================================================
 
     ! Assume success
-    RC           =  GC_SUCCESS
+    RC             =  GC_SUCCESS
 
     ! Initialize variables
-    UpdateYmd    =  0 
-    UpdateHms    =  0
-    FileCloseYmd =  0
-    FileCloseHms =  0
-    FileWriteYmd =  0
-    FileWriteHms =  0
-    SpaceDim     =  0
-    SubsetDims   =  0 
+    UpdateYmd      =  0 
+    UpdateHms      =  0
+    FileCloseYmd   =  0
+    FileCloseHms   =  0
+    FileWriteYmd   =  0
+    FileWriteHms   =  0
+    SpaceDim       =  0
+    SubsetDims     =  0 
+    HeartBeatDtMin = Input_Opt%TS_DYN
 
     ! Initialize objects and pointers
-    Container    => NULL()
-    Item         => NULL()
-    Ptr3d        => NULL()
-    Ptr3d_4      => NULL()
-    ThisSpc      => NULL()
+    Container      => NULL()
+    Item           => NULL()
+    Ptr3d          => NULL()
+    Ptr3d_4        => NULL()
+    ThisSpc        => NULL()
 
     ! Initialize Strings
-    Description  =  ''
-    ErrMsg       =  ''
-    Contact      =  'GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)'
-    Reference    =  'www.geos-chem.org; wiki.geos-chem.org'
-    ThisLoc      =  &
+    Description    =  ''
+    ErrMsg         =  ''
+    Contact        =  &
+     'GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)'
+    Reference      =  'www.geos-chem.org; wiki.geos-chem.org'
+    ThisLoc        =  &
      ' -> at History_ReadCollectionData (in module History/history_mod.F90)'
-    Units        =  ''
+    Units          =  ''
 
     !=======================================================================
     ! Open the file containing the list of requested diagnostics
@@ -836,28 +838,29 @@ CONTAINS
           
           ! Create the HISTORY CONTAINER object itself.
           ! This will also define the alarm intervals and initial alarm times
-          CALL HistContainer_Create( am_I_Root    = am_I_Root,               &
-                                     Container    = Container,               &
-                                     Id           = C,                       &
-                                     Name         = CollectionName(C),       &
-                                     EpochJd      = JulianDate,              &
-                                     CurrentYmd   = yyyymmdd,                &
-                                     CurrentHms   = hhmmss,                  &
-                                     UpdateMode   = CollectionMode(C),       &
-                                     UpdateYmd    = UpdateYmd,               &
-                                     UpdateHms    = UpdateHms,               &
-                                     Operation    = Operation,               &
-                                     FileWriteYmd = FileWriteYmd,            &
-                                     FileWriteHms = FileWriteHms,            &
-                                     FileCloseYmd = FileCloseYmd,            &
-                                     FileCloseHms = FileCloseHms,            &
-                                     Conventions  = 'COARDS',                &
-                                     FileTemplate = CollectionTemplate(C),   & 
-                                     NcFormat     = CollectionFormat(C),     &
-                                     Reference    = Reference,               &
-                                     Title        = Title,                   &
-                                     Contact      = Contact,                 &
-                                     RC           = RC                      )
+          CALL HistContainer_Create( am_I_Root      = am_I_Root,             &
+                                     Container      = Container,             &
+                                     Id             = C,                     &
+                                     Name           = CollectionName(C),     &
+                                     EpochJd        = JulianDate,            &
+                                     CurrentYmd     = yyyymmdd,              &
+                                     CurrentHms     = hhmmss,                &
+                                     UpdateMode     = CollectionMode(C),     &
+                                     UpdateYmd      = UpdateYmd,             &
+                                     UpdateHms      = UpdateHms,             &
+                                     Operation      = Operation,             &
+                                     HeartBeatDtMin = HeartBeatDtMin,        &
+                                     FileWriteYmd   = FileWriteYmd,          &
+                                     FileWriteHms   = FileWriteHms,          &
+                                     FileCloseYmd   = FileCloseYmd,          &
+                                     FileCloseHms   = FileCloseHms,          &
+                                     Conventions    = 'COARDS',              &
+                                     FileTemplate   = CollectionTemplate(C), & 
+                                     NcFormat       = CollectionFormat(C),   &
+                                     Reference      = Reference,             &
+                                     Title          = Title,                 &
+                                     Contact        = Contact,               &
+                                     RC             = RC                    )
 
           ! Trap potential error
           IF ( RC /= GC_SUCCESS ) THEN
@@ -1511,7 +1514,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_SetTime( am_I_Root, HeartBeatDtMin, RC )
+  SUBROUTINE History_SetTime( am_I_Root, RC )
 ! 
 ! !USES:
 !
@@ -1523,7 +1526,6 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,  INTENT(IN)  :: am_I_Root        ! Are we on the root CPU?
-    REAL(f8), INTENT(IN)  :: HeartBeatDtMin   ! Heartbeat timestep [min]
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -1535,15 +1537,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Aug 2017 - R. Yantosca - Initial version
+!  29 Aug 2017 - R. Yantosca - Remove HeartBeatDtMin as an argument; now the
+!                              Container object contains heartbeat timesteps
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    ! Scalars
-    REAL(f8)                         :: HeartBeatDtDays
-
     ! Strings
     CHARACTER(LEN=255)               :: ErrMsg
     CHARACTER(LEN=255)               :: ThisLoc
@@ -1554,11 +1555,10 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC              =  GC_SUCCESS
-    Collection      => NULL()
-    HeartBeatDtDays = ( HeartBeatDtMin / MINUTES_PER_DAY ) ! convert to days
-    ErrMsg          =  ''
-    ThisLoc         =  ' -> at History_SetTime (in History/history_mod.F90)' 
+    RC         =  GC_SUCCESS
+    Collection => NULL()
+    ErrMsg     =  ''
+    ThisLoc    =  ' -> at History_SetTime (in History/history_mod.F90)' 
 
     !=======================================================================
     ! Loop through each DIAGNOSTIC COLLECTION in the master list
@@ -1573,7 +1573,6 @@ CONTAINS
        ! Update the time settings for the next timestep
        CALL HistContainer_SetTime( am_I_Root   = am_I_Root,                  &
                                    Container   = Collection%Container,       &
-                                   HeartBeatDt = HeartBeatDtDays,            &
                                    RC          = RC                         )
 
        ! Trap error
@@ -1693,9 +1692,6 @@ CONTAINS
 
        ! Test if the "UpdateAlarm" is ringing
        DoUpdate = ( ( Container%UpdateAlarm - Container%ElapsedMin ) < EPS )
-
-       ! Force updating on the first instantaneous file open time
-       IF ( Container%FirstInst ) DoUpdate = .TRUE.
 
        ! Skip to next collection if it isn't
        IF ( .not. DoUpdate ) THEN
@@ -1864,8 +1860,8 @@ CONTAINS
        ! Prepare to go to the next collection
        !------------------------------------------------------------------ 
 
-       ! Update the "UpdateAlarm" time for the next updating interval
-       Container%UpdateAlarm = Container%UpdateAlarm +                       &
+       ! Update the "UpdateAlarm" time for the next updating interval.
+       Container%UpdateAlarm = Container%UpdateAlarm +                    &
                                Container%UpdateIvalMin
 
        ! Free pointers

@@ -626,8 +626,7 @@ CONTAINS
 !  better control of the start and count values.
 !
 ! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-
+!  03 Aug 2017 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
