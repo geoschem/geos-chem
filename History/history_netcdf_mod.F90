@@ -209,6 +209,7 @@ CONTAINS
 !  24 Aug 2017 - R. Yantosca - Now can save data on vertical interfaces
 !  28 Aug 2017 - R. Yantosca - Now make sure AREA is written as REAL(f4)
 !  28 Aug 2017 - R. Yantosca - Replace "TBD" in units w/ species units
+!  30 Aug 2017 - R. Yantosca - Now print file write info only on the root CPU
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -324,12 +325,14 @@ CONTAINS
                               MAPL_Style = .TRUE. )
    
        ! Echo info about the file we are creating
-       WRITE( 6, 100 ) TRIM( Container%Name ),                               &
-                       Container%ReferenceYmd,                               &
-                       Container%ReferenceHms
-       write( 6, 110 ) TRIM( FileName       )
+       IF ( am_I_Root ) THEN
+          WRITE( 6, 100 ) TRIM( Container%Name ),                            &
+                          Container%ReferenceYmd,                            &
+                          Container%ReferenceHms
+          WRITE( 6, 110 ) TRIM( FileName       )
+       ENDIF
  100   FORMAT( '     - Creating file for ', a, '; reference = ', i8.8,1x,i6.6 )
- 110   FORMAT( '       with filename = ', a                                   )
+ 110   FORMAT( '        with filename = ', a                                   )
 
        !--------------------------------------------------------------------
        ! Create the timestamp for the History and ProdDateTime attributes
@@ -704,9 +707,12 @@ CONTAINS
                              ( Container%FileWriteIvalMin * 0.5_f8 )
     ENDIF
 
-#if defined( DEBUG )  
-    WRITE( 6, 110 ) TRIM( Container%name ), Container%TimeStamp
-110 FORMAT( '     - Writing data to ', a, '; timestamp = ', f13.4 )
+#if defined( DEBUG )
+    ! Debug output
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 110 ) TRIM( Container%name ), Container%TimeStamp
+110    FORMAT( '     - Writing data to ', a, '; timestamp = ', f13.4 )
+    ENDIF
 #endif
 
     !=======================================================================

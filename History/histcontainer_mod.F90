@@ -297,6 +297,9 @@ CONTAINS
 !  29 Aug 2017 - R. Yantosca - Reset NcFormat if netCDF compression is off
 !                              for GEOS-Chem "Classic" simulations.
 !  29 Aug 2017 - R. Yantosca - Now define the heartbeat timestep fields
+!  30 Aug 2017 - R. Yantosca - Subtract the heartbeat timestep from the
+!                               UpdateAlarm value so as to update collections
+!                               at the same times w/r/t the "legacy" diags
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -663,29 +666,66 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Set the initial update and file write alarms to the increment 
-    ! values (measured in elapsed minutes since the start of the simulation)
-    Container%UpdateAlarm    = Container%UpdateIvalMin
+    !--------------------------------------
+    ! Initial "UpdateAlarm" setting
+    !--------------------------------------
+
+    ! Subtract the "heartbeat" timestep in minutes from UpdateAlarm.
+    ! This will ensure that (1) Instantaneous file collections will be
+    ! updated just before the file write, (2) Time-averaged collections
+    ! will be averaged on the same timestep as the "historical" GEOS-Chem
+    ! diagnostics, thus allowing for a direct comparison.
+    Container%UpdateAlarm = Container%UpdateIvalMin - Container%HeartBeatDtMin
+
+    ! Trap error if negative
+    IF ( Container%UpdateAlarm < 0 ) THEN
+       ErrMsg = 'UpdateAlarm for collection ' //                            &
+                TRIM( Container%Name )        // ' is negative!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !--------------------------------------
+    ! Initial "FileWriteAlarm" setting
+    !--------------------------------------
+
+    ! Set the file write alarm to its computed interval
     Container%FileWriteAlarm = Container%FileWriteIvalMin
+
+    ! Trap error if negative
+    IF ( Container%FileWriteAlarm < 0 ) THEN
+       ErrMsg = 'FileWriteAlarm for collection ' //                         &
+            TRIM( Container%Name )               // ' is negative!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !--------------------------------------
+    ! Initial "FileCloseAlarm" setting
+    !--------------------------------------
 
     IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
 
-       ! For the first instantaneous file update, make sure that we update
-       ! the HISTORY ITEMS in this container on the timestep just before
-       ! the first file write.  This will ensure that we archive interpolated
-       ! data fields (like MET_T for GEOS-FP) properly.
-       Container%UpdateAlarm    = Container%UpdateAlarm                      &
-                                - Container%HeartBeatDtMin
-
-       ! Open the file as soon as possible
+       ! %%% INSTANTANEOUS %%%
+       ! Create a new file ASAP so that we can start writing data to it
        Container%FileCloseAlarm = 0.0_f8
 
     ELSE
 
-       ! Set the initial file close/reopen to the first write time
-       ! (We will subtract this off when computing the reference time)
+       ! %%% TIME-AVERAGED %%%
+       ! Set the initial file close/reopen time to the first write time.
+       ! (We will subtract this off later, when computing the reference
+       ! date and time for the netCDF file.)
        Container%FileCloseAlarm = Container%FileWriteIvalMin
 
+    ENDIF
+
+    ! Trap error if negative
+    IF ( Container%FileCloseAlarm < 0 ) THEN
+       ErrMsg = 'FileCloseAlarm for collection ' //                         &
+            TRIM( Container%Name )               // ' is negative!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
     ENDIF
 
   END SUBROUTINE HistContainer_Create

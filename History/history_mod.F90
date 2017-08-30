@@ -510,6 +510,7 @@ CONTAINS
 !  03 Aug 2017 - R. Yantosca - Pass OPERATION to History_AddItemToCollection
 !  14 Aug 2017 - R. Yantosca - FileWrite{Ymd,Hms} and FileClose{Ymd,Hms} are
 !                              now computed properly, w/r/t acc_interval
+!  30 Aug 2017 - R. Yantosca - Now write collection info only on the root CPU
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1112,20 +1113,22 @@ CONTAINS
     CLOSE( fId )
 
     ! Write output
-    WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
-    WRITE( 6, '(a  )' ) 'DEFINED DIAGNOSTIC COLLECTIONS:'
-    WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
+    IF ( am_I_Root ) THEN
+       WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
+       WRITE( 6, '(a  )' ) 'DEFINED DIAGNOSTIC COLLECTIONS:'
+       WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
 
-    DO C = 1, CollectionCount
-       print*, 'Collection        ', TRIM( CollectionName       (C) )
-       print*, '  -> Template     ', TRIM( CollectionTemplate   (C) )
-       print*, '  -> Format       ', TRIM( CollectionFormat     (C) )
-       print*, '  -> Frequency    ', TRIM( CollectionFrequency  (C) )
-       print*, '  -> Acc_Interval ', TRIM( CollectionAccInterval(C) )
-       print*, '  -> Duration     ', TRIM( CollectionDuration   (C) )
+       DO C = 1, CollectionCount
+          print*, 'Collection        ', TRIM( CollectionName       (C) )
+          print*, '  -> Template     ', TRIM( CollectionTemplate   (C) )
+          print*, '  -> Format       ', TRIM( CollectionFormat     (C) )
+          print*, '  -> Frequency    ', TRIM( CollectionFrequency  (C) )
+          print*, '  -> Acc_Interval ', TRIM( CollectionAccInterval(C) )
+          print*, '  -> Duration     ', TRIM( CollectionDuration   (C) )
 !       print*, '  -> Subset Dims  ', TRIM( CollectionSubsetDims (C) )
-       print*, '  -> Mode         ', TRIM( CollectionMode       (C) )
-    ENDDO
+          print*, '  -> Mode         ', TRIM( CollectionMode       (C) )
+       ENDDO
+    ENDIF
 
     ! Print information about each diagnostic collection
     CALL MetaHistContainer_Print( am_I_Root, CollectionList, RC )
@@ -1699,6 +1702,14 @@ CONTAINS
           Collection => Collection%Next
           CYCLE
        ENDIF
+
+#if defined( DEBUG )
+       ! Debug output
+       IF ( am_I_Root ) THEN
+          WRITE( 6, 100 ) Container%Name
+ 100      FORMAT( '     - Updating collection: ', a20 ) 
+       ENDIF
+#endif
        
        !--------------------------------------------------------------------
        ! If it is time to update the collection, then loop through all of
@@ -1842,11 +1853,14 @@ CONTAINS
 
           END SELECT
 
-! Uncomment debug output if you need it!
+! Uncomment more detailed debug output if you need it!
 !#if defined( DEBUG ) 
 !          ! Debug output
-!          WRITE( 6, 100 ) TRIM(Container%Name), TRIM(Item%Name), Item%nUpdates
-! 100      FORMAT( a20, 1x, a20, 1x, f7.1 )
+!          IF ( am_I_Root ) THEN
+!             WRITE( 6, 110 ) TRIM(Container%Name),                        &
+!                             TRIM(Item%Name),       Item%nUpdates
+! 110         FORMAT( a20, 1x, a20, 1x, f7.1 )
+!          ENDIF
 !#endif
 
           ! Free pointer

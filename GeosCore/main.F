@@ -289,6 +289,8 @@
 !  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  23 Aug 2017 - R. Yantosca - Now add at timer for the History component
+!  30 Aug 2017 - R. Yantosca - Move the HISTORY UPDATE block before call to
+!                               SET_CURRENT_TIME, for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -855,7 +857,7 @@
 #endif
 
       !=================================================================
-      !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****
+      !        ***** O U T E R   T I M E S T E P   L O O P  *****
       !=================================================================      
  
 #if defined( USE_TIMERS )
@@ -880,7 +882,7 @@
       DO 
 
       ! Compute time parameters at start of 6-h loop
-      CALL SET_CURRENT_TIME
+      CALL SET_CURRENT_TIME()
 
       ! NSECb is # of seconds (measured from 00 GMT today) 
       ! at the start of this 6-hr timestepping loop.
@@ -895,6 +897,7 @@
 
       !=================================================================
       !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
+      !     *****    a k a   H E A R T B E A T   L O O P    *****
       !=================================================================
       DO N_STEP = 1, N_DYN_STEPS
     
@@ -904,8 +907,8 @@
 #endif
 
          ! Compute & print time quantities at start of dyn step
-         CALL SET_CURRENT_TIME
-         CALL PRINT_CURRENT_TIME
+         CALL SET_CURRENT_TIME()
+         CALL PRINT_CURRENT_TIME()
 
          ! Set time variables for dynamic loop
          DAY_OF_YEAR   = GET_DAY_OF_YEAR()
@@ -1664,6 +1667,35 @@
      &                           State_Met, State_Chm, RC )
 #endif
 
+#if defined( NC_DIAG )
+         !==============================================================
+         !           ***** H I S T O R Y   U P D A T E  *****
+         !==============================================================
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "History", RC )
+#endif
+
+         ! Update each HISTORY ITEM from its data source
+         CALL History_Update( am_I_Root, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_Update"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
+         ! Increment the timestep values by the heartbeat time
+         ! This is becasue we need to write out data with the timestamp
+         ! at the end of the heartbeat timestep (i.e. at end of run)
+         CALL History_SetTime( am_I_Root, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_SetTime"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "History", RC )
+#endif
+#endif
+
          !==============================================================
          !   ***** I N C R E M E N T   E L A P S E D   T I M E *****
          !============================================================== 
@@ -1683,9 +1715,9 @@
             ENDIF
          ENDIF
 
-         CALL TIMESTAMP_DIAG
-         CALL SET_ELAPSED_MIN
-         CALL SET_CURRENT_TIME
+         CALL TIMESTAMP_DIAG()
+         CALL SET_ELAPSED_MIN()
+         CALL SET_CURRENT_TIME()
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
          ENDIF
@@ -1705,6 +1737,7 @@
          !       ***** A R C H I V E   D I A G N O S T I C S *****
          !==============================================================
          IF ( ITS_TIME_FOR_DIAG() ) THEN
+            print*, '### time for diag, updating diag1'
 
             !### Debug
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
@@ -1747,8 +1780,6 @@
          !       the ND40, ND49, and ND52 timeseries diagnostics
          !       to after the call to DO_WETDEP (bmy, 4/22/04)
          !============================================================== 
-
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: before TIMESERIES' )
 
          ! Station timeseries
          IF ( ITS_TIME_FOR_DIAG48() ) THEN
@@ -1793,27 +1824,11 @@
 
 #if defined( NC_DIAG )
          !==============================================================
-         !  ***** H I S T O R Y   U P D A T E   A N D   W R I T E *****
+         !            ***** H I S T O R Y   W R I T E *****
          !==============================================================
-#if defined( USE_TIMERS ) 
+#if defined( USE_TIMERS )
          CALL GEOS_Timer_Start( "History", RC )
 #endif
-
-         ! Update each HISTORY ITEM from its data source
-         CALL History_Update( am_I_Root, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Error encountered in "History_Update"!'
-            CALL Error_Stop( ErrMsg, ThisLoc )
-         ENDIF
-
-         ! Increment the timestep values by the heartbeat time
-         ! This is becasue we need to write out data with the timestamp
-         ! at the end of the heartbeat timestep (i.e. at end of run)
-         CALL History_SetTime( am_I_Root, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Error encountered in "History_SetTime"!'
-            CALL Error_Stop( ErrMsg, ThisLoc )
-         ENDIF
 
          ! Write HISTORY ITEMS in each diagnostic collection to disk
          ! (or skip writing if it is not the proper output time.
@@ -1823,7 +1838,7 @@
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
-#if defined( USE_TIMERS ) 
+#if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "History", RC )
 #endif
 #endif
