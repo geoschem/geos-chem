@@ -1575,7 +1575,7 @@ CONTAINS
                               Henry_pKa     = 11.6_f8,                      &
 #else                                                                       
                               DD_Hstar_old  = 5.00e+7_fp,                   &
-                              Henry_K0      = 5.00e+7_f8,                   &
+                              Henry_K0      = 8.30e+4_f8,                   &
                               Henry_CR      = 7400.0_f8,                    &
 #endif                                                                      
                               WD_RetFactor  = 5e-2_fp,                      &
