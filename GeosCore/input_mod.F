@@ -8371,17 +8371,6 @@
          ENDIF
       ENDIF
 
-      ! Check for simple SOA species
-      I = MAX( Ind_('SOAP' ), 0 )
-     &  + MAX( Ind_('SOAS' ), 0 )
-
-      IF ( Input_Opt%LSOA ) THEN
-         IF ( I > 0 ) THEN
-            MSG = 'Cannot use SIMPLE SOA species if LSOA=T!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
-      ENDIF
-
       !=================================================================
       ! Error check DUST AEROSOLS
       !=================================================================
