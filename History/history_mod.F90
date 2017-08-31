@@ -725,6 +725,17 @@ CONTAINS
        !====================================================================
        IF ( INDEX( TRIM( Line ), 'fields' ) > 0 ) THEN
 
+          ! If we can't find the metadata for the collection in HISTORY.rc,
+          ! then this might point to a mismatch between names under the
+          ! "COLLECTIONS:" list and the corresponding metadata section.
+          ! Quit with error if this occurs.
+          IF ( C == UNDEFINED_INT ) THEN
+             ErrMsg = 'Mismatch between listed collection names and the ' // &
+                      'metadata!  Please check HISTORY.rc for typos.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
           ! Zero the counter of items
           ItemCount = 0
 
@@ -1127,6 +1138,15 @@ CONTAINS
           print*, '  -> Duration     ', TRIM( CollectionDuration   (C) )
 !       print*, '  -> Subset Dims  ', TRIM( CollectionSubsetDims (C) )
           print*, '  -> Mode         ', TRIM( CollectionMode       (C) )
+
+          ! Trap error if the collection name is undefined
+          ! This indicates an error in parsing the file
+          IF ( TRIM( CollectionTemplate(C) ) == UNDEFINED_STR ) THEN
+             ErrMsg = 'Collection: ' // TRIM( CollectionName(C) ) //         &
+                      ' is undefined!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDDO
     ENDIF
 
@@ -2255,11 +2275,15 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: C, Ind, nSubStr
+    INTEGER                  :: C, Ind, nSubStr, N, P
 
     ! Strings
-    CHARACTER(LEN=255) :: Name
-    CHARACTER(LEN=255) :: SubStr(255)
+    CHARACTER(LEN=255)       :: Name
+    CHARACTER(LEN=255)       :: SubStr(255)
+
+    ! SAVEd variables
+    INTEGER,            SAVE :: CollectionStart = 0
+    CHARACTER(LEN=255), SAVE :: LastName        = ''
      
     !=======================================================================
     ! Initialize
@@ -2270,17 +2294,32 @@ CONTAINS
     !=======================================================================
     ! Find the metadata for the given collection
     !=======================================================================
-     
+
     ! The collection name is between column 1 and the first "." character
     Ind  = INDEX( TRIM( Line ), '.' )
     Name = Line(1:Ind-1) 
 
+    ! Non-white-space lengths of the collection cname and search pattern
+    N = LEN_TRIM( Name    )
+    P = LEN_TRIM( Pattern )
+
+    ! Increment the number of the collection that we'll search from
+    ! if the current collection name is different from the prior one.
+    IF ( TRIM( Name ) /= TRIM( LastName ) ) THEN
+       LastName        = Name
+       CollectionStart = CollectionStart + 1
+    ENDIF
+
     ! Loop over all collection names
-    DO C = 1, CollectionCount
+    DO C = CollectionStart, CollectionCount
 
        ! Check to see if the current line matches the collection name
        ! Then check to see which collection this is in
-       Ind = INDEX( TRIM( Name ), TRIM( CollectionName(C) ) )
+       IF ( Name(1:30) == CollectionName(C)(1:30) ) THEN
+          Ind = 1
+       ELSE
+          Ind = 0
+       ENDIF
 
        ! If the we match the current collection, then ...
        IF ( Ind > 0 ) THEN
@@ -2293,8 +2332,8 @@ CONTAINS
 
              ! Make sure the first substring matches the name 
              ! of the metadata field we would like to obtain.
-              ! if it does, then we have found a match, and so return
-             IF ( INDEX( TRIM( SubStr(1) ), TRIM( Pattern ) ) > 0 ) THEN
+             ! if it does, then we have found a match, and so return
+             IF ( SubStr(1)(N+2:P+N+1) == Pattern(1:P) ) THEN
                 nCollection = C
                 MetaData    = CleanText( SubStr(2) )
                 EXIT

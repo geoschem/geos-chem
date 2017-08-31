@@ -1737,7 +1737,6 @@
          !       ***** A R C H I V E   D I A G N O S T I C S *****
          !==============================================================
          IF ( ITS_TIME_FOR_DIAG() ) THEN
-            print*, '### time for diag, updating diag1'
 
             !### Debug
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
