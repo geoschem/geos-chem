@@ -150,7 +150,7 @@ MODULE Strat_Chem_Mod
   LOGICAL, PARAMETER   :: PLMUSTFIND = .FALSE.
 
   ! Number of species from GMI model
-  INTEGER, PARAMETER   :: NTR_GMI   = 120  
+  INTEGER, PARAMETER   :: NTR_GMI   = 125
 
   ! Minit_Is_Set indicates whether Minit has been set or not
   LOGICAL              :: Minit_Is_Set = .FALSE. 
@@ -1417,6 +1417,9 @@ CONTAINS
     ! names have the same length.  This will prevent Gfortran from choking 
     ! with an error.  This is OK since we trim GMI_TrName before using
     ! it in any string comparisons. (bmy, 9/20/16)
+    !
+    ! Add RIPA, RIPB, RIPD and NPMN, IPMN which replace RIP and PMN
+    ! (mps, 8/31/17)
     GMI_TrName = (/ 'A3O2    ', 'ACET    ', 'ACTA    ', 'ALD2    ',   &
                     'ALK4    ', 'ATO2    ', 'B3O2    ', 'Br      ',   &
                     'BrCl    ', 'BrO     ', 'BrONO2  ', 'C2H6    ',   &
@@ -1446,8 +1449,9 @@ CONTAINS
                     'R4N1    ', 'R4N2    ', 'R4O2    ', 'R4P     ',   &
                     'RA3P    ', 'RB3P    ', 'RCHO    ', 'RCO3    ',   &
                     'RCOOH   ', 'RIO1    ', 'RIO2    ', 'RIP     ',   &
-                    'ROH     ', 'RP      ', 'VRO2    ', 'VRP     '  /)
-
+                    'ROH     ', 'RP      ', 'VRO2    ', 'VRP     ',   &
+                    'RIPA    ', 'RIPB    ', 'RIPD    ', 'NPMN    ',   &
+                    'IPMN    ' /)
 
     !===========================!
     ! Full chemistry simulation !
