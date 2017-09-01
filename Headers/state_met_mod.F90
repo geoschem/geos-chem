@@ -33,6 +33,7 @@ MODULE State_Met_Mod
   PUBLIC :: Cleanup_State_Met
   PUBLIC :: Lookup_State_Met
   PUBLIC :: Print_State_Met
+  PUBLIC :: Get_State_Met_Info
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -411,6 +412,7 @@ CONTAINS
     State_Met%SNICE    => NULL()
     State_Met%SNOW     => NULL()
     State_Met%SNOW     => NULL()
+    State_Met%SPHU     => NULL()
     State_Met%SPHU1    => NULL()
     State_Met%SPHU2    => NULL()
     State_Met%TMPU1    => NULL()
@@ -438,8 +440,11 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%ALBD = 0.0_fp
 
-    Desc  = 'Visible surface albedo'
-    Units = '1'
+    ! ewl debugging
+    CALL Get_State_Met_Info( am_I_Root, 'ALBD', Desc=Desc, Units=Units, RC=RC )
+
+    !Desc  = 'Visible surface albedo'
+    !Units = '1'
     CALL Registry_AddField( am_I_Root,        State_Met%Registry,        &
                             State_Met%State, 'ALBD',                     &
                             Units=Units,      Data2d=State_Met%ALBD,     &
@@ -3173,9 +3178,12 @@ CONTAINS
     !=======================================================================
 
     ! Header line
-    WRITE( 6, 10 )
- 10 FORMAT( /, 'Registered variables contained within the State_Met object:' )
-    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    if ( am_I_Root ) THEN
+       WRITE( 6, 10 )
+10     FORMAT( /, 'Registered variables contained within the ' \\ &
+               'State_Met object:' )
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    ENDIF
 
     ! Print registry info in truncated format
     CALL Registry_Print( am_I_Root   = am_I_Root,           &
@@ -3294,5 +3302,819 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Lookup_State_Met
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_State_Met_Info
+!
+! !DESCRIPTION: Subroutine GET\_STATE\_MET\_INFO retrieves basic information
+!  about each State_Met field for purposes of registration and adding
+!  fields to the Export state in GCHP.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_State_Met_Info( am_I_Root, Name,  Desc, Units, &
+                                 Rank,      Type,  VLoc, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+! 
+    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
+    CHARACTER(LEN=*),    INTENT(IN)  :: Name       ! Sate_Met field name
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT) :: RC         ! Return code
+
+    ! Optional outputs
+    CHARACTER(LEN=255),  OPTIONAL    :: Desc       ! Long name string
+    CHARACTER(LEN=255),  OPTIONAL    :: Units      ! Units string
+    INTEGER,             OPTIONAL    :: Rank       ! # of dimensions
+    CHARACTER(LEN=255),  OPTIONAL    :: Type       ! Desc of data type
+    CHARACTER(LEN=255),  OPTIONAL    :: VLoc       ! Vertical location
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  28 Aug 2017 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    LOGICAL            :: isDesc, isUnits, isRank, isType, isVLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+
+    ! Assume success
+    RC    =  GC_SUCCESS
+    ThisLoc = ' -> at Get_State_Met_Info (in Headers/state_met_mod.F90)'
+
+    ! Optional arguments present?
+    isDesc  = PRESENT( Desc  )
+    isUnits = PRESENT( Units )
+    isRank  = PRESENT( Rank  )
+    isType  = PRESENT( Type  )
+    isVLoc  = PRESENT( VLoc  )
+
+    ! Optional arguments
+    IF ( isUnits ) Units = ''
+    IF ( isDesc  ) Desc  = ''
+    IF ( isRank  ) Rank  = 0
+    IF ( isType  ) Type  = 'REAL'
+    IF ( isVLoc  ) Desc  = 'NA'
+
+    !=======================================================================
+    ! Values for Retrieval
+    !=======================================================================
+    SELECT CASE ( TRIM(Name) )
+
+       CASE ( 'ALBD' )
+          IF ( isDesc  ) Desc  = 'Visible surface albedo'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'CLDFRC' )
+          IF ( isDesc  ) Desc  = 'Column cloud fraction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'CLDTOPS' )
+          IF ( isDesc  ) Desc  = 'Maximum cloud top height'
+          IF ( isUnits ) Units = 'level'
+          IF ( isRank  ) Rank  = 2
+          IF ( isType  ) Type  = 'INTEGER'
+
+       CASE ( 'EFLUX' )
+          IF ( isDesc  ) Desc  = 'Latent heat flux'
+          IF ( isUnits ) Units = 'W m-2'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'EVAP' )
+          IF ( isDesc  ) Desc  = 'Surface evaporation'
+          IF ( isUnits ) Units = 'kg m-2 s-1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'FRCLND' )
+          IF ( isDesc  ) Desc  = 'Olson land fraction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'FRLAKE' )
+          IF ( isDesc  ) Desc  = 'Fraction of lake'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'FRLAND' )
+          IF ( isDesc  ) Desc  = 'Fraction of land'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'FRLANDIC' )
+          IF ( isDesc  ) Desc  = 'Fraction of land ice'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'FROCEAN' )
+          IF ( isUnits ) Units = '1'   
+          IF ( isDesc  ) Desc  = 'Fraction of ocean'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'GRN' )
+          IF ( isDesc  ) Desc  = 'Greenness fraction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'GWETROOT' )
+          IF ( isDesc  ) Desc  = 'Root soil wetness'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'GWETTOP' )
+          IF ( isDesc  ) Desc  = 'Top soil moisture'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'HFLUX' )
+          IF ( isDesc  ) Desc  = 'Sensible heat flux'
+          IF ( isUnits ) Units = 'W m-2'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'LAI' )
+          IF ( isDesc  ) Desc  = 'Leaf area index from GMAO'
+          IF ( isUnits ) Units = 'm2 m-2'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'ITY' )
+          IF ( isDesc  ) Desc  = 'Land surface type index'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'LWI' )
+          IF ( isDesc  ) Desc  = 'Land-water-ice indices'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PARDR' )
+          IF ( isDesc  ) Desc  = 'Direct photosynthetically-active radiation'
+          IF ( isUnits ) Units = 'W m-2'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PARDF' )
+          IF ( isDesc  ) Desc  = 'Diffuse photosynthetically-active radiation'
+          IF ( isUnits ) Units = 'W m-2'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PBLH' )
+          IF ( isDesc  ) Desc  = 'Planetary boundary layer height'
+          IF ( isUnits ) Units = 'm'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PBL_TOP_L' )
+          IF ( isDesc  ) Desc  = 'Model layer of the planetary boundary ' // &
+                                 'layer top occurs'
+          IF ( isUnits ) Units = 'layer'
+          IF ( isRank  ) Rank  = 2
+          IF ( isType  ) Type  = 'INTEGER'
+
+       CASE ( 'PHIS' )
+          IF ( isDesc  ) Desc  = 'Surface geopotential height'
+          IF ( isUnits ) Units = 'm2 s-1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PRECCON' )
+          IF ( isDesc  ) Desc  = 'Convective precipitation at the ground'
+          IF ( isUnits ) Units = 'kg m-2 s-1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PRECSNO' )
+          IF ( isDesc  ) Desc  = 'Snow precipitation'
+          IF ( isUnits ) Units = 'kg m-2 s-1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PRECTOT' )
+          IF ( isDesc  ) Desc  = 'Total precipitation at the ground'
+          IF ( isUnits ) Units = 'kg m-2 s-1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PS1_WET' )
+          IF ( isDesc  ) Desc  = 'Wet surface pressure at dt start'
+          IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PS2_WET' )
+          IF ( isDesc  ) Desc  = 'Wet surface pressure at dt end'
+          IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PSC2_WET' )
+          IF ( isDesc  ) Desc  = 'Wet interpolated surface pressure'
+          IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PS1_DRY' )
+          IF ( isDesc  ) Desc  = 'Dry surface pressure at dt start'
+          IF ( isUnits ) Units = ''
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PS2_DRY' )
+          IF ( isDesc  ) Desc  = 'Dry surface pressure at dt end'
+          IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PSC2_DRY' )
+          IF ( isDesc  ) Desc  = 'Dry interpolated surface pressure'
+          IF ( isUnits ) Units = 'hPA'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'RADLWG' )
+          IF ( isDesc  ) Desc  = 'Net longwave radiation at ground'
+          IF ( isUnits ) Units = 'W m-2'
+          IF ( isRank  ) Rank  = 2
+ 
+       CASE ( 'RADSWG' )
+          IF ( isDesc  ) Desc  = 'Shortwave radiation at ground'
+          IF ( isUnits ) Units = 'W m-2'
+          IF ( isRank  ) Rank  = 2
+ 
+       CASE ( 'SLP' )
+          IF ( isDesc  ) Desc  = 'Sea level pressure'
+          IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SNODP' )
+          IF ( isDesc  ) Desc  = 'Snow depth'
+          IF ( isUnits ) Units = 'm'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SNOMAS' )
+          IF ( isDesc  ) Desc  = 'Snow mass'
+          IF ( isUnits ) Units = 'kg m-2'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SST' )
+          IF ( isDesc  ) Desc  = 'Sea surface temperature'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SUNCOS' )
+          IF ( isDesc  ) Desc  = 'Cosine of solar zenith angle, current time'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SUNCOSmid' )
+          IF ( isDesc  ) Desc  = 'Cosine of solar zenith angle, at ' // &
+                                 'midpoint of chemistry timestep'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SWGDN' )
+          IF ( isDesc  ) Desc  = 'Incident shortwave radiation at ground'
+          IF ( isUnits ) Units = 'W m-2'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'TO3' )
+          IF ( isDesc  ) Desc  = 'Total overhead ozone column'
+          IF ( isUnits ) Units = 'dobsons'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'TROPP' )
+          IF ( isDesc  ) Desc  = 'Tropopause pressure'
+          IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'TS' )
+          IF ( isDesc  ) Desc  = 'Surface temperature'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'TSKIN' )
+          IF ( isDesc  ) Desc  = 'Surface skin temperature'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'U10M' )
+          IF ( isDesc  ) Desc  = 'East-west wind at 10 meter height'
+          IF ( isUnits ) Units = 'm s-1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'USTAR' )
+          IF ( isDesc  ) Desc  = 'Friction velocity'
+          IF ( isUnits ) Units = 'm s-1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'UVALBEDO' )
+          IF ( isDesc  ) Desc  = 'Ultraviolet surface albedo'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'V10M' )
+          IF ( isDesc  ) Desc  = 'North-south wind at 10 meter height'
+          IF ( isUnits ) Units = 'm s-1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'Z0' )
+          IF ( isDesc  ) Desc  = 'Surface roughness height'
+          IF ( isUnits ) Units = 'm'
+          IF ( isRank  ) Rank  = 2
+
+#if defined( ESMF_ )
+       CASE ( 'CNV_FRC' )
+          IF ( isDesc  ) Desc  = 'Convective fraction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+#endif
+       CASE ( 'FRESEAICE' )
+          IF ( isDesc  ) Desc  = 'Fraction of sea ice'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'FRSNO' )
+          IF ( isDesc  ) Desc  = 'Fraction of snow on surface'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PRECANV' )
+          IF ( isDesc  ) Desc  = 'Anvil precipitation at the ground'
+          IF ( isUnits ) Units = 'kg m-2 s-1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'PRECLSC' )
+          IF ( isDesc  ) Desc  = 'Large-scale precipitation at the ground'
+          IF ( isUnits ) Units = 'kg m-2 s-1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SEASICE00' )
+          IF ( isDesc  ) Desc  = 'Sea ice coverage 00-10%'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SEASICE10' )
+          IF ( isDesc  ) Desc  = 'Sea ice coverage 10-20%'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SEAICE20' )
+          IF ( isDesc  ) Desc  = 'Sea ice coverage 20-30%'
+          IF ( isUnits ) Units = '1'
+
+       CASE ( 'SEAICE30' )
+          IF ( isDesc  ) Desc  = 'Sea ice coverage 30-40%'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SEAICE40' )
+          IF ( isDesc  ) Desc  = 'Sea ice coverage 40-50%'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SEAICE50' )
+          IF ( isDesc  ) Desc  = 'Sea ice coverage 50-60%'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SEAICE60' )
+          IF ( isDesc  ) Desc  = 'Sea ice coverage 60-70%'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SEAICE70' )
+          IF ( isDesc  ) Desc  = 'Sea ice coverage 70-80%'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SEAICE80' )
+          IF ( isDesc  ) Desc  = 'Sea ice coverage 80-90%'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'SEAICE90' )
+          IF ( isDesc  ) Desc  = 'Sea ice coverage 90-100%'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'AD' )
+          IF ( isDesc  ) Desc  = 'Dry air mass'
+          IF ( isUnits ) Units = 'kg'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'AIRDEN' )
+          IF ( isDesc  ) Desc  = 'Dry air density'
+          IF ( isUnits ) Units = 'kg m-3'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'MAIRDEN' )
+          IF ( isDesc  ) Desc  = 'Moist air density'
+          IF ( isUnits ) Units = 'kg m-3'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'AIRNUMDEN' )
+          IF ( isDesc  ) Desc  = 'Dry air density'
+          IF ( isUnits ) Units = 'm-3'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'AIRVOL' )
+          IF ( isDesc  ) Desc  = 'Volume of dry air in grid box'
+          IF ( isUnits ) Units = 'm3'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'AREA_M2' )
+          IF ( isDesc  ) Desc  = 'Surface area of grid box'
+          IF ( isUnits ) Units = 'm2'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'AVGW' )
+          IF ( isDesc  ) Desc  = 'Water vapor mixing ratio (w/r/t dry air)'
+          IF ( isUnits ) Units = 'vol vol-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'BXHEIGHT' )
+          IF ( isDesc  ) Desc  = 'Grid box height (w/r/t dry air)'
+          IF ( isUnits ) Units = 'm'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'CLDF' )
+          IF ( isDesc  ) Desc  = '3-D cloud fraction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'CMFMC' )
+          IF ( isDesc  ) Desc  = 'Cloud mass flux'
+          IF ( isUnits ) Units = 'kg m-2 s-1'
+          IF ( isRank  ) Rank  = 3
+          VLoc = 'EDGE'
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'DELP' )
+          IF ( isDesc  ) Desc  = 'Delta-pressure across grid box(wet air)'
+          IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'DELP_DRY' )
+          IF ( isDesc  ) Desc  = 'Delta-pressure across grid box (dry air)'
+          IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'DELP_PREV' )
+          IF ( isDesc  ) Desc  = 'Previous State_Met%DELP'
+          IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'DP_DRY_PREV' )
+          IF ( isDesc  ) Desc  = 'Previous State_Met%DELP_DRY'
+          IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'DQRCU' )
+          IF ( isDesc  ) Desc  = 'Production rate of convective ' // &
+                                 'precipitation (per dry air)'
+          IF ( isUnits ) Units = 'kg kg-1 s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'DQRLSAN' )
+          IF ( isDesc  ) Desc  = 'Production rate of large-scale ' // &
+                                 'precipitation (per dry air)'
+          IF ( isUnits ) Units = 'kg kg-1 s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'DQIDTMST' )
+          IF ( isDesc  ) Desc  = 'Ice tendency from moist processes'
+          IF ( isUnits ) Units = 'kg kg-1 s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'DQLDTMST' )
+          IF ( isDesc  ) Desc  = 'H2O tendency from moist processes'
+          IF ( isUnits ) Units = 'kg kg-1 s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'DQVDTMST' )
+          IF ( isDesc  ) Desc  = 'Vapor tendency from moist processes'
+          IF ( isUnits ) Units = 'kg kg-1 s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'DTRAIN' )
+          IF ( isDesc  ) Desc  = 'Detrainment flux'
+          IF ( isUnits ) Units = 'kg m-2 s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'MOISTQ' )
+          IF ( isDesc  ) Desc  = 'Tendency in specific humidity'
+          IF ( isUnits ) Units = 'kg kg-1 s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'OMEGA' )
+          IF ( isDesc  ) Desc  = 'Updraft velocity'
+          IF ( isUnits ) Units = 'Pa s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'OPTD' )
+          IF ( isDesc  ) Desc  = 'Visible optical depth'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'PEDGE' )
+          IF ( isDesc  ) Desc  = 'Pressure (w/r/t moist air) at level edges'
+          IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'EDGE'
+
+       CASE ( 'PEDGE_DRY' )
+          IF ( isDesc  ) Desc  = 'Pressure (w/r/t dry air) at level edges'
+          IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'EDGE'
+
+       CASE ( 'PMID' )
+          IF ( isDesc  ) Desc  = 'Pressure (w/r/t moist air) at level centers'
+          IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'PMID_DRY' )
+          IF ( isDesc  ) Desc  = 'Pressure (w/r/t dry air) at level centers'
+          IF ( isUnits ) Units = ''
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'PV' )
+          IF ( isDesc  ) Desc  = 'Ertel potential vorticity'
+          IF ( isUnits ) Units = 'kg m2 kg-1 s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'QI' )
+          IF ( isDesc  ) Desc  = 'Ice mixing ratio (w/r/t dry air)'
+          IF ( isUnits ) Units = 'kg kg-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'QL' )
+          IF ( isDesc  ) Desc  = 'Water mixing ratio (w/r/t dry air)'
+          IF ( isUnits ) Units = 'kg kg-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'RH' )
+          IF ( isDesc  ) Desc  = 'Relative humidity'
+          IF ( isUnits ) Units = '%'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'SPHU' )
+          IF ( isDesc  ) Desc  = 'Specific humidity (w/r/t moist air)'
+          IF ( isUnits ) Units = 'g kg-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'SPHU_PREV' )
+          IF ( isDesc  ) Desc  = 'Previous SPHU'
+          IF ( isUnits ) Units = 'g kg-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'T' )
+          IF ( isDesc  ) Desc  = 'Temperature'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'TV' )
+          IF ( isDesc  ) Desc  = 'Virtual temperature'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'TAUCLI' )
+          IF ( isDesc  ) Desc  = 'Optical depth of ice clouds'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'TAUCLW' )
+          IF ( isDesc  ) Desc  = 'Optical depth of H2O clouds'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'U' )
+          IF ( isDesc  ) Desc  = 'East-west component of wind'
+          IF ( isUnits ) Units = 'm s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'V' )
+          IF ( isDesc  ) Desc  = 'North-south component of wind'
+          IF ( isUnits ) Units = 'm s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'UPDVVEL' )
+          IF ( isDesc  ) Desc  = 'Updraft vertical velocity'
+          IF ( isUnits ) Units = 'hPa s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'PFICU' )
+          IF ( isDesc  ) Desc  = 'Downward flux of ice precipitation ' // &
+                                 '(convective)'
+          IF ( isUnits ) Units = 'kg m-2 s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc = 'EDGE'
+
+       CASE ( 'PFILSAN' )
+          IF ( isDesc  ) Desc  = 'Downwared flux of ice precipitation ' // &
+                                 '(large-scale + anvil)'
+          IF ( isRank  ) Rank  = 3
+          IF ( isUnits ) Units = 'kg m-2 s-1'
+          IF ( isVLoc  ) VLoc = 'EDGE'
+
+       CASE ( 'PFLCU' )
+          IF ( isDesc  ) Desc  = 'Downward flux of liquid precipitation ' // &
+                                 '(convective)'
+          IF ( isUnits ) Units = 'kg m-2 s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc = 'EDGE'
+
+       CASE ( 'PFLLSAN' )
+          IF ( isDesc  ) Desc  = 'Downward flux of liquid precipitation ' // &
+                                 '(large-scale + anvil)'
+          IF ( isUnits ) Units = 'kg m-2 s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc = 'EDGE'
+
+       CASE ( 'REEVAPCN' )
+          IF ( isDesc  ) Desc  = 'Evaporation of convective ' // &
+                                 'precipitation (w/r/t dry air)'
+          IF ( isUnits ) Units = 'kg kg-1 s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'REEVAPLS' )
+          IF ( isDesc  ) Desc  = 'Evaporation of large-scale + anvil ' // &
+                                 'precipitation (w/r/t dry air)'
+          IF ( isUnits ) Units = 'kg '
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'RH1' )
+          IF ( isDesc  ) Desc  = 'Instantaneous relative humidity at time=T'
+          IF ( isUnits ) Units = '%'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'RH2' )
+          IF ( isDesc  ) Desc  = 'Instantaneous relative humidity at time=T+dt'
+          IF ( isUnits ) Units = '%'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'SPHU1' )
+          IF ( isDesc  ) Desc  = 'Instantaneous specific humidity at time=T'
+          IF ( isUnits ) Units = 'g kg-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'SPHU2' )
+          IF ( isDesc  ) Desc  = 'Instantaneous specific humidity at time=T+dt'
+          IF ( isUnits ) Units = 'g kg-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'TMPU1' )
+          IF ( isDesc  ) Desc  = 'Instantaneous temperature at time=T'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'TMPU2' )
+          IF ( isDesc  ) Desc  = 'Instantaneous temperature at time T+dt'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+
+       CASE ( 'IREG' )
+          IF ( isDesc  ) Desc  = 'Number of Olson land types in each grid box'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+          IF ( isType  ) Type  = 'INTEGER'
+          IF ( isVLoc  ) VLoc  = '3rd index is land type not level' 
+
+       CASE ( 'ILAND' )
+          IF ( isDesc  ) Desc  = 'Olson land type indices in each grid box'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isType  ) Type  = 'INTEGER'
+          IF ( isVLoc  ) VLoc  = '3rd index is land type not level' 
+
+       CASE ( 'IUSE' )
+          IF ( isDesc  ) Desc  = 'Fraction (per mil) occupied by each ' // &
+                                 'Olson land type in the grid box'
+          IF ( isUnits ) Units = 'o/oo'
+          IF ( isRank  ) Rank  = 3
+          IF ( isType  ) Type  = 'INTEGER'
+          IF ( isVLoc  ) VLoc  = '3rd index is land type not level' 
+
+       CASE ( 'XLAI' )
+          IF ( isDesc  ) Desc  = 'MODIS LAI for each Olson land type, ' // &
+                                 'current month'
+          IF ( isUnits ) Units = 'm2 m-2'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+          IF ( isVLoc  ) VLoc  = '3rd index is land type not level' 
+
+       CASE ( 'MODISLAI' )
+          IF ( isDesc  ) Desc  = 'Daily LAI computed from monthly ' // &
+                                 'offline MODIS values'
+          IF ( isUnits ) Units = 'm2 m-2'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'XCHLR' )
+          IF ( isDesc  ) Desc  = 'MODIS chlorophyll-a per land type, ' // &
+                                 'current month'
+          IF ( isUnits ) Units = 'mg m-3'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = 'CENTER'
+          IF ( isVLoc  ) VLoc  = '3rd index is land type not level' 
+
+       CASE ( 'MODISCHLR' )
+          IF ( isDesc  ) Desc  = 'Daily chlorophyll-a computed ' // &
+                                 'from offline MODIS monthly values'
+          IF ( isUnits ) Units = 'mg m-3'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'LANDTYPEFRAC' )
+          IF ( isDesc  ) Desc  = 'Olson fraction per land type'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = '3rd index is land type not level' 
+
+       CASE ( 'XLAI_NATIVE' )
+          IF ( isDesc  ) Desc  = 'Average LAI per Olson land type'
+          IF ( isUnits ) Units = 'm2 m-2'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = '3rd index is land type not level' 
+
+       CASE ( 'XCHLR_NATIVE' )
+          IF ( isDesc  ) Desc  = 'Average CHLR per Olson type'
+          IF ( isUnits ) Units = 'mg m-3'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = '3rd index is land type not level' 
+
+       CASE ( 'XLAI2' )
+          IF ( isDesc  ) Desc  = 'MODIS chlorophyll-a per Olson land ' // &
+                                 'type, next month'
+          IF ( isUnits ) Units = 'm2 m-2'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = '3rd index is land type not level' 
+
+       CASE ( 'XCHLR2' )
+          IF ( isDesc  ) Desc  = 'MODIS chlorophyll-a per Olson land ' // &
+                                 'type, next month'
+          IF ( isUnits ) Units = 'mg m-3'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = '3rd index is land type not level' 
+
+       CASE DEFAULT
+          ErrMsg = 'No information available for field: ' // TRIM( Name )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+
+    END SELECT
+
+   END SUBROUTINE Get_State_Met_Info
 !EOC
 END MODULE State_Met_Mod

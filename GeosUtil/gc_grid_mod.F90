@@ -1828,9 +1828,11 @@ CONTAINS
     !=======================================================================
 
     ! Header line
-    WRITE( 6, 10 )
- 10 FORMAT( /, 'Registered variables contained within gc_grid_mod.F90:' )
-    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 10 )
+10     FORMAT( /, 'Registered variables contained within gc_grid_mod.F90:' )
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    ENDIF
 
     ! Print registry info in truncated format
     CALL Registry_Print( am_I_Root   = am_I_Root,           &
