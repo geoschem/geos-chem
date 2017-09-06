@@ -629,7 +629,7 @@ CONTAINS
 
        ! Construct a hash for the full name of this REGISTRY ITEM 
        ItemName31 = Current%Item%FullName
-       ItemHash   = Str2Hash( ItemName31 ) 
+       ItemHash   = Str2Hash( ItemName31 )
 
        ! If the name-hashes match ...
        IF ( FullHash == ItemHash ) THEN

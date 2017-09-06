@@ -1048,7 +1048,7 @@ CONTAINS
 
                    ! Trap potential error
                    IF ( RC /= GC_SUCCESS ) THEN
-                      ErrMsg = 'Could not create add diagnostic :'    //     &
+                      ErrMsg = 'Could not add diagnostic :'            //     &
                                TRIM( ItemName ) // '" to collection: ' //    &
                                TRIM( CollectionName(C) ) 
                       CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1182,6 +1182,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Charpak_Mod,           ONLY : TranUc
     USE ErrCode_Mod
     USE HistContainer_Mod
     USE HistItem_Mod
@@ -1311,7 +1312,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Diagnostic State 
        !--------------------------------------------------------------------
-       CALL Lookup_State_Diag( am_I_Root    =  am_I_Root,                    &
+       CALL Lookup_State_Diag( am_I_Root    = am_I_Root,                     &
                                State_Diag   = State_Diag,                    &
                                Variable     = ItemName,                      &
                                Description  = Description,                   &
@@ -1937,7 +1938,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HistContainer_Mod,     ONLY : HistContainer
+    USE HistContainer_Mod
     USE HistItem_Mod,          ONLY : HistItem
     USE History_Netcdf_Mod
     USE History_Util_Mod
@@ -1962,6 +1963,8 @@ CONTAINS
 !  03 Aug 2017 - R. Yantosca - Initial version
 !  21 Aug 2017 - R. Yantosca - Now get yyyymmdd, hhmmss from the container
 !  28 Aug 2017 - R. Yantosca - Now save the species units to the container
+!  06 Sep 2017 - R. Yantosca - Now recompute the file write and file close
+!                               intervals, if they are 1 month or longer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1991,8 +1994,7 @@ CONTAINS
     Collection => NULL()
     Current    => NULL()
     ErrMsg     =  ''
-    ThisLoc    =  &
-      ' -> at History_Update (in History/history_mod.F90)' 
+    ThisLoc    =  ' -> at History_Write (in History/history_mod.F90)' 
 
     !=======================================================================
     ! Loop through each DIAGNOSTIC COLLECTION in the master list, and
@@ -2065,6 +2067,14 @@ CONTAINS
           !-----------------------------------------------------------------
           ! Update "FileClose" alarm for next interval
           !-----------------------------------------------------------------
+
+          ! Recompute the file close alarm interval if it 1 month or longer,
+          ! as we will have to take into account leap years, etc.
+          IF ( Container%FileCloseYmd >= 000100 ) THEN
+             CALL HistContainer_FileCloseIvalSet( am_I_Root, Container, RC )
+          ENDIF
+
+          ! Update the alarm
           Container%FileCloseAlarm = Container%FileCloseAlarm                &
                                    + Container%FileCloseIvalMin
 
@@ -2092,8 +2102,16 @@ CONTAINS
           ENDIF
 
           !-----------------------------------------------------------------
-          ! Update "FileClose" alarm for next interval
+          ! Update "FileWrite" alarm for next interval
           !-----------------------------------------------------------------
+
+          ! Recompute the file write alarm interval if it 1 month or longer,
+          ! as we will have to take into account leap years, etc.
+          IF ( Container%FileCloseYmd >= 000100 ) THEN
+             CALL HistContainer_FileCloseIvalSet( am_I_Root, Container, RC )
+          ENDIF
+
+          ! Update the alarm
           Container%FileWriteAlarm = Container%FileWriteAlarm                &
                                    + Container%FileWriteIvalMin
        ENDIF

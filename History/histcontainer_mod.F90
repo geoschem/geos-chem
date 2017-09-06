@@ -34,6 +34,9 @@ MODULE HistContainer_Mod
   PUBLIC :: HistContainer_Print
   PUBLIC :: HistContainer_Destroy
   PUBLIC :: HistContainer_SetTime
+  PUBLIC :: HistContainer_UpdateIvalSet
+  PUBLIC :: HistContainer_FileCloseIvalSet
+  PUBLIC :: HistContainer_FileWriteIvalSet
 !
 ! !PUBLIC TYPES:
 !
@@ -170,9 +173,17 @@ MODULE HistContainer_Mod
 !  24 Aug 2017 - R. Yantosca - Added iDimId as the dimension ID for ilev,
 !                               which is the vertical dimension on interfaces
 !  28 Aug 2017 - R. Yantosca - Added SpcUnits, FirstInst to type HistContainer
+!  06 Sep 2017 - R. Yantosca - Split HistContainer_AlarmIntervalSet into 3
+!                               separate routines, now made public
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
+  ! Days in non-leap-year months:   J  F  M  A  M  J  J  A  S  O  N  D
+  INTEGER :: DaysPerMonth(12) = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -657,7 +668,9 @@ CONTAINS
     !=======================================================================
 
     ! Get the initial alarm inervals (in elapsed min since start of run)
-    CALL HistContainer_AlarmIntervalSet( am_I_Root, Container, RC )
+    CALL HistContainer_UpdateIvalSet   ( am_I_Root, Container, RC )
+    CALL HistContainer_FileCloseIvalSet( am_I_Root, Container, RC )
+    CALL HistContainer_FileWriteIvalSet( am_I_Root, Container, RC )
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN 
@@ -967,27 +980,26 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HistContainer_AlarmIntervalSet
+! !IROUTINE: HistContainer_UpdateIvalSet
 !
-! !DESCRIPTION: Defines the alarm intervals for the update, file write, and
-!  file close/reopen operations.
+! !DESCRIPTION: Defines the alarm interval for the UPDATE operation.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistContainer_AlarmIntervalSet( am_I_root, Container, RC )
+  SUBROUTINE HistContainer_UpdateIvalSet( am_I_root, Container, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE History_Util_Mod
-    USE Time_Mod,         ONLY : Ymd_Extract
+    USE Time_Mod,         ONLY : Its_A_Leapyear, Ymd_Extract
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(HistContainer), POINTER     :: Container  ! HISTORY CONTAINER object
 !
@@ -997,6 +1009,205 @@ CONTAINS
 !
 !
 ! !REMARKS:
+!  Assume that we will always update data more frequently than 1 month.
+!  This means that we only have to compute this interval at initialization.
+!
+! !REVISION HISTORY:
+!  06 Sep 2017 - R. Yantosca - Initial version,
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: Year,     Month,     Day
+    INTEGER            :: Hour,     Minute,    Second
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = &
+     ' -> at HistContainer_UpdateIvalSet (in History/histcontainer_mod.F90)'
+
+    !=======================================================================
+    ! Compute the interval for the "UpdateAlarm" 
+    !=======================================================================
+
+    ! Split the update interval date and time into constituent values
+    CALL Ymd_Extract( Container%UpdateYmd, Year, Month,  Day    )
+    CALL Ymd_Extract( Container%UpdateHms, Hour, Minute, Second )
+
+    ! "Update" interval in minutes
+    Container%UpdateIvalMin    = ( DBLE( Day    ) * MINUTES_PER_DAY    ) +   &
+                                 ( DBLE( Hour   ) * MINUTES_PER_HOUR   ) +   &
+                                 ( DBLE( Minute )                      ) +   &
+                                 ( DBLE( Second ) / SECONDS_PER_MINUTE )
+
+  END SUBROUTINE HistContainer_UpdateIvalSet
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HistContainer_FileCloseIvalSet
+!
+! !DESCRIPTION: Defines the alarm interval for the FILE CLOSE/REOPEN operation.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HistContainer_FileCloseIvalSet( am_I_Root, Container, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE History_Util_Mod
+    USE Time_Mod,         ONLY : Its_A_Leapyear, Ymd_Extract
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HistContainer), POINTER     :: Container  ! HISTORY CONTAINER object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT) :: RC         ! Success or failure
+!
+!
+! !REMARKS:
+!  The algorithm may not be as robust when straddling leap-year months, so we
+!  would recommend selecting an interval of 1 month or 1 year at a time.
+!
+! !REVISION HISTORY:
+!  06 Sep 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: Year,     Month,     Day
+    INTEGER            :: Hour,     Minute,    Second
+    INTEGER            :: CurrYear, CurrMonth, CurrDay
+    INTEGER            :: nDays
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = &
+    ' -> at HistContainer_FileWriteIvalSet (in History/histcontainer_mod.F90)'
+
+    !=======================================================================
+    ! Compute the interval for the "FileCloseAlarm"
+    !=======================================================================
+
+    ! Split the file close interval date/time into its constituent values
+    CALL Ymd_Extract( Container%FileCloseYmd, Year, Month,  Day    )
+    CALL Ymd_Extract( Container%FileCloseHms, Hour, Minute, Second )
+
+    IF ( Container%FileCloseYmd >= 010000 ) THEN
+
+       !--------------------------------------------------------------------
+       ! File close interval is one or more years
+       !--------------------------------------------------------------------
+
+       ! Split the current date & time into its constituent values
+       CALL Ymd_Extract( Container%CurrentYmd, CurrYear, CurrMonth, CurrDay )
+    
+       ! Set the file write interval, accounting for leap year
+       IF ( Its_A_LeapYear( CurrYear ) ) THEN
+          Container%FileCloseIvalMin = 366.0_f8 * MINUTES_PER_DAY
+       ELSE
+          Container%FileCloseIvalMin = 365.0_f8 * MINUTES_PER_DAY
+       ENDIF
+       
+    ELSE IF ( Container%FileCloseYmd >= 000100 ) THEN
+       
+       !--------------------------------------------------------------------
+       ! File close interval is one or more months but less than a year
+       !--------------------------------------------------------------------
+
+       ! Split the current date & time into its constituent values
+       CALL Ymd_Extract( Container%CurrentYmd, CurrYear, CurrMonth, CurrDay )
+
+       ! Number of days in the month
+       nDays = DaysPerMonth(CurrMonth)
+
+       ! Adjust for leap year
+       IF ( Its_A_LeapYear( CurrYear ) .AND. CurrMonth == 2 ) THEN
+          nDays = nDays + 1
+       ENDIF
+
+       ! Convert to minutes and set this as the file write interval
+       Container%FileCloseIvalMin = DBLE( nDays ) * MINUTES_PER_DAY    
+      
+    ELSE
+
+       !--------------------------------------------------------------------
+       ! File close interval is less than a month
+       !--------------------------------------------------------------------
+
+       ! "FileWrite" interval in minutes
+       Container%FileCloseIvalMin = ( DBLE(Day   ) * MINUTES_PER_DAY    ) +  &
+                                    ( DBLE(Hour  ) * MINUTES_PER_HOUR   ) +  &
+                                    ( DBLE(Minute)                      ) +  &
+                                    ( DBLE(Second) / SECONDS_PER_MINUTE )
+    ENDIF
+
+  END SUBROUTINE HistContainer_FileCloseIvalSet
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HistContainer_FileWriteIvalSet
+!
+! !DESCRIPTION: Defines the alarm intervals for the FILE WRITE operation.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HistContainer_FileWriteIvalSet( am_I_Root, Container, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE History_Util_Mod
+    USE Time_Mod,         ONLY : Its_A_Leapyear, Ymd_Extract
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HistContainer), POINTER     :: Container  ! HISTORY CONTAINER object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT) :: RC         ! Success or failure
+!
+!
+! !REMARKS:
+!  The algorithm may not be as robust when straddling leap-year months, so we
+!  would recommend selecting an interval of 1 month or 1 year at a time.
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
@@ -1007,7 +1218,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: Year, Month, Day, Hour, Minute, Second
+    INTEGER            :: Year,     Month,     Day
+    INTEGER            :: Hour,     Minute,    Second
+    INTEGER            :: CurrYear, CurrMonth, CurrDay
+    INTEGER            :: nDays
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -1017,69 +1231,70 @@ CONTAINS
     !=======================================================================
     RC      = GC_SUCCESS
     ErrMsg  = ''
-    ThisLoc = ' -> at HistContainer_Destroy (in History/histcontainer_mod.F90)'
+    ThisLoc = &
+    ' -> at HistContainer_FileWriteIvalSet (in History/histcontainer_mod.F90)'
 
-    !=======================================================================
-    ! Compute the interval for the "UpdateAlarm" 
-    !=======================================================================
-
-    ! Split 
-    CALL Ymd_Extract( Container%UpdateYmd, Year, Month,  Day    )
-    CALL Ymd_Extract( Container%UpdateHms, Hour, Minute, Second )
-
-    IF ( Container%UpdateYmd >= 000100 ) THEN
-
-       ! Need to handle a way of updating the months
-
-    ELSE
-       
-       ! "Update" interval in minutes (interval < 1 month)
-       Container%UpdateIvalMin    = ( DBLE(Day   ) * MINUTES_PER_DAY    ) +  & 
-                                    ( DBLE(Hour  ) * MINUTES_PER_HOUR   ) +  & 
-                                    ( DBLE(Minute)                      ) +  &
-                                    ( DBLE(Second) / SECONDS_PER_MINUTE )
-    ENDIF
-    
     !=======================================================================
     ! Compute the interval for the "FileWriteAlarm"
     !=======================================================================
 
+    ! Split the file write interval date/time into its constituent values
     CALL Ymd_Extract( Container%FileWriteYmd, Year, Month,  Day    )
     CALL Ymd_Extract( Container%FileWriteHms, Hour, Minute, Second )
 
-    IF ( Container%FileWriteYmd >= 000100 ) THEN
-       
-       ! Need to handle a way of doing the months
+    IF ( Container%FileWriteYmd >= 010000 ) THEN
 
+       !--------------------------------------------------------------------
+       ! File write interval is one year or more
+       !--------------------------------------------------------------------
+
+       ! Split the current date & time into its constituent values
+       CALL Ymd_Extract( Container%CurrentYmd, CurrYear, CurrMonth, CurrDay )
+    
+       ! Set the file write interval, accounting for leap year
+       IF ( Its_A_LeapYear( CurrYear ) ) THEN
+          Container%FileWriteIvalMin = 366.0_f8 * MINUTES_PER_DAY
+       ELSE
+          Container%FileWriteIvalMin = 365.0_f8 * MINUTES_PER_DAY
+       ENDIF
+       
+    ELSE IF ( Container%FileWriteYmd >= 000100 ) THEN
+       
+       !--------------------------------------------------------------------
+       ! File write interval is one or more months but less than a year
+       ! 
+       ! This will probably be the most common option.  This algorithm
+       ! may not be as robust if more than one month at a time is selected.
+       !--------------------------------------------------------------------
+
+       ! Split the current date & time into its constituent values
+       CALL Ymd_Extract( Container%CurrentYmd, CurrYear, CurrMonth, CurrDay )
+
+       ! Number of days in the month
+       nDays = DaysPerMonth(CurrMonth)
+
+       ! Adjust for leap year
+       IF ( Its_A_LeapYear( CurrYear ) .AND. CurrMonth == 2 ) THEN
+          nDays = nDays + 1
+       ENDIF
+
+       ! Convert to minutes and set this as the file write interval
+       Container%FileWriteIvalMin = DBLE( nDays ) * MINUTES_PER_DAY    
+      
     ELSE
-       
 
-       ! "FileWrite" interval in minutes (interval < 1 month)
+       !--------------------------------------------------------------------
+       ! File write interval is less than a month
+       !--------------------------------------------------------------------
+
+       ! "FileWrite" interval in minutes
        Container%FileWriteIvalMin = ( DBLE(Day   ) * MINUTES_PER_DAY    ) +  &
                                     ( DBLE(Hour  ) * MINUTES_PER_HOUR   ) +  &
                                     ( DBLE(Minute)                      ) +  &
                                     ( DBLE(Second) / SECONDS_PER_MINUTE )
     ENDIF
 
-    !=======================================================================
-    ! Compute the interval for the "FileWriteAlarm"
-    !=======================================================================
-
-    CALL Ymd_Extract( Container%FileCloseYmd, Year, Month,  Day    )
-    CALL Ymd_Extract( Container%FileCloseHms, Hour, Minute, Second )
-
-    IF ( Container%FileCloseYmd >= 000100 ) THEN
-       
-    ELSE
-
-       ! "FileClose" interval in minutes (interval < 1 month)
-       Container%FileCloseIvalMin = ( DBLE(Day   ) * MINUTES_PER_DAY    ) +  &
-                                    ( DBLE(Hour  ) * MINUTES_PER_HOUR   ) +  &
-                                    ( DBLE(Minute)                      ) +  &
-                                    ( DBLE(Second) / SECONDS_PER_MINUTE )
-    ENDIF
-
-  END SUBROUTINE HistContainer_AlarmIntervalSet
+  END SUBROUTINE HistContainer_FileWriteIvalSet
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
