@@ -4115,13 +4115,17 @@
       !=================================================================
       ! Store Hydrocarbon remaining after oxidation rxn back into Spc
       !=================================================================
-      ! update for new mtp lumping (hotp 5/22/10)
-      Spc(I,J,L,id_MTPA) = MAX( NMVOC(1), 1.e-32_fp )
-      Spc(I,J,L,id_LIMO) = MAX( NMVOC(2), 1.e-32_fp )
+      ! Nothing to do for isoprene or aromatics here,  as their oxidation
+      ! is treated online.
+      ! The same now applies to MTPA and LIMO. As of v11-02c, their
+      ! oxidation is treated online (mps, 9/7/17)
+!------------------------------------------------------------------------------
+! Prior to 9/7/17:
+!      Spc(I,J,L,id_MTPA) = MAX( NMVOC(1), 1.e-32_fp )
+!      Spc(I,J,L,id_LIMO) = MAX( NMVOC(2), 1.e-32_fp )
+!------------------------------------------------------------------------------
       Spc(I,J,L,id_MTPO) = MAX( NMVOC(3), 1.e-32_fp )
       ORVC_SESQ(I,J,L)   = MAX( NMVOC(4), 1.e-32_fp )
-      ! Nothing to do for isoprene or aromatics here, 
-      ! as their oxidation is treated online. 
 
       ! Free pointer
       Spc => NULL()
