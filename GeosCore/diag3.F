@@ -376,6 +376,8 @@
       INTEGER, SAVE            :: id_CH2BR2
       INTEGER, SAVE            :: id_PAN,   id_HNO3,  id_EOH,   id_MGLY
       INTEGER, SAVE            :: id_BENZ,  id_TOLU,  id_XYLE
+      INTEGER, SAVE            :: id_NAP,   id_POG1,  id_POG2
+ 
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -488,6 +490,9 @@
          id_BENZ      = Ind_('BENZ'    )
          id_TOLU      = Ind_('TOLU'    )
          id_XYLE      = Ind_('XYLE'    )
+         id_NAP       = Ind_('NAP'     )
+         id_POG1      = Ind_('POG1'    )
+         id_POG2      = Ind_('POG2'    )
 
          ! NOTE: CH4 can be an advected species (in CH4 or UCX-based sims),
          ! or a non-advected species (tropchem, soa, soa-svpoa).  We only
@@ -2583,6 +2588,18 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
+         !%%%%% NAP %%%%% ; added krt
+         IF ( id_NAP > 0 ) THEN
+            DiagnName = 'BIOMASS_NAP'
+            UNIT      = 'atoms C/cm2/s'
+            N         = id_NAP
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
          ! Free pointer
          SpcInfo => NULL()
 
@@ -2648,11 +2665,19 @@
          DiagnCnt => NULL()
          SpcInfo => NULL()
 
-         !%%%%% POA simulation %%%%%
-         IF ( id_POA1 > 0 ) THEN
-            DiagnName = 'BIOMASS_POA1'
+         !%%%%% POA simulation %%%%% ; updated krt
+         IF ( id_POG1 > 0 .and. id_POG2 > 0 ) THEN
+            DiagnName = 'BIOMASS_POG1'
             UNIT      = 'atoms C/cm2/s'
-            N         = id_POA1
+            N         = id_POG1
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+
+            DiagnName = 'BIOMASS_POG2'
+            UNIT      = 'atoms C/cm2/s'
+            N         = id_POG2
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -4200,7 +4225,7 @@
          IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
             M = 1
          ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN  ! Ask Helen
-            M = 2
+            M = 3
          ELSE
             M = nDryDep
          ENDIF

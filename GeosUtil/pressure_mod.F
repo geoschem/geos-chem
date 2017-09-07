@@ -154,7 +154,7 @@
 !
 ! !RETURN VALUE: 
 !
-      REAL(fp)              :: AP_TEMP  ! Corresponding "A" value [hPa]
+      REAL(fp)            :: AP_TEMP  ! Corresponding "A" value [hPa]
                                       !  at bottom edge of level L
 !
 ! !REVISION HISTORY:
@@ -192,7 +192,7 @@
 !
 ! !RETURN VALUE: 
 !
-      REAL(fp)              :: BP_TEMP  ! Corresponding "B" value [unitless]
+      REAL(fp)            :: BP_TEMP  ! Corresponding "B" value [unitless]
                                       !  at bottom edge of level L
 !
 ! !REVISION HISTORY:

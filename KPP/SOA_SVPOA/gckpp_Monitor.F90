@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Monitor.f90
-! Time                 : Wed Aug  2 16:59:11 2017
-! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/v11-02c_CBal/SOA_SVPOA
+! Time                 : Wed Aug 23 13:23:46 2017
+! Working directory    : /n/home05/msulprizio/GC/FlexChem/Mechanisms/v11-02c/SOA_SVPOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -276,13 +276,13 @@ MODULE gckpp_Monitor
      '      R4P + OH --> 0.209 R4O2 + 0.791 RCHO + 0.791 OH                                               ', & ! index 173
      '       RP + OH --> RCO3                                                                             ', & ! index 174
      '       PP + OH --> 0.209 PO2 + 0.791 HAC + 0.791 OH                                                 ', & ! index 175
-     '     RIPA + OH --> 0.25 HC5 + 0.75 RIO2 + 0.125 OH + 0.125 H2O                                      ', & ! index 176
-     '     RIPB + OH --> 0.52 HC5 + 0.48 RIO2 + 0.26 OH + 0.26 H2O                                        ', & ! index 177
-     '     RIPD + OH --> 0.75 HC5 + 0.25 RIO2 + 0.375 OH + 0.375 H2O                                      ', & ! index 178
-     '     RIPA + OH --> 0.005 LVOC + 0.576 IEPOXA + 0.269 IEPOXB + 0.15 HC5OO + 0.85 OH                  ', & ! index 179
+     '     RIPA + OH --> 0.005 LVOC + 0.245 HC5 + 0.75 RIO2 + 0.125 OH + 0.125 H2O                        ', & ! index 176
+     '     RIPB + OH --> 0.005 LVOC + 0.515 HC5 + 0.48 RIO2 + 0.26 OH + 0.26 H2O                          ', & ! index 177
+     '     RIPD + OH --> 0.005 LVOC + 0.745 HC5 + 0.25 RIO2 + 0.375 OH + 0.375 H2O                        ', & ! index 178
+     '     RIPA + OH --> 0.005 LVOC + 0.578 IEPOXA + 0.272 IEPOXB + 0.145 HC5OO + 0.85 OH                 ', & ! index 179
      '     RIPB + OH --> 0.68 IEPOXA + 0.32 IEPOXB + OH                                                   ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_6 = (/ &
-     '     RIPD + OH --> 0.5 IEPOXD + 0.5 HC5OO + 0.5 OH                                                  ', & ! index 181
+     '     RIPD + OH --> 0.005 LVOC + 0.5 IEPOXD + 0.495 HC5OO + 0.5 OH                                   ', & ! index 181
      '     LVOC + OH --> OH                                                                               ', & ! index 182
      '   IEPOXA + OH --> IEPOXOO                                                                          ', & ! index 183
      '   IEPOXB + OH --> IEPOXOO                                                                          ', & ! index 184

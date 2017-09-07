@@ -37,6 +37,7 @@ MODULE NCDF_MOD
   PUBLIC  :: NC_CREATE
   PUBLIC  :: NC_SET_DEFMODE
   PUBLIC  :: NC_VAR_DEF
+  PUBLIC  :: NC_VAR_CHUNK
   PUBLIC  :: NC_VAR_WRITE
   PUBLIC  :: NC_CLOSE
   PUBLIC  :: NC_READ_TIME
@@ -64,6 +65,7 @@ MODULE NCDF_MOD
   PRIVATE :: NC_VAR_WRITE_R4_2D
   PRIVATE :: NC_VAR_WRITE_R4_3D
   PRIVATE :: NC_VAR_WRITE_R4_4D
+  PRIVATE :: NC_VAR_WRITE_R8_0D
   PRIVATE :: NC_VAR_WRITE_R8_1D
   PRIVATE :: NC_VAR_WRITE_R8_2D
   PRIVATE :: NC_VAR_WRITE_R8_3D
@@ -94,6 +96,7 @@ MODULE NCDF_MOD
 !                              NC_READ_TIME_YYYYMMDDhhmm, to indicate that
 !                              it will now uses YYYYYMMDDhhmm format
 !  09 Aug 2017 - R. Yantosca - Add public routine NC_SET_DEFMODE
+!  25 Aug 2017 - R. Yantosca - Add NC_Var_Write_*_0D routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,14 +124,17 @@ MODULE NCDF_MOD
   END INTERFACE NC_GET_SIGMA_LEVELS
 
   INTERFACE NC_VAR_WRITE
+     MODULE PROCEDURE NC_VAR_WRITE_INT_0D
      MODULE PROCEDURE NC_VAR_WRITE_INT_1D
      MODULE PROCEDURE NC_VAR_WRITE_INT_2D
      MODULE PROCEDURE NC_VAR_WRITE_INT_3D
      MODULE PROCEDURE NC_VAR_WRITE_INT_4D
+     MODULE PROCEDURE NC_VAR_WRITE_R4_0D
      MODULE PROCEDURE NC_VAR_WRITE_R4_1D
      MODULE PROCEDURE NC_VAR_WRITE_R4_2D
      MODULE PROCEDURE NC_VAR_WRITE_R4_3D
      MODULE PROCEDURE NC_VAR_WRITE_R4_4D
+     MODULE PROCEDURE NC_VAR_WRITE_R8_0D
      MODULE PROCEDURE NC_VAR_WRITE_R8_1D
      MODULE PROCEDURE NC_VAR_WRITE_R8_2D
      MODULE PROCEDURE NC_VAR_WRITE_R8_3D
@@ -172,6 +178,7 @@ CONTAINS
 
     ! Open netCDF file
     CALL Ncop_Rd( fId, TRIM(FileName) )
+
 
   END SUBROUTINE NC_OPEN
 !EOC
@@ -3348,7 +3355,8 @@ CONTAINS
                         nLev,       nTime,        fId,       lonID,          & 
                         latId,      levId,        timeId,    VarCt,          &
                         Create_NC4, KeepDefMode,  NcFormat,  Conventions,    &
-                        History,    ProdDateTime, Reference, Contact        )
+                        History,    ProdDateTime, Reference, Contact,        &
+                        nIlev,      iLevId                                  )
 !
 ! !INPUT PARAMETERS:
 !
@@ -3357,8 +3365,9 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )  :: title        ! ncdf file title
     INTEGER,          INTENT(IN   )  :: nLon         ! # of lons 
     INTEGER,          INTENT(IN   )  :: nLat         ! # of lats 
-    INTEGER,          INTENT(IN   )  :: nLev         ! # of levs 
+    INTEGER,          INTENT(IN   )  :: nLev         ! # of level midpoints
     INTEGER,          INTENT(IN   )  :: nTime        ! # of times 
+    INTEGER,          OPTIONAL       :: nILev        ! # of level interfaces
 
     ! Optional arguments (mostly global attributes)
     LOGICAL,          OPTIONAL       :: Create_Nc4   ! Save output as netCDF-4
@@ -3374,11 +3383,12 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 ! 
     INTEGER,          INTENT(  OUT)  :: fId          ! file id 
-    INTEGER,          INTENT(  OUT)  :: lonId        ! lon id 
-    INTEGER,          INTENT(  OUT)  :: latId        ! lat id 
-    INTEGER,          INTENT(  OUT)  :: levId        ! lev id 
-    INTEGER,          INTENT(  OUT)  :: timeId       ! time id 
+    INTEGER,          INTENT(  OUT)  :: lonId        ! lon  dimension id 
+    INTEGER,          INTENT(  OUT)  :: latId        ! lat  dimension id 
+    INTEGER,          INTENT(  OUT)  :: levId        ! lev  dimension id 
+    INTEGER,          INTENT(  OUT)  :: timeId       ! time dimension id 
     INTEGER,          INTENT(  OUT)  :: VarCt        ! variable counter 
+    INTEGER,          OPTIONAL       :: ilevId       ! ilev dimension id
 !
 ! !REMARKS:
 !  Assumes that you have:
@@ -3397,6 +3407,8 @@ CONTAINS
 !  08 Aug 2017 - R. Yantosca - Add optional KeepDefMode argument so that we can
 !                              stay in netCDF define mode upon leaving this
 !                              routine (i.e. to define variables afterwards)
+!  24 Aug 2017 - R. Yantosca - Added nIlev and iLevId variables so that we can
+!                               create the iLev dimension (level interfaces)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3511,18 +3523,27 @@ CONTAINS
     !=======================================================================
 
     ! Time
-    CALL NcDef_Dimension   ( fId, 'time', nTime, TimeId ) 
+    CALL NcDef_Dimension( fId, 'time', nTime, TimeId ) 
 
-    ! Lev
+    ! Level midpoints
     IF ( nLev > 0 ) THEN
        CALL NcDef_Dimension( fId, 'lev',  nLev,  levId  )
     ELSE
        levId = -1
     ENDIF
 
+    ! Optional ILev dimension: level interfaces
+    IF ( PRESENT( nIlev ) .and. PRESENT( iLevId ) ) THEN
+       IF ( nILev > 0 ) THEN
+          CALL NcDef_Dimension( fId, 'ilev', nIlev, iLevId )
+       ELSE
+          iLevId = -1
+       ENDIF
+    ENDIF
+
     ! Lat and lon
-    CALL NcDef_Dimension   ( fId, 'lat',  nLat,  latId  ) 
-    CALL NcDef_Dimension   ( fId, 'lon',  nLon,  lonId  ) 
+    CALL NcDef_Dimension( fId, 'lat',  nLat,  latId  ) 
+    CALL NcDef_Dimension( fId, 'lon',  nLon,  lonId  ) 
   
     ! Close definition section
     IF ( QuitDefMode ) THEN
@@ -3547,20 +3568,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_Var_Def( fId,       lonId,        latId,       levId,        &
-                         TimeId,    VarName,      VarLongName, VarUnit,      &
-                         DataType,  VarCt,        DefMode,     Compress,     & 
-                         AddOffset, MissingValue, ScaleFactor, Calendar,     &
-                         Axis,      AvgMethod,    Positive                  )
+  SUBROUTINE NC_Var_Def( fId,       lonId,        latId,        levId,       &
+                         TimeId,    VarName,      VarLongName,  VarUnit,     &
+                         DataType,  VarCt,        DefMode,      Compress,    & 
+                         AddOffset, MissingValue, ScaleFactor,  Calendar,    &
+                         Axis,      StandardName, FormulaTerms, AvgMethod,   &
+                         Positive,  iLevId                                  )
 !
 ! !INPUT PARAMETERS:
 ! 
     ! Required inputs
     INTEGER,          INTENT(IN   ) :: fId          ! file ID  
-    INTEGER,          INTENT(IN   ) :: lonId        ! ID of lon  (X) dim
-    INTEGER,          INTENT(IN   ) :: latId        ! ID of lat  (Y) dim
-    INTEGER,          INTENT(IN   ) :: levId        ! ID of lev  (Z) dim
-    INTEGER,          INTENT(IN   ) :: TimeId       ! ID of time (T) dim
+    INTEGER,          INTENT(IN   ) :: lonId        ! ID of lon      (X) dim
+    INTEGER,          INTENT(IN   ) :: latId        ! ID of lat      (Y) dim
+    INTEGER,          INTENT(IN   ) :: levId        ! ID of lev ctr  (Z) dim
+    INTEGER,          OPTIONAL      :: iLevId       ! ID of lev edge (I) dim
+    INTEGER,          INTENT(IN   ) :: TimeId       ! ID of time     (T) dim
     CHARACTER(LEN=*), INTENT(IN   ) :: VarName      ! Variable name
     CHARACTER(LEN=*), INTENT(IN   ) :: VarLongName  ! Long name description
     CHARACTER(LEN=*), INTENT(IN   ) :: VarUnit      ! Units
@@ -3574,6 +3597,8 @@ CONTAINS
     REAL*4,           OPTIONAL      :: ScaleFactor  ! Scale factor attribute
     CHARACTER(LEN=*), OPTIONAL      :: Calendar     ! Calendar for time var
     CHARACTER(LEN=*), OPTIONAL      :: Axis         ! Axis for index vars
+    CHARACTER(LEN=*), OPTIONAL      :: StandardName ! Standard name attribute
+    CHARACTER(LEN=*), OPTIONAL      :: FormulaTerms ! Formula for vert coords
     CHARACTER(LEN=*), OPTIONAL      :: AvgMethod    ! Averaging method
     CHARACTER(LEN=*), OPTIONAL      :: Positive     ! Positive dir (up or down)
 !
@@ -3588,9 +3613,13 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
-!  21 Jan 2017 - C. Holmes   - Added optional DefMode argument to avoid excessive switching between define and data modes
+!  21 Jan 2017 - C. Holmes   - Added optional DefMode argument to avoid 
+!                              excessive switching between define & data modes
 !  18 Feb 2017 - C. Holmes   - Enable netCDF-4 compression
 !  08 Aug 2017 - R. Yantosca - Add more optional arguments for variable atts
+!  24 Aug 2017 - R. Yantosca - Added StandardName, FormulaTerms arguments
+!  24 Aug 2017 - R. Yantosca - Added optional Ilev dimension so that we can
+!                               define variables on level interfaces
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3601,8 +3630,8 @@ CONTAINS
     INTEGER, ALLOCATABLE :: VarDims(:) 
 
     ! Scalars
-    INTEGER              :: nDim, Pos
-    INTEGER              :: NF_TYPE
+    INTEGER              :: nDim,     Pos
+    INTEGER              :: NF_TYPE,  tmpIlevId
     LOGICAL              :: isDefMode
 
     ! Strings 
@@ -3619,6 +3648,13 @@ CONTAINS
        isDefMode = .FALSE.
     ENDIF
 
+    ! Test if iLevId (dimension for level interfaces) is present
+    IF ( PRESENT( iLevId ) ) THEN
+       tmpIlevId = iLevId
+    ELSE
+       tmpIlevId = -1
+    ENDIF
+
     !=======================================================================
     ! DEFINE VARIABLE 
     !=======================================================================
@@ -3626,15 +3662,15 @@ CONTAINS
     ! Reopen definition section, if necessary
     IF ( .not. isDefMode ) CALL NcBegin_Def( fId )
     
-    ! Increate variable counter
     VarCt = VarCt + 1
     
     ! number of dimensions
     nDim = 0
-    IF ( lonId  >= 0 ) nDim = nDim + 1
-    IF ( latId  >= 0 ) nDim = nDim + 1
-    IF ( levId  >= 0 ) nDim = nDim + 1
-    if ( timeId >= 0 ) nDim = nDim + 1
+    IF ( lonId     >= 0 ) nDim = nDim + 1
+    IF ( latId     >= 0 ) nDim = nDim + 1
+    IF ( levId     >= 0 ) nDim = nDim + 1
+    IF ( tmpIlevId >= 0 ) nDim = nDim + 1
+    if ( timeId    >= 0 ) nDim = nDim + 1
 
     ! write dimensions
     ALLOCATE( VarDims(nDim) )
@@ -3649,6 +3685,10 @@ CONTAINS
     ENDIF
     IF ( levId >= 0 ) THEN
        VarDims(Pos) = levId
+       Pos          = Pos + 1
+    ENDIF
+    IF ( tmpIlevId >= 0 ) THEN
+       VarDims(Pos) = tmpIlevId
        Pos          = Pos + 1
     ENDIF
     IF ( timeId >= 0 ) THEN
@@ -3736,10 +3776,115 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! Standard name (optional) -- skip if null string
+    IF ( PRESENT( StandardName ) ) THEN
+       IF ( LEN_TRIM( StandardName ) > 0 ) THEN
+          Att = 'standard_Name'
+          CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), TRIM(StandardName))
+       ENDIF
+    ENDIF
+
+    ! Formula terms (optional) -- skip if null string
+    IF ( PRESENT( FormulaTerms ) ) THEN
+       IF ( LEN_TRIM( FormulaTerms ) > 0 ) THEN
+          Att = 'formula_terms'
+          CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), TRIM(FormulaTerms))
+       ENDIF
+    ENDIF
+
     ! Close definition section, if necessary
     IF ( .not. isDefMode ) CALL NcEnd_Def( fId )
 
   END SUBROUTINE NC_Var_Def
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Var_Chunk
+!
+! !DESCRIPTION: Turns on chunking for a netCDF variable.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Nc_Var_Chunk( fId, vId, ChunkSizes, RC )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER, INTENT(IN)  :: fId            ! NetCDF file ID
+    INTEGER, INTENT(IN)  :: vId            ! NetCDF variable ID
+    INTEGER, INTENT(IN)  :: ChunkSizes(:)  ! NetCDF chunk sizes for each dim
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(OUT) :: RC             ! Success or failure?
+!
+! !REMARKS:
+!  RC will return an error (nonzero) status if chunking cannot be activated.
+!  Most often, this is because support for netCDF-4 compression is disabled,
+!  or if the netCDF file is not a netCDF-4 file.  In this case, RC will have
+!  an error code of -111.
+!
+! !REVISION HISTORY:
+!  28 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Turn on chunking for this variable
+    RC = NF_Def_Var_Chunking( fId, vId, NF_CHUNKED, ChunkSizes )
+
+  END SUBROUTINE Nc_Var_Chunk
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Var_Write_R8_0d
+!
+! !DESCRIPTION: Writes data of a 0-D double precision variable.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_R8_0D( fId, VarName, Var )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN)  :: fId           ! file ID 
+    CHARACTER(LEN=*), INTENT(IN)  :: VarName       ! variable name      
+    REAL(kind=8)                  :: Var           ! Variable to be written
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  25 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    ! Write to netCDF file
+    CALL NcWr( Var, fId, VarName )
+
+  END SUBROUTINE NC_VAR_WRITE_R8_0d
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
@@ -3985,6 +4130,52 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Nc_Var_Write_R4_0d
+!
+! !DESCRIPTION: Writes data of a 0-D single-precision variable.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_R4_0d( fId, VarName, Var )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN)  :: fId           ! file ID 
+    CHARACTER(LEN=*), INTENT(IN)  :: VarName       ! variable name      
+    REAL(kind=4)                  :: Var           ! Variable to be written
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  25 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    ! Write to netCDF file
+    CALL NcWr( Var, fId, VarName )
+
+  END SUBROUTINE NC_VAR_WRITE_R4_0D
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Nc_Var_Write_r4_1d
 !
 ! !DESCRIPTION: Writes data of a single precision variable. 
@@ -4215,6 +4406,52 @@ CONTAINS
     CALL NcWr( Arr4d, fId, VarName, St4d, Ct4d )
 
   END SUBROUTINE NC_VAR_WRITE_R4_4D
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Var_Write_Int_0d
+!
+! !DESCRIPTION: Writes data of a 0-D integer variable.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_VAR_WRITE_INT_0d( fId, VarName, Var )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,          INTENT(IN)  :: fId           ! file ID 
+    CHARACTER(LEN=*), INTENT(IN)  :: VarName       ! variable name      
+    INTEGER                       :: Var           ! Variable to be written
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required.
+!
+! !REVISION HISTORY:
+!  25 Aug 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    !--------------------------------
+    ! WRITE DATA 
+    !--------------------------------
+   
+    ! Write to netCDF file
+    CALL NcWr( Var, fId, VarName )
+
+  END SUBROUTINE NC_VAR_WRITE_INT_0D
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !

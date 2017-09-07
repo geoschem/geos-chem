@@ -24,14 +24,18 @@ MODULE Registry_Params_Mod
   ! Denotes REAL(fp), aka "flexible precision
   INTEGER, PUBLIC, PARAMETER :: KINDVAL_FP = 1
 
+  ! Denotes REAL(f8), aka REAL*8 or 8-byte floating point
+  INTEGER, PUBLIC, PARAMETER :: KINDVAL_F8 = 2
+
   ! Denotes REAL(f4), aka REAL*4, or 4-byte floating point
-  INTEGER, PUBLIC, PARAMETER :: KINDVAL_F4 = 2
+  INTEGER, PUBLIC, PARAMETER :: KINDVAL_F4 = 3
 
   ! Denotes INTEGER
-  INTEGER, PUBLIC, PARAMETER :: KINDVAL_I4 = 3
+  INTEGER, PUBLIC, PARAMETER :: KINDVAL_I4 = 4
 !
 ! !REVISION HISTORY:
 !  14 Jul 2017 - R. Yantosca - Initial version
+!  25 Aug 2017 - R. Yantosca - Add KINDVAL_F8 parameter for REAL*8 data
 !EOP
 !------------------------------------------------------------------------------
 !BOC

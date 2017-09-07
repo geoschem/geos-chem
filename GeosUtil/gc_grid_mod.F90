@@ -48,8 +48,6 @@ MODULE GC_Grid_Mod
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
   PUBLIC  :: SetGridFromCtr
-  PUBLIC  :: Lookup_Grid
-  PUBLIC  :: Print_Grid
 
 ! Make some arrays public
   PUBLIC  :: XMID, YMID, XEDGE, YEDGE, YSIN, AREA_M2
@@ -70,6 +68,7 @@ MODULE GC_Grid_Mod
 !  09 Aug 2017 - R. Yantosca - Now register lon (slice of XMID), lat (slice of
 !                              YMID) and AREA_M2.  Added registry routines etc.
 !  18 Aug 2017 - R. Yantosca - Move roundoff routines to roundoff_mod.F90
+!  23 Aug 2017 - R. Yantosca - Registry is now moved to grid_registry_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -92,12 +91,6 @@ MODULE GC_Grid_Mod
   REAL(fp), ALLOCATABLE, TARGET :: YMID_R_W (:,:,:) ! Lat ctrs  nest grid [rad]
   REAL(fp), ALLOCATABLE, TARGET :: YEDGE_R_W(:,:,:) ! Lat edges nest grid [rad]
   REAL(fp), ALLOCATABLE, TARGET :: AREA_M2  (:,:,:) ! Grid box areas [m2]
-  REAL(fp), ALLOCATABLE, TARGET :: LEVEL_IND(:    ) ! Lev indices (for registry)
-  REAL(fp), POINTER             :: LAT(:) => NULL() ! Lat values  (for registry)
-
-  ! Registry of variables contained within gc_grid_mod.F90
-  CHARACTER(LEN=4)              :: State     = 'GRID'   ! Name of this state
-  TYPE(MetaRegItem),    POINTER :: Registry  => NULL()  ! Registry object
   
 CONTAINS
 !EOC
@@ -1577,129 +1570,6 @@ CONTAINS
        YMID_R_W = 0e+0_fp
     ENDIF
 
-    !======================================================================
-    ! Level index (used for netCDF index variable)
-    !======================================================================
-    LAT => YMID(1,:,1)
-
-    !======================================================================
-    ! Level index (used for netCDF index variable)
-    !======================================================================
-    ALLOCATE( LEVEL_IND( LM ), STAT=RC )
-    IF ( RC /= 0 ) CALL ALLOC_ERR( 'LEVEL_IND' )   
-    DO L = 1, LM
-       LEVEL_IND(L) = DBLE( L )
-    ENDDO
-
-    TIME_IND = 0.0_fp
-
-    !======================================================================
-    ! Register the fields
-    !======================================================================
-
-    !-------------------------------
-    ! AREA (2-D slice of AREA_M2)
-    !-------------------------------
-    Variable = 'AREA'
-    Desc     = 'Surface area'
-    Units    = 'm2'
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data2d      = AREA_M2(:,:,1),                    &
-                            RC          = RC                                )
-
-    Variable = TRIM( State ) // '_' // TRIM( Variable )
-    CALL GC_CheckVar( Variable, 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !-------------------------------
-    ! TIME (currently set to Null)
-    !-------------------------------
-    Variable = 'TIME'
-    Desc     = 'Time'
-    Units    = 'minutes since YYYY-MM-DD hh:mm:ss UTC'
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = TIME_IND,                          &
-                            RC          = RC                                )
-
-    Variable = TRIM( State ) // '_' // TRIM( Variable )
-    CALL GC_CheckVar( Variable, 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !-------------------------------
-    ! LEV (1-D slice of LEVEL_IND)
-    !-------------------------------
-    Variable = 'LEV'
-    Desc     = 'GEOS-Chem level'
-    Units    = '1'
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = LEVEL_IND,                         &
-                            RC          = RC                                )
-
-    Variable = TRIM( State ) // '_' // TRIM( Variable )
-    CALL GC_CheckVar( Variable, 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !------------------------------
-    ! LAT (1-D slice of XMID)
-    !------------------------------
-    Variable = 'LAT'
-    Desc     = 'Latitude'
-    Units    = 'degrees_north'
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = LAT,                               &
-                            RC          = RC                                )
-
-    Variable = TRIM( State ) // '_' // TRIM( Variable )
-    CALL GC_CheckVar( Variable, 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !-------------------------------
-    ! LON (1-D slice of XMID)
-    !-------------------------------
-    Variable = 'LON'
-    Desc     = 'Longitude'
-    Units    = 'degrees_east'
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
-                            Registry    = Registry,                          &
-                            State       = State,                             &
-                            Variable    = Variable,                          &
-                            Description = Desc,                              &
-                            Units       = Units,                             &
-                            Data1d      = XMID(:,1,1),                       &
-                            RC          = RC                                )
-
-    Variable = TRIM( State ) // '_' // TRIM( Variable )
-    CALL GC_CheckVar( Variable, 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !------------------------------
-    ! Print list of fields
-    !------------------------------
-    CALL Print_Grid( am_I_Root, RC, ShortFormat=.TRUE. )
-
-    ! Write spacer line for log file
-    WRITE( 6, '(a)' )
-
   END SUBROUTINE Init_Grid
 !EOC
 !------------------------------------------------------------------------------
@@ -1759,190 +1629,7 @@ CONTAINS
     IF ( ALLOCATED( YMID_R_W  ) ) DEALLOCATE( YMID_R_W  )  
     IF ( ALLOCATED( YEDGE_R   ) ) DEALLOCATE( YEDGE_R   )
     IF ( ALLOCATED( AREA_M2   ) ) DEALLOCATE( AREA_M2   )
-    IF ( ALLOCATED( LEVEL_IND ) ) DEALLOCATE( LEVEL_IND )
-
-    ! Free pointer
-    LAT => NULL()
-    
-    !=======================================================================
-    ! Destroy the registry of fields for this module
-    !=======================================================================
-    CALL Registry_Destroy( am_I_Root, Registry, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not destroy registry object State_Chm%Registry!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
 
   END SUBROUTINE Cleanup_Grid
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Print_Grid
-!
-! !DESCRIPTION: Print information about all the registered variables
-!  contained within the gc\_grid\_mod.F90 module. This is basically a wrapper 
-!  for routine REGISTRY\_PRINT in registry\_mod.F90.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Print_Grid( am_I_Root, RC, ShortFormat )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_Print
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Root CPU?  
-    LOGICAL,        OPTIONAL    :: ShortFormat ! Print truncated info
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT) :: RC          ! Success/failure?
-!
-! !REVISION HISTORY:
-!  29 Jun 2017 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Print_GC_Grid (in GeosUtil/gc_grid_mod.F90)'
-
-    !=======================================================================
-    ! Print info about registered variables
-    !=======================================================================
-
-    ! Header line
-    IF ( am_I_Root ) THEN
-       WRITE( 6, 10 )
-10     FORMAT( /, 'Registered variables contained within gc_grid_mod.F90:' )
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    ENDIF
-
-    ! Print registry info in truncated format
-    CALL Registry_Print( am_I_Root   = am_I_Root,           &
-                         Registry    = Registry,            &
-                         ShortFormat = ShortFormat,         &
-                         RC          = RC                  )
-
-    ! Trap error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "Registry_Print"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE Print_Grid
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Lookup_Grid
-!
-! !DESCRIPTION: Return metadata and/or a pointer to the data for any
-!  variable contained within the State\_Chm object by searching for its name.
-!  This is basically a wrapper for routine REGISTRY\_LOOKUP in 
-!  registry\_mod.F90.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Lookup_Grid( am_I_Root,   Variable,   RC,                       &
-                          Description, Dimensions, KindVal,                  &
-                          MemoryInKb,  Rank,       Units,                    &
-                          Ptr1d,       Ptr2d                                )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_Lookup
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,             INTENT(IN)  :: am_I_Root       ! Is this the root CPU? 
-    CHARACTER(LEN=*),    INTENT(IN)  :: Variable        ! Variable name
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Required outputs
-    INTEGER,             INTENT(OUT) :: RC              ! Success or failure?
-
-    ! Optional outputs
-    CHARACTER(LEN=255),  OPTIONAL    :: Description     ! Description of data
-    INTEGER,             OPTIONAL    :: Dimensions(3)   ! Dimensions of data
-    INTEGER,             OPTIONAL    :: KindVal         ! Numerical KIND value
-    REAL(fp),            OPTIONAL    :: MemoryInKb      ! Memory usage
-    INTEGER,             OPTIONAL    :: Rank            ! Size of data
-    CHARACTER(LEN=255),  OPTIONAL    :: Units           ! Units of data
-
-    ! Pointers to data
-    REAL(fp),   POINTER, OPTIONAL    :: Ptr1d(:  )      ! 1D flex-prec data
-    REAL(fp),   POINTER, OPTIONAL    :: Ptr2d(:,:)      ! 2D flex-prec data
-!
-! !REMARKS:
-!  We keep the StateName variable private to this module. Users only have
-!  to supply the name of each module variable.
-!
-! !REVISION HISTORY:
-!  29 Jun 2017 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Lookup_Grid (in GeosUtil/gc_grid_mod.F90)'
-
-    !=======================================================================
-    ! Look up a variable; Return metadata and/or a pointer to the data
-    !=======================================================================
-    CALL Registry_Lookup( am_I_Root   = am_I_Root,           &
-                          Registry    = Registry,            &
-                          State       = State,               &
-                          Variable    = Variable,            &
-                          Description = Description,         &
-                          Dimensions  = Dimensions,          &
-                          KindVal     = KindVal,             &
-                          MemoryInKb  = MemoryInKb,          &
-                          Rank        = Rank,                &
-                          Units       = Units,               &
-                          Ptr1d       = Ptr1d,               &
-                          Ptr2d       = Ptr2d,               &
-                          RC          = RC                  )
-
-    ! Trap error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not find variable "' // TRIM( Variable ) // &
-               '" in the gc_grid_mod.F90 registry!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE Lookup_Grid
 !EOC
 END MODULE GC_Grid_Mod

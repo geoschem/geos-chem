@@ -43,7 +43,6 @@ MODULE History_Netcdf_Mod
 !  10 Aug 2017 - R. Yantosca - Initial version
 !  16 Aug 2017 - R. Yantosca - Reorder placement of routines
 !  16 Aug 2017 - R. Yantosca - Rename History_Expand_Date to Expand_Date_Time
-!  17 Aug 2017 - R. Yantosca - Now make Compute_Julian_Date a public routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -126,10 +125,9 @@ CONTAINS
        ! Undefine fields
        Container%IsFileOpen    = .FALSE.
        Container%IsFileDefined = .FALSE.
-       Container%ReferenceYmd  = 0
-       Container%ReferenceHms  = 0
-       Container%ReferenceJd   = 0.0_f8
-       Container%RefElapsedMin = 0.0_f8
+       Container%ReferenceYmd  = UNDEFINED_DBL
+       Container%ReferenceHms  = UNDEFINED_DBL
+       Container%ReferenceJd   = UNDEFINED_DBL
        Container%CurrTimeSlice = UNDEFINED_INT
 
        !--------------------------------------------------------------------
@@ -182,11 +180,13 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HistContainer_Mod,  ONLY : HistContainer, HistContainer_Print
-    USE HistItem_Mod,       ONLY : HistItem,      HistItem_Print
+    USE HistContainer_Mod,   ONLY : HistContainer, HistContainer_Print
+    USE HistItem_Mod,        ONLY : HistItem,      HistItem_Print
+    USE JulDay_Mod,          ONLY : CalDate
     USE History_Util_Mod
-    USE MetaHistItem_Mod,   ONLY : MetaHistItem
+    USE MetaHistItem_Mod,    ONLY : MetaHistItem
     USE Ncdf_Mod
+    USE Registry_Params_MOd, ONLY : KINDVAL_F4
 !
 ! !INPUT PARAMETERS: 
 !
@@ -206,6 +206,10 @@ CONTAINS
 !  03 Aug 2017 - R. Yantosca - Initial version
 !  14 Aug 2017 - R. Yantosca - Call History_Netcdf_Close from 1 level higher
 !  21 Aug 2017 - R. Yantosca - Now get yyyymmdd & hhmmms from the Container
+!  24 Aug 2017 - R. Yantosca - Now can save data on vertical interfaces
+!  28 Aug 2017 - R. Yantosca - Now make sure AREA is written as REAL(f4)
+!  28 Aug 2017 - R. Yantosca - Replace "TBD" in units w/ species units
+!  30 Aug 2017 - R. Yantosca - Now print file write info only on the root CPU
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -213,18 +217,20 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                     :: N,         VarCt
-    INTEGER                     :: VarXDimId, VarYDimId
-    INTEGER                     :: VarZDimId, VarTDimId
-    INTEGER                     :: yyyymmdd,  hhmmss
+    INTEGER                     :: N,          VarCt
+    INTEGER                     :: VarXDimId,  VarYDimId
+    INTEGER                     :: VarZDimId,  VarTDimId
+    INTEGER                     :: yyyymmdd,   hhmmss
+    INTEGER                     :: DataType
 
     ! Strings                   
     CHARACTER(LEN=5)            :: Z
     CHARACTER(LEN=8)            :: D
     CHARACTER(LEN=10)           :: T
     CHARACTER(LEN=255)          :: FileName
-    CHARACTER(LEN=255)          :: ErrMsg,    ThisLoc,     VarUnits
-    CHARACTER(LEN=255)          :: VarAxis,   VarPositive, VarCalendar
+    CHARACTER(LEN=255)          :: ErrMsg,     ThisLoc,     VarUnits
+    CHARACTER(LEN=255)          :: VarAxis,    VarPositive, VarCalendar
+    CHARACTER(LEN=255)          :: VarStdName, VarFormula
 
     ! Arrays
     INTEGER                     :: V(8)
@@ -256,6 +262,54 @@ CONTAINS
     ! Do not exit netCDF define mode just yet
     !=======================================================================
     IF ( .not. Container%IsFileOpen ) THEN
+ 
+       !--------------------------------------------------------------------
+       ! Compute reference date and time fields in the HISTORY CONTAINER
+       ! These are needed to compute the time stamps for each data field
+       ! that is written to the netCDF file.  Also resets the current
+       ! time slice index.
+       !--------------------------------------------------------------------
+
+       ! Reset the current time slice index
+       Container%CurrTimeSlice = 0
+
+       IF ( Container%Operation == ACCUM_FROM_SOURCE ) THEN
+
+          !-----------------------------
+          ! TIME-AVERAGED COLLECTIONS
+          !----------------------------- 
+
+          ! Subtract the file write alarm interval that we added to
+          ! the current date/time (CurrentJd) field at initialization
+          Container%ReferenceJd = Container%CurrentJd                        &
+                                - ( Container%FileWriteIvalMin /             &
+                                    MINUTES_PER_DAY                         )
+
+       ELSE
+
+          !-----------------------------
+          ! INSTANTANEOUS COLLECTIONS
+          !----------------------------- 
+         
+          ! If this is the first time we are writing a file, then set
+          ! the reference date/time to the date/time at the start of
+          ! the simulation (EpochJd).  This will make sure the file names
+          ! and timestamps in all instantaneous files will be consistent.
+          ! For all future file writes, set the reference date/time to the
+          ! current date/time (CurrentJd).
+          IF ( Container%FirstInst ) THEN
+             Container%ReferenceJd = Container%EpochJd
+             Container%FirstInst   = .FALSE.
+          ELSE
+             Container%ReferenceJd = Container%CurrentJd
+          ENDIF
+
+       ENDIF
+
+       ! Recompute the ReferenceYmd and ReferenceHms fields
+       CALL CalDate( JulianDay = Container%ReferenceJd,                      &
+                     yyyymmdd  = Container%ReferenceYmd,                     &
+                     hhmmss    = Container%ReferenceHms                     )
 
        !--------------------------------------------------------------------
        ! Replace time and date tokens in the netCDF file name
@@ -265,19 +319,20 @@ CONTAINS
        FileName = TRIM( Container%FileName )
 
        ! Replace date and time tokens in the file name
-       CALL Expand_Date_Time( FileName, yyyymmdd, hhmmss, MAPL_Style=.TRUE. )
+       CALL Expand_Date_Time( DateStr    = FileName,                         &
+                              yyyymmdd   = Container%ReferenceYmd,           &
+                              hhmmss     = Container%ReferenceHms,           &
+                              MAPL_Style = .TRUE. )
    
-       !--------------------------------------------------------------------
-       ! Compute reference date and time fields in the HISTORY CONTAINER
-       ! These are needed to compute the time stamps for each data field
-       ! that is written to the netCDF file.  Also resets the current
-       ! time slice index.
-       !--------------------------------------------------------------------
-       Container%CurrTimeSlice = 0
-       Container%ReferenceYmd  = Container%CurrentYmd
-       Container%ReferenceHms  = Container%CurrentHms
-       Container%ReferenceJd   = Container%CurrentJd
-       Container%RefElapsedMin = 0.0_f8
+       ! Echo info about the file we are creating
+       IF ( am_I_Root ) THEN
+          WRITE( 6, 100 ) TRIM( Container%Name ),                            &
+                          Container%ReferenceYmd,                            &
+                          Container%ReferenceHms
+          WRITE( 6, 110 ) TRIM( FileName       )
+       ENDIF
+ 100   FORMAT( '     - Creating file for ', a, '; reference = ', i8.8,1x,i6.6 )
+ 110   FORMAT( '        with filename = ', a                                   )
 
        !--------------------------------------------------------------------
        ! Create the timestamp for the History and ProdDateTime attributes
@@ -307,6 +362,7 @@ CONTAINS
                        nLon         = Container%nX,                          &
                        nLat         = Container%nY,                          &
                        nLev         = Container%nZ,                          &
+                       nIlev        = Container%nZ+1,                        &
                        nTime        = NF_UNLIMITED,                          &
                        NcFormat     = Container%NcFormat,                    &
                        Conventions  = Container%Conventions,                 &
@@ -318,6 +374,7 @@ CONTAINS
                        fId          = Container%FileId,                      &
                        TimeId       = Container%tDimId,                      &
                        LevId        = Container%zDimId,                      &
+                       ILevId       = Container%iDimId,                      &
                        LatId        = Container%yDimId,                      &
                        LonId        = Container%xDimId,                      &
                        KeepDefMode  = .TRUE.,                                &
@@ -335,7 +392,7 @@ CONTAINS
     IF ( .not. Container%IsFileDefined ) THEN
 
        !--------------------------------------------------------------------
-       ! Add the index dimension data
+       ! Define the index variables
        !--------------------------------------------------------------------
 
        ! Set CURRENT to the first node in the list of HISTORY ITEMS
@@ -347,34 +404,48 @@ CONTAINS
           ! Get the dimension ID's that are relevant to each HISTORY ITEM
           ! Also get Axis, Calendar, and Positive attributes for index vars,
           ! and replace time & date tokens in the units string for "time".
-          CALL Get_Var_DimIds( Item        = Current%Item,                   & 
-                               xDimId      = Container%xDimId,               &
-                               yDimId      = Container%yDimId,               &
-                               zDimId      = Container%zDimId,               &
-                               tDimId      = Container%tDimId,               &
-                               RefDate     = Container%ReferenceYmd,         &
-                               RefTime     = Container%ReferenceHms,         &
-                               VarAxis     = VarAxis,                        &
-                               VarPositive = VarPositive,                    &
-                               VarCalendar = VarCalendar,                    &
-                               VarUnits    = VarUnits                       )
+          CALL Get_Var_DimIds( xDimId       = Container%xDimId,              &
+                               yDimId       = Container%yDimId,              &
+                               zDimId       = Container%zDimId,              &
+                               iDimId       = Container%iDimId,              &
+                               tDimId       = Container%tDimId,              &
+                               RefDate      = Container%ReferenceYmd,        &
+                               RefTime      = Container%ReferenceHms,        &
+                               OnLevelEdges = Container%OnLevelEdges,        &
+                               Item         = Current%Item,                  &
+                               VarAxis      = VarAxis,                       &
+                               VarPositive  = VarPositive,                   &
+                               VarCalendar  = VarCalendar,                   &
+                               VarUnits     = VarUnits,                      &
+                               VarStdName   = VarStdName,                    &
+                               VarFormula   = VarFormula                    )
+
+          ! Set a flag for the precision of the data
+          IF ( Current%Item%Source_KindVal == KINDVAL_F4 ) THEN
+             DataType = 4
+          ELSE
+             DataType = 8
+          ENDIF
 
           ! Define each HISTORY ITEM in this collection to the netCDF file
           CALL Nc_Var_Def( DefMode      = .TRUE.,                            &
                            Compress     = .TRUE.,                            &
                            fId          = Container%FileId,                  &
-                           DataType     = 8,                                 &
+                           DataType     = DataType,                          &
                            VarName      = Current%Item%Name,                 &
                            VarCt        = Current%Item%NcVarId,              &
                            timeId       = Current%Item%NcTDimId,             &
                            levId        = Current%Item%NcZDimId,             &
+                           iLevId       = Current%Item%NcIDimId,             &
                            latId        = Current%Item%NcYDimId,             &
                            lonId        = Current%Item%NcXDimId,             &
                            VarLongName  = Current%Item%LongName,             &
                            VarUnit      = VarUnits,                          &
                            Axis         = VarAxis,                           &
                            Calendar     = VarCalendar,                       &
-                           Positive     = VarPositive                       )
+                           Positive     = VarPositive,                       &
+                           StandardName = VarStdName,                        &
+                           FormulaTerms = VarFormula                        )
 
           ! Debug print
           !CALL HistItem_Print( am_I_Root, Current%Item, RC )
@@ -398,13 +469,22 @@ CONTAINS
 
           ! Get the dimension ID's that are relevant to each HISTORY ITEM
           ! and save them in fields of the HISTORY ITEM
-          CALL Get_Var_DimIds( Item   = Current%Item,                        & 
-                               xDimId = Container%xDimId,                    &
-                               yDimId = Container%yDimId,                    &
-                               zDimId = Container%zDimId,                    &
-                               tDimId = Container%tDimId                    )
+          CALL Get_Var_DimIds( xDimId   = Container%xDimId,                  &
+                               yDimId   = Container%yDimId,                  &
+                               zDimId   = Container%zDimId,                  &
+                               iDimId   = Container%iDimId,                  &
+                               tDimId   = Container%tDimId,                  &
+                               Item     = Current%Item,                      &
+                               VarUnits = VarUnits                          )
 
-          ! Define each HISTORY ITEM in this collection to the netCDF file
+
+          ! Replace "TBD"  with the current units of State_Chm%Species
+          IF ( TRIM( VarUnits ) == 'TBD' ) THEN
+             VarUnits = Container%Spc_Units
+          ENDIF
+
+          ! Define each HISTORY ITEM in this collection 
+          ! as a variable in the netCDF file
           CALL Nc_Var_Def( DefMode      = .TRUE.,                            &
                            Compress     = .TRUE.,                            &
                            fId          = Container%FileId,                  &
@@ -416,10 +496,36 @@ CONTAINS
                            latId        = Current%Item%NcYDimId,             &
                            lonId        = Current%Item%NcXDimId,             &
                            VarLongName  = Current%Item%LongName,             &
-                           VarUnit      = Current%Item%Units,                &
+                           VarUnit      = VarUnits,                          &
                            MissingValue = Current%Item%MissingValue,         &
                            AvgMethod    = Current%Item%AvgMethod            )
-           
+
+#if defined( NC_HAS_COMPRESSION )
+          ! Turn on netCDF chunking for this HISTORY ITEM
+          ! NOTE: This will only work if the netCDF library supports netCDF-4
+          ! files with compression.  Also note: file compression is turned off
+          ! by default when using DEBUG=y, because otherwise the compression
+          ! makes it difficult to compare files generated by difference tests.
+          IF ( ASSOCIATED( Current%Item%NcChunkSizes ) ) THEN
+
+             ! Apply the chunk sizes to this variable
+             CALL Nc_Var_Chunk( fId        = Container%FileId,               &
+                                vId        = Current%Item%NcVarId,           &
+                                ChunkSizes = Current%Item%NcChunkSizes,      &
+                                RC         = RC                             )
+
+             ! Trap potential error
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "Nc_Var_Chunk"!'           // &
+                         ' Try DEBUG=n and/or check if your netCDF-4 '    // &
+                         ' library supports compression'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+          ENDIF
+#endif
+
           ! Go to next entry in the list of HISTORY ITEMS
           Current => Current%Next
        ENDDO
@@ -440,17 +546,30 @@ CONTAINS
        ! As long as this node of the list is valid ...
        DO WHILE( ASSOCIATED( Current ) )
 
-          ! Write the data to the netCDF file
-          SELECT CASE( TRIM( Current%Item%Name ) ) 
-             CASE( 'AREA' ) 
-                CALL Nc_Var_Write( fId     = Container%FileId,               &
-                                   VarName = Current%Item%Name,              &
-                                   Arr2d   = Current%Item%Source_2d         )
-             CASE DEFAULT 
-                CALL Nc_Var_Write( fId     = Container%FileId,               &
-                                   VarName = Current%Item%Name,              &
-                                   Arr1d   = Current%Item%Source_1d         )
-           END SELECT
+          ! Write data for index variables to the netCDF file
+          IF ( Current%Item%SpaceDim == 2 ) THEN
+
+             ! AREA is the only 2-D array (4-byte precison)
+             CALL Nc_Var_Write( fId     = Container%FileId,                  &
+                                VarName = Current%Item%Name,                 &
+                                Arr2d   = Current%Item%Source_2d_4          )
+
+          ELSE IF ( Current%Item%SpaceDim == 1 ) THEN
+
+             ! All other index fields are 1-D (8-byte precision) ...
+             CALL Nc_Var_Write( fId     = Container%FileId,                  &
+                                VarName = Current%Item%Name,                 &
+                                Arr1d   = Current%Item%Source_1d_8          )
+
+
+          ELSE 
+
+             ! ... except P0, which is a scalar (8-byte precision)
+             CALL Nc_Var_Write( fId     = Container%FileId,                  &
+                                VarName = Current%Item%Name,                 &
+                                Var     = Current%Item%Source_0d_8          )
+
+          ENDIF
 
           ! Go to next entry in the list of HISTORY ITEMS
           Current => Current%Next
@@ -510,7 +629,7 @@ CONTAINS
 !  better control of the start and count values.
 !
 ! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
+!  03 Aug 2017 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -576,16 +695,26 @@ CONTAINS
     ! Compute the time stamp value for the current time slice
     !=======================================================================
 
-    ! Time stamp for current time slice
-    Container%TimeStamp = Container%RefElapsedMin
+    ! Compute the elapsed time in minutes since the file creation
+    CALL Compute_Elapsed_Time( CurrentJd  = Container%CurrentJd,             &
+                               TimeBaseJd = Container%ReferenceJd,           & 
+                               ElapsedMin = Container%TimeStamp             )
 
     ! For time-averaged collections, offset the timestamp 
     ! by 1/2 of the file averaging interval in minutes
     IF ( Container%Operation == ACCUM_FROM_SOURCE ) THEN
-       Container%TimeStamp = Container%TimeStamp -                          &
+       Container%TimeStamp = Container%TimeStamp -                           &
                              ( Container%FileWriteIvalMin * 0.5_f8 )
     ENDIF
-    
+
+#if defined( DEBUG )
+    ! Debug output
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 110 ) TRIM( Container%name ), Container%TimeStamp
+110    FORMAT( '     - Writing data to ', a, '; timestamp = ', f13.4 )
+    ENDIF
+#endif
+
     !=======================================================================
     ! Write the time stamp to the netCDF File
     !=======================================================================
@@ -870,9 +999,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Var_DimIds( Item,        xDimId,      yDimId,  zDimId,      &
-                             tDimID,      RefDate,     RefTime, VarAxis,     &
-                             VarCalendar, VarPositive, VarUnits             )
+  SUBROUTINE Get_Var_DimIds( Item,     xDimId,      yDimId,                  &
+                             zDimId,   iDimId,      tDimID,                  &
+                             RefDate,  RefTime,     OnLevelEdges,            &
+                             VarAxis,  VarCalendar, VarPositive,             &
+                             VarUnits, VarStdName,  VarFormula              )  
 !
 ! !USES:
 !
@@ -881,20 +1012,28 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    TYPE(HistItem),     POINTER     :: Item        ! HISTORY ITEM object
-    INTEGER,            INTENT(IN)  :: xDimId      ! Id # of netCDF X dimension 
-    INTEGER,            INTENT(IN)  :: yDimId      ! Id # of netCDF Y dimension 
-    INTEGER,            INTENT(IN)  :: zDimId      ! Id # of netCDF Z dimension 
-    INTEGER,            INTENT(IN)  :: tDimId      ! Id # of netCDF T dimension 
-    INTEGER,            OPTIONAL    :: RefDate     ! Ref YMD for "time" variable
-    INTEGER,            OPTIONAL    :: RefTime     ! Ref hms for "time" variable
+    INTEGER,            INTENT(IN)  :: xDimId       ! Id # of X (lon     ) dim
+    INTEGER,            INTENT(IN)  :: yDimId       ! Id # of Y (lat     ) dim
+    INTEGER,            INTENT(IN)  :: zDimId       ! Id # of Z (lev cntr) dim
+    INTEGER,            INTENT(IN)  :: iDimId       ! Id # of I (lev edge) dim
+    INTEGER,            INTENT(IN)  :: tDimId       ! Id # of T (time    ) dim
+    INTEGER,            OPTIONAL    :: RefDate      ! Ref YMD for "time" var
+    INTEGER,            OPTIONAL    :: RefTime      ! Ref hms for "time" var
+    LOGICAL,            OPTIONAL    :: OnLevelEdges ! Is 3D data on lvl edges?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HistItem),     POINTER     :: Item         ! HISTORY ITEM object
 !
 ! !OUTPUT PARAMETERS
 !
-    CHARACTER(LEN=255), OPTIONAL    :: VarAxis     ! Axis attr for index vars
-    CHARACTER(LEN=255), OPTIONAL    :: VarCalendar ! Calendar attr for "time"
-    CHARACTER(LEN=255), OPTIONAL    :: VarPositive ! Positive attr for "lev"
-    CHARACTER(LEN=255), OPTIONAL    :: VarUnits    ! Unit string
+    CHARACTER(LEN=255), OPTIONAL    :: VarAxis      ! Axis attr for index vars
+    CHARACTER(LEN=255), OPTIONAL    :: VarCalendar  ! Calendar attr for "time"
+    CHARACTER(LEN=255), OPTIONAL    :: VarPositive  ! Positive attr for "lev"
+    CHARACTER(LEN=255), OPTIONAL    :: VarUnits     ! Unit string
+    CHARACTER(LEN=255), OPTIONAL    :: VarStdName   ! Standard name
+    CHARACTER(LEN=255), OPTIONAL    :: VarFormula   ! Formula terms
+
 !
 ! !REMARKS:
 !  Call this routine before calling NC_VAR_DEF.
@@ -908,16 +1047,17 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: ReferenceYmd, ReferenceHms  
-    INTEGER            :: Year,         Month,        Day
-    INTEGER            :: Hour,         Minute,       Second
+    LOGICAL            :: IsOnLevelEdges
+    INTEGER            :: ReferenceYmd,   ReferenceHms  
+    INTEGER            :: Year,           Month,        Day
+    INTEGER            :: Hour,           Minute,       Second
 
     ! Strings
-    CHARACTER(LEN=2)   :: MonthStr,     DayStr 
-    CHARACTER(LEN=2)   :: HourStr,      MinuteStr,    SecondStr
+    CHARACTER(LEN=2)   :: MonthStr,       DayStr 
+    CHARACTER(LEN=2)   :: HourStr,        MinuteStr,    SecondStr
     CHARACTER(LEN=4)   :: YearStr
-    CHARACTER(LEN=255) :: TmpAxis,      TmpCalendar
-    CHARACTER(LEN=255) :: TmpPositive,  TmpUnits
+    CHARACTER(LEN=255) :: TmpAxis,        TmpCalendar,  TmpStdName
+    CHARACTER(LEN=255) :: TmpPositive,    TmpUnits,     TmpFormula
 
     !=======================================================================
     ! Initialize
@@ -926,9 +1066,12 @@ CONTAINS
     TmpCalendar     = ''
     TmpPositive     = ''
     TmpUnits        = Item%Units
+    TmpStdName      = ''
+    TmpFormula      = ''
     Item%NcXDimId   = UNDEFINED_INT
     Item%NcYDimId   = UNDEFINED_INT
     Item%NcZDimId   = UNDEFINED_INT
+    Item%NcIDimId   = UNDEFINED_INT
     Item%NcTDimId   = UNDEFINED_INT
     
     IF ( PRESENT( RefDate ) ) THEN
@@ -941,6 +1084,12 @@ CONTAINS
        ReferenceHms = RefTime
     ELSE
        ReferenceHms = UNDEFINED_INT
+    ENDIF
+
+    IF ( PRESENT( OnLevelEdges ) ) THEN
+       IsOnLevelEdges = OnLevelEdges
+    ELSE
+       IsOnLevelEdges = .FALSE.
     ENDIF
 
     !=======================================================================
@@ -961,8 +1110,38 @@ CONTAINS
        ! lev
        CASE( 'lev' )
           Item%NcZDimId = zDimId
-          TmpAxis       = 'Z'
+          TmpAxis       = ''
           TmpPositive   = 'up'
+          TmpStdName    = 'atmosphere_hybrid_sigma_pressure_coordinate'
+          TmpFormula    = 'a: hyam b: hybm p0: P0 ps: PS'
+
+          ! If the collection contains is level-centered data
+          ! then "lev" (and not "ilev") is the "Z" axis
+          IF ( .not. IsOnLevelEdges ) THEN
+             TmpAxis    = 'Z'
+          ENDIF
+
+       ! ilev
+       CASE( 'ilev' )
+          Item%NcZDimId = iDimId
+          TmpAxis       = ''
+          TmpPositive   = 'up'
+          TmpStdName    = 'atmosphere_hybrid_sigma_pressure_coordinate'
+          TmpFormula    = 'a: hyai b: hybi p0: P0 ps: PS'
+
+          ! If the collection contains is level-centered data
+          ! then "ilev" (and not "lev") is the "Z" axis
+          IF ( IsOnLevelEdges ) THEN
+             TmpAxis    = 'Z'
+          ENDIF
+
+       ! hybrid coordinates, level centers
+       CASE( 'hyam', 'hybm' )
+          Item%NcZDimId = zDimId
+
+       ! hybrid coordinates, level edges
+       CASE( 'hyai', 'hybi' )
+          Item%NcZDimId = iDimId
 
        ! time
        CASE( 'time' )
@@ -984,34 +1163,67 @@ CONTAINS
        ! All other variable names
        CASE DEFAULT
 
-          ! Pick the 
+          ! Set the various netCDF dimension variables that will be passed 
+          ! to NC_CREATE.  If the data is defined on vertical level edges 
+          ! (aka "interfaces), then use iDimId instead of zDimId.
           SELECT CASE( TRIM( Item%DimNames ) )
+
              CASE( 'xyz' )
                 Item%NcXDimId = xDimId
                 Item%NcYDimId = yDimId
-                Item%NcZDimId = ZDimId
                 Item%NcTDimId = tDimId
+
+                IF ( Item%OnLevelEdges ) THEN
+                   Item%NcIDimId = iDimId
+                ELSE
+                   Item%NcZDimId = zDimId
+                ENDIF
+
              CASE( 'xy'  )
                 Item%NcXDimId = xDimId
                 Item%NcYDimId = yDimId
                 Item%NcTDimId = tDimId
+
              CASE( 'yz'  )
                 Item%NcYDimId = yDimId
-                Item%NcZDimId = zDimId
                 Item%NcTDimId = tDimId
+
+                IF ( Item%OnLevelEdges ) THEN
+                   Item%NcIDimId = iDimId
+                ELSE
+                   Item%NcZDimId = zDimId
+                ENDIF
+
              CASE( 'xz'  )
                 Item%NcXDimId = xDimId
-                Item%NcZDimId = zDimId
                 Item%NcTDimId = tDimId
+
+                IF ( Item%OnLevelEdges ) THEN
+                   Item%NcIDimId = iDimId
+                ELSE
+                   Item%NcZDimId = zDimId
+                ENDIF
+
              CASE( 'x'   )
                 Item%NcXDimId = xDimId
                 Item%NcTDimId = tDimId
+
              CASE( 'y'   )
                 Item%NcYDimId = yDimId
                 Item%NcTDimId = tDimId
+
              CASE( 'z'   )
-                Item%NcZDimId = zDimId
                 Item%NcTDimId = tDimId
+
+                IF ( Item%OnLevelEdges ) THEN
+                   Item%NcIDimId = iDimId
+                ELSE
+                   Item%NcZDimId = zDimId
+                ENDIF
+
+             CASE DEFAULT
+                ! Nothing
+
           END SELECT
 
     END SELECT      
@@ -1021,6 +1233,8 @@ CONTAINS
     IF ( PRESENT( VarCalendar ) ) VarCalendar = TmpCalendar
     IF ( PRESENT( VarPositive ) ) VarPositive = TmpPositive
     IF ( PRESENT( VarUnits    ) ) VarUnits    = TmpUnits
+    IF ( PRESENT( VarStdName  ) ) VarStdName  = TmpStdName
+    IF ( PRESENT( VarFormula  ) ) VarFormula  = TmpFormula
 
   END SUBROUTINE Get_Var_DimIds
 !EOC
@@ -1042,7 +1256,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE GC_Grid_Mod,      ONLY : Lookup_Grid
+    USE Grid_Registry_Mod, ONLY : Lookup_Grid
     USE HistItem_Mod
     USE MetaHistItem_Mod
 !
@@ -1058,6 +1272,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Aug 2017 - R. Yantosca - Initial version
+!  25 Aug 2017 - R. Yantosca - Added index arrays for data on level edges
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1065,23 +1280,25 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL                  :: OnLevelEdges
     INTEGER                  :: N
     INTEGER                  :: KindVal
     INTEGER                  :: Rank
     INTEGER                  :: Dimensions(3)
 
     ! Strings
-    CHARACTER(LEN=3)         :: ItemDimNames(5)
-    CHARACTER(LEN=4)         :: ItemName(5)
-    CHARACTER(LEN=9)         :: RegistryName(5)
+    CHARACTER(LEN=20)        :: ItemDimName(11)
+    CHARACTER(LEN=20)        :: ItemName(11)
+    CHARACTER(LEN=20)        :: RegistryName(11)
     CHARACTER(LEN=255)       :: Description
     CHARACTER(LEN=255)       :: ErrMsg
     CHARACTER(LEN=255)       :: ThisLoc
     CHARACTER(LEN=255)       :: Units
 
     ! Pointer arrays
-    REAL(fp),        POINTER :: Ptr1d(:    )
-    REAL(fp),        POINTER :: Ptr2d(:,:  )
+    REAL(f8),        POINTER :: Ptr0d_8
+    REAL(f8),        POINTER :: Ptr1d_8(:    )
+    REAL(f4),        POINTER :: Ptr2d_4(:,:  )
 
     ! Objects
     TYPE(HistItem),  POINTER :: Item
@@ -1098,32 +1315,75 @@ CONTAINS
     ErrMsg       =  ''
     ThisLoc      =  &
                 ' -> at History_Netcdf_Init (in History/history_mod.F90)'
-    RegistryName = (/ 'GRID_AREA', 'GRID_TIME', 'GRID_LEV ',                 &
-                      'GRID_LAT ', 'GRID_LON '                             /)
-    ItemName     = (/ 'AREA', 'time', 'lev ', 'lat ', 'lon '               /)
-    ItemDimNames = (/ 'xy ' , 't  ' , 'z  ' , 'y  ' , 'x  '                /)
-    Ptr1d        => NULL()
-    Ptr2d        => NULL()
+    Ptr0d_8      => NULL()
+    Ptr1d_8      => NULL()
+    Ptr2d_4      => NULL()
+
+    !=======================================================================
+    ! Define the names that will be used to create the HISTORY ITEMS
+    ! for fields to be used as netCDF metadata 
+    !=======================================================================
+
+    ! Fields saved in the Registry object in GeosUtil/grid_registry_mod.F90
+    RegistryName(1 ) = 'GRID_AREA'
+    RegistryName(2 ) = 'GRID_P0'
+    RegistryName(3 ) = 'GRID_HYBI'
+    RegistryName(4 ) = 'GRID_HYAI'
+    RegistryName(5 ) = 'GRID_HYBM'
+    RegistryName(6 ) = 'GRID_HYAM'
+    RegistryName(7 ) = 'GRID_LON'
+    RegistryName(8 ) = 'GRID_LAT'
+    RegistryName(9 ) = 'GRID_ILEV'
+    RegistryName(10) = 'GRID_LEV'
+    RegistryName(11) = 'GRID_TIME'
+   
+    ! Name for each HISTORY ITEM
+    ItemName(1 )     = 'AREA'
+    ItemName(2 )     = 'P0'
+    ItemName(3 )     = 'hybi'
+    ItemName(4 )     = 'hyai'
+    ItemName(5 )     = 'hybm'
+    ItemName(6 )     = 'hyam'
+    ItemName(7 )     = 'lon'
+    ItemName(8 )     = 'lat'
+    ItemName(9 )     = 'ilev'
+    ItemName(10)     = 'lev'
+    ItemName(11)     = 'time'
+
+    ! Dimensions for each HISTORY ITEM
+    ItemDimName(1 )  = 'xy'
+    ItemDimName(2 )  = '-'
+    ItemDimName(3 )  = 'z'
+    ItemDimName(4 )  = 'z'
+    ItemDimName(5 )  = 'z'
+    ItemDimName(6 )  = 'z'
+    ItemDimName(7 )  = 'x'
+    ItemDimName(8 )  = 'y'
+    ItemDimName(9 )  = 'z'
+    ItemDimName(10)  = 'z'
+    ItemDimName(11)  = 't'
 
     !=======================================================================
     ! Create a HISTORY ITEM for each of the index fields (lon, lat, area)
-    ! of gc_grid_mod.F90 and add them to a METAHISTORY ITEM list
+    ! of grid_registry_mod.F90 and add them to a METAHISTORY ITEM list
     !=======================================================================
-    DO N = 1, SIZE( ItemName )
+    DO N = 1, SIZE( RegistryName )
 
        !---------------------------------------------------------------------
        ! Look up one of the index fields from gc_grid_mod.F90
        !---------------------------------------------------------------------
-       CALL Lookup_Grid( am_I_Root   = am_I_Root,                            &
-                         Variable    = RegistryName(N),                      &
-                         Description = Description,                          &
-                         Dimensions  = Dimensions,                           &
-                         KindVal     = KindVal,                              &
-                         Rank        = Rank,                                 &
-                         Units       = Units,                                &
-                         Ptr1d       = Ptr1d,                                &
-                         Ptr2d       = Ptr2d,                                &
-                         RC          = RC                                   )
+       CALL Lookup_Grid( am_I_Root    = am_I_Root,                           &
+                         Variable     = RegistryName(N),                     &
+                         Description  = Description,                         &
+                         Dimensions   = Dimensions,                          &
+                         KindVal      = KindVal,                             &
+                         Rank         = Rank,                                &
+                         Units        = Units,                               &
+                         OnLevelEdges = OnLevelEdges,                        &
+                         Ptr0d_8      = Ptr0d_8,                             &
+                         Ptr1d_8      = Ptr1d_8,                             &
+                         Ptr2d_4      = Ptr2d_4,                             &
+                         RC           = RC                                  )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1144,14 +1404,13 @@ CONTAINS
                              LongName       = Description,                   &
                              Units          = Units,                         &
                              SpaceDim       = Rank,                          &
-                             NX             = Dimensions(1),                 &
-                             NY             = Dimensions(2),                 &
-                             NZ             = Dimensions(3),                 &
-                             DimNames       = ItemDimNames(N),               &
+                             OnLevelEdges   = OnLevelEdges,                  &
+                             DimNames       = ItemDimName(N),                &
                              Operation      = 0,                             &
                              Source_KindVal = KindVal,                       &
-                             Source_1d      = Ptr1d,                         &
-                             Source_2d      = Ptr2d,                         &
+                             Source_0d_8    = Ptr0d_8,                       &
+                             Source_1d_8    = Ptr1d_8,                       &
+                             Source_2d_4    = Ptr2d_4,                       &
                              RC             = RC                            )
 
        ! Trap potential error
@@ -1161,6 +1420,8 @@ CONTAINS
           RETURN
        ENDIF
 
+       !### Debug: Print full info about this HISTORY ITEM
+       !### You can leave this commented out unless you are debugging
        !CALL HistItem_Print( am_I_Root, Item, RC )
 
        !---------------------------------------------------------------------

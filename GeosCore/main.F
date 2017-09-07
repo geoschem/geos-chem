@@ -41,6 +41,7 @@
       USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
       USE PhysConstants         ! Physical constants
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
+      USE Grid_Registry_Mod     ! Registers horizontal/vertical grid metadata
       USE REGRID_A2A_MOD        ! For horizontal regridding
       USE RESTART_MOD           ! For restart file I/O
       USE State_Chm_Mod         ! Derived type for Chemistry State object
@@ -287,6 +288,9 @@
 !                              when we are running specialty simulations
 !  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  23 Aug 2017 - R. Yantosca - Now add at timer for the History component
+!  30 Aug 2017 - R. Yantosca - Move the HISTORY UPDATE block before call to
+!                               SET_CURRENT_TIME, for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -309,7 +313,6 @@
       INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
       INTEGER                  :: id_H2O
       REAL(f8)                 :: TAU,           TAUb      
-      REAL(f8)                 :: HeartBeatDtMin
       CHARACTER(LEN=255)       :: ZTYPE
       CHARACTER(LEN=255)       :: ErrMsg,        ThisLoc
 
@@ -469,6 +472,8 @@
 #if defined( USE_TIMERS )
       ! Call timer initilization
       CALL GEOS_Timer_Setup( 1 )
+
+      ! Add timers for various operations
       CALL GEOS_Timer_Add( "GEOS-Chem",           RC )
       CALL GEOS_Timer_Add( "Initialization",      RC )
       CALL GEOS_Timer_Add( "Timesteps",           RC )
@@ -483,9 +488,14 @@
       CALL GEOS_Timer_Add( "Wet deposition",      RC )
       CALL GEOS_Timer_Add( "RRTMG",               RC )
       CALL GEOS_Timer_Add( "Diagnostics",         RC )
+#if defined( NC_DIAG )
+      CALL GEOS_Timer_Add( 'History',             RC )
+#endif
       CALL GEOS_Timer_Add( "Reading met fields",  RC )
       CALL GEOS_Timer_Add( "Reading restart file",RC )
       CALL GEOS_Timer_Add( "Writing restart file",RC )
+
+      ! Start running the main and initialization timer
       CALL GEOS_Timer_Start( "GEOS-Chem",         RC )
       CALL GEOS_Timer_Start( "Initialization",    RC )
 #endif
@@ -607,6 +617,14 @@
       CALL INIT_PRESSURE( am_I_Root )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_PRESSURE' )
 
+      ! Register the horizontal and vertical grid information so that 
+      ! the History component can use it for netCDF metadata (bmy, 8/23/17)
+      CALL Init_Grid_Registry( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_Grid_Registry"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
       ! Read annual mean tropopause if not a variable tropopause
       ! read_tropopause is obsolete with variable tropopause
       IF ( .not. Input_Opt%LVARTROP ) THEN
@@ -631,12 +649,15 @@
       !=================================================================
       !    ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
       !=================================================================
+#if defined( USE_TIMERS ) 
+      CALL GEOS_Timer_Start( "History",  RC )
+#endif
 
       ! For now, just hardwire the input file for the History component
       Input_Opt%HistoryInputFile = './HISTORY.rc'
       !
       ! Initialize the GEOS-Chem history component
-      CALL History_Init( am_I_root, Input_Opt, State_Chm, State_Diag,
+      CALL History_Init( am_I_root, Input_Opt, State_Chm, State_Diag, 
      &                   State_Met, NymdB,     NhmsB,     RC          )
 
       ! Trap error
@@ -644,6 +665,10 @@
          ErrMsg = 'Error encountered in "History_Init"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
+
+#if defined( USE_TIMERS ) 
+      CALL GEOS_Timer_End( "History",  RC )
+#endif
 #endif  
 
       !=================================================================
@@ -832,7 +857,7 @@
 #endif
 
       !=================================================================
-      !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****
+      !        ***** O U T E R   T I M E S T E P   L O O P  *****
       !=================================================================      
  
 #if defined( USE_TIMERS )
@@ -857,7 +882,7 @@
       DO 
 
       ! Compute time parameters at start of 6-h loop
-      CALL SET_CURRENT_TIME
+      CALL SET_CURRENT_TIME()
 
       ! NSECb is # of seconds (measured from 00 GMT today) 
       ! at the start of this 6-hr timestepping loop.
@@ -870,11 +895,9 @@
       ! Get dynamic timestep in seconds
       N_DYN  = 60e+0_fpp * GET_TS_DYN()
 
-      ! Get the "heartbeat" (aka dynamic) timestep in min (cast to REAL*8)
-      HeartBeatDtMin = GET_TS_DYN()
-
       !=================================================================
       !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
+      !     *****    a k a   H E A R T B E A T   L O O P    *****
       !=================================================================
       DO N_STEP = 1, N_DYN_STEPS
     
@@ -884,8 +907,8 @@
 #endif
 
          ! Compute & print time quantities at start of dyn step
-         CALL SET_CURRENT_TIME
-         CALL PRINT_CURRENT_TIME
+         CALL SET_CURRENT_TIME()
+         CALL PRINT_CURRENT_TIME()
 
          ! Set time variables for dynamic loop
          DAY_OF_YEAR   = GET_DAY_OF_YEAR()
@@ -1644,6 +1667,35 @@
      &                           State_Met, State_Chm, RC )
 #endif
 
+#if defined( NC_DIAG )
+         !==============================================================
+         !           ***** H I S T O R Y   U P D A T E  *****
+         !==============================================================
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "History", RC )
+#endif
+
+         ! Update each HISTORY ITEM from its data source
+         CALL History_Update( am_I_Root, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_Update"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
+         ! Increment the timestep values by the heartbeat time
+         ! This is becasue we need to write out data with the timestamp
+         ! at the end of the heartbeat timestep (i.e. at end of run)
+         CALL History_SetTime( am_I_Root, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_SetTime"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "History", RC )
+#endif
+#endif
+
          !==============================================================
          !   ***** I N C R E M E N T   E L A P S E D   T I M E *****
          !============================================================== 
@@ -1663,9 +1715,9 @@
             ENDIF
          ENDIF
 
-         CALL TIMESTAMP_DIAG
-         CALL SET_ELAPSED_MIN
-         CALL SET_CURRENT_TIME
+         CALL TIMESTAMP_DIAG()
+         CALL SET_ELAPSED_MIN()
+         CALL SET_CURRENT_TIME()
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
          ENDIF
@@ -1728,8 +1780,6 @@
          !       to after the call to DO_WETDEP (bmy, 4/22/04)
          !============================================================== 
 
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: before TIMESERIES' )
-
          ! Station timeseries
          IF ( ITS_TIME_FOR_DIAG48() ) THEN
             CALL DIAG48
@@ -1773,33 +1823,23 @@
 
 #if defined( NC_DIAG )
          !==============================================================
-         !  ***** H I S T O R Y   U P D A T E   A N D   W R I T E *****
+         !            ***** H I S T O R Y   W R I T E *****
          !==============================================================
-
-         ! Update each HISTORY ITEM from its data source
-         CALL History_Update( am_I_Root, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Error encountered in "History_Update"!'
-            CALL Error_Stop( ErrMsg, ThisLoc )
-         ENDIF
-
-         ! Increment the timestep values by the heartbeat time
-         ! This is becasue we need to write out data with the timestamp
-         ! at the end of the heartbeat timestep (i.e. at end of run)
-         CALL History_SetTime( am_I_Root, HeartBeatDtMin, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Error encountered in "History_SetTime"!'
-            CALL Error_Stop( ErrMsg, ThisLoc )
-         ENDIF
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "History", RC )
+#endif
 
          ! Write HISTORY ITEMS in each diagnostic collection to disk
          ! (or skip writing if it is not the proper output time.
-         CALL History_Write( am_I_Root, RC )
+         CALL History_Write( am_I_Root, State_Chm%Spc_Units, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "History_Write"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "History", RC )
+#endif
 #endif
 
          !==============================================================

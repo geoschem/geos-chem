@@ -21,7 +21,8 @@
       ! Private methods overloaded by public interface
       ! (see below for info about these routines & the arguments they take)
       INTERFACE NcWr
-         MODULE PROCEDURE Ncwr_Scal
+         MODULE PROCEDURE Ncwr_Scal_R4
+         MODULE PROCEDURE Ncwr_Scal_R8
          MODULE PROCEDURE Ncwr_Scal_Int
          MODULE PROCEDURE Ncwr_1d_R8
          MODULE PROCEDURE Ncwr_1d_R4
@@ -65,11 +66,73 @@ CONTAINS
 !-------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Ncwr_Scal
+! !IROUTINE: Ncwr_Scal_R4
 !
 ! !INTERFACE:
 !
-      subroutine Ncwr_Scal (varwr_scal, ncid, varname)
+      subroutine Ncwr_Scal_R4(varwr_scal, ncid, varname)
+!
+! !USES:
+!
+      use m_do_err_out
+!
+      implicit none
+!
+      include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!!     ncid       : netCDF file id to write variable to
+!!     varname    : netCDF variable name
+!!     varwr_scal : variable to write out
+      integer          , intent(in)   :: ncid
+      character (len=*), intent(in)   :: varname
+      real*4           , intent(in)   :: varwr_scal
+
+!
+! !DESCRIPTION: Writes out a netCDF real scalar variable.
+!\\
+!\\
+! !AUTHOR: 
+!  John Tannahill (LLNL) and Jules Kouatchou
+!
+! !REVISION HISTORY:
+!  Initial code.
+!  25 Aug 2017 - R. Yantosca - Renamed to NcWr_Scal_R4 and takes a
+!                              REAL*4 argument
+!
+!EOP
+!-------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+      character (len=128) :: err_msg
+      integer             :: ierr
+      integer             :: varid
+!
+      ierr = Nf_Inq_Varid (ncid, varname, varid)
+
+      if (ierr /= NF_NOERR) then
+        err_msg = 'In Ncwr_Scal_R4 #1:  ' // Trim (varname) // &
+                 ', ' // Nf_Strerror (ierr)
+        call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
+      end if
+
+      ierr = Nf_Put_Var_Real (ncid, varid, varwr_scal)
+
+      if (ierr /= NF_NOERR) then
+        err_msg = 'In Ncwr_Scal+R4 #2:  ' // Nf_Strerror (ierr)
+        call Do_Err_Out (err_msg, .true., 2, ncid, varid, 0, 0.0d0, 0.0d0)
+      end if
+
+      end subroutine Ncwr_Scal_R4
+!-------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Ncwr_Scal_R8
+!
+! !INTERFACE:
+!
+      subroutine Ncwr_Scal_R8 (varwr_scal, ncid, varname)
 !
 ! !USES:
 !
@@ -104,26 +167,23 @@ CONTAINS
       character (len=128) :: err_msg
       integer             :: ierr
       integer             :: varid
-      real*4              :: varwr_scal_tmp
 !
       ierr = Nf_Inq_Varid (ncid, varname, varid)
 
       if (ierr /= NF_NOERR) then
-        err_msg = 'In Ncwr_Scal #1:  ' // Trim (varname) // &
+        err_msg = 'In Ncwr_Scal_R8 #1:  ' // Trim (varname) // &
                  ', ' // Nf_Strerror (ierr)
         call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
       end if
 
-      varwr_scal_tmp = varwr_scal
-
-      ierr = Nf_Put_Var_Real (ncid, varid, varwr_scal_tmp)
+      ierr = Nf_Put_Var_Double(ncid, varid, varwr_scal)
 
       if (ierr /= NF_NOERR) then
-        err_msg = 'In Ncwr_Scal #2:  ' // Nf_Strerror (ierr)
+        err_msg = 'In Ncwr_Scal_R8 #2:  ' // Nf_Strerror (ierr)
         call Do_Err_Out (err_msg, .true., 2, ncid, varid, 0, 0.0d0, 0.0d0)
       end if
 
-      end subroutine Ncwr_Scal
+      end subroutine Ncwr_Scal_R8
 !EOC
 !-------------------------------------------------------------------------
 !BOP

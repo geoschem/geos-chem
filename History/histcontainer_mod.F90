@@ -34,6 +34,9 @@ MODULE HistContainer_Mod
   PUBLIC :: HistContainer_Print
   PUBLIC :: HistContainer_Destroy
   PUBLIC :: HistContainer_SetTime
+  PUBLIC :: HistContainer_UpdateIvalSet
+  PUBLIC :: HistContainer_FileCloseIvalSet
+  PUBLIC :: HistContainer_FileWriteIvalSet
 !
 ! !PUBLIC TYPES:
 !
@@ -52,7 +55,10 @@ MODULE HistContainer_Mod
      INTEGER                     :: nX                  ! X (or lon) dim size
      INTEGER                     :: nY                  ! Y (or lat) dim size
      INTEGER                     :: nZ                  ! Z (or lev) dim size
-
+     LOGICAL                     :: OnLevelEdges        ! =T if data is defined
+                                                        !    on level edges;
+                                                        ! =F if on centers
+     
      !----------------------------------------------------------------------
      ! List of history items in this collection
      !----------------------------------------------------------------------
@@ -86,8 +92,6 @@ MODULE HistContainer_Mod
      INTEGER                     :: ReferenceHms        !  for the "time" dim
      REAL(f8)                    :: ReferenceJD         ! Julian Date at the
                                                         !  reference YMD & hms
-     REAL(f8)                    :: RefElapsedMin       ! Elapsed minutes w/r/t
-                                                        !  the ref date & time
      INTEGER                     :: CurrTimeSlice       ! Current time slice
                                                         !  for the "time" dim
      REAL(f8)                    :: TimeStamp           ! Elapsed minutes w/r/t
@@ -103,6 +107,10 @@ MODULE HistContainer_Mod
                                                         !  in minutes
      INTEGER                     :: Operation           ! Operation code
                                                         !  0=copy from source
+     REAL(f8)                    :: HeartBeatDtMin      ! The "heartbeat"
+                                                        !  timestep [min]
+     REAL(f8)                    :: HeartBeatDtDays     ! The "heartbeat"
+                                                        !  timestep [days]
 
      !----------------------------------------------------------------------
      ! Quantities for file creation, writing, and I/O status
@@ -125,11 +133,14 @@ MODULE HistContainer_Mod
      !----------------------------------------------------------------------
      ! netCDF file identifiers and attributes
      !----------------------------------------------------------------------
+     LOGICAL                     :: FirstInst           ! 1st inst file write?
      INTEGER                     :: FileId              ! netCDF file ID
      INTEGER                     :: xDimId              ! X (or lon ) dim ID
      INTEGER                     :: yDimId              ! Y (or lat ) dim ID
      INTEGER                     :: zDimId              ! Z (or lev ) dim ID
+     INTEGER                     :: iDimId              ! I (or ilev) dim ID
      INTEGER                     :: tDimId              ! T (or time) dim ID
+     CHARACTER(LEN=20)           :: Spc_Units           ! Units of SC%Species
      CHARACTER(LEN=255)          :: FilePrefix          ! Filename prefix
      CHARACTER(LEN=255)          :: FileTemplate        ! YMDhms template
      CHARACTER(LEN=255)          :: FileName            ! Name of nc file
@@ -159,9 +170,20 @@ MODULE HistContainer_Mod
 !  18 Aug 2017 - R. Yantosca - Added ElapsedMin
 !  18 Aug 2017 - R. Yantosca - Add HistContainer_ElapsedTime routine
 !  21 Aug 2017 - R. Yantosca - Removed *_AlarmCheck, *_AlarmSet routines
+!  24 Aug 2017 - R. Yantosca - Added iDimId as the dimension ID for ilev,
+!                               which is the vertical dimension on interfaces
+!  28 Aug 2017 - R. Yantosca - Added SpcUnits, FirstInst to type HistContainer
+!  06 Sep 2017 - R. Yantosca - Split HistContainer_AlarmIntervalSet into 3
+!                               separate routines, now made public
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
+  ! Days in non-leap-year months:   J  F  M  A  M  J  J  A  S  O  N  D
+  INTEGER :: DaysPerMonth(12) = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -180,14 +202,13 @@ CONTAINS
 !
   SUBROUTINE HistContainer_Create( am_I_Root,      Container,                &
                                    Id,             Name,                     &
-                                   nX,             nY,                       &
-                                   nZ,             RC,                       &
-                                   EpochJd,        CurrentYmd,               &
-                                   CurrentHms,     UpdateMode,               &
-                                   UpdateYmd,      UpdateHms,                &
-                                   UpdateAlarm,    Operation,                &
+                                   RC,             EpochJd,                  &
+                                   CurrentYmd,     CurrentHms,               &
+                                   UpdateMode,     UpdateYmd,                &
+                                   UpdateHms,      UpdateAlarm,              &
+                                   Operation,      HeartBeatDtMin,           &
                                    FileWriteYmd,   FileWriteHms,             &
-                                   FileWriteAlarm, FileCloseYmd,             & 
+                                   FileWriteAlarm, FileCloseYmd,             &
                                    FileCloseHms,   FileCloseAlarm,           &
                                    FileId,         FilePrefix,               &
                                    FileName,       FileTemplate,             &
@@ -210,9 +231,6 @@ CONTAINS
     LOGICAL,             INTENT(IN)  :: am_I_Root      ! Root CPU?
     INTEGER,             INTENT(IN)  :: Id             ! Container Id #
     CHARACTER(LEN=*),    INTENT(IN)  :: Name           ! Container name
-    INTEGER,             INTENT(IN)  :: nX             ! X (or lon) dim size
-    INTEGER,             INTENT(IN)  :: nY             ! Y (or lat) dim size
-    INTEGER,             INTENT(IN)  :: nZ             ! Z (or lev) dim size
 
     !-----------------------------------------------------------------------
     ! OPTIONAL INPUTS: Time and date quantities
@@ -232,6 +250,8 @@ CONTAINS
     INTEGER,             OPTIONAL    :: Operation      ! Operation code:
                                                        !  0=copy  from source
                                                        !  1=accum from source
+    REAL(f8),            OPTIONAL    :: HeartBeatDtMin ! Model "heartbeat" 
+                                                       !  timestep [min]
 
     !-----------------------------------------------------------------------
     ! OPTIONAL INPUTS: quantities controlling file write and close/reopen
@@ -284,6 +304,13 @@ CONTAINS
 !  21 Aug 2017 - R. Yantosca - Reorganize arguments, now define several time
 !                              fields from EpochJd, CurrentYmd, CurrentHms
 !  21 Aug 2017 - R. Yantosca - Now define initial alarm intervals and alarms
+!  28 Aug 2017 - R. Yantosca - Now initialize Container%Spc_Units to null str
+!  29 Aug 2017 - R. Yantosca - Reset NcFormat if netCDF compression is off
+!                              for GEOS-Chem "Classic" simulations.
+!  29 Aug 2017 - R. Yantosca - Now define the heartbeat timestep fields
+!  30 Aug 2017 - R. Yantosca - Subtract the heartbeat timestep from the
+!                               UpdateAlarm value so as to update collections
+!                               at the same times w/r/t the "legacy" diags
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -342,13 +369,6 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-
-    !-----------------------
-    ! nX, nY, nZ
-    !-----------------------
-    Container%nX = nX
-    Container%nY = nY
-    Container%nZ = nZ
 
     !========================================================================
     ! Optional inputs, handle these next
@@ -424,6 +444,15 @@ CONTAINS
        Container%Operation = Operation
     ELSE
        Container%Operation = COPY_FROM_SOURCE
+    ENDIF
+
+    !----------------------------------
+    ! Heartbeat timestep [min]
+    !----------------------------------
+    IF ( PRESENT( HeartBeatDtMin ) ) THEN
+       Container%HeartBeatDtMin = HeartBeatDtMin
+    ELSE
+       Container%HeartBeatDtMin = UNDEFINED_DBL
     ENDIF
 
     !----------------------------------
@@ -531,6 +560,15 @@ CONTAINS
        Container%NcFormat = ''
     ENDIF
 
+#if !defined( ESMF_ ) && !defined( NC_HAS_COMPRESSION )
+
+    ! For GEOS-Chem Classic simulations compiled with either DEBUG=y or
+    ! NC_NODEFLATE=y, set NcFormat to "NetCDF-3 with large file support",
+    ! in order to denote that compression and chunking are disabled.
+    Container%NcFormat = 'NetCDF-3 with large file support'
+
+#endif
+
     !----------------------------------
     ! History
     !----------------------------------
@@ -585,33 +623,54 @@ CONTAINS
     ! Set other fields to initial or undefined values
     !=======================================================================
     
-    ! These fields won't get defined until we open the netCDF file
-    Container%IsFileDefined = .FALSE.
-    Container%IsFileOpen    = .FALSE.
-    Container%FileId        =   UNDEFINED_INT
-    Container%xDimId        = UNDEFINED_INT
-    Container%yDimId        = UNDEFINED_INT
-    Container%zDimId        = UNDEFINED_INT
-    Container%tDimId        = UNDEFINED_INT
-    
-    ! Set the other time/date fields from EpochJd, CurrentYmd, CurrentHms
-    Container%CurrentJd     = Container%EpochJd
-    Container%ReferenceJd   = Container%EpochJd
-    Container%ReferenceYmd  = Container%CurrentYmd
-    Container%ReferenceHms  = Container%CurrentHms
+    ! These fields won't get defined until we open/write the netCDF file
+    Container%IsFileDefined   = .FALSE.
+    Container%IsFileOpen      = .FALSE.
+    Container%FileId          = UNDEFINED_INT
+    Container%xDimId          = UNDEFINED_INT
+    Container%yDimId          = UNDEFINED_INT
+    Container%zDimId          = UNDEFINED_INT
+    Container%iDimId          = UNDEFINED_INT
+    Container%tDimId          = UNDEFINED_INT
+    Container%Spc_Units       = ''
+
+    ! Set the other time/date fields from EpochJd, CurrentYmd, CurrentHms, etc.
+    Container%CurrentJd       = Container%EpochJd
+    Container%ReferenceJd     = Container%EpochJd
+    Container%ReferenceYmd    = Container%CurrentYmd
+    Container%ReferenceHms    = Container%CurrentHms
+    Container%HeartBeatDtDays = Container%HeartBeatDtMin / MINUTES_PER_DAY
 
     ! These other time fields will be defined later
-    Container%ElapsedMin    = 0.0_f8
-    Container%RefElapsedMin = 0.0_f8
-    Container%CurrTimeSlice = UNDEFINED_INT
-    Container%TimeStamp     = 0.0_f8
+    Container%ElapsedMin      = 0.0_f8
+    Container%CurrTimeSlice   = UNDEFINED_INT
+    Container%TimeStamp       = 0.0_f8
+
+    ! Spatial information fields will be defined according to the
+    ! dimensions of the HISTORY TTEMS belonging to the collection
+    Container%NX              = UNDEFINED_INT
+    Container%NY              = UNDEFINED_INT
+    Container%NZ              = UNDEFINED_INT
+    Container%OnLevelEdges    = .FALSE.
+    
+    ! If the collection is instantaneous, then set a flag to denote that
+    ! first the netCDF file reference date/time should be the start-of-the- 
+    ! simulation time.  This will ensure that all timestamps and filenames
+    ! for instantaneous collections are consistent.
+    IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
+       Container%FirstInst    = .TRUE.
+    ELSE
+       Container%FirstInst    = .FALSE.
+    ENDIF
 
     !=======================================================================
     ! Initialize the alarms
     !=======================================================================
 
     ! Get the initial alarm inervals (in elapsed min since start of run)
-    CALL HistContainer_AlarmIntervalSet( am_I_Root, Container, RC )
+    CALL HistContainer_UpdateIvalSet   ( am_I_Root, Container, RC )
+    CALL HistContainer_FileCloseIvalSet( am_I_Root, Container, RC )
+    CALL HistContainer_FileWriteIvalSet( am_I_Root, Container, RC )
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN 
@@ -620,13 +679,67 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Use the intervals to compute the first update and file write time
-    Container%UpdateAlarm    = Container%UpdateIvalMin
+    !--------------------------------------
+    ! Initial "UpdateAlarm" setting
+    !--------------------------------------
+
+    ! Subtract the "heartbeat" timestep in minutes from UpdateAlarm.
+    ! This will ensure that (1) Instantaneous file collections will be
+    ! updated just before the file write, (2) Time-averaged collections
+    ! will be averaged on the same timestep as the "historical" GEOS-Chem
+    ! diagnostics, thus allowing for a direct comparison.
+    Container%UpdateAlarm = Container%UpdateIvalMin - Container%HeartBeatDtMin
+
+    ! Trap error if negative
+    IF ( Container%UpdateAlarm < 0 ) THEN
+       ErrMsg = 'UpdateAlarm for collection ' //                            &
+                TRIM( Container%Name )        // ' is negative!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !--------------------------------------
+    ! Initial "FileWriteAlarm" setting
+    !--------------------------------------
+
+    ! Set the file write alarm to its computed interval
     Container%FileWriteAlarm = Container%FileWriteIvalMin
 
-    ! But open the file on the first timestep 
-    ! so that we can start writing data to it immediately
-    Container%FileCloseAlarm = 0.0_fp
+    ! Trap error if negative
+    IF ( Container%FileWriteAlarm < 0 ) THEN
+       ErrMsg = 'FileWriteAlarm for collection ' //                         &
+            TRIM( Container%Name )               // ' is negative!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !--------------------------------------
+    ! Initial "FileCloseAlarm" setting
+    !--------------------------------------
+
+    IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
+
+       ! %%% INSTANTANEOUS %%%
+       ! Create a new file ASAP so that we can start writing data to it
+       Container%FileCloseAlarm = 0.0_f8
+
+    ELSE
+
+       ! %%% TIME-AVERAGED %%%
+       ! Set the initial file close/reopen time to the first write time.
+       ! (We will subtract this off later, when computing the reference
+       ! date and time for the netCDF file.)
+       Container%FileCloseAlarm = Container%FileWriteIvalMin
+
+    ENDIF
+
+    ! Trap error if negative
+    IF ( Container%FileCloseAlarm < 0 ) THEN
+       ErrMsg = 'FileCloseAlarm for collection ' //                         &
+            TRIM( Container%Name )               // ' is negative!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
   END SUBROUTINE HistContainer_Create
 !EOC
@@ -712,10 +825,11 @@ CONTAINS
        WRITE( 6, 160 ) 'UpdateIvalMin    : ', Container%UpdateIvalMin
        WRITE( 6, 160 ) 'UpdateAlarm      : ', Container%UpdateAlarm
        WRITE( 6, 120 ) 'Operation        : ', OpCode( Container%Operation )
+       WRITE( 6, 160 ) 'HeartBeatDtMin   : ', Container%HeartBeatDtMin
+       WRITE( 6, 160 ) 'HeartBeatDtDays  : ', Container%HeartBeatDtDays
        WRITE( 6, 135 ) 'ReferenceYmd     : ', Container%ReferenceYmd
        WRITE( 6, 145 ) 'ReferenceHms     : ', Container%ReferenceHms
        WRITE( 6, 160 ) 'ReferenceJd      : ', Container%ReferenceJd
-       WRITE( 6, 160 ) 'RefElapsedMin    : ', Container%RefElapsedMin
        WRITE( 6, 135 ) 'FileWriteYmd     : ', Container%FileWriteYmd
        WRITE( 6, 145 ) 'FileWriteHms     : ', Container%FileWriteHms
        WRITE( 6, 160 ) 'FileWriteIvalMin : ', Container%FileWriteIvalMin
@@ -866,27 +980,26 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HistContainer_AlarmIntervalSet
+! !IROUTINE: HistContainer_UpdateIvalSet
 !
-! !DESCRIPTION: Defines the alarm intervals for the update, file write, and
-!  file close/reopen operations.
+! !DESCRIPTION: Defines the alarm interval for the UPDATE operation.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistContainer_AlarmIntervalSet( am_I_root, Container, RC )
+  SUBROUTINE HistContainer_UpdateIvalSet( am_I_root, Container, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE History_Util_Mod
-    USE Time_Mod,         ONLY : Ymd_Extract
+    USE Time_Mod,         ONLY : Its_A_Leapyear, Ymd_Extract
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(HistContainer), POINTER     :: Container  ! HISTORY CONTAINER object
 !
@@ -896,6 +1009,205 @@ CONTAINS
 !
 !
 ! !REMARKS:
+!  Assume that we will always update data more frequently than 1 month.
+!  This means that we only have to compute this interval at initialization.
+!
+! !REVISION HISTORY:
+!  06 Sep 2017 - R. Yantosca - Initial version,
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: Year,     Month,     Day
+    INTEGER            :: Hour,     Minute,    Second
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = &
+     ' -> at HistContainer_UpdateIvalSet (in History/histcontainer_mod.F90)'
+
+    !=======================================================================
+    ! Compute the interval for the "UpdateAlarm" 
+    !=======================================================================
+
+    ! Split the update interval date and time into constituent values
+    CALL Ymd_Extract( Container%UpdateYmd, Year, Month,  Day    )
+    CALL Ymd_Extract( Container%UpdateHms, Hour, Minute, Second )
+
+    ! "Update" interval in minutes
+    Container%UpdateIvalMin    = ( DBLE( Day    ) * MINUTES_PER_DAY    ) +   &
+                                 ( DBLE( Hour   ) * MINUTES_PER_HOUR   ) +   &
+                                 ( DBLE( Minute )                      ) +   &
+                                 ( DBLE( Second ) / SECONDS_PER_MINUTE )
+
+  END SUBROUTINE HistContainer_UpdateIvalSet
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HistContainer_FileCloseIvalSet
+!
+! !DESCRIPTION: Defines the alarm interval for the FILE CLOSE/REOPEN operation.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HistContainer_FileCloseIvalSet( am_I_Root, Container, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE History_Util_Mod
+    USE Time_Mod,         ONLY : Its_A_Leapyear, Ymd_Extract
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HistContainer), POINTER     :: Container  ! HISTORY CONTAINER object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT) :: RC         ! Success or failure
+!
+!
+! !REMARKS:
+!  The algorithm may not be as robust when straddling leap-year months, so we
+!  would recommend selecting an interval of 1 month or 1 year at a time.
+!
+! !REVISION HISTORY:
+!  06 Sep 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: Year,     Month,     Day
+    INTEGER            :: Hour,     Minute,    Second
+    INTEGER            :: CurrYear, CurrMonth, CurrDay
+    INTEGER            :: nDays
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = &
+    ' -> at HistContainer_FileWriteIvalSet (in History/histcontainer_mod.F90)'
+
+    !=======================================================================
+    ! Compute the interval for the "FileCloseAlarm"
+    !=======================================================================
+
+    ! Split the file close interval date/time into its constituent values
+    CALL Ymd_Extract( Container%FileCloseYmd, Year, Month,  Day    )
+    CALL Ymd_Extract( Container%FileCloseHms, Hour, Minute, Second )
+
+    IF ( Container%FileCloseYmd >= 010000 ) THEN
+
+       !--------------------------------------------------------------------
+       ! File close interval is one or more years
+       !--------------------------------------------------------------------
+
+       ! Split the current date & time into its constituent values
+       CALL Ymd_Extract( Container%CurrentYmd, CurrYear, CurrMonth, CurrDay )
+    
+       ! Set the file write interval, accounting for leap year
+       IF ( Its_A_LeapYear( CurrYear ) ) THEN
+          Container%FileCloseIvalMin = 366.0_f8 * MINUTES_PER_DAY
+       ELSE
+          Container%FileCloseIvalMin = 365.0_f8 * MINUTES_PER_DAY
+       ENDIF
+       
+    ELSE IF ( Container%FileCloseYmd >= 000100 ) THEN
+       
+       !--------------------------------------------------------------------
+       ! File close interval is one or more months but less than a year
+       !--------------------------------------------------------------------
+
+       ! Split the current date & time into its constituent values
+       CALL Ymd_Extract( Container%CurrentYmd, CurrYear, CurrMonth, CurrDay )
+
+       ! Number of days in the month
+       nDays = DaysPerMonth(CurrMonth)
+
+       ! Adjust for leap year
+       IF ( Its_A_LeapYear( CurrYear ) .AND. CurrMonth == 2 ) THEN
+          nDays = nDays + 1
+       ENDIF
+
+       ! Convert to minutes and set this as the file write interval
+       Container%FileCloseIvalMin = DBLE( nDays ) * MINUTES_PER_DAY    
+      
+    ELSE
+
+       !--------------------------------------------------------------------
+       ! File close interval is less than a month
+       !--------------------------------------------------------------------
+
+       ! "FileWrite" interval in minutes
+       Container%FileCloseIvalMin = ( DBLE(Day   ) * MINUTES_PER_DAY    ) +  &
+                                    ( DBLE(Hour  ) * MINUTES_PER_HOUR   ) +  &
+                                    ( DBLE(Minute)                      ) +  &
+                                    ( DBLE(Second) / SECONDS_PER_MINUTE )
+    ENDIF
+
+  END SUBROUTINE HistContainer_FileCloseIvalSet
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HistContainer_FileWriteIvalSet
+!
+! !DESCRIPTION: Defines the alarm intervals for the FILE WRITE operation.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HistContainer_FileWriteIvalSet( am_I_Root, Container, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE History_Util_Mod
+    USE Time_Mod,         ONLY : Its_A_Leapyear, Ymd_Extract
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HistContainer), POINTER     :: Container  ! HISTORY CONTAINER object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT) :: RC         ! Success or failure
+!
+!
+! !REMARKS:
+!  The algorithm may not be as robust when straddling leap-year months, so we
+!  would recommend selecting an interval of 1 month or 1 year at a time.
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
@@ -906,7 +1218,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: Year, Month, Day, Hour, Minute, Second
+    INTEGER            :: Year,     Month,     Day
+    INTEGER            :: Hour,     Minute,    Second
+    INTEGER            :: CurrYear, CurrMonth, CurrDay
+    INTEGER            :: nDays
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -916,69 +1231,70 @@ CONTAINS
     !=======================================================================
     RC      = GC_SUCCESS
     ErrMsg  = ''
-    ThisLoc = ' -> at HistContainer_Destroy (in History/histcontainer_mod.F90)'
+    ThisLoc = &
+    ' -> at HistContainer_FileWriteIvalSet (in History/histcontainer_mod.F90)'
 
-    !=======================================================================
-    ! Compute the interval for the "UpdateAlarm" 
-    !=======================================================================
-
-    ! Split 
-    CALL Ymd_Extract( Container%UpdateYmd, Year, Month,  Day    )
-    CALL Ymd_Extract( Container%UpdateHms, Hour, Minute, Second )
-
-    IF ( Container%UpdateYmd >= 000100 ) THEN
-
-       ! Need to handle a way of updating the months
-
-    ELSE
-       
-       ! "Update" interval in minutes (interval < 1 month)
-       Container%UpdateIvalMin    = ( DBLE(Day   ) * MINUTES_PER_DAY    ) +  & 
-                                    ( DBLE(Hour  ) * MINUTES_PER_HOUR   ) +  & 
-                                    ( DBLE(Minute)                      ) +  &
-                                    ( DBLE(Second) / SECONDS_PER_MINUTE )
-    ENDIF
-    
     !=======================================================================
     ! Compute the interval for the "FileWriteAlarm"
     !=======================================================================
 
+    ! Split the file write interval date/time into its constituent values
     CALL Ymd_Extract( Container%FileWriteYmd, Year, Month,  Day    )
     CALL Ymd_Extract( Container%FileWriteHms, Hour, Minute, Second )
 
-    IF ( Container%FileWriteYmd >= 000100 ) THEN
-       
-       ! Need to handle a way of doing the months
+    IF ( Container%FileWriteYmd >= 010000 ) THEN
 
+       !--------------------------------------------------------------------
+       ! File write interval is one year or more
+       !--------------------------------------------------------------------
+
+       ! Split the current date & time into its constituent values
+       CALL Ymd_Extract( Container%CurrentYmd, CurrYear, CurrMonth, CurrDay )
+    
+       ! Set the file write interval, accounting for leap year
+       IF ( Its_A_LeapYear( CurrYear ) ) THEN
+          Container%FileWriteIvalMin = 366.0_f8 * MINUTES_PER_DAY
+       ELSE
+          Container%FileWriteIvalMin = 365.0_f8 * MINUTES_PER_DAY
+       ENDIF
+       
+    ELSE IF ( Container%FileWriteYmd >= 000100 ) THEN
+       
+       !--------------------------------------------------------------------
+       ! File write interval is one or more months but less than a year
+       ! 
+       ! This will probably be the most common option.  This algorithm
+       ! may not be as robust if more than one month at a time is selected.
+       !--------------------------------------------------------------------
+
+       ! Split the current date & time into its constituent values
+       CALL Ymd_Extract( Container%CurrentYmd, CurrYear, CurrMonth, CurrDay )
+
+       ! Number of days in the month
+       nDays = DaysPerMonth(CurrMonth)
+
+       ! Adjust for leap year
+       IF ( Its_A_LeapYear( CurrYear ) .AND. CurrMonth == 2 ) THEN
+          nDays = nDays + 1
+       ENDIF
+
+       ! Convert to minutes and set this as the file write interval
+       Container%FileWriteIvalMin = DBLE( nDays ) * MINUTES_PER_DAY    
+      
     ELSE
-       
 
-       ! "FileWrite" interval in minutes (interval < 1 month)
+       !--------------------------------------------------------------------
+       ! File write interval is less than a month
+       !--------------------------------------------------------------------
+
+       ! "FileWrite" interval in minutes
        Container%FileWriteIvalMin = ( DBLE(Day   ) * MINUTES_PER_DAY    ) +  &
                                     ( DBLE(Hour  ) * MINUTES_PER_HOUR   ) +  &
                                     ( DBLE(Minute)                      ) +  &
                                     ( DBLE(Second) / SECONDS_PER_MINUTE )
     ENDIF
 
-    !=======================================================================
-    ! Compute the interval for the "FileWriteAlarm"
-    !=======================================================================
-
-    CALL Ymd_Extract( Container%FileCloseYmd, Year, Month,  Day    )
-    CALL Ymd_Extract( Container%FileCloseHms, Hour, Minute, Second )
-
-    IF ( Container%FileCloseYmd >= 000100 ) THEN
-       
-    ELSE
-
-       ! "FileClose" interval in minutes (interval < 1 month)
-       Container%FileCloseIvalMin = ( DBLE(Day   ) * MINUTES_PER_DAY    ) +  &
-                                    ( DBLE(Hour  ) * MINUTES_PER_HOUR   ) +  &
-                                    ( DBLE(Minute)                      ) +  &
-                                    ( DBLE(Second) / SECONDS_PER_MINUTE )
-    ENDIF
-
-  END SUBROUTINE HistContainer_AlarmIntervalSet
+  END SUBROUTINE HistContainer_FileWriteIvalSet
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1006,7 +1322,7 @@ CONTAINS
 !
     LOGICAL,             INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(HistContainer), POINTER     :: Container   ! HISTORY CONTAINER object
-    REAL(f8),            INTENT(IN)  :: HeartBeatDt ! Heartbeat increment for
+    REAL(f8),            OPTIONAL    :: HeartBeatDt ! Heartbeat increment for
                                                     !  for timestepping [days]
 !
 ! !OUTPUT PARAMETERS: 
@@ -1020,6 +1336,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  21 Aug 2017 - R. Yantosca - Initial version
+!  29 Aug 2017 - R. Yantosca - Now make HeartBeatDt an optional field; if not
+!                              specified, use Container%HeartBeatDtDays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1041,9 +1359,13 @@ CONTAINS
     ! Update the current Julian date by the heartbeat time (in days)
     !========================================================================
 
-    ! Update the Julian date by the heart beat interval in decimal days
-    Container%CurrentJd = Container%CurrentJd + HeartBeatDt
-
+    ! Update the Julian date by the heart beat interval in decimal dayS
+    IF ( PRESENT( HeartBeatDt ) ) THEN
+       Container%CurrentJd = Container%CurrentJd + HeartBeatDt
+    ELSE
+       Container%CurrentJd = Container%CurrentJd + Container%HeartBeatDtDays
+    ENDIF
+       
     ! Convert the Julian Day to year/month/day and hour/minutes/seconds
     CALL CalDate( JulianDay = Container%CurrentJd,                           &
                   yyyymmdd  = Container%CurrentYmd,                          &
@@ -1057,11 +1379,6 @@ CONTAINS
     CALL Compute_Elapsed_Time( CurrentJd  = Container%CurrentJd,             &
                                TimeBaseJd = Container%EpochJd,               &
                                ElapsedMin = Container%ElapsedMin            )
-
-    ! Compute the elapsed time in minutes since the file creation
-    CALL Compute_Elapsed_Time( CurrentJd  = Container%CurrentJd,             &
-                               TimeBaseJd = Container%ReferenceJd,           &
-                               ElapsedMin = Container%RefElapsedMin         )
 
   END SUBROUTINE HistContainer_SetTime
 !EOC
