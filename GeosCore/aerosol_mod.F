@@ -801,6 +801,11 @@
             !
             ! SOAupdate: Update traditional SOA (hotp 7/21/10)
             ! for new mtp + isop + lumparomivoc (hotp 5/20/10)
+            !
+            ! %%% IMPORTANT %%%
+            ! Note that this includes all the SOA formed in both the
+            ! Pye et al. and Marais et al. scheme and may include some
+            ! double-counting of isoprene SOA. (Aerosol WG)
             !-------------------------------------------------------
             IF ( IS_TSOA .and. IS_ISOA .and. IS_ASOA ) THEN
                OCPISOA(I,J,L) = ( Spc(I,J,L,id_TSOA1)
@@ -889,8 +894,12 @@
          !    1.86 for SALA
          ! - Ratio of OM/OC = 2.1 is applied to OCPI and OCPO above
          ! - Aerosol WG recommends including 38% of DST2 in PM2.5
-         ! - SOAS is already mass basis, so don't apply OCFOPOA;
-         !   SOAS will only be non-zero if complex SOA is not used
+         ! - SOAS will only be non-zero if complex SOA is not used
+         !
+         ! %%% IMPORTANT %%%
+         ! Note that this includes all the SOA formed in both the
+         ! Pye et al. and Marais et al. scheme and may include some
+         ! double-counting of isoprene SOA. (Aerosol WG)
          !===========================================================
 
          PM25(I,J,L) = NH4(I,J,L)  * SIA_GROWTH
