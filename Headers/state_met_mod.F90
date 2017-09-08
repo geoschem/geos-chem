@@ -2297,8 +2297,7 @@ CONTAINS
     ! Header line
     if ( am_I_Root ) THEN
        WRITE( 6, 10 )
-10     FORMAT( /, 'Registered variables contained within the ' \\ &
-               'State_Met object:' )
+10     FORMAT( /, 'Registered variables contained within the State_Met object:')
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     ENDIF
 
@@ -3083,7 +3082,7 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Instantaneous specific humidity at time=T'
           IF ( isUnits ) Units = 'g kg-1'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = 'CENTER'
+          IF ( isVLoc  ) VLoc  = VLocCenter
 
        CASE ( 'SPHU2' )
           IF ( isDesc  ) Desc  = 'Instantaneous specific humidity at time=T+dt'
