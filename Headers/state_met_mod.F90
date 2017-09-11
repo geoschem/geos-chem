@@ -2297,8 +2297,7 @@ CONTAINS
     ! Header line
     if ( am_I_Root ) THEN
        WRITE( 6, 10 )
-10     FORMAT( /, 'Registered variables contained within the ' // &
-               'State_Met object:')
+10     FORMAT( /, 'Registered variables contained within the State_Met object:')
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     ENDIF
 
@@ -2489,12 +2488,14 @@ CONTAINS
     isType  = PRESENT( Type  )
     isVLoc  = PRESENT( VLoc  )
 
-    ! Set defaults for optional arguments
+    ! Set defaults for optional arguments. Assume type and vertical 
+    ! location are real (flexible precision) and center unless specified 
+    ! otherwise
     IF ( isUnits ) Units = ''
-    IF ( isDesc  ) Desc  = ''
-    IF ( isRank  ) Rank  = 0
-    IF ( isType  ) Type  = KINDVAL_FP ! Is this always true if real?
-    IF ( isVLoc  ) VLoc  = VLocCenter ! Assume centered
+    IF ( isDesc  ) Desc  = ''              
+    IF ( isRank  ) Rank  = -1              ! initialize as bad value 
+    IF ( isType  ) Type  = KINDVAL_FP      ! Assume real with flex precision
+    IF ( isVLoc  ) VLoc  = VLocationCenter ! Assume centered
 
     !=======================================================================
     ! Values for Retrieval (string comparison slow but happens only once)
@@ -2757,7 +2758,7 @@ CONTAINS
           IF ( isRank  ) Rank  = 2
 
 #endif
-       CASE ( 'FRESEAICE' )
+       CASE ( 'FRSEAICE' )
           IF ( isDesc  ) Desc  = 'Fraction of sea ice'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
@@ -2777,12 +2778,12 @@ CONTAINS
           IF ( isUnits ) Units = 'kg m-2 s-1'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'SEASICE00' )
+       CASE ( 'SEAICE00' )
           IF ( isDesc  ) Desc  = 'Sea ice coverage 00-10%'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'SEASICE10' )
+       CASE ( 'SEAICE10' )
           IF ( isDesc  ) Desc  = 'Sea ice coverage 10-20%'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
@@ -2790,6 +2791,7 @@ CONTAINS
        CASE ( 'SEAICE20' )
           IF ( isDesc  ) Desc  = 'Sea ice coverage 20-30%'
           IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
 
        CASE ( 'SEAICE30' )
           IF ( isDesc  ) Desc  = 'Sea ice coverage 30-40%'
@@ -2875,7 +2877,7 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Cloud mass flux'
           IF ( isUnits ) Units = 'kg m-2 s-1'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocEdge
+          IF ( isVLoc  ) VLoc  = VLocationEdge
 
        CASE ( 'DELP' )
           IF ( isDesc  ) Desc  = 'Delta-pressure across grid box(wet air)'
@@ -2948,11 +2950,13 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Pressure (w/r/t moist air) at level edges'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationEdge
 
        CASE ( 'PEDGE_DRY' )
           IF ( isDesc  ) Desc  = 'Pressure (w/r/t dry air) at level edges'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationEdge
 
        CASE ( 'PMID' )
           IF ( isDesc  ) Desc  = 'Pressure (w/r/t moist air) at level centers'
@@ -3034,28 +3038,28 @@ CONTAINS
                                  '(convective)'
           IF ( isUnits ) Units = 'kg m-2 s-1'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocEdge
+          IF ( isVLoc  ) VLoc  = VLocationEdge
 
        CASE ( 'PFILSAN' )
           IF ( isDesc  ) Desc  = 'Downwared flux of ice precipitation ' // &
                                  '(large-scale + anvil)'
           IF ( isRank  ) Rank  = 3
           IF ( isUnits ) Units = 'kg m-2 s-1'
-          IF ( isVLoc  ) VLoc  = VLocEdge
+          IF ( isVLoc  ) VLoc  = VLocationEdge
 
        CASE ( 'PFLCU' )
           IF ( isDesc  ) Desc  = 'Downward flux of liquid precipitation ' // &
                                  '(convective)'
           IF ( isUnits ) Units = 'kg m-2 s-1'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocEdge
+          IF ( isVLoc  ) VLoc  = VLocationEdge
 
        CASE ( 'PFLLSAN' )
           IF ( isDesc  ) Desc  = 'Downward flux of liquid precipitation ' // &
                                  '(large-scale + anvil)'
           IF ( isUnits ) Units = 'kg m-2 s-1'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocEdge
+          IF ( isVLoc  ) VLoc  = VLocationEdge
 
        CASE ( 'REEVAPCN' )
           IF ( isDesc  ) Desc  = 'Evaporation of convective ' // &
@@ -3083,7 +3087,6 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Instantaneous specific humidity at time=T'
           IF ( isUnits ) Units = 'g kg-1'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocCenter
 
        CASE ( 'SPHU2' )
           IF ( isDesc  ) Desc  = 'Instantaneous specific humidity at time=T+dt'
@@ -3105,14 +3108,14 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
           IF ( isType  ) Type  = KINDVAL_I4
-          IF ( isVLoc  ) VLoc  = VLocUndefined
+          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'ILAND' )
           IF ( isDesc  ) Desc  = 'Olson land type indices in each grid box'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
           IF ( isType  ) Type  = KINDVAL_I4
-          IF ( isVLoc  ) VLoc  = VLocUndefined
+          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'IUSE' )
           IF ( isDesc  ) Desc  = 'Fraction (per mil) occupied by each ' // &
@@ -3120,14 +3123,14 @@ CONTAINS
           IF ( isUnits ) Units = 'o/oo'
           IF ( isRank  ) Rank  = 3
           IF ( isType  ) Type  = KINDVAL_I4
-          IF ( isVLoc  ) VLoc  = VLocUndefined
+          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'XLAI' )
           IF ( isDesc  ) Desc  = 'MODIS LAI for each Olson land type, ' // &
                                  'current month'
           IF ( isUnits ) Units = 'm2 m-2'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocUndefined
+          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'MODISLAI' )
           IF ( isDesc  ) Desc  = 'Daily LAI computed from monthly ' // &
@@ -3140,7 +3143,7 @@ CONTAINS
                                  'current month'
           IF ( isUnits ) Units = 'mg m-3'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocUndefined
+          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'MODISCHLR' )
           IF ( isDesc  ) Desc  = 'Daily chlorophyll-a computed ' // &
@@ -3152,33 +3155,33 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Olson fraction per land type'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocUndefined
+          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'XLAI_NATIVE' )
           IF ( isDesc  ) Desc  = 'Average LAI per Olson land type'
           IF ( isUnits ) Units = 'm2 m-2'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocUndefined
+          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'XCHLR_NATIVE' )
           IF ( isDesc  ) Desc  = 'Average CHLR per Olson type'
           IF ( isUnits ) Units = 'mg m-3'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocUndefined
+          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'XLAI2' )
           IF ( isDesc  ) Desc  = 'MODIS chlorophyll-a per Olson land ' // &
                                  'type, next month'
           IF ( isUnits ) Units = 'm2 m-2'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocUndefined
+          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'XCHLR2' )
           IF ( isDesc  ) Desc  = 'MODIS chlorophyll-a per Olson land ' // &
                                  'type, next month'
           IF ( isUnits ) Units = 'mg m-3'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocUndefined
+          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE DEFAULT
           ErrMsg = 'No information available for field: ' // TRIM( Name )
@@ -3189,7 +3192,7 @@ CONTAINS
 
     ! Set VLoc to undefined if variable is 2d
     IF ( isVLoc .AND. Rank == 2 ) THEN
-       VLoc = VLocUndefined
+       VLoc = VLocationNone
     ENDIF
 
    END SUBROUTINE Get_MetField_Metadata
@@ -3260,7 +3263,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( rank /= 3 ) THEN
+    IF ( rank /= 2 ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' // &
             TRIM(Varname)
        CALL GC_Error( ErrMsg, RC, ThisLoc )

@@ -35,9 +35,9 @@ MODULE Registry_Params_Mod
   INTEGER, PUBLIC, PARAMETER :: KINDVAL_I4 = 4
 
   ! Vertical locations
-  INTEGER, PUBLIC, PARAMETER :: VLocEdge      = 1
-  INTEGER, PUBLIC, PARAMETER :: VLocCenter    = 2
-  INTEGER, PUBLIC, PARAMETER :: VLocUndefined = 3
+  INTEGER, PUBLIC, PARAMETER :: VLocationNone   = 0
+  INTEGER, PUBLIC, PARAMETER :: VLocationEdge   = 1
+  INTEGER, PUBLIC, PARAMETER :: VLocationCenter = 2
 !
 ! !REVISION HISTORY:
 !  14 Jul 2017 - R. Yantosca - Initial version
