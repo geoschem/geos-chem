@@ -4115,13 +4115,17 @@
       !=================================================================
       ! Store Hydrocarbon remaining after oxidation rxn back into Spc
       !=================================================================
-      ! update for new mtp lumping (hotp 5/22/10)
-      Spc(I,J,L,id_MTPA) = MAX( NMVOC(1), 1.e-32_fp )
-      Spc(I,J,L,id_LIMO) = MAX( NMVOC(2), 1.e-32_fp )
+      ! Nothing to do for isoprene or aromatics here,  as their oxidation
+      ! is treated online.
+      ! The same now applies to MTPA and LIMO. As of v11-02c, their
+      ! oxidation is treated online (mps, 9/7/17)
+!------------------------------------------------------------------------------
+! Prior to 9/7/17:
+!      Spc(I,J,L,id_MTPA) = MAX( NMVOC(1), 1.e-32_fp )
+!      Spc(I,J,L,id_LIMO) = MAX( NMVOC(2), 1.e-32_fp )
+!------------------------------------------------------------------------------
       Spc(I,J,L,id_MTPO) = MAX( NMVOC(3), 1.e-32_fp )
       ORVC_SESQ(I,J,L)   = MAX( NMVOC(4), 1.e-32_fp )
-      ! Nothing to do for isoprene or aromatics here, 
-      ! as their oxidation is treated online. 
 
       ! Free pointer
       Spc => NULL()
@@ -5234,29 +5238,42 @@ ccc
       ! Initialize
       POAEMISS =  0e+0_fp
 
-      ! Get HEMCO ID of species SESQ 
-      IF ( SESQID == -999 ) THEN
-         SESQID = GetHcoID( 'SESQ' )
-      ENDIF
-      IF ( SESQID > 0 ) THEN
-         IF ( .NOT. ASSOCIATED(HcoState%Spc(SESQID)%Emis%Val) ) THEN
-            SESQID = -1
+      ! Check if using complex SOA scheme
+      IF ( Input_Opt%LSOA ) THEN
+
+         ! Get HEMCO ID of species SESQ 
+         IF ( SESQID == -999 ) THEN
+            SESQID = GetHcoID( 'SESQ' )
          ENDIF
-      ENDIF
- 
-      ! Get HEMCO ID of species POG1 and POG2
-      HCOPOG1 = GetHcoID( SpcID=id_POG1 )
-      IF ( HCOPOG1 > 0 ) THEN
-         IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG1)%Emis%Val) ) THEN
-            HCOPOG1 = -1
+         IF ( SESQID > 0 ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(SESQID)%Emis%Val) ) THEN
+               SESQID = -1
+            ENDIF
          ENDIF
-      ENDIF
-      HCOPOG2 = GetHcoID( SpcID=id_POG2 )
-      IF ( HCOPOG2 > 0 ) THEN
-         IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG2)%Emis%Val) ) THEN
-            HCOPOG2 = -1
+
+         ! Get HEMCO ID of species POG1 and POG2
+         HCOPOG1 = GetHcoID( SpcID=id_POG1 )
+         IF ( HCOPOG1 > 0 ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG1)%Emis%Val) ) THEN
+               HCOPOG1 = -1
+            ENDIF
          ENDIF
+         HCOPOG2 = GetHcoID( SpcID=id_POG2 )
+         IF ( HCOPOG2 > 0 ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG2)%Emis%Val) ) THEN
+               HCOPOG2 = -1
+            ENDIF
+         ENDIF
+
+      ELSE
+
+         ! Do not get emissions of SESQ, POG1, POG2 if complex SOA is off
+         SESQID  = -1
+         HCOPOG1 = -1
+         HCOPOG2 = -1
+
       ENDIF
+
 
       ! Nothing to do if none of the species are defined
       IF ( SESQID <= 0 .AND. HCOPOG1 <= 0 .AND. HCOPOG2 <=0 ) RETURN
