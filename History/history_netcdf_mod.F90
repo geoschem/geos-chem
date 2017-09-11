@@ -125,8 +125,8 @@ CONTAINS
        ! Undefine fields
        Container%IsFileOpen    = .FALSE.
        Container%IsFileDefined = .FALSE.
-       Container%ReferenceYmd  = UNDEFINED_DBL
-       Container%ReferenceHms  = UNDEFINED_DBL
+       Container%ReferenceYmd  = UNDEFINED_INT
+       Container%ReferenceHms  = UNDEFINED_INT
        Container%ReferenceJd   = UNDEFINED_DBL
        Container%CurrTimeSlice = UNDEFINED_INT
 

@@ -7,7 +7,8 @@
 !
 ! !DESCRIPTION: Contains parameters that are used to denote the types
 !  of pointers arrays (e.g. REAL(fp), REAL(f4), INTEGER) used in the 
-!  GEOS-Chem Registry and History routines.
+!  GEOS-Chem Registry and History routines, as well as the vertical
+!  location.
 !\\
 !\\
 ! !INTERFACE:
@@ -32,10 +33,16 @@ MODULE Registry_Params_Mod
 
   ! Denotes INTEGER
   INTEGER, PUBLIC, PARAMETER :: KINDVAL_I4 = 4
+
+  ! Vertical locations
+  INTEGER, PUBLIC, PARAMETER :: VLocationNone   = 0
+  INTEGER, PUBLIC, PARAMETER :: VLocationEdge   = 1
+  INTEGER, PUBLIC, PARAMETER :: VLocationCenter = 2
 !
 ! !REVISION HISTORY:
 !  14 Jul 2017 - R. Yantosca - Initial version
 !  25 Aug 2017 - R. Yantosca - Add KINDVAL_F8 parameter for REAL*8 data
+!  07 Sep 2017 - E. Lundgren - Add vertical location parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC

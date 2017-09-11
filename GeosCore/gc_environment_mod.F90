@@ -335,7 +335,7 @@ CONTAINS
                           Input_Opt  = Input_Opt,   &  ! Input Options
                           State_Diag = State_Diag,  &  ! Chemistry State
                           RC         = RC          )   ! Success or failure
-    
+
     ! Trap errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered within call to "Init_State_Diag"!'

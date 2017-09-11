@@ -3836,6 +3836,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Turn on chunking for this variable
+    ! ewl debugging - turn off since routine and NF_CHUNKED are not defined
     RC = NF_Def_Var_Chunking( fId, vId, NF_CHUNKED, ChunkSizes )
 
   END SUBROUTINE Nc_Var_Chunk
