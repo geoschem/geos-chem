@@ -3829,15 +3829,26 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  28 Aug 2017 - R. Yantosca - Initial version
+!  11 Sep 2017 - R. Yantosca - Do not call NF_DEF_VAR_CHUNKING if the netCDF
+!                               library was built w/o compression enabled
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( NC_HAS_COMPRESSION )
+
     ! Turn on chunking for this variable
-    ! ewl debugging - turn off since routine and NF_CHUNKED are not defined
+    ! But only if the netCDF library supports it
     RC = NF_Def_Var_Chunking( fId, vId, NF_CHUNKED, ChunkSizes )
+
+#else
+
+    ! Otherwise return success
+    RC = 0
+
+#endif
 
   END SUBROUTINE Nc_Var_Chunk
 !EOC
