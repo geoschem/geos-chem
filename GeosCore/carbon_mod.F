@@ -5238,29 +5238,42 @@ ccc
       ! Initialize
       POAEMISS =  0e+0_fp
 
-      ! Get HEMCO ID of species SESQ 
-      IF ( SESQID == -999 ) THEN
-         SESQID = GetHcoID( 'SESQ' )
-      ENDIF
-      IF ( SESQID > 0 ) THEN
-         IF ( .NOT. ASSOCIATED(HcoState%Spc(SESQID)%Emis%Val) ) THEN
-            SESQID = -1
+      ! Check if using complex SOA scheme
+      IF ( Input_Opt%LSOA ) THEN
+
+         ! Get HEMCO ID of species SESQ 
+         IF ( SESQID == -999 ) THEN
+            SESQID = GetHcoID( 'SESQ' )
          ENDIF
-      ENDIF
- 
-      ! Get HEMCO ID of species POG1 and POG2
-      HCOPOG1 = GetHcoID( SpcID=id_POG1 )
-      IF ( HCOPOG1 > 0 ) THEN
-         IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG1)%Emis%Val) ) THEN
-            HCOPOG1 = -1
+         IF ( SESQID > 0 ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(SESQID)%Emis%Val) ) THEN
+               SESQID = -1
+            ENDIF
          ENDIF
-      ENDIF
-      HCOPOG2 = GetHcoID( SpcID=id_POG2 )
-      IF ( HCOPOG2 > 0 ) THEN
-         IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG2)%Emis%Val) ) THEN
-            HCOPOG2 = -1
+
+         ! Get HEMCO ID of species POG1 and POG2
+         HCOPOG1 = GetHcoID( SpcID=id_POG1 )
+         IF ( HCOPOG1 > 0 ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG1)%Emis%Val) ) THEN
+               HCOPOG1 = -1
+            ENDIF
          ENDIF
+         HCOPOG2 = GetHcoID( SpcID=id_POG2 )
+         IF ( HCOPOG2 > 0 ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG2)%Emis%Val) ) THEN
+               HCOPOG2 = -1
+            ENDIF
+         ENDIF
+
+      ELSE
+
+         ! Do not get emissions of SESQ, POG1, POG2 if complex SOA is off
+         SESQID  = -1
+         HCOPOG1 = -1
+         HCOPOG2 = -1
+
       ENDIF
+
 
       ! Nothing to do if none of the species are defined
       IF ( SESQID <= 0 .AND. HCOPOG1 <= 0 .AND. HCOPOG2 <=0 ) RETURN
