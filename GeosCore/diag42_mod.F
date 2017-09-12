@@ -263,17 +263,10 @@
          !-----------------------------------------------------------
          ! Sum of all organic aerosol [ug/m3]
          !-----------------------------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 6/13/17:
-! Sum of total OA is now calculated in oasave.F routine so that
-! it can be used in the timeseries and satellite diagnostics
-! (eam, 2014):
-!         AD42(I,J,L,6) = AD42(I,J,L,6) +
-!     &                   ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
-!     &                     OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) )
-!     &                   * FACTOR
-!------------------------------------------------------------------------------
-         AD42(I,J,L,6) = AD42(I,J,L,6) + SAVEOA(I,J,L)
+         AD42(I,J,L,6) = AD42(I,J,L,6) +
+     &                   ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
+     &                     OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) +
+     &                     ISOAAQ(I,J,L) ) * FACTOR
 
          !-----------------------------------------------------------
          ! Sum of all organic carbon [ugC/m3]

@@ -1575,7 +1575,7 @@ CONTAINS
                               Henry_pKa     = 11.6_f8,                      &
 #else                                                                       
                               DD_Hstar_old  = 5.00e+7_fp,                   &
-                              Henry_K0      = 5.00e+7_f8,                   &
+                              Henry_K0      = 8.30e+4_f8,                   &
                               Henry_CR      = 7400.0_f8,                    &
 #endif                                                                      
                               WD_RetFactor  = 5e-2_fp,                      &
@@ -1979,34 +1979,6 @@ CONTAINS
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
                               RC            = RC )
-
-!          CASE( 'IEPOX' )
-!             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-!                              ThisSpc       = SpcData(N)%Info,              &
-!                              ModelID       = N,                            &
-!                              KppSpcId      = KppSpcId(N),                  &
-!                              KppVarId      = KppVarId(N),                  &
-!                              KppFixId      = KppFixId(N),                  &
-!                              Name          = NameAllCaps,                  &
-!                              FullName      = 'Isoprene epoxide',           &
-!                              Formula       = 'C5H10O3',                    &
-!                              MW_g          = 118.0_fp,                     &
-!                              Is_Advected   = Is_Advected,                  &
-!                              Is_Gas        = T,                            &
-!                              Is_Drydep     = T,                            &
-!                              Is_Wetdep     = T,                            &
-!                              DD_F0         = 1.0_fp,                       &
-!#if defined( NEW_HENRY_CONSTANTS )					    
-!                              Henry_K0      = 7.60e+5_f8 * To_M_atm,        &
-!                              Henry_CR      = 0.0_f8,                       &
-!#else									    
-!                              ! Update DD_Hstar based on Pye et al. (2013)
-!                              DD_Hstar_old  = 2.70e+6_fp,                   &
-!                              Henry_K0      = 1.30e+8_f8,                   &
-!                              Henry_CR      = 0.0_f8,                       &
-!#endif									    
-!                              WD_RetFactor  = 2.0e-2_fp,                    &
-!                              RC            = RC )
 
           CASE( 'IEPOXA' )
              FullName = 'trans-Beta isoprene epoxydiol'
@@ -2620,7 +2592,6 @@ CONTAINS
                               Henry_K0      = 3.7e+3_f8,                    &
                               Henry_CR      = 7500.0_f8,                    &
                               WD_RetFactor  = 2.0e-2_fp,                    &
-
                               RC            = RC )
 
           CASE( 'MOBA' )
