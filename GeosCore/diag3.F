@@ -6255,6 +6255,9 @@
                CASE ( 15 )
                   SCALEX = SCALED
                   UNIT   = 'm'
+               CASE ( 16 )
+                  SCALEX = SCALE_A3     ! CLDTOPS are 3-hr avg'd
+                  UNIT   = 'levels'
                CASE ( 17 ) 
                   SCALEX = SCALE_ND67
                   UNIT   = 'hPa'
