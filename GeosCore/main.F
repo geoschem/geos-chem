@@ -2242,10 +2242,6 @@
       ! Convenience variable for date & time
       INTEGER :: D(2)
 
-      ! Set previous specific humidity to current specific humdidity 
-      ! prior to MET-field update (ewl, 10/29/15)
-      State_Met%SPHU_prev = State_Met%SPHU
-
 #if   defined( GEOS_FP )
 
       !==============================================================

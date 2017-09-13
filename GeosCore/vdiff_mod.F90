@@ -2936,10 +2936,6 @@ contains
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_VDIFF ) THEN
 
-       ! Set previous specific humidity to current specific humidity 
-       ! prior to humidity update in vdiffdr (ewl, 10/28/15)
-       State_Met%SPHU_prev = State_Met%SPHU
-
        CALL VDIFFDR( am_I_Root, Input_Opt, State_Met, State_Chm )
        IF( prtDebug ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )

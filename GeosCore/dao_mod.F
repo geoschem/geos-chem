@@ -312,7 +312,7 @@
 !  (12) BXHEIGHT  (REAL(fp)) : Vertical height of grid box                [m]   
 !  (13) AIRVOL    (REAL(fp)) : Volume of grid box                         [m^3]
 !  (14) MOISTMW   (REAL(fp)) : Molecular weight of moist air in box     [g/mol]
-!  (15) DELP_PREV (REAL(fp)) : Prev delta-P for trcr mixing ratio update  [hPa]
+!
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) AIRQNT is written in Fixed-Form Fortran 90.  Use F90 syntax
@@ -385,7 +385,7 @@
       REAL(fp)  :: PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean
       REAL(fp)  :: PMEAN, PMEAN_DRY  
       REAL(fp)  :: EsatA, EsatB, EsatC, EsatD
-      REAL(fp)  :: AREA_M2, SPHU_kgkg, SPHU_kgkg_prev, AVGW_moist
+      REAL(fp)  :: AREA_M2, SPHU_kgkg, AVGW_moist
       LOGICAL   :: UpdtMR
 
       ! Error handling
@@ -456,9 +456,6 @@
          IF (L == LLPAR) THEN                                             
             State_Met%PEDGE( I,J,L+1 ) = PEdge_Top                        
          ENDIF                                                            
-                                                                          
-         ! Set previous pressure difference to current pressure difference
-         State_Met%DELP_PREV( I,J,L ) = State_Met%DELP( I,J,L )           
                                                                           
          ! Pressure difference between top & bottom edges [hPa]           
          State_Met%DELP( I,J,L )   = State_Met%PEDGE( I,J,L )             
@@ -732,7 +729,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, SPHU_kgkg, SPHU_kgkg_prev )
+!$OMP+PRIVATE( I, J, L, N )
             DO N = 1, State_Chm%nSpecies
             DO L = 1, LLPAR
             DO J = 1, JJPAR
@@ -935,10 +932,6 @@
          State_Met%T   (I,J,L) = State_Met%TMPU1(I,J,L)   +
      &                         ( State_Met%TMPU2(I,J,L)   -
      &                           State_Met%TMPU1(I,J,L) ) * TM
-
-         ! Set previous SPHU to current SPHU prior to interpolateion
-         ! update (ewl, 10/28/15)
-         State_Met%SPHU_prev(I,J,L) = State_Met%SPHU(I,J,L)
 
          ! Interpolate specific humidity
          State_Met%SPHU(I,J,L) = State_Met%SPHU1(I,J,L)   +

@@ -168,9 +168,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: DELP_DRY  (:,:,:) ! Delta-P (dry) across box [hPa]
      REAL(fp), POINTER :: AD        (:,:,:) ! Dry air mass [kg] in grid box
      REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3] (dry air)
-     REAL(fp), POINTER :: DELP_PREV (:,:,:) ! Previous State_Met%DELP
      REAL(fp), POINTER :: DP_DRY_PREV (:,:,:) ! Previous State_Met%DELP_DRY
-     REAL(fp), POINTER :: SPHU_PREV (:,:,:) ! Previous State_Met%SPHU
 
      !----------------------------------------------------------------------
      ! Offline land type, leaf area index, and chlorophyll fields
@@ -247,6 +245,7 @@ MODULE State_Met_Mod
 !  27 Jun 2017 - R. Yantosca - Add fields of State_Met to the registry
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !                              and remove obsolete met fields from State_Met
+!  13 Sep 2017 - M. Sulprizio- Remove DELP_PREV and SPHU_PREV; they're not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1599,23 +1598,6 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
-    ! DELP_PREV [hPa]
-    !-------------------------
-    ALLOCATE( State_Met%DELP_PREV( IM, JM, LM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%DELP_PREF', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%DELP_PREV= 0.0_fp
-
-    Desc  = 'Previous State_Met%DELP'
-    Units = 'hPa'
-    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
-                            State_Met%State, 'DELP_PREV',                   &
-                            Units=Units,      Data3d=State_Met%DELP_PREV,   &
-                            Description=Desc, RC=RC                        )
-    CALL GC_CheckVar( 'State_Met%DELP_PREV', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !-------------------------
     ! DP_DRY_PREV [hPa]
     !-------------------------
     ALLOCATE( State_Met%DP_DRY_PREV( IM, JM, LM ), STAT=RC )
@@ -1868,23 +1850,6 @@ CONTAINS
                             Units=Units,      Data3d=State_Met%SPHU,        &
                             Description=Desc, RC=RC                        )
     CALL GC_CheckVar( 'State_Met%SPHU', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !-------------------------
-    ! SPHU_PREV [g kg-1]
-    !-------------------------
-    ALLOCATE( State_Met%SPHU_PREV( IM, JM, LM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%SPHU_PREV', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN           
-    State_Met%SPHU_PREV= 0.0_fp
-
-    Desc  = 'Previous SPHU'
-    Units = 'g kg-1'
-    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
-                            State_Met%State, 'SPHU_PREV',                   &
-                            Units=Units,      Data3d=State_Met%SPHU_PREV,   &
-                            Description=Desc, RC=RC                        )
-    CALL GC_CheckVar( 'State_Met%SPHU_PREV', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
@@ -2552,7 +2517,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%CLDF       )) NULLIFY( State_Met%CLDF       )
     IF ( ASSOCIATED( State_Met%CMFMC      )) NULLIFY( State_Met%CMFMC      )
     IF ( ASSOCIATED( State_Met%DELP       )) NULLIFY( State_Met%DELP       )
-    IF ( ASSOCIATED( State_Met%DELP_PREV  )) NULLIFY( State_Met%DELP_PREV  )
     IF ( ASSOCIATED( State_Met%DQRCU      )) NULLIFY( State_Met%DQRCU      )
     IF ( ASSOCIATED( State_Met%DQRLSAN    )) NULLIFY( State_Met%DQRLSAN    )
     IF ( ASSOCIATED( State_Met%DTRAIN     )) NULLIFY( State_Met%DTRAIN     )
@@ -2567,7 +2531,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%QL         )) NULLIFY( State_Met%QL         )
     IF ( ASSOCIATED( State_Met%RH         )) NULLIFY( State_Met%RH         )
     IF ( ASSOCIATED( State_Met%SPHU       )) NULLIFY( State_Met%SPHU       )
-    IF ( ASSOCIATED( State_Met%SPHU_PREV  )) NULLIFY( State_Met%SPHU_PREV  )
     IF ( ASSOCIATED( State_Met%T          )) NULLIFY( State_Met%T          )
     IF ( ASSOCIATED( State_Met%TV         )) NULLIFY( State_Met%TV         )
     IF ( ASSOCIATED( State_Met%TAUCLI     )) NULLIFY( State_Met%TAUCLI     )
@@ -2597,7 +2560,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%CMFMC      )) DEALLOCATE( State_Met%CMFMC      )
     IF ( ASSOCIATED( State_Met%DELP       )) DEALLOCATE( State_Met%DELP       )
     IF ( ASSOCIATED( State_Met%DELP_DRY   )) DEALLOCATE( State_Met%DELP_DRY   )
-    IF ( ASSOCIATED( State_Met%DELP_PREV  )) DEALLOCATE( State_Met%DELP_PREV  )
     IF ( ASSOCIATED( State_Met%DP_DRY_PREV)) DEALLOCATE( State_Met%DP_DRY_PREV)
     IF ( ASSOCIATED( State_Met%DQRCU      )) DEALLOCATE( State_Met%DQRCU      )
     IF ( ASSOCIATED( State_Met%DQRLSAN    )) DEALLOCATE( State_Met%DQRLSAN    )
@@ -2613,7 +2575,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%QL         )) DEALLOCATE( State_Met%QL         )
     IF ( ASSOCIATED( State_Met%RH         )) DEALLOCATE( State_Met%RH         )
     IF ( ASSOCIATED( State_Met%SPHU       )) DEALLOCATE( State_Met%SPHU       )
-    IF ( ASSOCIATED( State_Met%SPHU_PREV  )) DEALLOCATE( State_Met%SPHU_PREV  )
     IF ( ASSOCIATED( State_Met%T          )) DEALLOCATE( State_Met%T          )
     IF ( ASSOCIATED( State_Met%TV         )) DEALLOCATE( State_Met%TV         )
     IF ( ASSOCIATED( State_Met%TAUCLI     )) DEALLOCATE( State_Met%TAUCLI     )
