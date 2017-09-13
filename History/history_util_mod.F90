@@ -59,7 +59,6 @@ MODULE History_Util_Mod
   ! Specifies the number of minutes and seconds per day, etc.
   !-------------------------------------------------------------------------
   REAL(f8),         PARAMETER, PUBLIC :: HOURS_PER_DAY      = 24.0_f8
-  REAL(f8),         PARAMETER, PUBLIC :: HOURS_PER_MINUTE   = 60.0_f8
   REAL(f8),         PARAMETER, PUBLIC :: MINUTES_PER_DAY    = 1440.0_f8
   REAL(f8),         PARAMETER, PUBLIC :: MINUTES_PER_HOUR   = 60.0_f8
   REAL(f8),         PARAMETER, PUBLIC :: SECONDS_PER_DAY    = 86400.0_f8
@@ -77,7 +76,6 @@ MODULE History_Util_Mod
 !  17 Aug 2017 - R. Yantosca - Renamed to history_util_mod.F90; added routine
 !                              Compute_Julian_Date
 !  21 Aug 2017 - R. Yantosca - Removed some parameters that weren't needed
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -133,9 +131,9 @@ CONTAINS
     CALL Ymd_Extract( hhmmss,   Hour, Minute, Second )
 
     ! Compute the fractional day
-    FracDay = DBLE( Day ) + ( DBLE( Hour   ) / 24.0_f8    )  +               & 
-                            ( DBLE( Minute ) / 1440.0_f8  )  +               &
-                            ( DBLE( Second ) / 86400.0_f8 ) 
+    FracDay = DBLE( Day ) + ( DBLE( Hour   ) / HOURS_PER_DAY   )  +          & 
+                            ( DBLE( Minute ) / MINUTES_PER_DAY )  +          &
+                            ( DBLE( Second ) / SECONDS_PER_DAY ) 
 
     ! Return the Astronomical Julian Date
     Jd = JulDay( Year, Month, FracDay )
@@ -177,6 +175,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Aug 2017 - R. Yantosca - Initial version
+!  13 Sep 2017 - R. Yantosca - Avoid roundoff error; return integral minutes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,12 +183,22 @@ CONTAINS
     !=======================================================================
     ! Compute elapsed time in minutes
     !=======================================================================
-       
+
     ! Compute elapsed minutes since start of simulation
     ElapsedMin = ( CurrentJd - TimeBaseJd ) * MINUTES_PER_DAY
-       
-    ! Round off to a few places to avoid numerical noise 
-    ElapsedMin = Roundoff( ElapsedMin, ROUNDOFF_DECIMALS )
+
+!---------------------------------------------------------------------------
+! NOTE: Rounding off may start showing numerical noise in the 4th
+! decimal place.  Try just keeping the integer part for now.
+! This could maybe create an issue since GCHP could potentially use
+! timesteps that are fractional minutes (but integral seconds).
+!    ! Round off to a few places to avoid numerical noise 
+!    ElapsedMin = Roundoff( ElapsedMin, ROUNDOFF_DECIMALS )
+!---------------------------------------------------------------------------
+
+    ! To prevent roundoff error, just keep the integer part,
+    ! which should be OK since GC's timesteps are integral minutes
+    ElapsedMin = INT( ElapsedMin )
 
   END SUBROUTINE Compute_Elapsed_Time
 !EOC

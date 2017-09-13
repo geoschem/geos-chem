@@ -1359,7 +1359,7 @@ CONTAINS
     ! Update the current Julian date by the heartbeat time (in days)
     !========================================================================
 
-    ! Update the Julian date by the heart beat interval in decimal dayS
+    ! Update the Julian date by the heart beat interval in decimal days
     IF ( PRESENT( HeartBeatDt ) ) THEN
        Container%CurrentJd = Container%CurrentJd + HeartBeatDt
     ELSE

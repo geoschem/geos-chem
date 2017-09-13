@@ -2107,13 +2107,14 @@ CONTAINS
 
           ! Recompute the file write alarm interval if it 1 month or longer,
           ! as we will have to take into account leap years, etc.
-          IF ( Container%FileCloseYmd >= 000100 ) THEN
-             CALL HistContainer_FileCloseIvalSet( am_I_Root, Container, RC )
+          IF ( Container%FileWriteYmd >= 000100 ) THEN
+             CALL HistContainer_FileWriteIvalSet( am_I_Root, Container, RC )
           ENDIF
 
           ! Update the alarm
           Container%FileWriteAlarm = Container%FileWriteAlarm                &
                                    + Container%FileWriteIvalMin
+
        ENDIF
 
        ! Skip to the next collection

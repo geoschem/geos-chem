@@ -93,6 +93,9 @@ CONTAINS
        WRITE( 6, '(a)' ) TRIM( ThisLoc )
     ENDIF
 
+    ! Write a blank line to improve readability between error messages
+    WRITE( 6, '(a)' ) ''
+
     ! Force the message to be flushed to the log file
     CALL FLUSH( 6 )
 
