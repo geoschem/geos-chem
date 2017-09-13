@@ -236,7 +236,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LDRYD
      LOGICAL                     :: LWETD
      REAL(fp)                    :: WETD_CONV_SCAL
-     LOGICAL                     :: USE_OLSON_2001
      LOGICAL                     :: PBL_DRYDEP      
 
      !----------------------------------------
@@ -646,6 +645,8 @@ MODULE Input_Opt_Mod
 !  13 Jul 2017 - E. Lundgren - Add passive species variables
 !  24 Aug 2017 - M. Sulprizio- Remove obsolete options: GCAP_DIR, GEOS_4_DIR,
 !                              GEOS_5_DIR, MERRA_DIR, TEMP_DIR, LUNZIP, LWAIT
+!  13 Sep 2017 - M. Sulprizio- Remove USE_OLSON_2001. Olson 2001 is now the
+!                              default.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -959,7 +960,6 @@ CONTAINS
     Input_Opt%LDRYD                  = .FALSE.
     Input_Opt%LWETD                  = .FALSE.
     Input_Opt%WETD_CONV_SCAL         = 1.0_fp 
-    Input_Opt%USE_OLSON_2001         = .FALSE.
     Input_Opt%PBL_DRYDEP             = .FALSE.
 
     !----------------------------------------

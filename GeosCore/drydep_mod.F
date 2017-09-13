@@ -2134,6 +2134,8 @@
 !  18 Dec 2014 - R. Yantosca - Now read DRYCOEFF at REAL*8 precision and
 !                              then cast to flexible precision
 !  13 Mar 2015 - R. Yantosca - Replace DATA_DIR_1x1 w/ CHEM_INPUTS_DIR
+!  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
+!                              now the default.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2163,12 +2165,8 @@
       ! Open and read data from the netCDF file
       !=================================================================
 
-      ! Pick the proper input file for Olson 1992 or Olson 2001
-      IF ( Input_Opt%USE_OLSON_2001 ) THEN
-         nc_file = 'Olson_2001_Drydep_Inputs.nc'
-      ELSE
-         nc_file = 'Olson_1992_Drydep_Inputs.nc'
-      ENDIF
+      ! Input file for Olson 2001
+      nc_file = 'Olson_2001_Drydep_Inputs.nc'
 
       ! Open file for reading (construct full data path)
       nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 
@@ -2337,11 +2335,9 @@
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
-      ! If using Olson 2001 land map, change IRI for coniferous forests
+      ! For Olson 2001 land map, change IRI for coniferous forests
       ! to match IRI for deciduous forests (skim, mps, 2/3/14)
-      IF ( Input_Opt%USE_OLSON_2001 ) THEN
-         IRI(3) = 200
-      ENDIF
+      IRI(3) = 200
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN

@@ -3368,6 +3368,8 @@
 !                              full PBL or 1st model level only.
 !                              Set to .TRUE. (full PBL) if full PBL
 !                              mixing is used, to false otherwise.
+!  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
+!                              now the default.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3419,17 +3421,6 @@
       IF ( Input_Opt%ITS_A_C2H6_SIM    ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
 
-#if   defined( GEOS_FP ) || defined( MERRA2 )
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% KLUDGE FOR TESTING GEOS-FP (bmy, 3/26/12)
-      !%%% Use the Olson 2001 land map, which is at 0.25 x 0.25 resolution
-      !%%% in order to facilitate the SEAC4RS simulations.  Eventually
-      !%%% this will replace Olson 1992 for all other met field types,
-      !%%% once more rigorous testing & validation has been done.
-      Input_Opt%USE_OLSON_2001 = .TRUE.
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#endif
-
       ! Set the PBL drydep flag. This determines if dry deposition is 
       ! applied (and drydep frequencies are calculated) over the entire 
       ! PBL or the first model layer only. For now, set this value 
@@ -3456,8 +3447,6 @@
      &                        Input_Opt%PBL_DRYDEP
          WRITE( 6, 100     ) 'Turn on wet deposition?     : ', 
      &                        Input_Opt%LWETD
-         WRITE( 6, 100     ) 'Use Olson 2001 land map?    : ', 
-     &                        InpuT_Opt%USE_OLSON_2001
       ENDIF
 
       ! FORMAT statements

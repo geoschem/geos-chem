@@ -279,6 +279,8 @@
 !  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
+!                              now the default.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -376,7 +378,6 @@
       LOGICAL                  :: LVARTROP
       LOGICAL                  :: LWETD
       LOGICAL                  :: LWINDO
-      LOGICAL                  :: USE_OLSON_2001
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -483,7 +484,6 @@
 
       ! Copy values from Input_Opt.  These replace the variables
       ! from logical_mod.F and tracer_mod.F. (bmy, 3/29/13)
-      USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
       ITS_A_FULLCHEM_SIM  =  Input_Opt%ITS_A_FULLCHEM_SIM
       ITS_A_CH4_SIM       =  Input_Opt%ITS_A_CH4_SIM
       ITS_A_MERCURY_SIM   =  Input_Opt%ITS_A_MERCURY_SIM
@@ -645,13 +645,8 @@
 
       ! Initialize the derived type object containing
       ! mapping information for the MODIS LAI routines
-      IF ( USE_OLSON_2001 ) THEN
-         CALL Init_Mapping( am_I_Root, Input_Opt,
-     &                      1440, 720, IIPAR, JJPAR, mapping, RC )
-      ELSE
-         CALL Init_Mapping( am_I_Root, Input_Opt,
-     &                       720, 360, IIPAR, JJPAR, mapping, RC )
-      ENDIF
+      CALL Init_Mapping( am_I_Root, Input_Opt,
+     &                   1440, 720, IIPAR, JJPAR, mapping, RC )
 
       ! Compute the Olson land types that occur in each grid box
       ! (i.e. this is a replacement for rdland.F and vegtype.global)

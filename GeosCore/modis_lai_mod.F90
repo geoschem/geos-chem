@@ -42,10 +42,9 @@ MODULE Modis_Lai_Mod
   PRIVATE :: RoundOff
 !
 ! !REMARKS:
-!  (1) MODIS LAI data resolution is the same as the Olson land map. If you 
-!      are using the Olson 2001 landmap, therefore, you will use MODIS LAI 
-!      data at 0.25 x 0.25 resolution. If you are using the Olson 1992 data
-!      set then you will use MODIS LAI data at 0.5 x 0.5 resolution.
+!  (1) MODIS LAI data resolution is the same as the Olson land map. The Olson
+!      2001 landmap is the default, therefore, you will use MODIS LAI data at
+!      0.25 x 0.25 resolution. 
 !      Note that MODIS CHLR data is only available at 0.25 x 0.25 resolution.
 !  (2) In HEMCO, MEGAN uses 'offline' MODIS LAI (State_Met%MODISLAI) which
 !      is computed in this module.
@@ -640,6 +639,8 @@ CONTAINS
 !  07 Jul 2015 - E. Lundgren - Generalized to read either LAI or CHLR
 !  08 Jul 2015 - E. Lundgren - Now read LAI and CHLR data. Abstracted 
 !                              read code to new routine Read_Modis.
+!  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
+!                              now the default.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -653,11 +654,7 @@ CONTAINS
     RC = GC_SUCCESS
 
     ! Set filename template for LAI
-    IF ( Input_Opt%USE_OLSON_2001 ) THEN
-       nc_tmpl = 'For_Olson_2001/MODIS.LAIv.V5.generic.025x025.YYYY.nc'
-    ELSE
-       nc_tmpl = 'For_Olson_1992/MODIS.LAIv.V5.generic.05x05.YYYY.nc'
-    ENDIF
+    nc_tmpl = 'For_Olson_2001/MODIS.LAIv.V5.generic.025x025.YYYY.nc'
 
     ! Always read LAI file
     ReadLAI = .true.
@@ -668,11 +665,7 @@ CONTAINS
     IF ( Input_Opt%LMPOA ) THEN
 
        ! Set filename template for CHLR
-       IF ( Input_Opt%USE_OLSON_2001 ) THEN
-          nc_tmpl = 'For_Olson_2001/MODIS.CHLRv.V5.generic.025x025.YYYY.nc'
-       ELSE
-          nc_tmpl = 'For_Olson_1992/MODIS.CHLRv.V5.generic.05x05.YYYY.nc'  
-       ENDIF
+       nc_tmpl = 'For_Olson_2001/MODIS.CHLRv.V5.generic.025x025.YYYY.nc'
 
        ! Read CHLR file
        ReadLAI = .false.
@@ -726,6 +719,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  07 Jul 2015 - E. Lundgren - Initial version, containing legacy Read_Modis_Lai
 !                              code plus modifications to read CHLR
+!  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
+!                              now the default.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -816,14 +811,10 @@ CONTAINS
 
        ! Here, yyyy lies outside the MODIS data timespan,
        ! so we have to read data from a different year.
-       IF ( Input_Opt%USE_OLSON_2001 ) THEN
-          IF ( yyyy > MODIS_END ) THEN                    !%%% OLSON 2001 %%%
-             yyyymmdd = MODIS_END*10000   + mm*100 + 01   ! Use final year
-          ELSE IF ( yyyy < MODIS_START ) THEN             !
-             yyyymmdd = MODIS_START*10000 + mm*100 + 01   ! Use 1st year
-          ENDIF
-       ELSE                                               !%%% OLSON 1992 %%%
-          yyyymmdd = 19850001 + mm*100                    ! Use climatology
+       IF ( yyyy > MODIS_END ) THEN
+          yyyymmdd = MODIS_END*10000   + mm*100 + 01   ! Use final year
+       ELSE IF ( yyyy < MODIS_START ) THEN             !
+          yyyymmdd = MODIS_START*10000 + mm*100 + 01   ! Use 1st year
        ENDIF
 
        ! Expand date tokens in filename
@@ -889,14 +880,10 @@ CONTAINS
 
        ! Here, yyyy lies outside the MODIS data timespan,
        ! so we have to read data from a different year.
-       IF ( Input_Opt%USE_OLSON_2001 ) THEN
-          IF ( Nyyyy > MODIS_END ) THEN                   !%%% OLSON 2001 %%%
-             yyyymmdd = MODIS_END*10000   + Nmm*100 + 01  ! Use final year
-          ELSE IF ( Nyyyy < MODIS_START ) THEN            !
-             yyyymmdd = MODIS_START*10000 + Nmm*100 + 01  ! Use 1st year
-          ENDIF
-       ELSE                                               !%%% OLSON 1992 %%%
-          yyyymmdd = 19850001 + Nmm*100                   ! Use climatology
+       IF ( Nyyyy > MODIS_END ) THEN
+          yyyymmdd = MODIS_END*10000   + Nmm*100 + 01  ! Use final year
+       ELSE IF ( Nyyyy < MODIS_START ) THEN            !
+          yyyymmdd = MODIS_START*10000 + Nmm*100 + 01  ! Use 1st year
        ENDIF
 
        ! Expand date tokens in filename
@@ -1107,6 +1094,8 @@ CONTAINS
 !                              needs to be investigated (skim, 1/29/14)
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC 
 !  08 Jul 2015 - E. Lundgren - New end years to match files from M. Johnson
+!  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
+!                              now the default.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1130,20 +1119,12 @@ CONTAINS
     ! Restore LAI_END to 2008. Matthew Johnson provided LAI data files for
     ! 2009-2011, but MODIS LAI for 2009 onwards is still undergoing
     ! validation by Barron H. and Eloise M. (mps, 7/20/15)
-    IF ( Input_Opt%USE_OLSON_2001 ) THEN
-       I_MODIS     = 1440             ! For Olson 2001, use MODIS LAI
-       J_MODIS     = 720              ! on the 0.25 x 0.25 native grid
-       MODIS_START = 2005             ! First year of MODIS data  
-       LAI_END     = 2008             ! Last  year of MODIS data
-                                      ! Force to 2008 (skim, 1/29/14)
-       CHLR_END    = 2011             ! Last  year of MODIS CHLR data
-    ELSE
-       I_MODIS     = 720              ! For Olson 1992, use MODIS LAI
-       J_MODIS     = 360              ! on the 0.5 x 0.5 native grid
-       MODIS_START = 2000             ! First year of MODIS data  
-       LAI_END     = 2008             ! Last  year of MODIS LAI data
-       CHLR_END    = 2011             ! Last  year of MODIS CHLR data
-    ENDIF
+    I_MODIS     = 1440             ! For Olson 2001, use MODIS LAI
+    J_MODIS     = 720              ! on the 0.25 x 0.25 native grid
+    MODIS_START = 2005             ! First year of MODIS data  
+    LAI_END     = 2008             ! Last  year of MODIS data
+                                   ! Force to 2008 (skim, 1/29/14)
+    CHLR_END    = 2011             ! Last  year of MODIS CHLR data
 
     ALLOCATE( MODIS_LAI( I_MODIS, J_MODIS ), STAT=RC ) 
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI' )
