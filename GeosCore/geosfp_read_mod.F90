@@ -1846,13 +1846,12 @@ CONTAINS
     ct4d   = (/ IIPAR, JJPAR, LGLOB, 1          /)
 
     !----------------------------------------------------------------
-    ! Prior to 2/3/12:
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
     ! Read PV
-!    v_name = "PV"
-!    CALL NcRd( Q3, fI3_1, TRIM(v_name), st4d, ct4d )
-!    !Q3 = ABS(1.0e6*Q3) ! PV to PVU
-!    CALL Transfer_3d( Q3, State_Met%PV )
+    !v_name = "PV"
+    !CALL NcRd( Q3, fI3_1, TRIM(v_name), st4d, ct4d )
+    !!Q3 = ABS(1.0e6*Q3) ! PV to PVU
+    !CALL Transfer_3d( Q3, State_Met%PV )
     !----------------------------------------------------------------
 
     ! Read QV
@@ -2074,7 +2073,6 @@ CONTAINS
     ct4d   = (/ IIPAR, JJPAR, LGLOB, 1          /)
 
     !----------------------------------------------------------------
-    ! Prior to 2/3/12:
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
     !! Read PV
     !v_name = "PV"

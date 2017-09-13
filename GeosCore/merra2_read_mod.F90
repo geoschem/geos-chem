@@ -1764,7 +1764,6 @@ CONTAINS
     ct4d   = (/ IIPAR, JJPAR, LGLOB, 1          /)
 
     !----------------------------------------------------------------
-    ! Prior to 2/3/12:
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
     !! Read PV
     !v_name = "PV"
@@ -1987,7 +1986,6 @@ CONTAINS
     ct4d   = (/ IIPAR, JJPAR, LGLOB, 1          /)
 
     !----------------------------------------------------------------
-    ! Prior to 2/3/12:
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
     !! Read PV
     !v_name = "PV"

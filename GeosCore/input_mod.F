@@ -4303,11 +4303,6 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:68' )
       READ( SUBSTRS(1), * ) ND70
-!-----------------------------------------------------------------------------
-! Prior to 7/21/16:
-! Remove PD70 parameter (bmy, 7/21/16)
-!      CALL SET_TINDEX( am_I_Root, 70, ND70, SUBSTRS(2:N), N-1, PD70 )
-!-----------------------------------------------------------------------------
       CALL SET_TINDEX( am_I_Root, 70, ND70, SUBSTRS(2:N), N-1, 0 )
      
       !--------------------------
