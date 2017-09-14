@@ -48,7 +48,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: CLDFRC    (:,:  ) ! Column cloud fraction [1]
      INTEGER,  POINTER :: CLDTOPS   (:,:  ) ! Max cloud top height [levels]
      REAL(fp), POINTER :: EFLUX     (:,:  ) ! Latent heat flux [W/m2]
-     REAL(fp), POINTER :: EVAP      (:,:  ) ! Surface evap [kg/m2/s]
+     !REAL(fp), POINTER :: EVAP      (:,:  ) ! Surface evap [kg/m2/s]
      REAL(fp), POINTER :: FRCLND    (:,:  ) ! Olson land fraction [1]
      REAL(fp), POINTER :: FRLAKE    (:,:  ) ! Fraction of lake [1]
      REAL(fp), POINTER :: FRLAND    (:,:  ) ! Fraction of land [1]
@@ -56,7 +56,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: FROCEAN   (:,:  ) ! Fraction of ocean [1]
      REAL(fp), POINTER :: FRSEAICE  (:,:  ) ! Sfc sea ice fraction
      REAL(fp), POINTER :: FRSNO     (:,:  ) ! Sfc snow fraction
-     REAL(fp), POINTER :: GRN       (:,:  ) ! Greenness fraction
+     !REAL(fp), POINTER :: GRN       (:,:  ) ! Greenness fraction
      REAL(fp), POINTER :: GWETROOT  (:,:  ) ! Root soil wetness [1]
      REAL(fp), POINTER :: GWETTOP   (:,:  ) ! Top soil moisture [1]
      REAL(fp), POINTER :: HFLUX     (:,:  ) ! Sensible heat flux [W/m2]
@@ -71,14 +71,14 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: PRECCON   (:,:  ) ! Conv  precip @ ground [kg/m2/s]
      REAL(fp), POINTER :: PRECTOT   (:,:  ) ! Total precip @ ground [kg/m2/s]
      REAL(fp), POINTER :: PRECLSC   (:,:  ) ! LS precip @ ground [kg/m2/s]
-     REAL(fp), POINTER :: PRECSNO   (:,:  ) ! Snow precip [kg/m2/s]
+     !REAL(fp), POINTER :: PRECSNO   (:,:  ) ! Snow precip [kg/m2/s]
      REAL(fp), POINTER :: PS1_WET   (:,:  ) ! Wet sfc press at dt start[hPa]
      REAL(fp), POINTER :: PS2_WET   (:,:  ) ! Wet sfc press at dt end [hPa]
      REAL(fp), POINTER :: PSC2_WET  (:,:  ) ! Wet interpolated sfc press [hPa]
      REAL(fp), POINTER :: PS1_DRY   (:,:  ) ! Dry sfc press at dt start[hPa]
      REAL(fp), POINTER :: PS2_DRY   (:,:  ) ! Dry sfc press at dt end [hPa]
      REAL(fp), POINTER :: PSC2_DRY  (:,:  ) ! Dry interpolated sfc press [hPa]
-     REAL(fp), POINTER :: RADLWG    (:,:  ) ! Net LW radiation @ ground [W/m2]
+     !REAL(fp), POINTER :: RADLWG    (:,:  ) ! Net LW radiation @ ground [W/m2]
      REAL(fp), POINTER :: SEAICE00  (:,:  ) ! Sea ice coverage 00-10%
      REAL(fp), POINTER :: SEAICE10  (:,:  ) ! Sea ice coverage 10-20%
      REAL(fp), POINTER :: SEAICE20  (:,:  ) !  Sea ice coverage 20-30%
@@ -124,7 +124,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: PFILSAN   (:,:,:) ! Dwn flux ice prec:LS+anv [kg/m2/s]
      REAL(fp), POINTER :: PFLCU     (:,:,:) ! Dwn flux liq prec:conv [kg/m2/s]
      REAL(fp), POINTER :: PFLLSAN   (:,:,:) ! Dwn flux ice prec:LS+anv [kg/m2/s]
-     REAL(fp), POINTER :: PV        (:,:,:) ! Potential vort [kg*m2/kg/s]
+     !REAL(fp), POINTER :: PV        (:,:,:) ! Potential vort [kg*m2/kg/s]
      REAL(fp), POINTER :: QI        (:,:,:) ! Ice mixing ratio [kg/kg dry air]
      REAL(fp), POINTER :: QL        (:,:,:) ! Water mixing ratio [kg/kg dry air]
      REAL(fp), POINTER :: REEVAPCN  (:,:,:) ! Evap of precip conv [kg/kg/s]
@@ -182,9 +182,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: MODISCHLR (:,:  ) ! Daily chlorophyll-a computed from
                                             ! offline MODIS monthly values
      REAL(fp), POINTER :: XLAI      (:,:,:) ! MODIS LAI per land type, this mo
-     REAL(fp), POINTER :: XLAI2     (:,:,:) ! MODIS LAI per land type, next mo
      REAL(fp), POINTER :: XCHLR     (:,:,:) ! MODIS CHLR per land type, this mo
-     REAL(fp), POINTER :: XCHLR2    (:,:,:) ! MODIS CHLR per land type, next mo
      REAL(fp), POINTER :: LandTypeFrac(:,:,:) ! Olson frac per type (I,J,type)
      REAL(fp), POINTER :: XLAI_NATIVE(:,:,:)  ! avg LAI per type (I,J,type)
      REAL(fp), POINTER :: XCHLR_NATIVE(:,:,:) ! avg CHLR per type (I,J,type)
@@ -246,6 +244,8 @@ MODULE State_Met_Mod
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !                              and remove obsolete met fields from State_Met
 !  13 Sep 2017 - M. Sulprizio- Remove DELP_PREV and SPHU_PREV; they're not used
+!  14 Sep 2017 - M. Sulprizio- Comment out met fields that aren't actually used
+!                              in GEOS-Chem (EVAP, GRN, PRECSNO, PV, RADLWG)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -343,6 +343,7 @@ CONTAINS
     ! (bmy, 11/28/16) 
     !=======================================================================
     State_Met%CNV_FRC  => NULL()
+    State_Met%UPDVVEL  => NULL()
 
     !=======================================================================
     ! Allocate 2-D Fields
@@ -416,22 +417,25 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%EFLUX', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    !-------------------------
-    ! EVAP [W m-2]
-    !-------------------------
-    ALLOCATE( State_Met%EVAP( IM, JM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%EVAP', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%EVAP= 0.0_fp
-
-    Desc  = 'Surface evaporation'
-    Units = 'kg m-2 s-1'
-    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
-                            State_Met%State, 'EVAP',                        &
-                            Units=Units,      Data2d=State_Met%EVAP,        &
-                            Description=Desc, RC=RC                        )
-    CALL GC_CheckVar( 'State_Met%EVAP', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
+!------------------------------------------------------------------------------
+! Comment out for now. State_Met%EVAP is not used in the code. (mps, 9/14/17)
+!    !-------------------------
+!    ! EVAP [W m-2]
+!    !-------------------------
+!    ALLOCATE( State_Met%EVAP( IM, JM ), STAT=RC )
+!    CALL GC_CheckVar( 'State_Met%EVAP', 0, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!    State_Met%EVAP= 0.0_fp
+!
+!    Desc  = 'Surface evaporation'
+!    Units = 'kg m-2 s-1'
+!    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+!                            State_Met%State, 'EVAP',                        &
+!                            Units=Units,      Data2d=State_Met%EVAP,        &
+!                            Description=Desc, RC=RC                        )
+!    CALL GC_CheckVar( 'State_Met%EVAP', 1, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!------------------------------------------------------------------------------
 
     !-------------------------
     ! FRCLND [1]
@@ -518,22 +522,25 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%FROCEAN', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    !-------------------------
-    ! GRN [1]
-    !-------------------------
-    ALLOCATE( State_Met%GRN( IM, JM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%GRN', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%GRN = 0.0_fp 
-
-    Desc  = 'Greenness fraction'
-    Units = '1'
-    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
-                            State_Met%State, 'GRN',                         &
-                            Units=Units,      Data2d=State_Met%GRN,         &
-                            Description=Desc, RC=RC                        )
-    CALL GC_CheckVar( 'State_Met%GRN', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
+!------------------------------------------------------------------------------
+! Comment out for now. State_Met%GRN is not used in the code. (mps, 9/14/17)
+!    !-------------------------
+!    ! GRN [1]
+!    !-------------------------
+!    ALLOCATE( State_Met%GRN( IM, JM ), STAT=RC )
+!    CALL GC_CheckVar( 'State_Met%GRN', 0, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!    State_Met%GRN = 0.0_fp 
+!
+!    Desc  = 'Greenness fraction'
+!    Units = '1'
+!    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+!                            State_Met%State, 'GRN',                         &
+!                            Units=Units,      Data2d=State_Met%GRN,         &
+!                            Description=Desc, RC=RC                        )
+!    CALL GC_CheckVar( 'State_Met%GRN', 1, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!------------------------------------------------------------------------------
 
     !-------------------------
     ! GWETROOT [1]
@@ -722,22 +729,25 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%PRECCON', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    !-------------------------
-    ! PRECSNO [kg m-2 s-1]
-    !-------------------------
-    ALLOCATE( State_Met%PRECSNO( IM, JM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%PRECSNO', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%PRECSNO = 0.0_fp
-
-    Desc  = 'Snow precipitation'
-    Units = 'kg m-2 s-1'
-    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
-                            State_Met%State, 'PRECSNO',                     &
-                            Units=Units,      Data2d=State_Met%PRECSNO,     &
-                            Description=Desc, RC=RC                        )
-    CALL GC_CheckVar( 'State_Met%PRECSNO', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
+!------------------------------------------------------------------------------
+! Comment out for now. State_Met%PRECSNO is not used in the code. (mps, 9/14/17)
+!    !-------------------------
+!    ! PRECSNO [kg m-2 s-1]
+!    !-------------------------
+!    ALLOCATE( State_Met%PRECSNO( IM, JM ), STAT=RC )
+!    CALL GC_CheckVar( 'State_Met%PRECSNO', 0, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!    State_Met%PRECSNO = 0.0_fp
+!
+!    Desc  = 'Snow precipitation'
+!    Units = 'kg m-2 s-1'
+!    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+!                            State_Met%State, 'PRECSNO',                     &
+!                            Units=Units,      Data2d=State_Met%PRECSNO,     &
+!                            Description=Desc, RC=RC                        )
+!    CALL GC_CheckVar( 'State_Met%PRECSNO', 1, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!------------------------------------------------------------------------------
 
     !-------------------------
     ! PRECTOT [kg m-2 s-1]
@@ -858,22 +868,25 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%PSC2_DRY', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    !-------------------------
-    ! RADLWG [W m-2]
-    !-------------------------
-    ALLOCATE( State_Met%RADLWG( IM, JM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%RADLWG', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%RADLWG = 0.0_fp
-
-    Desc  = 'Net longwave radiation at ground'
-    Units = 'W m-2'
-    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
-                            State_Met%State, 'RADLWG',                      &
-                            Units=Units,      Data2d=State_Met%RADLWG,      &
-                            Description=Desc, RC=RC                        )
-    CALL GC_CheckVar( 'State_Met%RADLWG', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
+!------------------------------------------------------------------------------
+! Comment out for now. State_Met%RADLWG is not used in the code. (mps, 9/14/17)
+!    !-------------------------
+!    ! RADLWG [W m-2]
+!    !-------------------------
+!    ALLOCATE( State_Met%RADLWG( IM, JM ), STAT=RC )
+!    CALL GC_CheckVar( 'State_Met%RADLWG', 0, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!    State_Met%RADLWG = 0.0_fp
+!
+!    Desc  = 'Net longwave radiation at ground'
+!    Units = 'W m-2'
+!    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+!                            State_Met%State, 'RADLWG',                      &
+!                            Units=Units,      Data2d=State_Met%RADLWG,      &
+!                            Description=Desc, RC=RC                        )
+!    CALL GC_CheckVar( 'State_Met%RADLWG', 1, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!------------------------------------------------------------------------------
 
     !-------------------------
     ! SLP [hPa]
@@ -1767,22 +1780,25 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%PMID', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    !-------------------------
-    ! PV [kg m2 kg-1 s-1]
-    !-------------------------
-    ALLOCATE( State_Met%PV( IM, JM, LM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%PV', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%PV = 0.0_fp
-
-    Desc  = 'Ertel potential vorticity'
-    Units = 'kg m2 kg-1 s-1'
-    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
-                            State_Met%State, 'PV',                          &
-                            Units=Units,      Data3d=State_Met%PV,          &
-                            Description=Desc, RC=RC                        )
-    CALL GC_CheckVar( 'State_Met%', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
+!------------------------------------------------------------------------------
+! Comment out for now. State_Met%PV is not used in the code. (mps, 9/14/17)
+!    !-------------------------
+!    ! PV [kg m2 kg-1 s-1]
+!    !-------------------------
+!    ALLOCATE( State_Met%PV( IM, JM, LM ), STAT=RC )
+!    CALL GC_CheckVar( 'State_Met%PV', 0, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!    State_Met%PV = 0.0_fp
+!
+!    Desc  = 'Ertel potential vorticity'
+!    Units = 'kg m2 kg-1 s-1'
+!    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
+!                            State_Met%State, 'PV',                          &
+!                            Units=Units,      Data3d=State_Met%PV,          &
+!                            Description=Desc, RC=RC                        )
+!    CALL GC_CheckVar( 'State_Met%', 1, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!------------------------------------------------------------------------------
 
     !-------------------------
     ! QI [kg kg-1]
@@ -1953,6 +1969,9 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%V', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    ! Updraft vertical velocity is not yet a standard GEOS-FP
+    ! field. Only available to online model (ckeller, 3/4/16) 
+#if defined( ESMF_ )
     !-------------------------
     ! UPDVVEL [hPa s-1]
     !-------------------------
@@ -1968,6 +1987,7 @@ CONTAINS
                             Description=Desc, RC=RC                        )
     CALL GC_CheckVar( 'State_Met%UPDVVEL', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
+#endif
 
     ! Pick the proper vertical dimension
     LX = LM + 1           ! For fields that are on level edges
@@ -2316,40 +2336,6 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%XCHLR_NATIVE', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    !-------------------------
-    ! XLAI2 [m2 m-2]
-    !-------------------------
-    ALLOCATE( State_Met%XLAI2( IM, JM, NSURFTYPE ), STAT=RC )        
-    CALL GC_CheckVar( 'State_Met%XLAI2', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%XLAI2 = 0.0_fp
-
-    Desc  = 'MODIS chlorophyll-a per Olson land type, next month'
-    Units = 'm2 m-2'
-    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
-                            State_Met%State, 'XLAI2',                       &
-                            Units=Units,      Data3d=State_Met%XLAI2,       &
-                            Description=Desc, RC=RC                        )
-    CALL GC_CheckVar( 'State_Met%XLAI2', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !-------------------------
-    ! XCHLR2 [mg m-3]
-    !-------------------------
-    ALLOCATE( State_Met%XCHLR2( IM, JM, NSURFTYPE ), STAT=RC )        
-    CALL GC_CheckVar( 'State_Met%XCHLR2', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%XCHLR2 = 0.0_fp
-
-    Desc  = 'MODIS chlorophyll-a per Olson land type, next month'
-    Units = 'mg m-3'
-    CALL Registry_AddField( am_I_Root,        State_Met%Registry,           &
-                            State_Met%State, 'XCHLR2',                      &
-                            Units=Units,      Data3d=State_Met%XCHLR2,      &
-                            Description=Desc, RC=RC                        )
-    CALL GC_CheckVar( 'State_Met%XCHLR2', 1, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
     !=======================================================================
     ! Print information about the registered fields (short format)
     !=======================================================================
@@ -2429,7 +2415,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%CLDFRC     )) DEALLOCATE( State_Met%CLDFRC     ) 
     IF ( ASSOCIATED( State_Met%CLDTOPS    )) DEALLOCATE( State_Met%CLDTOPS    )
     IF ( ASSOCIATED( State_Met%EFLUX      )) DEALLOCATE( State_Met%EFLUX      ) 
-    IF ( ASSOCIATED( State_Met%EVAP       )) DEALLOCATE( State_Met%EVAP       )
+    !IF ( ASSOCIATED( State_Met%EVAP       )) DEALLOCATE( State_Met%EVAP       )
     IF ( ASSOCIATED( State_Met%FRCLND     )) DEALLOCATE( State_Met%FRCLND     )
     IF ( ASSOCIATED( State_Met%FRLAKE     )) DEALLOCATE( State_Met%FRLAKE     )
     IF ( ASSOCIATED( State_Met%FRLAND     )) DEALLOCATE( State_Met%FRLAND     )
@@ -2437,7 +2423,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%FROCEAN    )) DEALLOCATE( State_Met%FROCEAN    )
     IF ( ASSOCIATED( State_Met%FRSEAICE   )) DEALLOCATE( State_Met%FRSEAICE   )
     IF ( ASSOCIATED( State_Met%FRSNO      )) DEALLOCATE( State_Met%FRSNO      )
-    IF ( ASSOCIATED( State_Met%GRN        )) DEALLOCATE( State_Met%GRN        )
+    !IF ( ASSOCIATED( State_Met%GRN        )) DEALLOCATE( State_Met%GRN        )
     IF ( ASSOCIATED( State_Met%GWETROOT   )) DEALLOCATE( State_Met%GWETROOT   )
     IF ( ASSOCIATED( State_Met%GWETTOP    )) DEALLOCATE( State_Met%GWETTOP    )
     IF ( ASSOCIATED( State_Met%HFLUX      )) DEALLOCATE( State_Met%HFLUX      )
@@ -2452,14 +2438,14 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%PRECCON    )) DEALLOCATE( State_Met%PRECCON    )
     IF ( ASSOCIATED( State_Met%PRECLSC    )) DEALLOCATE( State_Met%PRECLSC    )
     IF ( ASSOCIATED( State_Met%PRECTOT    )) DEALLOCATE( State_Met%PRECTOT    )
-    IF ( ASSOCIATED( State_Met%PRECSNO    )) DEALLOCATE( State_Met%PRECSNO    )
+    !IF ( ASSOCIATED( State_Met%PRECSNO    )) DEALLOCATE( State_Met%PRECSNO    )
     IF ( ASSOCIATED( State_Met%PS1_WET    )) DEALLOCATE( State_Met%PS1_WET    )
     IF ( ASSOCIATED( State_Met%PS2_WET    )) DEALLOCATE( State_Met%PS2_WET    )
     IF ( ASSOCIATED( State_Met%PSC2_WET   )) DEALLOCATE( State_Met%PSC2_WET   )
     IF ( ASSOCIATED( State_Met%PS1_DRY    )) DEALLOCATE( State_Met%PS1_DRY    )
     IF ( ASSOCIATED( State_Met%PS2_DRY    )) DEALLOCATE( State_Met%PS2_DRY    )
     IF ( ASSOCIATED( State_Met%PSC2_DRY   )) DEALLOCATE( State_Met%PSC2_DRY   )
-    IF ( ASSOCIATED( State_Met%RADLWG     )) DEALLOCATE( State_Met%RADLWG     )
+    !IF ( ASSOCIATED( State_Met%RADLWG     )) DEALLOCATE( State_Met%RADLWG     )
     IF ( ASSOCIATED( State_Met%SEAICE00   )) DEALLOCATE( State_Met%SEAICE00   )
     IF ( ASSOCIATED( State_Met%SEAICE10   )) DEALLOCATE( State_Met%SEAICE10   )
     IF ( ASSOCIATED( State_Met%SEAICE20   )) DEALLOCATE( State_Met%SEAICE20   )
@@ -2526,7 +2512,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) NULLIFY( State_Met%PEDGE_DRY  )
     IF ( ASSOCIATED( State_Met%PMID       )) NULLIFY( State_Met%PMID       )
     IF ( ASSOCIATED( State_Met%PMID_DRY   )) NULLIFY( State_Met%PMID_DRY   )
-    IF ( ASSOCIATED( State_Met%PV         )) NULLIFY( State_Met%PV         )
+    !IF ( ASSOCIATED( State_Met%PV         )) NULLIFY( State_Met%PV         )
     IF ( ASSOCIATED( State_Met%QI         )) NULLIFY( State_Met%QI         )
     IF ( ASSOCIATED( State_Met%QL         )) NULLIFY( State_Met%QL         )
     IF ( ASSOCIATED( State_Met%RH         )) NULLIFY( State_Met%RH         )
@@ -2570,7 +2556,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) DEALLOCATE( State_Met%PEDGE_DRY  )
     IF ( ASSOCIATED( State_Met%PMID       )) DEALLOCATE( State_Met%PMID       )
     IF ( ASSOCIATED( State_Met%PMID_DRY   )) DEALLOCATE( State_Met%PMID_DRY   )
-    IF ( ASSOCIATED( State_Met%PV         )) DEALLOCATE( State_Met%PV         )
+    !IF ( ASSOCIATED( State_Met%PV         )) DEALLOCATE( State_Met%PV         )
     IF ( ASSOCIATED( State_Met%QI         )) DEALLOCATE( State_Met%QI         )
     IF ( ASSOCIATED( State_Met%QL         )) DEALLOCATE( State_Met%QL         )
     IF ( ASSOCIATED( State_Met%RH         )) DEALLOCATE( State_Met%RH         )
@@ -2592,10 +2578,8 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%ILAND      )) DEALLOCATE( State_Met%ILAND      )
     IF ( ASSOCIATED( State_Met%IUSE       )) DEALLOCATE( State_Met%IUSE       )
     IF ( ASSOCIATED( State_Met%XLAI       )) DEALLOCATE( State_Met%XLAI       )
-    IF ( ASSOCIATED( State_Met%XLAI2      )) DEALLOCATE( State_Met%XLAI2      )
     IF ( ASSOCIATED( State_Met%MODISLAI   )) DEALLOCATE( State_Met%MODISLAI   )
     IF ( ASSOCIATED( State_Met%XCHLR      )) DEALLOCATE( State_Met%XCHLR      )
-    IF ( ASSOCIATED( State_Met%XCHLR2     )) DEALLOCATE( State_Met%XCHLR2     )
     IF ( ASSOCIATED( State_Met%MODISCHLR  )) DEALLOCATE( State_Met%MODISCHLR  )
     IF (ASSOCIATED( State_Met%LANDTYPEFRAC)) DEALLOCATE( State_Met%LANDTYPEFRAC)
     IF (ASSOCIATED( State_Met%XLAI_NATIVE )) DEALLOCATE( State_Met%XLAI_NATIVE )
