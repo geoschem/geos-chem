@@ -281,6 +281,8 @@
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
 !                              now the default.
+!  14 Sep 2017 - M. Sulprizio- Remove setting of USE_O3_FROM_MET. This is now
+!                              set in the chemistry menu of input.geos.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1030,20 +1032,6 @@
          CALL GEOS_Timer_End( "Reading met fields",  RC )
 #endif
 
-#if defined( GEOS_FP ) || defined( MERRA2 )
-
-         ! For GEOS-FP and MERRA-2 met, always use the O3 columns
-         ! from the A1 met field files (bmy, 11/14/13)
-         Input_Opt%USE_O3_FROM_MET = .TRUE.
-
-#else
-
-         ! When TOMS data is not available, then we will use
-         ! the TOMS data from the last valid year.
-         Input_Opt%USE_O3_FROM_MET = .FALSE.
-
-#endif
-
          !==============================================================
          !              ***** D A I L Y   D A T A *****
          !==============================================================
@@ -1166,9 +1154,11 @@
                ! State_Met%UVALBEDO field. (bmy, 3/20/15)
                CALL GET_UVALBEDO(am_I_Root, Input_Opt, State_Met, RC)
 
-               ! Get TOMS overhead O3 columns for photolysis from
-               ! the HEMCO data structure (bmy, 3/20/15)
-               CALL READ_TOMS( am_I_Root, Input_Opt, RC )
+               IF ( Input_Opt%USE_TOMS_O3 ) THEN
+                  ! Get TOMS overhead O3 columns for photolysis from
+                  ! the HEMCO data structure (bmy, 3/20/15)
+                  CALL READ_TOMS( am_I_Root, Input_Opt, RC )
+               ENDIF
 
             ENDIF
 

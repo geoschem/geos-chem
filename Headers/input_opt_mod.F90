@@ -199,9 +199,11 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LUCX
      LOGICAL                     :: LCH4CHEM
      LOGICAL                     :: LACTIVEH2O
-     LOGICAL                     :: LO3FJX
      LOGICAL                     :: LINITSPEC
      INTEGER, POINTER            :: NTLOOPNCS(:)
+     LOGICAL                     :: USE_ONLINE_O3
+     LOGICAL                     :: USE_O3_FROM_MET
+     LOGICAL                     :: USE_TOMS_O3
 
      !----------------------------------------
      ! RADIATION MENU fields
@@ -571,13 +573,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: LINOZ_NFIELDS
      REAL(fp),           POINTER :: LINOZ_TPARM(:,:,:,:)
 
-     !----------------------------------------
-     ! Fields for overhead O3
-     ! This gets set in main.F based on met
-     ! field and year (mpayer, 12/13/13)
-     !----------------------------------------
-     LOGICAL                     :: USE_O3_FROM_MET
-
   END TYPE OptInput
 !
 ! !REMARKS:
@@ -647,6 +642,8 @@ MODULE Input_Opt_Mod
 !                              GEOS_5_DIR, MERRA_DIR, TEMP_DIR, LUNZIP, LWAIT
 !  13 Sep 2017 - M. Sulprizio- Remove USE_OLSON_2001. Olson 2001 is now the
 !                              default.
+!  14 Sep 2017 - M. Sulprizio- Add USE_ONLINE_O3 and USE_TOMS_O3 to options for
+!                              overhead O3 in chemistry menu
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -922,8 +919,10 @@ CONTAINS
     Input_Opt%LUCX                   = .FALSE.
     Input_Opt%LCH4CHEM               = .FALSE.
     Input_Opt%LACTIVEH2O             = .FALSE.
-    Input_Opt%LO3FJX                 = .FALSE.
     Input_Opt%LINITSPEC              = .FALSE.
+    Input_Opt%USE_ONLINE_O3          = .FALSE.
+    Input_Opt%USE_O3_FROM_MET        = .FALSE.
+    Input_Opt%USE_TOMS_O3            = .FALSE.
 
     !----------------------------------------
     ! RADIATION MENU fields
@@ -1373,11 +1372,6 @@ CONTAINS
                                      Input_Opt%LINOZ_NFIELDS ), STAT=RC )
 
     Input_Opt%LINOZ_TPARM            = 0e+0_fp
-
-    !----------------------------------------
-    ! Fields for overhead O3
-    !----------------------------------------
-    Input_Opt%USE_O3_FROM_MET        = .FALSE.
 
   END SUBROUTINE Set_Input_Opt
 !EOC

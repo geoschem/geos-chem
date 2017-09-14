@@ -362,6 +362,8 @@
             SFCA            = State_Met%UVALBEDO(NLON,NLAT)
 
             ! Overhead ozone column [DU] at (NLON, NLAT)
+            ! These values are either from the met fields or TOMS/SBUV,
+            ! depending on the settings in input.geos
             O3_TOMS         = GET_OVERHEAD_O3( NLON, NLAT )
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
@@ -4221,14 +4223,14 @@ C---Always does PL(2) = P[1]
       REAL(fp), PARAMETER      :: ODMAX = 200.0e+0_fp
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL :: LO3FJX
+      LOGICAL :: USE_ONLINE_O3
 
       !=================================================================
       ! SET_PROF begins here!
       !=================================================================
 
       ! Copy fields from INPUT_OPT
-      LO3FJX = Input_Opt%LO3FJX
+      USE_ONLINE_O3   = Input_Opt%USE_ONLINE_O3
 
       ! Zero aerosol column
       DO K=1,A_
@@ -4427,13 +4429,21 @@ C---Always does PL(2) = P[1]
 
       ! Scale monthly O3 profile to the daily O3 profile (if available)
       DO I = 1, L1_
-         IF ((LO3FJX) .and. (I.le.LLCHEM) 
-     &       .and. (O3_CTM(I) > 0e+0_fp)) THEN
+
+         ! Use online O3 values in the chemistry grid if selected
+         IF ( (USE_ONLINE_O3) .and. 
+     &        (I.le.LLCHEM)   .and. (O3_CTM(I) > 0e+0_fp) ) THEN
+
             ! Convert from molec/cm3 to molec/cm2
             O3_CLIM(I) = O3_CTM(I) * (Z_CLIM(I+1)-Z_CLIM(I))
+
+         ! Otherwise, use O3 values from the met fields or TOMS/SBUV
          ELSEIF (O3_TOMS > 0e+0_fp) THEN
+
             O3_CLIM(I) = O3_CLIM(I) * ( O3_TOMS / PROFCOL )
+
          ENDIF
+
       ENDDO
 
       END SUBROUTINE SET_PROF
