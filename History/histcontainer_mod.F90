@@ -76,13 +76,13 @@ MODULE HistContainer_Mod
      INTEGER                     :: CurrentHms          ! Current hms time
      REAL(f8)                    :: CurrentJd           ! Astronomical Julian
                                                         !  date @ current time
-     REAL(f8)                    :: ElapsedMin          ! Elapsed minutes
+     REAL(f8)                    :: ElapsedSec          ! Elapsed seconds
                                                         !  since start of sim
-     REAL(f8)                    :: UpdateAlarm         ! Alarm (elapsed min)
+     REAL(f8)                    :: UpdateAlarm         ! Alarm (elapsed sec)
                                                         !  for data updating
-     REAL(f8)                    :: FileCloseAlarm      ! Alarm (elapsed min)
+     REAL(f8)                    :: FileCloseAlarm      ! Alarm (elapsed sec)
                                                         !  for file close/open
-     REAL(f8)                    :: FileWriteAlarm      ! Alarm (elapsed min)
+     REAL(f8)                    :: FileWriteAlarm      ! Alarm (elapsed sec)
                                                         !  for file write
 
      !----------------------------------------------------------------------
@@ -103,12 +103,11 @@ MODULE HistContainer_Mod
      CHARACTER(LEN=255)          :: UpdateMode          ! e.g. inst or time-avg
      INTEGER                     :: UpdateYmd           ! Update frequency
      INTEGER                     :: UpdateHms           !  in YMD and hms
-     REAL(f8)                    :: UpdateIvalMin       ! Update interval
-                                                        !  in minutes
+     REAL(f8)                    :: UpdateIvalSec       ! Update interval [sec]
      INTEGER                     :: Operation           ! Operation code
                                                         !  0=copy from source
-     REAL(f8)                    :: HeartBeatDtMin      ! The "heartbeat"
-                                                        !  timestep [min]
+     REAL(f8)                    :: HeartBeatDtSec      ! The "heartbeat"
+                                                        !  timestep [sec]
      REAL(f8)                    :: HeartBeatDtDays     ! The "heartbeat"
                                                         !  timestep [days]
 
@@ -117,13 +116,13 @@ MODULE HistContainer_Mod
      !----------------------------------------------------------------------
      INTEGER                     :: FileWriteYmd        ! File write frequency
      INTEGER                     :: FileWriteHms        !  in YMD and hms
-     REAL(f8)                    :: FileWriteIvalMin    ! File write interval
-                                                        ! in minutes
+     REAL(f8)                    :: FileWriteIvalSec    ! File write interval
+                                                        !  in seconds
 
      INTEGER                     :: FileCloseYmd        ! File closing time
      INTEGER                     :: FileCloseHms        !  in YMD and hms
-     REAL(f8)                    :: FileCloseIvalMin    ! File close interval
-                                                        !  in minutes
+     REAL(f8)                    :: FileCloseIvalSec    ! File close interval
+                                                        !  in seconds
 
      LOGICAL                     :: IsFileDefined       ! Have we done netCDF
                                                         !  define mode yet?
@@ -175,6 +174,7 @@ MODULE HistContainer_Mod
 !  28 Aug 2017 - R. Yantosca - Added SpcUnits, FirstInst to type HistContainer
 !  06 Sep 2017 - R. Yantosca - Split HistContainer_AlarmIntervalSet into 3
 !                               separate routines, now made public
+!  18 Sep 2017 - R. Yantosca - Elapsed time and alarms are now in seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -206,7 +206,7 @@ CONTAINS
                                    CurrentYmd,     CurrentHms,               &
                                    UpdateMode,     UpdateYmd,                &
                                    UpdateHms,      UpdateAlarm,              &
-                                   Operation,      HeartBeatDtMin,           &
+                                   Operation,      HeartBeatDtSec,           &
                                    FileWriteYmd,   FileWriteHms,             &
                                    FileWriteAlarm, FileCloseYmd,             &
                                    FileCloseHms,   FileCloseAlarm,           &
@@ -250,8 +250,8 @@ CONTAINS
     INTEGER,             OPTIONAL    :: Operation      ! Operation code:
                                                        !  0=copy  from source
                                                        !  1=accum from source
-    REAL(f8),            OPTIONAL    :: HeartBeatDtMin ! Model "heartbeat" 
-                                                       !  timestep [min]
+    REAL(f8),            OPTIONAL    :: HeartBeatDtSec ! Model "heartbeat" 
+                                                       !  timestep [sec]
 
     !-----------------------------------------------------------------------
     ! OPTIONAL INPUTS: quantities controlling file write and close/reopen
@@ -311,6 +311,7 @@ CONTAINS
 !  30 Aug 2017 - R. Yantosca - Subtract the heartbeat timestep from the
 !                               UpdateAlarm value so as to update collections
 !                               at the same times w/r/t the "legacy" diags
+!  18 Sep 2017 - R. Yantosca - Now accept heartbeat dt in seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -449,10 +450,10 @@ CONTAINS
     !----------------------------------
     ! Heartbeat timestep [min]
     !----------------------------------
-    IF ( PRESENT( HeartBeatDtMin ) ) THEN
-       Container%HeartBeatDtMin = HeartBeatDtMin
+    IF ( PRESENT( HeartBeatDtSec ) ) THEN
+       Container%HeartBeatDtSec = HeartBeatDtSec
     ELSE
-       Container%HeartBeatDtMin = UNDEFINED_DBL
+       Container%HeartBeatDtSec = UNDEFINED_DBL
     ENDIF
 
     !----------------------------------
@@ -639,10 +640,10 @@ CONTAINS
     Container%ReferenceJd     = Container%EpochJd
     Container%ReferenceYmd    = Container%CurrentYmd
     Container%ReferenceHms    = Container%CurrentHms
-    Container%HeartBeatDtDays = Container%HeartBeatDtMin / MINUTES_PER_DAY
+    Container%HeartBeatDtDays = Container%HeartBeatDtSec / SECONDS_PER_DAY
 
     ! These other time fields will be defined later
-    Container%ElapsedMin      = 0.0_f8
+    Container%ElapsedSec      = 0.0_f8
     Container%CurrTimeSlice   = UNDEFINED_INT
     Container%TimeStamp       = 0.0_f8
 
@@ -667,7 +668,7 @@ CONTAINS
     ! Initialize the alarms
     !=======================================================================
 
-    ! Get the initial alarm inervals (in elapsed min since start of run)
+    ! Get the initial alarm inervals (in elapsed seconds since start of run)
     CALL HistContainer_UpdateIvalSet   ( am_I_Root, Container, RC )
     CALL HistContainer_FileCloseIvalSet( am_I_Root, Container, RC )
     CALL HistContainer_FileWriteIvalSet( am_I_Root, Container, RC )
@@ -683,12 +684,12 @@ CONTAINS
     ! Initial "UpdateAlarm" setting
     !--------------------------------------
 
-    ! Subtract the "heartbeat" timestep in minutes from UpdateAlarm.
+    ! Subtract the "heartbeat" timestep in seconds from UpdateAlarm.
     ! This will ensure that (1) Instantaneous file collections will be
     ! updated just before the file write, (2) Time-averaged collections
     ! will be averaged on the same timestep as the "historical" GEOS-Chem
     ! diagnostics, thus allowing for a direct comparison.
-    Container%UpdateAlarm = Container%UpdateIvalMin - Container%HeartBeatDtMin
+    Container%UpdateAlarm = Container%UpdateIvalSec - Container%HeartBeatDtSec
 
     ! Trap error if negative
     IF ( Container%UpdateAlarm < 0 ) THEN
@@ -703,7 +704,7 @@ CONTAINS
     !--------------------------------------
 
     ! Set the file write alarm to its computed interval
-    Container%FileWriteAlarm = Container%FileWriteIvalMin
+    Container%FileWriteAlarm = Container%FileWriteIvalSec
 
     ! Trap error if negative
     IF ( Container%FileWriteAlarm < 0 ) THEN
@@ -729,7 +730,7 @@ CONTAINS
        ! Set the initial file close/reopen time to the first write time.
        ! (We will subtract this off later, when computing the reference
        ! date and time for the netCDF file.)
-       Container%FileCloseAlarm = Container%FileWriteIvalMin
+       Container%FileCloseAlarm = Container%FileWriteIvalSec
 
     ENDIF
 
@@ -775,6 +776,7 @@ CONTAINS
 !  16 Aug 2017 - R. Yantosca - Renamed Archival* variables to Update*
 !  17 Aug 2017 - R. Yantosca - Now print *Alarm variables.  Also use the
 !                              Item%DimNames field to print the data dims
+!  18 Sep 2017 - R. Yantosca - Updated for elapsed time in seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -818,25 +820,25 @@ CONTAINS
        WRITE( 6, 160 ) 'CurrentJd        : ', Container%CurrentJd
        WRITE( 6, 135 ) 'CurrentYmd       : ', Container%CurrentYmd
        WRITE( 6, 145 ) 'CurrentHms       : ', Container%CurrentHms
-       WRITE( 6, 160 ) 'ElapsedMin       : ', Container%ElapsedMin
+       WRITE( 6, 160 ) 'ElapsedSec       : ', Container%ElapsedSec
        WRITE( 6, 120 ) 'UpdateMode       : ', TRIM( Container%UpdateMode )
        WRITE( 6, 135 ) 'UpdateYmd        : ', Container%UpdateYmd
        WRITE( 6, 145 ) 'UpdateHms        : ', Container%UpdateHms
-       WRITE( 6, 160 ) 'UpdateIvalMin    : ', Container%UpdateIvalMin
+       WRITE( 6, 160 ) 'UpdateIvalSec    : ', Container%UpdateIvalSec
        WRITE( 6, 160 ) 'UpdateAlarm      : ', Container%UpdateAlarm
        WRITE( 6, 120 ) 'Operation        : ', OpCode( Container%Operation )
-       WRITE( 6, 160 ) 'HeartBeatDtMin   : ', Container%HeartBeatDtMin
+       WRITE( 6, 160 ) 'HeartBeatDtSec   : ', Container%HeartBeatDtSec
        WRITE( 6, 160 ) 'HeartBeatDtDays  : ', Container%HeartBeatDtDays
        WRITE( 6, 135 ) 'ReferenceYmd     : ', Container%ReferenceYmd
        WRITE( 6, 145 ) 'ReferenceHms     : ', Container%ReferenceHms
        WRITE( 6, 160 ) 'ReferenceJd      : ', Container%ReferenceJd
        WRITE( 6, 135 ) 'FileWriteYmd     : ', Container%FileWriteYmd
        WRITE( 6, 145 ) 'FileWriteHms     : ', Container%FileWriteHms
-       WRITE( 6, 160 ) 'FileWriteIvalMin : ', Container%FileWriteIvalMin
+       WRITE( 6, 160 ) 'FileWriteIvalSec : ', Container%FileWriteIvalSec
        WRITE( 6, 160 ) 'FileWriteAlarm   : ', Container%FileWriteAlarm
        WRITE( 6, 135 ) 'FileCloseYmd     : ', Container%FileCloseYmd
        WRITE( 6, 145 ) 'FileCloseHms     : ', Container%FileCloseHms
-       WRITE( 6, 160 ) 'FileCloseIvalMin : ', Container%FileCloseIvalMin
+       WRITE( 6, 160 ) 'FileCloseIvalSec : ', Container%FileCloseIvalSec
        WRITE( 6, 160 ) 'FileCloseAlarm   : ', Container%FileCloseAlarm
        WRITE( 6, 130 ) 'CurrTimeSlice    : ', Container%CurrTimeSlice
        WRITE( 6, 150 ) 'IsFileOpen       : ', Container%IsFileOpen
@@ -862,12 +864,12 @@ CONTAINS
        ! FORMAT statements
  110   FORMAT( 1x, a           )
  120   FORMAT( 1x, a, a        )
- 130   FORMAT( 1x, a, i8       )
- 135   FORMAT( 1x, a, i8.8     )
+ 130   FORMAT( 1x, a, 3x, i8   )
+ 135   FORMAT( 1x, a, 3x, i8.8 )
  140   FORMAT( 1x, a, i6       )
- 145   FORMAT( 1x, a, 2x, i6.6 )
- 150   FORMAT( 1x, a, L8       )
- 160   FORMAT( 1x, a, f13.4    )
+ 145   FORMAT( 1x, a, 5x, i6.6 )
+ 150   FORMAT( 1x, a, L11      )
+ 160   FORMAT( 1x, a, f13.1    )
 
        ! If there are HISTORY ITEMS belonging to this container ...
        IF ( ASSOCIATED( Container%HistItems ) ) THEN 
@@ -1013,7 +1015,8 @@ CONTAINS
 !  This means that we only have to compute this interval at initialization.
 !
 ! !REVISION HISTORY:
-!  06 Sep 2017 - R. Yantosca - Initial version,
+!  06 Sep 2017 - R. Yantosca - Initial version
+!  18 Sep 2017 - R. Yantosca - Now return update interval in seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1044,10 +1047,10 @@ CONTAINS
     CALL Ymd_Extract( Container%UpdateHms, Hour, Minute, Second )
 
     ! "Update" interval in minutes
-    Container%UpdateIvalMin    = ( DBLE( Day    ) * MINUTES_PER_DAY    ) +   &
-                                 ( DBLE( Hour   ) * MINUTES_PER_HOUR   ) +   &
-                                 ( DBLE( Minute )                      ) +   &
-                                 ( DBLE( Second ) / SECONDS_PER_MINUTE )
+    Container%UpdateIvalSec = ( DBLE( Day    ) * SECONDS_PER_DAY    ) +      &
+                              ( DBLE( Hour   ) * SECONDS_PER_HOUR   ) +      &
+                              ( DBLE( Minute ) * SECONDS_PER_MINUTE ) +      &
+                              ( DBLE( Second )                      )
 
   END SUBROUTINE HistContainer_UpdateIvalSet
 !EOC
@@ -1090,6 +1093,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Sep 2017 - R. Yantosca - Initial version
+!  18 Sep 2017 - R. Yantosca - Now return file close interval in seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1132,9 +1136,9 @@ CONTAINS
     
        ! Set the file write interval, accounting for leap year
        IF ( Its_A_LeapYear( CurrYear ) ) THEN
-          Container%FileCloseIvalMin = 366.0_f8 * MINUTES_PER_DAY
+          Container%FileCloseIvalSec = 366.0_f8 * SECONDS_PER_DAY
        ELSE
-          Container%FileCloseIvalMin = 365.0_f8 * MINUTES_PER_DAY
+          Container%FileCloseIvalSec = 365.0_f8 * SECONDS_PER_DAY
        ENDIF
        
     ELSE IF ( Container%FileCloseYmd >= 000100 ) THEN
@@ -1155,7 +1159,7 @@ CONTAINS
        ENDIF
 
        ! Convert to minutes and set this as the file write interval
-       Container%FileCloseIvalMin = DBLE( nDays ) * MINUTES_PER_DAY    
+       Container%FileCloseIvalSec = DBLE( nDays ) * SECONDS_PER_DAY
       
     ELSE
 
@@ -1164,10 +1168,10 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! "FileWrite" interval in minutes
-       Container%FileCloseIvalMin = ( DBLE(Day   ) * MINUTES_PER_DAY    ) +  &
-                                    ( DBLE(Hour  ) * MINUTES_PER_HOUR   ) +  &
-                                    ( DBLE(Minute)                      ) +  &
-                                    ( DBLE(Second) / SECONDS_PER_MINUTE )
+       Container%FileCloseIvalSec = ( DBLE(Day   ) * SECONDS_PER_DAY    ) +  &
+                                    ( DBLE(Hour  ) * SECONDS_PER_HOUR   ) +  &
+                                    ( DBLE(Minute) * SECONDS_PER_MINUTE ) +  &
+                                    ( DBLE(Second)                      )
     ENDIF
 
   END SUBROUTINE HistContainer_FileCloseIvalSet
@@ -1211,6 +1215,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  18 Sep 2017 - R. Yantosca - Now return file write interval in seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1253,9 +1258,9 @@ CONTAINS
     
        ! Set the file write interval, accounting for leap year
        IF ( Its_A_LeapYear( CurrYear ) ) THEN
-          Container%FileWriteIvalMin = 366.0_f8 * MINUTES_PER_DAY
+          Container%FileWriteIvalSec = 366.0_f8 * SECONDS_PER_DAY
        ELSE
-          Container%FileWriteIvalMin = 365.0_f8 * MINUTES_PER_DAY
+          Container%FileWriteIvalSec = 365.0_f8 * SECONDS_PER_DAY
        ENDIF
        
     ELSE IF ( Container%FileWriteYmd >= 000100 ) THEN
@@ -1279,7 +1284,7 @@ CONTAINS
        ENDIF
 
        ! Convert to minutes and set this as the file write interval
-       Container%FileWriteIvalMin = DBLE( nDays ) * MINUTES_PER_DAY    
+       Container%FileWriteIvalSec = DBLE( nDays ) * SECONDS_PER_DAY
       
     ELSE
 
@@ -1288,10 +1293,10 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! "FileWrite" interval in minutes
-       Container%FileWriteIvalMin = ( DBLE(Day   ) * MINUTES_PER_DAY    ) +  &
-                                    ( DBLE(Hour  ) * MINUTES_PER_HOUR   ) +  &
-                                    ( DBLE(Minute)                      ) +  &
-                                    ( DBLE(Second) / SECONDS_PER_MINUTE )
+       Container%FileWriteIvalSec = ( DBLE(Day   ) * SECONDS_PER_DAY    ) +  &
+                                    ( DBLE(Hour  ) * SECONDS_PER_HOUR   ) +  &
+                                    ( DBLE(Minute) * SECONDS_PER_MINUTE ) +  &
+                                    ( DBLE(Second)                      )
     ENDIF
 
   END SUBROUTINE HistContainer_FileWriteIvalSet
@@ -1378,7 +1383,7 @@ CONTAINS
     ! Compute the elapsed time in minutes since the start of the run
     CALL Compute_Elapsed_Time( CurrentJd  = Container%CurrentJd,             &
                                TimeBaseJd = Container%EpochJd,               &
-                               ElapsedMin = Container%ElapsedMin            )
+                               ElapsedSec = Container%ElapsedSec            )
 
   END SUBROUTINE HistContainer_SetTime
 !EOC

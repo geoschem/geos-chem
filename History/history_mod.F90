@@ -535,7 +535,7 @@ CONTAINS
     INTEGER                      :: Ind_Var,        Ind_Wet,       Ind
     REAL(f8)                     :: UpdateAlarm,    JulianDate
     REAL(f8)                     :: FileWriteAlarm, FileCloseAlarm
-    REAL(f8)                     :: HeartBeatDtMin
+    REAL(f8)                     :: HeartBeatDtSec
 
     ! Strings
     CHARACTER(LEN=255)           :: Line,           FileName
@@ -576,7 +576,7 @@ CONTAINS
     FileWriteHms   =  0
     SpaceDim       =  0
     SubsetDims     =  0 
-    HeartBeatDtMin = Input_Opt%TS_DYN
+    HeartBeatDtSec =  DBLE( Input_Opt%TS_DYN ) * SECONDS_PER_MINUTE
 
     ! Initialize objects and pointers
     Container      => NULL()
@@ -874,7 +874,7 @@ CONTAINS
                                      UpdateYmd      = UpdateYmd,             &
                                      UpdateHms      = UpdateHms,             &
                                      Operation      = Operation,             &
-                                     HeartBeatDtMin = HeartBeatDtMin,        &
+                                     HeartBeatDtSec = HeartBeatDtSec,        &
                                      FileWriteYmd   = FileWriteYmd,          &
                                      FileWriteHms   = FileWriteHms,          &
                                      FileCloseYmd   = FileCloseYmd,          &
@@ -1168,7 +1168,7 @@ CONTAINS
 
     ! Write spacer
     WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )   
-
+    STOP
   END SUBROUTINE History_ReadCollectionData
 !EOC
 !------------------------------------------------------------------------------
@@ -1728,7 +1728,7 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! Test if the "UpdateAlarm" is ringing
-       DoUpdate = ( ( Container%UpdateAlarm - Container%ElapsedMin ) < EPS )
+       DoUpdate = ( ( Container%UpdateAlarm - Container%ElapsedSec ) < EPS )
 
        ! Skip to next collection if it isn't
        IF ( .not. DoUpdate ) THEN
@@ -1910,7 +1910,7 @@ CONTAINS
 
        ! Update the "UpdateAlarm" time for the next updating interval.
        Container%UpdateAlarm = Container%UpdateAlarm +                    &
-                               Container%UpdateIvalMin
+                               Container%UpdateIvalSec
 
        ! Free pointers
        Current    => NULL()
@@ -2028,10 +2028,10 @@ CONTAINS
        !====================================================================
 
        ! Test if the "FileCloseAlarm" is ringing
-       DoClose = ( ( Container%FileCloseAlarm - Container%ElapsedMin ) < EPS )
+       DoClose = ( ( Container%FileCloseAlarm - Container%ElapsedSec ) < EPS )
 
        ! Test if the "FileWriteAlarm" is ringing
-       DoWrite = ( ( Container%FileWriteAlarm - Container%ElapsedMin ) < EPS )
+       DoWrite = ( ( Container%FileWriteAlarm - Container%ElapsedSec ) < EPS )
 
        !====================================================================
        ! %%% GEOS-Chem "Classic" %%%
@@ -2089,7 +2089,7 @@ CONTAINS
 
           ! Update the alarm
           Container%FileCloseAlarm = Container%FileCloseAlarm                &
-                                   + Container%FileCloseIvalMin
+                                   + Container%FileCloseIvalSec
 
        ENDIF
 
@@ -2126,7 +2126,7 @@ CONTAINS
 
           ! Update the alarm
           Container%FileWriteAlarm = Container%FileWriteAlarm                &
-                                   + Container%FileWriteIvalMin
+                                   + Container%FileWriteIvalSec
 
        ENDIF
 

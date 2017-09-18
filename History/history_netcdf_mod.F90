@@ -282,8 +282,8 @@ CONTAINS
           ! Subtract the file write alarm interval that we added to
           ! the current date/time (CurrentJd) field at initialization
           Container%ReferenceJd = Container%CurrentJd                        &
-                                - ( Container%FileWriteIvalMin /             &
-                                    MINUTES_PER_DAY                         )
+                                - ( Container%FileWriteIvalSec /             &
+                                    SECONDS_PER_DAY                         )
 
        ELSE
 
@@ -630,6 +630,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
+!  18 Sep 2017 - R. Yantosca - Elapsed time is now in seconds, but keep the
+!                              time vector in minutes since the ref date/time
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -639,7 +641,6 @@ CONTAINS
     ! Scalars
     INTEGER                     :: NcFileId,         NcVarId
     INTEGER                     :: Dim1,             Dim2,       Dim3
-    REAL(f8)                    :: ElapsedMin,       Jd
 
     ! Strings
     CHARACTER(LEN=255)          :: ErrMsg,           ThisLoc
@@ -695,17 +696,20 @@ CONTAINS
     ! Compute the time stamp value for the current time slice
     !=======================================================================
 
-    ! Compute the elapsed time in minutes since the file creation
+    ! Compute the elapsed time in seconds since the file creation
     CALL Compute_Elapsed_Time( CurrentJd  = Container%CurrentJd,             &
                                TimeBaseJd = Container%ReferenceJd,           & 
-                               ElapsedMin = Container%TimeStamp             )
+                               ElapsedSec = Container%TimeStamp             )
 
     ! For time-averaged collections, offset the timestamp 
     ! by 1/2 of the file averaging interval in minutes
     IF ( Container%Operation == ACCUM_FROM_SOURCE ) THEN
        Container%TimeStamp = Container%TimeStamp -                           &
-                             ( Container%FileWriteIvalMin * 0.5_f8 )
+                             ( Container%FileWriteIvalSec * 0.5_f8 )
     ENDIF
+
+    ! Convert to minutes since the reference time
+    Container%TimeStamp = Container%TimeStamp / SECONDS_PER_MINUTE
 
 #if defined( DEBUG )
     ! Debug output

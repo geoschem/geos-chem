@@ -152,7 +152,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Elapsed_Time( CurrentJd, TimeBaseJd, ElapsedMin )
+  SUBROUTINE Compute_Elapsed_Time( CurrentJd, TimeBaseJd, ElapsedSec )
 !
 ! !USES:
 !
@@ -165,7 +165,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL(f8), INTENT(OUT) :: ElapsedMin   ! Elapsed time in minutes
+    REAL(f8), INTENT(OUT) :: ElapsedSec   ! Elapsed time [seconds]
 !
 ! !REMARKS:
 !  The netCDF file reference date and time are given by the ReferenceYmd,
@@ -175,6 +175,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  18 Aug 2017 - R. Yantosca - Initial version
 !  13 Sep 2017 - R. Yantosca - Avoid roundoff error; return integral minutes
+!  18 Sep 2017 - R. Yantosca - Now return elapsed seconds to avoid roundoff
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,20 +185,10 @@ CONTAINS
     !=======================================================================
 
     ! Compute elapsed minutes since start of simulation
-    ElapsedMin = ( CurrentJd - TimeBaseJd ) * MINUTES_PER_DAY
+    ElapsedSec = ( CurrentJd - TimeBaseJd ) * SECONDS_PER_DAY
 
-!---------------------------------------------------------------------------
-! NOTE: Rounding off may start showing numerical noise in the 4th
-! decimal place.  Try just keeping the integer part for now.
-! This could maybe create an issue since GCHP could potentially use
-! timesteps that are fractional minutes (but integral seconds).
-!    ! Round off to a few places to avoid numerical noise 
-!    ElapsedMin = Roundoff( ElapsedMin, ROUNDOFF_DECIMALS )
-!---------------------------------------------------------------------------
-
-    ! To prevent roundoff error, just keep the integer part,
-    ! which should be OK since GC's timesteps are integral minutes
-    ElapsedMin = INT( ElapsedMin )
+    ! Just keep the integer part, since we are dealing in integral seconds
+    ElapsedSec = INT( ElapsedSec )
 
   END SUBROUTINE Compute_Elapsed_Time
 !EOC
