@@ -64,7 +64,6 @@ MODULE History_Util_Mod
   REAL(f8),         PARAMETER, PUBLIC :: SECONDS_PER_DAY    = 86400.0_f8
   REAL(f8),         PARAMETER, PUBLIC :: SECONDS_PER_HOUR   = 3600.0_f8
   REAL(f8),         PARAMETER, PUBLIC :: SECONDS_PER_MINUTE = 60.0_f8
-
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version

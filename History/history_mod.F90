@@ -511,6 +511,7 @@ CONTAINS
 !  14 Aug 2017 - R. Yantosca - FileWrite{Ymd,Hms} and FileClose{Ymd,Hms} are
 !                              now computed properly, w/r/t acc_interval
 !  30 Aug 2017 - R. Yantosca - Now write collection info only on the root CPU
+!  18 Sep 2017 - R. Yantosca - Don't allow acc_interval for inst collections
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -755,6 +756,18 @@ CONTAINS
                 Operation = ACCUM_FROM_SOURCE
              CASE DEFAULT
                 Operation = COPY_FROM_SOURCE
+
+                ! Throw an error if the "acc_interval" is defined,
+                ! but the collection is instantaneous.
+                IF ( .not. TRIM( CollectionAccInterval(C) ) ==               &
+                                 UNDEFINED_STR                 ) THEN
+                   ErrMsg = 'Acc_interval cannot be defined for ' //         &
+                            'instantaneous collection: "'         //         &
+                            TRIM( CollectionName(C) )             // '"!' 
+                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   RETURN
+                ENDIF
+
           END SELECT
 
           !-----------------------------------------------------------------

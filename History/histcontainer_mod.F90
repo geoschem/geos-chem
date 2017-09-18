@@ -860,14 +860,14 @@ CONTAINS
        WRITE( 6, 110 ) 'Items archived in this collection:'
 
        ! FORMAT statements
- 110   FORMAT( 1x, a        )
- 120   FORMAT( 1x, a, a     )
- 130   FORMAT( 1x, a, i8    )
- 135   FORMAT( 1x, a, i8.8  )
- 140   FORMAT( 1x, a, i6    )
- 145   FORMAT( 1x, a, i6.6  )
- 150   FORMAT( 1x, a, L8    )
- 160   FORMAT( 1x, a, f13.4 )
+ 110   FORMAT( 1x, a           )
+ 120   FORMAT( 1x, a, a        )
+ 130   FORMAT( 1x, a, i8       )
+ 135   FORMAT( 1x, a, i8.8     )
+ 140   FORMAT( 1x, a, i6       )
+ 145   FORMAT( 1x, a, 2x, i6.6 )
+ 150   FORMAT( 1x, a, L8       )
+ 160   FORMAT( 1x, a, f13.4    )
 
        ! If there are HISTORY ITEMS belonging to this container ...
        IF ( ASSOCIATED( Container%HistItems ) ) THEN 
