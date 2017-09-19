@@ -1168,7 +1168,7 @@ CONTAINS
 
     ! Write spacer
     WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )   
-    STOP
+
   END SUBROUTINE History_ReadCollectionData
 !EOC
 !------------------------------------------------------------------------------
