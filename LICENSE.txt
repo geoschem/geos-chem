@@ -1,4 +1,5 @@
-GEOS-Chem license agreement:
+GEOS-Chem License Agreement
+(The MIT "Expat" License, http://opensource.org/licenses/MIT)
 ==============================================================================
 
 Copyright (c) 2017 GEOS-Chem developers
@@ -27,7 +28,7 @@ GEOS-Chem developers.  This list will be updated with each public release.
 ------------------------------------------------------------------------------
 
 
-Licenses for 3rd-party code packages used by GEOS-Chem:
+License agreements for 3rd-party code packages used by GEOS-Chem:
 ==============================================================================
 
 FAST-J, FAST-JX, and developments:
@@ -73,7 +74,7 @@ RRTM/RRTMG Copyright and Disclaimer:
    http://rtweb.aer.com/rrtm_frame.html
 
 
-SMVGEAR chemical solver (removed from GEOS-Chem v11-01 and later versions):
+SMVGEAR chemical solver (used in GEOS-Chem v10-01 and prior versions):
  
    *********************************************************************
    ************        WRITTEN BY MARK JACOBSON (1993)      ************
