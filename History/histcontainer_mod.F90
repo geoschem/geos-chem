@@ -517,7 +517,7 @@ CONTAINS
        TempStr              = FilePrefix
        Container%FilePrefix = TempStr
     ELSE
-       Container%FilePrefix = 'GEOSChem.History.' // TRIM( Name ) // '.'
+       Container%FilePrefix = 'GEOSChem.' // TRIM( Name ) // '.'
     ENDIF
 
     !----------------------------------
