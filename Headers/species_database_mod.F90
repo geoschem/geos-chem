@@ -835,6 +835,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CHCl3',                      &
                               FullName      = 'Chloroform',                 &
+                              Formula       = 'CHCl3',                      &
                               MW_g          = 119.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -852,6 +853,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH2Cl2',                     &
                               FullName      = 'Dichloromethane',            &
+                              Formula       = 'CH2Cl2',                     &
                               MW_g          = 85.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4339,6 +4341,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Methyl iodide',              &
+                              Formula       = 'CH3I',                       &
                               MW_g          = 142.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4359,6 +4362,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Diiodomethane',              &
+                              Formula       = 'CH2I2',                      &
                               MW_g          = 268.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4375,6 +4379,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH2ICl',                     &
                               FullName      = 'Chloroiodomethane',          &
+                              Formula       = 'CH2ICl',                     &
                               MW_g          = 167.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4391,6 +4396,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH2IBr',                     &
                               FullName      = 'Bromoiodomethane',           &
+                              Formula       = 'CH2IBr',                     &
                               MW_g          = 221.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4407,6 +4413,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hypoiodous acid',            &
+                              Formula       = 'HOI',                        &
                               MW_g          = 144.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4433,6 +4440,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Molecular iodine',           &
+                              Formula       = 'I2',                         &
                               MW_g          = 254.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4461,6 +4469,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'IBr',                        &
                               FullName      = 'Iodine monobromide',         &
+                              Formula       = 'IBr',                        &
                               MW_g          = 207.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4487,6 +4496,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'ICl',                        &
                               FullName      = 'Iodine monochloride',        &
+                              Formula       = 'ICl',                        &
                               MW_g          = 162.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4513,6 +4523,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Atomic iodine',              &
+                              Formula       = 'I',                          &
                               MW_g          = 127.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4529,6 +4540,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Iodine monoxide',            &
+                              Formula       = 'IO',                         &
                               MW_g          = 143.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4548,6 +4560,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Hydrogen iodide',            &
                               MW_g          = 128.0_fp,                     &
+                              Formula       = 'HI',                         &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -4573,6 +4586,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Iodine dioxide',             &
+                              Formula       = 'OIO',                        &
                               MW_g          = 159.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4589,6 +4603,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitrosyl iodide',            &
+                              Formula       = 'INO',                        &
                               MW_g          = 157.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4605,6 +4620,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Nitryl iodide',              &
+                              Formula       = 'IONO',                       &
                               MW_g          = 173.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4631,6 +4647,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Iodine nitrate',             &
+                              Formula       = 'IONO2',                      &
                               MW_g          = 189.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4657,6 +4674,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Diiodine dioxide',           &
+                              Formula       = 'I2O2',                       &
                               MW_g          = 286.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4683,6 +4701,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Diiodine trioxide',          &
+                              Formula       = 'I2O3',                       &
                               MW_g          = 302.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4709,6 +4728,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Diiodine tetraoxide',        &
+                              Formula       = 'I2O4',                       &
                               MW_g          = 318.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
@@ -4746,7 +4766,8 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'BrSALA',                     &
                               FullName      = 'Fine sea salt bromine',      &
-                              MW_g          = 127.0_fp,                     &
+                              Formula       = 'Br',                         &
+                              MW_g          = 80.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
@@ -4780,7 +4801,8 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'BrSALC',                     &
                               FullName      = 'Coarse sea salt bromine',    &
-                              MW_g          = 127.0_fp,                     &
+                              Formula       = 'Br',                         &
+                              MW_g          = 80.0_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
@@ -4816,6 +4838,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Fine sea salt iodine',       &
+                              Formula       = 'I',                          &
                               MW_g          = 127.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -4850,6 +4873,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Coarse sea salt iodine',     &
+                              Formula       = 'I',                          &
                               MW_g          = 127.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -4888,6 +4912,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Dissolved iodine',           &
+                              Formula       = 'I',                          &
                               MW_g          = 127.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -4912,6 +4937,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Iodic acid',                 &
+                              Formula       = 'HIO3',                       &
                               MW_g          = 176.0_fp,                     &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
@@ -4928,6 +4954,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = 'Diiodine monoxide',          &
+                              Formula       = 'I2O',                        &
                               MW_g          = 270.0_fp,                     &
                               Is_Advected   = F,                            &
                               Is_Gas        = T,                            &
