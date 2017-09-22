@@ -13,3 +13,5 @@ fi
 ./rename_f90.sh
 mv HETCODE gckpp_HetRates.F90
 mv INTEGRATOR gckpp_Integrator.F90
+
+exit 0
