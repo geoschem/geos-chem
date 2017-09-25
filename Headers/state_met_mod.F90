@@ -291,12 +291,12 @@ MODULE State_Met_Mod
 !
 ! !MODULE INTERFACES:
 !
-  INTERFACE REGISTER_METFIELD
-     MODULE PROCEDURE REGISTER_METFIELD_Rfp_2D
-     MODULE PROCEDURE REGISTER_METFIELD_Rfp_3D
-     MODULE PROCEDURE REGISTER_METFIELD_Int_2D
-     MODULE PROCEDURE REGISTER_METFIELD_Int_3D
-  END INTERFACE REGISTER_METFIELD
+  INTERFACE Register_MetField
+     MODULE PROCEDURE Register_MetField_Rfp_2D
+     MODULE PROCEDURE Register_MetField_Rfp_3D
+     MODULE PROCEDURE Register_MetField_Int_2D
+     MODULE PROCEDURE Register_MetField_Int_3D
+  END INTERFACE Register_MetField
 
 CONTAINS
 !EOC
@@ -3210,7 +3210,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_MetField_Rfp_2D( am_I_Root, varName,  Ptr2Data,         &
-                                      State_Met, RC )
+                                       State_Met, RC )
 !
 ! !USES:
 !

@@ -487,7 +487,6 @@ cleanup.o                   : cleanup.F                                      \
                               diag51b_mod.o           diag53_mod.o           \
                               diag_oh_mod.o           diag20_mod.o           \
                               drydep_mod.o            dust_mod.o             \
-                              diagnostics_mod.o       emissions_mod.o        \
                               global_ch4_mod.o        wetscav_mod.o          \
                               isoropiaII_mod.o        land_mercury_mod.o     \
                               seasalt_mod.o           linoz_mod.o            \
@@ -500,7 +499,8 @@ cleanup.o                   : cleanup.F                                      \
                               uvalbedo_mod.o          tpcore_fvdas_mod.o     \
                               geosfp_read_mod.o       merra2_read_mod.o      \
                               tpcore_window_mod.o     flexchem_mod.o         \
-                              toms_mod.o              rrtmg_rad_transfer_mod.o
+                              toms_mod.o              emissions_mod.o        \
+                              rrtmg_rad_transfer_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
@@ -526,7 +526,7 @@ diag04_mod.o                : diag04_mod.F
 diag1.o                     : diag1.F                                        \
                               chemgrid_mod.o          dao_mod.o              \
                               diag03_mod.o            diag_mod.o             \
-                              diagnostics_mod.o       hco_interface_mod.o
+                              hco_interface_mod.o
 
 diag3.o                     : diag3.F                                        \
                               diag_mod.o              diag03_mod.o           \
@@ -569,13 +569,6 @@ diag56_mod.o                : diag56_mod.F
 diag63_mod.o                : diag63_mod.F                                   \
                               diag_mod.o              pbl_mix_mod.o          \
                               hco_interface_mod.o
-
-diagnostics_mod.o           : diagnostics_mod.F90                            \
-                              chemgrid_mod.o                                 \
-                              drydep_mod.o                                   \
-                              hco_interface_mod.o                            \
-                              hcoi_gc_main_mod.o                             \
-                              tendencies_mod.o
 
 diag_2pm.o                  : diag_2pm.F                                     \
                               chemgrid_mod.o          diag_mod.o
@@ -728,7 +721,6 @@ main.o                      : main.F                                         \
                               benchmark_mod.o                                \
                               chemgrid_mod.o          chemistry_mod.o        \
                               carbon_mod.o            convection_mod.o       \
-                              diag_mod.o              diagnostics_mod.o      \
                               diag41_mod.o            diag42_mod.o           \
                               diag48_mod.o            diag49_mod.o           \
                               diag50_mod.o            diag51_mod.o           \
@@ -751,7 +743,8 @@ main.o                      : main.F                                         \
                               ucx_mod.o               vdiff_mod.o            \
                               emissions_mod.o         cleanup.o              \
                               mixing_mod.o            merra2_read_mod.o      \
-                              wetscav_mod.o           rrtmg_rad_transfer_mod.o
+                              wetscav_mod.o           diag_mod.o             \
+                              rrtmg_rad_transfer_mod.o
 
 mapping_mod.o               : mapping_mod.F90                              
 
@@ -887,11 +880,10 @@ ifeq ($(PRECISION),8)
 endif
 
 transport_mod.o             : transport_mod.F                                \
-                              diag_mod.o              diagnostics_mod.o      \
+                              diag_mod.o              dao_mod.o              \
                               pjc_pfix_mod.o          tpcore_bc_mod.o        \
                               tpcore_fvdas_mod.o      tpcore_window_mod.o    \
-                              tendencies_mod.o        pjc_pfix_window_mod.o  \
-                              dao_mod.o
+                              tendencies_mod.o        pjc_pfix_window_mod.o
 
 ucx_mod.o                   : ucx_mod.F                                      \
                               chemgrid_mod.o          global_ch4_mod.o       \

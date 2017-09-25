@@ -333,6 +333,7 @@ CONTAINS
                           JM         = JJPAR,       &  ! # of lats
                           LM         = LLPAR,       &  ! # of levels
                           Input_Opt  = Input_Opt,   &  ! Input Options
+                          State_Chm  = State_Chm,   &  ! Chemistry State
                           State_Diag = State_Diag,  &  ! Chemistry State
                           RC         = RC          )   ! Success or failure
 

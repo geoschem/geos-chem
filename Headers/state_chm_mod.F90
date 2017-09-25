@@ -1535,8 +1535,7 @@ CONTAINS
     ! Header line
     if ( am_I_Root ) THEN
        WRITE( 6, 10 )
-10     FORMAT( /, 'Registered variables contained within the ' // &
-               'State_Chm object:' )
+10     FORMAT( /, 'Registered variables contained within the State_Chm object:' )
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     ENDIF
 

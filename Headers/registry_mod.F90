@@ -94,6 +94,7 @@ MODULE Registry_Mod
   PUBLIC  :: Registry_Lookup
   PUBLIC  :: Registry_Print
   PUBLIC  :: Registry_Destroy
+  PUBLIC  :: To_UpperCase ! consider putting in common util file (ewl)
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -102,7 +103,6 @@ MODULE Registry_Mod
   PRIVATE :: MetaRegItem_Insert
   PRIVATE :: MetaRegItem_Destroy
   PRIVATE :: Str2Hash
-  PRIVATE :: To_UpperCase
 !
 ! !DEFINED PARAMETERS:
 !
@@ -212,6 +212,7 @@ CONTAINS
 !  25 Aug 2017 - R. Yantosca - Added Data0d_8 and Data1d_8 so that we can
 !                               register netCDF index variables.  Most other
 !                               data should be either REAL(fp) or REAL(f4)
+!  25 Sep 2017 - E. Lundgren - Only use state name prefix if not diag state
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -239,7 +240,11 @@ CONTAINS
     ThisLoc        = ' -> at Registry_AddField (in Headers/registry_mod.F90)'
     TmpState       = To_UpperCase( State    )
     TmpVariable    = To_UpperCase( Variable )
-    TmpFullname    = TRIM( TmpState ) // '_' // TRIM( TmpVariable )
+    IF ( TmpState /= 'DIAG' ) THEN
+       TmpFullname    = TRIM( TmpState ) // '_' // TRIM( TmpVariable )
+    ELSE
+       TmpFullname = TRIM( TmpVariable )
+    ENDIF
     TmpDescription = ''
     TmpUnits       = ''
 
@@ -514,6 +519,7 @@ CONTAINS
 !  23 Aug 2017 - R. Yantosca - Added optional OnLevelEdges argument
 !  24 Aug 2017 - R. Yantosca - Added optional DimNames argument
 !  25 Aug 2017 - R. Yantosca - Added optional Data0d_8 and Data1d_8 arguments
+!  25 Sep 2017 - E. Lundgren - Only use state name prefix if not diag state
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -551,7 +557,8 @@ CONTAINS
 
     ! Append the state name to the variable (if it's not already there)
     TmpState        = TRIM( State ) // '_' 
-    IF ( INDEX( Variable, TRIM( TmpState ) ) > 0 ) THEN
+    IF ( ( TRIM( State ) /= 'DIAG' ) .AND. &
+         ( INDEX( Variable, TRIM( TmpState ) ) > 0 ) ) THEN
        TmpFullName  = Variable
     ELSE
        TmpFullName  = TRIM( TmpState ) // TRIM( Variable )

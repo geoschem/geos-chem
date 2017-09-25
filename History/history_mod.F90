@@ -32,12 +32,12 @@ MODULE History_Mod
   PUBLIC  :: History_Cleanup
 !
 ! PRIVATE MEMBER FUNCTIONS:
-
+!
   PRIVATE :: History_ReadCollectionNames
   PRIVATE :: History_ReadCollectionData
   PRIVATE :: History_AddItemToCollection
-  PRIVATE :: CleanText
   PRIVATE :: ReadOneLine
+  PRIVATE :: CleanText
 !
 ! !REMARKS:
 !  
@@ -1312,36 +1312,10 @@ CONTAINS
                                Ptr3d_4      = Ptr3d_4,                       &
                                RC           = RC                            )
 
-       ! Trap potential error
+       ! Trap potential not found error
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error in "Lookup_State_Chm" for diagnostic ' //          &
-                   TRIM( ItemName )
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ELSE IF ( INDEX( ItemName, State_Diag%State ) > 0 ) THEN
-
-       !--------------------------------------------------------------------
-       ! Diagnostic State 
-       !--------------------------------------------------------------------
-       CALL Lookup_State_Diag( am_I_Root    = am_I_Root,                     &
-                               State_Diag   = State_Diag,                    &
-                               Variable     = ItemName,                      &
-                               Description  = Description,                   &
-                               Dimensions   = Dimensions,                    &
-                               KindVal      = KindVal,                       &
-                               Rank         = Rank,                          &
-                               Units        = Units,                         &
-                               OnLevelEdges = OnLevelEdges,                  &
-                               Ptr2d_4      = Ptr2d_4,                       &
-                               Ptr3d_4      = Ptr3d_4,                       &
-                               RC           = RC                            )
-
-       ! Trap potential error
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error in "Lookup_State_Diag for diagnostic ' //          &
-                   TRIM( ItemName )
+          ErrMsg = 'Could not locate ' // TRIM( ItemName )  // &
+                   ' chemistry state registry.'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -1366,23 +1340,40 @@ CONTAINS
                                Ptr3d_I      = Ptr3d_I,                       &
                                RC           = RC                            )
 
-       ! Trap potential error
+       ! Trap potential not found error
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error in "Lookup_State_Met for diagnostic ' //           &
-                   TRIM( ItemName )
+          ErrMsg = 'Could not locate ' // TRIM( ItemName )  // &
+                   ' meteorology state registry.'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
-
     ELSE
 
        !--------------------------------------------------------------------
-       ! ERROR! Item name could not be found in a registry!
-       !-------------------------------------------------------------------- 
-       ErrMsg = 'Could not locate ' // TRIM( ItemName )  // '. Try prefacing the state name ("CHEM_", "MET_", "DIAG_") to the item name.'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+       ! Diagnostic State 
+       !--------------------------------------------------------------------
+       PRINT *, ItemName
+       CALL Lookup_State_Diag( am_I_Root    = am_I_Root,                     &
+                               State_Diag   = State_Diag,                    &
+                               Variable     = ItemName,                      &
+                               Description  = Description,                   &
+                               Dimensions   = Dimensions,                    &
+                               KindVal      = KindVal,                       &
+                               Rank         = Rank,                          &
+                               Units        = Units,                         &
+                               OnLevelEdges = OnLevelEdges,                  &
+                               Ptr2d_4      = Ptr2d_4,                       &
+                               Ptr3d_4      = Ptr3d_4,                       &
+                               RC           = RC                            )
+
+       ! Trap potential not found error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not locate ' // TRIM( ItemName )  // &
+                   ' diagnostics state registry.'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
     ENDIF
 

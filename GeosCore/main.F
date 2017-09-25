@@ -85,9 +85,9 @@
       USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
       USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
-      USE DIAGNOSTICS_MOD       ! Writes out HEMCO diagnostics (C. Keller)
       USE HISTORY_MOD           ! Updated netCDF diagnostics
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
+      USE HCOI_GC_MAIN_MOD       ! Writes out HEMCO diagnostics (C. Keller)
 
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
@@ -957,11 +957,13 @@
          CALL GEOS_Timer_Start( "Diagnostics", RC )
 #endif
 
-         ! Write HEMCO diagnostics as well as new GEOS-Chem diagnostics
-         ! (the latter is currently only defined in development mode)
-         ! (ckeller, 4/1/15). 
-         CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
-     &                           .FALSE.,   RC)
+         ! Write HEMCO diagnostics (ckeller, 4/1/15). 
+         ! Replace diagnostics_write with the one-line content within it
+         ! in order to remove previous incarnation of diagnostics_mod
+         ! (ewl, 9/22/17)
+!         CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
+!     &                           .FALSE.,   RC)
+         CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, .FALSE., RC )
 
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "HEMCO", RC )
@@ -1015,8 +1017,13 @@
 
             ! Force the output of a HEMCO restart file. 
             ! (ckeller, 4/1/15)
-            CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
-     &                              .TRUE.,    RC)
+            ! Replace diagnostics_write with the one-line content within it
+            ! in order to remove previous incarnation of diagnostics_mod
+            ! (ewl, 9/22/17)
+!            CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
+!     &                              .TRUE.,    RC)
+            CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, .TRUE., RC )
+
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "HEMCO", RC )
