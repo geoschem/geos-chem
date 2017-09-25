@@ -74,6 +74,7 @@
 !                              29/11/11)
 !  26 Apr 2016 - R. Yantosca - Make N_Hg_CATS IDTHg0, IDTHg2 module variables
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -335,13 +336,6 @@
       ! Return if snowpack model is disabled
       IF ( .NOT. LHGSNOW ) RETURN
 
-      ! Except with MERRA, we can't distinguish land fractions, so we use a 
-      ! land fraction of 1 and only use boxes that are mostly snow/ice. 
-      ! For MERRA we use the actual fractions, so FRAC_SNOW_OR_ICE is 
-      ! overwritten (jaf, 4/25/11)
-      FRAC_SNOW_OR_ICE = 1e+0_fp
-
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       ! Don't let fraction be greater than 1
       FRAC_SNOW_OR_ICE = MIN( State_Met%FRSNO(I,J)     +
      &                        State_Met%FRSEAICE(I,J)  + 
@@ -350,28 +344,6 @@
 
       ! Ocean fraction (vs land)
       FRAC_O = State_Met%FROCEAN(I,J)
-
-#elif defined( GEOS_5 )
-      ! Use GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-      IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
-     &                    ( IS_LAND( I, J, State_Met     )  .AND. 
-     &                      State_Met%SNOMAS(I,J) > 10e+0_fp ))
-
-      ! Ocean fraction (vs land)
-      FRAC_O = State_Met%FROCEAN(I,J)
-
-#else
-      ! Use GEOS1-4 snow height (water equivalent) in mm
-      IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
-     &                    ( IS_LAND( I, J, State_Met     )  .AND. 
-     &                      State_Met%SNOW(I,J)   > 10e+0_fp ))
-
-      ! Ocean fraction (vs land)
-      ! NOTE: GEOS-4 and GCAP don't have an equivalent field for FRLAND
-      ! so FRAC_O will be set to 1
-      FRAC_O = 1e+0_fp - State_Met%FRLAND(I,J)
-
-#endif 
 
       ! Check if there is snow on the ground, or if this is sea ice
       IF ( IS_SNOW_OR_ICE ) THEN

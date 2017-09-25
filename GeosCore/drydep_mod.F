@@ -194,6 +194,7 @@
 !                              done for ACET. Drydep over the oceans is handled
 !                              via the HEMCO SeaFlux extension. 
 !  16 Mar 2017 - R. Yantosca - Remove references to obsolete vars in Input_Opt
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -438,17 +439,9 @@
       REAL(f8)      :: DVEL  (IIPAR,JJPAR,NUMDEP) ! Drydep velocities [m/s]
       REAL(f8)      :: PRESSU(IIPAR,JJPAR       ) ! Local surface pressure [Pa]
       REAL(f8)      :: W10   (IIPAR,JJPAR       ) ! 10m windspeed [m/s]
-
-      ! Now make SUNCOS_MID a local array (bmy, 11/28/12)
+      REAL(f8)      :: AZO   (IIPAR,JJPAR)        ! Z0, per (I,J) square
       REAL(f8)      :: SUNCOS_MID(IIPAR,JJPAR)    ! COS(SZA) @ midpoint of the
                                                   !  current chemistry timestep
-
-      ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
-#if   defined( GCAP )
-      REAL(f8)      :: AZO   (NTYPE      )        ! Z0, per Olson land type
-#else
-      REAL(f8)      :: AZO   (IIPAR,JJPAR)        ! Z0, per (I,J) square
-#endif
 
       ! For ESMF, need to assign these from Input_Opt
       LOGICAL       :: PBL_DRYDEP 
@@ -680,13 +673,7 @@
       REAL(f8), INTENT(OUT) :: W10   (IIPAR,JJPAR)  ! 10 meter windspeed [m/s]
       REAL(f8), INTENT(OUT) :: SUNCOS_MID(IIPAR,JJPAR) ! COS(SZA) @ midpt of
                                                        !  current chem timestep
-
-      ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
-#if   defined( GCAP )
-      REAL(f8), INTENT(OUT) :: AZO(NTYPE)       ! Roughness heights, by landtype
-#else
       REAL(f8), INTENT(OUT) :: AZO(IIPAR,JJPAR) ! Roughness heights, by grid box
-#endif
 !
 ! !REMARKS:
 !                                                                             .
@@ -745,13 +732,6 @@
       ! METERO begins here!
       !=================================================================
 
-#if   defined( GCAP )
-      ! For GCAP: AZO (roughness ht) is a function of Olson land type 
-      ! instead of lat/lon location.  Zero AZO here; AZO will be 
-      ! computed internally w/in routine DEPVEL (swu, bmy, 5/25/05)
-      AZO(:) = 0e+0_f8
-#endif
-
       ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -776,10 +756,8 @@
          ! Return meterological quantities as 1-D arrays for DEPVEL
          !==============================================================
 
-#if   !defined( GCAP )
-         ! For GEOS: Roughness height [m] is a function of lat/lon
+         ! Roughness height [m]
          AZO(I,J)    = State_Met%Z0(I,J)
-#endif
 
          ! Column cloud fraction [unitless]
          CFRAC(I,J)  = State_Met%CLDFRC(I,J)
@@ -791,18 +769,7 @@
          OBK(I,J)    = GET_OBK( I, J, State_Met )
 
          ! Solar insolation @ ground [W/m2]
-         ! NOTE: State_Met%RADSWG is net radiation at ground for all
-         ! MET fields except GEOS-FP and MERRA2. For those data sets,
-         ! net radiation was not processed and therefore we use
-         ! incident radiation at ground. We split them up below for
-         ! clarity, using the new SWGDN field for incident radiation.
-         ! SWGDN is also available for MERRA but we do not use it
-         ! here to preserve the legacy method (ewl, 9/23/15)
-#if defined ( GEOS_FP ) || defined ( MERRA2 )
          RADIAT(I,J) = State_Met%SWGDN(I,J)
-#else
-         RADIAT(I,J) = State_Met%RADSWG(I,J) 
-#endif
 
          ! Surface temperature [K]
          TC0(I,J)    = State_Met%TS(I,J)
@@ -1081,18 +1048,8 @@
      1        RGSO(NTYPE),RCLS(NTYPE),RCLO(NTYPE),
      2        RSURFC(NUMDEP,NTYPE)       
                                    
-!      REAL(f8)  C1X(MAXDEP),VD(MAXDEP),VK(MAXDEP)              
       REAL(f8)  C1X(NUMDEP),VD(NUMDEP),VK(NUMDEP)              
-
-#if   defined( GCAP )
-      ! For the GISS/GCAP model, ZO is a function of land type 
-      ! and is of dimension NTYPE (swu, bmy, 5/25/05)
-      REAL(f8)  ZO(NTYPE)           
-#else
-      ! For GEOS-CTM, ZO is now of size IIPAR,JJPAR and is passed via 
-      ! the argument list, since it is a DAO met field. (bmy, 11/10/99)
       REAL(f8)  ZO(IIPAR,JJPAR)           
-#endif
 
 !      LOGICAL LDEP(MAXDEP)
       LOGICAL LDEP(NUMDEP)
@@ -1243,9 +1200,6 @@
 !$OMP+PRIVATe( SpcId,  SpcInfo                                )
 #if defined( TOMAS )
 !$OMP+PRIVATE( BIN                                            )
-#endif
-#if defined( GCAP )
-!$OMP+PRIVATE( ZO                                             )
 #endif
 
       DO J = 1, JJPAR
@@ -1613,22 +1567,6 @@
             IF ( IUSE(I,J,LDT) == 0 ) GOTO 500
             IOLSON = ILAND(I,J,LDT) + 1
 
-#if   defined( GCAP )
-! NOTE: This section only applies to the GCAP/GISS model (swu, bmy, 5/25/05)
-!** Get roughness heights; they are specified constants for each surface
-!** type except over water where zo = f(u*).  The latter dependence
-!** is from equation (6) of Hicks and Liss [1976]. 
-            DO 200 IW=1,NWATER
-               IF (IOLSON .NE. IWATER(IW)) GOTO 200
-               ZO(LDT) = 1.4e-02_f8*USTAR(I,J)*USTAR(I,J)/
-     &                   g0 + 1.1e-01_f8*XNU/USTAR(I,J)   
-
-               GOTO 210
- 200        CONTINUE
-            ZO(LDT) = DBLE(IZO(IOLSON))*1.e-4_f8
- 210        CONTINUE
-#endif
-
 !***** Get aerodynamic resistances Ra and Rb. ***********************
 !   The aerodynamic resistance Ra is integrated from altitude z0+d up to the
 !   altitude z1 at which the dry deposition velocity is to be referenced.
@@ -1712,12 +1650,7 @@
 
             CKUSTR = VON_KARMAN * USTAR(I,J)
 
-            ! Define REYNO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
-#if   defined( GCAP )
-            REYNO = USTAR(I,J)*ZO(LDT)/XNU 
-#else
             REYNO = USTAR(I,J)*ZO(I,J)/XNU  
-#endif
 
             IF ( OBK(I,J) .EQ. 0.0e+0_f8 )
      c           WRITE(6,211) OBK(I,J),I,J,LDT                
@@ -1725,12 +1658,7 @@
      c           'LDT=',I3/) 
             CORR1 = CZ/OBK(I,J)
 
-            ! Define Z0OBK for GCAP or GEOS met fields (swu, bmy, 5/25/05)
-#if   defined( GCAP )
-            Z0OBK = ZO(LDT)/OBK(I,J)
-#else
             Z0OBK = ZO(I,J)/OBK(I,J) 
-#endif
 
             LRGERA(I,J) = .FALSE.
             ! Add option for non-local PBL (Lin, 03/31/09) 
@@ -1840,20 +1768,11 @@
 
             RA = MIN(RA,1.e+4_f8)
 
-#if   defined( GCAP )
-            ! Debug output for GISS/GCAP model (swu, bmy, 5/25/05)
-            IF (RA .LT. 0.) THEN
-               WRITE (6,1001) I,J,RA,CZ,ZO(LDT),OBK(I,J)
-               RA = 0.0e+0_f8
-            ENDIF
-#else
-            ! For GEOS-CTM, We use ZO(IIPAR,JJPAR)
-            ! Also, if RA is < 0, set RA = 0 (bmy, 11/12/99)
+            ! If RA is < 0, set RA = 0 (bmy, 11/12/99)
             IF (RA .LT. 0.e+0_f8) THEN
                WRITE (6,1001) I,J,RA,CZ,ZO(I,J),OBK(I,J)  
                RA = 0.0e+0_f8
             ENDIF
-#endif
  1001       FORMAT('WARNING: RA < 0 IN SUBROUTINE DEPVEL',
      &             2I4,4(1X,E12.5))
 !* Get total resistance for deposition - loop over species.
@@ -1918,9 +1837,7 @@
                PRINT*, 'CFRAC    = ', CFRAC(I,J)
                PRINT*, 'ZH       = ', ZH(I,J)
                PRINT*, 'LRGERA   = ', LRGERA(I,J)
-#if !defined( GCAP )
                PRINT*, 'ZO       = ', ZO(I,J)
-#endif
                PRINT*, 'STOP in depvel.f!'
                CALL CLEANUP
                STOP
@@ -1945,9 +1862,7 @@
                PRINT*, 'CFRAC    = ', CFRAC(I,J)
                PRINT*, 'ZH       = ', ZH(I,J)
                PRINT*, 'LRGERA   = ', LRGERA(I,J)
-#if !defined( GCAP )
                PRINT*, 'ZO       = ', ZO(I,J)
-#endif
                CALL CLEANUP
                STOP
 !$OMP END CRITICAL
@@ -2144,6 +2059,8 @@
 !  18 Dec 2014 - R. Yantosca - Now read DRYCOEFF at REAL*8 precision and
 !                              then cast to flexible precision
 !  13 Mar 2015 - R. Yantosca - Replace DATA_DIR_1x1 w/ CHEM_INPUTS_DIR
+!  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
+!                              now the default.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2173,12 +2090,8 @@
       ! Open and read data from the netCDF file
       !=================================================================
 
-      ! Pick the proper input file for Olson 1992 or Olson 2001
-      IF ( Input_Opt%USE_OLSON_2001 ) THEN
-         nc_file = 'Olson_2001_Drydep_Inputs.nc'
-      ELSE
-         nc_file = 'Olson_1992_Drydep_Inputs.nc'
-      ENDIF
+      ! Input file for Olson 2001
+      nc_file = 'Olson_2001_Drydep_Inputs.nc'
 
       ! Open file for reading (construct full data path)
       nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 
@@ -2347,11 +2260,9 @@
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
-      ! If using Olson 2001 land map, change IRI for coniferous forests
+      ! For Olson 2001 land map, change IRI for coniferous forests
       ! to match IRI for deciduous forests (skim, mps, 2/3/14)
-      IF ( Input_Opt%USE_OLSON_2001 ) THEN
-         IRI(3) = 200
-      ENDIF
+      IRI(3) = 200
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN

@@ -77,6 +77,7 @@
 !  12 May 2015 - K. Travis   - Updated CH4 values with Version: 2014-06-24 
 !                              for 2008-2013.
 !  12 May 2015 - R. Yantosca - Added ProTeX headers
+!  13 Sep 2017 - M. Sulprizio- Add values for 2014-2016 from K. Travis
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -311,7 +312,25 @@
                A0030S = 1773.37e+0_fp 
                A0030N = 1830.84e+0_fp
                A3090N = 1893.50e+0_fp 
+
+            CASE( 2014 ) !krt
+               A3090S = 1774.15e+0_fp
+               A0030S = 1782.13e+0_fp 
+               A0030N = 1835.05e+0_fp 
+               A3090N = 1901.68e+0_fp 
+
+            CASE( 2015 ) !krt
+               A3090S = 1785.29e+0_fp
+               A0030S = 1792.69e+0_fp 
+               A0030N = 1858.34e+0_fp 
+               A3090N = 1912.05e+0_fp 
                
+            CASE( 2016 ) !krt
+               A3090S = 1791.99e+0_fp
+               A0030S = 1798.98e+0_fp 
+               A0030N = 1866.20e+0_fp 
+               A3090N = 1922.10e+0_fp 
+
             ! Future year 2030
             CASE( 2025:2035 )
             

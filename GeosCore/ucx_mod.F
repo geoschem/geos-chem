@@ -1780,12 +1780,6 @@
 !110   FORMAT(91E10.3)
 !#elif defined( GRID4x5 )
 !110   FORMAT(46E10.3)
-!#elif defined( GRID05x0666 )   && defined( NESTED_CH )
-!110   FORMAT(133E10.3)
-!#elif defined( GRID05x0666 )   && defined( NESTED_NA )
-!110   FORMAT(121E10.3)
-!#elif defined( GRID05x0666 )   && defined( NESTED_EU )
-!110   FORMAT(81E10.3)
 !#elif defined( GRID025x03125 ) && defined( NESTED_CH )
 !110   FORMAT(161E10.3)
 !#elif defined( GRID025x03125 ) && defined( NESTED_NA )
@@ -2055,12 +2049,6 @@
 110   FORMAT(91E10.3)
 #elif defined( GRID4x5 )
 110   FORMAT(46E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_CH )
-110   FORMAT(133E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_NA )
-110   FORMAT(121E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_EU )
-110   FORMAT(81E10.3)
 #elif defined( GRID05x0625 )   && defined( NESTED_AS )
 110   FORMAT(133E10.3)
 #elif defined( GRID05x0625 )   && defined( NESTED_NA )
@@ -5685,14 +5673,6 @@
       ! Initialize GEOS-Chem species array [kg/kg dry]
       Spc => State_Chm%Species
 
-      ! If specific humidity will be updated, set previous humidity to
-      ! to current humidity prior to change. This is used to preserve
-      ! species mass in mixing ratio update following moisture change
-      ! (ewl, 10/29/15)
-      IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
-         State_Met%SPHU_prev = State_Met%SPHU
-      ENDIF
-
       ! Error trap: make sure id_H2O is defined. There are instances 
       ! in GEOS-5 where we want to call this routine even with UCX
       ! turned off, in which case id_H2O might be undefined.
@@ -5729,10 +5709,6 @@
             ! using transported H2O [kg/kg dry] (ewl, 7/18/16)
             SPHU_kgkg =  Spc(I,J,L,id_H2O) / 
      &                  ( 1.0e+0_fp + Spc(I,J,L,id_H2O) ) 
-
-            ! Set previous humidity to current humidity prior to update
-            ! (ewl, 10/28/15)
-            State_Met%SPHU_prev(I,J,L) = State_Met%SPHU(I,J,L)
 
             ! Set State_Met specific humidity [g/kg]
             State_Met%SPHU(I,J,L) = SPHU_kgkg * 1.e+3_fp
@@ -6527,12 +6503,6 @@
 110   FORMAT(91E10.3)
 #elif defined( GRID4x5 )
 110   FORMAT(46E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_CH )
-110   FORMAT(133E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_NA )
-110   FORMAT(121E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_EU )
-110   FORMAT(81E10.3)
 #elif defined( GRID05x0625 )   && defined( NESTED_AS )
 110   FORMAT(133E10.3)
 #elif defined( GRID05x0625 )   && defined( NESTED_NA )

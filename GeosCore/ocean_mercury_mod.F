@@ -157,7 +157,7 @@
       PUBLIC :: CHECK_OCEAN_MERCURY   ! Call from restart_mod for nc rst (ewl)
       PUBLIC :: CLEANUP_OCEAN_MERCURY
       PUBLIC :: OCEAN_MERCURY_FLUX
-      PUBLIC :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
+      PUBLIC :: LDYNSEASALT, LPOLARBR, LBRCHEM, LBROCHEM
       PUBLIC :: LGEIA05 !(add for 2005 GEIA, eck 10/19/11)
       PUBLIC :: LVEGEMIS ! jaf
       PUBLIC :: LRED_JNO2,   LGEOSLWC
@@ -233,7 +233,7 @@
 
       ! Logical switches for the mercury simulation, all of which are 
       ! set in INIT_MERCURY (cdh, 9/1/09)
-      LOGICAL   :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
+      LOGICAL   :: LDYNSEASALT, LPOLARBR, LBRCHEM, LBROCHEM
       LOGICAL   :: LGEIA05 !eck, 10/19/11
       LOGICAL   :: LVEGEMIS ! jaf
       LOGICAL   :: LRED_JNO2,   LGEOSLWC
@@ -599,8 +599,7 @@
         !       4x5 gets read in as mol/mol and 2x2.5 gets read in
         !       as ppb, so only 4x5 needs to be scaled by 1d9.
         !       (hma, 20120104)
-        ! 0..5x0.666 file is regridded from 4x5 file, yzh, 12/15/12
-#if defined( GRID4x5 ) || defined( GRID05x0666 )
+#if defined( GRID4x5 )
         BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) *
      &                     State_Met%AIRDEN(I,J,L)  )
 #elif defined( GRID2x25 )
@@ -729,23 +728,10 @@
       ! Intialize
       SNOW_Hg2aq = 0d0
 
-! FRSEAICE, FRSNO only defined in MERRA, so need to treat these differently
-! in older code versions (jaf, 6/19/13)
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       IS_OPEN_OCEAN = ( ( State_Met%FROCEAN(I,J) - 
      &                    State_Met%FRSEAICE(I,J) ) > 0e+0_fpp )
       IS_OPEN_LAND  = ( ( State_Met%FRLAND(I,J)  - 
      &                    State_Met%FRSNO(I,J)    ) > 0e+0_fpp )
-#elif defined( GEOS_5 )
-      IS_OPEN_OCEAN = ( State_Met%FROCEAN(I,J) > 0e+0_fpp .AND.
-     &                  .NOT. IS_ICE( I, J, State_Met ) )
-      IS_OPEN_LAND  = ( IS_LAND( I, J, State_Met ) .AND.
-     &                  ( State_Met%SNOMAS(I,J) < 10e+0_fpp ) )
-#else
-      IS_OPEN_OCEAN = ( .NOT. IS_ICE( I, J, State_Met ) )
-      IS_OPEN_LAND  = ( IS_LAND( I, J, State_Met) .AND.
-     &                  ( State_Met%SNOW(I,J) < 10e+0_fpp ) )
-#endif
 
       IS_MELT = ( State_Met%TS(I,J) >= 276e+0_fpp )
 
@@ -1225,12 +1211,11 @@
          ! Grid-box latitude [degrees]
          Y = GET_YMID( I, J, 1 )
 
-         ! Use fractional land type information in MERRA (jaf, 4/26/11)
+         ! Use fractional land type information from met fields (jaf, 4/26/11)
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction.
          ! We now compute ocean chemistry for entire ocean grid box,
          ! irrespective of ice cover (jaf, 11/28/11)
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          NPP_tot = NPP_tot + NPP(I,J) * A_M2 * State_Met%FROCEAN(I,J)
          A_ocean = A_ocean + A_M2 * State_Met%FROCEAN(I,J)
          IF ( Y >= 70 ) THEN
@@ -1239,24 +1224,6 @@
      &      A_ARCTIC_OCEAN = A_ARCTIC_OCEAN + A_M2 
      &                     * State_Met%FROCEAN(I,J)
          ENDIF
-#elif defined(GEOS_5)
-         NPP_tot = NPP_tot + NPP(I,J) * A_M2 * State_Met%FROCEAN(I,J)
-         A_ocean = A_ocean + A_M2 * State_Met%FROCEAN(I,J)
-         IF ( Y >= 70 ) THEN
-            IF ( State_Met%FROCEAN(I,J) > 0d0 )
-     &      A_ARCTIC_OCEAN = A_ARCTIC_OCEAN + A_M2 
-     &                     * State_Met%FROCEAN(I,J)
-         ENDIF
-#else
-         NPP_tot = NPP_tot+ NPP(I,J) * A_M2 *
-     &             ( 1e+0_fpp - State_Met%FRCLND(I,J))
-         A_ocean = A_ocean + A_M2 * ( 1e+0_fpp - State_Met%FRCLND(I,J) ) 
-         IF ( Y >= 70 ) THEN
-            IF ( State_Met%FROCEAN(I,J) > 0d0 )
-     &      A_ARCTIC_OCEAN = A_ARCTIC_OCEAN + A_M2 
-     &                     * ( 1e+0_fpp - State_Met%FRCLND(I,J) )
-         ENDIF
-#endif
 
       ENDDO
       ENDDO
@@ -1346,7 +1313,7 @@
          IF (MLDcm .LT. 0e+0_fpp) MLDcm = 0e+0_fpp
 
          ! Get fractions of land and ocean in the grid box [unitless]
-         ! Use fractional land type information in MERRA. Also make sure
+         ! Use fractional land type information from met fields. Also make sure
          ! we do not use boxes that are mostly sea ice for consistency
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction. Don't let the fraction
@@ -1354,12 +1321,11 @@
          !---------------------------------------------------------------
          ! Updated to distinguish between the fraction of the box that is
          ! open ocean and that which is ocean at depth (i.e. surface is
-         ! either ocean or ice). Unless MERRA is used, these are equal.
-         ! For MERRA, we perform ocean chemistry whether or not there is
+         ! either ocean or ice).
+         ! We perform ocean chemistry whether or not there is
          ! ice cover, but ice will reduce both solar radiation input to
          ! ocean and mercury deposition to ocean (jaf, 11/28/11)
          !---------------------------------------------------------------
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 !         FRAC_L       = State_Met%FRLAND(I,J)
 !         FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
 !     &                       State_Met%FRSEAICE(I,J), 0e+0_fpp )
@@ -1370,29 +1336,6 @@
          FRAC_OCEAN_OR_ICE = State_Met%FROCEAN(I,J)
          FRAC_O            = FRAC_OCEAN_OR_ICE 
          IS_OCEAN_BOX      = ( FRAC_OCEAN_OR_ICE > 0e+0_fpp ) 
-#elif defined(GEOS_5)
-! Update to make these more appropriate in GEOS-5 (jaf, 05/27/13)
-! If it's a sea ice box, then ocean/ice fraction=1, open ocean frac=0
-! If it's a non-sea ice ocean box, then ocean/ice fraction=1, open ocean
-! frac = frac_o
-! Note that GEOS-5 met includes FRLAND, FRLANDICE, and FROCEAN but not
-! FRSEAICE
-         FRAC_OCEAN_OR_ICE = State_Met%FROCEAN(I,J)
-         FRAC_O            = FRAC_OCEAN_OR_ICE
-         IS_OCEAN_BOX      = ( FRAC_OCEAN_OR_ICE > 0d0 ) 
-         IF ( IS_ICE( I, J, State_Met ) ) THEN
-           FRAC_OPEN_OCEAN = 0e+0_fpp
-         ELSE
-           FRAC_OPEN_OCEAN = 1e+0_fpp
-         ENDIF
-#else
-!         FRAC_L       = State_Met%FRCLND(I,J)
-!         FRAC_O       = 1e+0_fpp - FRAC_L
-         FRAC_O            = 1e+0_fpp - State_Met%FRCLND(I,J)
-         FRAC_OPEN_OCEAN   = FRAC_O
-         FRAC_OCEAN_OR_ICE = FRAC_O
-         IS_OCEAN_BOX = ( IS_WATER( I, J, State_Met ) )
-#endif
 
          ! Change ocean mass due to mixed layer depth change
          ! Keep before next IF so that we adjust mass in ice-covered boxes
@@ -1440,22 +1383,9 @@
             EC     = (EC_w + ( EC_doc * C_doc * ( NPP(I,J) / NPP_avg ) )
      &               + ( ECchla * CHL(I,J) / 1000 ) )             
 
-            ! NOTE: State_Met%RADSWG is net radiation at ground for all
-            ! MET fields except GEOS-FP and MERRA2. For those data sets,
-            ! net radiation was not processed and therefore we use
-            ! incident radiation at ground. We split them up below for
-            ! clarity, using the new SWGDN field for incident radiation.
-            ! SWGDN is also available for MERRA but we do not use it
-            ! here to preserve the legacy method (ewl, 9/23/15)
-#if defined ( GEOS_FP ) || defined ( MERRA2 )
             RADz   = ( 1 / ( MLDcm * 1e-2_fpp ))
      &               * (State_Met%SWGDN(I,J) / EC )    
      &               * ( 1 - EXP( -EC * ( MLDcm * 1e-2_fpp) ) )
-#else
-            RADz   = ( 1 / ( MLDcm * 1e-2_fpp ))
-     &               * (State_Met%RADSWG(I,J) / EC )    
-     &               * ( 1 - EXP( -EC * ( MLDcm * 1e-2_fpp) ) )
-#endif
 
             ! Reduce RADz in fractional sea ice boxes to only include
             ! the fraction of open ocean (i.e. assume zero light
@@ -2655,19 +2585,15 @@
       A_M2   = GET_AREA_M2( I, J, 1 )
 
       ! Fraction of box that is ocean
-      ! Use fractional land type information in MERRA (jaf, 4/26/11)
+      ! Use fractional land type information from met fields (jaf, 4/26/11)
       ! FROCEAN is a constant, so to get correct ocean fraction we
       ! need to subtract the sea ice fraction.
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       ! We now apply ocean processes, including MLD adjustment, to
       ! entire ocean grid box, irrespective of sea ice cover (jaf,
       ! 11/28/11)
 !      FRAC_O     = MAX( State_Met%FROCEAN(I,J) - 
 !     &                  State_Met%FRSEAICE(I,J), 0d0)
       FRAC_O     = State_Met%FROCEAN(I,J)
-#else
-      FRAC_O = 1e+0_fpp - State_Met%FRCLND(I,J)
-#endif
 
       ! Molecular weight of Hg (valid for all tagged tracers)
       MHg    = State_Chm%SpcData(ID_Hg_tot)%Info%emMW_g * 1e-3_fpp

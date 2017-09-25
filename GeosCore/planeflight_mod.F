@@ -1807,7 +1807,6 @@
                   CASE ( 1010 )
                      VARI(V) = State_Met%RH(I,J,L)
 
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
                   !--------------------------
                   ! GEOS-Chem SEAICE frac's
                   !--------------------------
@@ -1831,7 +1830,6 @@
                      VARI(V) = State_Met%SEAICE80(I,J)
                   CASE ( 1109 )
                      VARI(V) = State_Met%SEAICE90(I,J)
-#endif
 
                   !--------------------------
                   ! Column aerosol optical 

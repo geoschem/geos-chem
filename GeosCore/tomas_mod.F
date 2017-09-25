@@ -128,6 +128,8 @@
 !  02 Aug 2016 - M. Sulprizio- Move public array H2SO4RATE array here from
 !                              diag_pl_mod.F and rename to H2SO4_RATE to avoid
 !                              confusion with local variables
+!  24 Aug 2017 - M. Sulprizio- Remove SGCTSCALE definitions for obsolete grids
+
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -290,17 +292,10 @@
 #endif
 
       ! Define subgrid coagulation timescale (win, 10/28/08)
-
 #if   defined( GRID4x5   ) 
       REAL*4 :: SGCTSCALE = 10.*3600.        ! 10 hours
 #elif defined( GRID2x25  )
       REAL*4 :: SGCTSCALE = 5.*3600.    
-#elif defined( GRID1x125 )
-      REAL*4 :: SGCTSCALE = 2.*3600.    
-#elif defined( GRID1x1   ) 
-      REAL*4 :: SGCTSCALE = 2.*3600.    
-#elif defined( GRID05x0666 ) 
-      REAL*4 :: SGCTSCALE = 1.*3600.
 #elif defined( GRID05x0625 )
       ! Copy the 05x0666 timescale for now
       REAL*4 :: SGCTSCALE = 1.*3600.

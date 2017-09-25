@@ -38,7 +38,8 @@ MODULE Olson_LandMap_Mod
 ! !REMARKS:
 !  Eloise Marais and the GEOS-Chem Support Team updated the Olson 2001 
 !  landcover dataset and corresponding GEOS-Chem modules in 2012. The Olson
-!  2001 landmap superceded the Olson 1992 landmap starting following v9-01-03. 
+!  2001 landmap superceded the Olson 1992 landmap starting following v9-01-03.
+!  The option to use Olson 1992 has been removed from v11-02 and later. 
 !  The following text is taken from the data processing README:
 !
 !  "The Olson 2001 landcover map is at a native resolution of 1km x 1km. I've 
@@ -210,6 +211,8 @@ MODULE Olson_LandMap_Mod
 !  18 Oct 2016 - E. Lundgren - Add GCHP routine for computing landmap variables
 !  02 Nov 2016 - E. Lundgren - Remove N_OLSON since same as global NSURFTYPE
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
+!                              now the default.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -420,29 +423,12 @@ CONTAINS
     !======================================================================
     ! Initialize variables
     !======================================================================
-    IF ( Input_Opt%USE_OLSON_2001 ) THEN
 
-       !--------------------------------
-       ! Settings for Olson 2001 grid
-       !--------------------------------
-       I_OLSON = 1440                                     ! # lons (0.25x0.25)
-       J_OLSON = 720                                      ! # lats (0.25x0.25)
-       D_LON   = 0.25e+0_fp                                   ! Delta lon [degrees]
-       D_LAT   = 0.25e+0_fp                                   ! Delta lat [degrees]
-       nc_file = 'Olson_2001_Land_Map.025x025.generic.nc' ! Input file name
-
-    ELSE
-
-       !--------------------------------
-       ! Settings for Olson 1992 grid
-       !--------------------------------
-       I_OLSON = 720                                      ! # lons (0.5x0.5)
-       J_OLSON = 360                                      ! # lats (0.5x0.5)
-       D_LON   = 0.5e+0_fp                                    ! Delta lon [degrees]
-       D_LAT   = 0.5e+0_fp                                    ! Delta lat [degrees]
-       nc_file = 'Olson_1992_Land_Map.05x05.generic.nc'   ! Input file name
-
-    ENDIF
+    I_OLSON = 1440                                     ! # lons (0.25x0.25)
+    J_OLSON = 720                                      ! # lats (0.25x0.25)
+    D_LON   = 0.25e+0_fp                               ! Delta lon [degrees]
+    D_LAT   = 0.25e+0_fp                               ! Delta lat [degrees]
+    nc_file = 'Olson_2001_Land_Map.025x025.generic.nc' ! Input file name
 
     ! Allocate arrays
     ALLOCATE( lon  ( I_OLSON             ), STAT=as )  
@@ -677,7 +663,7 @@ CONTAINS
 ! that are too far away from the GEOS-CHEM GRID BOX.  This can speed up
 ! the Olson computation by a factor of 100 or more!
 !
-#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
+#if defined( GRID05x0625 ) || defined( GRID025x03125 )
     REAL(fp), PARAMETER :: latThresh = 1e+0_fp   ! Lat threshold, nested grid
     REAL(fp), PARAMETER :: lonThresh = 1e+0_fp   ! Lon threshold, nested grid
 #else

@@ -20,7 +20,6 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_HG2_SNOWPACK
       USE DEPO_MERCURY_MOD,  ONLY : LHGSNOW
       USE OCEAN_MERCURY_MOD, ONLY : LDYNSEASALT
-      USE OCEAN_MERCURY_MOD, ONLY : LGCAPEMIS
       USE OCEAN_MERCURY_MOD, ONLY : LPOLARBR
       USE OCEAN_MERCURY_MOD, ONLY : LGEIA05
       USE OCEAN_MERCURY_MOD, ONLY : LVEGEMIS
@@ -62,8 +61,6 @@
       PRIVATE :: RED_INPLUME_GRID
       PRIVATE :: DO_RED_INPLUME
       PRIVATE :: GET_HGBR_RATE
-      PRIVATE :: GET_LWC
-      PRIVATE :: GET_VCLDF
       PRIVATE :: GET_O3
       PRIVATE :: GET_OH
       PRIVATE :: GET_BR
@@ -185,6 +182,9 @@
 !  31 May 2016 - E. Lundgren - Replace Input_Opt%XNUMOL with AVO / (emMW_g*1e-3)
 !                              where emMW_g is emitted MW from species database
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
+!                              MERRA; Also remove functions GET_VCLDF and
+!                              GET_LWC, they're no longer needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -577,49 +577,11 @@
       ! different versions for GEOS-FP vs GEOS-5 and nested vs.
       ! non-nested. Users are encouraged to test and adapt. (J. Fisher,
       ! 4/2016)
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 #if   defined( NESTED_NA )
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 9.6e-3_fp * 1.33
 #else
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 9.6e-3_fp
-#endif
-#else
-#if   defined( NESTED_NA )
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33
-#else
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp
-#endif
-#endif
-
-!!!#if defined( GRID4x5 )
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.5e+0_fp
-!!!#elif defined( GRID2x25 )
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5e-3_fp/2e+0_fp * 1.5e+0_fp
-!!!#elif defined( GRID05x0625 ) && defined( NESTED_NA )
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 * 1.5e+0_fp
-!!!#elif defined( GRID05x0666 ) && defined( NESTED_NA )
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 * 1.5e+0_fp
-!!!#else
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp  * 1.5e+0_fp
-!!!#endif   
-!!!#else
-!!!#if defined( GRID4x5 )
-!!!      !REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5d-3 / 2e+0_fp ! ref: Amos et al. (2011)
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp ! yzh, consider cloud fraction 
-!!!#elif defined( GRID2x25 )
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5e-3_fp/2e+0_fp
-!!!#elif defined( GRID05x0625 ) && defined( NESTED_NA )
-!!!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!!      !%%% Bob Y. used same value as for GRID05x0666             %%%
-!!!      !%%% Team Hg needs to supply a better value (bmy, 8/12/15) %%%
-!!!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 ! yzh
-!!!#elif defined( GRID05x0666 ) && defined( NESTED_NA )
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 ! yzh
-!!!#else
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp        ! yzh, need tune 
-!!!#endif   
-!!!#endif   
+#endif   
 
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
@@ -663,13 +625,6 @@
       IF ( FIRST ) THEN
          CALL SET_OPTIONS_FROM_HEMCO( am_I_Root, Input_Opt, RC )
 
-#if !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
-         ! Warning for non-MERRA
-         WRITE( 6, * ) 'WARNING: Polar BrO parameterization '//
-     &                 'designed for use with incident shortwave'
-         WRITE( 6, * ) 'radiation. Only net shortwave radiation '//
-     &                 'available.'
-#endif
          FIRST = .FALSE.
       ENDIF
 
@@ -796,32 +751,13 @@
 
          ! Area fraction of box with Hg0 dep. Default is dep everywhere
          F_Hg0_Dep = 1e+0_fp
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+
          ! Deposition occurs over areas that are not ocean, snow or ice
          ! (jaf, 4/26/11)
          F_Hg0_Dep = 1e+0_fp - MAX( 0e+0_fp, MIN( 1e+0_fp, 
      &        State_Met%FROCEAN(I,J) + 
      &        State_Met%FRSNO(I,J) + 
      &        State_Met%FRLANDIC(I,J) ) )
-#elif defined( GEOS_5 )
-         ! Deposition disabled for entire box if it is ocean, ice
-         ! or land with more than 10 mm water-equivalent snow depth
-         IF ( (State_Met%LWI(I,J) == 0) .OR. 
-     &        (IS_ICE(I,J, State_Met)) .OR. 
-     &        (IS_LAND(I,J, State_Met) .AND.
-     &        State_Met%SNOMAS(I,J) > 10e+0_fp) ) THEN
-            F_Hg0_Dep = 0e+0_fp
-         ENDIF
-#else
-         ! Deposition disabled for entire box if it is ocean, ice
-         ! or land with more than 10 mm water-equivalent snow depth
-         IF ( (State_Met%LWI(I,J) == 0) .OR. 
-     &        (IS_ICE(I,J, State_Met)) .OR. 
-     &        (IS_LAND(I,J, State_Met) .AND. 
-     &        State_Met%SNOW(I,J) > 10e+0_fp) ) THEN
-            F_Hg0_Dep = 0e+0_fp
-         ENDIF                 
-#endif 
 
          !------------------------------------------------------
          ! Total deposition frequencies, 1/s
@@ -881,13 +817,6 @@
          ! Reduction rate (requires liquid water content)
          !---------------------------------------------
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-         !---------------------------------------------
-         ! GEOS-5/MERRA: Get LWC, FC from met fields
-         ! (skim, bmy, 1/14/10)
-         !---------------------------------------------
-
          ! Get cloud fraction from met fields [unitless]
          FC = State_Met%CLDF(I,J,L)
 
@@ -904,22 +833,6 @@
          ! Adopted for mercury chemistry (yzh, 11/9/2011)
          LWC     = SAFE_DIV( LWC, FC, 0e+0_fp )
 
-#else
-         !---------------------------------------------
-         ! Otherwise, compute FC, LWC as before
-         !---------------------------------------------    
-
-         ! Get volume fraction of gridbox containing 
-         ! cloud [unitless], following Sundqvist et al 1989.
-         FC          = GET_VCLDF( I, J, L, State_Met  )
-
-         ! Get liquid water content in cloud (m3/m3)
-         LWC         = GET_LWC( T(I,J,L) ) 
-
-         ! There should be no liquid water when T < 258K 
-         IF ( T(I,J,L) < 258e+0_fp )  LWC = 0e+0_fp
-
-#endif
 
          ! Define fraction of in-cloud Hg(II) which is in aqueous solution
          ! [dimensionless]
@@ -3276,148 +3189,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_lwc
-!
-! !DESCRIPTION: Function GET\_LWC returns the cloud liquid water content 
-!  [m3 H2O/m3 air] at a GEOS-CHEM grid box as a function of temperature.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_LWC( T ) RESULT( LWC )
-!
-! !USES:
-!
-
-!
-! !INPUT PARAMETERS: 
-!
-      REAL(fp), INTENT(IN) :: T     ! Temperature [K]
-!
-! !RETURN VALUE:
-!
-      REAL(fp)             :: LWC   ! Liquid water content [m3 H2O/m3 air]
-! 
-! !REVISION HISTORY: 
-!  31 Oct 2002 - R. Park     - Initial version
-!  18 Jan 2011 - R. Yantosca - Updated comments
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! GET_LWC begins here!
-      !=================================================================
-
-      ! Compute Liquid water content in [g/m3]
-      IF (T>293e+0_fp) THEN
-         LWC=0.2e+0_fp
-       ELSE IF ( T >= 280.e+0_fp .AND. T <= 293.e+0_fp ) THEN
-         LWC = 0.32e+0_fp - 0.0060e+0_fp * ( T - 273.e+0_fp ) 
- 
-      ELSE IF ( T >= 248.e+0_fp .AND. T < 280.e+0_fp ) THEN
-         LWC = 0.23e+0_fp + 0.0065e+0_fp * ( T - 273.e+0_fp )
-
-      ELSE IF ( T < 248.e+0_fp ) THEN
-         LWC = 0.07e+0_fp
-
-      ENDIF
-
-      ! Convert from [g/m3] to [m3/m3]
-      ! Units: [g H2O/m3 air] * [1 kg H2O/1000g H2O] * [m3 H2O/1000kg H2O]
-      LWC = LWC * 1.e-6_fp         
-
-      ! Return to calling program
-      END FUNCTION GET_LWC
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_vcldf 
-!
-! !DESCRIPTION: Subroutine GET\_VCLDF computes the volume cloud fraction for 
-!  Hg0 and Hg2 chemistry.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_VCLDF( I, J, L, State_Met ) RESULT( VCLDF )
-!
-! !USES:
-!
-      USE State_Met_Mod,      ONLY : MetState
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,        INTENT(IN)  :: I           ! Longitude index
-      INTEGER,        INTENT(IN)  :: J           ! Latitude index
-      INTEGER,        INTENT(IN)  :: L           ! Level index
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !RETURN VALUE:
-!
-      REAL(fp)                      :: VCLDF       ! Volume cloud fraction
-!
-! !REMARKS:
-!  References:
-!  ============================================================================
-!  (1  ) Sundqvist et al. [1989]
-! 
-! !REVISION HISTORY: 
-!  06 Dec 2004 - N. (Eckley) Selin - Copied from "sulfate_mod.f" but was made 
-!                                    into a function since we are already 
-!                                    looping over (I,J,L) in CHEM_Hg0_Hg2
-!  09 Nov 2012 - M. Payer          - Replaced all met field arrays with 
-!                                    State_Met derived type object
-!  26 Feb 2015 - E. Lundgren       - Replace GET_PCENTER and GET_PEDGE with 
-!                                    State_Met%PMID and State_Met%PEDGE. 
-!                                    Remove dependency on pressure_mod.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL(fp)             :: PRES, PSFC, RH2, R0, B0
-!
-! !DEFINED PARAMETERS:
-!
-      REAL(fp),  PARAMETER :: ZRT = 0.60e+0_fp, ZRS = 0.99e+0_fp
-	
-      !=================================================================
-      ! GET_VCLDF begins here!
-      !=================================================================
-     
-      ! Surface pressure
-      PSFC = State_Met%PEDGE(I,J,1)         
-
-      ! Pressure at center of grid box L
-      PRES = State_Met%PMID(I,J,L)
-        
-      ! RH (from "dao_mod.f") is relative humidity [%]
-      ! Convert to fraction and store in RH2
-      RH2  = State_Met%RH(I,J,L) * 1.0e-2_fp
-        
-      ! Terms from Sundqvist ???
-      R0   = ZRT + ( ZRS - ZRT ) * EXP( 1e+0_fp - ( PSFC / PRES )**2.5 )
-      B0   = ( RH2 - R0 ) / ( 1e+0_fp - R0 )
-	
-      ! Force B0 into the range 0-1
-      IF ( RH2 < R0  ) B0 = 0e+0_fp
-      IF ( B0  > 1e+0_fp ) B0 = 1e+0_fp
-
-      ! Volume cloud fraction
-      VCLDF = 1e+0_fp - SQRT( 1e+0_fp - B0 )
-
-      ! Return to calling program
-      END FUNCTION GET_VCLDF
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: get_o3
 !
 ! !DESCRIPTION: Function GET\_O3 returns monthly mean O3 for the mercury
@@ -3809,19 +3580,9 @@
       ! Prados-Roman et al. (2011). O3 used to convert BrO to Br is 5
       ! ppb, based on data from Pohler et al. (2010).
       !----------------------------------------------------------------
-! KLUDGE: can't get SWGDN in State_Met; add this later (jaf)
-! Use incident radiation at ground (State_Met%SWGDN) where available. 
-! Otherwise, use net radiation at ground (State_Met%RADSWG)
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       SWRAD         = State_Met%SWGDN(I,J)
-!      SWRAD = State_Met%RADSWG(I,J) - old code (jaf)
-! END KLUDGE
       IS_MOSTLY_ICE = ( State_Met%SEAICE00(I,J) <= 0.5e+0_fp .AND.
      &                  State_Met%SEAICE90(I,J) < 1e+0_fp )
-#else
-      SWRAD = State_Met%RADSWG(I,J)
-      IS_MOSTLY_ICE = ( State_Met%LWI(I,J) == 2 )
-#endif
 
       IF ( (LPOLARBR) .AND. (FPBL > 0e+0_fp) .AND. (IS_MOSTLY_ICE) .AND.
      &     (SWRAD > 1e+2_fp) .AND. (State_Met%TS(I,J) <= 273e+0_fp) ) 
@@ -5046,13 +4807,6 @@
       ! Switch determines whether uptake of Hg2 by sea-salt aerosol
       ! is calculated dynamically (TRUE) or uses a constant rate (FALSE)
       LDYNSEASALT = .TRUE.
-
-      ! Switch uses Bess' best-guess emissions if TRUE or emissions from
-      ! Selin et al. 2008 (+bug fixes) if FALSE
-      ! This is temporary
-      ! Bess's changes: rescale GEIA to use Streets' 2006 regional totals
-      ! With these emissions, Bess found the best chemistry results
-      LGCAPEMIS=.TRUE.
 
       ! Use GEIA 2005 inventory
       LGEIA05=.FALSE.

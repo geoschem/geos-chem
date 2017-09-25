@@ -81,7 +81,6 @@ MODULE HCOX_SeaSalt_Mod
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Defined parameters
   INTEGER, PARAMETER  :: NR_MAX = 200  ! max. # of bins per mode
 
   ! Increment of radius for Emission integration (um)
@@ -625,9 +624,6 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN   
        tmpScale = 1.0d0
-#if defined( GEOS_4 )
-       tmpScale = 0.72d0
-#endif
     ENDIF
     WindScale = tmpScale
 
