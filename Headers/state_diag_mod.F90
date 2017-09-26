@@ -540,11 +540,11 @@ CONTAINS
 
     ! If tied to drydep species then register drydep species only
     ELSEIF ( perSpecies == 'DRY' ) THEN       
-       DO D = 1, State_Chm%nDryDep
+       DO N = 1, State_Chm%nDryDep
 
           ! Get species number and pointer to the species database
-          N =  State_Chm%Map_DryDep(D)
-          SpcInfo  => State_Chm%SpcData(N)%Info
+          D =  State_Chm%Map_DryDep(N)
+          SpcInfo  => State_Chm%SpcData(D)%Info
 
           ! Set the registry name for this diagnostic and species
           thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
@@ -568,11 +568,11 @@ CONTAINS
 
     ! If tied to wetdep species then register drydep species only
     ELSEIF ( perSpecies == 'WET' ) THEN       
-       DO D = 1, State_Chm%nWetDep
+       DO N = 1, State_Chm%nWetDep
 
           ! Get species number and pointer to the species database
-          N =  State_Chm%Map_WetDep(D)
-          SpcInfo  => State_Chm%SpcData(N)%Info
+          D =  State_Chm%Map_WetDep(N)
+          SpcInfo  => State_Chm%SpcData(D)%Info
 
           ! Set the registry name for this diagnostic and species
           thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
@@ -744,11 +744,11 @@ CONTAINS
 
     ! If tied to drydep species then register drydep species only
     ELSEIF ( perSpecies == 'DRY' ) THEN       
-       DO D = 1, State_Chm%nDryDep
+       DO N = 1, State_Chm%nDryDep
 
           ! Get species number and pointer to the species database
-          N =  State_Chm%Map_DryDep(D)
-          SpcInfo  => State_Chm%SpcData(N)%Info
+          D =  State_Chm%Map_DryDep(N)
+          SpcInfo  => State_Chm%SpcData(D)%Info
 
           ! Set the registry name for this diagnostic and species
           thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
@@ -772,11 +772,11 @@ CONTAINS
 
     ! If tied to wetdep species then register drydep species only
     ELSEIF ( perSpecies == 'WET' ) THEN       
-       DO D = 1, State_Chm%nWetDep
+       DO N = 1, State_Chm%nWetDep
 
           ! Get species number and pointer to the species database
-          N =  State_Chm%Map_WetDep(D)
-          SpcInfo  => State_Chm%SpcData(N)%Info
+          D =  State_Chm%Map_WetDep(N)
+          SpcInfo  => State_Chm%SpcData(D)%Info
 
           ! Set the registry name for this diagnostic and species
           thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
@@ -948,11 +948,11 @@ CONTAINS
 
     ! If tied to drydep species then register drydep species only
     ELSEIF ( perSpecies == 'DRY' ) THEN       
-       DO D = 1, State_Chm%nDryDep
+       DO N = 1, State_Chm%nDryDep
 
           ! Get species number and pointer to the species database
-          N =  State_Chm%Map_DryDep(D)
-          SpcInfo  => State_Chm%SpcData(N)%Info
+          D =  State_Chm%Map_DryDep(N)
+          SpcInfo  => State_Chm%SpcData(D)%Info
 
           ! Set the registry name for this diagnostic and species
           thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
@@ -976,11 +976,11 @@ CONTAINS
 
     ! If tied to wetdep species then register drydep species only
     ELSEIF ( perSpecies == 'WET' ) THEN       
-       DO D = 1, State_Chm%nWetDep
+       DO N = 1, State_Chm%nWetDep
 
           ! Get species number and pointer to the species database
-          N =  State_Chm%Map_WetDep(D)
-          SpcInfo  => State_Chm%SpcData(N)%Info
+          D =  State_Chm%Map_WetDep(N)
+          SpcInfo  => State_Chm%SpcData(D)%Info
 
           ! Set the registry name for this diagnostic and species
           thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )

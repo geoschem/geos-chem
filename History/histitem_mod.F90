@@ -435,7 +435,7 @@ CONTAINS
     ! Averaging method (define from Operation)
     !--------------------------------------------
     IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
-       TempStr        = 'instananeous'
+       TempStr        = 'instantaneous'
        Item%AvgMethod = TempStr
     ELSE
        TempStr        = 'time-averaged'
