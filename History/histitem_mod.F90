@@ -615,7 +615,7 @@ CONTAINS
           IF ( RC == GC_SUCCESS ) THEN
              Item%NcChunkSizes = (/ Dims(1), Dims(2), 1, 1 /)
           ELSE
-             ErrMsg = 'Could not allocate "Item%NcChunkSizes" array!'
+             ErrMsg = 'Could not allocate "Item%NcChunkSizes" array (3d)!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -643,7 +643,7 @@ CONTAINS
              ENDIF
 
           ELSE
-             ErrMsg = 'Could not allocate "Item%NcChunkSizes" array!'
+             ErrMsg = 'Could not allocate "Item%NcChunkSizes" array (2d)!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -670,7 +670,7 @@ CONTAINS
                 Item%NcChunkSizes = (/ Dims(1), 1 /)   ! x or y
              ENDIF
           ELSE
-             ErrMsg = 'Could not allocate "Item%NcChunkSizes" array!'
+             ErrMsg = 'Could not allocate "Item%NcChunkSizes" array (1d)!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -681,11 +681,21 @@ CONTAINS
        CASE( 0 )
           ALLOCATE( Item%Data_0d, STAT=RC )
           IF ( RC == GC_SUCCESS ) THEN
-             Item%Data_0d  = 0.0_f8
+             Item%Data_0d = 0.0_f8
           ELSE
              ErrMsg = 'Could not allocate "Item%Data_0d" variable!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN             
+          ENDIF
+
+          ! Allocate the NcChunkSizes array
+          ALLOCATE( Item%NcChunkSizes( 1 ), STAT=RC )
+          IF ( RC == GC_SUCCESS ) THEN
+             Item%NcChunkSizes = (/ 1 /)
+          ELSE
+             ErrMsg = 'Could not allocate "Item%NcChunkSizes" array (0d)!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
           ENDIF
 
     END SELECT
@@ -908,7 +918,6 @@ CONTAINS
     !=======================================================================
     ! Nullify fields that are just pointing to other objects   
     !======================================================================
-
     Item%Source_0d_8 => NULL()
     Item%Source_1d   => NULL()
     Item%Source_1d_8 => NULL()
@@ -960,7 +969,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-
     IF ( ASSOCIATED( Item%NcChunkSizes ) ) THEN
        DEALLOCATE( Item%NcChunkSizes, STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN
@@ -985,4 +993,3 @@ CONTAINS
   END SUBROUTINE HistItem_Destroy
 !EOC
 END MODULE HistItem_Mod
-
