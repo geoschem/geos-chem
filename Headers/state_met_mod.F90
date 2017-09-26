@@ -21,8 +21,9 @@ MODULE State_Met_Mod
 !
 ! USES:
 !
+  USE ErrCode_Mod
   USE Precision_Mod
-  USE Registry_Mod, ONLY : MetaRegItem
+  USE Registry_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -31,9 +32,7 @@ MODULE State_Met_Mod
 !
   PUBLIC :: Init_State_Met
   PUBLIC :: Cleanup_State_Met
-  PUBLIC :: Lookup_State_Met
-  PUBLIC :: Print_State_Met
-  PUBLIC :: Get_MetField_Metadata
+  PUBLIC :: Get_Metadata_State_Met
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -285,6 +284,7 @@ MODULE State_Met_Mod
 !  26 Jun 2017 - R. Yantosca - Added StateName and Registry to type MetState
 !  27 Jun 2017 - R. Yantosca - Add fields of State_Met to the registry
 !  07 Sep 2017 - E. Lundgren - Add Register_MetField interface for init
+!  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Met and Print_State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -317,9 +317,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod
     USE CMN_SIZE_MOD, ONLY : NSURFTYPE
-    USe Registry_Mod, ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -361,7 +359,7 @@ CONTAINS
 !                              GET_VUD (wetscav_mod.F) works properly.
 !  26 Jun 2017 - R. Yantosca - Now register each variable after it's allocated
 !  24 Aug 2017 - R. Yantosca - Now register level-edged variables appropriately
-!  07 Sep 2017 - E. Lundgren - Abstract the metadata and adding to registry
+!  07 Sep 2017 - E. Lundgren - Abstract the metadata and method add to registry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -378,6 +376,7 @@ CONTAINS
     ! Initialize
     !=======================================================================
     RC    =  GC_SUCCESS
+    ThisLoc = ' -> Init_State_Met (in Headers/state_met_mod.F90)'
 
     !=======================================================================
     ! The following fields of State_Met may or may not get allocated
@@ -1906,9 +1905,19 @@ CONTAINS
     !=======================================================================
     ! Print information about the registered fields (short format)
     !=======================================================================
-    CALL Print_State_Met( am_I_Root, State_Met, RC, ShortFormat=.TRUE.)
+    if ( am_I_Root ) THEN
+       WRITE( 6, 10 )
+10     FORMAT( /, 'Registered variables contained within the State_Met object:')
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    ENDIF
+    CALL Registry_Print( am_I_Root   = am_I_Root,           &
+                         Registry    = State_Met%Registry,  &
+                         ShortFormat = .TRUE.,              &
+                         RC          = RC                  )
+
+    ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Print_State_Met"'
+       ErrMsg = 'Error encountered!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -1933,7 +1942,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_Destroy
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -2247,201 +2255,19 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Print_State_Met
+! !IROUTINE: Get_Metadata_State_Met
 !
-! !DESCRIPTION: Print information about all the registered variables
-!  contained within the State\_Met object.  This is basically a wrapper for
-!  routine REGISTRY\_PRINT in registry\_mod.F90.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Print_State_Met( am_I_Root, State_Met, RC, ShortFormat )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_Print
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Root CPU?  
-    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-    LOGICAL,        OPTIONAL    :: ShortFormat ! Print truncated info
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT) :: RC          ! Success/failure?
-!
-! !REVISION HISTORY:
-!  29 Jun 2017 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Print_State_Met (in Headers/state_met_mod.F90)'
-
-    !=======================================================================
-    ! Print info about registered variables
-    !=======================================================================
-
-    ! Header line
-    if ( am_I_Root ) THEN
-       WRITE( 6, 10 )
-10     FORMAT( /, 'Registered variables contained within the State_Met object:')
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    ENDIF
-
-    ! Print registry info in truncated format
-    CALL Registry_Print( am_I_Root   = am_I_Root,           &
-                         Registry    = State_Met%Registry,  &
-                         ShortFormat = ShortFormat,         &
-                         RC          = RC                  )
-
-    ! Trap error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "Registry_Print"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE Print_State_Met
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Lookup_State_Met
-!
-! !DESCRIPTION: Return metadata and/or a pointer to the data for any
-!  variable contained within the State\_Met object by searching for its name.
-!  This is basically a wrapper for routine REGISTRY\_LOOKUP in 
-!  registry\_mod.F90.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Lookup_State_Met( am_I_Root, State_Met,    Variable,            &
-                               RC,        Description,  Dimensions,          &
-                               KindVal,   MemoryInKb,   Rank,                &
-                               Units,     OnLevelEdges, Ptr2d,               &
-                               Ptr3d,     Ptr2d_I,      Ptr3d_I             )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_Lookup
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN)  :: am_I_Root       ! Is this the root CPU? 
-    TYPE(MetState),   INTENT(IN)  :: State_Met       ! Meteorology State
-    CHARACTER(LEN=*), INTENT(IN)  :: Variable        ! Variable name
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Required outputs
-    INTEGER,          INTENT(OUT) :: RC              ! Success or failure?
-
-    ! Optional outputs
-    CHARACTER(LEN=255),  OPTIONAL :: Description     ! Description of data
-    INTEGER,             OPTIONAL :: Dimensions(3)   ! Dimensions of data
-    INTEGER,             OPTIONAL :: KindVal         ! Numerical KIND value
-    REAL(fp),            OPTIONAL :: MemoryInKb      ! Memory usage
-    INTEGER,             OPTIONAL :: Rank            ! Size of data
-    CHARACTER(LEN=255),  OPTIONAL :: Units           ! Units of data
-    LOGICAL,             OPTIONAL :: OnLevelEdges    ! =T if data is defined
-                                                     !    on level edges
-                                                     ! =F if on centers
-
-    ! Pointers to data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr2d  (:,:  )  ! 2D flex-prec data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr3d  (:,:,:)  ! 3D flex-prec data
-    INTEGER,    POINTER, OPTIONAL :: Ptr2d_I(:,:  )  ! 2D integer data
-    INTEGER,    POINTER, OPTIONAL :: Ptr3d_I(:,:,:)  ! 3D integer data
-!
-! !REMARKS:
-!  We keep the StateName variable private to this module. Users only have
-!  to supply the name of each module variable.
-!
-! !REVISION HISTORY:
-!  29 Jun 2017 - R. Yantosca - Initial version
-!  30 Jun 2017 - R. Yantosca - Rename variables Ptr{2,3}*dI to Ptr{2,3}d_I
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Lookup_State_Met (in Headers/state_met_mod.F90)'
-
-    !=======================================================================
-    ! Look up a variable; Return metadata and/or a pointer to the data
-    !=======================================================================
-    CALL Registry_Lookup( am_I_Root    = am_I_Root,                         &
-                          Registry     = State_Met%Registry,                &
-                          State        = State_Met%State,                   &
-                          Variable     = Variable,                          &
-                          Description  = Description,                       &
-                          Dimensions   = Dimensions,                        &
-                          KindVal      = KindVal,                           &
-                          MemoryInKb   = MemoryInKb,                        &
-                          Rank         = Rank,                              &
-                          Units        = Units,                             &
-                          OnLevelEdges = OnLevelEdges,                      &
-                          Ptr2d        = Ptr2d,                             &
-                          Ptr3d        = Ptr3d,                             &
-                          Ptr2d_I      = Ptr2d_I,                           &
-                          Ptr3d_I      = Ptr3d_I,                           &
-                          RC           = RC                                )
-
-    ! Trap error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not find variable "' // TRIM( Variable ) // &
-               '" in the State_Met registry!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE Lookup_State_Met
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_MetField_Metadata
-!
-! !DESCRIPTION: Subroutine GET\_METFIELD\_METADATA retrieves basic 
+! !DESCRIPTION: Subroutine GET\_METDATA\_STATE\_MET retrieves basic 
 !  information about each State_Met field.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_MetField_Metadata( am_I_Root, Name,  Desc, Units, &
-                                    Rank,      Type,  VLoc, RC )
+  SUBROUTINE Get_Metadata_State_Met( am_I_Root, Name,  Desc, Units, &
+                                     Rank,      Type,  VLoc, RC )
 !
 ! !USES:
 !
-    USE ErrCode_Mod
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -2479,7 +2305,7 @@ CONTAINS
 
     ! Assume success
     RC    =  GC_SUCCESS
-    ThisLoc = ' -> at Get_MetField_Metadata (in Headers/state_met_mod.F90)'
+    ThisLoc = ' -> at Get_Metadata_State_Met (in Headers/state_met_mod.F90)'
 
     ! Optional arguments present?
     isDesc  = PRESENT( Desc  )
@@ -3195,7 +3021,7 @@ CONTAINS
        VLoc = VLocationNone
     ENDIF
 
-   END SUBROUTINE Get_MetField_Metadata
+   END SUBROUTINE Get_Metadata_State_Met
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3215,7 +3041,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 !
@@ -3251,14 +3076,13 @@ CONTAINS
     rank = -1
     type = -1
     vloc = -1
-    ThisLoc        = ' -> at Register_MetField_Rfp_2D ' // &
-                     '(in Headers/state_met_mod.F90)'
+    ThisLoc = ' -> at Register_MetField_Rfp_2D (in Headers/state_met_mod.F90)'
 
-    CALL Get_MetField_Metadata( am_I_Root,   TRIM(VarName),  desc=desc, &
-                                units=units, rank=rank,      type=type, &
-                                vloc=vloc,   RC=RC                     )
+    CALL Get_Metadata_State_Met( am_I_Root,   TRIM(VarName),  desc=desc, &
+                                 units=units, rank=rank,      type=type, &
+                                 vloc=vloc,   RC=RC                     )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_MetField_Metadata'
+       ErrMsg = 'Error encountered in Get_Metadata_State_Met'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -3300,8 +3124,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 !
@@ -3331,15 +3153,14 @@ CONTAINS
     INTEGER                :: rank, type,  vloc
 
     ! Initialize
-    RC             = GC_SUCCESS
-    ThisLoc        = ' -> at Register_MetField_Rfp_3D ' // &
-                     '(in Headers/state_met_mod.F90)'
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_MetField_Rfp_3D (in Headers/state_met_mod.F90)'
 
-    CALL Get_MetField_Metadata( am_I_Root,   TRIM(VarName),  desc=desc, &
-                                units=units, rank=rank,      type=type, &
-                                vloc=vloc,   RC=RC                     )
+    CALL Get_Metadata_State_Met( am_I_Root,   TRIM(VarName),  desc=desc, &
+                                 units=units, rank=rank,      type=type, &
+                                 vloc=vloc,   RC=RC                     )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_MetField_Metadata'
+       ErrMsg = 'Error encountered in Get_Metadata_State_Met'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -3381,8 +3202,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 !
@@ -3412,15 +3231,14 @@ CONTAINS
     INTEGER                :: rank, type,  vloc
 
     ! Initialize
-    RC             = GC_SUCCESS
-    ThisLoc        = ' -> at Register_MetField_Int_2D ' // &
-                     '(in Headers/state_met_mod.F90)'
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_MetField_Int_2D (in Headers/state_met_mod.F90)'
 
-    CALL Get_MetField_Metadata( am_I_Root,   TRIM(VarName),  desc=desc, &
-                                units=units, rank=rank,      type=type, &
-                                vloc=vloc,   RC=RC                     )
+    CALL Get_Metadata_State_Met( am_I_Root,   TRIM(VarName),  desc=desc, &
+                                 units=units, rank=rank,      type=type, &
+                                 vloc=vloc,   RC=RC                     )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_MetField_Metadata'
+       ErrMsg = 'Error encountered in Get_Metadata_State_Met'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -3462,8 +3280,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 !
@@ -3493,15 +3309,14 @@ CONTAINS
     INTEGER                :: rank, type,  vloc
 
     ! Initialize
-    RC             = GC_SUCCESS
-    ThisLoc        = ' -> at Register_MetField_Int_3D ' // &
-                     '(in Headers/state_met_mod.F90)'
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_MetField_Int_3D (in Headers/state_met_mod.F90)'
 
-    CALL Get_MetField_Metadata( am_I_Root,   TRIM(VarName),  desc=desc, &
-                                units=units, rank=rank,      type=type, &
-                                vloc=vloc,   RC=RC                     )
+    CALL Get_Metadata_State_Met( am_I_Root,   TRIM(VarName),  desc=desc, &
+                                 units=units, rank=rank,      type=type, &
+                                 vloc=vloc,   RC=RC                     )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_MetField_Metadata'
+       ErrMsg = 'Error encountered in Get_Metadata_State_Met'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF

@@ -1203,6 +1203,7 @@ CONTAINS
     USE Input_Opt_Mod,         ONLY : OptInput
     USE MetaHistContainer_Mod
     USE MetaHistItem_Mod
+    USE Registry_Mod,          ONLY : Registry_Lookup
     USE State_Chm_Mod
     USE State_Diag_Mod
     USE State_Met_Mod
@@ -1237,6 +1238,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  03 Aug 2017 - R. Yantosca - Inherit operation code from the Collection
+!  26 Sep 2017 - E. Lundgren - Replace Lookup_State_xx calls with direct
+!                              calls to Registry_Lookup.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1299,18 +1302,19 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Chemistry State
        !--------------------------------------------------------------------
-       CALL Lookup_State_Chm(  am_I_Root    = am_I_Root,                     &
-                               State_Chm    = State_Chm,                     &
-                               Variable     = ItemName,                      &
-                               Description  = Description,                   &
-                               Dimensions   = Dimensions,                    &
-                               KindVal      = KindVal,                       &
-                               Units        = Units,                         &
-                               OnLevelEdges = OnLevelEdges,                  &
-                               Rank         = Rank,                          &
-                               Ptr3d        = Ptr3d,                         &
-                               Ptr3d_4      = Ptr3d_4,                       &
-                               RC           = RC                            )
+       CALL Registry_Lookup( am_I_Root    = am_I_Root,                       &
+                             Registry     = State_Chm%Registry,              &
+                             State        = State_Chm%State,                 &
+                             Variable     = ItemName,                        &
+                             Description  = Description,                     &
+                             Dimensions   = Dimensions,                      &
+                             KindVal      = KindVal,                         &
+                             Rank         = Rank,                            &
+                             Units        = Units,                           &
+                             OnLevelEdges = OnLevelEdges,                    &
+                             Ptr3d        = Ptr3d,                           &
+                             Ptr3d_4      = Ptr3d_4,                         &
+                             RC           = RC                                 )
 
        ! Trap potential not found error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1325,20 +1329,21 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Meteorology State
        !--------------------------------------------------------------------
-       CALL Lookup_State_Met(  am_I_Root    = am_I_Root,                     &
-                               State_Met    = State_Met,                     &
-                               Variable     = ItemName,                      &
-                               Description  = Description,                   &
-                               Dimensions   = Dimensions,                    &
-                               KindVal      = KindVal,                       &
-                               Rank         = Rank,                          &
-                               Units        = Units,                         &
-                               OnLevelEdges = OnLevelEdges,                  &
-                               Ptr2d        = Ptr2d,                         &
-                               Ptr2d_I      = Ptr2d_I,                       &
-                               Ptr3d        = Ptr3d,                         &
-                               Ptr3d_I      = Ptr3d_I,                       &
-                               RC           = RC                            )
+       CALL Registry_Lookup( am_I_Root    = am_I_Root,                      &
+                             Registry     = State_Met%Registry,             &
+                             State        = State_Met%State,                &
+                             Variable     = ItemName,                       &
+                             Description  = Description,                    &
+                             Dimensions   = Dimensions,                     &
+                             KindVal      = KindVal,                        &
+                             Rank         = Rank,                           &
+                             Units        = Units,                          &
+                             OnLevelEdges = OnLevelEdges,                   &
+                             Ptr2d        = Ptr2d,                          &
+                             Ptr3d        = Ptr3d,                          &
+                             Ptr2d_I      = Ptr2d_I,                        &
+                             Ptr3d_I      = Ptr3d_I,                        &
+                             RC           = RC                                )
 
        ! Trap potential not found error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1353,19 +1358,21 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Diagnostic State 
        !--------------------------------------------------------------------
-       PRINT *, ItemName
-       CALL Lookup_State_Diag( am_I_Root    = am_I_Root,                     &
-                               State_Diag   = State_Diag,                    &
-                               Variable     = ItemName,                      &
-                               Description  = Description,                   &
-                               Dimensions   = Dimensions,                    &
-                               KindVal      = KindVal,                       &
-                               Rank         = Rank,                          &
-                               Units        = Units,                         &
-                               OnLevelEdges = OnLevelEdges,                  &
-                               Ptr2d_4      = Ptr2d_4,                       &
-                               Ptr3d_4      = Ptr3d_4,                       &
-                               RC           = RC                            )
+       CALL Registry_Lookup( am_I_Root    = am_I_Root,                       &
+                             Registry     = State_Diag%Registry,             &
+                             State        = State_Diag%State,                &
+                             Variable     = ItemName,                        &
+                             Description  = Description,                     &
+                             Dimensions   = Dimensions,                      &
+                             KindVal      = KindVal,                         &
+                             Rank         = Rank,                            &
+                             Units        = Units,                           &
+                             OnLevelEdges = OnLevelEdges,                    &
+                             Ptr2d_4      = Ptr2d_4,                         &
+                             Ptr3d_4      = Ptr3d_4,                         &
+                             Ptr2d_I      = Ptr2d_I,                         &
+                             Ptr3d_I      = Ptr3d_I,                         &
+                             RC           = RC                                 )
 
        ! Trap potential not found error
        IF ( RC /= GC_SUCCESS ) THEN

@@ -22,6 +22,22 @@ MODULE Registry_Mod
   IMPLICIT NONE
   PRIVATE
 !
+! !PUBLIC MEMBER FUNCTIONS:
+!
+  PUBLIC  :: Registry_AddField
+  PUBLIC  :: Registry_Lookup
+  PUBLIC  :: Registry_Print
+  PUBLIC  :: Registry_Destroy
+  PUBLIC  :: To_UpperCase ! consider putting in common util file (ewl)
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: MetaRegItem_AddNew
+  PRIVATE :: MetaRegItem_Create
+  PRIVATE :: MetaRegItem_Insert
+  PRIVATE :: MetaRegItem_Destroy
+  PRIVATE :: Str2Hash
+!
 ! ! PUBLIC TYPES::
 !
   !=========================================================================
@@ -87,22 +103,6 @@ MODULE Registry_Mod
      TYPE(MetaRegItem), POINTER :: Next => NULL()   ! Pointer to next node
      TYPE(RegItem    ), POINTER :: Item => NULL()   ! Registry item within
   END TYPE MetaRegItem
-!
-! !PUBLIC MEMBER FUNCTIONS:
-!
-  PUBLIC  :: Registry_AddField
-  PUBLIC  :: Registry_Lookup
-  PUBLIC  :: Registry_Print
-  PUBLIC  :: Registry_Destroy
-  PUBLIC  :: To_UpperCase ! consider putting in common util file (ewl)
-!
-! !PRIVATE MEMBER FUNCTIONS:
-!
-  PRIVATE :: MetaRegItem_AddNew
-  PRIVATE :: MetaRegItem_Create
-  PRIVATE :: MetaRegItem_Insert
-  PRIVATE :: MetaRegItem_Destroy
-  PRIVATE :: Str2Hash
 !
 ! !DEFINED PARAMETERS:
 !
@@ -196,7 +196,8 @@ CONTAINS
 ! !REMARKS:
 !  Internally, the REGISTRY ITEM will be refered to by its fullname field,
 !  which is "STATE_VARIABLE".  Fullname will be defined automatically from
-!  the STATE and VARIABLE inputs.
+!  the STATE and VARIABLE inputs as STATE_VARIABLE, unless variable is in
+!  State_Diag, in which case STATE_ is not appended as a prefix.
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version
@@ -212,7 +213,7 @@ CONTAINS
 !  25 Aug 2017 - R. Yantosca - Added Data0d_8 and Data1d_8 so that we can
 !                               register netCDF index variables.  Most other
 !                               data should be either REAL(fp) or REAL(f4)
-!  25 Sep 2017 - E. Lundgren - Only use state name prefix if not diag state
+!  25 Sep 2017 - E. Lundgren - Only use state name prefix if not from state_diag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -240,7 +241,7 @@ CONTAINS
     ThisLoc        = ' -> at Registry_AddField (in Headers/registry_mod.F90)'
     TmpState       = To_UpperCase( State    )
     TmpVariable    = To_UpperCase( Variable )
-    IF ( TmpState /= 'DIAG' ) THEN
+    IF ( TRIM( TmpState ) /= 'DIAG' ) THEN
        TmpFullname    = TRIM( TmpState ) // '_' // TRIM( TmpVariable )
     ELSE
        TmpFullname = TRIM( TmpVariable )
@@ -503,7 +504,8 @@ CONTAINS
 ! !REMARKS:
 !  Internally, the REGISTRY ITEM will be refered to by its fullname field,
 !  which is "STATE_VARIABLE".  Fullname will be defined automatically from
-!  the STATE and VARIABLE inputs.
+!  the STATE and VARIABLE inputs as STATE_VARIABLE, unless variable is in
+!  State_Diag, in which case STATE_ is not appended as a prefix.
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version
@@ -519,7 +521,7 @@ CONTAINS
 !  23 Aug 2017 - R. Yantosca - Added optional OnLevelEdges argument
 !  24 Aug 2017 - R. Yantosca - Added optional DimNames argument
 !  25 Aug 2017 - R. Yantosca - Added optional Data0d_8 and Data1d_8 arguments
-!  25 Sep 2017 - E. Lundgren - Only use state name prefix if not diag state
+!  25 Sep 2017 - E. Lundgren - Only use state name prefix if not from state_diag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -952,7 +954,7 @@ CONTAINS
              WRITE( 6, 100 ) Item%FullName,    Item%Description,             &
                              Item%DimNames,    CellPos,                      &
                              TRIM( Item%Units )
-  100        FORMAT( 1x, a20, ' | ', a38, ' | ', a3, ' ', a1, ' | ', a )
+  100        FORMAT( 1x, a20, ' | ', a30, ' | ', a3, ' ', a1, ' | ', a )
 
           ELSE
 

@@ -21,9 +21,10 @@ MODULE State_Chm_Mod
 !
 ! USES:
 !
+  USE ErrCode_Mod                        ! Error handling
   USE PhysConstants                      ! Physical constants
   USE Precision_Mod                      ! GEOS-Chem precision types 
-  USE Registry_Mod, ONLY : MetaRegItem   ! Derived type for registry object
+  USE Registry_Mod                       ! Registry module
   USE Species_Mod                        ! For species database object
 
   IMPLICIT NONE
@@ -31,11 +32,9 @@ MODULE State_Chm_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Ind_
   PUBLIC :: Init_State_Chm
   PUBLIC :: Cleanup_State_Chm
-  PUBLIC :: Lookup_State_Chm
-  PUBLIC :: Print_State_Chm
+  PUBLIC :: Ind_ ! consider moving to species database (ewl)
 !
 ! !PRIVATE DATA MEMBERS:
 !
@@ -160,138 +159,11 @@ MODULE State_Chm_Mod
 !  29 Jun 2017 - R. Yantosca - Remove Spec_Id, it's no longer used
 !  30 Jun 2017 - R. Yantosca - Now register variables of State_Chm
 !  31 Jul 2017 - R. Yantosca - Add fixes in registering ISORROPIA *_SAV fields
+!  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Chm and Print_State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Ind_
-!
-! !DESCRIPTION: Function IND\_ returns the index of an advected species or 
-!  chemical species contained in the chemistry state object by name.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Ind_( name, flag ) RESULT( Indx )
-!
-! !USES:
-!
-    USE CHARPAK_MOD, ONLY : TRANUC
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=*),           INTENT(IN) :: name  ! Species name
-    CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: flag  ! Species type
-!
-! !RETURN VALUE:
-!
-    INTEGER                                :: Indx  ! Index of this species 
-!
-! !REMARKS
-!
-! !REVISION HISTORY: 
-!  07 Oct 2016 - M. Long     - Initial version
-!  15 Jun 2016 - M. Sulprizio- Make species name uppercase before computing hash
-!  17 Aug 2016 - M. Sulprizio- Tracer flag 'T' is now advected species flag 'A'
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER           :: N, Hash
-    CHARACTER(LEN=14) :: Name14
-
-    !=====================================================================
-    ! Ind_ begins here!
-    !=====================================================================
-
-    ! Initialize the output value
-    Indx   = -1
-
-    ! Make species name uppercase for hash algorithm
-    Name14 = Name
-    CALL TRANUC( Name14 )
-
-    ! Compute the hash corresponding to the given species name
-    Hash   = Str2Hash( Name14 )
-
-    ! Loop over all entries in the Species Database object
-    DO N = 1, SIZE( SpcDataLocal )
-
-       ! Compare the hash we just created against the list of
-       ! species name hashes stored in the species database
-       IF( Hash == SpcDataLocal(N)%Info%NameHash  ) THEN
-
-          IF (.not. PRESENT(Flag)) THEN
-
-             ! Default to Species/ModelID
-             Indx = SpcDataLocal(N)%Info%ModelID
-             RETURN
-
-          ELSE
-
-             ! Only need first character of the flag for this.
-             IF     (flag(1:1) .eq. 'S' .or. flag(1:1) .eq. 's') THEN
-
-                ! Species/ModelID
-                Indx = SpcDataLocal(N)%Info%ModelID
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'A' .or. flag(1:1) .eq. 'a') THEN
-
-                ! Advected species flag
-                Indx = SpcDataLocal(N)%Info%AdvectID
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'K' .or. flag(1:1) .eq. 'k') THEN
-
-                ! KPP species ID
-                Indx = SpcDataLocal(N)%Info%KppSpcId
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'V' .or. flag(1:1) .eq. 'v') THEN
-
-                ! KPP VAR ID
-                Indx = SpcDataLocal(N)%Info%KppVarId
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'F' .or. flag(1:1) .eq. 'f') THEN
-
-                ! KPP FIX ID
-                Indx = SpcDataLocal(N)%Info%KppFixId
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'W' .or. flag(1:1) .eq. 'w') THEN
-
-                ! WetDep ID
-                Indx = SpcDataLocal(N)%Info%WetDepId
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'D' .or. flag(1:1) .eq. 'd') THEN
-
-                ! DryDep ID
-                Indx = SpcDataLocal(N)%Info%DryDepId
-                RETURN
-
-             ENDIF
-
-          ENDIF
-          EXIT
-
-       ENDIF
-
-    ENDDO
-
-    RETURN
-
-  END FUNCTION Ind_
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -312,12 +184,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod
     USE GCKPP_Parameters,     ONLY : NSPEC
     USE Input_Opt_Mod,        ONLY : OptInput
-    USE Registry_Mod,         ONLY : Registry_AddField
-    USE Species_Mod,          ONLY : Species
-    USE Species_Mod,          ONLY : Spc_GetNumSpecies
     USE Species_Database_Mod, ONLY : Init_Species_Database
 !
 ! !INPUT PARAMETERS:
@@ -387,8 +255,10 @@ CONTAINS
     ! Pointers
     TYPE(Species), POINTER :: ThisSpc
 
-    ! Assume success until otherwise
+    ! Error handling
     RC = GC_SUCCESS
+    ErrMsg = ''
+    ThisLoc = ' -> at Init_State_Chm (in Headers/state_chm_mod.F90)'
 
     !=====================================================================
     ! Initialization
@@ -1107,7 +977,22 @@ CONTAINS
     !=======================================================================
     ! Print out the list of registered fields
     !=======================================================================
-    CALL Print_State_Chm( am_I_Root, State_Chm, RC, ShortFormat=.TRUE. )
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 10 )
+10     FORMAT( /, 'Registered variables contained within the State_Chm object:' )
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    ENDIF
+    CALL Registry_Print( am_I_Root   = am_I_Root,             &
+                         Registry    = State_Chm%Registry,    &
+                         ShortFormat = .TRUE.,                &
+                         RC          = RC                    )
+
+    ! Trap error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !=======================================================================
     ! Set up the species mapping vectors
@@ -1282,8 +1167,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod 
-    USE Registry_Mod,         ONLY : Registry_Destroy
     USE Species_Database_Mod, ONLY : Cleanup_Species_Database
 !
 ! !INPUT PARAMETERS:
@@ -1485,176 +1368,127 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Print_State_Chm
+! !IROUTINE: Ind_
 !
-! !DESCRIPTION: Print information about all the registered variables
-!  contained within the State\_Chm object.  This is basically a wrapper for
-!  routine REGISTRY\_PRINT in registry\_mod.F90.
+! !DESCRIPTION: Function IND\_ returns the index of an advected species or 
+!  chemical species contained in the chemistry state object by name.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_State_Chm( am_I_Root, State_Chm, RC, ShortFormat )
+  FUNCTION Ind_( name, flag ) RESULT( Indx )
 !
 ! !USES:
 !
-    USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_Print
+    USE CHARPAK_MOD, ONLY : TRANUC
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Root CPU?  
-    TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-    LOGICAL,        OPTIONAL    :: ShortFormat ! Print truncated info
+    CHARACTER(LEN=*),           INTENT(IN) :: name  ! Species name
+    CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: flag  ! Species type
 !
-! !OUTPUT PARAMETERS:
+! !RETURN VALUE:
 !
-    INTEGER,        INTENT(OUT) :: RC          ! Success/failure?
+    INTEGER                                :: Indx  ! Index of this species 
 !
-! !REVISION HISTORY:
-!  29 Jun 2017 - R. Yantosca - Initial version
+! !REMARKS
+!
+! !REVISION HISTORY: 
+!  07 Oct 2016 - M. Long     - Initial version
+!  15 Jun 2016 - M. Sulprizio- Make species name uppercase before computing hash
+!  17 Aug 2016 - M. Sulprizio- Tracer flag 'T' is now advected species flag 'A'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES
+! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    INTEGER           :: N, Hash
+    CHARACTER(LEN=14) :: Name14
 
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Print_State_Chm (in Headers/state_chm_mod.F90)'
+    !=====================================================================
+    ! Ind_ begins here!
+    !=====================================================================
 
-    !=======================================================================
-    ! Print info about registered variables
-    !=======================================================================
+    ! Initialize the output value
+    Indx   = -1
 
-    ! Header line
-    if ( am_I_Root ) THEN
-       WRITE( 6, 10 )
-10     FORMAT( /, 'Registered variables contained within the State_Chm object:' )
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    ENDIF
+    ! Make species name uppercase for hash algorithm
+    Name14 = Name
+    CALL TRANUC( Name14 )
 
-    ! Print registry info in truncated format
-    CALL Registry_Print( am_I_Root   = am_I_Root,                            &
-                         Registry    = State_Chm%Registry,                   &
-                         ShortFormat = ShortFormat,                          &
-                         RC          = RC                                   )
+    ! Compute the hash corresponding to the given species name
+    Hash   = Str2Hash( Name14 )
 
-    ! Trap error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "Registry_Print"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+    ! Loop over all entries in the Species Database object
+    DO N = 1, SIZE( SpcDataLocal )
 
-  END SUBROUTINE Print_State_Chm
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Lookup_State_Chm
-!
-! !DESCRIPTION: Return metadata and/or a pointer to the data for any
-!  variable contained within the State\_Chm object by searching for its name.
-!  This is basically a wrapper for routine REGISTRY\_LOOKUP in 
-!  registry\_mod.F90.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Lookup_State_Chm( am_I_Root, State_Chm,    Variable,            &
-                               RC,        Description,  Dimensions,          &
-                               KindVal,   MemoryInKb,   Rank,                &
-                               Units,     OnLevelEdges, Ptr3d,               &
-                               Ptr3d_4                                      )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_Lookup
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,             INTENT(IN)  :: am_I_Root       ! Is this the root CPU? 
-    TYPE(ChmState),      INTENT(IN)  :: State_Chm       ! Meteorology State
-    CHARACTER(LEN=*),    INTENT(IN)  :: Variable        ! Variable name
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Required outputs
-    INTEGER,             INTENT(OUT) :: RC              ! Success or failure?
+       ! Compare the hash we just created against the list of
+       ! species name hashes stored in the species database
+       IF( Hash == SpcDataLocal(N)%Info%NameHash  ) THEN
 
-    ! Optional outputs
-    CHARACTER(LEN=255),  OPTIONAL    :: Description     ! Description of data
-    INTEGER,             OPTIONAL    :: Dimensions(3)   ! Dimensions of data
-    INTEGER,             OPTIONAL    :: KindVal         ! Numerical KIND value
-    REAL(fp),            OPTIONAL    :: MemoryInKb      ! Memory usage
-    INTEGER,             OPTIONAL    :: Rank            ! Size of data
-    CHARACTER(LEN=255),  OPTIONAL    :: Units           ! Units of data
-    LOGICAL,             OPTIONAL    :: OnLevelEdges    ! =T if data is defined
-                                                        !    on level edges
-                                                        ! =F if on centers
+          IF (.not. PRESENT(Flag)) THEN
 
-    ! Pointers to data
-    REAL(fp),   POINTER, OPTIONAL    :: Ptr3d  (:,:,:)  ! 3D flex-prec data
-    REAL(f4),   POINTER, OPTIONAL    :: Ptr3d_4(:,:,:)  ! 3D 4-byte data
-!
-! !REMARKS:
-!  We keep the StateName variable private to this module. Users only have
-!  to supply the name of each module variable.
-!
-! !REVISION HISTORY:
-!  29 Jun 2017 - R. Yantosca - Initial version
-!  28 Aug 2017 - R. Yantosca - Now add optional argument OnLevelEdges
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+             ! Default to Species/ModelID
+             Indx = SpcDataLocal(N)%Info%ModelID
+             RETURN
 
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Lookup_State_Chm (in Headers/state_chm_mod.F90)'
+          ELSE
 
-    !=======================================================================
-    ! Look up a variable; Return metadata and/or a pointer to the data
-    !=======================================================================
-    CALL Registry_Lookup( am_I_Root    = am_I_Root,                          &
-                          Registry     = State_Chm%Registry,                 &
-                          State        = State_Chm%State,                    &
-                          Variable     = Variable,                           &
-                          Description  = Description,                        &
-                          Dimensions   = Dimensions,                         &
-                          KindVal      = KindVal,                            &
-                          MemoryInKb   = MemoryInKb,                         &
-                          Rank         = Rank,                               &
-                          Units        = Units,                              &
-                          OnLevelEdges = OnLevelEdges,                       &
-                          Ptr3d        = Ptr3d,                              &
-                          Ptr3d_4      = Ptr3d_4,                            &
-                          RC           = RC                                 )
+             ! Only need first character of the flag for this.
+             IF     (flag(1:1) .eq. 'S' .or. flag(1:1) .eq. 's') THEN
 
-    ! Trap error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not find variable "' // TRIM( Variable ) // &
-               '" in the State_Chm registry!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+                ! Species/ModelID
+                Indx = SpcDataLocal(N)%Info%ModelID
+                RETURN
 
-  END SUBROUTINE Lookup_State_Chm
+             ELSEIF (flag(1:1) .eq. 'A' .or. flag(1:1) .eq. 'a') THEN
+
+                ! Advected species flag
+                Indx = SpcDataLocal(N)%Info%AdvectID
+                RETURN
+
+             ELSEIF (flag(1:1) .eq. 'K' .or. flag(1:1) .eq. 'k') THEN
+
+                ! KPP species ID
+                Indx = SpcDataLocal(N)%Info%KppSpcId
+                RETURN
+
+             ELSEIF (flag(1:1) .eq. 'V' .or. flag(1:1) .eq. 'v') THEN
+
+                ! KPP VAR ID
+                Indx = SpcDataLocal(N)%Info%KppVarId
+                RETURN
+
+             ELSEIF (flag(1:1) .eq. 'F' .or. flag(1:1) .eq. 'f') THEN
+
+                ! KPP FIX ID
+                Indx = SpcDataLocal(N)%Info%KppFixId
+                RETURN
+
+             ELSEIF (flag(1:1) .eq. 'W' .or. flag(1:1) .eq. 'w') THEN
+
+                ! WetDep ID
+                Indx = SpcDataLocal(N)%Info%WetDepId
+                RETURN
+
+             ELSEIF (flag(1:1) .eq. 'D' .or. flag(1:1) .eq. 'd') THEN
+
+                ! DryDep ID
+                Indx = SpcDataLocal(N)%Info%DryDepId
+                RETURN
+
+             ENDIF
+
+          ENDIF
+          EXIT
+
+       ENDIF
+
+    ENDDO
+
+    RETURN
+
+  END FUNCTION Ind_
 !EOC
 END MODULE State_Chm_Mod
