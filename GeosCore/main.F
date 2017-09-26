@@ -29,6 +29,7 @@
       ! Basic GEOS-Chem modules
       !-----------------------------------------------------------------
       USE CMN_SIZE_MOD          ! Size parameters
+      USE Diagnostics_Mod       ! Derived type for diagnostics list
       USE ErrCode_Mod           ! Error codes for success or failure
       USE ERROR_MOD             ! For error checking
       USE FILE_MOD              ! For file I/O
@@ -315,7 +316,7 @@
       REAL(f8)                 :: TAU,           TAUb      
       CHARACTER(LEN=255)       :: ZTYPE
       CHARACTER(LEN=255)       :: ErrMsg,        ThisLoc
-
+      CHARACTER(LEN=255)       :: historyConfigFile
       ! Set cloud flag for RRTMG
       INTEGER                  :: ICLD=0,ISEED=10
       INTEGER                  :: RR
@@ -337,6 +338,7 @@
       TYPE(ChmState)           :: State_Chm   ! Chemistry State object
       TYPE(DgnState)           :: State_Diag  ! Diagnostics State object
       TYPE(MetState)           :: State_Met   ! Meteorology State object
+      TYPE(DgnList )           :: Diag_List   ! Diagnostics list object
       !
       ! Also define NI, NJ, NL for more consistent naming w/r/t the 
       ! ESMF interface.  Initialize these from IIPAR, JJPAR, JJPAR
@@ -567,11 +569,20 @@
       ! reason we are migrating towards used of these objects instead
       ! of the existing ALLOCATABLE module arrays. (bmy, 10/25/12)
       !
+      ! Initialize the diagnostic list object which contains the
+      ! unique entires in the history config file. Note that this is
+      ! done in GCHP Set_Services and therefore must be done prior to
+      ! initialization of the state objects. Also note that the diag_list
+      ! obj may be stored in the HistoryConfig object in GCHP and we may
+      ! want to replicate that behavior in GCC in the future. (ewl, 9/26/17)
+      historyConfigFile = 'HISTORY.rc' ! cannot use Input_Opt variable in GCHP
+      CALL Init_DiagList( am_I_Root, historyConfigFile, Diag_List, RC )
+
       ! Initialize Input_Opt, State_Chem, State_Met, objects. 
       ! (bmy, 3/4/13)
       !
-      CALL GC_Init_All
-     &   ( am_I_Root, Input_Opt, State_Chm, State_Diag, State_Met, RC )
+      CALL GC_Init_All( am_I_Root, Diag_List,  Input_Opt, 
+     &                  State_Chm, State_Diag, State_Met, RC )
       !
       ! Also allocate arrays in GEOS-Chem modules that have not yet
       ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 
@@ -1956,6 +1967,10 @@
 
       ! Deallocate the derived type object w/ mapping info
       CALL CLEANUP_MAPPING( mapping )
+
+      ! Deallocate fields of the diagnostics list object
+      CALL Cleanup_DiagList( am_I_Root, Diag_List, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup Diag_List' )
 
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION

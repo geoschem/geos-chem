@@ -21,9 +21,12 @@ MODULE State_Diag_Mod
 !
 ! USES:
 !
+  USE Diagnostics_Mod
   USE ErrCode_Mod
   USE Precision_Mod
-  USE Registry_Mod, ONLY : MetaRegItem
+  USE Registry_Mod
+  USE Species_Mod,   ONLY : Species
+  USE State_Chm_Mod, ONLY : ChmState
 
   IMPLICIT NONE
   PRIVATE
@@ -32,8 +35,6 @@ MODULE State_Diag_Mod
 !
   PUBLIC :: Init_State_Diag
   PUBLIC :: Get_Metadata_State_Diag
-  PUBLIC :: Lookup_State_Diag
-  PUBLIC :: Print_State_Diag
   PUBLIC :: Cleanup_State_Diag
 !
 ! !PRIVATE MEMBER FUNCTIONS
@@ -50,11 +51,6 @@ MODULE State_Diag_Mod
      !----------------------------------------------------------------------
      ! Diagnostic arrays
      !----------------------------------------------------------------------
-     REAL(f4),  POINTER :: F_Adv_EW(:,:,:,:)
-     REAL(f4),  POINTER :: F_Adv_NS(:,:,:,:)
-     REAL(f4),  POINTER :: F_Adv_UP(:,:,:,:)
-
-     ! ewl 
      REAL(f4),  POINTER :: SpeciesConc(:,:,:,:) ! Spc Conc for diag output
      REAL(f4),  POINTER :: DryDepFlux (:,:,:,:) ! Dry deposition flux
      REAL(f4),  POINTER :: DryDepVel  (:,:,:,:) ! Dry deposition velocity
@@ -66,34 +62,15 @@ MODULE State_Diag_Mod
      TYPE(MetaRegItem), POINTER :: Registry  => NULL()  ! Registry object
 
   END TYPE DgnState
-
-  !=========================================================================
-  ! Derived type for Diagnostics Item (unique item in HISTORY.rc)
-  !=========================================================================
-  TYPE, PUBLIC :: DgnItem
-     CHARACTER(LEN=255)      :: name 
-     CHARACTER(LEN=255)      :: category 
-     LOGICAL                 :: isWildcard
-     LOGICAL                 :: isSpecies
-     CHARACTER(LEN=255)      :: wildcard
-     CHARACTER(LEN=255)      :: species
-     TYPE(DgnItem), POINTER  :: next
-  END TYPE DgnItem
-
-  !=========================================================================
-  ! Derived type for Diagnostics List (unique items in HISTORY.rc)
-  !=========================================================================
-  TYPE, PUBLIC :: DgnList
-     TYPE(DgnItem), POINTER  :: head
-     INTEGER                 :: numItems
-  END TYPE DgnList
 !
 ! !REMARKS:
 !  TBD
 !
 ! !REVISION HISTORY: 
 !  05 Jul 2017 - R. Yantosca - Initial version
-!  22 Sep 2017 - E. Lundgren - Fill in content to allocate State_Diag
+!  22 Sep 2017 - E. Lundgren - Fill in content to allocate State_Diag; add 
+!                              subroutines to get metadata and register fields
+!  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Diag and Print_State_Diag
 !
 !EOC
 !------------------------------------------------------------------------------
@@ -122,14 +99,11 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Init_State_Diag( am_I_Root, IM, JM, LM, Input_Opt, &
-                              State_Chm, State_Diag, RC )
+                              State_Chm, Diag_List,  State_Diag, RC )
 !
 ! !USES:
 !
-    USE Diagnostics_Mod
     USE Input_Opt_Mod, ONLY : OptInput
-    USE State_Chm_Mod, ONLY : ChmState
-    USe Registry_Mod,  ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -139,6 +113,8 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: LM          ! # longitudes on this PET
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry state object
+    TYPE(DgnList),  INTENT(IN)    :: Diag_List   ! Diagnostics list object
+
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -161,11 +137,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Strings
-    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc, Desc, Units, historyConfigFile
+    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc, Desc, Units
     CHARACTER(LEN=255)     :: diagID
     INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc, nWetDep
     LOGICAL                :: EOF, Found
-    TYPE(DgnList), POINTER :: DiagList
 
     !=======================================================================
     ! Initialize
@@ -189,22 +164,11 @@ CONTAINS
     State_Diag%DryDepFlux  => NULL()
     State_Diag%DryDepVel   => NULL()
 
-    ! placeholder
-    State_Diag%F_Adv_EW => NULL()
-    State_Diag%F_Adv_NS => NULL()
-    State_Diag%F_Adv_UP => NULL()
-
-    !---------------------------------------------------------
-    ! Initialize the list of unique entries in HISTORY.rc
-    !---------------------------------------------------------
-    historyConfigFile = 'HISTORY.rc' ! eventually use Input_Opt variable
-    CALL Init_DiagList( am_I_Root, historyConfigFile, DiagList, RC )
-
     !--------------------------------------------
     ! Species Concentration [v/v dry] 
     !--------------------------------------------
     diagID = 'SpeciesConc'
-    CALL Check_DiagList( am_I_Root, DiagList, diagID, Found, RC )
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
        ALLOCATE( State_Diag%SpeciesConc( IM, JM, LM, nSpecies ), STAT=RC )
@@ -219,7 +183,7 @@ CONTAINS
     ! Dry deposition flux
     !--------------------------------------------
     diagID = 'DryDepFlux'
-    CALL Check_DiagList( am_I_Root, DiagList, diagID, Found, RC )
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
        ALLOCATE( State_Diag%DryDepFlux( IM, JM, LM, nDryDep ), STAT=RC )
@@ -234,7 +198,7 @@ CONTAINS
     ! Dry deposition velocity
     !-------------------------------------------- 
     diagID = 'DryDepVel'
-    CALL Check_DiagList( am_I_Root, DiagList, diagID, Found, RC )
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        PRINT *, 'Allocating ' // TRIM(diagID) // 'diagnostic'
        ALLOCATE( State_Diag%DryDepVel( IM, JM, LM, nDryDep ), STAT=RC )
@@ -248,9 +212,19 @@ CONTAINS
     !=======================================================================
     ! Print information about the registered fields (short format)
     !=======================================================================
-    CALL Print_State_Diag( am_I_Root, State_Diag, RC, ShortFormat=.TRUE.)
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 10 )
+10     FORMAT( /, 'Registered variables contained within the State_Diag object:' )
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    ENDIF
+    CALL Registry_Print( am_I_Root   = am_I_Root,            &
+                         Registry    = State_Diag%Registry,  &
+                         ShortFormat = .TRUE.,               &
+                         RC          = RC                      )
+
+    ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Print_State_Met"'
+       ErrMsg = 'Error encountered!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -274,7 +248,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Registry_Mod, ONLY : Registry_Destroy
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -309,12 +282,6 @@ CONTAINS
     !=======================================================================
     ! Deallocate module variables
     !=======================================================================
-
-    ! For now, just nullify
-    State_Diag%F_Adv_EW => NULL()
-    State_Diag%F_Adv_NS => NULL()
-    State_Diag%F_Adv_UP => NULL()
-
     IF ( ASSOCIATED(State_Diag%SpeciesConc)) DEALLOCATE( State_Diag%SpeciesConc)
     IF ( ASSOCIATED(State_Diag%DryDepFlux )) DEALLOCATE( State_Diag%DryDepFlux )
     IF ( ASSOCIATED(State_Diag%DryDepVel  )) DEALLOCATE( State_Diag%DryDepVel  )
@@ -331,188 +298,79 @@ CONTAINS
 
   END SUBROUTINE Cleanup_State_Diag
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: Print_State_Diag
+!!
+!! !DESCRIPTION: Print information about all the registered variables
+!!  contained within the State\_Diag object.  This is basically a wrapper for
+!!  routine REGISTRY\_PRINT in registry\_mod.F90.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE Print_State_Diag( am_I_Root, State_Diag, RC, ShortFormat )
+!!
+!! !USES:
+!!
+!    USE Registry_Mod, ONLY : Registry_Print
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,        INTENT(IN)  :: am_I_Root    ! Root CPU?  
+!    TYPE(DgnState), INTENT(IN)  :: State_Diag   ! Meteorology State object
+!    LOGICAL,        OPTIONAL    :: ShortFormat  ! Print truncated info
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!    INTEGER,        INTENT(OUT) :: RC           ! Success/failure?
+!!
+!! !REVISION HISTORY:
+!!  29 Jun 2017 - R. Yantosca - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES
+!!
+!    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 !
-! !IROUTINE: Print_State_Diag
+!    !=======================================================================
+!    ! Initialize
+!    !=======================================================================
+!    RC      = GC_SUCCESS
+!    ErrMsg  = ''
+!    ThisLoc = ' -> at Print_State_Diag (in Headers/state_diag_mod.F90)'
 !
-! !DESCRIPTION: Print information about all the registered variables
-!  contained within the State\_Diag object.  This is basically a wrapper for
-!  routine REGISTRY\_PRINT in registry\_mod.F90.
-!\\
-!\\
-! !INTERFACE:
+!    !=======================================================================
+!    ! Print info about registered variables
+!    !=======================================================================
 !
-  SUBROUTINE Print_State_Diag( am_I_Root, State_Diag, RC, ShortFormat )
+!    ! Header line
+!    IF ( am_I_Root ) THEN
+!       WRITE( 6, 10 )
+!10     FORMAT( /, 'Registered variables contained within the State_Diag object:' )
+!       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!    ENDIF
 !
-! !USES:
+!    ! Print registry info in truncated format
+!    CALL Registry_Print( am_I_Root   = am_I_Root,                            &
+!                         Registry    = State_Diag%Registry,                  &
+!                         ShortFormat = ShortFormat,                          &
+!                         RC          = RC                                   )
 !
-    USE Registry_Mod, ONLY : Registry_Print
+!    ! Trap error
+!    IF ( RC /= GC_SUCCESS ) THEN
+!       ErrMsg = 'Error encountered in routine "Registry_Print"!'
+!       CALL GC_Error( ErrMsg, RC, ThisLoc )
+!       RETURN
+!    ENDIF
 !
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)  :: am_I_Root    ! Root CPU?  
-    TYPE(DgnState), INTENT(IN)  :: State_Diag   ! Meteorology State object
-    LOGICAL,        OPTIONAL    :: ShortFormat  ! Print truncated info
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT) :: RC           ! Success/failure?
-!
-! !REVISION HISTORY:
-!  29 Jun 2017 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Print_State_Diag (in Headers/state_diag_mod.F90)'
-
-    !=======================================================================
-    ! Print info about registered variables
-    !=======================================================================
-
-    ! Header line
-    IF ( am_I_Root ) THEN
-       WRITE( 6, 10 )
-10     FORMAT( /, 'Registered variables contained within the State_Diag object:' )
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    ENDIF
-
-    ! Print registry info in truncated format
-    CALL Registry_Print( am_I_Root   = am_I_Root,                            &
-                         Registry    = State_Diag%Registry,                  &
-                         ShortFormat = ShortFormat,                          &
-                         RC          = RC                                   )
-
-    ! Trap error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "Registry_Print"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE Print_State_Diag
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Lookup_State_Diag
-!
-! !DESCRIPTION: Return metadata and/or a pointer to the data for any
-!  variable contained within the State\_Diag object by searching for its name.
-!  This is basically a wrapper for routine REGISTRY\_LOOKUP in 
-!  registry\_mod.F90.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Lookup_State_Diag( am_I_Root,  State_Diag,   Variable,          & 
-                                RC,         Description,  Dimensions,        &
-                                KindVal,    MemoryInKb,   Rank,              & 
-                                Units,      OnLevelEdges, Ptr2d_4,           &
-                                Ptr3d_4,    Ptr2d_I,      Ptr3d_I           )
-!
-! !USES:
-!
-    USE Registry_Mod, ONLY : Registry_Lookup, To_Uppercase
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN)  :: am_I_Root       ! Is this the root CPU? 
-    TYPE(DgnState),   INTENT(IN)  :: State_Diag      ! Diagnostics State
-    CHARACTER(LEN=*), INTENT(IN)  :: Variable        ! Variable name
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Required outputs
-    INTEGER,          INTENT(OUT) :: RC              ! Success or failure?
-
-    ! Optional outputs
-    CHARACTER(LEN=255),  OPTIONAL :: Description     ! Description of data
-    INTEGER,             OPTIONAL :: Dimensions(3)   ! Dimensions of data
-    INTEGER,             OPTIONAL :: KindVal         ! Numerical KIND value
-    REAL(fp),            OPTIONAL :: MemoryInKb      ! Memory usage
-    INTEGER,             OPTIONAL :: Rank            ! Size of data
-    CHARACTER(LEN=255),  OPTIONAL :: Units           ! Units of data
-    LOGICAL,             OPTIONAL :: OnLevelEdges    ! =T if data is defined
-                                                     !    on level edges
-                                                     ! =F if on centers
-
-    ! Pointers to data
-    REAL(f4),   POINTER, OPTIONAL :: Ptr2d_4(:,:  )  ! 2D 4-byte data
-    REAL(f4),   POINTER, OPTIONAL :: Ptr3d_4(:,:,:)  ! 3D 4-byte data
-    INTEGER,    POINTER, OPTIONAL :: Ptr2d_I(:,:  )  ! 2D integer data
-    INTEGER,    POINTER, OPTIONAL :: Ptr3d_I(:,:,:)  ! 3D integer data
-!
-! !REMARKS:
-!  We keep the StateName variable private to this module. Users only have
-!  to supply the name of each module variable.
-!
-! !REVISION HISTORY:
-!  05 Jul 2017 - R. Yantosca - Initial version
-!  25 Sep 2017 - E. Lundgren - Use all caps when looking up name in registry
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, name_AllCaps
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Lookup_State_Diag (in Headers/state_diag_mod.F90)'
-
-    ! Convert to all uppercase when looking in registry
-    name_AllCaps = To_Uppercase( Variable )
-
-    !=======================================================================
-    ! Look up a variable; Return metadata and/or a pointer to the data
-    !=======================================================================
-    CALL Registry_Lookup( am_I_Root    = am_I_Root,                          &
-                          Registry     = State_Diag%Registry,                &
-                          State        = State_Diag%State,                   &
-                          Variable     = name_allCaps,                       &
-                          Description  = Description,                        &
-                          Dimensions   = Dimensions,                         &
-                          KindVal      = KindVal,                            &
-                          MemoryInKb   = MemoryInKb,                         &
-                          Rank         = Rank,                               &
-                          Units        = Units,                              &
-                          OnLevelEdges = OnLevelEdges,                       &
-                          Ptr2d_4      = Ptr2d_4,                            &
-                          Ptr3d_4      = Ptr3d_4,                            &
-                          Ptr2d_I      = Ptr2d_I,                            &
-                          Ptr3d_I      = Ptr3d_I,                            &
-                          RC           = RC                                 )
-
-    ! Trap error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not find variable "' // TRIM( Variable ) // &
-               '" in the State_Diag registry!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE Lookup_State_Diag
-!EOC
+!  END SUBROUTINE Print_State_Diag
+!!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -527,13 +385,12 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Get_Metadata_State_Diag( am_I_Root,  Name,  Desc,  Units, &
-                                      SpeciesSet, Rank,  Type,  VLoc,  &
+                                      PerSpecies, Rank,  Type,  VLoc,  &
                                       Found,      RC    )
 !
 ! !USES:
 !
     USE Registry_Params_Mod
-    USE Registry_Mod, ONLY : To_Uppercase
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -544,7 +401,7 @@ CONTAINS
 !
     CHARACTER(LEN=255),  OPTIONAL    :: Desc       ! Long name string
     CHARACTER(LEN=255),  OPTIONAL    :: Units      ! Units string
-    CHARACTER(LEN=255),  OPTIONAL    :: SpeciesSet ! Max species wildcard
+    CHARACTER(LEN=255),  OPTIONAL    :: PerSpecies ! Max species wildcard
     INTEGER,             OPTIONAL    :: Rank       ! # of dimensions
     INTEGER,             OPTIONAL    :: Type       ! Desc of data type
     INTEGER,             OPTIONAL    :: VLoc       ! Vertical placement
@@ -579,7 +436,7 @@ CONTAINS
     isRank    = PRESENT( Rank  )
     isType    = PRESENT( Type  )
     isVLoc    = PRESENT( VLoc  )
-    isSpecies = PRESENT( SpeciesSet )
+    isSpecies = PRESENT( PerSpecies )
 
     ! Set defaults for optional arguments. Assume type and vertical 
     ! location are real (flexible precision) and center unless specified 
@@ -589,7 +446,7 @@ CONTAINS
     IF ( isRank  ) Rank  = -1              ! Initialize # dims as bad value 
     IF ( isType  ) Type  = KINDVAL_F4      ! Assume real*4 for diagnostics
     IF ( isVLoc  ) VLoc  = VLocationCenter ! Assume vertically centered
-    IF ( isSpecies ) SpeciesSet = ''         ! Assume not species-dependent
+    IF ( isSpecies ) PerSpecies = ''         ! Assume not species-dependent
 
     ! Convert name to uppercase
     Name_AllCaps = To_Uppercase( TRIM( Name ) )
@@ -603,19 +460,19 @@ CONTAINS
           IF ( isDesc  )   Desc       = 'Dry mixing ratio of species'
           IF ( isUnits )   Units      = 'mol mol-1 dry'
           IF ( isRank  )   Rank       = 3
-          IF ( isSpecies ) SpeciesSet = 'ALL'
+          IF ( isSpecies ) PerSpecies = 'ALL'
 
        CASE ( 'DRYDEPFLUX' )
           IF ( isDesc  )   Desc       = 'Dry deposition flux of species'
           IF ( isUnits )   Units      = 'molec cm-2 s-1'
           IF ( isRank  )   Rank       = 3
-          IF ( isSpecies ) SpeciesSet = 'DRY'
+          IF ( isSpecies ) PerSpecies = 'DRY'
 
        CASE ( 'DRYDEPVEL' )
           IF ( isDesc  )   Desc       = 'Dry deposition velocity of species'
           IF ( isUnits )   Units      = 'cm s-1'
           IF ( isRank  )   Rank       = 3
-          IF ( isSpecies ) SpeciesSet = 'DRY'
+          IF ( isSpecies ) PerSpecies = 'DRY'
 
        CASE DEFAULT
           ! Need to add better error handling
@@ -649,9 +506,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Species_Mod,   ONLY : Species
-    USE State_Chm_Mod, ONLY : ChmState
-    USE Registry_Mod,  ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 !
@@ -679,7 +533,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, speciesSet
+    CHARACTER(LEN=255)     :: desc, units, perSpecies
     CHARACTER(LEN=255)     :: thisSpcDiagName, thisSpcDiagDesc
     INTEGER                :: N, D
     INTEGER                :: rank, type,  vloc
@@ -693,7 +547,7 @@ CONTAINS
 
     CALL Get_Metadata_State_Diag( am_I_Root,   Name,           desc=desc,   &
                                   units=units, rank=rank,      type=type,   &
-                                  vloc=vloc,   speciesSet=speciesSet,       &
+                                  vloc=vloc,   perSpecies=perSpecies,       &
                                   Found=Found, RC=RC     )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in Get_DiagField_Metadata'
@@ -709,7 +563,7 @@ CONTAINS
     ENDIF
 
     ! If tied to all species then register each one
-    IF ( speciesSet == 'ALL' ) THEN       
+    IF ( perSpecies == 'ALL' ) THEN       
 
        DO N = 1, State_Chm%nSpecies
           SpcInfo  => State_Chm%SpcData(N)%Info
@@ -733,12 +587,13 @@ CONTAINS
        ENDDO
 
     ! If tied to advected species then register advected species only
-    ELSEIF ( speciesSet == 'ADV' ) THEN       
+    ELSEIF ( perSpecies == 'ADV' ) THEN       
 
        DO N = 1, State_Chm%nAdvect
           SpcInfo  => State_Chm%SpcData(N)%Info
           thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
           thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
                                   State        = State_Diag%State,     &
@@ -757,7 +612,7 @@ CONTAINS
        ENDDO
 
     ! If tied to drydep species then register drydep species only
-    ELSEIF ( speciesSet == 'DRY' ) THEN       
+    ELSEIF ( perSpecies == 'DRY' ) THEN       
        DO D = 1, State_Chm%nDryDep
 
           ! Get species number and pointer to the species database
@@ -785,7 +640,7 @@ CONTAINS
        ENDDO
 
     ! If tied to wetdep species then register drydep species only
-    ELSEIF ( speciesSet == 'WET' ) THEN       
+    ELSEIF ( perSpecies == 'WET' ) THEN       
        DO D = 1, State_Chm%nWetDep
 
           ! Get species number and pointer to the species database
@@ -813,7 +668,7 @@ CONTAINS
        ENDDO
 
     ! If not tied to species then simply add the single field
-    ELSEIF ( speciesSet == '' ) THEN
+    ELSEIF ( perSpecies == '' ) THEN
        CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                Registry     = State_Diag%Registry,  &
                                State        = State_Diag%State,     &
@@ -831,8 +686,8 @@ CONTAINS
 
     ELSE
        ! TODO: Add better error handling
-       PRINT *, "SpeciesSet for diagnostic " // TRIM(Name) // &
-                " is not definied in Register_DiagField_R4_2D: ", SpeciesSet
+       PRINT *, "PerSpecies for diagnostic " // TRIM(Name) // &
+                " is not definied in Register_DiagField_R4_2D: ", PerSpecies
        RETURN
 
     ENDIF
@@ -856,9 +711,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Species_Mod,   ONLY : Species
-    USE State_Chm_Mod, ONLY : ChmState
-    USE Registry_Mod,  ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 !
@@ -886,7 +738,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, speciesSet
+    CHARACTER(LEN=255)     :: desc, units, perSpecies
     CHARACTER(LEN=255)     :: thisSpcDiagName, thisSpcDiagDesc
     INTEGER                :: N, D
     INTEGER                :: rank, type,  vloc
@@ -900,7 +752,7 @@ CONTAINS
 
     CALL Get_Metadata_State_Diag( am_I_Root,   Name,           desc=desc,   &
                                   units=units, rank=rank,      type=type,   &
-                                  vloc=vloc,   speciesSet=speciesSet,       &
+                                  vloc=vloc,   perSpecies=perSpecies,       &
                                   Found=Found, RC=RC     )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in Get_DiagField_Metadata'
@@ -916,7 +768,7 @@ CONTAINS
     ENDIF
 
     ! If tied to all species then register each one
-    IF ( speciesSet == 'ALL' ) THEN       
+    IF ( perSpecies == 'ALL' ) THEN       
 
        DO N = 1, State_Chm%nSpecies
           SpcInfo  => State_Chm%SpcData(N)%Info
@@ -940,7 +792,7 @@ CONTAINS
        ENDDO
 
     ! If tied to advected species then register advected species only
-    ELSEIF ( speciesSet == 'ADV' ) THEN       
+    ELSEIF ( perSpecies == 'ADV' ) THEN       
 
        DO N = 1, State_Chm%nAdvect
           SpcInfo  => State_Chm%SpcData(N)%Info
@@ -964,7 +816,7 @@ CONTAINS
        ENDDO
 
     ! If tied to drydep species then register drydep species only
-    ELSEIF ( speciesSet == 'DRY' ) THEN       
+    ELSEIF ( perSpecies == 'DRY' ) THEN       
        DO D = 1, State_Chm%nDryDep
 
           ! Get species number and pointer to the species database
@@ -992,7 +844,7 @@ CONTAINS
        ENDDO
 
     ! If tied to wetdep species then register drydep species only
-    ELSEIF ( speciesSet == 'WET' ) THEN       
+    ELSEIF ( perSpecies == 'WET' ) THEN       
        DO D = 1, State_Chm%nWetDep
 
           ! Get species number and pointer to the species database
@@ -1020,7 +872,7 @@ CONTAINS
        ENDDO
 
     ! If not tied to species then simply add the single field
-    ELSEIF ( speciesSet == '' ) THEN
+    ELSEIF ( perSpecies == '' ) THEN
        CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                Registry     = State_Diag%Registry,  &
                                State        = State_Diag%State,     &
@@ -1038,8 +890,8 @@ CONTAINS
 
     ELSE
        ! TODO: Add better error handling
-       PRINT *, "SpeciesSet for diagnostic " // TRIM(Name) // &
-                " is not definied in Register_DiagField_R4_3D: ", SpeciesSet
+       PRINT *, "PerSpecies for diagnostic " // TRIM(Name) // &
+                " is not definied in Register_DiagField_R4_3D: ", PerSpecies
        RETURN
 
     ENDIF
@@ -1063,9 +915,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Species_Mod,   ONLY : Species
-    USE State_Chm_Mod, ONLY : ChmState
-    USE Registry_Mod,  ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 !
@@ -1093,7 +942,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, speciesSet
+    CHARACTER(LEN=255)     :: desc, units, perSpecies
     CHARACTER(LEN=255)     :: thisSpcDiagName, thisSpcDiagDesc
     INTEGER                :: N, D
     INTEGER                :: rank, type,  vloc
@@ -1107,7 +956,7 @@ CONTAINS
 
     CALL Get_Metadata_State_Diag( am_I_Root,   Name,           desc=desc,   &
                                   units=units, rank=rank,      type=type,   &
-                                  vloc=vloc,   speciesSet=speciesSet,       &
+                                  vloc=vloc,   perSpecies=perSpecies,       &
                                   Found=Found, RC=RC     )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in Get_DiagField_Metadata'
@@ -1123,7 +972,7 @@ CONTAINS
     ENDIF
 
     ! If tied to all species then register each one
-    IF ( speciesSet == 'ALL' ) THEN       
+    IF ( perSpecies == 'ALL' ) THEN       
 
        DO N = 1, State_Chm%nSpecies
           SpcInfo  => State_Chm%SpcData(N)%Info
@@ -1147,7 +996,7 @@ CONTAINS
        ENDDO
 
     ! If tied to advected species then register advected species only
-    ELSEIF ( speciesSet == 'ADV' ) THEN       
+    ELSEIF ( perSpecies == 'ADV' ) THEN       
 
        DO N = 1, State_Chm%nAdvect
           SpcInfo  => State_Chm%SpcData(N)%Info
@@ -1171,7 +1020,7 @@ CONTAINS
        ENDDO
 
     ! If tied to drydep species then register drydep species only
-    ELSEIF ( speciesSet == 'DRY' ) THEN       
+    ELSEIF ( perSpecies == 'DRY' ) THEN       
        DO D = 1, State_Chm%nDryDep
 
           ! Get species number and pointer to the species database
@@ -1199,7 +1048,7 @@ CONTAINS
        ENDDO
 
     ! If tied to wetdep species then register drydep species only
-    ELSEIF ( speciesSet == 'WET' ) THEN       
+    ELSEIF ( perSpecies == 'WET' ) THEN       
        DO D = 1, State_Chm%nWetDep
 
           ! Get species number and pointer to the species database
@@ -1228,8 +1077,8 @@ CONTAINS
 
     ELSE
        ! TODO: Add better error handling
-       PRINT *, "SpeciesSet for diagnostic " // TRIM(Name) // &
-                " is not definied in Register_DiagField_R4_4D: ", SpeciesSet
+       PRINT *, "PerSpecies for diagnostic " // TRIM(Name) // &
+                " is not definied in Register_DiagField_R4_4D: ", PerSpecies
        RETURN
 
     ENDIF

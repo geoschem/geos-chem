@@ -26,7 +26,7 @@ MODULE Diagnostics_Mod
   PUBLIC :: Init_DiagList
   PUBLIC :: Print_DiagList
   PUBLIC :: Check_DiagList
-  PUBLIC :: Destroy_DiagList
+  PUBLIC :: Cleanup_DiagList
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
@@ -35,7 +35,7 @@ MODULE Diagnostics_Mod
   PRIVATE :: Search_DiagList
   PRIVATE :: ReadOneLine ! copied from history_mod. Consider consolidating.
 !
-! !PUBLIC DATA MEMBERS:
+! !PUBLIC DATA TYPES:
 !
   !=========================================================================
   ! Derived type for Diagnostics List
@@ -87,13 +87,16 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,              INTENT(IN)  :: am_I_Root
-    CHARACTER(LEN=*),     INTENT(IN)  :: historyConfigFile
+    LOGICAL,              INTENT(IN)    :: am_I_Root
+    CHARACTER(LEN=*),     INTENT(IN)    :: historyConfigFile
+!
+! !INPUT AND OUTPUT PARAMETERS:
+!
+    TYPE(DgnList),        INTENT(INOUT) :: DiagList
 !
 ! !OUTPUT PARAMETERS:
 !
-    TYPE(DgnList),        POINTER     :: DiagList
-    INTEGER,              INTENT(OUT) :: RC
+    INTEGER,              INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - initial version
@@ -120,7 +123,7 @@ CONTAINS
     NewDiagItem => NULL()
 
     ! Create DiagList object
-    ALLOCATE(DiagList)
+    !ALLOCATE(DiagList)
     DiagList%head => NULL()
     DiagList%numItems = 0
 
@@ -307,16 +310,16 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN)  :: am_I_Root
-    TYPE(DgnItem),   POINTER     :: DiagItem
+    LOGICAL,         INTENT(IN)    :: am_I_Root
+    TYPE(DgnItem),   POINTER       :: DiagItem
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(DgnList),   POINTER     :: DiagList
+    TYPE(DgnList),   INTENT(INOUT) :: DiagList
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,         INTENT(OUT) :: RC
+    INTEGER,         INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - initial version
@@ -476,7 +479,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,           INTENT(IN)    :: am_I_Root     ! root CPU?
-    TYPE(DgnList),     POINTER       :: DiagList
+    TYPE(DgnList),     INTENT(IN)    :: DiagList
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -535,25 +538,28 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Destroy_DiagList 
+! !IROUTINE: Cleanup_DiagList 
 !
-! !DESCRIPTION: Subroutine Destroy_DiagList deallocates a DiagList
+! !DESCRIPTION: Subroutine Cleanup_DiagList deallocates a DiagList
 !  object and all of its member objects including the linked list of
 !  DiagItem objects.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Destroy_DiagList ( am_I_Root, DiagList, RC )
+  SUBROUTINE Cleanup_DiagList ( am_I_Root, DiagList, RC )
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,           INTENT(IN)    :: am_I_Root     ! root CPU?
-    TYPE(DgnList),     POINTER       :: DiagList
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(INOUT) :: RC            ! Success?
+    TYPE(DgnList),     INTENT(INOUT) :: DiagList
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,           INTENT(OUT)   :: RC            ! Success?
 !
 ! !REVISION HISTORY:
 !  21 Sep 2017 - E. Lundgren - Initial version
@@ -568,14 +574,14 @@ CONTAINS
     CHARACTER(LEN=255)     :: thisLoc
 
     ! ================================================================
-    ! Destroy_DiagList begins here
+    ! Cleanup_DiagList begins here
     ! ================================================================
-    thisLoc = 'Destroy_DiagList (diagnostics_mod.F90)'
+    thisLoc = 'Cleanup_DiagList (diagnostics_mod.F90)'
 
     current => NULL()
     next => NULL()
 
-    ! Destroy each item in the linked list of DiagExport objects
+    ! Cleanup each item in the linked list of DiagExport objects
     current => DiagList%head
     IF ( ASSOCIATED( current ) ) next => current%next
     DO WHILE ( ASSOCIATED( current ) )
@@ -587,14 +593,14 @@ CONTAINS
     ENDDO
 
     ! Deallocate the DiagList object
-    DEALLOCATE( DiagList, STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
+    !DEALLOCATE( DiagList, STAT=RC )
+    !IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Final cleanup
     current => NULL()
     next    => NULL()
 
-  END SUBROUTINE Destroy_DiagList
+  END SUBROUTINE Cleanup_DiagList
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

@@ -220,12 +220,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Init_All( am_I_Root,  Input_Opt, State_Chm,  &
-                          State_Diag, State_Met, RC         )
+  SUBROUTINE GC_Init_All( am_I_Root,  Diag_List, Input_Opt, State_Chm,   &
+                          State_Diag, State_Met, RC )
 !
 ! !USES:
 !
     USE CMN_Size_Mod, ONLY : IIPAR, JJPAR, LLPAR, NDUST, NAER
+    USE Diagnostics_Mod
     USE ErrCode_Mod
     USE Input_Opt_Mod
     USE State_Chm_Mod
@@ -235,6 +236,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(DgnList),  INTENT(IN)    :: Diag_List   ! Diagnostics list object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -275,6 +277,7 @@ CONTAINS
 !  30 Jun 2016 - M. Sulprizio- Remove nSpecies from call to Init_GIGC_State_Chm
 !  26 Jun 2017 - R. Yantosca - Now call GC_ERROR to give better error feedback
 !  05 Jul 2017 - R. Yantosca - Now initialize the Diagnostics State object
+!  26 Sep 2017 - E. Lundgren - Inlcude diagnostics list object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -334,6 +337,7 @@ CONTAINS
                           LM         = LLPAR,       &  ! # of levels
                           Input_Opt  = Input_Opt,   &  ! Input Options
                           State_Chm  = State_Chm,   &  ! Chemistry State
+                          Diag_List  = Diag_List,   &  ! Diagnostic list obj 
                           State_Diag = State_Diag,  &  ! Chemistry State
                           RC         = RC          )   ! Success or failure
 
