@@ -574,6 +574,8 @@
      &                             State_Chm, id_SO4d3,  RC         )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d3')
+               ENDIF
+            ENDIF
 
             ! SO4d4 [kg] gravitational settling
             IF ( id_SO4d4 > 0 ) THEN
@@ -582,6 +584,7 @@
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d4')
                ENDIF
+            ENDIF
 
             ! NITd1 [kg] gravitational settling
             IF ( id_NITd1 > 0 ) THEN
@@ -590,6 +593,7 @@
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd1')
                ENDIF
+            ENDIF
 
             ! NITd2 [kg] gravitational settling
             IF ( id_NITd2 > 0 ) THEN
@@ -598,6 +602,7 @@
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd2')
                ENDIF
+            ENDIF
 
             ! NITd3 [kg] gravitational settling
             IF ( id_NITd3 > 0 ) THEN
@@ -606,6 +611,7 @@
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd3')
                ENDIF
+            ENDIF
 
             ! NITd4 [kg] gravitational settling
             IF ( id_NITd4 > 0 ) THEN
@@ -657,11 +663,6 @@
                CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_H2O2' )
             ENDIF
 
-         ENDIF
-
-         CALL GET_VCLDF( am_I_Root, State_Met, RC )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSULFATE: a get VCLDF' )
          ENDIF
 
          ! SO2
@@ -3529,7 +3530,7 @@
       REAL(fp)            :: NIT0,        NITS0
       REAL(fp)            :: F_SO2,       FALK_A_SO2, FALK_C_SO2
       REAL(fp)            :: EQ_BEG,      F_SO2_A,    F_SO2_C
-      REAL(fp)            :: ALKA,        ALKC,       TOTAL_ACID_FLUX
+      REAL(fp)            :: TOTAL_ACID_FLUX
       REAL(fp)            :: HNO3_EQ,     TOT_FLUX_A, TOT_FLUX_C
       REAL(fp)            :: FALK_A_HNO3, HNO3_vv
       REAL(fp)            :: FALK_C_HNO3, F_HNO3_A,   F_HNO3_C
