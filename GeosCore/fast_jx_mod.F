@@ -2940,6 +2940,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
 !  05 Mar 2014 - R. Yantosca - Now only save ND64 with LD64 specified levels
+!  26 Sep 2017 - M. Sulprizio- Add new halogen species to ND22 (L. Zhu)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3411,6 +3412,86 @@ C-----------------------------------------------------------------------
      &                                ZPJ(L,113,ILON,ILAT)
                AD22(ILON,ILAT,L,37) = AD22(ILON,ILAT,L,37) +  ! JHONIT
      &                                ZPJ(L,114,ILON,ILAT)
+               ! lei, 05/15/17 - added new halogen species below 
+               AD22(ILON,ILAT,L,38) = AD22(ILON,ILAT,L,38) +  ! JCH3Br
+     &                                ZPJ(L,50,ILON,ILAT)
+               AD22(ILON,ILAT,L,39) = AD22(ILON,ILAT,L,39) +  ! JBrCl
+     &                                ZPJ(L,33,ILON,ILAT)
+               AD22(ILON,ILAT,L,40) = AD22(ILON,ILAT,L,40) +  ! JCH2Br2
+     &                                ZPJ(L,55,ILON,ILAT)
+               AD22(ILON,ILAT,L,41) = AD22(ILON,ILAT,L,41) +  ! JCH2IBr
+     &                                ZPJ(L,126,ILON,ILAT)
+               AD22(ILON,ILAT,L,42) = AD22(ILON,ILAT,L,42) +  ! JIBr
+     &                                ZPJ(L,129,ILON,ILAT)
+               AD22(ILON,ILAT,L,43) = AD22(ILON,ILAT,L,43) +  ! JCl2
+     &                                ZPJ(L,22,ILON,ILAT)
+               AD22(ILON,ILAT,L,44) = AD22(ILON,ILAT,L,44) +  ! JClO
+     &                                ZPJ(L,27,ILON,ILAT)
+               AD22(ILON,ILAT,L,45) = AD22(ILON,ILAT,L,45) +  ! JOClO
+     &                                ZPJ(L,25,ILON,ILAT)
+               AD22(ILON,ILAT,L,46) = AD22(ILON,ILAT,L,46) +  ! JCl2O2
+     &                                ZPJ(L,26,ILON,ILAT)
+               AD22(ILON,ILAT,L,47) = AD22(ILON,ILAT,L,47) +  ! JClNO2
+     &                                ZPJ(L,21,ILON,ILAT)
+               AD22(ILON,ILAT,L,48) = AD22(ILON,ILAT,L,48) +  ! JClNO3
+     &                                ZPJ(L,19,ILON,ILAT)  +
+     &                                ZPJ(L,20,ILON,ILAT)
+               AD22(ILON,ILAT,L,49) = AD22(ILON,ILAT,L,49) +  ! JHOCl
+     &                                ZPJ(L,24,ILON,ILAT)
+               AD22(ILON,ILAT,L,50) = AD22(ILON,ILAT,L,50) +  ! JCH3CCl3
+     &                                ZPJ(L,44,ILON,ILAT)
+               AD22(ILON,ILAT,L,51) = AD22(ILON,ILAT,L,51) +  ! JCFC113
+     &                                ZPJ(L,39,ILON,ILAT)
+               AD22(ILON,ILAT,L,52) = AD22(ILON,ILAT,L,52) +  ! JCFC114
+     &                                ZPJ(L,40,ILON,ILAT)
+               AD22(ILON,ILAT,L,53) = AD22(ILON,ILAT,L,53) +  ! JCFC115
+     &                                ZPJ(L,41,ILON,ILAT)
+               AD22(ILON,ILAT,L,54) = AD22(ILON,ILAT,L,54) +  ! JHCFC123
+     &                                ZPJ(L,47,ILON,ILAT)
+               AD22(ILON,ILAT,L,55) = AD22(ILON,ILAT,L,55) +  ! JHCFC141b
+     &                                ZPJ(L,48,ILON,ILAT)
+               AD22(ILON,ILAT,L,56) = AD22(ILON,ILAT,L,56) +  ! JHCFC142b
+     &                                ZPJ(L,49,ILON,ILAT)
+               AD22(ILON,ILAT,L,57) = AD22(ILON,ILAT,L,57) +  ! JHCFC22
+     &                                ZPJ(L,46,ILON,ILAT)
+               AD22(ILON,ILAT,L,58) = AD22(ILON,ILAT,L,58) +  ! JH1211
+     &                                ZPJ(L,51,ILON,ILAT)
+               AD22(ILON,ILAT,L,59) = AD22(ILON,ILAT,L,59) +  ! JClOO
+     &                                ZPJ(L,102,ILON,ILAT)
+               AD22(ILON,ILAT,L,60) = AD22(ILON,ILAT,L,60) +  ! JCH2Cl2
+     &                                ZPJ(L,45,ILON,ILAT)
+               AD22(ILON,ILAT,L,61) = AD22(ILON,ILAT,L,61) +  ! JCH2ICl
+     &                                ZPJ(L,125,ILON,ILAT)
+               AD22(ILON,ILAT,L,62) = AD22(ILON,ILAT,L,62) +  ! JICl
+     &                                ZPJ(L,130,ILON,ILAT)
+               AD22(ILON,ILAT,L,63) = AD22(ILON,ILAT,L,63) +  ! JI2
+     &                                ZPJ(L,115,ILON,ILAT)
+               AD22(ILON,ILAT,L,64) = AD22(ILON,ILAT,L,64) +  ! JHOI
+     &                                ZPJ(L,116,ILON,ILAT)
+               AD22(ILON,ILAT,L,65) = AD22(ILON,ILAT,L,65) +  ! JIO
+     &                                ZPJ(L,117,ILON,ILAT)
+               AD22(ILON,ILAT,L,66) = AD22(ILON,ILAT,L,66) +  ! JOIO
+     &                                ZPJ(L,118,ILON,ILAT)
+               AD22(ILON,ILAT,L,67) = AD22(ILON,ILAT,L,67) +  ! JINO
+     &                                ZPJ(L,119,ILON,ILAT)
+               AD22(ILON,ILAT,L,68) = AD22(ILON,ILAT,L,68) +  ! JIONO
+     &                                ZPJ(L,120,ILON,ILAT)
+               AD22(ILON,ILAT,L,69) = AD22(ILON,ILAT,L,69) +  ! JIONO2
+     &                                ZPJ(L,121,ILON,ILAT)
+               AD22(ILON,ILAT,L,70) = AD22(ILON,ILAT,L,70) +  ! JI2O2
+     &                                ZPJ(L,122,ILON,ILAT)
+               AD22(ILON,ILAT,L,71) = AD22(ILON,ILAT,L,71) +  ! JCH3I
+     &                                ZPJ(L,123,ILON,ILAT)
+               AD22(ILON,ILAT,L,72) = AD22(ILON,ILAT,L,72) +  ! JCH2I2
+     &                                ZPJ(L,124,ILON,ILAT)
+               AD22(ILON,ILAT,L,73) = AD22(ILON,ILAT,L,73) +  ! JI2O4
+     &                                ZPJ(L,127,ILON,ILAT)
+               AD22(ILON,ILAT,L,74) = AD22(ILON,ILAT,L,74) +  ! JI2O3
+     &                                ZPJ(L,128,ILON,ILAT)
+               AD22(ILON,ILAT,L,75) = AD22(ILON,ILAT,L,75) +  ! JH1301
+     &                                ZPJ(L,53,ILON,ILAT)
+               AD22(ILON,ILAT,L,76) = AD22(ILON,ILAT,L,76) +  ! JH2402
+     &                                ZPJ(L,54,ILON,ILAT)
             ENDDO
 
          ENDIF
