@@ -28,7 +28,6 @@ MODULE History_Mod
   PUBLIC  :: History_SetTime
   PUBLIC  :: History_Update
   PUBLIC  :: History_Write
-  PUBLIC  :: History_Close_AllFiles
   PUBLIC  :: History_Cleanup
 !
 ! PRIVATE MEMBER FUNCTIONS:
@@ -36,8 +35,9 @@ MODULE History_Mod
   PRIVATE :: History_ReadCollectionNames
   PRIVATE :: History_ReadCollectionData
   PRIVATE :: History_AddItemToCollection
-  PRIVATE :: ReadOneLine
-  PRIVATE :: CleanText
+  PRIVATE :: History_Close_AllFiles
+  PRIVATE :: ReadOneLine ! consider putting in a general util file (ewl)
+  PRIVATE :: CleanText   ! consider putting in a general util file (ewl)
 !
 ! !REMARKS:
 !  
@@ -926,7 +926,7 @@ CONTAINS
                 CALL GetCollectionMetaData( Line, 'fields', MetaData, C )
                 CALL StrSplit( MetaData, " ", Subs1, nSubs1 )
                 ItemName = Subs1(1)
-             
+
              ELSE
 
                 !----------------------------------------------------------
@@ -1098,9 +1098,8 @@ CONTAINS
 
                 ! Trap potential error
                 IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Could not create add diagnostic :'     //       &
-                            TRIM( ItemName ) // '" to collection: ' //       &
-                            TRIM( CollectionName(C) ) 
+                   ErrMsg = 'Could not add diagnostic :' // TRIM( ItemName ) &
+                            // '" to collection: ' // TRIM( CollectionName(C) ) 
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF
@@ -1239,7 +1238,7 @@ CONTAINS
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  03 Aug 2017 - R. Yantosca - Inherit operation code from the Collection
 !  26 Sep 2017 - E. Lundgren - Replace Lookup_State_xx calls with direct
-!                              calls to Registry_Lookup.
+!                              calls to Registry_Lookup
 !EOP
 !------------------------------------------------------------------------------
 !BOC

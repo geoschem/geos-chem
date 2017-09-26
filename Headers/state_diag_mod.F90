@@ -34,8 +34,8 @@ MODULE State_Diag_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Init_State_Diag
-  PUBLIC :: Get_Metadata_State_Diag
   PUBLIC :: Cleanup_State_Diag
+  PUBLIC :: Get_Metadata_State_Diag
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
@@ -298,79 +298,6 @@ CONTAINS
 
   END SUBROUTINE Cleanup_State_Diag
 !EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: Print_State_Diag
-!!
-!! !DESCRIPTION: Print information about all the registered variables
-!!  contained within the State\_Diag object.  This is basically a wrapper for
-!!  routine REGISTRY\_PRINT in registry\_mod.F90.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE Print_State_Diag( am_I_Root, State_Diag, RC, ShortFormat )
-!!
-!! !USES:
-!!
-!    USE Registry_Mod, ONLY : Registry_Print
-!!
-!! !INPUT PARAMETERS:
-!!
-!    LOGICAL,        INTENT(IN)  :: am_I_Root    ! Root CPU?  
-!    TYPE(DgnState), INTENT(IN)  :: State_Diag   ! Meteorology State object
-!    LOGICAL,        OPTIONAL    :: ShortFormat  ! Print truncated info
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER,        INTENT(OUT) :: RC           ! Success/failure?
-!!
-!! !REVISION HISTORY:
-!!  29 Jun 2017 - R. Yantosca - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES
-!!
-!    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-!
-!    !=======================================================================
-!    ! Initialize
-!    !=======================================================================
-!    RC      = GC_SUCCESS
-!    ErrMsg  = ''
-!    ThisLoc = ' -> at Print_State_Diag (in Headers/state_diag_mod.F90)'
-!
-!    !=======================================================================
-!    ! Print info about registered variables
-!    !=======================================================================
-!
-!    ! Header line
-!    IF ( am_I_Root ) THEN
-!       WRITE( 6, 10 )
-!10     FORMAT( /, 'Registered variables contained within the State_Diag object:' )
-!       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!    ENDIF
-!
-!    ! Print registry info in truncated format
-!    CALL Registry_Print( am_I_Root   = am_I_Root,                            &
-!                         Registry    = State_Diag%Registry,                  &
-!                         ShortFormat = ShortFormat,                          &
-!                         RC          = RC                                   )
-!
-!    ! Trap error
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       ErrMsg = 'Error encountered in routine "Registry_Print"!'
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
-!
-!  END SUBROUTINE Print_State_Diag
-!!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

@@ -36,7 +36,7 @@ MODULE Registry_Mod
   PRIVATE :: MetaRegItem_Create
   PRIVATE :: MetaRegItem_Insert
   PRIVATE :: MetaRegItem_Destroy
-  PRIVATE :: Str2Hash
+  PRIVATE :: Str2Hash ! consider putting in a common util file (ewl)
 !
 ! ! PUBLIC TYPES::
 !
@@ -559,7 +559,7 @@ CONTAINS
 
     ! Append the state name to the variable (if it's not already there)
     TmpState        = TRIM( State ) // '_' 
-    IF ( ( TRIM( State ) /= 'DIAG' ) .AND. &
+    IF ( ( TRIM( State ) == 'DIAG' ) .OR.  &
          ( INDEX( Variable, TRIM( TmpState ) ) > 0 ) ) THEN
        TmpFullName  = Variable
     ELSE
