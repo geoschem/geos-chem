@@ -76,38 +76,38 @@
 !  ND49 tracer numbers:
 !  ============================================================================
 !  1 - nAdvect   : GEOS-CHEM advected species               [v/v        ]
-!  151           : OH concentration                         [molec/cm3  ]
-!  152           : NOy concentration                        [v/v        ]
-!  153           : Relative Humidity                        [%          ]
-!  154           : 3-D Cloud fractions                      [unitless   ]
-!  155           : Column optical depths                    [unitless   ]
-!  156           : Cloud top heights                        [hPa        ]
-!  157           : Air density                              [molec/cm3  ]
-!  158           : Total seasalt tracer concentration       [unitless   ]
-!  159           : PBL heights                              [m          ]
-!  160           : PBL heights                              [levels     ]
-!  161           : Grid box heights                         [m          ]
-!  162           : PEDGE-$ (Pressure @ level edges          [hPa        ]
-!  163           : Sea level pressure                       [hPa        ]
-!  164           : Zonal wind (a.k.a. U-wind)               [m/s        ]
-!  165           : Meridional wind (a.k.a. V-wind)          [m/s        ]
-!  166           : Temperature                              [K          ]
-!  167           : Sulfate aerosol optical depth            [unitless   ]
-!  168           : Black carbon aerosol optical depth       [unitless   ]
-!  169           : Organic carbon aerosol optical depth     [unitless   ]
-!  170           : Accumulation mode seasalt optical depth  [unitless   ]
-!  171           : Coarse mode seasalt optical depth        [unitless   ]
-!  172           : Total dust optical depth                 [unitless   ]
-!  173-179       : Size resolved dust optical depth         [unitless   ]
-!  180           : PAR direct                               [hPa        ]
-!  181           : PAR diffuse                              [hPa        ]
-!  182           : Daily LAI                                [hPa        ]
-!  183           : Temperature at 2m                        [K          ]
-!  184           : Accumulated precip.                      [mm/day     ]
-!  185           : Cosine of Solar zenith angle             [unitless   ]
-!  186           : Total organic aerosol                    [ug/m3      ]
-!  187           : ISORROPIA aerosol pH                     [unitless   ]
-!  188           : ISORROPIA aerosol water                  [ug/m3 air  ]
+!  501           : OH concentration                         [molec/cm3  ]
+!  502           : NOy concentration                        [v/v        ]
+!  503           : Relative Humidity                        [%          ]
+!  504           : 3-D Cloud fractions                      [unitless   ]
+!  505           : Column optical depths                    [unitless   ]
+!  506           : Cloud top heights                        [hPa        ]
+!  507           : Air density                              [molec/cm3  ]
+!  508           : Total seasalt tracer concentration       [unitless   ]
+!  509           : PBL heights                              [m          ]
+!  510           : PBL heights                              [levels     ]
+!  511           : Grid box heights                         [m          ]
+!  512           : PEDGE-$ (Pressure @ level edges          [hPa        ]
+!  513           : Sea level pressure                       [hPa        ]
+!  514           : Zonal wind (a.k.a. U-wind)               [m/s        ]
+!  515           : Meridional wind (a.k.a. V-wind)          [m/s        ]
+!  516           : Temperature                              [K          ]
+!  517           : Sulfate aerosol optical depth            [unitless   ]
+!  518           : Black carbon aerosol optical depth       [unitless   ]
+!  519           : Organic carbon aerosol optical depth     [unitless   ]
+!  520           : Accumulation mode seasalt optical depth  [unitless   ]
+!  521           : Coarse mode seasalt optical depth        [unitless   ]
+!  522           : Total dust optical depth                 [unitless   ]
+!  523-529       : Size resolved dust optical depth         [unitless   ]
+!  530           : PAR direct                               [hPa        ]
+!  531           : PAR diffuse                              [hPa        ]
+!  532           : Daily LAI                                [hPa        ]
+!  533           : Temperature at 2m                        [K          ]
+!  534           : Accumulated precip.                      [mm/day     ]
+!  535           : Cosine of Solar zenith angle             [unitless   ]
+!  536           : Total organic aerosol                    [ug/m3      ]
+!  537           : ISORROPIA aerosol pH                     [unitless   ]
+!  538           : ISORROPIA aerosol water                  [ug/m3 air  ]
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -586,7 +586,7 @@
 
             ENDIF
 
-         ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
+         ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
 
             !--------------------------------------
             ! OH CONCENTRATION [molec/cm3]
@@ -611,7 +611,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 152 .and. IS_NOy ) THEN
+         ELSE IF ( N == 502 .and. IS_NOy ) THEN
 
             !--------------------------------------
             ! NOy CONCENTRATION [v/v]
@@ -692,7 +692,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 153 ) THEN
+         ELSE IF ( N == 503 ) THEN
 
             !--------------------------------------
             ! RELATIVE HUMIDITY [%]
@@ -717,7 +717,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 154 ) THEN 
+         ELSE IF ( N == 504 ) THEN 
 
             !--------------------------------------
             ! 3-D CLOUD FRACTIONS [unitless]
@@ -742,7 +742,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 155 .and. IS_OPTD ) THEN 
+         ELSE IF ( N == 505 .and. IS_OPTD ) THEN 
 
             !--------------------------------------
             ! COLUMN OPTICAL DEPTHS [unitless]
@@ -764,7 +764,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 156 .and. IS_CLDTOPS ) THEN 
+         ELSE IF ( N == 506 .and. IS_CLDTOPS ) THEN 
 
             !--------------------------------------
             ! CLOUD TOP HEIGHTS [hPa]
@@ -789,7 +789,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 157 ) THEN
+         ELSE IF ( N == 507 ) THEN
 
             !--------------------------------------
             ! AIR DENSITY [molec/cm3]
@@ -814,7 +814,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 158 .and. IS_SEASALT ) THEN
+         ELSE IF ( N == 508 .and. IS_SEASALT ) THEN
             
             !--------------------------------------
             ! TOTAL SEASALT TRACER [v/v]
@@ -841,7 +841,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 159 ) THEN
+         ELSE IF ( N == 509 ) THEN
 
             !--------------------------------------
             ! PBL HEIGHTS [m] 
@@ -863,7 +863,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 160 ) THEN
+         ELSE IF ( N == 510 ) THEN
 
             !--------------------------------------
             ! PBL HEIGHTS [levels] 
@@ -885,7 +885,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 161 ) THEN
+         ELSE IF ( N == 511 ) THEN
 
             !--------------------------------------
             ! GRID BOX HEIGHT [m]
@@ -910,7 +910,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 162) THEN 
+         ELSE IF ( N == 512) THEN 
 
             !--------------------------------------
             ! PEDGE-$ (Prs @ level edges) [hPa]
@@ -935,7 +935,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 163 .and. IS_SLP ) THEN
+         ELSE IF ( N == 513 .and. IS_SLP ) THEN
 
             !--------------------------------------
             ! SEA LEVEL PRESSURE [hPa]
@@ -957,7 +957,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 164 ) THEN
+         ELSE IF ( N == 514 ) THEN
 
             !--------------------------------------
             ! ZONAL (U) WIND [m/s]
@@ -982,7 +982,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 165 ) THEN 
+         ELSE IF ( N == 515 ) THEN 
 
             !--------------------------------------
             ! MERIDIONAL (V) WIND [m/s]
@@ -1007,7 +1007,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-        ELSE IF ( N == 166 ) THEN
+        ELSE IF ( N == 516 ) THEN
 
             !--------------------------------------
             ! TEMPERATURE [K]
@@ -1032,7 +1032,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 167 ) THEN
+         ELSE IF ( N == 517 ) THEN
 
             !--------------------------------------
             ! SULFATE AOD [unitless]
@@ -1087,7 +1087,7 @@
 !$OMP END PARALLEL DO
             ENDIF
 
-         ELSE IF ( N == 168 ) THEN
+         ELSE IF ( N == 518 ) THEN
 
             !--------------------------------------
             ! BLACK CARBON AOD [unitless]
@@ -1142,7 +1142,7 @@
 !$OMP END PARALLEL DO
             ENDIF
 
-         ELSE IF ( N == 169 ) THEN
+         ELSE IF ( N == 519 ) THEN
 
             !--------------------------------------
             ! ORGANIC CARBON AOD [unitless]
@@ -1197,7 +1197,7 @@
 !$OMP END PARALLEL DO
             ENDIF
 
-         ELSE IF ( N == 170 ) THEN
+         ELSE IF ( N == 520 ) THEN
             
             !--------------------------------------
             ! ACCUM SEASALT AOD [unitless]
@@ -1252,7 +1252,7 @@
 !$OMP END PARALLEL DO
             ENDIF
 
-         ELSE IF ( N == 171 ) THEN
+         ELSE IF ( N == 521 ) THEN
 
             !--------------------------------------
             ! COARSE SEASALT AOD [unitless]
@@ -1307,7 +1307,7 @@
 !$OMP END PARALLEL DO
             ENDIF
 
-         ELSE IF ( N == 172 ) THEN
+         ELSE IF ( N == 522 ) THEN
 
             !--------------------------------------
             ! TOTAL DUST OPT DEPTH [unitless]
@@ -1364,7 +1364,7 @@
                ENDIF
             ENDDO
 
-         ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
+         ELSE IF ( ( N >= 523 ) .and. ( N <= 529) ) THEN
 
             !--------------------------------------
             ! DUST OPTD BINS1-7 [unitless]
@@ -1375,9 +1375,9 @@
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
             GMNL      = ND49_NL
-            GMTRC     = 21+(N-173)
+            GMTRC     = 21+(N-523)
 
-            ISPC = N - 172
+            ISPC = N - 522
             IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1421,7 +1421,7 @@
 !$OMP END PARALLEL DO
             ENDIF
 
-         ELSE IF ( N == 180 ) THEN
+         ELSE IF ( N == 530 ) THEN
 
             !--------------------------------------
             ! PAR Diffuse [hPa]
@@ -1443,7 +1443,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 181 ) THEN
+         ELSE IF ( N == 531 ) THEN
 
             !--------------------------------------
             ! PAR Direct [hPa]
@@ -1465,7 +1465,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 182 ) THEN
+         ELSE IF ( N == 532 ) THEN
 
             !--------------------------------------
             ! Daily LAI [m2/m2]
@@ -1487,7 +1487,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 183 ) THEN
+         ELSE IF ( N == 533 ) THEN
             
             !--------------------------------------
             ! T @ 2m (mpb,2008)
@@ -1517,7 +1517,7 @@
 !###  OUTPUTS TO A netCDF FILE. (bmy, mps, 5/26/15)                         ###
 !##############################################################################
 
-        ELSE IF ( N == 184 ) THEN
+        ELSE IF ( N == 534 ) THEN
 
             !--------------------------------------
             ! Accumulated Precip [mm/day]
@@ -1538,7 +1538,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 185 ) THEN
+         ELSE IF ( N == 535 ) THEN
             
             !-----------------------------------
             ! Cosine of SZA  (eam, 2014)
@@ -1560,7 +1560,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 186 .and. LSOA ) THEN
+         ELSE IF ( N == 536 .and. LSOA ) THEN
             
             !-------------------------------------
             ! Total organic aerosol [ug/m3] (eam, 2014)
@@ -1585,7 +1585,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 187 ) THEN
+         ELSE IF ( N == 537 ) THEN
             
             !-------------------------------------
             ! ISORROPIA aerosol pH (unitless) 
@@ -1611,7 +1611,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 188 ) THEN
+         ELSE IF ( N == 538 ) THEN
             
             !-------------------------------------
             ! ISORROPIA aerosol water (ug/m3 air) 

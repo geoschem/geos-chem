@@ -40,29 +40,29 @@
 !  ND50 tracer numbers:
 !  ============================================================================
 !  1 - nAdvect   : GEOS-CHEM advected species               [v/v      ]
-!  151           : OH concentration                         [molec/cm3]
-!  152           : NOy concentration                        [v/v      ]
-!  153           : Relative Humidity                        [%        ]
-!  154           : 3-D Cloud fractions                      [unitless ]
-!  155           : Column optical depths                    [unitless ]
-!  156           : Cloud top heights                        [hPa      ]
-!  157           : Air density                              [molec/cm3]
-!  158           : Total seasalt tracer concentration       [unitless ]
-!  159           : PBL heights                              [m        ]
-!  160           : PBL heights                              [levels   ]
-!  161           : Grid box heights                         [m        ]
-!  162           : PEDGE-$ (Pressure @ level edges          [hPa      ]
-!  163           : Sea level pressure                       [hPa      ]
-!  164           : Zonal wind (a.k.a. U-wind)               [m/s      ]
-!  165           : Meridional wind (a.k.a. V-wind)          [m/s      ]
-!  166           : Temperature                              [K        ]
-!  167           : Sulfate aerosol optical depth            [unitless ]
-!  168           : Black carbon aerosol optical depth       [unitless ]
-!  169           : Organic carbon aerosol optical depth     [unitless ]
-!  170           : Accumulation mode seasalt optical depth  [unitless ]
-!  171           : Coarse mode seasalt optical depth        [unitless ]
-!  172           : Total dust optical depth                 [unitless ]
-!  173-179       : Size resolved dust optical depth         [unitless ]
+!  501           : OH concentration                         [molec/cm3]
+!  502           : NOy concentration                        [v/v      ]
+!  503           : Relative Humidity                        [%        ]
+!  504           : 3-D Cloud fractions                      [unitless ]
+!  505           : Column optical depths                    [unitless ]
+!  506           : Cloud top heights                        [hPa      ]
+!  507           : Air density                              [molec/cm3]
+!  508           : Total seasalt tracer concentration       [unitless ]
+!  509           : PBL heights                              [m        ]
+!  510           : PBL heights                              [levels   ]
+!  511           : Grid box heights                         [m        ]
+!  512           : PEDGE-$ (Pressure @ level edges          [hPa      ]
+!  513           : Sea level pressure                       [hPa      ]
+!  514           : Zonal wind (a.k.a. U-wind)               [m/s      ]
+!  515           : Meridional wind (a.k.a. V-wind)          [m/s      ]
+!  516           : Temperature                              [K        ]
+!  517           : Sulfate aerosol optical depth            [unitless ]
+!  518           : Black carbon aerosol optical depth       [unitless ]
+!  519           : Organic carbon aerosol optical depth     [unitless ]
+!  520           : Accumulation mode seasalt optical depth  [unitless ]
+!  521           : Coarse mode seasalt optical depth        [unitless ]
+!  522           : Total dust optical depth                 [unitless ]
+!  523-529       : Size resolved dust optical depth         [unitless ]
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -490,7 +490,7 @@
      &                      ( AIRMW 
      &                      / State_Chm%SpcData(N)%Info%emMW_g ) )
 
-            ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
+            ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
 
                !--------------------------------------
                ! OH CONCENTRATION [molec/cm3]
@@ -498,7 +498,7 @@
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEOH(I,J,L)
 
-            ELSE IF ( N == 152 .and. IS_NOy ) THEN
+            ELSE IF ( N == 502 .and. IS_NOy ) THEN
 
                !--------------------------------------
                ! NOy CONCENTRATION [v/v]
@@ -558,28 +558,28 @@
                ! Accumulate into Q
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
 
-            ELSE IF ( N == 153 ) THEN
+            ELSE IF ( N == 503 ) THEN
 
                !--------------------------------------
                ! RELATIVE HUMIDITY [%]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%RH(I,J,L)
 
-            ELSE IF ( N == 154 ) THEN
+            ELSE IF ( N == 504 ) THEN
 
                !--------------------------------------
                ! 3-D CLOUD FRACTIONS [unitless]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%CLDF(I,J,L)
 
-            ELSE IF ( N == 155 .and. IS_OPTD ) THEN
+            ELSE IF ( N == 505 .and. IS_OPTD ) THEN
 
                !--------------------------------------
                ! COLUMN OPTICAL DEPTHS [unitless]
                !--------------------------------------
                Q(X,Y,1,W) = Q(X,Y,1,W) + State_Met%OPTD(I,J,L)
 
-            ELSE IF ( N == 156 .and. IS_CLDTOPS ) THEN
+            ELSE IF ( N == 506 .and. IS_CLDTOPS ) THEN
 
                !--------------------------------------
                ! CLOUD TOP HEIGHTS [mb]
@@ -589,7 +589,7 @@
      &                       State_Met%PEDGE(I,J,State_Met%CLDTOPS(I,J))
                ENDIF
               
-            ELSE IF ( N == 157 ) THEN
+            ELSE IF ( N == 507 ) THEN
 
                !--------------------------------------
                ! AIR DENSITY [molec/cm3] 
@@ -597,7 +597,7 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%AIRDEN(I,J,L) *
      &                      XNUMOLAIR  * 1d-6 )
 
-            ELSE IF ( N == 158 .and. IS_SEASALT ) THEN
+            ELSE IF ( N == 508 .and. IS_SEASALT ) THEN
 
                !--------------------------------------
                ! TOTAL SEASALT TRACER [v/v]
@@ -608,7 +608,7 @@
      &                        ( AIRMW 
      &                       / State_Chm%SpcData(id_SALA)%Info%emMW_g )
 
-            ELSE IF ( N == 159 ) THEN
+            ELSE IF ( N == 509 ) THEN
 
                !--------------------------------------
                ! PBL HEIGHTS [m] 
@@ -617,7 +617,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PBL_TOP_m( I, J )
                ENDIF
  
-            ELSE IF ( N == 160 ) THEN
+            ELSE IF ( N == 510 ) THEN
 
                !--------------------------------------
                ! PBL HEIGHTS [levels] 
@@ -626,21 +626,21 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PBL_TOP_L( I, J )
                ENDIF
 
-            ELSE IF ( N == 161 ) THEN
+            ELSE IF ( N == 511 ) THEN
 
                !--------------------------------------
                ! GRID BOX HEIGHTS [m]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%BXHEIGHT(I,J,L)
 
-            ELSE IF ( N == 162 ) THEN
+            ELSE IF ( N == 512 ) THEN
 
                !--------------------------------------
                ! PEDGE-$ [hPa]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%PEDGE( I, J, K )
 
-            ELSE IF ( N == 163 .and. IS_SLP ) THEN
+            ELSE IF ( N == 513 .and. IS_SLP ) THEN
 
                !--------------------------------------
                ! SEA LEVEL PRESSURE [hPa]
@@ -649,28 +649,28 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%SLP(I,J)
                ENDIF
 
-            ELSE IF ( N == 164 ) THEN
+            ELSE IF ( N == 514 ) THEN
 
                !--------------------------------------
                ! ZONAL (U) WIND [m/s]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%U(I,J,L)
 
-            ELSE IF ( N == 165 ) THEN
+            ELSE IF ( N == 515 ) THEN
 
                !--------------------------------------
                ! MERIDIONAL (V) WIND [m/s]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%V(I,J,L)
 
-            ELSE IF ( N == 166 ) THEN 
+            ELSE IF ( N == 516 ) THEN 
 
                !--------------------------------------
                ! TEMPERATURE [K]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%T(I,J,L)
 
-            ELSE IF ( N == 167 ) THEN
+            ELSE IF ( N == 517 ) THEN
 
                !--------------------------------------
                ! SULFATE AOD [unitless]
@@ -697,7 +697,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 168 ) THEN
+            ELSE IF ( N == 518 ) THEN
 
                !--------------------------------------
                ! BLACK CARBON AOD [unitless]
@@ -724,7 +724,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 169 ) THEN
+            ELSE IF ( N == 519 ) THEN
 
                !--------------------------------------
                ! ORG CARBON AOD [unitless]
@@ -751,7 +751,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 170 ) THEN
+            ELSE IF ( N == 520 ) THEN
 
                !--------------------------------------
                ! ACCUM SEASALT AOD [unitless]
@@ -778,7 +778,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 171 ) THEN
+            ELSE IF ( N == 521 ) THEN
 
                !--------------------------------------
                ! COARSE SEASALT AOD [unitless]
@@ -805,7 +805,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 172 ) THEN
+            ELSE IF ( N == 522 ) THEN
                
                !--------------------------------------
                ! TOTAL DUST OPTD [unitless]
@@ -835,7 +835,7 @@
 
                ENDDO
 
-            ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
+            ELSE IF ( ( N >= 523 ) .and. ( N <= 529) ) THEN
 
                !--------------------------------------
                ! DUST OPTD BINS1-7 [unitless]
@@ -843,7 +843,7 @@
                !
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-               ISPC = N - 114
+               ISPC = N - 522
 
                IF ( .not. LINTERP ) THEN
                   ! Accumulate
@@ -863,7 +863,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 180 ) THEN
+            ELSE IF ( N == 530 ) THEN
 
                !--------------------------------------
                ! PM 2.5, ug/m3 at STP
