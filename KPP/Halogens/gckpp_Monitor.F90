@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Monitor.f90
-! Time                 : Fri Sep 22 15:08:02 2017
+! Time                 : Tue Sep 26 12:30:58 2017
 ! Working directory    : /n/home05/msulprizio/GC/Code.v11-02d_Halogens/KPP/Halogens
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -632,31 +632,31 @@ MODULE gckpp_Monitor
      '     PRPE + Br --> PO2 + HBr                                                                        ', & ! index 500
      '        I + NO --> INO                                                                              ', & ! index 501
      '         2 INO --> I2 + 2 NO                                                                        ', & ! index 502
-     '       I + NO2 --> LOx + IONO                                                                       ', & ! index 503
-     '          IONO --> POx + I + NO2                                                                    ', & ! index 504
-     '        2 IONO --> 2 POx + I2 + 2 NO2                                                               ', & ! index 505
-     '      I2 + NO3 --> 2 LOx + IONO2 + I                                                                ', & ! index 506
-     '      IO + NO2 --> LOx + IONO2                                                                      ', & ! index 507
-     '         IONO2 --> POx + IO + NO2                                                                   ', & ! index 508
-     '     IONO2 + I --> 2 POx + I2 + NO3                                                                 ', & ! index 509
-     '       I + BrO --> LOx + IO + Br                                                                    ' /)
+     '       I + NO2 --> IONO                                                                             ', & ! index 503
+     '          IONO --> I + NO2                                                                          ', & ! index 504
+     '        2 IONO --> I2 + 2 NO2                                                                       ', & ! index 505
+     '      I2 + NO3 --> IONO2 + I                                                                        ', & ! index 506
+     '      IO + NO2 --> IONO2                                                                            ', & ! index 507
+     '         IONO2 --> IO + NO2                                                                         ', & ! index 508
+     '     IONO2 + I --> I2 + NO3                                                                         ', & ! index 509
+     '       I + BrO --> IO + Br                                                                          ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_17 = (/ &
-     '      IO + BrO --> LOx + I + Br + O2                                                                ', & ! index 511
-     '      IO + BrO --> LOx + OIO + Br                                                                   ', & ! index 512
+     '      IO + BrO --> 2 LOx + I + Br + O2                                                              ', & ! index 511
+     '      IO + BrO --> OIO + Br                                                                         ', & ! index 512
      '      OIO + IO --> I2O3                                                                             ', & ! index 513
      '         2 OIO --> I2O4                                                                             ', & ! index 514
      '          I2O4 --> 2 OIO                                                                            ', & ! index 515
-     '      OIO + NO --> POx + IO + NO2                                                                   ', & ! index 516
-     '      IO + ClO --> POx + OClO + I                                                                   ', & ! index 517
-     '      IO + ClO --> LOx + I + Cl + O2                                                                ', & ! index 518
-     '      IO + ClO --> LOx + ICl + O2                                                                   ', & ! index 519
-     '        I + O3 --> LOx + IO + O2                                                                    ', & ! index 520
+     '      OIO + NO --> IO + NO2                                                                         ', & ! index 516
+     '      IO + ClO --> OClO + I                                                                         ', & ! index 517
+     '      IO + ClO --> 2 LOx + I + Cl + O2                                                              ', & ! index 518
+     '      IO + ClO --> 2 LOx + ICl + O2                                                                 ', & ! index 519
+     '        I + O3 --> IO + O2                                                                          ', & ! index 520
      '       I + HO2 --> HI + O2                                                                          ', & ! index 521
-     '       I2 + OH --> HOI + I                                                                          ', & ! index 522
+     '       I2 + OH --> POx + HOI + I                                                                    ', & ! index 522
      '       HI + OH --> I + H2O                                                                          ', & ! index 523
      '      HOI + OH --> IO + H2O                                                                         ', & ! index 524
      '      IO + HO2 --> HOI + O2                                                                         ', & ! index 525
-     '       IO + NO --> POx + I + NO2                                                                    ', & ! index 526
+     '       IO + NO --> I + NO2                                                                          ', & ! index 526
      '          2 IO --> OIO + I                                                                          ', & ! index 527
      '          2 IO --> I2O2                                                                             ', & ! index 528
      '          I2O2 --> 2 IO                                                                             ', & ! index 529
@@ -693,25 +693,25 @@ MODULE gckpp_Monitor
      '            HI --> AERI                                                                             ', & ! index 559
      '            HI --> ISALA                                                                            ', & ! index 560
      '            HI --> ISALC                                                                            ', & ! index 561
-     '           HOI --> ISALA                                                                            ', & ! index 562
-     '           HOI --> ISALC                                                                            ', & ! index 563
-     '          I2O2 --> 2 AERI                                                                           ', & ! index 564
-     '          I2O2 --> 2 ISALA                                                                          ', & ! index 565
-     '          I2O2 --> 2 ISALC                                                                          ', & ! index 566
-     '          I2O3 --> 2 AERI                                                                           ', & ! index 567
-     '          I2O3 --> 2 ISALA                                                                          ', & ! index 568
-     '          I2O3 --> 2 ISALC                                                                          ', & ! index 569
-     '          I2O4 --> 2 AERI                                                                           ' /)
+     '           HOI --> ISALA + LOx                                                                      ', & ! index 562
+     '           HOI --> ISALC + LOx                                                                      ', & ! index 563
+     '          I2O2 --> 2 AERI + 2 LOx                                                                   ', & ! index 564
+     '          I2O2 --> 2 ISALA + 2 LOx                                                                  ', & ! index 565
+     '          I2O2 --> 2 ISALC + 2 LOx                                                                  ', & ! index 566
+     '          I2O3 --> 2 AERI + 3 LOx                                                                   ', & ! index 567
+     '          I2O3 --> 2 ISALA + 3 LOx                                                                  ', & ! index 568
+     '          I2O3 --> 2 ISALC + 3 LOx                                                                  ', & ! index 569
+     '          I2O4 --> 2 AERI + 4 LOx                                                                   ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_19 = (/ &
-     '          I2O4 --> 2 ISALA                                                                          ', & ! index 571
-     '          I2O4 --> 2 ISALC                                                                          ', & ! index 572
-     '          IONO --> ISALA                                                                            ', & ! index 573
-     '          IONO --> ISALC                                                                            ', & ! index 574
-     '         IONO2 --> ISALA                                                                            ', & ! index 575
-     '         IONO2 --> ISALC                                                                            ', & ! index 576
-     '          IONO --> 0.15 IBr + 0.85 ICl + HNO2                                                       ', & ! index 577
-     '         IONO2 --> POx + 0.15 IBr + 0.85 ICl + HNO3                                                 ', & ! index 578
-     '           HOI --> 0.15 IBr + 0.85 ICl                                                              ', & ! index 579
+     '          I2O4 --> 2 ISALA + 4 LOx                                                                  ', & ! index 571
+     '          I2O4 --> 2 ISALC + 4 LOx                                                                  ', & ! index 572
+     '          IONO --> ISALA + LOx                                                                      ', & ! index 573
+     '          IONO --> ISALC + LOx                                                                      ', & ! index 574
+     '         IONO2 --> ISALA + 2 LOx                                                                    ', & ! index 575
+     '         IONO2 --> ISALC + 2 LOx                                                                    ', & ! index 576
+     '          IONO --> LOx + 0.15 IBr + 0.85 ICl + HNO2                                                 ', & ! index 577
+     '         IONO2 --> LOx + 0.15 IBr + 0.85 ICl + HNO3                                                 ', & ! index 578
+     '           HOI --> LOx + 0.15 IBr + 0.85 ICl                                                        ', & ! index 579
      '          GLYX --> SOAGX                                                                            ', & ! index 580
      '          MGLY --> SOAMG                                                                            ', & ! index 581
      '        IEPOXA --> SOAIE                                                                            ', & ! index 582
@@ -842,12 +842,12 @@ MODULE gckpp_Monitor
      '         HONIT --> POx + HAC + NO2                                                                  ', & ! index 703
      '        CH2Cl2 --> 2 Cl                                                                             ', & ! index 704
      '            I2 --> 2 I                                                                              ', & ! index 705
-     '           HOI --> I + OH                                                                           ', & ! index 706
-     '            IO --> POx + I + O                                                                      ', & ! index 707
-     '           OIO --> I + O2                                                                           ', & ! index 708
+     '           HOI --> LOx + I + OH                                                                     ', & ! index 706
+     '            IO --> I + O                                                                            ', & ! index 707
+     '           OIO --> 2 LOx + I + O2                                                                   ', & ! index 708
      '           INO --> I + NO                                                                           ', & ! index 709
-     '          IONO --> POx + I + NO2                                                                    ', & ! index 710
-     '         IONO2 --> 2 POx + I + NO3                                                                  ', & ! index 711
+     '          IONO --> I + NO2                                                                          ', & ! index 710
+     '         IONO2 --> I + NO3                                                                          ', & ! index 711
      '          I2O2 --> OIO + I                                                                          ', & ! index 712
      '          CH3I --> I                                                                                ', & ! index 713
      '         CH2I2 --> 2 I                                                                              ', & ! index 714
