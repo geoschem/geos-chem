@@ -40,17 +40,17 @@
 # one string.  The following example is used to ensure that the met field name
 # selected by the user is case-insensitive:
 # 
-#   # %%%%% GEOS-5 %%%%%
-#   REGEXP    :=((^[Gg][Ee][Oo][Ss])?5|.5)
-#   ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-#   USER_DEFS += -DGEOS_5
-#   endif
+#  # %%%%% GEOS-FP %%%%%
+#  REGEXP             :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
+#  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+#    USER_DEFS        += -DGEOS_FP
+#  endif
 #                                                                             .
 # The [[ ]] in bash is an evaluation.  The above ifeq statement uses regular
 # expressions to test if the MET variable matches the string "GEOS" (case-
-# insensitive) and either "5" or "any character and then a 5".  This will
-# return true (via the "echo true" statement) for combinations like "GEOS-5", 
-# "geos5", "Geos-5", "GeOs.5", etc.  This is a robust way of evaluating
+# insensitive) and either "FP" or "any character and then a FP".  This will
+# return true (via the "echo true" statement) for combinations like "GEOS-FP", 
+# "geosfp", "Geos-FP", "GeOs.FP", etc.  This is a robust way of evaluating
 # the user's input, and will make errors less likely.
 #
 # !REVISION HISTORY: 
@@ -198,6 +198,7 @@
 #                              COMPILER_FAMILY; also works if FC=mpif90
 #  08 May 2017 - R. Yantosca - Add minor fixes to avoid Perl bareword errors
 #  23 May 2017 - R. Yantosca - use -dumpversion to get the Gfortran version #
+#  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -218,10 +219,10 @@ ERR_CMPLR            :="Unknown Fortran compiler!  Must be one of ifort, gfortra
 ERR_OSCOMP           :="Makefile_header.mk not set up for this compiler/OS combination"
 
 # Error message for bad MET input
-ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp, MET=merra2)"
+ERR_MET              :="Select a met field: MET=geosfp, MET=merra2)"
 
 # Error message for bad GRID input
-ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=05x0625, GRID=025x03125"
+ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0625, GRID=025x03125"
 
 # Error message for bad NEST input
 ERR_NEST             :="Select a nested grid: NEST=as, NEST=ch, NEST=eu, NEST=na, NEST=cu"
@@ -587,35 +588,10 @@ endif
 # We can skip the following checks for targets that don't require MET
 ifndef NO_MET_NEEDED 
 
-  # %%%%% GCAP %%%%%
-  REGEXP             :=(^[Gg][Cc][Aa][Pp])
+  # %%%%% MERRA-2 %%%%%
+  REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2|^[Mm][Ee][Rr][Rr][Aa].2)
   ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGCAP
-  endif
-
-  # %%%%% GEOS-4 %%%%%
-  REGEXP             :=((^[Gg][Ee][Oo][Ss])?4|.4)
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGEOS_4
-  endif
-
-  # %%%%% GEOS-5 %%%%%
-  REGEXP             :=((^[Gg][Ee][Oo][Ss])?5|.5)
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGEOS_5
-  endif
-
-  # %%%%% MERRA or MERRA2 %%%%%
-  # We have to employ a double regexp test in order to prevent
-  # inadvertently setting MERRA if we want MERRA2. (bmy, 8/11/15)
-  REGEXP             :=(^[Mm][Ee][Rr][Rr][Aa])
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2|^[Mm][Ee][Rr][Rr][Aa].2)
-    ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-      USER_DEFS      += -DMERRA2
-    else
-      USER_DEFS      += -DMERRA
-    endif
+    USER_DEFS      += -DMERRA2
   endif
 
   # %%%%% GEOS-FP %%%%%
@@ -634,7 +610,7 @@ ifndef NO_MET_NEEDED
   endif
 
   # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
-  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP|\-DMERRA2)
+  REGEXP             :=(\-DGEOS_FP|\-DMERRA2)
   ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
     $(error $(ERR_MET))
   endif
@@ -674,31 +650,6 @@ ifndef NO_GRID_NEEDED
   REGEXP             :=(^2.25|^2.2\.5|^2\.0.2\.5)
   ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
     USER_DEFS        += -DGRID2x25
-  endif
-
-  # %%%%% 1 x 1.25 %%%%%
-  REGEXP             :=(^1.125|^1.1\.25|^1\.0.1\.25)
-  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGRID1x125
-  endif
-
-  # %%%%% 0.5 x 0.666 %%%%%
-  REGEXP             :=(^05.066.|^0\.5.0\.066.)
-  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-
-    # Ensure that MET=geos5
-    REGEXP           := ((^[Gg][Ee][Oo][Ss])?5|.5)
-    ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-      $(error When GRID=05x0666, you can only use MET=geos5)
-    endif
-
-    # Ensure that a nested-grid option is selected
-    ifndef NEST
-      $(error $(ERR_NEST))
-    else
-      NEST_NEEDED    :=1
-      USER_DEFS      += -DGRID05x0666
-    endif
   endif
 
   # %%%%% 0.5 x 0.625 %%%%%

@@ -362,6 +362,8 @@
             SFCA            = State_Met%UVALBEDO(NLON,NLAT)
 
             ! Overhead ozone column [DU] at (NLON, NLAT)
+            ! These values are either from the met fields or TOMS/SBUV,
+            ! depending on the settings in input.geos
             O3_TOMS         = GET_OVERHEAD_O3( NLON, NLAT )
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
@@ -410,20 +412,16 @@
             ! Directly use OPTDEPTH = TAUCLD * CLDTOT
             !===========================================================
 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
             ! Column cloud fraction (not less than zero)
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
                
-            ! For GEOS-5, GEOS-FP, MERRA, and MERRA2 met fields, the optical
+            ! NOTE: For GEOS-FP and MERRA-2 met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 
             ! NOT been multiplied by cloud fraction yet.  Therefore, we can
             ! just apply the ! we can just apply the linear overlap formula 
             ! as written above (i.e. multiply by cloud fraction).
             OPTD = OPTD * CLDF1D
-
-#endif
 
             ! Call FAST-JX routines to compute J-values
             CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
@@ -443,24 +441,13 @@
             ! Column cloud fraction (not less than zero)
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
-               
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
-            ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
+            ! NOTE: For GEOS-FP and MERRA-2 met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 
             ! NOT been multiplied by cloud fraction yet.  Therefore, we can
             ! just apply the approximate random overlap formula as written 
             ! above (i.e. multiply by cloud fraction^1.5).
             OPTD = OPTD * ( CLDF1D )**1.5e+0_fp
-            
-#else
-            ! Otherwise, OPTD is the grid-box optical depth and has 
-            ! already been multiplied by  the cloud fraction.  Therefore 
-            ! we only need to multiply by the square root of the cloud 
-            ! fraction here for the approximate random overlap option. 
-            OPTD = OPTD * SQRT( CLDF1D )
-
-#endif
 
             ! Call FAST-JX routines to compute J-values
             CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
@@ -549,9 +536,7 @@
 !                  ! Max cloud fraction
 !                  FMAX(KK) = MAXVAL( CLDF1D(KBOT(KK):KTOP(KK)) )
 !
-!#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-!
-!                  ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
+!                  ! NOTE: for the GEOS-FP and MERRA-2 met fields (i.e. with
 !                  ! optical depth & cloud fractions regridded with RegridTau)
 !                  ! OPTD is the in-cloud optical depth.  At this point it has
 !                  ! NOT been multiplied by cloud fraction yet.  Therefore,
@@ -560,17 +545,6 @@
 !                  ! ODNEW is adjusted in-cloud OD vertical distrib.
 !                  ODNEW(KBOT(KK):KTOP(KK)) = OPTD(KBOT(KK):KTOP(KK))
 !
-!#else
-!
-!                  ! Otherwise, OPTD is the grid-box optical depth.  
-!                  ! Therefore, we must divide out by the cloud fraction
-!                  ! and thus set ODNEW = OPTD / FMAX. (bmy, hyl, 10/24/08)
-!
-!                  ! ODNEW is adjusted in-cloud OD vertical distrib.
-!                  ODNEW(KBOT(KK):KTOP(KK)) = OPTD(KBOT(KK):KTOP(KK)) / 
-!     &                                       FMAX(KK)
-!
-!#endif
 !               ENDDO
 !            
 !               !--------------------------------------------------------
@@ -4249,14 +4223,14 @@ C---Always does PL(2) = P[1]
       REAL(fp), PARAMETER      :: ODMAX = 200.0e+0_fp
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL :: LO3FJX
+      LOGICAL :: USE_ONLINE_O3
 
       !=================================================================
       ! SET_PROF begins here!
       !=================================================================
 
       ! Copy fields from INPUT_OPT
-      LO3FJX = Input_Opt%LO3FJX
+      USE_ONLINE_O3   = Input_Opt%USE_ONLINE_O3
 
       ! Zero aerosol column
       DO K=1,A_
@@ -4455,13 +4429,21 @@ C---Always does PL(2) = P[1]
 
       ! Scale monthly O3 profile to the daily O3 profile (if available)
       DO I = 1, L1_
-         IF ((LO3FJX) .and. (I.le.LLCHEM) 
-     &       .and. (O3_CTM(I) > 0e+0_fp)) THEN
+
+         ! Use online O3 values in the chemistry grid if selected
+         IF ( (USE_ONLINE_O3) .and. 
+     &        (I.le.LLCHEM)   .and. (O3_CTM(I) > 0e+0_fp) ) THEN
+
             ! Convert from molec/cm3 to molec/cm2
             O3_CLIM(I) = O3_CTM(I) * (Z_CLIM(I+1)-Z_CLIM(I))
+
+         ! Otherwise, use O3 values from the met fields or TOMS/SBUV
          ELSEIF (O3_TOMS > 0e+0_fp) THEN
+
             O3_CLIM(I) = O3_CLIM(I) * ( O3_TOMS / PROFCOL )
+
          ENDIF
+
       ENDDO
 
       END SUBROUTINE SET_PROF

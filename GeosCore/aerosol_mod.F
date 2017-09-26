@@ -917,7 +917,7 @@
      &               + SOILDUST(I,J,L,3) + SOILDUST(I,J,L,4) ! DST1
      &               + SOILDUST(I,J,L,5) * 0.38              ! 38% of DST2
      &               + ISOAAQ(I,J,L) * ORG_GROWTH            ! Incl SOAGX,SOAMG
-     &               + SOAS(I,J,L)
+     &               + SOAS(I,J,L) * ORG_GROWTH
 
          ! Apply STP correction factor based on ideal gas law
          PM25(I,J,L) = PM25(I,J,L) * ( 1013.25e+0_fp / PMID(I,J,L) ) *

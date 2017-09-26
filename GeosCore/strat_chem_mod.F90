@@ -99,6 +99,7 @@ MODULE Strat_Chem_Mod
 !  03 Oct 2016 - R. Yantosca - Dynamically allocate BrPtrDay, BrPtrNight
 !  30 May 2017 - M. Sulprizio- SChem_Tend is now public so that it can be
 !                              updated in flexchem_mod.F90 for UCX simulations
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1974,40 +1975,21 @@ CONTAINS
 !
     ! Select the grid boxes at the edges of the O3 release region, 
     ! for the proper model resolution (qli, bmy, 12/1/04)
-#if   defined( GRID4x5 ) && defined( GCAP )
-    ! GCAP has 45 latitudes, shift by 1/2 grid box (swu, bmy, 5/25/05)
-    INTEGER, PARAMETER   :: J30S = 16, J30N = 30 
-
-#elif defined( GRID4x5 )
+#if defined( GRID4x5 )
     INTEGER, PARAMETER   :: J30S = 16, J30N = 31 
 
 #elif defined( GRID2x25 ) 
     INTEGER, PARAMETER   :: J30S = 31, J30N = 61
 
-#elif defined( GRID1x125 ) 
-    INTEGER, PARAMETER   :: J30S = 61, J30N = 121
-
 #elif defined( GRID05x0625 )
 
     !%%% ADD PLACEHOLDER VALUES, THESE AREN'T REALLY USED ANYMORE %%%
 #if   defined( NESTED_AS )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 83
+    INTEGER, PARAMETER :: J30S = 1,  J30N = 83
 #elif defined( NESTED_NA )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 41
+    INTEGER, PARAMETER :: J30S = 1,  J30N = 41
 #elif defined( NESTED_EU )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
-#endif
-
-
-#elif defined( GRID05x0666 )
-
-! jtl, 10/26/11 
-#if   defined( NESTED_CH )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 83
-#elif defined( NESTED_NA )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 41
-#elif defined( NESTED_EU )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
+    INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
 #endif
 
 #elif defined( GRID025x03125 )
@@ -2019,14 +2001,6 @@ CONTAINS
 !Anna Prot added 8 May 2015
 #elif defined( NESTED_EU )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 115
-#endif
-
-#elif defined( GRID1x1 ) 
-
-#if defined( NESTED_CH ) || defined( NESTED_NA ) || defined(NESTED_EU)
-    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
-#else  
-    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
 #endif
 
 #elif defined( EXTERNAL_GRID )
@@ -2074,19 +2048,9 @@ CONTAINS
     !                                     be the default)
     !  (2) IORD = 5, JORD = 5, KORD = 7 
     !=================================================================
-#if   defined( GEOS_4 )
-    PO3_vmr = 5.14e-14_fp                                 ! 3,3,7
+#if  defined( GEOS_FP ) || defined( MERRA2 )
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-    ! For now assume GEOS-5 has same PO3_vmr value 
-    ! as GEOS-4; we can redefine later (bmy, 5/25/05)
     PO3_vmr = 5.14e-14_fp   
-
-#elif defined( GCAP )
-
-    ! For GCAP, assuming 3,3,7 (swu, bmy, 5/25/05)
-    PO3_vmr = 5.0e-14_fp
 
 #elif defined( GISS ) && defined( MODELE )
 
@@ -2200,7 +2164,6 @@ CONTAINS
              ! Convert O3 in grid box (I,J,L) from v/v/s to v/v/box
              PO3 = PO3_vmr * DTCHEM 
 
-#if   !defined( GCAP ) 
              ! For both 2 x 2.5 and 4 x 5 GEOS grids, 30S and 30 N are
              ! grid box centers.  However, the O3 release region is 
              ! edged by 30S and 30N.  Therefore, if we are at the 30S
@@ -2208,7 +2171,7 @@ CONTAINS
              IF ( J == J30S .or. J == J30N ) THEN
                 PO3 = PO3 / 2e+0_fp
              ENDIF
-#endif
+
              ! If we are in the lower level, compute the fraction
              ! of this level that lies above 70 mb, and scale 
              ! the O3 flux accordingly.

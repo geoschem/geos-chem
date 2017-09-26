@@ -67,9 +67,7 @@
 !  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 8/11/15)
 !  ============================================================================
 !                                                                             .
-!  GEOS-4, GEOS-5, GEOS-FP, MERRA, and MERRA-2 (hybrid grids):
-!  ----------------------------------------------------------------------------
-!  For GEOS-4 and GEOS-5, the pressure at the bottom edge of grid box (I,J,L) 
+!  The pressure at the bottom edge of grid box (I,J,L) 
 !  is defined as follows:
 !                                                                             .
 !     Pedge(I,J,L) = Ap(L) + [ Bp(L) * Psurface(I,J) ]
@@ -82,24 +80,7 @@
 !                                                                             .
 !  Ap(L) and Bp(L) are given to us by GMAO.
 !                                                                             .
-!                                                                             .
-!  GEOS-3 (pure-sigma) and GCAP (hybrid grid):
-!  ----------------------------------------------------------------------------
-!  GEOS-3 is a pure-sigma grid.  GCAP is a hybrid grid, but its grid is
-!  defined as if it were a pure sigma grid (i.e. PTOP=150 hPa, and negative
-!  sigma edges at higher levels).  For these grids, can stil use the same
-!  formula as for GEOS-4, with one modification:
-!                                                                             .
-!     Pedge(I,J,L) = Ap(L) + [ Bp(L) * ( Psurface(I,J) - PTOP ) ]
-!                                                                             .
-!  where
-!                                                                             .
-!     Psurface(I,J) = the "true" surface pressure at lon,lat (I,J)
-!     Ap(L)         = PTOP    = model top pressure
-!     Bp(L)         = SIGE(L) = bottom sigma edge of level L
-!                                                                             .
-!                                                                             .
-!  The following are true for GCAP, GEOS-3, GEOS-4:
+!  The following are true:
 !  ----------------------------------------------------------------------------
 !  (1) Bp(LLPAR+1) = 0.0          (L=LLPAR+1 is the atmosphere top)
 !  (2) Bp(1)       = 1.0          (L=1       is the surface       )
@@ -154,6 +135,7 @@
 !  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_3D_TROP function
 !  04 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  11 Aug 2015 - R. Yantosca - Add support for MERRA2 data
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -230,33 +212,9 @@
          ! Copy a vertical column into INCOL
          INCOL = IN( I+I0, J+J0, 1:LGLOB )
 
-#if   defined( GEOS_4 )
-
          !--------------------------------------------------------------
-         ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
-         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
-         !--------------------------------------------------------------
-
-         ! Lump 2 levels together at a time, starting at L=20
-         OUT(I,J,20) = LUMP_2( INCOL, LGLOB, 20 )
-         OUT(I,J,21) = LUMP_2( INCOL, LGLOB, 22 )
-         OUT(I,J,22) = LUMP_2( INCOL, LGLOB, 24 )
-         OUT(I,J,23) = LUMP_2( INCOL, LGLOB, 26 )
-
-         ! Lump 4 levels together at a time, starting at L=28
-         OUT(I,J,24) = LUMP_4( INCOL, LGLOB, 28 )
-         OUT(I,J,25) = LUMP_4( INCOL, LGLOB, 32 )
-         OUT(I,J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
-         OUT(I,J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
-         OUT(I,J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
-         OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
-         OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
-
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-         !--------------------------------------------------------------
-         ! GEOS-5/MERRA Lump 72 levels into 47 levels, starting above 
-         ! L=36.  Lump levels in groups of 2, then 4. (cf. Bob Yantosca)
+         ! Lump 72 levels into 47 levels, starting above L=36. 
+         ! Lump levels in groups of 2, then 4. (cf. Bob Yantosca)
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
@@ -273,8 +231,6 @@
          OUT(I,J,45) = LUMP_4( INCOL, LGLOB, 61 ) 
          OUT(I,J,46) = LUMP_4( INCOL, LGLOB, 65 ) 
          OUT(I,J,47) = LUMP_4( INCOL, LGLOB, 69 ) 
-
-#endif
 
       ENDDO
       ENDDO
@@ -358,33 +314,9 @@
          ! Copy a vertical column into INCOL
          INCOL = IN( I+I0, J+J0, 1:LGLOB )
 
-#if   defined( GEOS_4 )
-
          !--------------------------------------------------------------
-         ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
-         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
-         !--------------------------------------------------------------
-
-         ! Lump 2 levels together at a time, starting at L=20
-         OUT(I,J,20) = LUMP_2( INCOL, LGLOB, 20 )
-         OUT(I,J,21) = LUMP_2( INCOL, LGLOB, 22 )
-         OUT(I,J,22) = LUMP_2( INCOL, LGLOB, 24 )
-         OUT(I,J,23) = LUMP_2( INCOL, LGLOB, 26 )
-
-         ! Lump 4 levels together at a time, starting at L=28
-         OUT(I,J,24) = LUMP_4( INCOL, LGLOB, 28 )
-         OUT(I,J,25) = LUMP_4( INCOL, LGLOB, 32 )
-         OUT(I,J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
-         OUT(I,J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
-         OUT(I,J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
-         OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
-         OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
-
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-         !--------------------------------------------------------------
-         ! GEOS-5/MERRA Lump 72 levels into 47 levels, starting above 
-         ! L=36.  Lump levels in groups of 2, then 4. (cf. Bob Yantosca)
+         ! Lump 72 levels into 47 levels, starting above L=36.
+         ! Lump levels in groups of 2, then 4. (cf. Bob Yantosca)
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
@@ -402,8 +334,6 @@
          OUT(I,J,46) = LUMP_4( INCOL, LGLOB, 65 ) 
          OUT(I,J,47) = LUMP_4( INCOL, LGLOB, 69 ) 
 
-#endif
-
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -417,7 +347,7 @@
 !
 ! !IROUTINE: Transfer_G5_Ple
 !
-! !DESCRIPTION: Subroutine TRANSFER\_G5\_PLE transfers GEOS-5/MERRA pressure 
+! !DESCRIPTION: Subroutine TRANSFER\_G5\_PLE transfers pressure 
 !  edge data from the native 72-level grid to the reduced 47-level grid.  
 !\\
 !\\
@@ -460,10 +390,8 @@
       IF ( LLPAR == LGLOB ) RETURN
 
       !================================================================
-      ! Return GEOS-5 pressure edges for reduced grid
+      ! Return pressure edges for reduced grid
       !================================================================
-
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -490,8 +418,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-#endif
 
       END SUBROUTINE TRANSFER_G5_PLE
 !EOC
@@ -556,8 +482,6 @@
       ! %%% PLE defined on the edges is CMFMC and that is always zero 
       ! %%% above about 120 hPa. (bmy, 2/8/07)
       !=================================================================
-      
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -584,8 +508,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-#endif
 
       END SUBROUTINE TRANSFER_3D_Lp1
 !EOC
@@ -662,29 +584,13 @@
       !
       ! where PEDGE(L) is the pressure at the bottom edge of layer L.
       !
-      ! GEOS-4/GEOS-5/MERRA are a hybrid sigma-pressure grid, with 
+      ! GEOS-FP/MERRA-2 are a hybrid sigma-pressure grid, with 
       ! all of the levels above level a certain level being pure 
       ! pressure levels.  Therefore, for these grids, we may just 
       ! use EQUATION 1 exactly as written above.
-      !
-      ! However, GEOS-3 is a pure sigma grid.  The pressure at the 
-      ! edge of a grid box is given by (EQUATION 2):
-      ! 
-      !  PEDGE(I,J,L) = PTOP + ( SIG_EDGE(L) * ( Psurf(I,J) - PTOP) )
-      !
-      ! In a vertical column, then ( Psurf(I,J) - PTOP ) will be the 
-      ! same for all vertical levels, and will divide out of the
-      ! equation.  Also the PTOP's will cancel each other out.  Thus
-      ! for GEOS-3, the above equation reduces to (EQUATION 3):
-      !
-      !           [ ( Q(L  ) * ( SIG_EDGE(L  ) - SIG_EDGE(L+1) ) ) + 
-      !             ( Q(L+1) * ( SIG_EDGE(L+1) - SIG_EDGE(L+2) ) ) ]
-      !  Q(L') = ----------------------------------------------------
-      !                     SIG_EDGE(L) - SIG_EDGE(L+2)
       !=================================================================     
 
-      ! For GEOS-3, EDGE_IN are the sigma values at grid box edges
-      ! Otherwise,  EDGE_IN are the pressures at grid box edges
+      ! EDGE_IN are the pressures at grid box edges
       OUT   = ( IN(L  ) * ( EDGE_IN(L  ) - EDGE_IN(L+1) ) ) +
      &        ( IN(L+1) * ( EDGE_IN(L+1) - EDGE_IN(L+2) ) )
 
@@ -769,29 +675,13 @@
       !
       ! where PEDGE(L) is the pressure at the bottom edge of layer L.
       !
-      ! GEOS-4/GEOS-5/MERRA are a hybrid sigma-pressure grid, with 
+      ! GEOS-FP/MERRA-2 are a hybrid sigma-pressure grid, with 
       ! all of the levels above level a certain level being pure 
       ! pressure levels.  Therefore, for these grids, we may just 
       ! use EQUATION 1 exactly as written above.
-      !
-      ! However, GEOS-3 is a pure sigma grid.  The pressure at the 
-      ! edge of a grid box is given by EQUATION 2:
-      ! 
-      !  PEDGE(I,J,L) = PTOP + ( SIG_EDGE(L) * ( Psurf(I,J) - PTOP) )
-      !
-      ! In a vertical column, then ( Psurf(I,J) - PTOP ) will be the 
-      ! same for all vertical levels, and will divide out of the
-      ! equation.  Also the PTOP's will cancel each other out.  Thus
-      ! for GEOS-3, the above equation reduces to (EQUATION 3):
-      !
-      !           [ ( Q(L  ) * ( SIG_EDGE(L  ) - SIG_EDGE(L+1) ) ) + 
-      !             ( Q(L+1) * ( SIG_EDGE(L+1) - SIG_EDGE(L+2) ) ) ]
-      !  Q(L') = ----------------------------------------------------
-      !                     SIG_EDGE(L) - SIG_EDGE(L+2)
       !=================================================================     
 
-      ! For GEOS-3, EDGE_IN are the sigma values at grid box edges
-      ! Othewise,   EDGE_IN are the pressures at grid box edges
+      ! EDGE_IN are the pressures at grid box edges
       OUT   = ( IN(L  ) * ( EDGE_IN(L  ) - EDGE_IN(L+1) ) ) +
      &        ( IN(L+1) * ( EDGE_IN(L+1) - EDGE_IN(L+2) ) )
 
@@ -876,31 +766,13 @@
       !
       ! where PEDGE(L) is the pressure at the bottom edge of layer L.
       !
-      ! GEOS-4/GEOS-5/MERRA are a hybrid sigma-pressure grid, with 
+      ! GEOS-FP/MERRA-2 are a hybrid sigma-pressure grid, with 
       ! all of the levels above level a certain level being pure 
       ! pressure levels.  Therefore, for these grids, we may just 
       ! use EQUATION 1 exactly as written above.
-      !
-      ! However, GEOS-3 is a pure sigma grid.  The pressure at the 
-      ! edge of a grid box is given by EQUATION 2:
-      ! 
-      !  PEDGE(I,J,L) = PTOP + ( SIG_EDGE(L) * ( Psurf(I,J) - PTOP) )
-      !
-      ! In a vertical column, then ( Psurf(I,J) - PTOP ) will be the 
-      ! same for all vertical levels, and will divide out of the
-      ! equation.  Also the PTOP's will cancel each other out.  Thus
-      ! for GEOS-3, the above equation reduces to (EQUATION 3):
-      !
-      !           [ ( Q(L  ) * ( SIG_EDGE(L  ) - SIG_EDGE(L+1) ) ) + 
-      !             ( Q(L+1) * ( SIG_EDGE(L+1) - SIG_EDGE(L+2) ) ) +
-      !             ( Q(L+2) * ( SIG_EDGE(L+2) - SIG_EDGE(L+3) ) ) +
-      !             ( Q(L+3) * ( SIG_EDGE(L+3) - SIG_EDGE(L+4) ) ) ]
-      !  Q(L') = ----------------------------------------------------
-      !                     SIG_EDGE(L) - SIG_EDGE(L+4)
       !=================================================================     
 
-      ! For GEOS-3, EDGE_IN are the sigma values at grid box edges
-      ! Otherwise,  EDGE_IN are the pressures at grid box edges
+      ! EDGE_IN are the pressures at grid box edges
       OUT   = ( IN(L  ) * ( EDGE_IN(L  ) - EDGE_IN(L+1) ) ) +
      &        ( IN(L+1) * ( EDGE_IN(L+1) - EDGE_IN(L+2) ) ) +
      &        ( IN(L+2) * ( EDGE_IN(L+2) - EDGE_IN(L+3) ) ) +
@@ -987,31 +859,13 @@
       !
       ! where PEDGE(L) is the pressure at the bottom edge of layer L.
       !
-      ! GEOS-4/GEOS-5/MERRA are a hybrid sigma-pressure grid, with 
+      ! GEOS-FP/MERRA-2 are a hybrid sigma-pressure grid, with 
       ! all of the levels above level a certain level being pure 
       ! pressure levels.  Therefore, for these grids, we may just 
       ! use EQUATION 1 exactly as written above.
-      !
-      ! However, GEOS-3 is a pure sigma grid.  The pressure at the 
-      ! edge of a grid box is given by EQUATION 2:
-      ! 
-      !  PEDGE(I,J,L) = PTOP + ( SIG_EDGE(L) * ( Psurf(I,J) - PTOP) )
-      !
-      ! In a vertical column, then ( Psurf(I,J) - PTOP ) will be the 
-      ! same for all vertical levels, and will divide out of the
-      ! equation.  Also the PTOP's will cancel each other out.  Thus
-      ! for GEOS-3, the above equation reduces to (EQUATION 3):
-      !
-      !           [ ( Q(L  ) * ( SIG_EDGE(L  ) - SIG_EDGE(L+1) ) ) + 
-      !             ( Q(L+1) * ( SIG_EDGE(L+1) - SIG_EDGE(L+2) ) ) +
-      !             ( Q(L+2) * ( SIG_EDGE(L+2) - SIG_EDGE(L+3) ) ) +
-      !             ( Q(L+3) * ( SIG_EDGE(L+3) - SIG_EDGE(L+4) ) ) ]
-      !  Q(L') = ------------------------------------------------
-      !                     SIG_EDGE(L) - SIG_EDGE(L+4)
       !================================================================= 
 
-      ! For GEOS-3, EDGE_IN are the sigma values at grid box edges
-      ! Otherwise,  EDGE_IN are the pressures at grid box edges
+      ! EDGE_IN are the pressures at grid box edges
       OUT   = ( IN(L  ) * ( EDGE_IN(L  ) - EDGE_IN(L+1) ) ) +
      &        ( IN(L+1) * ( EDGE_IN(L+1) - EDGE_IN(L+2) ) ) +
      &        ( IN(L+2) * ( EDGE_IN(L+2) - EDGE_IN(L+3) ) ) +
@@ -1098,18 +952,10 @@
 
       ELSE
 
-#if   defined( GEOS_4  )
-         L_COPY = 19       ! GEOS-4:  Copy up to L=19
-#elif defined( GEOS_5  )
-         L_COPY = 36       ! GEOS-5:  Copy up to L=36
-#elif defined( GEOS_FP )
+#if defined( GEOS_FP )
          L_COPY = 36       ! GEOS-FP: Copy up to L=36
-#elif defined( MERRA   )
-         L_COPY = 36       ! MERRA:   Copy up to L=36
 #elif defined( MERRA2  )
-         L_COPY = 36       ! MERRA2:  Copy up to L=36
-#elif defined( GCAP    )
-         L_COPY = LGLOB    ! GCAP:    Copy all levels
+         L_COPY = 36       ! MERRA-2: Copy up to L=36
 #endif
 
       ENDIF
@@ -1123,15 +969,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
       EDGE_IN = 0e+0_fp
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
       !-----------------------------------------------------------------
-      ! For GEOS-5/MERRA, levels 1-31 are "terrain-following" 
-      ! coordinates (i.e. vary with location), and levels 32-72 are 
-      ! fixed pressure levels.  The transition pressure is 176.93 hPa, 
-      ! which is the edge between L=31 and L=32.
+      ! Levels 1-31 are "terrain-following" coordinates (i.e. vary
+      ! with location), and levels 32-72 are fixed pressure levels.
+      ! The transition pressure is 176.93 hPa, which is the edge
+      ! between L=31 and L=32.
       !
-      ! Initialize EDGE_IN with the original 73 Ap values for GEOS-5.
+      ! Initialize EDGE_IN with the original 73 Ap values
       !-----------------------------------------------------------------
       EDGE_IN = (/ 
      &  0.000000e+00_fp, 4.804826e-02_fp, 
@@ -1150,7 +994,7 @@
      &  2.187760e+02_fp, 2.238980e+02_fp,
      &  2.243630e+02_fp, 2.168650e+02_fp, 
      &  2.011920e+02_fp, 
-!------- EDGES OF GEOS-5 FIXED PRESSURE LEVELS OCCUR BELOW THIS LINE ------
+!------- EDGES OF FIXED PRESSURE LEVELS OCCUR BELOW THIS LINE ------
      &  1.769300e+02_fp,
      &  1.503930e+02_fp, 1.278370e+02_fp, 
      &  1.086630e+02_fp, 9.236572e+01_fp,
@@ -1173,38 +1017,6 @@
      &  6.600001e-02_fp, 4.758501e-02_fp, 
      &  3.270000e-02_fp, 2.000000e-02_fp,
      &  1.000000e-02_fp /)
-
-#elif defined( GEOS_4 )
-
-      !-----------------------------------------------------------------
-      ! For GEOS-4, levels 1-14 are "terrain-following" coordinates
-      ! (i.e. vary with location), and levels 15-55 are fixed pressure 
-      ! levels.  The transition pressure is 176.93 hPa, which is the
-      ! edge between L=14 and L=15.
-      !
-      ! Initialize EDGE_IN with the original 56 Ap values for GEOS-4.
-      !-----------------------------------------------------------------
-      EDGE_IN = (/  0.000000e+0_fp,   0.000000e+0_fp,  12.704939e+0_fp,  
-     &             35.465965e+0_fp,  66.098427e+0_fp, 101.671654e+0_fp, 
-     &            138.744400e+0_fp, 173.403183e+0_fp, 198.737839e+0_fp, 
-     &            215.417526e+0_fp, 223.884689e+0_fp, 224.362869e+0_fp,
-     &            216.864929e+0_fp, 201.192093e+0_fp, 176.929993e+0_fp, 
-     &            150.393005e+0_fp, 127.837006e+0_fp, 108.663429e+0_fp,  
-     &             92.365662e+0_fp,  78.512299e+0_fp,  66.603378e+0_fp,  
-     &             56.387939e+0_fp,  47.643932e+0_fp,  40.175419e+0_fp, 
-     &             33.809956e+0_fp,  28.367815e+0_fp,  23.730362e+0_fp,  
-     &             19.791553e+0_fp,  16.457071e+0_fp,  13.643393e+0_fp,  
-     &             11.276889e+0_fp,   9.292943e+0_fp,   7.619839e+0_fp,   
-     &              6.216800e+0_fp,   5.046805e+0_fp,   4.076567e+0_fp, 
-     &              3.276433e+0_fp,   2.620212e+0_fp,   2.084972e+0_fp,   
-     &              1.650792e+0_fp,   1.300508e+0_fp,   1.019442e+0_fp,   
-     &              0.795134e+0_fp,   0.616779e+0_fp,   0.475806e+0_fp,   
-     &              0.365041e+0_fp,   0.278526e+0_fp,   0.211349e+0_fp, 
-     &              0.159495e+0_fp,   0.119703e+0_fp,   0.089345e+0_fp,   
-     &              0.066000e+0_fp,   0.047585e+0_fp,   0.032700e+0_fp,   
-     &              0.020000e+0_fp,   0.010000e+0_fp /)
-
-#endif
 
       ! We have now initialized everything
       IS_INIT = .TRUE.

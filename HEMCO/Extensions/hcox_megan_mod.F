@@ -3023,10 +3023,6 @@
       ! By default gamma_sm is 1.0
       GAMMA_SM = 1.0_hp
 
-      ! GWETROOT is only defined for GEOS-5
-#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
-
-      !GWETROOT = ExtState%GWETROOT%Arr%Val(I,J)
       ! Error trap: GWETROOT must be between 0.0 and 1.0 (ckeller, 4/16/15)
       GWETROOT = MIN(MAX(ExtState%GWETROOT%Arr%Val(I,J),0.0_hp),1.0_hp)
 
@@ -3042,8 +3038,6 @@
          GAMMA_SM = MAX( 20.0_hp * GWETROOT - 17.0_hp, 1.0_hp)
 
       ENDIF
-
-#endif
 
       ! return to calling program
       END FUNCTION GET_GAMMA_SM

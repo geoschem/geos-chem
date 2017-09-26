@@ -341,7 +341,7 @@
       CALL CLEANUP_MCICA_CLOUDS()
 #endif
 
-#if   defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
+#if   defined( GRID05x0625 ) || defined( GRID025x03125)
       CALL EXIT_TPCORE_WINDOW() 
 #else
       CALL EXIT_TPCORE()

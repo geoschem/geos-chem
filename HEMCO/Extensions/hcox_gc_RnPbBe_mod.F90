@@ -65,6 +65,7 @@ MODULE HCOX_GC_RnPbBe_Mod
 !  04 Sep 2014 - R. Yantosca - Modified for GCAP simulation
 !  05 Nov 2014 - C. Keller   - Now allow Rn or Pb to be not specified.
 !  07 Jan 2016 - E. Lundgren - Update Avogadro's # to NIST 2014 value
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -365,16 +366,6 @@ CONTAINS
           ! ADD_Be = [atoms/s] / [atom/kg] / [m2] = 7Be emissions [kg/m2/s]
           ADD_Be  = ( Be_TMP / XNUMOL_Be ) / HcoState%Grid%AREA_M2%Val(I,J)
    
-#if defined( GCAP ) 
-          !%%%%% FOR GCAP SIMULATION: Divide emissions flux by 3.5 to correct
-          !%%%%% for the strat-trop exchange!  This replicates the prior code.
-          !%%%%% (bmy, 9/4/14)
-          IF ( .not. ( HcoState%Grid%PEDGE%Val(I,J,L) >          &
-                       ExtState%TROPP%Arr%Val(I,J)     ) ) THEN
-             ADD_Be = ADD_Be / 3.5d0
-          ENDIF
-#endif
-   
           ! Save emissions into an array for use below
           EmissBe7(I,J,L) = ADD_Be
    
@@ -516,9 +507,6 @@ CONTAINS
     ExtState%FRCLND%DoUse  = .TRUE. 
     ExtState%T2M%DoUse     = .TRUE. 
     ExtState%AIR%DoUse     = .TRUE. 
-#if defined( GCAP ) 
-    ExtState%TROPP%DoUse   = .TRUE.
-#endif
 
     ! Activate this extension
     ExtState%Gc_RnPbBe     = .TRUE.

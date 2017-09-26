@@ -160,6 +160,7 @@
 #  30 Jun 2016 - M. Sulprizio- Remove readchem.F, reader.F, jsparse.F, ksparse.F
 #  09 Aug 2016 - M. Sulprizio- Remove diag_pl_mod and add diag20_mod
 #  13 Jul 2017 - E. Lundgren - Remove passive_species_mod.F90
+#  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -434,12 +435,6 @@ exehg:                                             # Create Hg/GTMM exec file
 ###                                                                         ###
 ###############################################################################
 
-a3_read_mod.o               : a3_read_mod.F                                  \
-                              diag_mod.o
-
-a6_read_mod.o               : a6_read_mod.F                                  \
-                              dao_mod.o               diag_mod.o              
-
 aerosol_mod.o               : aerosol_mod.F                                  \
                               chemgrid_mod.o          dao_mod.o              \
                               diag_mod.o              ucx_mod.o
@@ -510,8 +505,8 @@ co2_mod.o                   : co2_mod.F                                      \
 convection_mod.o            : convection_mod.F                               \
                               diag_mod.o              depo_mercury_mod.o     \
                               fvdas_convect_mod.o     wetscav_mod.o          \
-                              gcap_convect_mod.o      mercury_mod.o          \
-                              tendencies_mod.o        hco_interface_mod.o
+                              mercury_mod.o           tendencies_mod.o       \
+                              hco_interface_mod.o
 
 dao_mod.o                   : dao_mod.F                              
 
@@ -610,7 +605,7 @@ flexchem_mod.o              : flexchem_mod.F90                               \
                               diag_mod.o              diag_oh_mod.o          \
                               diag20_mod.o            dust_mod.o             \
                               fast_jx_mod.o           future_emissions_mod.o \
-                              tomas_mod.o
+                              strat_chem_mod.o        tomas_mod.o
 
 future_emissions_mod.o      : future_emissions_mod.F
 
@@ -633,12 +628,6 @@ endif
 
 gc_environment_mod.o        : gc_environment_mod.F90                         \
                               vdiff_pre_mod.o
-
-gcap_convect_mod.o          : gcap_convect_mod.F                             \
-                              diag_mod.o
-
-gcap_read_mod.o             : gcap_read_mod.F                                \
-                              diag_mod.o
 
 geosfp_read_mod.o           : geosfp_read_mod.F90                            \
                               dao_mod.o               diag_mod.o
@@ -671,9 +660,6 @@ hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               modis_lai_mod.o         fast_jx_mod.o          \
                               hcoi_gc_diagn_mod.o     tomas_mod.o            \
                               hco_interface_mod.o
-
-i6_read_mod.o               : i6_read_mod.F                                  \
-                              diag_mod.o              
 
 initialize.o                : initialize.F                                   \
                               diag_mod.o              diag03_mod.o           \
@@ -717,7 +703,6 @@ linoz_mod.o                 : linoz_mod.F                                    \
                               chemgrid_mod.o          
 
 main.o                      : main.F                                         \
-                              a3_read_mod.o           a6_read_mod.o          \
                               benchmark_mod.o                                \
                               chemgrid_mod.o          chemistry_mod.o        \
                               carbon_mod.o            convection_mod.o       \
@@ -727,14 +712,11 @@ main.o                      : main.F                                         \
                               diag51b_mod.o           diag63_mod.o           \
                               diag_oh_mod.o           dao_mod.o              \
                               depo_mercury_mod.o      drydep_mod.o           \
-                              toms_mod.o              gcap_read_mod.o        \
-                              geosfp_read_mod.o       gc_environment_mod.o   \
-                              global_ch4_mod.o        i6_read_mod.o          \
+                              toms_mod.o              geosfp_read_mod.o      \
+                              gc_environment_mod.o    global_ch4_mod.o       \
                               input_mod.o             linoz_mod.o            \
                               mapping_mod.o           toms_mod.o             \
-                              mercury_mod.o           merra_cn_mod.o         \
-                              merra_a1_mod.o          merra_a3_mod.o         \
-                              merra_i6_mod.o          modis_lai_mod.o        \
+                              mercury_mod.o           modis_lai_mod.o        \
                               ocean_mercury_mod.o     olson_landmap_mod.o    \
                               pbl_mix_mod.o           planeflight_mod.o      \
                               restart_mod.o                                  \
@@ -755,17 +737,6 @@ mercury_mod.o               : mercury_mod.F                                  \
                               global_br_mod.o         vdiff_pre_mod.o        \
                               land_mercury_mod.o      hco_interface_mod.o    \
                               ocean_mercury_mod.o     pbl_mix_mod.o
-
-merra_a1_mod.o              : merra_a1_mod.F                                 \
-                              diag_mod.o
-
-merra_a3_mod.o              : merra_a3_mod.F                                 \
-                              dao_mod.o               diag_mod.o
-
-merra_cn_mod.o              : merra_cn_mod.F                                 \
-                              diag_mod.o
-
-merra_i6_mod.o              : merra_i6_mod.F
 
 merra2_read_mod.o           : merra2_read_mod.F90                            \
                               dao_mod.o               diag_mod.o

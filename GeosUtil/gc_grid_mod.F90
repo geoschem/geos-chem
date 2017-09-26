@@ -344,21 +344,6 @@ CONTAINS
           ! Do not define half-sized polar boxes (bmy, 3/21/13)
           !----------------------------------------------------------------
 #else
-
-# if defined( GCAP )
-
-          !----------------------------------------------------------------
-          !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-          !
-          ! For the GCAP model, there are no half-size polar boxes.
-          ! Compute the latitude centers accordingly.  (bmy, 7/2/13)
-          !----------------------------------------------------------------
-
-          ! Lat centers (degrees)
-          YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 88e+0_fp
-
-#else
-
           !----------------------------------------------------------------
           !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
           !
@@ -377,9 +362,8 @@ CONTAINS
           ELSE IF ( JG == JNP ) THEN
              YMD(I,J,L)  = +90e+0_fp - ( 0.5e+0_fp * DLAT(I,J,L) )   ! N pole
           ENDIF
-
-# endif
 #endif
+
           ! Lat centers (radians)
           YMDR(I,J,L)   = ( PI_180 * YMD(I,J,L)  )
 

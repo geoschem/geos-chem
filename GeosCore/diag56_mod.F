@@ -104,7 +104,7 @@
       USE BPCH2_MOD,    ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
       USE FILE_MOD,     ONLY : IU_BPCH
       USE GC_GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,     ONLY : GET_CT_A6, GET_CT_A3, GET_CT_I3
+      USE TIME_MOD,     ONLY : GET_CT_A3, GET_CT_I3
       USE TIME_MOD,     ONLY : GET_DIAGb,  GET_DIAGe
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -113,9 +113,9 @@
 ! !REMARKS:
 !   # : Field    : Description              : Units          : Scale factor
 !  --------------------------------------------------------------------------
-!  (1 ) LFLASH-$ : Lightning flash rate     : flashes/min/km2 : SCALE_A6
-!  (2 ) LFLASH-$ : Intra-cloud flash rate   : flashes/min/km2 : SCALE_A6
-!  (3 ) LFLASH-$ : Cloud-ground flash rate  : flashes/min/km2 : SCALE_A6
+!  (1 ) LFLASH-$ : Lightning flash rate     : flashes/min/km2 : SCALE_I3
+!  (2 ) LFLASH-$ : Intra-cloud flash rate   : flashes/min/km2 : SCALE_I3
+!  (3 ) LFLASH-$ : Cloud-ground flash rate  : flashes/min/km2 : SCALE_I3
 ! 
 ! !REVISION HISTORY: 
 !  11 May 2006 - R. Yantosca - Initial version
@@ -159,13 +159,7 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
-#if   defined( MERRA )
-      SCALE     = DBLE( GET_CT_A3() ) + 1e-32_fp
-#elif defined( GEOS_FP ) || defined( MERRA2 )
       SCALE     = DBLE( GET_CT_I3() ) + 1e-32_fp
-#else
-      SCALE     = DBLE( GET_CT_A6() ) + 1e-32_fp
-#endif     
   
       !=================================================================
       ! Write data to the bpch file

@@ -77,6 +77,7 @@ MODULE HCO_ExtList_Mod
 !  20 Sep 2015 - C. Keller   - Reorganize options in linked lists. Tokens are
 !                              now the same as options and can be flexibly
 !                              set by the user.
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -110,16 +111,8 @@ MODULE HCO_ExtList_Mod
   ! Default met field token
 #if defined( GEOS_FP )
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'geosfp'
-#elif defined( GEOS_5 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'geos5'
-#elif defined( GEOS_4 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'geos4'
-#elif defined( MERRA )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'merra'
 #elif defined( MERRA2 )
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'merra2'
-#elif defined( GCAP )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'gcap'
 #else
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'unknown_model'
 #endif 
@@ -129,12 +122,8 @@ MODULE HCO_ExtList_Mod
   CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '4x5'
 #elif defined( GRID2x25 )
   CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '2x25'
-#elif defined( GRID1x125 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '1x125'
 #elif defined( GRID05x0625 )
   CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '05x0625'
-#elif defined( GRID05x0666 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '05x0666'
 #elif defined( GRID025x03125 )
   CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '025x03125'
 #else

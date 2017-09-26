@@ -186,6 +186,7 @@ MODULE GCKPP_HETRATES
 !                              E. Marais (Marais et al., 2016)
 !  14 Jul 2017 - M. Sulprizio- Add heterogeneous chemistry for monoterpenes from
 !                              J. Fisher (Fisher et al., 2017)
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -547,28 +548,9 @@ MODULE GCKPP_HETRATES
 
       GAMMA_HO2 = IO%GAMMA_HO2
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-            
-      ! GEOS-5/MERRA/GEOS-FP/MERRA-2 have QI and QL defined as  met fields
-      QICE       = SM%QI(I,J,L) ! Ice mixing ratio   [kg/kg dry air]
-      QLIQ       = SM%QL(I,J,L) ! Water mixing ratio [kg/kg dry air]
+      QICE       = SM%QI(I,J,L)                ! Ice   mix ratio [kg/kg dry air]
+      QLIQ       = SM%QL(I,J,L)                ! Water mix ratio [kg/kg dry air]
       
-#else
-      
-      ! Otherwise, compute QLIQ as a function of temperature ...
-      IF ( SM%T(I,J,L) .LE. 248e+0_fp ) THEN
-         QLIQ  = 0e+0_fp
-      ELSE IF ( SM%T(I,J,L) .GE. 268e+0_fp ) THEN
-         QLIQ  = 1e-6_fp
-      ELSE
-         QLIQ  = 1e-6_fp * ( ( SM%T(I,J,L) - 248e+0_fp ) / 20e+0_fp)
-      ENDIF
-      
-      ! ... and compute QICE from QLIQ (bmy, 9/24/12)
-      QICE     = 1e-6_fp - QLIQ
-      
-#endif
-
 #if defined( UCX )
       !--------------------------------------------------------------------
       ! Check surface type of PSCs (SDE 04/17/13)
@@ -1343,6 +1325,9 @@ MODULE GCKPP_HETRATES
       ! Loop over aerosol types
       DO N = 1, NAERO
 
+         ! Default value
+         XSTKCF = TINY(1e+0_fp)
+
          ! Only consider inorganic aqueous aerosols with RH > 35%.
          ! Uptake during the day (higher uptake than night)
          ! (Sumner et al., 2014):
@@ -1435,6 +1420,9 @@ MODULE GCKPP_HETRATES
       ! Loop over aerosol types
       DO N = 1, NAERO
 
+         ! Default value
+         XSTKCF = TINY(1e+0_fp)
+
          ! Only consider inorganic aqueous aerosols with RH > 35%.
          IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
 
@@ -1517,6 +1505,9 @@ MODULE GCKPP_HETRATES
 
       ! Loop over aerosol types
       DO N = 1, NAERO
+
+         ! Default value
+         XSTKCF = TINY(1e+0_fp)
 
          ! Only consider inorganic aqueous aerosols with RH > 35%.
          IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
@@ -1619,6 +1610,9 @@ MODULE GCKPP_HETRATES
 
       ! Loop over aerosol types
       DO N = 1, NAERO
+
+         ! Default value
+         XSTKCF = TINY(1e+0_fp)
 
          ! Only consider inorganic aqueous aerosols with RH > 35%.
          IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
@@ -3541,6 +3535,7 @@ MODULE GCKPP_HETRATES
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3569,7 +3564,7 @@ MODULE GCKPP_HETRATES
       REAL(fp)            :: DFKG       ! Gas diffusion coefficient    [cm2/s]
       REAL(fp)            :: Vc         ! Volume of the cloud          [cm3]
       REAL(fp)            :: XAIRM3     ! Volume of air                [m3]
-      LOGICAL             :: yn_continue, IS_LAND, IS_ICE
+      LOGICAL             :: yn_continue
    
       ! Pointers
       REAL(fp), POINTER   :: AD(:,:,:)
@@ -3591,53 +3586,6 @@ MODULE GCKPP_HETRATES
       FROCEAN => State_Met%FROCEAN
       T       => State_Met%T
 
-      ! -- IS THIS LAND? -- (Adapted from DAO_MOD function)
-#if   defined( GCAP )
-
-      !--------------------------
-      ! GCAP
-      !--------------------------
-
-      ! It's a land box if 50% or more of the box is covered by 
-      ! land and less than 50% of the box is covered by ice
-      IS_LAND = ( State_Met%LWI_GISS(I,J) >= 0.5e+0_fp .and. &
-                  State_Met%SNICE(I,J)    <  0.5e+0_fp )
-
-#else
-
-      !--------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !--------------------------
-
-      ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
-      IS_LAND = ( NINT( State_Met%LWI(I,J) ) == 1       .and. &
-                     State_Met%ALBD(I,J)  <  0.695e+0_fp )
-
-#endif
-      ! Done with 'Is this land' ---------------------
-      ! -- IS THIS ICE? -- (Adapted from DAO_MOD function)
-#if   defined( GCAP )
-
-      !--------------------------
-      ! GCAP
-      !--------------------------
-
-      ! It's an ice box if 50% or more of the box is covered by ice
-      IS_ICE = ( State_Met%SNICE(I,J) >= 0.5e+0_fp )
-
-#else
-
-      !--------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !--------------------------
-
-      ! LWI=2 or ALBEDO > 69.5% is ice
-      IS_ICE = ( NINT( State_Met%LWI(I,J) ) == 2       .or. &
-                    State_Met%ALBD(I,J)  >= 0.695e+0_fp )
-
-#endif
-      ! Done with 'Is this ice' ---------------------
-
       ! ----------------------------------------------
       ! 1.
       !   calculate the mean molecular speed of the
@@ -3652,13 +3600,8 @@ MODULE GCKPP_HETRATES
       ! ----------------------------------------------
 
       ! continental or marine clouds only...
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       IF ( (FRLAND (I,J) > 0) .or. (FROCEAN(I,J) > 0) ) THEN
-#else
-      ! Above line is to skip over land ice (Greenland and Antartica). This
-      ! should do the same (and also work for GEOS-5, but leave above for now).
-      IF ( IS_LAND .and. .not. IS_ICE  ) THEN
-#endif
+
          ! do we have clouds? and do we have warm temperatures?
          IF ( ( CLDF(I,J,L) > 0    )   .and.           &
               ( T(I,J,L)    > 258.0) ) THEN
@@ -3728,11 +3671,7 @@ MODULE GCKPP_HETRATES
       !     AREA =  -----------------
       !              AIRVOL x RADIUS      (in cm)
       ! ----------------------------------------------
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       IF ( FRLAND(I,J) > FROCEAN(I,J) ) THEN
-#else
-      IF ( IS_LAND ) THEN
-#endif
          ! Continental cloud droplet radius [cm]
          RADIUS = XCLDR_CONT
       ELSE
@@ -3746,13 +3685,8 @@ MODULE GCKPP_HETRATES
       XAIRM3 = XAIRM3 * (100.e+0_fp)**3
 
       ! get the volume of cloud [cm3]
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       ! QL is [g/g]
       Vc = CLDF(I,J,L) * QL * AD(I,J,L) / dens_h2o
-#else
-      ! QL is [cm3/cm3]
-      Vc = CLDF(I,J,L) * QL * XAIRM3
-#endif
 
       ! now calculate the cloud droplet surface area
       AREA    = 3.e+0_fp * (Vc/XAIRM3) / (RADIUS) ! keep Radius in [cm]

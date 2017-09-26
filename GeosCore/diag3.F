@@ -293,8 +293,8 @@
       INTEGER            :: NBIN   ! TOMAS bin counter (win, 1/25/10)
 
       REAL(fp)           :: SCALE_TMP(IIPAR,JJPAR)
-      REAL(fp)           :: SCALE_I6,   SCALE_A6,   SCALE_A3  
-      REAL(fp)           :: SCALE_A1,   SCALED,     SCALEDYN
+      REAL(fp)           :: SCALE_A1,   SCALE_A3  
+      REAL(fp)           :: SCALED,     SCALEDYN
       REAL(fp)           :: SCALECONV,  SCALESRCE,  SCALECHEM  
       REAL(fp)           :: SCALEDIAG,  SCALE_ND66, SCALE_ND67 
       REAL(fp)           :: SCALERAD
@@ -411,9 +411,7 @@
       SCALERAD   = DBLE( GET_CT_RAD()  ) + 1e-32_fp
       SCALE_A1   = DBLE( GET_CT_A1()   ) + 1e-32_fp
       SCALE_A3   = DBLE( GET_CT_A3()   ) + 1e-32_fp
-      SCALE_A6   = DBLE( GET_CT_A6()   ) + 1e-32_fp
       SCALE_I3   = DBLE( GET_CT_I3()   ) + 1e-32_fp
-      SCALE_I6   = DBLE( GET_CT_I6()   ) + 1e-32_fp
       SCALEDIAG  = DBLE( GET_CT_DIAG() ) + 1e-32_fp
 
 !
@@ -5379,16 +5377,6 @@
           ! --> If diagnostics OutOper is set to 'Mean':
           FACTOR = 1.0e+0_fp
 
-          ! --> If diagnostics OutOper is set to 'Cumsum' (same as original ND56):
-!#if   defined( MERRA )
-!          FACTOR = DBLE( GET_CT_A3() ) + 1d-32
-!#elif defined( GEOS_FP )
-!          FACTOR = DBLE( GET_CT_I3() ) + 1d-32
-!#else
-!          FACTOR = DBLE( GET_CT_A6() ) + 1d-32
-!#endif     
-!          FACTOR = 1.0 / FACTOR
-
           ! Loop over ND56 diagnostic tracers
           DO M = 1, 3
 
@@ -6103,13 +6091,13 @@
 !
 !   # : Field  : Description                       : Units   : Scale factor
 !  --------------------------------------------------------------------------
-!  (1)  UWND   : GMAO Zonal Winds                  : m/s     : SCALE_I6 or _A6
-!  (2)  VWND   : GMAO Meridional Winds             : m/s     : SCALE_I6 or _A6
-!  (3)  TMPU   : GMAO Temperatures                 : K       : SCALE_I6 or _A6
-!  (4)  SPHU   : GMAO Specific Humidity            : g/kg    : SCALE_I6 or _A6
-!  (5)  CLDMAS : GMAO Cloud Mass Flux              : kg/m2/s : SCALE_A6 or _A6
-!  (6)  DTRAIN : GMAO Detrainment flux             : kg/m2/s : SCALE_A6
-!  (7)  OMEGA  : GMAO Vertical velocity            : Pa/s    : SCALE_A6
+!  (1)  UWND   : GMAO Zonal Winds                  : m/s     : SCALE_A3
+!  (2)  VWND   : GMAO Meridional Winds             : m/s     : SCALE_A3
+!  (3)  TMPU   : GMAO Temperatures                 : K       : SCALE_I3
+!  (4)  SPHU   : GMAO Specific Humidity            : g/kg    : SCALE_I3
+!  (5)  CLDMAS : GMAO Cloud Mass Flux              : kg/m2/s : SCALE_A3
+!  (6)  DTRAIN : GMAO Detrainment flux             : kg/m2/s : SCALE_A3
+!  (7)  OMEGA  : GMAO Vertical velocity            : Pa/s    : SCALE_A3
 !
 !  NOTES:
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -6121,18 +6109,13 @@
 !  20 Aug 2010 - R. Yantosca - Modified for MERRA
 !  08 Feb 2012 - R. Yantosca - Modified for GEOS-FP
 !  03 Feb 2017 - M. Sulprizio- Add OMEGA (Q. Chen)
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !******************************************************************************
 !
       IF ( ND66 > 0 ) THEN
          CATEGORY = 'DAO-3D-$'
 
-#if   defined( GEOS_FP ) || defined( MERRA2 )
-         SCALE_ND66 = SCALE_A3   ! For GEOS-FP,  ND66 is 3-hr time-avg data
-#elif defined( MERRA )
-         SCALE_ND66 = SCALE_A3   ! For MERRA,    ND66 is 3-hr time-avg data
-#else
-         SCALE_ND66 = SCALE_A6   ! Otherwise,    ND66 is 6-hr time-avg data
-#endif
+         SCALE_ND66 = SCALE_A3   ! ND66 is 3-hr time-avg data
 
          DO M = 1, TMAX(66)
             N  = TINDEX(66,M)
@@ -6147,20 +6130,12 @@
 
                ! TMPU
                CASE ( 3 )
-#if   defined( GEOS_FP ) || defined( MERRA2 )
-                  SCALEX = SCALE_I3      ! T is an I3 field in GEOS-5.7.x
-#else
-                  SCALEX = SCALE_ND66
-#endif
+                  SCALEX = SCALE_I3      ! T is an I3 field
                   UNIT   = 'K'
 
                ! SPHU
                CASE ( 4 )
-#if   defined( GEOS_FP ) || defined( MERRA2 )
-                  SCALEX = SCALE_I3      ! SPHU is an I3 field in GEOS-5.7.x
-#else
-                  SCALEX = SCALE_ND66
-#endif
+                  SCALEX = SCALE_I3      ! SPHU is an I3 field
                   UNIT   = 'g/kg'
 
                ! CLDMAS, DTRAIN
@@ -6194,28 +6169,27 @@
 !
 !   # : Field  : Description                      : Units    : Scale factor
 !  -----------------------------------------------------------------------
-!  (1 ) HFLUX  : GMAO Sensible Heat Flux          : W/m2     : SCALE_ND67
-!  (2 ) RADSWG : GMAO Insolation @ Surface        : W/m2     : SCALE_ND67
-!  (3 ) PREACC : GMAO Accum Precip @ Surface      : mm/day   : SCALE_ND67
-!  (4 ) PRECON : GMAO Conv Precip @ Surface       : mm/day   : SCALE_ND67
-!  (5 ) TS     : GMAO Surface Air Temperature     : K        : SCALE_ND67
-!  (6 ) RADSWT : GMAO Insolation @ Top of Atm     : W/m2     : SCALE_ND67
-!  (7 ) USTAR  : GMAO Friction Velocity           : m/s      : SCALE_ND67
-!  (8 ) Z0     : GMAO Roughness Height            : m        : SCALE_ND67
-!  (9 ) PBL    : GMAO PBL depth                   : m        : SCALE_ND67
-!  (10) CLDFRC : GMAO Cloud Fraction              : unitless : SCALE_ND67
-!  (11) U10M   : GMAO U-wind @ 10 m               : m/s      : SCALE_ND67
-!  (12) V10M   : GMAO V-wind @ 10 m               : m/s      : SCALE_ND67
+!  (1 ) HFLUX  : GMAO Sensible Heat Flux          : W/m2     : SCALE_A1
+!  (2 ) RADSWG : GMAO Insolation @ Surface        : W/m2     : SCALE_A1
+!  (3 ) PREACC : GMAO Accum Precip @ Surface      : mm/day   : SCALE_A1
+!  (4 ) PRECON : GMAO Conv Precip @ Surface       : mm/day   : SCALE_A1
+!  (5 ) TS     : GMAO Surface Air Temperature     : K        : SCALE_A1
+!  (6 ) RADSWT : GMAO Insolation @ Top of Atm     : W/m2     : SCALE_A1
+!  (7 ) USTAR  : GMAO Friction Velocity           : m/s      : SCALE_A1
+!  (8 ) Z0     : GMAO Roughness Height            : m        : SCALE_A1
+!  (9 ) PBL    : GMAO PBL depth                   : m        : SCALE_A1
+!  (10) CLDFRC : GMAO Cloud Fraction              : unitless : SCALE_A1
+!  (11) U10M   : GMAO U-wind @ 10 m               : m/s      : SCALE_A1
+!  (12) V10M   : GMAO V-wind @ 10 m               : m/s      : SCALE_A1
 !  (13) PS-PBL : GMAO Boundary Layer Top Pressure : hPa      : SCALEDYN
-!  (14) ALBD   : GMAO Surface Albedo              : unitless : SCALE_ND67
+!  (14) ALBD   : GMAO Surface Albedo              : unitless : SCALE_A1
 !  (15) PHIS   : GMAO Geopotential Heights        : m        : SCALED 
-!  (16) CLTOP  : GMAO Cloud Top Height            : levels   : SCALE_A6
-!  (17) TROPP  : GMAO Tropopause pressure         : mb       : SCALE_ND67
-!  (18) SLP    : GMAO Sea Level pressure          : mb       : SCALE_ND67
-!  (19) TSKIN  : Ground/sea surface temp.         : hPa      : SCALE_ND67
-!  (20) PARDF  : Photosyn active diffuse rad.     : W/m2     : SCALE_ND67
-!  (21) PARDR  : Photosyn active direct  rad.     : W/m2     : SCALE_ND67
-!  (22) GWET   : Top soil wetness                 : unitless : SCALE_ND67
+!  (17) TROPP  : GMAO Tropopause pressure         : mb       : SCALE_A1
+!  (18) SLP    : GMAO Sea Level pressure          : mb       : SCALE_A1
+!  (19) TSKIN  : Ground/sea surface temp.         : hPa      : SCALE_A1
+!  (20) PARDF  : Photosyn active diffuse rad.     : W/m2     : SCALE_A1
+!  (21) PARDR  : Photosyn active direct  rad.     : W/m2     : SCALE_A1
+!  (22) GWET   : Top soil wetness                 : unitless : SCALE_A1
 !
 !  NOTES:
 !  (1 ) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -6233,18 +6207,14 @@
 !  03 Dec 2013 - R. Yantosca - Change unit of PBL height to meters, this used
 !                              to be hPa in GEOS-1, GEOS-STRAT, GEOS-3, which
 !                              are no longer supported.           
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!                              and remove CLDTOP (only available in MERRA)
 !******************************************************************************
 !
       IF ( ND67 > 0 ) THEN
          CATEGORY = 'DAO-FLDS'
 
-#if   defined( MERRA )
-         SCALE_ND67 = SCALE_A1    ! For MERRA,      ND67 fields are hourly
-#elif defined( GEOS_FP ) || defined( MERRA2 ) 
-         SCALE_ND67 = SCALE_A1    ! For GEOS-FP,    ND67 fields are hourly
-#else
-         SCALE_ND67 = SCALE_A3    ! Otherwise, most ND67 fields are 3-hourly
-#endif
+         SCALE_ND67 = SCALE_A1    ! ND67 fields are hourly
 
          ! Binary punch file
          DO M = 1, TMAX(67)
@@ -6273,13 +6243,6 @@
                CASE ( 10 )
                   SCALEX = SCALE_ND67
                   UNIT   = 'unitless'
-
-#if   defined( GCAP )
-                  ! CLDFRC is a 6-hr field in GCAP, GEOS-STRAT 
-                  ! (swu, bmy, 6/9/05)
-                  SCALEX = SCALE_A6
-#endif
-
                CASE ( 13 )
                   SCALEX = SCALEDYN
                   UNIT   = 'hPa'
@@ -6293,21 +6256,13 @@
                   SCALEX = SCALED
                   UNIT   = 'm'
                CASE ( 16 )
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-                  SCALEX = SCALE_A3     ! MERRA/GEOS-FP CLDTOPS 3-hr avg'd
-#else 
-                  SCALEX = SCALE_A6     ! Otherwise CLDTOPS is 6-hr time avg'd
-#endif
+                  SCALEX = SCALE_A3     ! CLDTOPS are 3-hr avg'd
                   UNIT   = 'levels'
                CASE ( 17 ) 
                   SCALEX = SCALE_ND67
                   UNIT   = 'hPa'
                CASE ( 18 ) 
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-                 SCALEX = SCALE_A1      ! MERRA/GEOS-FP SLP is hourly
-#else
-                 SCALEX = SCALE_I6      ! Otherwise SLP is 6-h inst.
-#endif
+                 SCALEX  = SCALE_A1     ! SLP is hourly
                   UNIT   = 'hPa'
                CASE ( 19 )
                   SCALEX = SCALE_ND67

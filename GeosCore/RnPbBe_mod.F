@@ -305,17 +305,6 @@
             ! ADD_Pb = Amount of 210Pb gained by decay from 222Rn [kg]
             ADD_Pb                     = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
 
-#if defined( GCAP )
-            !%%%%% FOR GCAP SIMULATION: Divide the 210Pb source by 3.5
-            !%%%%% to correct for the strat-trop exchange.  A similar
-            !%%%%% line of code is done in the HEMCO extension where
-            !%%%%% the Be7 source is computed.  This replicates the
-            !%%%%% pre-HEMCO code. (bmy, 9/4/14)
-            IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) THEN
-               ADD_Pb          = ADD_Pb / 3.5e+0_fp
-            ENDIF
-#endif
-
             ! ND01 diag: 210Pb emission from 222Rn decay [kg/s]
             IF ( ND01 > 0 .and. L <= LD01 ) THEN
 #if defined( BPCH_DIAG )

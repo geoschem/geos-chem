@@ -2484,7 +2484,8 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE History_Netcdf_Mod, ONLY : History_Netcdf_Cleanup
+    USE History_Netcdf_Mod,    ONLY : History_Netcdf_Cleanup
+    USE MetaHistContainer_Mod, ONLY : MetaHistContainer_Destroy
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2497,7 +2498,9 @@ CONTAINS
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
 !  14 Aug 2017 - R. Yantosca - Call History_Netcdf_Close to close open files
-!  16 Aug 2017 - R. Yantosca - Move netCDF close code to History_Close_AllFIles
+!  16 Aug 2017 - R. Yantosca - Move netCDF close code to History_Close_AllFiles
+!  26 Sep 2017 - R. Yantosca - Now call MetaHistItem_Destroy to finalize the
+!                              ContainerList object, instead of DEALLOCATE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2522,20 +2525,29 @@ CONTAINS
      ! Close all remanining netCDF files
      !======================================================================
      CALL History_Close_AllFiles( am_I_Root, RC )
+     IF ( RC /= GC_SUCCESS ) THEN
+        ErrMsg = 'Error returned from "History_Close_AllFiles"!'
+        CALL GC_Error( ErrMsg, RC, ThisLoc )
+        RETURN
+     ENDIF
 
      !======================================================================
      ! Then finalize the history_netcdf_mod.F90 module
      !======================================================================
      CALL History_Netcdf_Cleanup( am_I_Root, RC )
+     IF ( RC /= GC_SUCCESS ) THEN
+        ErrMsg = 'Error returned from "History_Netcdf_Cleanup"!'
+        CALL GC_Error( ErrMsg, RC, ThisLoc )
+        RETURN
+     ENDIF
 
      !======================================================================
      ! And deallocate variables belonging to history_mod.F90
      !======================================================================
-
      IF ( ASSOCIATED( CollectionList ) ) THEN
-        DEALLOCATE( CollectionList, STAT=RC )
+        CALL MetaHistContainer_Destroy( am_I_Root, CollectionList, RC )
         IF ( RC /= GC_SUCCESS ) THEN
-           ErrMsg = 'Could not deallocate "CollectionList"!'
+           ErrMsg = 'Could not destroy "CollectionList"!'
            CALL GC_Error( ErrMsg, RC, ThisLoc )
            RETURN
         ENDIF        

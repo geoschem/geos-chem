@@ -691,6 +691,8 @@
        T_CTM(LLPAR+1)  = T_CTM(LLPAR)
 
        ! Overhead ozone column [DU]
+       ! These values are either from the met fields or TOMS/SBUV,
+       ! depending on the settings in input.geos
        O3COL = GET_OVERHEAD_O3(I,J)
 
        ! CTM ozone densities (molec/cm3)
