@@ -181,6 +181,7 @@ GTMM    :=$(ROOT)/GTMM
 HEMCO   :=$(ROOT)/HEMCO
 HDR     :=$(ROOT)/Headers
 HELP    :=$(ROOT)/help
+HIST    :=$(ROOT)/History
 ISO     :=$(ROOT)/ISOROPIA
 LIB     :=$(ROOT)/lib
 KPP     :=$(ROOT)/KPP
@@ -260,6 +261,7 @@ lib:                                               # Build all G-C libraries
 	@$(MAKE) libheaders         		  
 	@$(MAKE) libutil 
 	@$(MAKE) libkpp
+	@$(MAKE) libhistory
 	@$(MAKE) libhemco
 	@$(MAKE) libiso
 	@$(MAKE) librad
@@ -286,6 +288,9 @@ libhemcosa:                                        # Build HEMCO standalone
 	@$(MAKE) libheaders         		  
 	@$(MAKE) libutil 
 	@$(MAKE) libhemco
+
+libhistory:                                        # Build code in History/
+	@$(MAKE) -C $(HIST) lib
 
 libiso:                                            # Build code in ISOROPIA/
 	@$(MAKE) -C $(ISO)			  
@@ -340,6 +345,7 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(GTMM)  clean
 	@$(MAKE) -C $(HEMCO) clean
 	@$(MAKE) -C $(HDR)   clean
+	@$(MAKE) -C $(HIST)  clean
 	@$(MAKE) -C $(ISO)   clean
 	@$(MAKE) -C $(KPP)   realclean
 	@$(MAKE) -C $(NCDF)  clean
@@ -361,6 +367,7 @@ realclean_except_rrtmg:                            # Don't realclean RRTMG
 	@$(MAKE) -C $(GTMM)  slowclean
 	@$(MAKE) -C $(HEMCO) slowclean
 	@$(MAKE) -C $(HDR)   slowclean
+	@$(MAKE) -C $(HIST)  slowclean
 	@$(MAKE) -C $(ISO)   slowclean
 	@$(MAKE) -C $(KPP)   slowrealclean
 	@$(MAKE) -C $(NCDF)  slowclean

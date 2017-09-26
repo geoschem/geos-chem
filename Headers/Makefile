@@ -60,6 +60,8 @@
 #  30 Jun 2016 - M. Sulprizio- Remove comode_loop_mod.F
 #  05 Jul 2017 - R. Yantosca - Add state_diag_mod.F90
 #  13 Jul 2017 - E. Lundgren - Remove passive_species_mod.F90
+#  14 Jul 2017 - R. Yantosca - Add registry_params_mod.F90
+#  13 Sep 2017 - R. Yantosca - Add registry_mod.o to state_chm_mod dependency
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -135,7 +137,7 @@ debug:
 ###                                                                         ###
 ###  NOTES:                                                                 ###
 ###  (1) Only specify object-file dependencies that are within this         ###
-###       directory.  Object files in other directories will be referenced  ### 
+###       directory.  Object files in other directories will be referenced  ###
 ###       at link-time.                                                     ###
 ###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
 ###       in this directory must have a listed dependency.                  ###
@@ -177,6 +179,7 @@ state_chm_mod.o        : state_chm_mod.F90        \
                          errcode_mod.o            \
                          input_opt_mod.o          \
                          precision_mod.o          \
+                         registry_mod.o           \
                          species_mod.o            \
                          species_database_mod.o
 
@@ -197,6 +200,10 @@ physconstants.o        : physconstants.F          \
 
 registry_mod.o         : registry_mod.F90         \
                          errcode_mod.o            \
+                         precision_mod.o          \
+                         registry_params_mod.o
+
+registry_params_mod.o  : registry_params_mod.F90 \
                          precision_mod.o
 
 species_mod.o          : species_mod.F90          \

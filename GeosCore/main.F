@@ -41,6 +41,7 @@
       USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
       USE PhysConstants         ! Physical constants
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
+      USE Grid_Registry_Mod     ! Registers horizontal/vertical grid metadata
       USE REGRID_A2A_MOD        ! For horizontal regridding
       USE RESTART_MOD           ! For restart file I/O
       USE State_Chm_Mod         ! Derived type for Chemistry State object
@@ -84,7 +85,8 @@
       USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
       USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
-      USE DIAGNOSTICS_MOD       ! NetCDF diagnostics module (C. Keller)
+      USE DIAGNOSTICS_MOD       ! Writes out HEMCO diagnostics (C. Keller)
+      USE HISTORY_MOD           ! Updated netCDF diagnostics
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
 
       !-----------------------------------------------------------------
@@ -278,9 +280,14 @@
 !                              when we are running specialty simulations
 !  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  23 Aug 2017 - R. Yantosca - Now add at timer for the History component
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  30 Aug 2017 - R. Yantosca - Move the HISTORY UPDATE block before call to
+!                               SET_CURRENT_TIME, for clarity
 !  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
 !                              now the default.
+!  14 Sep 2017 - M. Sulprizio- Remove setting of USE_O3_FROM_MET. This is now
+!                              set in the chemistry menu of input.geos.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -302,8 +309,9 @@
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
       INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
       INTEGER                  :: id_H2O
-      REAL(f8)                 :: TAU,           TAUb         
+      REAL(f8)                 :: TAU,           TAUb      
       CHARACTER(LEN=255)       :: ZTYPE
+      CHARACTER(LEN=255)       :: ErrMsg,        ThisLoc
 
       ! Set cloud flag for RRTMG
       INTEGER                  :: ICLD=0,ISEED=10
@@ -406,9 +414,15 @@
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
+      !
       ! Assume a successful return until otherwise
       !
       RC                      = GC_SUCCESS
+      !
+      ! For error trapping
+      !
+      ErrMsg                  = ''
+      ThisLoc                 = ' -> at GEOS-Chem (in GeosCore/main.F)'
       !
       ! Define NI, NJ, NL dimensions for use below
       !
@@ -452,6 +466,8 @@
 #if defined( USE_TIMERS )
       ! Call timer initilization
       CALL GEOS_Timer_Setup( 1 )
+
+      ! Add timers for various operations
       CALL GEOS_Timer_Add( "GEOS-Chem",           RC )
       CALL GEOS_Timer_Add( "Initialization",      RC )
       CALL GEOS_Timer_Add( "Timesteps",           RC )
@@ -466,9 +482,14 @@
       CALL GEOS_Timer_Add( "Wet deposition",      RC )
       CALL GEOS_Timer_Add( "RRTMG",               RC )
       CALL GEOS_Timer_Add( "Diagnostics",         RC )
+#if defined( NC_DIAG )
+      CALL GEOS_Timer_Add( 'History',             RC )
+#endif
       CALL GEOS_Timer_Add( "Reading met fields",  RC )
       CALL GEOS_Timer_Add( "Reading restart file",RC )
       CALL GEOS_Timer_Add( "Writing restart file",RC )
+
+      ! Start running the main and initialization timer
       CALL GEOS_Timer_Start( "GEOS-Chem",         RC )
       CALL GEOS_Timer_Start( "Initialization",    RC )
 #endif
@@ -559,6 +580,7 @@
       ! Define advected species ID flags for use below
       id_CLOCK = Ind_('CLOCK','A')
       id_H2O   = Ind_('H2O'  ,'A')
+      !
       !-----------------------------------------------------------------
 
 #if   defined( RRTMG )
@@ -574,7 +596,6 @@
       ! Initialization
        CALL RRTMG_LW_INI()
        CALL RRTMG_SW_INI()
-
 #endif
 
       ! Initialize diagnostic arrays and counters
@@ -585,6 +606,14 @@
       ! Initialize the new hybrid pressure module.  Define Ap and Bp.
       CALL INIT_PRESSURE( am_I_Root )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_PRESSURE' )
+
+      ! Register the horizontal and vertical grid information so that 
+      ! the History component can use it for netCDF metadata (bmy, 8/23/17)
+      CALL Init_Grid_Registry( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_Grid_Registry"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
 
       ! Read annual mean tropopause if not a variable tropopause
       ! read_tropopause is obsolete with variable tropopause
@@ -605,6 +634,32 @@
       NYMDb = GET_NYMDb()
       TAU   = GET_TAU()
       TAUb  = GET_TAUb()
+
+#if defined( NC_DIAG )
+      !=================================================================
+      !    ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
+      !=================================================================
+#if defined( USE_TIMERS ) 
+      CALL GEOS_Timer_Start( "History",  RC )
+#endif
+
+      ! For now, just hardwire the input file for the History component
+      Input_Opt%HistoryInputFile = './HISTORY.rc'
+      !
+      ! Initialize the GEOS-Chem history component
+      CALL History_Init( am_I_root, Input_Opt, State_Chm, State_Diag, 
+     &                   State_Met, NymdB,     NhmsB,     RC          )
+
+      ! Trap error
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "History_Init"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
+#if defined( USE_TIMERS ) 
+      CALL GEOS_Timer_End( "History",  RC )
+#endif
+#endif  
 
       !=================================================================
       !        ***** I N I T I A L I Z A T I O N  continued *****
@@ -695,13 +750,6 @@
       CALL GEOS_Timer_End ( "HEMCO", RC )
 #endif
 
-#if defined( NC_DIAG )
-      ! Initialize diagnostics other than the default HEMCO diagnostics
-      ! initialized above (ckeller, 1/13/15).
-      CALL Diagnostics_Init( am_I_Root, Input_Opt, 
-     &                       State_Met, State_Chm, RC )
-#endif
-
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
@@ -787,14 +835,6 @@
       !=================================================================
       !      ***** INITIALIZE GEOS-CHEM DIAGNOSTICS AND RESTARTS ***** 
       !=================================================================      
-
-#if defined( NC_DIAG )
-      ! Initialize diagnostics other than the default HEMCO diagnostics
-      ! initialized above (ckeller, 1/13/15).
-      CALL Diagnostics_Init( am_I_Root, Input_Opt, 
-     &                       State_Met, State_Chm, RC )
-#endif 
-
       CALL INIT_GC_RESTART( am_I_Root, Input_Opt, State_Chm, RC )
 
 #if defined( USE_TIMERS )
@@ -802,7 +842,7 @@
 #endif
 
       !=================================================================
-      !      ***** 3 - H O U R   T I M E S T E P   L O O P  *****
+      !        ***** O U T E R   T I M E S T E P   L O O P  *****
       !=================================================================      
  
 #if defined( USE_TIMERS )
@@ -823,7 +863,7 @@
       DO 
 
       ! Compute time parameters at start of 6-h loop
-      CALL SET_CURRENT_TIME
+      CALL SET_CURRENT_TIME()
 
       ! NSECb is # of seconds (measured from 00 GMT today) 
       ! at the start of this 6-hr timestepping loop.
@@ -838,6 +878,7 @@
 
       !=================================================================
       !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
+      !     *****    a k a   H E A R T B E A T   L O O P    *****
       !=================================================================
       DO N_STEP = 1, N_DYN_STEPS
     
@@ -847,8 +888,8 @@
 #endif
 
          ! Compute & print time quantities at start of dyn step
-         CALL SET_CURRENT_TIME
-         CALL PRINT_CURRENT_TIME
+         CALL SET_CURRENT_TIME()
+         CALL PRINT_CURRENT_TIME()
 
          ! Set time variables for dynamic loop
          DAY_OF_YEAR   = GET_DAY_OF_YEAR()
@@ -1030,20 +1071,6 @@
          CALL GEOS_Timer_End( "Reading met fields",  RC )
 #endif
 
-#if defined( GEOS_FP ) || defined( MERRA2 )
-
-         ! For GEOS-FP and MERRA-2 met, always use the O3 columns
-         ! from the A1 met field files (bmy, 11/14/13)
-         Input_Opt%USE_O3_FROM_MET = .TRUE.
-
-#else
-
-         ! When TOMS data is not available, then we will use
-         ! the TOMS data from the last valid year.
-         Input_Opt%USE_O3_FROM_MET = .FALSE.
-
-#endif
-
          !==============================================================
          !              ***** D A I L Y   D A T A *****
          !==============================================================
@@ -1125,11 +1152,6 @@
          IF ( Input_Opt%ND55 > 0 ) THEN
             CALL DIAG_TROPOPAUSE( am_I_root, Input_Opt, State_Met, RC )
          ENDIF
-#elif defined( NC_DIAG )
-         ! If netcdf diagnostics, output if Met diagnostic group is on
-         IF ( Input_Opt%ND68 > 0 ) THEN
-            CALL DIAG_TROPOPAUSE( am_I_root, Input_Opt, State_Met, RC )
-         ENDIF
 #endif
 
          ! Update dynamic timestep
@@ -1166,9 +1188,11 @@
                ! State_Met%UVALBEDO field. (bmy, 3/20/15)
                CALL GET_UVALBEDO(am_I_Root, Input_Opt, State_Met, RC)
 
-               ! Get TOMS overhead O3 columns for photolysis from
-               ! the HEMCO data structure (bmy, 3/20/15)
-               CALL READ_TOMS( am_I_Root, Input_Opt, RC )
+               IF ( Input_Opt%USE_TOMS_O3 ) THEN
+                  ! Get TOMS overhead O3 columns for photolysis from
+                  ! the HEMCO data structure (bmy, 3/20/15)
+                  CALL READ_TOMS( am_I_Root, Input_Opt, RC )
+               ENDIF
 
             ENDIF
 
@@ -1600,6 +1624,35 @@
      &                           State_Met, State_Chm, RC )
 #endif
 
+#if defined( NC_DIAG )
+         !==============================================================
+         !           ***** H I S T O R Y   U P D A T E  *****
+         !==============================================================
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "History", RC )
+#endif
+
+         ! Update each HISTORY ITEM from its data source
+         CALL History_Update( am_I_Root, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_Update"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
+         ! Increment the timestep values by the heartbeat time
+         ! This is becasue we need to write out data with the timestamp
+         ! at the end of the heartbeat timestep (i.e. at end of run)
+         CALL History_SetTime( am_I_Root, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_SetTime"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "History", RC )
+#endif
+#endif
+
          !==============================================================
          !   ***** I N C R E M E N T   E L A P S E D   T I M E *****
          !============================================================== 
@@ -1619,9 +1672,9 @@
             ENDIF
          ENDIF
 
-         CALL TIMESTAMP_DIAG
-         CALL SET_ELAPSED_MIN
-         CALL SET_CURRENT_TIME
+         CALL TIMESTAMP_DIAG()
+         CALL SET_ELAPSED_MIN()
+         CALL SET_CURRENT_TIME()
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
          ENDIF
@@ -1684,8 +1737,6 @@
          !       to after the call to DO_WETDEP (bmy, 4/22/04)
          !============================================================== 
 
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: before TIMESERIES' )
-
          ! Station timeseries
          IF ( ITS_TIME_FOR_DIAG48() ) THEN
             CALL DIAG48
@@ -1724,16 +1775,29 @@
          !   IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a ND52' )
          !ENDIF
 
-!#if defined( NC_DIAG )
-!         ! Write diagnostic data to the GEOS-Chem diagnostics netCDF file.
-!         ! Each diagnostic has a specified averaging period specified 
-!         ! in Input_Opt. (ckeller, bmy, 1/15/15)
-!         CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
-!     &                           .FALSE.,    RC )
-!#endif
-
          !### After diagnostics
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after TIMESERIES' )
+
+#if defined( NC_DIAG )
+         !==============================================================
+         !            ***** H I S T O R Y   W R I T E *****
+         !==============================================================
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "History", RC )
+#endif
+
+         ! Write HISTORY ITEMS in each diagnostic collection to disk
+         ! (or skip writing if it is not the proper output time.
+         CALL History_Write( am_I_Root, State_Chm%Spc_Units, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_Write"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "History", RC )
+#endif
+#endif
 
          !==============================================================
          !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
@@ -1783,14 +1847,6 @@
       ! Print the mass-weighted mean OH concentration (if applicable)
       CALL PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
 
-!#if defined( NC_DIAG )
-!      ! Write diagnostic data to the GEOS-Chem restart netCDF file.
-!      ! Each diagnostic has a specified averaging period specified 
-!      ! in Input_Opt. (ckeller, bmy, 1/15/15)
-!      CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
-!     &                        .FALSE.,   RC )
-!#endif
-
       ! Save final tracer mass [kg] to disk for model benchmarking
       ! for Rn-Pb-Be and full-chem benchmark simulations
       ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
@@ -1806,7 +1862,10 @@
 
       ! Close all files
       CALL CLOSE_FILES
-      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )   
+ 
+      !%%% NOTE: Call HISTORY_CLEANUP from cleanup.F.  This will
+      !%%% close all netCDF files upon both normal or abnormal exits.
 
       ! Deallocate fields of the Input Options object
       CALL Cleanup_Input_Opt( am_I_Root, Input_Opt, RC )

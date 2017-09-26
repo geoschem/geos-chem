@@ -17,9 +17,10 @@ MODULE GC_Grid_Mod
 ! 
 ! !USES:
 !
-  USE Error_Mod        ! Error-handling routines
-  USE Precision_Mod    ! For GEOS-Chem Precision (fp)
-  USE PhysConstants    ! Physical constants
+  USE Error_Mod                        ! Error-handling routines
+  USE Precision_Mod                    ! For GEOS-Chem Precision (fp)
+  USE PhysConstants                    ! Physical constants
+  USE Registry_Mod, ONLY : MetaRegItem
 
   IMPLICIT NONE
   PRIVATE
@@ -47,15 +48,9 @@ MODULE GC_Grid_Mod
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
   PUBLIC  :: SetGridFromCtr
-  PUBLIC  :: RoundOff
 
 ! Make some arrays public
   PUBLIC  :: XMID, YMID, XEDGE, YEDGE, YSIN, AREA_M2
-
-  INTERFACE RoundOff 
-     MODULE PROCEDURE RoundOff_F4
-     MODULE PROCEDURE RoundOff_F8 
-  END INTERFACE
 !
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
@@ -70,6 +65,10 @@ MODULE GC_Grid_Mod
 !  26 Mar 2015 - R. Yantosca - Removed obsolete, commented-out code
 !  29 Nov 2016 - R. Yantosca - Renamed to gc_grid_mod.F90 to avoid namespace
 !                              conflicts when interfacing GCHP to the BCC model
+!  09 Aug 2017 - R. Yantosca - Now register lon (slice of XMID), lat (slice of
+!                              YMID) and AREA_M2.  Added registry routines etc.
+!  18 Aug 2017 - R. Yantosca - Move roundoff routines to roundoff_mod.F90
+!  23 Aug 2017 - R. Yantosca - Registry is now moved to grid_registry_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -92,7 +91,7 @@ MODULE GC_Grid_Mod
   REAL(fp), ALLOCATABLE, TARGET :: YMID_R_W (:,:,:) ! Lat ctrs  nest grid [rad]
   REAL(fp), ALLOCATABLE, TARGET :: YEDGE_R_W(:,:,:) ! Lat edges nest grid [rad]
   REAL(fp), ALLOCATABLE, TARGET :: AREA_M2  (:,:,:) ! Grid box areas [m2]
-
+  
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -688,6 +687,7 @@ CONTAINS
 ! USES
 !
     USE ErrCode_Mod
+    USE Roundoff_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1462,7 +1462,8 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE Registry_Mod,  ONLY : Registry_AddField   
 !
 ! !INPUT PARAMETERS:
 !
@@ -1489,7 +1490,13 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 ! 
-    INTEGER :: L, AS
+    ! Scalars
+    INTEGER            :: L,        AS
+
+    REAL(fp), SAVE     :: TIME_IND(1)
+
+    ! Strings
+    CHARACTER(LEN=255) :: Variable, Desc, Units
 
     !======================================================================
     ! Initialize module variables
@@ -1554,134 +1561,59 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Cleanup_GC_Grid
+! !IROUTINE: Cleanup_Grid
 !
-! !DESCRIPTION: Subroutine CLEANUP\_GC\_GRID deallocates all module arrays.
+! !DESCRIPTION: Subroutine CLEANUP\__GRID deallocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_Grid
+  SUBROUTINE Cleanup_Grid( am_I_Root, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Registry_Mod, ONLY : Registry_Destroy
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN)  :: am_I_Root
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(OUT) :: RC
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    IF ( ALLOCATED( XMID     ) ) DEALLOCATE( XMID     )
-    IF ( ALLOCATED( XEDGE    ) ) DEALLOCATE( XEDGE    )
-    IF ( ALLOCATED( YMID     ) ) DEALLOCATE( YMID     )
-    IF ( ALLOCATED( YEDGE    ) ) DEALLOCATE( YEDGE    )
-    IF ( ALLOCATED( YSIN     ) ) DEALLOCATE( YSIN     )
-    IF ( ALLOCATED( YMID_R   ) ) DEALLOCATE( YMID_R   )
-    IF ( ALLOCATED( YMID_R_W ) ) DEALLOCATE( YMID_R_W )  
-    IF ( ALLOCATED( YEDGE_R  ) ) DEALLOCATE( YEDGE_R  )
-    IF ( ALLOCATED( AREA_M2  ) ) DEALLOCATE( AREA_M2  )
-    
+!
+! ! LOCAL VARIABLES
+!
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Cleanup_Grid (in GeosUtil/gc_grid_mod.F90)'
+
+    !=======================================================================
+    ! Deallocate module variables
+    !=======================================================================
+    IF ( ALLOCATED( XMID      ) ) DEALLOCATE( XMID      )
+    IF ( ALLOCATED( XEDGE     ) ) DEALLOCATE( XEDGE     )
+    IF ( ALLOCATED( YMID      ) ) DEALLOCATE( YMID      )
+    IF ( ALLOCATED( YEDGE     ) ) DEALLOCATE( YEDGE     )
+    IF ( ALLOCATED( YSIN      ) ) DEALLOCATE( YSIN      ) 
+    IF ( ALLOCATED( YMID_R    ) ) DEALLOCATE( YMID_R    )
+    IF ( ALLOCATED( YMID_R_W  ) ) DEALLOCATE( YMID_R_W  )  
+    IF ( ALLOCATED( YEDGE_R   ) ) DEALLOCATE( YEDGE_R   )
+    IF ( ALLOCATED( AREA_M2   ) ) DEALLOCATE( AREA_M2   )
+
   END SUBROUTINE Cleanup_Grid
-!EOC
-!------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: RoundOff_f4
-!
-! !DESCRIPTION: Rounds a number X to N decimal places of precision.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION RoundOff_f4( X, N ) RESULT( Y )
-!
-! !INPUT PARAMETERS:
-! 
-    REAL(f4), INTENT(IN) :: X   ! Number to be rounded
-    INTEGER,  INTENT(IN) :: N   ! Number of decimal places to keep
-!
-! !RETURN VALUE:
-!
-    REAL(f4)             :: Y   ! Number rounded to N decimal places
-!
-! !REMARKS:
-!  The algorithm to round X to N decimal places is as follows:
-!  (1) Multiply X by 10**(N+1)
-!  (2) If X < 0, then add -5 to X; otherwise add 5 to X
-!  (3) Round X to nearest integer
-!  (4) Divide X by 10**(N+1)
-!  (5) Truncate X to N decimal places: INT( X * 10**N ) / 10**N
-!                                                                             .
-!  Rounding algorithm from: Hultquist, P.F, "Numerical Methods for Engineers 
-!   and Computer Scientists", Benjamin/Cummings, Menlo Park CA, 1988, p. 20.
-!                                                                             .
-!  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
-!                                                                             .
-!  The two algorithms have been merged together for efficiency.
-!
-! !REVISION HISTORY:
-!  14 Jul 2010 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    ! Round and truncate X to N decimal places
-    Y = INT( NINT( X*(10.0_f4**(N+1)) + SIGN( 5.0_f4, X ) ) / 10.0_f4 ) / (10.0_f4**N)
-
-  END FUNCTION RoundOff_f4
-!EOC
-!------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: RoundOff_f8
-!
-! !DESCRIPTION: Rounds a number X to N decimal places of precision.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION RoundOff_f8( X, N ) RESULT( Y )
-!
-! !INPUT PARAMETERS:
-! 
-    REAL(f8), INTENT(IN) :: X   ! Number to be rounded
-    INTEGER,  INTENT(IN) :: N   ! Number of decimal places to keep
-!
-! !RETURN VALUE:
-!
-    REAL(f8)             :: Y   ! Number rounded to N decimal places
-!
-! !REMARKS:
-!  The algorithm to round X to N decimal places is as follows:
-!  (1) Multiply X by 10**(N+1)
-!  (2) If X < 0, then add -5 to X; otherwise add 5 to X
-!  (3) Round X to nearest integer
-!  (4) Divide X by 10**(N+1)
-!  (5) Truncate X to N decimal places: INT( X * 10**N ) / 10**N
-!                                                                             .
-!  Rounding algorithm from: Hultquist, P.F, "Numerical Methods for Engineers 
-!   and Computer Scientists", Benjamin/Cummings, Menlo Park CA, 1988, p. 20.
-!                                                                             .
-!  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
-!                                                                             .
-!  The two algorithms have been merged together for efficiency.
-!
-! !REVISION HISTORY:
-!  14 Jul 2010 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    ! Round and truncate X to N decimal places
-    Y = INT( NINT( X*(10.0_f8**(N+1)) + SIGN( 5.0_f8, X ) ) / 10.0_f8 ) / (10.0_f8**N)
-
-  END FUNCTION RoundOff_f8
 !EOC
 END MODULE GC_Grid_Mod

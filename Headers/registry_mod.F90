@@ -17,6 +17,7 @@ MODULE Registry_Mod
 ! !USES:
 !
   USE Precision_Mod
+  USE Registry_Params_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -44,6 +45,8 @@ MODULE Registry_Mod
      INTEGER              :: KindVal          ! Numerical KIND value
      INTEGER              :: Rank             ! Dimensions of data
      CHARACTER(LEN=255)   :: Units            ! Units of data
+     CHARACTER(LEN=3)     :: DimNames         ! e.g. "xyz", "yz", "y", "t"
+     LOGICAL              :: OnLevelEdges     ! Is data on level edges (T/F)?
 
      !----------------------------------------------------------------------
      ! Pointers to floating point data (flexible precision)
@@ -52,6 +55,12 @@ MODULE Registry_Mod
      REAL(fp), POINTER    :: Ptr1d  (:    )   ! For 1D flex-prec data
      REAL(fp), POINTER    :: Ptr2d  (:,:  )   ! For 2D flex-prec data
      REAL(fp), POINTER    :: Ptr3d  (:,:,:)   ! For 3D flex-prec data
+
+     !----------------------------------------------------------------------
+     ! Pointers to floating point data (flexible precision)
+     !----------------------------------------------------------------------
+     REAL(f8), POINTER    :: Ptr0d_8          ! For 0D 8-byte data
+     REAL(f8), POINTER    :: Ptr1d_8(:    )   ! For 1D 8-byte data
 
      !----------------------------------------------------------------------
      ! Pointers to floating point data (4-byte precision)
@@ -95,6 +104,9 @@ MODULE Registry_Mod
   PRIVATE :: Str2Hash
   PRIVATE :: To_UpperCase
 !
+! !DEFINED PARAMETERS:
+!
+!
 ! !REMARKS:
 !  In Fortran 2003, the maximum variable name length is 63 characers, so we
 !  have declared the various character name fields of RegItem accordingly.
@@ -104,6 +116,7 @@ MODULE Registry_Mod
 !  27 Jun 2017 - R. Yantosca - Added integer data fields, and description
 !  29 Jun 2017 - R. Yantosca - Added Ptr1DI to type RegItem
 !  30 Jun 2017 - R. Yantosca - Add more pointers to 4-byte and integer data
+!  23 Aug 2017 - R. Yantosca - Added OnLevelEdges field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -125,13 +138,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Registry_AddField( am_I_Root, Registry,  State,        &
-                                Variable,  RC,        Description,  & 
-                                Units,     Data0d,    Data1d,       &
-                                Data2d,    Data3d,    Data0d_4,     &
-                                Data1d_4,  Data2d_4,  Data3d_4,     &
-                                Data0d_I,  Data1d_I,  Data2d_I,     &
-                                Data3d_I                           )
+  SUBROUTINE Registry_AddField( am_I_Root, Registry,  State,                 &
+                                Variable,  RC,        Description,           &  
+                                Units,     DimNames,  OnLevelEdges,          &
+                                Data0d,    Data1d,    Data2d,                &
+                                Data3d,    Data0d_8,  Data1d_8,              &
+                                Data0d_4,  Data1d_4,  Data2d_4,              &
+                                Data3d_4,  Data0d_I,  Data1d_I,              &
+                                Data2d_I,  Data3d_I                         )
 !
 ! !USES:
 !
@@ -145,12 +159,19 @@ CONTAINS
     CHARACTER(LEN=*),  INTENT(IN)       :: Variable        ! variable
     CHARACTER(LEN=*),  OPTIONAL         :: Description     ! Long description
     CHARACTER(LEN=*),  OPTIONAL         :: Units           ! Units of data
+    CHARACTER(LEN=*),  OPTIONAL         :: DimNames        ! "xyz", "xy", "t"
+    LOGICAL,           OPTIONAL         :: OnLevelEdges    ! Set =T if data
+                                                           !  is on level edges
 
     ! Floating-point data targets (flexible precision)
     REAL(fp),          OPTIONAL, TARGET :: Data0d          ! 0D flex-prec data
     REAL(fp),          OPTIONAL, TARGET :: Data1d  (:    ) ! 1D flex_prec data
     REAL(fp),          OPTIONAL, TARGET :: Data2d  (:,:  ) ! 2D flex-prec data
     REAL(fp),          OPTIONAL, TARGET :: Data3d  (:,:,:) ! 3D flex-prec data 
+
+    ! Floating-point data targets (flexible precision)
+    REAL(fp),          OPTIONAL, TARGET :: Data0d_8        ! 0D flex-prec data
+    REAL(fp),          OPTIONAL, TARGET :: Data1d_8(:    ) ! 1D flex_prec data
 
     ! Floating-point data targets (4-byte precision)
     REAL(f4),          OPTIONAL, TARGET :: Data0d_4        ! 0D 4-byte data
@@ -183,6 +204,14 @@ CONTAINS
 !                              "Variable", and added "MemoryInKb"
 !  27 Jun 2017 - R. Yantosca - Now assigns description and KIND value
 !  29 Jun 2017 - R. Yantosca - Added Data1dI for 1D integer data
+!  14 Jul 2017 - R. Yantosca - Now use KINDVAL parameters defined at the top
+!                              of the module to denote the different data types
+!  23 Aug 2017 - R. Yantosca - Added OnLevelEdges argument so that we can
+!                               register data placed on level edges
+!  24 Aug 2017 - R. Yantosca - Added the DimNames argument
+!  25 Aug 2017 - R. Yantosca - Added Data0d_8 and Data1d_8 so that we can
+!                               register netCDF index variables.  Most other
+!                               data should be either REAL(fp) or REAL(f4)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -190,6 +219,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     ! Scalars
+    LOGICAL                :: IsOnLevelEdges
     REAL(fp)               :: KbPerElement
 
     ! Strings
@@ -203,19 +233,20 @@ CONTAINS
     ! Initialize
     !=======================================================================
     RC             = GC_SUCCESS
+    IsOnLevelEdges = .FALSE.
     KbPerElement   = DBLE( fp ) / 1024.0_fp
-    ErrMsg         = ''
+    ErrMsg         = ''    
     ThisLoc        = ' -> at Registry_AddField (in Headers/registry_mod.F90)'
     TmpState       = To_UpperCase( State    )
     TmpVariable    = To_UpperCase( Variable )
     TmpFullname    = TRIM( TmpState ) // '_' // TRIM( TmpVariable )
     TmpDescription = ''
     TmpUnits       = ''
-    
 
     ! Save optional arguments in shadow variables, if passed
-    IF ( PRESENT( Description ) ) TmpDescription = Description
-    IF ( PRESENT( Units       ) ) TmpUnits       = Units
+    IF ( PRESENT( Description  ) ) TmpDescription = Description
+    IF ( PRESENT( Units        ) ) TmpUnits       = Units
+    IF ( PRESENT( OnLevelEdges ) ) IsOnLevelEdges = OnLevelEdges
 
     !=======================================================================
     ! Allocate the REGISTRY ITEM object, which will hold metadata about
@@ -235,12 +266,15 @@ CONTAINS
     Item%Description   =  TmpDescription
     Item%Units         =  TmpUnits
     Item%MemoryInKb    =  0.0_fp
+    Item%OnLevelEdges  =  IsOnLevelEdges
 
     ! Nullify pointers to data etc.
     Item%Ptr0d         => NULL()
     Item%Ptr1d         => NULL()
     Item%Ptr2d         => NULL()
     Item%Ptr3d         => NULL()
+    Item%Ptr0d_8       => NULL()
+    Item%Ptr1d_8       => NULL()
     Item%Ptr0d_4       => NULL()
     Item%Ptr1d_4       => NULL()
     Item%Ptr2d_4       => NULL()
@@ -261,22 +295,39 @@ CONTAINS
        Item%Rank       =  3
        Item%Ptr3d      => Data3d
        Item%MemoryInKb =  KbPerElement * SIZE( Data3d  )
-       Item%KindVal    =  KIND( Data3d )
+       Item%KindVal    =  KINDVAL_FP
     ELSE IF ( PRESENT( Data2d  ) ) THEN
        Item%Rank       =  2
        Item%Ptr2d      => Data2d
        Item%MemoryInKb =  KbPerElement * SIZE( Data2d  )
-       Item%KindVal    =  KIND( Data2d )
+       Item%KindVal    =  KINDVAL_FP
     ELSE IF ( PRESENT( Data1d  ) ) THEN
        Item%Rank       =  1
        Item%Ptr1d      => Data1d
        Item%MemoryInKb =  KbPerElement * SIZE( Data1d  )
-       Item%KindVal    =  KIND( Data1d )
+       Item%KindVal    =  KINDVAL_FP
     ELSE IF ( PRESENT( Data0d  ) ) THEN
        Item%Rank       =  0
        Item%Ptr0d      => Data0d
        Item%MemoryInKb =  KbPerElement
-       Item%KindVal    =  KIND( Data1d )
+       Item%KindVal    =  KINDVAL_FP
+
+    !-----------------------------------------------------------------------
+    ! Assign pointers to 8-byte real data targets
+    ! NOTE: We should only need REAL*8 for 0d and 1d data, which will allow
+    ! us to register netCDF index variables.  Most other floating-point
+    ! data in GEOS-Chem is declared as FLEXIBLE PRECISION, REAL(fp).
+    !-----------------------------------------------------------------------
+    ELSE IF ( PRESENT( Data1d_8 ) ) THEN
+       Item%Rank       =  1
+       Item%Ptr1d_8    => Data1d_8
+       Item%MemoryInKb =  KbPerElement * SIZE( Data1d_8  )
+       Item%KindVal    =  KINDVAL_F8
+    ELSE IF ( PRESENT( Data0d_8 ) ) THEN
+       Item%Rank       =  0
+       Item%Ptr0d_8    => Data0d_8
+       Item%MemoryInKb =  KbPerElement
+       Item%KindVal    =  KINDVAL_F8
 
     !-----------------------------------------------------------------------
     ! Assign pointers to 4-byte real data targets
@@ -285,22 +336,22 @@ CONTAINS
        Item%Rank       =  3
        Item%Ptr3d_4    => Data3d_4
        Item%MemoryInKb =  KbPerElement * SIZE( Data3d_4 )
-       Item%KindVal    =  KIND( Data3d_4 )
+       Item%KindVal    =  KINDVAL_F4
     ELSE IF ( PRESENT( Data2d_4 ) ) THEN
        Item%Rank       =  2
        Item%Ptr2d_4    => Data2d_4
        Item%MemoryInKb =  KbPerElement * SIZE( Data2d_4 )
-       Item%KindVal    =  KIND( Data2d_4 )
+       Item%KindVal    =  KINDVAL_F4
     ELSE IF ( PRESENT( Data1d_4 ) ) THEN
        Item%Rank       =  1
        Item%Ptr1d_4    => Data1d_4
        Item%MemoryInKb =  KbPerElement * SIZE( Data1d_4 )
-       Item%KindVal    =  KIND( Data1d_4 )
+       Item%KindVal    =  KINDVAL_F4
     ELSE IF ( PRESENT( Data0d_4 ) ) THEN
        Item%Rank       =  0
        Item%Ptr0d_4    => Data0d_4
        Item%MemoryInKb =  KbPerElement
-       Item%KindVal    =  KIND( Data0d_4 )
+       Item%KindVal    =  KINDVAL_F4
 
     !-----------------------------------------------------------------------
     ! Assign pointers to integer data targets
@@ -309,22 +360,22 @@ CONTAINS
        Item%Rank       =  3
        Item%Ptr3d_I    => Data3d_I
        Item%MemoryInKb =  KbPerElement * SIZE( Data3d_I )
-       Item%KindVal    =  KIND( Data3d_I )
+       Item%KindVal    =  KINDVAL_I4
     ELSE IF ( PRESENT( Data2d_I ) ) THEN
        Item%Rank       =  2
        Item%Ptr2d_I    => Data2d_I
        Item%MemoryInKb =  KbPerElement * SIZE( Data2d_I )
-       Item%KindVal    =  KIND( Data2d_I )
+       Item%KindVal    =  KINDVAL_I4
     ELSE IF ( PRESENT( Data1d_I  ) ) THEN
        Item%Rank       =  1
        Item%Ptr1d_I    => Data1d_I
        Item%MemoryInKb =  KbPerElement * SIZE( Data1d_I )
-       Item%KindVal    =  KIND( Data1d_I )
+       Item%KindVal    =  KINDVAL_I4
     ELSE IF ( PRESENT( Data0d_I  ) ) THEN
        Item%Rank       =  0
        Item%Ptr0d_I    => Data0d_I
        Item%MemoryInKb =  KbPerElement
-       Item%KindVal    =  KIND( Data0d_I )
+       Item%KindVal    =  KINDVAL_I4
 
     !-----------------------------------------------------------------------
     ! Exit with error message if no data target is passed
@@ -334,7 +385,31 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+    
+    !=======================================================================
+    ! Define the "dimnames" field
+    !=======================================================================
+    IF ( PRESENT( DimNames ) ) THEN
 
+       ! If the DimNames argument is passed, then use it
+       Item%DimNames = TRIM( DimNames )
+
+    ELSE
+       
+       ! Otherwise, set default DimNames based on the rank
+       SELECT CASE( Item%Rank )
+          CASE( 3 ) 
+             Item%DimNames = 'xyz'
+          CASE( 2 )
+             Item%DimNames = 'xy '
+          CASE( 1 )
+             Item%DimNames = 'x  '
+          CASE( 0 )
+             Item%DimNames = '-  '
+        END SELECT
+
+     ENDIF
+       
     !=======================================================================
     ! Add the REGISTRY ITEM to the METAREGISTRY ITEM, which represents
     ! the list of all data fields contained in a module.
@@ -361,12 +436,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Registry_Lookup( am_I_Root, Registry,    State,   Variable,    &
-                              RC,        Description, KindVal, MemoryInKb,  &
-                              Rank,      Units,       Ptr0d,   Ptr1d,       &
-                              Ptr2d,     Ptr3d,       Ptr0d_4, Ptr1d_4,     &
-                              Ptr2d_4,   Ptr3d_4,     Ptr0d_I, Ptr1d_I,     &
-                              Ptr2d_I,   Ptr3d_I                           )
+  SUBROUTINE Registry_Lookup( am_I_Root,    Registry,  State,                &
+                              Variable,     RC,        Description,          &
+                              Dimensions,   KindVal,   MemoryInKb,           &
+                              OnLevelEdges, Rank,      Units,                &
+                              DimNames,     Ptr0d,     Ptr1d,                &
+                              Ptr2d,        Ptr3d,     Ptr0d_8,              &
+                              Ptr1d_8,      Ptr0d_4,   Ptr1d_4,              &
+                              Ptr2d_4,      Ptr3d_4,   Ptr0d_I,              &
+                              Ptr1d_I,      Ptr2d_I,   Ptr3d_I              )
 !
 ! !USES:
 !
@@ -389,13 +467,21 @@ CONTAINS
     INTEGER,             OPTIONAL :: KindVal           ! Numerical KIND value
     REAL(fp),            OPTIONAL :: MemoryInKb        ! Memory usage
     INTEGER,             OPTIONAL :: Rank              ! Size of data
+    INTEGER,             OPTIONAL :: Dimensions(3)     ! Dimensions of data
     CHARACTER(LEN=255),  OPTIONAL :: Units             ! Units of data
+    CHARACTER(LEN=3),    OPTIONAL :: DimNames          ! "xyz", "xz", "t" etc.
+    LOGICAL,             OPTIONAL :: OnLevelEdges      ! Is the data defined
+                                                       !  on level edges (T/F)
 
     ! Floating-point data pointers (flex-precision)
     REAL(fp),   POINTER, OPTIONAL :: Ptr0d             ! 0D flex-prec data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr1d (:    )     ! 1D flex-prec data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr2d (:,:  )     ! 2D flex-prec data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr3d (:,:,:)     ! 3D flex-prec data
+    REAL(fp),   POINTER, OPTIONAL :: Ptr1d  (:    )    ! 1D flex-prec data
+    REAL(fp),   POINTER, OPTIONAL :: Ptr2d  (:,:  )    ! 2D flex-prec data
+    REAL(fp),   POINTER, OPTIONAL :: Ptr3d  (:,:,:)    ! 3D flex-prec data
+
+    ! Floating-point data pointers (4-byte precision)
+    REAL(f8),   POINTER, OPTIONAL :: Ptr0d_8           ! 0D 8-byte data
+    REAL(f8),   POINTER, OPTIONAL :: Ptr1d_8(:    )    ! 1D 8-byte data
 
     ! Floating-point data pointers (4-byte precision)
     REAL(f4),   POINTER, OPTIONAL :: Ptr0d_4           ! 0D 4-byte data
@@ -420,6 +506,14 @@ CONTAINS
 !                              "Variable", and added "MemoryInKb"
 !  27 Jun 2017 - R. Yantosca - Also added "Description" and "KindVal" outputs
 !  30 Jun 2017 - R. Yantosca - Added more pointers for 4-byte and integer data
+!  14 Jul 2017 - R. Yantosca - Now return the appropriate pointer variable
+!                              based on the KINDVAL parameter, and set other
+!                              passed pointer arguments to NULL.
+!  14 Jul 2017 - R. Yantosca - Now throw an error if the variable cannot
+!                              be found in the registry
+!  23 Aug 2017 - R. Yantosca - Added optional OnLevelEdges argument
+!  24 Aug 2017 - R. Yantosca - Added optional DimNames argument
+!  25 Aug 2017 - R. Yantosca - Added optional Data0d_8 and Data1d_8 arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -427,19 +521,22 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                    :: Is_Description, Is_KindVal
-    LOGICAL                    :: Is_MemoryInKb,  Is_Rank
-    LOGICAL                    :: Is_Units
-    LOGICAL                    :: Is_0d,          Is_0d_4,       Is_0d_I
-    LOGICAL                    :: Is_1d,          Is_1d_4,       Is_1d_I
-    LOGICAL                    :: Is_2d,          Is_2d_4,       Is_2d_I
-    LOGICAL                    :: Is_3d,          Is_3d_4,       Is_3d_I
-    INTEGER                    :: FullHash,       ItemHash
+    LOGICAL                    :: Is_OnLevelEdges, Found
+    LOGICAL                    :: Is_Description,  Is_Dimensions, Is_KindVal
+    LOGICAL                    :: Is_MemoryInKb,   Is_Rank,       Is_Units
+    LOGICAL                    :: Is_0d,           Is_0d_8
+    LOGICAL                    :: Is_0d_4,         Is_0d_I
+    LOGICAL                    :: Is_1d,           Is_1d_8
+    LOGICAL                    :: Is_1d_4,         Is_1d_I
+    LOGICAL                    :: Is_2d,           Is_2d_4,       Is_2d_I
+    LOGICAL                    :: Is_3d,           Is_3d_4,       Is_3d_I
+    INTEGER                    :: FullHash,        ItemHash,      N
 
     ! Strings
-    CHARACTER(LEN=31)          :: FullName31,     ItemName31
-    CHARACTER(LEN=255)         :: TmpName,        TmpFullName
-    CHARACTER(LEN=255)         :: ErrMsg,         ThisLoc
+    CHARACTER(LEN=5)           :: TmpState
+    CHARACTER(LEN=31)          :: FullName31,      ItemName31
+    CHARACTER(LEN=255)         :: TmpName,         TmpFullName
+    CHARACTER(LEN=255)         :: ErrMsg,          ThisLoc
 
     ! Objects
     TYPE(MetaRegItem), POINTER :: Current
@@ -447,44 +544,78 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC             =  GC_SUCCESS
-    Current        => NULL()
-    ErrMsg         =  ''
-    ThisLoc        =  ' -> at Registry_Lookup (in Headers/registry_mod.F90)'
+    RC              =  GC_SUCCESS
+    Current         => NULL()
+    ErrMsg          =  ''
+    ThisLoc         =  ' -> at Registry_Lookup (in Headers/registry_mod.F90)'
+
+    ! Append the state name to the variable (if it's not already there)
+    TmpState        = TRIM( State ) // '_' 
+    IF ( INDEX( Variable, TRIM( TmpState ) ) > 0 ) THEN
+       TmpFullName  = Variable
+    ELSE
+       TmpFullName  = TRIM( TmpState ) // TRIM( Variable )
+    ENDIF
 
     ! Construct a hash for the full name (i.e. "State_Variable"
-    TmpFullName    =  TRIM( State ) // '_' // TRIM( Variable )
-    FullName31     =  To_UpperCase( TmpFullName )
-    FullHash       =  Str2Hash( FullName31 )
+    FullName31      =  To_UpperCase( TmpFullName )
+    FullHash        =  Str2Hash( FullName31 )
+
+    ! Set a flag to denote that we've found the field
+    Found           = .FALSE.
 
     !=======================================================================   
     ! Test if the optional variables are present outside of the main loop.
     !=======================================================================
 
     ! Floating-point (flex-precision) data pointers
-    Is_0d          =  PRESENT( Ptr0d       )
-    Is_1d          =  PRESENT( Ptr1d       )
-    Is_2d          =  PRESENT( Ptr2d       )
-    Is_3d          =  PRESENT( Ptr3d       )
+    Is_0d           =  PRESENT( Ptr0d        )
+    Is_1d           =  PRESENT( Ptr1d        )
+    Is_2d           =  PRESENT( Ptr2d        )
+    Is_3d           =  PRESENT( Ptr3d        )
+
+    ! Floating-point (8-byte) data pointers
+    Is_0d_8         =  PRESENT( Ptr0d_8      )
+    Is_1d_8         =  PRESENT( Ptr1d_8      )
 
     ! Floating-point (4-byte) data pointers
-    Is_0d_4        =  PRESENT( Ptr0d_4     )
-    Is_1d_4        =  PRESENT( Ptr1d_4     )
-    Is_2d_4        =  PRESENT( Ptr2d_4     )
-    Is_3d_4        =  PRESENT( Ptr3d_4     )
+    Is_0d_4         =  PRESENT( Ptr0d_4      )
+    Is_1d_4         =  PRESENT( Ptr1d_4      )
+    Is_2d_4         =  PRESENT( Ptr2d_4      )
+    Is_3d_4         =  PRESENT( Ptr3d_4      )
 
     ! Integer data pointers
-    Is_0d_I        =  PRESENT( Ptr0d_I     )
-    Is_1d_I        =  PRESENT( Ptr1d_I     )
-    Is_2d_I        =  PRESENT( Ptr2d_I     )
-    Is_3d_I        =  PRESENT( Ptr3d_I     )
+    Is_0d_I         =  PRESENT( Ptr0d_I      )
+    Is_1d_I         =  PRESENT( Ptr1d_I      )
+    Is_2d_I         =  PRESENT( Ptr2d_I      )
+    Is_3d_I         =  PRESENT( Ptr3d_I      )
 
     ! Metadata
-    Is_Description =  PRESENT( Description )
-    Is_KindVal     =  PRESENT( KindVal     )
-    Is_MemoryInKb  =  PRESENT( MemoryInKb  )
-    Is_Rank        =  PRESENT( Rank        )
-    Is_Units       =  PRESENT( Units       )
+    Is_Description  =  PRESENT( Description  )
+    Is_Dimensions   =  PRESENT( Dimensions   )
+    Is_KindVal      =  PRESENT( KindVal      )
+    Is_MemoryInKb   =  PRESENT( MemoryInKb   )
+    Is_Rank         =  PRESENT( Rank         )
+    Is_Units        =  PRESENT( Units        )
+    Is_OnLevelEdges =  PRESENT( OnLevelEdges )
+
+    !=======================================================================
+    ! Nullify all optional pointer arguments that are passed
+    !=======================================================================
+    If ( Is_0d   ) Ptr0d   => NULL()
+    IF ( Is_0d_8 ) Ptr0d_8 => NULL()
+    IF ( Is_0d_4 ) Ptr0d_4 => NULL()
+    IF ( Is_0d_I ) Ptr0d_I => NULL()
+    IF ( Is_1d   ) Ptr1d   => NULL()
+    IF ( Is_1d_8 ) Ptr1d_8 => NULL()
+    IF ( Is_1d_4 ) Ptr1d_4 => NULL()
+    IF ( Is_1d_I ) Ptr1d_I => NULL()
+    IF ( Is_2d   ) Ptr2d   => NULL()
+    IF ( Is_2d_4 ) Ptr2d_4 => NULL()
+    IF ( Is_2d_I ) Ptr2d_I => NULL()
+    IF ( Is_3d   ) Ptr3d   => NULL()
+    IF ( Is_3d_4 ) Ptr3d_4 => NULL()
+    IF ( Is_3d_I ) Ptr3d_I => NULL()
 
     !=======================================================================
     ! Search for the specified field in the Registry
@@ -498,71 +629,174 @@ CONTAINS
 
        ! Construct a hash for the full name of this REGISTRY ITEM 
        ItemName31 = Current%Item%FullName
-       ItemHash   = Str2Hash( ItemName31 ) 
+       ItemHash   = Str2Hash( ItemName31 )
 
        ! If the name-hashes match ...
        IF ( FullHash == ItemHash ) THEN
 
-          ! Return rank, units and memory usage if found
-          IF ( Is_Description ) Description = Current%Item%Description
-          IF ( Is_KindVal     ) KindVal     = Current%Item%KindVal
-          IF ( Is_MemoryInKb  ) MemoryInKb  = Current%Item%MemoryInKb
-          IF ( Is_Rank        ) Rank        = Current%Item%Rank
-          IF ( Is_Units       ) Units       = Current%Item%Units
+          ! Return rank, units and memory usage, etc. if found
+          IF ( Is_Description  ) Description  = Current%Item%Description
+          IF ( Is_KindVal      ) KindVal      = Current%Item%KindVal
+          IF ( Is_MemoryInKb   ) MemoryInKb   = Current%Item%MemoryInKb
+          IF ( Is_Rank         ) Rank         = Current%Item%Rank
+          IF ( Is_Units        ) Units        = Current%Item%Units
+          If ( Is_OnLevelEdges ) OnLevelEdges = Current%Item%OnLevelEdges
 
           ! Then return a pointer to the field
           SELECT CASE( Current%Item%Rank ) 
 
-             ! 3-d data
+             ! Return the appropriate 3D DATA POINTER (and dimensions)
              CASE( 3 ) 
-                IF ( Is_3d ) THEN
-                   Ptr3d   => Current%Item%Ptr3d
-                   RETURN
-                ELSE IF ( Is_3d_4 ) THEN 
-                   Ptr3d_4 => Current%Item%Ptr3d_4
-                   RETURN                  
-                ELSE IF  ( Is_3d_I ) THEN
-                   Ptr3d_I => Current%Item%Ptr3d_I
-                   RETURN
+                IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
+                   IF ( Is_3d ) THEN 
+                      Ptr3d => Current%Item%Ptr3d
+                      Found =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr3d, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
+                   IF ( Is_3d_4 ) THEN
+                      Ptr3d_4 => Current%Item%Ptr3d_4
+                      Found   =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr3d_4, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_I4 ) THEN
+                   IF ( Is_3d_I ) THEN
+                      Ptr3d_I => Current%Item%Ptr3d_I
+                      Found   =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr3d_I, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
                 ENDIF
                    
-             ! 2-d data
+             ! Return the appropriate 2D DATA POINTER (and dimensions)
              CASE( 2 )
-                IF ( Is_2d ) THEN
-                   Ptr2d   => Current%Item%Ptr2d
-                   RETURN
-                ELSE IF ( Is_2d_4 ) THEN
-                   Ptr2d_4 => Current%Item%Ptr2d_4
-                   RETURN
-                ELSE IF ( Is_2d_I ) THEN
-                   Ptr2d_I => Current%Item%Ptr2d_I
-                   RETURN
+                IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
+                   IF ( Is_2d ) THEN
+                      Ptr2d => Current%Item%Ptr2d
+                      Found =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr2d, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
+                   IF ( Is_2d_4 ) THEN
+                      Ptr2d_4 => Current%Item%Ptr2d_4
+                      Found   =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr2d_4, N )
+                         ENDDO
+                      ENDIF                      
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_I4 ) THEN
+                   IF ( Is_2d_I ) THEN
+                      Ptr2d_I => Current%Item%Ptr2d_I
+                      Found =    .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr2d_I, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
                 ENDIF
 
-             ! 1-d data
+             ! Return the appropriate 1D DATA POINTER (and dimensions)
              CASE( 1 )
-                IF ( Is_1d ) THEN
-                   Ptr1d   => Current%Item%Ptr1d
-                   RETURN
-                ELSE IF ( Is_1d_4 ) THEN
-                   Ptr1d_4 => Current%Item%Ptr1d_4
-                   RETURN                 
-                ELSE IF ( Is_1d_I ) THEN
-                   Ptr1d_I => Current%Item%Ptr1d_I
-                   RETURN
+                IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
+                   IF ( Is_1d ) THEN
+                      Ptr1d => Current%Item%Ptr1d
+                      Found =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr1d, N )
+                         ENDDO
+                      ENDIF                     
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_F8 ) THEN
+                   IF ( Is_1d_8 ) THEN
+                      Ptr1d_8 => Current%Item%Ptr1d_8
+                      Found   =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr1d_8, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
+                   IF ( Is_1d_4 ) THEN
+                      Ptr1d_4 => Current%Item%Ptr1d_4
+                      Found   =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr1d_4, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_I4 ) THEN
+                   IF ( Is_1d_I ) THEN
+                      Ptr1d_I => Current%Item%Ptr1d_I
+                      Found   =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr1d_I, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
                 ENDIF
                 
-             ! 0-d data
+             ! Return the appropriate 0D DATA POINTER (and dimensions)
              CASE( 0 )
-                IF ( Is_0d ) THEN
-                   Ptr0d   => Current%Item%Ptr0d
-                   RETURN
-                ELSE IF ( Is_0d_4 ) THEN
-                   Ptr0d_4 => Current%Item%Ptr0d_4
-                   RETURN
-                ELSE IF ( Is_0d_I ) THEN
-                   Ptr0d_I => Current%Item%Ptr0d_I
-                   RETURN
+                IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
+                   IF ( Is_0d ) THEN
+                      Ptr0d => Current%Item%Ptr0d
+                      Found =   .TRUE.
+                      IF ( Is_Dimensions ) Dimensions = 0
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_F8 ) THEN
+                   IF ( Is_0d_8 ) THEN
+                      Ptr0d_8 => Current%Item%Ptr0d_8
+                      Found   =  .TRUE.
+                      IF ( Is_Dimensions ) Dimensions = 0
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
+                   IF ( Is_0d_4 ) THEN
+                      Ptr0d_4 => Current%Item%Ptr0d_4
+                      Found   =  .TRUE.
+                      IF ( Is_Dimensions ) Dimensions = 0
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_I4 ) THEN
+                   IF ( Is_0d_I ) THEN
+                      Ptr0d_I => Current%Item%Ptr0d_I
+                      Found   =  .TRUE.
+                      IF ( Is_Dimensions ) Dimensions = 0
+                   ENDIF
+                   EXIT
                 ENDIF
 
              ! Error message
@@ -581,7 +815,13 @@ CONTAINS
     !=======================================================================
     ! Cleanup and quit
     !=======================================================================
+999 CONTINUE
+
+    ! Free pointer
     Current => NULL()
+
+    ! Throw an error if not found
+    IF ( .not. Found ) RC = GC_FAILURE
 
   END SUBROUTINE Registry_Lookup
 !EOC
@@ -618,13 +858,17 @@ CONTAINS
 !
     INTEGER,           INTENT(OUT) :: RC            ! Success or failure?
 !
-
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version
 !  26 Jun 2017 - R. Yantosca - Also print memory usage in Kb
 !  27 Jun 2017 - R. Yantosca - Now print numeric KIND value and description
 !  27 Jun 2017 - R. Yantosca - Also print Ptr1dI, Ptr2dI, Ptr3dI 
 !  29 Jun 2017 - R. Yantosca - Add SHORTFORMAT option to print less output
+!  23 Aug 2017 - R. Yantosca - Now print OnLevelEdges in full format
+!  24 Aug 2017 - R. Yantosca - Now use the DimNames field when printing
+!  25 Aug 2017 - R. Yantosca - Now print the vertical cell position: C or E
+!  25 Aug 2017 - R. Yantosca - Now print info about Data0d_8 and Data1d_8
+!  29 Aug 2017 - R. Yantosca - Minor fix, skip C/E printing for non-3D fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -635,11 +879,8 @@ CONTAINS
     LOGICAL                    :: Use_ShortFormat
 
     ! Strings
-    CHARACTER(LEN=255)         :: ErrMsg, ThisLoc
-
-    ! String arrays
-    CHARACTER(LEN=4)           :: DimStr(0:4) = &
-                                  (/ '0   ', 'x   ', 'xy  ', 'xyz ', 'xyzn' /)
+    CHARACTER(LEN=1)           :: CellPos
+    CHARACTER(LEN=255)         :: ErrMsg,  ThisLoc
 
     ! Objects
     TYPE(MetaRegItem), POINTER :: Current
@@ -654,6 +895,7 @@ CONTAINS
 
     ! Initialize fields
     RC      =  GC_SUCCESS
+    CellPos =  ''
     ErrMsg  =  ''
     ThisLoc =  ' -> at Registry_Print (in Headers/registry_mod.F90)'
     Current => NULL()
@@ -687,9 +929,23 @@ CONTAINS
              !--------------------------------------------------------------
              ! Just print the name, description, dimension, and units
              !--------------------------------------------------------------
-             WRITE( 6, 100 ) Item%FullName,     Item%Description, &
-                             DimStr(Item%Rank), Item%Units
-  100        FORMAT( 2x, a20, ' | ', a40, ' | ', a4, ' | ', a15 )
+
+             ! Denote if 3-D data is defined on level edges (E) or centers (C)
+             IF ( Item%Rank == 3 ) THEN
+                IF ( Item%OnLevelEdges ) THEN
+                   CellPos = 'E'
+                ELSE
+                   CellPos = 'C'
+                ENDIF
+             ELSE
+                CellPos = ''
+             ENDIF
+
+             ! Print information
+             WRITE( 6, 100 ) Item%FullName,    Item%Description,             &
+                             Item%DimNames,    CellPos,                      &
+                             TRIM( Item%Units )
+  100        FORMAT( 1x, a20, ' | ', a38, ' | ', a3, ' ', a1, ' | ', a )
 
           ELSE
 
@@ -704,9 +960,11 @@ CONTAINS
              PRINT*, 'Variable     : ', TRIM( Item%Variable    )
              PRINT*, 'Description  : ', TRIM( Item%Description )
              PRINT*, 'Units        : ', TRIM( Item%Units       )
+             PRINT*, 'Dim Names    : ', TRIM( Item%DimNames    )
              PRINT*, 'KIND value   : ', Item%KindVal
              PRINT*, 'Memory (Kb)  : ', Item%MemoryInKb
-             PRINT*, 'Rank of data : ', Item%Rank, '(', DimStr(Item%Rank), ')'
+             PRINT*, 'Rank of data : ', Item%Rank, '(', Item%DimNames, ')'
+             PRINT*, 'On Edges?    : ', Item%OnLevelEdges
 
              !--------------
              ! 3D data
@@ -717,8 +975,8 @@ CONTAINS
                 PRINT*, 'Min value    : ', MINVAL( Item%Ptr3d      )
                 PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3d      )
                 PRINT*, 'Total        : ', SUM   ( Item%Ptr3d      )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3d,   1 ), &
-                                           SIZE  ( Item%Ptr3d,   2 ), &
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3d,   1 ),        &
+                                           SIZE  ( Item%Ptr3d,   2 ),        &
                                            SIZE  ( Item%Ptr3d  , 3 )
 
              ! 4-byte
@@ -726,8 +984,8 @@ CONTAINS
                 PRINT*, 'Min value    : ', MINVAL( Item%Ptr3d_4    )
                 PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3d_4    )
                 PRINT*, 'Total        : ', SUM   ( Item%Ptr3d_4    )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3d_4, 1 ), &
-                                           SIZE  ( Item%Ptr3d_4, 2 ), &
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3d_4, 1 ),        &
+                                           SIZE  ( Item%Ptr3d_4, 2 ),        &
                                            SIZE  ( Item%Ptr3d_4, 3 )
 
              ! Integer
@@ -735,8 +993,8 @@ CONTAINS
                 PRINT*, 'Min value    : ', MINVAL( Item%Ptr3d_I    )
                 PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3d_I    )
                 PRINT*, 'Total        : ', SUM   ( Item%Ptr3d_I    )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3d_I, 1 ), &
-                                           SIZE  ( Item%Ptr3d_I, 2 ), &
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3d_I, 1 ),        &
+                                           SIZE  ( Item%Ptr3d_I, 2 ),        &
                                            SIZE  ( Item%Ptr3d_I, 3 )
              !--------------
              ! 2D data
@@ -747,14 +1005,14 @@ CONTAINS
                 PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d      )
                 PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2d      )
                 PRINT*, 'Total        : ', SUM   ( Item%Ptr2d      )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d, 1   ), &
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d, 1   ),        &
                                            SIZE  ( Item%Ptr2d, 2   )
              ! 4-byte 
              ELSE IF ( ASSOCIATED( Item%Ptr2d_4 ) ) THEN
                 PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d_4    )
                 PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2d_4    )
                 PRINT*, 'Total        : ', SUM   ( Item%Ptr2d_4    )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d_4, 1 ), &
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d_4, 1 ),        &
                                            SIZE  ( Item%Ptr2d_4, 2 )
 
              ! Integer
@@ -763,7 +1021,7 @@ CONTAINS
                 PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d_I    )
                 PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2d_I    )
                 PRINT*, 'Total        : ', SUM   ( Item%Ptr2d_I    )
-                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d_I, 1 ), &
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d_I, 1 ),        &
                                            SIZE  ( Item%Ptr2d_I, 2 )
              !--------------
              ! 1D data
@@ -775,6 +1033,13 @@ CONTAINS
                 PRINT*, 'Max value    : ', MAXVAL( Item%Ptr1d      )
                 PRINT*, 'Total        : ', SUM   ( Item%Ptr1d      )
                 PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr1d      )
+
+             ! 8-byte
+             ELSE IF ( ASSOCIATED( Item%Ptr1d_8 ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr1d_8    )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr1d_8    )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr1d_8    )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr1d_8    )
 
              ! 4-byte
              ELSE IF ( ASSOCIATED( Item%Ptr1d_4 ) ) THEN
@@ -796,15 +1061,19 @@ CONTAINS
 
              ! Flexible precision
              ELSE IF ( ASSOCIATED( Item%Ptr0d ) ) THEN
-                PRINT*, 'Value Ptr0d  : ', Item%Ptr0d
+                PRINT*, 'Value        : ', Item%Ptr0d
+
+             ! 8-byte precision
+             ELSE IF ( ASSOCIATED( Item%Ptr0d_8 ) ) THEN
+                PRINT*, 'Value        : ', Item%Ptr0d_8
 
              ! 4-byte
              ELSE IF ( ASSOCIATED( Item%Ptr0d_4 ) ) THEN
-                PRINT*, 'Value Ptr0d  : ', Item%Ptr0d_4
+                PRINT*, 'Value        : ', Item%Ptr0d_4
 
              ! Integer
              ELSE IF ( ASSOCIATED( Item%Ptr0d_I ) ) THEN
-                PRINT*, 'Value Ptr0d  : ', Item%Ptr0d_I
+                PRINT*, 'Value        : ', Item%Ptr0d_I
   
              ENDIF
           ENDIF
@@ -889,8 +1158,8 @@ CONTAINS
 !
 ! !IROUTINE: MetaRegItem_AddNew
 !
-! !DESCRIPTION: Wrapper for methods MetaRegItem_Create and 
-!  MetaRegItem_Insert.  Will create a METAREGISTRY ITEM (containing a
+! !DESCRIPTION: Wrapper for methods MetaRegItem\_Create and 
+!  MetaRegItem\_Insert.  Will create a METAREGISTRY ITEM (containing a
 !  REGISTRY ITEM) and (1) set it as the head node of a new linked list, or
 !  (2) append it to an existing linked list.
 !\\
@@ -1396,7 +1665,7 @@ CONTAINS
     UpCaseText = Text
 
     ! Loop over all characters
-    DO C = 1, LEN( UpCaseText )
+    DO C = 1, LEN_TRIM( UpCaseText )
 
        ! Get the ASCII code for each character
        Ascii = ICHAR( UpCaseText(C:C) )

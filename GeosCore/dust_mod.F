@@ -663,12 +663,6 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE Species_Mod,        ONLY : Species
-#if defined( NC_DIAG )
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
-      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -745,15 +739,6 @@
       ! Pointers
       TYPE(Species), POINTER :: ThisSpc
       REAL(fp),      POINTER :: TC(:,:,:,:)
-
-
-#if defined( NC_DIAG )
-      ! For netcdf diagnostics (ND44 drydep flux)
-      INTEGER                :: drydep_id, spc_id, HCRC
-      CHARACTER(LEN=30)      :: DiagnName
-      REAL(fp), TARGET       :: DryDepFlux( IIPAR, JJPAR, NDSTBIN ) 
-      REAL(fp), POINTER      :: Ptr2D(:,:)
-#endif
 !
 ! !DEFINED PARAMETERS:
 !      
@@ -772,17 +757,9 @@
       ! Initialize pointers
       ThisSpc   => NULL()
       TC        => State_Chm%Species
-#if defined( NC_DIAG )
-      Ptr2D     => NULL()
-#endif
 
       ! Dust settling timestep [s]
       DT_SETTL  = GET_TS_CHEM() * 60e+0_fp
-
-#if defined( NC_DIAG )
-      ! Initialize diagnostic array (ND44)
-      DryDepFlux = 0e+0_fp
-#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -917,11 +894,6 @@
                   ! For bpch diagnostic, save in global array AD44
                   AD44(I,J,ND,1) = AD44(I,J,ND,1) + FLUX
 #endif
-#if defined( NC_DIAG )
-                  ! For netcdf diagnostic, store data in local array
-                  N                 = NA - Ind0 + 1
-                  DryDepFlux(I,J,N) = FLUX
-#endif
                ENDIF
 
             ENDDO 
@@ -931,56 +903,6 @@
          ThisSpc => NULL()
       ENDDO       
 !$OMP END PARALLEL DO
-
-#if defined( NC_DIAG )
-      !========================================================      
-      ! ND44: Dry deposition diagnostic [molec/cm2/s] (netcdf)
-      ! %%%% NOTE: NEEDS WORK %%%%
-      !========================================================
-      IF ( ND44 > 0 ) THEN
-
-         ! Loop over dust bins
-         DO Spc_Id = Ind0, Ind1
-            
-            N = Spc_Id - Ind0 + 1
-            
-            ! Look up this species in the species database
-            ThisSpc => State_Chm%SpcData(Spc_Id)%Info
-         
-            ! Get drydep id
-            drydep_id = ThisSpc%DryDepId
-
-            ! If this species number NN is scheduled for output in input.geos, 
-            ! then archive the latest depvel data into the diagnostic structure
-            IF ( ANY( Input_Opt%TINDEX(44,:) == spc_id ) ) THEN
-         
-               ! Define name of diagnostic
-               DiagnName = 'DRYDEP_FLX_CHEM_' // 
-     &                     TRIM( State_Chm%SpcData(spc_id)%Info%Name )
-               
-               ! Point to data
-               Ptr2D => DryDepFlux(:,:,N)
-               
-               ! Update diagnostic container
-               CALL Diagn_Update( am_I_Root, HcoState, 
-     &                            cName   = TRIM( DiagnName),         
-     &                            Array2D = Ptr2D,                      
-     &                            COL     = Input_Opt%DIAG_COLLECTION, 
-     &                            RC      = HCRC    )
-
-               ! Free the pointer
-               Ptr2D => NULL()
-               
-               ! Stop with error if the diagnostic was unsuccessful
-               IF ( HCRC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP( 'Cannot update drydep flux' //        
-     &                             ' diagnostic: ' // TRIM( DiagnName), 
-     &                             'DRY_SETTLING (dust_mod.F)')
-               ENDIF
-            ENDIF
-         ENDDO
-      ENDIF
-#endif
 
       ! Free pointers
       ThisSpc => NULL()

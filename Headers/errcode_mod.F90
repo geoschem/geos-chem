@@ -72,6 +72,7 @@ CONTAINS
 !  13 Aug 2015 - E. Lundgren - Initial version, based on C. Keller's HCO_ERROR
 !  16 Aug 2016 - M. Sulprizio- Rename from GIGC_ERROR to GC_ERROR
 !  23 Jun 2017 - R. Yantosca - Now moved from error_mod.F to errcode_mod.F90
+!  28 Aug 2017 - R. Yantosca - Now flush the error msg to stdout/log file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -92,6 +93,12 @@ CONTAINS
        WRITE( 6, '(a)' ) TRIM( ThisLoc )
     ENDIF
 
+    ! Write a blank line to improve readability between error messages
+    WRITE( 6, '(a)' ) ''
+
+    ! Force the message to be flushed to the log file
+    CALL FLUSH( 6 )
+
     ! Return with failure, but preserve existing error code
     IF ( RC == GC_SUCCESS ) THEN
        RC = GC_FAILURE
@@ -106,9 +113,9 @@ CONTAINS
 !
 ! !IROUTINE: GC_CheckVar
 !
-! !DESCRIPTION: Wrapper routine for GC_Error.  Prints an error message
+! !DESCRIPTION: Wrapper routine for GC\_Error.  Prints an error message
 !  if there is an allocation or registration error.  This is intended to
-!  be called from the state initialization method (e.g. Init_State_Met).
+!  be called from the state initialization method (e.g. Init\_State\_Met).
 !\\
 !\\
 ! !INTERFACE:

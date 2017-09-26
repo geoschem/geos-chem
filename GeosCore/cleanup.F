@@ -40,7 +40,10 @@
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GC_GRID_MOD,             ONLY : CLEANUP_GRID
+      USE GEOS_TIMERS_MOD
+      USE Grid_Registry_Mod,       ONLY : Cleanup_Grid_Registry
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
+      USE History_Mod,             ONLY : History_Cleanup
       USE Input_Opt_Mod,           ONLY : OptInput
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
@@ -76,11 +79,6 @@
 !#if !defined(ESMF_) 
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
 !#endif
-
-#if defined( NC_DIAG )
-      ! Cleanup routine for netCDF diagnostics structure
-      USE DIAGNOSTICS_MOD,         ONLY : DIAGNOSTICS_FINAL
-#endif
 
 #if   defined( RRTMG )
       USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_SURFACE_RAD
@@ -245,6 +243,10 @@
 !  18 May 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE; it's obsolete
 !  30 Jun 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE_LOOP; it's obsolete
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  09 Aug 2017 - R. Yantosca - Pass am_I_Root, RC to Cleanup_Grid
+!  16 Aug 2017 - R. Yantosca - Now call History_Cleanup from here
+!  23 Aug 2017 - R. Yantosca - Now time how long HISTORY_CLEANUP takes
+!  23 Aug 2017 - R. Yantosca - Now call Cleanup_Grid_Registry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,18 +260,29 @@
       ENDIF
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
+#if defined( NC_DIAG )
+      !=================================================================
+      !         ***** H I S T O R Y   C L E A N U P *****
+      !
+      ! Finalize the History Component.
+      ! Also closes all netCDF files that may still be open.
+      !=================================================================
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_Start( "History", RC )
+#endif
+
+      ! Finalize the history component
+      CALL History_Cleanup( am_I_Root, RC )
+
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_End( "History", RC )
+#endif
+#endif
+
       ! UCX needs to be cleaned up before emissions, because the UCX 
       ! restart variables needs to be passed to the HEMCO diagnostics
       ! first.
       CALL CLEANUP_UCX( am_I_Root )
-
-#if defined( NC_DIAG )
-      ! Cleanup the netCDF diagnostics structure
-      ! Input_Opt is cleaned up before CLEANUP. Remove as argument.
-      ! (ckeller, 3/28/16)
-      !!!CALL DIAGNOSTICS_FINAL( am_I_Root, Input_Opt, RC )
-      CALL DIAGNOSTICS_FINAL( am_I_Root, RC )
-#endif
 
       ! Cleanup HEMCO
       CALL EMISSIONS_FINAL ( am_I_Root, ERROR )
@@ -293,8 +306,9 @@
       CALL CLEANUP_DUST()
       CALL CLEANUP_FLEXCHEM()
       CALL CLEANUP_GLOBAL_CH4()
-      CALL CLEANUP_GRID()
-      CALL CLEANUP_HDF()
+      CALL CLEANUP_GRID( am_I_Root, RC )
+      CALL Cleanup_Grid_Registry( am_I_Root, RC )
+      CALL CLEANUP_HDF()  
       CALL CLEANUP_ISOROPIAII()
       CALL CLEANUP_LINOZ()
       CALL CLEANUP_MAP_A2A()
@@ -322,9 +336,9 @@
 #endif
 
 #if   defined( RRTMG )
-      CALL CLEANUP_SURFACE_RAD  ! Cleanup arrays for surface properties
-      CALL CLEANUP_STRAT_CLIM
-      CALL CLEANUP_MCICA_CLOUDS
+      CALL CLEANUP_SURFACE_RAD()  ! Cleanup arrays for surface properties
+      CALL CLEANUP_STRAT_CLIM()
+      CALL CLEANUP_MCICA_CLOUDS()
 #endif
 
 #if   defined( GRID05x0625 ) || defined( GRID025x03125)
@@ -346,6 +360,6 @@
 #elif defined( MERRA2 )
       CALL Cleanup_Merra2_Read()
 #endif
-      
+
       END SUBROUTINE CLEANUP
 !EOC

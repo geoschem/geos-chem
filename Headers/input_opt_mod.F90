@@ -199,9 +199,11 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LUCX
      LOGICAL                     :: LCH4CHEM
      LOGICAL                     :: LACTIVEH2O
-     LOGICAL                     :: LO3FJX
      LOGICAL                     :: LINITSPEC
      INTEGER, POINTER            :: NTLOOPNCS(:)
+     LOGICAL                     :: USE_ONLINE_O3
+     LOGICAL                     :: USE_O3_FROM_MET
+     LOGICAL                     :: USE_TOMS_O3
 
      !----------------------------------------
      ! RADIATION MENU fields
@@ -252,6 +254,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! DIAGNOSTIC MENU fields
      !----------------------------------------
+     CHARACTER(LEN=255)          :: HistoryInputFile
      INTEGER                     :: ND01,             LD01
      INTEGER                     :: ND02,             LD02
      INTEGER                     :: ND03,             LD03
@@ -335,28 +338,6 @@ MODULE Input_Opt_Mod
      ! Collection ids
      INTEGER                     :: DIAG_COLLECTION
      INTEGER                     :: GC_RST_COLLECTION ! Used only for NetCDF
-
-#if defined( NC_DIAG )
-     ! New diagnostic group output types (e.g. 'mean')
-     CHARACTER(LEN=15)           :: TRANSPORT_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: WETSCAV_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: DRYDEP_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: SPECIES_CONC_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: SPECIES_EMIS_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: MET_OUTPUT_TYPE
-
-     ! Placeholders pending grouping of diagnostics
-     CHARACTER(LEN=15)           :: ND01_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND02_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND12_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND14_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND15_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND16_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND17_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND18_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND19_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND30_OUTPUT_TYPE
-#endif
 
      !----------------------------------------
      ! PLANEFLIGHT MENU fields
@@ -571,13 +552,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: LINOZ_NFIELDS
      REAL(fp),           POINTER :: LINOZ_TPARM(:,:,:,:)
 
-     !----------------------------------------
-     ! Fields for overhead O3
-     ! This gets set in main.F based on met
-     ! field and year (mpayer, 12/13/13)
-     !----------------------------------------
-     LOGICAL                     :: USE_O3_FROM_MET
-
   END TYPE OptInput
 !
 ! !REMARKS:
@@ -642,11 +616,14 @@ MODULE Input_Opt_Mod
 !  20 Sep 2016 - R. Yantosca - LND51_HDF and LND51b_HDF are now declared
 !                              as LOGICAL, not INTEGER.  This chokes Gfortran.
 !  03 Oct 2016 - R. Yantosca - LWINDO_CU has to be LOGICAL, not INTEGER
+!  12 Jul 2017 - R. Yantosca - Add Input_Opt%HistoryInputFile field
 !  13 Jul 2017 - E. Lundgren - Add passive species variables
 !  24 Aug 2017 - M. Sulprizio- Remove obsolete options: GCAP_DIR, GEOS_4_DIR,
 !                              GEOS_5_DIR, MERRA_DIR, TEMP_DIR, LUNZIP, LWAIT
 !  13 Sep 2017 - M. Sulprizio- Remove USE_OLSON_2001. Olson 2001 is now the
 !                              default.
+!  14 Sep 2017 - M. Sulprizio- Add USE_ONLINE_O3 and USE_TOMS_O3 to options for
+!                              overhead O3 in chemistry menu
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -735,6 +712,7 @@ CONTAINS
 !  13 Jul 2016 - R. Yantosca - Remove ID_TRACER, NUMDEP
 !  16 Mar 2017 - R. Yantosca - Remove obsolete family and drydep variables
 !  17 Mar 2017 - R. Yantosca - Remove IDDEP, DUSTREFF, DUSTDEN
+!  12 Jul 2017 - R. Yantosca - Initialize Input_Opt%HistoryInputFile field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -922,8 +900,10 @@ CONTAINS
     Input_Opt%LUCX                   = .FALSE.
     Input_Opt%LCH4CHEM               = .FALSE.
     Input_Opt%LACTIVEH2O             = .FALSE.
-    Input_Opt%LO3FJX                 = .FALSE.
     Input_Opt%LINITSPEC              = .FALSE.
+    Input_Opt%USE_ONLINE_O3          = .FALSE.
+    Input_Opt%USE_O3_FROM_MET        = .FALSE.
+    Input_Opt%USE_TOMS_O3            = .FALSE.
 
     !----------------------------------------
     ! RADIATION MENU fields
@@ -978,6 +958,7 @@ CONTAINS
     !----------------------------------------
     ! DIAGNOSTIC MENU fields
     !----------------------------------------
+    Input_Opt%HistoryInputFile       = ''
     Input_Opt%DIAG_COLLECTION        = -999
     Input_Opt%TS_DIAG                = 0
     ALLOCATE( Input_Opt%TINDEX( MAX_DIAG, MAX_SPC ), STAT=RC )
@@ -1373,11 +1354,6 @@ CONTAINS
                                      Input_Opt%LINOZ_NFIELDS ), STAT=RC )
 
     Input_Opt%LINOZ_TPARM            = 0e+0_fp
-
-    !----------------------------------------
-    ! Fields for overhead O3
-    !----------------------------------------
-    Input_Opt%USE_O3_FROM_MET        = .FALSE.
 
   END SUBROUTINE Set_Input_Opt
 !EOC

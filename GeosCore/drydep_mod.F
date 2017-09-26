@@ -447,14 +447,6 @@
       LOGICAL       :: PBL_DRYDEP 
       LOGICAL       :: LPRT
 
-#if defined( NC_DIAG )
-      ! Variables for netCDF diagnostics routines
-      INTEGER           :: HCRC
-      CHARACTER(LEN=30) :: DryDepName, DiagnName
-      REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,State_Chm%nDryDep)
-      REAL(hp), POINTER :: Ptr2D(:,:)
-#endif
-
       ! Objects
       TYPE(Species), POINTER :: SpcInfo
 
@@ -467,12 +459,6 @@
 
       ! Initialize
       SpcInfo => NULL()
-      
-#if defined( NC_DIAG )
-      ! Initialize
-      SAVE_DEPVEL = 0.0_fp
-      Ptr2D       => NULL()
-#endif
       
       ! Copy values from the Input Options object to local variables
       PBL_DRYDEP = Input_Opt%PBL_DRYDEP
@@ -621,17 +607,6 @@
             ! Dry deposition frequency [1/s]
             DEPSAV(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
 
-#if defined( NC_DIAG )
-            ! Need to save dep velocity into 2-D array for netCDF diags
-            ! Now save out frequency instead of velocity. We can change
-            ! that if needed (ckeller, 3/11/15).
-            ! NOTE: for comparison with bpch, no longer save as frequency,
-            ! save instead as cm/s which is the bpch unit for this diag
-            ! (ewl, 1/22/16)
-            !SAVE_DEPVEL(I,J,D) = DEPSAV(I,J,D)
-            SAVE_DEPVEL(I,J,D) = DVZ
-#endif
-
 #if defined( BPCH_DIAG )
             ! ND44 diagnostic: drydep velocity [cm/s]
             IF ( ND44 > 0 ) THEN 
@@ -645,56 +620,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-#if defined( NC_DIAG )
-      !=================================================================
-      ! Update drydep velocity into netCDF diagnostics structure
-      !=================================================================
-      IF ( Input_Opt%ND44 > 0 ) THEN
-
-         ! Assume success
-         HCRC = HCO_SUCCESS
-
-         ! Loop over all depositing species
-         DO D = 1, State_Chm%nDryDep
-
-            ! Get the corresponding GEOS-Chem species number
-            N =  State_Chm%Map_DryDep(D)
-
-            ! If this tracer number NN is scheduled for output in input.geos, 
-            ! then archive the latest depvel data into the diagnostic structure
-            IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
-
-               ! Get information for this species from the species database
-               SpcInfo => State_Chm%SpcData(N)%Info
-
-               ! Construct diagnostic name
-               DiagnName  = 'DRYDEP_VEL_' // TRIM( SpcInfo%Name )
-
-               ! Point to the proper slice of the DEPSAV array
-               Ptr2D => SAVE_DEPVEL(:,:,D)
-
-               ! Update the deposition velocity diagostics 
-               CALL Diagn_Update( am_I_Root, HcoState,
-     &                            cName   = TRIM( DiagnName ),
-     &                            Array2D = Ptr2D,
-     &                            COL     = Input_Opt%DIAG_COLLECTION,
-     &                            RC      = HCRC )
-
-               ! Free the pointers
-               Ptr2D   => NULL()
-               SpcInfo => NULL()
-
-               ! Stop with error if the diagnostics were unsuccessful
-               IF ( HCRC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP( 'Cannot update drydep velocity' //
-     &                             ' diagnostic: ' // TRIM( DiagnName), 
-     &                             'DO_DRYDEP (drydep_mod.F)')
-               ENDIF
-            ENDIF
-         ENDDO
-      ENDIF
-#endif
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN

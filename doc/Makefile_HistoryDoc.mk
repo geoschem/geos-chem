@@ -3,10 +3,10 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !IROUTINE: Makefile_Hemco.mk (in doc subdirectory)
+# !IROUTINE: Makefile_DiagsDoc.mk (in doc subdirectory)
 #
 # !DESCRIPTION: This Makefile fragment contains commands to build the 
-#  documentation for the HEMCO Source Code.  It is inlined into
+#  documentation for the GEOS-Chem diagnostics modules.  It is inlined into
 #  the Makefile (in the doc subdirectory) by an "include" command.
 #\\
 #\\
@@ -21,37 +21,35 @@
 # on your system in order to build the documentation.
 #
 # !REVISION HISTORY: 
-#  08 Jul 2014 - R. Yantosca - Initial version
-#  21 Jul 2014 - R. Yantosca - Now look for HEMCO modules in subdirectories
-#  10 Jul 2015 - R. Yantosca - Use ./protex to avoid problems on some systems
-#  18 Nov 2016 - R. Yantosca - Now use protex -spf to update chapters
+#  12 Jul 2017 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
-# List of source code files (order is important)
-SRC4 :=                            \
-./hemco_intro.P                    \
-./hemco_core.P                     \
-$(wildcard $(HCO)/Core/*.F*)       \
-./hemco_extensions.P               \
-$(wildcard $(HCO)/Extensions/*.F*) \
-./hemco_interfaces.P               \
-$(wildcard $(HCO)/Interfaces/*.F*)
+# List of source code files
+SRC3 :=                           \
+./gc_history_intro.P              \
+./gc_history.P                    \
+$(HIST)/history_params_mod.F90    \
+$(HIST)/histitem_mod.F90          \
+$(HIST)/metahistitem_mod.F90      \
+$(HIST)/histcontainer_mod.F90     \
+$(HIST)/metahistcontainer_mod.F90 \
+$(HIST)/history_mod.F90
 
 # Output file names
-TEX4 := GC_v11-02_HEMCO_Modules.tex
-DVI4 := GC_v11-02_HEMCO_Modules.dvi
-PDF4 := GC_v11-02_HEMCO_Modules.pdf
+TEX3 := GC_v11-02_History_Modules.tex
+DVI3 := GC_v11-02_History_Modules.dvi
+PDF3 := GC_v11-02_History_Modules.pdf
 
 # Make commands
-hemcodoc: 
-	rm -f $(TEX4)
-	./protex -sfp $(SRC4) > $(TEX4)
-	latex $(TEX4)
-	latex $(TEX4)
-	latex $(TEX4)
-	dvipdf $(DVI4) $(PDF4)
+diagsdoc:
+	rm -f $(TEX3)
+	./protex -sfp $(SRC3) > $(TEX3)
+	latex $(TEX3)
+	latex $(TEX3)
+	latex $(TEX3)
+	dvipdf $(DVI3) $(PDF3)
 	rm -f *.aux *.dvi *.log *.toc
 
 #EOC

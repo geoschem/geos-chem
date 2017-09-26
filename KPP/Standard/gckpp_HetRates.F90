@@ -1325,6 +1325,9 @@ MODULE GCKPP_HETRATES
       ! Loop over aerosol types
       DO N = 1, NAERO
 
+         ! Default value
+         XSTKCF = TINY(1e+0_fp)
+
          ! Only consider inorganic aqueous aerosols with RH > 35%.
          ! Uptake during the day (higher uptake than night)
          ! (Sumner et al., 2014):
@@ -1417,6 +1420,9 @@ MODULE GCKPP_HETRATES
       ! Loop over aerosol types
       DO N = 1, NAERO
 
+         ! Default value
+         XSTKCF = TINY(1e+0_fp)
+
          ! Only consider inorganic aqueous aerosols with RH > 35%.
          IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
 
@@ -1499,6 +1505,9 @@ MODULE GCKPP_HETRATES
 
       ! Loop over aerosol types
       DO N = 1, NAERO
+
+         ! Default value
+         XSTKCF = TINY(1e+0_fp)
 
          ! Only consider inorganic aqueous aerosols with RH > 35%.
          IF ( N == 8 .and. RELHUM >= CRITRH ) THEN
@@ -1601,6 +1610,9 @@ MODULE GCKPP_HETRATES
 
       ! Loop over aerosol types
       DO N = 1, NAERO
+
+         ! Default value
+         XSTKCF = TINY(1e+0_fp)
 
          ! Only consider inorganic aqueous aerosols with RH > 35%.
          IF ( N == 8 .and. RELHUM >= CRITRH ) THEN

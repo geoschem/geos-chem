@@ -4168,7 +4168,7 @@ CONTAINS
 ! supported: YYYY (year), MM (month), DD (day), HH (hour), LH (local hour), 
 ! NN (minute), SS (second), WD (weekday), LWD (local weekday), DOY (day of year). 
 ! In addition, the following variables can be used: PI (3.141...), DOM
-! (# of days of current month).
+! (\# of days of current month).
 ! For example, the following expression would yield a continuous sine
 ! curve as function of hour of day: 'MATH:sin(HH/24*PI*2)'.
 !\\

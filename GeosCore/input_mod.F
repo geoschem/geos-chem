@@ -2715,6 +2715,8 @@
 !  27 Jul 2016 - M. Sulprizio- Remove LSVCSPEC and SPEC_RST_FILE. Restart files
 !                              are now always saved out and the output restart
 !                              file name is hardcoded in restart_mod.F.
+!  14 Sep 2017 - M. Sulprizio- Add all options for overhead O3 used in FAST-JX
+!                              (USE_ONLINE_O3, USE_O3_FROM_MET, & USE_TOMS_O3)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2723,7 +2725,7 @@
 !
       ! Scalars
       LOGICAL            :: LCHEM,    LSCHEM,   LLINOZ, LUCX
-      LOGICAL            :: LO3FJX,   LCH4CHEM, LACTIVEH2O
+      LOGICAL            :: LCH4CHEM, LACTIVEH2O
       INTEGER            :: N
       CHARACTER(LEN=255) :: MSG, LOCATION
 
@@ -2768,16 +2770,27 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
       READ( SUBSTRS(1:N), * ) LACTIVEH2O
 
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
+
       ! Use online ozone in extinction calculations for FAST-JX?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:11' )
-      READ( SUBSTRS(1:N), * ) LO3FJX
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%USE_ONLINE_O3
+
+      ! Use ozone columns from met fields?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:9' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%USE_O3_FROM_MET
+
+      ! Use ozone columns from TOMS?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:10' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%USE_TOMS_O3
 
       ! GAMMA HO2 ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:11' )
       READ( SUBSTRS(1:N), * ) Input_Opt%GAMMA_HO2
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:12' )
 
       !=================================================================
       ! Error check settings
@@ -2814,6 +2827,43 @@
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
+      ! FAST-JX is only used for fullchem, offline aerosol, and CH3I
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM  .or.
+     &     Input_Opt%ITS_AN_AEROSOL_SIM  .or.
+     &     Input_Opt%ITS_A_CH3I_SIM      ) THEN
+
+         ! Make sure either O3 from met or TOMS is selected
+         IF ( .not. Input_Opt%USE_O3_FROM_MET .and.
+     &        .not. Input_Opt%USE_TOMS_O3 ) THEN
+            MSG = 'Must select either O3 from met or TOMS/SBUV O3'
+     &            // 'for O3 values above the chemistry grid!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+         IF ( Input_Opt%USE_O3_FROM_MET .and.
+     &        Input_Opt%USE_TOMS_O3 ) THEN
+            MSG = 'Must select either O3 from met or TOMS/SBUV O3'
+     &            // 'for O3 values above the chemistry grid!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+
+         ! Make sure specialty simulations select O3 from met or TOMS
+         IF ( Input_Opt%ITS_AN_AEROSOL_SIM  .or.
+     &        Input_Opt%ITS_A_CH3I_SIM      ) THEN
+            IF ( Input_Opt%USE_ONLINE_O3 ) THEN
+               MSG = 'Cannot use online O3 for specialty simulations! '
+     &               // 'Select O3 from met or TOMS O3 instead.'
+               CALL ERROR_STOP( MSG, LOCATION )
+            ENDIF
+         ENDIF
+
+      ELSE
+
+         Input_Opt%USE_ONLINE_O3   = .FALSE.
+         Input_Opt%USE_O3_FROM_MET = .FALSE.
+         Input_Opt%USE_TOMS_O3     = .FALSE.
+
+      ENDIF
+
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -2823,7 +2873,6 @@
       Input_Opt%LUCX          = LUCX
       Input_Opt%LCH4CHEM      = LCH4CHEM
       Input_Opt%LACTIVEH2O    = LACTIVEH2O
-      Input_Opt%LO3FJX        = LO3FJX
 
       ! Return success
       RC                      = GC_SUCCESS
@@ -2840,9 +2889,22 @@
          WRITE( 6, 100     ) 'Enable UCX?                 : ', LUCX
          WRITE( 6, 100     ) 'Online CH4 chemistry?       : ', LCH4CHEM
          WRITE( 6, 100     ) 'Online strat. H2O?          : ',LACTIVEH2O
-         WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ', LO3FJX
+         WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ',
+     &                        Input_Opt%USE_ONLINE_O3
+         WRITE( 6, 100     ) 'Ozone from met for FAST-JX? : ',
+     &                        Input_Opt%USE_O3_FROM_MET
+         WRITE( 6, 100     ) 'TOMS/SBUV ozone for FAST-JX?: ',
+     &                        Input_Opt%USE_TOMS_O3
          WRITE( 6, 110     ) 'GAMMA HO2                   : ',
      &                        Input_Opt%GAMMA_HO2
+         IF ( Input_Opt%USE_ONLINE_O3 ) THEN
+         WRITE( 6, '(  a)' ) ''
+         WRITE( 6, '(/,a)' ) 'NOTE ABOUT OVERHEAD O3 FOR FAST-JX:'
+         WRITE( 6, '(/,a)' ) ' Online O3 from GEOS-Chem will be used'
+         WRITE( 6, '(/,a)' ) ' to weight the O3 column within the'
+         WRITE( 6, '(/,a)' ) ' chemistry grid and O3 from met or TOMS'
+         WRITE( 6, '(/,a)' ) ' will be used outside the chemistry grid.'
+         ENDIF
       ENDIF
 
       ! FORMAT statements
@@ -4326,31 +4388,6 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:71' )
       READ( SUBSTRS(1), * ) ND73
       CALL SET_TINDEX( am_I_Root, 73, ND73, SUBSTRS(2:N), N-1, PD73 )
-
-#if defined( NC_DIAG )
-      !----------------------------------------------------------
-      ! NETCDF diagnostic output type (eventually read from file)
-      !----------------------------------------------------------
-      Input_Opt%TRANSPORT_OUTPUT_TYPE    = 'Mean'
-      Input_Opt%WETSCAV_OUTPUT_TYPE      = 'Mean'
-      Input_Opt%DRYDEP_OUTPUT_TYPE       = 'Mean'
-      Input_Opt%SPECIES_CONC_OUTPUT_TYPE  = 'Mean'
-      Input_Opt%SPECIES_EMIS_OUTPUT_TYPE  = 'Mean'
-      Input_Opt%MET_OUTPUT_TYPE          = 'Mean'
-
-      ! placeholders pending grouping of diagnostics
-      Input_Opt%ND01_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND02_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND12_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND14_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND15_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND16_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND17_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND18_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND19_OUTPUT_TYPE         = 'Mean'
-      Input_Opt%ND30_OUTPUT_TYPE         = 'Mean'
-
-#endif
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:71' )

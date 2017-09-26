@@ -216,8 +216,8 @@ CONTAINS
 ! !IROUTINE: Print_State_Diag
 !
 ! !DESCRIPTION: Print information about all the registered variables
-!  contained within the State_Diag object.  This is basically a wrapper for
-!  routine REGISTRY_PRINT in registry_mod.F90.
+!  contained within the State\_Diag object.  This is basically a wrapper for
+!  routine REGISTRY\_PRINT in registry\_mod.F90.
 !\\
 !\\
 ! !INTERFACE:
@@ -261,15 +261,18 @@ CONTAINS
     !=======================================================================
 
     ! Header line
-    PRINT*
-    PRINT*, 'Registered variables contained within the State_Diag object:'
-    PRINT*, REPEAT( '=', 79 )
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 10 )
+10     FORMAT( /, 'Registered variables contained within the ' // &
+              'State_Diag object:' )
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    ENDIF
 
     ! Print registry info in truncated format
-    CALL Registry_Print( am_I_Root   = am_I_Root,            &
-                         Registry    = State_Diag%Registry,  &
-                         ShortFormat = ShortFormat,          &
-                         RC          = RC                   )
+    CALL Registry_Print( am_I_Root   = am_I_Root,                            &
+                         Registry    = State_Diag%Registry,                  &
+                         ShortFormat = ShortFormat,                          &
+                         RC          = RC                                   )
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -288,17 +291,18 @@ CONTAINS
 ! !IROUTINE: Lookup_State_Diag
 !
 ! !DESCRIPTION: Return metadata and/or a pointer to the data for any
-!  variable contained within the State_Diag object by searching for its name.
-!  This is basically a wrapper for routine REGISTRY_LOOKUP in registry_mod.F90.
+!  variable contained within the State\_Diag object by searching for its name.
+!  This is basically a wrapper for routine REGISTRY\_LOOKUP in 
+!  registry\_mod.F90.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Lookup_State_Diag( am_I_Root,  State_Diag,  Variable,  & 
-                                RC,         Description, KindVal,   & 
-                                MemoryInKb, Rank,        Units,     &    
-                                Ptr2d_4,    Ptr3d_4,     Ptr2d_I,   &
-                                Ptr3d_I                            )
+  SUBROUTINE Lookup_State_Diag( am_I_Root,  State_Diag,   Variable,          & 
+                                RC,         Description,  Dimensions,        &
+                                KindVal,    MemoryInKb,   Rank,              & 
+                                Units,      OnLevelEdges, Ptr2d_4,           &
+                                Ptr3d_4,    Ptr2d_I,      Ptr3d_I           )
 !
 ! !USES:
 !
@@ -318,10 +322,14 @@ CONTAINS
 
     ! Optional outputs
     CHARACTER(LEN=255),  OPTIONAL :: Description     ! Description of data
+    INTEGER,             OPTIONAL :: Dimensions(3)   ! Dimensions of data
     INTEGER,             OPTIONAL :: KindVal         ! Numerical KIND value
     REAL(fp),            OPTIONAL :: MemoryInKb      ! Memory usage
     INTEGER,             OPTIONAL :: Rank            ! Size of data
     CHARACTER(LEN=255),  OPTIONAL :: Units           ! Units of data
+    LOGICAL,             OPTIONAL :: OnLevelEdges    ! =T if data is defined
+                                                     !    on level edges
+                                                     ! =F if on centers
 
     ! Pointers to data
     REAL(f4),   POINTER, OPTIONAL :: Ptr2d_4(:,:  )  ! 2D 4-byte data
@@ -354,25 +362,27 @@ CONTAINS
     !=======================================================================
     ! Look up a variable; Return metadata and/or a pointer to the data
     !=======================================================================
-    CALL Registry_Lookup( am_I_Root   = am_I_Root,            &
-                          Registry    = State_Diag%Registry,  &
-                          State       = State_Diag%State,     &
-                          Variable    = Variable,             &
-                          Description = Description,          &
-                          KindVal     = KindVal,              &
-                          MemoryInKb  = MemoryInKb,           &
-                          Rank        = Rank,                 &
-                          Units       = Units,                &
-                          Ptr2d_4     = Ptr2d_4,              &
-                          Ptr3d_4     = Ptr3d_4,              &
-                          Ptr2d_I     = Ptr2d_I,              &
-                          Ptr3d_I     = Ptr3d_I,              &
-                          RC          = RC                   )
+    CALL Registry_Lookup( am_I_Root    = am_I_Root,                          &
+                          Registry     = State_Diag%Registry,                &
+                          State        = State_Diag%State,                   &
+                          Variable     = Variable,                           &
+                          Description  = Description,                        &
+                          Dimensions   = Dimensions,                         &
+                          KindVal      = KindVal,                            &
+                          MemoryInKb   = MemoryInKb,                         &
+                          Rank         = Rank,                               &
+                          Units        = Units,                              &
+                          OnLevelEdges = OnLevelEdges,                       &
+                          Ptr2d_4      = Ptr2d_4,                            &
+                          Ptr3d_4      = Ptr3d_4,                            &
+                          Ptr2d_I      = Ptr2d_I,                            &
+                          Ptr3d_I      = Ptr3d_I,                            &
+                          RC           = RC                                 )
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not find variable ' // TRIM( Variable ) // &
-               ' in the State_Diag registry!'
+       ErrMsg = 'Could not find variable "' // TRIM( Variable ) // &
+               '" in the State_Diag registry!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF

@@ -465,13 +465,14 @@ else
   IS_NC_DIAG         :=0
 endif
 
-# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is %%%%%
-# %%%%% selected.  Now use a numeric test which is more robust.    %%%%%
-ifeq ($(IS_BPCH_DIAG),1)
-  ifeq ($(IS_NC_DIAG),1)
-    $(error $(ERR_DIAG))
-  endif
-endif 
+# Disable for testing (bmy, 7/14/17)
+## %%%%% ERROR CHECK!  Make sure only one diagnostic output type is %%%%%
+## %%%%% selected.  Now use a numeric test which is more robust.    %%%%%
+#ifeq ($(IS_BPCH_DIAG),1)
+#  ifeq ($(IS_NC_DIAG),1)
+#    $(error $(ERR_DIAG))
+#  endif
+#endif 
 
 #------------------------------------------------------------------------------
 # KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
@@ -1027,8 +1028,9 @@ ifeq ($(RRTMG_NEEDED),1)
 endif
 
 # Create linker command to create the GEOS-Chem executable
-LINK                 :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
-LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)
+LINK                 :=$(LINK) -lIsoropia -lHistory -lHCOI -lHCOX -lHCO 
+LINK                 :=$(LINK) -lGeosUtil -lKpp -lHeaders -lNcUtils 
+LINK                 :=$(LINK) $(NC_LINK_CMD)
 
 #----------------------------
 # For the HEMCO standalone

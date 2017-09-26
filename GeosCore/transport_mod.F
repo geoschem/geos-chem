@@ -275,8 +275,6 @@
       USE DAO_MOD,            ONLY : AIRQNT
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
-#elif defined( NC_DIAG )
-      USE DIAGNOSTICS_MOD,    ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD
@@ -362,14 +360,6 @@
       REAL(fp)           :: P_TEMP     (IIPAR,JJPAR      )
       REAL(fp),  TARGET  :: XMASS      (IIPAR,JJPAR,LLPAR) 
       REAL(fp),  TARGET  :: YMASS      (IIPAR,JJPAR,LLPAR) 
-#if defined( NC_DIAG )
-      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect)        
-      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect)
-      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect) 
-#endif
 
       ! Pointers
       REAL(fp),  POINTER :: p_UWND (:,:,:  )
@@ -396,13 +386,6 @@
       p_MFLEW     => NULL()
       p_MFLNS     => NULL()
       p_MFLUP     => NULL()
-
-#if defined( NC_DIAG )
-      ! Initialize netcdf diagnostic arrays
-      MASSFLEW_NC =  0.0e+0_fp
-      MASSFLNS_NC =  0.0e+0_fp
-      MASSFLUP_NC =  0.0e+0_fp
-#endif
 
       ! Dynamic timestep [s]
       N_DYN       =  GET_TS_DYN() * 60
@@ -478,11 +461,6 @@
       p_MFLEW   => MASSFLEW
       p_MFLNS   => MASSFLNS
       p_MFLUP   => MASSFLUP
-#elif defined( NC_DIAG )
-      ! Point to local arrays for netcdf
-      p_MFLEW   => MASSFLEW_NC
-      p_MFLNS   => MASSFLNS_NC
-      p_MFLUP   => MASSFLUP_NC
 #endif
 
       ! Do the advection
@@ -494,14 +472,6 @@
      &                   KORD,     N_ADJ,    p_XMASS,  p_YMASS, 
      &                   LFILL,    p_MFLEW,  p_MFLNS,  p_MFLUP,
      &                   A_M2,     ND24,     ND25,     ND26 )
-
-#if defined( NC_DIAG )
-      IF ( Input_Opt%ND24 > 0 ) THEN 
-         CALL DiagnUpdate_Transport_Flux( am_I_Root, 
-     &                                    p_MFLEW,   p_MFLNS,   p_MFLUP, 
-     &                                    Input_Opt, State_Chm, RC )
-      ENDIF
-#endif
 
       ! Free pointer memory
       p_UWND  => NULL()
@@ -561,8 +531,6 @@
       USE DAO_MOD,              ONLY : AIRQNT
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,             ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-#elif defined( NC_DIAG )
-      USE DIAGNOSTICS_MOD,      ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD
@@ -649,14 +617,6 @@
       REAL(fp),  TARGET  :: P_TEMP     (IIPAR,JJPAR      )
       REAL(fp),  TARGET  :: XMASS      (IIPAR,JJPAR,LLPAR)
       REAL(fp),  TARGET  :: YMASS      (IIPAR,JJPAR,LLPAR)
-#if defined( NC_DIAG )
-      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect)        
-      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect)
-      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect) 
-#endif
 
       ! Pointers
       REAL(fp),  POINTER :: p_A_M2  (  :    )
@@ -698,13 +658,6 @@
       p_MFLNS     => NULL()
       p_MFLUP     => NULL()
       p_Spc       => NULL()
-
-#if defined( NC_DIAG )
-      ! Initialize netcdf diagnostic arrays
-      MASSFLEW_NC =  0.0e+0_fp
-      MASSFLNS_NC =  0.0e+0_fp
-      MASSFLUP_NC =  0.0e+0_fp
-#endif
 
       ! Get nested-grid lon/lat offsets [# boxes]
       I0          =  GET_XOFFSET( GLOBAL=.TRUE. )
@@ -847,25 +800,6 @@
       ELSE
          p_MFLUP => MASSFLUP
       ENDIF
-
-#elif defined( NC_DIAG )
-      IF ( Input_Opt%ND24 > 0 ) THEN
-         p_MFLEW => MASSFLEW_NC(    I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1,  
-     &                              :,                         : )
-      ENDIF
-
-      IF ( Input_Opt%ND25 > 0 ) THEN
-         p_MFLNS => MASSFLNS_NC(    I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1,  
-     &                              :,                         : )
-      ENDIF
-
-      IF ( Input_Opt%ND26 > 0 ) THEN
-         p_MFLUP => MASSFLUP_NC(    I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1,  
-     &                              :,                         : )
-      ENDIF
 #endif
 
 
@@ -880,14 +814,6 @@
      &      KORD,    N_ADJ,    p_XMASS, p_YMASS, p_MFLEW, 
      &      p_MFLNS, p_MFLUP,  p_A_M2,  ND24,    ND25,    
      &      ND26                                          ) 
-
-#if defined( NC_DIAG )
-      IF ( Input_Opt%ND24 > 0 ) THEN 
-         CALL DiagnUpdate_Transport_Flux( am_I_Root, 
-     &                                    p_MFLEW,   p_MFLNS,   p_MFLUP, 
-     &                                    Input_Opt, State_Chm, RC )
-      ENDIF
-#endif
 
       ! Free pointer memory
       p_UWND   => NULL()  

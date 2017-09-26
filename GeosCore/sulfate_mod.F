@@ -1445,12 +1445,6 @@
       USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if defined( NC_DIAG )
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
-      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1544,14 +1538,6 @@
       REAL(fp)               :: EmMw_g
       REAL(f8)               :: RHO1,      WTP,    RHO
 
-#if defined( NC_DIAG )
-      ! for netcdf diagnostics (ND44 drydep flux)
-      INTEGER                :: spc_id, HCRC
-      CHARACTER(LEN=30)      :: DiagnName
-      REAL(fp), TARGET       :: DryDepFlux( IIPAR, JJPAR ) 
-      REAL(fp), POINTER      :: Ptr2D(:,:)
-#endif
-
       ! Arrays
       REAL(fp)               :: SALA_REDGE_um(2)
       REAL(fp)               :: SALC_REDGE_um(2)
@@ -1596,12 +1582,6 @@
       ! Set a logical to denote that the species is one of the dust 
       ! uptake species, i.e. SO4d{1-4}, NITd{1-4} (bmy, 3/17/17)
       IS_UPTAKE_SPC =  ( ( N /= id_SO4s ) .and. ( N /= id_NITs ) )
-
-#if defined( NC_DIAG )
-      ! Initialize diagnostic array (ND44)
-      DryDepFlux    =  0e+0_fp
-      Ptr2D         => NULL()
-#endif
 
       ! Drydep species index
       DryDep_Id     =  ThisSpc%DryDepId
@@ -1812,57 +1792,10 @@
             ! Store in global AD44 array for bpch diagnostic output
             AD44(I,J,DryDep_Id,1) = AD44(I,J,DryDep_Id,1) + FLUX
 #endif
-#if defined( NC_DIAG )
-            ! Store in local array for netcdf diagnostic
-            DryDepFlux(I,J) = FLUX
-#endif
          ENDIF
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
-
-#if defined( NC_DIAG )
-      !===============================================================
-      ! Update dry deposition flux diagnostic for netcdf output (ND44) 
-      !===============================================================
-      IF  ( Input_Opt%ND44 > 0 ) THEN
-       
-         ! Assume success
-         HCRC = HCO_SUCCESS
-         
-         ! Get species id
-         spc_id = N
-
-         ! If this tracer number NN is scheduled for output in input.geos, 
-         ! then archive the latest depvel data into the diagnostic structure
-         IF ( ANY( Input_Opt%TINDEX(44,:) == spc_id ) ) THEN
-
-           ! Define diagnostic name
-           DiagnName = 'DRYDEP_FLX_CHEM_' // 
-     &                 TRIM( State_Chm%SpcData(spc_id)%Info%Name )
-           
-           ! Point to the flux data
-           Ptr2D => DryDepFlux
-           
-           ! Update diagnostics container
-           CALL Diagn_Update( am_I_Root, HcoState, 
-     &                        cName   = TRIM( DiagnName),        
-     &                        Array2D = Ptr2D,                     
-     &                        COL     = Input_Opt%DIAG_COLLECTION, 
-     &                        RC      = HCRC                      )
-           
-           ! Free the pointer
-           Ptr2D => NULL()
-           
-           ! Stop with error if the diagnostics were unsuccessful
-           IF ( HCRC /= HCO_SUCCESS ) THEN
-              CALL ERROR_STOP( 'Cannot update drydep flux' //       
-     &                         ' diagnostic: ' // TRIM( DiagnName), 
-     &                         'GRAV_SETTLING (sulfate_mod.F)')
-           ENDIF
-         ENDIF
-      ENDIF
-#endif
 
       ! Free pointers
       ThisSpc => NULL()

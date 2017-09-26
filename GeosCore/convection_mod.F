@@ -113,13 +113,6 @@
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
-#if defined( NC_DIAG )
-      USE HCO_ERROR_MOD
-      USE HCO_INTERFACE_MOD
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-
-#endif
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
       USE State_Chm_Mod,      ONLY : Ind_
@@ -226,19 +219,6 @@
       ! Pointers
       REAL(fp), POINTER :: p_FSOL (:,:,:)
 
-#if defined ( NC_DIAG )
-      ! For netCDF diagnostics
-      INTEGER                :: ND, D, HCRC
-      CHARACTER(LEN=60)      :: DiagnName
-      REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
-      REAL(fp), POINTER      :: TMP3D(:,:,:)
-      REAL(fp), POINTER      :: TMP2D(:,:  )
-      REAL(fp)               :: DTIME
-
-      ! Objects
-      TYPE(Species), POINTER :: SpcInfo
-#endif
-
       !=================================================================
       ! DO_CONVECT begins here!
       !=================================================================
@@ -269,12 +249,12 @@
       ! write the diagnostics within the convection schemes but can
       ! simply take the difference between the original and updated 
       ! species field column.
-#if defined( NC_DIAG )
-      IF ( Input_Opt%ND38 > 0 ) THEN
-         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,State_Chm%nSpecies) )
-         BEFORE = State_Chm%Species
-      ENDIF
-#endif
+!#if defined( NC_DIAG )
+!      IF ( Input_Opt%ND38 > 0 ) THEN
+!         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,State_Chm%nSpecies) )
+!         BEFORE = State_Chm%Species
+!      ENDIF
+!#endif
 
       !=================================================================
       ! Call convection routines 
@@ -395,75 +375,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-#if defined( NC_DIAG )
-      !-----------------------------------------------------------------
-      ! NetCDF diagnostics (ND38)
-      ! Write out the column mass difference before and after 
-      ! convection.
-      ! Note: The ND38 diagnostics is defined as a 2D diagnostics
-      ! (--> diagnostics_mod.F90).
-      !-----------------------------------------------------------------
-      IF ( Input_Opt%ND38 > 0 ) THEN
-
-         ! Assume success
-         HCRC = HCO_SUCCESS
-
-         ! Time step
-         DTIME = GET_TS_DYN() * 60e+0_fp
-
-         ! Allocate temporary pointer
-         ALLOCATE(TMP3D(IIPAR,JJPAR,LLPAR), TMP2D(IIPAR,JJPAR) )
-        
-         ! Loop over the number of wet-depositing species
-         DO ND = 1, State_Chm%nWetDep
-
-            ! Get the species ID from the wetdep ID
-            D = State_Chm%Map_WetDep(ND)
-
-            ! Get information for this species from the species database
-            SpcInfo => State_Chm%SpcData(D)%Info
-
-            ! Is this a species selected for this diagnostics type?
-            IF ( ANY( Input_Opt%TINDEX(38,:) == D ) ) THEN
-
-               ! Loss rate [kg/kg total air per seconnd]
-               TMP3D = ( BEFORE(:,:,:,D) - 
-     &                 State_Chm%Species(:,:,:,D)) / DTIME 
-
-               ! Convert to [kg/s]
-               TMP3D = TMP3D * State_Met%DELP_DRY(:,:,:) * 
-     &                 G0_100 * AREA_M2
-
-               ! Sum over the column
-               TMP2D = SUM(TMP3D,DIM=3) 
-
-               ! Update diagnostics based on name
-               DiagnName = 'WETSCAV_CONVLOSS_' 
-     &                     // TRIM( SpcInfo%Name )
-
-               CALL Diagn_Update ( am_I_Root, HcoState, 
-     &                             cName   = TRIM( DiagnName ),
-     &                             Array2D = TMP2D,
-     &                             COL     = Input_Opt%DIAG_COLLECTION,
-     &                             PosOnly = .TRUE.,
-     &                             RC      = HCRC )
-               IF ( HCRC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP ( 'Error updating wetscav conv loss '
-     &               // 'diagnostic: ' // TRIM( DiagnName ), 
-     &               'DO_CONVECTION (convection_mod.F)' )
-               ENDIF
-            ENDIF
-
-            ! Free pointer
-            SpcInfo => NULL()
-
-         ENDDO
-
-         ! Cleanup
-         DEALLOCATE( BEFORE, TMP3D, TMP2D )
-      ENDIF
-#endif
 
 #if defined( USE_TEND )
       !=================================================================
