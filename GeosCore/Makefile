@@ -612,7 +612,7 @@ flexchem_mod.o              : flexchem_mod.F90                               \
                               diag_mod.o              diag_oh_mod.o          \
                               diag20_mod.o            dust_mod.o             \
                               fast_jx_mod.o           future_emissions_mod.o \
-                              tomas_mod.o
+                              strat_chem_mod.o        tomas_mod.o
 
 future_emissions_mod.o      : future_emissions_mod.F
 
