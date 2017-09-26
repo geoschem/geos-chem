@@ -3348,6 +3348,35 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:6' )
 
       !=================================================================
+      ! Error checks
+      !=================================================================
+
+      IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM ) THEN
+         IF ( LNLPBL .and. am_I_Root ) THEN
+
+            WRITE( 6,* ) 'It has been noted in GEOS-Chem v11-01 and'
+            WRITE( 6,* ) ' later that VDIFF (the non-local mixing'
+            WRITE( 6,* ) ' option) does not strictly conserve mass.'
+            WRITE( 6,* ) ' This will be more of a problem for long-'
+            WRITE( 6,* ) ' lived species like CH4 and CO2. Therefore,'
+            WRITE( 6,* ) ' if you are using the CH4 or CO2 specialty'
+            WRITE( 6,* ) ' simulations, we recommend to use the full'
+            WRITE( 6,* ) ' TURBDAY mixing by setting the non-local PBL'
+            WRITE( 6,* ) ' switch to F.'
+            WRITE( 6,* ) ''
+            WRITE( 6,* ) 'You may remove this trap at your own peril,'
+            WRITE( 6,* ) ' by commenting out the call to ERROR_STOP in'
+            WRITE( 6,* ) ' GeosCore/input_mod.F. '
+            WRITE( 6,* ) ''
+            WRITE( 6,* ) 'See this GEOS-Chem wiki page for details:'
+            WRITE( 6,* ) ' wiki.geos-chem.org/Boundary_layer_mixing'
+
+            CALL ERROR_STOP(MSG, 'READ_CONVECTION_MENU ("input_mod.f")')
+
+         ENDIF
+      ENDIF
+
+      !=================================================================
       ! Set fields of Input Options object
       !=================================================================
       Input_Opt%LCONV   = LCONV
