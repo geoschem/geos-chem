@@ -49,7 +49,7 @@
       USE State_Diag_Mod        ! Derived type for Diagnostics State object
       USE State_Met_Mod         ! Derived type for Meteorology State object
       USE TIME_MOD              ! For computing date & time 
-      USE UnitConv_Mod          ! For gas concentration unit conversion
+      USE UnitConv_Mod          ! For species conc unit conversions
 
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
@@ -1643,9 +1643,27 @@
 #endif
 
 #if defined( NC_DIAG )
+         ! Set species concentration diagnostic array using the 
+         ! the units stored in the State_Diag metadata for 'SpeciesConc'
+         CALL Set_SpcConc_Diagnostic( am_I_Root, 'SpeciesConc',  
+     &                                State_Diag%SpeciesConc, 
+     &                                Input_Opt, State_Met, State_Chm, 
+     &                                RC )
+
          !==============================================================
          !           ***** H I S T O R Y   U P D A T E  *****
          !==============================================================
+
+         ! For testing only. Need to set these in appropriate locations
+         ! throughout GEOS-Chem. See old NC_DIAG code for ND44 for where and 
+         ! what to set values to (ewl, 9/27/17)
+         IF ( ASSOCIATED(State_Diag%DryDepVel) ) THEN
+            State_Diag%DryDepVel(:,:,:,:) = 2.0
+         ENDIF
+         IF ( ASSOCIATED(State_Diag%DryDepFlux) ) THEN
+            State_Diag%DryDepFlux(:,:,:,:) = 3.0
+         ENDIF
+
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_Start( "History", RC )
 #endif

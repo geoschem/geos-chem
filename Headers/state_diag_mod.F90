@@ -137,7 +137,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Strings
-    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc, Desc, Units
+    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
     CHARACTER(LEN=255)     :: diagID
     INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc, nWetDep
     LOGICAL                :: EOF, Found
@@ -146,11 +146,8 @@ CONTAINS
     ! Initialize
     !=======================================================================
     RC      =  GC_SUCCESS
-    ErrMsg  = ''
     ThisLoc = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
-    Desc    = ''
-    Units   = ''
-    Found   = .False.
+    Found   = .FALSE.
 
     ! Number of species per category
     nSpecies = State_Chm%nSpecies
@@ -172,7 +169,7 @@ CONTAINS
     IF ( Found ) THEN
        PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
        ALLOCATE( State_Diag%SpeciesConc( IM, JM, LM, nSpecies ), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%' // TRIM(diagID), 0, RC )
+       CALL GC_CheckVar( 'State_Diag%SpeciesConc', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%SpeciesConc = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%SpeciesConc, &
@@ -187,7 +184,7 @@ CONTAINS
     IF ( Found ) THEN
        PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
        ALLOCATE( State_Diag%DryDepFlux( IM, JM, LM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%' // TRIM(diagID), 0, RC )
+       CALL GC_CheckVar( 'State_Diag%DryDepFlux', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepFlux = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepFlux, &
@@ -200,9 +197,9 @@ CONTAINS
     diagID = 'DryDepVel'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       PRINT *, 'Allocating ' // TRIM(diagID) // 'diagnostic'
+       PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
        ALLOCATE( State_Diag%DryDepVel( IM, JM, LM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%' // TRIM(diagID), 0, RC )
+       CALL GC_CheckVar( 'State_Diag%DryDepVel', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepVel = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepVel, &
@@ -311,9 +308,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Metadata_State_Diag( am_I_Root,  Name,  Desc,  Units, &
-                                      PerSpecies, Rank,  Type,  VLoc,  &
-                                      Found,      RC    )
+  SUBROUTINE Get_Metadata_State_Diag( am_I_Root, Name,   Found,      RC,   &
+                                      Desc,      Units,  PerSpecies, Rank, &
+                                      Type,      VLoc )
 !
 ! !USES:
 !
@@ -322,18 +319,18 @@ CONTAINS
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,             INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
-    CHARACTER(LEN=*),    INTENT(IN)  :: Name       ! Sate_Met field name
+    CHARACTER(LEN=*),    INTENT(IN)  :: Name       ! State_Diag field name
 !
 ! !OUTPUT PARAMETERS:
 !
-    CHARACTER(LEN=255),  OPTIONAL    :: Desc       ! Long name string
-    CHARACTER(LEN=255),  OPTIONAL    :: Units      ! Units string
-    CHARACTER(LEN=255),  OPTIONAL    :: PerSpecies ! Max species wildcard
-    INTEGER,             OPTIONAL    :: Rank       ! # of dimensions
-    INTEGER,             OPTIONAL    :: Type       ! Desc of data type
-    INTEGER,             OPTIONAL    :: VLoc       ! Vertical placement
-    LOGICAL,             OPTIONAL    :: Found      ! Item found?
-    INTEGER,             OPTIONAL    :: RC         ! Return code
+    LOGICAL,             INTENT(OUT)           :: Found      ! Item found?
+    INTEGER,             INTENT(OUT)           :: RC         ! Return code
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Desc       ! Long name string
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Units      ! Units string
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: PerSpecies ! Max spc wildcard
+    INTEGER,             INTENT(OUT), OPTIONAL :: Rank       ! # of dimensions
+    INTEGER,             INTENT(OUT), OPTIONAL :: Type       ! Desc of data type
+    INTEGER,             INTENT(OUT), OPTIONAL :: VLoc       ! Vert placement
 !
 ! !REMARKS:
 !
@@ -355,7 +352,7 @@ CONTAINS
     ! Assume success
     RC    =  GC_SUCCESS
     ThisLoc = ' -> at Get_Metadata_State_Diag (in Headers/state_diag_mod.F90)'
-    Found = .True.
+    Found = .TRUE.
 
     ! Optional arguments present?
     isDesc    = PRESENT( Desc  )
@@ -373,7 +370,7 @@ CONTAINS
     IF ( isRank  ) Rank  = -1              ! Initialize # dims as bad value 
     IF ( isType  ) Type  = KINDVAL_F4      ! Assume real*4 for diagnostics
     IF ( isVLoc  ) VLoc  = VLocationCenter ! Assume vertically centered
-    IF ( isSpecies ) PerSpecies = ''         ! Assume not species-dependent
+    IF ( isSpecies ) PerSpecies = ''       ! Assume not per species
 
     ! Convert name to uppercase
     Name_AllCaps = To_Uppercase( TRIM( Name ) )
@@ -404,15 +401,11 @@ CONTAINS
        CASE DEFAULT
           ! Need to add better error handling
           Found = .False.
-          PRINT *, 'WARNING: Metadata not found for State_Diag field: ' // TRIM( Name )
+          PRINT *, 'WARNING: Metadata not found for State_Diag field: ' &
+                   // TRIM( Name )
           RETURN
 
     END SELECT
-
-    ! Set VLoc to undefined if variable is 2d
-    IF ( isVLoc .AND. Rank == 2 ) THEN
-       VLoc = VLocationNone
-    ENDIF
 
    END SUBROUTINE Get_Metadata_State_Diag
 !EOC
@@ -472,10 +465,10 @@ CONTAINS
     ThisLoc        = ' -> at Register_DiagField_R4_2D ' // &
                      '(in Headers/state_diag_mod.F90)'
 
-    CALL Get_Metadata_State_Diag( am_I_Root,   Name,           desc=desc,   &
-                                  units=units, rank=rank,      type=type,   &
-                                  vloc=vloc,   perSpecies=perSpecies,       &
-                                  Found=Found, RC=RC     )
+    CALL Get_Metadata_State_Diag( am_I_Root,   Name,        Found,  RC,   &
+                                  desc=desc,   units=units, rank=rank,    &
+                                  type=type,   vloc=vloc,                 &
+                                  perSpecies=perSpecies                 )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in Get_DiagField_Metadata'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -677,10 +670,10 @@ CONTAINS
     ThisLoc        = ' -> at Register_DiagField_R4_3D ' // &
                      '(in Headers/state_diag_mod.F90)'
 
-    CALL Get_Metadata_State_Diag( am_I_Root,   Name,           desc=desc,   &
-                                  units=units, rank=rank,      type=type,   &
-                                  vloc=vloc,   perSpecies=perSpecies,       &
-                                  Found=Found, RC=RC     )
+    CALL Get_Metadata_State_Diag( am_I_Root,   Name,        Found,  RC,   &
+                                  desc=desc,   units=units, rank=rank,    &
+                                  type=type,   vloc=vloc,                 &
+                                  perSpecies=perSpecies                 )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in Get_DiagField_Metadata'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -881,10 +874,10 @@ CONTAINS
     ThisLoc        = ' -> at Register_DiagField_R4_4D ' // &
                      '(in Headers/state_diag_mod.F90)'
 
-    CALL Get_Metadata_State_Diag( am_I_Root,   Name,           desc=desc,   &
-                                  units=units, rank=rank,      type=type,   &
-                                  vloc=vloc,   perSpecies=perSpecies,       &
-                                  Found=Found, RC=RC     )
+    CALL Get_Metadata_State_Diag( am_I_Root,   Name,        Found,  RC,   &
+                                  desc=desc,   units=units, rank=rank,    &
+                                  type=type,   vloc=vloc,                 &
+                                  perSpecies=perSpecies                 )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in Get_DiagField_Metadata'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
