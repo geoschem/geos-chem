@@ -80,6 +80,12 @@
       INTEGER, PUBLIC :: RXN_NO3   = -1
       INTEGER, PUBLIC :: RXN_N2O   = -1
 
+      ! Species ID flags
+      INTEGER :: id_CH2IBr, id_IBr,  id_CH2ICl, id_ICl,   id_I2
+      INTEGER :: id_HOI,    id_IO,   id_OIO,    id_INO,   id_IONO
+      INTEGER :: id_IONO2,  id_I2O2, id_CH3I,   id_CH2I2, id_I2O4
+      INTEGER :: id_I2O3
+
       CONTAINS      
 !EOC
 !------------------------------------------------------------------------------
@@ -1650,6 +1656,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1664,6 +1671,8 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
 !  05 Mar 2014 - R. Yantosca - Use correct filenames for use w/ ESMF
+!  27 Sep 2017 - M. Sulprizio- Define species IDs for ND22 diagnostic
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1674,7 +1683,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       CHARACTER(LEN=255)          :: FILENAME
       INTEGER                     :: NJXX
       CHARACTER*6,DIMENSION(JVN_) :: TITLEJXX
-      REAL(fp)                      :: ND64MULT
+      REAL(fp)                    :: ND64MULT
 
       !=================================================================
       ! INIT_FJX begins here!
@@ -1683,16 +1692,31 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Assume success
       RC = GC_SUCCESS
 
+      ! Define species IDs
+      id_CH2IBr   = IND_('CH2IBr'  )
+      id_IBr      = IND_('IBr'     )
+      id_CH2ICl   = IND_('CH2ICl'  )
+      id_ICl      = IND_('ICl'     )
+      id_I2       = IND_('I2'      )
+      id_HOI      = IND_('HOI'     )
+      id_IO       = IND_('IO'      )
+      id_OIO      = IND_('OIO'     )
+      id_INO      = IND_('INO'     )
+      id_IONO     = IND_('IONO'    )
+      id_IONO2    = IND_('IONO2'   )
+      id_I2O2     = IND_('I2O2'    )
+      id_CH3I     = IND_('CH3i'    )
+      id_CH2I2    = IND_('CH2I2'   )
+      id_I2O4     = IND_('I2O4'    )
+      id_I2O3     = IND_('I2O3'    )
+
       IF ( am_I_Root) THEN
          write(6,*) ' Initializing Fast-JX v7.0 standalone CTM code.'
 
          if (W_.ne.8 .and. W_.ne.12 .and. W_.ne.18) then
            call EXITC(' INIT_FJX: invalid no. wavelengths')
          endif
-      ENDIF
-
-      ! Set shared variable according to input argument
-      
+      ENDIF      
 
       ! Get a free LUN
       JXUNIT = findFreeLUN()
@@ -2992,6 +3016,9 @@ C-----------------------------------------------------------------------
       ! AD64 diagnostics
       REAL(fp), DIMENSION(JXL1_) :: FDIRECT, FDIFFUSE
 
+      ! Logical flags
+      LOGICAL :: IS_HALOGENS
+
       !Maps the new LUT optics wavelengths on to 
       !the 5 jv_spec_mie.dat wavelengths
       ! N.B. currently 200nm and 300nm data is the same in
@@ -3006,6 +3033,16 @@ C-----------------------------------------------------------------------
       if (LLPAR+1 .gt. JXL1_) then
         call EXITC(' PHOTO_JX: not enough levels in JX')
       endif
+
+      ! Define logical flags for ND22
+      IS_HALOGENS = ( id_CH2IBr > 0 .and. id_IBr   > 0 .and.
+     &                id_CH2ICl > 0 .and. id_ICl   > 0 .and.
+     &                id_I2     > 0 .and. id_HOI   > 0 .and.
+     &                id_IO     > 0 .and. id_OIO   > 0 .and.
+     &                id_INO    > 0 .and. id_IONO  > 0 .and.
+     &                id_IONO2  > 0 .and. id_I2O2  > 0 .and.
+     &                id_CH3I   > 0 .and. id_CH2I2 > 0 .and.
+     &                id_I2O4   > 0 .and. id_I2O3  > 0 )
 
       ! Copy cloud OD data to a variable array
       DO L=1,L_
@@ -3415,6 +3452,7 @@ C-----------------------------------------------------------------------
                AD22(ILON,ILAT,L,37) = AD22(ILON,ILAT,L,37) +  ! JHONIT
      &                                ZPJ(L,114,ILON,ILAT)
                ! lei, 05/15/17 - added new halogen species below 
+               IF ( IS_HALOGENS ) THEN
                AD22(ILON,ILAT,L,38) = AD22(ILON,ILAT,L,38) +  ! JCH3Br
      &                                ZPJ(L,50,ILON,ILAT)
                AD22(ILON,ILAT,L,39) = AD22(ILON,ILAT,L,39) +  ! JBrCl
@@ -3494,6 +3532,7 @@ C-----------------------------------------------------------------------
      &                                ZPJ(L,53,ILON,ILAT)
                AD22(ILON,ILAT,L,76) = AD22(ILON,ILAT,L,76) +  ! JH2402
      &                                ZPJ(L,54,ILON,ILAT)
+               ENDIF ! IS_HALOGENS
             ENDDO
 
          ENDIF
