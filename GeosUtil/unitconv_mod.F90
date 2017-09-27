@@ -35,7 +35,9 @@ MODULE UnitConv_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Convert_Spc_Units
+#if defined( NC_DIAG )
   PUBLIC :: Set_SpcConc_Diagnostic
+#endif
 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ! KG/KG DRY <-> V/V DRY
@@ -289,6 +291,7 @@ CONTAINS
 
   END SUBROUTINE Convert_Spc_Units
 !EOC
+#if defined( NC_DIAG )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -405,6 +408,7 @@ CONTAINS
 
   END SUBROUTINE Set_SpcConc_Diagnostic
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

@@ -161,6 +161,7 @@ CONTAINS
     State_Diag%DryDepFlux  => NULL()
     State_Diag%DryDepVel   => NULL()
 
+#if defined( NC_DIAG )
     !--------------------------------------------
     ! Species Concentration [v/v dry] 
     !--------------------------------------------
@@ -218,6 +219,7 @@ CONTAINS
                          Registry    = State_Diag%Registry,  &
                          ShortFormat = .TRUE.,               &
                          RC          = RC                      )
+#endif
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
