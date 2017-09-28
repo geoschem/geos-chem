@@ -470,22 +470,6 @@ CONTAINS
     ! LMAX: the highest L-level to look for lightnox (usually LLPAR-1)
     LMAX   = HcoState%NZ - 1
 
-#if defined( GEOS_5 ) 
-    ! Get scaling factor to match annual average global flash rate
-    ! (ltm, 09/24/07)
-    ! Because of different convection in GEOS 5.1.0 and GEOS 5.2.0,
-    ! this value is different before and after Sept 1, 2008. 
-    ! So reset value at start of each month, just in case it's
-    ! a 2008 simulation. (ltm,1/26/11)
-    ! Added option to prescribe OTD_LIS_SCALE in configuration file. 
-    ! In this case, never call GET_OTD_LIS_SCALE but always use the 
-    ! prescribed value. (ckeller,1/13/15)
-    IF ( .NOT. Inst%OTD_LIS_PRESC ) THEN
-       CALL GET_OTD_LIS_SCALE( am_I_Root, HcoState, Inst%OTD_LIS_SCALE, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-#endif
-
     ! Get current month (to be passed to LIGHTDIST)
     CALL HcoClock_Get( am_I_Root, HcoState%Clock, cMM=cMt, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1721,10 +1705,10 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Dec 2016. Will need to be updated as more
-    ! met fields become available (ltm, 2017-09-24).
-    IF ( ( cYr .eq. 2016 .and. cMt .le. 12 ) .or. cYr .le. 2015 ) THEN
-       BETA = ANN_AVG_FLASHRATE / 1047.3624d0
+    ! April 2012 - Jul 2017. Will need to be updated as more
+    ! met fields become available (ltm, 2017-09-28).
+    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
+       BETA = ANN_AVG_FLASHRATE / 1030.6438d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_EU )
@@ -1734,10 +1718,10 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Dec 2016. Will need to be updated as more
-    ! met fields become available (ltm, 2017-09-24).
-    IF ( ( cYr .eq. 2016 .and. cMt .le. 12 ) .or. cYr .le. 2015 ) THEN
-       BETA = ANN_AVG_FLASHRATE / 95.052246d0
+    ! April 2012 - Jul 2017. Will need to be updated as more
+    ! met fields become available (ltm, 2017-09-28).
+    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
+       BETA = ANN_AVG_FLASHRATE / 90.403359d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA )
@@ -1747,10 +1731,10 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Dec 2016. Will need to be updated as more
-    ! met fields become available (ltm, 2017-09-24).
-    IF ( ( cYr .eq. 2016 .and. cMt .le. 12 ) .or. cYr .le. 2015 ) THEN
-       BETA = ANN_AVG_FLASHRATE / 782.12690d0
+    ! April 2012 - Jan 2017. Will need to be updated as more
+    ! met fields become available (ltm, 2017-09-28).
+    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN    
+       BETA = ANN_AVG_FLASHRATE / 770.29078d0
     ENDIF
 
 #elif defined( MERRA2 ) && defined( GRID4x5 )
@@ -1773,7 +1757,7 @@ CONTAINS
     ! Constrained with simulated "climatology" for
     ! full LIS/OTD observational period (May 1995-Dec 2014). 
     ! Does not need to be updated (ltm, 2017-09-24).
-    BETA = ANN_AVG_FLASHRATE / 322.82965d0
+    BETA = ANN_AVG_FLASHRATE / 322.83040d0
 
 #elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_AS )
     
@@ -1782,9 +1766,9 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! Jan 2005 - Dec 2014. Will be updated soon to cover
-    ! full opservational period (May 1995-Dec 2014) (ltm, 2017-09-24)
-    BETA = ANN_AVG_FLASHRATE / 1176.2180d0
+    ! full LIS/OTD observational period (May 1995-Dec 2014). 
+    ! Does not need to be updated (ltm, 2017-09-28).
+    BETA = ANN_AVG_FLASHRATE / 1177.4952d0
     
 #elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_EU )
 
@@ -1804,9 +1788,9 @@ CONTAINS
     !------------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! Jan 2005 - Dec 2014. Will be updated soon to cover
-    ! full opservational period (May 1995-Dec 2014) (ltm, 2017-09-24)
-    BETA = ANN_AVG_FLASHRATE / 311.18263d0
+    ! full LIS/OTD observational period (May 1995-Dec 2014). 
+    ! Does not need to be updated (ltm, 2017-09-28).
+    BETA = ANN_AVG_FLASHRATE / 305.06467d0
     
 #endif
 
@@ -1841,8 +1825,10 @@ CONTAINS
        WRITE( *,* ) ''
        WRITE( *,* ) 'However, if you disable the error trap, be aware that'
        WRITE( *,* ) 'the magnitude and distribution of lightning NOx may'
-       WRITE( *,* ) 'be wildly unrealistic. You should always check to make'
-       WRITE( *,* ) 'sure that you have approximately 6 Tg N a-1 globally.'
+       WRITE( *,* ) 'be wildly unrealistic. This is especially possible for the'
+       WRITE( *,* ) 'regional simulations, especially GEOS-FP.'
+       WRITE( *,* ) 'You should always check to make sure that you have'
+       WRITE( *,* ) '~6 Tg N a-1 globally, or typical regional values.'
        
        CALL HCO_ERROR( HcoState%Config%Err, 'No beta - see information in standard output', RC )
        RETURN
