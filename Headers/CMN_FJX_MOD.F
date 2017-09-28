@@ -41,7 +41,7 @@
 
       INTEGER            :: JVL_           ! Vertical levels for J-values
 
-      INTEGER, PARAMETER :: JVN_ = 121     ! Max number of J-values
+      INTEGER, PARAMETER :: JVN_ = 130     ! Max number of J-values
 
 #if defined( UCX )
       INTEGER, PARAMETER :: AN_  = 37      ! Including PSCs
