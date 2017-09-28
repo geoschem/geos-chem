@@ -137,7 +137,6 @@ CONTAINS
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
-    USE UnitConv_Mod
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
 !
 ! !INPUT PARAMETERS:
@@ -165,6 +164,7 @@ CONTAINS
 !                              species ID from State_Chm%Map_Advect.
 !  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  28 Sep 2017 - E. Lundgren - Move unit conversions to individual routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -180,15 +180,6 @@ CONTAINS
 
     ! Assume success
     RC = GC_SUCCESS
-
-    ! Convert [kg/kg dry air] to [v/v dry air] for mixing (ewl, 8/12/15)
-     CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC )  
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, &
-                     'DO_MIXING in mixing_mod.F')
-       RETURN
-    ENDIF  
 
     ! ------------------------------------------------------------------
     ! Do non-local PBL mixing. This will apply the species tendencies
@@ -230,15 +221,6 @@ CONTAINS
                         State_Met, State_Chm,       RC )
     ENDIF
 
-    ! Convert species conc back to [kg/kg dry air] after mixing (ewl, 8/12/15)
-    CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root, State_Chm, RC )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, &
-                     'DO_MIXING in mixing_mod.F')
-       RETURN
-    ENDIF  
-
   END SUBROUTINE DO_MIXING 
 !EOC
 !------------------------------------------------------------------------------
@@ -275,7 +257,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
     USE State_Chm_Mod,      ONLY : Ind_
-    USE UnitConv_Mod
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 #if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
 #endif
@@ -325,6 +307,8 @@ CONTAINS
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !  12 Apr 2017 - C. Keller   - Bug fix: now allow negative emission fluxes
+!  27 Sep 2017 - E. Lundgren - Apply unit conversion within routine instead
+!                              of in do_mixing
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -341,6 +325,8 @@ CONTAINS
     LOGICAL                 :: PBL_DRYDEP, LSCHEM, ChemGridOnly
     LOGICAL                 :: LEMIS,      LDRYD
     LOGICAL                 :: DryDepSpec, EmisSpec
+    CHARACTER(LEN=63)       :: OrigUnit
+    CHARACTER(LEN=255)      :: MSG
 
     ! PARANOX loss fluxes (kg/m2/s). These are obtained from the 
     ! HEMCO PARANOX extension via the diagnostics module.
@@ -383,9 +369,13 @@ CONTAINS
     ! v/v for mixing, hence needed to convert before and after.
     ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to 
     ! remove area-dependency (ewl, 9/30/15)
-    ! v/v --> kg/m2
-    CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root,            State_Chm, RC )
-    CALL ConvertSpc_KgKgDry_to_Kgm2 ( am_I_Root, State_Met, State_Chm, RC )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                            'kg/m2', RC, OrigUnit=OrigUnit )
+    IF ( RC /= GC_SUCCESS ) THEN
+       MSG = 'Unit conversion error!'
+       CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
+       RETURN
+    ENDIF 
 
     ! Get time step [s]
     IF ( PRESENT(DT) ) THEN
@@ -722,9 +712,14 @@ CONTAINS
                         State_Chm, 'FLUX', TS, RC )
 #endif
 
-    ! Convert State_Chm%SPECIES back: kg/m2 --> v/v (ewl, 9/30/15)
-    CALL ConvertSpc_Kgm2_to_KgKgDry ( am_I_Root, State_Met, State_Chm, RC )
-    CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root,            State_Chm, RC )
+    ! Convert State_Chm%species back to original units
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                            OrigUnit, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       MSG = 'Unit conversion error!'
+       CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
+       RETURN
+    ENDIF  
 
   END SUBROUTINE DO_TEND 
 !EOC

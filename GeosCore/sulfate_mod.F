@@ -336,7 +336,7 @@
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
@@ -404,6 +404,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -424,6 +425,7 @@
       LOGICAL                  :: prtDebug
       INTEGER                  :: I, J, L, N, MONTH
       REAL(fp)                 :: DTCHEM
+      CHARACTER(LEN=63)        :: OrigUnit
 
       ! Strings
       CHARACTER(LEN=255)       :: LOC = 'CHEMSULFATE (sulfate_mod.F)'
@@ -630,13 +632,13 @@
       ENDIF
 #endif
 
-
-      ! Convert species from [kg] -> [v/v dry]
-      CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, 
-     &                             State_Chm, RC         )
+      ! Convert species to [v/v dry]
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'v/v dry', RC, 
+     &                        OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
-     &                 'CHEM_SULFATE in sulfate_mod.F')
+     &                 'Start of CHEM_SULFATE in sulfate_mod.F')
          RETURN
       ENDIF
       IF ( prtDebug ) THEN
@@ -704,12 +706,12 @@
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
       ENDIF
 
-      ! Convert species from [v/v dry] -> [kg]
-      CALL ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met, 
-     &                             State_Chm, RC         )
+      ! Convert species units back to original unit 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
-     &                 'CHEM_SULFATE in sulfate_mod.F')
+     &                 'End of CHEM_SULFATE in sulfate_mod.F')
          RETURN
       ENDIF
 
@@ -737,7 +739,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE EMISSSULFATETOMAS( am_I_Root, Input_Opt,
-     &                         State_Met, State_Chm, RC )
+     &                              State_Met, State_Chm, RC )
 
 ! !USES:
       USE CMN_DIAG_MOD
@@ -750,7 +752,7 @@
       USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG
       USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
       USE TOMAS_MOD,          ONLY : SRTNH4
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
@@ -772,6 +774,7 @@
       INTEGER          :: TID, I, J, L
       INTEGER          :: ii=53, jj=29, ll=1
       REAL(fp)         :: NH4_CONC
+      CHARACTER(LEN=63):: OrigUnit
 
       ! SAVEd scalars
       LOGICAL, SAVE    :: FIRST = .TRUE.
@@ -795,14 +798,13 @@
          FIRST  = .FALSE.
       ENDIF
 
-      ! Convert species from [kg/kg dry air] to [kg] for TOMAS.
-      ! This will be removed once TOMAS uses mixing ratio instead of mass 
-      ! as tracer units (ewl, 9/11/15)
-      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
-     &                               State_Chm, RC         ) 
+      ! Convert species to [kg] for TOMAS. This will be removed once 
+      ! TOMAS uses mixing ratio instead of mass as tracer units (ewl, 9/11/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
-     &                 'Routine EMISSSULFATETOMAS in sulfate_mod.F')
+     &                 'Start of EMISSSULFATETOMAS in sulfate_mod.F')
          RETURN
       ENDIF 
       
@@ -857,12 +859,12 @@
       ! Free pointer
       NULLIFY( Spc )
 
-      ! Convert species back to kg (ewl, 9/11/15)
-      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
-     &                               State_Chm, RC         ) 
+      ! Convert species back to original units (ewl, 9/11/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
-     &                 'Routine EMISSSULFATETOMAS in sulfate_mod.F')
+     &                 'End of EMISSSULFATETOMAS in sulfate_mod.F')
          RETURN
       ENDIF  
 
@@ -5828,7 +5830,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
@@ -5860,6 +5862,7 @@
 !                              and RC arguments
 !  31 May 2013 - R. Yantosca - Now pass State_Chm to TOMAS routines
 !  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD conversion routine
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5870,6 +5873,7 @@
       integer           :: k, binact1, binact2
       INTEGER           :: KMIN
       REAL(fp)          :: SO4OXID
+      CHARACTER(LEN=63) :: OrigUnit
 
       !=================================================================
       ! CHEM_SO4_AQ begins here!
@@ -5878,11 +5882,12 @@
       ! Assume success
       RC  = GC_SUCCESS
 
-      ! Convert species from [v/v] -> [kg] 
-      CALL ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met, State_Chm, RC ) 
+      ! Convert species from to [kg]
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
-     &                 'CHEM_SO4_AQ in sulfate_mod.F')
+     &                 'Start of CHEM_SO4_AQ in sulfate_mod.F')
          RETURN
       ENDIF
 
@@ -5939,11 +5944,12 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-       ! Convert species from [kg] -> [v/v] 
-      CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, State_Chm, RC ) 
+       ! Convert species back to original units
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
-     &                 'CHEM_SO4_AQ in sulfate_mod.F')
+     &                 'End of CHEM_SO4_AQ in sulfate_mod.F')
          RETURN
       ENDIF
       

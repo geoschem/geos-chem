@@ -99,7 +99,7 @@ CONTAINS
     USE TIME_MOD,             ONLY : GET_TS_CHEM
     USE TIME_MOD,             ONLY : GET_MONTH
     USE TIME_MOD,             ONLY : GET_YEAR
-    USE UnitConv_Mod
+    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
 #if defined( UCX )
     USE UCX_MOD,              ONLY : CALC_STRAT_AER
     USE UCX_MOD,              ONLY : SO4_PHOTFRAC
@@ -161,6 +161,7 @@ CONTAINS
 !                              ESMF environment.
 !  30 May 2017 - M. Sulprizio- Add code for stratospheric chemical tendency
 !                              for computing STE in strat_chem_mod.F90
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,6 +175,7 @@ CONTAINS
     LOGICAL                :: prtDebug
     LOGICAL                :: LDUST
     CHARACTER(LEN=155)     :: DiagnName
+    CHARACTER(LEN=63)      :: OrigUnit
 
     ! SAVEd variables
     LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
@@ -411,9 +413,15 @@ CONTAINS
 #endif
 
     !================================================================
-    ! Convert species from [kg] to [molec/cm3] (ewl, 8/16/16)
+    ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !================================================================
-    CALL ConvertSpc_Kg_to_MND( am_I_Root, State_Met, State_Chm, RC )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, & 
+                            State_Chm, 'MND', RC, OrigUnit=OrigUnit )
+    IF ( RC /= GC_SUCCESS ) THEN
+       Err_Msg = 'Unit conversion error!'
+       CALL GC_Error( Err_Msg, RC, 'flexchem_mod.F90')
+       RETURN
+    ENDIF 
       
     !=================================================================
     ! Call photolysis routine to compute J-Values
@@ -960,9 +968,15 @@ CONTAINS
     ENDIF
 
     !================================================================
-    ! Convert species from [molec/cm3] to [kg] (ewl, 8/16/16)
+    ! Convert species back to original units (ewl, 8/16/16)
     !================================================================
-    CALL ConvertSpc_MND_to_Kg( am_I_Root, State_Met, State_Chm, RC )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       Err_Msg = 'Unit conversion error!'
+       CALL GC_Error( Err_Msg, RC, 'flexchem_mod.F90' )
+       RETURN
+    ENDIF  
 
 #if defined( UCX )
     ! If using stratospheric chemistry, applying high-altitude
