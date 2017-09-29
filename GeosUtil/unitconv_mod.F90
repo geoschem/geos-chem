@@ -215,7 +215,7 @@ CONTAINS
              CASE ( 'kg/m2' )
                 CALL ConvertSpc_KgKgDry_to_Kgm2( am_I_Root, State_Met, &
                                                  State_Chm, RC ) 
-             CASE ( 'MND' )
+             CASE ( 'molec/cm3' )
                 CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met, &
                                                  State_Chm, RC ) 
              CASE DEFAULT
@@ -251,7 +251,7 @@ CONTAINS
              CASE ( 'v/v dry' )
                 CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, &
                                              State_Chm, RC ) 
-             CASE ( 'MND' )
+             CASE ( 'molec/cm3' )
                 CALL ConvertSpc_Kg_to_MND( am_I_Root, State_Met, &
                                            State_Chm, RC ) 
              CASE DEFAULT
@@ -277,7 +277,7 @@ CONTAINS
        !====================================================================
        ! Convert from molecular number density (MND)
        !====================================================================
-       CASE ( 'MND' )
+       CASE ( 'molec/cm3' )
           SELECT CASE ( TRIM(OutUnit) )
              CASE ( 'kg' )
                 CALL ConvertSpc_MND_to_Kg( am_I_Root, State_Met, &
@@ -396,7 +396,7 @@ CONTAINS
        IF ( TRIM(Units) == 'mol mol-1 dry' ) Units = 'v/v dry'
        IF ( TRIM(Units) == 'kg kg-1 dry'   ) Units = 'kg/kg dry'
        IF ( TRIM(Units) == 'kg m-2'        ) Units = 'kg/m2'
-       IF ( TRIM(Units) == 'molec cm-3'    ) Units = 'MND'
+       IF ( TRIM(Units) == 'molec cm-3'    ) Units = 'molec/cm3'
        
        ! Convert State_Chm%Species unit to diagnostic unitx
        CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &

@@ -788,7 +788,7 @@
          PRINT *, " "
          PRINT *, "Species min and max in molec/cm3"
          CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                           State_Chm, 'MND', RC, 
+     &                           State_Chm, 'molec/cm3', RC, 
      &                           OrigUnit=OrigUnit )
          DO N = 1, State_Chm%nSpecies
             SpcInfo => State_Chm%SpcData(N)%Info
@@ -1212,7 +1212,7 @@
  210     FORMAT( /, 'Min and Max of each species before unit ',
      &              'conversion [molec/cm3]:' )
          CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                           State_Chm, 'MND', RC, 
+     &                           State_Chm, 'molec/cm3', RC, 
      &                           OrigUnit=OrigUnit )
          DO N = 1, State_Chm%nSpecies
             SpcInfo => State_Chm%SpcData(N)%Info
@@ -1695,7 +1695,7 @@
          
          ! Convert species to molec/cm3 for next prints
          CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                           State_Chm, 'MND', RC )
+     &                           State_Chm, 'molec/cm3', RC )
          
          ! Print header for min/max of all species in  [molec/cm3]
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )      

@@ -416,7 +416,7 @@ CONTAINS
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !================================================================
     CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, & 
-                            State_Chm, 'MND', RC, OrigUnit=OrigUnit )
+                            State_Chm, 'molec/cm3', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        Err_Msg = 'Unit conversion error!'
        CALL GC_Error( Err_Msg, RC, 'flexchem_mod.F90')
