@@ -222,7 +222,7 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-    USE UnitConv_Mod
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -278,6 +278,7 @@ CONTAINS
 !  18 Jul 2016 - M. Yannetti - Replaced TCVV with spec db and phys constant
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  19 Oct 2016 - R. Yantosca - Add routine Set_Init_Conc_Strat_Chem for GCHP
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -307,6 +308,7 @@ CONTAINS
     LOGICAL           :: LBRGCCM
     LOGICAL           :: LRESET, LCYCLE
     LOGICAL           :: ISBR2 
+    CHARACTER(LEN=63) :: OrigUnit
 
     ! Arrays
     REAL(fp)          :: Spc0  (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
@@ -716,10 +718,10 @@ CONTAINS
 
        IF ( LLINOZ .OR. LSYNOZ ) THEN
 
-          ! Convert units from [kg] to [v/v dry air] for Linoz and Synoz
-          ! (ewl, 10/05/15)
-          CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, &
-                                       State_Chm, errCode      )
+          ! Convert units to [v/v dry air] for Linoz and Synoz (ewl, 10/05/15)
+          CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                                  State_Chm, 'v/v dry', errCode,   &
+                                  OrigUnit=OrigUnit )
           IF ( errCode /= GC_SUCCESS ) THEN
               CALL GC_Error('Unit conversion error', errCode,    &
                            'DO_STRAT_CHEM in strat_chem_mod.F')
@@ -735,9 +737,9 @@ CONTAINS
                             State_Met, State_Chm, errCode )
           ENDIF
 
-          ! Convert units back to [kg] after Linoz and Synoz (ewl, 10/05/15)
-          CALL ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met,  &
-                                       State_Chm, errCode    )
+         ! Convert species units back to original unit 
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                                 State_Chm, OrigUnit,  errCode )
           IF ( errCode /= GC_SUCCESS ) THEN
              CALL GC_Error('Unit conversion error', errCode,     &
                            'DO_STRAT_CHEM in strat_chem_mod.F')
@@ -1060,7 +1062,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
-    USE UnitConv_Mod
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -1097,6 +1099,7 @@ CONTAINS
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1108,6 +1111,7 @@ CONTAINS
     INTEGER                :: N,         I,       J,    L
     INTEGER                :: nAdvect,   NA,      NN
     REAL(fp)               :: dStrat,    STE,     Tend, tauEnd, dt
+    CHARACTER(LEN=63)      :: OrigUnit
 
     ! Arrays
     INTEGER                :: LTP(IIPAR,JJPAR      )
@@ -1144,9 +1148,9 @@ CONTAINS
     RETURN
 #else
 
-    ! Convert State_Chm%SPECIES from [kg/kg dry air] to [kg] so that
-    ! units are consistently mixing ratio in main (ewl, 8/10/15)
-    CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC )
+    ! Convert State_Chm%SPECIES to [kg] (ewl, 8/10/15)
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, 'kg', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Calc_STE in strat_chem_mod.F')
@@ -1262,9 +1266,9 @@ CONTAINS
 
     ENDDO
 
-    ! Convert State_Chm%SPECIESfrom [kg] back to [kg/kg dry air] 
-    ! (ewl, 8/10/15)
-    CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
+    ! Convert species units back to original unit 
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Calc_STE in strat_chem_mod.F')
@@ -1648,7 +1652,7 @@ CONTAINS
     USE Input_Opt_Mod, ONLY : OptInput
     USE State_Chm_Mod, ONLY : ChmState
     USE State_Met_Mod, ONLY : MetState
-    USE UnitConv_Mod
+    USE UnitConv_Mod,  ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -1672,6 +1676,7 @@ CONTAINS
 !                              within DO_STRAT_CHEM (for ESMF applications).
 !  15 Mar 2017 - E. Lundgren - Add unit catch and error handling
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1684,6 +1689,7 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    CHARACTER(LEN=63)  :: OrigUnit
 
     !=================================================================
     ! SET_MINIT begins here!
@@ -1704,25 +1710,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! If incoming species units are in mixing ratio, convert species 
-    ! from [kg/kg dry air] to [kg] so that initial state of atmosphere 
-    ! is in same units as chemistry ([kg]), and then convert back after 
-    ! MInit is assigned (ewl, 8/10/15)
-    IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg dry' ) THEN
-       UNITCHANGE = .TRUE.
-       CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Unit conversion error!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ELSE IF ( TRIM(State_Chm%Spc_Units) .ne. 'kg' ) THEN
-       ErrMsg = 'Incorrect species units: '   // &
-            TRIM(State_Chm%Spc_Units)    // &
-            ' (must be kg or kg/kg dry)'
+    ! Convert species to [kg] so that initial state of atmosphere is 
+    ! in same units as chemistry (ewl, 8/10/15)
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
-    ENDIF
+    ENDIF 
 
     ! Loop over only the advected species
     DO NA = 1, State_Chm%nAdvect
@@ -1735,15 +1731,14 @@ CONTAINS
 
     ENDDO
 
-    ! If unit conversion occurred, convert species back to [kg/kg dry air]
-    IF ( UNITCHANGE ) THEN
-       CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Unit conversion error!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
+    ! Convert species units back to original unit 
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Unit conversion error!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF  
 
     ! Minit is now set
     MInit_Is_Set = .TRUE.

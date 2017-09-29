@@ -125,6 +125,7 @@
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS: 
 !
@@ -150,6 +151,8 @@
 !  06 Jul 2016 - R. Yantosca - Now pass State_Chm and am_I_Root to TURBDAY
 !  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  27 Sep 2017 - E. Lundgren - Apply unit conversion within routine instead
+!                              of in do_mixing
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -164,6 +167,9 @@
 #if defined( USE_TEND )
       REAL(fp)       :: DT_TEND
 #endif
+
+      ! Strings
+      CHARACTER(LEN=63) :: OrigUnit 
 
       !=================================================================
       ! DO_PBL_MIX begins here!
@@ -184,6 +190,12 @@
       ! The following only needs be done if turbulence is turned on...
       IF ( DO_TURBDAY ) THEN
 
+         ! Convert species to v/v dry
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, 'v/v dry', RC, 
+     &                           OrigUnit=OrigUnit )
+
+
 #if defined( USE_TEND ) 
          ! Archive species concentrations for tendencies. Tracers are 
          ! already in v/v (ckeller, 7/15/2015)
@@ -200,6 +212,11 @@
          CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met,
      &                     State_Chm, 'PBLMIX', DT_TEND, RC )
 #endif
+
+         ! Convert species back to original units
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, OrigUnit,  RC )
+
       ENDIF
 
       END SUBROUTINE DO_PBL_MIX

@@ -20,10 +20,10 @@
       USE ErrCode_Mod
       USE ERROR_MOD
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE inquireMod,    ONLY : findFreeLUN
+      USE inquireMod,         ONLY : findFreeLUN
       USE PhysConstants
       USE Precision_Mod
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
       IMPLICIT NONE
       PRIVATE
@@ -80,6 +80,7 @@
 !                              replace all tracer language to species; rename 
 !                              OUTPUT_RESTART_FILE to OUTPUT_GC_RST_PREFIX
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -480,6 +481,7 @@
       CHARACTER(LEN=255)   :: MyName             ! local name 
       REAL(fp)             :: MW_g               ! species molecular weight
       REAL(fp)             :: SMALL_NUM          ! small number threshold
+      CHARACTER(LEN=63)    :: OrigUnit
 
       ! NetCDF file info
       INTEGER              :: fId                ! netCDF file ID
@@ -785,8 +787,9 @@
       IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
          PRINT *, " "
          PRINT *, "Species min and max in molec/cm3"
-         CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
-     &                                   State_Chm, RC )
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, 'molec/cm3', RC, 
+     &                           OrigUnit=OrigUnit )
          DO N = 1, State_Chm%nSpecies
             SpcInfo => State_Chm%SpcData(N)%Info
             WRITE(6,150) N, TRIM( SpcInfo%Name ), 
@@ -796,8 +799,8 @@
      &              ': Min = ', es15.9, ', Max = ', es15.9 )
             SpcInfo => NULL()
          ENDDO
-         CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
-     &                                   State_Chm, RC )
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, OrigUnit,  RC )
       ENDIF
 
       !=================================================================
@@ -1127,7 +1130,7 @@
       INTEGER              :: GC_RST_Collection
       REAL(fp)             :: MW_g
       REAL(fp)             :: SMALL_NUM
-      CHARACTER(LEN=60)    :: ContainerName, Prefix
+      CHARACTER(LEN=60)    :: ContainerName, Prefix, OrigUnit
       CHARACTER(LEN=255)   :: MSG, FILENAME, LOC = 
      &                       'WRITE_GC_RESTART (restart_mod.F90)'
 
@@ -1208,8 +1211,9 @@
          WRITE( 6, 210 )
  210     FORMAT( /, 'Min and Max of each species before unit ',
      &              'conversion [molec/cm3]:' )
-         CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
-     &                                   State_Chm, RC )
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, 'molec/cm3', RC, 
+     &                           OrigUnit=OrigUnit )
          DO N = 1, State_Chm%nSpecies
             SpcInfo => State_Chm%SpcData(N)%Info
             WRITE(6,220) N, TRIM( SpcInfo%Name ), 
@@ -1219,8 +1223,8 @@
      &              ': Min = ', es15.9, ', Max = ', es15.9 )
             SpcInfo => NULL()
          ENDDO
-         CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
-     &                                   State_Chm, RC )
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, OrigUnit,  RC )
 
          ! Write header for printing [mol/mol] concentrations later on
          IF ( Input_Opt%LPRT ) THEN
@@ -1644,7 +1648,7 @@
 !
       INTEGER              :: I, J, L, N      ! lon, lat, lev, species
       REAL(fp)             :: MW_g            ! species molecular weight
-      LOGICAL              :: INITIAL_SPC_MND
+      CHARACTER(LEN=63)    :: OrigUnit
 
       ! Objects
       TYPE(Species),    POINTER :: SpcInfo
@@ -1669,13 +1673,10 @@
  910     FORMAT( /,'Min and Max of advected [kg/kg dry]:' )
          WRITE( 6, 960 ) ADJUSTL( LOC )
          
-         ! If species is in molec/cm3, convert to [kg/kg dry]
-         INITIAL_SPC_MND = .FALSE.
-         IF ( State_Chm%Spc_Units == 'molec/cm3' ) THEN
-            CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
-     &                                      State_Chm, RC )
-            INITIAL_SPC_MND = .TRUE.
-         ENDIF
+         ! Convert species units to [kg/kg dry]
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, 'kg/kg dry', RC, 
+     &                           OrigUnit=OrigUnit )
          
          ! Loop over advected species
          DO N = 1, State_Chm%nAdvect
@@ -1692,9 +1693,9 @@
          
          ENDDO
          
-         ! Convert species from kg/kg dry to molec/cm3 for next prints
-         CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
-     &                                   State_Chm, RC )
+         ! Convert species to molec/cm3 for next prints
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, 'molec/cm3', RC )
          
          ! Print header for min/max of all species in  [molec/cm3]
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )      
@@ -1718,11 +1719,9 @@
          ENDDO
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
 
-         ! If species were not initially molec/cm3, convert to kg/kg dry
-         IF ( .NOT. INITIAL_SPC_MND ) THEN
-            CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
-     &                                      State_Chm, RC )
-         ENDIF
+         ! Convert species units back to original unit 
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, OrigUnit,  RC )
 
  960     FORMAT( /, 'Location: ', a60 )
 

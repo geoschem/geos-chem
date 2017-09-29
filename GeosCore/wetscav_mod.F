@@ -2428,7 +2428,7 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE Species_Mod,        ONLY : Species
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2580,6 +2580,7 @@
 !  05 Aug 2016 - R. Yantosca - Remove reference to Spc, it's not needed
 !  17 Mar 2017 - R. Yantosca - Replace NSOL with State_Chm%nWetDep
 !  24 Aug 2017 - M. Sulprizio- Rename routine from WETDEP_MERRA to WETDEP
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2601,7 +2602,7 @@
       REAL(fp)               :: F_RAINOUT,     F_WASHOUT 
       REAL(fp)               :: DEP_HG
       REAL(fp)               :: CNVSCL
-
+      CHARACTER(LEN=63)      :: OrigUnit
 
       ! Arrays
       ! DSpc is the accumulator array of rained-out 
@@ -2625,14 +2626,14 @@
       ! Initialize pointers
       SpcInfo => NULL()
 
-      ! Convert species concentration from mixing ratio (kg/kg dry air) to
-      ! mass per unit area (kg/m2) for wet deposition since computation is
-      ! done per column (ewl, 9/8/15)
-      CALL ConvertSpc_KgKgDry_to_Kgm2( am_I_Root, State_Met, 
-     &                                 State_Chm, RC         )
+      ! Convert species concentration to mass per unit area (kg/m2) for 
+      ! wet deposition since computation is done per column (ewl, 9/8/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg/m2', RC, 
+     &                        OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
-     &                 'WETDEP in wetscav_mod.F')
+     &                 'Start of WETDEP in wetscav_mod.F')
          RETURN
       ENDIF  
 
@@ -3016,12 +3017,12 @@
       ENDDO	
 !$OMP END PARALLEL DO
 
-      ! Convert species concentration back to kg/kg dry air (ewl, 9/8/15)
-      CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, 
-     &                                 State_Chm, RC         )
+      ! Convert species concentration back to original unit (ewl, 9/8/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
-     &                 'WETDEP in wetscav_mod.F')
+     &                 'End of WETDEP in wetscav_mod.F')
          RETURN
       ENDIF  
 

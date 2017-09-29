@@ -117,7 +117,7 @@
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
@@ -233,6 +233,7 @@
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  11 Aug 2016 - R. Yantosca - Clean up calls to error subroutines
 !  09 Mar 2017 - C. Keller   - Bug fix: call TEND_STAGE1 before unit conversion
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions with wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -280,6 +281,7 @@
 
       ! Strings
       CHARACTER(LEN=255) :: MSG, LOC
+      CHARACTER(LEN=63)  :: OrigUnit
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
@@ -345,9 +347,9 @@
      &                  State_Chm, 'CHEM', RC )
 #endif
 
-      ! Convert species units from [kg/kg] to [kg] for chemistry (ewl, 8/12/15)
-      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
-     &                               State_Chm, RC         ) 
+      ! Convert species units to [kg] for chemistry (ewl, 8/12/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          MSG = 'Unit conversion error!'
          CALL GC_Error( MSG, RC, LOC )
@@ -689,9 +691,10 @@
       ! will need to be updated to convert State_Chm%Species from [kg]
       ! to [kg/kg dry air] at the end (not [v/v]). (ewl, 8/13/15)
       !-----------------------------------------------------------------
-      ! Convert species units back to [kg/kg] after chemistry (ewl, 8/12/15)
-      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
-     &                               State_Chm, RC         ) 
+
+      ! Convert species units back to original unit (ewl, 8/12/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          MSG = 'Unit conversion error!'
          CALL GC_Error( MSG, RC, LOC )

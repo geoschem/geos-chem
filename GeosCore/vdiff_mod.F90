@@ -2770,6 +2770,7 @@ contains
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -2804,6 +2805,8 @@ contains
 !                              since specific humidity is updated
 !  13 Jul 2016 - R. Yantosca - Remove STT, we can point to State_Chm%Species
 !                              in the VDIFFDR routine directly
+!  27 Sep 2017 - E. Lundgren - Apply unit conversion within routine instead
+!                              of in do_mixing
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2814,7 +2817,8 @@ contains
     LOGICAL, SAVE :: FIRST = .TRUE.
 
     ! Scalars
-    LOGICAL       :: prtDebug
+    LOGICAL           :: prtDebug
+    CHARACTER(LEN=63) :: OrigUnit
 
     !=================================================================
     ! DO_PBL_MIX_2 begins here!
@@ -2837,6 +2841,10 @@ contains
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_VDIFF ) THEN
 
+       ! Convert species concentration to v/v dry
+       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                              'v/v dry', RC, OrigUnit=OrigUnit )
+
        CALL VDIFFDR( am_I_Root, Input_Opt, State_Met, State_Chm )
        IF( prtDebug ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
@@ -2852,6 +2860,10 @@ contains
        IF( prtDebug ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after AIRQNT' )
        ENDIF
+
+       ! Convert species back to the original units
+       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                               OrigUnit, RC )
 
     ENDIF
 

@@ -36,54 +36,8 @@ MODULE UnitConv_Mod
 !
   PUBLIC :: Convert_Spc_Units
 #if defined( NC_DIAG )
-  PUBLIC :: Set_SpcConc_Diagnostic
+  PUBLIC :: Set_SpcConc_Diagnostic ! eventually move elsewhere (ewl)
 #endif
-
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! KG/KG DRY <-> V/V DRY
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! kg/kg dry air <-> v/v dry air
-  ! Used in DO_TEND in mixing
-  PUBLIC  :: ConvertSpc_KgKgDry_to_VVDry
-  PUBLIC  :: ConvertSpc_VVDry_to_KgKgDry
-
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! KG/KG DRY <-> KG/M2
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! kg/kg dry air <-> kg/m2
-  ! Used for wet deposition, DO_TEND in mixing,
-  ! and around AIRQNT and SET_H2O_TRAC in main
-  PUBLIC  :: ConvertSpc_KgKgDry_to_Kgm2
-  PUBLIC  :: ConvertSpc_kgm2_to_KgKgDry
-
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! KG/KG DRY <-> MOLEC/CM3
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  PUBLIC  :: ConvertSpc_KgKgDry_to_MND
-  PUBLIC  :: ConvertSpc_MND_to_KgKgDry
-
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! AREA-DEPENDENT (temporary routines)
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  ! v/v dry air <-> kg/grid box
-  ! Temporarily replaces legacy CONVERT_UNITS
-  ! Used in strat_chem_mod and sulfate_mod
-  PUBLIC  :: ConvertSpc_VVDry_to_Kg
-  PUBLIC  :: ConvertSpc_Kg_to_VVDry
-
-  ! kg/kg dry air <-> kg/grid box
-  ! Used in aerosol_mod, tomas_mod, emissions_mod,
-  ! strat_chem_mod, exchange_mod, rrtmg_rad_transfer_mod,
-  ! chemistry_mod, sulfate_mod, and carbon_mod
-  ! This is since RRTMG, TOMAS, exchange_mod, chemistry,
-  ! and EMISSMERCURY are still in [kg]
-  PUBLIC  :: ConvertSpc_KgKgDry_to_Kg
-  PUBLIC  :: ConvertSpc_Kg_to_KgKgDry
-
-  ! molec/cm3 dry air <-> kg/gridbox
-  PUBLIC  :: ConvertSpc_MND_to_Kg
-  PUBLIC  :: ConvertSpc_Kg_to_MND
 
   ! kg/kg dry air <-> kg/grid box (single box only)
   ! Used for TOMAS compatibility in WASHOUT
@@ -94,6 +48,54 @@ MODULE UnitConv_Mod
   ! Used for TOMAS compatibility in WASHOUT within wetscav_mod
   PUBLIC  :: ConvertBox_Kgm2_to_Kg
   PUBLIC  :: ConvertBox_Kg_to_Kgm2
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! KG/KG DRY <-> V/V DRY
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! kg/kg dry air <-> v/v dry air
+  ! Used in DO_TEND in mixing
+  PRIVATE  :: ConvertSpc_KgKgDry_to_VVDry
+  PRIVATE  :: ConvertSpc_VVDry_to_KgKgDry
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! KG/KG DRY <-> KG/M2
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! kg/kg dry air <-> kg/m2
+  ! Used for wet deposition, DO_TEND in mixing,
+  ! and around AIRQNT and SET_H2O_TRAC in main
+  PRIVATE  :: ConvertSpc_KgKgDry_to_Kgm2
+  PRIVATE  :: ConvertSpc_kgm2_to_KgKgDry
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! KG/KG DRY <-> MOLEC/CM3
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  PRIVATE  :: ConvertSpc_KgKgDry_to_MND
+  PRIVATE  :: ConvertSpc_MND_to_KgKgDry
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! AREA-DEPENDENT (temporary routines)
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  ! v/v dry air <-> kg/grid box
+  ! Temporarily replaces legacy CONVERT_UNITS
+  ! Used in strat_chem_mod and sulfate_mod
+  PRIVATE  :: ConvertSpc_VVDry_to_Kg
+  PRIVATE  :: ConvertSpc_Kg_to_VVDry
+
+  ! kg/kg dry air <-> kg/grid box
+  ! Used in aerosol_mod, tomas_mod, emissions_mod,
+  ! strat_chem_mod, exchange_mod, rrtmg_rad_transfer_mod,
+  ! chemistry_mod, sulfate_mod, and carbon_mod
+  ! This is since RRTMG, TOMAS, exchange_mod, chemistry,
+  ! and EMISSMERCURY are still in [kg]
+  PRIVATE  :: ConvertSpc_KgKgDry_to_Kg
+  PRIVATE  :: ConvertSpc_Kg_to_KgKgDry
+
+  ! molec/cm3 dry air <-> kg/gridbox
+  PRIVATE  :: ConvertSpc_MND_to_Kg
+  PRIVATE  :: ConvertSpc_Kg_to_MND
 !
 ! !REMARKS:
 !  The routines in this module are used to convert the units of
@@ -110,6 +112,7 @@ MODULE UnitConv_Mod
 !  23 Aug 2016 - M. Sulprizio- Remove tracer unit conversion routines, only
 !                              species unit conversion routines remain
 !  27 Sep 2017 - E. Lundgren - Expand and rename wrapper routine
+!  28 Sep 2018 - E. Lundgren - Make ConvertSpc routines all PRIVATE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -212,7 +215,7 @@ CONTAINS
              CASE ( 'kg/m2' )
                 CALL ConvertSpc_KgKgDry_to_Kgm2( am_I_Root, State_Met, &
                                                  State_Chm, RC ) 
-             CASE ( 'MND' )
+             CASE ( 'molec/cm3' )
                 CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met, &
                                                  State_Chm, RC ) 
              CASE DEFAULT
@@ -229,6 +232,10 @@ CONTAINS
              CASE ( 'kg' )
                 CALL ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met, &
                                              State_Chm, RC) 
+             CASE ( 'kg/m2' )
+                CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root, State_Chm, RC )
+                CALL ConvertSpc_KgKgDry_to_Kgm2 ( am_I_Root, State_Met, &
+                                                  State_Chm, RC )
              CASE DEFAULT
                 CALL GC_Error( ErrMsg_noOut, RC, LOC )
           END SELECT
@@ -244,7 +251,7 @@ CONTAINS
              CASE ( 'v/v dry' )
                 CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, &
                                              State_Chm, RC ) 
-             CASE ( 'MND' )
+             CASE ( 'molec/cm3' )
                 CALL ConvertSpc_Kg_to_MND( am_I_Root, State_Met, &
                                            State_Chm, RC ) 
              CASE DEFAULT
@@ -259,6 +266,10 @@ CONTAINS
              CASE( 'kg/kg dry' )
                 CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, &
                                                  State_Chm, RC ) 
+             CASE ( 'v/v dry' )
+                CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, &
+                                                  State_Chm, RC )
+                CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC )
              CASE DEFAULT
                 CALL GC_Error( ErrMsg_noOut, RC, LOC )
           END SELECT
@@ -266,7 +277,7 @@ CONTAINS
        !====================================================================
        ! Convert from molecular number density (MND)
        !====================================================================
-       CASE ( 'MND' )
+       CASE ( 'molec/cm3' )
           SELECT CASE ( TRIM(OutUnit) )
              CASE ( 'kg' )
                 CALL ConvertSpc_MND_to_Kg( am_I_Root, State_Met, &
@@ -385,7 +396,7 @@ CONTAINS
        IF ( TRIM(Units) == 'mol mol-1 dry' ) Units = 'v/v dry'
        IF ( TRIM(Units) == 'kg kg-1 dry'   ) Units = 'kg/kg dry'
        IF ( TRIM(Units) == 'kg m-2'        ) Units = 'kg/m2'
-       IF ( TRIM(Units) == 'molec cm-3'    ) Units = 'MND'
+       IF ( TRIM(Units) == 'molec cm-3'    ) Units = 'molec/cm3'
        
        ! Convert State_Chm%Species unit to diagnostic unitx
        CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &

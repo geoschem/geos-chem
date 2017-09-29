@@ -4821,7 +4821,7 @@ ccc
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! TOMAS DIAGNs:
 !
@@ -4865,10 +4865,8 @@ ccc
       INTEGER                  :: I, I0, IREF, J, J0, JREF, N
       INTEGER                  :: FLAG, ERR
       REAL(fp)                 :: DTSRCE, AREA_M2
-
       REAL(fp)                 :: XTRA_ORG_A(IIPAR, JJPAR)
       REAL(fp)                 :: CO_ANTH_TOTAL
-
       REAL(fp)                 :: BCSRC(IIPAR, JJPAR, IBINS, 2)
       REAL(fp)                 :: OCSRC(IIPAR, JJPAR, IBINS, 2)
       REAL(fp)                 :: NUMBSRC(IIPAR, JJPAR, IBINS)
@@ -4876,16 +4874,12 @@ ccc
       REAL*4                   :: BOXVOL  ! calculated from State_Met
       REAL*4                   :: TEMPTMS ! calculated from State_Met
       REAL*4                   :: PRES    ! calculated from State_Met
-
       REAL(fp)                 :: TMP_MASS(IIPAR, JJPAR, IBINS)
-
       REAL(fp)                 :: OC2OM = 1.8d0
-
       LOGICAL                  :: SGCOAG = .True.
-
       INTEGER                  :: L, K, EMTYPE
-
       INTEGER                  :: ii=53, jj=29
+      CHARACTER(LEN=63)        :: OrigUnit
 
       ! Strings
       CHARACTER(LEN= 63)       :: DgnName
@@ -4931,14 +4925,14 @@ ccc
       ! Grid box aarea
       AREA = HcoState%Grid%AREA_M2%Val(:,:)
 
-      ! Convert State_Chm%Species from [kg/kg dry air] to [kg] for TOMAS.
-      ! This will be removed once TOMAS uses mixing ratio instead of mass 
+      ! Convert State_Chm%Species to [kg] for TOMAS. This will be 
+      ! removed once TOMAS uses mixing ratio instead of mass 
       ! as species units (ewl, 9/11/15)
-      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
-     &                               State_Chm, RC         ) 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( 'Unit conversion error', RC, 
-     &                  'Routine EMISSCARBONTOMAS in carbon_mod.F' )
+     &                  'Start of EMISSCARBONTOMAS in carbon_mod.F' )
          RETURN
       ENDIF 
 
@@ -5152,12 +5146,12 @@ ccc
       IF ( LPRT )
      &    CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
 
-      ! Convert State_Chm%Species back to kg (ewl, 9/11/15)
-      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
-     &                               State_Chm, RC         ) 
+      ! Convert State_Chm%Species back to original units (ewl, 9/11/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
-     &                 'Routine EMISSCARBONTOMAS in carbon_mod.F')
+     &                 'End of EMISSCARBONTOMAS in carbon_mod.F')
          RETURN
       ENDIF  
 
