@@ -656,10 +656,10 @@
 
       ! For now, just hardwire the input file for the History component
       Input_Opt%HistoryInputFile = './HISTORY.rc'
-      !
+
       ! Initialize the GEOS-Chem history component
-      CALL History_Init( am_I_root, Input_Opt, State_Chm, State_Diag, 
-     &                   State_Met, NymdB,     NhmsB,     RC          )
+      CALL History_Init( am_I_root,  Input_Opt, State_Chm, 
+     &                   State_Diag, State_Met, RC          )
 
       ! Trap error
       IF ( RC /= GC_SUCCESS ) THEN

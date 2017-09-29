@@ -103,8 +103,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Init( am_I_root, Input_Opt, State_Chm, State_Diag,      &
-                           State_Met, yyyymmdd,  hhmmss,    RC              )
+  SUBROUTINE History_Init( am_I_root,  Input_Opt, State_Chm,                  &
+                           State_Diag, State_Met, RC                         )
 !
 ! !USES:
 !
@@ -123,8 +123,6 @@ CONTAINS
     TYPE(ChmState),   INTENT(IN)  :: State_Chm
     TYPE(DgnState),   INTENT(IN)  :: State_Diag
     TYPE(MetState),   INTENT(IN)  :: State_Met
-    INTEGER,          INTENT(IN)  :: yyyymmdd
-    INTEGER,          INTENT(IN)  :: hhmmss
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -179,8 +177,7 @@ CONTAINS
     ! Then determine the fields that will be saved to each collection
     !=======================================================================
     CALL History_ReadCollectionData( am_I_root,  Input_Opt, State_Chm,       &
-                                     State_Diag, State_Met, yyyymmdd,        &
-                                     hhmmss,     RC                         )
+                                     State_Diag, State_Met, RC              )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "History_ReadCollectionNames"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -467,9 +464,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_ReadCollectionData( am_I_Root,  Input_Opt, State_Chm,  &
-                                         State_Diag, State_Met, yyyymmdd,   &
-                                         hhmmss,     RC                    )
+  SUBROUTINE History_ReadCollectionData( am_I_Root,  Input_Opt, State_Chm,   &
+                                         State_Diag, State_Met, RC          ) 
 !
 ! !USES:
 !
@@ -495,8 +491,6 @@ CONTAINS
     TYPE(ChmState),   INTENT(IN)  :: State_Chm    ! Chemistry State object
     TYPE(DgnState),   INTENT(IN)  :: State_Diag   ! Diagnostic State object
     TYPE(MetState),   INTENT(IN)  :: State_Met    ! Meteorology State object
-    INTEGER,          INTENT(IN)  :: yyyymmdd     ! Current date in YMD
-    INTEGER,          INTENT(IN)  :: hhmmss       ! Current time in hms
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -512,6 +506,8 @@ CONTAINS
 !                              now computed properly, w/r/t acc_interval
 !  30 Aug 2017 - R. Yantosca - Now write collection info only on the root CPU
 !  18 Sep 2017 - R. Yantosca - Don't allow acc_interval for inst collections
+!  29 Sep 2017 - R. Yantosca - Now get the starting and ending date/time info
+!                              from the Input_Opt object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -520,6 +516,8 @@ CONTAINS
 !
      ! Scalars
     LOGICAL                      :: EOF   
+    INTEGER                      :: yyyymmdd,       hhmmss
+    INTEGER                      :: yyyymmdd_end,   hhmmss_end
     INTEGER                      :: C,              N,             W
     INTEGER                      :: nX,             nY,            nZ
     INTEGER                      :: fId,            IOS
@@ -533,9 +531,10 @@ CONTAINS
     INTEGER                      :: Ind_Dry,        Ind_Fix,       Ind_Gas
     INTEGER                      :: Ind_Kpp,        Ind_Pho,       Ind_Rst
     INTEGER                      :: Ind_Var,        Ind_Wet,       Ind
-    REAL(f8)                     :: UpdateAlarm,    JulianDate
+    REAL(f8)                     :: UpdateAlarm,    HeartBeatDtSec
     REAL(f8)                     :: FileWriteAlarm, FileCloseAlarm
-    REAL(f8)                     :: HeartBeatDtSec
+    REAL(f8)                     :: JulianDate,     JulianDateEnd
+    REAL(f8)                     :: SimLengthSec
 
     ! Strings
     CHARACTER(LEN=255)           :: Line,           FileName
@@ -577,6 +576,10 @@ CONTAINS
     SpaceDim       =  0
     SubsetDims     =  0 
     HeartBeatDtSec =  DBLE( Input_Opt%TS_DYN ) * SECONDS_PER_MINUTE
+    yyyymmdd       =  Input_Opt%NymdB
+    hhmmss         =  Input_Opt%NhmsB
+    yyyymmdd_end   =  Input_Opt%NymdE
+    hhmmss_end     =  Input_Opt%NhmsE
 
     ! Initialize objects and pointers
     Container      => NULL()
@@ -594,6 +597,15 @@ CONTAINS
     ThisLoc        =  &
      ' -> at History_ReadCollectionData (in module History/history_mod.F90)'
     Units          =  ''
+
+    ! Compute the Astronomical Julian Date corresponding to the yyyymmdd 
+    ! and hhmmss values at the start and end of the simulation, which are
+    ! needed below.  This can be done outside of the DO loop below.
+    CALL Compute_Julian_Date( yyyymmdd,     hhmmss,     JulianDate    )
+    CALL Compute_Julian_Date( yyyymmdd_end, hhmmss_end, JulianDateEnd )
+
+    ! Compute the length of the simulation, in elapsed seconds
+    SimLengthSec   = INT( ( JulianDateEnd - JulianDate ) * SECONDS_PER_DAY )
 
     !=======================================================================
     ! Open the file containing the list of requested diagnostics
@@ -855,11 +867,6 @@ CONTAINS
           !=================================================================
           ! Create a HISTORY CONTAINER object for this collection
           !=================================================================
-
-          ! Compute the Astronomical Julian Date corresponding to 
-          ! the initial yyyymmdd and hhmmss of the simulation.
-          ! This is needed to set the EpochJd field.
-          CALL Compute_Julian_Date( yyyymmdd, hhmmss, JulianDate )
           
           ! Create the HISTORY CONTAINER object itself.
           ! This will also define the alarm intervals and initial alarm times
@@ -904,8 +911,38 @@ CONTAINS
 
           ! Trap potential error
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "HistContainer_SetTime"'   //    &
+             ErrMsg = 'Error encountered in "HistContainer_SetTime"'      // &
                       ' for collection: ' // TRIM( CollectionName(C) ) 
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+          !-----------------------------------------------------------------
+          ! ERROR CHECK: Make sure that the length of the simulation is
+          ! not shorter than the requested "File Write" interval.  This 
+          ! will prevent simulations without diagnostic output.
+          !-----------------------------------------------------------------
+          IF ( SimLengthSec < Container%FileWriteAlarm ) THEN
+
+             ! Construct first part of error message
+             ErrMsg =                                                        &
+                'No diagnostic output will be created for collection: "'  // &
+                 TRIM( CollectionName(C) ) // '"!  Make sure that the'
+
+             ! Then add the correct text for instantaneous or time-averaged
+             IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
+                ErrMsg = TRIM ( ErrMsg ) // ' "frequency"'
+             ELSE
+                ErrMsg = TRIM ( ErrMsg ) // ' "acc_interval"'
+             ENDIF
+
+             ! Then continue the message
+             ErrMsg = TRIM( ErrMsg )                                      // &
+                ' interval in HISTORY.rc is not shorter than the length ' // &
+                'of the simulation (check start & end times in '          // &
+                'input.geos).'
+
+             ! Return error
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
