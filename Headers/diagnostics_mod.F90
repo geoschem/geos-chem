@@ -44,19 +44,19 @@ MODULE Diagnostics_Mod
      TYPE(DgnItem), POINTER  :: head
      INTEGER                 :: numItems
   END TYPE DgnList
-!
-! !PRIVATE DATA MEMBERS:
-!
+
   !=========================================================================
   ! Derived type for Diagnostics Item (unique item in HISTORY.rc)
   !=========================================================================
-  TYPE, PRIVATE :: DgnItem
-     CHARACTER(LEN=255)      :: name 
-     CHARACTER(LEN=255)      :: state
-     CHARACTER(LEN=255)      :: field 
-     LOGICAL                 :: isWildcard
-     CHARACTER(LEN=255)      :: wildcard
-     TYPE(DgnItem), POINTER  :: next
+  TYPE, PUBLIC :: DgnItem
+     CHARACTER(LEN=63)      :: name 
+     CHARACTER(LEN=7)       :: state
+     CHARACTER(LEN=63)      :: metadataID
+     LOGICAL                :: isWildcard
+     CHARACTER(LEN=7)       :: wildcard
+     LOGICAL                :: isSpecies
+     CHARACTER(LEN=63)      :: species
+     TYPE(DgnItem), POINTER :: next
   END TYPE DgnItem
 !
 ! !REVISION HISTORY:
@@ -107,9 +107,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                 :: fId, IOS, N, I
-    CHARACTER(LEN=255)      :: errMsg, thisLoc, field, wildcard
-    CHARACTER(LEN=255)      :: line, SubStrs(500), SubStr, name, state
-    LOGICAL                 :: EOF, found, isWildcard
+    CHARACTER(LEN=255)      :: errMsg, thisLoc
+    CHARACTER(LEN=255)      :: line, SubStrs(500), SubStr
+    CHARACTER(LEN=255)      :: wildcard, species, name, state, metadataID
+    LOGICAL                 :: EOF, found, isWildcard, isSpecies
     TYPE(DgnItem),  POINTER :: NewDiagItem
 
     ! ================================================================
@@ -123,7 +124,6 @@ CONTAINS
     NewDiagItem => NULL()
 
     ! Create DiagList object
-    !ALLOCATE(DiagList)
     DiagList%head => NULL()
     DiagList%numItems = 0
 
@@ -135,14 +135,12 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    
-    ! Debugging prints
-    IF ( am_I_Root ) PRINT *, "Unique entries in HISTORY.rc: "
 
     ! Read data from the file
     DO
     
        ! Read line and strip leading/trailing spaces
+       ! TODO: Beware that this currently does not strip tabs!!!
        Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
        IF ( EOF ) EXIT
        IF ( IOS > 0 ) THEN
@@ -165,72 +163,80 @@ CONTAINS
        ENDIF
        CALL StrSplit( SubStr, "'", SubStrs, N )
        name = TRIM( SubStrs(1) )
-    
+
        ! Get state prefix
-       CALL StrSplit( name, "_", SubStrs, N )
+       CALL StrSplit( name, '_', SubStrs, N )
        IF ( SubStrs(1) == 'MET' .or. SubStrs(1) == 'CHEM' ) THEN
           state = TRIM( SubStrs(1) )
+       ELSEIF ( SubStrs(1) == 'SPC' ) THEN
+          state = 'GCHP_internal' 
        ELSE
           state = 'DIAG'
        ENDIF
 
-       ! Get wildcard, if any (currently not used anywhere)
-       IF ( INDEX( name, '?' ) > 0 ) THEN
-          isWildcard = .TRUE.
-          CALL StrSplit( name, "?", SubStrs, N )
-          wildcard = SubStrs(N-1)
-       ELSE 
-          isWildcard = .FALSE.
-          wildcard = ''
-       ENDIF 
-
-       ! Get field (name without state prefix and wildcard suffix)
-       ! Field is used to lookup metadata. NOTE: currently includes species.
-       IF ( isWildcard ) THEN
-          CALL StrSplit( name, "_", SubStrs, N )
-          IF ( TRIM( state ) == 'DIAG' ) THEN
-             ! If diag_state, prefix not in name and does not need skipping
-             field = TRIM( SubStrs(1) )
-          ELSE
-             field = TRIM( SubStrs(2) )
-          ENDIF
-          IF ( N > 2 ) THEN
-             DO I = 2, N-1
-                field = TRIM(field) // '_' // TRIM( SubStrs(I) ) 
-             ENDDO
-          ENDIF
-       ELSE
-          ! If not a wildcard, simply skip the state prefix if present
-          IF ( TRIM( state ) == 'DIAG' ) THEN
-             field = name
-          ELSEIF ( TRIM( state ) == 'MET' ) THEN
-             field = name(5:)
-          ELSEIF ( TRIM( state ) == 'CHEM' ) THEN
-             field = name(6:)
+       ! Get wildcard or species, if any
+       isWildcard = .FALSE.
+       isSpecies  = .FALSE.
+       wildcard   = ''
+       species    = ''
+       IF ( INDEX ( name, '__' ) > 0 ) THEN
+          IF ( INDEX( name, '?' ) > 0 ) THEN
+#if defined( ESMF_ )
+             ! Exit with an error if using GCHP and wildcard is present
+             CALL GC_Error( 'Wildcards not allowed in GCHP', RC, ThisLoc )
+             RETURN
+#endif
+             isWildcard = .TRUE.
+             CALL StrSplit( name, '?', SubStrs, N )
+             wildcard = SubStrs(N-1)
+          ELSE 
+             CALL StrSplit( name, '__', SubStrs, N )
+             isSpecies  = .TRUE.
+             species = SubStrs(N)
           ENDIF
        ENDIF
+       
+       ! Get metadataID which is the name w/out state prefix and spc suffix
+       ! First, trim state prefix
+       IF ( TRIM( state ) == 'DIAG' ) THEN
+          metadataID = name
+       ELSEIF ( TRIM( state ) == 'MET' ) THEN
+          metadataID = name(5:)
+       ELSEIF ( TRIM( state ) == 'CHEM' ) THEN
+          metadataID = name(6:)
+       ENDIF
+       ! Next, remove wildcard or species name if present
+       IF ( isWildcard .OR. isSpecies ) THEN
+          CALL StrSplit( metadataID, '__', SubStrs, N )
+          metadataID = SubStrs(1)
+       ENDIF
 
-       ! Skip if already encountered entry with same name
+       ! Skip if already encountered entry with same full name
+       ! TODO: make this into a function that returns true or false
+       ! Have a series of functions that do quality checks too
        CALL Search_DiagList( am_I_Root, DiagList, name, found, RC )
        IF ( found ) CYCLE
-    
+
        ! Create a new DiagItem object
        CALL Init_DiagItem( am_I_Root, NewDiagItem, &
                            name=name,              &
                            state=state,            &
-                           field=field,            &
+                           metadataID=metadataID,  &
                            isWildcard=isWildcard,  &
                            wildcard=wildcard,      &
+                           isSpecies=isSpecies,     &
+                           species=species,        &
                            RC=RC  )
-       IF ( RC /= GC_SUCCESS ) RETURN
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error initializing DiagItem ' // TRIM(name)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     
        ! Add new DiagItem to linked list
        CALL Append_DiagList( am_I_Root, NewDiagItem, DiagList, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       ! Debugging prints
-       IF ( am_I_Root ) PRINT *, "   ", TRIM(name)
-    
     ENDDO
     
     ! Close the file
@@ -250,17 +256,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_DiagItem ( am_I_Root, NewDiagItem, name,     state,    &
-                             field,     isWildcard,  wildcard, RC  )
+  SUBROUTINE Init_DiagItem ( am_I_Root,  NewDiagItem, name,     state,     &
+                             metadataID, isWildcard,  wildcard, isSpecies, &
+                             species,    RC  )
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,             INTENT(IN) :: am_I_Root
     CHARACTER(LEN=*),    OPTIONAL   :: name
     CHARACTER(LEN=*),    OPTIONAL   :: state
-    CHARACTER(LEN=*),    OPTIONAL   :: field
+    CHARACTER(LEN=*),    OPTIONAL   :: metadataID
     LOGICAL,             OPTIONAL   :: isWildcard
     CHARACTER(LEN=*),    OPTIONAL   :: wildcard
+    LOGICAL,             OPTIONAL   :: isSpecies
+    CHARACTER(LEN=*),    OPTIONAL   :: species
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -283,11 +292,13 @@ CONTAINS
     thisLoc = 'Init_DiagItem (diagnostics_mod.F90)'
 
     ALLOCATE(NewDiagItem)
-    NewDiagItem%name       = name
-    NewDiagItem%state      = state
-    NewDiagItem%field      = field
+    NewDiagItem%name       = TRIM(name)
+    NewDiagItem%state      = TRIM(state)
+    NewDiagItem%metadataID = TRIM(metadataID)
     NewDiagItem%isWildcard = isWildcard
-    NewDiagItem%wildcard   = wildcard
+    NewDiagItem%wildcard   = TRIM(wildcard)
+    NewDiagItem%isSpecies  = isSpecies
+    NewDiagItem%species    = TRIM(species)
 
   END SUBROUTINE Init_DiagItem
 !EOC
@@ -494,7 +505,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     TYPE(DgnItem), POINTER :: current
-    TYPE(DgnItem), POINTER :: next
     CHARACTER(LEN=255)     :: thisLoc
 
     ! ================================================================
@@ -504,6 +514,7 @@ CONTAINS
     current => DiagList%head
 
     IF ( am_I_Root ) THEN
+       PRINT *, " "
        PRINT *, "===================="
        PRINT *, "Contents of DiagList"
        PRINT *, " "
@@ -513,11 +524,15 @@ CONTAINS
        ! Print info
        IF ( am_I_Root ) THEN
           PRINT *, TRIM(current%name)
-          PRINT *, "   state: ", TRIM(current%state)
-          PRINT *, "   field: ", TRIM(current%field)
+          PRINT *, "   state:      ", TRIM(current%state)
+          PRINT *, "   metadataID: ", TRIM(current%metadataID)
           PRINT *, "   isWildcard: ", current%isWildcard
           IF ( current%isWildcard ) THEN
-             PRINT *, "     -> wildcard: ", TRIM(current%wildcard)
+             PRINT *, "   wildcard:   ", TRIM(current%wildcard)
+          ENDIF
+          PRINT *, "   isSpecies:  ", current%isSpecies
+          IF ( current%isSpecies ) THEN
+             PRINT *, "   species:    ", TRIM(current%species)
           ENDIF
           PRINT *, " "
        ENDIF
@@ -528,8 +543,10 @@ CONTAINS
 
     ! cleanup
     current => NULL()
-    next    => NULL()
-    IF ( am_I_Root ) PRINT *, "===================="
+    IF ( am_I_Root ) THEN
+       PRINT *, "===================="
+       PRINT *, " "
+    ENDIF
 
   END SUBROUTINE Print_DiagList
 !EOC

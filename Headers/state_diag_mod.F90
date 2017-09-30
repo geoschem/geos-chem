@@ -489,7 +489,7 @@ CONTAINS
 
        DO N = 1, State_Chm%nSpecies
           SpcInfo  => State_Chm%SpcData(N)%Info
-          thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
+          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
           thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
@@ -513,7 +513,7 @@ CONTAINS
 
        DO N = 1, State_Chm%nAdvect
           SpcInfo  => State_Chm%SpcData(N)%Info
-          thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
+          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
           thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
 
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
@@ -542,7 +542,7 @@ CONTAINS
           SpcInfo  => State_Chm%SpcData(D)%Info
 
           ! Set the registry name for this diagnostic and species
-          thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
+          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
           thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
@@ -570,7 +570,7 @@ CONTAINS
           SpcInfo  => State_Chm%SpcData(D)%Info
 
           ! Set the registry name for this diagnostic and species
-          thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
+          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
           thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
@@ -694,7 +694,7 @@ CONTAINS
 
        DO N = 1, State_Chm%nSpecies
           SpcInfo  => State_Chm%SpcData(N)%Info
-          thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
+          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
           thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
@@ -718,7 +718,7 @@ CONTAINS
 
        DO N = 1, State_Chm%nAdvect
           SpcInfo  => State_Chm%SpcData(N)%Info
-          thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
+          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
           thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
@@ -746,7 +746,7 @@ CONTAINS
           SpcInfo  => State_Chm%SpcData(D)%Info
 
           ! Set the registry name for this diagnostic and species
-          thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
+          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
           thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
@@ -774,7 +774,7 @@ CONTAINS
           SpcInfo  => State_Chm%SpcData(D)%Info
 
           ! Set the registry name for this diagnostic and species
-          thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
+          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
           thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
@@ -898,7 +898,7 @@ CONTAINS
 
        DO N = 1, State_Chm%nSpecies
           SpcInfo  => State_Chm%SpcData(N)%Info
-          thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
+          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
           thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
@@ -922,7 +922,7 @@ CONTAINS
 
        DO N = 1, State_Chm%nAdvect
           SpcInfo  => State_Chm%SpcData(N)%Info
-          thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
+          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
           thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
@@ -950,7 +950,7 @@ CONTAINS
           SpcInfo  => State_Chm%SpcData(D)%Info
 
           ! Set the registry name for this diagnostic and species
-          thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
+          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
           thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
@@ -978,7 +978,7 @@ CONTAINS
           SpcInfo  => State_Chm%SpcData(D)%Info
 
           ! Set the registry name for this diagnostic and species
-          thisSpcDiagName = TRIM( Name ) // '_' // TRIM( SpcInfo%Name )
+          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
           thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
