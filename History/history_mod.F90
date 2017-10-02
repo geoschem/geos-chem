@@ -52,6 +52,7 @@ MODULE History_Mod
 !  16 Aug 2017 - R. Yantosca - Now close all netCDF files in routine
 !                              History_Close_AllFiles
 !  18 Aug 2017 - R. Yantosca - Added routine History_SetTime
+!  02 Oct 2017 - R. Yantosca - Added CollectionFileName
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -63,6 +64,7 @@ MODULE History_Mod
 
   ! Strings
   CHARACTER(LEN=255), ALLOCATABLE  :: CollectionName       (:)
+  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionFileName   (:)
   CHARACTER(LEN=255), ALLOCATABLE  :: CollectionTemplate   (:)
   CHARACTER(LEN=255), ALLOCATABLE  :: CollectionSubsetDims (:)
   CHARACTER(LEN=255), ALLOCATABLE  :: CollectionFormat     (:)
@@ -232,6 +234,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
 !  15 Aug 2017 - R. Yantosca - Now initialize string arrays to UNDEFINED_STR
+!   2 Oct 2017 - R. Yantosca - Now initialize CollectionFileName
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -369,6 +372,17 @@ CONTAINS
     DO N = 1, CollectionCount
        CollectionName(N) = TmpCollectionName(N)
     ENDDO
+
+    ! Allocate CollectionFileName
+    IF ( .not. ALLOCATED( CollectionFileName ) ) THEN
+       ALLOCATE( CollectionFileName( CollectionCount ), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN 
+          ErrMsg = 'Could not allocate "CollectionFileName"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       CollectionFileName = UNDEFINED_STR
+    ENDIF
 
     ! Allocate CollectionTemplate
     IF ( .not. ALLOCATED( CollectionTemplate ) ) THEN
@@ -647,6 +661,7 @@ CONTAINS
        !====================================================================
        ! The HISTORY.rc file specifies collection metadata as:
        !
+       !   instantaneous.filename:  './output/GEOSChem.inst.%y4%m2%d2.nc4'
        !   instantaneous.template:  '%y4%m2%d2.nc4',
        !   instantaneous.format:    'CFIO',
        !   instantaneous.frequency:  010000,
@@ -654,8 +669,8 @@ CONTAINS
        !   etc.
        !
        ! where in this example, "instantaneous" is the collection name
-       ! and "template", "format", "frequency", "duration" are the
-       ! metadata fields.  
+       ! and "filename', "template", "format", "frequency", "duration" 
+       ! are the metadata fields.  
        !
        ! Get the metadata belonging to each collection and store them
        ! in the proper arrays for later use.  NOTE: this method does not
@@ -663,7 +678,16 @@ CONTAINS
        ! are listed under the COLLECTIONS section.
        !====================================================================
 
+       ! "filename": Specifies the full filename path 
+       ! Can be omitted if "template" is specified
+       Pattern = 'filename'
+       IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN 
+          CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
+          IF ( C > 0 ) CollectionFileName(C) = Metadata
+       ENDIF   
+
        ! "template": Specifies the year/month/day/hr/min/sec in filenames
+       ! Can be omitted if "filename" is specified
        Pattern = 'template'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN 
           CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
@@ -887,6 +911,7 @@ CONTAINS
                                      FileCloseYmd   = FileCloseYmd,          &
                                      FileCloseHms   = FileCloseHms,          &
                                      Conventions    = 'COARDS',              &
+                                     FileName       = CollectionFileName(C), &
                                      FileTemplate   = CollectionTemplate(C), & 
                                      NcFormat       = CollectionFormat(C),   &
                                      Reference      = Reference,             &
@@ -1180,17 +1205,17 @@ CONTAINS
 
        DO C = 1, CollectionCount
           print*, 'Collection        ', TRIM( CollectionName       (C) )
-          print*, '  -> Template     ', TRIM( CollectionTemplate   (C) )
+          print*, '  -> FileName     ', TRIM( CollectionFileName   (C) )
           print*, '  -> Format       ', TRIM( CollectionFormat     (C) )
           print*, '  -> Frequency    ', TRIM( CollectionFrequency  (C) )
           print*, '  -> Acc_Interval ', TRIM( CollectionAccInterval(C) )
           print*, '  -> Duration     ', TRIM( CollectionDuration   (C) )
-!       print*, '  -> Subset Dims  ', TRIM( CollectionSubsetDims (C) )
+!         print*, '  -> Subset Dims  ', TRIM( CollectionSubsetDims (C) )
           print*, '  -> Mode         ', TRIM( CollectionMode       (C) )
 
-          ! Trap error if the collection name is undefined
+          ! Trap error if the collection freuency is undefined
           ! This indicates an error in parsing the file
-          IF ( TRIM( CollectionTemplate(C) ) == UNDEFINED_STR ) THEN
+          IF ( TRIM( CollectionFrequency(C) ) == UNDEFINED_STR ) THEN
              ErrMsg = 'Collection: ' // TRIM( CollectionName(C) ) //         &
                       ' is undefined!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2594,6 +2619,15 @@ CONTAINS
         DEALLOCATE( CollectionName, STAT=RC )
         IF ( RC /= GC_SUCCESS ) THEN
            ErrMsg = 'Could not deallocate "CollectionName"!'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
+     ENDIF
+
+     IF ( ALLOCATED( CollectionFileName ) ) THEN
+        DEALLOCATE( CollectionFileName, STAT=RC )
+        IF ( RC /= GC_SUCCESS ) THEN
+           ErrMsg = 'Could not deallocate "CollectionFileName"!'
            CALL GC_Error( ErrMsg, RC, ThisLoc )
            RETURN
         ENDIF
