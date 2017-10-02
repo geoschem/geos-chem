@@ -382,7 +382,7 @@ CONTAINS
        ThisSpc  => State_Chm%SpcData(N)%Info
 
        ! Register each species individually )
-       Variable = 'SPC_' // TRIM( ThisSpc%Name )
+       Variable = 'SPC__' // TRIM( ThisSpc%Name )
        Desc     =  TRIM( Variable ) // ' concentration'
        Units    = 'TBD'
        CALL Registry_AddField( am_I_Root    = am_I_Root,                      &
