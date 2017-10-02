@@ -34,7 +34,12 @@ MODULE State_Chm_Mod
 !
   PUBLIC :: Init_State_Chm
   PUBLIC :: Cleanup_State_Chm
+  PUBLIC :: Get_Metadata_State_Chm
   PUBLIC :: Ind_ ! consider moving to species database (ewl)
+!
+! !PRIVATE MEMBER FUNCTIONS
+!
+  PRIVATE :: Register_ChmField
 !
 ! !PRIVATE DATA MEMBERS:
 !
@@ -160,9 +165,19 @@ MODULE State_Chm_Mod
 !  30 Jun 2017 - R. Yantosca - Now register variables of State_Chm
 !  31 Jul 2017 - R. Yantosca - Add fixes in registering ISORROPIA *_SAV fields
 !  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Chm and Print_State_Chm
+!  02 Oct 2017 - E. Lundgren - Abstract metadata and routine at add to Registry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !MODULE INTERFACES:
+!
+  INTERFACE Register_ChmField
+     MODULE PROCEDURE Register_ChmField_R4_3D
+     MODULE PROCEDURE Register_ChmField_Rfp_3D
+     MODULE PROCEDURE Register_ChmField_Rfp_4D
+  END INTERFACE Register_ChmField
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -247,13 +262,14 @@ CONTAINS
     ! Scalars
     INTEGER                :: N,          C
     INTEGER                :: N_Hg0_CATS, N_Hg2_CATS, N_HgP_CATS
+    INTEGER                :: nKHLSA
 
     ! Strings
-    CHARACTER(LEN=255)     :: ErrMsg,     ThisLoc
-    CHARACTER(LEN=255)     :: Variable,   Desc,       Units
+    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc, ChmID
 
     ! Pointers
     TYPE(Species), POINTER :: ThisSpc
+    REAL(fp),      POINTER :: Ptr2data(:,:,:)
 
     ! Error handling
     RC = GC_SUCCESS
@@ -315,6 +331,9 @@ CONTAINS
     State_Chm%ACIDPUR_SAV => NULL()
     State_Chm%BISUL_SAV   => NULL()
 
+    ! Local variables
+    Ptr2data => NULL()
+
     !=====================================================================
     ! Populate the species database object field
     ! (assumes Input_Opt has already been initialized)
@@ -369,38 +388,12 @@ CONTAINS
     !=====================================================================
     ! Allocate and initialize chemical species fields
     !=====================================================================   
-
+    chmID = 'SPC'
     ALLOCATE( State_Chm%Species( IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
     CALL GC_CheckVar( 'State_Chm%Species', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Species = 0.0_fp
-
-    ! Loop over each species
-    DO N = 1, State_Chm%nSpecies
-
-       ! Point to this entry in the species database
-       ThisSpc  => State_Chm%SpcData(N)%Info
-
-       ! Register each species individually )
-       Variable = 'SPC__' // TRIM( ThisSpc%Name )
-       Desc     =  TRIM( Variable ) // ' concentration'
-       Units    = 'TBD'
-       CALL Registry_AddField( am_I_Root    = am_I_Root,                      &
-                               Registry     = State_Chm%Registry,             &
-                               State        = State_Chm%State,                &
-                               Variable     = Variable,                       &
-                               Description  = Desc,                           &
-                               Units        = Units,                          &
-                               Data3d       = State_Chm%Species(:,:,:,N),     &
-                               RC           = RC                             )
-
-       ! Trap errors
-       CALL GC_CheckVar( Variable, 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       ! Free pointer
-       ThisSpc => NULL()
-    ENDDO
+    CALL Register_ChmField( am_I_Root, chmID, State_Chm%Species, State_Chm, RC )
 
     !=====================================================================
     ! Allocate and initialize aerosol area and radius fields
@@ -412,7 +405,7 @@ CONTAINS
        State_Chm%nAero = nAerosol
 
        !------------------------------------------------------------------
-       ! AEROAREA [cm2 cm-3]
+       ! AEROAREA
        !------------------------------------------------------------------
        ALLOCATE( State_Chm%AeroArea( IM, JM, LM, State_Chm%nAero ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AeroArea', 0, RC )
@@ -425,67 +418,48 @@ CONTAINS
           ! Define variable and description for each entry
           SELECT CASE( N )
              CASE( 1  )
-                Variable = 'AEROAREA_MDUST1'
-                Desc     = 'Dry aerosol area for mineral dust (0.15 um)'
+                chmID = 'AEROAREA_MDUST1'
              CASE( 2  )
-                Variable = 'AEROAREA_MDUST2'
-                Desc     = 'Dry aerosol area for mineral dust (0.25 um)'
+                chmID = 'AEROAREA_MDUST2'
              CASE( 3  )
-                Variable = 'AEROAREA_MDUST3'
-                Desc     = 'Dry aerosol area for mineral dust (0.4 um)'
+                chmID = 'AEROAREA_MDUST3'
              CASE( 4  )
-                Variable = 'AEROAREA_MDUST4'
-                Desc     = 'Dry aerosol area for mineral dust (0.8 um)'
+                chmID = 'AEROAREA_MDUST4'
              CASE( 5  )
-                Variable = 'AEROAREA_MDUST5'
-                Desc     = 'Dry aerosol area for mineral dust (1.5 um)'
+                chmID = 'AEROAREA_MDUST5'
              CASE( 6  )
-                Variable = 'AEROAREA_MDUST6'
-                Desc     = 'Dry aerosol area for mineral dust (2.5 um)'
+                chmID = 'AEROAREA_MDUST6'
              CASE( 7  )
-                Variable = 'AEROAREA_MDUST7'
-                Desc     = 'Dry aerosol area for mineral dust (4.0 um)'
+                chmID = 'AEROAREA_MDUST7'
              CASE( 8  )
-                Variable = 'AEROAREA_SULF'
-                Desc     = 'Dry aerosol area for tropospheric sulfate'
+                chmID = 'AEROAREA_SULF'
              CASE( 9  )
-                Variable = 'AEROAREA_BC'
-                Desc     = 'Dry aerosol area for black carbon'
+                chmID = 'AEROAREA_BC'
              CASE( 10 )
-                Variable = 'AEROAREA_OC'
-                Desc     = 'Dry aerosol area for organic carbon'
+                chmID = 'AEROAREA_OC'
              CASE( 11 )
-                Variable = 'AEROAREA_SSA'
-                Desc     = 'Dry aerosol area for sea salt, accumulation mode'
+                chmID = 'AEROAREA_SSA'
              CASE( 12 )
-                Variable = 'AEROAREA_SSC'
-                Desc     = 'Dry aerosol area for sea salt, coarse mode'
+                chmID = 'AEROAREA_SSC'
              CASE( 13 )
-                Variable = 'AEROAREA_BGSULF'
-                Desc     = 'Dry aerosol area for background stratospheric sulfate'
+                chmID = 'AEROAREA_BGSULF'
              CASE( 14 )
-                Variable = 'AEROAREA_ICEI'
-                Desc     = 'Dry aerosol area for irregular ice cloud (Mischenko)'
+                chmID  = 'AEROAREA_ICEI'
+             CASE DEFAULT
+                ErrMsg = 'State_Chm%nAero exceeds the number of defined' &
+                         // ' dry aerosol area categories'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
           END SELECT
 
-          ! Register each varuable individually
-          Units = 'cm2 cm-3'
-          CALL Registry_AddField( am_I_Root   = am_I_Root,                    &
-                                  Registry    = State_Chm%Registry,           &
-                                  State       = State_Chm%State,              &
-                                  Variable    = Variable,                     &
-                                  Description = Desc,                         &
-                                  Units       = Units,                        &
-                                  Data3d      = State_Chm%AeroArea(:,:,:,N),  &
-                                  RC          = RC                           )
-
-          ! Trap errors
-          CALL GC_CheckVar( Variable, 1, RC )
+          ! Register each variable individually
+          CALL Register_ChmField( am_I_Root, chmID, State_Chm%AeroArea, &
+                                  State_Chm, RC,    Ncat=N )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
 
        !------------------------------------------------------------------
-       ! AERORADI [cm]
+       ! AERORADI
        !------------------------------------------------------------------
        ALLOCATE( State_Chm%AeroRadi( IM, JM, LM, State_Chm%nAero ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AeroRadi', 0, RC )
@@ -498,67 +472,48 @@ CONTAINS
           ! Define variable and description for each entry
           SELECT CASE( N )
              CASE( 1  )
-                Variable = 'AERORADI_MDUST1'
-                Desc     = 'Dry aerosol radius for mineral dust (0.15 um)'
+                chmID = 'AERORADI_MDUST1'
              CASE( 2  )
-                Variable = 'AERORADI_MDUST2'
-                Desc     = 'Dry aerosol radius for mineral dust (0.25 um)'
+                chmID = 'AERORADI_MDUST2'
              CASE( 3  )
-                Variable = 'AERORADI_MDUST3'
-                Desc     = 'Dry aerosol radius for mineral dust (0.4 um)'
+                chmID = 'AERORADI_MDUST3'
              CASE( 4  )
-                Variable = 'AERORADI_MDUST4'
-                Desc     = 'Dry aerosol radius for mineral dust (0.8 um)'
+                chmID = 'AERORADI_MDUST4'
              CASE( 5  )
-                Variable = 'AERORADI_MDUST5'
-                Desc     = 'Dry aerosol radius for mineral dust (1.5 um)'
+                chmID = 'AERORADI_MDUST5'
              CASE( 6  )
-                Variable = 'AERORADI_MDUST6'
-                Desc     = 'Dry aerosol radius for mineral dust (2.5 um)'
+                chmID = 'AERORADI_MDUST6'
              CASE( 7  )
-                Variable = 'AERORADI_MDUST7'
-                Desc     = 'Dry aerosol radius for mineral dust (4.0 um)'
+                chmID = 'AERORADI_MDUST7'
              CASE( 8  )
-                Variable = 'AERORADI_SULF'
-                Desc     = 'Dry aerosol radius for tropospheric sulfate'
+                chmID = 'AERORADI_SULF'
              CASE( 9  )
-                Variable = 'AERORADI_BC'
-                Desc     = 'Dry aerosol radius for black carbon'
+                chmID = 'AERORADI_BC'
              CASE( 10 )
-                Variable = 'AERORADI_OC'
-                Desc     = 'Dry aerosol radius for organic carbon'
+                chmID = 'AERORADI_OC'
              CASE( 11 )
-                Variable = 'AERORADI_SSA'
-                Desc     = 'Dry aerosol radius for sea salt, accumulation mode'
+                chmID = 'AERORADI_SSA'
              CASE( 12 )
-                Variable = 'AERORADI_SSC'
-                Desc     = 'Dry aerosol radius for sea salt, coarse mode'
+                chmID = 'AERORADI_SSC'
              CASE( 13 )
-                Variable = 'AERORADI_BGSULF'
-                Desc     = 'Dry aerosol radius for background stratospheric sulfate'
+                chmID = 'AERORADI_BGSULF'
              CASE( 14 )
-                Variable = 'AERORADI_ICEI'
-                Desc     = 'Dry aerosol radius for irregular ice cloud (Mischenko)'
+                chmID = 'AERORADI_ICEI'
+             CASE DEFAULT
+                ErrMsg = 'State_Chm%nAero exceeds the number of defined' &
+                         // ' dry aerosol radius categories'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
           END SELECT
 
           ! Register each variable individually
-          Units = 'cm'
-          CALL Registry_AddField( am_I_Root   = am_I_Root,                    &
-                                  Registry    = State_Chm%Registry,           &
-                                  State       = State_Chm%State,              &
-                                  Variable    = Variable,                     &
-                                  Description = Desc,                         &
-                                  Units       = Units,                        &
-                                  Data3d      = State_Chm%AeroRadi(:,:,:,N),  &
-                                  RC          = RC                           )
-
-          ! Trap errors
-          CALL GC_CheckVar( Variable, 1, RC )
+          CALL Register_ChmField( am_I_Root, chmID, State_Chm%AeroRadi, &
+                                  State_Chm, RC,    Ncat=N )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
 
        !------------------------------------------------------------------
-       ! WETAEROAREA [cm2 cm-3]
+       ! WETAEROAREA
        !------------------------------------------------------------------
        ALLOCATE( State_Chm%WetAeroArea( IM, JM, LM, State_Chm%nAero ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WetAeroArea', 0, RC )
@@ -571,67 +526,48 @@ CONTAINS
           ! Define variable and description for each entry
           SELECT CASE( N )
              CASE( 1  )
-                Variable = 'WETAEROAREA_MDUST1'
-                Desc     = 'Wet aerosol area for mineral dust (0.15 um)'
+                chmID = 'WETAEROAREA_MDUST1'
              CASE( 2  )
-                Variable = 'WETAEROAREA_MDUST2'
-                Desc     = 'Wet aerosol area for mineral dust (0.25 um)'
+                chmID = 'WETAEROAREA_MDUST2'
              CASE( 3  )
-                Variable = 'WETAEROAREA_MDUST3'
-                Desc     = 'Wet aerosol area for mineral dust (0.4 um)'
+                chmID = 'WETAEROAREA_MDUST3'
              CASE( 4  )
-                Variable = 'WETAEROAREA_MDUST4'
-                Desc     = 'Wet aerosol area for mineral dust (0.8 um)'
+                chmID = 'WETAEROAREA_MDUST4'
              CASE( 5  )
-                Variable = 'WETAEROAREA_MDUST5'
-                Desc     = 'Wet aerosol area for mineral dust (1.5 um)'
+                chmID = 'WETAEROAREA_MDUST5'
              CASE( 6  )
-                Variable = 'WETAEROAREA_MDUST6'
-                Desc     = 'Wet aerosol area for mineral dust (2.5 um)'
+                chmID = 'WETAEROAREA_MDUST6'
              CASE( 7  )
-                Variable = 'WETAEROAREA_MDUST7'
-                Desc     = 'Wet aerosol area for mineral dust (4.0 um)'
+                chmID = 'WETAEROAREA_MDUST7'
              CASE( 8  )
-                Variable = 'WETAEROAREA_SULF'
-                Desc     = 'Wet aerosol area for tropospheric sulfate'
+                chmID = 'WETAEROAREA_SULF'
              CASE( 9  )
-                Variable = 'WETAEROAREA_BC'
-                Desc     = 'Wet aerosol area for black carbon'
+                chmID = 'WETAEROAREA_BC'
              CASE( 10 )
-                Variable = 'WETAEROAREA_OC'
-                Desc     = 'Wet aerosol area for organic carbon'
+                chmID = 'WETAEROAREA_OC'
              CASE( 11 )
-                Variable = 'WETAEROAREA_SSA'
-                Desc     = 'Wet aerosol area for sea salt, accumulation mode'
+                chmID = 'WETAEROAREA_SSA'
              CASE( 12 )
-                Variable = 'WETAEROAREA_SSC'
-                Desc     = 'Wet aerosol area for sea salt, coarse mode'
+                chmID = 'WETAEROAREA_SSC'
              CASE( 13 )
-                Variable = 'WETAEROAREA_BGSULF'
-                Desc     = 'Wet aerosol area for background stratospheric sulfate'
+                chmID = 'WETAEROAREA_BGSULF'
              CASE( 14 )
-                Variable = 'WETAEROAREA_ICEI'
-                Desc     = 'Wet aerosol area for irregular ice cloud (Mischenko)'
+                chmID = 'WETAEROAREA_ICEI'
+             CASE DEFAULT
+                ErrMsg = 'State_Chm%nAero exceeds the number of defined' &
+                         // ' wet aerosol area categories'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
           END SELECT
 
           ! Register each varuable individually
-          Units = 'cm2 cm-3'
-          CALL Registry_AddField( am_I_Root   = am_I_Root,                    &
-                                  Registry    = State_Chm%Registry,           &
-                                  State       = State_Chm%State,              &
-                                  Variable    = Variable,                     &
-                                  Description = Desc,                         &
-                                  Units       = Units,                        &
-                                  Data3d   = State_Chm%WetAeroArea(:,:,:,N),  &
-                                  RC          = RC                           )
-
-          ! Trap errors
-          CALL GC_CheckVar( Variable, 1, RC )
+          CALL Register_ChmField( am_I_Root, chmID, State_Chm%WetAeroArea, &
+                                  State_Chm, RC,    Ncat=N )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
 
        !------------------------------------------------------------------
-       ! WETAERORADI [cm]
+       ! WETAERORADI
        !------------------------------------------------------------------
        ALLOCATE( State_Chm%WetAeroRadi( IM, JM, LM, State_Chm%nAero ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WetAeroRadi', 0, RC )
@@ -644,64 +580,46 @@ CONTAINS
           ! Define variable and description for each entry
           SELECT CASE( N )
              CASE( 1  )
-                Variable = 'WETAERORADI_MDUST1'
-                Desc     = 'Wet aerosol radius for mineral dust (0.15 um)'
+                chmID = 'WETAERORADI_MDUST1'
              CASE( 2  )
-                Variable = 'WETAERORADI_MDUST2'
-                Desc     = 'Wet aerosol radius for mineral dust (0.25 um)'
+                chmID = 'WETAERORADI_MDUST2'
              CASE( 3  )
-                Variable = 'WETAERORADI_MDUST3'
-                Desc     = 'Wet aerosol radius for mineral dust (0.4 um)'
+                chmID = 'WETAERORADI_MDUST3'
              CASE( 4  )
-                Variable = 'WETAERORADI_MDUST4'
-                Desc     = 'Wet aerosol radius for mineral dust (0.8 um)'
+                chmID = 'WETAERORADI_MDUST4'
              CASE( 5  )
-                Variable = 'WETAERORADI_MDUST5'
-                Desc     = 'Wet aerosol radius for mineral dust (1.5 um)'
+                chmID = 'WETAERORADI_MDUST5'
              CASE( 6  )
-                Variable = 'WETAERORADI_MDUST6'
-                Desc     = 'Wet aerosol radius for mineral dust (2.5 um)'
+                chmID = 'WETAERORADI_MDUST6'
              CASE( 7  )
-                Variable = 'WETAERORADI_MDUST7'
-                Desc     = 'Wet aerosol radius for mineral dust (4.0 um)'
+                chmID = 'WETAERORADI_MDUST7'
              CASE( 8  )
-                Variable = 'WETAERORADI_SULF'
-                Desc     = 'Wet aerosol radius for tropospheric sulfate'
+                chmID = 'WETAERORADI_SULF'
              CASE( 9  )
-                Variable = 'WETAERORADI_BC'
-                Desc     = 'Wet aerosol radius for black carbon'
+                chmID = 'WETAERORADI_BC'
              CASE( 10 )
-                Variable = 'WETAERORADI_OC'
-                Desc     = 'Wet aerosol radius for organic carbon'
+                chmID = 'WETAERORADI_OC'
              CASE( 11 )
-                Variable = 'WETAERORADI_SSA'
-                Desc     = 'Wet aerosol radius for sea salt, accumulation mode'
+                chmID = 'WETAERORADI_SSA'
              CASE( 12 )
-                Variable = 'WETAERORADI_SSC'
-                Desc     = 'Wet aerosol radius for sea salt, coarse mode'
+                chmID = 'WETAERORADI_SSC'
              CASE( 13 )
-                Variable = 'WETAERORADI_BGSULF'
-                Desc     = 'Wet aerosol radius for background stratospheric sulfate'
+                chmID = 'WETAERORADI_BGSULF'
              CASE( 14 )
-                Variable = 'WETAERORADI_ICEI'
-                Desc     = 'Wet aerosol radius for irregular ice cloud (Mischenko)'
+                chmID = 'WETAERORADI_ICEI'
+             CASE DEFAULT
+                ErrMsg = 'State_Chm%nAero exceeds the number of defined' &
+                         // ' wet aerosol radius categories'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
           END SELECT          
 
           ! Register each variable individually
-          Units = 'cm'
-          CALL Registry_AddField( am_I_Root   = am_I_Root,                    &
-                                  Registry    = State_Chm%Registry,           &
-                                  State       = State_Chm%State,              &
-                                  Variable    = Variable,                     &
-                                  Description = Desc,                         &
-                                  Units       = Units,                        &
-                                  Data3d   = State_Chm%WetAeroRadi(:,:,:,N),  &
-                                  RC          = RC                           )
-
-          ! Trap errors
-          CALL GC_CheckVar( Variable, 1, RC )
+          CALL Register_ChmField( am_I_Root, chmID, State_Chm%WetAeroRadi, &
+                                  State_Chm, RC,    Ncat=N )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
+
     ENDIF
 
     !=====================================================================
@@ -710,90 +628,64 @@ CONTAINS
 #if defined( UCX )
 
     !---------------------------------------------------------------------
-    ! STATE_PSC [1]
+    ! STATE_PSC
     !---------------------------------------------------------------------
+    chmID = 'STATE_PSC'
     ALLOCATE( State_Chm%STATE_PSC( IM, JM, LM ), STAT=RC )
     CALL GC_CheckVar( 'State_Chm%STATE_PSC', 0, RC )    
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%STATE_PSC = 0.0_f4
-
-    Variable = 'STATE_PSC'
-    Desc     = 'Polar stratospheric cloud type (cf Kirner et al 2011, GMD)'
-    Units    = 'count'
-    CALL Registry_AddField( am_I_Root   = am_I_Root,                          &
-                            Registry    = State_Chm%Registry,                 &
-                            State       = State_Chm%State,                    &
-                            Variable    = Variable,                           &
-                            Description = Desc,                               &
-                            Units       = Units,                              &
-                            Data3d_4    = State_Chm%STATE_PSC,                &
-                            RC          = RC                                 )
-
-    Variable = 'State_Chm%STATE_PSC' // TRIM( Variable )
-    CALL GC_CheckVar( Variable, 1, RC )
+    CALL Register_ChmField( am_I_Root, chmID, State_Chm%STATE_PSC, &
+                            State_Chm, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !---------------------------------------------------------------------
-    ! KHETI_SLA [1]
+    ! KHETI_SLA
     !---------------------------------------------------------------------
-    ALLOCATE( State_Chm%KHETI_SLA ( IM, JM, LM, 11  ), STAT=RC )
+    nKHLSA = 11 ! TODO: should this be in CMN_SIZE_Mod?
+    ALLOCATE( State_Chm%KHETI_SLA ( IM, JM, LM, nKHLSA ), STAT=RC )
     CALL GC_CheckVar( 'State_Chm%KHETI_SLA', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%KHETI_SLA = 0.0_fp
 
     ! Loop over all entries
-    DO N = 1, 11
+    DO N = 1, nKHLSA
 
        ! Define variable and description for each entry
        SELECT CASE( N )
           CASE( 1  ) 
-             Variable = 'KHSLA_N2O5+H2O'
-             Desc     = 'Sticking coefficient for N2O5 + H2O reaction'
+             chmID = 'KHSLA_N2O5+H2O'
           CASE( 2  ) 
-             Variable = 'KHSLA_N2O5+HCl'
-             Desc     = 'Sticking coefficient  for N2O5 + H2O reaction'
+             chmID = 'KHSLA_N2O5+HCl'
           CASE( 3  ) 
-             Variable = 'KHSLA_ClNO3+H2O'
-             Desc     = 'Sticking coefficient for ClNO3 + H2O reaction'
+             chmID = 'KHSLA_ClNO3+H2O'
           CASE( 4  ) 
-             Variable = 'KHSLA_ClNO3+HCl'
-             Desc     = 'Sticking coefficient for ClNO3 + HCl reaction'
+             chmID = 'KHSLA_ClNO3+HCl'
           CASE( 5  ) 
-             Variable = 'KHSLA_ClNO3+HBr'
-             Desc     = 'Sticking coefficient for ClNO3 + HBr reaction'
+             chmID = 'KHSLA_ClNO3+HBr'
           CASE( 6  ) 
-             Variable = 'KHSLA_BrNO3+H2O'
-             Desc     = 'Sticking coefficient for BrNO3 + H2O reaction'
+             chmID = 'KHSLA_BrNO3+H2O'
           CASE( 7  ) 
-             Variable = 'KHSLA_BrNO3+HCl'
-             Desc     = 'Sticking coefficient for BrNO3 + HCl reaction'
+             chmID = 'KHSLA_BrNO3+HCl'
           CASE( 8  ) 
-             Variable = 'KHSLA_HOCl+HCl'
-             Desc     = 'Sticking coefficient for HOCl + HCl reaction'
+             chmID = 'KHSLA_HOCl+HCl'
           CASE( 9  ) 
-             Variable = 'KHSLA_HOCl+HBr'
-             Desc     = 'Sticking coefficient for HClr + HBr reaction'
+             chmID = 'KHSLA_HOCl+HBr'
           CASE( 10 ) 
-             Variable = 'KHSLA_HOBr+HCl'
-             Desc     = 'Sticking coefficient for HOBr + HCl reaction'
+             chmID = 'KHSLA_HOBr+HCl'
           CASE( 11 ) 
-             Variable = 'KHSLA_HOBr+HBr'
-             Desc     = 'Sticking coefficient for HOBr + HBr reaction'
+             chmID = 'KHSLA_HOBr+HBr'
+          CASE DEFAULT
+             ErrMsg = 'nKHLSA exceeds the number of defined' &
+                      // ' KHETI_SLA categories'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
        END SELECT
 
-       ! Register each species individually )
-       Units = '1'
-       CALL Registry_AddField( am_I_Root   = am_I_Root,                       &
-                               Registry    = State_Chm%Registry,              &
-                               State       = State_Chm%State,                 &
-                               Variable    = Variable,                        &
-                               Description = Desc,                            &
-                               Units       = Units,                           &
-                               Data3d      = State_Chm%KHETI_SLA(:,:,:,N),    &
-                               RC          = RC                              )
-
-       ! Trap errors
-       CALL GC_CheckVar( Variable, 1, RC )
+       ! Register each species individually
+       !CALL Register_ChmField( am_I_Root, chmID,             &
+       !                        State_Chm%KHETI_SLA(:,:,:,N), &
+       !                        State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDDO
 #endif
@@ -805,171 +697,87 @@ CONTAINS
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
        !------------------------------------------------------------------
-       ! PH_SAV [1]
+       ! PH_SAV
        !------------------------------------------------------------------
+       chmID = 'PH_SAV'
        ALLOCATE( State_Chm%PH_SAV( IM, JM, LM ) , STAT=RC )
        CALL GC_CheckVar( 'State_Chm%PH_SAV', 0, RC )    
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%PH_SAV = 0.0_fp
-
-       Variable = 'PH_SAV'
-       Desc     = 'ISORROPIA aerosol pH'
-       Units    = '1'
-       CALL Registry_AddField( am_I_Root   = am_I_Root,                       &
-                               Registry    = State_Chm%Registry,              &
-                               State       = State_Chm%State,                 &
-                               Variable    = Variable,                        &
-                               Description = Desc,                            &
-                               Units       = Units,                           &
-                               Data3d      = State_Chm%PH_SAV,                &
-                               RC          = RC                              )
-
-       Variable = 'State_Chm%PH_SAV'
-       CALL GC_CheckVar( Variable, 1, RC )
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%PH_SAV, &
+                               State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !------------------------------------------------------------------
-       ! HPLUS_SAV [mol L-1]
+       ! HPLUS_SAV
        !------------------------------------------------------------------
+       chmID = 'HPLUS_SAV'
        ALLOCATE( State_Chm%HPLUS_SAV( IM, JM, LM ) , STAT=RC )
        CALL GC_CheckVar( 'State_Chm%HPLUS_SAV', 0, RC )    
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%HPLUS_SAV = 0.0_fp
-
-       Variable = 'HPLUS_SAV'
-       Desc     = 'ISORROPIA H+ concentration'
-       Units    = 'mol L-1'
-       CALL Registry_AddField( am_I_Root   = am_I_Root,                       &
-                               Registry    = State_Chm%Registry,              &
-                               State       = State_Chm%State,                 &
-                               Variable    = Variable,                        &
-                               Description = Desc,                            &
-                               Units       = Units,                           &
-                               Data3d      = State_Chm%HPLUS_SAV,             &
-                               RC          = RC                              )
-
-       Variable = 'State_Chm%HPLUS_SAV'
-       CALL GC_CheckVar( Variable, 1, RC )
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%HPLUS_SAV, &
+                               State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !------------------------------------------------------------------
-       ! WATER_SAV [ug m-3]
+       ! WATER_SAV
        !------------------------------------------------------------------
+       chmID = 'WATER_SAV'
        ALLOCATE( State_Chm%WATER_SAV( IM, JM, LM ) , STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WATER_SAV', 0, RC )    
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%WATER_SAV = 0.0_fp
-
-       Variable = 'WATER_SAV'
-       Desc     = 'ISORROPIA aerosol water concentration'
-       Units    = 'ug m-3'
-       CALL Registry_AddField( am_I_Root   = am_I_Root,                       &
-                               Registry    = State_Chm%Registry,              &
-                               State       = State_Chm%State,                 &
-                               Variable    = Variable,                        &
-                               Description = Desc,                            &
-                               Units       = Units,                           &
-                               Data3d      = State_Chm%WATER_SAV,             &
-                               RC          = RC                              )
-
-       Variable = 'State_Chm%WATER_SAV'
-       CALL GC_CheckVar( Variable, 1, RC )
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%WATER_SAV, &
+                               State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !------------------------------------------------------------------
-       ! SULRAT_SAV [M]
+       ! SULRAT_SAV
        !------------------------------------------------------------------
+       chmID = 'SULRAT_SAV'
        ALLOCATE( State_Chm%SULRAT_SAV( IM, JM, LM ) , STAT=RC )
        CALL GC_CheckVar( 'State_Chm%SULRAT_SAV', 0, RC )    
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%SULRAT_SAV = 0.0_fp
-
-       Variable = 'SULRAT_SAV'
-       Desc     = 'ISORROPIA sulfate concentration'
-       Units    = 'M'
-       CALL Registry_AddField( am_I_Root   = am_I_Root,                       &
-                               Registry    = State_Chm%Registry,              &
-                               State       = State_Chm%State,                 &
-                               Variable    = Variable,                        &
-                               Description = Desc,                            &
-                               Units       = Units,                           &
-                               Data3d      = State_Chm%SULRAT_SAV,            &
-                               RC          = RC                              )
-
-       Variable = 'State_Chm%SULRAT_SAV'
-       CALL GC_CheckVar( Variable, 1, RC )
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SULRAT_SAV, &
+                               State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !------------------------------------------------------------------
-       ! NARAT_SAV [M]
+       ! NARAT_SAV
        !------------------------------------------------------------------
+       chmID = 'NARAT_SAV'
        ALLOCATE( State_Chm%NARAT_SAV( IM, JM, LM ) , STAT=RC )
        CALL GC_CheckVar( 'State_Chm%NARAT_SAV', 0, RC )    
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%NARAT_SAV = 0.0_fp
-
-       Variable = 'NARAT_SAV'
-       Desc     = 'ISORROPIA sulfate concentration'
-       Units    = 'M'
-       CALL Registry_AddField( am_I_Root   = am_I_Root,                       &
-                               Registry    = State_Chm%Registry,              &
-                               State       = State_Chm%State,                 &
-                               Variable    = Variable,                        &
-                               Description = Desc,                            &
-                               Units       = Units,                           &
-                               Data3d      = State_Chm%NARAT_SAV,             &
-                               RC          = RC                              )
-
-       Variable = 'State_Chm%NARAT_SAV'
-       CALL GC_CheckVar( Variable, 1, RC )
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%NARAT_SAV, &
+                               State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !------------------------------------------------------------------
-       ! ACIDPUR_SAV [1]
+       ! ACIDPUR_SAV
        !------------------------------------------------------------------
+       chmID = 'ACIDPUR_SAV'
        ALLOCATE( State_Chm%ACIDPUR_SAV( IM, JM, LM ) , STAT=RC )
        CALL GC_CheckVar( 'State_Chm%ACIDPUR_SAV', 0, RC )    
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%ACIDPUR_SAV = 0.0_fp
-
-       Variable = 'ACIDPUR_SAV'
-       Desc     = 'ISORROPIA ACIDPUR'
-       Units    = 'M'
-       CALL Registry_AddField( am_I_Root   = am_I_Root,                       &
-                               Registry    = State_Chm%Registry,              &
-                               State       = State_Chm%State,                 &
-                               Variable    = Variable,                        &
-                               Description = Desc,                            &
-                               Units       = Units,                           &
-                               Data3d      = State_Chm%ACIDPUR_SAV,           &
-                               RC          = RC                              )
-
-       Variable = 'State_Chm%ACIDPUR_SAV'
-       CALL GC_CheckVar( Variable, 1, RC )
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%ACIDPUR_SAV, &
+                               State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !------------------------------------------------------------------
-       ! BISUL_SAV [1]
+       ! BISUL_SAV
        !------------------------------------------------------------------
+       chmID = 'BISUL_SAV'
        ALLOCATE( State_Chm%BISUL_SAV( IM, JM, LM ) , STAT=RC )
        CALL GC_CheckVar( 'State_Chm%BISUL_SAV', 0, RC )    
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%BISUL_SAV = 0.0_fp
-
-       Variable = 'BISUL_SAV'
-       Desc     = 'ISORROPIA Bisulfate (general acid) concentration'
-       Units    = 'M'
-       CALL Registry_AddField( am_I_Root   = am_I_Root,                       &
-                               Registry    = State_Chm%Registry,              &
-                               State       = State_Chm%State,                 &
-                               Variable    = Variable,                        &
-                               Description = Desc,                            &
-                               Units       = Units,                           &
-                               Data3d      = State_Chm%BISUL_SAV,             &
-                               RC          = RC                              )
-
-       Variable = 'State_Chm%BISUL_SAV'
-       CALL GC_CheckVar( Variable, 1, RC )
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%BISUL_SAV, &
+                               State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
     ENDIF
@@ -1362,6 +1170,812 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Cleanup_State_Chm
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_Metadata_State_Chm
+!
+! !DESCRIPTION: Subroutine GET\_METADATA\_STATE\_CHM retrieves basic 
+!  information about each State_Chm field.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_Metadata_State_Chm( am_I_Root,  metadataID, Found,      &
+                                     RC,         Desc,       Units,      &
+                                     PerSpecies, Rank,       Type,       &
+                                     VLoc )
+!
+! !USES:
+!
+    USE Registry_Params_Mod
+!
+! !INPUT PARAMETERS:
+! 
+    LOGICAL,             INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+    CHARACTER(LEN=*),    INTENT(IN)  :: metadataID  ! State_Chm field name
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,             INTENT(OUT)           :: Found      ! Item found?
+    INTEGER,             INTENT(OUT)           :: RC         ! Return code
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Desc       ! Long name string
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Units      ! Units string
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: PerSpecies ! Max spc wildcard
+    INTEGER,             INTENT(OUT), OPTIONAL :: Rank       ! # of dimensions
+    INTEGER,             INTENT(OUT), OPTIONAL :: Type       ! Desc of data type
+    INTEGER,             INTENT(OUT), OPTIONAL :: VLoc       ! Vert placement
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  02 Oct 2017 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Name_AllCaps
+    LOGICAL            :: isDesc, isUnits, isRank, isType, isVLoc, isSpecies
+    
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+
+    ! Assume success
+    RC    =  GC_SUCCESS
+    ThisLoc = ' -> at Get_Metadata_State_Chm (in Headers/state_chm_mod.F90)'
+    Found = .TRUE.
+
+    ! Optional arguments present?
+    isDesc    = PRESENT( Desc  )
+    isUnits   = PRESENT( Units )
+    isRank    = PRESENT( Rank  )
+    isType    = PRESENT( Type  )
+    isVLoc    = PRESENT( VLoc  )
+    isSpecies = PRESENT( PerSpecies )
+
+    ! Set defaults for optional arguments. Assume type and vertical 
+    ! location are real (flexible precision) and center unless specified 
+    ! otherwise
+    IF ( isUnits ) Units = ''
+    IF ( isDesc  ) Desc  = ''              
+    IF ( isRank  ) Rank  = -1              ! Initialize # dims as bad value 
+    IF ( isType  ) Type  = KINDVAL_FP      ! Assume real(fp) for State_Chm flds
+    IF ( isVLoc  ) VLoc  = VLocationCenter ! Assume vertically centered
+    IF ( isSpecies ) PerSpecies = ''       ! Assume not per species
+
+    ! Convert name to uppercase
+    Name_AllCaps = To_Uppercase( TRIM( metadataID ) )
+
+    !=======================================================================
+    ! Values for Retrieval (string comparison slow but happens only once)
+    !=======================================================================
+    SELECT CASE ( TRIM( Name_AllCaps ) )
+
+       CASE ( 'SPC' )
+          IF ( isDesc  ) Desc  = 'Concentration for species'
+          IF ( isUnits ) Units = 'varies'
+          IF ( isRank  ) Rank  = 3
+          IF ( isSpecies ) PerSpecies = 'ALL'
+
+       CASE ( 'AEROAREA_MDUST1' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (0.15 um)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROAREA_MDUST2' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (0.25 um)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROAREA_MDUST3' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (0.4 um)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROAREA_MDUST4' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (0.8 um)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROAREA_MDUST5' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (1.5 um)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROAREA_MDUST6' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (2.5 um)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROAREA_MDUST7' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (4.0 um)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROAREA_SULF' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for black carbon'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROAREA_BC' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for black carbon'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROAREA_OC' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for organic carbon'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROAREA_SSA' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for sea salt,' &
+                                 // ' accumulation mode'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROAREA_SSC' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for sea salt, coarse mode'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROAREA_BGSULF' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for background' &
+                                 // ' stratospheric sulfate'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROAREA_ICEI' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for irregular ice cloud' &
+                                 // ' (Mischenko)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AERORADI_MDUST1' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (0.15 um)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AERORADI_MDUST2' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (0.25 um)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AERORADI_MDUST3' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (0.4 um)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AERORADI_MDUST4' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (0.8 um)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AERORADI_MDUST5' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (1.5 um)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AERORADI_MDUST6' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (2.5 um)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AERORADI_MDUST7' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (4.0 um)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AERORADI_SULF' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for tropospheric sulfate'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AERORADI_BC' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for black carbon'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+
+       CASE ( 'AERORADI_OC' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for organic carbon'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AERORADI_SSA' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for sea salt,' & 
+                                 // ' accumulation mode'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AERORADI_SSC' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for sea salt, coarse mode'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AERORADI_BGSULF' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for background' &
+                                 // ' stratospheric sulfate'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AERORADI_ICEI' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for irregular ice' &
+                                 // ' cloud (Mischenko)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+
+       CASE ( 'WETAEROAREA_MDUST1' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (0.15 um)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAEROAREA_MDUST2' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (0.25 um)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAEROAREA_MDUST3' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (0.4 um)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAEROAREA_MDUST4' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (0.8 um)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAEROAREA_MDUST5' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (1.5 um)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAEROAREA_MDUST6' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (2.5 um)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAEROAREA_MDUST7' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (4.0 um)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+
+       CASE ( 'WETAEROAREA_SULF' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol area for tropospheric sulfate'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAEROAREA_BC' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol area for black carbon'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAEROAREA_OC' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol area for organic carbon'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAEROAREA_SSA' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol area for sea salt,' &
+                                 // ' accumulation mode'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAEROAREA_SSC' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol area for sea salt, coarse mode'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAEROAREA_BGSULF' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol area for background' &
+                                 // ' stratospheric sulfate'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAEROAREA_ICEI' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol area for irregular ice cloud' &
+                                 // ' (Mischenko)'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  = 3
+
+
+       CASE ( 'WETAERORADI_MDUST1' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (0.15 um)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAERORADI_MDUST2' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (0.25 um)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAERORADI_MDUST3' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (0.4 um)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAERORADI_MDUST4' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (0.8 um)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAERORADI_MDUST5' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (1.5 um)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAERORADI_MDUST6' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (2.5 um)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAERORADI_MDUST7' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (4.0 um)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAERORADI_SULF' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol radius for tropospheric sulfate'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAERORADI_BC' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol radius for black carbon'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAERORADI_OC' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol radius for organic carbon'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAERORADI_SSA' )
+          IF ( isDesc  ) Desc= 'Wet aerosol radius for sea salt,' &
+                               // ' accumulation mode'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAERORADI_SSC' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol radius for sea salt, coarse mode'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAERORADI_BGSULF' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol radius for background' &
+                                // ' stratospheric sulfate'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WETAERORADI_ICEI' )
+          IF ( isDesc  ) Desc  = 'Wet aerosol radius for irregular ice cloud' &
+                                // ' (Mischenko)'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+#if defined( UCX )
+       CASE ( 'STATE_PSC' )
+          IF ( isDesc  ) Desc  = 'Polar stratospheric cloud type (cf Kirner' &
+                                // ' et al 2011, GMD)'
+          IF ( isUnits ) Units = 'count'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'KHSLA_N2O5+H2O' )
+          IF ( isDesc  ) Desc  = 'Sticking coeeficient for N2O5 + H2O reaction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'KHSLA_N2O5+HCl' )
+          IF ( isDesc  ) Desc  = 'Sticking coeeficient for N2O5 + H2O reaction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'KHSLA_ClNO3+H2O' )
+          IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + H2O reaction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'KHSLA_ClNO3+HCl' )
+          IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + HCl reaction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'KHSLA_ClNO3+HBr' )
+          IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + HBr reaction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'KHSLA_BrNO3+H2O' )
+          IF ( isDesc  ) Desc  = 'Sticking coeeficient for BrNO3 + H2O reaction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'KHSLA_BrNO3+HCl' )
+          IF ( isDesc  ) Desc  = 'Sticking coeeficient for BrNO3 + HCl reaction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'KHSLA_HOCl+HCl' )
+          IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOCl + HCl reaction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'KHSLA_HOCl+HBr' )
+          IF ( isDesc  ) Desc  = 'Sticking coeeficient for HClr + HBr reaction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'KHSLA_HOBr+HCl' )
+          IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOBr + HCl reaction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'KHSLA_HOBr+HBr' )
+          IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOBr + HBr reaction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+#endif
+       ! NOTE: if the rest of these are only used for diagnostics, 
+       !       consider moving to State_Diag and out of State_Chm.
+       CASE ( 'PH_SAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA aerosol pH'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'HPLUS_SAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA H+ concentration'
+          IF ( isUnits ) Units = 'mol L-1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'WATER_SAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA aerosol water concentration'
+          IF ( isUnits ) Units = 'ug m-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'SULRAT_SAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA sulfate concentration'
+          IF ( isUnits ) Units = 'M'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'NARAT_SAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA sulfate concentration'
+          IF ( isUnits ) Units = 'M'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'ACIDPUR_SAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA ACIDPUR'
+          IF ( isUnits ) Units = 'M'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'BISUL_SAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA Bisulfate (general acid)' &
+                                 // ' concentration'
+          IF ( isUnits ) Units = 'M'
+          IF ( isRank  ) Rank  =  3
+
+       CASE DEFAULT
+          ! Need to add better error handling
+          Found = .False.
+          PRINT *, 'WARNING: Metadata not found for State_Chm field: ' &
+                   // TRIM( metadataID )
+          RETURN
+
+    END SELECT
+
+   END SUBROUTINE Get_Metadata_State_Chm
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Register_ChmField_R4_3D
+!
+! !DESCRIPTION:
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Register_ChmField_R4_3D( am_I_Root,  metadataID, Ptr2Data,  &
+                                      State_Chm,  RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
+    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
+    REAL(f4),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+!
+! !OUTPUT PARAMETERS:
+!
+    TYPE(ChmState),    INTENT(INOUT) :: State_Chm       ! Obj for chem state
+
+    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  20 Sep 2017 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!   
+    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)     :: desc, units, perSpecies
+    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
+    INTEGER                :: N, rank, type,  vloc
+    LOGICAL                :: found
+    TYPE(Species), POINTER :: SpcInfo
+
+    ! Initialize
+    RC             = GC_SUCCESS
+    ThisLoc        = ' -> at Register_ChmField_R4_3D ' // &
+                     '(in Headers/state_chm_mod.F90)'
+
+    CALL Get_Metadata_State_Chm( am_I_Root,   metadataID,  Found,  RC,   &
+                                 desc=desc,   units=units, rank=rank,    &
+                                 type=type,   vloc=vloc,                 &
+                                 perSpecies=perSpecies                 )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in Get_Metadata_State_Chm'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    
+    ! If not tied to species then simply register the single field
+    IF ( perSpecies == '' ) THEN
+       
+       ! Check that metadata consistent with data size
+       IF ( rank /= 3 ) THEN
+          ErrMsg = 'Data dims and metadata rank do not match for ' &
+                   // TRIM(metadataID)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       CALL Registry_AddField( am_I_Root    = am_I_Root,            &
+                               Registry     = State_Chm%Registry,   &
+                               State        = State_Chm%State,      &
+                               Variable     = metadataID,           &
+                               Description  = desc,                 &
+                               Units        = units,                &
+                               Data3d_4     = Ptr2Data,             &
+                               RC           = RC                   )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered while registering State_Chm field'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    ELSE
+       ErrMsg = 'Handling of PerSpecies metadata ' // TRIM(perSpecies) // &
+                ' is not implemented for this combo of data type and size'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Register_ChmField_R4_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Register_ChmField_Rfp_3D
+!
+! !DESCRIPTION:
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Register_ChmField_Rfp_3D( am_I_Root,  metadataID, Ptr2Data,  &
+                                       State_Chm,  RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
+    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! State_Chm field ID
+    REAL(fp),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
+    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  20 Sep 2017 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!   
+    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)     :: desc, units, perSpecies
+    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
+    INTEGER                :: N, rank, type,  vloc
+    LOGICAL                :: found
+    TYPE(Species), POINTER :: SpcInfo
+
+    ! Initialize
+    RC             = GC_SUCCESS
+    ThisLoc        = ' -> at Register_ChmField_Rfp_3D ' // &
+                     '(in Headers/state_chm_mod.F90)'
+
+    CALL Get_Metadata_State_Chm( am_I_Root,   metadataID,  Found,  RC,   &
+                                 desc=desc,   units=units, rank=rank,    &
+                                 type=type,   vloc=vloc,                 &
+                                 perSpecies=perSpecies                 )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in Get_Metadata_State_Chm'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    
+    ! If not tied to species then simply register the single field
+    IF ( perSpecies == '' ) THEN
+       
+       ! Check that metadata consistent with data size
+       IF ( rank /= 3 ) THEN
+          ErrMsg = 'Data dims and metadata rank do not match for ' &
+                   // TRIM(metadataID)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       CALL Registry_AddField( am_I_Root    = am_I_Root,            &
+                               Registry     = State_Chm%Registry,   &
+                               State        = State_Chm%State,      &
+                               Variable     = metadataID,           &
+                               Description  = desc,                 &
+                               Units        = units,                &
+                               Data3d       = Ptr2Data,             &
+                               RC           = RC                   )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered while registering State_Chm field'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    ELSE
+       ErrMsg = 'Handling of PerSpecies metadata ' // TRIM(perSpecies) // &
+                ' is not implemented for this combo of data type and size'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Register_ChmField_Rfp_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Register_ChmField_Rfp_4D
+!
+! !DESCRIPTION:
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Register_ChmField_Rfp_4D( am_I_Root,  metadataID, Ptr2Data,  &
+                                       State_Chm,  RC,         Ncat )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,           INTENT(IN)    :: am_I_Root         ! Root CPU?
+    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID        ! State_Chm field id
+    REAL(fp),          POINTER       :: Ptr2Data(:,:,:,:) ! pointer to data
+    TYPE(ChmState),    INTENT(IN)    :: State_Chm         ! Obj for chem state
+    INTEGER,           OPTIONAL      :: Ncat              ! category index
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  20 Sep 2017 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!   
+    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)     :: desc, units, perSpecies
+    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
+    INTEGER                :: N, rank, type,  vloc
+    LOGICAL                :: found
+    TYPE(Species), POINTER :: SpcInfo
+
+    ! Initialize
+    RC             = GC_SUCCESS
+    ThisLoc        = ' -> at Register_ChmField_Rfp_4D ' // &
+                     '(in Headers/state_chm_mod.F90)'
+
+    CALL Get_Metadata_State_Chm( am_I_Root,   metadataID,  Found,  RC,   &
+                                 desc=desc,   units=units, rank=rank,    &
+                                 type=type,   vloc=vloc,                 &
+                                 perSpecies=perSpecies                 )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in Get_Metadata_State_Chm'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Check that metadata consistent with data size
+    IF ( rank /= 3 ) THEN
+       ErrMsg = 'Data dims and metadata rank do not match for ' &
+                // TRIM(metadataID)
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    
+    ! If tied to all species then register each one
+    IF ( perSpecies == 'ALL' ) THEN       
+       DO N = 1, State_Chm%nSpecies
+          SpcInfo  => State_Chm%SpcData(N)%Info
+          thisSpcName = TRIM( metadataID ) // '__' // TRIM( SpcInfo%Name )
+          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
+                                  Registry     = State_Chm%Registry ,  &
+                                  State        = State_Chm%State,      &
+                                  Variable     = thisSpcName,          &
+                                  Description  = thisSpcDesc,          &
+                                  Units        = units,                &
+                                  Data3d       = Ptr2Data(:,:,:,N),    &
+                                  RC           = RC                   )
+          SpcInfo => NULL()
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered while registering State_Chm field'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+    ! If tied to a given 4th index of the array, only registry that one
+    ELSE IF ( PRESENT(Ncat) ) THEN
+       CALL Registry_AddField( am_I_Root    = am_I_Root,            &
+                               Registry     = State_Chm%Registry ,  &
+                               State        = State_Chm%State,      &
+                               Variable     = thisSpcName,          &
+                               Description  = thisSpcDesc,          &
+                               Units        = units,                &
+                               Data3d       = Ptr2Data(:,:,:,Ncat), &
+                               RC           = RC                   )
+    ELSE
+       ErrMsg = 'Handling of PerSpecies metadata ' // TRIM(perSpecies) // &
+                ' is not implemented for this combo of data type and size'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Register_ChmField_Rfp_4D
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

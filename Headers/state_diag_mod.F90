@@ -472,7 +472,7 @@ CONTAINS
                                   type=type,   vloc=vloc,                 &
                                   perSpecies=perSpecies                 )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_DiagField_Metadata'
+       ErrMsg = 'Error encountered in Get_Metadata_State_Diag'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -677,7 +677,7 @@ CONTAINS
                                   type=type,   vloc=vloc,                 &
                                   perSpecies=perSpecies                 )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_DiagField_Metadata'
+       ErrMsg = 'Error encountered in Get_Metadata_State_Diag'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -881,7 +881,7 @@ CONTAINS
                                   type=type,   vloc=vloc,                 &
                                   perSpecies=perSpecies                 )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_DiagField_Metadata'
+       ErrMsg = 'Error encountered in Get_Metadata_State_Diag'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF

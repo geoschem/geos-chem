@@ -168,8 +168,6 @@ CONTAINS
        CALL StrSplit( name, '_', SubStrs, N )
        IF ( SubStrs(1) == 'MET' .or. SubStrs(1) == 'CHEM' ) THEN
           state = TRIM( SubStrs(1) )
-       ELSEIF ( SubStrs(1) == 'SPC' ) THEN
-          state = 'GCHP_internal' 
        ELSE
           state = 'DIAG'
        ENDIF
