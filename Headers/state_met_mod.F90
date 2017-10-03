@@ -1946,8 +1946,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Metadata_State_Met( am_I_Root, metadataID,  Desc, Units, &
-                                     Rank,      Type,  VLoc, RC )
+  SUBROUTINE Get_Metadata_State_Met( am_I_Root, metadataID, Found,  &
+                                     RC,        Desc,       Units,  &
+                                     Rank,      Type,       VLoc )
 !
 ! !USES:
 !
@@ -1956,13 +1957,12 @@ CONTAINS
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,             INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
-    CHARACTER(LEN=*),    INTENT(IN)  :: metadataID       ! Sate_Met field name
+    CHARACTER(LEN=*),    INTENT(IN)  :: metadataID ! State_Met field ID
 !
 ! !OUTPUT PARAMETERS:
 !
+    LOGICAL,             INTENT(OUT) :: Found      ! Item found?
     INTEGER,             INTENT(OUT) :: RC         ! Return code
-
-    ! Optional outputs
     CHARACTER(LEN=255),  OPTIONAL    :: Desc       ! Long name string
     CHARACTER(LEN=255),  OPTIONAL    :: Units      ! Units string
     INTEGER,             OPTIONAL    :: Rank       ! # of dimensions
@@ -1979,9 +1979,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Name_AllCaps
     LOGICAL            :: isDesc, isUnits, isRank, isType, isVLoc
-    
+
     !=======================================================================
     ! Initialize
     !=======================================================================
@@ -1989,6 +1989,7 @@ CONTAINS
     ! Assume success
     RC    =  GC_SUCCESS
     ThisLoc = ' -> at Get_Metadata_State_Met (in Headers/state_met_mod.F90)'
+    Found = .TRUE.
 
     ! Optional arguments present?
     isDesc  = PRESENT( Desc  )
@@ -2006,10 +2007,13 @@ CONTAINS
     IF ( isType  ) Type  = KINDVAL_FP      ! Assume real with flex precision
     IF ( isVLoc  ) VLoc  = VLocationCenter ! Assume centered
 
+    ! Convert name to uppercase
+    Name_AllCaps = To_Uppercase( TRIM( metadataID ) )
+
     !=======================================================================
     ! Values for Retrieval (string comparison slow but happens only once)
     !=======================================================================
-    SELECT CASE ( TRIM(metadataID) )
+    SELECT CASE ( TRIM( Name_AllCaps) )
 
        CASE ( 'ALBD' )
           IF ( isDesc  ) Desc  = 'Visible surface albedo'
@@ -2206,7 +2210,7 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'SUNCOSmid' )
+       CASE ( 'SUNCOSMID' )
           IF ( isDesc  ) Desc  = 'Cosine of solar zenith angle, at ' // &
                                  'midpoint of chemistry timestep'
           IF ( isUnits ) Units = '1'
@@ -2644,7 +2648,9 @@ CONTAINS
           IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE DEFAULT
-          ErrMsg = 'No information available for field: ' // TRIM( metadataID )
+          Found = .False.
+          ErrMsg = 'Metadata not found for State_Met field ID: ' &
+                   // TRIM( metadataID )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
 
@@ -2699,6 +2705,7 @@ CONTAINS
 !   
     CHARACTER(LEN=255)     :: desc, units, ErrMsg, ErrMsg_reg, ThisLoc
     INTEGER                :: rank, type,  vloc
+    LOGICAL                :: found
 
     ! Initialize
     RC = GC_SUCCESS
@@ -2706,9 +2713,9 @@ CONTAINS
     ErrMsg_reg = 'Error encountered while registering State_Met field'
 
     ! Get metadata
-    CALL Get_Metadata_State_Met( am_I_Root,   TRIM(metadataID),  desc=desc, &
-                                 units=units, rank=rank,      type=type, &
-                                 vloc=vloc,   RC=RC                     )
+    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC, &
+                                 desc=desc, units=units, rank=rank, &
+                                 type=type, vloc=vloc )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
@@ -2774,6 +2781,7 @@ CONTAINS
 !   
     CHARACTER(LEN=255)     :: desc, units, ErrMsg, ErrMsg_reg, ThisLoc
     INTEGER                :: rank, type,  vloc
+    LOGICAL                :: found
 
     ! Initialize
     RC = GC_SUCCESS
@@ -2781,9 +2789,9 @@ CONTAINS
     ErrMsg_reg = 'Error encountered while registering State_Met field'
 
     ! Get metadata
-    CALL Get_Metadata_State_Met( am_I_Root,   TRIM(metadataID), desc=desc, &
-                                 units=units, rank=rank,        type=type, &
-                                 vloc=vloc,   RC=RC                     )
+    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC, &
+                                 desc=desc, units=units, rank=rank, &
+                                 type=type, vloc=vloc )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
@@ -2849,6 +2857,7 @@ CONTAINS
 !   
     CHARACTER(LEN=255)     :: desc, units, ErrMsg, ErrMsg_reg, ThisLoc
     INTEGER                :: rank, type,  vloc
+    LOGICAL                :: found
 
     ! Initialize
     RC = GC_SUCCESS
@@ -2856,9 +2865,9 @@ CONTAINS
     ErrMsg_reg = 'Error encountered while registering State_Met field'
 
     ! Get metadata
-    CALL Get_Metadata_State_Met( am_I_Root,   TRIM(metadataID), desc=desc, &
-                                 units=units, rank=rank,        type=type, &
-                                 vloc=vloc,   RC=RC                     )
+    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC, &
+                                 desc=desc, units=units, rank=rank, &
+                                 type=type, vloc=vloc )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
@@ -2924,6 +2933,7 @@ CONTAINS
 !   
     CHARACTER(LEN=255)     :: desc, units, ErrMsg, ErrMsg_reg, ThisLoc
     INTEGER                :: rank, type,  vloc
+    LOGICAL                :: found
 
     ! Initialize
     RC = GC_SUCCESS
@@ -2931,9 +2941,9 @@ CONTAINS
     ErrMsg_reg = 'Error encountered while registering State_Met field'
 
     ! Get metadata
-    CALL Get_Metadata_State_Met( am_I_Root,   TRIM(metadataID), desc=desc, &
-                                 units=units, rank=rank,        type=type, &
-                                 vloc=vloc,   RC=RC                     )
+    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC, &
+                                 desc=desc, units=units, rank=rank, &
+                                 type=type, vloc=vloc )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN

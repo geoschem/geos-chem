@@ -333,9 +333,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Metadata_State_Diag( am_I_Root, Name,   Found,      RC,   &
-                                      Desc,      Units,  PerSpecies, Rank, &
-                                      Type,      VLoc )
+  SUBROUTINE Get_Metadata_State_Diag( am_I_Root,  metadataID, Found,    &
+                                      RC,         Desc,       Units,    &
+                                      PerSpecies, Rank,       Type,     &
+                                      VLoc )
 !
 ! !USES:
 !
@@ -344,7 +345,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,             INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
-    CHARACTER(LEN=*),    INTENT(IN)  :: Name       ! State_Diag field name
+    CHARACTER(LEN=*),    INTENT(IN)  :: metadataID ! State_Diag field ID
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -398,7 +399,7 @@ CONTAINS
     IF ( isSpecies ) PerSpecies = ''       ! Assume not per species
 
     ! Convert name to uppercase
-    Name_AllCaps = To_Uppercase( TRIM( Name ) )
+    Name_AllCaps = To_Uppercase( TRIM( metadataID ) )
 
     !=======================================================================
     ! Values for Retrieval (string comparison slow but happens only once)
@@ -430,10 +431,9 @@ CONTAINS
           IF ( isSpecies ) PerSpecies = 'ALL' ! TODO: fix species mapping
 
        CASE DEFAULT
-          ! Need to add better error handling
           Found = .False.
-          ErrMsg = 'WARNING: Metadata not found for State_Diag field: ' &
-                   // TRIM( Name )
+          ErrMsg = 'Metadata not found for State_Diag field ID: ' &
+                   // TRIM( metadataID )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
 
