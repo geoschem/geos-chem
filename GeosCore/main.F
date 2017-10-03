@@ -1,4 +1,4 @@
-!BOC
+!     BOC
 #if !defined(ESMF_)
 !EOC
 !------------------------------------------------------------------------------
@@ -568,11 +568,14 @@
       historyConfigFile = 'HISTORY.rc' ! cannot use Input_Opt variable in GCHP
       CALL Init_DiagList( am_I_Root, historyConfigFile, Diag_List, RC )
 
-      ! Initialize Input_Opt, State_Chem, State_Met, objects. 
-      ! (bmy, 3/4/13)
-      !
+      ! Initialize Input_Opt, State_Chem, and State_Met objects (bmy, 3/4/13)
       CALL GC_Init_All( am_I_Root, Diag_List,  Input_Opt, 
      &                  State_Chm, State_Diag, State_Met, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered during initialization!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+         
       !
       ! Also allocate arrays in GEOS-Chem modules that have not yet
       ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 

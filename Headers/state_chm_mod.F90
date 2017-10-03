@@ -35,7 +35,7 @@ MODULE State_Chm_Mod
   PUBLIC :: Init_State_Chm
   PUBLIC :: Cleanup_State_Chm
   PUBLIC :: Get_Metadata_State_Chm
-  PUBLIC :: Ind_ ! consider moving to species database (ewl)
+  PUBLIC :: Ind_
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
@@ -43,7 +43,9 @@ MODULE State_Chm_Mod
 !
 ! !PRIVATE DATA MEMBERS:
 !
-  TYPE(SpcPtr), PRIVATE, POINTER :: SpcDataLocal(:)  ! Local version of StateChm for  
+  TYPE(SpcPtr), PRIVATE, POINTER :: SpcDataLocal(:)  ! Local pointer to
+                                                     ! StateChm%SpcData for
+                                                     ! availability to IND_  
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -165,7 +167,7 @@ MODULE State_Chm_Mod
 !  30 Jun 2017 - R. Yantosca - Now register variables of State_Chm
 !  31 Jul 2017 - R. Yantosca - Add fixes in registering ISORROPIA *_SAV fields
 !  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Chm and Print_State_Chm
-!  02 Oct 2017 - E. Lundgren - Abstract metadata and routine at add to Registry
+!  02 Oct 2017 - E. Lundgren - Abstract metadata and routine to add to Registry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -342,6 +344,7 @@ CONTAINS
                                 Input_Opt = Input_Opt,          &
                                 SpcData   = State_Chm%SpcData,  &
                                 RC        = RC                 )
+    SpcDataLocal => State_Chm%SpcData
 
     !=====================================================================
     ! Determine the number of advected, drydep, wetdep, and total species
@@ -385,6 +388,66 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_WetDep = 0
 
+    !=======================================================================
+    ! Set up the species mapping vectors
+    !=======================================================================
+    IF ( am_I_Root ) THEN
+       WRITE( 6,'(/,a)' ) 'ADVECTED SPECIES MENU'
+       WRITE( 6,'(  a)' ) REPEAT( '-', 48 )
+       WRITE( 6,'(  a)' ) '  # Species Name  g/mole'
+    ENDIF
+
+    ! Loop over all species
+    DO N = 1, State_Chm%nSpecies
+
+       ! GEOS-Chem Species Database entry for species # N
+       ThisSpc => State_Chm%SpcData(N)%Info
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for ADVECTED SPECIES
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_Advected ) THEN
+
+          ! Update the mapping vector of advected species
+          C                         = ThisSpc%AdvectId
+          State_Chm%Map_Advect(C)   = ThisSpc%ModelId
+          
+          ! Print to screen
+          IF ( am_I_Root ) THEN
+             WRITE( 6, 100 ) ThisSpc%ModelId, ThisSpc%Name, ThisSpc%MW_g
+          ENDIF
+
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for DRYDEP SPECIES
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_DryDep ) THEN
+          C                         = ThisSpc%DryDepId
+          State_Chm%Map_Drydep(C)   = ThisSpc%ModelId
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for SPECIES IN THE KPP MECHANISM
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_Kpp ) THEN
+          C                         = ThisSpc%KppSpcId
+          State_Chm%Map_KppSpc(C)   = ThisSpc%ModelId
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for SPECIES IN THE KPP MECHANISM
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_WetDep ) THEN
+          C                         = ThisSpc%WetDepId
+          State_Chm%Map_WetDep(C)   = ThisSpc%ModelId
+       ENDIF
+
+       ! Free pointer
+       ThisSpc => NULL()
+
+    ENDDO
+
     !=====================================================================
     ! Allocate and initialize chemical species fields
     !=====================================================================   
@@ -412,10 +475,10 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%AeroArea = 0.0_fp
 
-       ! Loop over all entries
+       ! Loop over all entries to register each category individually
        DO N = 1, State_Chm%nAero
 
-          ! Define variable and description for each entry
+          ! Define identifying string
           SELECT CASE( N )
              CASE( 1  )
                 chmID = 'AEROAREA_MDUST1'
@@ -452,7 +515,6 @@ CONTAINS
                 RETURN
           END SELECT
 
-          ! Register each variable individually
           CALL Register_ChmField( am_I_Root, chmID, State_Chm%AeroArea, &
                                   State_Chm, RC,    Ncat=N )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -466,10 +528,10 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%AeroRadi    = 0.0_fp
 
-       ! Loop over all entries
+       ! Loop over all entries to register each category individually
        DO N = 1, State_Chm%nAero
 
-          ! Define variable and description for each entry
+          ! Define identifying string
           SELECT CASE( N )
              CASE( 1  )
                 chmID = 'AERORADI_MDUST1'
@@ -506,7 +568,6 @@ CONTAINS
                 RETURN
           END SELECT
 
-          ! Register each variable individually
           CALL Register_ChmField( am_I_Root, chmID, State_Chm%AeroRadi, &
                                   State_Chm, RC,    Ncat=N )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -520,10 +581,10 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%WetAeroArea = 0.0_fp
 
-       ! Loop over all entries
+       ! Loop over all entries to register each category individually
        DO N = 1, State_Chm%nAero
 
-          ! Define variable and description for each entry
+          ! Define identifying string
           SELECT CASE( N )
              CASE( 1  )
                 chmID = 'WETAEROAREA_MDUST1'
@@ -560,7 +621,6 @@ CONTAINS
                 RETURN
           END SELECT
 
-          ! Register each varuable individually
           CALL Register_ChmField( am_I_Root, chmID, State_Chm%WetAeroArea, &
                                   State_Chm, RC,    Ncat=N )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -574,10 +634,10 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%WetAeroRadi = 0.0_fp
 
-       ! Loop over all entries
+       ! Loop over all entries to register each category individually
        DO N = 1, State_Chm%nAero
 
-          ! Define variable and description for each entry
+          ! Define identifying string
           SELECT CASE( N )
              CASE( 1  )
                 chmID = 'WETAERORADI_MDUST1'
@@ -614,7 +674,6 @@ CONTAINS
                 RETURN
           END SELECT          
 
-          ! Register each variable individually
           CALL Register_ChmField( am_I_Root, chmID, State_Chm%WetAeroRadi, &
                                   State_Chm, RC,    Ncat=N )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -648,10 +707,10 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%KHETI_SLA = 0.0_fp
 
-    ! Loop over all entries
+    ! Loop over all entries to register each category individually
     DO N = 1, nKHLSA
 
-       ! Define variable and description for each entry
+       ! Define identifying string
        SELECT CASE( N )
           CASE( 1  ) 
              chmID = 'KHSLA_N2O5+H2O'
@@ -682,10 +741,8 @@ CONTAINS
              RETURN
        END SELECT
 
-       ! Register each species individually
-       !CALL Register_ChmField( am_I_Root, chmID,             &
-       !                        State_Chm%KHETI_SLA(:,:,:,N), &
-       !                        State_Chm, RC )
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%KHETI_SLA, &
+                               State_Chm, RC,    Ncat=N )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDDO
 #endif
@@ -795,73 +852,6 @@ CONTAINS
                          ShortFormat = .TRUE.,                &
                          RC          = RC                    )
 
-    ! Trap error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !=======================================================================
-    ! Set up the species mapping vectors
-    !=======================================================================
-    IF ( am_I_Root ) THEN
-       WRITE( 6,'(/,a)' ) 'ADVECTED SPECIES MENU'
-       WRITE( 6,'(  a)' ) REPEAT( '-', 48 )
-       WRITE( 6,'(  a)' ) '  # Species Name  g/mole'
-    ENDIF
-
-    ! Loop over all species
-    DO N = 1, State_Chm%nSpecies
-
-       ! GEOS-Chem Species Database entry for species # N
-       ThisSpc => State_Chm%SpcData(N)%Info
-
-       !--------------------------------------------------------------------
-       ! Set up the mapping for ADVECTED SPECIES
-       !--------------------------------------------------------------------
-       IF ( ThisSpc%Is_Advected ) THEN
-
-          ! Update the mapping vector of advected species
-          C                         = ThisSpc%AdvectId
-          State_Chm%Map_Advect(C)   = ThisSpc%ModelId
-          
-          ! Print to screen
-          IF ( am_I_Root ) THEN
-             WRITE( 6, 100 ) ThisSpc%ModelId, ThisSpc%Name, ThisSpc%MW_g
-          ENDIF
-
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Set up the mapping for DRYDEP SPECIES
-       !--------------------------------------------------------------------
-       IF ( ThisSpc%Is_DryDep ) THEN
-          C                         = ThisSpc%DryDepId
-          State_Chm%Map_Drydep(C)   = ThisSpc%ModelId
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Set up the mapping for SPECIES IN THE KPP MECHANISM
-       !--------------------------------------------------------------------
-       IF ( ThisSpc%Is_Kpp ) THEN
-          C                         = ThisSpc%KppSpcId
-          State_Chm%Map_KppSpc(C)   = ThisSpc%ModelId
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Set up the mapping for SPECIES IN THE KPP MECHANISM
-       !--------------------------------------------------------------------
-       IF ( ThisSpc%Is_WetDep ) THEN
-          C                         = ThisSpc%WetDepId
-          State_Chm%Map_WetDep(C)   = ThisSpc%ModelId
-       ENDIF
-
-       ! Free pointer
-       ThisSpc => NULL()
-
-    ENDDO
-
     !=======================================================================
     ! Special handling for the Hg and tagHg  simulations: get the # of Hg
     ! categories for total & tagged tracers from the species database
@@ -937,11 +927,16 @@ CONTAINS
        
     ENDIF
    
-
     !=======================================================================
     ! Cleanup and quit
     !=======================================================================
-    SpcDataLocal => State_Chm%SpcData
+
+    ! Trap error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     ! Free pointer for safety's sake
     ThisSpc => NULL()
@@ -1410,7 +1405,6 @@ CONTAINS
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-
        CASE ( 'WETAEROAREA_MDUST1' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (0.15 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
@@ -1559,7 +1553,6 @@ CONTAINS
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-#if defined( UCX )
        CASE ( 'STATE_PSC' )
           IF ( isDesc  ) Desc  = 'Polar stratospheric cloud type (cf Kirner' &
                                 // ' et al 2011, GMD)'
@@ -1571,57 +1564,56 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_N2O5+HCl' )
+       CASE ( 'KHSLA_N2O5+HCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for N2O5 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_ClNO3+H2O' )
+       CASE ( 'KHSLA_CLNO3+H2O' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_ClNO3+HCl' )
+       CASE ( 'KHSLA_CLNO3+HCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_ClNO3+HBr' )
+       CASE ( 'KHSLA_CLNO3+HBR' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + HBr reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_BrNO3+H2O' )
+       CASE ( 'KHSLA_BRNO3+H2O' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for BrNO3 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_BrNO3+HCl' )
+       CASE ( 'KHSLA_BRNO3+HCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for BrNO3 + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_HOCl+HCl' )
+       CASE ( 'KHSLA_HOCL+HCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOCl + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_HOCl+HBr' )
+       CASE ( 'KHSLA_HOCL+HBR' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for HClr + HBr reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_HOBr+HCl' )
+       CASE ( 'KHSLA_HOBR+HCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOBr + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_HOBr+HBr' )
+       CASE ( 'KHSLA_HOBR+HBR' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOBr + HBr reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-#endif
        ! NOTE: if the rest of these are only used for diagnostics, 
        !       consider moving to State_Diag and out of State_Chm.
        CASE ( 'PH_SAV' )
@@ -1661,10 +1653,11 @@ CONTAINS
           IF ( isRank  ) Rank  =  3
 
        CASE DEFAULT
-          ! Need to add better error handling
           Found = .False.
-          PRINT *, 'WARNING: Metadata not found for State_Chm field: ' &
-                   // TRIM( metadataID )
+          ErrMsg = 'Metadata not found for State_Chm field ' // &
+                   TRIM( metadataID ) // ' when search for all caps name ' &
+                   // TRIM( Name_AllCaps )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
 
     END SELECT
@@ -1694,13 +1687,10 @@ CONTAINS
     LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
     CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
     REAL(f4),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
+    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-!
-! !OUTPUT PARAMETERS:
-!
-    TYPE(ChmState),    INTENT(INOUT) :: State_Chm       ! Obj for chem state
 
     INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
 !
@@ -1714,7 +1704,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, perSpecies
     CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
     INTEGER                :: N, rank, type,  vloc
@@ -1722,17 +1712,15 @@ CONTAINS
     TYPE(Species), POINTER :: SpcInfo
 
     ! Initialize
-    RC             = GC_SUCCESS
-    ThisLoc        = ' -> at Register_ChmField_R4_3D ' // &
-                     '(in Headers/state_chm_mod.F90)'
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_ChmField_R4_3D (in Headers/state_chm_mod.F90)'
+    ErrMsg_reg = 'Error encountered while registering State_Chm field'
 
-    CALL Get_Metadata_State_Chm( am_I_Root,   metadataID,  Found,  RC,   &
-                                 desc=desc,   units=units, rank=rank,    &
-                                 type=type,   vloc=vloc,                 &
-                                 perSpecies=perSpecies                 )
+    CALL Get_Metadata_State_Chm( am_I_Root, metadataID,  Found,  RC,   &
+                                 desc=desc, units=units, rank=rank,    &
+                                 type=type, vloc=vloc, perSpecies=perSpecies )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_Metadata_State_Chm'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
     
@@ -1756,8 +1744,7 @@ CONTAINS
                                Data3d_4     = Ptr2Data,             &
                                RC           = RC                   )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered while registering State_Chm field'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
           RETURN
        ENDIF
 
@@ -1782,8 +1769,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_ChmField_Rfp_3D( am_I_Root,  metadataID, Ptr2Data,  &
-                                       State_Chm,  RC )
+  SUBROUTINE Register_ChmField_Rfp_3D( am_I_Root, metadataID, Ptr2Data,  &
+                                       State_Chm, RC )
 !
 ! !USES:
 !
@@ -1809,7 +1796,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, perSpecies
     CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
     INTEGER                :: N, rank, type,  vloc
@@ -1817,17 +1804,15 @@ CONTAINS
     TYPE(Species), POINTER :: SpcInfo
 
     ! Initialize
-    RC             = GC_SUCCESS
-    ThisLoc        = ' -> at Register_ChmField_Rfp_3D ' // &
-                     '(in Headers/state_chm_mod.F90)'
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_ChmField_Rfp_3D (in Headers/state_chm_mod.F90)'
+    ErrMsg_reg = 'Error encountered while registering State_Chm field'
 
-    CALL Get_Metadata_State_Chm( am_I_Root,   metadataID,  Found,  RC,   &
-                                 desc=desc,   units=units, rank=rank,    &
-                                 type=type,   vloc=vloc,                 &
-                                 perSpecies=perSpecies                 )
+    CALL Get_Metadata_State_Chm( am_I_Root, metadataID,  Found,  RC,   &
+                                 desc=desc, units=units, rank=rank,    &
+                                 type=type, vloc=vloc, perSpecies=perSpecies )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_Metadata_State_Chm'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
     
@@ -1850,8 +1835,7 @@ CONTAINS
                                Data3d       = Ptr2Data,             &
                                RC           = RC                   )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered while registering State_Chm field'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
           RETURN
        ENDIF
 
@@ -1907,7 +1891,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, perSpecies
     CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
     INTEGER                :: N, rank, type,  vloc
@@ -1915,17 +1899,15 @@ CONTAINS
     TYPE(Species), POINTER :: SpcInfo
 
     ! Initialize
-    RC             = GC_SUCCESS
-    ThisLoc        = ' -> at Register_ChmField_Rfp_4D ' // &
-                     '(in Headers/state_chm_mod.F90)'
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_ChmField_Rfp_4D (in Headers/state_chm_mod.F90)'
+    ErrMsg_reg = 'Error encountered while registering State_Chm field'
 
-    CALL Get_Metadata_State_Chm( am_I_Root,   metadataID,  Found,  RC,   &
-                                 desc=desc,   units=units, rank=rank,    &
-                                 type=type,   vloc=vloc,                 &
-                                 perSpecies=perSpecies                 )
+    CALL Get_Metadata_State_Chm( am_I_Root, metadataID,  Found,  RC,   &
+                                 desc=desc, units=units, rank=rank,    &
+                                 type=type, vloc=vloc, perSpecies=perSpecies )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_Metadata_State_Chm'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -1953,18 +1935,17 @@ CONTAINS
                                   RC           = RC                   )
           SpcInfo => NULL()
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered while registering State_Chm field'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
              RETURN
           ENDIF
        ENDDO
-    ! If tied to a given 4th index of the array, only registry that one
+    ! If tied to a given category, only registry that one
     ELSE IF ( PRESENT(Ncat) ) THEN
        CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                Registry     = State_Chm%Registry ,  &
                                State        = State_Chm%State,      &
-                               Variable     = thisSpcName,          &
-                               Description  = thisSpcDesc,          &
+                               Variable     = metadataID ,          &
+                               Description  = desc,                 &
                                Units        = units,                &
                                Data3d       = Ptr2Data(:,:,:,Ncat), &
                                RC           = RC                   )

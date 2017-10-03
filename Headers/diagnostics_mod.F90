@@ -7,7 +7,9 @@
 !
 ! !DESCRIPTION: Module diagnostics\_mod.F90 contains the derived types
 !  and subroutines used for reading and storing user-configured diagnostic
-!  information.
+!  information from the history configuration file. The diagnostics list is
+!  used to allocate diagnostics stored in container State_Diag and to 
+!  declare exports in GCHP. It does not store collection information.
 !
 ! !INTERFACE:
 !
@@ -31,7 +33,7 @@ MODULE Diagnostics_Mod
 ! !PRIVATE MEMBER FUNCTIONS
 !
   PRIVATE :: Init_DiagItem
-  PRIVATE :: Append_DiagList
+  PRIVATE :: InsertBeginning_DiagList
   PRIVATE :: Search_DiagList
   PRIVATE :: ReadOneLine ! copied from history_mod. Consider consolidating.
 !
@@ -42,11 +44,10 @@ MODULE Diagnostics_Mod
   !=========================================================================
   TYPE, PUBLIC :: DgnList
      TYPE(DgnItem), POINTER  :: head
-     INTEGER                 :: numItems
   END TYPE DgnList
 
   !=========================================================================
-  ! Derived type for Diagnostics Item (unique item in HISTORY.rc)
+  ! Derived type for Diagnostics Item (unique name in HISTORY.rc)
   !=========================================================================
   TYPE, PUBLIC :: DgnItem
      CHARACTER(LEN=63)      :: name 
@@ -67,7 +68,7 @@ MODULE Diagnostics_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!              
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -125,7 +126,6 @@ CONTAINS
 
     ! Create DiagList object
     DiagList%head => NULL()
-    DiagList%numItems = 0
 
     ! Open the file
     fId = FindFreeLun()
@@ -232,7 +232,7 @@ CONTAINS
        ENDIF
     
        ! Add new DiagItem to linked list
-       CALL Append_DiagList( am_I_Root, NewDiagItem, DiagList, RC )
+       CALL InsertBeginning_DiagList( am_I_Root, NewDiagItem, DiagList, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
     ENDDO
@@ -243,7 +243,7 @@ CONTAINS
   END SUBROUTINE Init_DiagList
 !EOC
 !------------------------------------------------------------------------------
-!              
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -301,18 +301,18 @@ CONTAINS
   END SUBROUTINE Init_DiagItem
 !EOC
 !------------------------------------------------------------------------------
-!              
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Append_DiagList 
+! !IROUTINE: InsertBeginning_DiagList 
 !
 ! !DESCRIPTION: 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Append_DiagList ( am_I_Root, DiagItem, DiagList, RC )
+  SUBROUTINE InsertBeginning_DiagList ( am_I_Root, DiagItem, DiagList, RC )
 !
 ! !USES:
 !
@@ -342,21 +342,18 @@ CONTAINS
     CHARACTER(LEN=255)      :: thisLoc
 
     ! ================================================================
-    ! Append_DiagList begins here
+    ! InsertBeginning_DiagList begins here
     ! ================================================================
-    thisLoc = 'Append_DiagList (diagnostics_mod.F90)'
+    thisLoc = 'InsertBeginning_DiagList (diagnostics_mod.F90)'
 
     ! Add new object to the beginning of the linked list
     DiagItem%next => DiagList%head
     DiagList%head => DiagItem
 
-    ! Update # of list items
-    DiagList%numItems = DiagList%numItems + 1
-
-  END SUBROUTINE Append_DiagList
+  END SUBROUTINE InsertBeginning_DiagList
 !EOC
 !------------------------------------------------------------------------------
-!
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -409,7 +406,7 @@ CONTAINS
   END SUBROUTINE Search_DiagList
 !EOC
 !------------------------------------------------------------------------------
-!
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -471,7 +468,7 @@ CONTAINS
   END SUBROUTINE Check_DiagList
 !EOC
 !------------------------------------------------------------------------------
-!
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -549,7 +546,7 @@ CONTAINS
   END SUBROUTINE Print_DiagList
 !EOC
 !------------------------------------------------------------------------------
-!
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -593,10 +590,7 @@ CONTAINS
     ! ================================================================
     thisLoc = 'Cleanup_DiagList (diagnostics_mod.F90)'
 
-    current => NULL()
-    next => NULL()
-
-    ! Cleanup each item in the linked list of DiagExport objects
+    ! Deallocate each item in the linked list of DiagExport objects
     current => DiagList%head
     IF ( ASSOCIATED( current ) ) next => current%next
     DO WHILE ( ASSOCIATED( current ) )
@@ -607,10 +601,6 @@ CONTAINS
        next => current%next
     ENDDO
 
-    ! Deallocate the DiagList object
-    !DEALLOCATE( DiagList, STAT=RC )
-    !IF ( RC /= GC_SUCCESS ) RETURN
-
     ! Final cleanup
     current => NULL()
     next    => NULL()
@@ -619,7 +609,6 @@ CONTAINS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: ReadOneLine

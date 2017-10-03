@@ -54,6 +54,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: SpeciesConc(:,:,:,:) ! Spc Conc for diag output
      REAL(f4),  POINTER :: DryDepFlux (:,:,:,:) ! Dry deposition flux
      REAL(f4),  POINTER :: DryDepVel  (:,:,:,:) ! Dry deposition velocity
+     REAL(f4),  POINTER :: JValues    (:,:,:,:) ! Photolysis rates
 
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Diag
@@ -69,7 +70,8 @@ MODULE State_Diag_Mod
 ! !REVISION HISTORY: 
 !  05 Jul 2017 - R. Yantosca - Initial version
 !  22 Sep 2017 - E. Lundgren - Fill in content to allocate State_Diag; add 
-!                              subroutines to get metadata and register fields
+!                              subroutines to get metadata and interface to
+!                              register fields
 !  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Diag and Print_State_Diag
 !
 !EOC
@@ -160,10 +162,11 @@ CONTAINS
     State_Diag%SpeciesConc => NULL()
     State_Diag%DryDepFlux  => NULL()
     State_Diag%DryDepVel   => NULL()
+    State_Diag%JValues     => NULL()
 
 #if defined( NC_DIAG )
     !--------------------------------------------
-    ! Species Concentration [v/v dry] 
+    ! Species Concentration
     !--------------------------------------------
     diagID = 'SpeciesConc'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -190,6 +193,7 @@ CONTAINS
        State_Diag%DryDepFlux = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepFlux, &
                                 State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     !--------------------------------------------
@@ -205,6 +209,24 @@ CONTAINS
        State_Diag%DryDepVel = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepVel, &
                                 State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! J-Values
+    !-------------------------------------------- 
+    ! TODO: Mapping needs work
+    diagID = 'JValues'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
+       ALLOCATE( State_Diag%JValues( IM, JM, LM, nSpecies ), STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%JValues', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%JValues = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%JValues, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     !=======================================================================
@@ -284,6 +306,7 @@ CONTAINS
     IF ( ASSOCIATED(State_Diag%SpeciesConc)) DEALLOCATE( State_Diag%SpeciesConc)
     IF ( ASSOCIATED(State_Diag%DryDepFlux )) DEALLOCATE( State_Diag%DryDepFlux )
     IF ( ASSOCIATED(State_Diag%DryDepVel  )) DEALLOCATE( State_Diag%DryDepVel  )
+    IF ( ASSOCIATED(State_Diag%JValues    )) DEALLOCATE( State_Diag%JValues    )
 
     !=======================================================================
     ! Destroy the registry of fields for this module
@@ -400,11 +423,18 @@ CONTAINS
           IF ( isRank  )   Rank       = 3
           IF ( isSpecies ) PerSpecies = 'DRY'
 
+       CASE ( 'JVALUES' )
+          IF ( isDesc  )   Desc       = 'Photolysis rate' !TODO: append to this?
+          IF ( isUnits )   Units      = 's-1'
+          IF ( isRank  )   Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'ALL' ! TODO: fix species mapping
+
        CASE DEFAULT
           ! Need to add better error handling
           Found = .False.
-          PRINT *, 'WARNING: Metadata not found for State_Diag field: ' &
+          ErrMsg = 'WARNING: Metadata not found for State_Diag field: ' &
                    // TRIM( Name )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
 
     END SELECT
@@ -423,8 +453,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_R4_2D( am_I_Root,  Name,       Ptr2Data,  &
-                                       State_Chm,  State_Diag, RC )
+  SUBROUTINE Register_DiagField_R4_2D( am_I_Root, metadataID, Ptr2Data, &
+                                       State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -432,13 +462,10 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
-    CHARACTER(LEN=*),  INTENT(IN)    :: Name            ! diagnostics name
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
+    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
     REAL*4,            POINTER       :: Ptr2Data(:,:)   ! pointer to data
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(DgnState),    INTENT(INOUT) :: State_Diag      ! Obj for diag state
+    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
+    TYPE(DgnState),    INTENT(IN)    :: State_Diag      ! Obj for diag state
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -454,164 +481,100 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, perSpecies
-    CHARACTER(LEN=255)     :: thisSpcDiagName, thisSpcDiagDesc
-    INTEGER                :: N, D
-    INTEGER                :: rank, type,  vloc
+    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
+    INTEGER                :: N, D, nSpecies
+    INTEGER                :: rank, type, vloc
     LOGICAL                :: found
     TYPE(Species), POINTER :: SpcInfo
 
     ! Initialize
-    RC             = GC_SUCCESS
-    ThisLoc        = ' -> at Register_DiagField_R4_2D ' // &
-                     '(in Headers/state_diag_mod.F90)'
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_DiagField_R4_2D (in Headers/state_diag_mod.F90)'
+    ErrMsg_reg = 'Error encountered while registering State_Diag field'
 
-    CALL Get_Metadata_State_Diag( am_I_Root,   Name,        Found,  RC,   &
+    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
                                   desc=desc,   units=units, rank=rank,    &
                                   type=type,   vloc=vloc,                 &
                                   perSpecies=perSpecies                 )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_Metadata_State_Diag'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
     
     ! Check that metadata consistent with data pointer
-    IF ( rank /= 3 ) THEN
-       ErrMsg = 'Data dims and metadata rank do not match for ' // TRIM(Name)
+    IF ( ( ( perSpecies == '' ) .AND. ( rank /= 2 ) )  &
+         .OR. ( ( perSpecies /= '' ) .AND. ( rank /= 1 ) ) ) THEN
+       ErrMsg = 'Data dims and metadata rank do not match for ' // &
+                TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+          
+    IF ( perSpecies /= '' ) THEN
 
-    ! If tied to all species then register each one
-    IF ( perSpecies == 'ALL' ) THEN       
-
-       DO N = 1, State_Chm%nSpecies
-          SpcInfo  => State_Chm%SpcData(N)%Info
-          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
-          thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
-          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                                  Registry     = State_Diag%Registry,  &
-                                  State        = State_Diag%State,     &
-                                  Variable     = thisSpcDiagName,      &
-                                  Description  = thisSpcDiagDesc,      &
-                                  Units        = units,                &
-                                  Data1d_4     = Ptr2Data(:,N),    &
-                                  RC           = RC                   )
-          SpcInfo => NULL()
-          CALL GC_CheckVar( 'State_Diag%' // TRIM(Name), 1, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in Registry_AddField'
+       ! TODO: add more cases as needed
+       SELECT CASE ( perSpecies )
+          CASE ( 'ALL' )
+             nSpecies = State_Chm%nSpecies
+          CASE ( 'ADV' )
+             nSpecies = State_Chm%nAdvect
+          CASE ( 'DRY' )
+             nSpecies = State_Chm%nDryDep
+          CASE ( 'WET' )
+             nSpecies = State_Chm%nWetDep
+          CASE DEFAULT
+             ErrMsg = 'Handling of perSpecies ' // TRIM(perSpecies) // &
+                      ' is not implemented for this combo of data type and size'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
-          ENDIF
-       ENDDO
+       END SELECT
 
-    ! If tied to advected species then register advected species only
-    ELSEIF ( perSpecies == 'ADV' ) THEN       
-
-       DO N = 1, State_Chm%nAdvect
-          SpcInfo  => State_Chm%SpcData(N)%Info
-          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
-          thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
-
-          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                                  Registry     = State_Diag%Registry,  &
-                                  State        = State_Diag%State,     &
-                                  Variable     = thisSpcDiagName,      &
-                                  Description  = thisSpcDiagDesc,      &
-                                  Units        = units,                &
-                                  Data1d_4     = Ptr2Data(:,N),        &
-                                  RC           = RC                   )
-          SpcInfo => NULL()
-          CALL GC_CheckVar( 'State_Diag%' // TRIM(Name), 1, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in Registry_AddField'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDDO
-
-    ! If tied to drydep species then register drydep species only
-    ELSEIF ( perSpecies == 'DRY' ) THEN       
-       DO N = 1, State_Chm%nDryDep
-
-          ! Get species number and pointer to the species database
-          D =  State_Chm%Map_DryDep(N)
+       DO N = 1, nSpecies          
+          ! TODO: add more cases as needed
+          SELECT CASE ( perSpecies )
+             CASE ( 'ALL', 'ADV' )
+                D = N
+             CASE ( 'DRY' )
+                D =  State_Chm%Map_DryDep(N)
+             CASE ( 'WET' )
+                D =  State_Chm%Map_WetDep(N)
+          END SELECT
           SpcInfo  => State_Chm%SpcData(D)%Info
-
-          ! Set the registry name for this diagnostic and species
-          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
-          thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+          thisSpcName = TRIM( metadataID ) // '__' // TRIM( SpcInfo%Name )
+          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
                                   State        = State_Diag%State,     &
-                                  Variable     = thisSpcDiagName,      &
-                                  Description  = thisSpcDiagDesc,      &
+                                  Variable     = thisSpcName,          &
+                                  Description  = thisSpcDesc,          &
                                   Units        = units,                &
                                   Data1d_4     = Ptr2Data(:,N),        &
                                   RC           = RC                   )
           SpcInfo => NULL()
-          CALL GC_CheckVar( 'State_Diag%' // TRIM(Name), 1, RC )
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in Registry_AddField'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDDO
-
-    ! If tied to wetdep species then register drydep species only
-    ELSEIF ( perSpecies == 'WET' ) THEN       
-       DO N = 1, State_Chm%nWetDep
-
-          ! Get species number and pointer to the species database
-          D =  State_Chm%Map_WetDep(N)
-          SpcInfo  => State_Chm%SpcData(D)%Info
-
-          ! Set the registry name for this diagnostic and species
-          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
-          thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
-          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                                  Registry     = State_Diag%Registry,  &
-                                  State        = State_Diag%State,     &
-                                  Variable     = thisSpcDiagName,      &
-                                  Description  = thisSpcDiagDesc,      &
-                                  Units        = units,                &
-                                  Data1d_4     = Ptr2Data(:,N),        &
-                                  RC           = RC                   )
-          SpcInfo => NULL()
-          CALL GC_CheckVar( 'State_Diag%' // TRIM(Name), 1, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in Registry_AddField'
+             ErrMsg = ErrMsg_reg // ' where perSpecies is ' // TRIM(perSpecies)
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
        ENDDO
 
     ! If not tied to species then simply add the single field
-    ELSEIF ( perSpecies == '' ) THEN
+    ELSE
        CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                Registry     = State_Diag%Registry,  &
                                State        = State_Diag%State,     &
-                               Variable     = Name,                 &
+                               Variable     = MetadataID,           &
                                Description  = desc,                 &
                                Units        = units,                &
                                Data2d_4     = Ptr2Data,             &
                                RC           = RC                   )
-       CALL GC_CheckVar( 'State_Diag%' // TRIM(Name), 1, RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in Registry_AddField'
+          ErrMsg = ErrMsg_reg // ' where diagnostics is not tied to species'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
-    ELSE
-       ! TODO: Add better error handling
-       PRINT *, "PerSpecies for diagnostic " // TRIM(Name) // &
-                " is not definied in Register_DiagField_R4_2D: ", PerSpecies
-       RETURN
-
     ENDIF
 
   END SUBROUTINE Register_DiagField_R4_2D
@@ -628,8 +591,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_R4_3D( am_I_Root,  Name,       Ptr2Data,  &
-                                       State_Chm,  State_Diag, RC )
+  SUBROUTINE Register_DiagField_R4_3D( am_I_Root, metadataID, Ptr2Data,  &
+                                       State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -637,12 +600,9 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
-    CHARACTER(LEN=*),  INTENT(IN)    :: Name            ! diagnostics name
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
+    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
     REAL*4,            POINTER       :: Ptr2Data(:,:,:) ! pointer to data
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
+    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
     TYPE(DgnState),    INTENT(INOUT) :: State_Diag      ! Obj for diag state
 !
 ! !OUTPUT PARAMETERS:
@@ -659,163 +619,100 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, perSpecies
-    CHARACTER(LEN=255)     :: thisSpcDiagName, thisSpcDiagDesc
-    INTEGER                :: N, D
+    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
+    INTEGER                :: N, D, nSpecies
     INTEGER                :: rank, type,  vloc
     LOGICAL                :: found
     TYPE(Species), POINTER :: SpcInfo
 
     ! Initialize
-    RC             = GC_SUCCESS
-    ThisLoc        = ' -> at Register_DiagField_R4_3D ' // &
-                     '(in Headers/state_diag_mod.F90)'
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
+    ErrMsg_reg = 'Error encountered while registering State_Diag field'
 
-    CALL Get_Metadata_State_Diag( am_I_Root,   Name,        Found,  RC,   &
+    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
                                   desc=desc,   units=units, rank=rank,    &
                                   type=type,   vloc=vloc,                 &
                                   perSpecies=perSpecies                 )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_Metadata_State_Diag'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
     
     ! Check that metadata consistent with data pointer
-    IF ( rank /= 2 ) THEN
-       ErrMsg = 'Data dims and metadata rank do not match for ' // TRIM(Name)
+    IF ( ( ( perSpecies == '' ) .AND. ( rank /= 3 ) )  &
+         .OR. ( ( perSpecies /= '' ) .AND. ( rank /= 2 ) ) ) THEN
+       ErrMsg = 'Data dims and metadata rank do not match for ' // &
+                TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    ! If tied to all species then register each one
-    IF ( perSpecies == 'ALL' ) THEN       
+    IF ( perSpecies /= '' ) THEN
 
-       DO N = 1, State_Chm%nSpecies
-          SpcInfo  => State_Chm%SpcData(N)%Info
-          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
-          thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
-          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                                  Registry     = State_Diag%Registry,  &
-                                  State        = State_Diag%State,     &
-                                  Variable     = thisSpcDiagName,      &
-                                  Description  = thisSpcDiagDesc,      &
-                                  Units        = units,                &
-                                  Data2d_4     = Ptr2Data(:,:,N),    &
-                                  RC           = RC                   )
-          SpcInfo => NULL()
-          CALL GC_CheckVar( 'State_Diag%' // TRIM(Name), 1, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in Registry_AddField'
+       ! TODO: add more cases as needed
+       SELECT CASE ( perSpecies )
+          CASE ( 'ALL' )
+             nSpecies = State_Chm%nSpecies
+          CASE ( 'ADV' )
+             nSpecies = State_Chm%nAdvect
+          CASE ( 'DRY' )
+             nSpecies = State_Chm%nDryDep
+          CASE ( 'WET' )
+             nSpecies = State_Chm%nWetDep
+          CASE DEFAULT
+             ErrMsg = 'Handling of perSpecies ' // TRIM(perSpecies) // &
+                      ' is not implemented for this combo of data type and size'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
-          ENDIF
-       ENDDO
+       END SELECT
 
-    ! If tied to advected species then register advected species only
-    ELSEIF ( perSpecies == 'ADV' ) THEN       
-
-       DO N = 1, State_Chm%nAdvect
-          SpcInfo  => State_Chm%SpcData(N)%Info
-          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
-          thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
-          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                                  Registry     = State_Diag%Registry,  &
-                                  State        = State_Diag%State,     &
-                                  Variable     = thisSpcDiagName,      &
-                                  Description  = thisSpcDiagDesc,      &
-                                  Units        = units,                &
-                                  Data2d_4     = Ptr2Data(:,:,N),    &
-                                  RC           = RC                   )
-          SpcInfo => NULL()
-          CALL GC_CheckVar( 'State_Diag%' // TRIM(Name), 1, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in Registry_AddField'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDDO
-
-    ! If tied to drydep species then register drydep species only
-    ELSEIF ( perSpecies == 'DRY' ) THEN       
-       DO N = 1, State_Chm%nDryDep
-
-          ! Get species number and pointer to the species database
-          D =  State_Chm%Map_DryDep(N)
+       DO N = 1, nSpecies          
+          ! TODO: add more cases as needed
+          SELECT CASE ( perSpecies )
+             CASE ( 'ALL', 'ADV' )
+                D = N
+             CASE ( 'DRY' )
+                D =  State_Chm%Map_DryDep(N)
+             CASE ( 'WET' )
+                D =  State_Chm%Map_WetDep(N)
+          END SELECT
           SpcInfo  => State_Chm%SpcData(D)%Info
-
-          ! Set the registry name for this diagnostic and species
-          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
-          thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+          thisSpcName = TRIM( metadataID ) // '__' // TRIM( SpcInfo%Name )
+          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
                                   State        = State_Diag%State,     &
-                                  Variable     = thisSpcDiagName,      &
-                                  Description  = thisSpcDiagDesc,      &
+                                  Variable     = thisSpcName,          &
+                                  Description  = thisSpcDesc,          &
                                   Units        = units,                &
-                                  Data2d_4     = Ptr2Data(:,:,N),    &
+                                  Data2d_4     = Ptr2Data(:,:,N),      &
                                   RC           = RC                   )
           SpcInfo => NULL()
-          CALL GC_CheckVar( 'State_Diag%' // TRIM(Name), 1, RC )
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in Registry_AddField'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDDO
-
-    ! If tied to wetdep species then register drydep species only
-    ELSEIF ( perSpecies == 'WET' ) THEN       
-       DO N = 1, State_Chm%nWetDep
-
-          ! Get species number and pointer to the species database
-          D =  State_Chm%Map_WetDep(N)
-          SpcInfo  => State_Chm%SpcData(D)%Info
-
-          ! Set the registry name for this diagnostic and species
-          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
-          thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
-          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                                  Registry     = State_Diag%Registry,  &
-                                  State        = State_Diag%State,     &
-                                  Variable     = thisSpcDiagName,      &
-                                  Description  = thisSpcDiagDesc,      &
-                                  Units        = units,                &
-                                  Data2d_4     = Ptr2Data(:,:,N),    &
-                                  RC           = RC                   )
-          SpcInfo => NULL()
-          CALL GC_CheckVar( 'State_Diag%' // TRIM(Name), 1, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in Registry_AddField'
+             ErrMsg = ErrMsg_reg // ' where perSpecies is ' // TRIM(perSpecies)
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
        ENDDO
 
     ! If not tied to species then simply add the single field
-    ELSEIF ( perSpecies == '' ) THEN
+    ELSE
        CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                Registry     = State_Diag%Registry,  &
                                State        = State_Diag%State,     &
-                               Variable     = Name,                 &
+                               Variable     = metadataID,           &
                                Description  = desc,                 &
                                Units        = units,                &
                                Data3d_4     = Ptr2Data,             &
                                RC           = RC                   )
-       CALL GC_CheckVar( 'State_Diag%' // TRIM(Name), 1, RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in Registry_AddField'
+          ErrMsg = ErrMsg_reg // ' where diagnostics is not tied to species'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
-    ELSE
-       ! TODO: Add better error handling
-       PRINT *, "PerSpecies for diagnostic " // TRIM(Name) // &
-                " is not definied in Register_DiagField_R4_3D: ", PerSpecies
-       RETURN
-
     ENDIF
 
   END SUBROUTINE Register_DiagField_R4_3D
@@ -832,26 +729,26 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_R4_4D( am_I_Root,  Name,       Ptr2Data,  &
-                                       State_Chm,  State_Diag, RC )
+  SUBROUTINE Register_DiagField_R4_4D( am_I_Root, metadataID, Ptr2Data,  &
+                                       State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
-    CHARACTER(LEN=*),  INTENT(IN)    :: Name            ! diagnostics name
-    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
+    LOGICAL,           INTENT(IN)    :: am_I_Root         ! Root CPU?
+    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID        ! Name
     REAL*4,            POINTER       :: Ptr2Data(:,:,:,:) ! pointer to data
+    TYPE(ChmState),    INTENT(IN)    :: State_Chm         ! Obj for chem state
+    TYPE(DgnState),    INTENT(IN)    :: State_Diag        ! Obj for diag state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(DgnState),    INTENT(INOUT) :: State_Diag      ! Obj for diag state
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
+    INTEGER,           INTENT(OUT)   :: RC                ! Success/failure
 !
 ! !REMARKS:
 !
@@ -863,147 +760,82 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, perSpecies
-    CHARACTER(LEN=255)     :: thisSpcDiagName, thisSpcDiagDesc
-    INTEGER                :: N, D
+    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
+    INTEGER                :: N, D, nSpecies
     INTEGER                :: rank, type,  vloc
     LOGICAL                :: found
     TYPE(Species), POINTER :: SpcInfo
 
     ! Initialize
-    RC             = GC_SUCCESS
-    ThisLoc        = ' -> at Register_DiagField_R4_4D ' // &
-                     '(in Headers/state_diag_mod.F90)'
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_DiagField_R4_4D (in Headers/state_diag_mod.F90)'
+    ErrMsg_reg = 'Error encountered while registering State_Diag field'
 
-    CALL Get_Metadata_State_Diag( am_I_Root,   Name,        Found,  RC,   &
+    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
                                   desc=desc,   units=units, rank=rank,    &
                                   type=type,   vloc=vloc,                 &
                                   perSpecies=perSpecies                 )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_Metadata_State_Diag'
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Check that metadata consistent with data pointer
+    IF ( rank /= 3 ) THEN
+       ErrMsg = 'Data dims and metadata rank do not match for ' // &
+                TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
     
-    ! Check that metadata consistent with data pointer
-    IF ( rank /= 3 ) THEN
-       ErrMsg = 'Data dims and metadata rank do not match for ' // TRIM(Name)
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+    ! Assume always tied to a species
+    ! TODO: add more cases as needed
+    SELECT CASE ( perSpecies )
+       CASE ( 'ALL' )
+          nSpecies = State_Chm%nSpecies
+       CASE ( 'ADV' )
+          nSpecies = State_Chm%nAdvect
+       CASE ( 'DRY' )
+          nSpecies = State_Chm%nDryDep
+       CASE ( 'WET' )
+          nSpecies = State_Chm%nWetDep
+       CASE DEFAULT
+          ErrMsg = 'Handling of perSpecies ' // TRIM(perSpecies) // &
+                   ' is not implemented for this combo of data type and size'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+    END SELECT
 
-    ! If tied to all species then register each one
-    IF ( perSpecies == 'ALL' ) THEN       
-
-       DO N = 1, State_Chm%nSpecies
-          SpcInfo  => State_Chm%SpcData(N)%Info
-          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
-          thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
-          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                                  Registry     = State_Diag%Registry,  &
-                                  State        = State_Diag%State,     &
-                                  Variable     = thisSpcDiagName,      &
-                                  Description  = thisSpcDiagDesc,      &
-                                  Units        = units,                &
-                                  Data3d_4     = Ptr2Data(:,:,:,N),    &
-                                  RC           = RC                   )
-          SpcInfo => NULL()
-          CALL GC_CheckVar( 'State_Diag%' // TRIM(Name), 1, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in Registry_AddField'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDDO
-
-    ! If tied to advected species then register advected species only
-    ELSEIF ( perSpecies == 'ADV' ) THEN       
-
-       DO N = 1, State_Chm%nAdvect
-          SpcInfo  => State_Chm%SpcData(N)%Info
-          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
-          thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
-          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                                  Registry     = State_Diag%Registry,  &
-                                  State        = State_Diag%State,     &
-                                  Variable     = thisSpcDiagName,      &
-                                  Description  = thisSpcDiagDesc,      &
-                                  Units        = units,                &
-                                  Data3d_4     = Ptr2Data(:,:,:,N),    &
-                                  RC           = RC                   )
-          SpcInfo => NULL()
-          CALL GC_CheckVar( 'State_Diag%' // TRIM(Name), 1, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in Registry_AddField'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDDO
-
-    ! If tied to drydep species then register drydep species only
-    ELSEIF ( perSpecies == 'DRY' ) THEN       
-       DO N = 1, State_Chm%nDryDep
-
-          ! Get species number and pointer to the species database
-          D =  State_Chm%Map_DryDep(N)
-          SpcInfo  => State_Chm%SpcData(D)%Info
-
-          ! Set the registry name for this diagnostic and species
-          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
-          thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
-          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                                  Registry     = State_Diag%Registry,  &
-                                  State        = State_Diag%State,     &
-                                  Variable     = thisSpcDiagName,      &
-                                  Description  = thisSpcDiagDesc,      &
-                                  Units        = units,                &
-                                  Data3d_4     = Ptr2Data(:,:,:,N),    &
-                                  RC           = RC                   )
-          SpcInfo => NULL()
-          CALL GC_CheckVar( 'State_Diag%' // TRIM(Name), 1, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in Registry_AddField'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDDO
-
-    ! If tied to wetdep species then register drydep species only
-    ELSEIF ( perSpecies == 'WET' ) THEN       
-       DO N = 1, State_Chm%nWetDep
-
-          ! Get species number and pointer to the species database
-          D =  State_Chm%Map_WetDep(N)
-          SpcInfo  => State_Chm%SpcData(D)%Info
-
-          ! Set the registry name for this diagnostic and species
-          thisSpcDiagName = TRIM( Name ) // '__' // TRIM( SpcInfo%Name )
-          thisSpcDiagDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
-          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                                  Registry     = State_Diag%Registry,  &
-                                  State        = State_Diag%State,     &
-                                  Variable     = thisSpcDiagName,      &
-                                  Description  = thisSpcDiagDesc,      &
-                                  Units        = units,                &
-                                  Data3d_4     = Ptr2Data(:,:,:,N),    &
-                                  RC           = RC                   )
-          SpcInfo => NULL()
-          CALL GC_CheckVar( 'State_Diag%' // TRIM(Name), 1, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in Registry_AddField'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDDO
-
-    ELSE
-       ! TODO: Add better error handling
-       PRINT *, "PerSpecies for diagnostic " // TRIM(Name) // &
-                " is not definied in Register_DiagField_R4_4D: ", PerSpecies
-       RETURN
-
-    ENDIF
+    DO N = 1, nSpecies          
+       ! TODO: add more cases as needed
+       SELECT CASE ( perSpecies )
+          CASE ( 'ALL', 'ADV' )
+             D = N
+          CASE ( 'DRY' )
+             D =  State_Chm%Map_DryDep(N)
+          CASE ( 'WET' )
+             D =  State_Chm%Map_WetDep(N)
+       END SELECT
+       SpcInfo  => State_Chm%SpcData(D)%Info
+       thisSpcName = TRIM( metadataID ) // '__' // TRIM( SpcInfo%Name )
+       thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+       CALL Registry_AddField( am_I_Root    = am_I_Root,            &
+                               Registry     = State_Diag%Registry,  &
+                               State        = State_Diag%State,     &
+                               Variable     = thisSpcName,          &
+                               Description  = thisSpcDesc,          &
+                               Units        = units,                &
+                               Data3d_4     = Ptr2Data(:,:,:,N),    &
+                               RC           = RC                   )
+       SpcInfo => NULL()
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = ErrMsg_reg // ' where perSpecies is ' // TRIM(perSpecies)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDDO
 
   END SUBROUTINE Register_DiagField_R4_4D
 !EOC

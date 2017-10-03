@@ -277,7 +277,7 @@ CONTAINS
 !  30 Jun 2016 - M. Sulprizio- Remove nSpecies from call to Init_GIGC_State_Chm
 !  26 Jun 2017 - R. Yantosca - Now call GC_ERROR to give better error feedback
 !  05 Jul 2017 - R. Yantosca - Now initialize the Diagnostics State object
-!  26 Sep 2017 - E. Lundgren - Inlcude diagnostics list object
+!  26 Sep 2017 - E. Lundgren - Pass diagnostics list object as argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -290,7 +290,7 @@ CONTAINS
     ! Initialize
     !=======================================================================
     ErrMsg  = ''
-    ThisLoc = ' -> at Init_All (in GeosCore/gc_environment_mod.F90)'
+    ThisLoc = ' -> at GC_Init_All (in GeosCore/gc_environment_mod.F90)'
     
     !=======================================================================
     ! Initialize the Meteorology State object
