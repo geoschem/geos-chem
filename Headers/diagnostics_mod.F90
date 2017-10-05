@@ -211,10 +211,10 @@ CONTAINS
              registryID = name(6:)
        END SELECT
        IF ( isWildcard ) THEN
-          I = INDEX( TRIM(metadataID), '__' ) 
+          I = INDEX( TRIM(registryID), '__' ) 
           IF ( I .le. 0 ) THEN
              ErrMsg = 'Error setting registryID. Double underscore must' &
-                      // ' wildcard in HISTORY.rc!'
+                      // ' precede wildcard in HISTORY.rc!'
              CALL GC_ERROR( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
