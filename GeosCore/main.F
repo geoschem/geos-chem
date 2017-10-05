@@ -781,6 +781,10 @@
       CALL READ_GC_RESTART( am_I_Root, NYMDb,     NHMSb, 
      &                      Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_GC_RESTART' )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error returned from "READ_GC_RESTART"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End( "Reading restart file",  RC )

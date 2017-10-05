@@ -168,6 +168,7 @@ CONTAINS
 !  14 Apr 2016 - C. Keller    - Initial version
 !  10 Oct 2016 - C. Keller    - Update to v11-01h 
 !  27 Sep 2017 - E. Lundgren  - Rename, restructure, include all conversions
+!  05 Oct 2017 - R. Yantosca  - Fixed typo: "kg/kg dry" instead of "Kg/kg dry"
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,7 +185,7 @@ CONTAINS
     RC =  GC_SUCCESS
 
     ! Define error handling messages
-    LOC = ' -> Convert_Units in unitconv_mod.F90'
+    LOC = ' -> at Convert_Spc_Units (in GeosUtil/unitconv_mod.F90)'
     ErrMsg_NoOut = 'Conversion to '//TRIM(OutUnit)//' not defined'
     ErrMsg_NoIn = 'Conversion from '//TRIM(InUnit)//' to '//TRIM(OutUnit)//&
                   ' not defined'
@@ -282,7 +283,7 @@ CONTAINS
              CASE ( 'kg' )
                 CALL ConvertSpc_MND_to_Kg( am_I_Root, State_Met, &
                                            State_Chm, RC ) 
-             CASE ( 'Kg/kg dry' )
+             CASE ( 'kg/kg dry' )
                 CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met, &
                                                 State_Chm, RC ) 
              CASE DEFAULT

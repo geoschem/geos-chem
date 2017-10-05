@@ -529,7 +529,7 @@
       Hg_Cat_Name => NULL()
 
       ! Name of this routine
-      LOC = 'READ_GC_RESTART (restart_mod.F)'
+      LOC = ' -> at READ_GC_RESTART (in GeosCore/restart_mod.F)'
 
       ! Set minimum value threshold for [mol/mol]
       SMALL_NUM = 1.0e-30_fp
@@ -766,6 +766,7 @@
      &                    ': Use background = ', es15.9)
                   ENDIF
 
+
                ENDIF
 
             ENDDO
@@ -785,11 +786,22 @@
 
       ! If in debug mode, print out species min and max in [molec/cm3]
       IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
+
+         ! Convert units
          PRINT *, " "
          PRINT *, "Species min and max in molec/cm3"
          CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
      &                           State_Chm, 'molec/cm3', RC, 
      &                           OrigUnit=OrigUnit )
+
+         ! Trap error
+         IF ( RC /= GC_SUCCESS ) THEN
+            Msg = 'Error returned from Convert_Spc_Units, call #1!'
+            CALL GC_Error( Msg, RC, Loc )
+            RETURN
+         ENDIF
+
+         ! Print values
          DO N = 1, State_Chm%nSpecies
             SpcInfo => State_Chm%SpcData(N)%Info
             WRITE(6,150) N, TRIM( SpcInfo%Name ), 
@@ -799,8 +811,18 @@
      &              ': Min = ', es15.9, ', Max = ', es15.9 )
             SpcInfo => NULL()
          ENDDO
+
+         ! Convert units back
          CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
      &                           State_Chm, OrigUnit,  RC )
+
+         ! Trap error
+         IF ( RC /= GC_SUCCESS ) THEN
+            Msg = 'Error returned from Convert_Spc_Units, call #2!'
+            CALL GC_Error( Msg, RC, Loc )
+            RETURN
+         ENDIF
+
       ENDIF
 
       !=================================================================
