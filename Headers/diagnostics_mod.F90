@@ -36,6 +36,7 @@ MODULE Diagnostics_Mod
   PRIVATE :: InsertBeginning_DiagList
   PRIVATE :: Search_DiagList
   PRIVATE :: ReadOneLine ! copied from history_mod. Consider consolidating.
+  PRIVATE :: CleanText   ! copied from history_mod. Consider consolidating.
 !
 ! !PUBLIC DATA TYPES:
 !
@@ -152,25 +153,32 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-    
-       ! Skip line if certain conditions met
-       IF ( line(1:1) == "#" ) CYCLE
+
+       ! Skip line if GIGCchem not present
        IF ( INDEX( line, 'GIGCchem' ) .le. 0 ) CYCLE
     
-       ! Get name in history config file
-       CALL StrSplit( line, ' ', SubStrs, N )
-       IF ( INDEX(line, '.fields') .le. 0 ) THEN
-          SubStr = TRIM(SubStrs(1))
-       ELSE 
-          SubStr = TRIM(SubStrs(2))
+       ! Remove commas, spaces, and tabs
+       Line = CleanText( Line )    
+
+       ! Skip if the line is commented out
+       IF ( Line(1:1) == "#"  ) CYCLE
+
+       ! Get the item name
+       CALL StrSplit( Line, " ", SubStrs, N )
+       IF ( INDEX(line, '.fields') > 0 .AND. N > 1 ) THEN
+          name = TRIM(SubStrs(2))
+       ELSE
+          name = TRIM(SubStrs(1))
        ENDIF
-       CALL StrSplit( SubStr, "'", SubStrs, N )
-       name = TRIM( SubStrs(1) )
 
        ! Get GC state
-       CALL StrSplit( name, '_', SubStrs, N )
-       IF ( SubStrs(1) == 'MET' .or. SubStrs(1) == 'CHEM' ) THEN
-          state = TRIM( SubStrs(1) )
+       IF ( INDEX( name, '_') > 0 ) THEN
+          CALL StrSplit( name, '_', SubStrs, N )
+          IF ( SubStrs(1) == 'MET' .or. SubStrs(1) == 'CHEM' ) THEN
+             state = TRIM( SubStrs(1) )
+          ELSE
+             state = 'DIAG'
+          ENDIF
        ELSE
           ! TODO: need to not classify GCHP internal state as DIAG!
           state = 'DIAG'
@@ -202,14 +210,12 @@ CONTAINS
 
        ! Get registryID (name minus state prefix and wildcard suffix, but 
        ! keep species)
-       SELECT CASE ( TRIM(state) )
-          CASE ( 'DIAG' )
-             registryID = name
-          CASE ( 'MET' )
-             registryID = name(5:)
-          CASE ( 'CHEM' )
-             registryID = name(6:)
-       END SELECT
+       registryID = TRIM(name)
+       IF ( TRIM(state) == 'MET' ) THEN
+          registryID = registryID(5:)
+       ELSE IF ( TRIM(state) == 'CHEM' ) THEN
+          registryID = registryID(6:)
+       ENDIF
        IF ( isWildcard ) THEN
           I = INDEX( TRIM(registryID), '__' ) 
           IF ( I .le. 0 ) THEN
@@ -241,6 +247,7 @@ CONTAINS
                            name=name,              &
                            state=state,            &
                            metadataID=metadataID,  &
+                           registryID=registryID,  &
                            isWildcard=isWildcard,  &
                            wildcard=wildcard,      &
                            isSpecies=isSpecies,     &
@@ -275,9 +282,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_DiagItem ( am_I_Root,  NewDiagItem, name,     state,     &
-                             metadataID, isWildcard,  wildcard, isSpecies, &
-                             species,    RC  )
+  SUBROUTINE Init_DiagItem ( am_I_Root,  NewDiagItem, name,       state,     &
+                             metadataID, registryID,  isWildcard, wildcard,  &
+                             isSpecies,  species,     RC  )
 !
 ! !INPUT PARAMETERS:
 !
@@ -285,6 +292,7 @@ CONTAINS
     CHARACTER(LEN=*),    OPTIONAL   :: name
     CHARACTER(LEN=*),    OPTIONAL   :: state
     CHARACTER(LEN=*),    OPTIONAL   :: metadataID
+    CHARACTER(LEN=*),    OPTIONAL   :: registryID
     LOGICAL,             OPTIONAL   :: isWildcard
     CHARACTER(LEN=*),    OPTIONAL   :: wildcard
     LOGICAL,             OPTIONAL   :: isSpecies
@@ -314,6 +322,7 @@ CONTAINS
     NewDiagItem%name       = TRIM(name)
     NewDiagItem%state      = TRIM(state)
     NewDiagItem%metadataID = TRIM(metadataID)
+    NewDiagItem%registryID = TRIM(registryID)
     NewDiagItem%isWildcard = isWildcard
     NewDiagItem%wildcard   = TRIM(wildcard)
     NewDiagItem%isSpecies  = isSpecies
@@ -542,6 +551,7 @@ CONTAINS
           PRINT *, TRIM(current%name)
           PRINT *, "   state:      ", TRIM(current%state)
           PRINT *, "   metadataID: ", TRIM(current%metadataID)
+          PRINT *, "   registryID (GCHP-only): ", TRIM(current%registryID)
           PRINT *, "   isWildcard: ", current%isWildcard
           IF ( current%isWildcard ) THEN
              PRINT *, "   wildcard:   ", TRIM(current%wildcard)
@@ -647,7 +657,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Charpak_Mod,  ONLY : StrSqueeze
+    USE Charpak_Mod,  ONLY : StrSqueeze, CStrip
 !
 ! !INPUT PARAMETERS:
 !
@@ -692,6 +702,9 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Remove blanks and null characters
+    CALL CSTRIP( Line ) 
+
     ! If desired, call StrSqueeze to strip leading and trailing blanks
     IF ( PRESENT( Squeeze ) ) THEN
        IF ( Squeeze ) THEN
@@ -701,5 +714,57 @@ CONTAINS
 
   END FUNCTION ReadOneLine
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CleanText
+!
+! !DESCRIPTION: Strips commas, apostrophes, spaces, and tabs from a string.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION CleanText( Str ) RESULT( CleanStr )
+!
+! !USES:
+!
+    USE Charpak_Mod, ONLY : CStrip, StrRepl, StrSqueeze
+!
+! !INPUT PARAMETERS: 
+!
+    CHARACTER(LEN=*), INTENT(IN) :: Str        ! Original string
+!
+! !RETURN VALUE
+!
+    CHARACTER(LEN=255)           :: CleanStr   ! Cleaned-up string
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!  21 Jun 2017 - R. Yantosca - Now call CSTRIP to remove tabs etc.
+!  05 Oct 2017 - E. Lundgren - Copied from history_mod to allow use in
+!                              Headers subdirectory. Consider placing
+!                              elsewhere for common use!!!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
+    ! Initialize
+    CleanStr = Str
+
+    ! Strip out non-printing characters (e.g. tabs)
+    CALL CStrip    ( CleanStr           )
+
+    ! Remove commas and quotes
+    CALL StrRepl   ( CleanStr, ",", " " )
+    CALL StrRepl   ( CleanStr, "'", " " )
+    
+    ! Remove leading and trailing spaces
+    CALL StrSqueeze( CleanStr           ) 
+
+  END FUNCTION CleanText
+!EOC
 END MODULE Diagnostics_Mod
