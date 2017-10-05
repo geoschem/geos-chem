@@ -110,9 +110,9 @@ CONTAINS
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-    INTEGER,        INTENT(IN)    :: IM          ! # longitudes on this PET
-    INTEGER,        INTENT(IN)    :: JM          ! # longitudes on this PET
-    INTEGER,        INTENT(IN)    :: LM          ! # longitudes on this PET
+    INTEGER,        INTENT(IN)    :: IM          ! # latitudes
+    INTEGER,        INTENT(IN)    :: JM          ! # longitudes
+    INTEGER,        INTENT(IN)    :: LM          ! # levels
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry state object
     TYPE(DgnList),  INTENT(IN)    :: Diag_List   ! Diagnostics list object
@@ -171,7 +171,7 @@ CONTAINS
     diagID = 'SpeciesConc'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
+       IF ( am_I_Root ) PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
        ALLOCATE( State_Diag%SpeciesConc( IM, JM, LM, nSpecies ), STAT=RC )
        CALL GC_CheckVar( 'State_Diag%SpeciesConc', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -186,7 +186,7 @@ CONTAINS
     diagID = 'DryDepFlux'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
+       IF ( am_I_Root ) PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
        ALLOCATE( State_Diag%DryDepFlux( IM, JM, LM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( 'State_Diag%DryDepFlux', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -202,7 +202,7 @@ CONTAINS
     diagID = 'DryDepVel'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
+       IF ( am_I_Root ) PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
        ALLOCATE( State_Diag%DryDepVel( IM, JM, LM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( 'State_Diag%DryDepVel', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -215,12 +215,12 @@ CONTAINS
     !--------------------------------------------
     ! J-Values
     !-------------------------------------------- 
-    ! TODO: Mapping needs work
+    ! TODO: Mapping needs work. Hard-code # for now (37).
     diagID = 'JValues'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
-       ALLOCATE( State_Diag%JValues( IM, JM, LM, nSpecies ), STAT=RC )
+       IF ( am_I_Root ) PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
+       ALLOCATE( State_Diag%JValues( IM, JM, LM, 37 ), STAT=RC )
        CALL GC_CheckVar( 'State_Diag%JValues', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%JValues = 0.0_f4
@@ -428,12 +428,17 @@ CONTAINS
           IF ( isDesc  )   Desc       = 'Photolysis rate' !TODO: append to this?
           IF ( isUnits )   Units      = 's-1'
           IF ( isRank  )   Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'ALL' ! TODO: fix species mapping
+          IF ( isSpecies ) PerSpecies = 'JVN' ! TODO: not handled as a wildcard
 
        CASE DEFAULT
           Found = .False.
           ErrMsg = 'Metadata not found for State_Diag field ID: ' &
-                   // TRIM( metadataID )
+                   // TRIM( metadataID ) // '. If the name in HISTORY.rc ' &
+                   // 'has species appended, make sure the species name ' &
+                   // 'is preceded by double underscores. Otherwise, ' &
+                   // 'check that the name is listed with all caps in ' &
+                   // 'subroutine Get_Metadata_State_Diag ' &
+                   // '(Headers/state_diag_mod.F90).'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
 
@@ -763,6 +768,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, perSpecies
     CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
+    CHARACTER(LEN=10)      :: JNames(37) ! Temp for J-Values until in specdb
     INTEGER                :: N, D, nSpecies
     INTEGER                :: rank, type,  vloc
     LOGICAL                :: found
@@ -801,6 +807,10 @@ CONTAINS
           nSpecies = State_Chm%nDryDep
        CASE ( 'WET' )
           nSpecies = State_Chm%nWetDep
+       CASE ( 'JVN' ) 
+          ! TODO: # of J-Values. For now, hard-code them based on AD22.
+          !       In the near future, build photol into species database.
+          nSpecies = 37
        CASE DEFAULT
           ErrMsg = 'Handling of perSpecies ' // TRIM(perSpecies) // &
                    ' is not implemented for this combo of data type and size'
@@ -817,10 +827,36 @@ CONTAINS
              D =  State_Chm%Map_DryDep(N)
           CASE ( 'WET' )
              D =  State_Chm%Map_WetDep(N)
+          CASE ( 'JVN' )
+             ! TODO: For now, hard-code the names based on AD22. RNAMES and
+             !  JLABEL are not yet initialized at this point. Put index mapping
+             !  in  species database in near future if possible.
+             JNAMES = ['NO2',    'HNO3',   'H2O2',   'CH2O',   'x',       &
+                       'x',      'GLYX',   'MGLY',   'BrO',    'HOBr',    &
+                       'BrNO2',  'BrNO3',  'CHBr3',  'Br2',    'O2inadj', &
+                       'N2O',    'NO',     'NO3',    'CFC11',  'CFC12',   &
+                       'CCl4',   'CH3Cl',  'ACET',   'ALD2',   'MVK',     &
+                       'MACR',   'HAC',    'GLYC',   'PIP',    'IPMN',    &
+                       'ETHLN',  'DHDN',   'HPALD',  'ISN1',   'MONITS',  &
+                       'MONITU', 'HONIT']
+#if defined( UCX )
+             JNAMES(5) = 'O3_O1D'
+             JNAMES(6) = 'O3_O3P'
+#else
+             JNAMES(5) = 'O3'
+             JNAMES(6) = 'O3_POH'
+#endif
        END SELECT
-       SpcInfo  => State_Chm%SpcData(D)%Info
-       thisSpcName = TRIM( metadataID ) // '__' // TRIM( SpcInfo%Name )
-       thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+       IF ( perSpecies /= 'JVN' ) THEN
+          SpcInfo  => State_Chm%SpcData(D)%Info
+          thisSpcName = TRIM( metadataID ) // '__' // TRIM( SpcInfo%Name )
+          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+       ELSE
+          ! Temporary implementation for J-Values. Add to specdb in near future
+          ! to avoid having to do special treatment.
+          thisSpcName = TRIM( metadataID ) // '__' // TRIM( JNAMES(N) )
+          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( JNAMES(N) )
+       ENDIF
        CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                Registry     = State_Diag%Registry,  &
                                State        = State_Diag%State,     &

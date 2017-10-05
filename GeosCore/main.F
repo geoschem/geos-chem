@@ -1507,7 +1507,7 @@
             ! to [kg] for all of chemistry. We will replace use of [kg] 
             ! once FlexChem is implemented (ewl, 9/18/15)
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
-     &                         State_Chm, State_Met, RC ) 
+     &                         State_Chm, State_Met, State_Diag, RC ) 
             IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP('Error in DO_CHEMISTRY!', 'main.F')
             ENDIF

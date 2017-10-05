@@ -60,7 +60,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_FlexChem( am_I_Root, Input_Opt, State_Met, State_Chm, RC  )
+  SUBROUTINE Do_FlexChem( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                          State_Diag, RC  )
 !
 ! !USES:
 !
@@ -94,6 +95,7 @@ CONTAINS
     USE Species_Mod,          ONLY : Species
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Chm_Mod,        ONLY : Ind_
+    USE State_Diag_Mod,       ONLY : DgnState
     USE State_Met_Mod,        ONLY : MetState
     USE Strat_Chem_Mod,       ONLY : SChem_Tend
     USE TIME_MOD,             ONLY : GET_TS_CHEM
@@ -119,6 +121,7 @@ CONTAINS
 !
     TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -162,6 +165,7 @@ CONTAINS
 !  30 May 2017 - M. Sulprizio- Add code for stratospheric chemical tendency
 !                              for computing STE in strat_chem_mod.F90
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -427,7 +431,7 @@ CONTAINS
     ! Call photolysis routine to compute J-Values
     !=================================================================
     CALL FAST_JX( WAVELENGTH, am_I_Root,  Input_Opt, &
-                  State_Met,  State_Chm,  RC         )
+                  State_Met,  State_Chm,  State_Diag, RC )
 
     !### Debug
     IF ( prtDebug ) THEN
@@ -654,7 +658,7 @@ CONTAINS
           ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
           ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
           CALL PHOTRATE_ADJ( am_I_root, I, J, L, NUMDEN, TEMP, &
-                             H2O, SO4_FRAC, IERR  )
+                             H2O, SO4_FRAC, State_Diag, IERR  )
 
           IF ( DO_PHOTCHEM ) THEN
 
