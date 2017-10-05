@@ -53,6 +53,7 @@ MODULE Diagnostics_Mod
      CHARACTER(LEN=63)      :: name 
      CHARACTER(LEN=7)       :: state
      CHARACTER(LEN=63)      :: metadataID
+     CHARACTER(LEN=63)      :: registryID
      LOGICAL                :: isWildcard
      CHARACTER(LEN=7)       :: wildcard
      LOGICAL                :: isSpecies
@@ -83,7 +84,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Charpak_Mod,      ONLY: STRSPLIT
+    USE Charpak_Mod,      ONLY: StrSplit
     USE InquireMod,       ONLY: findFreeLun
 !
 ! !INPUT PARAMETERS:
@@ -108,9 +109,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                 :: fId, IOS, N, I
+    INTEGER                 :: numSpcWords, numIDWords
     CHARACTER(LEN=255)      :: errMsg, thisLoc
     CHARACTER(LEN=255)      :: line, SubStrs(500), SubStr
-    CHARACTER(LEN=255)      :: wildcard, species, name, state, metadataID
+    CHARACTER(LEN=255)      :: wildcard, species, name, state
+    CHARACTER(LEN=255)      :: metadataID, registryID
     LOGICAL                 :: EOF, found, isWildcard, isSpecies
     TYPE(DgnItem),  POINTER :: NewDiagItem
 
@@ -164,49 +167,67 @@ CONTAINS
        CALL StrSplit( SubStr, "'", SubStrs, N )
        name = TRIM( SubStrs(1) )
 
-       ! Get state prefix
+       ! Get GC state
        CALL StrSplit( name, '_', SubStrs, N )
        IF ( SubStrs(1) == 'MET' .or. SubStrs(1) == 'CHEM' ) THEN
           state = TRIM( SubStrs(1) )
        ELSE
+          ! TODO: need to not classify GCHP internal state as DIAG!
           state = 'DIAG'
        ENDIF
 
-       ! Get wildcard or species, if any
+       ! Get wildcard or species, if any 
+       ! NOTE: Must be prefaced with double underscore in HISTORY.rc!
        isWildcard = .FALSE.
        isSpecies  = .FALSE.
        wildcard   = ''
        species    = ''
-       IF ( INDEX ( name, '__' ) > 0 ) THEN
-          IF ( INDEX( name, '?' ) > 0 ) THEN
+       IF ( INDEX( name, '?' ) > 0 ) THEN
 #if defined( ESMF_ )
-             ! Exit with an error if using GCHP and wildcard is present
-             CALL GC_Error( 'Wildcards not allowed in GCHP', RC, ThisLoc )
-             RETURN
+          ! Exit with an error if using GCHP and wildcard is present
+          CALL GC_Error( 'Wildcards not allowed in GCHP', RC, ThisLoc )
+          RETURN
 #endif
-             isWildcard = .TRUE.
-             CALL StrSplit( name, '?', SubStrs, N )
-             wildcard = SubStrs(N-1)
-          ELSE 
-             CALL StrSplit( name, '__', SubStrs, N )
-             isSpecies  = .TRUE.
-             species = SubStrs(N)
+          isWildcard = .TRUE.
+          CALL StrSplit( name, '?', SubStrs, N )
+          wildcard = SubStrs(N-1)
+       ENDIF
+       IF ( .NOT. isWildcard ) THEN
+          I = INDEX( TRIM(name), '__' ) 
+          IF ( I > 0 ) THEN
+             isSpecies = .TRUE.
+             species = name(I+2:)
           ENDIF
        ENDIF
-       
-       ! Get metadataID which is the name w/out state prefix and spc suffix
-       ! First, trim state prefix
-       IF ( TRIM( state ) == 'DIAG' ) THEN
-          metadataID = name
-       ELSEIF ( TRIM( state ) == 'MET' ) THEN
-          metadataID = name(5:)
-       ELSEIF ( TRIM( state ) == 'CHEM' ) THEN
-          metadataID = name(6:)
+
+       ! Get registryID (name minus state prefix and wildcard suffix, but 
+       ! keep species)
+       SELECT CASE ( TRIM(state) )
+          CASE ( 'DIAG' )
+             registryID = name
+          CASE ( 'MET' )
+             registryID = name(5:)
+          CASE ( 'CHEM' )
+             registryID = name(6:)
+       END SELECT
+       IF ( isWildcard ) THEN
+          I = INDEX( TRIM(metadataID), '__' ) 
+          IF ( I .le. 0 ) THEN
+             ErrMsg = 'Error setting registryID. Double underscore must' &
+                      // ' wildcard in HISTORY.rc!'
+             CALL GC_ERROR( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+          registryID = registryID(1:I-1)
        ENDIF
-       ! Next, remove wildcard or species name if present
-       IF ( isWildcard .OR. isSpecies ) THEN
-          CALL StrSplit( metadataID, '__', SubStrs, N )
-          metadataID = SubStrs(1)
+
+       ! Get metadataID (name minus state prefix and species/wildcard suffix)
+       ! Start with registryID since that already has state prefix and wilcard
+       ! (if any) stripped. It only needs species stripped, if any.
+       metadataID = registryID
+       IF ( isSpecies ) THEN
+          I = INDEX( TRIM(metadataID), '__' ) 
+          metadataID = metadataID(1:I-1)
        ENDIF
 
        ! Skip if already encountered entry with same full name
