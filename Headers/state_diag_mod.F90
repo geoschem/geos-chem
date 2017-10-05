@@ -51,10 +51,11 @@ MODULE State_Diag_Mod
      !----------------------------------------------------------------------
      ! Diagnostic arrays
      !----------------------------------------------------------------------
-     REAL(f4),  POINTER :: SpeciesConc(:,:,:,:) ! Spc Conc for diag output
-     REAL(f4),  POINTER :: DryDepFlux (:,:,:,:) ! Dry deposition flux
-     REAL(f4),  POINTER :: DryDepVel  (:,:,:,:) ! Dry deposition velocity
-     REAL(f4),  POINTER :: JValues    (:,:,:,:) ! Photolysis rates
+     REAL(f4),  POINTER :: SpeciesConc    (:,:,:,:) ! Spc Conc for diag output
+     REAL(f4),  POINTER :: DryDepFlux_Chm (:,:,:,:) ! Drydep flux from chemistry
+     REAL(f4),  POINTER :: DryDepFlux_Mix (:,:,:,:) ! Drydep flux from mixing
+     REAL(f4),  POINTER :: DryDepVel      (:,:,:  ) ! Dry deposition velocity
+     REAL(f4),  POINTER :: JValues        (:,:,:,:) ! Photolysis rates
 
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Diag
@@ -139,17 +140,20 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Strings
-    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
-    CHARACTER(LEN=255)     :: diagID
+    CHARACTER(LEN=255)     :: ErrMsg,   ThisLoc
+    CHARACTER(LEN=255)     :: arrayID,  diagID
     INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc, nWetDep
-    LOGICAL                :: EOF, Found
+    LOGICAL                :: EOF,      Found
 
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC      =  GC_SUCCESS
-    ThisLoc = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
-    Found   = .FALSE.
+    RC       =  GC_SUCCESS
+    arrayID  = ''
+    diagID   = ''
+    ErrMsg   = ''
+    ThisLoc  = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
+    Found    = .FALSE.
 
     ! Number of species per category
     nSpecies = State_Chm%nSpecies
@@ -158,22 +162,30 @@ CONTAINS
     nKppSpc  = State_Chm%nKppSpc
     nWetDep  = State_Chm%nWetDep
 
-    ! Start with these
-    State_Diag%SpeciesConc => NULL()
-    State_Diag%DryDepFlux  => NULL()
-    State_Diag%DryDepVel   => NULL()
-    State_Diag%JValues     => NULL()
+    ! Free pointers
+    State_Diag%SpeciesConc    => NULL()
+    State_Diag%DryDepFlux_Chm => NULL()
+    State_Diag%DryDepFlux_Mix => NULL()
+    State_Diag%DryDepVel      => NULL()
+    State_Diag%JValues        => NULL()
 
 #if defined( NC_DIAG )
+
+    ! Write header
+    WRITE( 6, 10 )
+ 10 FORMAT( /, 'Allocating the following fields of the State_Diag object:' )
+    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
     !--------------------------------------------
     ! Species Concentration
     !--------------------------------------------
-    diagID = 'SpeciesConc'
+    arrayId = 'State_Diag%SpeciesConc'
+    diagID  = 'SpeciesConc'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), ADJUSTL( diagID )
        ALLOCATE( State_Diag%SpeciesConc( IM, JM, LM, nSpecies ), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%SpeciesConc', 0, RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%SpeciesConc = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%SpeciesConc, &
@@ -181,17 +193,35 @@ CONTAINS
     ENDIF
 
     !--------------------------------------------
-    ! Dry deposition flux
+    ! Dry deposition flux from chemistry
     !--------------------------------------------
-    diagID = 'DryDepFlux'
+    arrayID = 'State_Diag%DryDepFlux_Chm'
+    diagID  = 'DryDepFlux_Chm'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
-       ALLOCATE( State_Diag%DryDepFlux( IM, JM, LM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepFlux', 0, RC )
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), ADJUSTL( diagID )
+       ALLOCATE( State_Diag%DryDepFlux_Chm( IM, JM, LM, nDryDep ), STAT=RC )
+       CALL GC_CheckVar( ArrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepFlux = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepFlux, &
+       State_Diag%DryDepFlux_Chm = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepFlux_Chm, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Dry deposition flux from mixing
+    !--------------------------------------------
+    arrayID = 'State_Diag%DryDepFlux_Mix'
+    diagID  = 'DryDepFlux_Mix'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), ADJUSTL( diagID )
+       ALLOCATE( State_Diag%DryDepFlux_Mix( IM, JM, LM, nDryDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepFlux_Mix = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepFlux_Mix, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -199,12 +229,13 @@ CONTAINS
     !--------------------------------------------
     ! Dry deposition velocity
     !-------------------------------------------- 
-    diagID = 'DryDepVel'
+    arrayID = 'State_Diag%DryDepVel'
+    diagID  = 'DryDepVel'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
-       ALLOCATE( State_Diag%DryDepVel( IM, JM, LM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepVel', 0, RC )
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), ADJUSTL( diagID )
+       ALLOCATE( State_Diag%DryDepVel( IM, JM, nDryDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepVel = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepVel, &
@@ -216,12 +247,13 @@ CONTAINS
     ! J-Values
     !-------------------------------------------- 
     ! TODO: Mapping needs work
-    diagID = 'JValues'
+    arrayID = 'State_Diag%JValues'
+    diagID  = 'JValues'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       PRINT *, 'Allocating ' // TRIM(diagID) // ' diagnostic'
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), ADJUSTL( diagID )
        ALLOCATE( State_Diag%JValues( IM, JM, LM, nSpecies ), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%JValues', 0, RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%JValues = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%JValues, &
@@ -229,12 +261,16 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! Format statement
+ 20 FORMAT( 1x, a32, ' is registered as: ', a32 )
+
     !=======================================================================
     ! Print information about the registered fields (short format)
     !=======================================================================
     IF ( am_I_Root ) THEN
-       WRITE( 6, 10 )
-10     FORMAT( /, 'Registered variables contained within the State_Diag object:' )
+       WRITE( 6, 30 )
+ 30    FORMAT( /, &
+            'Registered variables contained within the State_Diag object:' )
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     ENDIF
     CALL Registry_Print( am_I_Root   = am_I_Root,            &
@@ -284,6 +320,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  05 Jul 2017 - R. Yantosca - Initial version
+!   5 Oct 2017 - R. Yantosca - Now put error trapping on deallocations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -303,10 +340,50 @@ CONTAINS
     !=======================================================================
     ! Deallocate module variables
     !=======================================================================
-    IF ( ASSOCIATED(State_Diag%SpeciesConc)) DEALLOCATE( State_Diag%SpeciesConc)
-    IF ( ASSOCIATED(State_Diag%DryDepFlux )) DEALLOCATE( State_Diag%DryDepFlux )
-    IF ( ASSOCIATED(State_Diag%DryDepVel  )) DEALLOCATE( State_Diag%DryDepVel  )
-    IF ( ASSOCIATED(State_Diag%JValues    )) DEALLOCATE( State_Diag%JValues    )
+    IF ( ASSOCIATED( State_Diag%SpeciesConc ) ) THEN
+       DEALLOCATE( State_Diag%SpeciesConc, STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%SpeciesConc"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+ 
+    IF ( ASSOCIATED( State_Diag%DryDepFlux_Chm ) ) THEN
+       DEALLOCATE( State_Diag%DryDepFlux_Chm, STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%DryDepFlux_Chm"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%DryDepFlux_Mix ) ) THEN
+       DEALLOCATE( State_Diag%DryDepFlux_Mix, STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%DryDepFlux_Mix"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%DryDepVel ) ) THEN
+       DEALLOCATE( State_Diag%DryDepVel, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%DryDepVel"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%JValues ) ) THEN
+       DEALLOCATE( State_Diag%JValues, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%JValues"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
 
     !=======================================================================
     ! Destroy the registry of fields for this module
@@ -391,12 +468,12 @@ CONTAINS
     ! Set defaults for optional arguments. Assume type and vertical 
     ! location are real (flexible precision) and center unless specified 
     ! otherwise
-    IF ( isUnits ) Units = ''
-    IF ( isDesc  ) Desc  = ''              
-    IF ( isRank  ) Rank  = -1              ! Initialize # dims as bad value 
-    IF ( isType  ) Type  = KINDVAL_F4      ! Assume real*4 for diagnostics
-    IF ( isVLoc  ) VLoc  = VLocationCenter ! Assume vertically centered
-    IF ( isSpecies ) PerSpecies = ''       ! Assume not per species
+    IF ( isUnits   ) Units = ''
+    IF ( isDesc    ) Desc  = ''              
+    IF ( isRank    ) Rank  = -1              ! Initialize # dims as bad value 
+    IF ( isType    ) Type  = KINDVAL_F4      ! Assume real*4 for diagnostics
+    IF ( isVLoc    ) VLoc  = VLocationCenter ! Assume vertically centered
+    IF ( isSpecies ) PerSpecies = ''         ! Assume not per species
 
     ! Convert name to uppercase
     Name_AllCaps = To_Uppercase( TRIM( metadataID ) )
@@ -407,27 +484,33 @@ CONTAINS
     SELECT CASE ( TRIM( Name_AllCaps ) )
 
        CASE ( 'SPECIESCONC' )
-          IF ( isDesc  )   Desc       = 'Dry mixing ratio of species'
-          IF ( isUnits )   Units      = 'mol mol-1 dry'
-          IF ( isRank  )   Rank       = 3
+          IF ( isDesc    ) Desc       = 'Dry mixing ratio of species'
+          IF ( isUnits   ) Units      = 'mol mol-1 dry'
+          IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'ALL'
 
-       CASE ( 'DRYDEPFLUX' )
-          IF ( isDesc  )   Desc       = 'Dry deposition flux of species'
-          IF ( isUnits )   Units      = 'molec cm-2 s-1'
-          IF ( isRank  )   Rank       = 3
+       CASE ( 'DRYDEPFLUX_CHM' )
+          IF ( isDesc    ) Desc       = 'Dry deposition flux of species, from chemistry'
+          IF ( isUnits   ) Units      = 'molec cm-2 s-1'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'DRY'
+
+       CASE ( 'DRYDEPFLUX_MIX' )
+          IF ( isDesc    ) Desc       = 'Dry deposition flux of species, from mixing'
+          IF ( isUnits   ) Units      = 'molec cm-2 s-1'
+          IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'DRY'
 
        CASE ( 'DRYDEPVEL' )
-          IF ( isDesc  )   Desc       = 'Dry deposition velocity of species'
-          IF ( isUnits )   Units      = 'cm s-1'
-          IF ( isRank  )   Rank       = 3
+          IF ( isDesc    ) Desc       = 'Dry deposition velocity of species'
+          IF ( isUnits   ) Units      = 'cm s-1'
+          IF ( isRank    ) Rank       = 2
           IF ( isSpecies ) PerSpecies = 'DRY'
 
        CASE ( 'JVALUES' )
-          IF ( isDesc  )   Desc       = 'Photolysis rate' !TODO: append to this?
-          IF ( isUnits )   Units      = 's-1'
-          IF ( isRank  )   Rank       = 3
+          IF ( isDesc    ) Desc       = 'Photolysis rate' !TODO: append to this?
+          IF ( isUnits   ) Units      = 's-1'
+          IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'ALL' ! TODO: fix species mapping
 
        CASE DEFAULT

@@ -619,7 +619,7 @@ CONTAINS
     CALL Compute_Julian_Date( yyyymmdd_end, hhmmss_end, JulianDateEnd )
 
     ! Compute the length of the simulation, in elapsed seconds
-    SimLengthSec   = INT( ( JulianDateEnd - JulianDate ) * SECONDS_PER_DAY )
+    SimLengthSec   = NINT( ( JulianDateEnd - JulianDate ) * SECONDS_PER_DAY )
 
     !=======================================================================
     ! Open the file containing the list of requested diagnostics

@@ -568,7 +568,7 @@
       historyConfigFile = 'HISTORY.rc' ! cannot use Input_Opt variable in GCHP
       CALL Init_DiagList( am_I_Root, historyConfigFile, Diag_List, RC )
 
-      ! Initialize Input_Opt, State_Chem, and State_Met objects (bmy, 3/4/13)
+      ! Initialize Input_Opt, State_Chm, State_Diag, State_Met objects
       CALL GC_Init_All( am_I_Root, Diag_List,  Input_Opt, 
      &                  State_Chm, State_Diag, State_Met, RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -582,7 +582,8 @@
       ! SULFATE_MOD).  This removes the init calls from the run stage,
       ! which is required when connecting to the GEOS-5 GCM w/ ESMF.
       ! (bmy, 3/4/13)
-      CALL GC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL GC_Init_Extra( am_I_Root, Input_Opt, 
+     &                    State_Chm, State_Diag, RC )
       !
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
@@ -657,6 +658,8 @@
       CALL GEOS_Timer_Start( "History",  RC )
 #endif
 
+      print*, '### before history: '
+      call flush(6)
       ! For now, just hardwire the input file for the History component
       Input_Opt%HistoryInputFile = './HISTORY.rc'
 
@@ -1354,8 +1357,8 @@
                CALL GEOS_Timer_Start( "Dry deposition", RC )
 #endif
 
-               CALL DO_DRYDEP( am_I_Root, Input_Opt, 
-     &                         State_Met, State_Chm, RC )
+               CALL DO_DRYDEP( am_I_Root, Input_Opt,  State_Met, 
+     &                         State_Chm, State_Diag, RC )
                IF ( RC /= GC_SUCCESS ) THEN
                   CALL ERROR_STOP('Error in DO_DRYDEP!', 'main.F')
                ENDIF
@@ -1657,15 +1660,15 @@
          !           ***** H I S T O R Y   U P D A T E  *****
          !==============================================================
 
-         ! For testing only. Need to set these in appropriate locations
-         ! throughout GEOS-Chem. See old NC_DIAG code for ND44 for where and 
-         ! what to set values to (ewl, 9/27/17)
-         IF ( ASSOCIATED(State_Diag%DryDepVel) ) THEN
-            State_Diag%DryDepVel(:,:,:,:) = 2.0
-         ENDIF
-         IF ( ASSOCIATED(State_Diag%DryDepFlux) ) THEN
-            State_Diag%DryDepFlux(:,:,:,:) = 3.0
-         ENDIF
+!         ! For testing only. Need to set these in appropriate locations
+!         ! throughout GEOS-Chem. See old NC_DIAG code for ND44 for where and 
+!         ! what to set values to (ewl, 9/27/17)
+!         IF ( ASSOCIATED(State_Diag%DryDepVel) ) THEN
+!            State_Diag%DryDepVel(:,:,:,:) = 2.0
+!         ENDIF
+!         IF ( ASSOCIATED(State_Diag%DryDepFlux) ) THEN
+!            State_Diag%DryDepFlux(:,:,:,:) = 3.0
+!         ENDIF
 
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_Start( "History", RC )
