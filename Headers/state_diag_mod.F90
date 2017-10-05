@@ -914,14 +914,19 @@ CONTAINS
              ! TODO: For now, hard-code the names based on AD22. RNAMES and
              !  JLABEL are not yet initialized at this point. Put index mapping
              !  in  species database in near future if possible.
-             JNAMES = ['NO2',    'HNO3',   'H2O2',   'CH2O',   'x',       &
-                       'x',      'GLYX',   'MGLY',   'BrO',    'HOBr',    &
-                       'BrNO2',  'BrNO3',  'CHBr3',  'Br2',    'O2inadj', &
-                       'N2O',    'NO',     'NO3',    'CFC11',  'CFC12',   &
-                       'CCl4',   'CH3Cl',  'ACET',   'ALD2',   'MVK',     &
-                       'MACR',   'HAC',    'GLYC',   'PIP',    'IPMN',    &
-                       'ETHLN',  'DHDN',   'HPALD',  'ISN1',   'MONITS',  &
-                       'MONITU', 'HONIT']
+             JNAMES = [ 'NO2       ', 'HNO3      ', 'H2O2      ',            &
+                        'CH2O      ', 'x         ', 'x         ',            &
+                        'GLYX      ', 'MGLY      ', 'BrO       ',            &
+                        'HOBr      ', 'BrNO2     ', 'BrNO3     ',            &
+                        'CHBr3     ', 'Br2       ', 'O2inadj   ',            &
+                        'N2O       ', 'NO        ', 'NO3       ',            &
+                        'CFC11     ', 'CFC12     ', 'CCl4      ',            &
+                        'CH3Cl     ', 'ACET      ', 'ALD2      ',            &
+                        'MVK       ', 'MACR      ', 'HAC       ',            &
+                        'GLYC      ', 'PIP       ', 'IPMN      ',            &
+                        'ETHLN     ', 'DHDN      ', 'HPALD     ',            &
+                        'ISN1      ', 'MONITS    ', 'MONITU    ',            &
+                        'HONIT     ' ]
 #if defined( UCX )
              JNAMES(5) = 'O3_O1D'
              JNAMES(6) = 'O3_O3P'
