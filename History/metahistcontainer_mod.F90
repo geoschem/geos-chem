@@ -311,6 +311,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
+!  06 Oct 2017 - R. Yantosca - Now insert new node at the head of the list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -321,7 +322,7 @@ CONTAINS
     CHARACTER(LEN=255)               :: ErrMsg, ThisLoc
     
     ! Objects
-    TYPE(MetaHistContainer), POINTER :: Next
+    TYPE(MetaHistContainer), POINTER :: Head
 
     !=======================================================================
     ! Initialize
@@ -332,42 +333,40 @@ CONTAINS
       ' -> at MetaHistContainer_Insert (in History/metahistcontainer_mod.F90)'
     
     !=======================================================================
-    ! Initialize a METAHISTORY CONTAINER named "Next", which will be inserted 
-    ! into the existing list.  "Next" will contain a new HISTORY CONTAINER.
+    ! Initialize a METAHISTORY CONTAINER named "Head", which will 
+    ! become  the head of the existing list.  "Head" will contain 
+    ! a new HISTORY CONTAINER.
     !=======================================================================
 
-    ! Allocate the "Next" object
-    ALLOCATE( Next, STAT=RC )
+    ! Allocate the "Head" object
+    ALLOCATE( Head, STAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not allocate "Next"!'
+       ErrMsg = 'Could not allocate "Head"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    ! Allocate the "Next%Container" field, 
+    ! Allocate the "HeadContainer" field, 
     ! which will hold the HISTORY CONTAINER
-    ALLOCATE( Next%Container, STAT=RC )
+    ALLOCATE( Head%Container, STAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not allocate "Next%Container"!'
+       ErrMsg = 'Could not allocate "Head%Container"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     !=======================================================================
-    ! Insert "Next" into the existing linked list
+    ! Insert "Head" at the start of the existing linked list
     !=======================================================================
 
-    ! Pop the "Next" object in between the current node (i.e. "Node")
-    ! and the node that is currently following it (i.e. "Node%Next")
-    Next%Next      => Node%Next
+    ! Save the HISTORY CONTAINER argument in the "Container" field of "Head"
+    Head%Container =  Container
 
-    ! Now make sure that the current node (i.e. "Node") 
-    ! considers that "Next" to be the next node in the list.
-    Node%Next      => Next
+    ! The "Next" field of "Head" points to the current head of the list
+    Head%Next      => Node
 
-    ! Now that we have inserted the METAHISTORY CONTAINER "Next" into 
-    ! the list, we can save the HISTORY CONTAINER into its "Container" field.
-    Next%Container =  Container
+    ! Set "Head" as the new head of the linked list
+    Node           => Head
 
   END SUBROUTINE MetaHistContainer_Insert
 !EOC

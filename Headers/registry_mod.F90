@@ -1375,6 +1375,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
+!  06 Oct 2017 - R. Yantosca - Now insert new node at the head of the list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1385,7 +1386,7 @@ CONTAINS
     CHARACTER(LEN=255)         :: ErrMsg, ThisLoc
     
     ! Objects
-    TYPE(MetaRegItem), POINTER :: Next
+    TYPE(MetaRegItem), POINTER :: Head
 
     !=======================================================================
     ! Initialize
@@ -1399,37 +1400,34 @@ CONTAINS
     ! into the existing list.  "Next" will contain a new REGISTRY ITEM.
     !=======================================================================
 
-    ! Allocate the "Next" object
-    ALLOCATE( Next, STAT=RC )
+    ! Allocate the "Head" object
+    ALLOCATE( Head, STAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not allocate "Next"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    ! Allocate the "Next%Item" field, which will hold the REGISTRY ITEM
-    ALLOCATE( Next%Item, STAT=RC )
+    ! Allocate the "Head%Item" field, which will hold the REGISTRY ITEM
+    ALLOCATE( Head%Item, STAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not allocate "Next%Item"!'
+       ErrMsg = 'Could not allocate "Head%Item"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     !=======================================================================
-    ! Insert "Next" into the existing linked list
+    ! Insert "Head" at the start of the existing linked list
     !=======================================================================
 
-    ! Pop the "Next" object in between the current node (i.e. "Node")
-    ! and the node that is currently following it (i.e. "Node%Next")
-    Next%Next => Node%Next
+    ! Save the REGISTRY ITEM argument in the "Item" field of "Head"
+    Head%Item  =  Item
 
-    ! Now make sure that the current node (i.e. "Node") 
-    ! considers that "Next" to be the next node in the list.
-    Node%Next => Next
+    ! The "Next" field of "Head" points to the current head of the list
+    Head%Next  => Node
 
-    ! Now that we have inserted the META REGISTRY ITEM "Next" into 
-    ! the list, we can save the REGISTRY ITEM into its "Item" field.
-    Next%Item =  Item
+    ! Set "Head" as the new head of the linked list
+    Node       => Head
 
   END SUBROUTINE MetaRegItem_Insert
 !EOC
