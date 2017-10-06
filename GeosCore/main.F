@@ -658,8 +658,6 @@
       CALL GEOS_Timer_Start( "History",  RC )
 #endif
 
-      print*, '### before history: '
-      call flush(6)
       ! For now, just hardwire the input file for the History component
       Input_Opt%HistoryInputFile = './HISTORY.rc'
 

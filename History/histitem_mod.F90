@@ -71,10 +71,12 @@ MODULE HistItem_Mod
      INTEGER,  POINTER  :: Source_1d_I(:    )    ! Ptr to 1D integer   data
 
      REAL(fp), POINTER  :: Source_2d  (:,:  )    ! Ptr to 2D flex-prec data
+     REAL(f8), POINTER  :: Source_2d_8(:,:  )    ! Ptr to 2D 8-byte    data
      REAL(f4), POINTER  :: Source_2d_4(:,:  )    ! Ptr to 2D 4-byte    data
      INTEGER,  POINTER  :: Source_2d_I(:,:  )    ! Ptr to 2D integer   data
 
      REAL(fp), POINTER  :: Source_3d  (:,:,:)    ! Ptr to 3D flex-prec data
+     REAL(f8), POINTER  :: Source_3d_8(:,:,:)    ! Ptr to 3D 8-byte    data
      REAL(f4), POINTER  :: Source_3d_4(:,:,:)    ! Ptr to 3D 4-byte    data
      INTEGER,  POINTER  :: Source_3d_I(:,:,:)    ! Ptr to 3D integer   data
 
@@ -113,6 +115,7 @@ MODULE HistItem_Mod
 !                              which should avoid roundoff for long runs
 !  11 Aug 2017 - R. Yantosca - Remove 0d pointers and data arrays
 !  25 Aug 2017 - R. Yantosca - Added Source_0d_8 and Source_1d_8 pointers
+!  25 Aug 2017 - R. Yantosca - Added Source_2d_8 and Source_3d_8 pointers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -138,9 +141,9 @@ CONTAINS
                               ScaleFactor,  Source_KindVal, Operation,       &
                               DimNames,     Dimensions,     Source_0d_8,     &
                               Source_1d,    Source_1d_8,    Source_1d_4,     &
-                              Source_1d_I,  Source_2d,      Source_2d_4,     &
-                              Source_2d_I,  Source_3d,      Source_3d_4,     &
-                              Source_3d_I                                   )  
+                              Source_1d_I,  Source_2d,      Source_2d_8,     &
+                              Source_2d_4,  Source_2d_I,    Source_3d,       &
+                              Source_3d_8,  Source_3d_4,    Source_3d_I     )  
 !
 ! !USES:
 !
@@ -182,9 +185,11 @@ CONTAINS
     REAL(f4), POINTER, OPTIONAL    :: Source_1d_4(:    ) ! 1D 4-byte    data
     INTEGER,  POINTER, OPTIONAL    :: Source_1d_I(:    ) ! 1D integer   data
     REAL(fp), POINTER, OPTIONAL    :: Source_2d  (:,:  ) ! 2D flex-prec data
+    REAL(f8), POINTER, OPTIONAL    :: Source_2d_8(:,:  ) ! 2D 8-byte    data
     REAL(f4), POINTER, OPTIONAL    :: Source_2d_4(:,:  ) ! 2D 4-byte    data
     INTEGER,  POINTER, OPTIONAL    :: Source_2d_I(:,:  ) ! 2D integer   data
     REAL(fp), POINTER, OPTIONAL    :: Source_3d  (:,:,:) ! 3D flex-prec data
+    REAL(f8), POINTER, OPTIONAL    :: Source_3d_8(:,:,:) ! 3D 8-byte    data
     REAL(f4), POINTER, OPTIONAL    :: Source_3d_4(:,:,:) ! 3D 4-byte    data
     INTEGER,  POINTER, OPTIONAL    :: Source_3d_I(:,:,:) ! 3D integer   data
 !
@@ -212,6 +217,7 @@ CONTAINS
 !  24 Aug 2017 - R. Yantosca - Set the NcILevDim field to undefined
 !  25 Aug 2017 - R. Yantosca - Added Source_0d_8 and Source_1d_8 arguments
 !  28 Aug 2017 - R. Yantosca - Now define the NcChunkSizes field
+!  25 Aug 2017 - R. Yantosca - Added Source_2d_8 and Source_3d_8 arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -220,10 +226,10 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: Is_DimNames
-    LOGICAL            :: Is_0d_8,    Is_1d_8
-    LOGICAL            :: Is_1d,      Is_1d_4,  Is_1d_I
-    LOGICAL            :: Is_2d,      Is_2d_4,  Is_2d_I
-    LOGICAL            :: Is_3d,      Is_3d_4,  Is_3d_I
+    LOGICAL            :: Is_0d_8
+    LOGICAL            :: Is_1d,      Is_1d_8,  Is_1d_4,  Is_1d_I
+    LOGICAL            :: Is_2d,      Is_2d_8,  Is_2d_4,  Is_2d_I
+    LOGICAL            :: Is_3d,      Is_3d_8,  Is_3d_4,  Is_3d_I
     INTEGER            :: N
 
     ! Arrays
@@ -262,9 +268,11 @@ CONTAINS
     Is_1d_4          =  PRESENT( Source_1d_4 )
     Is_1d_I          =  PRESENT( Source_1d_I )
     Is_2d            =  PRESENT( Source_2d   )
+    Is_2d_8          =  PRESENT( Source_2d_8 )
     Is_2d_4          =  PRESENT( Source_2d_4 )
     Is_2d_I          =  PRESENT( Source_2d_I )
     Is_3d            =  PRESENT( Source_3d   )
+    Is_3d_8          =  PRESENT( Source_3d_8 )
     Is_3d_4          =  PRESENT( Source_3d_4 )
     Is_3d_I          =  PRESENT( Source_3d_I )
 
@@ -275,9 +283,11 @@ CONTAINS
     IF ( Is_1d_4 ) Item%Source_1d_4 => NULL()
     IF ( Is_1d_I ) Item%Source_1d_I => NULL()
     IF ( Is_2d   ) Item%Source_2d   => NULL()
+    IF ( Is_2d_8 ) Item%Source_2d_8 => NULL()
     IF ( Is_2d_4 ) Item%Source_2d_4 => NULL()
     IF ( Is_2d_I ) Item%Source_2d_I => NULL()
     IF ( Is_3d   ) Item%Source_3d   => NULL()
+    IF ( Is_3d_8 ) Item%Source_3d_8 => NULL()
     IF ( Is_3d_4 ) Item%Source_3d_4 => NULL()
     IF ( Is_3d_I ) Item%Source_3d_I => NULL()
 
@@ -494,6 +504,14 @@ CONTAINS
                 ENDDO
                 GOTO 99
              ENDIF
+          ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+             IF ( Is_3d_8 ) THEN
+                Item%Source_3d_8 => Source_3d_8
+                DO N = 1, Item%SpaceDim
+                   Dims(N) = SIZE( Source_3d_8, N )
+                ENDDO
+                GOTO 99
+             ENDIF
           ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
              IF ( Is_3d_4 ) THEN
                 Item%Source_3d_4 => Source_3d_4
@@ -519,6 +537,14 @@ CONTAINS
                 Item%Source_2d => Source_2d
                 DO N = 1, Item%SpaceDim
                    Dims(N) = SIZE( Source_2d, N )
+                ENDDO
+                GOTO 99
+             ENDIF
+          ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+             IF ( Is_2d_8 ) THEN
+                Item%Source_2d_8 => Source_2d_8
+                DO N = 1, Item%SpaceDim
+                   Dims(N) = SIZE( Source_2d_8, N )
                 ENDDO
                 GOTO 99
              ENDIF
@@ -900,6 +926,7 @@ CONTAINS
 !  06 Jul 2017 - R. Yantosca - Nullify source pointers to 4-byte & integer data
 !  11 Aug 2017 - R. Yantosca - Remove 0d pointers and data arrays
 !  28 Aug 2017 - R. Yantosca - Deallocate Data_0d and NcChunkSizes fields
+!  06 Oct 2017 - R. Yantosca - Nullify Source_2d_8 and Source_3d_8 pointers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -924,9 +951,11 @@ CONTAINS
     Item%Source_1d_4 => NULL()
     Item%Source_1d_I => NULL()
     Item%Source_2d   => NULL()
+    Item%Source_2d_8 => NULL()
     Item%Source_2d_4 => NULL()
     Item%Source_2d_I => NULL()
     Item%Source_3d   => NULL()
+    Item%Source_3d_8 => NULL()
     Item%Source_3d_4 => NULL()
     Item%Source_3d_I => NULL()
 

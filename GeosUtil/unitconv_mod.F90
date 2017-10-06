@@ -337,7 +337,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState),   INTENT(INOUT) :: State_Chm         ! Chemistry state obj
-    REAL*4,           POINTER       :: Ptr2Data(:,:,:,:) ! Diagnostics array
+    REAL(f8),         POINTER       :: Ptr2Data(:,:,:,:) ! Diagnostics array
 !
 ! !OUTPUT PARAMETERS:
 !

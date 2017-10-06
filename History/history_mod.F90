@@ -1331,6 +1331,7 @@ CONTAINS
     REAL(f4),            POINTER :: Ptr2d_4(:,:  )
     INTEGER,             POINTER :: Ptr2d_I(:,:  )
     REAL(fp),            POINTER :: Ptr3d  (:,:,:)
+    REAL(f8),            POINTER :: Ptr3d_8(:,:,:)
     REAL(f4),            POINTER :: Ptr3d_4(:,:,:)
     INTEGER,             POINTER :: Ptr3d_I(:,:,:)
 
@@ -1350,6 +1351,7 @@ CONTAINS
     Ptr2d_4     => NULL()
     Ptr2d_I     => NULL()
     Ptr3d       => NULL()
+    Ptr3d_8     => NULL()
     Ptr3d_4     => NULL()
     Ptr3d_I     => NULL()
 
@@ -1430,6 +1432,7 @@ CONTAINS
                              Units        = Units,                           &
                              OnLevelEdges = OnLevelEdges,                    &
                              Ptr2d_4      = Ptr2d_4,                         &
+                             Ptr3d_8      = Ptr3d_8,                         &
                              Ptr3d_4      = Ptr3d_4,                         &
                              Ptr2d_I      = Ptr2d_I,                         &
                              Ptr3d_I      = Ptr3d_I,                         &
@@ -1481,6 +1484,7 @@ CONTAINS
                           Source_2d_4    = Ptr2d_4,                          &
                           Source_2d_I    = Ptr2d_I,                          &
                           Source_3d      = Ptr3d,                            &
+                          Source_3d_8    = Ptr3d_8,                          &
                           Source_3d_4    = Ptr3d_4,                          &
                           Source_3d_I    = Ptr3d_I,                          &
                           Dimensions     = ItemDims,                         &
