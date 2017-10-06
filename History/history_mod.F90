@@ -1445,7 +1445,6 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
     ENDIF
 
     !=======================================================================
@@ -1596,6 +1595,7 @@ CONTAINS
     Ptr2d_4 => NULL()
     Ptr2d_I => NULL()
     Ptr3d   => NULL()
+    Ptr3d_8 => NULL()
     Ptr3d_4 => NULL()
     Ptr3d_I => NULL()
 
@@ -1844,6 +1844,17 @@ CONTAINS
                       Item%nUpdates = Item%nUpdates + 1.0_f8
                    ENDIF
 
+                ! 8-byte floating point
+                ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+                      Item%Data_3d = Item%Source_3d_8
+                      Item%nUpdates = 1.0_f8
+                   ELSE
+                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d_8
+                      Item%nUpdates = Item%nUpdates + 1.0_f8
+                   ENDIF
+
                 ! 4-byte floating point
                 ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
 
@@ -1882,6 +1893,17 @@ CONTAINS
                    ELSE 
                       Item%Data_2d  = Item%Data_2d  + Item%Source_2d
                       Item%nUpdates = Item%nUpdates + 1.0_f8
+                   ENDIF
+
+                ! 8-byte floating point
+                ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+                      Item%Data_2d  = Item%Source_2d_8
+                      Item%nUpdates = 1.0_f8
+                   ELSE
+                      Item%Data_2d  = Item%Data_2d + Item%Source_2d_8
+                      Item%nUpdates = Item%nUpdates + 1.0_f8 
                    ENDIF
 
                 ! 4-byte floating point
@@ -1924,6 +1946,17 @@ CONTAINS
                       Item%nUpdates = Item%nUpdates + 1.0_f8 
                    ENDIF
 
+                ! 8-byte floating point
+                ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+                      Item%Data_1d  = Item%Source_1d_8
+                      Item%nUpdates = 1.0_f8
+                   ELSE 
+                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d_8
+                      Item%nUpdates = Item%nUpdates + 1.0_f8  
+                   ENDIF
+
                 ! 4-byte floating point
                 ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
 
@@ -1943,6 +1976,24 @@ CONTAINS
                       Item%nUpdates = 1.0_f8 
                    ELSE
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d_I
+                      Item%nUpdates = Item%nUpdates + 1.0_f8 
+                   ENDIF
+
+                ENDIF
+
+             !--------------------------------------------------------------
+             ! Update 0D data field
+             !--------------------------------------------------------------
+             CASE( 0 )
+
+                ! Flex-precision floating point
+                IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+                      Item%Data_0d  = Item%Source_0d_8
+                      Item%nUpdates = 1.0_f8
+                   ELSE 
+                      Item%Data_0d  = Item%Data_0d  + Item%Source_0d_8
                       Item%nUpdates = Item%nUpdates + 1.0_f8 
                    ENDIF
 

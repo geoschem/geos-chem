@@ -1662,16 +1662,6 @@
          !           ***** H I S T O R Y   U P D A T E  *****
          !==============================================================
 
-!         ! For testing only. Need to set these in appropriate locations
-!         ! throughout GEOS-Chem. See old NC_DIAG code for ND44 for where and 
-!         ! what to set values to (ewl, 9/27/17)
-!         IF ( ASSOCIATED(State_Diag%DryDepVel) ) THEN
-!            State_Diag%DryDepVel(:,:,:,:) = 2.0
-!         ENDIF
-!         IF ( ASSOCIATED(State_Diag%DryDepFlux) ) THEN
-!            State_Diag%DryDepFlux(:,:,:,:) = 3.0
-!         ENDIF
-
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_Start( "History", RC )
 #endif
