@@ -590,7 +590,7 @@ CONTAINS
     !     ----------------
     !     Begin execution.
     !     ----------------
-    
+ 
     ! Add definition of j1p and j2p for enlarge polar cap. (ccc, 11/20/08)
     j1p = 3
     j2p = jm - j1p + 1
@@ -648,11 +648,10 @@ CONTAINS
        dap(ik) = ak(ik+1) - ak(ik)
        dbk(ik) = bk(ik+1) - bk(ik)
     enddo
-      
 
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IK, IQ )
+!$OMP PRIVATE( IK, IQ, I, J )
     do ik=1,km
 
   ! ====================
@@ -774,7 +773,6 @@ CONTAINS
 
     ! Calculate surf. pressure at t+dt. (ccc, 11/20/08)
     ps = ak(1)+sum(delp2,dim=3)
-         
 
 !--------------------------------------------------------
 ! For time optimization : we parallelize over tracers and
@@ -791,8 +789,6 @@ CONTAINS
        !.sds.. convert to "mass"
        dq1(:,:,ik) = q(:,:,ik,iq) * delp1(:,:,ik)
        
-
-          
      ! ===========================
        call Calc_Advec_Cross_Terms  &
      ! ===========================

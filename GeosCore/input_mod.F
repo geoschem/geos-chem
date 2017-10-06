@@ -2898,12 +2898,12 @@
          WRITE( 6, 110     ) 'GAMMA HO2                   : ',
      &                        Input_Opt%GAMMA_HO2
          IF ( Input_Opt%USE_ONLINE_O3 ) THEN
-         WRITE( 6, '(  a)' ) ''
-         WRITE( 6, '(/,a)' ) 'NOTE ABOUT OVERHEAD O3 FOR FAST-JX:'
-         WRITE( 6, '(/,a)' ) ' Online O3 from GEOS-Chem will be used'
-         WRITE( 6, '(/,a)' ) ' to weight the O3 column within the'
-         WRITE( 6, '(/,a)' ) ' chemistry grid and O3 from met or TOMS'
-         WRITE( 6, '(/,a)' ) ' will be used outside the chemistry grid.'
+         WRITE( 6, '(a)' ) ''
+         WRITE( 6, '(a)' ) 'NOTE ABOUT OVERHEAD O3 FOR FAST-JX:'
+         WRITE( 6, '(a)' ) ' Online O3 from GEOS-Chem will be used'
+         WRITE( 6, '(a)' ) ' to weight the O3 column within the'
+         WRITE( 6, '(a)' ) ' chemistry grid and O3 from met or TOMS'
+         WRITE( 6, '(a)' ) ' will be used outside the chemistry grid.'
          ENDIF
       ENDIF
 

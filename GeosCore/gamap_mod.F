@@ -1834,6 +1834,7 @@
 !                              ND44. Family tracers have been eliminated.
 !  23 Jan 2017 - R. Yantosca - Now write metadata for all species (advected
 !                              or not) for the ND45 tracer conc. diagnostic
+!  26 Sep 2017 - M. Sulprizio- Add new halogen species to ND22 (L. Zhu)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5473,6 +5474,85 @@
                      NAME(T,22) = 'JMONITU'
                   CASE( 37 )
                      NAME(T,22) = 'JHONIT'
+                  ! lei, 05/15/17 - added new halogen species below 
+                  CASE( 38 )
+                     NAME(T,22) = 'JCH3Br'
+                  CASE( 39 )
+                     NAME(T,22) = 'JBrCl'
+                  CASE( 40 )
+                     NAME(T,22) = 'JCH2Br2'
+                  CASE( 41 )
+                     NAME(T,22) = 'JCH2IBr'
+                  CASE( 42 )
+                     NAME(T,22) = 'JIBr'
+                  CASE( 43 )
+                     NAME(T,22) = 'JCl2'
+                  CASE( 44 )
+                     NAME(T,22) = 'JClO'
+                  CASE( 45 )
+                     NAME(T,22) = 'JOClO'
+                  CASE( 46 )
+                     NAME(T,22) = 'JCl2O2'
+                  CASE( 47 )
+                     NAME(T,22) = 'JClNO2'
+                  CASE( 48 )
+                     NAME(T,22) = 'JClNO3'
+                  CASE( 49 )
+                     NAME(T,22) = 'JHOCl'
+                  CASE( 50 )
+                     NAME(T,22) = 'JCH3CCl3'
+                  CASE( 51 )
+                     NAME(T,22) = 'JCFC113'
+                  CASE( 52 )
+                     NAME(T,22) = 'JCFC114'
+                  CASE( 53 )
+                     NAME(T,22) = 'JCFC115'
+                  CASE( 54 )
+                     NAME(T,22) = 'JHCFC123'
+                  CASE( 55 )
+                     NAME(T,22) = 'JHCFC141b'
+                  CASE( 56 )
+                     NAME(T,22) = 'JHCFC142b'
+                  CASE( 57 )
+                     NAME(T,22) = 'JHCFC22'
+                  CASE( 58 )
+                     NAME(T,22) = 'JH1211'
+                  CASE( 59 )
+                     NAME(T,22) = 'JClOO'
+                  CASE( 60 )
+                     NAME(T,22) = 'JCH2Cl2'
+                  CASE( 61 )
+                     NAME(T,22) = 'JCH2ICl'
+                  CASE( 62 )
+                     NAME(T,22) = 'JICl'
+                  CASE( 63 )
+                     NAME(T,22) = 'JI2'
+                  CASE( 64 )
+                     NAME(T,22) = 'JHOI'
+                  CASE( 65 )
+                     NAME(T,22) = 'JIO'
+                  CASE( 66 )
+                     NAME(T,22) = 'JOIO'
+                  CASE( 67 )
+                     NAME(T,22) = 'JINO'
+                  CASE( 68 )
+                     NAME(T,22) = 'JIONO'
+                  CASE( 69 )
+                     NAME(T,22) = 'JIONO2'
+                  CASE( 70 )
+                     NAME(T,22) = 'JI2O2'
+                  CASE( 71 )
+                     NAME(T,22) = 'JCH3I'
+                  CASE( 72 )
+                     NAME(T,22) = 'JCH2I2'
+                  CASE( 73 )
+                     NAME(T,22) = 'JI2O4'
+                  CASE( 74 )
+                     NAME(T,22) = 'JI2O3'
+                  CASE( 75 )
+                     NAME(T,22) = 'JH1301'
+                  CASE( 76 )
+                     NAME(T,22) = 'JH2402'
                  CASE DEFAULT
                   ! Nothing
                END SELECT
