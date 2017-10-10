@@ -724,10 +724,10 @@
       CALL Compute_Olson_Landmap( am_I_Root, mapping,   State_Met )
       CALL Cleanup_Olson_Landmap( am_I_Root                       )
 
-       ! Initialize PBL quantities but do not do mixing
-       ! Add option for non-local PBL (Lin, 03/31/09) 
-      CALL INIT_MIXING ( am_I_Root, Input_Opt, 
-     &                   State_Met, State_Chm, RC ) 
+      ! Initialize PBL quantities but do not do mixing
+      ! Add option for non-local PBL (Lin, 03/31/09)
+      CALL INIT_MIXING ( am_I_Root, Input_Opt,  State_Met,
+     &                  State_Chm,  State_Diag, RC         )
  
       ! Initialize chemistry
       ! Moved here (from chemistry_mod.F and chemdr.F) because some
@@ -1440,8 +1440,8 @@
             ! NOTE: Tracer concentration units are converted locally
             ! to [v/v dry air] for mixing. Eventually mixing should
             ! be updated to use [kg/kg total air] (ewl, 9/18/15)
-            CALL DO_MIXING ( am_I_Root, Input_Opt, 
-     &                       State_Met, State_Chm, RC )
+            CALL DO_MIXING ( am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC         )
             IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP('Error in DO_MIXING!', 'main.F')
             ENDIF

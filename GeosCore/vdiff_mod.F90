@@ -112,6 +112,12 @@ MODULE VDIFF_MOD
                                                    !  drydep budgets 
                                                    !-- useless when 
                                                    !   pbl_mean_drydep=.false.
+
+!----------------------------------------------------------------------
+! Diagnostic quantities
+!-----------------------------------------------------------------------
+
+  LOGICAL :: Archive_DryDepFlux_Mix   ! Is drydep flux diagnostic turned on?
 !
 ! !REMARKS:
 !  The non-local PBL mixing routine VDIFF modifies the specific humidity,
@@ -1826,7 +1832,7 @@ contains
 !
 ! !INTERFACE:
 !
-  SUBROUTINE VDIFFDR( am_I_Root, Input_Opt, State_Met, State_Chm )
+  SUBROUTINE VDIFFDR( am_I_Root, Input_Opt, State_Met, State_Chm, State_Diag )
 !
 ! !USES:
 ! 
@@ -1851,6 +1857,7 @@ contains
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS, GET_TS_CHEM
 #if defined( USE_TEND )
     USE TENDENCIES_MOD
@@ -1861,19 +1868,16 @@ contains
 
     implicit none
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS: 
 !
-    ! is this the root CPU?
-    LOGICAL,        INTENT(IN)            :: am_I_Root
-
-    ! Input options object
-    TYPE(OptInput), INTENT(IN)            :: Input_Opt
-    
-    ! Meteorology State object
-    TYPE(MetState), INTENT(INOUT)         :: State_Met   
-
-    ! Chemistry State object
-    TYPE(ChmState), INTENT(INOUT)         :: State_Chm
+    LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!   
+    TYPE(MetState), INTENT(INOUT) :: State_Met    ! Meteorology State object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
 !
 ! !REMARKS:
 !  (1) Need to declare the Meteorology State object (State_MET) with
@@ -1945,6 +1949,8 @@ contains
 !  15 Mar 2017 - C. Keller   - Remove variable trc_id (use N instead) 
 !  16 Mar 2017 - R. Yantosca - Remove N_MEMBERS, it's obsolete
 !  30 Jun 2017 - R. Yantosca - For now, print out eflx/dflx if DEVEL=y
+!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  10 Oct 2017 - R. Yantosca - Now archive drydep flux (mixing) for History
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2010,9 +2016,6 @@ contains
     REAL(fp)           :: TMPFLX, EMIS, DEP
     INTEGER            :: RC,     HCRC, TOPMIX
 
-    ! For diagnostics
-    REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR ) 
-
     ! PARANOX loss fluxes (kg/m2/s), imported from 
     ! HEMCO PARANOX extension module (ckeller, 4/15/2015)
     REAL(f4), POINTER, SAVE :: PNOXLOSS_O3  (:,:) => NULL()
@@ -2026,6 +2029,9 @@ contains
     ! For pointing to the species database
     TYPE(Species),  POINTER :: SpcInfo
     INTEGER                 :: Hg_Cat
+
+    ! For diagnostics
+    REAL(fp)                :: EmMW_kg
 
     !=================================================================
     ! vdiffdr begins here!
@@ -2070,9 +2076,6 @@ contains
     shflx   = 0e+0_fp
     t1      = 0e+0_fp
     as2_scal= 0e+0_fp
-
-    ! Initialize diagnostic array (ND44)
-    DryDepFlux = 0e+0_fp
 
     ! Copy values from Input_Opt (bmy, 8/1/13)
     IS_CH4       = Input_Opt%ITS_A_CH4_SIM
@@ -2475,20 +2478,16 @@ contains
     enddo
 #endif
 
-    !==============================================================
-    ! Calculate ND44 diagnostic: drydep flux loss [molec/cm2/s]
-    !==============================================================
-
-    ! drydep fluxes diag. for SMVGEAR mechanism 
-    ! for gases -- moved from DRYFLX in drydep_mod.f to here
-    ! for aerosols -- 
-    if (ND44 > 0 .or. LGTMM .or. LSOILNOX) then
+    !=======================================================================
+    ! DIAGNOSTICS: Compute drydep flux loss due to mixing [molec/cm2/s]
+    !=======================================================================
+    if ( ND44 > 0 .or. LGTMM .or. LSOILNOX .or. Archive_DryDepFlux_Mix ) then
 
        ! Loop over only the drydep species
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
        DO ND = 1, nDryDep
 
-          ! Get the species ID from the drydep Id
+          ! Get the species ID from the drydep ID
           N = State_Chm%Map_DryDep(ND)
 
           ! Skip if not a valid species
@@ -2498,10 +2497,13 @@ contains
           ! NOTE: Assumes a 1:1 tracer index to species index mapping
           SpcInfo => State_Chm%SpcData(N)%Info
 
+          ! Get the (emitted) molecular weight of the species in kg
+          EmMW_kg = SpcInfo%emMW_g * 1.e-3_fp
+
 #if defined( BPCH_DIAG )
-      !===============================================================
-      ! Update dry deposition flux diagnostic for bpch output (ND44) 
-      !===============================================================
+          !-----------------------------------------------------------------
+          ! Update dry deposition flux diagnostic for bpch output (ND44) 
+          !-----------------------------------------------------------------
 	  IF( ND44 > 0 .or. LGTMM) THEN                
              ! only for the lowest model layer
              ! Convert : kg/m2/s -> molec/cm2/s
@@ -2514,6 +2516,43 @@ contains
           ENDIF
 #endif
 
+#if defined( NC_DIAG )
+          !-----------------------------------------------------------------
+          ! Update dry deposition flux diagnostic for History output
+          !
+          ! DFLX is in kg/m2/s.  We convert to molec/cm2/s by:
+          !
+          ! (1) multiplying by 1e-4 cm2/m2        => kg/cm2/s
+          ! (2) multiplying by ( AVO / EmMW_KG )  => molec/cm2/s
+          !           
+          ! The term AVO/EmMW_kg = (molec/mol) / (kg/mol) = molec/kg
+          !
+          ! NOTE: we don't need to multiply by the ratio of TS_CONV / 
+          ! TS_CHEM, as the updating frequency for HISTORY is determined 
+          ! by the "frequency" setting in the "HISTORY.rc"input file.  
+          ! The old bpch diagnostics archived the drydep due to chemistry 
+          ! every chemistry timestep = 2X the dynamic timestep.  So in 
+          ! order to avoid double-counting the drydep flux from mixing, 
+          ! you had to multiply by TS_CONV / TS_CHEM.
+          !         
+          ! ALSO NOTE: When comparing History output to bpch output,
+          ! you must use an updating frequency equal to the dynamic
+          ! timestep so that the drydep fluxes due to mixing will
+          ! be equivalent w/ the bpch output.  It is also recommended to 
+          ! turn off chemistry so as to be able to compare the drydep 
+          ! fluxes due to mixing in bpch vs. History as an "apples-to-
+          ! apples" comparison.
+          !
+          !    -- Bob Yantosca (yantosca@seas.harvard.edu)
+          !-----------------------------------------------------------------
+          IF ( Archive_DryDepFlux_Mix ) THEN
+             State_Diag%DryDepFlux_Mix(:,:,1,ND) = Dflx(:,:,N)               &
+                                                 * 1.0e-4_fp                 &
+                                                 * ( AVO / EmMW_kg  )
+          ENDIF
+#endif
+
+          !-----------------------------------------------------------------
           ! If Soil NOx is turned on, then call SOIL_DRYDEP to
           ! archive dry deposition fluxes for nitrogen species
           ! (SOIL_DRYDEP will exit if it can't find a match.
@@ -2523,6 +2562,7 @@ contains
           ! NOTE: trc_id was previously NN and drydep id D
           ! was previously N. This is changed for convention consistency
           ! within subroutine (ewl, 1/25/16)
+          !-----------------------------------------------------------------
 	  IF ( LSOILNOX ) THEN
              soilflux = 0e+0_fp
              DO J = 1, JJPAR
@@ -2542,24 +2582,89 @@ contains
 
        enddo ! D 
 
-       ! Add ITS_A_TAGO3_SIM (Lin, 06/21/08)
+       !====================================================================
+       ! DIAGNOSTICS: Compute drydep flux loss of tagged O3 species
+       !              due to mixing [molec/cm2/s]
+       !====================================================================
        IF ( IS_TAGO3 ) THEN
-          ! The first species, O3, has been done above
+
+          ! The tagged O3 species use the same (emitted MW) [kg] as the total 
+          ! O3 species.  This can be pulled out of the loop over species.
+          EmMW_Kg = State_Chm%SpcData(1)%Info%EmMW_g * 1.e-3_fp
+
+          ! The first species, O3, has been done above, so start looping
+          ! with species #2, the first of the tagO3 species.
           do NA = 2, nAdvect
 
 #if defined( BPCH_DIAG )
-
+             !--------------------------------------------------------------
+             ! Compute ND44 diagnostic (bpch output)
+             ! **** Tagged O3 species only ****
+             !
              ! Convert : kg/m2/s -> molec/cm2/s
-             ! Consider timestep difference between convection and emissions
+             !
+             ! The ratio TS_CONV / TS_EMIS accounts for the timestep 
+             ! difference between convection and emissions, otherwise we
+             ! would be double-counting.
+             !--------------------------------------------------------------
              AD44(:,:,NA,1) = AD44(:,:,NA,1) + dflx(:,:,NA) &
                        /  (State_Chm%SpcData(1)%Info%emMW_g * 1.e-3_fp) &
                        * AVO * 1.e-4_fp &
                        * GET_TS_CONV() / GET_TS_EMIS()
 
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+             !%%%% NOTE: Updating the drydep velocities here is wrong.
+             !%%%% The drydep velocities are computed each chemistry timestep,
+             !%%%% which is 2X longer than the timestep when PBL mixing
+             !%%%% happens (the dynamic timestep).  We will update the
+             !%%%% drydep velocities for TagO3 species in drydep_mod.F.
+             !%%%%
+             !%%%%    -- Bob Yantosca (yantosca@seas.harvard.edu)
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
              ! The drydep velocities [cm/s] for tagged O3 species
              ! are the same as the drydep velocity for total O3
              AD44(:,:,NA,2) = AD44(:,:,1,2)
 #endif
+
+#if defined( NC_DIAG )
+             !--------------------------------------------------------------
+             ! Update dry deposition flux diagnostic for History output
+             ! **** Tagged O3 species only ****
+             !
+             ! DFLX is in kg/m2/s.  We convert to molec/cm2/s by:
+             !
+             ! (1) multiplying by 1e-4 cm2/m2      => kg/cm2/s
+             ! (2) multiplying by ( AVO / Mw_kg )  => molec/cm2/s
+             !           
+             ! The term AVO/MW_kg = (molec/mol) / (kg/mol) = molec/kg
+             !
+             ! NOTE: we don't need to multiply by the ratio of TS_CONV / 
+             ! TS_CHEM, as the updating frequency for HISTORY is determined 
+             ! by the "frequency" setting in the "HISTORY.rc"input file.  
+             ! The old bpch diagnostics archived the drydep due to chemistry 
+             ! every chemistry timestep = 2X the dynamic timestep.  So in 
+             ! order to avoid double-counting the drydep flux from mixing, 
+             ! you had to multiply by TS_CONV / TS_CHEM.
+             !         
+             ! ALSO NOTE: When comparing History output to bpch output,
+             ! you must use an updating frequency equal to the dynamic
+             ! timestep so that the drydep fluxes due to mixing will
+             ! be equivalent w/ the bpch output.  It is also recommended to 
+             ! turn off chemistry so as to be able to compare the drydep 
+             ! fluxes due to mixing in bpch vs. History as an "apples-to-
+             ! apples" comparison.
+             !
+             !    -- Bob Yantosca (yantosca@seas.harvard.edu)
+             !--------------------------------------------------------------
+             IF ( Archive_DryDepFlux_Mix ) THEN
+
+                ! Archive diagnostic
+                State_Diag%DryDepFlux_Mix(:,:,1,ND) = Dflx(:,:,N)            &
+                                                    * 1.0e-4_fp              &
+                                                    * ( AVO / EmMW_kg  )
+             ENDIF
+#endif
+
           enddo
        endif
 
@@ -2756,8 +2861,8 @@ contains
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_PBL_MIX_2( am_I_Root, DO_VDIFF,  Input_Opt,  &
-                           State_Met, State_Chm, RC         )
+  SUBROUTINE DO_PBL_MIX_2( am_I_Root, DO_VDIFF,   Input_Opt, State_Met,      &
+                           State_Chm, State_Diag, RC                        )
 !
 ! !USES:
 !
@@ -2769,6 +2874,7 @@ contains
     USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
@@ -2785,6 +2891,7 @@ contains
 !
     TYPE(MetState), INTENT(INOUT) :: State_Met    ! Meteorology State object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2807,6 +2914,7 @@ contains
 !                              in the VDIFFDR routine directly
 !  27 Sep 2017 - E. Lundgren - Apply unit conversion within routine instead
 !                              of in do_mixing
+!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2820,9 +2928,9 @@ contains
     LOGICAL           :: prtDebug
     CHARACTER(LEN=63) :: OrigUnit
 
-    !=================================================================
+    !=======================================================================
     ! DO_PBL_MIX_2 begins here!
-    !=================================================================
+    !=======================================================================
 
     ! Assume success
     RC  =  GC_SUCCESS
@@ -2830,22 +2938,32 @@ contains
     ! Set a flag if we should print debug output to the log file
     prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
 
+    !-----------------------------------------------------------------------
     ! First-time initialization
     ! NOTE: Should really move this into the init stage
+    !-----------------------------------------------------------------------
     IF ( FIRST ) THEN
        CALL INIT_PBL_MIX()
        call vdinti()
+
+       ! Test if we are archiving the drydep flux (from mixing) diagnostic
+       Archive_DryDepFlux_Mix = ASSOCIATED( State_Diag%DryDepFlux_Mix ) 
+
+       ! Reset first-time flag
        FIRST = .FALSE.
     ENDIF
 
-    ! Do mixing of tracers in the PBL (if necessary)
+    !-----------------------------------------------------------------------
+    ! Do mixing of species in the PBL (if necessary)
+    !-----------------------------------------------------------------------
     IF ( DO_VDIFF ) THEN
 
        ! Convert species concentration to v/v dry
-       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                              'v/v dry', RC, OrigUnit=OrigUnit )
+       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm,   &
+                              'v/v dry',   RC,       OrigUnit=OrigUnit      )
 
-       CALL VDIFFDR( am_I_Root, Input_Opt, State_Met, State_Chm )
+       ! Do non-local PBL mixing
+       CALL VDIFFDR( am_I_Root, Input_Opt, State_Met, State_Chm, State_Diag )
        IF( prtDebug ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
        ENDIF
@@ -2855,15 +2973,15 @@ contains
        ! NOTE: Prior to October 2015, air quantities were not updated
        ! with specific humidity modified in VDIFFDR at this point in
        ! the model
-       CALL AIRQNT( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                    RC, update_mixing_ratio=.TRUE. )
+       CALL AIRQNT( am_I_Root, Input_Opt, State_Met, State_Chm,              &
+                    RC,        update_mixing_ratio=.TRUE.                   )
        IF( prtDebug ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after AIRQNT' )
        ENDIF
 
        ! Convert species back to the original units
-       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                               OrigUnit, RC )
+       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,              &
+                               State_Chm, OrigUnit,  RC                     )
 
     ENDIF
 
