@@ -136,6 +136,7 @@ CONTAINS
 !  05 Jul 2017 - R. Yantosca -  Initial version
 !  22 Sep 2017 - E. Lundgren -  Fill in content
 !  06 Oct 2017 - R. Yantosca -  State_Diag%SpeciesConc is now an 8-byte real
+!  11 Oct 2017 - R. Yantosca -  Bug fix: nAdvect is now defined properly
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -160,7 +161,7 @@ CONTAINS
 
     ! Number of species per category
     nSpecies = State_Chm%nSpecies
-    nDrydep  = State_Chm%nAdvect
+    nAdvect  = State_Chm%nAdvect
     nDryDep  = State_Chm%nDryDep
     nKppSpc  = State_Chm%nKppSpc
     nWetDep  = State_Chm%nWetDep
