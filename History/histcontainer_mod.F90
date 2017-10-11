@@ -527,16 +527,30 @@ CONTAINS
        TempStr                = FileTemplate
        Container%FileTemplate = TempStr
     ELSE
-       Container%FileTemplate = ''
+       Container%FileTemplate = UNDEFINED_STR
     ENDIF
 
     !----------------------------------
     ! File Name
     !----------------------------------
     IF ( LEN_TRIM( FileName ) > 0 ) THEN
-       TempStr            = FileName
-       Container%FileName = TempStr
+
+       ! If the FILENAME argument is passed, then use it,
+       ! otherwise, construct a default file name
+       IF ( TRIM( FileName ) /= UNDEFINED_STR ) THEN
+          TempStr                = FileName
+          Container%FileName     = TempStr
+          Container%FilePrefix   = UNDEFINED_STR
+          Container%FileTemplate = UNDEFINED_STR
+       ELSE
+          Container%FileName = TRIM( Container%FilePrefix   ) // &
+                               TRIM( Container%FileTemplate )
+       ENDIF
+
     ELSE
+       
+       ! If the FILENAME argument isn't passed, 
+       ! construct a default file name
        Container%FileName = TRIM( Container%FilePrefix   ) // &
                             TRIM( Container%FileTemplate )
     ENDIF
@@ -848,6 +862,7 @@ CONTAINS
        WRITE( 6, 130 ) 'yDimId           : ', Container%yDimId 
        WRITE( 6, 130 ) 'zDimId           : ', Container%zDimId 
        WRITE( 6, 130 ) 'tDimId           : ', Container%tDimId 
+       WRITE( 6, 120 ) 'FileName         : ', TRIM( Container%FileName     )
        WRITE( 6, 120 ) 'FilePrefix       : ', TRIM( Container%FilePrefix   )
        WRITE( 6, 120 ) 'FileTemplate     : ', TRIM( Container%FileTemplate )
        WRITE( 6, 120 ) 'Filename         : ', TRIM( Container%FileName     )

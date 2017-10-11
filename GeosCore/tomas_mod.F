@@ -7008,6 +7008,7 @@
 !                              (IIPAR,JJPAR,IBINS)
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !******************************************************************************
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -7016,7 +7017,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
       IMPLICIT NONE
 
@@ -7035,8 +7036,8 @@
       INTEGER             :: N, NA, nAdvect
       REAL(fp)            :: MSO4, MNACL, MH2O
       REAL(fp)            :: MECIL, MECOB, MOCIL, MOCOB, MDUST
-      LOGICAL             :: UNITCONV = .FALSE.
       CHARACTER(LEN=255)  :: MSG, LOC
+      CHARACTER(LEN=63)   :: OrigUnit
 
       ! Arrays
       REAL(fp)            :: AMASS(ICOMP)
@@ -7051,28 +7052,16 @@
       ! Assume success
       RC                =  GC_SUCCESS
 
-      ! If species units are [kg/kg dry], convert to [kg] for this routine.
-      ! Otherwise, if species units are not [kg] then throw an error to the 
-      ! calling routine (ewl, 8/12/15)
+      ! Convert species units to [kg] for this routine.
       ! NOTE: For complete area-independence, species units will need to be 
       !       mixing ratio or mass per unit area in TOMAS
-      IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg dry' ) THEN
-         CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
-     &                                  State_Chm, RC ) 
-         UNITCONV = .TRUE.
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
-     &                    'Routine AERO_DIADEN in tomas_mod.F')
-            RETURN
-         ENDIF 
-      ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-         CALL GC_Error('Incorrect species units for TOMAS: ' // 
-     &                 TRIM( State_Chm%Spc_Units ), RC, 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                 'Routine AERO_DIADEN in tomas_mod.F')
          RETURN
-      ELSE
-         UNITCONV = .FALSE.
-      ENDIF
+      ENDIF 
 
       ! Check that species units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -7152,17 +7141,14 @@
          CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
-      ! If units were originally [kg/kg dry], convert [kg] back to mixing 
-      ! ratio (ewl, 8/12/15)
-      IF ( UNITCONV ) THEN
-         CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, 
-     &                                  State_Chm, RC )  
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
-     &                    'Routine AERO_DIADEN in tomas_mod.F')
-            RETURN
-         ENDIF 
-      ENDIF
+      ! Convert species units back to original unit 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'Routine AERO_DIADEN in tomas_mod.F')
+         RETURN
+      ENDIF 
       
       ! Free pointer
       Spc => NULL()

@@ -7644,7 +7644,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE GC_Init_Extra( am_I_Root, Input_Opt, 
+     &                          State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -7673,6 +7674,7 @@
       USE POPs_Mod,           ONLY : Init_POPs
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE Sulfate_Mod,        ONLY : Init_Sulfate
       USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
       USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
@@ -7689,6 +7691,7 @@
 !
       TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -7732,6 +7735,7 @@
 !  23 Jun 2016 - R. Yantosca - Now call INIT_DIAG_OH from here
 !  16 Aug 2016 - M. Sulprizio- Rename from GIGC_Init_Extra to GC_Init_Extra.
 !                              The "gigc" nomenclature is no longer used.
+!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7765,7 +7769,8 @@
       IF ( Input_Opt%LDRYD ) THEN
 
          ! Setup for dry deposition
-         CALL Init_DryDep( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_DryDep( am_I_Root, Input_Opt, 
+     &                     State_Chm, State_Diag, RC )
       
          ! Print extra info message for Hg simulation
          IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 

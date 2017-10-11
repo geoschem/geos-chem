@@ -33,6 +33,11 @@ MODULE MIXING_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
+  LOGICAL :: Archive_DryDepFlux_Mix   ! Is the DryDepFlux_Mix diag turned on?
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -48,29 +53,32 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_MIXING ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+  SUBROUTINE INIT_MIXING ( am_I_Root, Input_Opt,  State_Met,                 &
+                           State_Chm, State_Diag, RC                        )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
-    USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
-    USE State_Met_Mod,      ONLY : MetState
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
+    USE ERROR_MOD,      ONLY : ERROR_STOP
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE PBL_MIX_MOD,    ONLY : COMPUTE_PBL_HEIGHT
+    USE PBL_MIX_MOD,    ONLY : DO_PBL_MIX
+    USE State_Met_Mod,  ONLY : MetState
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState 
+    USE VDIFF_MOD,      ONLY : DO_PBL_MIX_2
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input opts
+    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
+    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt   ! Input opts
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state 
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    TYPE(MetState),   INTENT(INOUT)  :: State_Met   ! Meteorology State
+    TYPE(ChmState),   INTENT(INOUT)  :: State_Chm   ! Chemistry State
+    TYPE(DgnState),   INTENT(INOUT)  :: State_Diag  ! Diagnostics State
+    INTEGER,          INTENT(INOUT)  :: RC          ! Failure or success
 !
 ! !REMARKS
 !  (A) While all dry deposition rates are calculated either in
@@ -86,22 +94,26 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    !=================================================================
+    !=======================================================================
     ! DO_MIXING begins here!
-    !=================================================================
+    !=======================================================================
 
     ! Assume success
     RC = GC_SUCCESS
    
-    ! ------------------------------------------------------------------
+    ! Is the drydep flux from mixing diagnostic turned on?
+    Archive_DryDepFlux_Mix = ASSOCIATED( State_Diag%DryDepFlux_Mix )
+    print*, '### INIT_MIXING: archive: ', Archive_DryDepFlux_Mix
+
+    !-----------------------------------------------------------------------
     ! Initialize PBL mixing scheme
-    ! ------------------------------------------------------------------
+    !-----------------------------------------------------------------------
     IF ( Input_Opt%LNLPBL ) THEN
-       CALL DO_PBL_MIX_2( am_I_Root, .FALSE. ,  Input_Opt, &
-                          State_Met, State_Chm, RC          )
+       CALL DO_PBL_MIX_2( am_I_Root, .FALSE. ,  Input_Opt,                   &
+                          State_Met, State_Chm, State_Diag, RC              )
     ELSE 
-       CALL DO_PBL_MIX( am_I_Root, .FALSE.,   Input_Opt, &
-                        State_Met, State_Chm, RC          )
+       CALL DO_PBL_MIX(   am_I_Root, .FALSE.,   Input_Opt,                   &
+                          State_Met, State_Chm, State_Diag, RC              )
     ENDIF
 
     ! Compute the various PBL quantities with the initial met fields.
@@ -128,7 +140,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_MIXING( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+  SUBROUTINE DO_MIXING( am_I_Root, Input_Opt,  State_Met,                    &
+                        State_Chm, State_Diag, RC                           )
 !
 ! !USES:
 !
@@ -137,19 +150,20 @@ CONTAINS
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
-    USE UnitConv_Mod
+    USE State_Diag_MOd,     ONLY : DgnState
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input opts
+    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
+    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt   ! Input opts
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state 
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    TYPE(MetState),   INTENT(INOUT)  :: State_Met   ! Met state
+    TYPE(ChmState),   INTENT(INOUT)  :: State_Chm   ! Chemistry State
+    TYPE(DgnState),   INTENT(INOUT)  :: State_Diag  ! Diagnostics State
+    INTEGER,          INTENT(INOUT)  :: RC          ! Failure or success
 !
 ! !REMARKS
 !  (A) While all dry deposition rates are calculated either in
@@ -165,6 +179,7 @@ CONTAINS
 !                              species ID from State_Chm%Map_Advect.
 !  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  28 Sep 2017 - E. Lundgren - Move unit conversions to individual routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -181,15 +196,6 @@ CONTAINS
     ! Assume success
     RC = GC_SUCCESS
 
-    ! Convert [kg/kg dry air] to [v/v dry air] for mixing (ewl, 8/12/15)
-     CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC )  
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, &
-                     'DO_MIXING in mixing_mod.F')
-       RETURN
-    ENDIF  
-
     ! ------------------------------------------------------------------
     ! Do non-local PBL mixing. This will apply the species tendencies
     ! (emission fluxes and dry deposition rates) below the PBL.
@@ -199,8 +205,8 @@ CONTAINS
     ! fluxes within the PBL have already been applied. 
     ! ------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. Input_Opt%LNLPBL ) THEN
-       CALL DO_PBL_MIX_2( am_I_Root, Input_Opt%LTURB, Input_Opt, &
-                          State_Met, State_Chm,       RC          )
+       CALL DO_PBL_MIX_2( am_I_Root, Input_Opt%LTURB, Input_Opt,             &
+                          State_Met, State_Chm,       State_Diag,  RC       )
        OnlyAbovePBL = .TRUE.
     ELSE
        OnlyAbovePBL = .FALSE.
@@ -215,8 +221,8 @@ CONTAINS
     ! ------------------------------------------------------------------
 
     ! Apply tendencies
-    CALL DO_TEND ( am_I_Root, Input_Opt,    State_Met, &
-                   State_Chm, OnlyAbovePBL, RC          )
+    CALL DO_TEND ( am_I_Root,  Input_Opt,    State_Met, State_Chm,           &
+                   State_Diag, OnlyAbovePBL, RC                             )
 
     ! ------------------------------------------------------------------
     ! Do full pbl mixing. This fully mixes the updated species 
@@ -226,18 +232,9 @@ CONTAINS
     ! tendencies (ckeller, 7/15/2015)
     ! ------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. .NOT. Input_Opt%LNLPBL ) THEN
-       CALL DO_PBL_MIX( am_I_Root, Input_Opt%LTURB, Input_Opt, & 
-                        State_Met, State_Chm,       RC )
+       CALL DO_PBL_MIX( am_I_Root, Input_Opt%LTURB, Input_Opt,               &
+                        State_Met, State_Chm,       State_Diag, RC          )
     ENDIF
-
-    ! Convert species conc back to [kg/kg dry air] after mixing (ewl, 8/12/15)
-    CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root, State_Chm, RC )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, &
-                     'DO_MIXING in mixing_mod.F')
-       RETURN
-    ENDIF  
 
   END SUBROUTINE DO_MIXING 
 !EOC
@@ -254,8 +251,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_TEND ( am_I_Root, Input_Opt,    State_Met, &
-                       State_Chm, OnlyAbovePBL, RC,    DT   ) 
+  SUBROUTINE DO_TEND ( am_I_Root,  Input_Opt,    State_Met, State_Chm,       &
+                       State_Diag, OnlyAbovePBL, RC,        DT               ) 
 !
 ! !USES:
 !
@@ -273,9 +270,10 @@ CONTAINS
     USE Species_Mod,        ONLY : Species
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
-    USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
     USE State_Chm_Mod,      ONLY : Ind_
-    USE UnitConv_Mod
+    USE State_Diag_Mod,     ONLY : DgnState
+    USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 #if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
 #endif
@@ -294,7 +292,8 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState),   INTENT(INOUT)           :: State_Chm    ! Chemistry state 
-    INTEGER,          INTENT(INOUT)           :: RC           ! Failure or success
+    TYPE(DgnState),   INTENT(INOUT)           :: State_Diag   ! Diags State
+    INTEGER,          INTENT(INOUT)           :: RC           ! Success/Failure
 !
 ! !REVISION HISTORY: 
 !  04 Mar 2015 - C. Keller   - Initial version 
@@ -325,6 +324,10 @@ CONTAINS
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !  12 Apr 2017 - C. Keller   - Bug fix: now allow negative emission fluxes
+!  27 Sep 2017 - E. Lundgren - Apply unit conversion within routine instead
+!                              of in do_mixing
+!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  10 Oct 2017 - R. Yantosca - Archive drydep fluxes due to mixing for History
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -341,6 +344,8 @@ CONTAINS
     LOGICAL                 :: PBL_DRYDEP, LSCHEM, ChemGridOnly
     LOGICAL                 :: LEMIS,      LDRYD
     LOGICAL                 :: DryDepSpec, EmisSpec
+    CHARACTER(LEN=63)       :: OrigUnit
+    CHARACTER(LEN=255)      :: MSG
 
     ! PARANOX loss fluxes (kg/m2/s). These are obtained from the 
     ! HEMCO PARANOX extension via the diagnostics module.
@@ -379,13 +384,26 @@ CONTAINS
     ! Initialize pointer
     SpcInfo    => NULL()
 
+    ! Initialize the diagnostic array for the History Component.  This will 
+    ! prevent leftover values from being carried over to this timestep.
+    ! (For example, if on the last iteration, the PBL height was higher than
+    ! it is now, then we will have stored drydep fluxes up to that height,
+    ! so we need to zero these out.)
+    IF ( Archive_DryDepFlux_Mix .and. DryDepID > 0 ) THEN
+       State_Diag%DryDepFlux_Mix = 0.0_f4
+    ENDIF
+
     ! DO_TEND previously operated in units of kg. The species arrays are in
     ! v/v for mixing, hence needed to convert before and after.
     ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to 
     ! remove area-dependency (ewl, 9/30/15)
-    ! v/v --> kg/m2
-    CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root,            State_Chm, RC )
-    CALL ConvertSpc_KgKgDry_to_Kgm2 ( am_I_Root, State_Met, State_Chm, RC )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                            'kg/m2', RC, OrigUnit=OrigUnit )
+    IF ( RC /= GC_SUCCESS ) THEN
+       MSG = 'Unit conversion error!'
+       CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
+       RETURN
+    ENDIF 
 
     ! Get time step [s]
     IF ( PRESENT(DT) ) THEN
@@ -590,7 +608,7 @@ CONTAINS
 
                 ! Init
                 FRQ = 0.0_fp
- 
+
                 ! Dry deposition frequency from drydep_mod.F. This is 
                 ! stored in DEPSAV. Units are [s-1].
                 IF ( DRYDEPID > 0 ) THEN
@@ -666,16 +684,57 @@ CONTAINS
                       CALL SOIL_DRYDEP( I, J, L, N, FLUX )
                    ENDIF
 
-                   !========================================================
-                   ! ND44: Dry deposition diagnostic [molec/cm2/s]
-                   !========================================================
-                   IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
 #if defined( BPCH_DIAG )
-                      ! For bpch diagnostic, store data in global AD44 array
+                   !--------------------------------------------------------
+                   ! DIAGNOSTICS: Drydep flux loss [molec/cm2/s] (ND44)
+                   !
+                   ! For bpch diagnostic, store data in global AD44 array.
+                   !
+                   ! NOTE: WE are adding vertical levels into the 1st
+                   ! level of AD44.  This makes it difficult to separate
+                   ! out the drydep flux by each level, but this is what
+                   ! was done historically.
+                   !
+                   ! ALSO NOTE: The ratio TS_CONV / TS_CHEM accounts for
+                   ! this routine being called on each dynamic timestep,
+                   ! which is half the chemistry timestep.  This prevents
+                   ! us double-counting in the ND44 diagnostic, which is
+                   ! updated each chemistry timestep.
+                   !--------------------------------------------------------
+                   IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
                       AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX &
                                              * GET_TS_CONV() / GET_TS_CHEM() 
-#endif
                    ENDIF
+#endif
+
+#if defined( NC_DIAG )
+                   !--------------------------------------------------------
+                   ! HISTORY: Archive drydep flux loss from mixing 
+                   ! Units = molec/cm2/s
+                   !
+                   ! NOTE: we don't need to multiply by the ratio of 
+                   ! TS_CONV / TS_CHEM, as the updating frequency for 
+                   ! HISTORY is determined by the "frequency" setting in 
+                   ! the "HISTORY.rc"input file.  The old bpch diagnostics 
+                   ! archived the drydep due to chemistry every chemistry 
+                   ! timestep = 2X the dynamic timestep.  So in order to 
+                   ! avoid double-counting the drydep flux from mixing, 
+                   ! you had to multiply by TS_CONV / TS_CHEM.
+                   !         
+                   ! ALSO NOTE: When comparing History output to bpch 
+                   ! output, you must use an updating frequency equal to 
+                   ! the dynamic timestep so that the drydep fluxes due to 
+                   ! mixing will be equivalent w/ the bpch output.  It is 
+                   ! also recommended to turn off chemistry so as to be 
+                   ! able to compare the drydep fluxes due to mixing in 
+                   ! bpch vs. History as an "apples-to-apples" comparison.
+                   !
+                   !    -- Bob Yantosca (yantosca@seas.harvard.edu)
+                   !--------------------------------------------------------
+                   IF ( Archive_DryDepFlux_Mix .and. DryDepID > 0 ) THEN
+                      State_Diag%DryDepFlux_Mix(I,J,L,DryDepId) = Flux
+                   ENDIF
+#endif
 
                 ENDIF ! apply drydep
              ENDIF ! L <= PBLTOP
@@ -722,9 +781,14 @@ CONTAINS
                         State_Chm, 'FLUX', TS, RC )
 #endif
 
-    ! Convert State_Chm%SPECIES back: kg/m2 --> v/v (ewl, 9/30/15)
-    CALL ConvertSpc_Kgm2_to_KgKgDry ( am_I_Root, State_Met, State_Chm, RC )
-    CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root,            State_Chm, RC )
+    ! Convert State_Chm%species back to original units
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                            OrigUnit, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       MSG = 'Unit conversion error!'
+       CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
+       RETURN
+    ENDIF  
 
   END SUBROUTINE DO_TEND 
 !EOC

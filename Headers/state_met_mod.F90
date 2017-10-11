@@ -21,8 +21,9 @@ MODULE State_Met_Mod
 !
 ! USES:
 !
+  USE ErrCode_Mod
   USE Precision_Mod
-  USE Registry_Mod, ONLY : MetaRegItem
+  USE Registry_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -31,9 +32,7 @@ MODULE State_Met_Mod
 !
   PUBLIC :: Init_State_Met
   PUBLIC :: Cleanup_State_Met
-  PUBLIC :: Lookup_State_Met
-  PUBLIC :: Print_State_Met
-  PUBLIC :: Get_MetField_Metadata
+  PUBLIC :: Get_Metadata_State_Met
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -252,18 +251,19 @@ MODULE State_Met_Mod
 !  13 Sep 2017 - M. Sulprizio- Remove DELP_PREV and SPHU_PREV; they're not used
 !  14 Sep 2017 - M. Sulprizio- Comment out met fields that aren't actually used
 !                              in GEOS-Chem (EVAP, GRN, PRECSNO, PV, RADLWG)
+!  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Met and Print_State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !MODULE INTERFACES:
 !
-  INTERFACE REGISTER_METFIELD
-     MODULE PROCEDURE REGISTER_METFIELD_Rfp_2D
-     MODULE PROCEDURE REGISTER_METFIELD_Rfp_3D
-     MODULE PROCEDURE REGISTER_METFIELD_Int_2D
-     MODULE PROCEDURE REGISTER_METFIELD_Int_3D
-  END INTERFACE REGISTER_METFIELD
+  INTERFACE Register_MetField
+     MODULE PROCEDURE Register_MetField_Rfp_2D
+     MODULE PROCEDURE Register_MetField_Rfp_3D
+     MODULE PROCEDURE Register_MetField_Int_2D
+     MODULE PROCEDURE Register_MetField_Int_3D
+  END INTERFACE Register_MetField
 
 CONTAINS
 !EOC
@@ -284,9 +284,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod
     USE CMN_SIZE_MOD, ONLY : NSURFTYPE
-    USe Registry_Mod, ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -328,7 +326,7 @@ CONTAINS
 !                              GET_VUD (wetscav_mod.F) works properly.
 !  26 Jun 2017 - R. Yantosca - Now register each variable after it's allocated
 !  24 Aug 2017 - R. Yantosca - Now register level-edged variables appropriately
-!  07 Sep 2017 - E. Lundgren - Abstract the metadata and adding to registry
+!  07 Sep 2017 - E. Lundgren - Abstract the metadata and method add to registry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -345,6 +343,7 @@ CONTAINS
     ! Initialize
     !=======================================================================
     RC    =  GC_SUCCESS
+    ThisLoc = ' -> Init_State_Met (in Headers/state_met_mod.F90)'
 
     !=======================================================================
     ! The following fields of State_Met may or may not get allocated
@@ -374,6 +373,7 @@ CONTAINS
     State_Met%ALBD = 0.0_fp
     CALL Register_MetField( am_I_Root, 'ALBD', State_Met%ALBD, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! CLDFRC [1]
@@ -384,6 +384,7 @@ CONTAINS
     State_Met%CLDFRC = 0.0_fp
     CALL Register_MetField( am_I_Root, 'CLDFRC', State_Met%CLDFRC, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! CLDTOPS [level]
@@ -394,6 +395,7 @@ CONTAINS
     State_Met%CLDTOPS = 0
     CALL Register_MetField( am_I_Root, 'CLDTOPS', State_Met%CLDTOPS, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! EFLUX [W m-2]
@@ -404,6 +406,7 @@ CONTAINS
     State_Met%EFLUX    = 0.0_fp
     CALL Register_MetField( am_I_Root, 'EFLUX', State_Met%EFLUX, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
 !------------------------------------------------------------------------------
 ! Comment out for now. State_Met%EVAP is not used in the code. (mps, 9/14/17)
@@ -416,6 +419,7 @@ CONTAINS
 !    State_Met%EVAP= 0.0_fp
 !    CALL Register_MetField( am_I_Root, 'EVAP', State_Met%EVAP, &
 !                            State_Met, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
 !------------------------------------------------------------------------------
 
     !-------------------------
@@ -427,6 +431,7 @@ CONTAINS
     State_Met%FRCLND = 0.0_fp
     CALL Register_MetField( am_I_Root, 'FRCLND', State_Met%FRCLND, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! FRLAKE [1]
@@ -437,6 +442,7 @@ CONTAINS
     State_Met%FRLAKE = 0.0_fp
     CALL Register_MetField( am_I_Root, 'FRLAKE', State_Met%FRLAKE, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! FRLAND [1]
@@ -447,6 +453,7 @@ CONTAINS
     State_Met%FRLAND = 0.0_fp 
     CALL Register_MetField( am_I_Root, 'FRLAND', State_Met%FRLAND, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! FRLANDIC [1]
@@ -457,6 +464,7 @@ CONTAINS
     State_Met%FRLANDIC = 0.0_fp 
     CALL Register_MetField( am_I_Root, 'FRLANDIC', State_Met%FRLANDIC, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! FROCEAN [1]
@@ -467,6 +475,7 @@ CONTAINS
     State_Met%FROCEAN = 0.0_fp
     CALL Register_MetField( am_I_Root, 'FROCEAN', State_Met%FROCEAN, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
 !------------------------------------------------------------------------------
 ! Comment out for now. State_Met%GRN is not used in the code. (mps, 9/14/17)
@@ -479,6 +488,7 @@ CONTAINS
 !    State_Met%GRN = 0.0_fp 
 !    CALL Register_MetField( am_I_Root, 'GRN', State_Met%GRN, &
 !                            State_Met, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
 !------------------------------------------------------------------------------
 
     !-------------------------
@@ -490,6 +500,7 @@ CONTAINS
     State_Met%GWETROOT = 0.0_fp 
     CALL Register_MetField( am_I_Root, 'GWETROOT', State_Met%GWETROOT, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! GWETTOP [1]
@@ -500,6 +511,7 @@ CONTAINS
     State_Met%GWETTOP = 0.0_fp 
     CALL Register_MetField( am_I_Root, 'GWETTOP', State_Met%GWETTOP, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! HFLUX [W m-2]
@@ -510,6 +522,7 @@ CONTAINS
     State_Met%HFLUX = 0.0_fp 
     CALL Register_MetField( am_I_Root, 'HFLUX', State_Met%HFLUX, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! LAI [1]
@@ -520,6 +533,7 @@ CONTAINS
     State_Met%LAI = 0.0_fp
     CALL Register_MetField( am_I_Root, 'LAI', State_Met%LAI, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! LWI [1]
@@ -530,6 +544,7 @@ CONTAINS
     State_Met%LWI = 0.0_fp
     CALL Register_MetField( am_I_Root, 'LWI', State_Met%LWI, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PARDR [W m-2]
@@ -540,6 +555,7 @@ CONTAINS
     State_Met%PARDR = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PARDR', State_Met%PARDR, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PARDF [W m-2]
@@ -550,6 +566,7 @@ CONTAINS
     State_Met%PARDF= 0.0_fp
     CALL Register_MetField( am_I_Root, 'PARDF', State_Met%PARDF, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PBLH [m]
@@ -560,6 +577,7 @@ CONTAINS
     State_Met%PBLH = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PBLH', State_Met%PBLH, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PBL_TOP_L [1]
@@ -570,6 +588,7 @@ CONTAINS
     State_Met%PBL_TOP_L = 0
     CALL Register_MetField( am_I_Root, 'PBL_TOP_L', State_Met%PBL_TOP_L, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PHIS [m2 s-2]
@@ -580,6 +599,7 @@ CONTAINS
     State_Met%PHIS = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PHIS', State_Met%PHIS, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PRECCON [kg m-2 s-1]
@@ -590,6 +610,7 @@ CONTAINS
     State_Met%PRECCON = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PRECCON', State_Met%PRECCON, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
 !------------------------------------------------------------------------------
 ! Comment out for now. State_Met%PRECSNO is not used in the code. (mps, 9/14/17)
@@ -602,6 +623,7 @@ CONTAINS
 !    State_Met%PRECSNO = 0.0_fp
 !    CALL Register_MetField( am_I_Root, 'PRECSNO', State_Met%PRECSNO, &
 !                            State_Met, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
 !------------------------------------------------------------------------------
 
     !-------------------------
@@ -613,6 +635,7 @@ CONTAINS
     State_Met%PRECTOT = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PRECTOT', State_Met%PRECTOT, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PS1_WET [hPa]
@@ -623,6 +646,7 @@ CONTAINS
     State_Met%PS1_WET = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PS1_WET', State_Met%PS1_WET, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PS2_WET [hPa]
@@ -633,6 +657,7 @@ CONTAINS
     State_Met%PS2_WET = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PS2_WET', State_Met%PS2_WET, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PSC2_WET [hPa]
@@ -643,6 +668,7 @@ CONTAINS
     State_Met%PSC2_WET = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PSC2_WET', State_Met%PSC2_WET, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PS1_DRY [hPa]
@@ -653,6 +679,7 @@ CONTAINS
     State_Met%PS1_DRY = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PS1_DRY', State_Met%PS1_DRY, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PS2_DRY [hPa]
@@ -663,6 +690,7 @@ CONTAINS
     State_Met%PS2_DRY   = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PS2_DRY', State_Met%PS2_DRY, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PSC2_DRY [hPa]
@@ -673,6 +701,7 @@ CONTAINS
     State_Met%PSC2_DRY = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PSC2_DRY', State_Met%PSC2_DRY, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
 !------------------------------------------------------------------------------
 ! Comment out for now. State_Met%RADLWG is not used in the code. (mps, 9/14/17)
@@ -685,6 +714,7 @@ CONTAINS
 !    State_Met%RADLWG = 0.0_fp
 !    CALL Register_MetField( am_I_Root, 'RADLWG', State_Met%RADLWG, &
 !                            State_Met, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
 !------------------------------------------------------------------------------
 
     !-------------------------
@@ -696,6 +726,7 @@ CONTAINS
     State_Met%SLP = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SLP', State_Met%SLP, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SNODP [m]
@@ -706,6 +737,7 @@ CONTAINS
     State_Met%SNODP = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SNODP', State_Met%SNODP, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SNOMAS [kg m-2]
@@ -716,6 +748,7 @@ CONTAINS
     State_Met%SNOMAS = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SNOMAS', State_Met%SNOMAS, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SUNCOS [1]
@@ -726,6 +759,7 @@ CONTAINS
     State_Met%SUNCOS = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SUNCOS', State_Met%SUNCOS, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SUNCOSmid [1]
@@ -736,6 +770,7 @@ CONTAINS
     State_Met%SUNCOSmid = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SUNCOSmid', State_Met%SUNCOSmid, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SWGDN [W m-2]
@@ -746,6 +781,7 @@ CONTAINS
     State_Met%SWGDN = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SWGDN', State_Met%SWGDN, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! TO3 [dobsons]
@@ -756,6 +792,7 @@ CONTAINS
     State_Met%TO3 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'TO3', State_Met%TO3, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! TROPP [hPa]
@@ -766,6 +803,7 @@ CONTAINS
     State_Met%TROPP = 0.0_fp
     CALL Register_MetField( am_I_Root, 'TROPP', State_Met%TROPP, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! TS [K]
@@ -776,6 +814,7 @@ CONTAINS
     State_Met%TS = 0.0_fp
     CALL Register_MetField( am_I_Root, 'TS', State_Met%TS, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! TSKIN [1]
@@ -786,6 +825,7 @@ CONTAINS
     State_Met%TSKIN = 0.0_fp
     CALL Register_MetField( am_I_Root, 'TSKIN', State_Met%TSKIN, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! U10M [m s-1]
@@ -796,6 +836,7 @@ CONTAINS
     State_Met%U10M = 0.0_fp
     CALL Register_MetField( am_I_Root, 'U10M', State_Met%U10M, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! USTAR [m -s]
@@ -806,6 +847,7 @@ CONTAINS
     State_Met%USTAR = 0.0_fp
     CALL Register_MetField( am_I_Root, 'USTAR', State_Met%USTAR, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! UVALBEDO [1]
@@ -816,6 +858,7 @@ CONTAINS
     State_Met%UVALBEDO = 0.0_fp
     CALL Register_MetField( am_I_Root, 'UVALBEDO', State_Met%UVALBEDO, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! V10M [m s-1]
@@ -826,6 +869,7 @@ CONTAINS
     State_Met%V10M = 0.0_fp
     CALL Register_MetField( am_I_Root, 'V10M', State_Met%V10M, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! Z0 [m]
@@ -836,6 +880,7 @@ CONTAINS
     State_Met%Z0 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'Z0', State_Met%Z0, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Convective fractions are not yet a standard GEOS-FP
     ! field. Only available to online model (ckeller, 3/4/16) 
@@ -849,6 +894,7 @@ CONTAINS
     State_Met%CNV_FRC = 0.0_fp
     CALL Register_MetField( am_I_Root, 'CNV_FRC', State_Met%CNV_FRC, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 
     !-------------------------
@@ -860,6 +906,7 @@ CONTAINS
     State_Met%FRSEAICE = 0.0_fp
     CALL Register_MetField( am_I_Root, 'FRSEAICE', State_Met%FRSEAICE, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! FRSNO [1]
@@ -870,6 +917,7 @@ CONTAINS
     State_Met%FRSNO = 0.0_fp
     CALL Register_MetField( am_I_Root, 'FRSNO', State_Met%FRSNO, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PRECANV [kg m-2 s-1]
@@ -880,6 +928,7 @@ CONTAINS
     State_Met%PRECANV = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PRECANV', State_Met%PRECANV, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PRECLSC [kg m-2 s-1]
@@ -890,6 +939,7 @@ CONTAINS
     State_Met%PRECLSC  = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PRECLSC', State_Met%PRECLSC, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SEAICE00 [1]
@@ -900,6 +950,7 @@ CONTAINS
     State_Met%SEAICE00 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SEAICE00', State_Met%SEAICE00, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SEAICE10 [1]
@@ -910,6 +961,7 @@ CONTAINS
     State_Met%SEAICE10 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SEAICE10', State_Met%SEAICE10, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SEAICE20 [1]
@@ -920,6 +972,7 @@ CONTAINS
     State_Met%SEAICE20 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SEAICE20', State_Met%SEAICE20, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SEAICE30 [1]
@@ -930,6 +983,7 @@ CONTAINS
     State_Met%SEAICE30 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SEAICE30', State_Met%SEAICE30, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SEAICE40 [1]
@@ -940,6 +994,7 @@ CONTAINS
     State_Met%SEAICE40 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SEAICE40', State_Met%SEAICE40, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SEAICE50 [1]
@@ -950,6 +1005,7 @@ CONTAINS
     State_Met%SEAICE50 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SEAICE50', State_Met%SEAICE50, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SEAICE60 [1]
@@ -960,6 +1016,7 @@ CONTAINS
     State_Met%SEAICE60 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SEAICE60', State_Met%SEAICE60, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SEAICE70 [1]
@@ -970,6 +1027,7 @@ CONTAINS
     State_Met%SEAICE70 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SEAICE70', State_Met%SEAICE70, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SEAICE80 [1]
@@ -980,6 +1038,7 @@ CONTAINS
     State_Met%SEAICE80 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SEAICE80', State_Met%SEAICE80, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SEAICE90 [1]
@@ -990,6 +1049,7 @@ CONTAINS
     State_Met%SEAICE90 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SEAICE90', State_Met%SEAICE90, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !=======================================================================
     ! Allocate 3-D Arrays
@@ -1004,6 +1064,7 @@ CONTAINS
     State_Met%AD = 0.0_fp
     CALL Register_MetField( am_I_Root, 'AD', State_Met%AD, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! AIRDEN [kg m-3]
@@ -1014,6 +1075,7 @@ CONTAINS
     State_Met%AIRDEN = 0.0_fp
     CALL Register_MetField( am_I_Root, 'AIRDEN', State_Met%AIRDEN, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! MAIRDEN [kg m-3]
@@ -1024,6 +1086,7 @@ CONTAINS
     State_Met%MAIRDEN = 0.0_fp
     CALL Register_MetField( am_I_Root, 'MAIRDEN', State_Met%MAIRDEN, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! AIRNUMDEN [1]
@@ -1034,6 +1097,7 @@ CONTAINS
     State_Met%AIRNUMDEN = 0.0_fp
     CALL Register_MetField( am_I_Root, 'AIRNUMDEN', State_Met%AIRNUMDEN, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! AIRVOL [m3]
@@ -1044,6 +1108,7 @@ CONTAINS
     State_Met%AIRVOL = 0.0_fp
     CALL Register_MetField( am_I_Root, 'AIRVOL', State_Met%AIRVOL, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! AREA_M2 [m2]
@@ -1054,6 +1119,7 @@ CONTAINS
     State_Met%AREA_M2  = 0.0_fp
     CALL Register_MetField( am_I_Root, 'AREA_M2', State_Met%AREA_M2, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! AVGW [v/v]
@@ -1064,6 +1130,7 @@ CONTAINS
     State_Met%AVGW = 0.0_fp
     CALL Register_MetField( am_I_Root, 'AVGW', State_Met%AVGW, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! BXHEIGHT [m]
@@ -1074,6 +1141,7 @@ CONTAINS
     State_Met%BXHEIGHT = 0.0_fp
     CALL Register_MetField( am_I_Root, 'BXHEIGHT', State_Met%BXHEIGHT, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! CLDF [1]
@@ -1084,6 +1152,7 @@ CONTAINS
     State_Met%CLDF = 0.0_fp
     CALL Register_MetField( am_I_Root, 'CLDF', State_Met%CLDF, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! CMFMC [kg m-2 s-1]
@@ -1094,6 +1163,7 @@ CONTAINS
     State_Met%CMFMC = 0.0_fp
     CALL Register_MetField( am_I_Root, 'CMFMC', State_Met%CMFMC, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! DELP [hPa]
@@ -1104,6 +1174,7 @@ CONTAINS
     State_Met%DELP = 0.0_fp
     CALL Register_MetField( am_I_Root, 'DELP', State_Met%DELP, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! DELP_DRY [hPa]
@@ -1114,6 +1185,7 @@ CONTAINS
     State_Met%DELP_DRY = 0.0_fp
     CALL Register_MetField( am_I_Root, 'DELP_DRY', State_Met%DELP_DRY, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! DP_DRY_PREV [hPa]
@@ -1124,6 +1196,7 @@ CONTAINS
     State_Met%DP_DRY_PREV= 0.0_fp
     CALL Register_MetField( am_I_Root, 'DP_DRY_PREV', State_Met%DP_DRY_PREV, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! DQRCU [kg kg-1 s-1]
@@ -1134,6 +1207,7 @@ CONTAINS
     State_Met%DQRCU = 0.0_fp
     CALL Register_MetField( am_I_Root, 'DQRCU', State_Met%DQRCU, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! DQRLSAN [kg kg-1 s-1]
@@ -1144,6 +1218,7 @@ CONTAINS
     State_Met%DQRLSAN = 0.0_fp
     CALL Register_MetField( am_I_Root, 'DQRLSAN', State_Met%DQRLSAN, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! DTRAIN [kg m-2 s-1]
@@ -1154,6 +1229,7 @@ CONTAINS
     State_Met%DTRAIN = 0.0_fp
     CALL Register_MetField( am_I_Root, 'DTRAIN', State_Met%DTRAIN, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! OMEGA [Pa s-1]
@@ -1164,6 +1240,7 @@ CONTAINS
     State_Met%OMEGA = 0.0_fp
     CALL Register_MetField( am_I_Root, 'OMEGA', State_Met%OMEGA, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! OPTD [1]
@@ -1174,6 +1251,7 @@ CONTAINS
     State_Met%OPTD = 0.0_fp
     CALL Register_MetField( am_I_Root, 'OPTD', State_Met%OPTD, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
                             
     !-------------------------
     ! PEDGE [hPa]
@@ -1184,6 +1262,7 @@ CONTAINS
     State_Met%PEDGE = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PEDGE', State_Met%PEDGE, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PEDGE_DRY [hPa]
@@ -1194,6 +1273,7 @@ CONTAINS
     State_Met%PEDGE_DRY = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PEDGE_DRY', State_Met%PEDGE_DRY, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PMID [1]
@@ -1204,6 +1284,7 @@ CONTAINS
     State_Met%PMID = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PMID', State_Met%PMID, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PMID_DRY [hPa]
@@ -1214,6 +1295,7 @@ CONTAINS
     State_Met%PMID_DRY = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PMID_DRY', State_Met%PMID_DRY, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
 !------------------------------------------------------------------------------
 ! Comment out for now. State_Met%PV is not used in the code. (mps, 9/14/17)
@@ -1226,6 +1308,7 @@ CONTAINS
 !    State_Met%PV = 0.0_fp
 !    CALL Register_MetField( am_I_Root, 'PV', State_Met%PV, &
 !                            State_Met, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
 !------------------------------------------------------------------------------
 
     !-------------------------
@@ -1237,6 +1320,7 @@ CONTAINS
     State_Met%QI = 0.0_fp
     CALL Register_MetField( am_I_Root, 'QI', State_Met%QI, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! QL [kg kg-1]
@@ -1247,6 +1331,7 @@ CONTAINS
     State_Met%QL = 0.0_fp
     CALL Register_MetField( am_I_Root, 'QL', State_Met%QL, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! RH [%]
@@ -1257,6 +1342,7 @@ CONTAINS
     State_Met%RH = 0.0_fp
     CALL Register_MetField( am_I_Root, 'RH', State_Met%RH, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SPHU [g kg-1]
@@ -1267,6 +1353,7 @@ CONTAINS
     State_Met%SPHU = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SPHU', State_Met%SPHU, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! T [K]
@@ -1277,6 +1364,7 @@ CONTAINS
     State_Met%T = 0.0_fp
     CALL Register_MetField( am_I_Root, 'T', State_Met%T, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! TV [K]
@@ -1287,6 +1375,7 @@ CONTAINS
     State_Met%TV = 0.0_fp
     CALL Register_MetField( am_I_Root, 'TV', State_Met%TV, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! TAUCLI [1]
@@ -1297,6 +1386,7 @@ CONTAINS
     State_Met%TAUCLI = 0.0_fp
     CALL Register_MetField( am_I_Root, 'TAUCLI', State_Met%TAUCLI, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! TAUCLW [1]
@@ -1307,6 +1397,7 @@ CONTAINS
     State_Met%TAUCLW = 0.0_fp
     CALL Register_MetField( am_I_Root, 'TAUCLW', State_Met%TAUCLW, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! U [m s-1]
@@ -1317,6 +1408,7 @@ CONTAINS
     State_Met%U = 0.0_fp
     CALL Register_MetField( am_I_Root, 'U', State_Met%U, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! V [m s-1]
@@ -1327,6 +1419,7 @@ CONTAINS
     State_Met%V = 0.0_fp
     CALL Register_MetField( am_I_Root, 'V', State_Met%V, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Updraft vertical velocity is not yet a standard GEOS-FP
     ! field. Only available to online model (ckeller, 3/4/16) 
@@ -1340,6 +1433,7 @@ CONTAINS
     State_Met%UPDVVEL  = -999.0_fp
     CALL Register_MetField( am_I_Root, 'UPDVVEL', State_Met%UPDVVEL, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 
     ! Pick the proper vertical dimension
@@ -1354,6 +1448,7 @@ CONTAINS
     State_Met%PFICU = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PFICU', State_Met%PFICU, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PFILSAN [kg m-2 s-1]
@@ -1364,6 +1459,7 @@ CONTAINS
     State_Met%PFILSAN = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PFILSAN', State_Met%PFILSAN, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PFLCU [kg m-2 s-1]
@@ -1374,6 +1470,7 @@ CONTAINS
     State_Met%PFLCU = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PFLCU', State_Met%PFLCU, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! PFLLSAN [kg m-2 s-1]
@@ -1384,6 +1481,7 @@ CONTAINS
     State_Met%PFLLSAN = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PFLLSAN', State_Met%PFLLSAN, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! REEVAPCN [kg kg-1 s-1]
@@ -1394,6 +1492,7 @@ CONTAINS
     State_Met%REEVAPCN = 0.0_fp
     CALL Register_MetField( am_I_Root, 'REEVAPCN', State_Met%REEVAPCN, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! REEVAPLS [kg kg-1 s-1]
@@ -1404,6 +1503,7 @@ CONTAINS
     State_Met%REEVAPLS = 0.0_fp
     CALL Register_MetField( am_I_Root, 'REEVAPLS', State_Met%REEVAPLS, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SPHU1 [g kg-1]
@@ -1414,6 +1514,7 @@ CONTAINS
     State_Met%SPHU1 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SPHU1', State_Met%SPHU1, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! SPHU2 [g kg-1]
@@ -1424,6 +1525,7 @@ CONTAINS
     State_Met%SPHU2 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'SPHU2', State_Met%SPHU2, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! TMPU1 [K]
@@ -1434,6 +1536,7 @@ CONTAINS
     State_Met%TMPU1 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'TMPU1', State_Met%TMPU1, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! TMPU2 [K]
@@ -1444,6 +1547,7 @@ CONTAINS
     State_Met%TMPU2 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'TMPU2', State_Met%TMPU2, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !=======================================================================
     ! Allocate land type and leaf area index fields for dry deposition
@@ -1458,6 +1562,7 @@ CONTAINS
     State_Met%IREG = 0
     CALL Register_MetField( am_I_Root, 'IREG', State_Met%IREG, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! ILAND [1]
@@ -1468,6 +1573,7 @@ CONTAINS
     State_Met%ILAND = 0
     CALL Register_MetField( am_I_Root, 'ILAND', State_Met%ILAND, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! IUSE [1]
@@ -1478,6 +1584,7 @@ CONTAINS
     State_Met%IUSE = 0
     CALL Register_MetField( am_I_Root, 'IUSE', State_Met%IUSE, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! XLAI [1]
@@ -1488,6 +1595,7 @@ CONTAINS
     State_Met%XLAI = 0.0_fp
     CALL Register_MetField( am_I_Root, 'XLAI', State_Met%XLAI, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! MODISLAI [1]
@@ -1498,6 +1606,7 @@ CONTAINS
     State_Met%MODISLAI = 0.0_fp
     CALL Register_MetField( am_I_Root, 'MODISLAI', State_Met%MODISLAI, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! XCHLR [mg m-3]
@@ -1508,6 +1617,7 @@ CONTAINS
     State_Met%XCHLR = 0.0_fp
     CALL Register_MetField( am_I_Root, 'XCHLR', State_Met%XCHLR, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! MODISCHLR [mg m-3]
@@ -1518,6 +1628,7 @@ CONTAINS
     State_Met%MODISCHLR = 0.0_fp
     CALL Register_MetField( am_I_Root, 'MODISCHLR', State_Met%MODISCHLR, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! LANDTYPEFRAC [1]
@@ -1528,6 +1639,7 @@ CONTAINS
     State_Met%LANDTYPEFRAC = 0.0_fp
     CALL Register_MetField( am_I_Root, 'LANDTYPEFRAC', State_Met%LANDTYPEFRAC, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! XLAI_NATIVE [1]
@@ -1538,6 +1650,7 @@ CONTAINS
     State_Met%XLAI_NATIVE  = 0.0_fp
     CALL Register_MetField( am_I_Root, 'XLAI_NATIVE', State_Met%XLAI_NATIVE, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! XCHLR_NATIVE [1]
@@ -1548,13 +1661,24 @@ CONTAINS
     State_Met%XCHLR_NATIVE = 0.0_fp
     CALL Register_MetField( am_I_Root, 'XCHLR_NATIVE', State_Met%XCHLR_NATIVE, &
                             State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !=======================================================================
     ! Print information about the registered fields (short format)
     !=======================================================================
-    CALL Print_State_Met( am_I_Root, State_Met, RC, ShortFormat=.TRUE.)
+    if ( am_I_Root ) THEN
+       WRITE( 6, 10 )
+10     FORMAT( /, 'Registered variables contained within the State_Met object:')
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    ENDIF
+    CALL Registry_Print( am_I_Root   = am_I_Root,           &
+                         Registry    = State_Met%Registry,  &
+                         ShortFormat = .TRUE.,              &
+                         RC          = RC                  )
+
+    ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Print_State_Met"'
+       ErrMsg = 'Error encountered!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -1579,7 +1703,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_Destroy
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1815,213 +1938,31 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Print_State_Met
+! !IROUTINE: Get_Metadata_State_Met
 !
-! !DESCRIPTION: Print information about all the registered variables
-!  contained within the State\_Met object.  This is basically a wrapper for
-!  routine REGISTRY\_PRINT in registry\_mod.F90.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Print_State_Met( am_I_Root, State_Met, RC, ShortFormat )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_Print
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Root CPU?  
-    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-    LOGICAL,        OPTIONAL    :: ShortFormat ! Print truncated info
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT) :: RC          ! Success/failure?
-!
-! !REVISION HISTORY:
-!  29 Jun 2017 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Print_State_Met (in Headers/state_met_mod.F90)'
-
-    !=======================================================================
-    ! Print info about registered variables
-    !=======================================================================
-
-    ! Header line
-    if ( am_I_Root ) THEN
-       WRITE( 6, 10 )
-10     FORMAT( /, 'Registered variables contained within the State_Met object:')
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    ENDIF
-
-    ! Print registry info in truncated format
-    CALL Registry_Print( am_I_Root   = am_I_Root,           &
-                         Registry    = State_Met%Registry,  &
-                         ShortFormat = ShortFormat,         &
-                         RC          = RC                  )
-
-    ! Trap error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "Registry_Print"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE Print_State_Met
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Lookup_State_Met
-!
-! !DESCRIPTION: Return metadata and/or a pointer to the data for any
-!  variable contained within the State\_Met object by searching for its name.
-!  This is basically a wrapper for routine REGISTRY\_LOOKUP in 
-!  registry\_mod.F90.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Lookup_State_Met( am_I_Root, State_Met,    Variable,            &
-                               RC,        Description,  Dimensions,          &
-                               KindVal,   MemoryInKb,   Rank,                &
-                               Units,     OnLevelEdges, Ptr2d,               &
-                               Ptr3d,     Ptr2d_I,      Ptr3d_I             )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_Lookup
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN)  :: am_I_Root       ! Is this the root CPU? 
-    TYPE(MetState),   INTENT(IN)  :: State_Met       ! Meteorology State
-    CHARACTER(LEN=*), INTENT(IN)  :: Variable        ! Variable name
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Required outputs
-    INTEGER,          INTENT(OUT) :: RC              ! Success or failure?
-
-    ! Optional outputs
-    CHARACTER(LEN=255),  OPTIONAL :: Description     ! Description of data
-    INTEGER,             OPTIONAL :: Dimensions(3)   ! Dimensions of data
-    INTEGER,             OPTIONAL :: KindVal         ! Numerical KIND value
-    REAL(fp),            OPTIONAL :: MemoryInKb      ! Memory usage
-    INTEGER,             OPTIONAL :: Rank            ! Size of data
-    CHARACTER(LEN=255),  OPTIONAL :: Units           ! Units of data
-    LOGICAL,             OPTIONAL :: OnLevelEdges    ! =T if data is defined
-                                                     !    on level edges
-                                                     ! =F if on centers
-
-    ! Pointers to data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr2d  (:,:  )  ! 2D flex-prec data
-    REAL(fp),   POINTER, OPTIONAL :: Ptr3d  (:,:,:)  ! 3D flex-prec data
-    INTEGER,    POINTER, OPTIONAL :: Ptr2d_I(:,:  )  ! 2D integer data
-    INTEGER,    POINTER, OPTIONAL :: Ptr3d_I(:,:,:)  ! 3D integer data
-!
-! !REMARKS:
-!  We keep the StateName variable private to this module. Users only have
-!  to supply the name of each module variable.
-!
-! !REVISION HISTORY:
-!  29 Jun 2017 - R. Yantosca - Initial version
-!  30 Jun 2017 - R. Yantosca - Rename variables Ptr{2,3}*dI to Ptr{2,3}d_I
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Lookup_State_Met (in Headers/state_met_mod.F90)'
-
-    !=======================================================================
-    ! Look up a variable; Return metadata and/or a pointer to the data
-    !=======================================================================
-    CALL Registry_Lookup( am_I_Root    = am_I_Root,                         &
-                          Registry     = State_Met%Registry,                &
-                          State        = State_Met%State,                   &
-                          Variable     = Variable,                          &
-                          Description  = Description,                       &
-                          Dimensions   = Dimensions,                        &
-                          KindVal      = KindVal,                           &
-                          MemoryInKb   = MemoryInKb,                        &
-                          Rank         = Rank,                              &
-                          Units        = Units,                             &
-                          OnLevelEdges = OnLevelEdges,                      &
-                          Ptr2d        = Ptr2d,                             &
-                          Ptr3d        = Ptr3d,                             &
-                          Ptr2d_I      = Ptr2d_I,                           &
-                          Ptr3d_I      = Ptr3d_I,                           &
-                          RC           = RC                                )
-
-    ! Trap error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not find variable "' // TRIM( Variable ) // &
-               '" in the State_Met registry!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE Lookup_State_Met
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_MetField_Metadata
-!
-! !DESCRIPTION: Subroutine GET\_METFIELD\_METADATA retrieves basic 
+! !DESCRIPTION: Subroutine GET\_METDATA\_STATE\_MET retrieves basic 
 !  information about each State_Met field.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_MetField_Metadata( am_I_Root, Name,  Desc, Units, &
-                                    Rank,      Type,  VLoc, RC )
+  SUBROUTINE Get_Metadata_State_Met( am_I_Root, metadataID, Found,  &
+                                     RC,        Desc,       Units,  &
+                                     Rank,      Type,       VLoc )
 !
 ! !USES:
 !
-    USE ErrCode_Mod
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,             INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
-    CHARACTER(LEN=*),    INTENT(IN)  :: Name       ! Sate_Met field name
+    CHARACTER(LEN=*),    INTENT(IN)  :: metadataID ! State_Met field ID
 !
 ! !OUTPUT PARAMETERS:
 !
+    LOGICAL,             INTENT(OUT) :: Found      ! Item found?
     INTEGER,             INTENT(OUT) :: RC         ! Return code
-
-    ! Optional outputs
     CHARACTER(LEN=255),  OPTIONAL    :: Desc       ! Long name string
     CHARACTER(LEN=255),  OPTIONAL    :: Units      ! Units string
     INTEGER,             OPTIONAL    :: Rank       ! # of dimensions
@@ -2038,16 +1979,17 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Name_AllCaps
     LOGICAL            :: isDesc, isUnits, isRank, isType, isVLoc
-    
+
     !=======================================================================
     ! Initialize
     !=======================================================================
 
     ! Assume success
     RC    =  GC_SUCCESS
-    ThisLoc = ' -> at Get_MetField_Metadata (in Headers/state_met_mod.F90)'
+    ThisLoc = ' -> at Get_Metadata_State_Met (in Headers/state_met_mod.F90)'
+    Found = .TRUE.
 
     ! Optional arguments present?
     isDesc  = PRESENT( Desc  )
@@ -2065,10 +2007,13 @@ CONTAINS
     IF ( isType  ) Type  = KINDVAL_FP      ! Assume real with flex precision
     IF ( isVLoc  ) VLoc  = VLocationCenter ! Assume centered
 
+    ! Convert name to uppercase
+    Name_AllCaps = To_Uppercase( TRIM( metadataID ) )
+
     !=======================================================================
     ! Values for Retrieval (string comparison slow but happens only once)
     !=======================================================================
-    SELECT CASE ( TRIM(Name) )
+    SELECT CASE ( TRIM( Name_AllCaps) )
 
        CASE ( 'ALBD' )
           IF ( isDesc  ) Desc  = 'Visible surface albedo'
@@ -2265,7 +2210,7 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'SUNCOSmid' )
+       CASE ( 'SUNCOSMID' )
           IF ( isDesc  ) Desc  = 'Cosine of solar zenith angle, at ' // &
                                  'midpoint of chemistry timestep'
           IF ( isUnits ) Units = '1'
@@ -2703,7 +2648,9 @@ CONTAINS
           IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE DEFAULT
-          ErrMsg = 'No information available for field: ' // TRIM( Name )
+          Found = .False.
+          ErrMsg = 'Metadata not found for State_Met field ID: ' &
+                   // TRIM( metadataID )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
 
@@ -2714,7 +2661,7 @@ CONTAINS
        VLoc = VLocationNone
     ENDIF
 
-   END SUBROUTINE Get_MetField_Metadata
+   END SUBROUTINE Get_Metadata_State_Met
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2728,23 +2675,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_MetField_Rfp_2D( am_I_Root, varName,  Ptr2Data,         &
-                                      State_Met, RC )
+  SUBROUTINE Register_MetField_Rfp_2D( am_I_Root, metadataID, Ptr2Data, &
+                                       State_Met, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
-    CHARACTER(LEN=*),  INTENT(IN)    :: VarName         ! Variable name
+    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
     REAL(fp),          POINTER       :: Ptr2Data(:,:)   ! pointer to met
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(MetState),    INTENT(INOUT) :: State_Met       ! Obj for met state
+    TYPE(MetState),    INTENT(IN)    :: State_Met       ! Obj for met state
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2760,43 +2703,38 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: desc, units, ErrMsg,   ThisLoc
+    CHARACTER(LEN=255)     :: desc, units, ErrMsg, ErrMsg_reg, ThisLoc
     INTEGER                :: rank, type,  vloc
+    LOGICAL                :: found
 
     ! Initialize
-    RC             = GC_SUCCESS
-    units = ''
-    desc = ''
-    rank = -1
-    type = -1
-    vloc = -1
-    ThisLoc        = ' -> at Register_MetField_Rfp_2D ' // &
-                     '(in Headers/state_met_mod.F90)'
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_MetField_Rfp_2D (in Headers/state_met_mod.F90)'
+    ErrMsg_reg = 'Error encountered while registering State_Met field'
 
-    CALL Get_MetField_Metadata( am_I_Root,   TRIM(VarName),  desc=desc, &
-                                units=units, rank=rank,      type=type, &
-                                vloc=vloc,   RC=RC                     )
+    ! Get metadata
+    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC, &
+                                 desc=desc, units=units, rank=rank, &
+                                 type=type, vloc=vloc )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_MetField_Metadata'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    ! Check dimensions
     IF ( rank /= 2 ) THEN
-       ErrMsg = 'Data dims and metadata rank do not match for ' // &
-            TRIM(Varname)
+       ErrMsg = 'Data and metadata rank do not match for ' // TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    ! Add to registry
     CALL Registry_AddField( am_I_Root,         State_Met%Registry,    &
-                            State_Met%State,   TRIM(VarName),         &
+                            State_Met%State,   TRIM(metadataID),      &
                             units=TRIM(units), Data2d=Ptr2Data,       &
                             Description=TRIM(desc),  RC=RC                 )
-    CALL GC_CheckVar( 'State_Met%' // TRIM(VarName), 1, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Registry_AddField'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -2814,23 +2752,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_MetField_Rfp_3D( am_I_Root, varName,  Ptr2Data,  &
-                                      State_Met, RC )
+  SUBROUTINE Register_MetField_Rfp_3D( am_I_Root, metadataID, Ptr2Data,  &
+                                       State_Met, RC )
 !
 ! !USES:
 !
-    USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
-    CHARACTER(LEN=*),  INTENT(IN)    :: VarName         ! Variable name
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
+    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
     REAL(fp),          POINTER       :: Ptr2Data(:,:,:) ! pointer to met
-    TYPE(MetState),    INTENT(INOUT) :: State_Met       ! Obj for met state
+    TYPE(MetState),    INTENT(IN)    :: State_Met       ! Obj for met state
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2846,38 +2779,38 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: desc, units, ErrMsg,   ThisLoc
+    CHARACTER(LEN=255)     :: desc, units, ErrMsg, ErrMsg_reg, ThisLoc
     INTEGER                :: rank, type,  vloc
+    LOGICAL                :: found
 
     ! Initialize
-    RC             = GC_SUCCESS
-    ThisLoc        = ' -> at Register_MetField_Rfp_3D ' // &
-                     '(in Headers/state_met_mod.F90)'
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_MetField_Rfp_3D (in Headers/state_met_mod.F90)'
+    ErrMsg_reg = 'Error encountered while registering State_Met field'
 
-    CALL Get_MetField_Metadata( am_I_Root,   TRIM(VarName),  desc=desc, &
-                                units=units, rank=rank,      type=type, &
-                                vloc=vloc,   RC=RC                     )
+    ! Get metadata
+    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC, &
+                                 desc=desc, units=units, rank=rank, &
+                                 type=type, vloc=vloc )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_MetField_Metadata'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    ! Check dimensions
     IF ( rank /= 3 ) THEN
-       ErrMsg = 'Data dims and metadata rank do not match for ' // &
-            TRIM(Varname)
+       ErrMsg = 'Data and metadata rank do not match for ' // TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    ! Add to registry
     CALL Registry_AddField( am_I_Root,              State_Met%Registry,    &
-                            State_Met%State,        TRIM(VarName),         &
+                            State_Met%State,        TRIM(metadataID),      &
                             units=TRIM(units),      Data3d=Ptr2Data,       &
                             Description=TRIM(desc), RC=RC                 )
-    CALL GC_CheckVar( 'State_Met%' // TRIM(VarName), 1, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Registry_AddField'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -2895,21 +2828,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_MetField_Int_2D( am_I_Root, varName,  Ptr2Data, &
-                                      State_Met, RC )
+  SUBROUTINE Register_MetField_Int_2D( am_I_Root, metadataID, Ptr2Data, &
+                                       State_Met, RC )
 !
 ! !USES:
 !
-    USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
-    CHARACTER(LEN=*),  INTENT(IN)    :: VarName         ! Variable name
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
+    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
     INTEGER,           POINTER       :: Ptr2Data(:,:)   ! pointer to met
     TYPE(MetState),    INTENT(INOUT) :: State_Met       ! Obj for met state
 !
@@ -2927,38 +2855,38 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: desc, units, ErrMsg,   ThisLoc
+    CHARACTER(LEN=255)     :: desc, units, ErrMsg, ErrMsg_reg, ThisLoc
     INTEGER                :: rank, type,  vloc
+    LOGICAL                :: found
 
     ! Initialize
-    RC             = GC_SUCCESS
-    ThisLoc        = ' -> at Register_MetField_Int_2D ' // &
-                     '(in Headers/state_met_mod.F90)'
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_MetField_Int_2D (in Headers/state_met_mod.F90)'
+    ErrMsg_reg = 'Error encountered while registering State_Met field'
 
-    CALL Get_MetField_Metadata( am_I_Root,   TRIM(VarName),  desc=desc, &
-                                units=units, rank=rank,      type=type, &
-                                vloc=vloc,   RC=RC                     )
+    ! Get metadata
+    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC, &
+                                 desc=desc, units=units, rank=rank, &
+                                 type=type, vloc=vloc )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_MetField_Metadata'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    ! Check dimensions
     IF ( rank /= 2 ) THEN
-       ErrMsg = 'Data dims and metadata rank do not match for ' // &
-            TRIM(Varname)
+       ErrMsg = 'Data and metadata rank do not match for ' // TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    ! Add to registry
     CALL Registry_AddField( am_I_Root,              State_Met%Registry,    &
-                            State_Met%State,        TRIM(VarName),         &
+                            State_Met%State,        TRIM(metadataID),      &
                             units=TRIM(units),      Data2d_I=Ptr2Data,     &
                             Description=TRIM(desc), RC=RC                 )
-    CALL GC_CheckVar( 'State_Met%' // TRIM(VarName), 1, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Registry_AddField'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -2976,27 +2904,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_MetField_Int_3D( am_I_Root, varName,  Ptr2Data,  &
+  SUBROUTINE Register_MetField_Int_3D( am_I_Root, metadataID, Ptr2Data,  &
                                        State_Met, RC )
 !
 ! !USES:
 !
-    USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_AddField
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
-    CHARACTER(LEN=*),  INTENT(IN)    :: VarName         ! Variable name
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
+    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
     INTEGER,           POINTER       :: Ptr2Data(:,:,:) ! pointer to met
-    TYPE(MetState),    INTENT(INOUT) :: State_Met       ! Obj for met state
+    TYPE(MetState),    INTENT(IN)    :: State_Met       ! Obj for met state
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC               ! Success/failure
+    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
 !
 ! !REMARKS:
 !
@@ -3008,38 +2931,38 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: desc, units, ErrMsg,   ThisLoc
+    CHARACTER(LEN=255)     :: desc, units, ErrMsg, ErrMsg_reg, ThisLoc
     INTEGER                :: rank, type,  vloc
+    LOGICAL                :: found
 
     ! Initialize
-    RC             = GC_SUCCESS
-    ThisLoc        = ' -> at Register_MetField_Int_3D ' // &
-                     '(in Headers/state_met_mod.F90)'
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_MetField_Int_3D (in Headers/state_met_mod.F90)'
+    ErrMsg_reg = 'Error encountered while registering State_Met field'
 
-    CALL Get_MetField_Metadata( am_I_Root,   TRIM(VarName),  desc=desc, &
-                                units=units, rank=rank,      type=type, &
-                                vloc=vloc,   RC=RC                     )
+    ! Get metadata
+    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC, &
+                                 desc=desc, units=units, rank=rank, &
+                                 type=type, vloc=vloc )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Get_MetField_Metadata'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    ! Check dimensions
     IF ( rank /= 3 ) THEN
-       ErrMsg = 'Data dims and metadata rank do not match for ' // &
-            TRIM(Varname)
+       ErrMsg = 'Data and metadata rank do not match for ' // TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    ! Add to registry
     CALL Registry_AddField( am_I_Root,              State_Met%Registry,    &
-                            State_Met%State,        TRIM(VarName),         &
+                            State_Met%State,        TRIM(metadataID),      &
                             units=TRIM(units),      Data3d_I=Ptr2Data,     &
                             Description=TRIM(desc), RC=RC                 )
-    CALL GC_CheckVar( 'State_Met%' // TRIM(VarName), 1, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in Registry_AddField'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
 

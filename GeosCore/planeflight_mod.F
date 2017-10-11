@@ -1424,7 +1424,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
@@ -1480,6 +1480,7 @@
 !                              computing locally
 !  17 May 2016 - M. Sulprizio- Remove PCHEM, IJLOOP and use IS_FULLCHEM instead
 !  22 Jun 2016 - M. Yannetti - Replaced references to TCVV with spec db
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1496,6 +1497,7 @@
       LOGICAL             :: CHEMSTEP
       REAL*8              :: FLTGMT   ! eam (06/2015)
       REAL*8              :: XRH      ! MET field RH (eam, 08/2015)
+      CHARACTER(LEN=63)   :: OrigUnit
 
       ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC 
       INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
@@ -1630,8 +1632,10 @@
             ! Initialize production count:
             PR = 0
 
-            ! Convert species units from [kg/kg] to [v/v]
-            CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC )
+            ! Convert species units to [v/v]
+            CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                              State_Chm, 'v/v dry', RC, 
+     &                              OrigUnit=OrigUnit )
 
             ! Initialize GEOS-Chem species array
             Spc => State_Chm%Species
@@ -2110,8 +2114,9 @@
                END SELECT
             ENDDO
 
-            ! Convert species units from [v/v] back to [kg/kg]
-            CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root, State_Chm, RC )
+           ! Convert species units back to original unit 
+           CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                            State_Chm, OrigUnit,  RC )
 
             ! Free pointer
             NULLIFY( Spc )

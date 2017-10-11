@@ -176,6 +176,7 @@ CONTAINS
 !  18 Aug 2017 - R. Yantosca - Initial version
 !  13 Sep 2017 - R. Yantosca - Avoid roundoff error; return integral minutes
 !  18 Sep 2017 - R. Yantosca - Now return elapsed seconds to avoid roundoff
+!  29 Sep 2017 - R. Yantosca - Use NINT instead of INT to avoid roundoff
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -188,7 +189,8 @@ CONTAINS
     ElapsedSec = ( CurrentJd - TimeBaseJd ) * SECONDS_PER_DAY
 
     ! Just keep the integer part, since we are dealing in integral seconds
-    ElapsedSec = INT( ElapsedSec )
+    ! NINT ensures that we round up in case there is underflow
+    ElapsedSec = NINT( ElapsedSec )
 
   END SUBROUTINE Compute_Elapsed_Time
 !EOC

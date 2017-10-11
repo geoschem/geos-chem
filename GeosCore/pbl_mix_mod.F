@@ -112,8 +112,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_PBL_MIX( am_I_Root,  DO_TURBDAY, Input_Opt, 
-     &                       State_Met,  State_Chm,  RC )
+      SUBROUTINE DO_PBL_MIX( am_I_Root,  DO_TURBDAY, Input_Opt,
+     &                       State_Met,  State_Chm,  State_Diag, RC )
 !
 ! !USES:
 !
@@ -121,10 +121,12 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE TIME_MOD,           ONLY : GET_TS_CONV
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
+      USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS: 
 !
@@ -137,6 +139,7 @@
 !
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
       INTEGER,        INTENT(INOUT) :: RC          ! Return code
 !
 ! !REVISION HISTORY: 
@@ -150,6 +153,9 @@
 !  06 Jul 2016 - R. Yantosca - Now pass State_Chm and am_I_Root to TURBDAY
 !  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  27 Sep 2017 - E. Lundgren - Apply unit conversion within routine instead
+!                              of in do_mixing
+!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -164,6 +170,9 @@
 #if defined( USE_TEND )
       REAL(fp)       :: DT_TEND
 #endif
+
+      ! Strings
+      CHARACTER(LEN=63) :: OrigUnit 
 
       !=================================================================
       ! DO_PBL_MIX begins here!
@@ -184,6 +193,12 @@
       ! The following only needs be done if turbulence is turned on...
       IF ( DO_TURBDAY ) THEN
 
+         ! Convert species to v/v dry
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, 'v/v dry', RC, 
+     &                           OrigUnit=OrigUnit )
+
+
 #if defined( USE_TEND ) 
          ! Archive species concentrations for tendencies. Tracers are 
          ! already in v/v (ckeller, 7/15/2015)
@@ -192,7 +207,8 @@
 #endif
 
          ! Do complete mixing of tracers in the PBL (if necessary)
-         CALL TURBDAY( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+         CALL TURBDAY( am_I_Root, Input_Opt,  State_Met,
+     &                 State_Chm, State_Diag, RC         )
 
 #if defined( USE_TEND ) 
          ! Archive species concentrations for tendencies (ckeller, 7/15/2015)
@@ -200,6 +216,11 @@
          CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met,
      &                     State_Chm, 'PBLMIX', DT_TEND, RC )
 #endif
+
+         ! Convert species back to original units
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, OrigUnit,  RC )
+
       ENDIF
 
       END SUBROUTINE DO_PBL_MIX
@@ -439,34 +460,38 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TURBDAY( am_I_root, Input_Opt, 
-     &                    State_Met, State_Chm, RC )
+      SUBROUTINE TURBDAY( am_I_root, Input_Opt,  State_Met,
+     &                    State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : TURBFLUP
+      USE DIAG_MOD,       ONLY : TURBFLUP
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE PhysConstants,      ONLY : AIRMW
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CONV
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE PhysConstants,  ONLY : AIRMW
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Met_Mod,  ONLY : MetState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE TIME_MOD,       ONLY : GET_TS_CONV
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root      
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt
-      TYPE(MetState), INTENT(IN)    :: State_Met
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options Object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Metoerology State object
+
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  Original subroutine by Dale Allen, Univ of MD.
@@ -534,6 +559,7 @@
 !  06 Jul 2016 - R. Yantosca - Now pass State_Chm and am_I_Root as args
 !                              so that we can loop over advected species   
 !  25 Jul 2016 - M. Yannetti - Now takes in State_Chm to access spec db
+!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -194,7 +194,7 @@
       USE State_Met_Mod,      ONLY : MetState
       USE State_Chm_Mod,      ONLY : ChmState
       USE UCX_MOD,            ONLY : KG_STRAT_AER
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 #if   defined( TOMAS ) 
       USE TOMAS_MOD,          ONLY : IBINS
 #endif
@@ -249,6 +249,7 @@
 !                              at 35% RH
 !  07 Feb 2017 - M. Sulprizio- Apply STP correction factor to PM2.5
 !  07 Sep 2017 - M. Sulprizio- Add simple SOA to PM2.5 calculation
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversion with wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -272,7 +273,6 @@
 
       ! Logical flags
       LOGICAL             :: prtDebug
-      LOGICAL             :: UNITCONVERSION
       LOGICAL             :: LCARB
       LOGICAL             :: LDUST
       LOGICAL             :: LSOA
@@ -292,6 +292,10 @@
       REAL(fp), POINTER   :: AIRVOL(:,:,:)
       REAL(fp), POINTER   :: PMID(:,:,:)
       REAL(fp), POINTER   :: T(:,:,:)
+
+      ! Other variables
+      CHARACTER(LEN=63)   :: OrigUnit
+!ewl      LOGICAL             :: UNITCONVERSION
 
       !=================================================================
       ! AEROSOL_CONC begins here!
@@ -332,23 +336,12 @@
       IS_SOAGX   = ( id_SOAGX > 0 )
       IS_SOAMG   = ( id_SOAMG > 0 )
 
-      ! If species units are 'kg/kg dry', convert to [kg] for this routine.
-      ! Otherwise, if tracer units are not 'kg', throw an error to the 
-      ! calling routine (ewl, 8/12/15)
-      UNITCONVERSION = .FALSE.
-      IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg dry' ) THEN
-         CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
-     &                                  State_Chm, RC         )  
-         UNITCONVERSION = .TRUE.
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
-     &                    'AEROSOL_CONC in aerosol_mod.F')
-            RETURN
-         ENDIF
-      ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-         CALL GC_Error('Unexpected species units' // 
-     &                 State_Chm%Spc_Units, RC, 
-     &                 'AEROSOL_CONC in aerosol_mod')
+      ! Convert species to [kg] for this routine
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'Start of AEROSOL_CONC in aerosol_mod.F')
          RETURN
       ENDIF
 
@@ -928,16 +921,13 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! If units were originally 'kg/kg dry', convert [kg] back to mixing 
-      ! ratio (ewl, 8/12/15)
-      IF ( UNITCONVERSION ) THEN
-         CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, 
-     &                                  State_Chm, RC         )  
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
-     &                    'AEROSOL_CONC in aerosol_mod.F')
-            RETURN
-         ENDIF
+      ! Convert species back to original unit
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'End of AEROSOL_CONC in aerosol_mod.F')
+         RETURN
       ENDIF
 
       ! Free pointers

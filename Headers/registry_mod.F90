@@ -22,6 +22,22 @@ MODULE Registry_Mod
   IMPLICIT NONE
   PRIVATE
 !
+! !PUBLIC MEMBER FUNCTIONS:
+!
+  PUBLIC  :: Registry_AddField
+  PUBLIC  :: Registry_Lookup
+  PUBLIC  :: Registry_Print
+  PUBLIC  :: Registry_Destroy
+  PUBLIC  :: To_UpperCase ! consider putting in common util file (ewl)
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: MetaRegItem_AddNew
+  PRIVATE :: MetaRegItem_Create
+  PRIVATE :: MetaRegItem_Insert
+  PRIVATE :: MetaRegItem_Destroy
+  PRIVATE :: Str2Hash ! consider putting in a common util file (ewl)
+!
 ! ! PUBLIC TYPES::
 !
   !=========================================================================
@@ -57,10 +73,12 @@ MODULE Registry_Mod
      REAL(fp), POINTER    :: Ptr3d  (:,:,:)   ! For 3D flex-prec data
 
      !----------------------------------------------------------------------
-     ! Pointers to floating point data (flexible precision)
+     ! Pointers to floating point data (8-byte precision)
      !----------------------------------------------------------------------
      REAL(f8), POINTER    :: Ptr0d_8          ! For 0D 8-byte data
      REAL(f8), POINTER    :: Ptr1d_8(:    )   ! For 1D 8-byte data
+     REAL(f8), POINTER    :: Ptr2d_8(:,:  )   ! For 2D 8-byte data
+     REAL(f8), POINTER    :: Ptr3d_8(:,:,:)   ! For 3D 8-byte data
 
      !----------------------------------------------------------------------
      ! Pointers to floating point data (4-byte precision)
@@ -87,22 +105,6 @@ MODULE Registry_Mod
      TYPE(MetaRegItem), POINTER :: Next => NULL()   ! Pointer to next node
      TYPE(RegItem    ), POINTER :: Item => NULL()   ! Registry item within
   END TYPE MetaRegItem
-!
-! !PUBLIC MEMBER FUNCTIONS:
-!
-  PUBLIC  :: Registry_AddField
-  PUBLIC  :: Registry_Lookup
-  PUBLIC  :: Registry_Print
-  PUBLIC  :: Registry_Destroy
-!
-! !PRIVATE MEMBER FUNCTIONS:
-!
-  PRIVATE :: MetaRegItem_AddNew
-  PRIVATE :: MetaRegItem_Create
-  PRIVATE :: MetaRegItem_Insert
-  PRIVATE :: MetaRegItem_Destroy
-  PRIVATE :: Str2Hash
-  PRIVATE :: To_UpperCase
 !
 ! !DEFINED PARAMETERS:
 !
@@ -143,9 +145,10 @@ CONTAINS
                                 Units,     DimNames,  OnLevelEdges,          &
                                 Data0d,    Data1d,    Data2d,                &
                                 Data3d,    Data0d_8,  Data1d_8,              &
-                                Data0d_4,  Data1d_4,  Data2d_4,              &
-                                Data3d_4,  Data0d_I,  Data1d_I,              &
-                                Data2d_I,  Data3d_I                         )
+                                Data2d_8,  Data3d_8,  Data0d_4,              &
+                                Data1d_4,  Data2d_4,  Data3d_4,              &
+                                Data0d_I,  Data1d_I,  Data2d_I,              &
+                                Data3d_I                                    )
 !
 ! !USES:
 !
@@ -169,9 +172,11 @@ CONTAINS
     REAL(fp),          OPTIONAL, TARGET :: Data2d  (:,:  ) ! 2D flex-prec data
     REAL(fp),          OPTIONAL, TARGET :: Data3d  (:,:,:) ! 3D flex-prec data 
 
-    ! Floating-point data targets (flexible precision)
-    REAL(fp),          OPTIONAL, TARGET :: Data0d_8        ! 0D flex-prec data
-    REAL(fp),          OPTIONAL, TARGET :: Data1d_8(:    ) ! 1D flex_prec data
+    ! Floating-point data targets (8-byte precision)
+    REAL(f8),          OPTIONAL, TARGET :: Data0d_8        ! 0D flex-prec data
+    REAL(f8),          OPTIONAL, TARGET :: Data1d_8(:    ) ! 1D flex_prec data
+    REAL(f8),          OPTIONAL, TARGET :: Data2d_8(:,:  ) ! 2D flex-prec data
+    REAL(f8),          OPTIONAL, TARGET :: Data3d_8(:,:,:) ! 3D flex-prec data 
 
     ! Floating-point data targets (4-byte precision)
     REAL(f4),          OPTIONAL, TARGET :: Data0d_4        ! 0D 4-byte data
@@ -196,7 +201,8 @@ CONTAINS
 ! !REMARKS:
 !  Internally, the REGISTRY ITEM will be refered to by its fullname field,
 !  which is "STATE_VARIABLE".  Fullname will be defined automatically from
-!  the STATE and VARIABLE inputs.
+!  the STATE and VARIABLE inputs as STATE_VARIABLE, unless variable is in
+!  State_Diag, in which case STATE_ is not appended as a prefix.
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version
@@ -212,6 +218,8 @@ CONTAINS
 !  25 Aug 2017 - R. Yantosca - Added Data0d_8 and Data1d_8 so that we can
 !                               register netCDF index variables.  Most other
 !                               data should be either REAL(fp) or REAL(f4)
+!  25 Sep 2017 - E. Lundgren - Only use state name prefix if not from state_diag
+!  06 Oct 2017 - R. Yantosca - Add pointers for 2D and 3D, 8-byte data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -239,7 +247,11 @@ CONTAINS
     ThisLoc        = ' -> at Registry_AddField (in Headers/registry_mod.F90)'
     TmpState       = To_UpperCase( State    )
     TmpVariable    = To_UpperCase( Variable )
-    TmpFullname    = TRIM( TmpState ) // '_' // TRIM( TmpVariable )
+    IF ( TRIM( TmpState ) /= 'DIAG' ) THEN
+       TmpFullname    = TRIM( TmpState ) // '_' // TRIM( TmpVariable )
+    ELSE
+       TmpFullname = TRIM( TmpVariable )
+    ENDIF
     TmpDescription = ''
     TmpUnits       = ''
 
@@ -275,6 +287,8 @@ CONTAINS
     Item%Ptr3d         => NULL()
     Item%Ptr0d_8       => NULL()
     Item%Ptr1d_8       => NULL()
+    Item%Ptr2d_8       => NULL()
+    Item%Ptr3d_8       => NULL()
     Item%Ptr0d_4       => NULL()
     Item%Ptr1d_4       => NULL()
     Item%Ptr2d_4       => NULL()
@@ -314,10 +328,17 @@ CONTAINS
 
     !-----------------------------------------------------------------------
     ! Assign pointers to 8-byte real data targets
-    ! NOTE: We should only need REAL*8 for 0d and 1d data, which will allow
-    ! us to register netCDF index variables.  Most other floating-point
-    ! data in GEOS-Chem is declared as FLEXIBLE PRECISION, REAL(fp).
     !-----------------------------------------------------------------------
+    ELSE IF ( PRESENT( Data3d_8 ) ) THEN
+       Item%Rank       =  3
+       Item%Ptr3d_8    => Data3d_8
+       Item%MemoryInKb =  KbPerElement * SIZE( Data3d_8 )
+       Item%KindVal    =  KINDVAL_F8
+    ELSE IF ( PRESENT( Data2d_8 ) ) THEN
+       Item%Rank       =  2
+       Item%Ptr2d_8    => Data2d
+       Item%MemoryInKb =  KbPerElement * SIZE( Data2d_8  )
+       Item%KindVal    =  KINDVAL_F8
     ELSE IF ( PRESENT( Data1d_8 ) ) THEN
        Item%Rank       =  1
        Item%Ptr1d_8    => Data1d_8
@@ -442,9 +463,10 @@ CONTAINS
                               OnLevelEdges, Rank,      Units,                &
                               DimNames,     Ptr0d,     Ptr1d,                &
                               Ptr2d,        Ptr3d,     Ptr0d_8,              &
-                              Ptr1d_8,      Ptr0d_4,   Ptr1d_4,              &
-                              Ptr2d_4,      Ptr3d_4,   Ptr0d_I,              &
-                              Ptr1d_I,      Ptr2d_I,   Ptr3d_I              )
+                              Ptr1d_8,      Ptr2d_8,   Ptr3d_8,              &
+                              Ptr0d_4,      Ptr1d_4,   Ptr2d_4,              &
+                              Ptr3d_4,      Ptr0d_I,   Ptr1d_I,              &
+                              Ptr2d_I,      Ptr3d_I                         )
 !
 ! !USES:
 !
@@ -482,6 +504,8 @@ CONTAINS
     ! Floating-point data pointers (4-byte precision)
     REAL(f8),   POINTER, OPTIONAL :: Ptr0d_8           ! 0D 8-byte data
     REAL(f8),   POINTER, OPTIONAL :: Ptr1d_8(:    )    ! 1D 8-byte data
+    REAL(f8),   POINTER, OPTIONAL :: Ptr2d_8(:,:  )    ! 2D flex-prec data
+    REAL(f8),   POINTER, OPTIONAL :: Ptr3d_8(:,:,:)    ! 3D flex-prec data
 
     ! Floating-point data pointers (4-byte precision)
     REAL(f4),   POINTER, OPTIONAL :: Ptr0d_4           ! 0D 4-byte data
@@ -498,7 +522,8 @@ CONTAINS
 ! !REMARKS:
 !  Internally, the REGISTRY ITEM will be refered to by its fullname field,
 !  which is "STATE_VARIABLE".  Fullname will be defined automatically from
-!  the STATE and VARIABLE inputs.
+!  the STATE and VARIABLE inputs as STATE_VARIABLE, unless variable is in
+!  State_Diag, in which case STATE_ is not appended as a prefix.
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version
@@ -514,6 +539,8 @@ CONTAINS
 !  23 Aug 2017 - R. Yantosca - Added optional OnLevelEdges argument
 !  24 Aug 2017 - R. Yantosca - Added optional DimNames argument
 !  25 Aug 2017 - R. Yantosca - Added optional Data0d_8 and Data1d_8 arguments
+!  25 Sep 2017 - E. Lundgren - Only use state name prefix if not from state_diag
+!  06 Oct 2017 - R. Yantosca - Add Ptr2d_8, Ptr3d_8 optional arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -528,8 +555,10 @@ CONTAINS
     LOGICAL                    :: Is_0d_4,         Is_0d_I
     LOGICAL                    :: Is_1d,           Is_1d_8
     LOGICAL                    :: Is_1d_4,         Is_1d_I
-    LOGICAL                    :: Is_2d,           Is_2d_4,       Is_2d_I
-    LOGICAL                    :: Is_3d,           Is_3d_4,       Is_3d_I
+    LOGICAL                    :: Is_2d,           Is_2d_8
+    LOGICAL                    :: Is_2d_4,         Is_2d_I
+    LOGICAL                    :: Is_3d,           Is_3d_8
+    LOGICAL                    :: Is_3d_4,         Is_3d_I
     INTEGER                    :: FullHash,        ItemHash,      N
 
     ! Strings
@@ -551,7 +580,8 @@ CONTAINS
 
     ! Append the state name to the variable (if it's not already there)
     TmpState        = TRIM( State ) // '_' 
-    IF ( INDEX( Variable, TRIM( TmpState ) ) > 0 ) THEN
+    IF ( ( TRIM( State ) == 'DIAG' ) .OR.  &
+         ( INDEX( Variable, TRIM( TmpState ) ) > 0 ) ) THEN
        TmpFullName  = Variable
     ELSE
        TmpFullName  = TRIM( TmpState ) // TRIM( Variable )
@@ -577,6 +607,8 @@ CONTAINS
     ! Floating-point (8-byte) data pointers
     Is_0d_8         =  PRESENT( Ptr0d_8      )
     Is_1d_8         =  PRESENT( Ptr1d_8      )
+    Is_2d_8         =  PRESENT( Ptr2d_8      )
+    Is_3d_8         =  PRESENT( Ptr3d_8      )
 
     ! Floating-point (4-byte) data pointers
     Is_0d_4         =  PRESENT( Ptr0d_4      )
@@ -611,9 +643,11 @@ CONTAINS
     IF ( Is_1d_4 ) Ptr1d_4 => NULL()
     IF ( Is_1d_I ) Ptr1d_I => NULL()
     IF ( Is_2d   ) Ptr2d   => NULL()
+    IF ( Is_2d_8 ) Ptr2d_8 => NULL()
     IF ( Is_2d_4 ) Ptr2d_4 => NULL()
     IF ( Is_2d_I ) Ptr2d_I => NULL()
     IF ( Is_3d   ) Ptr3d   => NULL()
+    IF ( Is_3d_8 ) Ptr3d_8 => NULL()
     IF ( Is_3d_4 ) Ptr3d_4 => NULL()
     IF ( Is_3d_I ) Ptr3d_I => NULL()
 
@@ -658,6 +692,17 @@ CONTAINS
                       ENDIF
                    ENDIF
                    EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_F8 ) THEN
+                   IF ( Is_3d_8 ) THEN
+                      Ptr3d_8 => Current%Item%Ptr3d_8
+                      Found   =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr3d_8, N )
+                         ENDDO
+                      ENDIF
+                   ENDIF
+                   EXIT
                 ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
                    IF ( Is_3d_4 ) THEN
                       Ptr3d_4 => Current%Item%Ptr3d_4
@@ -693,6 +738,17 @@ CONTAINS
                             Dimensions(N) = SIZE( Ptr2d, N )
                          ENDDO
                       ENDIF
+                   ENDIF
+                   EXIT
+                ELSE IF ( Current%Item%KindVal == KINDVAL_F8 ) THEN
+                   IF ( Is_2d_8 ) THEN
+                      Ptr2d_8 => Current%Item%Ptr2d_8
+                      Found   =  .TRUE.
+                      IF ( Is_Dimensions ) THEN
+                         DO N = 1, Current%Item%Rank
+                            Dimensions(N) = SIZE( Ptr2d_8, N )
+                         ENDDO
+                      ENDIF                      
                    ENDIF
                    EXIT
                 ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
@@ -945,7 +1001,7 @@ CONTAINS
              WRITE( 6, 100 ) Item%FullName,    Item%Description,             &
                              Item%DimNames,    CellPos,                      &
                              TRIM( Item%Units )
-  100        FORMAT( 1x, a20, ' | ', a38, ' | ', a3, ' ', a1, ' | ', a )
+  100        FORMAT( 1x, a20, ' | ', a30, ' | ', a3, ' ', a1, ' | ', a )
 
           ELSE
 
@@ -979,6 +1035,15 @@ CONTAINS
                                            SIZE  ( Item%Ptr3d,   2 ),        &
                                            SIZE  ( Item%Ptr3d  , 3 )
 
+             ! 8-byte
+             ELSE IF ( ASSOCIATED( Item%Ptr3d_8 ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr3d_8    )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr3d_8    )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr3d_8    )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr3d_8, 1 ),        &
+                                           SIZE  ( Item%Ptr3d_8, 2 ),        &
+                                           SIZE  ( Item%Ptr3d_8, 3 )
+
              ! 4-byte
              ELSE IF ( ASSOCIATED( Item%Ptr3d_4 ) ) THEN
                 PRINT*, 'Min value    : ', MINVAL( Item%Ptr3d_4    )
@@ -1007,6 +1072,15 @@ CONTAINS
                 PRINT*, 'Total        : ', SUM   ( Item%Ptr2d      )
                 PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d, 1   ),        &
                                            SIZE  ( Item%Ptr2d, 2   )
+
+             ! 8-byte 
+             ELSE IF ( ASSOCIATED( Item%Ptr2d_8 ) ) THEN
+                PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d_8    )
+                PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2d_8    )
+                PRINT*, 'Total        : ', SUM   ( Item%Ptr2d_8    )
+                PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d_8, 1 ),        &
+                                           SIZE  ( Item%Ptr2d_8, 2 )
+
              ! 4-byte 
              ELSE IF ( ASSOCIATED( Item%Ptr2d_4 ) ) THEN
                 PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d_4    )
@@ -1016,7 +1090,6 @@ CONTAINS
                                            SIZE  ( Item%Ptr2d_4, 2 )
 
              ! Integer
-             ! 2D data -- Integer
              ELSE IF ( ASSOCIATED( Item%Ptr2d_I ) ) THEN
                 PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d_I    )
                 PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2d_I    )
@@ -1366,6 +1439,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
+!  06 Oct 2017 - R. Yantosca - Now insert new node at the head of the list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1376,7 +1450,7 @@ CONTAINS
     CHARACTER(LEN=255)         :: ErrMsg, ThisLoc
     
     ! Objects
-    TYPE(MetaRegItem), POINTER :: Next
+    TYPE(MetaRegItem), POINTER :: Head
 
     !=======================================================================
     ! Initialize
@@ -1390,37 +1464,34 @@ CONTAINS
     ! into the existing list.  "Next" will contain a new REGISTRY ITEM.
     !=======================================================================
 
-    ! Allocate the "Next" object
-    ALLOCATE( Next, STAT=RC )
+    ! Allocate the "Head" object
+    ALLOCATE( Head, STAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not allocate "Next"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    ! Allocate the "Next%Item" field, which will hold the REGISTRY ITEM
-    ALLOCATE( Next%Item, STAT=RC )
+    ! Allocate the "Head%Item" field, which will hold the REGISTRY ITEM
+    ALLOCATE( Head%Item, STAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not allocate "Next%Item"!'
+       ErrMsg = 'Could not allocate "Head%Item"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     !=======================================================================
-    ! Insert "Next" into the existing linked list
+    ! Insert "Head" at the start of the existing linked list
     !=======================================================================
 
-    ! Pop the "Next" object in between the current node (i.e. "Node")
-    ! and the node that is currently following it (i.e. "Node%Next")
-    Next%Next => Node%Next
+    ! Save the REGISTRY ITEM argument in the "Item" field of "Head"
+    Head%Item  =  Item
 
-    ! Now make sure that the current node (i.e. "Node") 
-    ! considers that "Next" to be the next node in the list.
-    Node%Next => Next
+    ! The "Next" field of "Head" points to the current head of the list
+    Head%Next  => Node
 
-    ! Now that we have inserted the META REGISTRY ITEM "Next" into 
-    ! the list, we can save the REGISTRY ITEM into its "Item" field.
-    Next%Item =  Item
+    ! Set "Head" as the new head of the linked list
+    Node       => Head
 
   END SUBROUTINE MetaRegItem_Insert
 !EOC
@@ -1500,6 +1571,12 @@ CONTAINS
        Current%Item%Ptr1d   => NULL()
        Current%Item%Ptr2d   => NULL()
        Current%Item%Ptr3d   => NULL()
+
+       ! Free 8-byte data pointers in this REGISTRY ITEM
+       Current%Item%Ptr0d_8 => NULL()
+       Current%Item%Ptr1d_8 => NULL()
+       Current%Item%Ptr2d_8 => NULL()
+       Current%Item%Ptr3d_8 => NULL()
 
        ! Free 4-byte data pointers in this REGISTRY ITEM
        Current%Item%Ptr0d_4 => NULL()

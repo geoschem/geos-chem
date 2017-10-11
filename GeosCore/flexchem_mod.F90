@@ -60,7 +60,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_FlexChem( am_I_Root, Input_Opt, State_Met, State_Chm, RC  )
+  SUBROUTINE Do_FlexChem( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                          State_Diag, RC  )
 !
 ! !USES:
 !
@@ -94,12 +95,13 @@ CONTAINS
     USE Species_Mod,          ONLY : Species
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Chm_Mod,        ONLY : Ind_
+    USE State_Diag_Mod,       ONLY : DgnState
     USE State_Met_Mod,        ONLY : MetState
     USE Strat_Chem_Mod,       ONLY : SChem_Tend
     USE TIME_MOD,             ONLY : GET_TS_CHEM
     USE TIME_MOD,             ONLY : GET_MONTH
     USE TIME_MOD,             ONLY : GET_YEAR
-    USE UnitConv_Mod
+    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
 #if defined( UCX )
     USE UCX_MOD,              ONLY : CALC_STRAT_AER
     USE UCX_MOD,              ONLY : SO4_PHOTFRAC
@@ -119,6 +121,7 @@ CONTAINS
 !
     TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -161,6 +164,8 @@ CONTAINS
 !                              ESMF environment.
 !  30 May 2017 - M. Sulprizio- Add code for stratospheric chemical tendency
 !                              for computing STE in strat_chem_mod.F90
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,6 +179,7 @@ CONTAINS
     LOGICAL                :: prtDebug
     LOGICAL                :: LDUST
     CHARACTER(LEN=155)     :: DiagnName
+    CHARACTER(LEN=63)      :: OrigUnit
 
     ! SAVEd variables
     LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
@@ -411,15 +417,21 @@ CONTAINS
 #endif
 
     !================================================================
-    ! Convert species from [kg] to [molec/cm3] (ewl, 8/16/16)
+    ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !================================================================
-    CALL ConvertSpc_Kg_to_MND( am_I_Root, State_Met, State_Chm, RC )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, & 
+                            State_Chm, 'molec/cm3', RC, OrigUnit=OrigUnit )
+    IF ( RC /= GC_SUCCESS ) THEN
+       Err_Msg = 'Unit conversion error!'
+       CALL GC_Error( Err_Msg, RC, 'flexchem_mod.F90')
+       RETURN
+    ENDIF 
       
     !=================================================================
     ! Call photolysis routine to compute J-Values
     !=================================================================
     CALL FAST_JX( WAVELENGTH, am_I_Root,  Input_Opt, &
-                  State_Met,  State_Chm,  RC         )
+                  State_Met,  State_Chm,  State_Diag, RC )
 
     !### Debug
     IF ( prtDebug ) THEN
@@ -648,7 +660,7 @@ CONTAINS
           ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
           ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
           CALL PHOTRATE_ADJ( am_I_root, I, J, L, NUMDEN, TEMP, &
-                             H2O, SO4_FRAC, IERR  )
+                             H2O, SO4_FRAC, State_Diag, IERR  )
 
           IF ( DO_PHOTCHEM ) THEN
 
@@ -962,9 +974,15 @@ CONTAINS
     ENDIF
 
     !================================================================
-    ! Convert species from [molec/cm3] to [kg] (ewl, 8/16/16)
+    ! Convert species back to original units (ewl, 8/16/16)
     !================================================================
-    CALL ConvertSpc_MND_to_Kg( am_I_Root, State_Met, State_Chm, RC )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       Err_Msg = 'Unit conversion error!'
+       CALL GC_Error( Err_Msg, RC, 'flexchem_mod.F90' )
+       RETURN
+    ENDIF  
 
 #if defined( UCX )
     ! If using stratospheric chemistry, applying high-altitude
