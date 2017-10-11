@@ -328,7 +328,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Mar 2013 - T. Sherwen - Initial implementation (v9-3-01)
-!  15 Jul 2015 - T. Sherwen - Now a HEMCO extension module adapted from hcox_seasalt_mod 
+!  15 Jul 2015 - T. Sherwen - Now a HEMCO extension module adapted from hcox_seasalt_mod
+!  11 Oct 2017 - R. Yantosca - Fixed typo in comment character (# instead of !)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -367,7 +368,7 @@ CONTAINS
     CALL GetExtOpt ( HcoState%Config, ExtNr, 'Emit HOI', OptValBool=CalcHOI, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    # Set minimum length and update if CalcI2/CalcHOI==True
+    ! Set minimum length and update if CalcI2/CalcHOI==True
     minLen = 0
     IF ( CalcI2 ) THEN
        minLen = minLen +1
