@@ -315,6 +315,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
+!  06 Oct 2017 - R. Yantosca - Now insert new node at the head of the list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -325,7 +326,7 @@ CONTAINS
     CHARACTER(LEN=255)          :: ErrMsg, ThisLoc
     
     ! Objects
-    TYPE(MetaHistItem), POINTER :: Next
+    TYPE(MetaHistItem), POINTER :: Head
 
     !=======================================================================
     ! Initialize
@@ -339,41 +340,38 @@ CONTAINS
     ThisLoc = ' -> at MetaHistItem_Insert (in History/metahistitem_mod.F90)'
     
     !=======================================================================
-    ! Initialize a METAHISTORY ITEM named "Next", which will be inserted 
-    ! into the existing list.  "Next" will contain a new HISTORY ITEM.
+    ! Initialize a METAHISTORY ITEM named "Head", which will become the 
+    ! head of the existing list.  "Head" will contain a new HISTORY ITEM.
     !=======================================================================
 
-    ! Allocate the "Next" object
-    ALLOCATE( Next, STAT=RC )
+    ! Allocate the "Head" object
+    ALLOCATE( Head, STAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not allocate "Next"!'
+       ErrMsg = 'Could not allocate "Head"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    ! Allocate the "Next%Item" field, which will hold the HISTORY ITEM
-    ALLOCATE( Next%Item, STAT=RC )
+    ! Allocate the "Head%Item" field, which will hold the HISTORY ITEM
+    ALLOCATE( Head%Item, STAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not allocate "Next%Item"!'
+       ErrMsg = 'Could not allocate "Head%Item"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     !=======================================================================
-    ! Insert "Next" into the existing linked list
+    ! Insert "Head" at the start of the existing linked list
     !=======================================================================
 
-    ! Pop the "Next" object in between the current node (i.e. "Node")
-    ! and the node that is currently following it (i.e. "Node%Next")
-    Next%Next => Node%Next
+    ! Save the HISTORY ITEM argument in the "Item" field of "Head"
+    Head%Item  =  Item
 
-    ! Now make sure that the current node (i.e. "Node") 
-    ! considers that "Next" to be the next node in the list.
-    Node%Next => Next
+    ! The "Next" field of "Head" points to the current head of the list
+    Head%Next  => Node
 
-    ! Now that we have inserted the META HISTORY ITEM "Next" into 
-    ! the list, we can save the HISTORY ITEM into its "Item" field.
-    Next%Item =  Item
+    ! Set "Head" as the new head of the linked list
+    Node       => Head
 
   END SUBROUTINE MetaHistItem_Insert
 !EOC

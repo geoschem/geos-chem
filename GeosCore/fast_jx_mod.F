@@ -3473,9 +3473,9 @@ C-----------------------------------------------------------------------
             !State_Diag%JValues(ILON,ILAT,L,35) = ZPJ(L,112,ILON,ILAT) ! JMONITS
             !State_Diag%JValues(ILON,ILAT,L,36) = ZPJ(L,113,ILON,ILAT) ! JMONITU
             !State_Diag%JValues(ILON,ILAT,L,37) = ZPJ(L,114,ILON,ILAT) ! JHONIT
-#endif
          ENDDO
       ENDIF
+#endif
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% COMMENT OUT FAST-J DIAGNOSTICS FOR NOW (bmy, 3/5/14)

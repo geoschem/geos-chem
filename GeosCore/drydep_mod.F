@@ -289,6 +289,10 @@
       REAL(f8),          ALLOCATABLE :: DMID    (:    )
       REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
       
+      ! Are certain History diagnostics turned on?
+      LOGICAL                        :: Archive_DryDepVel
+      LOGICAL                        :: Archive_DryDepFlux_Chm
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -309,8 +313,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DRYDEP( am_I_Root, Input_Opt, 
-     &                      State_Met, State_Chm, RC )
+      SUBROUTINE DO_DRYDEP( am_I_Root, Input_Opt,  State_Met,
+     &                      State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -321,6 +325,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE UnitConv_Mod
 !
@@ -333,6 +338,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -416,6 +422,7 @@
 !                              eliminated.
 !  13 Jul 2017 - M. Sulprizio- Add scaling of species drydep relative to HNO3,
 !                              PAN, and ISOPN (from K. Travis, J. Fisher)
+!  05 Oct 2017 - R. Yantosca - Now update State_Diag%DryDepVel diagnostic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -611,6 +618,13 @@
             ! ND44 diagnostic: drydep velocity [cm/s]
             IF ( ND44 > 0 ) THEN 
                AD44(I,J,D,2) = AD44(I,J,D,2) + DVZ
+            ENDIF
+#endif
+
+#if defined( NC_DIAG )
+            ! Archive dry dep velocity [cm/s]
+            IF ( Archive_DryDepVel ) THEN
+               State_Diag%DryDepVel(I,J,D) = DVZ
             ENDIF
 #endif
 
@@ -3771,15 +3785,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DRYDEP( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE INIT_DRYDEP( am_I_Root, Input_Opt, 
+     &                        State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE Species_Mod,        ONLY : Species
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE Species_Mod,    ONLY : Species
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3788,7 +3804,8 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry_State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3865,6 +3882,7 @@
 !                              Family tracers have been eliminated.
 !  13 Jul 2017 - M. Sulprizio- Add scaling of species drydep relative to HNO3,
 !                              PAN, and ISOPN (from K. Travis, J. Fisher)
+!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4188,6 +4206,12 @@
       ! sea salt aerosols (jaegle 5/11/11)
       CALL INIT_WEIGHTSS( Input_Opt )
     
+      !===================================================================
+      ! Set logical flags to determine if diagnostics are turned on
+      !===================================================================
+      Archive_DryDepVel      = ASSOCIATED( State_Diag%DryDepVel      )
+      Archive_DryDepFlux_Chm = ASSOCIATED( State_Diag%DryDepFlux_Chm )
+
       END SUBROUTINE INIT_DRYDEP
 !EOC
 !------------------------------------------------------------------------------

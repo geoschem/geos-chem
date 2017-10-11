@@ -568,7 +568,7 @@
       historyConfigFile = 'HISTORY.rc' ! cannot use Input_Opt variable in GCHP
       CALL Init_DiagList( am_I_Root, historyConfigFile, Diag_List, RC )
 
-      ! Initialize Input_Opt, State_Chem, and State_Met objects (bmy, 3/4/13)
+      ! Initialize Input_Opt, State_Chm, State_Diag, State_Met objects
       CALL GC_Init_All( am_I_Root, Diag_List,  Input_Opt, 
      &                  State_Chm, State_Diag, State_Met, RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -582,7 +582,8 @@
       ! SULFATE_MOD).  This removes the init calls from the run stage,
       ! which is required when connecting to the GEOS-5 GCM w/ ESMF.
       ! (bmy, 3/4/13)
-      CALL GC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL GC_Init_Extra( am_I_Root, Input_Opt, 
+     &                    State_Chm, State_Diag, RC )
       !
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
@@ -723,10 +724,10 @@
       CALL Compute_Olson_Landmap( am_I_Root, mapping,   State_Met )
       CALL Cleanup_Olson_Landmap( am_I_Root                       )
 
-       ! Initialize PBL quantities but do not do mixing
-       ! Add option for non-local PBL (Lin, 03/31/09) 
-      CALL INIT_MIXING ( am_I_Root, Input_Opt, 
-     &                   State_Met, State_Chm, RC ) 
+      ! Initialize PBL quantities but do not do mixing
+      ! Add option for non-local PBL (Lin, 03/31/09)
+      CALL INIT_MIXING ( am_I_Root, Input_Opt,  State_Met,
+     &                  State_Chm,  State_Diag, RC         )
  
       ! Initialize chemistry
       ! Moved here (from chemistry_mod.F and chemdr.F) because some
@@ -778,6 +779,10 @@
       CALL READ_GC_RESTART( am_I_Root, NYMDb,     NHMSb, 
      &                      Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_GC_RESTART' )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error returned from "READ_GC_RESTART"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End( "Reading restart file",  RC )
@@ -1354,8 +1359,8 @@
                CALL GEOS_Timer_Start( "Dry deposition", RC )
 #endif
 
-               CALL DO_DRYDEP( am_I_Root, Input_Opt, 
-     &                         State_Met, State_Chm, RC )
+               CALL DO_DRYDEP( am_I_Root, Input_Opt,  State_Met, 
+     &                         State_Chm, State_Diag, RC )
                IF ( RC /= GC_SUCCESS ) THEN
                   CALL ERROR_STOP('Error in DO_DRYDEP!', 'main.F')
                ENDIF
@@ -1435,8 +1440,8 @@
             ! NOTE: Tracer concentration units are converted locally
             ! to [v/v dry air] for mixing. Eventually mixing should
             ! be updated to use [kg/kg total air] (ewl, 9/18/15)
-            CALL DO_MIXING ( am_I_Root, Input_Opt, 
-     &                       State_Met, State_Chm, RC )
+            CALL DO_MIXING ( am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC         )
             IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP('Error in DO_MIXING!', 'main.F')
             ENDIF
@@ -1656,16 +1661,6 @@
          !==============================================================
          !           ***** H I S T O R Y   U P D A T E  *****
          !==============================================================
-
-         ! For testing only. Need to set these in appropriate locations
-         ! throughout GEOS-Chem. See old NC_DIAG code for ND44 for where and 
-         ! what to set values to (ewl, 9/27/17)
-         IF ( ASSOCIATED(State_Diag%DryDepVel) ) THEN
-            State_Diag%DryDepVel(:,:,:,:) = 2.0
-         ENDIF
-         IF ( ASSOCIATED(State_Diag%DryDepFlux) ) THEN
-            State_Diag%DryDepFlux(:,:,:,:) = 3.0
-         ENDIF
 
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_Start( "History", RC )

@@ -619,7 +619,7 @@ CONTAINS
     CALL Compute_Julian_Date( yyyymmdd_end, hhmmss_end, JulianDateEnd )
 
     ! Compute the length of the simulation, in elapsed seconds
-    SimLengthSec   = INT( ( JulianDateEnd - JulianDate ) * SECONDS_PER_DAY )
+    SimLengthSec   = NINT( ( JulianDateEnd - JulianDate ) * SECONDS_PER_DAY )
 
     !=======================================================================
     ! Open the file containing the list of requested diagnostics
@@ -1331,6 +1331,7 @@ CONTAINS
     REAL(f4),            POINTER :: Ptr2d_4(:,:  )
     INTEGER,             POINTER :: Ptr2d_I(:,:  )
     REAL(fp),            POINTER :: Ptr3d  (:,:,:)
+    REAL(f8),            POINTER :: Ptr3d_8(:,:,:)
     REAL(f4),            POINTER :: Ptr3d_4(:,:,:)
     INTEGER,             POINTER :: Ptr3d_I(:,:,:)
 
@@ -1350,6 +1351,7 @@ CONTAINS
     Ptr2d_4     => NULL()
     Ptr2d_I     => NULL()
     Ptr3d       => NULL()
+    Ptr3d_8     => NULL()
     Ptr3d_4     => NULL()
     Ptr3d_I     => NULL()
 
@@ -1430,6 +1432,7 @@ CONTAINS
                              Units        = Units,                           &
                              OnLevelEdges = OnLevelEdges,                    &
                              Ptr2d_4      = Ptr2d_4,                         &
+                             Ptr3d_8      = Ptr3d_8,                         &
                              Ptr3d_4      = Ptr3d_4,                         &
                              Ptr2d_I      = Ptr2d_I,                         &
                              Ptr3d_I      = Ptr3d_I,                         &
@@ -1442,7 +1445,6 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
     ENDIF
 
     !=======================================================================
@@ -1481,6 +1483,7 @@ CONTAINS
                           Source_2d_4    = Ptr2d_4,                          &
                           Source_2d_I    = Ptr2d_I,                          &
                           Source_3d      = Ptr3d,                            &
+                          Source_3d_8    = Ptr3d_8,                          &
                           Source_3d_4    = Ptr3d_4,                          &
                           Source_3d_I    = Ptr3d_I,                          &
                           Dimensions     = ItemDims,                         &
@@ -1592,6 +1595,7 @@ CONTAINS
     Ptr2d_4 => NULL()
     Ptr2d_I => NULL()
     Ptr3d   => NULL()
+    Ptr3d_8 => NULL()
     Ptr3d_4 => NULL()
     Ptr3d_I => NULL()
 
@@ -1840,6 +1844,17 @@ CONTAINS
                       Item%nUpdates = Item%nUpdates + 1.0_f8
                    ENDIF
 
+                ! 8-byte floating point
+                ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+                      Item%Data_3d = Item%Source_3d_8
+                      Item%nUpdates = 1.0_f8
+                   ELSE
+                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d_8
+                      Item%nUpdates = Item%nUpdates + 1.0_f8
+                   ENDIF
+
                 ! 4-byte floating point
                 ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
 
@@ -1878,6 +1893,17 @@ CONTAINS
                    ELSE 
                       Item%Data_2d  = Item%Data_2d  + Item%Source_2d
                       Item%nUpdates = Item%nUpdates + 1.0_f8
+                   ENDIF
+
+                ! 8-byte floating point
+                ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+                      Item%Data_2d  = Item%Source_2d_8
+                      Item%nUpdates = 1.0_f8
+                   ELSE
+                      Item%Data_2d  = Item%Data_2d + Item%Source_2d_8
+                      Item%nUpdates = Item%nUpdates + 1.0_f8 
                    ENDIF
 
                 ! 4-byte floating point
@@ -1920,6 +1946,17 @@ CONTAINS
                       Item%nUpdates = Item%nUpdates + 1.0_f8 
                    ENDIF
 
+                ! 8-byte floating point
+                ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+                      Item%Data_1d  = Item%Source_1d_8
+                      Item%nUpdates = 1.0_f8
+                   ELSE 
+                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d_8
+                      Item%nUpdates = Item%nUpdates + 1.0_f8  
+                   ENDIF
+
                 ! 4-byte floating point
                 ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
 
@@ -1939,6 +1976,24 @@ CONTAINS
                       Item%nUpdates = 1.0_f8 
                    ELSE
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d_I
+                      Item%nUpdates = Item%nUpdates + 1.0_f8 
+                   ENDIF
+
+                ENDIF
+
+             !--------------------------------------------------------------
+             ! Update 0D data field
+             !--------------------------------------------------------------
+             CASE( 0 )
+
+                ! Flex-precision floating point
+                IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
+
+                   IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+                      Item%Data_0d  = Item%Source_0d_8
+                      Item%nUpdates = 1.0_f8
+                   ELSE 
+                      Item%Data_0d  = Item%Data_0d  + Item%Source_0d_8
                       Item%nUpdates = Item%nUpdates + 1.0_f8 
                    ENDIF
 

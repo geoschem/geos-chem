@@ -4173,6 +4173,8 @@
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  10 Oct 2017 - R. Yantosca - Now print 6 decimal digits for elapsed time
+!  10 Oct 2017 - R. Yantosca - Change "GMT" to "UTC", which is more standard
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4189,7 +4191,7 @@
 
       ! Format string
  100  FORMAT( '---> DATE: ', i4.4, '/', i2.2, '/', i2.2, 
-     &            '  GMT: ', i2.2, ':', i2.2, '  X-HRS: ', f11.3 )
+     &            '  UTC: ', i2.2, ':', i2.2, '  X-HRS: ', f13.6 )
 
       END SUBROUTINE PRINT_CURRENT_TIME
 !EOC
