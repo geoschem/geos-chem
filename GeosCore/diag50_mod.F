@@ -144,7 +144,7 @@
       INTEGER              :: LOFF,           I0
       INTEGER              :: J0,             ND50_NI
       INTEGER              :: ND50_NJ,        ND50_NL
-      INTEGER              :: ND50_N_TRACERS, ND50_TRACERS(100)
+      INTEGER              :: ND50_N_TRACERS, ND50_TRACERS(529)
       INTEGER              :: ND50_IMIN,      ND50_IMAX
       INTEGER              :: ND50_JMIN,      ND50_JMAX
       INTEGER              :: ND50_LMIN,      ND50_LMAX
@@ -1054,7 +1054,7 @@
          ! Pick the proper divisor
          ! OH is defined only in boxes with active chemistry
          ! Others are defined everywhere
-         IF ( N == 151 ) THEN
+         IF ( N == 501 ) THEN
             DIVISOR = COUNT_CHEM3D
          ELSE
             DIVISOR = COUNT
@@ -1097,7 +1097,7 @@
             GMNL     = ND50_NL
             GMTRC    = N
 
-         ELSE IF ( N == 151 ) THEN
+         ELSE IF ( N == 501 ) THEN
 
             !---------------------
             ! OH 
@@ -1107,7 +1107,7 @@
             GMNL     = ND50_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 152 ) THEN
+         ELSE IF ( N == 502 ) THEN
 
             !---------------------
             ! NOy 
@@ -1117,7 +1117,7 @@
             GMNL     = ND50_NL
             GMTRC    = 2
 
-         ELSE IF ( N == 153 ) THEN
+         ELSE IF ( N == 503 ) THEN
 
             !---------------------
             ! Relative humidity
@@ -1127,7 +1127,7 @@
             GMNL     = ND50_NL
             GMTRC    = 3
 
-         ELSE IF ( N == 154 ) THEN
+         ELSE IF ( N == 504 ) THEN
 
             !---------------------
             ! 3-D Cloud fractions
@@ -1137,7 +1137,7 @@
             GMNL     = ND50_NL
             GMTRC    = 4
 
-         ELSE IF ( N == 155 ) THEN
+         ELSE IF ( N == 505 ) THEN
 
             !---------------------
             ! Column opt depths 
@@ -1147,7 +1147,7 @@
             GMNL      = 1
             GMTRC     = 5
             
-         ELSE IF ( N == 156 ) THEN
+         ELSE IF ( N == 506 ) THEN
         
             !---------------------
             ! Cloud top heights 
@@ -1157,7 +1157,7 @@
             GMNL      = 1
             GMTRC     = 6
 
-         ELSE IF ( N == 157 ) THEN
+         ELSE IF ( N == 507 ) THEN
 
             !---------------------
             ! Air Density 
@@ -1167,7 +1167,7 @@
             GMNL     = ND50_NL
             GMTRC    = 7
 
-         ELSE IF ( N == 158 ) THEN
+         ELSE IF ( N == 508 ) THEN
 
             !----------------------
             ! Total Seasalt
@@ -1177,7 +1177,7 @@
             GMNL     = ND50_NL
             GMTRC    = 8
 
-         ELSE IF ( N == 159 ) THEN 
+         ELSE IF ( N == 509 ) THEN 
 
             !---------------------
             ! PBL Height [m] 
@@ -1187,7 +1187,7 @@
             GMNL     = 1
             GMTRC    = 1
 
-         ELSE IF ( N == 160 ) THEN
+         ELSE IF ( N == 510 ) THEN
 
             !---------------------
             ! PBL Height [levels]
@@ -1197,7 +1197,7 @@
             GMNL     = 1
             GMTRC    = 2
 
-         ELSE IF ( N == 161 ) THEN
+         ELSE IF ( N == 511 ) THEN
 
             !---------------------
             ! Grid box heights
@@ -1207,7 +1207,7 @@
             GMNL     = ND50_NL
             GMTRC    = 1
 
-        ELSE IF ( N == 162 ) THEN
+        ELSE IF ( N == 512 ) THEN
 
             !---------------------
             ! PEDGE-$ [hPa] 
@@ -1217,7 +1217,7 @@
             GMNL      = ND50_NL
             GMTRC     = 1
 
-          ELSE IF ( N == 163 ) THEN
+          ELSE IF ( N == 513 ) THEN
 
             !---------------------
             ! Sea level prs [hPa]
@@ -1227,7 +1227,7 @@
             GMNL     = 1
             GMTRC    = 18
 
-         ELSE IF ( N == 164 ) THEN
+         ELSE IF ( N == 514 ) THEN
 
             !---------------------
             ! U-wind [m/s]
@@ -1237,7 +1237,7 @@
             GMNL     = ND50_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 165 ) THEN
+         ELSE IF ( N == 515 ) THEN
 
             !---------------------
             ! V-wind [m/s]
@@ -1247,7 +1247,7 @@
             GMNL      = ND50_NL
             GMTRC     = 2
 
-          ELSE IF ( N == 166 ) THEN
+          ELSE IF ( N == 516 ) THEN
 
             !---------------------
             ! Temperature
@@ -1257,7 +1257,7 @@
             GMNL      = ND50_NL
             GMTRC     = 3
 
-         ELSE IF ( N == 167 ) THEN
+         ELSE IF ( N == 517 ) THEN
 
             !---------------------
             ! Sulfate AOD
@@ -1267,7 +1267,7 @@
             GMNL      = ND50_ NL
             GMTRC     = 6
 
-         ELSE IF ( N == 168 ) THEN
+         ELSE IF ( N == 518 ) THEN
 
             !---------------------
             ! Black Carbon AOD
@@ -1277,7 +1277,7 @@
             GMNL      = ND50_NL
             GMTRC     = 9
 
-         ELSE IF ( N == 169 ) THEN
+         ELSE IF ( N == 519 ) THEN
 
             !---------------------
             ! Organic Carbon AOD
@@ -1287,7 +1287,7 @@
             GMNL      = ND50_ NL
             GMTRC     = 12
             
-         ELSE IF ( N == 170 ) THEN
+         ELSE IF ( N == 520 ) THEN
 
             !---------------------
             ! SS Accum AOD
@@ -1297,7 +1297,7 @@
             GMNL      = ND50_NL
             GMTRC     = 15
 
-         ELSE IF ( N == 171 ) THEN
+         ELSE IF ( N == 521 ) THEN
 
             !---------------------
             ! SS Coarse AOD
@@ -1307,7 +1307,7 @@
             GMNL      = ND50_NL
             GMTRC     = 18
 
-         ELSE IF ( N == 172 ) THEN
+         ELSE IF ( N == 522 ) THEN
 
             !---------------------
             ! Total dust OD
@@ -1317,7 +1317,7 @@
             GMNL      = ND50_NL
             GMTRC     = 4
 
-         ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
+         ELSE IF ( ( N >= 523 ) .and. ( N <= 529) ) THEN
 
             !---------------------
             ! Dust OD (bins 1-7)
@@ -1325,9 +1325,9 @@
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
             GMNL      = ND50_NL
-            GMTRC     = 21+(N-173)
+            GMTRC     = 21+(N-523)
 
-         ELSE IF ( N == 180 ) THEN
+         ELSE IF ( N == 530 ) THEN
 
             !---------------------
             ! PM2.5

@@ -195,7 +195,7 @@
       INTEGER              :: I0,             J0
       ! Increased to 120 from 100 (mpb,2009)
       ! Increased to 121 (ccc, 4/20/10)
-      INTEGER              :: ND51_N_TRACERS, ND51_TRACERS(121)
+      INTEGER              :: ND51_N_TRACERS, ND51_TRACERS(533)
       INTEGER              :: ND51_IMIN,      ND51_IMAX
       INTEGER              :: ND51_JMIN,      ND51_JMAX
       INTEGER              :: ND51_LMIN,      ND51_LMAX
@@ -1517,7 +1517,7 @@
             GMNL     = ND51_NL
             GMTRC    = N
 
-         ELSE IF ( N == 151 ) THEN
+         ELSE IF ( N == 501 ) THEN
 
             !---------------------
             ! OH 
@@ -1527,7 +1527,7 @@
             GMNL      = ND51_NL
             GMTRC     = 1
 
-         ELSE IF ( N == 152 ) THEN
+         ELSE IF ( N == 502 ) THEN
 
             !---------------------
             ! NOy 
@@ -1537,7 +1537,7 @@
             GMNL     = ND51_NL
             GMTRC    = 2
 
-         ELSE IF ( N == 153 ) THEN
+         ELSE IF ( N == 503 ) THEN
 
             !---------------------
             ! Relative humidity 
@@ -1547,7 +1547,7 @@
             GMNL     = ND51_NL
             GMTRC    = 3
 
-         ELSE IF ( N == 154 ) THEN
+         ELSE IF ( N == 504 ) THEN
 
             !---------------------
             ! 3-D Cloud fractions
@@ -1557,7 +1557,7 @@
             GMNL     = ND51_NL
             GMTRC    = 4
 
-         ELSE IF ( N == 155 ) THEN
+         ELSE IF ( N == 505 ) THEN
 
             !---------------------
             ! Column opt depths 
@@ -1567,7 +1567,7 @@
             GMNL     = 1
             GMTRC    = 5
             
-         ELSE IF ( N == 156 ) THEN
+         ELSE IF ( N == 506 ) THEN
         
             !---------------------
             ! Cloud top heights 
@@ -1577,7 +1577,7 @@
             GMNL     = 1
             GMTRC    = 6
 
-         ELSE IF ( N == 157 ) THEN
+         ELSE IF ( N == 507 ) THEN
 
             !---------------------
             ! Air Density 
@@ -1587,7 +1587,7 @@
             GMNL     = ND51_NL
             GMTRC    = 7
 
-         ELSE IF ( N == 158 ) THEN
+         ELSE IF ( N == 508 ) THEN
 
             !---------------------
             ! Total seasalt
@@ -1597,7 +1597,7 @@
             GMNL     = ND51_NL
             GMTRC    = 8
 
-         ELSE IF ( N == 159 ) THEN 
+         ELSE IF ( N == 509 ) THEN 
 
             !---------------------
             ! PBL Height [m] 
@@ -1607,7 +1607,7 @@
             GMNL     = 1
             GMTRC    = 1
 
-         ELSE IF ( N == 160 ) THEN
+         ELSE IF ( N == 510 ) THEN
 
             !---------------------
             ! PBL Height [levels]
@@ -1617,7 +1617,7 @@
             GMNL     = 1
             GMTRC    = 2
 
-         ELSE IF ( N == 161 ) THEN
+         ELSE IF ( N == 511 ) THEN
 
             !---------------------
             ! Grid box heights
@@ -1627,7 +1627,7 @@
             GMNL     = ND51_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 162 ) THEN
+         ELSE IF ( N == 512 ) THEN
 
             !---------------------
             ! PEDGE-$
@@ -1637,7 +1637,7 @@
             GMNL     = ND51_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 163 ) THEN
+         ELSE IF ( N == 513 ) THEN
 
             !---------------------
             ! Sea level prs
@@ -1647,7 +1647,7 @@
             GMNL     = 1
             GMTRC    = 18
 
-         ELSE IF ( N == 164 ) THEN
+         ELSE IF ( N == 514 ) THEN
 
             !---------------------
             ! U-wind
@@ -1657,7 +1657,7 @@
             GMNL     = ND51_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 165 ) THEN
+         ELSE IF ( N == 515 ) THEN
 
             !---------------------
             ! V-wind
@@ -1667,7 +1667,7 @@
             GMNL     = ND51_NL
             GMTRC    = 2
 
-         ELSE IF ( N == 166 ) THEN
+         ELSE IF ( N == 516 ) THEN
 
             !---------------------
             ! Temperature
@@ -1678,7 +1678,7 @@
             GMTRC    = 3
 
 
-         ELSE IF ( N == 167 ) THEN
+         ELSE IF ( N == 517 ) THEN
 
             !---------------------
             ! Sulfate AOD
@@ -1688,7 +1688,7 @@
             GMNL     = ND51_NL
             GMTRC    = 6
 
-         ELSE IF ( N == 168 ) THEN
+         ELSE IF ( N == 518 ) THEN
 
             !---------------------
             ! Black Carbon AOD
@@ -1698,7 +1698,7 @@
             GMNL     = ND51_NL
             GMTRC    = 9
 
-         ELSE IF ( N == 169 ) THEN
+         ELSE IF ( N == 519 ) THEN
 
             !---------------------
             ! Organic Carbon AOD
@@ -1708,7 +1708,7 @@
             GMNL     = ND51_NL
             GMTRC    = 12
             
-         ELSE IF ( N == 170 ) THEN
+         ELSE IF ( N == 520 ) THEN
 
             !---------------------
             ! SS Accum AOD
@@ -1718,7 +1718,7 @@
             GMNL     = ND51_NL
             GMTRC    = 15
 
-         ELSE IF ( N == 171 ) THEN
+         ELSE IF ( N == 521 ) THEN
 
             !---------------------
             ! SS Coarse AOD
@@ -1728,7 +1728,7 @@
             GMNL     = ND51_NL
             GMTRC    = 18
 
-         ELSE IF ( N == 172 ) THEN
+         ELSE IF ( N == 522 ) THEN
 
             !---------------------
             ! Total dust OD
@@ -1738,7 +1738,7 @@
             GMNL     = ND51_NL
             GMTRC    = 4
 
-         ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
+         ELSE IF ( ( N >= 523 ) .and. ( N <= 529) ) THEN
 
             !---------------------
             ! dust OD (bins 1-7)
@@ -1746,12 +1746,12 @@
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND51_NL
-            GMTRC    = 21+(N-173)
+            GMTRC    = 21+(N-523)
 
 ! ================================================================
 ! Added with MEGAN v2.1. (ccc, 11/20/09)
 
-         ELSE IF ( N == 180 ) THEN
+         ELSE IF ( N == 530 ) THEN
             
             !---------------------
             ! PARDR [W/m2]
@@ -1762,7 +1762,7 @@
             GMNL     = ND51_NL
             GMTRC    = 20
 
-         ELSE IF ( N == 181 ) THEN
+         ELSE IF ( N == 531 ) THEN
             
             !---------------------
             ! PARDF [W/m2]
@@ -1773,7 +1773,7 @@
             GMNL     = ND51_NL
             GMTRC    = 21
 
-         ELSE IF ( N == 182 ) THEN
+         ELSE IF ( N == 532 ) THEN
 
             !---------------------
             ! DAILY LAI [W/m2]
@@ -1784,7 +1784,7 @@
             GMNL     = ND51_NL
             GMTRC    = 9
 
-         ELSE IF ( N == 183 ) THEN
+         ELSE IF ( N == 533 ) THEN
 
             !---------------------
             ! T at 2m
@@ -1794,139 +1794,6 @@
             UNIT     = 'K'     
             GMNL     = ND51_NL
             GMTRC    = 5
-
-         ELSE IF ( N == 184 ) THEN
-
-            !---------------------
-            ! ISOPRENE emissions 
-            ! (mpb,2008)
-            !---------------------            
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 1     
-
-         ELSE IF ( N == 185 ) THEN
-
-            !---------------------
-            ! MONOTERPENE emissions 
-            ! (mpb,2008)
-            !---------------------       
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 4    
-
-         ELSE IF ( N == 186 ) THEN
-
-            !---------------------
-            ! MBO emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 5    
-
-         ELSE IF ( N == 187 ) THEN
-
-            !---------------------
-            ! a-pine emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 7    
-
-         ELSE IF ( N == 188 ) THEN
-
-            !---------------------
-            ! b-pine emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 8   
-
-         ELSE IF ( N == 189 ) THEN
-
-            !---------------------
-            ! Limonene emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 9    
-
-         ELSE IF ( N == 190 ) THEN
-
-            !---------------------
-            ! Sabinene emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 10    
-
-         ELSE IF ( N == 191 ) THEN
-
-            !---------------------
-            ! Myrcene emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 11    
-
-         ELSE IF ( N == 192 ) THEN
-
-            !---------------------
-            ! 3-carene emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 12    
-
-         ELSE IF ( N == 193 ) THEN
-
-            !---------------------
-            ! Ocimene emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 13    
-
-         ELSE IF ( N == 194 ) THEN
-
-            !---------------------
-            ! Farnesene emissions
-            ! (hotp 3/5/10)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 14
-
-! ================================================================
 
          ELSE
 

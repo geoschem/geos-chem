@@ -5162,7 +5162,7 @@
       ! FORMAT statements
  100  FORMAT( A, L5    )
  110  FORMAT( A, A     )
- 120  FORMAT( A, 100I3 )
+ 120  FORMAT( A, 100I4 )
  130  FORMAT( A, 2I5   )
 
       !=================================================================
@@ -5329,7 +5329,7 @@
       ! FORMAT statements
  100  FORMAT( A, L5    )
  110  FORMAT( A, A     )
- 120  FORMAT( A, 100I3 )
+ 120  FORMAT( A, 100I4 )
  130  FORMAT( A, 2I5   )
 
       !=================================================================
@@ -5511,7 +5511,7 @@
       ! FORMAT statements
  100  FORMAT( A, L5    )
  110  FORMAT( A, A     )
- 120  FORMAT( A, 100I3 )
+ 120  FORMAT( A, 100I4 )
  130  FORMAT( A, 2I5   )
  140  FORMAT( A, 2F5.1 )
 
