@@ -151,7 +151,7 @@
       USE State_Met_Mod,       ONLY : MetState
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
-      USE UnitConv_Mod
+      USE UnitConv_Mod,        ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
@@ -212,6 +212,7 @@
 !                              on comode_loop_mod.F
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -227,8 +228,9 @@
       LOGICAL                :: LOUTPUTAERO  ! OUTPUT AEROSOL DIAGNOSTICS?
       INTEGER                :: NAD72        ! NUMBER OF OUTPUTS PER FIELD
       INTEGER                :: ITIMEVALS(8)
-      INTEGER                :: IDIAGOUT     ! INDEX OF SPECIES OPTICS FOR OUTPUT     
+      INTEGER                :: IDIAGOUT     ! INDEX OF SPC OPTICS FOR OUTPUT
       REAL*8                 :: OLDSECS, NEWSECS
+      CHARACTER(LEN=63)      :: OrigUnit
       
       ! SAVEd scalars
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -499,8 +501,8 @@
       RC = GC_SUCCESS
 
       ! Convert species units to [kg] for RRTMG (ewl, 8/12/15)
-      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
-     &                               State_Chm, RC ) 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC,     
      &                 'DO_RRTMG_RAD_TRANSFER')
@@ -691,6 +693,8 @@
        T_CTM(LLPAR+1)  = T_CTM(LLPAR)
 
        ! Overhead ozone column [DU]
+       ! These values are either from the met fields or TOMS/SBUV,
+       ! depending on the settings in input.geos
        O3COL = GET_OVERHEAD_O3(I,J)
 
        ! CTM ozone densities (molec/cm3)
@@ -1614,9 +1618,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Convert species units back to [kg/kg] after RRTMG (ewl, 8/12/15)
-      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
-     &                               State_Chm, RC ) 
+      ! Convert species units back to original unit 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC,     
      &                 'DO_RRTMG_RAD_TRANSFER')

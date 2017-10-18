@@ -299,9 +299,7 @@ CONTAINS
 
  pi = 4. * atan(1.)
 
-#if   defined( GEOS_5 )
- dlon = 2.*pi / float(540)       !(dan)
-#elif defined( GEOS_FP )
+#if defined( GEOS_FP )
  dlon = 2.*pi / float(1152)      !(dan)
 #elif defined( MERRA2 )
  dlon = 2.*pi / float(576)       !(dan)
@@ -994,9 +992,6 @@ CONTAINS
        MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ) / DT
 
 #endif
-#if defined( NC_DIAG )
-       MASSFLUP(I,J,K,IQ) = DTC(I,J,K,IQ) / DT
-#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ENDDO
@@ -1483,9 +1478,6 @@ CONTAINS
 #if defined( BPCH_DIAG )
             MFLEW(I,J) = MFLEW(I,J) + DTC
 #endif
-#if defined( NC_DIAG )
-            MFLEW(I,J) = DTC
-#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ENDDO
@@ -1500,9 +1492,6 @@ CONTAINS
  !%%%
 #if defined( BPCH_DIAG )
          MFLEW(IM,J) = MFLEW(I,J) + DTC
-#endif
-#if defined( NC_DIAG )
-         MFLEW(IM,J) = DTC
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1530,9 +1519,6 @@ CONTAINS
 #if defined( BPCH_DIAG )
          MFLNS(I,J) = MFLNS(I,J) + DTC
 #endif
-#if defined( NC_DIAG )
-         MFLNS(I,J) = DTC
-#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ENDDO
@@ -1553,9 +1539,6 @@ CONTAINS
 #if defined( BPCH_DIAG )
             MFLNS(I,1) = MFLNS(I,1) + DTC
 #endif
-#if defined( NC_DIAG )
-            MFLNS(I,1) = DTC
-#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ENDDO
@@ -1575,9 +1558,6 @@ CONTAINS
  !%%%
 #if defined( BPCH_DIAG )
             MFLNS(I,JM) = MFLNS(I,JM) + DTC
-#endif
-#if defined( NC_DIAG )
-            MFLNS(I,JM) = DTC
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -2373,6 +2353,13 @@ CONTAINS
  integer i, j, imh, jm1, lmt
  integer js1g1, js2g0, js2g1, jn1g2, jn1g1, jn2g1
 
+      !---------------------------------------------------------------------
+      ! Initialize local variables (bmy, 7/10/17)
+      ar = 0.0
+      al = 0.0
+      a6 = 0.0
+      !---------------------------------------------------------------------
+
       imh = im / 2
       jm1 = jm - 1
 
@@ -2597,6 +2584,10 @@ CONTAINS
  real       r3, r23
  real temp
  parameter (r3 = 1./3., r23 = 2./3.)
+
+ ! Initialize local arrays (bmy, 7/10/17)
+ dp1 = 0.0
+ q4  = 0.0
 
       do k=1,km
          do i=i1,i2

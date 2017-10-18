@@ -60,16 +60,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_FlexChem( am_I_Root, Input_Opt, State_Met, State_Chm, RC  )
+  SUBROUTINE Do_FlexChem( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                          State_Diag, RC  )
 !
 ! !USES:
 !
     USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
     USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_CHEMGRID
     USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_STRAT
+    USE CMN_DIAG_MOD,         ONLY : ND52
     USE CMN_FJX_MOD
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
-    USE DIAG_MOD,             ONLY : AD65
+    USE DIAG_MOD,             ONLY : AD65, AD52
     USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
     USE DIAG20_MOD,           ONLY : DIAG20, POx, LOx
     USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
@@ -93,12 +95,13 @@ CONTAINS
     USE Species_Mod,          ONLY : Species
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Chm_Mod,        ONLY : Ind_
+    USE State_Diag_Mod,       ONLY : DgnState
     USE State_Met_Mod,        ONLY : MetState
     USE Strat_Chem_Mod,       ONLY : SChem_Tend
     USE TIME_MOD,             ONLY : GET_TS_CHEM
     USE TIME_MOD,             ONLY : GET_MONTH
     USE TIME_MOD,             ONLY : GET_YEAR
-    USE UnitConv_Mod
+    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
 #if defined( UCX )
     USE UCX_MOD,              ONLY : CALC_STRAT_AER
     USE UCX_MOD,              ONLY : SO4_PHOTFRAC
@@ -118,6 +121,7 @@ CONTAINS
 !
     TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -160,6 +164,8 @@ CONTAINS
 !                              ESMF environment.
 !  30 May 2017 - M. Sulprizio- Add code for stratospheric chemical tendency
 !                              for computing STE in strat_chem_mod.F90
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -173,6 +179,7 @@ CONTAINS
     LOGICAL                :: prtDebug
     LOGICAL                :: LDUST
     CHARACTER(LEN=155)     :: DiagnName
+    CHARACTER(LEN=63)      :: OrigUnit
 
     ! SAVEd variables
     LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
@@ -410,15 +417,21 @@ CONTAINS
 #endif
 
     !================================================================
-    ! Convert species from [kg] to [molec/cm3] (ewl, 8/16/16)
+    ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !================================================================
-    CALL ConvertSpc_Kg_to_MND( am_I_Root, State_Met, State_Chm, RC )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, & 
+                            State_Chm, 'molec/cm3', RC, OrigUnit=OrigUnit )
+    IF ( RC /= GC_SUCCESS ) THEN
+       Err_Msg = 'Unit conversion error!'
+       CALL GC_Error( Err_Msg, RC, 'flexchem_mod.F90')
+       RETURN
+    ENDIF 
       
     !=================================================================
     ! Call photolysis routine to compute J-Values
     !=================================================================
     CALL FAST_JX( WAVELENGTH, am_I_Root,  Input_Opt, &
-                  State_Met,  State_Chm,  RC         )
+                  State_Met,  State_Chm,  State_Diag, RC )
 
     !### Debug
     IF ( prtDebug ) THEN
@@ -456,7 +469,9 @@ CONTAINS
 
 #if defined( UCX )
     ! Relative tolerance, for UCX-based mechanisms
-    RTOL      = 2e-2_dp    
+    !RTOL      = 2e-2_dp    
+    !RTOL      = 1e-2_dp    
+    RTOL      = 0.5e-2_dp    
 #else
     ! Relative tolerance, non-UCX mechanisms
     RTOL      = 2e-1_dp    
@@ -603,6 +618,19 @@ CONTAINS
           ! Set hetchem rates
           CALL SET_HET( I, J, L, State_Chm, State_Met, Input_Opt, SCF )
 
+          IF ( ND52 > 0 ) THEN
+             ! Archive gamma values
+             AD52(I,J,L,1) = AD52(I,J,L,1) + HET(ind_HO2,   1)
+             AD52(I,J,L,2) = AD52(I,J,L,2) + HET(ind_IEPOXA,1) &
+                                           + HET(ind_IEPOXB,1) &
+                                           + HET(ind_IEPOXD,1)
+             AD52(I,J,L,3) = AD52(I,J,L,3) + HET(ind_IMAE,  1)
+             AD52(I,J,L,4) = AD52(I,J,L,4) + HET(ind_ISOPND,1) &
+                                           + HET(ind_ISOPNB,1)
+             AD52(I,J,L,5) = AD52(I,J,L,5) + HET(ind_DHDN,  1)
+             AD52(I,J,L,6) = AD52(I,J,L,6) + HET(ind_GLYX,  1)
+          ENDIF
+
           ! Copy SCF back into SCOEFF
           SCOEFF(I,J,L,:) = SCF
 
@@ -632,7 +660,7 @@ CONTAINS
           ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
           ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
           CALL PHOTRATE_ADJ( am_I_root, I, J, L, NUMDEN, TEMP, &
-                             H2O, SO4_FRAC, IERR  )
+                             H2O, SO4_FRAC, State_Diag, IERR  )
 
           IF ( DO_PHOTCHEM ) THEN
 
@@ -677,7 +705,6 @@ CONTAINS
        ENDIF
 
        C(ind_ACTA)  = 0.0_dp
-       C(ind_EOH)   = 0.0_dp
        C(ind_HCOOH) = 0.0_dp
 #if defined( UCX )
        C(ind_O2) = 0.2095e+0_dp * NUMDEN
@@ -905,7 +932,6 @@ CONTAINS
        ENDDO
 #endif
 
-
     ENDDO
     ENDDO
     ENDDO
@@ -948,9 +974,15 @@ CONTAINS
     ENDIF
 
     !================================================================
-    ! Convert species from [molec/cm3] to [kg] (ewl, 8/16/16)
+    ! Convert species back to original units (ewl, 8/16/16)
     !================================================================
-    CALL ConvertSpc_MND_to_Kg( am_I_Root, State_Met, State_Chm, RC )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       Err_Msg = 'Unit conversion error!'
+       CALL GC_Error( Err_Msg, RC, 'flexchem_mod.F90' )
+       RETURN
+    ENDIF  
 
 #if defined( UCX )
     ! If using stratospheric chemistry, applying high-altitude

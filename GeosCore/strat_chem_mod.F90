@@ -99,6 +99,7 @@ MODULE Strat_Chem_Mod
 !  03 Oct 2016 - R. Yantosca - Dynamically allocate BrPtrDay, BrPtrNight
 !  30 May 2017 - M. Sulprizio- SChem_Tend is now public so that it can be
 !                              updated in flexchem_mod.F90 for UCX simulations
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -150,7 +151,7 @@ MODULE Strat_Chem_Mod
   LOGICAL, PARAMETER   :: PLMUSTFIND = .FALSE.
 
   ! Number of species from GMI model
-  INTEGER, PARAMETER   :: NTR_GMI   = 120  
+  INTEGER, PARAMETER   :: NTR_GMI   = 125
 
   ! Minit_Is_Set indicates whether Minit has been set or not
   LOGICAL              :: Minit_Is_Set = .FALSE. 
@@ -221,7 +222,7 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-    USE UnitConv_Mod
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -277,6 +278,7 @@ CONTAINS
 !  18 Jul 2016 - M. Yannetti - Replaced TCVV with spec db and phys constant
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  19 Oct 2016 - R. Yantosca - Add routine Set_Init_Conc_Strat_Chem for GCHP
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -306,6 +308,7 @@ CONTAINS
     LOGICAL           :: LBRGCCM
     LOGICAL           :: LRESET, LCYCLE
     LOGICAL           :: ISBR2 
+    CHARACTER(LEN=63) :: OrigUnit
 
     ! Arrays
     REAL(fp)          :: Spc0  (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
@@ -715,10 +718,10 @@ CONTAINS
 
        IF ( LLINOZ .OR. LSYNOZ ) THEN
 
-          ! Convert units from [kg] to [v/v dry air] for Linoz and Synoz
-          ! (ewl, 10/05/15)
-          CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, &
-                                       State_Chm, errCode      )
+          ! Convert units to [v/v dry air] for Linoz and Synoz (ewl, 10/05/15)
+          CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                                  State_Chm, 'v/v dry', errCode,   &
+                                  OrigUnit=OrigUnit )
           IF ( errCode /= GC_SUCCESS ) THEN
               CALL GC_Error('Unit conversion error', errCode,    &
                            'DO_STRAT_CHEM in strat_chem_mod.F')
@@ -734,9 +737,9 @@ CONTAINS
                             State_Met, State_Chm, errCode )
           ENDIF
 
-          ! Convert units back to [kg] after Linoz and Synoz (ewl, 10/05/15)
-          CALL ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met,  &
-                                       State_Chm, errCode    )
+         ! Convert species units back to original unit 
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                                 State_Chm, OrigUnit,  errCode )
           IF ( errCode /= GC_SUCCESS ) THEN
              CALL GC_Error('Unit conversion error', errCode,     &
                            'DO_STRAT_CHEM in strat_chem_mod.F')
@@ -1054,13 +1057,12 @@ CONTAINS
 !
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : GC_Error
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
-    USE UnitConv_Mod
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -1096,6 +1098,8 @@ CONTAINS
 !                              species ID from State_Chm%Map_Advect.
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1107,6 +1111,7 @@ CONTAINS
     INTEGER                :: N,         I,       J,    L
     INTEGER                :: nAdvect,   NA,      NN
     REAL(fp)               :: dStrat,    STE,     Tend, tauEnd, dt
+    CHARACTER(LEN=63)      :: OrigUnit
 
     ! Arrays
     INTEGER                :: LTP(IIPAR,JJPAR      )
@@ -1143,9 +1148,9 @@ CONTAINS
     RETURN
 #else
 
-    ! Convert State_Chm%SPECIES from [kg/kg dry air] to [kg] so that
-    ! units are consistently mixing ratio in main (ewl, 8/10/15)
-    CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC )
+    ! Convert State_Chm%SPECIES to [kg] (ewl, 8/10/15)
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, 'kg', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Calc_STE in strat_chem_mod.F')
@@ -1261,9 +1266,9 @@ CONTAINS
 
     ENDDO
 
-    ! Convert State_Chm%SPECIESfrom [kg] back to [kg/kg dry air] 
-    ! (ewl, 8/10/15)
-    CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
+    ! Convert species units back to original unit 
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Calc_STE in strat_chem_mod.F')
@@ -1295,7 +1300,7 @@ CONTAINS
 !
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ALLOC_ERR, GC_Error
+    USE ERROR_MOD,          ONLY : ALLOC_ERR
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
@@ -1339,6 +1344,7 @@ CONTAINS
 !  12 Jul 2016 - R. Yantosca - Now also store advected species ID's
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  20 Sep 2016 - R. Yantosca - Rewrote GMI_TrName statement for Gfortran
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1347,6 +1353,7 @@ CONTAINS
 !
     ! Strings
     CHARACTER(LEN=16)      :: sname
+    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
 
     ! Scalars
     INTEGER                :: AS, N, NN, NA, nAdvect
@@ -1358,14 +1365,16 @@ CONTAINS
     ! Pointers
     TYPE(Species), POINTER :: SpcInfo
 
+    !================================================================
+    ! Initialize 
     !=================================================================
-    ! INIT_STRAT_CHEM begins here!
+    RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = ' -> Init_Strat_Chem (in Headers/strat_chem_mod.F90)'
+
     !=================================================================
-
-    ! Assume success
-    RC                       = GC_SUCCESS
-
     ! Get species ID flags
+    !=================================================================
     id_Br                    = Ind_('Br'     )
     id_Br2                   = Ind_('Br2'    )
     id_BrNO3                 = Ind_('BrNO3'  ) 
@@ -1413,6 +1422,9 @@ CONTAINS
     ! names have the same length.  This will prevent Gfortran from choking 
     ! with an error.  This is OK since we trim GMI_TrName before using
     ! it in any string comparisons. (bmy, 9/20/16)
+    !
+    ! Add RIPA, RIPB, RIPD and NPMN, IPMN which replace RIP and PMN
+    ! (mps, 8/31/17)
     GMI_TrName = (/ 'A3O2    ', 'ACET    ', 'ACTA    ', 'ALD2    ',   &
                     'ALK4    ', 'ATO2    ', 'B3O2    ', 'Br      ',   &
                     'BrCl    ', 'BrO     ', 'BrONO2  ', 'C2H6    ',   &
@@ -1442,8 +1454,9 @@ CONTAINS
                     'R4N1    ', 'R4N2    ', 'R4O2    ', 'R4P     ',   &
                     'RA3P    ', 'RB3P    ', 'RCHO    ', 'RCO3    ',   &
                     'RCOOH   ', 'RIO1    ', 'RIO2    ', 'RIP     ',   &
-                    'ROH     ', 'RP      ', 'VRO2    ', 'VRP     '  /)
-
+                    'ROH     ', 'RP      ', 'VRO2    ', 'VRP     ',   &
+                    'RIPA    ', 'RIPB    ', 'RIPD    ', 'NPMN    ',   &
+                    'IPMN    ' /)
 
     !===========================!
     ! Full chemistry simulation !
@@ -1596,7 +1609,11 @@ CONTAINS
     ! Set MINIT. Ignore in ESMF environment because State_Chm%Species
     ! is not yet filled during initialization. (ckeller, 4/6/16)
     CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Set_MInit"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 #endif
 
     ! Array to determine the mean tropopause level over the period
@@ -1631,12 +1648,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ERROR_MOD,     ONLY : GC_ERROR
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
     USE State_Chm_Mod, ONLY : ChmState
     USE State_Met_Mod, ONLY : MetState
-    USE UnitConv_Mod
+    USE UnitConv_Mod,  ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -1659,49 +1675,50 @@ CONTAINS
 !                              INIT_STRAT_CHEM so that it can be called from
 !                              within DO_STRAT_CHEM (for ESMF applications).
 !  15 Mar 2017 - E. Lundgren - Add unit catch and error handling
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: N, NA
-    LOGICAL :: UNITCHANGE
-    CHARACTER(LEN=255)     :: MSG, LOC
+    ! Scalars
+    INTEGER            :: N, NA
+    LOGICAL            :: UNITCHANGE
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    CHARACTER(LEN=63)  :: OrigUnit
 
     !=================================================================
     ! SET_MINIT begins here!
     !=================================================================
-
-    ! Assume success
-    RC                       = GC_SUCCESS
-
-    ! Set location for error handling
-    LOC = 'Routine SET_MINIT in strat_chem_mod.F90'
+    
+    ! Initialize
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = '-> Set_MInit (in GeosCore/strat_chem_mod.F90)'
 
     ! Assume no unit change is necessary and species are already in kg
     UNITCHANGE = .FALSE.
 
-    ! Safety check that STT is non-zero.
-    IF ( SUM(State_Chm%Species) <= 0.0_fp ) THEN
-       CALL GC_Error( 'Negative species concentrations!', RC, LOC )
+    ! Safety check that the advected species are non-zero.
+    IF ( SUM( State_Chm%Species(:,:,:,1:State_Chm%nAdvect) ) <= 0.0_fp ) THEN
+       ErrMsg = 'One or more advected species have negative concentrations!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
     ENDIF
 
-    ! If incoming species units are in mixing ratio, convert species 
-    ! from [kg/kg dry air] to [kg] so that initial state of atmosphere 
-    ! is in same units as chemistry ([kg]), and then convert back after 
-    ! MInit is assigned (ewl, 8/10/15)
-    IF ( TRIM(State_Chm%Spc_Units) .eq. 'kg/kg dry' ) THEN
-       UNITCHANGE = .TRUE.
-       CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error('Unit conversion error!', RC, LOC )
-       ENDIF
-    ELSE IF ( TRIM(State_Chm%Spc_Units) .ne. 'kg' ) THEN
-          MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units) &
-               // ' (must be kg or kg/kg dry)'
-          CALL GC_Error( MSG, RC, LOC )
-    ENDIF
+    ! Convert species to [kg] so that initial state of atmosphere is 
+    ! in same units as chemistry (ewl, 8/10/15)
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Unit conversion error!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF 
 
     ! Loop over only the advected species
     DO NA = 1, State_Chm%nAdvect
@@ -1714,14 +1731,14 @@ CONTAINS
 
     ENDDO
 
-    ! If unit conversion occurred, convert species back to [kg/kg dry air]
-    IF ( UNITCHANGE ) THEN
-       CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error('Unit conversion error!', RC, LOC)
-          RETURN
-       ENDIF
-    ENDIF
+    ! Convert species units back to original unit 
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Unit conversion error!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF  
 
     ! Minit is now set
     MInit_Is_Set = .TRUE.
@@ -1953,40 +1970,21 @@ CONTAINS
 !
     ! Select the grid boxes at the edges of the O3 release region, 
     ! for the proper model resolution (qli, bmy, 12/1/04)
-#if   defined( GRID4x5 ) && defined( GCAP )
-    ! GCAP has 45 latitudes, shift by 1/2 grid box (swu, bmy, 5/25/05)
-    INTEGER, PARAMETER   :: J30S = 16, J30N = 30 
-
-#elif defined( GRID4x5 )
+#if defined( GRID4x5 )
     INTEGER, PARAMETER   :: J30S = 16, J30N = 31 
 
 #elif defined( GRID2x25 ) 
     INTEGER, PARAMETER   :: J30S = 31, J30N = 61
 
-#elif defined( GRID1x125 ) 
-    INTEGER, PARAMETER   :: J30S = 61, J30N = 121
-
 #elif defined( GRID05x0625 )
 
     !%%% ADD PLACEHOLDER VALUES, THESE AREN'T REALLY USED ANYMORE %%%
 #if   defined( NESTED_AS )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 83
+    INTEGER, PARAMETER :: J30S = 1,  J30N = 83
 #elif defined( NESTED_NA )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 41
+    INTEGER, PARAMETER :: J30S = 1,  J30N = 41
 #elif defined( NESTED_EU )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
-#endif
-
-
-#elif defined( GRID05x0666 )
-
-! jtl, 10/26/11 
-#if   defined( NESTED_CH )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 83
-#elif defined( NESTED_NA )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 41
-#elif defined( NESTED_EU )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
+    INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
 #endif
 
 #elif defined( GRID025x03125 )
@@ -1998,14 +1996,6 @@ CONTAINS
 !Anna Prot added 8 May 2015
 #elif defined( NESTED_EU )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 115
-#endif
-
-#elif defined( GRID1x1 ) 
-
-#if defined( NESTED_CH ) || defined( NESTED_NA ) || defined(NESTED_EU)
-    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
-#else  
-    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
 #endif
 
 #elif defined( EXTERNAL_GRID )
@@ -2053,19 +2043,9 @@ CONTAINS
     !                                     be the default)
     !  (2) IORD = 5, JORD = 5, KORD = 7 
     !=================================================================
-#if   defined( GEOS_4 )
-    PO3_vmr = 5.14e-14_fp                                 ! 3,3,7
+#if  defined( GEOS_FP ) || defined( MERRA2 )
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-    ! For now assume GEOS-5 has same PO3_vmr value 
-    ! as GEOS-4; we can redefine later (bmy, 5/25/05)
     PO3_vmr = 5.14e-14_fp   
-
-#elif defined( GCAP )
-
-    ! For GCAP, assuming 3,3,7 (swu, bmy, 5/25/05)
-    PO3_vmr = 5.0e-14_fp
 
 #elif defined( GISS ) && defined( MODELE )
 
@@ -2179,7 +2159,6 @@ CONTAINS
              ! Convert O3 in grid box (I,J,L) from v/v/s to v/v/box
              PO3 = PO3_vmr * DTCHEM 
 
-#if   !defined( GCAP ) 
              ! For both 2 x 2.5 and 4 x 5 GEOS grids, 30S and 30 N are
              ! grid box centers.  However, the O3 release region is 
              ! edged by 30S and 30N.  Therefore, if we are at the 30S
@@ -2187,7 +2166,7 @@ CONTAINS
              IF ( J == J30S .or. J == J30N ) THEN
                 PO3 = PO3 / 2e+0_fp
              ENDIF
-#endif
+
              ! If we are in the lower level, compute the fraction
              ! of this level that lies above 70 mb, and scale 
              ! the O3 flux accordingly.

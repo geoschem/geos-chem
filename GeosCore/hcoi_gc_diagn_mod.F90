@@ -2015,6 +2015,28 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
+       !-------------------------------------------
+       ! %%%%% Biomass NAP %%%%%
+       !-------------------------------------------
+       HcoID = HCO_GetHcoID( 'NAP', HcoState )
+       IF ( HcoID > 0 ) THEN  
+          DiagnName = 'BIOMASS_NAP'
+          CALL Diagn_Create( am_I_Root,                     & 
+                             HcoState  = HcoState,          &
+                             cName     = TRIM( DiagnName ), &
+                             ExtNr     = ExtNr,             &
+                             Cat       = Cat,               &
+                             Hier      = -1,                &
+                             HcoID     = HcoID,             &
+                             SpaceDim  = 2,                 &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/m2/s',         &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                             AutoFill  = 1,                 &
+                             RC        = RC                  ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
     ENDIF ! ND28 only
 
     
@@ -2052,42 +2074,52 @@ CONTAINS
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.             &
             Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
 
-          !----------------------------------------
-          ! %%%%% FOR POA SIMULATION %%%%%
-          !----------------------------------------
-          IF ( Ind_('POA1','A') > 0 ) THEN
-
-             ! HEMCO species ID
-             HcoID = GetHemcoId( 'POA1', HcoState, LOC, RC )
-             IF ( RC /= HCO_SUCCESS ) RETURN
-             
-             ! Create diagnostic container
-             DiagnName = 'BIOMASS_POA1'
+          !-------------------------------------------
+          ! %%%%% Biomass POG1 and POG2 %%%%% krt, 8/24/17
+          !-------------------------------------------
+          HcoID = HCO_GetHcoID( 'POG1', HcoState )
+          IF ( HcoID > 0 ) THEN  
+             DiagnName = 'BIOMASS_POG1'
              CALL Diagn_Create( am_I_Root,                     & 
-                                HcoState  = HcoState,          &
-                                cName     = TRIM( DiagnName ), &
-                                ExtNr     = ExtNr,             &
-                                Cat       = Cat,               &
-                                Hier      = -1,                &
-                                HcoID     = HcoID,             &
-                                SpaceDim  = 2,                 &
-                                LevIDx    = -1,                &
-                                OutUnit   = 'kg/m2/s',         &
-                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                                AutoFill  = 1,                 &
-                                RC        = RC                  ) 
+                  HcoState  = HcoState,          &
+                  cName     = TRIM( DiagnName ), &
+                  ExtNr     = ExtNr,             &
+                  Cat       = Cat,               &
+                  Hier      = -1,                &
+                  HcoID     = HcoID,             &
+                  SpaceDim  = 2,                 &
+                  LevIDx    = -1,                &
+                  OutUnit   = 'kg/m2/s',         &
+                  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                  AutoFill  = 1,                 &
+                  RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDIF
+
+          HcoID = HCO_GetHcoID( 'POG2', HcoState )
+          IF ( HcoID > 0 ) THEN  
+             DiagnName = 'BIOMASS_POG2'
+             CALL Diagn_Create( am_I_Root,                     & 
+                  HcoState  = HcoState,          &
+                  cName     = TRIM( DiagnName ), &
+                  ExtNr     = ExtNr,             &
+                  Cat       = Cat,               &
+                  Hier      = -1,                &
+                  HcoID     = HcoID,             &
+                  SpaceDim  = 2,                 &
+                  LevIDx    = -1,                &
+                  OutUnit   = 'kg/m2/s',         &
+                  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                  AutoFill  = 1,                 &
+                  RC        = RC                  ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDIF
 
           !----------------------------------------
           ! %%%%% Biomass OC %%%%%
           !----------------------------------------
-          ELSE
-          
-             ! HEMCO species ID
-             HcoID = GetHemcoId( 'OCPI', HcoState, LOC, RC )
-             IF ( RC /= HCO_SUCCESS ) RETURN
-             
-             ! Create diagnostic container
+          HcoID = GetHemcoId( 'OCPI', HcoState, LOC, RC )
+          IF ( HcoID > 0 ) THEN
              DiagnName = 'BIOMASS_OCPI'
              CALL Diagn_Create( am_I_Root,                     & 
                                 HcoState  = HcoState,          &
@@ -2103,12 +2135,10 @@ CONTAINS
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
-             
-             ! HEMCO species ID
-             HcoID = GetHemcoId( 'OCPO', HcoState, LOC, RC )
-             IF ( RC /= HCO_SUCCESS ) RETURN
-             
-             ! Create diagnostic container
+          ENDIF
+
+          HcoID = GetHemcoId( 'OCPO', HcoState, LOC, RC )
+          IF ( HcoID > 0 ) THEN
              DiagnName = 'BIOMASS_OCPO'
              CALL Diagn_Create( am_I_Root,                     & 
                                 HcoState  = HcoState,          &
@@ -3202,6 +3232,7 @@ CONTAINS
        ! %%%%% Anthropogenic OCPI %%%%%
        !----------------------------------------
 
+!sfarinaTMP
        ! Only create diagnostic if OCPI is a defined species
        IF ( id_OCPI > 0 ) THEN
 
@@ -5736,7 +5767,7 @@ CONTAINS
                           SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5759,7 +5790,7 @@ CONTAINS
                           SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5782,7 +5813,7 @@ CONTAINS
                           SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5805,7 +5836,7 @@ CONTAINS
                           SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5828,7 +5859,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5851,7 +5882,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5874,7 +5905,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5897,7 +5928,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5930,7 +5961,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5952,7 +5983,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5974,7 +6005,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -5997,7 +6028,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/m2/s',         &
-			  COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -6019,13 +6050,13 @@ CONTAINS
                        HcoState  = HcoState,          &
                        cName     = TRIM( DiagnName ), &
                        ExtNr     = ExtNr,             &
-		       Cat       = Cat,               &
+                       Cat       = Cat,               &
                        Hier      = -1,                &
                        HcoID     = HcoID,             &
                        SpaceDim  = 3,                 &
                        LevIDx    = -1,                &
                        OutUnit   = 'kg/m2/s',         &
-		       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                        AutoFill  = 1,                 &
                        RC        = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -6038,13 +6069,13 @@ CONTAINS
                        HcoState  = HcoState,          &
                        cName     = TRIM( DiagnName ), &
                        ExtNr     = ExtNr,             &
-		       Cat       = Cat,               &
+                       Cat       = Cat,               &
                        Hier      = -1,                &
                        HcoID     = HcoID,             &
                        SpaceDim  = 2,                 &
                        LevIDx    = -1,                &
                        OutUnit   = 'kg/m2/s',         &
-		       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                        AutoFill  = 1,                 &
                        RC        = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -6067,13 +6098,13 @@ CONTAINS
                        HcoState  = HcoState,          &
                        cName     = TRIM( DiagnName ), &
                        ExtNr     = ExtNr,             &
-		       Cat       = Cat,               &
+                       Cat       = Cat,               &
                        Hier      = -1,                &
                        HcoID     = HcoID,             &
                        SpaceDim  = 3,                 &
                        LevIDx    = -1,                &
                        OutUnit   = 'kg/m2/s',         &
-		       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                        AutoFill  = 1,                 &
                        RC        = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN

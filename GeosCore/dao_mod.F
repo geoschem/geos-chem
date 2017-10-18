@@ -135,6 +135,7 @@
 !  16 Apr 2015 - R. Yantosca - Also remove INIT_DAO and CLEANUP_DAO, since
 !                              these allocated/deallocated the FULLGRID arrays
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -196,7 +197,7 @@
       ! AVGPOLE begins here!                                                  
       !=================================================================
 
-#if defined( GRID1x1   ) || defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
+#if defined( GRID05x0625 ) || defined( GRID025x03125 )
 #if defined( NESTED_CH ) || defined( NESTED_NA   ) || defined( NESTED_EU   ) || defined( NESTED_AS )
       ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
       ! 1x1 window grid does not extend to poles
@@ -311,7 +312,7 @@
 !  (12) BXHEIGHT  (REAL(fp)) : Vertical height of grid box                [m]   
 !  (13) AIRVOL    (REAL(fp)) : Volume of grid box                         [m^3]
 !  (14) MOISTMW   (REAL(fp)) : Molecular weight of moist air in box     [g/mol]
-!  (15) DELP_PREV (REAL(fp)) : Prev delta-P for trcr mixing ratio update  [hPa]
+!
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) AIRQNT is written in Fixed-Form Fortran 90.  Use F90 syntax
@@ -384,7 +385,7 @@
       REAL(fp)  :: PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean
       REAL(fp)  :: PMEAN, PMEAN_DRY  
       REAL(fp)  :: EsatA, EsatB, EsatC, EsatD
-      REAL(fp)  :: AREA_M2, SPHU_kgkg, SPHU_kgkg_prev, AVGW_moist
+      REAL(fp)  :: AREA_M2, SPHU_kgkg, AVGW_moist
       LOGICAL   :: UpdtMR
 
       ! Error handling
@@ -456,9 +457,6 @@
             State_Met%PEDGE( I,J,L+1 ) = PEdge_Top                        
          ENDIF                                                            
                                                                           
-         ! Set previous pressure difference to current pressure difference
-         State_Met%DELP_PREV( I,J,L ) = State_Met%DELP( I,J,L )           
-                                                                          
          ! Pressure difference between top & bottom edges [hPa]           
          State_Met%DELP( I,J,L )   = State_Met%PEDGE( I,J,L )             
      &                                - PEdge_Top                         
@@ -504,57 +502,13 @@
          State_Met%AVGW(I,J,L) = AIRMW * SPHU_kgkg                        
      &                           / ( H2OMW * (1.0e+0_fp - SPHU_kgkg ) )   
                                                                           
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
-                                                                          
-         !=============================================================   
-         ! Calculate water vapor partial pressure from specific humidity  
-         ! if using GEOS-4 or GCAP                                        
-         !=============================================================   
-                                                                          
-         ! Mol water vapor per mol moist air from specific humidity       
-         ! (this formulation is derived from the ideal gas law            
-         !  and the definition of specific humidity)                      
-         AVGW_moist = AIRMW * SPHU_kgkg / ( AIRMW * SPHU_kgkg             
-     &                      + H2OMW * ( 1.0e+0_fp - SPHU_kgkg ) )         
-                                                                          
-         ! Water vapor partial pressure at grid box centroid [hPa]
-         Ev_mid = State_Met%PMID(I,J,L) * AVGW_moist
-
-         !=============================================================   
-         ! Set grid box relative humidity [%] if using GEOS-4 or GCAP     
-         !=============================================================   
-         !                                                                
-         ! RH is the ratio of water vapor partial pressure to the         
-         ! saturation pressure of water, expressed as a percentage.       
-         !                                                                
-         ! If RH is not externally input, first calculate the             
-         ! water vapor partial pressure from specific humidity.           
-         ! Then use it with the saturation pressure of water              
-         ! calculated above to set RH.                                    
-         !                                                                
-         !          Grid box           mol H2O                            
-         !  Ev   =  moist air * ----------------------                    
-         ! [hPa]    pressure     mol H2O + mol dry air                    
-         !          [hPa]                                                 
-         !                                                                
-         !          H2O vapor partial pressure                            
-         !  RH   =  -------------------------- * 100                      
-         !           H2O saturation pressure                              
-         !                                                                
-                                                                          
-         ! Relative humidity [%]                                          
-         State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp              
-                                                                          
-#elif defined( GEOS_5 ) || defined ( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-                                                                          
          !=============================================================   
          ! Calculate water vapor partial pressures [hPa] from relative    
-         ! humidity if using GEOS-5, MERRA, or GEOS-FP.                   
+         ! humidity
          !=============================================================   
                                                                           
          Ev_mid = State_Met%RH( I,J,L ) * RHCONV * Esat                   
                                                                           
-#endif                                                                    
                                                                           
          Ev_edge = State_Met%PEDGE(I,J,L) * Ev_mid                        
      &             / State_Met%PMID(I,J,L)                                
@@ -775,7 +729,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, SPHU_kgkg, SPHU_kgkg_prev )
+!$OMP+PRIVATE( I, J, L, N )
             DO N = 1, State_Chm%nSpecies
             DO L = 1, LLPAR
             DO J = 1, JJPAR
@@ -912,11 +866,7 @@
       D_NTIME1 = DBLE( NTIME1 )
       D_NTDT   = DBLE( NTDT   )
 
-#if   defined( GEOS_FP ) || defined( MERRA2 )
       D_NDT    = 10800e+0_fp              ! For 3-hr instantaneous fields
-#else
-      D_NDT    = 21600e+0_fp              ! For 6-hr instantaneous fields
-#endif      
 
       ! Fraction of timestep elapsed at mid point of this dyn timestep
       TM  = ( D_NTIME1 + D_NTDT/2e+0_fp - D_NTIME0 ) / D_NDT
@@ -924,165 +874,11 @@
       ! Fraction of timestep elapsed at the end of this dyn timestep
       TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
 
-#if   defined( GEOS_FP ) || defined( MERRA2 )
       ! For I3 fields, need to reset fraction after 3 hours (ewl, 5/12/2015)
       IF ( TM > 1.0e+0_fp ) THEN
          TM  = TM  - 1.0e+0_fp
          TC2 = TC2 - 1.0e+0_fp
       ENDIF
-#endif
-
-#if   defined( GEOS_4 ) || defined( GCAP )
-
-      !=================================================================
-      ! GEOS-4 or GCAP met fields: PSC2_WET, PSC2_DRY, TROPP
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! North & south edges of box
-         YSOUTH = GET_YEDGE( I, J,   1 )
-         YNORTH = GET_YEDGE( I, J+1, 1 )
-
-         ! Interpolate wet pressure [hPa] to the end of the dynamic timestep
-         State_Met%PSC2_WET(I,J) = State_Met%PS1_WET(I,J) +
-     &                           ( State_Met%PS2_WET(I,J) - 
-     &                             State_Met%PS1_WET(I,J) ) * TC2 
-
-         ! Do the same for dry pressure [hPa] (ewl, 5/4/16)
-         State_Met%PSC2_DRY(I,J) = State_Met%PS1_DRY(I,J) +
-     &                           ( State_Met%PS2_DRY(I,J) - 
-     &                             State_Met%PS1_DRY(I,J) ) * TC2 
-
-         ! Test if we are using the variable tropopause
-         IF ( Input_Opt%LVARTROP ) THEN
- 
-            ! Interpolate TROPP [hPa] to the midpt of the dynamic timestep
-            State_Met%TROPP(I,J) = State_Met%TROPP1(I,J) +
-     &                           ( State_Met%TROPP2(I,J) - 
-     &                             State_Met%TROPP1(I,J) ) * TM
-
-            ! However, we still need to make sure to cap TROPP in the
-            ! polar regions (if the entire box is outside 60S-60N)
-            ! so that we don't do chemistry at an abnormally high
-            ! altitude.  Set TROPP in the polar regions to 200 hPa.
-            ! (jal, phs, bmy, 9/18/07)
-            IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
-               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 
-     &                                     200e+0_fp )
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( GEOS_5 )
-
-      !=================================================================
-      ! GEOS-5 met fields: PSC2_WET, PSC2_DRY, TO3, TROPP
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! North & south edges of box
-         YSOUTH = GET_YEDGE( I, J,   1 )
-         YNORTH = GET_YEDGE( I, J+1, 1 )
-
-         ! Interpolate wet pressure [hPa] to the end of the dynamic timestep
-         State_Met%PSC2_WET(I,J) = State_Met%PS1_WET(I,J)  +
-     &                           ( State_Met%PS2_WET(I,J)  -
-     &                             State_Met%PS1_WET(I,J)  ) * TC2 
-
-         ! Do the same for dry pressure [hPa] (ewl, 5/4/16)
-         State_Met%PSC2_DRY(I,J) = State_Met%PS1_DRY(I,J)  +
-     &                           ( State_Met%PS2_DRY(I,J)  -
-     &                             State_Met%PS1_DRY(I,J)  ) * TC2 
-
-         ! Interpolate the GEOS-5 total O3 column [DU] to current time
-         State_Met%TO3(I,J)  = State_Met%TO31(I,J) +
-     &                       ( State_Met%TO32(I,J) -
-     &                         State_Met%TO31(I,J) ) * TM
-
-         ! Even though TROPP is a 3-hour average field, we 
-         ! we still need to make sure to cap TROPP in the
-         ! polar regions (if the entire box is outside 60S-60N)
-         ! so that we don't do chemistry at an abnormally high
-         ! altitude.  Set TROPP in the polar regions to 200 hPa.
-         ! (jal, phs, bmy, 9/18/07)
-         IF ( Input_Opt%LVARTROP ) THEN
-            IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
-               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 
-     &                                     200e+0_fp )
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( MERRA )
-
-      !=================================================================
-      ! MERRA met fields: PSC2_WET, PSC2_DRY, TROPP, RH 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         !----------------------------------------------------
-         ! Interpolate 2D variables
-         !----------------------------------------------------
-         IF ( L == 1 ) THEN
-
-            ! North & south edges of box
-            YSOUTH     = GET_YEDGE( I, J,   L )
-            YNORTH     = GET_YEDGE( I, J+1, L )
-            
-            ! Interpolate wet pressure [hPa] to the end of the dynamic timestep
-            State_Met%PSC2_WET(I,J)  = State_Met%PS1_WET(I,J) +
-     &                               ( State_Met%PS2_WET(I,J) - 
-     &                                 State_Met%PS1_WET(I,J) ) * TC2 
-
-            ! Do the same for dry pressure [hPa] (ewl, 5/4/16)
-            State_Met%PSC2_DRY(I,J)  = State_Met%PS1_DRY(I,J) +
-     &                               ( State_Met%PS2_DRY(I,J) - 
-     &                                 State_Met%PS1_DRY(I,J) ) * TC2 
-
-            ! Even though TROPP is a 3-hour average field, we 
-            ! we still need to make sure to cap TROPP in the
-            ! polar regions (if the entire box is outside 60S-60N)
-            ! so that we don't do chemistry at an abnormally high
-            ! altitude.  Set TROPP in the polar regions to 200 hPa.
-            ! (jal, phs, bmy, 9/18/07)
-            IF ( Input_Opt%LVARTROP ) THEN
-               IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
-                  State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
-     &                                        200e+0_fp )
-               ENDIF
-            ENDIF
-         ENDIF
-
-         !----------------------------------------------------
-         ! Interpolate 3D variables
-         !----------------------------------------------------
-         State_Met%RH(I,J,L) = State_Met%RH1(I,J,L)   +
-     &                       ( State_Met%RH2(I,J,L)   -
-     &                         State_Met%RH1(I,J,L) ) * TM
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( GEOS_FP ) || defined( MERRA2 )
 
       !=================================================================
       ! GEOS-FP or MERRA2 met fields: PSC2_WET, PSC2_DRY, TROPP, T, SPHU 
@@ -1137,10 +933,6 @@
      &                         ( State_Met%TMPU2(I,J,L)   -
      &                           State_Met%TMPU1(I,J,L) ) * TM
 
-         ! Set previous SPHU to current SPHU prior to interpolateion
-         ! update (ewl, 10/28/15)
-         State_Met%SPHU_prev(I,J,L) = State_Met%SPHU(I,J,L)
-
          ! Interpolate specific humidity
          State_Met%SPHU(I,J,L) = State_Met%SPHU1(I,J,L)   +
      &                         ( State_Met%SPHU2(I,J,L)   -
@@ -1150,7 +942,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-#endif
 
       END SUBROUTINE INTERP
 !EOC
@@ -1219,15 +1010,11 @@
       !=================================================================
 
       ! Set pointer to the appropriate humidity
-#if defined( GEOS_FP ) || defined( MERRA2 )
       IF ( PS_ID == 1 ) THEN
          SPHU   => State_Met%SPHU1
       ELSE IF ( PS_ID == 2 ) THEN
          SPHU   => State_Met%SPHU2
       ENDIF
-#else
-         SPHU   => State_Met%SPHU
-#endif
 
       ! Set pointers to State_Met pressure fields.
       IF ( PS_ID == 1 ) THEN
@@ -1341,28 +1128,9 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GCAP )
-
-      !--------------------------
-      ! GCAP
-      !--------------------------
-
-      ! It's a land box if 50% or more of the box is covered by 
-      ! land and less than 50% of the box is covered by ice
-      LAND = ( State_Met%LWI_GISS(I,J) >= 0.5e+0_fp .and. 
-     &         State_Met%SNICE(I,J)    <  0.5e+0_fp )
-
-#else
-
-      !--------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !--------------------------
-
       ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
       LAND = ( NINT( State_Met%LWI(I,J) ) == 1       .and.
      &               State_Met%ALBD(I,J)  <  0.695e+0_fp )
-
-#endif
 
       END FUNCTION IS_LAND
 !EOC
@@ -1427,28 +1195,9 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GCAP )
-
-      !--------------------------
-      ! GCAP
-      !--------------------------
-
-      ! It's a water box if less than 50% of the box is
-      ! covered by land and less than 50% is covered by ice
-      WATER = ( State_Met%LWI_GISS(I,J) < 0.5e+0_fp .and. 
-     &          State_Met%SNICE(I,J)    < 0.5e+0_fp )
-
-#else
-
-      !---------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !---------------------------
-
       ! LWI=0 and ALBEDO less than 69.5% is a water box 
       WATER = ( NINT( State_Met%LWI(I,J) ) == 0       .and.
      &                State_Met%ALBD(I,J)  <  0.695e+0_fp )
-
-#endif
 
       END FUNCTION IS_WATER
 !EOC
@@ -1494,26 +1243,9 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GCAP )
-
-      !--------------------------
-      ! GCAP
-      !--------------------------
-
-      ! It's an ice box if 50% or more of the box is covered by ice
-      ICE = ( State_Met%SNICE(I,J) >= 0.5e+0_fp )
-
-#else
-
-      !--------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !--------------------------
-
       ! LWI=2 or ALBEDO > 69.5% is ice
       ICE = ( NINT( State_Met%LWI(I,J) ) == 2       .or.
      &              State_Met%ALBD(I,J)  >= 0.695e+0_fp )
-
-#endif
 
       END FUNCTION IS_ICE
 !EOC
@@ -1607,33 +1339,7 @@
             ! If it's an ice box, skip to next neighbor
             IF ( IS_ICE( LONGI, LATJ, State_Met ) ) CYCLE
 
-#if   defined( GCAP ) 
-
             !---------------------------------------------------
-            ! GCAP met fields
-            !
-            ! LWI_GISS = 0.0 means that the box is all water
-            ! LWI_GISS = 1.0 means that the box is all land
-            !
-            ! with fractional values at land-water boundaries
-            !
-            ! It's near-land if THRESH <= LWI_GISS <= 1.0 
-            !---------------------------------------------------
-            IF ( State_Met%LWI_GISS(LONGI,LATJ) >  THRESH .and.
-     &           State_Met%LWI_GISS(LONGI,LATJ) <= 1.0e+0_fp ) THEN
-
-               ! We are in a near-land box
-               NEAR = .TRUE.
-
-               ! Break out of loop
-               GOTO 999
-            ENDIF
-
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-            !---------------------------------------------------
-            ! GEOS-4 / GEOS-5 / MERRA met fields
-            !
             ! LWI = 0.0 is ocean
             ! LWI = 1.0 is land
             ! LWI = 2.0 is ice 
@@ -1652,8 +1358,6 @@
                ! Break out of loop
                GOTO 999
             ENDIF
-
-#endif
 
          ENDDO
       ENDDO
@@ -1703,18 +1407,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-#if   defined( GCAP )
-
-      !=================================================================
-      ! For GCAP met fields (based on GISS model)
-      !=================================================================
-
-      ! Monin-Obhukov length is a GCAP met field
-      OBK = State_Met%MOLENGTH(I,J)
-
-#else
-
+!
       !=================================================================
       ! For all GEOS met fields:
       !
@@ -1752,8 +1445,6 @@
       ELSE
          OBK = 1.0e+5_fp
       ENDIF
-
-#endif
 
       END FUNCTION GET_OBK
 !EOC
@@ -2127,52 +1818,10 @@
       ! COPY_I3_I6_FIELDS begins here!
       !=================================================================
 
-#if   defined( GCAP )
-
-      !------------------
-      ! GCAP met
-      !------------------
-      State_Met%PS1_WET = State_Met%PS2_WET ! I6 surface pressure    [hPa]
-      State_Met%PS1_DRY = State_Met%PS2_DRY ! I6 surface pressure    [hPa] 
-      State_Met%TROPP1  = State_Met%TROPP2  ! I6 tropopause pressure [hPa]
-
-#elif defined( GEOS_4 )
-
-      !------------------
-      ! GEOS-4 met
-      !------------------
-      State_Met%PS1_WET = State_Met%PS2_WET ! I6 surface pressure    [hPa]
-      State_Met%PS1_DRY = State_Met%PS2_DRY ! I6 surface pressure    [hPa] 
-      State_Met%TROPP1  = State_Met%TROPP2  ! I6 tropopause pressure [hPa]
-
-#elif defined( GEOS_5 )
-
-      !------------------
-      ! GEOS-5 met
-      !------------------
-      State_Met%PS1_WET = State_Met%PS2_WET ! I6 surface pressure    [hPa] 
-      State_Met%PS1_DRY = State_Met%PS2_DRY ! I6 surface pressure    [hPa] 
-
-#elif defined( GEOS_FP ) || defined( MERRA2 )
-
-      !------------------
-      ! GEOS-FP met
-      !------------------
       State_Met%PS1_WET = State_Met%PS2_WET ! I3 surface pressure    [hPa]
       State_Met%PS1_DRY = State_Met%PS2_DRY ! I3 surface pressure    [hPa] 
       State_Met%SPHU1   = State_Met%SPHU2   ! I3 specific humidity   [g/kg]
       State_Met%TMPU1   = State_Met%TMPU2   ! I3 temperature         [K]
-
-#elif defined( MERRA )
-
-      !------------------
-      ! MERRA met
-      !------------------
-      State_Met%PS1_WET = State_Met%PS2_WET ! I6 surface pressure    [hPa]
-      State_Met%PS1_DRY = State_Met%PS2_DRY ! I6 surface pressure    [hPa] 
-      State_Met%RH1     = State_Met%RH2     ! I6 relative humidity   [%]
-
-#endif
 
       END SUBROUTINE COPY_I3_I6_FIELDS
 !EOC

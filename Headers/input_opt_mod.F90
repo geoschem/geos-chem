@@ -61,22 +61,25 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: DATA_DIR           
      CHARACTER(LEN=255)          :: CHEM_INPUTS_DIR
      CHARACTER(LEN=255)          :: RES_DIR
-     CHARACTER(LEN=255)          :: GCAP_DIR           
-     CHARACTER(LEN=255)          :: GEOS_4_DIR         
-     CHARACTER(LEN=255)          :: GEOS_5_DIR         
      CHARACTER(LEN=255)          :: GEOS_FP_DIR        
-     CHARACTER(LEN=255)          :: MERRA_DIR          
      CHARACTER(LEN=255)          :: MERRA2_DIR          
      CHARACTER(LEN=255)          :: DATA_DIR_1x1       
-     CHARACTER(LEN=255)          :: TEMP_DIR           
-     LOGICAL                     :: LUNZIP             
-     LOGICAL                     :: LWAIT              
      LOGICAL                     :: LVARTROP           
      LOGICAL                     :: LCAPTROP
      REAL(fp)                    :: OZONOPAUSE
      INTEGER                     :: NESTED_I0          
      INTEGER                     :: NESTED_J0          
      CHARACTER(LEN=255)          :: HcoConfigFile
+
+     !----------------------------------------
+     ! PASSIVE SPECIES MENU fields
+     !----------------------------------------
+     INTEGER                     :: NPASSIVE
+     CHARACTER(LEN=63), POINTER  :: PASSIVE_NAME    (:)
+     INTEGER,           POINTER  :: PASSIVE_ID      (:)
+     REAL(fp),          POINTER  :: PASSIVE_MW      (:)
+     REAL(fp),          POINTER  :: PASSIVE_TAU     (:)
+     REAL(fp),          POINTER  :: PASSIVE_INITCONC(:)
 
      !----------------------------------------
      ! ADVECTED SPECIES MENU fields
@@ -112,6 +115,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LSOA
      LOGICAL                     :: LMPOA
      LOGICAL                     :: LSVPOA
+     LOGICAL                     :: LISOPOA
      LOGICAL                     :: LDUST              
      LOGICAL                     :: LDEAD              
      LOGICAL                     :: LSSALT             
@@ -195,9 +199,11 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LUCX
      LOGICAL                     :: LCH4CHEM
      LOGICAL                     :: LACTIVEH2O
-     LOGICAL                     :: LO3FJX
      LOGICAL                     :: LINITSPEC
      INTEGER, POINTER            :: NTLOOPNCS(:)
+     LOGICAL                     :: USE_ONLINE_O3
+     LOGICAL                     :: USE_O3_FROM_MET
+     LOGICAL                     :: USE_TOMS_O3
 
      !----------------------------------------
      ! RADIATION MENU fields
@@ -232,7 +238,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LDRYD
      LOGICAL                     :: LWETD
      REAL(fp)                    :: WETD_CONV_SCAL
-     LOGICAL                     :: USE_OLSON_2001
      LOGICAL                     :: PBL_DRYDEP      
 
      !----------------------------------------
@@ -249,6 +254,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! DIAGNOSTIC MENU fields
      !----------------------------------------
+     CHARACTER(LEN=255)          :: HistoryInputFile
      INTEGER                     :: ND01,             LD01
      INTEGER                     :: ND02,             LD02
      INTEGER                     :: ND03,             LD03
@@ -320,6 +326,7 @@ MODULE Input_Opt_Mod
      INTEGER                     :: ND70,             LD70
      INTEGER                     :: ND71,             LD71
      INTEGER                     :: ND72,             LD72
+     INTEGER                     :: ND73,             LD73
 
      INTEGER                     :: TS_DIAG
      LOGICAL                     :: LPRT
@@ -331,28 +338,6 @@ MODULE Input_Opt_Mod
      ! Collection ids
      INTEGER                     :: DIAG_COLLECTION
      INTEGER                     :: GC_RST_COLLECTION ! Used only for NetCDF
-
-#if defined( NC_DIAG )
-     ! New diagnostic group output types (e.g. 'mean')
-     CHARACTER(LEN=15)           :: TRANSPORT_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: WETSCAV_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: DRYDEP_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: SPECIES_CONC_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: SPECIES_EMIS_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: MET_OUTPUT_TYPE
-
-     ! Placeholders pending grouping of diagnostics
-     CHARACTER(LEN=15)           :: ND01_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND02_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND12_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND14_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND15_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND16_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND17_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND18_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND19_OUTPUT_TYPE
-     CHARACTER(LEN=15)           :: ND30_OUTPUT_TYPE
-#endif
 
      !----------------------------------------
      ! PLANEFLIGHT MENU fields
@@ -560,13 +545,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: LINOZ_NFIELDS
      REAL(fp),           POINTER :: LINOZ_TPARM(:,:,:,:)
 
-     !----------------------------------------
-     ! Fields for overhead O3
-     ! This gets set in main.F based on met
-     ! field and year (mpayer, 12/13/13)
-     !----------------------------------------
-     LOGICAL                     :: USE_O3_FROM_MET
-
   END TYPE OptInput
 !
 ! !REMARKS:
@@ -633,6 +611,14 @@ MODULE Input_Opt_Mod
 !  03 Oct 2016 - R. Yantosca - LWINDO_CU has to be LOGICAL, not INTEGER
 !  16 Jun 2017 - M. Sulprizio- Remove switches for CH4 emissions since these
 !                              are now handled by HEMCO
+!  12 Jul 2017 - R. Yantosca - Add Input_Opt%HistoryInputFile field
+!  13 Jul 2017 - E. Lundgren - Add passive species variables
+!  24 Aug 2017 - M. Sulprizio- Remove obsolete options: GCAP_DIR, GEOS_4_DIR,
+!                              GEOS_5_DIR, MERRA_DIR, TEMP_DIR, LUNZIP, LWAIT
+!  13 Sep 2017 - M. Sulprizio- Remove USE_OLSON_2001. Olson 2001 is now the
+!                              default.
+!  14 Sep 2017 - M. Sulprizio- Add USE_ONLINE_O3 and USE_TOMS_O3 to options for
+!                              overhead O3 in chemistry menu
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -655,7 +641,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod,     ONLY : NDSTBIN
+    USE CMN_SIZE_Mod,     ONLY : NDSTBIN, MAXPASV
     USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
@@ -721,6 +707,7 @@ CONTAINS
 !  13 Jul 2016 - R. Yantosca - Remove ID_TRACER, NUMDEP
 !  16 Mar 2017 - R. Yantosca - Remove obsolete family and drydep variables
 !  17 Mar 2017 - R. Yantosca - Remove IDDEP, DUSTREFF, DUSTDEN
+!  12 Jul 2017 - R. Yantosca - Initialize Input_Opt%HistoryInputFile field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -760,23 +747,32 @@ CONTAINS
     Input_Opt%RES_DIR                = './'
     Input_Opt%CHEM_INPUTS_DIR        = './'
     Input_Opt%RES_DIR                = './'
-    Input_Opt%GCAP_DIR               = './'
-    Input_Opt%GEOS_4_DIR             = './'
-    Input_Opt%GEOS_5_DIR             = './'
     Input_Opt%GEOS_FP_DIR            = './'
-    Input_Opt%MERRA_DIR              = './'
     Input_Opt%MERRA2_DIR             = './'
     Input_Opt%DATA_DIR_1x1           = './'      ! NOTE: Now deprecated!
-    Input_Opt%TEMP_DIR               = './'
-    Input_Opt%LUNZIP                 = .FALSE.   ! NOTE: Now deprecated!
-    Input_Opt%LWAIT                  = .FALSE.   ! NOTE: Now deprecated!
     Input_Opt%LVARTROP               = .FALSE.
     Input_Opt%LCAPTROP               = .FALSE.
     Input_Opt%OZONOPAUSE             = -999.0 
     Input_Opt%NESTED_I0              = 0
     Input_Opt%NESTED_J0              = 0
     Input_Opt%HcoConfigFile          = ''
-     
+
+    !----------------------------------------
+    ! PASSIVE SPECIES MENU fields
+    !----------------------------------------
+    ALLOCATE( Input_Opt%PASSIVE_NAME    ( MAXPASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_ID      ( MAXPASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_MW      ( MAXPASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_TAU     ( MAXPASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_INITCONC( MAXPASV ), STAT=RC )
+
+    Input_Opt%NPASSIVE               = 0           
+    Input_Opt%PASSIVE_NAME    (:)    = ''
+    Input_Opt%PASSIVE_ID      (:)    = -999
+    Input_Opt%PASSIVE_MW      (:)    = 0.0_fp
+    Input_Opt%PASSIVE_TAU     (:)    = 0.0_fp
+    Input_Opt%PASSIVE_INITCONC(:)    = 0.0_fp
+                                  
     !----------------------------------------
     ! ADVECTED SPECIES MENU fields
     !----------------------------------------
@@ -816,6 +812,7 @@ CONTAINS
     Input_Opt%LSOA                   = .FALSE.
     Input_Opt%LMPOA                  = .FALSE.
     Input_Opt%LSVPOA                 = .FALSE.
+    Input_Opt%LISOPOA                = .FALSE.
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
     Input_Opt%LDSTUP                 = .FALSE.
@@ -898,8 +895,10 @@ CONTAINS
     Input_Opt%LUCX                   = .FALSE.
     Input_Opt%LCH4CHEM               = .FALSE.
     Input_Opt%LACTIVEH2O             = .FALSE.
-    Input_Opt%LO3FJX                 = .FALSE.
     Input_Opt%LINITSPEC              = .FALSE.
+    Input_Opt%USE_ONLINE_O3          = .FALSE.
+    Input_Opt%USE_O3_FROM_MET        = .FALSE.
+    Input_Opt%USE_TOMS_O3            = .FALSE.
 
     !----------------------------------------
     ! RADIATION MENU fields
@@ -936,7 +935,6 @@ CONTAINS
     Input_Opt%LDRYD                  = .FALSE.
     Input_Opt%LWETD                  = .FALSE.
     Input_Opt%WETD_CONV_SCAL         = 1.0_fp 
-    Input_Opt%USE_OLSON_2001         = .FALSE.
     Input_Opt%PBL_DRYDEP             = .FALSE.
 
     !----------------------------------------
@@ -955,6 +953,7 @@ CONTAINS
     !----------------------------------------
     ! DIAGNOSTIC MENU fields
     !----------------------------------------
+    Input_Opt%HistoryInputFile       = ''
     Input_Opt%DIAG_COLLECTION        = -999
     Input_Opt%TS_DIAG                = 0
     ALLOCATE( Input_Opt%TINDEX( MAX_DIAG, MAX_SPC ), STAT=RC )
@@ -1033,6 +1032,7 @@ CONTAINS
     Input_Opt%ND70                   = 0
     Input_Opt%ND71                   = 0
     Input_Opt%ND72                   = 0
+    Input_Opt%ND73                   = 0
     Input_Opt%LD01                   = 0
     Input_Opt%LD02                   = 0
     Input_Opt%LD03                   = 0
@@ -1105,6 +1105,7 @@ CONTAINS
     Input_Opt%LD70                   = 0
     Input_Opt%LD71                   = 0
     Input_Opt%LD72                   = 0
+    Input_Opt%LD73                   = 0
     Input_Opt%LPRT                   = .FALSE.
     Input_Opt%TINDEX(:,:)            = 0
     Input_Opt%TCOUNT(:)              = 0	  
@@ -1342,11 +1343,6 @@ CONTAINS
 
     Input_Opt%LINOZ_TPARM            = 0e+0_fp
 
-    !----------------------------------------
-    ! Fields for overhead O3
-    !----------------------------------------
-    Input_Opt%USE_O3_FROM_MET        = .FALSE.
-
   END SUBROUTINE Set_Input_Opt
 !EOC
 !------------------------------------------------------------------------------
@@ -1401,6 +1397,26 @@ CONTAINS
     !======================================================================
     ! Deallocate fields of the Input Options object
     !======================================================================
+    IF ( ASSOCIATED( Input_Opt%PASSIVE_NAME ) ) THEN
+       DEALLOCATE( Input_Opt%PASSIVE_NAME )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%PASSIVE_ID ) ) THEN
+       DEALLOCATE( Input_Opt%PASSIVE_ID )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%PASSIVE_MW ) ) THEN
+       DEALLOCATE( Input_Opt%PASSIVE_MW )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%PASSIVE_TAU ) ) THEN
+       DEALLOCATE( Input_Opt%PASSIVE_TAU )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%PASSIVE_INITCONC ) ) THEN
+       DEALLOCATE( Input_Opt%PASSIVE_INITCONC )
+    ENDIF
+
     IF ( ASSOCIATED( Input_Opt%AdvectSpc_Name ) ) THEN
        DEALLOCATE( Input_Opt%AdvectSpc_Name )
     ENDIF

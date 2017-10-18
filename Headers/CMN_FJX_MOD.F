@@ -41,7 +41,7 @@
 
       INTEGER            :: JVL_           ! Vertical levels for J-values
 
-      INTEGER, PARAMETER :: JVN_ = 121     ! Max number of J-values
+      INTEGER, PARAMETER :: JVN_ = 130     ! Max number of J-values
 
 #if defined( UCX )
       INTEGER, PARAMETER :: AN_  = 37      ! Including PSCs
@@ -90,7 +90,9 @@
       INTEGER, PARAMETER ::  WX_   = 18
 
       ! X_   = dim = max no. of X-section data sets (input data)
-      INTEGER, PARAMETER ::  X_    = 72
+      ! SDE 2016-11-04: Increased from 75 to 123 for new halogen
+      ! chemistry (iodine cross-sections)
+      INTEGER, PARAMETER ::  X_    = 123
 
       ! A_   = dim = no. of Aerosol/cloud Mie sets (input data)
       INTEGER, PARAMETER ::  A_    = 56
@@ -236,6 +238,7 @@
       ! Dust and aerosol optical depths
       REAL(fp), ALLOCATABLE :: ODMDUST(:,:,:,:,:)
       REAL(fp), ALLOCATABLE :: ODAER(:,:,:,:,:)
+      REAL(fp), ALLOCATABLE :: ISOPOD(:,:,:,:)   ! eam, 2014
 
       INTEGER NJX,NW1,NW2
 
@@ -377,6 +380,11 @@
       IF ( RC /= GC_SUCCESS ) RETURN
       ODAER = 0e+0_fp
 
+      ! Allocate array for isoprene SOA AOD (eam, 2014):
+      ALLOCATE( ISOPOD( IIPAR, JJPAR, LLPAR, NWVAA), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ISOPOD = 0e+0_fp
+
       !-----------------------------------------------------------------------
       !  Variables added for RRTMG (dar, mps, 12/5/14)
       !-----------------------------------------------------------------------
@@ -442,6 +450,7 @@
       IF ( ALLOCATED( ZPJ       ) ) DEALLOCATE( ZPJ       )
       IF ( ALLOCATED( ODMDUST   ) ) DEALLOCATE( ODMDUST   )
       IF ( ALLOCATED( ODAER     ) ) DEALLOCATE( ODAER     )
+      IF ( ALLOCATED( ISOPOD    ) ) DEALLOCATE( ISOPOD    )
       IF ( ALLOCATED( IRHARR    ) ) DEALLOCATE( IRHARR    )
 #if defined( RRTMG )
       IF ( ALLOCATED( RTODAER   ) ) DEALLOCATE( RTODAER   )

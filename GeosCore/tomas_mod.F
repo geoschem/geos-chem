@@ -128,6 +128,8 @@
 !  02 Aug 2016 - M. Sulprizio- Move public array H2SO4RATE array here from
 !                              diag_pl_mod.F and rename to H2SO4_RATE to avoid
 !                              confusion with local variables
+!  24 Aug 2017 - M. Sulprizio- Remove SGCTSCALE definitions for obsolete grids
+
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -183,13 +185,10 @@
       REAL(fp) :: cosmic_ions(72,46,9) !careful, this is not GCHP safe!
                                        ! [ion pairs kg^-1 s^-1]
 
-!      DATA AVGMASS/ 1.4142d-21, 
-!     &              2.8284d-21, 5.6569d-21, 1.1314d-20, 2.2627d-20,
-!     &  4.5255d-20, 9.0510d-20, 1.8102d-19, 3.6204d-19, 7.2408d-19,
-!     &  1.4482d-18, 2.8963d-18, 5.7926d-18, 1.1585d-17, 2.3170d-17,
-!     &  4.6341d-17, 9.2682d-17, 1.8536d-16, 3.7073d-16, 7.4146d-16,
-!     &  1.4829d-15, 2.9658d-15, 5.9316d-15, 1.1863d-14, 2.3727d-14,
-!     &  4.7453d-14, 9.4906d-14, 1.8981d-13, 3.7963d-13, 7.5925d-13 /
+      REAL(fp),         SAVE        :: OCSCALE30(IBINS)
+      REAL(fp),         SAVE        :: OCSCALE100(IBINS)
+      REAL(fp),         SAVE        :: ECSCALE30(IBINS)
+      REAL(fp),         SAVE        :: ECSCALE100(IBINS)
 
       INTEGER  :: bin_nuc = 1, tern_nuc = 1  ! Switches for nucleation type.
       INTEGER  :: act_nuc = 0 ! in BL
@@ -206,6 +205,110 @@
       INTEGER :: lowRH = 1 !This is to match AW more with AERONET (JKODROS 6/15)
 
       REAL(fp), ALLOCATABLE :: H2SO4_RATE(:,:,:) ! H2SO4 prod rate [kg s-1]
+
+#if  defined( TOMAS12 ) || defined( TOMAS15 )
+      !tomas12 or tomas15
+      data OCSCALE30/
+# if  defined( TOMAS15)
+     & 0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     ,
+# endif
+     & 1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02,
+     & 1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01,
+     & 9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05/! use for fossil fuel (bimodal)
+
+      data OCSCALE100/
+# if  defined( TOMAS15)
+     & 0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     ,
+# endif
+     & 1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03,
+     & 2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01,
+     & 2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04/! use for biomass burning
+
+      data ECSCALE30/
+# if  defined( TOMAS15)
+     & 0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     ,
+# endif
+     & 1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02,
+     & 1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01,
+     & 9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05/! use for fossil fuel (bimodal)
+
+      data ECSCALE100/
+# if  defined( TOMAS15)
+     & 0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     ,
+# endif
+     & 1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03,
+     & 2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01,
+     & 2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04/  ! use for biomass burning
+
+#else
+      !tomas30 or tomas40
+      DATA OCSCALE30/      ! use for fossil fuel
+# if  defined( TOMAS40)
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
+# endif
+     &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
+     &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
+     &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
+     &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
+     &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
+     &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
+
+      DATA OCSCALE100/     ! use for biomass burning
+# if  defined( TOMAS40)
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+# endif
+     &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
+     &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
+     &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
+     &   0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  ,
+     &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
+     &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
+
+      DATA ECSCALE30/      ! use for fossil fuel
+# if  defined( TOMAS40)
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
+# endif
+     &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
+     &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
+     &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
+     &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
+     &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
+     &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
+
+      DATA ECSCALE100/     ! use for biomass burning
+# if  defined( TOMAS40)
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+# endif
+     &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
+     &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
+     &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
+     &   0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  ,
+     &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
+     &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
+#endif
+
+      ! Define subgrid coagulation timescale (win, 10/28/08)
+#if   defined( GRID4x5   ) 
+      REAL*4 :: SGCTSCALE = 10.*3600.        ! 10 hours
+#elif defined( GRID2x25  )
+      REAL*4 :: SGCTSCALE = 5.*3600.    
+#elif defined( GRID05x0625 )
+      ! Copy the 05x0666 timescale for now
+      REAL*4 :: SGCTSCALE = 1.*3600.
+#elif defined( GRID025x03125 )
+      ! Copy the 05x0666 timescale for now
+      ! (skim, 5/20/12)
+      REAL*4 :: SGCTSCALE = 1.*3600.
+#endif
+        !Prior to 10/28/08 (win)     
+        !TSCALE = 10.*3600.
+!            print *, 'Now doing subgrid coag with timescale ',
+!     &           TSCALE/3600.,'hr'
+
 
 !
 ! !PRIVATE TYPES:
@@ -412,7 +515,7 @@
       logical           :: printdebug !<step4.3> Print out for debugging (win, 9/16/05)
       logical           :: COND, COAG, NUCL !<step5.1> switch for each process (win 4/8/06)
       integer :: iob, job,lob !Just declare in case I want to debug (4/8/06)
-      data iob, job, lob /  20  ,       33    ,       2 /
+      data iob, job, lob /  1  ,       1    ,       1 /
       real(fp)           :: NH3_to_NH4, CEPS
       parameter ( CEPS=1.e-17_fp )
 
@@ -514,7 +617,7 @@
          else
             write(*,*)'  Nucleation: Binary (Vehkamaki et al. 2002)'
          endif
-         
+
          firsttime = .false.
       endif
 
@@ -547,7 +650,6 @@
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
 !vbn         write(890,89)I,J,L,Spc(i,j,l,id_H2SO4)
-
 
          !if(printdebug)          print *,'+++++',I,J,L,'inside Aerophys'
  
@@ -635,9 +737,11 @@
 
          H2SO4rate_o = H2SO4_RATE(I,J,L)  ! [kg s-1]
 
-         IF ( I == 10 .and. J == 10 .and. L == 10 ) THEN
-            Print*, 'Debug TOMAS: H2SO4RATE =', H2SO4rate_o
-         ENDIF
+!         if (printdebug) then
+!          IF ( I == iob .and. J == job .and. L == lob ) THEN
+!             Print*, 'Debug TOMAS: H2SO4RATE =', H2SO4rate_o
+!          ENDIF
+!         ENDIF
 
                                 ! nitrogen and sulfur mass checks
                                 ! get the total mass of N
@@ -653,11 +757,11 @@
          enddo
 
          
-         if (printdebug.and.i==iob .and. j==job .and. l==lob ) then
-            CALL DEBUGPRINT( Nk, Mk, I, J, L,
-     &        'Begin aerophys' )
-            print *,'H2SO4RATE ',H2SO4rate_o
-         endif
+!         if (printdebug.and.i==iob .and. j==job .and. l==lob ) then
+!            CALL DEBUGPRINT( Nk, Mk, I, J, L,
+!     &        'Begin aerophys' )
+!            print *,'H2SO4RATE ',H2SO4rate_o
+!         endif
         
          !*********************
          ! Aerosol dynamics
@@ -669,8 +773,8 @@
          !Fix any inconsistencies in M/N distribution (because of advection)
          CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 
-         if(printdebug .and. 
-     &        i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
+!         if(printdebug .and. 
+!     &        i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
 
 #if defined ( DEBUG ) 
 !      print *, 'mnfix in tomas_mod:533'
@@ -686,10 +790,10 @@
             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
          ENDIF
 
-         IF ( printdebug.and.i==iob .and. j==job .and. l==lob ) THEN
-            CALL DEBUGPRINT( Nk, Mk, I, J, L,
-     &           'After mnfix before cond/nucl' )
-         ENDIF
+!         IF ( printdebug.and.i==iob .and. j==job .and. l==lob ) THEN
+!            CALL DEBUGPRINT( Nk, Mk, I, J, L,
+!     &           'After mnfix before cond/nucl' )
+!         ENDIF
 
          ! Before doing any cond/nucl/coag, check if there's any aerosol in the current box
          TOT_NK = 0.e+0_fp
@@ -713,19 +817,43 @@
          !-------------------------------------
          IF ( COND .AND. NUCL ) THEN
 
-            if(printdebug .and. 
-     &           i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
+!            if(printdebug .and. 
+!     &           i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
 
-         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
+            CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 
-!            print*,'Before COND_NUC Gc(srtso4)=',Gc(srtso4)
+!sfdebug!            if(printdebug) then
+!sfdebug               !print*,'Before COND_NUC Gc(srtso4)=',Gc(srtso4)
+!sfdebug               do N = 1,IBINS
+!sfdebug                  IF( IT_IS_NAN( NK(N) ) ) THEN
+!sfdebug                     print*, "found NAN in nk", n, nk
+!sfdebug                  endif
+!sfdebug                  DO JC=1, ICOMP-1
+!sfdebug                     IF( IT_IS_NAN( Gc(JC) ) ) THEN
+!sfdebug                        print*, "found NAN in gc", jc, gc
+!sfdebug                     endif
+!sfdebug                  ENDDO
+!sfdebug               enddo
+!sfdebug!            endif
 
             CALL COND_NUC(Nk,Mk,Gc,Nkout,Mkout,Gcout,fn,fn1,
-     &             H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, 
-     &             ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, PRES,
-     &             RHTOMAS, ERRORSWITCH, l)
+     &          H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, 
+     &          ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, PRES,
+     &          RHTOMAS, ERRORSWITCH, l)
 
-!            print*,'After COND_NUC Gcout(srtso4)=',Gcout(srtso4)
+!sfdebug!            if(printdebug) then
+!sfdebug               !print*,'Before COND_NUC Gc(srtso4)=',Gc(srtso4)
+!sfdebug               do N = 1,IBINS
+!sfdebug                  IF( IT_IS_NAN( NKout(N) ) ) THEN
+!sfdebug                     print*, "found NAN in nkout", n, nkout
+!sfdebug                  endif
+!sfdebug                  DO JC=1, ICOMP-1
+!sfdebug                     IF( IT_IS_NAN( Gcout(JC) ) ) THEN
+!sfdebug                        print*, "found NAN in gcout", jc, gcout
+!sfdebug                     endif
+!sfdebug                  ENDDO
+!sfdebug               enddo
+!sfdebug!            endif
             
             IF ( ERRORSWITCH ) THEN
                PRINT *,'Aerophys: found error at',I,J,L
@@ -1097,7 +1225,7 @@
 ! Initialize values of Nkf, Mkf, Gcf, and time
       do j=1,icomp-1
          Gc1(j)=Gci(j)
-!         Gcf(j)=Gci(j) !sfarina
+         Gcf(j)=Gci(j)
       enddo
       do k=1,ibins
          Nk1(k)=Nki(k)
@@ -3933,7 +4061,7 @@
       call mnfix(Nkf,Mkf,negvalue) !<step5.1> bug fix call argument
       !(win, 4/15/06) !<step4.2> Add call argument to carry tell where mnfix
       !found
-      if(negvalue==.true.)STOP 'MNFIX terminate' !(win, 9/12/05)
+      if(negvalue) STOP 'MNFIX terminate' !(win, 9/12/05)
                                ! the negative value (win, 9/12/05)
 !---------------------------------------------------------------------------
 
@@ -5147,7 +5275,7 @@
       ! Local variables
       INTEGER      ::  L,I,J,K,IMN,CSPECIES
       REAL(fp)       :: DN,DM,DYI,TAU(ibins),XL,XU,YL,YLC,YU,YUC
-      REAL(fp)       :: TEPS,NEPS,EX2,ZERO
+      REAL(fp)       :: TEPS,NEPS,NEPS2,EX2,ZERO
       REAL(fp)       :: XI,XX,XP,YM,WTH,W1,W2,WW,AVG
       REAL(fp)       :: VSW,VNTF(ibins)
       REAL(fp)       :: TAU_L, maxtau
@@ -5155,9 +5283,6 @@
       REAL(fp)       :: AMK(ibins,icomp),ANK(ibins)
       REAL(fp)       :: AMKDRY(ibins), WR(ibins), AMKWET(ibins)
       REAL(fp)       :: AMKDRYSOL(ibins)
-      PARAMETER (TEPS=1.0e-40_fp,NEPS=1.0e-20_fp)
-      PARAMETER (EX2=2.e+0_fp/3.e+0_fp,ZERO=0.0e+0_fp)
-      PARAMETER       NEPS2=1.0e-10_fp
       LOGICAL      :: pdbug !(win, 4/10/06)
       LOGICAL      :: errspot !(win, 4/12/06)
 !x      REAL(fp)       :: moxd !moxid/Nact (win, 5/25/06)
@@ -5174,6 +5299,9 @@
       integer      :: kk !counter (wint, 7/24/06)
       REAL(fp)       :: AMKD_tot
  
+      PARAMETER (TEPS=1.0e-40_fp,NEPS=1.0e-20_fp)
+      PARAMETER (EX2=2.e+0_fp/3.e+0_fp,ZERO=0.0e+0_fp)
+      PARAMETER (NEPS2=1.0e-10_fp)
       !=================================================================
       ! TMCOND begins here!
       !=================================================================
@@ -5809,9 +5937,9 @@
      &                     E13.5,' kg = ',F5.1,'%')
                      if(MAXVAL(moxd(:)) > 0e+0_fp) then
                         print 11, L, madd(L),(madd(L)/maddtot)*1.e+2_fp
-                        write(116,11) L,
-     &                        madd(L),(madd(L)/maddtot)*1.e+2_fp
-                        write(117,*) madd(L)  !for accumulating mass loss
+!                        write(116,11) L,
+!     &                        madd(L),(madd(L)/maddtot)*1.e+2_fp
+!                        write(117,*) madd(L)  !for accumulating mass loss
 !                     PRINT *,'Tophat > Xk(31): growth over bin30,Loss%'
 !                     if(moxd >0e+0_fp)print *,madd(L),(madd(L)/maddtot)*1.d2
 !jrp                        errspot = .true.
@@ -5873,9 +6001,9 @@
       REAL*4                :: DTCHEM
 
 !sfarina
-      REAL(fp)                :: Nk(IBINS), Nkd(IBINS)
-      REAL(fp)                :: Mk(IBINS, ICOMP)
-      REAL(fp)                :: Mkd(IBINS,ICOMP)
+      REAL(fp),INTENT(IN)     :: Nk(IBINS), Nkd(IBINS)
+      REAL(fp),INTENT(IN)     :: Mk(IBINS, ICOMP)
+      REAL(fp),INTENT(IN)     :: Mkd(IBINS,ICOMP)
       REAL*4,INTENT(IN)     :: BOXVOL
       !=================================================================
       ! AERODIAG begins here!
@@ -6262,6 +6390,8 @@
       ENDDO
       ENDDO
       ENDDO
+
+      !carbon emission factors:
       
       ! Close file
       CLOSE( LUN )
@@ -6878,6 +7008,7 @@
 !                              (IIPAR,JJPAR,IBINS)
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !******************************************************************************
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6886,7 +7017,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
       IMPLICIT NONE
 
@@ -6905,8 +7036,8 @@
       INTEGER             :: N, NA, nAdvect
       REAL(fp)            :: MSO4, MNACL, MH2O
       REAL(fp)            :: MECIL, MECOB, MOCIL, MOCOB, MDUST
-      LOGICAL             :: UNITCONV = .FALSE.
       CHARACTER(LEN=255)  :: MSG, LOC
+      CHARACTER(LEN=63)   :: OrigUnit
 
       ! Arrays
       REAL(fp)            :: AMASS(ICOMP)
@@ -6921,28 +7052,16 @@
       ! Assume success
       RC                =  GC_SUCCESS
 
-      ! If species units are [kg/kg dry], convert to [kg] for this routine.
-      ! Otherwise, if species units are not [kg] then throw an error to the 
-      ! calling routine (ewl, 8/12/15)
+      ! Convert species units to [kg] for this routine.
       ! NOTE: For complete area-independence, species units will need to be 
       !       mixing ratio or mass per unit area in TOMAS
-      IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg dry' ) THEN
-         CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
-     &                                  State_Chm, RC ) 
-         UNITCONV = .TRUE.
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
-     &                    'Routine AERO_DIADEN in tomas_mod.F')
-            RETURN
-         ENDIF 
-      ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-         CALL GC_Error('Incorrect species units for TOMAS: ' // 
-     &                 TRIM( State_Chm%Spc_Units ), RC, 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                 'Routine AERO_DIADEN in tomas_mod.F')
          RETURN
-      ELSE
-         UNITCONV = .FALSE.
-      ENDIF
+      ENDIF 
 
       ! Check that species units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -7022,17 +7141,14 @@
          CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
-      ! If units were originally [kg/kg dry], convert [kg] back to mixing 
-      ! ratio (ewl, 8/12/15)
-      IF ( UNITCONV ) THEN
-         CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, 
-     &                                  State_Chm, RC )  
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
-     &                    'Routine AERO_DIADEN in tomas_mod.F')
-            RETURN
-         ENDIF 
-      ENDIF
+      ! Convert species units back to original unit 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'Routine AERO_DIADEN in tomas_mod.F')
+         RETURN
+      ENDIF 
       
       ! Free pointer
       Spc => NULL()
@@ -7867,11 +7983,18 @@
             TOTMAS = SUM(MK(K,1:ICOMP-1))
 !            PRINT *, TOTMAS,NK(K), TOTMAS/NK(K)
        ENDDO
-        WRITE(6,555)
-     &          TOTMAS, NK(K),
-     &          TOTMAS/ NK(K) 
-        print*,'-----------'
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: NK will be IBINS+1 upon exiting the loop, which will cause an
+!%%% out-of-bounds error.  Comment this out for now, unless it should be
+!%%% inserted into the DOloop
+!        WRITE(6,555)
+!     &          TOTMAS, NK(K),
+!     &          TOTMAS/ NK(K) 
+!        print*,'-----------'
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         call debugprint( NK, MK, 0,0,0,'End of MNFIX')
+
 
 !       write(*,*)'Nk'
 !       write(*,*) NK(1:30)
@@ -8131,7 +8254,7 @@
       INTEGER,          INTENT(IN) :: I,J,L
       CHARACTER(LEN=*), INTENT(IN) :: LOCATION
 
-      INTEGER  :: JC, k
+      INTEGER  :: JC, k, B
 
       WRITE(*,*) LOCATION, I, J, L
 !      write(6,*) 'Nk(1:30)'
@@ -8144,7 +8267,11 @@
      &             'ECIL        ECOB        OCIL       OCOB       ',
      &             'Dust        NH4         Water  '
       DO K = 1, IBINS
-         write(*,110) k,Nk(k), Mk(k, 1:icomp)
+!-------------------------------------------------------------
+! Remove code that causes an array temporary (bmy, 7/7/17)
+!         write(*,110) k,Nk(k), Mk(k, 1:icomp)
+!-------------------------------------------------------------
+         write(*,110) k,Nk(k), ( Mk(K,B), B=1,ICOMP )
       ENDDO
       write(*,*) ' '
  110  FORMAT ( I2, 10E12.5 )

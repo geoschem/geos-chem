@@ -101,11 +101,6 @@ CONTAINS
     Write (6,*)
 
     if (err_do_stop) then
-!-------------------------------------------------------------------
-! Prior to 3/7/17:
-! Call the EXIT function with a non-zero error code (bmy, 3/7/17) 
-!       stop "Code stopped from Do_Err_Out."
-!-------------------------------------------------------------------
        WRITE( 6, 100 )
  100   FORMAT( 'Code stopped from DO_ERR_OUT (in module m_do_err_out.F90' )
        CALL EXIT( 999 )

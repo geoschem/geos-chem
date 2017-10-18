@@ -215,6 +215,7 @@
          IF ( ND69 > 0 ) AD69     = 0e0      ! netcdf MET diag group
 #endif
          IF ( ND72 > 0 ) AD72     = 0e0
+         IF ( ND73 > 0 ) AD73     = 0e0
 
          ! Daily max mean hourly surface v/v
          IF ( ND71 > 0 ) THEN
@@ -247,7 +248,6 @@
             AD07_BC    = 0e0
             AD07_OC    = 0e0
             AD07_HC    = 0e0
-            AD07_SOAGM = 0e0
          ENDIF
 
          ! ND09 -- HCN & CH3CN simulation (xyp, bmy, 6/27/05)
@@ -318,14 +318,12 @@
          ! Now reset timesteps here for now 
          CALL SET_CT_A1(   RESET=.TRUE. )
          CALL SET_CT_A3(   RESET=.TRUE. )
-         CALL SET_CT_A6(   RESET=.TRUE. )
          CALL SET_CT_CHEM( RESET=.TRUE. )
          CALL SET_CT_RAD ( RESET=.TRUE. )
          CALL SET_CT_CONV( RESET=.TRUE. )
          CALL SET_CT_DYN(  RESET=.TRUE. )
          CALL SET_CT_EMIS( RESET=.TRUE. )
          CALL SET_CT_I3(   RESET=.TRUE. )
-         CALL SET_CT_I6(   RESET=.TRUE. )
          CALL SET_CT_XTRA( RESET=.TRUE. )
          CALL SET_CT_DIAG( RESET=.TRUE. )
 

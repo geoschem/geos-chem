@@ -328,12 +328,6 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if defined( NC_DIAG )
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
-      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -405,14 +399,6 @@
       INTEGER                  :: ID
       LOGICAL, SAVE            :: FIRST = .TRUE.
       REAL(f8)                 :: RHO, RHO1
-
-#if defined( NC_DIAG )
-      ! For netcdf diagnostics (ND44 drydep flux)
-      INTEGER                  :: drydep_id, spc_id, HCRC
-      CHARACTER(LEN=30)        :: DiagnName
-      REAL(fp), TARGET         :: DryDepFlux( IIPAR, JJPAR ) 
-      REAL(fp), POINTER        :: Ptr2D(:,:)
-#endif
 !
 ! !DEFINED PARAMETERS:
 !      
@@ -456,11 +442,6 @@
       ! Do we have to print debug output?
       prtDebug      = ( LPRT .and. am_I_Root )
 
-#if defined( NC_DIAG )
-      ! Initialize pointer
-      Ptr2D         => NULL()
-#endif
-
       ! Assume success
       RC            = GC_SUCCESS
 
@@ -474,11 +455,6 @@
       ! Sea salt density [kg/m3]
       DEN            = SS_DEN( N )
 
-#if defined( NC_DIAG )
-      ! Init diagnostics
-      DryDepFlux  = 0.0_fp
-#endif
-      
       ! Seasalt effective radius (i.e. midpt of radius bin) [m]
       SELECT CASE ( N )
 
@@ -769,53 +745,11 @@
             ! For bpch diagnostic, store in global AD44 array
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
 #endif
-#if defined( NC_DIAG )
-            ! For netcdf diagnostic, store data in local array
-            DryDepFlux(I,J) = FLUX
-#endif
          ENDIF
 
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
-
-
-#if defined( NC_DIAG )
-      !========================================================      
-      ! ND44: Dry deposition diagnostic [#/cm2/s] (netcdf) 
-      !========================================================
-      IF ( ND44 > 0 ) THEN
-
-         ! Get the drydep id
-         drydep_id = IDDEP(N)
-
-         ! Get species id from the drydep id IDDEP(N)
-         spc_id = State_Chm%Map_DryDep( drydep_id )
-         
-         ! If this tracer number NN is scheduled for output in input.geos, 
-         ! then archive the latest depvel data into the diagnostic structure
-         IF ( ANY( Input_Opt%TINDEX(44,:) == spc_id ) ) THEN
-         
-            ! Update diagnostic container
-            DiagnName = 'DRYDEP_FLX_CHEM_' // 
-     &                  TRIM( State_Chm%SpcData(spc_id)%Info%Name )
-            Ptr2D => DryDepFlux
-            CALL Diagn_Update( am_I_Root, HcoState, 
-     &                         cName   = TRIM( DiagnName),         
-     &                         Array2D = Ptr2D,                      
-     &                         COL     = Input_Opt%DIAG_COLLECTION, 
-     &                         RC      = HCRC                      )
-            Ptr2D => NULL()
-            
-            ! Stop with error if the diagnostic was unsuccessful
-            IF ( HCRC /= HCO_SUCCESS ) THEN
-               CALL ERROR_STOP( 'Cannot update drydep flux' //        
-     &                          ' diagnostic: ' // TRIM( DiagnName), 
-     &                          'WET_SETTLING (seasalt_mod.F)')
-            ENDIF
-         ENDIF
-      ENDIF
-#endif
 
       IF ( prtDebug ) CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
       END SUBROUTINE WET_SETTLING
@@ -1354,11 +1288,6 @@
       COEF = 1.e+0_fp
 #elif defined( GRID2x25 )
       COEF = 1.e+0_fp
-#elif defined( GRID1x1  ) && defined( NESTED_CH )
-      COEF = 0.77e+0_fp
-      ! Note: monthly emission over the China nested-grid domain is about
-      !       1.3 times higher compared to the same domain in 4x5 resolution
-      !       Thus applying 1/1.30 = 0.77 factor to correct the emission.
 #else
       CALL ERROR_STOP('Adjust seasalt emiss coeff for your model res.?',
      &                'SRCSALT30: seasalt_mod.f')

@@ -252,13 +252,8 @@
 
       ! PBLTOP is the model level at ~ 750 hPa
       ! MTTOP  is the model level at ~ 350 hPa
-#if   defined( GEOS_4 )
-      PBLTOP = 5
-      MTTOP  = 10
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       PBLTOP = 16
       MTTOP  = 27
-#endif
 
 #if defined( USE_ALL_TAGO3_SPECIES )
 

@@ -325,6 +325,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  15 Dec 2013 - C. Keller   - Initial version
 !  10 Jul 2015 - R. Yantosca - Fixed minor issues in ProTeX header
+!  24 Aug 2017 - M. Sulprizio- Remove support for GRID1x1
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -503,19 +504,6 @@ CONTAINS
     ! TOMAS simulations at 2 x 2.5 global resolution
     !-----------------------------------------------------------------------
     TOMAS_COEF = 1.d0
-
-#elif defined( GRID1x1  ) && defined( NESTED_CH )
-
-    !-----------------------------------------------------------------------
-    ! TOMAS simulations at 1 x 1 nested-grid resolution
-    !
-    ! NOTE: Monthly emission over the China nested-grid domain is about
-    !       1.3 times higher compared to the same domain in 4x5 resolution
-    !       Thus applying 1/1.30 = 0.77 factor to correct the emission.
-    !
-    ! NOTE: May need to update this for other nested-grids
-    !-----------------------------------------------------------------------
-    TOMAS_COEF = 0.77d0
 
 #else
     MSG = 'Adjust TOMAS_Jeagle emiss coeff (TOMAS_COEF) for your model res: SRCSALT30: hcox_TOMAS_jeagle_mod.F90'

@@ -116,6 +116,7 @@ MODULE HCOX_STATE_MOD
      LOGICAL                   :: TOMAS_Jeagle   ! TOMAS Jeagle sea salt
      INTEGER                   :: TOMAS_DustDead ! TOMAS sectional Dead Dust
      INTEGER                   :: AeroCom        ! AeroCom volcano 
+     LOGICAL                   :: Inorg_Iodine   ! Oceanic inorganic iodine emissions
 
      !----------------------------------------------------------------------
      ! Data directory
@@ -316,8 +317,9 @@ CONTAINS
     ExtState%GC_POPs        = .FALSE.
     ExtState%Wetland_CH4    = -1 
     ExtState%TOMAS_Jeagle   = .FALSE.
-    ExtState%TOMAS_DustDead = .FALSE.
+    ExtState%TOMAS_DustDead = -1
     ExtState%AeroCom        = -1
+    ExtState%Inorg_Iodine   = .FALSE.
 
     !-----------------------------------------------------------------------
     ! Initialize constants for POPs emissions module

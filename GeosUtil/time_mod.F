@@ -41,9 +41,7 @@
       PUBLIC  :: SET_CT_RAD
       PUBLIC  :: SET_CT_A1 
       PUBLIC  :: SET_CT_A3
-      PUBLIC  :: SET_CT_A6
       PUBLIC  :: SET_CT_I3
-      PUBLIC  :: SET_CT_I6
       PUBLIC  :: SET_CT_XTRA
       PUBLIC  :: SET_ELAPSED_MIN
       PUBLIC  :: GET_JD
@@ -88,21 +86,15 @@
       PUBLIC  :: GET_CT_RAD
       PUBLIC  :: GET_CT_A1
       PUBLIC  :: GET_CT_A3
-      PUBLIC  :: GET_CT_A6
       PUBLIC  :: GET_CT_I3
-      PUBLIC  :: GET_CT_I6
       PUBLIC  :: GET_CT_XTRA
       PUBLIC  :: GET_CT_DIAG
       PUBLIC  :: GET_A1_TIME
       PUBLIC  :: GET_A3_TIME
-      PUBLIC  :: GET_A6_TIME
       PUBLIC  :: GET_I3_TIME
-      PUBLIC  :: GET_I6_TIME
       PUBLIC  :: GET_FIRST_A1_TIME
       PUBLIC  :: GET_FIRST_A3_TIME
-      PUBLIC  :: GET_FIRST_A6_TIME
       PUBLIC  :: GET_FIRST_I3_TIME
-      PUBLIC  :: GET_FIRST_I6_TIME
       PUBLIC  :: ITS_TIME_FOR_CHEM
       PUBLIC  :: ITS_TIME_FOR_CONV
       PUBLIC  :: ITS_TIME_FOR_DYN
@@ -114,11 +106,7 @@
       PUBLIC  :: ITS_TIME_FOR_SURFACE_RAD
       PUBLIC  :: ITS_TIME_FOR_A1
       PUBLIC  :: ITS_TIME_FOR_A3
-      PUBLIC  :: ITS_TIME_FOR_A6
       PUBLIC  :: ITS_TIME_FOR_I3
-      PUBLIC  :: ITS_TIME_FOR_I6
-      PUBLIC  :: ITS_TIME_FOR_UNZIP     
-      PUBLIC  :: ITS_TIME_FOR_DEL
       PUBLIC  :: ITS_TIME_FOR_EXIT
       PUBLIC  :: ITS_TIME_FOR_BPCH
       PUBLIC  :: ITS_A_LEAPYEAR
@@ -239,6 +227,8 @@
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
+!                              MERRA; Remove obsolete A6 and I6 routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -308,9 +298,7 @@
       INTEGER             :: CT_RAD       ! # of elapsed radiation timesteps
       INTEGER             :: CT_A1        ! # of elapsed A1 met field reads
       INTEGER             :: CT_A3        ! # of elapsed A3 met field reads
-      INTEGER             :: CT_A6        ! # of elapsed I6 met field reads
       INTEGER             :: CT_I3        ! # of elapsed I3 met field reads
-      INTEGER             :: CT_I6        ! # of elapsed I6 met field reads
       INTEGER             :: CT_XTRA      ! # of elapsed XTRA met field reads
       INTEGER             :: CT_DIAG      ! # of elapsed diagnostic timesteps
       INTEGER             :: Hg2_DIAG     ! # of elapsed Hg2 diag outputs
@@ -350,12 +338,9 @@
 !
 ! !REMARKS:
 !  The GEOS met fields are assimilated data, and therefore contain data on
-!  the leap-year days.  However, the GCAP met fields are climatological GCM
-!  output, and do not have data on the leap-year days.  SET_CURRENT_TIME
-!  computes the days according to the Astronomical Julian Date algorithms
-!  (in "julday_mod.f"), which contain leap-year days.  For GCAP, whenever a
-!  February 29th is encountered, we shall just skip ahead a day to March 1st
-!  and return the corresponding time & date values.
+!  the leap-year days.  SET_CURRENT_TIME computes the days according to the
+!  Astronomical Julian Date algorithms (in "julday_mod.f"), which contain
+!  leap-year days.
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2006 - R. Yantosca - Initial Version
@@ -397,49 +382,11 @@
       ! JD1: Astronomical Julian Date at current time
       JD1 = JD0 + ( DBLE( ELAPSED_MIN ) / 1440e+0_f8 )
 
-#if   defined( GCAP ) 
-      !-----------------------------------------------------------------
-      ! Special handling for GCAP met fields #1:
-      ! Force JD1 to skip ahead by the # of Feb 29ths that we have
-      ! already encountered since the start of the run. (bmy, 3/14/11)
-      !-----------------------------------------------------------------
-      JD1 = JD1 + LEAP_YEAR_DAYS
-#endif
-
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
       CALL CALDATE( DBLE(JD1), NYMD, NHMS )
 
       ! Extract current year, month, day from NYMD
       CALL YMD_EXTRACT( NYMD, YEAR, MONTH, DAY )
-
-#if   defined( GCAP ) 
-
-      !-----------------------------------------------------------------
-      ! Special handling for GCAP met fields #2:
-      ! If we should encounter a leap year day (Feb 29th), then 
-      ! force JD1 to skip ahead a day to March 1st and recompute the
-      ! corresponding date variables.  Also increment the counter of
-      ! leap year days that we have already encountered.
-      !-----------------------------------------------------------------
-
-      ! If this is the leap-year day (Feb 29th) ...
-      IF ( MONTH == 2 .and. DAY == 29 .and. NHMS == 000000 ) THEN
-
-         ! Increment the # of leap year days we have encountered so far
-         LEAP_YEAR_DAYS = LEAP_YEAR_DAYS + 1e+0_f8
-         
-         ! JD1 is for Feb 29th, we need to skip ahead to Mar 1st
-         JD1            = JD1            + 1e+0_f8
-
-         ! Call CALDATE to recompute YYYYMMDD for Mar 1st
-         CALL CALDATE( JD1, NYMD, NHMS )
-            
-         ! Extract current year, month, day variables for Mar 1st
-         CALL YMD_EXTRACT( NYMD, YEAR, MONTH, DAY )
-
-      ENDIF
-         
-#endif
 
       ! Extract current hour, minute, second from NHMS
       CALL YMD_EXTRACT( NHMS, HOUR, MINUTE, SECOND )
@@ -788,8 +735,6 @@
       CT_EMIS  = 0
       CT_RAD   = 0
       CT_A3    = 0
-      CT_A6    = 0
-      CT_I6    = 0
       CT_XTRA  = 0
       CT_DIAG  = 0
       Hg2_DIAG = 0
@@ -1119,40 +1064,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Set_ct_a6
-!
-! !DESCRIPTION: Subroutine SET\_CT\_A6 increments CT\_A6, the counter of the 
-!  number of times we have read in A-6 fields.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_CT_A6( INCREMENT, RESET )
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
-! 
-! !REVISION HISTORY: 
-!  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         CT_A6 = CT_A6 + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_A6 = 0
-      ENDIF
-
-      END SUBROUTINE SET_CT_A6
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Set_ct_i3
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_I3 increments CT\_I3, the counter of the 
@@ -1180,40 +1091,6 @@
       ENDIF
 
       END SUBROUTINE SET_CT_I3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Set_ct_i6
-!
-! !DESCRIPTION: Subroutine SET\_CT\_I6 increments CT\_I6, the counter of the 
-!  number of times we have read in I-6 fields.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_CT_I6( INCREMENT, RESET )
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
-! 
-! !REVISION HISTORY: 
-!  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         CT_I6 = CT_I6 + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_I6 = 0
-      ENDIF
-
-      END SUBROUTINE SET_CT_I6
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1665,24 +1542,6 @@
          ! Convert to YYYY/MM/DD and hh:mm:ss
          CALL CALDATE( DBLE(JD), DATE(1), DATE(2) )
       ENDIF
-
-#if   defined( GCAP )
-
-      !-------------------------------
-      ! GCAP met fields: no leapyears
-      !-------------------------------
-
-      ! Extract current year, month, day from DATE(1)
-      CALL YMD_EXTRACT( DATE(1), THISYEAR, THISMONTH, THISDAY )
-
-      ! Special handling for leap years
-      IF ( ITS_A_LEAPYEAR( THISYEAR, FORCE=.TRUE. )  .AND.
-     &     THISMONTH == 2                            .AND.
-     &     THISDAY   == 29 ) THEN 
-           DATE(1) = ( THISYEAR * 10000 ) + 0301
-        ENDIF
-
-#endif
 
       END FUNCTION GET_TIME_AHEAD
 !EOC
@@ -2742,35 +2601,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_ct_a6
-!
-! !DESCRIPTION: Function GET\_CT\_A6 returns the A-6 fields timestep counter 
-!  to the calling program.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_CT_A6() RESULT( THIS_CT_A6 )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: THIS_CT_A6   ! # of A-6 timesteps
-! 
-! !REVISION HISTORY: 
-!  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      THIS_CT_A6 = CT_A6
-
-      END FUNCTION GET_CT_A6
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Get_ct_i3
 !
 ! !DESCRIPTION: Function GET\_CT\_I3 returns the I-3 fields timestep counter
@@ -2793,35 +2623,6 @@
       THIS_CT_I3 = CT_I3
 
       END FUNCTION GET_CT_I3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_ct_i6
-!
-! !DESCRIPTION: Function GET\_CT\_I6 returns the I-6 fields timestep counter
-!  to the calling program
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_CT_I6() RESULT( THIS_CT_I6 )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: THIS_CT_I6   ! # of I-6 timesteps
-! 
-! !REVISION HISTORY: 
-!  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      THIS_CT_I6 = CT_I6
-
-      END FUNCTION GET_CT_I6
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2939,18 +2740,9 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-      ! MERRA and GEOS-5.7.x met fields are 1-hour time-averages, timestamped 
+      ! GEOS-FP and MERRA-2 met fields are 1-hour time-averages, timestamped 
       ! at the center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
       DATE = GET_TIME_AHEAD( 30 )
-
-#else
-      
-      ! Otherwise return the current time
-      DATE = GET_TIME_AHEAD( 0 )
-
-#endif
 
       END FUNCTION GET_A1_TIME
 !EOC
@@ -2986,46 +2778,12 @@
 !------------------------------------------------------------------------------
 !BOC
 
-      ! For GEOS-4, GEOS-5, or GCAP data: The A-3 fields are timestamped 
-      ! by center time.  Therefore, the difference between the actual time 
-      ! when the fields are read and the A-3 timestamp time is 90 minutes.
+      ! The A-3 fields are timestamped by center time.
+      ! Therefore, the difference between the actual time when the fields
+      ! are read and the A-3 timestamp time is 90 minutes.
       DATE = GET_TIME_AHEAD( 90 )   
 
       END FUNCTION GET_A3_TIME
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_a6_time
-!
-! !DESCRIPTION: Function GET\_A6\_TIME returns the correct YYYYMMDD and HHMMSS 
-!  values that are needed to read in the next average 6-hour (A-6) fields. 
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_A6_TIME() RESULT( DATE )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS time
-! 
-! !REVISION HISTORY: 
-!  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-      ! Return the time 3h (180m) from now, since there is a 3-hour 
-      ! offset between the actual time when the A-6 fields are read
-      ! and the time that the A-6 fields are stamped with.
-      DATE = GET_TIME_AHEAD( 180 )      
-
-      END FUNCTION GET_A6_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3069,19 +2827,19 @@
 
          !--------------------------------------------------------------
          ! FIRST-TIME ONLY!  Get the proper # of hours until the next 
-         ! I6 time.  Also works for start times other than 0 GMT.
+         ! I3 time.  Also works for start times other than 0 GMT.
          !--------------------------------------------------------------
 
          ! Split NHMS into hours, mins, seconds
          CALL YMD_EXTRACT( NHMS, HH, MM, SS )
 
-         ! Compute minutes elapsed in the 6-hour interval
+         ! Compute minutes elapsed in the 3-hour interval
          MINS   = MOD( HH, 3 )*60 + MM
 
          ! Compute offset to next I-3 time
          OFFSET = 180 - MINS
 
-         ! Get YYYY/MM/DD and hh:mm:ss to next I-6 time
+         ! Get YYYY/MM/DD and hh:mm:ss to next I3 time
          DATE   = GET_TIME_AHEAD( OFFSET ) 
 
          ! Reset first-time flag
@@ -3090,106 +2848,15 @@
       ELSE
 
          !--------------------------------------------------------------
-         ! Other than the 1st time: Search 360 mins ahead
+         ! Other than the 1st time: Search 180 mins ahead
          !--------------------------------------------------------------
 
-         ! We need to read in the I-6 fields 6h (180 mins) ahead of time
+         ! We need to read in the I-3 fields 3h (180 mins) ahead of time
          DATE = GET_TIME_AHEAD( 180 )
 
       ENDIF
 
       END FUNCTION GET_I3_TIME
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_i6_time
-!
-! !DESCRIPTION: Function GET\_I6\_TIME returns the correct YYYYMMDD and 
-!  HHMMSS values that are needed to read in the next instantaneous 6-hour 
-!  (I-6) fields. 
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_I6_TIME() RESULT( DATE )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
-!  
-! !REMARKS:
-!  Modified for start times other than 0 GMT.  However someone should check
-!  to make sure it works properly for the GCAP simulation. (bmy, 9/27/10)
-!
-! !REVISION HISTORY: 
-!  21 Mar 2003 - R. Yantosca - Initial Version
-!  (1 ) Bug fix for GCAP: skip over Feb 29th (no leapyears). (bmy, 4/24/06)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  27 Sep 2010 - R. Yantosca - Now works for start times other than 0 GMT
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: HH, MM, SS, MINS, OFFSET
-
-#if   defined( GCAP ) 
-
-      !=================================================================
-      ! GCAP MET FIELDS: There are no leapyears; adjust accordingly
-      !=================================================================
-
-      ! If 18 GMT on Feb 28th, the next I-6 time is 0 GMT on Mar 1st
-      IF ( MONTH == 2 .and. DAY == 28 .and. HOUR == 18 ) THEN
-         DATE = (/ ( YEAR * 10000 ) + 0301, 000000 /)
-         RETURN
-      ENDIF
-
-#endif
-
-      !=================================================================
-      ! ALL MET FIELDS:
-      !=================================================================
- 
-      IF ( FIRST ) THEN
-
-         !--------------------------------------------------------------
-         ! FIRST-TIME ONLY!  Get the proper # of hours until the next 
-         ! I6 time.  Also works for start times other than 0 GMT.
-         !--------------------------------------------------------------
-
-         ! Split NHMS into hours, mins, seconds
-         CALL YMD_EXTRACT( NHMS, HH, MM, SS )
-
-         ! Compute minutes elapsed in the 6-hour interval
-         MINS   = MOD( HH, 6 )*60 + MM
-
-         ! Compute offset to next I-6 time
-         OFFSET = 360 - MINS
-
-         ! Get YYYY/MM/DD and hh:mm:ss to next I-6 time
-         DATE   = GET_TIME_AHEAD( OFFSET ) 
-
-         ! Reset first-time flag
-         FIRST = .FALSE.
-
-      ELSE
-
-         !--------------------------------------------------------------
-         ! Other than the 1st time: Search 360 mins ahead
-         !--------------------------------------------------------------
-
-         ! We need to read in the I-6 fields 6h (360 mins) ahead of time
-         DATE = GET_TIME_AHEAD( 360 )
-
-      ENDIF
-
-      END FUNCTION GET_I6_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3261,7 +2928,6 @@
       INTEGER :: HH, MM, SS, MINS, OFFSET
 
       !==================================================================
-      ! GEOS-4, GEOS-5, MERRA, GCAP: 
       ! A3 fields are indexed at the midpoint of the 3-hr interval
       !==================================================================
 
@@ -3278,78 +2944,6 @@
       DATE   = GET_TIME_AHEAD( OFFSET )
 
       END FUNCTION GET_FIRST_A3_TIME
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_first_a6_time
-!
-! !DESCRIPTION: Function GET\_FIRST\_A6\_TIME returns the correct YYYYMMDD and
-!  HHMMSS values the first time that A-6 fields are read in from disk.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_FIRST_A6_TIME() RESULT( DATE )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
-! 
-! !REVISION HISTORY: 
-!  26 Jun 2003 - R. Yantosca - Initial Version
-!  (1 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
-!  (2 ) Modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: HH, MM, SS, MINS, OFFSET
-
-#if   defined( GCAP )
-
-      !==================================================================
-      ! GCAP MET FIELDS
-      !==================================================================
-
-      ! Call GET_A6_TIME to return date/time
-      ! under which the A-6 fields are timestamped
-      DATE = GET_A6_TIME()      
-
-#else
-
-      !==================================================================
-      ! GEOS-3, GEOS-4, GEOS-5, MERRA MET FIELDS
-      !==================================================================
-
-      ! Split NYMS into hours, mins, seconds
-      CALL YMD_EXTRACT( NHMS, HH, MM, SS )        
-
-      ! Compute minutes elapsed in the 6-hour interval
-      MINS   = MOD( HH, 6 )*60 + MM
-
-      ! Compute offset to midpoint of 6-hour interval
-      OFFSET = 360 - ( MINS + 180 )
-
-      IF ( MINS < 180 ) THEN
-         OFFSET = -MINS
-      ELSE
-         OFFSET = 360 - MINS
-      ENDIF
-
-      ! Get YYYY/MM/DD and hh:mm:ss at midpoint of 3hr interval
-      DATE   = GET_TIME_AHEAD( OFFSET ) 
-
-#endif
-
-      END FUNCTION GET_FIRST_A6_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3397,53 +2991,6 @@
       DATE   = GET_TIME_AHEAD( OFFSET ) 
 
       END FUNCTION GET_FIRST_I3_TIME
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_first_i6_time
-!
-! !DESCRIPTION: Function GET\_FIRST\_I6\_TIME returns the correct YYYYMMDD and
-!  HHMMSS values the first time that I-6 fields are read in from disk.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_FIRST_I6_TIME() RESULT( DATE )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
-! 
-! !REVISION HISTORY: 
-!  27 Sep 2010 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: HH, MM, SS, MINS, OFFSET
-
-      !==================================================================
-      ! Compute first I-6 time for all met field types
-      !==================================================================
-
-      ! Split NYMS into hours, mins, seconds
-      CALL YMD_EXTRACT( NHMS, HH, MM, SS )        
-
-      ! Compute minutes elapsed in the 6-hour interval
-      MINS   = MOD( HH, 6 )*60 + MM
-
-      ! Compute offset to nearest I-6 time
-      OFFSET = -MINS
-
-      ! Get YYYY/MM/DD and hh:mm:ss to nearest I-6 time
-      DATE   = GET_TIME_AHEAD( OFFSET ) 
-
-      END FUNCTION GET_FIRST_I6_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3857,69 +3404,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Its_Time_For_a6
-!
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_A6 returns TRUE if it is time to read 
-!  in A6 (average 6-hr fields) and FALSE otherwise.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION ITS_TIME_FOR_A6() RESULT( FLAG )
-!
-! !RETURN VALUE:
-!
-      LOGICAL :: FLAG 
-! 
-! !REVISION HISTORY: 
-!  21 Mar 2003 - R. Yantosca - Initial Version
-!  (1 ) Now compute when it's time to read in GEOS-4 A-6 fields. (bmy, 6/26/03)
-!  (2 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
-!  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: DATE(2)
-
-#if   defined( GCAP )
-
-      !-----------------------------------------------------------------
-      ! For GCAP met only 
-      !-----------------------------------------------------------------
-
-      ! For GCAP data: We need to read A-6 fields when it 00, 06, 
-      ! 12, 18 GMT.  DATE is the current time -- test below.
-      DATE = GET_TIME_AHEAD( 0 )
-
-#else
-
-      !-----------------------------------------------------------------
-      ! For all other types of met data (except MERRA)
-      !-----------------------------------------------------------------
-
-      ! For all GEOS data: We need to read A-6 fields when it is 03, 
-      ! 09, 15, 21 GMT.  DATE is the time 3 hours from now -- test below.
-      DATE = GET_TIME_AHEAD( 180 )
-     
-#endif
-
-      ! Test if DATE corresponds to 00, 06, 12, 18 GMT.  
-      ! If so, then it is time to read A-6 fields from disk.
-      FLAG = ( MOD( DATE(2), 060000 ) == 0 ) 
-
-      END FUNCTION ITS_TIME_FOR_A6
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Its_Time_For_i3
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_I3 returns TRUE if it is time to read 
@@ -3950,120 +3434,6 @@
       FIRST = .FALSE.
 
       END FUNCTION ITS_TIME_FOR_I3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Its_Time_For_i6
-!
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_I6 returns TRUE if it is time to read 
-!  in I6 (instantaneous 6-hr fields) and FALSE otherwise.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION ITS_TIME_FOR_I6() RESULT( FLAG )
-!
-! !RETURN VALUE:
-!
-      LOGICAL :: FLAG 
-! 
-! !REVISION HISTORY: 
-!  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARAIABLES:
-!
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      
-      ! We read in I-6 fields at 00, 06, 12, 18 GMT
-      FLAG = ( ( MOD( NHMS, 060000 ) == 0 ) .or. FIRST )
-      
-      FIRST = .FALSE.
-
-      END FUNCTION ITS_TIME_FOR_I6
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Its_Time_For_unzip
-!
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_UNZIP Treturns TRUE if it is time to 
-!  unzip the next day's met field files, or FALSE otherwise.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION ITS_TIME_FOR_UNZIP() RESULT( FLAG )
-!
-! !RETURN VALUE:
-!
-      LOGICAL :: FLAG
-! 
-! !REVISION HISTORY: 
-!  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: DATE(2)
-
-      ! Get YYYYMMDD and HHMMSS 12 hours (720 mins) from now
-      DATE = GET_TIME_AHEAD( 720 )
-
-      ! If HHMMSS = 0 then it's time to unzip!
-      FLAG = ( DATE(2) == 000000 )
-
-      END FUNCTION ITS_TIME_FOR_UNZIP     
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Its_Time_For_del
-!
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_DEL returns TRUE if it is time to 
-!  delete the previous day's met field files in the temporary directory. 
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION ITS_TIME_FOR_DEL() RESULT( FLAG )
-!
-! !RETURN VALUE:
-!
-      LOGICAL :: FLAG 
-
-! 
-! !REVISION HISTORY: 
-!  21 Mar 2003 - R. Yantosca - Initial Version
-!  19 Jun 2003 - R. Yantosca - Now delete files at 23 GMT each day, since the 
-!                              last fvDAS A-3 field is 22:30 GMT and the last 
-!                              fvDAS A-6 field is 21 GMT
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: DATE(2)
-
-      ! Delete files when it's 23 GMT
-      FLAG = ( NHMS == 230000 )
-
-      END FUNCTION ITS_TIME_FOR_DEL
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -4238,15 +3608,6 @@
       !     4, 100, and 400.
       !=================================================================
       IS_LEAPYEAR = .FALSE.
-
-#if   defined( GCAP )
-      ! For GCAP met fields, there are no leap years.  However, sometimes
-      ! we need to test to see if it would be a leap year so that we can
-      ! tell the GEOS-Chem timing functions to skip past Feb 29th.  If 
-      ! argument FORCE=T, then return the value of IS_LEAPYEAR to the
-      ! calling program (bmy, 4/24/06)
-      IF ( .not. THISFORCE ) RETURN
-#endif
 
       IF ( MOD( THISYEAR, 4 ) == 0 ) THEN
          IF ( MOD( THISYEAR, 100 ) == 0 ) THEN
@@ -4812,6 +4173,8 @@
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  10 Oct 2017 - R. Yantosca - Now print 6 decimal digits for elapsed time
+!  10 Oct 2017 - R. Yantosca - Change "GMT" to "UTC", which is more standard
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4828,7 +4191,7 @@
 
       ! Format string
  100  FORMAT( '---> DATE: ', i4.4, '/', i2.2, '/', i2.2, 
-     &            '  GMT: ', i2.2, ':', i2.2, '  X-HRS: ', f11.3 )
+     &            '  UTC: ', i2.2, ':', i2.2, '  X-HRS: ', f13.6 )
 
       END SUBROUTINE PRINT_CURRENT_TIME
 !EOC

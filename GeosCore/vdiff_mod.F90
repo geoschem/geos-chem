@@ -112,6 +112,12 @@ MODULE VDIFF_MOD
                                                    !  drydep budgets 
                                                    !-- useless when 
                                                    !   pbl_mean_drydep=.false.
+
+!----------------------------------------------------------------------
+! Diagnostic quantities
+!-----------------------------------------------------------------------
+
+  LOGICAL :: Archive_DryDepFlux_Mix   ! Is drydep flux diagnostic turned on?
 !
 ! !REMARKS:
 !  The non-local PBL mixing routine VDIFF modifies the specific humidity,
@@ -1826,7 +1832,7 @@ contains
 !
 ! !INTERFACE:
 !
-  SUBROUTINE VDIFFDR( am_I_Root, Input_Opt, State_Met, State_Chm )
+  SUBROUTINE VDIFFDR( am_I_Root, Input_Opt, State_Met, State_Chm, State_Diag )
 !
 ! !USES:
 ! 
@@ -1851,6 +1857,7 @@ contains
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS, GET_TS_CHEM
 #if defined( USE_TEND )
     USE TENDENCIES_MOD
@@ -1858,28 +1865,19 @@ contains
 
     ! HEMCO update
     USE HCO_INTERFACE_MOD,  ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
-#if defined( NC_DIAG )
-    USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
-    USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-#endif
 
     implicit none
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS: 
 !
-    ! is this the root CPU?
-    LOGICAL,        INTENT(IN)            :: am_I_Root
-
-    ! Input options object
-    TYPE(OptInput), INTENT(IN)            :: Input_Opt
-    
-    ! Meteorology State object
-    TYPE(MetState), INTENT(INOUT)         :: State_Met   
-
-    ! Chemistry State object
-    TYPE(ChmState), INTENT(INOUT)         :: State_Chm
+    LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!   
+    TYPE(MetState), INTENT(INOUT) :: State_Met    ! Meteorology State object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
 !
 ! !REMARKS:
 !  (1) Need to declare the Meteorology State object (State_MET) with
@@ -1950,6 +1948,9 @@ contains
 !  20 Oct 2016 - R. Yantosca - Only write eflx/dflx debug on the root CPU
 !  15 Mar 2017 - C. Keller   - Remove variable trc_id (use N instead) 
 !  16 Mar 2017 - R. Yantosca - Remove N_MEMBERS, it's obsolete
+!  30 Jun 2017 - R. Yantosca - For now, print out eflx/dflx if DEVEL=y
+!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  10 Oct 2017 - R. Yantosca - Now archive drydep flux (mixing) for History
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2006,7 +2007,7 @@ contains
     REAL(fp),  POINTER :: p_as2   (:,:,:,:)
 
     ! For values from Input_Opt
-    LOGICAL            :: IS_CH4,    IS_FULLCHEM, IS_Hg,     IS_TAGO3
+    LOGICAL            :: IS_CH4,    IS_FULLCHEM, IS_Hg
     LOGICAL            :: IS_TAGCO,  IS_AEROSOL,  IS_RnPbBe, LDYNOCEAN
     LOGICAL            :: LGTMM,     LSOILNOX
 
@@ -2014,16 +2015,6 @@ contains
     LOGICAL            :: FND
     REAL(fp)           :: TMPFLX, EMIS, DEP
     INTEGER            :: RC,     HCRC, TOPMIX
-
-    ! For diagnostics
-    REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR ) 
-#if defined( NC_DIAG )
-    REAL(fp), POINTER  :: Ptr3D(:,:,:)
-    REAL(fp), POINTER  :: Ptr2D(:,:)
-    REAL(fp)           :: Total
-    INTEGER            :: cID
-    CHARACTER(LEN=30)  :: DiagnName
-#endif
 
     ! PARANOX loss fluxes (kg/m2/s), imported from 
     ! HEMCO PARANOX extension module (ckeller, 4/15/2015)
@@ -2038,6 +2029,9 @@ contains
     ! For pointing to the species database
     TYPE(Species),  POINTER :: SpcInfo
     INTEGER                 :: Hg_Cat
+
+    ! For diagnostics
+    REAL(fp)                :: EmMW_kg
 
     !=================================================================
     ! vdiffdr begins here!
@@ -2061,10 +2055,6 @@ contains
 
     ! Initialize pointers
     SpcInfo => NULL()
-#if defined( NC_DIAG )
-    Ptr3D   => NULL()
-    Ptr2D   => NULL()
-#endif
 
     ! Initialize local arrays. (ccc, 12/21/10)
     pmid    = 0e+0_fp
@@ -2087,13 +2077,9 @@ contains
     t1      = 0e+0_fp
     as2_scal= 0e+0_fp
 
-    ! Initialize diagnostic array (ND44)
-    DryDepFlux = 0e+0_fp
-
     ! Copy values from Input_Opt (bmy, 8/1/13)
     IS_CH4       = Input_Opt%ITS_A_CH4_SIM
     IS_Hg        = Input_Opt%ITS_A_MERCURY_SIM
-    IS_TAGO3     = Input_Opt%ITS_A_TAGO3_SIM
     IS_AEROSOL   = Input_Opt%ITS_AN_AEROSOL_SIM
     LDYNOCEAN    = Input_Opt%LDYNOCEAN
     LGTMM        = Input_Opt%LGTMM
@@ -2211,7 +2197,7 @@ contains
        ! PBL top level [integral model levels]
        topmix      = State_Met%PBL_TOP_L(I,J)
 
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! Add emissions & deposition values calculated in HEMCO.
        ! Here we only consider emissions below the PBL top.
        !
@@ -2225,7 +2211,7 @@ contains
        !
        ! For more information, please see this wiki page:
        ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
        DO NA = 1, nAdvect
        
           ! Add total emissions in the PBL to the EFLX array
@@ -2250,7 +2236,7 @@ contains
           ENDIF
        ENDDO
        
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! Overwrite emissions for offline CH4 simulation.
        ! CH4 emissions become stored in CH4_EMIS in global_ch4_mod.F.
        ! We use CH4_EMIS here instead of the HEMCO internal emissions
@@ -2259,34 +2245,36 @@ contains
        ! and/or all other source types, we could use the HEMCO internal
        ! values set above and would not need the code below.
        ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
        IF ( IS_CH4 ) THEN
           do NA = 1, nAdvect
              eflx(I,J,NA) = CH4_EMIS(I,J,NA)
           enddo
        ENDIF
 
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! Overwrite emissions for offline mercury simulation
        ! HG emissions become stored in HG_EMIS in mercury_mod.F.
        ! This is a workaround to ensure backwards compatibility.
        ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
        IF ( IS_Hg ) THEN
           do NA = 1, nAdvect
              eflx(I,J,NA) = HG_EMIS(I,J,NA) 
           enddo
        ENDIF
 
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! Apply dry deposition frequencies
        ! These are the frequencies calculated in drydep_mod.F
        ! The HEMCO drydep frequencies (from air-sea exchange and 
        ! PARANOX) were already added above.
-       !----------------------------------------------------------------
-
-       ! Loop over only the drydep species
-       ! If drydep is turned off, nDryDep=0 and the loop won't execute
+       !
+       ! NOTES:
+       ! (1) Loops over only the drydep species
+       ! (2) If drydep is turned off, nDryDep=0 and the loop won't execute
+       ! (3) Tagged species are included in this loop. via species database
+       !--------------------------------------------------------------------
        DO ND = 1, nDryDep
 
           ! Get the species ID from the drydep ID
@@ -2346,31 +2334,10 @@ contains
           ! Turn off Hg(0) deposition to snow and ice because we haven't yet
           ! included emission from these surfaces and most field studies
           ! suggest Hg(0) emissions exceed deposition during sunlit hours.
-
-          ! Except in MERRA, we assume entire grid box is water or ice
-          ! if conditions are met (jaf, 4/26/11)
-          FRAC_NO_HG0_DEP = 1e+0_fp
-
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
           FRAC_NO_HG0_DEP = MIN( State_Met%FROCEAN(I,J) + &
                                  State_Met%FRSNO(I,J)   + &
                                  State_Met%FRLANDIC(I,J), 1e+0_fp)
           ZERO_HG0_DEP    = ( FRAC_NO_HG0_DEP > 0e+0_fp )
-
-#elif defined( GEOS_5 )
-          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-          ZERO_HG0_DEP = (( State_Met%LWI(I,J) == 0      )  .OR.  &
-                          ( IS_ICE ( I, J, State_Met     )) .OR.  &
-                          ( IS_LAND( I, J, State_Met     )  .AND. &
-                            State_Met%SNOMAS(I,J) > 10e+0_fp ))
-
-#else
-          ! GEOS1-4 snow heigt (water equivalent) in mm
-          ZERO_HG0_DEP = (( State_Met%LWI(I,J) == 0      )  .OR.  &
-                          ( IS_ICE ( I, J, State_Met     )) .OR.  &
-                          ( IS_LAND( I, J, State_Met     )  .AND. &
-                            State_Met%SNOW(I,J)   > 10e+0_fp ))
-#endif
           
           IF ( IS_Hg .AND. SpcInfo%Is_Hg0 ) THEN
              IF ( ZERO_HG0_DEP ) THEN
@@ -2382,53 +2349,6 @@ contains
           ! Free species database pointer
           SpcInfo => NULL()
        enddo
-
-       !----------------------------------------------------------------
-       ! Apply dry deposition frequencies for Tagged O3 simulation
-       ! (Jintai Lin, 06/21/08)
-       !----------------------------------------------------------------
-       IF ( IS_TAGO3 ) THEN
-          do NA = 2, nAdvect ! the first species, O3, has been done above
-             if (pbl_mean_drydep) then
-                wk1 = 0.e+0_fp
-                wk2 = 0.e+0_fp
-                pbl_top = GET_PBL_MAX_L() ! the highest layer the PBL reaches,
-                                          ! globally
-                do L = 1, pbl_top
-                   wk1 = wk1 + State_Chm%Species    (I,J,L,NA) * &
-                               State_Met%AD         (I,J,L   ) * &
-                               GET_FRAC_UNDER_PBLTOP(I,J,L   )
-
-                   wk2 = wk2 + State_Met%AD         (I,J,L   ) * &
-                               GET_FRAC_UNDER_PBLTOP(I,J,L   )
-                enddo
-
-                ! since we only use the ratio of wk1 / wk2, there should not be
-                ! a problem even if the PBL top is lower than the top of the 
-                ! first (lowest) model layer
-                ! given that as2 is in v/v
-                dflx(I,J,NA) = DEPSAV(I,J,1) * (wk1/(wk2+1.e-30_fp)) &
-                               / (AIRMW / State_Chm%SpcData(1)%Info%emMW_g )
-
-                ! Consistent with the standard GEOS-Chem setup.(Lin, 07/14/08) 
-                if (drydep_back_cons) then 
-                   dflx(I,J,NA) = dflx(I,J,NA) * (wk2+1.e-30_fp) / &
-                                  State_Met%AD(I,J,1)        * &
-                                  State_Met%BXHEIGHT(I,J,1)  / &
-                                  GET_PBL_TOP_m(I,J)
-                endif
-             else 
-                ! only use the lowest model layer for calculating drydep fluxes
-                ! given that as2 is in v/v
-                ! NOTE: Now use as2_scal(I,J,NA), instead of as2(I,J,1,NA) to 
-                ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
-                ! Now add to existing dflx (ckeller, 10/16/2014).
-                dflx(I,J,NA) = dflx(I,J,NA) &
-                             + DEPSAV(I,J,1) * as2_scal(I,J,NA)  &
-                             / ( AIRMW / State_Chm%SpcData(1)%Info%emMW_g )
-             endif
-          enddo
-       endif
 
        ! virtual temperature in the lowest model layer
        ! vtemp = tadv(I,J,1)*(1. + zvir*shp(I,J,1))
@@ -2454,9 +2374,9 @@ contains
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
 
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
        IF ( IS_Hg ) THEN
           
           ! Loop over only the drydep species
@@ -2502,7 +2422,8 @@ contains
     enddo
 !$OMP END PARALLEL DO
 
-#if defined( DEBUG )
+!#if defined( DEBUG )
+#if defined( DEVEL )
     ! Print debug output for the advected species
     write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
     do NA = 1, nAdvect
@@ -2511,66 +2432,20 @@ contains
     enddo
 #endif
 
-    ! Write (surface) emissions into diagnostics
-#if defined( NC_DIAG )
-
-    ! Allocate temporary data array
-    ALLOCATE(Ptr3D(IIPAR,JJPAR,LLPAR))
-    Ptr3D = 0.0_fp
-
-    ! Loop over only the advected species
-    DO NA = 1, nAdvect
-
-       ! Emission fluxes
-       IF ( ANY(eflx(:,:,NA) > 0.0_fp ) ) THEN
-          Ptr3D(:,:,1) = eflx(:,:,NA)
-          cID = GetHcoID ( SpcID=NA )
-          IF ( cID > 0 ) THEN
-             cID = 10000 + cID
-             ! Total in kg
-             Total = SUM(Ptr3D(:,:,1) * State_Met%AREA_M2(:,:,1)) * dtime 
-             CALL Diagn_Update( am_I_Root, HcoState,                 &
-                                cID     = cID,                       &
-                                Array3D = Ptr3D,                     &
-                                Total   = Total,                     &
-                                COL     = Input_Opt%DIAG_COLLECTION, &
-                                RC      = HCRC                        )
-             Ptr3D = 0.0_fp
-          ENDIF
-       ENDIF
-
-       !! Drydep fluxes
-       !! Now update drydep flux diag below using molec/cm2/s
-       !IF ( (ND44>0) .AND. (ANY(dflx(:,:,N) > 0.0_fp) ) ) THEN
-       !   Ptr2D => dflx(:,:,N)
-       !   cID = 44500 + N
-       !   CALL Diagn_Update( am_I_Root,                           &
-       !                      cID     = cID,                       &
-       !                      Array2D = Ptr2D,                     &
-       !                      COL     = Input_Opt%DIAG_COLLECTION, &
-       !                      RC      = HCRC                        )
-       !   Ptr2D => NULL()
-       !ENDIF
-    ENDDO
-
-    DEALLOCATE(Ptr3D)
-
-#endif
-
-    !==============================================================
-    ! Calculate ND44 diagnostic: drydep flux loss [molec/cm2/s]
-    !==============================================================
-
-    ! drydep fluxes diag. for SMVGEAR mechanism 
-    ! for gases -- moved from DRYFLX in drydep_mod.f to here
-    ! for aerosols -- 
-    if (ND44 > 0 .or. LGTMM .or. LSOILNOX) then
+    !=======================================================================
+    ! DIAGNOSTICS: Compute drydep flux loss due to mixing [molec/cm2/s]
+    !
+    ! NOTE: Dry deposition of "tagged" species (e.g. in tagO3, tagCO, tagHg
+    ! specialty simulations) are accounted for in species 1..nDrydep,
+    ! so we don't need to do any further special handling.
+    !=======================================================================
+    if ( ND44 > 0 .or. LGTMM .or. LSOILNOX .or. Archive_DryDepFlux_Mix ) then
 
        ! Loop over only the drydep species
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
        DO ND = 1, nDryDep
 
-          ! Get the species ID from the drydep Id
+          ! Get the species ID from the drydep ID
           N = State_Chm%Map_DryDep(ND)
 
           ! Skip if not a valid species
@@ -2580,10 +2455,13 @@ contains
           ! NOTE: Assumes a 1:1 tracer index to species index mapping
           SpcInfo => State_Chm%SpcData(N)%Info
 
+          ! Get the (emitted) molecular weight of the species in kg
+          EmMW_kg = SpcInfo%emMW_g * 1.e-3_fp
+
 #if defined( BPCH_DIAG )
-      !===============================================================
-      ! Update dry deposition flux diagnostic for bpch output (ND44) 
-      !===============================================================
+          !-----------------------------------------------------------------
+          ! Update dry deposition flux diagnostic for bpch output (ND44) 
+          !-----------------------------------------------------------------
 	  IF( ND44 > 0 .or. LGTMM) THEN                
              ! only for the lowest model layer
              ! Convert : kg/m2/s -> molec/cm2/s
@@ -2595,43 +2473,44 @@ contains
                              * 1.e-4_fp * GET_TS_CONV() / GET_TS_CHEM() 
           ENDIF
 #endif
+
 #if defined( NC_DIAG )
-      !===============================================================
-      ! Update dry deposition flux diagnostic for netcdf output (ND44) 
-      !===============================================================
-	  IF( ND44 > 0 .or. LGTMM) THEN                
-
-             ! For netcdf output, save flux in local array before
-             ! passing to HEMCO
-             DryDepFlux = dflx(:,:,N)                    &
-                          / (SpcInfo%emMW_g * 1.e-3_fp)  &
-                          * AVO * 1.e-4_fp * GET_TS_CONV() / GET_TS_CHEM()
-             
-             ! If this tracer is scheduled for output in 
-             ! input.geos, then update the diagnostic
-             IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
-
-                ! Update diagnostic container
-                DiagnName = 'DRYDEP_FLX_MIX_'                &
-                            // TRIM( SpcInfo%Name )
-                Ptr2D => DryDepFlux
-                CALL Diagn_Update( am_I_Root, HcoState,                 &
-                                   cName   = TRIM( DiagnName),          &
-                                   Array2D = Ptr2D,                     & 
-                                   COL     = Input_Opt%DIAG_COLLECTION, &
-                                   RC      = HCRC                        )
-                Ptr2D => NULL()
-             
-                ! Stop with error if the diagnostic was unsuccessful
-                IF ( HCRC /= HCO_SUCCESS ) THEN
-                   CALL ERROR_STOP( 'Cannot update drydep flux' //       & 
-                                    ' diagnostic: ' // TRIM( DiagnName), &
-                                    'VDIFFDR (vdiff_mod.F)')
-                ENDIF
-             ENDIF
+          !-----------------------------------------------------------------
+          ! HISTORY: Update dry deposition flux loss [molec/cm2/s]
+          !
+          ! DFLX is in kg/m2/s.  We convert to molec/cm2/s by:
+          !
+          ! (1) multiplying by 1e-4 cm2/m2        => kg/cm2/s
+          ! (2) multiplying by ( AVO / EmMW_KG )  => molec/cm2/s
+          !           
+          ! The term AVO/EmMW_kg = (molec/mol) / (kg/mol) = molec/kg
+          !
+          ! NOTE: we don't need to multiply by the ratio of TS_CONV / 
+          ! TS_CHEM, as the updating frequency for HISTORY is determined 
+          ! by the "frequency" setting in the "HISTORY.rc"input file.  
+          ! The old bpch diagnostics archived the drydep due to chemistry 
+          ! every chemistry timestep = 2X the dynamic timestep.  So in 
+          ! order to avoid double-counting the drydep flux from mixing, 
+          ! you had to multiply by TS_CONV / TS_CHEM.
+          !         
+          ! ALSO NOTE: When comparing History output to bpch output,
+          ! you must use an updating frequency equal to the dynamic
+          ! timestep so that the drydep fluxes due to mixing will
+          ! be equivalent w/ the bpch output.  It is also recommended to 
+          ! turn off chemistry so as to be able to compare the drydep 
+          ! fluxes due to mixing in bpch vs. History as an "apples-to-
+          ! apples" comparison.
+          !
+          !    -- Bob Yantosca (yantosca@seas.harvard.edu)
+          !-----------------------------------------------------------------
+          IF ( Archive_DryDepFlux_Mix ) THEN
+             State_Diag%DryDepFlux_Mix(:,:,1,ND) = Dflx(:,:,N)               &
+                                                 * 1.0e-4_fp                 &
+                                                 * ( AVO / EmMW_kg  )
           ENDIF
 #endif
 
+          !-----------------------------------------------------------------
           ! If Soil NOx is turned on, then call SOIL_DRYDEP to
           ! archive dry deposition fluxes for nitrogen species
           ! (SOIL_DRYDEP will exit if it can't find a match.
@@ -2641,6 +2520,7 @@ contains
           ! NOTE: trc_id was previously NN and drydep id D
           ! was previously N. This is changed for convention consistency
           ! within subroutine (ewl, 1/25/16)
+          !-----------------------------------------------------------------
 	  IF ( LSOILNOX ) THEN
              soilflux = 0e+0_fp
              DO J = 1, JJPAR
@@ -2658,29 +2538,7 @@ contains
           ! Free species database pointer
           SpcInfo => NULL()
 
-       enddo ! D 
-
-       ! Add ITS_A_TAGO3_SIM (Lin, 06/21/08)
-       IF ( IS_TAGO3 ) THEN
-          ! The first species, O3, has been done above
-          do NA = 2, nAdvect
-
-#if defined( BPCH_DIAG )
-
-             ! Convert : kg/m2/s -> molec/cm2/s
-             ! Consider timestep difference between convection and emissions
-             AD44(:,:,NA,1) = AD44(:,:,NA,1) + dflx(:,:,NA) &
-                       /  (State_Chm%SpcData(1)%Info%emMW_g * 1.e-3_fp) &
-                       * AVO * 1.e-4_fp &
-                       * GET_TS_CONV() / GET_TS_EMIS()
-
-             ! The drydep velocities [cm/s] for tagged O3 species
-             ! are the same as the drydep velocity for total O3
-             AD44(:,:,NA,2) = AD44(:,:,1,2)
-#endif
-          enddo
-       endif
-
+       enddo ! D
 
     endif
 
@@ -2699,9 +2557,9 @@ contains
        enddo
        endif
 
-       !-------------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! Now use pointers to flip arrays in the vertical (bmy, 6/22/15)
-       !-------------------------------------------------------------------
+       !--------------------------------------------------------------------
 
        ! 3-D fields on level centers
        p_um1              => State_Met%U    ( :, :, LLPAR  :1:-1    )   
@@ -2775,12 +2633,12 @@ contains
        NULLIFY( p_kvh,   p_kvm,    p_shp,  p_as2,  p_hflux)
 
     else if( arvdiff ) then
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------------
 !  	... vertical diffusion using archived values of cgs and kvh.
 !
 !       %%% NOTE: THIS SECTION IS NORMALLY NOT EXECUTED %%%
 !       %%% BECAUSE ARVDIFF IS SET TO .FALSE. ABOVE     %%% 
-!-----------------------------------------------------------------------
+!--------------------------------------------------------------------------
 
        !-------------------------------------------------------------------
        ! Now use pointers to flip arrays in the vertical (bmy, 6/22/15)
@@ -2837,9 +2695,9 @@ contains
 
     end if
 
-    !-------------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! re-compute PBL variables wrt derived pblh (in m)
-    !-------------------------------------------------------------------
+    !-----------------------------------------------------------------------
     if (.not. pblh_ar) then
 
        ! PBL is in m 
@@ -2874,8 +2732,8 @@ contains
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_PBL_MIX_2( am_I_Root, DO_VDIFF,  Input_Opt,  &
-                           State_Met, State_Chm, RC         )
+  SUBROUTINE DO_PBL_MIX_2( am_I_Root, DO_VDIFF,   Input_Opt, State_Met,      &
+                           State_Chm, State_Diag, RC                        )
 !
 ! !USES:
 !
@@ -2887,7 +2745,9 @@ contains
     USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -2902,6 +2762,7 @@ contains
 !
     TYPE(MetState), INTENT(INOUT) :: State_Met    ! Meteorology State object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2922,6 +2783,9 @@ contains
 !                              since specific humidity is updated
 !  13 Jul 2016 - R. Yantosca - Remove STT, we can point to State_Chm%Species
 !                              in the VDIFFDR routine directly
+!  27 Sep 2017 - E. Lundgren - Apply unit conversion within routine instead
+!                              of in do_mixing
+!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2932,34 +2796,45 @@ contains
     LOGICAL, SAVE :: FIRST = .TRUE.
 
     ! Scalars
-    LOGICAL       :: prtDebug
+    LOGICAL           :: prtDebug
+    CHARACTER(LEN=63) :: OrigUnit
 
-    !=================================================================
+    !=======================================================================
     ! DO_PBL_MIX_2 begins here!
-    !=================================================================
-    
+    !=======================================================================
+
     ! Assume success
     RC  =  GC_SUCCESS
 
     ! Set a flag if we should print debug output to the log file
     prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
 
+    !-----------------------------------------------------------------------
     ! First-time initialization
     ! NOTE: Should really move this into the init stage
+    !-----------------------------------------------------------------------
     IF ( FIRST ) THEN
        CALL INIT_PBL_MIX()
        call vdinti()
+
+       ! Test if we are archiving the drydep flux (from mixing) diagnostic
+       Archive_DryDepFlux_Mix = ASSOCIATED( State_Diag%DryDepFlux_Mix ) 
+
+       ! Reset first-time flag
        FIRST = .FALSE.
     ENDIF
 
-    ! Do mixing of tracers in the PBL (if necessary)
+    !-----------------------------------------------------------------------
+    ! Do mixing of species in the PBL (if necessary)
+    !-----------------------------------------------------------------------
     IF ( DO_VDIFF ) THEN
 
-       ! Set previous specific humidity to current specific humidity 
-       ! prior to humidity update in vdiffdr (ewl, 10/28/15)
-       State_Met%SPHU_prev = State_Met%SPHU
+       ! Convert species concentration to v/v dry
+       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm,   &
+                              'v/v dry',   RC,       OrigUnit=OrigUnit      )
 
-       CALL VDIFFDR( am_I_Root, Input_Opt, State_Met, State_Chm )
+       ! Do non-local PBL mixing
+       CALL VDIFFDR( am_I_Root, Input_Opt, State_Met, State_Chm, State_Diag )
        IF( prtDebug ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
        ENDIF
@@ -2969,11 +2844,15 @@ contains
        ! NOTE: Prior to October 2015, air quantities were not updated
        ! with specific humidity modified in VDIFFDR at this point in
        ! the model
-       CALL AIRQNT( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                    RC, update_mixing_ratio=.TRUE. )
+       CALL AIRQNT( am_I_Root, Input_Opt, State_Met, State_Chm,              &
+                    RC,        update_mixing_ratio=.TRUE.                   )
        IF( prtDebug ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after AIRQNT' )
        ENDIF
+
+       ! Convert species back to the original units
+       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,              &
+                               State_Chm, OrigUnit,  RC                     )
 
     ENDIF
 

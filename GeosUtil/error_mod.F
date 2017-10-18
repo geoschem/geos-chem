@@ -29,7 +29,6 @@
       PUBLIC  :: ALLOC_ERR
       PUBLIC  :: CHECK_VALUE
       PUBLIC  :: DEBUG_MSG
-      PUBLIC  :: GC_ERROR
       PUBLIC  :: ERROR_STOP
       PUBLIC  :: GEOS_CHEM_STOP
       PUBLIC  :: IS_SAFE_DIV
@@ -140,6 +139,7 @@
 !  17 Aug 2016 - M. Sulprizio- Move CHECK_SPC and CHECK_SPC_NESTED here from
 !                              obsolete tracer_mod.F
 !  16 Sep 2016 - E. Lundgren - Add routine to print global species mass to log
+!  26 Jun 2017 - R. Yantosca - Moved GC_ERROR to Headers/errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -561,58 +561,6 @@
 
       ! Return to calling program
       END SUBROUTINE CHECK_DBLE_VALUE
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: GC_Error
-!
-! !DESCRIPTION: Subroutine GC\_Error prints an error message and sets RC to 
-!  GC\_FAILURE. Note that this routine does not stop a run, but it will cause 
-!  a stop at a higher level if you add a catch for RC /= GC\_SUCCESS. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GC_Error( ErrMsg, RC, ThisLoc )
-!
-! !INPUT PARAMETERS:
-!
-      CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
-      CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: ThisLoc 
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      INTEGER,          INTENT(INOUT)            :: RC 
-!
-! !REVISION HISTORY:
-!  13 Aug 2015 - E. Lundgren - Initial version, based on C. Keller's HCO_ERROR
-!  16 Aug 2016 - M. Sulprizio- Rename from GIGC_ERROR to GC_ERROR
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      CHARACTER(LEN=255) :: MSG
-
-      !======================================================================
-      ! GC_ERROR begins here 
-      !======================================================================
-
-      ! Print error message to log
-      MSG =  'GEOS-Chem ERROR: ' // TRIM(ErrMsg)
-      WRITE(6,*) TRIM(MSG)
-      
-      ! Print error location to log
-      IF ( PRESENT(ThisLoc) ) THEN
-         MSG = 'ERROR LOCATION: ' // TRIM( ThisLoc )
-         WRITE(6,*) TRIM(ThisLoc)
-      ENDIF
-      
-      ! Return with error
-      RC = GC_FAILURE 
-
-      END SUBROUTINE GC_Error
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

@@ -223,12 +223,11 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : GC_Error
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TPCORE_BC_MOD
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS: 
 !
@@ -250,21 +249,25 @@
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
 !  13 Aut 2015 - E. Lundgren - Now input tracer conc in kg/kg not v/v.
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !     
+      CHARACTER(LEN=63)  :: OrigUnit
+
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_GLOBAL_POST"
       CALL DONE_LOCK_ME_UP()
       CALL WAIT_FOR_UNLOCK()
 
       IF ( IS_EXCHANGE ) THEN
 
-         ! Convert species units from [kg/kg dry] to [kg] (ewl, 8/13/15)
-         CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,
-     &                                  State_Chm, RC )
+         ! Convert species units to [kg] (ewl, 8/13/15)
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, 'kg', RC, OrigUnit=OrigUnit)
          IF ( RC /= GC_SUCCESS ) THEN
             CALL GC_Error('Unit conversion error', RC, 
      &                    'EXCHANGE_GLOBAL_POST in exchange_mod.F')
@@ -290,9 +293,9 @@
      &  ( am_I_Root, Input_Opt,State_Met, State_Chm, RC, 3 )
 # endif
 
-         ! Convert species units back to kg/kg (ewl, 8/13/15)
-         CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,
-     &                                  State_Chm, RC )
+         ! Convert species units back to original units (ewl, 8/13/15)
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, OrigUnit,  RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL GC_Error('Unit conversion error', RC, 
      &                    'EXCHANGE_GLOBAL_POST in exchange_mod.F')
@@ -360,7 +363,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE UnitConv_Mod
+      USE UnitConv_Mod        ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS: 
 !
@@ -384,18 +387,20 @@
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2015 - E. Lundgren - Input tracer conc in kg/kg not v/v
-
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      CHARACTER(LEN=63)  :: OrigUnit
+
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_NESTED_POST"
 
-      ! Convert species units from [kg/kg dry] to [kg] (ewl, 8/13/15)
-      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,
-     &                               State_Chm, RC )
+      ! Convert species units to [kg] (ewl, 8/13/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
      &                 'EXCHANGE_NESTED_POST in exchange_mod.F')
@@ -409,9 +414,9 @@
       CALL EX_DUMP_FOR_GLOBAL
      &        (am_I_Root, Input_Opt,State_Met, State_Chm,RC)
 
-      ! Convert species units back to kg/kg (ewl, 8/13/15)
-      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,
-     &                               State_Chm, RC )
+      ! Convert species units back to original units (ewl, 8/13/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
      &                 'EXCHANGE_NESTED_POST in exchange_mod.F')

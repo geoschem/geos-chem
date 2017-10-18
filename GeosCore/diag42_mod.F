@@ -23,7 +23,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! Maximum number of output:
-      INTEGER, PUBLIC, PARAMETER   :: PD42 = 20
+      INTEGER, PUBLIC, PARAMETER   :: PD42 = 25
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -72,7 +72,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG42( Input_Opt, State_Met, State_Chm )
+      SUBROUTINE DIAG42( am_I_Root, Input_Opt, State_Met, State_Chm, RC)
 !
 ! !USES:
 !
@@ -80,25 +80,35 @@
       USE AEROSOL_MOD,        ONLY : SALA, SALC, SOILDUST
       USE AEROSOL_MOD,        ONLY : SO4,  NH4,  NIT
       USE AEROSOL_MOD,        ONLY : TSOA, ISOA, ASOA, OPOA
-      USE AEROSOL_MOD,        ONLY : PM25, SOAG, SOAM
+      USE AEROSOL_MOD,        ONLY : PM25
+      USE AEROSOL_MOD,        ONLY : SOAGX,  SOAMG, ISOAAQ
       USE AEROSOL_MOD,        ONLY : OCFPOA, OCFOPOA
       USE CARBON_MOD,         ONLY : BETANOSAVE
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! NDxx flags
+      USE CMN_O3_MOD,         ONLY : SAVEOA
+      USE ErrCode_Mod
+      USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PhysConstants,      ONLY : ATM
+      USE PhysConstants,      ONLY : ATM, MWCARB
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
+! !OUTPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
+!
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
@@ -121,6 +131,7 @@
 !  18 Nov 2016 - M. Sulprizio- Move code for calculating concentrations to
 !                              AEROSOL_CONC (in aerosol_mod.F) so it is in a
 !                              single location
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions with wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -129,11 +140,32 @@
 !
       INTEGER             :: I, J, L
       REAL(fp)            :: FACTOR
+      CHARACTER(LEN=63)   :: OrigUnit
+      CHARACTER(LEN=255)  :: MSG
      
       ! Species ID flags
       LOGICAL, SAVE       :: FIRST = .TRUE.
-      INTEGER, SAVE       :: id_POA1, id_POA2
+      INTEGER, SAVE       :: id_POA1,   id_POA2
+      INTEGER, SAVE       :: id_SOAIE,  id_SOAME, id_INDIOL
+      INTEGER, SAVE       :: id_SOAGX,  id_SOAMG
+      INTEGER, SAVE       :: id_LVOCOA, id_ISN1OA
       LOGICAL             :: IS_POA
+
+      ! Define number of carbon atoms in each irreversible isoprene
+      ! SOA tracer species. Named according to the parent HC (same 
+      ! number of carbons):
+      REAL(fp), PARAMETER :: NCIMAE   = 4e+0_fp
+      REAL(fp), PARAMETER :: NCIEPOX  = 5e+0_fp
+      REAL(fp), PARAMETER :: NCINDIOL = NCIEPOX
+      REAL(fp), PARAMETER :: NCGLYX   = 2e+0_fp
+      REAL(fp), PARAMETER :: NCGLYC   = NCGLYX
+      REAL(fp), PARAMETER :: NCMGLY   = 3e+0_fp
+      REAL(fp), PARAMETER :: NCLVOC   = NCIEPOX
+      REAL(fp), PARAMETER :: NCISN1   = NCIEPOX
+
+      ! Pointers      
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
+      REAL(fp), POINTER   :: AIRVOL(:,:,:)
 
       !================================================================= 
       ! DIAG42 begins here! 
@@ -143,8 +175,15 @@
       IF ( FIRST ) THEN
 
          ! Define species ID flags
-         id_POA1  = Ind_('POA1' )
-         id_POA2  = Ind_('POA2' )
+         id_POA1   = Ind_('POA1' )
+         id_POA2   = Ind_('POA2' )
+         id_SOAIE  = Ind_('SOAIE' )
+         id_SOAME  = Ind_('SOAME' )
+         id_INDIOL = Ind_('INDIOL' )
+         id_SOAGX  = Ind_('SOAGX' )
+         id_SOAMG  = Ind_('SOAMG' )
+         id_LVOCOA = Ind_('LVOCOA' )
+         id_ISN1OA = Ind_('ISN1OA' )
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -155,6 +194,19 @@
 
       ! Conversion factor from kg/m3 --> ug/m3
       FACTOR = 1e+9_fp
+
+      ! Convert species units to [kg] for this routine (ewl, 8/12/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      IF ( RC /= GC_SUCCESS ) THEN
+         MSG = 'Unit conversion error!'
+         CALL GC_Error( MSG, RC, 'Start of diag42 in diag42_mod.F')
+         RETURN
+      ENDIF 
+
+      ! Initialize pointers
+      Spc    => State_Chm%Species
+      AIRVOL => State_Met%AIRVOL
 
       ! Loop over grid boxes     
 !$OMP PARALLEL DO 
@@ -174,7 +226,9 @@
          ! ISOA [ug/m3]
          ! (isoprene SOA)
          !--------------------------------------------------------------
-         AD42(I,J,L,2) = AD42(I,J,L,2) + ISOA(I,J,L) * FACTOR
+         ! Semivolatile isoprene OA + mechanistic isoprene OA
+         AD42(I,J,L,2) = AD42(I,J,L,2) +
+     &                   ( ISOA(I,J,L) + ISOAAQ(I,J,L) ) * FACTOR
 
          !--------------------------------------------------------------
          ! ASOA [ug/m3]
@@ -202,8 +256,8 @@
          !-----------------------------------------------------------
          AD42(I,J,L,6) = AD42(I,J,L,6) +
      &                   ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
-     &                     OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) )
-     &                   * FACTOR
+     &                     OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) +
+     &                     ISOAAQ(I,J,L) ) * FACTOR
 
          !-----------------------------------------------------------
          ! Sum of all organic carbon [ugC/m3]
@@ -220,11 +274,35 @@
      &                      / OCFOPOA ) * FACTOR
          ENDIF
 
+         ! Add mechanistic isoprene OA
+         IF ( Input_Opt%LISOPOA ) THEN
+
+            ! Convert from kg to ugC/m3
+            AD42(I,J,L,7) = AD42(I,J,L,7) + (
+     &                Spc(I,J,L,id_SOAIE) * ( NCIEPOX * MWCARB /
+     &              ( State_Chm%SpcData(id_SOAIE)%Info%MW_g * 1e-3_fp ))
+     &              + Spc(I,J,L,id_SOAME) * ( NCIMAE  * MWCARB /
+     &              ( State_Chm%SpcData(id_SOAME)%Info%MW_g * 1e-3_fp ))
+     &              + Spc(I,J,L,id_INDIOL)* ( NCINDIOL* MWCARB / 
+     &              ( State_Chm%SpcData(id_INDIOL)%Info%MW_g* 1e-3_fp ))
+     &              + Spc(I,J,L,id_SOAGX) * ( NCGLYX  * MWCARB /
+     &              ( State_Chm%SpcData(id_SOAGX)%Info%MW_g * 1e-3_fp ))
+     &              + Spc(I,J,L,id_SOAMG) * ( NCMGLY  * MWCARB /
+     &              ( State_Chm%SpcData(id_SOAMG)%Info%MW_g * 1e-3_fp ))
+     &              + Spc(I,J,L,id_LVOCOA)* ( NCLVOC  * MWCARB /
+     &              ( State_Chm%SpcData(id_LVOCOA)%Info%MW_g* 1e-3_fp ))
+     &              + Spc(I,J,L,id_ISN1OA)* ( NCISN1  * MWCARB /
+     &              ( State_Chm%SpcData(id_ISN1OA)%Info%MW_g* 1e-3_fp ))
+     &              ) / AIRVOL(I,J,L) * FACTOR
+
+         ENDIF
+
          !--------------------------------------------------------------
          ! Sum of biogenic aerosol [ug/m3]
          !--------------------------------------------------------------
          AD42(I,J,L,8) = AD42(I,J,L,8) +
-     &                   ( TSOA(I,J,L) + ISOA(I,J,L) ) * FACTOR
+     &                   ( TSOA(I,J,L) + ISOA(I,J,L) + ISOAAQ(I,J,L) ) *
+     &                   FACTOR
           
          !--------------------------------------------------------------
          ! NO branching ratio [dimless]
@@ -282,21 +360,62 @@
          AD42(I,J,L,18) = AD42(I,J,L,18) + PM25(I,J,L) * FACTOR
 
          !--------------------------------------------------------------
-         ! Additional diagnostics for SOAG, SOAM (tmf, 12/8/07) 
+         ! Additional diagnostics for SOAGX, SOAMG (tmf, 12/8/07) 
          !
-         ! Assume SOAG mass = GLYX mass, SOAM mass = MGLY mass
+         ! Assume SOAGX mass = GLYX mass, SOAMG mass = MGLY mass
          !--------------------------------------------------------------
 
-         ! SOAG [ug/m3]
-         AD42(I,J,L,19) = AD42(I,J,L,19) + SOAG(I,J,L) * FACTOR
+         ! SOAGX [ug/m3]
+         AD42(I,J,L,19) = AD42(I,J,L,19) + SOAGX(I,J,L) * FACTOR
 
-         ! SOAM [ug/m3]
-         AD42(I,J,L,20) = AD42(I,J,L,20) + SOAM(I,J,L) * FACTOR
+         ! SOAMG [ug/m3]
+         AD42(I,J,L,20) = AD42(I,J,L,20) + SOAMG(I,J,L) * FACTOR
+
+         !--------------------------------------------------------------
+         ! Isoprene SOA obtained from irreversible uptake of isoprene
+         ! SOA precursors IEPOX and IMAE (eam,  2014)
+         !--------------------------------------------------------------
+         IF ( Input_Opt%LISOPOA ) THEN
+
+            ! IEPOX-OA [ug/m3]:
+            AD42(I,J,L,21) = AD42(I,J,L,21) + Spc(I,J,L,id_SOAIE )
+     &                       * FACTOR / AIRVOL(I,J,L) 
+
+            ! IMAE-OA [ug/m3]:
+            AD42(I,J,L,22) = AD42(I,J,L,22) + Spc(I,J,L,id_SOAME )
+     &                       * FACTOR / AIRVOL(I,J,L) 
+
+            ! INDIOL [ug/m3]:
+            AD42(I,J,L,23) = AD42(I,J,L,23) + Spc(I,J,L,id_INDIOL)
+     &                       * FACTOR / AIRVOL(I,J,L)
+
+            ! LVOCOA [ug/m3]:
+            AD42(I,J,L,24) = AD42(I,J,L,24) + Spc(I,J,L,id_LVOCOA)
+     &                       * FACTOR / AIRVOL(I,J,L)
+
+            ! ISN1OA [ug/m3]:
+            AD42(I,J,L,25) = AD42(I,J,L,25) + Spc(I,J,L,id_ISN1OA)
+     &                       * FACTOR / AIRVOL(I,J,L)
+
+         ENDIF
 
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Convert back to original unit (ewl, 8/12/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         MSG = 'Unit conversion error!'
+         CALL GC_Error( MSG, RC, 'End of diag42 in diag42_mod.F')
+         RETURN
+      ENDIF 
+
+      ! Free pointers
+      Spc    => NULL()
+      AIRVOL => NULL()
 
       END SUBROUTINE DIAG42
 !EOC
@@ -398,7 +517,7 @@
       ! WRITE_DIAG42 begins here!
       !=================================================================
 
-      ! Exit if ND03 is turned off
+      ! Exit if ND42 is turned off
       IF ( ND42 == 0 ) RETURN
 
       ! Initialize
@@ -419,7 +538,7 @@
       ! Write data to the bpch file
       !=================================================================
 
-      ! Loop over ND03 diagnostic tracers
+      ! Loop over ND42 diagnostic tracers
       DO M = 1, TMAX(42)
 
          ! Define quantities
@@ -509,9 +628,10 @@
       ! Number of levels to save for this diagnostic
       LD42 = MIN( ND42, LLPAR )
 
-      ! 2-D array ("LFLASH-$")
+      ! 4-D array ("IJ-SOA-$")
       ALLOCATE( AD42( IIPAR, JJPAR, LD42, PD42 ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'AD42' )
+      AD42 = 0.0_fp
 
       ! Zero arrays
       CALL ZERO_DIAG42

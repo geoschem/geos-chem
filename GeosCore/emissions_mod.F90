@@ -129,7 +129,6 @@ CONTAINS
     USE CARBON_MOD,         ONLY : EMISSCARBON
     USE CO2_MOD,            ONLY : EMISSCO2
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : GC_Error
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -139,6 +138,9 @@ CONTAINS
     USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
     USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
 #endif
+
+    ! Setting other surface VMRs
+    Use sfcVMR_Mod,         Only : fixSfcVMR
 
     ! Use old mercury code for now (ckeller, 09/23/2014)
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
@@ -163,12 +165,13 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  27 Aug 2014 - C. Keller    - Initial version 
-!  13 Nov 2014 - C. Keller    - Added EMISSCARBON (for SESQ and POA)
-!  21 Nov 2014 - C. Keller    - Added EMISSVOC to prevent VOC build-up
-!                               above tropopause
-!  22 Sep 2016 - R. Yantosca  - Don't call EMISSCARBON unless we are doing
-!                               a fullchem or aerosol simulation
+!  27 Aug 2014 - C. Keller   - Initial version 
+!  13 Nov 2014 - C. Keller   - Added EMISSCARBON (for SESQ and POA)
+!  21 Nov 2014 - C. Keller   - Added EMISSVOC to prevent VOC build-up
+!                              above tropopause
+!  22 Sep 2016 - R. Yantosca - Don't call EMISSCARBON unless we are doing
+!                              a fullchem or aerosol simulation
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -264,6 +267,12 @@ CONTAINS
                            State_Chm, RC          )
           ENDIF
    
+          ! Set other (non-UCX) fixed VMRs
+          If ( Input_Opt%LEMIS ) Then
+             CALL fixSfcVMR( am_I_Root, Input_Opt, State_Met, & 
+                             State_Chm, RC          )
+          End If
+ 
        ENDIF
     ENDIF ! Phase/=1  
     

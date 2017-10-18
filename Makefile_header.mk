@@ -40,17 +40,17 @@
 # one string.  The following example is used to ensure that the met field name
 # selected by the user is case-insensitive:
 # 
-#   # %%%%% GEOS-5 %%%%%
-#   REGEXP    :=((^[Gg][Ee][Oo][Ss])?5|.5)
-#   ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-#   USER_DEFS += -DGEOS_5
-#   endif
+#  # %%%%% GEOS-FP %%%%%
+#  REGEXP             :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
+#  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+#    USER_DEFS        += -DGEOS_FP
+#  endif
 #                                                                             .
 # The [[ ]] in bash is an evaluation.  The above ifeq statement uses regular
 # expressions to test if the MET variable matches the string "GEOS" (case-
-# insensitive) and either "5" or "any character and then a 5".  This will
-# return true (via the "echo true" statement) for combinations like "GEOS-5", 
-# "geos5", "Geos-5", "GeOs.5", etc.  This is a robust way of evaluating
+# insensitive) and either "FP" or "any character and then a FP".  This will
+# return true (via the "echo true" statement) for combinations like "GEOS-FP", 
+# "geosfp", "Geos-FP", "GeOs.FP", etc.  This is a robust way of evaluating
 # the user's input, and will make errors less likely.
 #
 # !REVISION HISTORY: 
@@ -198,6 +198,7 @@
 #                              COMPILER_FAMILY; also works if FC=mpif90
 #  08 May 2017 - R. Yantosca - Add minor fixes to avoid Perl bareword errors
 #  23 May 2017 - R. Yantosca - use -dumpversion to get the Gfortran version #
+#  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -218,10 +219,10 @@ ERR_CMPLR            :="Unknown Fortran compiler!  Must be one of ifort, gfortra
 ERR_OSCOMP           :="Makefile_header.mk not set up for this compiler/OS combination"
 
 # Error message for bad MET input
-ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp, MET=merra2)"
+ERR_MET              :="Select a met field: MET=geosfp, MET=merra2)"
 
 # Error message for bad GRID input
-ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=05x0625, GRID=025x03125"
+ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0625, GRID=025x03125"
 
 # Error message for bad NEST input
 ERR_NEST             :="Select a nested grid: NEST=as, NEST=ch, NEST=eu, NEST=na, NEST=cu"
@@ -302,9 +303,19 @@ endif
 # %%%%% Test if mpif90/mpifort is selected (for now assume ifort) %%%%%
 REGEXP               :=(^[Mm][Pp][Ii])
 ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
-  COMPILE_CMD        :=$(FC)
-  COMPILER_FAMILY    :=Intel
   USER_DEFS          += -DLINUX_IFORT
+  REG_GNU            :=(^[Gg][Nn][Uu])
+  REG_INTEL          :=(^[Ii][Ff][Oo][Rr][Tt])
+  DISCRIM            :=$(word 1,$(shell $(FC) --version ) )
+  ifeq ($(shell [[ "$(DISCRIM)" =~ $(REG_INTEL) ]] && echo true),true)
+     COMPILER_FAMILY    :=Intel
+     USER_DEFS          += -DLINUX_IFORT
+  else ifeq ($(shell [[ "$(DISCRIM)" =~ $(REG_GNU) ]] && echo true),true)
+     COMPILER_FAMILY    :=GNU
+     USER_DEFS          += -DLINUX_GFORTRAN
+  else
+     $(error Could not determine compiler underlying mpifort/mpif90 )
+  endif
 endif
 
 # %%%%% Test if Intel Fortran Compiler is selected %%%%%
@@ -313,11 +324,6 @@ ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
 
   # If we are building GCHP, then set the compile command to "mpifort",
   # which invokes the MPI magic.  Otherwise set it to $(FC). (bmy, 10/17/16)
-  ifeq ($(IS_HPC),1) 
-    COMPILE_CMD      :=mpifort
-  else
-    COMPILE_CMD      :=$(FC)
-  endif
   COMPILER_FAMILY    :=Intel
   USER_DEFS          += -DLINUX_IFORT
 endif
@@ -325,11 +331,6 @@ endif
 # %%%%% Test if GNU Fortran Compiler is selected %%%%%
 REGEXP               :=(^[Gg][Ff][Oo][Rr][Tt][Rr][Aa][Nn])
 ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
-  ifeq ($(HPC),yes) 
-    COMPILE_CMD      :=mpif90
-  else
-    COMPILE_CMD      :=$(FC)
-  endif
   COMPILER_FAMILY    :=GNU
   USER_DEFS          += -DLINUX_GFORTRAN
 endif
@@ -337,9 +338,15 @@ endif
 # %%%%% Test if PGI Fortran compiler is selected  %%%%%
 REGEXP               :=(^[Pp][Gg])
 ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
-  COMPILE_CMD        :=$(FC)
   COMPILER_FAMILY    :=PGI
   USER_DEFS          += -DLINUX_PGI
+endif
+
+# Is this GCHP?
+ifeq ($(IS_HPC),1)
+  COMPILE_CMD        :=mpifort
+else
+  COMPILE_CMD        :=$(FC)
 endif
 
 # %%%%% ERROR CHECK!  Make sure our compiler selection is valid! %%%%%
@@ -458,13 +465,14 @@ else
   IS_NC_DIAG         :=0
 endif
 
-# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is %%%%%
-# %%%%% selected.  Now use a numeric test which is more robust.    %%%%%
-ifeq ($(IS_BPCH_DIAG),1)
-  ifeq ($(IS_NC_DIAG),1)
-    $(error $(ERR_DIAG))
-  endif
-endif 
+# Disable for testing (bmy, 7/14/17)
+## %%%%% ERROR CHECK!  Make sure only one diagnostic output type is %%%%%
+## %%%%% selected.  Now use a numeric test which is more robust.    %%%%%
+#ifeq ($(IS_BPCH_DIAG),1)
+#  ifeq ($(IS_NC_DIAG),1)
+#    $(error $(ERR_DIAG))
+#  endif
+#endif 
 
 #------------------------------------------------------------------------------
 # KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
@@ -487,6 +495,41 @@ REGEXP               :=(^[Uu][Cc][Xx])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   UCX                :=y
   KPP_CHEM           :=Standard
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=Halogens %%%%%
+REGEXP               :=(^[Hh][Aa][Ll][Oo][Gg][Ee][Nn][Ss])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=Halogens
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=BrCl %%%%%
+REGEXP               :=(^[Bb][Rr][Cc][Ll])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=BrCl
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=IGas %%%%%
+REGEXP               :=(^[Ii][Gg][Aa][Ss])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=IGas
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=Hetv2 %%%%%
+REGEXP               :=(^[Hh][Ee][Tt][Vv]2)
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=Hetv2
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=NoHet %%%%%
+REGEXP               :=(^[Nn][Oo][Hh][Ee][Tt])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=NoHet
   IS_CHEM_SET        :=1
 endif
 
@@ -580,35 +623,10 @@ endif
 # We can skip the following checks for targets that don't require MET
 ifndef NO_MET_NEEDED 
 
-  # %%%%% GCAP %%%%%
-  REGEXP             :=(^[Gg][Cc][Aa][Pp])
+  # %%%%% MERRA-2 %%%%%
+  REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2|^[Mm][Ee][Rr][Rr][Aa].2)
   ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGCAP
-  endif
-
-  # %%%%% GEOS-4 %%%%%
-  REGEXP             :=((^[Gg][Ee][Oo][Ss])?4|.4)
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGEOS_4
-  endif
-
-  # %%%%% GEOS-5 %%%%%
-  REGEXP             :=((^[Gg][Ee][Oo][Ss])?5|.5)
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGEOS_5
-  endif
-
-  # %%%%% MERRA or MERRA2 %%%%%
-  # We have to employ a double regexp test in order to prevent
-  # inadvertently setting MERRA if we want MERRA2. (bmy, 8/11/15)
-  REGEXP             :=(^[Mm][Ee][Rr][Rr][Aa])
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2|^[Mm][Ee][Rr][Rr][Aa].2)
-    ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-      USER_DEFS      += -DMERRA2
-    else
-      USER_DEFS      += -DMERRA
-    endif
+    USER_DEFS      += -DMERRA2
   endif
 
   # %%%%% GEOS-FP %%%%%
@@ -627,7 +645,7 @@ ifndef NO_MET_NEEDED
   endif
 
   # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
-  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP|\-DMERRA2)
+  REGEXP             :=(\-DGEOS_FP|\-DMERRA2)
   ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
     $(error $(ERR_MET))
   endif
@@ -667,31 +685,6 @@ ifndef NO_GRID_NEEDED
   REGEXP             :=(^2.25|^2.2\.5|^2\.0.2\.5)
   ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
     USER_DEFS        += -DGRID2x25
-  endif
-
-  # %%%%% 1 x 1.25 %%%%%
-  REGEXP             :=(^1.125|^1.1\.25|^1\.0.1\.25)
-  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGRID1x125
-  endif
-
-  # %%%%% 0.5 x 0.666 %%%%%
-  REGEXP             :=(^05.066.|^0\.5.0\.066.)
-  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-
-    # Ensure that MET=geos5
-    REGEXP           := ((^[Gg][Ee][Oo][Ss])?5|.5)
-    ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-      $(error When GRID=05x0666, you can only use MET=geos5)
-    endif
-
-    # Ensure that a nested-grid option is selected
-    ifndef NEST
-      $(error $(ERR_NEST))
-    else
-      NEST_NEEDED    :=1
-      USER_DEFS      += -DGRID05x0666
-    endif
   endif
 
   # %%%%% 0.5 x 0.625 %%%%%
@@ -1035,8 +1028,9 @@ ifeq ($(RRTMG_NEEDED),1)
 endif
 
 # Create linker command to create the GEOS-Chem executable
-LINK                 :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
-LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)
+LINK                 :=$(LINK) -lIsoropia -lHistory -lHCOI -lHCOX -lHCO 
+LINK                 :=$(LINK) -lGeosUtil -lKpp -lHeaders -lNcUtils 
+LINK                 :=$(LINK) $(NC_LINK_CMD)
 
 #----------------------------
 # For the HEMCO standalone
@@ -1050,22 +1044,45 @@ LINK_HCO             :=$(LINK_HCO) -lNcUtils $(NC_LINK_CMD)
 ###                                                                         ###
 ###  Test if the netCDF library was built with compression enabled          ###
 ###                                                                         ###
+###  NOTE: Compressing the netCDF files will make it impossible to compare  ###
+###  them for identical-ness in a unit test or diff test.  Therefore, we    ###
+###  have added some extra checks to skip the compression if so desired.    ###
+###                                                                         ###
 ###############################################################################
 
-# Test if the "nf_def_var_deflate" function is defined in netcdf.inc
-# Look for netcdf.inc where the netCDF-Fortran library is located
-ifdef GC_F_INCLUDE
-  GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_F_INCLUDE)/netcdf.inc))
-else
-  GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_INCLUDE)/netcdf.inc))
+# Assume we will turn on netCDF compression (if present)
+IS_DEFLATE           :=1
+
+# Unless NC_NODEFLATE=y
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(NC_NODEFLATE)" =~ $(REGEXP) ]] && echo true),true)
+  IS_DEFLATE         :=0
 endif
 
-# Look for the second word of the combined search results
-WORD                 :=$(word 2,"$(GREP)")
+# Or DEBUG=y.  This will make sure unit tests and diff tests aren't affected.
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
+  IS_DEFLATE         :=0
+endif
 
-# If it matches "nf_def_var_deflate", then define Cpp flag NC_HAS_COMPRESSION 
-ifeq ($(WORD),nf_def_var_deflate)
-  USER_DEFS          += -DNC_HAS_COMPRESSION
+# Skip netCDF compression unless it's requested (or not a debug run)
+ifeq ($(IS_DEFLATE),1)
+
+  # Test if the "nf_def_var_deflate" function is defined in netcdf.inc
+  # Look for netcdf.inc where the netCDF-Fortran library is located
+  ifdef GC_F_INCLUDE
+    GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_F_INCLUDE)/netcdf.inc))
+  else
+    GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_INCLUDE)/netcdf.inc))
+  endif
+
+  # Look for the second word of the combined search results
+  WORD               :=$(word 2,"$(GREP)")
+
+  # If it matches "nf_def_var_deflate", then define Cpp flag NC_HAS_COMPRESSION 
+  ifeq ($(WORD),nf_def_var_deflate)
+    USER_DEFS        += -DNC_HAS_COMPRESSION
+  endif
 endif
 
 ###############################################################################
@@ -1104,7 +1121,11 @@ ifeq ($(COMPILER_FAMILY),GNU)
 
   # Base set of compiler flags
   FFLAGS             :=-cpp -w -std=legacy -fautomatic -fno-align-commons
-  FFLAGS             += -fconvert=big-endian
+  ifeq ($(IS_HPC),1)
+    FFLAGS             += -fconvert=native
+  else
+    FFLAGS             += -fconvert=big-endian
+  endif
   FFLAGS             += -fno-range-check
 
   # OPTIONAL: Add the GNU Fortran -march option, which compiles for a
@@ -1136,7 +1157,7 @@ ifeq ($(COMPILER_FAMILY),GNU)
     FFLAGS           += -g -gdwarf-2 -gstrict-dwarf -O0
     FFLAGS           += -Wall -Wextra -Wconversion
     FFLAGS           += -Warray-temporaries -fcheck-array-temporaries
-    TRACEBACK        := yes
+    TRACEBACK        :=yes
     USER_DEFS        += -DDEBUG
   else
     FFLAGS           += $(OPT)
@@ -1272,7 +1293,7 @@ ifeq ($(COMPILER_FAMILY),Intel)
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
     FFLAGS           += -g -O0 -check arg_temp_created -debug all
-    TRACEBACK        := yes
+    TRACEBACK        :=yes
     USER_DEFS        += -DDEBUG
   else
     FFLAGS           += $(OPT) -vec-report0
@@ -1402,6 +1423,7 @@ ifeq ($(COMPILER_FAMILY),PGI)
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
     FFLAGS           += -g -O0
+    TRACEBACK        :=yes
     USER_DEFS        += -DDEBUG
   else
     FFLAGS           += $(OPT)

@@ -81,7 +81,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE DO_CHEMISTRY( am_I_Root, Input_Opt, 
-     &                         State_Chm, State_Met, RC )
+     &                         State_Chm, State_Met, State_Diag, RC )
 !
 ! !USES:
 !
@@ -108,6 +108,7 @@
       USE SULFATE_MOD,        ONLY : CHEMSULFATE
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE STRAT_CHEM_MOD,     ONLY : DO_STRAT_CHEM
       USE TAGGED_CO_MOD,      ONLY : CHEM_TAGGED_CO
@@ -117,7 +118,7 @@
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
@@ -137,6 +138,7 @@
 !
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -233,6 +235,8 @@
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  11 Aug 2016 - R. Yantosca - Clean up calls to error subroutines
 !  09 Mar 2017 - C. Keller   - Bug fix: call TEND_STAGE1 before unit conversion
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions with wrapper routine
+!  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -280,6 +284,7 @@
 
       ! Strings
       CHARACTER(LEN=255) :: MSG, LOC
+      CHARACTER(LEN=63)  :: OrigUnit
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
@@ -345,9 +350,9 @@
      &                  State_Chm, 'CHEM', RC )
 #endif
 
-      ! Convert species units from [kg/kg] to [kg] for chemistry (ewl, 8/12/15)
-      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
-     &                               State_Chm, RC         ) 
+      ! Convert species units to [kg] for chemistry (ewl, 8/12/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          MSG = 'Unit conversion error!'
          CALL GC_Error( MSG, RC, LOC )
@@ -378,9 +383,16 @@
             CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
 #endif
 
+            ! Dry-run sulfate chem to get cloud pH
+            If (LSulf) Then
+               CALL CHEMSULFATE( am_I_Root,
+     &           Input_Opt, State_Met, State_Chm, .False., RC )
+            End If
+
             ! Call gas-phase chemistry
             CALL Do_FlexChem
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, State_Diag, 
+     &           RC )
 
             ! Check units (ewl, 10/5/15)
             IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -436,8 +448,8 @@
             IF ( LSULF ) THEN
 
                ! Do sulfate chemistry
-               CALL CHEMSULFATE
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL CHEMSULFATE( am_I_Root,
+     &           Input_Opt, State_Met, State_Chm, .True., RC )
 
                ! Check units (ewl, 10/5/15)
                IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -567,7 +579,8 @@
  
                ! Do sulfate chemistry
                CALL CHEMSULFATE
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+     &            ( am_I_Root, Input_Opt, State_Met, 
+     &              State_Chm, .True., RC )
 
             ENDIF
 
@@ -685,9 +698,10 @@
       ! will need to be updated to convert State_Chm%Species from [kg]
       ! to [kg/kg dry air] at the end (not [v/v]). (ewl, 8/13/15)
       !-----------------------------------------------------------------
-      ! Convert species units back to [kg/kg] after chemistry (ewl, 8/12/15)
-      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
-     &                               State_Chm, RC         ) 
+
+      ! Convert species units back to original unit (ewl, 8/12/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          MSG = 'Unit conversion error!'
          CALL GC_Error( MSG, RC, LOC )
@@ -879,13 +893,10 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE ERROR_MOD,           ONLY : GC_Error
       USE Input_Opt_Mod,       ONLY : OptInput
       USE State_Chm_Mod,       ONLY : ChmState
       USE State_Met_Mod,       ONLY : MetState
       USE State_Chm_Mod,       ONLY : ind_ 
-      USE PASSIVE_SPECIES_MOD, ONLY : PASSIVE_SPECIES_GETRATE
-      USE PASSIVE_SPECIES_MOD, ONLY : NPASSIVE, PASSIVE_NAME 
       USE TIME_MOD,            ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
@@ -902,18 +913,23 @@
 ! !REMARKS
 !
 ! !REVISION HISTORY: 
-!  04 Sep 2015 - C. Keller    - Initial version 
-!  03 Nov 2016 - C. Keller    - Moved to chemistry_mod
+!  04 Sep 2015 - C. Keller   - Initial version 
+!  03 Nov 2016 - C. Keller   - Moved to chemistry_mod
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  14 Jul 2017 - E. Lundgren - Remove dependency on passive_species_mod.F90
+!  02 Aug 2017 - R. Yantosca - Turn off debug print unless ND70 is activated
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: N,  GCID
-      REAL(fp)           :: DT, Rate
+      INTEGER            :: N, GCID
+      REAL(fp)           :: DT, Rate, Decay
       CHARACTER(LEN=255) :: MSG
       CHARACTER(LEN=255) :: LOC='CHEM_PASSIVE_SPECIES (chemistry_mod.F)'
+   
+      REAL(fp), PARAMETER :: ln2 = 0.693147181E+00_fp
 
       DT = GET_TS_CHEM() * 60.0_fp
 
@@ -921,25 +937,33 @@
       RC = GC_SUCCESS
 
       ! Return if there are no passive species
-      IF ( NPASSIVE <= 0 ) RETURN
+      IF ( Input_Opt%NPASSIVE <= 0 ) RETURN
 
       ! Prosa
-      IF ( am_I_Root ) THEN
+      IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
          WRITE(*,*) '### Passive species chemistry: '
       ENDIF
 
       ! Do for every passive species
-      DO N = 1, NPASSIVE
+      DO N = 1, Input_Opt%NPASSIVE
 
-         ! Sanity check (GCID should never be negative) 
-         GCID = ind_( TRIM(PASSIVE_NAME(N)) )
+         ! Sanity check (GCID should never be negative)
+         GCID = ind_( TRIM(Input_Opt%PASSIVE_NAME(N)) )
          IF ( GCID <= 0 ) CYCLE
+         
+         ! No loss needed if tau is zero or negative;
+         ! otherwise, calculate rate
+         IF ( Input_Opt%PASSIVE_TAU(N) <= 0.0_fp ) THEN
+            Rate = 1.0_fp
+         ELSE 
+            Decay    = ln2 / Input_Opt%PASSIVE_TAU(N)
+            Rate     = EXP( - DT * Decay )
+         ENDIF
 
-         ! Calculate decay rate (unitless)
-         CALL PASSIVE_SPECIES_GETRATE( am_I_Root, PASSIVE_NAME(N), 
-     &                                DT, RATE, RC )
+         ! Error check
          IF ( RC /= GC_SUCCESS ) THEN
-            MSG = 'Passive species rate error: '//TRIM(PASSIVE_NAME(N))
+            MSG = 'Passive species rate error: ' // 
+     &      TRIM(Input_Opt%PASSIVE_NAME(N))
             CALL GC_Error( MSG, RC, LOC )
             RETURN
          ENDIF
@@ -949,9 +973,9 @@
      &      State_Chm%Species(:,:,:,GCID) * Rate
 
          ! Prosa
-         IF ( am_I_Root ) THEN
+         IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
             write(*,*) '- Pass. species, Species ID, loss rate: ', 
-     &         TRIM(PASSIVE_NAME(N)), GCID, Rate
+     &         TRIM(Input_Opt%PASSIVE_NAME(N)), GCID, Rate
          ENDIF
 
       ENDDO

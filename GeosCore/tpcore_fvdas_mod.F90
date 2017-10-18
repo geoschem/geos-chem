@@ -590,7 +590,7 @@ CONTAINS
     !     ----------------
     !     Begin execution.
     !     ----------------
-    
+ 
     ! Add definition of j1p and j2p for enlarge polar cap. (ccc, 11/20/08)
     j1p = 3
     j2p = jm - j1p + 1
@@ -648,11 +648,10 @@ CONTAINS
        dap(ik) = ak(ik+1) - ak(ik)
        dbk(ik) = bk(ik+1) - bk(ik)
     enddo
-      
 
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IK, IQ )
+!$OMP PRIVATE( IK, IQ, I, J )
     do ik=1,km
 
   ! ====================
@@ -774,7 +773,6 @@ CONTAINS
 
     ! Calculate surf. pressure at t+dt. (ccc, 11/20/08)
     ps = ak(1)+sum(delp2,dim=3)
-         
 
 !--------------------------------------------------------
 ! For time optimization : we parallelize over tracers and
@@ -791,8 +789,6 @@ CONTAINS
        !.sds.. convert to "mass"
        dq1(:,:,ik) = q(:,:,ik,iq) * delp1(:,:,ik)
        
-
-          
      ! ===========================
        call Calc_Advec_Cross_Terms  &
      ! ===========================
@@ -1006,10 +1002,6 @@ CONTAINS
              ! Save into MASSFLEW diagnostic array
              MASSFLEW(I,J,K,IQ) = MASSFLEW(I,J,K,IQ) + DTC(I,J,K)
 #endif 
-#if defined( NC_DIAG )
-             ! Save into diagnostic array for writing to netcdf
-             MASSFLEW(I,J,K,IQ) = DTC(I,J,K)
-#endif
 
           ENDDO
           ENDDO
@@ -1047,10 +1039,6 @@ CONTAINS
              ! Save into MASSFLNS diagnostic array
              MASSFLNS(I,J,K,IQ) = MASSFLNS(I,J,K,IQ) + DTC(I,J,K) 
 #endif
-#if defined( NC_DIAG )
-             ! Save into diagnostic array for writing to netcdf
-             MASSFLNS(I,J,K,IQ) = DTC(I,J,K)
-#endif
 
           ENDDO
           ENDDO
@@ -1081,79 +1069,6 @@ CONTAINS
           ! Zero temp array
           DTC = 0e+0_fp
 
-!------------------------------------------------------------------------------
-! Prior to 3/28/17:
-! Using FZ produces better mass conservation (bmy, 3/28/17)
-!          !-----------------
-!          ! start with top
-!          !-----------------
-!          K = 1
-!          
-!          !$OMP PARALLEL DO       &
-!          !$OMP DEFAULT( SHARED ) &
-!          !$OMP PRIVATE( I, J )  
-!          DO J  = 1, JM
-!          DO I  = 1, IM
-!
-!             ! Compute mass flux [kg/s]
-!             DTC(I,J,K) = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
-!                            - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
-!                            * g0_100 * AREA_M2(J) / DT
-!
-!             ! top layer should have no residual.  the small residual is 
-!             ! from a non-pressure fixed flux diag.  The z direction may 
-!             ! be off by a few percent.
-!             !
-!             ! Uncomment now, since this is upflow into the box from its
-!             ! bottom (phs, 3/4/08)
-!
-!#if defined( BPCH_DIAG )
-!             MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)
-!#endif 
-!#if defined( NC_DIAG )
-!             ! Save into diagnostic array for writing to netcdf
-!             MASSFLUP(I,J,K,IQ) = DTC(I,J,K)
-!#endif
-!
-!          ENDDO
-!          ENDDO
-!          !$OMP END PARALLEL DO
-!          
-!          !----------------------------------------------------
-!          ! Get the other fluxes using a mass balance equation
-!          !----------------------------------------------------
-!          DO K  = 2, KM
-!
-!             !$OMP PARALLEL DO                 &
-!             !$OMP DEFAULT( SHARED )           &
-!             !$OMP PRIVATE( I, J, TRACE_DIFF )
-!             DO J  = 1, JM
-!             DO I  = 1, IM
-!
-!                ! Compute tracer difference [kg/s]
-!                TRACE_DIFF = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
-!                               - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
-!                               * AREA_M2(J) * g0_100 / DT
-!                
-!                ! Compute mass flux [kg/s]
-!                DTC(I,J,K)         = DTC(I,J,K-1) + TRACE_DIFF
-!
-!#if defined( BPCH_DIAG )
-!                ! Save to the MASSFLUP diagnostic array 
-!                MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)
-!#endif 
-!#if defined( NC_DIAG )
-!                ! Save into diagnostic array for writing to netcdf 
-!                MASSFLUP(I,J,K,IQ) = DTC(I,J,K)
-!#endif
-!
-!             ENDDO
-!             ENDDO
-!             !$OMP END PARALLEL DO
-!
-!          ENDDO
-!------------------------------------------------------------------------------
-
           !$OMP PARALLEL DO       &
           !$OMP DEFAULT( SHARED ) &
           !$OMP PRIVATE( I, J, K )
@@ -1182,10 +1097,6 @@ CONTAINS
 #if defined( BPCH_DIAG )
              MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)
 #endif 
-#if defined( NC_DIAG )
-             ! Save into diagnostic array for writing to netcdf
-             MASSFLUP(I,J,K,IQ) = DTC(I,J,K)
-#endif
 
           ENDDO
           ENDDO

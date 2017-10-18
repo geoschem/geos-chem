@@ -59,9 +59,9 @@ $(DOC)/Makefile_Hemco.mk         \
 $(HELP)/Makefile
 
 # Output file names
-TEX5 :=GC_v11-01_Makefiles.tex
-DVI5 :=GC_v11-01_Makefiles.dvi
-PDF5 :=GC_v11-01_Makefiles.pdf
+TEX5 :=GC_v11-02_Makefiles.tex
+DVI5 :=GC_v11-02_Makefiles.dvi
+PDF5 :=GC_v11-02_Makefiles.pdf
 
 # Make command
 makedoc: 

@@ -78,33 +78,38 @@
 !  ND51 tracer numbers:
 !  ============================================================================
 !  1 - nAdvect   : GEOS-CHEM advected species               [v/v        ]
-!  151           : OH concentration                         [molec/cm3  ]
-!  152           : NOy concentration                        [v/v        ]
-!  153           : Relative Humidity                        [%          ]
-!  154           : 3-D Cloud fractions                      [unitless   ]
-!  155           : Column optical depths                    [unitless   ]
-!  156           : Cloud top heights                        [hPa        ]
-!  157           : Air density                              [molec/cm3  ]
-!  158           : Total seasalt species concentration      [unitless   ]
-!  159           : PBL heights                              [m          ]
-!  160           : PBL heights                              [levels     ]
-!  161           : Grid box heights                         [m          ]
-!  162           : PEDGE-$ (Pressure @ level edges          [hPa        ]
-!  163           : Sea level pressure                       [hPa        ]
-!  164           : Zonal wind (a.k.a. U-wind)               [m/s        ]
-!  165           : Meridional wind (a.k.a. V-wind)          [m/s        ]
-!  166           : Temperature                              [K          ]
-!  167           : Sulfate aerosol optical depth            [unitless   ]
-!  168           : Black carbon aerosol optical depth       [unitless   ]
-!  169           : Organic carbon aerosol optical depth     [unitless   ]
-!  170           : Accumulation mode seasalt optical depth  [unitless   ]
-!  171           : Coarse mode seasalt optical depth        [unitless   ]
-!  172           : Total dust optical depth                 [unitless   ]
-!  173-179       : Size resolved dust optical depth         [unitless   ]
-!  180           : PAR direct                               [hPa        ]
-!  181           : PAR diffuse                              [hPa        ]
-!  182           : Daily LAI                                [hPa        ]
-!  183           : Temperature at 2m                        [K          ]
+!  501           : OH concentration                         [molec/cm3  ]
+!  502           : NOy concentration                        [v/v        ]
+!  503           : Relative Humidity                        [%          ]
+!  504           : 3-D Cloud fractions                      [unitless   ]
+!  505           : Column optical depths                    [unitless   ]
+!  506           : Cloud top heights                        [hPa        ]
+!  507           : Air density                              [molec/cm3  ]
+!  508           : Total seasalt species concentration      [unitless   ]
+!  509           : PBL heights                              [m          ]
+!  510           : PBL heights                              [levels     ]
+!  511           : Grid box heights                         [m          ]
+!  512           : PEDGE-$ (Pressure @ level edges          [hPa        ]
+!  513           : Sea level pressure                       [hPa        ]
+!  514           : Zonal wind (a.k.a. U-wind)               [m/s        ]
+!  515           : Meridional wind (a.k.a. V-wind)          [m/s        ]
+!  516           : Temperature                              [K          ]
+!  517           : Sulfate aerosol optical depth            [unitless   ]
+!  518           : Black carbon aerosol optical depth       [unitless   ]
+!  519           : Organic carbon aerosol optical depth     [unitless   ]
+!  520           : Accumulation mode seasalt optical depth  [unitless   ]
+!  521           : Coarse mode seasalt optical depth        [unitless   ]
+!  522           : Total dust optical depth                 [unitless   ]
+!  523-529       : Size resolved dust optical depth         [unitless   ]
+!  530           : PAR direct                               [hPa        ]
+!  531           : PAR diffuse                              [hPa        ]
+!  532           : Daily LAI                                [hPa        ]
+!  533           : Temperature at 2m                        [K          ]
+!  534           : Total organic aerosol                    [ug/m3      ]
+!  535           : Total isoprene SOA                       [ug/m3      ]
+!  536           : GLYX concentration                       [molec/cm3  ]
+!  537           : Total aerosol mass                       [ug/m3      ]
+!  538           : Isoprene aerosol optical depth           [unitless   ]
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -196,7 +201,7 @@
       INTEGER              :: I0,             J0
       ! Increased to 120 from 100 (mpb,2009)
       ! Increased to 121 (ccc, 4/20/10)
-      INTEGER              :: ND51_N_TRACERS, ND51_TRACERS(121)
+      INTEGER              :: ND51_N_TRACERS, ND51_TRACERS(538)
       INTEGER              :: ND51_IMIN,      ND51_IMAX
       INTEGER              :: ND51_JMIN,      ND51_JMAX
       INTEGER              :: ND51_LMIN,      ND51_LMAX
@@ -428,7 +433,8 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_O3_MOD               ! SAVEOH
+      USE CMN_FJX_MOD,        ONLY : ISOPOD
+      USE CMN_O3_MOD               ! SAVEOH, SAVEOA
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
@@ -515,11 +521,17 @@
       LOGICAL, SAVE     :: IS_FULLCHEM, IS_SEASALT
       LOGICAL, SAVE     :: IS_CLDTOPS,  IS_NOy,    IS_OPTD, IS_SLP
       INTEGER, SAVE     :: id_HNO3,     id_HNO4,   id_N2O5, id_NO
-      INTEGER, SAVE     :: id_PAN,      id_PMN,    id_PPN,  id_O3
+      INTEGER, SAVE     :: id_PAN,      id_NPMN,   id_PPN,  id_O3
       INTEGER, SAVE     :: id_R4N2,     id_SALA,   id_SALC, id_NO2
+      INTEGER, SAVE     :: id_IPMN,     id_SOAIE,  id_SOAME
+      INTEGER, SAVE     :: id_INDIOL,   id_LVOCOA, id_ISN1OA
+      INTEGER, SAVE     :: id_ISOA1,    id_ISOA2,  id_ISOA3
+      INTEGER, SAVE     :: id_SO4,      id_NH4,    id_NIT
+      INTEGER, SAVE     :: id_BCPI,     id_BCPO
 
       ! Scalars
       LOGICAL           :: IS_CHEM,     IS_DIAG,   IS_EMIS
+      LOGICAL           :: LSOA,        LISOPOA
       LOGICAL           :: LINTERP
       INTEGER           :: H, I, J, K, L, M, N, ISPC, nAdvect
       INTEGER           :: PBLINT,  R, X, Y, W, XMIN
@@ -539,6 +551,10 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
+      ! Copy values from INPUT_OPT
+      LSOA      = Input_Opt%LSOA
+      LISOPOA   = Input_Opt%LISOPOA
+
       ! Number of advected species
       nAdvect   = State_Chm%nAdvect
 
@@ -546,19 +562,33 @@
       IF ( FIRST ) THEN
 
          ! Define species ID flags
-         id_HNO3 = Ind_('HNO3')
-         id_HNO4 = Ind_('HNO4')
-         id_N2O5 = Ind_('N2O5')
-         id_NO   = Ind_('NO'  )
-         id_PAN  = Ind_('PAN' )
-         id_PMN  = Ind_('PMN' )
-         id_PPN  = Ind_('PPN' )
-         id_O3   = Ind_('O3'  )
-         id_R4N2 = Ind_('R4N2')
-         id_SALA = Ind_('SALA')
-         id_SALC = Ind_('SALC')
-         id_NO2  = Ind_('NO2' )
-
+         id_HNO3    = Ind_('HNO3'   )
+         id_HNO4    = Ind_('HNO4'   )
+         id_N2O5    = Ind_('N2O5'   )
+         id_NO      = Ind_('NO'     )
+         id_PAN     = Ind_('PAN'    )
+         id_NPMN    = Ind_('NPMN'   )
+         id_IPMN    = Ind_('IPMN'   )
+         id_PPN     = Ind_('PPN'    )
+         id_O3      = Ind_('O3'     )
+         id_R4N2    = Ind_('R4N2'   )
+         id_SALA    = Ind_('SALA'   )
+         id_SALC    = Ind_('SALC'   )
+         id_NO2     = Ind_('NO2'    )
+         id_IPMN    = Ind_('IPMN'   )
+         id_SOAIE   = Ind_('SOAIE'  )
+         id_SOAME   = Ind_('SOAME'  )
+         id_INDIOL  = Ind_('INDIOL' )
+         id_LVOCOA  = Ind_('LVOCOA' )
+         id_ISN1OA  = Ind_('ISN1OA' )
+         id_ISOA1   = Ind_('ISOA1'  )
+         id_ISOA2   = Ind_('ISOA2'  )
+         id_ISOA3   = Ind_('ISOA3'  )
+         id_SO4     = Ind_('SO4'    )
+         id_NH4     = Ind_('NH4'    )
+         id_NIT     = Ind_('NIT'    )
+         id_BCPI    = Ind_('BCPI'   )
+         id_BCPO    = Ind_('BCPO'   )
 
          ! Set logical flags on first call
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
@@ -568,9 +598,10 @@
          IS_SEASALT  = ( id_SALA > 0 .and. id_SALC > 0 )
          IS_NOy      = ( IS_FULLCHEM .and. id_NO   > 0 .and.
      &                   id_NO2  > 0 .and. id_PAN  > 0 .and.
-     &                   id_HNO3 > 0 .and. id_PMN  > 0 .and.
+     &                   id_HNO3 > 0 .and. id_NPMN > 0 .and.
      &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
-     &                   id_N2O5 > 0 .and. id_HNO4 > 0 ) 
+     &                   id_N2O5 > 0 .and. id_HNO4 > 0 .and.
+     &                   id_IPMN > 0 ) 
 
          ! Reset first-time flag
          FIRST       = .FALSE.
@@ -708,7 +739,7 @@
      &                      ( Spc(I,J,L,N) * (AIRMW 
      &                 / State_Chm%SpcData(N)%Info%emMW_g ) * GOOD(I) )
 
-            ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
+            ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
 
                !--------------------------------------
                ! OH [molec/cm3]
@@ -719,7 +750,7 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &              ( SAVEOH(I,J,L) * GOOD_CHEM(X) )
 
-            ELSE IF ( N == 152 .and. IS_NOy ) THEN
+            ELSE IF ( N == 502 .and. IS_NOy ) THEN
 
                !--------------------------------------
                ! NOy [v/v]
@@ -747,10 +778,15 @@
      &                        / State_Chm%SpcData(id_HNO3)%Info%emMW_g )       
      &                       * GOOD(I) * Spc(I,J,L,id_HNO3)  )
             
-               ! PMN
+               ! NPMN
                TMP = TMP + ( ( AIRMW 
-     &                        / State_Chm%SpcData(id_PMN)%Info%emMW_g )        
-     &                       * GOOD(I) * Spc(I,J,L,id_PMN)   )
+     &                        / State_Chm%SpcData(id_NPMN)%Info%emMW_g )        
+     &                       * GOOD(I) * Spc(I,J,L,id_NPMN)   )
+
+               ! IPMN
+               TMP = TMP + ( ( AIRMW 
+     &                        / State_Chm%SpcData(id_IPMN)%Info%emMW_g )        
+     &                       * GOOD(I) * Spc(I,J,L,id_IPMN)   )
 
                ! PPN
                TMP = TMP + ( ( AIRMW 
@@ -775,7 +811,7 @@
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
     
-            ELSE IF ( N == 153 ) THEN
+            ELSE IF ( N == 503 ) THEN
 
                !--------------------------------------
                ! RELATIVE HUMIDITY [%]
@@ -783,7 +819,7 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%RH(I,J,L) *
      &                      GOOD(I) )              
 
-            ELSE IF ( N == 154 ) THEN
+            ELSE IF ( N == 504 ) THEN
 
                !--------------------------------------
                ! 3-D CLOUD FRACTIONS [unitless]
@@ -791,7 +827,7 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%CLDF(I,J,L) *
      &                      GOOD(I) )
 
-            ELSE IF ( N == 155 .and. IS_OPTD ) THEN
+            ELSE IF ( N == 505 .and. IS_OPTD ) THEN
 
                !--------------------------------------
                ! COLUMN OPTICAL DEPTHS [unitless]
@@ -799,7 +835,7 @@
                Q(X,Y,1,W) = Q(X,Y,1,W) + ( State_Met%OPTD(I,J,L) *
      &                      GOOD(I) )
 
-            ELSE IF ( N == 156 .and. IS_CLDTOPS ) THEN
+            ELSE IF ( N == 506 .and. IS_CLDTOPS ) THEN
 
                !--------------------------------------
                ! CLOUD TOP HEIGHTS [mb]
@@ -809,7 +845,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( TMP * GOOD(I) )
                ENDIF
 
-            ELSE IF ( N == 157 ) THEN
+            ELSE IF ( N == 507 ) THEN
 
                !--------------------------------------
                ! AIR DENSITY [molec/cm3] 
@@ -817,7 +853,7 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%AIRDEN(I,J,L) *
      &                      XNUMOLAIR  * 1e-6_fp * GOOD(I) )
 
-            ELSE IF ( N == 158 .and. IS_SEASALT ) THEN
+            ELSE IF ( N == 508 .and. IS_SEASALT ) THEN
 
                !--------------------------------------
                ! TOTAL SEASALT SPECIES [v/v]
@@ -829,7 +865,7 @@
      &                        / State_Chm%SpcData(id_SALA)%Info%emMW_g ) 
      &                          * GOOD(I)
 
-            ELSE IF ( N == 159 ) THEN
+            ELSE IF ( N == 509 ) THEN
 
                !--------------------------------------
                ! PBL HEIGHTS [m] 
@@ -839,7 +875,7 @@
      &                         ( GET_PBL_TOP_m( I, J ) * GOOD(I) )  
                ENDIF
 
-            ELSE IF ( N == 160 ) THEN
+            ELSE IF ( N == 510 ) THEN
 
                !--------------------------------------
                ! PBL HEIGHTS [levels] 
@@ -849,7 +885,7 @@
      &                         ( GET_PBL_TOP_L( I, J ) * GOOD(I) )
                ENDIF
 
-            ELSE IF ( N == 161 ) THEN
+            ELSE IF ( N == 511 ) THEN
 
                !--------------------------------------
                ! GRID BOX HEIGHTS [m]
@@ -857,7 +893,7 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%BXHEIGHT(I,J,L) *
      &                      GOOD(I) )
 
-            ELSE IF ( N == 162 ) THEN
+            ELSE IF ( N == 512 ) THEN
 
                !--------------------------------------
                ! PEDGE-$ (prs @ level edges) [hPa]
@@ -865,7 +901,7 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( State_Met%PEDGE(I,J,K) * GOOD(I) )
 
-            ELSE IF ( N == 163 .and. IS_SLP ) THEN
+            ELSE IF ( N == 513 .and. IS_SLP ) THEN
 
                !--------------------------------------
                ! SEA LEVEL PRESSURE [hPa]
@@ -874,7 +910,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%SLP(I,J) *
      &                         GOOD(I) )
                ENDIF
-            ELSE IF ( N == 164 ) THEN
+            ELSE IF ( N == 514 ) THEN
 
                !--------------------------------------
                ! ZONAL (U) WIND [M/S]
@@ -882,7 +918,7 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%U(I,J,L) *
      &                      GOOD(I) )
 
-            ELSE IF ( N == 165 ) THEN
+            ELSE IF ( N == 515 ) THEN
 
                !--------------------------------------
                ! MERIDIONAL (V) WIND [M/S]
@@ -890,7 +926,7 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%V(I,J,L) *
      &                      GOOD(I) )
 
-            ELSE IF ( N == 166 ) THEN 
+            ELSE IF ( N == 516 ) THEN 
 
                !--------------------------------------
                ! TEMPERATURE [K]
@@ -898,7 +934,7 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%T(I,J,L) *
      &                      GOOD(I) )
 
-            ELSE IF ( N == 167 ) THEN
+            ELSE IF ( N == 517 ) THEN
 
                !--------------------------------------
                ! SULFATE AOD [unitless]
@@ -925,7 +961,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 168 ) THEN
+            ELSE IF ( N == 518 ) THEN
 
                !--------------------------------------
                ! BLACK CARBON AOD [unitless]
@@ -952,7 +988,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 169 ) THEN
+            ELSE IF ( N == 519 ) THEN
 
                !--------------------------------------
                ! ORG CARBON AOD [unitless]
@@ -979,7 +1015,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 170 ) THEN
+            ELSE IF ( N == 520 ) THEN
 
                !--------------------------------------
                ! ACCUM SEASALT AOD [unitless]
@@ -1006,7 +1042,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 171 ) THEN
+            ELSE IF ( N == 521 ) THEN
 
                !--------------------------------------
                ! COARSE SEASALT AOD [unitless]
@@ -1033,7 +1069,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 172 ) THEN               
+            ELSE IF ( N == 522 ) THEN               
 
                !--------------------------------------
                ! TOTAL DUST OPTD [unitless]
@@ -1064,7 +1100,7 @@
 
                ENDDO
 
-            ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN               
+            ELSE IF ( ( N >= 523 ) .and. ( N <= 529) ) THEN               
 
                !--------------------------------------
                ! DUST BINS 1-7 OPTD [unitless]
@@ -1072,7 +1108,7 @@
                !
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-               R = N - 172
+               R = N - 522
 
                ! Accumulate
                IF ( .not. LINTERP ) THEN
@@ -1097,7 +1133,7 @@
 ! =====================================================================
 ! Added with MEGAN v2.1. (ccc, 11/20/09)
 
-            ELSE IF ( N == 180 ) THEN 
+            ELSE IF ( N == 530 ) THEN 
 
                !--------------------------------------
                ! PAR DR [W/m2] (mpb,2009)
@@ -1109,7 +1145,7 @@
      &                       ( State_Met%PARDR(I,J) * GOOD(I) )
                ENDIF
 
-            ELSE IF ( N == 181 ) THEN 
+            ELSE IF ( N == 531 ) THEN 
 
                !--------------------------------------
                ! PAR DF [W/m2] (mpb,2009)
@@ -1121,7 +1157,7 @@
      &                       ( State_Met%PARDF(I,J) * GOOD(I) )
                ENDIF
 
-            ELSE IF ( N == 182 ) THEN 
+            ELSE IF ( N == 532 ) THEN 
 
                !--------------------------------------
                ! DAILY LAI  [cm2/cm2] (mpb,2009)
@@ -1133,7 +1169,7 @@
      &                     ( State_Met%MODISLAI(I,J) * GOOD(I) ) 
                ENDIF
 
-            ELSE IF ( N == 183 ) THEN
+            ELSE IF ( N == 533 ) THEN
 
                !--------------------------------------
                ! T at 2m [K] (mpb,2009)
@@ -1152,6 +1188,139 @@
 !###  SEE THE NOTE ABOVE FOR INSTRUCTIONS ON HOW TO SAVE THE EQUIVALENT     ###
 !###  OUTPUTS TO A netCDF FILE. (bmy, mps, 5/26/15)                         ###
 !##############################################################################
+
+            ELSE IF ( N == 534 .and. LSOA ) THEN
+
+               !--------------------------------------
+               ! total organic aerosol [ug/m3]
+               ! NOTE: Only archive at chem timestep
+               ! and if an SOA simulation
+               !--------------------------------------
+
+               ! Accumulate data
+               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+     &              ( SAVEOA(I,J,L) * GOOD_CHEM(X) )
+
+            ELSE IF ( N == 535 .and. LSOA ) THEN
+
+               !--------------------------------------
+               ! total isoprene SOA [ug/m3]
+               ! NOTE: Only archive at chem timestep
+               ! and if an SOA simulation
+               !--------------------------------------
+               ! Temp variable for accumulation
+               TMP = 0.0e+0_fp
+
+               ! Mechanistic isoprene OA:
+               IF ( LISOPOA ) THEN
+
+                  ! IEPOX-OA (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_SOAIE)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+                  ! IMAE-OA (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_SOAME)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+                  ! INDIOL (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_INDIOL)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+                  ! LVOCOA (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_LVOCOA)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+                  ! ISOP+NO3 aerosols (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_ISN1OA)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+               ELSE
+
+                  ! Reversible partitioning scheme:
+                  ! ISOA1 (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_ISOA1)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+                  ! ISOA2 (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_ISOA2)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+                  ! ISOA3 (ug/m3):
+                  TMP = TMP + ( Spc(I,J,L,id_ISOA3)  * GOOD(I) *
+     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+               ENDIF
+
+               ! Save afternoon points
+               Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
+
+            ELSE IF ( N == 536 .and. IS_FULLCHEM ) THEN
+
+               !--------------------------------------
+               ! GLYX [molec/cm3]
+               ! NOTE: Only archive at chem timestep
+               !--------------------------------------
+
+               ! Accumulate data
+               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+     &              ( SAVEGLYX(I,J,L) * GOOD_CHEM(X) )
+
+            ELSE IF ( N == 537 ) THEN
+
+               !--------------------------------------
+               ! Total aerosol mass (excl salt and dust) [ug/m3]
+               ! NOTE: Only archive at chem timestep
+               !--------------------------------------
+               ! Temp variable for accumulation
+               TMP = 0d0
+            
+               ! Organic aerosol (ug/m3):
+               TMP = TMP + ( SAVEOA(I,J,L) * GOOD_CHEM(X) )
+
+               ! Sulfate (ug/m3):
+               TMP = TMP + ( Spc(I,J,L,id_SO4)  * GOOD_CHEM(X) *
+     &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+               ! Ammonium (ug/m3):
+               TMP = TMP + ( Spc(I,J,L,id_NH4)  * GOOD_CHEM(X) *
+     &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+               ! Nitrate (ug/m3):
+               TMP = TMP + ( Spc(I,J,L,id_NIT)  * GOOD_CHEM(X) *
+     &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+               ! Hydrophillic Black carbon (ug/m3):
+               TMP = TMP + ( Spc(I,J,L,id_BCPI)  * GOOD_CHEM(X) *
+     &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+               ! Hydrophobic Black carbon (ug/m3):
+               TMP = TMP + ( Spc(I,J,L,id_BCPO)  * GOOD_CHEM(X) *
+     &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
+
+               ! Save afternoon points
+               Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
+
+            ELSE IF ( N == 538 ) THEN
+
+               !--------------------------------------
+               ! ISOPRENE AOD @ jv_spec_aod.dat wavelength [unitless]
+               ! NOTE: Only archive at chem timestep
+               !--------------------------------------
+               DO R = 1, NRH
+
+                  ! Index for ODAER
+                  !H          = NRH    + R
+
+                  ! Scaling factor to AOD wavelength (clh, 05/09)
+                  ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
+                  ! We no longer need to scale by wavelength (skim, 02/03/11)
+                  SCALEAODnm = 1.0
+
+                  ! Accumulate
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
+     &                   ( ISOPOD(I,J,L,R) * SCALEAODnm * GOOD_CHEM(X) )
+               ENDDO
+
 
             ELSE
 
@@ -1503,7 +1672,7 @@
             GMNL     = ND51_NL
             GMTRC    = N
 
-         ELSE IF ( N == 151 ) THEN
+         ELSE IF ( N == 501 ) THEN
 
             !---------------------
             ! OH 
@@ -1513,7 +1682,7 @@
             GMNL      = ND51_NL
             GMTRC     = 1
 
-         ELSE IF ( N == 152 ) THEN
+         ELSE IF ( N == 502 ) THEN
 
             !---------------------
             ! NOy 
@@ -1523,7 +1692,7 @@
             GMNL     = ND51_NL
             GMTRC    = 2
 
-         ELSE IF ( N == 153 ) THEN
+         ELSE IF ( N == 503 ) THEN
 
             !---------------------
             ! Relative humidity 
@@ -1533,7 +1702,7 @@
             GMNL     = ND51_NL
             GMTRC    = 3
 
-         ELSE IF ( N == 154 ) THEN
+         ELSE IF ( N == 504 ) THEN
 
             !---------------------
             ! 3-D Cloud fractions
@@ -1543,7 +1712,7 @@
             GMNL     = ND51_NL
             GMTRC    = 4
 
-         ELSE IF ( N == 155 ) THEN
+         ELSE IF ( N == 505 ) THEN
 
             !---------------------
             ! Column opt depths 
@@ -1553,7 +1722,7 @@
             GMNL     = 1
             GMTRC    = 5
             
-         ELSE IF ( N == 156 ) THEN
+         ELSE IF ( N == 506 ) THEN
         
             !---------------------
             ! Cloud top heights 
@@ -1563,7 +1732,7 @@
             GMNL     = 1
             GMTRC    = 6
 
-         ELSE IF ( N == 157 ) THEN
+         ELSE IF ( N == 507 ) THEN
 
              !---------------------
             ! Air Density 
@@ -1573,7 +1742,7 @@
             GMNL     = ND51_NL
             GMTRC    = 7
 
-         ELSE IF ( N == 158 ) THEN
+         ELSE IF ( N == 508 ) THEN
 
             !---------------------
             ! Total seasalt
@@ -1583,7 +1752,7 @@
             GMNL     = ND51_NL
             GMTRC    = 8
 
-         ELSE IF ( N == 159 ) THEN 
+         ELSE IF ( N == 509 ) THEN 
 
             !---------------------
             ! PBL Height [m] 
@@ -1593,7 +1762,7 @@
             GMNL     = 1
             GMTRC    = 1
 
-         ELSE IF ( N == 160 ) THEN
+         ELSE IF ( N == 510 ) THEN
 
             !---------------------
             ! PBL Height [levels]
@@ -1603,7 +1772,7 @@
             GMNL     = 1
             GMTRC    = 2
 
-         ELSE IF ( N == 161 ) THEN
+         ELSE IF ( N == 511 ) THEN
 
             !---------------------
             ! Grid box heights
@@ -1613,7 +1782,7 @@
             GMNL     = ND51_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 162 ) THEN
+         ELSE IF ( N == 512 ) THEN
 
             !---------------------
             ! PEDGE-$
@@ -1623,7 +1792,7 @@
             GMNL     = ND51_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 163 ) THEN
+         ELSE IF ( N == 513 ) THEN
 
             !---------------------
             ! Sea level prs
@@ -1633,7 +1802,7 @@
             GMNL     = 1
             GMTRC    = 18
 
-         ELSE IF ( N == 164 ) THEN
+         ELSE IF ( N == 514 ) THEN
 
             !---------------------
             ! U-wind
@@ -1643,7 +1812,7 @@
             GMNL     = ND51_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 165 ) THEN
+         ELSE IF ( N == 515 ) THEN
 
             !---------------------
             ! V-wind
@@ -1653,7 +1822,7 @@
             GMNL     = ND51_NL
             GMTRC    = 2
 
-         ELSE IF ( N == 166 ) THEN
+         ELSE IF ( N == 516 ) THEN
 
             !---------------------
             ! Temperature
@@ -1663,7 +1832,7 @@
             GMNL     = ND51_NL
             GMTRC    = 3
 
-         ELSE IF ( N == 167 ) THEN
+         ELSE IF ( N == 517 ) THEN
 
             !---------------------
             ! Sulfate AOD
@@ -1673,7 +1842,7 @@
             GMNL     = ND51_NL
             GMTRC    = 6
 
-         ELSE IF ( N == 168 ) THEN
+         ELSE IF ( N == 518 ) THEN
 
             !---------------------
             ! Black Carbon AOD
@@ -1683,7 +1852,7 @@
             GMNL     = ND51_NL
             GMTRC    = 9
 
-         ELSE IF ( N == 169 ) THEN
+         ELSE IF ( N == 519 ) THEN
 
             !---------------------
             ! Organic Carbon AOD
@@ -1693,7 +1862,7 @@
             GMNL     = ND51_NL
             GMTRC    = 12
             
-         ELSE IF ( N == 170 ) THEN
+         ELSE IF ( N == 520 ) THEN
 
             !---------------------
             ! SS Accum AOD
@@ -1703,7 +1872,7 @@
             GMNL     = ND51_NL
             GMTRC    = 15
 
-         ELSE IF ( N == 171 ) THEN
+         ELSE IF ( N == 521 ) THEN
 
             !---------------------
             ! SS Coarse AOD
@@ -1713,7 +1882,7 @@
             GMNL     = ND51_NL
             GMTRC    = 18
 
-         ELSE IF ( N == 172 ) THEN
+         ELSE IF ( N == 522 ) THEN
 
             !---------------------
             ! Total dust OD
@@ -1723,7 +1892,7 @@
             GMNL     = ND51_NL
             GMTRC    = 4
 
-         ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
+         ELSE IF ( ( N >= 523 ) .and. ( N <= 529) ) THEN
 
             !---------------------
             ! dust OD (bins 1-7)
@@ -1731,12 +1900,9 @@
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND51_NL
-            GMTRC    = 21+(N-173)
+            GMTRC    = 21+(N-523)
 
-! ================================================================
-! Added with MEGAN v2.1. (ccc, 11/20/09)
-
-         ELSE IF ( N == 180 ) THEN
+         ELSE IF ( N == 530 ) THEN
             
             !---------------------
             ! PARDR [W/m2]
@@ -1747,7 +1913,7 @@
             GMNL     = ND51_NL
             GMTRC    = 20
 
-         ELSE IF ( N == 181 ) THEN
+         ELSE IF ( N == 531 ) THEN
             
             !---------------------
             ! PARDF [W/m2]
@@ -1758,7 +1924,7 @@
             GMNL     = ND51_NL
             GMTRC    = 21
 
-         ELSE IF ( N == 182 ) THEN
+         ELSE IF ( N == 532 ) THEN
 
             !---------------------
             ! DAILY LAI [W/m2]
@@ -1769,7 +1935,7 @@
             GMNL     = ND51_NL
             GMTRC    = 9
 
-         ELSE IF ( N == 183 ) THEN
+         ELSE IF ( N == 533 ) THEN
 
             !---------------------
             ! T at 2m
@@ -1780,141 +1946,63 @@
             GMNL     = ND51_NL
             GMTRC    = 5
 
-         ELSE IF ( N == 184 ) THEN
+         ELSE IF ( N == 534 ) THEN
 
             !---------------------
-            ! ISOPRENE emissions 
-            ! (mpb,2008)
-            !---------------------            
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 1     
-
-         ELSE IF ( N == 185 ) THEN
-
-            !---------------------
-            ! MONOTERPENE emissions 
-            ! (mpb,2008)
-            !---------------------       
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 4    
-
-         ELSE IF ( N == 186 ) THEN
-
-            !---------------------
-            ! MBO emissions 
-            ! (mpb,2008)
+            ! Total org aerosol 
+            ! [ug/m3] (eam, 2014)
             !---------------------   
 
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
+            CATEGORY = 'IJ-SOA-$'
+            UNIT     = 'ug/m3'
             GMNL     = ND51_NL
-            GMTRC    = 5    
+            GMTRC    = 6   
 
-
-         ELSE IF ( N == 187 ) THEN
+         ELSE IF ( N == 535 ) THEN
 
             !---------------------
-            ! a-pine emissions 
-            ! (mpb,2008)
+            ! Total isorpene SOA 
+            ! [ug/m3] (eam, 2014)
             !---------------------   
 
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
+            CATEGORY = 'IJ-SOA-$'
+            UNIT     = 'ug/m3'
             GMNL     = ND51_NL
-            GMTRC    = 7    
+            GMTRC    = 2 
 
-         ELSE IF ( N == 188 ) THEN
+         ELSE IF ( N == 536 ) THEN
 
             !---------------------
-            ! b-pine emissions 
-            ! (mpb,2008)
+            ! Glyoxal concn
+            ! (eam, 2014)
             !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
+            CATEGORY = 'TIME-SER'
+            UNIT     = ''
             GMNL     = ND51_NL
-            GMTRC    = 8   
+            GMTRC    = 34
 
-         ELSE IF ( N == 189 ) THEN
+         ELSE IF ( N == 537 ) THEN
 
             !---------------------
-            ! Limonene emissions 
-            ! (mpb,2008)
+            ! Aerosol mass
+            ! (eam, 2014)
             !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
+            CATEGORY = 'TIME-SER'
+            UNIT     = ''
             GMNL     = ND51_NL
-            GMTRC    = 9    
+            GMTRC    = 35
 
-
-         ELSE IF ( N == 190 ) THEN
+         ELSE IF ( N == 538 ) THEN
 
             !---------------------
-            ! Sabinene emissions 
-            ! (mpb,2008)
+            ! Isoprene AOD
+            ! (eam, 2014)
             !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
+            CATEGORY = 'OD-MAP-$'
+            UNIT     = 'unitless'
             GMNL     = ND51_NL
-            GMTRC    = 10    
+            GMTRC    = 28
 
-         ELSE IF ( N == 191 ) THEN
-
-            !---------------------
-            ! Myrcene emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 11    
-
-
-         ELSE IF ( N == 192 ) THEN
-
-            !---------------------
-            ! 3-carene emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 12    
-
-         ELSE IF ( N == 193 ) THEN
-
-            !---------------------
-            ! Ocimene emissions 
-            ! (mpb,2008)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 13    
-
-         ELSE IF ( N == 194 ) THEN
-
-            !---------------------
-            ! Farnesene emissions
-            ! (hotp 3/5/10)
-            !---------------------   
-
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'
-            GMNL     = ND51_NL
-            GMTRC    = 14
-
-! ================================================================
             
          ELSE
 

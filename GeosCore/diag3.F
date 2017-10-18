@@ -293,8 +293,8 @@
       INTEGER            :: NBIN   ! TOMAS bin counter (win, 1/25/10)
 
       REAL(fp)           :: SCALE_TMP(IIPAR,JJPAR)
-      REAL(fp)           :: SCALE_I6,   SCALE_A6,   SCALE_A3  
-      REAL(fp)           :: SCALE_A1,   SCALED,     SCALEDYN
+      REAL(fp)           :: SCALE_A1,   SCALE_A3  
+      REAL(fp)           :: SCALED,     SCALEDYN
       REAL(fp)           :: SCALECONV,  SCALESRCE,  SCALECHEM  
       REAL(fp)           :: SCALEDIAG,  SCALE_ND66, SCALE_ND67 
       REAL(fp)           :: SCALERAD
@@ -364,8 +364,8 @@
       INTEGER, SAVE            :: id_DAL1,  id_DAL2,  id_DAL3,  id_DAL4
       INTEGER, SAVE            :: id_BCPI,  id_OCPI,  id_POA1,  id_MTPA
       INTEGER, SAVE            :: id_LIMO,  id_MTPO,  id_TSOA1, id_ISOA1
-      INTEGER, SAVE            :: id_ASOA1, id_OPOA1, id_OPOG1, id_SOAG
-      INTEGER, SAVE            :: id_SOAM,  id_SALA,  id_SALC,  id_MOPO    
+      INTEGER, SAVE            :: id_ASOA1, id_OPOA1, id_OPOG1
+      INTEGER, SAVE            :: id_SALA,  id_SALC,  id_MOPO    
       INTEGER, SAVE            :: id_MOPI,  id_DMS,   id_SO2,   id_SO4
       INTEGER, SAVE            :: id_NH3,   id_NO,    id_CO,    id_ALK4
       INTEGER, SAVE            :: id_ACET,  id_MEK,   id_ALD2,  id_PRPE
@@ -376,6 +376,8 @@
       INTEGER, SAVE            :: id_CH2BR2
       INTEGER, SAVE            :: id_PAN,   id_HNO3,  id_EOH,   id_MGLY
       INTEGER, SAVE            :: id_BENZ,  id_TOLU,  id_XYLE
+      INTEGER, SAVE            :: id_NAP,   id_POG1,  id_POG2
+ 
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -409,9 +411,7 @@
       SCALERAD   = DBLE( GET_CT_RAD()  ) + 1e-32_fp
       SCALE_A1   = DBLE( GET_CT_A1()   ) + 1e-32_fp
       SCALE_A3   = DBLE( GET_CT_A3()   ) + 1e-32_fp
-      SCALE_A6   = DBLE( GET_CT_A6()   ) + 1e-32_fp
       SCALE_I3   = DBLE( GET_CT_I3()   ) + 1e-32_fp
-      SCALE_I6   = DBLE( GET_CT_I6()   ) + 1e-32_fp
       SCALEDIAG  = DBLE( GET_CT_DIAG() ) + 1e-32_fp
 
 !
@@ -450,8 +450,6 @@
          id_ASOA1     = Ind_('ASOA1'   )
          id_OPOA1     = Ind_('OPOA1'   )
          id_OPOG1     = Ind_('OPOG1'   )
-         id_SOAG      = Ind_('SOAG'    )
-         id_SOAM      = Ind_('SOAM'    )
          id_SALA      = Ind_('SALA'    )
          id_SALC      = Ind_('SALC'    )
          id_MOPO      = Ind_('MOPO'    ) 
@@ -490,6 +488,9 @@
          id_BENZ      = Ind_('BENZ'    )
          id_TOLU      = Ind_('TOLU'    )
          id_XYLE      = Ind_('XYLE'    )
+         id_NAP       = Ind_('NAP'     )
+         id_POG1      = Ind_('POG1'    )
+         id_POG2      = Ind_('POG2'    )
 
          ! NOTE: CH4 can be an advected species (in CH4 or UCX-based sims),
          ! or a non-advected species (tropchem, soa, soa-svpoa).  We only
@@ -1363,36 +1364,6 @@
 
             ENDDO
 
-            !-----------------------------------------------
-            ! SOA Production from GLYX and MGLY [kg]
-            ! 1: SOAG <- GLYX;  2: SOAM <- MGLY   IN AEROSOL
-            ! 3: SOAG <- GLYX;  4: SOAM <- MGLY   INCLOUD
-            ! (tmf, 1/7/09)
-	    ! Test if SOAG and SOAM tracers are valid before 
-            ! saving them. (ccc, 1/7/09)
-            !-----------------------------------------------
-	    IF ( id_SOAG > 0 .AND. id_SOAM > 0 ) THEN
-               CATEGORY     = 'SOAGM=$'
-
-               DO N = 1, 4
-
-                  IF ( N == 1 ) NN = 91
-                  IF ( N == 2 ) NN = 92
-                  IF ( N == 3 ) NN = 93
-                  IF ( N == 4 ) NN = 94
-
-                  DO L = 1, LD07
-                     ARRAY(:,:,L) = AD07_SOAGM(:,:,L,N) 
-                  ENDDO
-
-                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                        IIPAR,     JJPAR,     LD07,     IFIRST,
-     &                        JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
-            
-               ENDDO
-            ENDIF
          ENDIF
       ENDIF   
 #if defined( BPCH_DIAG )
@@ -2251,6 +2222,15 @@
 !  (26 ) JMACR : MACR  J-value                 : s-1   : SCALE_JV
 !  (27 ) JHAC  : HAC   J-value                 : s-1   : SCALE_JV
 !  (28 ) JGLYC : GLYC  J-value                 : s-1   : SCALE_JV
+!  (29 ) JPIP  : PIP   J-value                 : s-1   : SCALE_JV
+!  (30 ) JIPMN : IPMN  J-value                 : s-1   : SCALE_JV
+!  (31 ) JETHLN: ETHLN J-value                 : s-1   : SCALE_JV
+!  (32 ) JDHDN : DHDN  J-value                 : s-1   : SCALE_JV
+!  (33 ) JHPALD: HPALD J-value                 : s-1   : SCALE_JV
+!  (34 ) JISN1 : ISN1  J-value                 : s-1   : SCALE_JV
+!  (35 ) JMONITS: MONITS J-value               : s-1   : SCALE_JV
+!  (36 ) JMONITU: MONITU J-value               : s-1   : SCALE_JV
+!  (37 ) JHONIT: HONIT J-value                 : s-1   : SCALE_JV
 !  (71 ) JCH3I : CH3I  J-value (s^-1)          : s-1   : SCALE_JV
 !  (81 ) JHCN  : HCN   J-value (s^-1)          : s-1   : SCALE_JV
 !
@@ -2274,148 +2254,19 @@
 
          DO M = 1, TMAX(22)
             N  = TINDEX(22,M)
+            IF ( N > PD22 ) CYCLE
             NN = N
 
-            !-----------------------------------------------------------------
-            ! NOTE: We can no longer select "all" in input.geos, but we
-            ! must specify the species #'s for ND22 explicitly as listed below:
-            !
-            ! Fullchem:
-            ! 1           = NO
-            ! 2           = O3_O1D & O3_O3P (Standard,UCX); O3 & OH (Trop,SOA)
-            ! 7           = HNO3
-            ! 8           = H2O2
-            ! 9           = ACET
-            ! 11          = ALD2
-            ! 13          = MVK
-            ! 14          = MACR
-            ! 20          = CH2O
-            ! 44          = Br2
-            ! 46          = BrO
-            ! 47          = HOBr
-            ! 49          = BrNO2
-            ! 50          = BrNO3
-            ! 51          = CHBr3
-            ! 59          = HAC
-            ! 60          = GLYC
-            ! 66          = NO2
-            ! 67          = NO3
-            ! 69          = N2O   (Standard, UCX simulations only)
-            ! 74          = CCl4  (Standard, UCX simulations only)
-            ! 75          = CH3Cl (Standard, UCX simulations only)
-            ! 83          = CFC11 (Standard, UCX simulations only)
-            ! 84          = CFC12 (Standard, UCX simulations only)
-            ! -1          = O2    (Standard, UCX simulations only)
-            ! N/A         = GLYX  (dicarbonyl simulation only) *needs updating*
-            ! N/A         = MGLY  (dicarbonyl simulation only) *needs updating*
-            !
-            ! HCN simulation:
-            ! 1           = HCN
-            !
-            ! CH3I simulation:
-            ! 1           = CH3I 
-            !
-            ! (ccc, bmy, 12/15/08; mps 5/27/14)
-            !-----------------------------------------------------------------
-            IF ( NN == -1 ) THEN
-
-               ! Write 'O2'
-               MM = 15
-
-            ELSE
-
-               ! Point to the species database entry for this species
-               SpcInfo => State_Chm%SpcData(NN)%Info
-
-               SELECT CASE ( TRIM( SpcInfo%Name ) )
-                  CASE ( 'NO2', 'HCN', 'CH3I' )
-                     MM = 1
-                  CASE ( 'HNO3' )
-                     MM = 2
-                  CASE ( 'H2O2' )
-                     MM = 3
-                  CASE ( 'CH2O' )
-                     MM = 4
-                  CASE ( 'O3'   )
-                     MM = 5
-                  CASE ( 'GLYX' )
-                     MM = 7
-                  CASE ( 'MGLY' )
-                     MM = 8
-                  CASE ( 'BrO' ) ! jpp, 4/24/2011 - added bromine
-                     MM = 9
-                  CASE ( 'HOBr' )
-                     MM = 10
-                  CASE ( 'BrNO2' )
-                     MM = 11
-                  CASE ( 'BrNO3' )
-                     MM = 12
-                  CASE ( 'CHBr3' )
-                     MM = 13
-                  CASE ( 'Br2' )
-                     MM = 14
-                  CASE ( 'N2O' )
-                     MM = 16
-                  CASE ( 'NO' )
-                     MM = 17
-                  CASE ( 'NO3' )
-                     MM = 18
-                  CASE ( 'CFC11' )
-                     MM = 19
-                  CASE ( 'CFC12' )
-                     MM = 20
-                  CASE ( 'CCl4' )
-                     MM = 21
-                  CASE ( 'CH3Cl' )
-                     MM = 22
-                  CASE ( 'ACET' )
-                     MM = 23
-                  CASE ( 'ALD2' )
-                     MM = 24
-                  CASE ( 'MVK' )
-                     MM = 25
-                  CASE ( 'MACR' )
-                     MM = 26
-                  CASE ( 'HAC' )
-                     MM = 27
-                  CASE ( 'GLYC' )
-                     MM = 28
-                  CASE DEFAULT
-                     MM = 0
-               END SELECT
-
-               ! Free pointer
-               SpcInfo => NULL()
-
-            ENDIF
-
-            ! Skip if not a valid index
-            IF ( MM == 0 ) CYCLE
-
             DO L = 1, LD22
-               ARRAY(:,:,L) = AD22(:,:,L,MM) / SCALE_TMP(:,:)
+               ARRAY(:,:,L) = AD22(:,:,L,NN) / SCALE_TMP(:,:)
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, MM,    
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     LD22,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD22) )
 
-            ! If we have just written out O3, then write out OH
-            ! (ccc, bmy, 12/15/08)
-            IF ( MM == 5 ) THEN
-               MMB = 6
-               DO L = 1, LD22
-                  ARRAY(:,:,L) = AD22(:,:,L,MMB) / SCALE_TMP(:,:)
-               ENDDO
-
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, MMB,    
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     LD22,     IFIRST,     
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD22) )
-            ENDIF
          ENDDO    
       ENDIF     
 #if defined( BPCH_DIAG )
@@ -2739,6 +2590,18 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
+         !%%%%% NAP %%%%% ; added krt
+         IF ( id_NAP > 0 ) THEN
+            DiagnName = 'BIOMASS_NAP'
+            UNIT      = 'atoms C/cm2/s'
+            N         = id_NAP
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
          ! Free pointer
          SpcInfo => NULL()
 
@@ -2804,11 +2667,19 @@
          DiagnCnt => NULL()
          SpcInfo => NULL()
 
-         !%%%%% POA simulation %%%%%
-         IF ( id_POA1 > 0 ) THEN
-            DiagnName = 'BIOMASS_POA1'
+         !%%%%% POA simulation %%%%% ; updated krt
+         IF ( id_POG1 > 0 .and. id_POG2 > 0 ) THEN
+            DiagnName = 'BIOMASS_POG1'
             UNIT      = 'atoms C/cm2/s'
-            N         = id_POA1
+            N         = id_POG1
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+
+            DiagnName = 'BIOMASS_POG2'
+            UNIT      = 'atoms C/cm2/s'
+            N         = id_POG2
             SpcInfo => State_Chm%SpcData(N)%Info
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -4356,7 +4227,7 @@
          IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
             M = 1
          ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN  ! Ask Helen
-            M = 2
+            M = 3
          ELSE
             M = nDryDep
          ENDIF
@@ -5075,27 +4946,37 @@
       ENDIF
 
 !******************************************************************************
-!  ND52: gamma HO2 and aerosol radius (jaegle 02/26/09)
+!  ND52: Uptake coefficients (gamma)
 !   # Category 
 !   # : Field     : Description                      : Units     : Scale factor
 !  ----------------------------------------------------------------------------
 !  (1): GAMMAHO2  : Uptake coef for HO2              : unitless  : SCALECHEM
-!
+!  (2): GAMMAIEPOX: Uptake coef for IEPOX            : unitless  : SCALECHEM
+!  (3): GAMMAIEPOX: Uptake coef for IMAE             : unitless  : SCALECHEM
+!  (4): GAMMAIEPOX: Uptake coef for ISOPND/ISOPNB    : unitless  : SCALECHEM
+!  (5): GAMMAIEPOX: Uptake coef for DHDN             : unitless  : SCALECHEM
+!  (6): GAMMAIEPOX: Uptake coef for GLYX             : unitless  : SCALECHEM
 !******************************************************************************
       IF ( ND52 > 0 ) THEN
-        CATEGORY  = 'GAMMA'
+        CATEGORY  = 'GAMMA-$'
         UNIT      = 'unitless'
 
-        DO L = 1, LD52
-            ARRAY(:,:,L) = AD52(:,:,L) / SCALECHEM
-        ENDDO
+         DO M = 1, TMAX(52)
+            N = TINDEX(52,M)
+            IF ( N > PD52 ) CYCLE
+            NN = N
 
-        ! Save to disk
-        CALL BPCH2( IU_BPCH,    MODELNAME, LONRES,   LATRES,
-     &                    HALFPOLAR,  CENTER180, CATEGORY, 1,
-     &                    UNIT,       DIAGb,     DIAGe,    RESERVED,
-     &                    IIPAR,      JJPAR,     LD52,     IFIRST,
-     &                    JFIRST,     LFIRST,    ARRAY(:,:,1:LD52) )
+            DO L = 1, LD52
+               ARRAY(:,:,L) = AD52(:,:,L,N) / SCALECHEM
+            ENDDO
+
+            ! Save to disk
+            CALL BPCH2( IU_BPCH,    MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR,  CENTER180, CATEGORY, NN,
+     &                  UNIT,       DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,      JJPAR,     LD52,     IFIRST,
+     &                  JFIRST,     LFIRST,    ARRAY(:,:,1:LD52) )
+         ENDDO
 
       ENDIF
 !
@@ -5499,16 +5380,6 @@
 
           ! --> If diagnostics OutOper is set to 'Mean':
           FACTOR = 1.0e+0_fp
-
-          ! --> If diagnostics OutOper is set to 'Cumsum' (same as original ND56):
-!#if   defined( MERRA )
-!          FACTOR = DBLE( GET_CT_A3() ) + 1d-32
-!#elif defined( GEOS_FP )
-!          FACTOR = DBLE( GET_CT_I3() ) + 1d-32
-!#else
-!          FACTOR = DBLE( GET_CT_A6() ) + 1d-32
-!#endif     
-!          FACTOR = 1.0 / FACTOR
 
           ! Loop over ND56 diagnostic tracers
           DO M = 1, 3
@@ -6227,13 +6098,13 @@
 !
 !   # : Field  : Description                       : Units   : Scale factor
 !  --------------------------------------------------------------------------
-!  (1)  UWND   : GMAO Zonal Winds                  : m/s     : SCALE_I6 or _A6
-!  (2)  VWND   : GMAO Meridional Winds             : m/s     : SCALE_I6 or _A6
-!  (3)  TMPU   : GMAO Temperatures                 : K       : SCALE_I6 or _A6
-!  (4)  SPHU   : GMAO Specific Humidity            : g/kg    : SCALE_I6 or _A6
-!  (5)  CLDMAS : GMAO Cloud Mass Flux              : kg/m2/s : SCALE_A6 or _A6
-!  (6)  DTRAIN : GMAO Detrainment flux             : kg/m2/s : SCALE_A6
-!  (7)  OMEGA  : GMAO Vertical velocity            : Pa/s    : SCALE_A6
+!  (1)  UWND   : GMAO Zonal Winds                  : m/s     : SCALE_A3
+!  (2)  VWND   : GMAO Meridional Winds             : m/s     : SCALE_A3
+!  (3)  TMPU   : GMAO Temperatures                 : K       : SCALE_I3
+!  (4)  SPHU   : GMAO Specific Humidity            : g/kg    : SCALE_I3
+!  (5)  CLDMAS : GMAO Cloud Mass Flux              : kg/m2/s : SCALE_A3
+!  (6)  DTRAIN : GMAO Detrainment flux             : kg/m2/s : SCALE_A3
+!  (7)  OMEGA  : GMAO Vertical velocity            : Pa/s    : SCALE_A3
 !
 !  NOTES:
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -6245,18 +6116,13 @@
 !  20 Aug 2010 - R. Yantosca - Modified for MERRA
 !  08 Feb 2012 - R. Yantosca - Modified for GEOS-FP
 !  03 Feb 2017 - M. Sulprizio- Add OMEGA (Q. Chen)
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !******************************************************************************
 !
       IF ( ND66 > 0 ) THEN
          CATEGORY = 'DAO-3D-$'
 
-#if   defined( GEOS_FP ) || defined( MERRA2 )
-         SCALE_ND66 = SCALE_A3   ! For GEOS-FP,  ND66 is 3-hr time-avg data
-#elif defined( MERRA )
-         SCALE_ND66 = SCALE_A3   ! For MERRA,    ND66 is 3-hr time-avg data
-#else
-         SCALE_ND66 = SCALE_A6   ! Otherwise,    ND66 is 6-hr time-avg data
-#endif
+         SCALE_ND66 = SCALE_A3   ! ND66 is 3-hr time-avg data
 
          DO M = 1, TMAX(66)
             N  = TINDEX(66,M)
@@ -6271,20 +6137,12 @@
 
                ! TMPU
                CASE ( 3 )
-#if   defined( GEOS_FP ) || defined( MERRA2 )
-                  SCALEX = SCALE_I3      ! T is an I3 field in GEOS-5.7.x
-#else
-                  SCALEX = SCALE_ND66
-#endif
+                  SCALEX = SCALE_I3      ! T is an I3 field
                   UNIT   = 'K'
 
                ! SPHU
                CASE ( 4 )
-#if   defined( GEOS_FP ) || defined( MERRA2 )
-                  SCALEX = SCALE_I3      ! SPHU is an I3 field in GEOS-5.7.x
-#else
-                  SCALEX = SCALE_ND66
-#endif
+                  SCALEX = SCALE_I3      ! SPHU is an I3 field
                   UNIT   = 'g/kg'
 
                ! CLDMAS, DTRAIN
@@ -6318,28 +6176,27 @@
 !
 !   # : Field  : Description                      : Units    : Scale factor
 !  -----------------------------------------------------------------------
-!  (1 ) HFLUX  : GMAO Sensible Heat Flux          : W/m2     : SCALE_ND67
-!  (2 ) RADSWG : GMAO Insolation @ Surface        : W/m2     : SCALE_ND67
-!  (3 ) PREACC : GMAO Accum Precip @ Surface      : mm/day   : SCALE_ND67
-!  (4 ) PRECON : GMAO Conv Precip @ Surface       : mm/day   : SCALE_ND67
-!  (5 ) TS     : GMAO Surface Air Temperature     : K        : SCALE_ND67
-!  (6 ) RADSWT : GMAO Insolation @ Top of Atm     : W/m2     : SCALE_ND67
-!  (7 ) USTAR  : GMAO Friction Velocity           : m/s      : SCALE_ND67
-!  (8 ) Z0     : GMAO Roughness Height            : m        : SCALE_ND67
-!  (9 ) PBL    : GMAO PBL depth                   : m        : SCALE_ND67
-!  (10) CLDFRC : GMAO Cloud Fraction              : unitless : SCALE_ND67
-!  (11) U10M   : GMAO U-wind @ 10 m               : m/s      : SCALE_ND67
-!  (12) V10M   : GMAO V-wind @ 10 m               : m/s      : SCALE_ND67
+!  (1 ) HFLUX  : GMAO Sensible Heat Flux          : W/m2     : SCALE_A1
+!  (2 ) RADSWG : GMAO Insolation @ Surface        : W/m2     : SCALE_A1
+!  (3 ) PREACC : GMAO Accum Precip @ Surface      : mm/day   : SCALE_A1
+!  (4 ) PRECON : GMAO Conv Precip @ Surface       : mm/day   : SCALE_A1
+!  (5 ) TS     : GMAO Surface Air Temperature     : K        : SCALE_A1
+!  (6 ) RADSWT : GMAO Insolation @ Top of Atm     : W/m2     : SCALE_A1
+!  (7 ) USTAR  : GMAO Friction Velocity           : m/s      : SCALE_A1
+!  (8 ) Z0     : GMAO Roughness Height            : m        : SCALE_A1
+!  (9 ) PBL    : GMAO PBL depth                   : m        : SCALE_A1
+!  (10) CLDFRC : GMAO Cloud Fraction              : unitless : SCALE_A1
+!  (11) U10M   : GMAO U-wind @ 10 m               : m/s      : SCALE_A1
+!  (12) V10M   : GMAO V-wind @ 10 m               : m/s      : SCALE_A1
 !  (13) PS-PBL : GMAO Boundary Layer Top Pressure : hPa      : SCALEDYN
-!  (14) ALBD   : GMAO Surface Albedo              : unitless : SCALE_ND67
+!  (14) ALBD   : GMAO Surface Albedo              : unitless : SCALE_A1
 !  (15) PHIS   : GMAO Geopotential Heights        : m        : SCALED 
-!  (16) CLTOP  : GMAO Cloud Top Height            : levels   : SCALE_A6
-!  (17) TROPP  : GMAO Tropopause pressure         : mb       : SCALE_ND67
-!  (18) SLP    : GMAO Sea Level pressure          : mb       : SCALE_ND67
-!  (19) TSKIN  : Ground/sea surface temp.         : hPa      : SCALE_ND67
-!  (20) PARDF  : Photosyn active diffuse rad.     : W/m2     : SCALE_ND67
-!  (21) PARDR  : Photosyn active direct  rad.     : W/m2     : SCALE_ND67
-!  (22) GWET   : Top soil wetness                 : unitless : SCALE_ND67
+!  (17) TROPP  : GMAO Tropopause pressure         : mb       : SCALE_A1
+!  (18) SLP    : GMAO Sea Level pressure          : mb       : SCALE_A1
+!  (19) TSKIN  : Ground/sea surface temp.         : hPa      : SCALE_A1
+!  (20) PARDF  : Photosyn active diffuse rad.     : W/m2     : SCALE_A1
+!  (21) PARDR  : Photosyn active direct  rad.     : W/m2     : SCALE_A1
+!  (22) GWET   : Top soil wetness                 : unitless : SCALE_A1
 !
 !  NOTES:
 !  (1 ) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -6357,18 +6214,14 @@
 !  03 Dec 2013 - R. Yantosca - Change unit of PBL height to meters, this used
 !                              to be hPa in GEOS-1, GEOS-STRAT, GEOS-3, which
 !                              are no longer supported.           
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!                              and remove CLDTOP (only available in MERRA)
 !******************************************************************************
 !
       IF ( ND67 > 0 ) THEN
          CATEGORY = 'DAO-FLDS'
 
-#if   defined( MERRA )
-         SCALE_ND67 = SCALE_A1    ! For MERRA,      ND67 fields are hourly
-#elif defined( GEOS_FP ) || defined( MERRA2 ) 
-         SCALE_ND67 = SCALE_A1    ! For GEOS-FP,    ND67 fields are hourly
-#else
-         SCALE_ND67 = SCALE_A3    ! Otherwise, most ND67 fields are 3-hourly
-#endif
+         SCALE_ND67 = SCALE_A1    ! ND67 fields are hourly
 
          ! Binary punch file
          DO M = 1, TMAX(67)
@@ -6397,13 +6250,6 @@
                CASE ( 10 )
                   SCALEX = SCALE_ND67
                   UNIT   = 'unitless'
-
-#if   defined( GCAP )
-                  ! CLDFRC is a 6-hr field in GCAP, GEOS-STRAT 
-                  ! (swu, bmy, 6/9/05)
-                  SCALEX = SCALE_A6
-#endif
-
                CASE ( 13 )
                   SCALEX = SCALEDYN
                   UNIT   = 'hPa'
@@ -6417,21 +6263,13 @@
                   SCALEX = SCALED
                   UNIT   = 'm'
                CASE ( 16 )
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-                  SCALEX = SCALE_A3     ! MERRA/GEOS-FP CLDTOPS 3-hr avg'd
-#else 
-                  SCALEX = SCALE_A6     ! Otherwise CLDTOPS is 6-hr time avg'd
-#endif
+                  SCALEX = SCALE_A3     ! CLDTOPS are 3-hr avg'd
                   UNIT   = 'levels'
                CASE ( 17 ) 
                   SCALEX = SCALE_ND67
                   UNIT   = 'hPa'
                CASE ( 18 ) 
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-                 SCALEX = SCALE_A1      ! MERRA/GEOS-FP SLP is hourly
-#else
-                 SCALEX = SCALE_I6      ! Otherwise SLP is 6-h inst.
-#endif
+                 SCALEX  = SCALE_A1     ! SLP is hourly
                   UNIT   = 'hPa'
                CASE ( 19 )
                   SCALEX = SCALE_ND67
@@ -6698,6 +6536,48 @@
          ENDDO
       ENDIF
       ENDIF
+
+!******************************************************************************
+!  ND73: ISORROPIA pH and H+ (eam, 01/2015)
+!   # Category 
+!   # : Field     : Description                      : Units     : Scale factor
+!  ----------------------------------------------------------------------------
+!  (1): pH  : ISORROPIA pH                            : unitless  : SCALECHEM
+!  (2): H+  : ISORROPIA H+                            : mol/L     : SCALECHEM
+!  (3): H2O : ISORROPIA aerosol water                 : ug/m3 air : SCALECHEM
+!
+!******************************************************************************
+      IF ( ND73 > 0 ) THEN
+         CATEGORY  = 'ISOROP-$'
+         UNIT      = 'unitless'
+
+         DO M = 1, TMAX(73)
+            N = TINDEX(73,M)
+            IF ( N > PD73 ) CYCLE
+            NN = N
+
+            DO L = 1, LD73
+               ARRAY(:,:,L) = AD73(:,:,L,N) / SCALECHEM
+            ENDDO
+
+            ! Get correct units:
+            IF ( NN == 2 ) THEN
+               UNIT = 'mol/L'
+            ENDIF
+            IF ( NN == 3 ) THEN
+               UNIT = 'ug/m3'
+            ENDIF
+
+            ! Save to disk
+            CALL BPCH2( IU_BPCH,    MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR,  CENTER180, CATEGORY, NN,
+     &                  UNIT,       DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,      JJPAR,     LD73,     IFIRST,
+     &                  JFIRST,     LFIRST,    ARRAY(:,:,1:LD73) )
+         ENDDO
+      ENDIF
+
+!******************************************************************************
 
       ! Cleanup
       DiagnCnt => NULL()

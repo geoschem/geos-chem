@@ -54,7 +54,7 @@
 !  SOAupdate: Traditional SOA simulation updated by hotp 7/2010
 !    New code treats semivolatile or nonvolatile POA, aerosol from IVOCs,
 !      and has updated biogenic SOA
-!    For more detailes on the updated SOA/POA simulation, see comments
+!    For more details on the updated SOA/POA simulation, see comments
 !      in SOA_CHEMISTRY, Pye and Seinfeld ACP 2010, Pye et al. in prep
 !      for ACP 2010
 !    Note that modifications were made throughout the code for SOAupdate
@@ -207,6 +207,9 @@
 !  28 Jun 2016 - M. Sulprizio- Add species ID's for L*RO2N/H and LISOP* to
 !                              replace uses of IL*RO2N/H and ILISOP* from
 !                              comode_loop_mod.F
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
+!                              MERRA; Also remove functions GET_VCLDF and
+!                              GET_LWC, they're no longer needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -285,31 +288,34 @@
       REAL(fp), ALLOCATABLE :: OCCONV(:,:,:)
       REAL(fp), ALLOCATABLE :: TCOSZ(:,:)
       REAL(fp), ALLOCATABLE :: ORVC_SESQ(:,:,:)
-      REAL(fp), ALLOCATABLE :: ISOP_PRIOR(:,:,:)  ! (dkh, 10/09/05)  
-
       REAL(fp), ALLOCATABLE :: GLOB_DARO2(:,:,:,:,:) ! Diagnostic (dkh, 11/10/06) 
 
 #if defined( TOMAS )
-      REAL(fp), ALLOCATABLE :: BCPI_ANTH_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: BCPO_ANTH_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: BCPI_BIOF_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: BCPO_BIOF_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: BCPI_BIOB_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: BCPO_BIOB_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: BCFF(:,:,:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCFF(:,:,:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: BCBF(:,:,:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCBF(:,:,:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: BCBB(:,:,:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCBB(:,:,:,:)
 
-      REAL(fp), ALLOCATABLE :: OCPI_ANTH_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: OCPO_ANTH_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: OCPI_BIOF_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: OCPO_BIOF_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: OCPI_BIOB_BULK(:,:)
-      REAL(fp), ALLOCATABLE :: OCPO_BIOB_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: BCPI_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: BCPO_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCPI_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCPO_ANTH_BULK(:,:)
+
+      REAL(fp), ALLOCATABLE, TARGET :: BCPI_BIOF_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: BCPO_BIOF_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCPI_BIOF_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCPO_BIOF_BULK(:,:)
+
+      REAL(fp), ALLOCATABLE, TARGET :: BCPI_BIOB_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: BCPO_BIOB_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCPI_BIOB_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCPO_BIOB_BULK(:,:)
 
       REAL(fp), ALLOCATABLE :: TERP_ORGC(:,:)
       REAL(fp), ALLOCATABLE :: CO_ANTH(:,:)
 #endif 
-      ! Cloud fraction - for cloud droplet uptake of dicarbonyls 
-      ! (tmf, 12/07/07) 
-      REAL(fp), ALLOCATABLE :: VCLDF(:,:,:)
 
       ! Diagnostic that tracks how much SOA is formed/evaporated
       ! (hotp 6/5/10)
@@ -346,14 +352,14 @@
       ! Species ID flags
       INTEGER :: id_ASOG1,   id_ASOG2,  id_ASOG3,  id_ASOA1,  id_ASOA2
       INTEGER :: id_ASOA3,   id_ASOAN,  id_AW1,    id_BCPI,   id_BCPO 
-      INTEGER :: id_BENZ,    id_ECIL1,  id_ECOB1,  id_GLYX,   id_HO2  
+      INTEGER :: id_BENZ,    id_ECIL1,  id_ECOB1,  id_HO2  
       INTEGER :: id_ISOA1,   id_ISOA2,  id_ISOA3,  id_ISOG1,  id_ISOG2
-      INTEGER :: id_ISOG3,   id_ISOP,   id_LIMO,   id_MGLY,   id_MTPA 
+      INTEGER :: id_ISOG3,   id_ISOP,   id_LIMO,   id_MTPA 
       INTEGER :: id_MTPO,    id_NAP,    id_NK1,    id_NH4,    id_NO   
       INTEGER :: id_NO3,     id_OCIL1,  id_OCOB1,  id_O3,     id_OH   
       INTEGER :: id_OCPO,    id_OCPI,   id_OPOA1,  id_OPOG1,  id_OPOA2
       INTEGER :: id_OPOG2,   id_POA1,   id_POA2,   id_POG1,   id_POG2 
-      INTEGER :: id_SOAG,    id_SOAM,   id_TOLU,   id_TSOA0,  id_TSOA1
+      INTEGER :: id_TOLU,    id_TSOA0,  id_TSOA1
       INTEGER :: id_TSOA2,   id_TSOA3,  id_TSOG0,  id_TSOG1,  id_TSOG2
       INTEGER :: id_TSOG3,   id_XYLE,   id_LBRO2N, id_LBRO2H, id_LTRO2N
       INTEGER :: id_LTRO2H,  id_LXRO2N, id_LXRO2H, id_LNRO2N, id_LNRO2H
@@ -385,6 +391,7 @@
 !
 ! !USES:
 !
+      USE CMN_O3_MOD,         ONLY : SAVEOA
       USE CMN_SIZE_MOD 
       USE ErrCode_Mod 
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -727,55 +734,10 @@
             CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
          ENDIF
 
-         !==============================================================
-         ! NOTE: The following routines are for dicarbonyl chemistry.
-         ! These will be skipped if certain species are not found.
-         !==============================================================
+         ! Get total organic aerosol:
+         CALL OASAVE( SAVEOA,    am_I_Root, Input_Opt,
+     &                State_Met, State_Chm, RC )
 
-         ! If SOAG and SOAM are declared, switch on 
-         !    SOA production from dicarbonyls (tmf, 12/07/07) 
-         IF ( id_SOAG > 0 .and. id_GLYX > 0 ) THEN
-
-            ! Get grid box cloud fraction (tmf, 2/26/07)
-            ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
-            CALL GET_VCLDF( State_Met )
-
-            ! Cloud uptake
-            CALL SOAG_CLOUD( State_Met, State_Chm )
-            IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### CHEMCARBON: a SOAG_CLOUD' )       
-            ENDIF
-
-            ! Aqueous aerosol uptake
-            CALL SOAG_LIGGIO_DIFF( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
-            IF ( prtDebug ) THEN 
-               CALL DEBUG_MSG( '### CHEMCARBON: a SOAG_LIGGIO_DIFF' )
-            ENDIF
-
-         ENDIF
-
-         IF ( id_SOAM > 0 .and. id_MGLY > 0 ) THEN
-         
-            ! Get grid box cloud fraction (tmf, 2/26/07)
-            ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
-            CALL GET_VCLDF( State_Met )
-
-            ! Cloud uptake
-            CALL SOAM_CLOUD( State_Met, State_Chm )
-            IF ( prtDebug ) THEN
-               CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')
-            ENDIF
-
-            ! Aqueous aerosol uptake
-            CALL SOAM_LIGGIO_DIFF( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
-            IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )
-            ENDIF
-
-         ENDIF
-   
       ENDIF
 
       END SUBROUTINE CHEMCARBON
@@ -1325,485 +1287,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: soag_liggio_diff
-!
-! !DESCRIPTION: Subroutine SOAG\_LIGGIO\_DIFF produces SOA on aqueous aerosol
-!  surfaces from GLYX following the uptake model used for N2O5, and the gamma 
-!  from Liggio et al. [2005]. (tmf, 5/30/06)
-!\\
-!\\
-! !INTERFACE:
-!
-
-      SUBROUTINE SOAG_LIGGIO_DIFF( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
-!
-! !USES:
-!
-      USE CMN_DIAG_MOD
-      USE CMN_O3_MOD
-      USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : AD07_SOAGM
-      USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Met_Mod,      ONLY : MetState
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REMARKS: 
-!  (1 ) SOAG (SOA product of GLYX is produced at existing hydrophilic aerosol
-!        surface.
-!
-! !REVISION HISTORY:
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met
-!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. WERADIUS,
-!                              WTAREA are now pointers that point to 3D fields
-!                              in State_Chm.
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER  :: I, J, L, N
-      REAL(fp) :: XTEMP       ! Temperature [K]
-      REAL(fp) :: XSQTEMP     ! SQRT of Temperature
-      REAL(fp) :: XAD         ! Air density [molec/cm3]
-      REAL(fp) :: XRADIUS     ! particle radius [cm]
-      REAL(fp) :: XDFKG       ! Gas phase diffusion coeff [cm2/s]
-      REAL(fp) :: XARSL1K     ! 1st order k
-      REAL(fp) :: XRH         ! Relative humidity [%]
-      REAL(fp) :: XAIRM3      ! Air volume [m3]
-      REAL(fp) :: XGASM       ! Gas mass at grid box before uptake [kg]
-      REAL(fp) :: XGASC       ! Gas concentration before uptake [molec/cm3]
-      REAL(fp) :: XWAREA      ! Wet aerosol surface area
-                              !  [cm^2 wet sfc area of aerosol cm^-3 air]
-      REAL(fp) :: XUPTK0      ! Potential uptake of gas by aerosol by aerosol
-                              !  type [molec/cm3]
-      REAL(fp) :: XUPTK1      ! Potential uptake of gas by aerosol by aerosol
-                              !  type [kg]
-      REAL(fp) :: XUPTKSUM    ! Potential uptake of gas by aerosol [kg]
-      REAL(fp) :: XUPTK       ! Actual uptake of gas by aerosol [kg]
-                              !  XUPTK <= Spc( I, J, L, IDTGLYX )
-      REAL(fp) :: XGAMMA      ! Uptake coefficient 
-
-      ! Local variables not changing 
-      REAL(fp) :: DTCHEM      ! Chemistry time step [s]
-      REAL(fp) :: XMW         ! Molecular weight of gas [g/mole]
-      REAL(fp) :: XSQMW       ! Square root of molecular weight [g/mole]
-      REAL(fp) :: CRITRH      ! Critical RH [%], above which 
-                              !  heteorogeneous chem takes place
-      ! Pointers
-      REAL(fp), POINTER :: Spc(:,:,:,:)
-      REAL(fp), POINTER :: WERADIUS(:,:,:,:)
-      REAL(fp), POINTER :: WTAREA(:,:,:,:)
-
-      !=================================================================
-      ! SOAG_LIGGIO_DIFF begins here!
-      !=================================================================
-
-      ! Assume success
-      RC = GC_SUCCESS
-
-      ! Initialize pointers
-      Spc      => State_Chm%Species     ! Chemical species array [kg]
-      WERADIUS => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
-      WTAREA   => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
-
-      ! Get chemistry time step
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
-
-      ! Molecular weight of GLYX [g/mole]
-      XMW   = 58.e+0_fp
-      XSQMW = SQRT( XMW )
-
-      ! Critical RH, above which heteorogeneous chem takes place
-      CRITRH = 35.0e+0_fp   ! [%]
-
-      ! Uptake coefficient from Liggio et al. [2005b]
-      XGAMMA = 2.9e-3_fp
-
-      !=================================================================
-      ! Loop over grid boxes
-      !
-      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GCHP
-      !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
-      !=================================================================
-      DO L = 1, LLCHEM
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-            ! Get RH  
-            XRH     = State_Met%RH( I, J, L )   ![%]
-
-            ! initialize for safety
-            XUPTK0   = 0e+0_fp
-            XUPTK1   = 0e+0_fp
-            XUPTKSUM = 0e+0_fp
-            XUPTK    = 0e+0_fp
-
-            ! Get T
-            XTEMP   = State_Met%T( I, J, L )
-            XSQTEMP = SQRT( XTEMP )
-
-            ! Get air density  [molec/cm3]
-            XAD     = State_Met%AIRNUMDEN( I, J, L )
-
-            ! Get air volumne [m3]
-            XAIRM3   = State_Met%AIRVOL( I, J, L )
-
-            ! Get gas mass at grid box [kg]
-            XGASM   = Spc( I, J, L, id_GLYX )
-
-            ! Get gas concentration at grid box [molec/cm3]
-            XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp)
-
-            !---------------------------------------
-            ! Gas phase diffusion coeff [cm2/s]           
-            !---------------------------------------
-            XDFKG = 9.45e+17_fp / XAD * XSQTEMP * 
-     &              SQRT( 3.472e-2_fp + (1.e+0_fp/XMW) )
-
-
-            !========================================================
-            ! Calculate heteorogeneous uptake only if the grid box
-            !  relative humidity XRH is >= critical relative humidity CRITRH
-            !========================================================
-            IF ( XRH >= CRITRH ) THEN
-
-               ! Loop over sulfate and other aerosols
-               DO N = 1, NDUST + NAER
-
-                  !---------------------------------------
-                  ! Total available wet aerosol area 
-                  !  archived in 'aerosol_mod.f.glyx'
-                  !  XWAREA [ cm^2 wet sfc area of aerosol cm^-3 air ]
-                  !---------------------------------------
-                  XWAREA  = WTAREA( I, J, L, N ) 
-
-                  IF ( XWAREA > 0e+0_fp ) THEN 
-
-                     ! Get particle radius [cm]
-                     XRADIUS = WERADIUS( I, J, L, N )   
-
-                     !---------------------------------------
-                     ! First order rate constant
-                     !---------------------------------------
-                     XARSL1K = XWAREA / 
-     &               (XRADIUS/XDFKG + 2.749064e-4_fp * 
-     &               XSQMW/XGAMMA/XSQTEMP)
-
-                     !---------------------------------------
-                     ! Calculate potential uptake: Liggio et al. (2005b) Eq (3)
-                     !   
-                     !   d( organic carbon conc ) / dt = 
-                     !      XARSL1K * XGASC 
-                     !---------------------------------------
-                     XUPTK0 = XARSL1K * XGASC * DTCHEM
-                     XUPTK1 = XUPTK0 /
-     &                        AVO*(XMW*1.e-3_fp)*(XAIRM3*1.e+6_fp)
-                     XUPTKSUM = XUPTKSUM + XUPTK1
-
-	            ENDIF
-           
-               ENDDO
-
-                  ! However, the mass of gas being absorbed by aerosol 
-                  !  cannot exceed the original amount of gas XGASM
-                  XUPTK  = MIN( XUPTKSUM, XGASM )
-            
-                  ! Update GLYX in the Spc array
-                  Spc( I, J, L, id_GLYX ) = Spc( I, J, L, id_GLYX ) -
-     &                                      XUPTK
-
-                  ! Update SOAG in the Spc array
-                  Spc( I, J, L, id_SOAG ) = Spc( I, J, L, id_SOAG ) + 
-     &                                      XUPTK
-
-            ENDIF
-
-         !==============================================================
-         ! ND07 diagnostic: SOAG from GLYX [kg/timestep] on aerosol
-         !==============================================================
-         IF ( ND07 > 0 .and. L <= LD07 ) THEN
-            AD07_SOAGM(I,J,L,1) = AD07_SOAGM(I,J,L,1) + XUPTK
-         ENDIF
-
-      ENDDO
-      ENDDO
-      ENDDO
-
-      ! Free pointer
-      NULLIFY( Spc, WERADIUS, WTAREA )
-
-      END SUBROUTINE SOAG_LIGGIO_DIFF
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: soam_liggio_diff
-!
-! !DESCRIPTION: Subroutine SOAM\_LIGGIO\_DIFF produces SOA on aqueous aerosol
-!  surfaces from GLYX following the uptake model used for N2O5, and the gamma 
-!  from Liggio et al. [2005]. (tmf, 5/30/06)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SOAM_LIGGIO_DIFF( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
-!
-! !USES:
-!
-      USE CMN_DIAG_MOD
-      USE CMN_O3_MOD
-      USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : AD07_SOAGM
-      USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Met_Mod,      ONLY : MetState
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  (1 ) SOAM (SOA product of MGLY) is produced at existing hydrophilic aerosol
-!        surface.
-! 
-! !REVISION HISTORY:
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!   5 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt arguments
-!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met
-!  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on JLOOP. WERADIUS,
-!                              WTAREA are now pointers that point to 3D fields
-!                              in State_Chm.
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER  :: I, J, L, N
-      REAL(fp) :: XTEMP       ! Temperature [K]
-      REAL(fp) :: XSQTEMP     ! SQRT of Temperature
-      REAL(fp) :: XAD         ! Air density [molec/cm3]
-      REAL(fp) :: XRADIUS     ! particle radius [cm]
-      REAL(fp) :: XDFKG       ! Gas phase diffusion coeff [cm2/s]
-      REAL(fp) :: XARSL1K     ! 1st order k
-      REAL(fp) :: XRH         ! Relative humidity [%]
-      REAL(fp) :: XAIRM3      ! Air volume [m3]
-      REAL(fp) :: XGASM       ! Gas mass at grid box before uptake [kg]
-      REAL(fp) :: XGASC       ! Gas concentration before uptake [molec/cm3]
-      REAL(fp) :: XWAREA      ! Wet aerosol surface area
-                              !  [cm^2 wet sfc area of aerosol cm^-3 air]
-      REAL(fp) :: XUPTK0      ! Potential uptake of gas by aerosol by aerosol
-                              !  type [molec/cm3]
-      REAL(fp) :: XUPTK1      ! Potential uptake of gas by aerosol by aerosol
-                              !  type [kg]
-      REAL(fp) :: XUPTKSUM    ! Potential uptake of gas by aerosol [kg]
-      REAL(fp) :: XUPTK       ! Actual uptake of gas by aerosol [kg]
-                              !  XUPTK <= State_Chm%Species(I,J,L,id_GLYX)
-      REAL(fp) :: XGAMMA      ! Uptake coefficient 
-
-      ! Local  changing 
-      REAL(fp) :: DTCHEM      ! Chemistry time step [s]
-      REAL(fp) :: XMW         ! Molecular weight of gas [g/mole]
-      REAL(fp) :: XSQMW       ! Square root of molecular weight [g/mole]
-      REAL(fp) :: CRITRH      ! Critical RH [%], above which 
-                              !  heteorogeneous chem takes place
-
-      ! Pointers
-      REAL(fp), POINTER :: Spc(:,:,:,:)      ! GEOS-Chem species array [kg]
-      REAL(fp), POINTER :: WERADIUS(:,:,:,:) ! Wet Aerosol Radius [cm]
-      REAL(fp), POINTER :: WTAREA(:,:,:,:)   ! Wet Aerosol Area [cm2/cm3]
-
-      !=================================================================
-      ! SOAG_LIGGIO_DIFF begins here!
-      !=================================================================
-
-      ! Assume success
-      RC = GC_SUCCESS
-
-      ! Initialize pointers
-      Spc      => State_Chm%Species     ! Chemical species array [kg]
-      WERADIUS => State_Chm%WetAeroRadi ! Aerosol Radius [cm]
-      WTAREA   => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
-
-      ! Get chemistry time step
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
-
-      ! Molecular weight of MGLY [g/mole]
-      XMW   = 72.e+0_fp
-      XSQMW = SQRT( XMW )
-
-      ! Critical RH, above which heteorogeneous chem takes place
-      CRITRH = 35.0e+0_fp   ! [%]
-
-      ! Uptake coefficient from Liggio et al. [2005b]
-      XGAMMA = 2.9e-3_fp
-
-      !=================================================================
-      ! Loop over grid boxes
-      !
-      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GCHP
-      !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
-      !=================================================================
-      DO L = 1, LLCHEM
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-            ! Get RH  
-            XRH     = State_Met%RH( I, J, L )   ![%]
-
-            ! initialize for safety
-            XUPTK0   = 0e+0_fp
-            XUPTK1   = 0e+0_fp
-            XUPTKSUM = 0e+0_fp
-            XUPTK    = 0e+0_fp
-
-            ! Get T
-            XTEMP   = State_Met%T( I, J, L )
-            XSQTEMP = SQRT( XTEMP )
-
-            ! Get air density  [molec/cm3]
-            XAD     = State_Met%AIRNUMDEN( I, J, L )
-
-            ! Get air volumne [m3]
-            XAIRM3  = State_Met%AIRVOL( I, J, L )
-
-            ! Get gas mass at grid box [kg]
-            XGASM   = Spc( I, J, L, id_MGLY )
-
-            ! Get gas concentration at grid box [molec/cm3]
-            XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp)
-
-            !---------------------------------------
-            ! Gas phase diffusion coeff [cm2/s]           
-            !---------------------------------------
-            XDFKG = 9.45e+17_fp / XAD * XSQTEMP * 
-     &              SQRT( 3.472e-2_fp + (1.e+0_fp/XMW) )
-
-
-            !========================================================
-            ! Calculate heteorogeneous uptake only if the grid box
-            !  relative humidity XRH is >= critical relative humidity CRITRH
-            !========================================================
-            IF ( XRH >= CRITRH ) THEN
-
-               ! Loop over sulfate and other aerosols
-               DO N = 1, NDUST + NAER
-
-                  !---------------------------------------
-                  ! Total available wet aerosol area 
-                  !  archived in 'aerosol_mod.f.glyx'
-                  !  XWAREA [ cm^2 wet sfc area of aerosol cm^-3 air ]
-                  !---------------------------------------
-                  XWAREA  = WTAREA( I, J, L, N) 
-
-                  IF ( XWAREA > 0e+0_fp ) THEN 
-
-                     ! Get particle radius [cm]
-                     XRADIUS = WERADIUS( I, J, L, N )   
-
-                     !---------------------------------------
-                     ! First order rate constant
-                     !---------------------------------------
-                     XARSL1K = XWAREA / 
-     &               (XRADIUS/XDFKG + 2.749064e-4_fp
-     &               *XSQMW/XGAMMA/XSQTEMP)
-
-                     !---------------------------------------
-                     ! Calculate potential uptake: Liggio et al. (2005b) Eq (3)
-                     !   
-                     !   d( organic carbon conc ) / dt = 
-                     !      XARSL1K * XGASC 
-                     !---------------------------------------
-                     XUPTK0 = XARSL1K * XGASC * DTCHEM
-                     XUPTK1 = XUPTK0 /
-     &                        AVO*(XMW*1.e-3_fp)*(XAIRM3*1.e+6_fp)
-                     XUPTKSUM = XUPTKSUM + XUPTK1
-
-               ENDIF
-           
-               ENDDO
-
-                  ! However, the mass of gas being absorbed by aerosol 
-                  !  cannot exceed the original amount of gas XGASM
-                  XUPTK  = MIN( XUPTKSUM, XGASM )
-            
-                  ! Update MGLY in the Spc array
-                  Spc( I, J, L, id_MGLY ) = Spc( I, J, L, id_MGLY ) -
-     &                                      XUPTK
-
-                  ! Update SOAM in the Spc array
-                  Spc( I, J, L, id_SOAM ) = Spc( I, J, L, id_SOAM ) + 
-     &                                      XUPTK
-
-            ENDIF
-
-         !==============================================================
-         ! ND07 diagnostic: SOAM from MGLY [kg/timestep] on aerosol
-         !==============================================================
-         IF ( ND07 > 0 .and. L <= LD07 ) THEN
-            AD07_SOAGM(I,J,L,2) = AD07_SOAGM(I,J,L,2) + XUPTK
-         ENDIF
-
-      ENDDO
-      ENDDO
-      ENDDO
-
-      ! Free pointer
-      NULLIFY( Spc, WERADIUS, WTAREA )
-
-      END SUBROUTINE SOAM_LIGGIO_DIFF
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: soa_chemistry
 !
 ! !DESCRIPTION: Subroutine SOA\_CHEMISTRY performs SOA formation. This code is
@@ -1829,7 +1312,6 @@
       USE State_Met_Mod,      ONLY : MetState
       USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,      GET_MONTH
-      USE TIME_MOD,           ONLY : ITS_TIME_FOR_BPCH
 !
 ! !INPUT PARAMETERS:
 !
@@ -2028,8 +1510,16 @@
       REAL(fp), SAVE  :: GLOB_POA_PROD
       REAL(fp), SAVE  :: GLOB_OPOA_PROD
 
+      ! Update IEPOX aerosol-phase species concentrations:
+      INTEGER         :: SPIND
+      REAL*8          :: fORGS,   fORGN
+      REAL*8          :: DELDIOL, DELORGS, DELORGN
+
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
+
+      ! Debug
+      Integer           :: IIDebug, JJDebug
 
       !=================================================================
       ! SOA_CHEMISTRY begins here!
@@ -2106,9 +1596,12 @@
 
       ! added debug (hotp 8/24/09)
       IF ( prtDebug ) THEN
+         IIDebug = Min(IIPar,20)
+         JJDebug = Min(JJPar,33)
          print*, 'START SOA_CHEMISTRY'
          print*, 'species   ','global sum   ', 
-     &              'box 20,33,2   ', 'box 20,33,10    '
+     &       'box ',IIDEBUG,',',JJDEBUG,',2     ',
+     %       'box ',IIDEBUG,',',JJDEBUG,',10    '
 
          IF ( Input_Opt%LSVPOA ) THEN
             print*,'POA1', SUM(Spc(:,:,:,id_POA1))
@@ -2123,11 +1616,11 @@
 
          ! semivolpoa3: debug POAEMISS
          print*, 'POAEMISS,1,POG1',
-     &                 SUM(POAEMISS(:,:,:,1)),POAEMISS(20,33,2,1),
-     &                     POAEMISS(20,33,10,1)
+     &          SUM(POAEMISS(:,:,:,1)),POAEMISS(IIDEBUG,JJDEBUG,2,1),
+     &              POAEMISS(IIDEBUG,JJDEBUG,10,1)
          print*, 'POAEMISS,2,POG2',
-     &                 SUM(POAEMISS(:,:,:,2)),POAEMISS(20,33,2,2),
-     &                     POAEMISS(20,33,10,2)
+     &          SUM(POAEMISS(:,:,:,2)),POAEMISS(IIDEBUG,JJDEBUG,2,2),
+     &              POAEMISS(IIDEBUG,JJDEBUG,10,2)
 
          ! 10/12/09 debug
          IF ( Input_Opt%LSVPOA ) THEN
@@ -2478,7 +1971,8 @@
          ! initial info
          print*, 'AFTER SOA_CHEMISTRY'
          print*, 'species   ','global sum   ', 
-     &           'box 20,33,2   ', 'box 20,33,10    '
+     &       'box ',IIDEBUG,',',JJDEBUG,',2     ',
+     %       'box ',IIDEBUG,',',JJDEBUG,',10    '
 
          IF ( Input_Opt%LSVPOA ) THEN
             print*,'POA1 ', SUM(Spc(:,:,:,id_POA1))
@@ -2493,17 +1987,17 @@
 
          ! semivolpoa4: diag for POG reacted (hotp 3/27/09)
          print*, 'POGRXN ', SUM(GLOB_POGRXN(:,:,:,:)),
-     &                      SUM( GLOB_POGRXN(20,33,2,:)),
-     &                      SUM(GLOB_POGRXN(20,33,10,:))
+     &                      SUM( GLOB_POGRXN(IIDEBUG,JJDEBUG,2,:)),
+     &                      SUM(GLOB_POGRXN(IIDEBUG,JJDEBUG,10,:))
          ! POGRXN (hotp 10/11/09)
          print*, 'POGRXN p1', SUM(GLOB_POGRXN(:,:,:,1))
          print*, 'POGRXN p2', SUM(GLOB_POGRXN(:,:,:,2))
 
          ! semivolpoa3: POG1 + POG2
          print*, 'POAEMISS tot',
-     &              SUM(POAEMISS(:,:,:,:)),
-     &              POAEMISS(20,33,2,1)+POAEMISS(20,33,2,2),
-     &              POAEMISS(20,33,10,1)+POAEMISS(20,33,10,2)
+     &           SUM(POAEMISS(:,:,:,:)),
+     &   POAEMISS(IIDEBUG,JJDEBUG,2,1)+POAEMISS(IIDEBUG,JJDEBUG,2,2),
+     &   POAEMISS(IIDEBUG,JJDEBUG,10,1)+POAEMISS(IIDEBUG,JJDEBUG,10,2)
 
          ! semivolpoa4opoa: add OPOA (hotp 3/27/09)
          IF ( id_OPOA1 > 0 ) THEN ! hotp 8/24/09 ! hotp 10/11/09
@@ -2528,18 +2022,18 @@
             print*, 'OPOA produced (cumulative to date) ',GLOB_OPOA_PROD
             print*, 'POA products '
             print*, 'product 1', SUM(GLOB_AM0_POA(:,:,:,1,1,1)),
-     &                           GLOB_AM0_POA(20,33,2,1,1,1),
-     &                           GLOB_AM0_POA(20,33,10,1,1,1)
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,2,1,1,1),
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,10,1,1,1)
             print*, 'product 2', SUM(GLOB_AM0_POA(:,:,:,1,2,1)),
-     &                           GLOB_AM0_POA(20,33,2,1,2,1),
-     &                           GLOB_AM0_POA(20,33,10,1,2,1)
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,2,1,2,1),
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,10,1,2,1)
             print*, 'OPOA products'
             print*, 'product 1', SUM(GLOB_AM0_POA(:,:,:,1,1,2)),
-     &                           GLOB_AM0_POA(20,33,2,1,1,2),
-     &                           GLOB_AM0_POA(20,33,10,1,1,2)
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,2,1,1,2),
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,10,1,1,2)
             print*, 'product 2', SUM(GLOB_AM0_POA(:,:,:,1,2,2)),
-     &                           GLOB_AM0_POA(20,33,2,1,2,2),
-     &                           GLOB_AM0_POA(20,33,10,1,2,2)
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,2,1,2,2),
+     &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,10,1,2,2)
      
             print*, 'POA to trop', SUM(Spc(:,:,1:LLCHEM,id_POA1)) + 
      &                             SUM(Spc(:,:,1:LLCHEM,id_POA2))
@@ -3896,8 +3390,9 @@
      &                          State_Met )
 
             ! Get ISOP lost to rxn with NO3 [kgC]
-            DELHC(2) = GET_ISOPNO3( I, J, L, Input_Opt, State_Chm,
-     &                              State_Met )
+            ! No longer need this for isoprene SOA simulation (eam, 02/2015):
+!            DELHC(2) = GET_ISOPNO3( I, J, L, Input_Opt, State_Chm,
+!     &                              State_Met )
 
             ! Save diagnostic info for bug check (hotp 5/22/10)
             ! convert from kgC to kg
@@ -4077,13 +3572,14 @@
       !=================================================================
       ! Store Hydrocarbon remaining after oxidation rxn back into Spc
       !=================================================================
-      ! update for new mtp lumping (hotp 5/22/10)
-      Spc(I,J,L,id_MTPA) = MAX( NMVOC(1), 1.e-32_fp )
-      Spc(I,J,L,id_LIMO) = MAX( NMVOC(2), 1.e-32_fp )
+      ! Nothing to do for isoprene or aromatics here,  as their oxidation
+      ! is treated online.
+      ! The same now applies to MTPA and LIMO. As of v11-02c, their
+      ! oxidation is treated online (mps, 9/7/17)
+      !Spc(I,J,L,id_MTPA) = MAX( NMVOC(1), 1.e-32_fp )
+      !Spc(I,J,L,id_LIMO) = MAX( NMVOC(2), 1.e-32_fp )
       Spc(I,J,L,id_MTPO) = MAX( NMVOC(3), 1.e-32_fp )
       ORVC_SESQ(I,J,L)   = MAX( NMVOC(4), 1.e-32_fp )
-      ! Nothing to do for isoprene or aromatics here, 
-      ! as their oxidation is treated online. 
 
       ! Free pointer
       Spc => NULL()
@@ -4742,7 +4238,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMITSGC( EMISMASS,  CTYPE, 
+      SUBROUTINE EMITSGC( EMISMASS,  CTYPE,
      &                    Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
@@ -4762,6 +4258,7 @@
       USE TOMAS_MOD,          ONLY : SRTOCOB,  SRTSO4,   SRTNH4
       USE TOMAS_MOD,          ONLY : SRTH2O,   MNFIX
       USE TOMAS_MOD,          ONLY : SUBGRIDCOAG
+      USE TOMAS_MOD,          ONLY : SGCTSCALE
       USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
 !
 ! !INPUT PARAMETERS:
@@ -4796,7 +4293,7 @@
       REAL(fp)  :: MDIST(IBINS,ICOMP)
       REAL(fp)  :: NDIST2(IBINS)
       REAL(fp)  :: MDIST2(IBINS,ICOMP)
-      REAL*4    :: TSCALE, BOXVOL, TEMP, PRES
+      REAL*4    :: BOXVOL, TEMP, PRES
       INTEGER   :: I, J, L, K, C, PBL_MAX
       REAL(fp)  :: F_OF_PBL
       LOGICAL   :: ERRORSWITCH, PDBUG
@@ -4818,7 +4315,7 @@
       !=================================================================
       
       IF ( Input_Opt%LNLPBL ) THEN 
-         print *,'Currently subroutine EMITHIGH2 does not support ',
+         print *,'Currently subroutine EMITSGC does not support ',
      &        'the new non-local PBL scheme!'
          stop
       ENDIF
@@ -4847,8 +4344,8 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
       IF ( SUM( EMISMASS(I,J,:) ) == 0.e+0_fp ) GOTO 100
-      DO L = 1, PBL_MAX
 
+      DO L = 1, PBL_MAX
          ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
          F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
 
@@ -4883,30 +4380,6 @@
             MOB0(L,:) = MDIST(:,SRTOCOB)
          ENDIF
 
-      ! Define subgrid coagulation timescale (win, 10/28/08)
-#if   defined( GRID4x5   ) 
-      TSCALE = 10.*3600.        ! 10 hours
-#elif defined( GRID2x25  )
-      TSCALE = 5.*3600.    
-#elif defined( GRID1x125 )
-      TSCALE = 2.*3600.    
-#elif defined( GRID1x1   ) 
-      TSCALE = 2.*3600.    
-#elif defined( GRID05x0666 ) 
-      TSCALE = 1.*3600.
-#elif defined( GRID05x0625 )
-      ! Copy the 05x0666 timescale for now
-      TSCALE = 1.*3600.
-#elif defined( GRID025x03125 )
-      ! Copy the 05x0666 timescale for now
-      ! (skim, 5/20/12)
-      TSCALE = 1.*3600.
-#endif
-        !Prior to 10/28/08 (win)     
-        !TSCALE = 10.*3600.
-!            print *, 'Now doing subgrid coag with timescale ',
-!     &           TSCALE/3600.,'hr'
-
          BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
          TEMP    = State_Met%T(I,J,L)
          PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa
@@ -4920,8 +4393,7 @@
 !temp debug         if( dbg .and. i==ii .and. j==jj .and. l==ll ) PDBUG = .TRUE.
 
          CALL SUBGRIDCOAG( NDISTINIT, NDIST, MDIST, BOXVOL,TEMP,
-!     &                     PRES, TSCALE, NDISTFINAL, MADDFINAL   ) 
-     &                     PRES, TSCALE, NDISTFINAL, MADDFINAL,pdbug)
+     &                     PRES, SGCTSCALE, NDISTFINAL, MADDFINAL,pdbug)
          IF ( PDBUG ) THEN
             PRINT *,'Found error in SUBGRIDCOAG at', I,J,L
             PRINT *,'Nk',Spc(I,J,L,id_NK1:id_NK1+ibins-1)
@@ -5011,17 +4483,18 @@ ccc
       IF ( ND59 > 0 ) THEN 
          DO L = 1, PBL_MAX
          DO K = 1, IBINS
-            IF ( CTYPE == 1 ) THEN
+            SELECT CASE (CTYPE)
+              CASE (1)
                AD59_ECIL(I,J,1,K) = AD59_ECIL(I,J,1,K) + 
      &                              ( MIL1(L,K) - MIL0(L,K) )
                AD59_ECOB(I,J,1,K) = AD59_ECOB(I,J,1,K) + 
      &                              ( MOB1(L,K) - MOB0(L,K) )
-            ELSE
+              CASE (2)
                AD59_OCIL(I,J,1,K) = AD59_OCIL(I,J,1,K) + 
      &                              ( MIL1(L,K) - MIL0(L,K) )
                AD59_OCOB(I,J,1,K) = AD59_OCOB(I,J,1,K) + 
      &                              ( MOB1(L,K) - MOB0(L,K) )
-            ENDIF
+            END SELECT
             AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + 
      &                           ( N1(L,K) - N0(L,K) )
          ENDDO
@@ -5029,10 +4502,10 @@ ccc
       ENDIF
 
  100  CONTINUE
- 
+
       ENDDO ! I loop
       ENDDO ! J loop
-
+ 
       ! Free pointer
       Spc => NULL()
 
@@ -5053,21 +4526,23 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION SCALECARB( BULKEMIS, STYPE, CTYPE ) RESULT( VALUE )
+      FUNCTION SCALECARB( BULKEMIS, STYPE, CTYPE ) RESULT( tomasdist )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE TOMAS_MOD,   ONLY : IBINS
+      USE TOMAS_MOD,   ONLY : OCSCALE30,  ECSCALE30
+      USE TOMAS_MOD,   ONLY : OCSCALE100, ECSCALE100
 !
 ! !INPUT PARAMETERS:
 !
       REAL(fp),  INTENT(IN) :: BULKEMIS(IIPAR, JJPAR)
-      INTEGER, INTENT(IN) :: STYPE,  CTYPE
+      INTEGER,   INTENT(IN) :: STYPE,  CTYPE
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)              :: VALUE(IIPAR, JJPAR, IBINS)
+      REAL(fp)              :: tomasdist(IIPAR, JJPAR, IBINS)
 !
 ! !REMARKS:
 !    STYPE (source type): 1 = Fossil fule
@@ -5091,115 +4566,32 @@ ccc
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, K
-      REAL(fp)              :: ECSCALE30(IBINS), ECSCALE100(IBINS)
-      REAL(fp)              :: OCSCALE30(IBINS), OCSCALE100(IBINS)
+      INTEGER               :: I, J, K
 
-#if  defined( TOMAS12 ) || defined( TOMAS15 )
+      REAL(fp)              :: scalefactor(IBINS)
 
-      data OCSCALE30/
-# if  defined( TOMAS15)
-     & 0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     ,
-# endif
-     & 1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02,
-     & 1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01,
-     & 9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05/! use for fossil fuel (bimodal)
+      scalefactor = 0.0d0
 
-      data OCSCALE100/
-# if  defined( TOMAS15)
-     & 0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     ,
-# endif
-     & 1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03,
-     & 2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01,
-     & 2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04/! use for biomass burning
-
-      data ECSCALE30/
-# if  defined( TOMAS15)
-     & 0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     ,
-# endif
-     & 1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02,
-     & 1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01,
-     & 9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05/! use for fossil fuel (bimodal)
-
-      data ECSCALE100/
-# if  defined( TOMAS15)
-     & 0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     ,
-# endif
-     & 1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03,
-     & 2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01,
-     & 2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04/  ! use for biomass burning
-
-
-#else
-
-      DATA OCSCALE30/      ! use for fossil fuel
-# if  defined( TOMAS40)
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
-# endif
-     &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
-     &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
-     &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
-     &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
-     &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
-     &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
-
-      DATA OCSCALE100/     ! use for biomass burning
-# if  defined( TOMAS40)
-     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
-     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
-# endif
-     &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
-     &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
-     &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
-     &   0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  ,
-     &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
-     &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
-
-      DATA ECSCALE30/      ! use for fossil fuel
-# if  defined( TOMAS40)
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
-# endif
-     &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
-     &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
-     &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
-     &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
-     &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
-     &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
-
-      DATA ECSCALE100/     ! use for biomass burning
-# if  defined( TOMAS40)
-     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
-     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
-# endif
-     &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
-     &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
-     &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
-     &   0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  ,
-     &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
-     &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
-#endif
-
-      DO K = 1, IBINS
-      DO J = 1, JJPAR
+      SELECT CASE (CTYPE)
+        CASE (1)
+          SELECT CASE (STYPE)
+            CASE (1)
+              scalefactor(:) = ECSCALE30(:)
+            CASE (2)
+              scalefactor(:) = ECSCALE100(:)
+          END SELECT
+        CASE (2)
+          SELECT CASE (STYPE)
+            CASE (1)
+              scalefactor(:) = OCSCALE30(:)
+            CASE (2)
+              scalefactor(:) = OCSCALE100(:)
+          END SELECT
+      END SELECT
+      
       DO I = 1, IIPAR
-
-      IF ( CTYPE == 1 ) THEN
-         IF ( STYPE == 1 ) THEN
-            VALUE(I,J,K) = BULKEMIS(I,J)*ECSCALE30(K)
-         ELSE  ! for STYPE 2 and 3
-            VALUE(I,J,K) = BULKEMIS(I,J)*ECSCALE100(K)
-         ENDIF
-      ELSE
-         IF ( STYPE == 1 ) THEN
-            VALUE(I,J,K) = BULKEMIS(I,J)*OCSCALE30(K)
-         ELSE  ! for STYPE 2 and 3
-            VALUE(I,J,K) = BULKEMIS(I,J)*OCSCALE100(K)
-         ENDIF
-      ENDIF
-
-      ENDDO
+      DO J = 1, JJPAR
+         tomasdist(I,J,:) = BULKEMIS(I,J)*scalefactor(:)
       ENDDO
       ENDDO
 
@@ -5300,29 +4692,42 @@ ccc
       ! Initialize
       POAEMISS =  0e+0_fp
 
-      ! Get HEMCO ID of species SESQ 
-      IF ( SESQID == -999 ) THEN
-         SESQID = GetHcoID( 'SESQ' )
-      ENDIF
-      IF ( SESQID > 0 ) THEN
-         IF ( .NOT. ASSOCIATED(HcoState%Spc(SESQID)%Emis%Val) ) THEN
-            SESQID = -1
+      ! Check if using complex SOA scheme
+      IF ( Input_Opt%LSOA ) THEN
+
+         ! Get HEMCO ID of species SESQ 
+         IF ( SESQID == -999 ) THEN
+            SESQID = GetHcoID( 'SESQ' )
          ENDIF
-      ENDIF
- 
-      ! Get HEMCO ID of species POG1 and POG2
-      HCOPOG1 = GetHcoID( SpcID=id_POG1 )
-      IF ( HCOPOG1 > 0 ) THEN
-         IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG1)%Emis%Val) ) THEN
-            HCOPOG1 = -1
+         IF ( SESQID > 0 ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(SESQID)%Emis%Val) ) THEN
+               SESQID = -1
+            ENDIF
          ENDIF
-      ENDIF
-      HCOPOG2 = GetHcoID( SpcID=id_POG2 )
-      IF ( HCOPOG2 > 0 ) THEN
-         IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG2)%Emis%Val) ) THEN
-            HCOPOG2 = -1
+
+         ! Get HEMCO ID of species POG1 and POG2
+         HCOPOG1 = GetHcoID( SpcID=id_POG1 )
+         IF ( HCOPOG1 > 0 ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG1)%Emis%Val) ) THEN
+               HCOPOG1 = -1
+            ENDIF
          ENDIF
+         HCOPOG2 = GetHcoID( SpcID=id_POG2 )
+         IF ( HCOPOG2 > 0 ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG2)%Emis%Val) ) THEN
+               HCOPOG2 = -1
+            ENDIF
+         ENDIF
+
+      ELSE
+
+         ! Do not get emissions of SESQ, POG1, POG2 if complex SOA is off
+         SESQID  = -1
+         HCOPOG1 = -1
+         HCOPOG2 = -1
+
       ENDIF
+
 
       ! Nothing to do if none of the species are defined
       IF ( SESQID <= 0 .AND. HCOPOG1 <= 0 .AND. HCOPOG2 <=0 ) RETURN
@@ -5416,7 +4821,7 @@ ccc
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! TOMAS DIAGNs:
 !
@@ -5447,6 +4852,9 @@ ccc
 !  12 Jun 2015 - R. Yantosca - Bug fix: also add reference to DEBUG_MSG
 !  10 Jul 2015 - R. Yantosca - Fixed typo in ProTeX header
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  25 Jun 2017 - S. Farina   - take 3d emis from hemco, squash it to surface, and
+!                              use subgrid coag or emithigh2 to spread thru pbl.
+!                              real 3d emis might happen next...
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5457,18 +4865,8 @@ ccc
       INTEGER                  :: I, I0, IREF, J, J0, JREF, N
       INTEGER                  :: FLAG, ERR
       REAL(fp)                 :: DTSRCE, AREA_M2
-
-      ! Arrays
-      REAL(fp)                 :: BCFF(IIPAR, JJPAR, IBINS, 2)
-      REAL(fp)                 :: OCFF(IIPAR, JJPAR, IBINS, 2)
-      REAL(fp)                 :: BCBF(IIPAR, JJPAR, IBINS, 2)
-      REAL(fp)                 :: OCBF(IIPAR, JJPAR, IBINS, 2)
-      REAL(fp)                 :: BCBB(IIPAR, JJPAR, IBINS, 2)
-      REAL(fp)                 :: OCBB(IIPAR, JJPAR, IBINS, 2)
-
       REAL(fp)                 :: XTRA_ORG_A(IIPAR, JJPAR)
       REAL(fp)                 :: CO_ANTH_TOTAL
-
       REAL(fp)                 :: BCSRC(IIPAR, JJPAR, IBINS, 2)
       REAL(fp)                 :: OCSRC(IIPAR, JJPAR, IBINS, 2)
       REAL(fp)                 :: NUMBSRC(IIPAR, JJPAR, IBINS)
@@ -5476,16 +4874,12 @@ ccc
       REAL*4                   :: BOXVOL  ! calculated from State_Met
       REAL*4                   :: TEMPTMS ! calculated from State_Met
       REAL*4                   :: PRES    ! calculated from State_Met
-
       REAL(fp)                 :: TMP_MASS(IIPAR, JJPAR, IBINS)
-
       REAL(fp)                 :: OC2OM = 1.8d0
-
       LOGICAL                  :: SGCOAG = .True.
-
-      INTEGER                  :: K
-
+      INTEGER                  :: L, K, EMTYPE
       INTEGER                  :: ii=53, jj=29
+      CHARACTER(LEN=63)        :: OrigUnit
 
       ! Strings
       CHARACTER(LEN= 63)       :: DgnName
@@ -5494,7 +4888,9 @@ ccc
       LOGICAL                  :: LPRT
 
       ! Pointers
+      REAL(fp),        POINTER :: emis2D(:,:)
       REAL(f4),        POINTER :: Ptr2D(:,:)
+      REAL(f4),        POINTER :: Ptr3D(:,:,:)
 
       !=================================================================
       ! EMISSCARBONTOMAS begins here!
@@ -5508,11 +4904,19 @@ ccc
       J0                  = GET_YOFFSET()
 
       ! Initialize pointers
+      emis2d              => NULL()
       Ptr2D               => NULL()
+      Ptr3D               => NULL()
 
       ! Import emissions from HEMCO (through HEMCO state)
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not defined!', LOC )
+      ENDIF
+
+      IF ( .NOT. (id_NK1 > 0 .AND. id_ECIL1 > 0 .AND.
+     &     id_ECOB1 > 0 .AND. id_OCIL1 > 0 .AND.
+     &     id_OCOB1 > 1 )) THEN
+         CALL ERROR_STOP ( 'TOMAS Species not defined!', LOC )
       ENDIF
 
       ! Emission timestep [seconds]
@@ -5521,37 +4925,63 @@ ccc
       ! Grid box aarea
       AREA = HcoState%Grid%AREA_M2%Val(:,:)
 
-      ! Convert State_Chm%Species from [kg/kg dry air] to [kg] for TOMAS.
-      ! This will be removed once TOMAS uses mixing ratio instead of mass 
+      ! Convert State_Chm%Species to [kg] for TOMAS. This will be 
+      ! removed once TOMAS uses mixing ratio instead of mass 
       ! as species units (ewl, 9/11/15)
-      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
-     &                               State_Chm, RC         ) 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( 'Unit conversion error', RC, 
-     &                  'Routine EMISSCARBONTOMAS in carbon_mod.F' )
+     &                  'Start of EMISSCARBONTOMAS in carbon_mod.F' )
          RETURN
       ENDIF 
 
-      ! ---------BC---------------------------------------------------
-      DgnName = 'BCPI_ANTH'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
-     &  Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         BCPI_ANTH_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
+      ! ---------FOSSIL FUEL EMISSIONS IN 3d---------------------------
+      DO EMTYPE = 1,4
+         SELECT CASE (EMTYPE)
+           CASE (1)
+               DgnName = 'BCPI_ANTH'
+               emis2d  => BCPI_ANTH_BULK
+           CASE (2)
+               DgnName = 'OCPI_ANTH'
+               emis2d  => OCPI_ANTH_BULK
+           CASE (3)
+               DgnName = 'BCPO_ANTH'
+               emis2d  => BCPO_ANTH_BULK
+           CASE (4)
+               DgnName = 'OCPO_ANTH'
+               emis2d  => OCPO_ANTH_BULK
+         END SELECT
 
-      DgnName = 'BCPO_ANTH'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         BCPO_ANTH_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
+         CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
+     &                     Ptr3D=Ptr3D )
+         IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
+            CALL HCO_WARNING( 'Not found: '//TRIM(DgnName),ERR,
+     &                        THISLOC=LOC )
+         ELSE
+            emis2d(:,:) = 0.0d0
 
+            !flatten emissions into a 2d array for now
+            !they get distributed over the pbl by emithigh or subgridcoag
+            DO L = 1, LLPAR
+               emis2d(:,:) = emis2d(:,:) + Ptr3D(:,:,L)
+            ENDDO
+            ! [kg/box/time step]
+            emis2d(:,:) = emis2d(:,:) * AREA(:,:) * DTSRCE
+         ENDIF
+         emis2d => NULL()
+         Ptr3D  => NULL()
+      ENDDO
+
+      ! ---- SCALE INTO TOMAS BINS ---------------------------
+      BCFF(:,:,:,1) = SCALECARB( BCPI_ANTH_BULK(:,:), 1, 1 )
+      BCFF(:,:,:,2) = SCALECARB( BCPO_ANTH_BULK(:,:), 1, 1 )
+      OCFF(:,:,:,1) = OC2OM * SCALECARB( OCPI_ANTH_BULK(:,:), 1, 2 )
+      OCFF(:,:,:,2) = OC2OM * SCALECARB( OCPO_ANTH_BULK(:,:), 1, 2 )
+
+      !end 3d emis
+
+      ! ---------other EMISSIONS IN 2d---------------------------------
       DgnName = 'BCPI_BF'
       CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
@@ -5567,44 +4997,6 @@ ccc
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
          BCPO_BIOF_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-
-
-      DgnName = 'BCPI_BB'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         BCPI_BIOB_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-
-      DgnName = 'BCPO_BB'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         BCPO_BIOB_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-
-      ! ----- OC -----------------------------------------------------
-      DgnName = 'OCPI_ANTH'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         OCPI_ANTH_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-
-      DgnName = 'OCPO_ANTH'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         OCPO_ANTH_BULK = Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -5624,6 +5016,24 @@ ccc
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
          OCPO_BIOF_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'BCPI_BB'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPI_BIOB_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'BCPO_BB'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPO_BIOB_BULK = Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -5647,57 +5057,37 @@ ccc
       ENDIF
       Ptr2D => NULL()
 
-      ! [kg/box/time step]
-      BCPI_ANTH_BULK = BCPI_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
-      BCPO_ANTH_BULK = BCPO_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
+      !2d emis
       BCPI_BIOF_BULK = BCPI_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
       BCPO_BIOF_BULK = BCPO_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
-      BCPI_BIOB_BULK = BCPI_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
-      BCPO_BIOB_BULK = BCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
-
-      OCPI_ANTH_BULK = OCPI_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
-      OCPO_ANTH_BULK = OCPO_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
       OCPI_BIOF_BULK = OCPI_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
       OCPO_BIOF_BULK = OCPO_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
+
+      BCPI_BIOB_BULK = BCPI_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
+      BCPO_BIOB_BULK = BCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
       OCPI_BIOB_BULK = OCPI_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
       OCPO_BIOB_BULK = OCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
 
-      ! ---- SCALE INTO TOMAS BINS ---------------------------
-      IF ( id_NK1 > 0 .AND. id_ECIL1 > 0 .AND.
-     &     id_ECOB1 > 0 .AND. id_OCIL1 > 0 .AND.
-     &     id_OCOB1 > 1 ) THEN
+      !2d biofuel
+      BCBF(:,:,:,1) = SCALECARB( BCPI_BIOF_BULK(:,:), 2, 1 ) 
+      BCBF(:,:,:,2) = SCALECARB( BCPO_BIOF_BULK(:,:), 2, 1 ) 
+      OCBF(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOF_BULK(:,:), 2, 2 ) 
+      OCBF(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOF_BULK(:,:), 2, 2 )
 
-         BCFF(:,:,:,1) = SCALECARB( BCPI_ANTH_BULK(:,:), 1, 1 )
-         BCBF(:,:,:,1) = SCALECARB( BCPI_BIOF_BULK(:,:), 2, 1 ) 
-         BCBB(:,:,:,1) = SCALECARB( BCPI_BIOB_BULK(:,:), 3, 1 )
+      !2d bioburn
+      BCBB(:,:,:,1) = SCALECARB( BCPI_BIOB_BULK(:,:), 3, 1 )
+      BCBB(:,:,:,2) = SCALECARB( BCPO_BIOB_BULK(:,:), 3, 1 )
+      OCBB(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOB_BULK(:,:), 3, 2 )
+      OCBB(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOB_BULK(:,:), 3, 2 )
 
-         BCFF(:,:,:,2) = SCALECARB( BCPO_ANTH_BULK(:,:), 1, 1 )
-         BCBF(:,:,:,2) = SCALECARB( BCPO_BIOF_BULK(:,:), 2, 1 ) 
-         BCBB(:,:,:,2) = SCALECARB( BCPO_BIOB_BULK(:,:), 3, 1 )
-
-         OCFF(:,:,:,1) = OC2OM * SCALECARB( OCPI_ANTH_BULK(:,:), 1, 2 )
-         OCBF(:,:,:,1) =OC2OM*SCALECARB( OCPI_BIOF_BULK(:,:), 2, 2 ) 
-         OCBB(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOB_BULK(:,:), 3, 2 )
-
-         OCFF(:,:,:,2) = OC2OM * SCALECARB( OCPO_ANTH_BULK(:,:), 1, 2 )
-         OCBF(:,:,:,2) =OC2OM*SCALECARB( OCPO_BIOF_BULK(:,:), 2, 2 )
-         OCBB(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOB_BULK(:,:), 3, 2 )
-
-         ! Add into BCSRC and OCSRC
-         BCSRC(:,:,:,1) = BCFF(:,:,:,1) + BCBF(:,:,:,1) +
-     &        BCBB(:,:,:,1)
-
-         BCSRC(:,:,:,2) = BCFF(:,:,:,2) + BCBF(:,:,:,2) +
-     &        BCBB(:,:,:,2)
-
-         OCSRC(:,:,:,1) = OCFF(:,:,:,1) + OCBF(:,:,:,1) +
-     &        OCBB(:,:,:,1)
-
-         OCSRC(:,:,:,2) = OCFF(:,:,:,2) + OCBF(:,:,:,2) +
-     &        OCBB(:,:,:,2)
+      ! Add into BCSRC and OCSRC
+      BCSRC(:,:,:,1) = BCFF(:,:,:,1) + BCBF(:,:,:,1) + BCBB(:,:,:,1)
+      BCSRC(:,:,:,2) = BCFF(:,:,:,2) + BCBF(:,:,:,2) + BCBB(:,:,:,2)
+      OCSRC(:,:,:,1) = OCFF(:,:,:,1) + OCBF(:,:,:,1) + OCBB(:,:,:,1)
+      OCSRC(:,:,:,2) = OCFF(:,:,:,2) + OCBF(:,:,:,2) + OCBB(:,:,:,2)
 
       IF ( SGCOAG ) THEN
-
+!emitsgc uses total OC or EC mass 
          ! SUM mass terms into TEMP_MASS and pass to EMITSFC
          TMP_MASS = BCSRC(:,:,:,1) + BCSRC(:,:,:,2)
          CALL EMITSGC( TMP_MASS, 1, Input_Opt, State_Met, State_Chm )
@@ -5705,21 +5095,22 @@ ccc
          TMP_MASS = OCSRC(:,:,:,1) + OCSRC(:,:,:,2)
          CALL EMITSGC( TMP_MASS, 2, Input_Opt, State_Met, State_Chm )
       ELSE
-           !-----------------------------------------
-           ! Add emission w/o sub-grid coagulation
-           !-----------------------------------------
+         !-----------------------------------------
+         ! Add emission w/o sub-grid coagulation
+         !-----------------------------------------
 
-           ! Convert the total mass emission to number emisison [No.]
-           DO K = 1, IBINS
-              NUMBSRC(:,:,K) = ( BCSRC(:,:,K,1) + BCSRC(:,:,K,2) +
-     &                          OCSRC(:,:,K,1) + OCSRC(:,:,K,2) )/
-     &                          AVGMASS(K)
-           ENDDO
+         ! Convert the total mass emission to number emisison [No.]
+         DO K = 1, IBINS
+            NUMBSRC(:,:,K) = ( BCSRC(:,:,K,1) + BCSRC(:,:,K,2) +
+     &                         OCSRC(:,:,K,1) + OCSRC(:,:,K,2) )/
+     &                         AVGMASS(K)
+         ENDDO
 
-           CALL EMITHIGH2( BCSRC, OCSRC, NUMBSRC,
-     &                     Input_Opt, State_Chm )
-
+         CALL EMITHIGH2( BCSRC, OCSRC, NUMBSRC,
+     &                   Input_Opt, State_Chm )
       ENDIF  !sgcoag
+
+!end anthro emissions
 
       ! READ IN directly emitted SOAS (sfarina / jkodros)
       Ptr2D => NULL()
@@ -5755,14 +5146,12 @@ ccc
       IF ( LPRT )
      &    CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
 
-      ENDIF  ! size resolved > 0
-
-      ! Convert State_Chm%Species back to kg (ewl, 9/11/15)
-      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
-     &                               State_Chm, RC         ) 
+      ! Convert State_Chm%Species back to original units (ewl, 9/11/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
-     &                 'Routine EMISSCARBONTOMAS in carbon_mod.F')
+     &                 'End of EMISSCARBONTOMAS in carbon_mod.F')
          RETURN
       ENDIF  
 
@@ -6835,633 +6224,6 @@ ccc
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_vcldf
-!
-! !DESCRIPTION: Subroutine GET\_VCLDF computes the volume cloud fraction for
-!  SO2 chemistry. (rjp, bdf, bmy, 9/23/02)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GET_VCLDF( State_Met )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE State_Met_Mod,      ONLY : MetState
-!
-! !INPUT PARAMETERS:
-!
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !REMARKS:
-!  References:
-!  ============================================================================
-!  (1) Sundqvist et al. [1989]
-!
-! !REVISION HISTORY:
-!  (1 ) Copied from 'sulfate_mod.f' for cloud uptake of GLYX and MGLY (tmf,
-!       2/26/07)
-!  14 Jan 2011 - R. Yantosca - Return if VCLDF is not allocated
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
-!                              State_Met%PEDGE and State_Met%PMID.
-!                              Remove dependency on pressure_mod.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-      REAL(fp),  PARAMETER :: ZRT = 0.60e+0_fp
-      REAL(fp),  PARAMETER :: ZRS = 0.99e+0_fp
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: I,    J,    L
-      REAL(fp)             :: PRES, PSFC, RH2, R0, B0
-		
-      !=================================================================
-      ! GET_VCLDF begins here!
-      !=================================================================
-
-      ! Exit if we VCLDF is not allocated.  We will now get the cloud
-      ! fraction from the GEOS-5 or MERRA met fields. (skim, bmy, 1/14/10)
-      IF ( .not. ALLOCATED( VCLDF ) ) RETURN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, PSFC, PRES, RH2, R0, B0 )
-      DO L = 1, LLCHEM
-      DO J = 1, JJPAR 
-      DO I = 1, IIPAR
-
-         ! Surface pressure
-         PSFC = State_Met%PEDGE(I,J,1)
-
-         ! Pressure at the center of the grid box
-         PRES = State_Met%PMID(I,J,L)
-
-         ! RH (from "dao_mod.f") is relative humidity [%]
-         ! Convert to fraction and store in RH2
-         RH2  = State_Met%RH(I,J,L) * 1.0e-2_fp
-
-         ! Terms from Sundqvist ???
-         R0   = ZRT + ( ZRS - ZRT ) * EXP( 1e+0_fp - 
-     &          ( PSFC / PRES )**2.5 )
-         B0   = ( RH2 - R0 ) / ( 1e+0_fp - R0 )
-   
-         ! Force B0 into the range 0-1
-         IF ( RH2 < R0  ) B0 = 0e+0_fp
-         IF ( B0  > 1e+0_fp ) B0 = 1e+0_fp
-
-         ! Volume cloud fraction
-         VCLDF(I,J,L) = 1e+0_fp - SQRT( 1e+0_fp - B0 )
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE GET_VCLDF
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_lwc
-!
-! !DESCRIPTION: Function GET\_LWC returns the cloud liquid water content
-!  [g H2O/m3 air] at a GEOS-CHEM grid box as a function of temperature.
-!  (rjp, bmy, 10/31/02, 1/14/03)
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_LWC( T ) RESULT( LWC )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL(fp), INTENT(IN) :: T     ! Temperature [K]
-!
-! !RETURN VALUE:
-!
-      REAL(fp)             :: LWC   ! Cloud liquid water content [g H2O/m3 air]
-!
-! !REVISION HISTORY:
-!  (1 ) Copied from 'sulfate_mod.f' for cloud uptake of GLYX and MGLY (tmf, 2/26/07)
-!  18 Jan 2011 - R. Yantosca - Updated comments
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-      !=================================================================
-      ! GET_LWC begins here!
-      !=================================================================
-
-      ! Compute Liquid water content in [g/m3]
-      IF ( T > 293e+0_fp ) THEN
-         LWC = 0.2e+0_fp
-
-      ELSE IF ( T >= 280.e+0_fp .AND. T <= 293.e+0_fp ) THEN
-         LWC = 0.32e+0_fp - 0.0060e+0_fp * ( T - 273.e+0_fp ) 
- 
-      ELSE IF ( T >= 248.e+0_fp .AND. T < 280.e+0_fp ) THEN
-         LWC = 0.23e+0_fp + 0.0065e+0_fp * ( T - 273.e+0_fp )
-
-      ELSE IF ( T < 248.e+0_fp ) THEN
-         LWC = 0.07e+0_fp
-
-      ENDIF
-
-      END FUNCTION GET_LWC
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: soag_cloud
-!
-! !DESCRIPTION: Subroutine SOAG\_CLOUD produces SOAG from GLYX during a cloud
-!  event. Mimics the SO2 -> SO4 process from 'sulfate\_mod.f'.  (tmf, 2/26/07)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SOAG_CLOUD( State_Met, State_Chm )
-!
-! !USES:
-!
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : IS_LAND 
-      USE DIAG_MOD,           ONLY : AD07_SOAGM
-      USE State_Met_Mod,      ONLY : MetState
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMETERS:
-!
-      ! Arguments
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-! 
-! !REVISION HISTORY:
-!  (1 ) SOAG (SOA product of GLYX is produced at existing hydrophilic aerosol
-!        surface. (tmf, 2/26/07)
-!  (2 ) Assume marine and continental cloud droplet size (tmf, 2/26/07)
-!  14 Jan 2011 - R. Yantosca - Now compute cloud fraction and liquid water
-!                              content directly from GEOS-5 & MERRA met fields
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
-!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-      REAL(fp), PARAMETER :: XCLDR_CONT =  6.e-4_fp ! Cloud droplet radius in
-                                               !  continental warm clouds [cm]
-      REAL(fp), PARAMETER :: XCLDR_MARI = 10.e-4_fp ! Cloud droplet radius in marine
-                                               !  warm clouds [cm]
-      REAL(fp), PARAMETER :: XMW = 58.e+0_fp         ! Molec wt of glyoxal [g/mole]
-      REAL(fp), PARAMETER :: MINDAT = 1.e-20_fp     ! Minimum GLYX mixing ratio to
-                                               !  calculate cloud uptake
-      REAL(fp), PARAMETER :: XGAMMA = 2.9e-3_fp     ! Uptake coefficient (Assume
-                                               !  XGAMMA = 2.9d-3 following
-                                               ! Liggio et al., 2005)
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER             :: I, J, L
-      REAL(fp)            :: DTCHEM    ! Chemistry time step [s]
-      REAL(fp)            :: XAIRM     ! Air mass [kg/box]
-      REAL(fp)            :: XAIRM3    ! Air volume [m3]
-      REAL(fp)            :: XGASM     ! Gas mass before uptake [kg]
-      REAL(fp)            :: XGASC     ! Gas conc before uptake [molec/cm3]
-      REAL(fp)            :: XGASMIX   ! Gas mixing ratio [v/v]
-      REAL(fp)            :: XCLDR     ! Cloud droplet radius [cm]
-      REAL(fp)            :: XDF       ! Gas-phase diffusivity [cm2/s]
-      REAL(fp)            :: XMS       ! Mean molecular speed [cm/s] 
-      REAL(fp)            :: XKT       ! Phase-transfer coefficient [1/s]
-      REAL(fp)            :: XTEMP     ! Temperature [K]
-      REAL(fp)            :: XDELTAC   ! Potential max change of gas conc due 
-                                     !  to cloud chemistry [molecules/cm3]
-      REAL(fp)            :: XUPTKMAX  ! Potential max uptake of gas by cloud [kg]
-      REAL(fp)            :: XUPTK     ! Actual uptake of gas by cloud [kg]
-                                     !  XUPTK <= Spc( I, J, L, id_GLYX )
-      REAL(fp)            :: FC        ! Cloud fraction by volume [unitless]
-      REAL(fp)            :: LWC       ! Liquid water content [g/m3]
-
-      ! Pointers
-      REAL(fp), POINTER   :: Spc(:,:,:,:)
-
-      !=================================================================
-      ! SOAG_CLOUD begins here!
-      !=================================================================
-      
-      ! Point to chemical species array [kg]
-      Spc => State_Chm%Species
-
-      ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
-
-      ! Loop over chemically-active grid boxes
-      DO L = 1, LLCHEM
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
-
-         ! initialize for safety
-         XUPTKMAX = 0e+0_fp
-         XUPTK    = 0e+0_fp
-
-         ! Get temperature
-         XTEMP   = State_Met%T( I, J, L )
-
-         ! Get air mass  [kg/box]
-         XAIRM   = State_Met%AD( I, J, L  )
-
-         ! Get air volumne [m3]
-         XAIRM3  = State_Met%AIRVOL( I, J, L )
-
-         ! Get gas mass at grid box [kg]
-         XGASM   = Spc( I, J, L, id_GLYX )
-
-         ! Get gas concentration at grid box [molec/cm3]
-         XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp) 
-
-         ! GET gas mixing ratio [v/v]
-         XGASMIX = XGASM / XMW / ( XAIRM / AIRMW )
-
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-         !---------------------------------------------
-         ! GEOS-5/MERRA: Get LWC, FC from met fields
-         ! (skim, bmy, 1/14/11)
-         !---------------------------------------------
-
-         ! Get cloud fraction from met fields
-         FC      = State_Met%CLDF(I,J,L)
-
-         ! Get liquid water content within cloud [g/m3] directly from met
-         ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
-         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 
-     &             1e+3_fp
-
-         !%%% NOTE: Someone should investigate effect of dividing LWC by the
-         !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
-
-#else
-         !---------------------------------------------
-         ! Otherwise, compute FC, LWC as before
-         !---------------------------------------------
-
-         ! Volume cloud fraction (Sundqvist et al 1989) [unitless]
-         FC      = VCLDF(I,J,L)
-
-         ! Liquid water content in cloudy area of grid box [g/m3]
-         LWC     = GET_LWC( XTEMP ) * FC
-
-#endif
-
-         !==============================================================
-         ! If (1) there is cloud, (2) there is GLYX present, and 
-         ! (3) the T > -15 C, then compute cloud uptake
-         !==============================================================
-         IF ( ( FC     > 0.e+0_fp   )  .AND. 
-     &        ( XGASMIX > MINDAT )  .AND. 
-     &        ( XTEMP   > 258.0  ) ) THEN
-
-            IF ( IS_LAND( I, J, State_Met ) ) THEN
-               XCLDR = XCLDR_CONT     ! Continental cloud droplet radius  [m]
-            ELSE
-               XCLDR = XCLDR_MARI     ! Marine cloud droplet radius  [m]
-            ENDIF
-
-            !---------------------------------------
-            ! Gas phase diffusivity [cm2/s]       [Lim et al., 2005 Eq. (4)]
-            !---------------------------------------
-            XDF = 1.9e+0_fp * (XMW**(-0.667))
-
-            !---------------------------------------
-            ! Mean molecular speed [cm/s]         [Lim et al., 2005 Eq. (5)]
-            !  XMS = SQRT( ( 8 * Boltzmann const * Temperature * N_Avogadro  ) / 
-            !              ( pi * molecular weight [g/mole] ) )
-            !      = SQRT( 2.117d8 * Temperature / molecular weight )
-            !---------------------------------------
-            XMS = SQRT( 2.117e+8_fp * XTEMP / XMW )
-
-            !---------------------------------------
-            ! Phase transfer coeff [1/s]          [Lim et al., 2005 Eq. (3)] 
-            ! XGAMMA = ALPHA, XGAMMA = 2.9d-3 following Liggio et al., 2005
-            !---------------------------------------
-            XKT = 1.e+0_fp / ( ( XCLDR * XCLDR / 3.e+0_fp / XDF ) + 
-     &              ( 4.e+0_fp * XCLDR / 3.e+0_fp / XMS / XGAMMA ) )
-
-            !---------------------------------------
-            ! Maximum potential change in concentration [molecules/cm3]   [Lim et al., 2005 Eq. (1)]
-            !---------------------------------------
-            XDELTAC = LWC * XKT * XGASC * DTCHEM
-
-            !---------------------------------------
-            ! Maximum potential uptake of gas mass [kg/box]
-            !---------------------------------------
-            XUPTKMAX = XDELTAC * 1.e+6_fp / AVO * XMW * 1.e-3_fp 
-     &               * XAIRM3
-
-            !---------------------------------------
-            ! However, the mass of gas being absorbed by aerosol 
-            !  cannot exceed the original amount of gas XGASM
-            !---------------------------------------
-            XUPTK  = MIN( XUPTKMAX, XGASM )
-            
-            ! Update GLYX in the Spc array
-            Spc( I, J, L, id_GLYX ) = Spc( I, J, L, id_GLYX ) -
-     &                                XUPTK
-
-            ! Update SOAG in the Spc array
-            Spc( I, J, L, id_SOAG ) = Spc( I, J, L, id_SOAG ) + 
-     &                                XUPTK
-
-            !==============================================================
-            ! ND07 diagnostic: SOAG from GLYX in cloud [kg/timestep]
-            !==============================================================
-            IF ( ND07 > 0 .and. L <= LD07 ) THEN
-               AD07_SOAGM(I,J,L,3) = AD07_SOAGM(I,J,L,3) + XUPTK
-            ENDIF
-
-
-         ENDIF    ! End of IN CLOUD criteria
-
-      ENDDO
-      ENDDO
-      ENDDO
-
-      ! Free pointer
-      Spc => NULL()
-
-      END SUBROUTINE SOAG_CLOUD
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: soam_cloud
-!
-! !DESCRIPTION: Subroutine SOAM\_CLOUD produces SOAM from MGLY during a cloud
-!  event. Mimics the SO2 -> SO4 process from 'sulfate\_mod.f'.  (tmf, 2/26/07)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SOAM_CLOUD( State_Met, State_Chm )
-!
-! !USES:
-!
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : IS_LAND
-      USE DIAG_MOD,           ONLY : AD07_SOAGM
-      USE State_Met_Mod,      ONLY : MetState
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMETERS:
-!
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-! 
-! !REVISION HISTORY:
-!  (1 ) SOAM (SOA product of MGLY is produced at existing hydrophilic aerosol
-!        surface. (tmf, 2/26/07)
-!  (2 ) Assume typical marine and continental cloud droplet size (tmf, 2/26/07)
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
-!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-      REAL(fp), PARAMETER :: XCLDR_CONT =  6.e-4_fp ! Cloud droplet radius in
-                                               !  continental warm clouds [cm]
-      REAL(fp), PARAMETER :: XCLDR_MARI = 10.e-4_fp ! Cloud droplet radius in marine
-                                               !  warm clouds [cm]
-      REAL(fp), PARAMETER :: XMW = 72.e+0_fp         ! Molec wt of methylglyoxal
-                                               !  [g/mole]
-      REAL(fp), PARAMETER :: MINDAT = 1.e-20_fp     ! Minimum GLYX mixing ratio to
-                                               !  calculate cloud uptake
-      REAL(fp), PARAMETER :: XGAMMA = 2.9e-3_fp     ! Uptake coefficient (Assume
-                                               !  XGAMMA = 2.9d-3 following
-                                               !  Liggio et al., 2005)
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER             :: I, J, L
-      REAL(fp)            :: DTCHEM    ! Chemistry time step [s]
-      REAL(fp)            :: XAIRM     ! Air mass [kg/box]
-      REAL(fp)            :: XAIRM3    ! Air volume [m3]
-      REAL(fp)            :: XGASM     ! Gas mass before uptake [kg]
-      REAL(fp)            :: XGASC     ! Gas conc before uptake [molec/cm3]
-      REAL(fp)            :: XGASMIX   ! Gas mixing ratio [v/v]
-      REAL(fp)            :: XCLDR     ! Cloud droplet radius [cm]
-      REAL(fp)            :: XDF       ! Gas-phase diffusivity [cm2/s]
-      REAL(fp)            :: XMS       ! Mean molecular speed [cm/s] 
-      REAL(fp)            :: XKT       ! Phase-transfer coefficient [1/s]
-      REAL(fp)            :: XTEMP     ! Temperature [K]
-      REAL(fp)            :: XDELTAC   ! Potential max change of gas conc due
-                                     !  to cloud chemistry [molecules/cm3]
-      REAL(fp)            :: XUPTKMAX  ! Potential max uptake of gas by cloud [kg]
-      REAL(fp)            :: XUPTK     ! Actual uptake of gas by cloud [kg]
-                                       !  XUPTK <= Spc( I, J, L, id_GLYX )
-      REAL(fp)            :: FC        ! Cloud fraction by volume [unitless]
-      REAL(fp)            :: LWC       ! Liquid water content [g/m3]
-
-      ! Pointers
-      REAL(fp), POINTER   :: Spc(:,:,:,:)
-
-      !=================================================================
-      ! SOAM_CLOUD begins here!
-      !=================================================================
-      
-      ! Point to chemical species array [kg]
-      Spc => State_Chm%Species
-
-      ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
-
-      ! Loop over chemically-active grid boxes
-      DO L = 1, LLCHEM
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Skip non-chemgrid boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
-
-         ! initialize for safety
-         XUPTKMAX = 0e+0_fp
-         XUPTK    = 0e+0_fp
-
-         ! Get temperature
-         XTEMP   = State_Met%T( I, J, L )
-
-         ! Get air mass  [kg/box]
-         XAIRM   = State_Met%AD( I, J, L  )
-
-         ! Get air volumne [m3]
-         XAIRM3  = State_Met%AIRVOL( I, J, L )
-
-         ! Get gas mass at grid box [kg]
-         XGASM   = Spc( I, J, L, id_MGLY )
-
-         ! Get gas concentration at grid box [molec/cm3]
-         XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp) 
-
-         ! GET gas mixing ratio [v/v]
-         XGASMIX = XGASM / XMW / ( XAIRM / AIRMW )
-
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-         !---------------------------------------------
-         ! GEOS-5/MERRA: Get LWC, FC from met fields
-         ! (skim, bmy, 1/14/11)
-         !---------------------------------------------
-
-         ! Get cloud fraction from met fields [unitless]
-         FC      = State_Met%CLDF(I,J,L)
-
-         ! Get liquid water content within cloud [g/m3] directly from met
-         ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
-         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) *
-     &             1e+3_fp
-
-#else
-         !---------------------------------------------
-         ! Otherwise, compute FC, LWC as before
-         !---------------------------------------------
-
-         ! Volume cloud fraction (Sundqvist et al 1989) [unitless]
-         FC      = VCLDF(I,J,L)
-
-         ! Liquid water content in cloudy area of grid box [g/m3]
-         LWC     = GET_LWC( XTEMP ) * FC
-
-#endif
-
-         !==============================================================
-         ! If (1) there is cloud, (2) there is MGLY present, and 
-         ! (3) the T > -15 C, then compute cloud uptake
-         !==============================================================
-         IF ( ( FC     > 0.e+0_fp   )  .AND. 
-     &        ( XGASMIX > MINDAT )  .AND. 
-     &        ( XTEMP   > 258.0  ) ) THEN
-
-            IF ( IS_LAND( I, J, State_Met ) ) THEN
-               XCLDR = XCLDR_CONT     ! Continental cloud droplet radius  [m]
-            ELSE
-               XCLDR = XCLDR_MARI     ! Marine cloud droplet radius  [m]
-            ENDIF
-
-            !---------------------------------------
-            ! Gas phase diffusivity [cm2/s]       [Lim et al., 2005 Eq. (4)]
-            !---------------------------------------
-            XDF = 1.9e+0_fp * (XMW**(-0.667))
-
-            !---------------------------------------
-            ! Mean molecular speed [cm/s]         [Lim et al., 2005 Eq. (5)]
-            !  XMS = SQRT( ( 8 * Boltzmann const * Temperature * N_Avogadro  ) / 
-            !              ( pi * molecular weight [g/mole] ) )
-            !      = SQRT( 2.117d8 * Temperature / molecular weight )
-            !---------------------------------------
-            XMS = SQRT( 2.117e+8_fp * XTEMP / XMW )
-
-            !---------------------------------------
-            ! Phase transfer coeff [1/s]          [Lim et al., 2005 Eq. (3)] 
-            ! XGAMMA = ALPHA, XGAMMA = 2.9d-3 following Liggio et al., 2005
-            !---------------------------------------
-            XKT = 1.e+0_fp / ( ( XCLDR * XCLDR / 3.e0_fp / XDF ) + 
-     &            ( 4.e0_fp * XCLDR / 3.e+0_fp / XMS / XGAMMA ) )
-
-            !---------------------------------------
-            ! Maximum potential change in concentration [molecules/cm3]
-            !   [Lim et al., 2005 Eq. (1)]
-            !---------------------------------------
-            XDELTAC = LWC * XKT * XGASC * DTCHEM
-
-            !---------------------------------------
-            ! Maximum potential uptake of gas mass [kg/box]
-            !---------------------------------------
-            XUPTKMAX = XDELTAC * 1.e6_fp / AVO * XMW * 1.e-3_fp 
-     &               * XAIRM3
-
-            !---------------------------------------
-            ! However, the mass of gas being absorbed by aerosol 
-            !  cannot exceed the original amount of gas XGASM
-            !---------------------------------------
-            XUPTK  = MIN( XUPTKMAX, XGASM )
-            
-            ! Update MGLY in the Spc array
-            Spc( I, J, L, id_MGLY ) = Spc( I, J, L, id_MGLY ) -
-     &                                XUPTK
-
-            ! Update SOAM in the Spc array
-            Spc( I, J, L, id_SOAM ) = Spc( I, J, L, id_SOAM ) + 
-     &                                XUPTK
-
-            !==============================================================
-            ! ND07 diagnostic: SOAM from MGLY in cloud [kg/timestep]
-            !==============================================================
-            IF ( ND07 > 0 .and. L <= LD07 ) THEN
-               AD07_SOAGM(I,J,L,4) = AD07_SOAGM(I,J,L,4) + XUPTK
-            ENDIF
-
-
-         ENDIF    ! End of IN CLOUD criteria
-
-      ENDDO
-      ENDDO
-      ENDDO
-
-      ! Free pointer
-      Spc => NULL()
-
-      END SUBROUTINE SOAM_CLOUD
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: check_eqlb
 !
 ! !DESCRIPTION: Subroutine CHECK\_EQLB makes sure aerosols are at equilibrium
@@ -7565,7 +6327,7 @@ ccc
       ELSEIF ( id_OCPI > 0 ) THEN
          MOTEMP = MOTEMP +
      &           ( Spc(I,J,L,id_OCPI) + 
-     &			 Spc(I,J,L,id_OCPO) ) * 2.1e+0_fp
+     &             Spc(I,J,L,id_OCPO) ) * 2.1e+0_fp
       ENDIF
 
       ! Convert Mo from [kg] to [ug/m3]
@@ -8815,6 +7577,9 @@ ccc
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_
       USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
+#if defined( TOMAS )
+      USE TOMAS_MOD,          ONLY : IBINS
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -8880,7 +7645,6 @@ ccc
       id_BENZ     = IND_('BENZ'    )
       id_ECIL1    = IND_('ECIL1'   )
       id_ECOB1    = IND_('ECOB1'   )
-      id_GLYX     = IND_('GLYX'    )
       id_HO2      = IND_('HO2'     )
       id_ISOA1    = IND_('ISOA1'   )
       id_ISOA2    = IND_('ISOA2'   )
@@ -8890,7 +7654,6 @@ ccc
       id_ISOG3    = IND_('ISOG3'   )
       id_ISOP     = IND_('ISOP'    )
       id_LIMO     = IND_('LIMO'    )
-      id_MGLY     = IND_('MGLY'    )
       id_MTPA     = IND_('MTPA'    )
       id_MTPO     = IND_('MTPO'    )
       id_NAP      = IND_('NAP'     )
@@ -8912,8 +7675,6 @@ ccc
       id_POA2     = IND_('POA2'    )
       id_POG1     = IND_('POG1'    )
       id_POG2     = IND_('POG2'    )
-      id_SOAG     = IND_('SOAG'    )
-      id_SOAM     = IND_('SOAM'    )
       id_SOAP     = IND_('SOAP'    )
       id_SOAS     = IND_('SOAS'    )
       id_TOLU     = IND_('TOLU'    )
@@ -8995,6 +7756,33 @@ ccc
 
       ! JKODROS
 #if defined( TOMAS )
+      !SFARINA the next six are introduced with the idea that 
+      ! emisscarbontomas needs to be restructured and these
+      ! data structures eliminated
+      ALLOCATE( BCFF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCFF' )
+      BCFF = 0e+0_fp
+
+      ALLOCATE( OCFF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCFF' )
+      OCFF = 0e+0_fp
+
+      ALLOCATE( BCBF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCBF' )
+      BCBF = 0e+0_fp
+
+      ALLOCATE( OCBF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCBF' )
+      OCBF = 0e+0_fp
+
+      ALLOCATE( BCBB( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCBB' )
+      BCBB = 0e+0_fp
+
+      ALLOCATE( OCBB( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCBB' )
+      OCBB = 0e+0_fp
+
       ! BC 
       ALLOCATE( BCPI_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_ANTH_BULK' )
@@ -9067,14 +7855,6 @@ ccc
          ALLOCATE( ORVC_SESQ( IIPAR, JJPAR, LLPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
          ORVC_SESQ = 0e+0_fp
-
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
-         ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
-         ! directly from the met fields.  (skim, bmy, 1/14/10)
-         ALLOCATE( VCLDF( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'VCLDF' )
-         VCLDF = 0e+0_fp
-#endif
 
          ! diagnostic  (dkh, 11/11/06) 
          ! increase last dimension by 1 to add NAP (hotp 7/22/09)
@@ -9151,7 +7931,6 @@ ccc
       IF ( ALLOCATED( OCCONV        ) ) DEALLOCATE( OCCONV        )
       IF ( ALLOCATED( TCOSZ         ) ) DEALLOCATE( TCOSZ         )
       IF ( ALLOCATED( ORVC_SESQ     ) ) DEALLOCATE( ORVC_SESQ     )
-      IF ( ALLOCATED( VCLDF         ) ) DEALLOCATE( VCLDF         )
       IF ( ALLOCATED( GLOB_DARO2    ) ) DEALLOCATE( GLOB_DARO2    )
       IF ( ALLOCATED( POAEMISS      ) ) DEALLOCATE( POAEMISS      )
       IF ( ALLOCATED( GLOB_POGRXN   ) ) DEALLOCATE( GLOB_POGRXN   )
@@ -9162,6 +7941,12 @@ ccc
       IF ( ALLOCATED( SPECSOAEVAP   ) ) DEALLOCATE( SPECSOAEVAP   )
 
 #if defined ( TOMAS )
+      IF ( ALLOCATED( BCFF           )) DEALLOCATE( BCFF          )
+      IF ( ALLOCATED( OCFF           )) DEALLOCATE( OCFF          )
+      IF ( ALLOCATED( BCBF           )) DEALLOCATE( BCBF          )
+      IF ( ALLOCATED( OCBF           )) DEALLOCATE( OCBF          )
+      IF ( ALLOCATED( BCBB           )) DEALLOCATE( BCBB          )
+      IF ( ALLOCATED( OCBB           )) DEALLOCATE( OCBB          )
       IF ( ALLOCATED( BCPI_ANTH_BULK )) DEALLOCATE( BCPI_ANTH_BULK)
       IF ( ALLOCATED( BCPO_ANTH_BULK )) DEALLOCATE( BCPO_ANTH_BULK)
       IF ( ALLOCATED( BCPI_BIOF_BULK )) DEALLOCATE( BCPI_BIOF_BULK)

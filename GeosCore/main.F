@@ -1,4 +1,4 @@
-!BOC
+!     BOC
 #if !defined(ESMF_)
 !EOC
 !------------------------------------------------------------------------------
@@ -29,6 +29,7 @@
       ! Basic GEOS-Chem modules
       !-----------------------------------------------------------------
       USE CMN_SIZE_MOD          ! Size parameters
+      USE Diagnostics_Mod       ! Derived type for diagnostics list
       USE ErrCode_Mod           ! Error codes for success or failure
       USE ERROR_MOD             ! For error checking
       USE FILE_MOD              ! For file I/O
@@ -41,12 +42,14 @@
       USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
       USE PhysConstants         ! Physical constants
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
+      USE Grid_Registry_Mod     ! Registers horizontal/vertical grid metadata
       USE REGRID_A2A_MOD        ! For horizontal regridding
       USE RESTART_MOD           ! For restart file I/O
       USE State_Chm_Mod         ! Derived type for Chemistry State object
+      USE State_Diag_Mod        ! Derived type for Diagnostics State object
       USE State_Met_Mod         ! Derived type for Meteorology State object
       USE TIME_MOD              ! For computing date & time 
-      USE UnitConv_Mod          ! For gas concentration unit conversion
+      USE UnitConv_Mod          ! For species conc unit conversions
 
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
@@ -82,10 +85,11 @@
       USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
       USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
-      USE DIAGNOSTICS_MOD       ! NetCDF diagnostics module (C. Keller)
+      USE HISTORY_MOD           ! Updated netCDF diagnostics
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
       USE GOSAT_CH4_MOD         ! For GOSAT observation operator
       USE TCCON_CH4_MOD         ! For TCCON observation operator
+      USE HCOI_GC_MAIN_MOD      ! Writes out HEMCO diagnostics (C. Keller)
 
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
@@ -109,16 +113,8 @@
       ! GEOS-Chem met field I/O modules
       !-----------------------------------------------------------------
       USE DAO_MOD               ! Met field definitions
-      USE GCAP_READ_MOD         ! For reading GCAP met data
       USE GEOSFP_READ_MOD       ! For reading GEOS-FP data
       USE MERRA2_READ_MOD       ! For reading MERRA2 data
-      USE MERRA_A1_MOD          ! For reading MERRA A1 data
-      USE MERRA_A3_MOD          ! For reading MERRA A3 data
-      USE MERRA_CN_MOD          ! For reading MERRA CN data
-      USE MERRA_I6_MOD          ! For reading MERRA I6 data
-      USE A3_READ_MOD           ! For reading A3 data (all other met)
-      USE A6_READ_MOD           ! For reading A6 data (all other met)
-      USE I6_READ_MOD           ! For reading I6 data (all other met)
 #if defined( EXCHANGE )
       USE EXCHANGE_MOD          ! For two-way coupled simulations
 #endif
@@ -288,7 +284,15 @@
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  16 Jun 2017 - M. Sulprizio- Add call for GOSAT CH4 observation operator
 !  17 Aug 2017 - M. Sulprizio- Add call for TCCON CH4 observation operator
-!EOC
+!  23 Aug 2017 - R. Yantosca - Now add at timer for the History component
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  30 Aug 2017 - R. Yantosca - Move the HISTORY UPDATE block before call to
+!                               SET_CURRENT_TIME, for clarity
+!  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
+!                              now the default.
+!  14 Sep 2017 - M. Sulprizio- Remove setting of USE_O3_FROM_MET. This is now
+!                              set in the chemistry menu of input.geos.
+!EOP
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -312,7 +316,8 @@
       REAL(f8)                 :: TAU,           TAUb         
       REAL(fpp)                :: COST_FUNC ! Add here temporarily (mps,6/16/17)
       CHARACTER(LEN=255)       :: ZTYPE
-
+      CHARACTER(LEN=255)       :: ErrMsg,        ThisLoc
+      CHARACTER(LEN=255)       :: historyConfigFile
       ! Set cloud flag for RRTMG
       INTEGER                  :: ICLD=0,ISEED=10
       INTEGER                  :: RR
@@ -332,7 +337,9 @@
       !
       TYPE(OptInput)           :: Input_Opt   ! Input Options object
       TYPE(ChmState)           :: State_Chm   ! Chemistry State object
+      TYPE(DgnState)           :: State_Diag  ! Diagnostics State object
       TYPE(MetState)           :: State_Met   ! Meteorology State object
+      TYPE(DgnList )           :: Diag_List   ! Diagnostics list object
       !
       ! Also define NI, NJ, NL for more consistent naming w/r/t the 
       ! ESMF interface.  Initialize these from IIPAR, JJPAR, JJPAR
@@ -381,12 +388,9 @@
       LOGICAL                  :: LTRAN
       LOGICAL                  :: LTURB
       LOGICAL                  :: LUCX
-      LOGICAL                  :: LUNZIP
       LOGICAL                  :: LVARTROP
-      LOGICAL                  :: LWAIT
       LOGICAL                  :: LWETD
       LOGICAL                  :: LWINDO
-      LOGICAL                  :: USE_OLSON_2001
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -415,9 +419,15 @@
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
+      !
       ! Assume a successful return until otherwise
       !
       RC                      = GC_SUCCESS
+      !
+      ! For error trapping
+      !
+      ErrMsg                  = ''
+      ThisLoc                 = ' -> at GEOS-Chem (in GeosCore/main.F)'
       !
       ! Define NI, NJ, NL dimensions for use below
       !
@@ -461,6 +471,8 @@
 #if defined( USE_TIMERS )
       ! Call timer initilization
       CALL GEOS_Timer_Setup( 1 )
+
+      ! Add timers for various operations
       CALL GEOS_Timer_Add( "GEOS-Chem",           RC )
       CALL GEOS_Timer_Add( "Initialization",      RC )
       CALL GEOS_Timer_Add( "Timesteps",           RC )
@@ -475,9 +487,14 @@
       CALL GEOS_Timer_Add( "Wet deposition",      RC )
       CALL GEOS_Timer_Add( "RRTMG",               RC )
       CALL GEOS_Timer_Add( "Diagnostics",         RC )
+#if defined( NC_DIAG )
+      CALL GEOS_Timer_Add( 'History',             RC )
+#endif
       CALL GEOS_Timer_Add( "Reading met fields",  RC )
       CALL GEOS_Timer_Add( "Reading restart file",RC )
       CALL GEOS_Timer_Add( "Writing restart file",RC )
+
+      ! Start running the main and initialization timer
       CALL GEOS_Timer_Start( "GEOS-Chem",         RC )
       CALL GEOS_Timer_Start( "Initialization",    RC )
 #endif
@@ -493,7 +510,6 @@
 
       ! Copy values from Input_Opt.  These replace the variables
       ! from logical_mod.F and tracer_mod.F. (bmy, 3/29/13)
-      USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
       ITS_A_FULLCHEM_SIM  =  Input_Opt%ITS_A_FULLCHEM_SIM
       ITS_A_MERCURY_SIM   =  Input_Opt%ITS_A_MERCURY_SIM
       ITS_A_TAGCO_SIM     =  Input_Opt%ITS_A_TAGCO_SIM 
@@ -516,12 +532,9 @@
       LTRAN               =  Input_Opt%LTRAN
       LTURB               =  Input_Opt%LTURB
       LUCX                =  Input_Opt%LUCX
-      LUNZIP              =  Input_Opt%LUNZIP
       LVARTROP            =  Input_Opt%LVARTROP
-      LWAIT               =  Input_Opt%LWAIT
       LWETD               =  Input_Opt%LWETD
       LWINDO              =  Input_Opt%LWINDO
-      USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
 
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug            = ( LPRT .and. am_I_Root )
@@ -548,18 +561,31 @@
       ! reason we are migrating towards used of these objects instead
       ! of the existing ALLOCATABLE module arrays. (bmy, 10/25/12)
       !
-      ! Initialize Input_Opt, State_Chem, State_Met, objects. 
-      ! (bmy, 3/4/13)
-      !
-      CALL GC_Init_All
-     &   ( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+      ! Initialize the diagnostic list object which contains the
+      ! unique entires in the history config file. Note that this is
+      ! done in GCHP Set_Services and therefore must be done prior to
+      ! initialization of the state objects. Also note that the diag_list
+      ! obj may be stored in the HistoryConfig object in GCHP and we may
+      ! want to replicate that behavior in GCC in the future. (ewl, 9/26/17)
+      historyConfigFile = 'HISTORY.rc' ! cannot use Input_Opt variable in GCHP
+      CALL Init_DiagList( am_I_Root, historyConfigFile, Diag_List, RC )
+
+      ! Initialize Input_Opt, State_Chm, State_Diag, State_Met objects
+      CALL GC_Init_All( am_I_Root, Diag_List,  Input_Opt, 
+     &                  State_Chm, State_Diag, State_Met, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered during initialization!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+         
       !
       ! Also allocate arrays in GEOS-Chem modules that have not yet
       ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 
       ! SULFATE_MOD).  This removes the init calls from the run stage,
       ! which is required when connecting to the GEOS-5 GCM w/ ESMF.
       ! (bmy, 3/4/13)
-      CALL GC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL GC_Init_Extra( am_I_Root, Input_Opt, 
+     &                    State_Chm, State_Diag, RC )
       !
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
@@ -571,6 +597,7 @@
       ! Define advected species ID flags for use below
       id_CLOCK = Ind_('CLOCK','A')
       id_H2O   = Ind_('H2O'  ,'A')
+      !
       !-----------------------------------------------------------------
 
 #if   defined( RRTMG )
@@ -586,7 +613,6 @@
       ! Initialization
        CALL RRTMG_LW_INI()
        CALL RRTMG_SW_INI()
-
 #endif
 
       ! Initialize diagnostic arrays and counters
@@ -597,6 +623,14 @@
       ! Initialize the new hybrid pressure module.  Define Ap and Bp.
       CALL INIT_PRESSURE( am_I_Root )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_PRESSURE' )
+
+      ! Register the horizontal and vertical grid information so that 
+      ! the History component can use it for netCDF metadata (bmy, 8/23/17)
+      CALL Init_Grid_Registry( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_Grid_Registry"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
 
       ! Read annual mean tropopause if not a variable tropopause
       ! read_tropopause is obsolete with variable tropopause
@@ -617,6 +651,32 @@
       NYMDb = GET_NYMDb()
       TAU   = GET_TAU()
       TAUb  = GET_TAUb()
+
+#if defined( NC_DIAG )
+      !=================================================================
+      !    ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
+      !=================================================================
+#if defined( USE_TIMERS ) 
+      CALL GEOS_Timer_Start( "History",  RC )
+#endif
+
+      ! For now, just hardwire the input file for the History component
+      Input_Opt%HistoryInputFile = './HISTORY.rc'
+
+      ! Initialize the GEOS-Chem history component
+      CALL History_Init( am_I_root,  Input_Opt, State_Chm, 
+     &                   State_Diag, State_Met, RC          )
+
+      ! Trap error
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "History_Init"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
+#if defined( USE_TIMERS ) 
+      CALL GEOS_Timer_End( "History",  RC )
+#endif
+#endif  
 
       !=================================================================
       !        ***** I N I T I A L I Z A T I O N  continued *****
@@ -657,13 +717,8 @@
 
       ! Initialize the derived type object containing
       ! mapping information for the MODIS LAI routines
-      IF ( USE_OLSON_2001 ) THEN
-         CALL Init_Mapping( am_I_Root, Input_Opt,
-     &                      1440, 720, IIPAR, JJPAR, mapping, RC )
-      ELSE
-         CALL Init_Mapping( am_I_Root, Input_Opt,
-     &                       720, 360, IIPAR, JJPAR, mapping, RC )
-      ENDIF
+      CALL Init_Mapping( am_I_Root, Input_Opt,
+     &                   1440, 720, IIPAR, JJPAR, mapping, RC )
 
       ! Compute the Olson land types that occur in each grid box
       ! (i.e. this is a replacement for rdland.F and vegtype.global)
@@ -671,10 +726,10 @@
       CALL Compute_Olson_Landmap( am_I_Root, mapping,   State_Met )
       CALL Cleanup_Olson_Landmap( am_I_Root                       )
 
-       ! Initialize PBL quantities but do not do mixing
-       ! Add option for non-local PBL (Lin, 03/31/09) 
-      CALL INIT_MIXING ( am_I_Root, Input_Opt, 
-     &                   State_Met, State_Chm, RC ) 
+      ! Initialize PBL quantities but do not do mixing
+      ! Add option for non-local PBL (Lin, 03/31/09)
+      CALL INIT_MIXING ( am_I_Root, Input_Opt,  State_Met,
+     &                  State_Chm,  State_Diag, RC         )
  
       ! Initialize chemistry
       ! Moved here (from chemistry_mod.F and chemdr.F) because some
@@ -712,13 +767,6 @@
       CALL GEOS_Timer_End ( "HEMCO", RC )
 #endif
 
-#if defined( NC_DIAG )
-      ! Initialize diagnostics other than the default HEMCO diagnostics
-      ! initialized above (ckeller, 1/13/15).
-      CALL Diagnostics_Init( am_I_Root, Input_Opt, 
-     &                       State_Met, State_Chm, RC )
-#endif
-
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
@@ -733,6 +781,10 @@
       CALL READ_GC_RESTART( am_I_Root, NYMDb,     NHMSb, 
      &                      Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_GC_RESTART' )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error returned from "READ_GC_RESTART"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End( "Reading restart file",  RC )
@@ -760,6 +812,11 @@
       IF ( LSCHEM ) THEN
          CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, 
      &                         State_Met, RC )
+
+         ! Stop with error
+         IF ( RC /= GC_SUCCESS ) THEN
+            CALL ERROR_STOP( 'Error in INIT_STRAT_CHEM!', 'main.F')
+         ENDIF
       ENDIF
 
       ! Save initial tracer mass [kg] to disk for model benchmarking
@@ -799,14 +856,6 @@
       !=================================================================
       !      ***** INITIALIZE GEOS-CHEM DIAGNOSTICS AND RESTARTS ***** 
       !=================================================================      
-
-#if defined( NC_DIAG )
-      ! Initialize diagnostics other than the default HEMCO diagnostics
-      ! initialized above (ckeller, 1/13/15).
-      CALL Diagnostics_Init( am_I_Root, Input_Opt, 
-     &                       State_Met, State_Chm, RC )
-#endif 
-
       CALL INIT_GC_RESTART( am_I_Root, Input_Opt, State_Chm, RC )
 
 #if defined( USE_TIMERS )
@@ -814,7 +863,7 @@
 #endif
 
       !=================================================================
-      !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****
+      !        ***** O U T E R   T I M E S T E P   L O O P  *****
       !=================================================================      
  
 #if defined( USE_TIMERS )
@@ -829,17 +878,13 @@
       WRITE( 6, '(a)' ) 
 
       ! NSTEP is the number of dynamic timesteps w/in the outer loop
-#if   defined( GEOS_FP ) || defined( MERRA2 )
-      N_DYN_STEPS = 180 / GET_TS_DYN()     ! GEOS-FP/MERRA2 have a 3hr interval
-#else
-      N_DYN_STEPS = 360 / GET_TS_DYN()     ! All other met has a 6hr interval
-#endif
+      N_DYN_STEPS = 180 / GET_TS_DYN()     ! 3hr interval
 
       ! Start a new outer loop
       DO 
 
       ! Compute time parameters at start of 6-h loop
-      CALL SET_CURRENT_TIME
+      CALL SET_CURRENT_TIME()
 
       ! NSECb is # of seconds (measured from 00 GMT today) 
       ! at the start of this 6-hr timestepping loop.
@@ -854,6 +899,7 @@
 
       !=================================================================
       !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
+      !     *****    a k a   H E A R T B E A T   L O O P    *****
       !=================================================================
       DO N_STEP = 1, N_DYN_STEPS
     
@@ -863,8 +909,8 @@
 #endif
 
          ! Compute & print time quantities at start of dyn step
-         CALL SET_CURRENT_TIME
-         CALL PRINT_CURRENT_TIME
+         CALL SET_CURRENT_TIME()
+         CALL PRINT_CURRENT_TIME()
 
          ! Set time variables for dynamic loop
          DAY_OF_YEAR   = GET_DAY_OF_YEAR()
@@ -913,11 +959,13 @@
          CALL GEOS_Timer_Start( "Diagnostics", RC )
 #endif
 
-         ! Write HEMCO diagnostics as well as new GEOS-Chem diagnostics
-         ! (the latter is currently only defined in development mode)
-         ! (ckeller, 4/1/15). 
-         CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
-     &                           .FALSE.,   RC)
+         ! Write HEMCO diagnostics (ckeller, 4/1/15). 
+         ! Replace diagnostics_write with the one-line content within it
+         ! in order to remove previous incarnation of diagnostics_mod
+         ! (ewl, 9/22/17)
+!         CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
+!     &                           .FALSE.,   RC)
+         CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, .FALSE., RC )
 
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "HEMCO", RC )
@@ -971,8 +1019,13 @@
 
             ! Force the output of a HEMCO restart file. 
             ! (ckeller, 4/1/15)
-            CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
-     &                              .TRUE.,    RC)
+            ! Replace diagnostics_write with the one-line content within it
+            ! in order to remove previous incarnation of diagnostics_mod
+            ! (ewl, 9/22/17)
+!            CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
+!     &                              .TRUE.,    RC)
+            CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, .TRUE., RC )
+
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "HEMCO", RC )
@@ -1044,32 +1097,6 @@
 
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "Reading met fields",  RC )
-#endif
-
-#if   defined( GEOS_5 )
-
-         ! When TOMS data is not available, then we will use
-         ! the O3 columns directly from the met fields.  
-         ! Currently, this is only done for GEOS-5 met.
-         IF ( YEAR > LAST_TOMS_YEAR ) THEN
-            Input_Opt%USE_O3_FROM_MET = .TRUE.
-         ELSE
-            Input_Opt%USE_O3_FROM_MET = .FALSE.
-         ENDIF
-
-#elif defined( GEOS_FP ) || defined( MERRA2 )
-
-         ! For GEOS-FP met, always use the O3 columns
-         ! from the A1 met field files (bmy, 11/14/13)
-         Input_Opt%USE_O3_FROM_MET = .TRUE.
-
-#else
-
-         ! When TOMS data is not available, then we will use
-         ! the TOMS data from the last valid year.  This is
-         ! done for all met field products other than GEOS-5.
-         Input_Opt%USE_O3_FROM_MET = .FALSE.
-
 #endif
 
          !==============================================================
@@ -1153,11 +1180,6 @@
          IF ( Input_Opt%ND55 > 0 ) THEN
             CALL DIAG_TROPOPAUSE( am_I_root, Input_Opt, State_Met, RC )
          ENDIF
-#elif defined( NC_DIAG )
-         ! If netcdf diagnostics, output if Met diagnostic group is on
-         IF ( Input_Opt%ND68 > 0 ) THEN
-            CALL DIAG_TROPOPAUSE( am_I_root, Input_Opt, State_Met, RC )
-         ENDIF
 #endif
 
          ! Update dynamic timestep
@@ -1194,9 +1216,11 @@
                ! State_Met%UVALBEDO field. (bmy, 3/20/15)
                CALL GET_UVALBEDO(am_I_Root, Input_Opt, State_Met, RC)
 
-               ! Get TOMS overhead O3 columns for photolysis from
-               ! the HEMCO data structure (bmy, 3/20/15)
-               CALL READ_TOMS( am_I_Root, Input_Opt, RC )
+               IF ( Input_Opt%USE_TOMS_O3 ) THEN
+                  ! Get TOMS overhead O3 columns for photolysis from
+                  ! the HEMCO data structure (bmy, 3/20/15)
+                  CALL READ_TOMS( am_I_Root, Input_Opt, RC )
+               ENDIF
 
             ENDIF
 
@@ -1337,8 +1361,8 @@
                CALL GEOS_Timer_Start( "Dry deposition", RC )
 #endif
 
-               CALL DO_DRYDEP( am_I_Root, Input_Opt, 
-     &                         State_Met, State_Chm, RC )
+               CALL DO_DRYDEP( am_I_Root, Input_Opt,  State_Met, 
+     &                         State_Chm, State_Diag, RC )
                IF ( RC /= GC_SUCCESS ) THEN
                   CALL ERROR_STOP('Error in DO_DRYDEP!', 'main.F')
                ENDIF
@@ -1418,8 +1442,8 @@
             ! NOTE: Tracer concentration units are converted locally
             ! to [v/v dry air] for mixing. Eventually mixing should
             ! be updated to use [kg/kg total air] (ewl, 9/18/15)
-            CALL DO_MIXING ( am_I_Root, Input_Opt, 
-     &                       State_Met, State_Chm, RC )
+            CALL DO_MIXING ( am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC         )
             IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP('Error in DO_MIXING!', 'main.F')
             ENDIF
@@ -1487,7 +1511,7 @@
             ! to [kg] for all of chemistry. We will replace use of [kg] 
             ! once FlexChem is implemented (ewl, 9/18/15)
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
-     &                         State_Chm, State_Met, RC ) 
+     &                         State_Chm, State_Met, State_Diag, RC ) 
             IF ( RC /= GC_SUCCESS ) THEN
                CALL ERROR_STOP('Error in DO_CHEMISTRY!', 'main.F')
             ENDIF
@@ -1495,7 +1519,7 @@
          ENDIF 
 
          ! Check State_Chm tracers (yxw)   
-#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
+#if defined( GRID05x0625 ) || defined( GRID025x03125 )
          CALL CHECK_SPC_NESTED( State_Chm, Input_Opt,
      &                          'after chemistry' )
 #endif 
@@ -1625,6 +1649,43 @@
      &                           State_Met, State_Chm, RC )
 #endif
 
+#if defined( NC_DIAG )
+         ! Set species concentration diagnostic array using the 
+         ! the units stored in the State_Diag metadata for 'SpeciesConc'
+         CALL Set_SpcConc_Diagnostic( am_I_Root, 'SpeciesConc',  
+     &                                State_Diag%SpeciesConc, 
+     &                                Input_Opt, State_Met, State_Chm, 
+     &                                RC )
+
+         !==============================================================
+         !           ***** H I S T O R Y   U P D A T E  *****
+         !==============================================================
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "History", RC )
+#endif
+
+         ! Update each HISTORY ITEM from its data source
+         CALL History_Update( am_I_Root, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_Update"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
+         ! Increment the timestep values by the heartbeat time
+         ! This is becasue we need to write out data with the timestamp
+         ! at the end of the heartbeat timestep (i.e. at end of run)
+         CALL History_SetTime( am_I_Root, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_SetTime"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "History", RC )
+#endif
+#endif
+
          !==============================================================
          !   ***** I N C R E M E N T   E L A P S E D   T I M E *****
          !============================================================== 
@@ -1692,9 +1753,9 @@
             ENDIF
          ENDIF
 
-         CALL TIMESTAMP_DIAG
-         CALL SET_ELAPSED_MIN
-         CALL SET_CURRENT_TIME
+         CALL TIMESTAMP_DIAG()
+         CALL SET_ELAPSED_MIN()
+         CALL SET_CURRENT_TIME()
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
          ENDIF
@@ -1730,7 +1791,8 @@
 
             ! ND42: SOA concentrations [ug/m3]
             IF ( ND42 > 0 ) THEN
-               CALL DIAG42( Input_Opt, State_Met, State_Chm )
+               CALL DIAG42( am_I_Root, Input_Opt, State_Met,
+     &                      State_Chm, RC )
             ENDIF
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
 
@@ -1755,8 +1817,6 @@
          !       the ND40, ND49, and ND52 timeseries diagnostics
          !       to after the call to DO_WETDEP (bmy, 4/22/04)
          !============================================================== 
-
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: before TIMESERIES' )
 
          ! Station timeseries
          IF ( ITS_TIME_FOR_DIAG48() ) THEN
@@ -1796,16 +1856,29 @@
          !   IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a ND52' )
          !ENDIF
 
-!#if defined( NC_DIAG )
-!         ! Write diagnostic data to the GEOS-Chem diagnostics netCDF file.
-!         ! Each diagnostic has a specified averaging period specified 
-!         ! in Input_Opt. (ckeller, bmy, 1/15/15)
-!         CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
-!     &                           .FALSE.,    RC )
-!#endif
-
          !### After diagnostics
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after TIMESERIES' )
+
+#if defined( NC_DIAG )
+         !==============================================================
+         !            ***** H I S T O R Y   W R I T E *****
+         !==============================================================
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "History", RC )
+#endif
+
+         ! Write HISTORY ITEMS in each diagnostic collection to disk
+         ! (or skip writing if it is not the proper output time.
+         CALL History_Write( am_I_Root, State_Chm%Spc_Units, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_Write"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "History", RC )
+#endif
+#endif
 
          !==============================================================
          !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
@@ -1818,7 +1891,7 @@
          ! Sometimes tracers in the stratosphere can be negative at 
          ! the nested-grid domain edges. Force them to be zero before
          ! CHECK_SPC. (yxw)
-#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
+#if defined( GRID05x0625 ) || defined( GRID025x03125)
             CALL CHECK_SPC_NESTED( State_Chm, Input_Opt,
      &                             'End of Dynamic Loop' )
 #else
@@ -1852,34 +1925,8 @@
       !=================================================================
  9999 CONTINUE
 
-      ! Remove all files from temporary directory 
-      IF ( LUNZIP ) THEN
-         
-         ! Type of operation
-         ZTYPE = 'remove all'
-
-         ! Remove A3, A6, I6 fields
-         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE )
-         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE )
-         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE )
-
-#if   defined( GCAP )
-         ! Remove GCAP PHIS field (if necessary)
-         CALL UNZIP_GCAP_FIELDS( Input_Opt, ZTYPE )
-#endif
-
-      ENDIF
-
       ! Print the mass-weighted mean OH concentration (if applicable)
       CALL PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
-
-!#if defined( NC_DIAG )
-!      ! Write diagnostic data to the GEOS-Chem restart netCDF file.
-!      ! Each diagnostic has a specified averaging period specified 
-!      ! in Input_Opt. (ckeller, bmy, 1/15/15)
-!      CALL Diagnostics_Write( am_I_Root, Input_Opt, State_Chm,
-!     &                        .FALSE.,   RC )
-!#endif
 
       ! Save final tracer mass [kg] to disk for model benchmarking
       ! for Rn-Pb-Be and full-chem benchmark simulations
@@ -1896,7 +1943,10 @@
 
       ! Close all files
       CALL CLOSE_FILES
-      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )   
+ 
+      !%%% NOTE: Call HISTORY_CLEANUP from cleanup.F.  This will
+      !%%% close all netCDF files upon both normal or abnormal exits.
 
       ! Deallocate fields of the Input Options object
       CALL Cleanup_Input_Opt( am_I_Root, Input_Opt, RC )
@@ -1905,6 +1955,10 @@
       ! Deallocate fields of the Chemistry State object
       CALL Cleanup_State_Chm( am_I_Root, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_Chm' )
+
+      ! Deallocate fields of the Chemistry State object
+      CALL Cleanup_State_Diag( am_I_Root, State_Diag, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_Diag' )
 
       ! Deallocate fields of the Meteorology State object
       CALL Cleanup_State_Met( am_I_Root, State_Met, RC )
@@ -1915,6 +1969,10 @@
 
       ! Deallocate the derived type object w/ mapping info
       CALL CLEANUP_MAPPING( mapping )
+
+      ! Deallocate fields of the diagnostics list object
+      CALL Cleanup_DiagList( am_I_Root, Diag_List, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup Diag_List' )
 
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
@@ -2003,24 +2061,6 @@
      &    '   S T A R T I N G   2 x 2.5   G E O S - C H E M   '      //
      &    REPEAT( '*', 13 )
 
-#elif defined( GRID1x125 )
-      WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G   1 x 1.25   G E O S - C H E M   '     //
-     &    REPEAT( '*', 13 )
-
-#elif defined( GRID1x1 )
-      WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G   1 x 1   G E O S - C H E M   '        //
-     &    REPEAT( '*', 13 )
-
-#elif defined( GRID05x0666 )
-      WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G   0.5 x 0.666   G E O S - C H E M   '  //
-     &    REPEAT( '*', 13 )
-
 #elif defined( GRID05x0625 )
       WRITE( 6, '(a)' ) 
      &    REPEAT( '*', 13 )                                          // 
@@ -2065,18 +2105,10 @@
       !-------------------------------------------------
       ! Print met field info
       !-------------------------------------------------
-#if   defined( GEOS_4 )
-      WRITE( 6, '(a)' ) 'Using GMAO GEOS-4 met fields'
-#elif defined( GEOS_5 )
-      WRITE( 6, '(a)' ) 'Using GMAO GEOS-5 met fields'
-#elif defined( GEOS_FP )
+#if defined( GEOS_FP )
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-FP met fields'
-#elif defined( MERRA )
-      WRITE( 6, '(a)' ) 'Using GMAO MERRA met fields'
 #elif defined( MERRA2 )
-      WRITE( 6, '(a)' ) 'Using GMAO MERRA2 met fields'
-#elif defined( GCAP  )
-      WRITE( 6, '(a)' ) 'Using GCAP/GISS met fields'
+      WRITE( 6, '(a)' ) 'Using GMAO MERRA-2 met fields'
 #endif
 
       !-------------------------------------------------
@@ -2290,143 +2322,6 @@
       D = GET_FIRST_I3_TIME()
       CALL MERRA2_READ_I3_1( D(1), D(2), Input_Opt, State_Met )
 
-#elif defined( MERRA )
-
-      !=================================================================
-      !    *****  R E A D   M E R R A   M E T   F I E L D S  *****
-      !    *****  At the start of the GEOS-Chem simulation   *****
-      !
-      !    Handle MERRA met fields separately from other met products
-      !=================================================================
-
-      ! Open constant fields
-      D = (/ 20000101, 000000 /)
-      CALL OPEN_MERRA_CN_FIELDS ( D(1), D(2), Input_Opt               )
-      CALL GET_MERRA_CN_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### MAIN: a 1st MERRA CN TIME' )
-      ENDIF
-
-      ! Open and read A-1 fields
-      D = GET_FIRST_A1_TIME()
-      CALL OPEN_MERRA_A1_FIELDS ( D(1), D(2), Input_Opt, RESET=.TRUE. )
-      CALL GET_MERRA_A1_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
-      ENDIF
-
-      ! Open and read A-3 fields
-      D = GET_FIRST_A3_TIME()
-      CALL OPEN_MERRA_A3_FIELDS ( D(1), D(2), Input_Opt               )
-      CALL GET_MERRA_A3_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
-      ENDIF
-
-      ! Open & read I-6 fields
-      D = GET_FIRST_I6_TIME()
-      CALL OPEN_MERRA_I6_FIELDS ( D(1), D(2), Input_Opt               )
-      CALL GET_MERRA_I6_FIELDS_1( D(1), D(2), Input_Opt, State_Met    )
-      IF ( LPRT ) THEN 
-         CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
-      ENDIF
-
-#else
-
-      !=================================================================
-      !    *****      U N Z I P   M E T   F I E L D S        *****
-      !    ***** At at the start of the GEOS-Chem simulation *****
-      !
-      !   Here we unzip the initial GEOS-3, GEOS-4, GEOS-5, GCAP data
-      !=================================================================
-      IF ( Input_Opt%LUNZIP ) THEN
-
-         !---------------------
-         ! Remove all files
-         !---------------------
-
-         ! Type of unzip operation
-         ZTYPE = 'remove all'
-         
-         ! Remove any leftover A-3, A-6, I-6, in temp dir
-         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE )
-         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE )
-         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE )
-
-#if   defined( GCAP )
-         ! Unzip GCAP PHIS field (if necessary)
-         CALL UNZIP_GCAP_FIELDS( Input_Opt, ZTYPE )
-#endif
-
-         !---------------------
-         ! Unzip in foreground
-         !---------------------
-
-         ! Type of unzip operation
-         ZTYPE = 'unzip foreground'
-
-         ! Unzip A-3, A-6, I-6 files for START of run
-         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE, NYMDb )
-         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE, NYMDb )
-         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE, NYMDb )
-
-#if   defined( GCAP )
-         ! Unzip GCAP PHIS field (if necessary)
-         CALL UNZIP_GCAP_FIELDS( Input_Opt, ZTYPE )
-#endif
-
-         !### Debug output
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a UNZIP' )
-      ENDIF
-
-      !=================================================================
-      !      *****      R E A D   M E T   F I E L D S       *****
-      !      ***** At the start of the GEOS-Chem simulation *****
-      !
-      !  Here we read in the initial GEOS-3, GEOS-4, GEOS-5, GCAP data
-      !=================================================================
-
-      ! Open and read A-3 fields
-      D = GET_FIRST_A3_TIME()
-      CALL OPEN_A3_FIELDS ( D(1), D(2), Input_Opt, RESET=.TRUE. )
-      CALL GET_A3_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
-      ENDIF
-
-      ! Open & read A-6 fields
-      D = GET_FIRST_A6_TIME()
-      CALL OPEN_A6_FIELDS ( D(1), D(2), Input_Opt               )
-      CALL GET_A6_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )      
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
-      ENDIF
-
-      ! Open & read I-6 fields
-      D = GET_FIRST_I6_TIME()
-      CALL OPEN_I6_FIELDS ( D(1), D(2), Input_Opt               )
-      CALL GET_I6_FIELDS_1( D(1), D(2), Input_Opt, State_Met    )
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
-      ENDIF
-
-#if   defined( GCAP )
-
-      !-----------------------------------------------------------------
-      ! Read additional fields for GCAP meteorology
-      !-----------------------------------------------------------------
-
-      ! Read GCAP PHIS and LWI fields (if necessary)
-      CALL OPEN_GCAP_FIELDS( Input_Opt            )
-      CALL GET_GCAP_FIELDS ( Input_Opt, State_Met )
-
-      ! Remove temporary file (if necessary)
-      IF ( LUNZIP ) THEN
-         CALL UNZIP_GCAP_FIELDS( Input_Opt, 'remove date' )
-      ENDIF
-
-#endif
-
 #endif
 
 #if defined( RRTMG )
@@ -2486,10 +2381,6 @@
       ! Convenience variable for date & time
       INTEGER :: D(2)
 
-      ! Set previous specific humidity to current specific humdidity 
-      ! prior to MET-field update (ewl, 10/29/15)
-      State_Met%SPHU_prev = State_Met%SPHU
-
 #if   defined( GEOS_FP )
 
       !==============================================================
@@ -2515,7 +2406,7 @@
       !----------------------------------
       ! I-3 fields (3-hr instantaneous
       !----------------------------------
-      IF ( ITS_TIME_ FOR_I3() ) THEN
+      IF ( ITS_TIME_FOR_I3() ) THEN
          D = GET_I3_TIME()
          CALL GEOSFP_READ_I3_2( D(1), D(2), Input_Opt, State_Met )
 
@@ -2554,7 +2445,7 @@
       !----------------------------------
       ! I-3 fields (3-hr instantaneous
       !----------------------------------
-      IF ( ITS_TIME_ FOR_I3() ) THEN
+      IF ( ITS_TIME_FOR_I3() ) THEN
          D = GET_I3_TIME()
          CALL MERRA2_READ_I3_2( D(1), D(2), Input_Opt, State_Met )
 
@@ -2564,159 +2455,6 @@
          CALL AVGPOLE( State_Met%PS2_DRY )
 
          ! Compute avg moist pressure at polar caps 
-         CALL AVGPOLE( State_Met%PS2_WET )
-
-      ENDIF
-
-#elif defined( MERRA )
-
-      !==============================================================
-      !    ***** R E A D   M E R R A   A - 1   F I E L D S *****
-      !
-      !    The MERRA archive contains hourly surface data fields.
-      !==============================================================
-      IF ( ITS_TIME_FOR_A1() ) THEN
-
-         ! Get the date/time for the next A-3 data block
-         D = GET_A1_TIME()
-
-         ! Open & read A-3 fields
-         CALL OPEN_MERRA_A1_FIELDS ( D(1), D(2), Input_Opt            )
-         CALL GET_MERRA_A1_FIELDS  ( D(1), D(2), Input_Opt, State_Met )
-      ENDIf
-
-      !==============================================================
-      !    ***** R E A D   M E R R A   A - 3   F I E L D S *****
-      !
-      !     The MERRA archive contains 3-hourly 3-D data fields.
-      !==============================================================
-      IF ( ITS_TIME_FOR_A3() ) THEN
-         
-         ! Get the date/time for the next A-6 data block
-         D = GET_A3_TIME()
-
-         ! Open and read A-6 fields
-         CALL OPEN_MERRA_A3_FIELDS ( D(1), D(2), Input_Opt            )
-         CALL GET_MERRA_A3_FIELDS  ( D(1), D(2), Input_Opt, State_Met )
-      ENDIF
-
-      !==============================================================
-      !    ***** R E A D   M E R R A   I - 6   F I E L D S *****
-      !
-      !    The MERRA archive contains 6-hourly instantaneous data.
-      !==============================================================
-      IF ( ITS_TIME_FOR_I6() ) THEN
-
-         ! Get the date/time for the next I-6 data block
-         D = GET_I6_TIME()
-
-         ! Open and read files
-         CALL OPEN_MERRA_I6_FIELDS ( D(1), D(2), Input_Opt            )
-         CALL GET_MERRA_I6_FIELDS_2( D(1), D(2), Input_Opt, State_Met )
-
-         ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
-         ! and average as polar caps
-         CALL SET_DRY_SURFACE_PRESSURE( State_Met, 2 )
-         CALL AVGPOLE( State_Met%PS2_DRY )
-
-         ! Compute avg moist pressure at polar caps 
-         CALL AVGPOLE( State_Met%PS2_WET )
-
-      ENDIF
-
-#else
-
-      !===============================================================
-      !         ***** U N Z I P   M E T   F I E L D S *****
-      !
-      !      Some met data (except MERRA) are stored compressed.
-      !===============================================================
-      IF ( LUNZIP .and. ITS_TIME_FOR_UNZIP() ) THEN
-         
-         ! Get the date & time for 12h (720 mins) from now
-         DATE = GET_TIME_AHEAD( 720 )
-      
-         ! If LWAIT=T then wait for the met fields to be
-         ! fully unzipped before proceeding w/ the run.
-         ! Otherwise, unzip fields in the background
-         IF ( LWAIT ) THEN
-            ZTYPE = 'unzip foreground'
-         ELSE
-            ZTYPE = 'unzip background'
-         ENDIF
-         
-         ! Unzip A3, A6, I6 fields
-         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE, DATE(1) )
-         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE, DATE(1) )
-         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE, DATE(1) )
-      
-      ENDIF
-
-      !===============================================================
-      !        ***** R E M O V E   M E T   F I E L D S *****  
-      !===============================================================
-      IF ( LUNZIP .and. ITS_TIME_FOR_DEL() ) THEN
-
-         ! Type of operation
-         ZTYPE = 'remove date'
-
-         ! Remove A-3, A-6, and I-6 files only for the current date
-         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE, NYMD )
-         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE, NYMD )
-         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE, NYMD )
-
-      ENDIF  
-
-      !==============================================================
-      !          ***** R E A D   A - 3   F I E L D S *****
-      !
-      !  All met data (except MERRA) contain 3-hourly surface data.
-      !==============================================================
-      IF ( ITS_TIME_FOR_A3() ) THEN
-
-         ! Get the date/time for the next A-3 data block
-         D = GET_A3_TIME()
-
-         ! Open & read A-3 fields
-         CALL OPEN_A3_FIELDS( D(1), D(2), Input_Opt            ) 
-         CALL GET_A3_FIELDS ( D(1), D(2), Input_Opt, State_Met )
-
-      ENDIF
-
-      !==============================================================
-      !          ***** R E A D   A - 6   F I E L D S *****  
-      !
-      !      All other met fields contain 6-hourly 3-D data. 
-      !==============================================================
-      IF ( ITS_TIME_FOR_A6() ) THEN
-         
-         ! Get the date/time for the next A-6 data block
-         D = GET_A6_TIME()
-
-         ! Open and read A-6 fields
-         CALL OPEN_A6_FIELDS( D(1), D(2), Input_Opt            )
-         CALL GET_A6_FIELDS(  D(1), D(2), Input_Opt, State_Met )      
-
-      ENDIF
-
-      !==============================================================
-      !          ***** R E A D   I - 6   F I E L D S *****   
-      !==============================================================
-      IF ( ITS_TIME_FOR_I6() ) THEN
-
-         ! Get the date/time for the next I-6 data block
-         D = GET_I6_TIME()
-
-         ! Open and read files
-         CALL OPEN_I6_FIELDS ( D(1), D(2), Input_Opt            )
-         CALL GET_I6_FIELDS_2( D(1), D(2), Input_Opt, State_Met )
-
-         ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
-         ! and average as polar caps
-         CALL SET_DRY_SURFACE_PRESSURE( State_Met, 2 )
-         CALL AVGPOLE( State_Met%PS2_DRY )
-
-         ! Compute avg pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2_WET )
 
       ENDIF

@@ -1780,12 +1780,6 @@
 !110   FORMAT(91E10.3)
 !#elif defined( GRID4x5 )
 !110   FORMAT(46E10.3)
-!#elif defined( GRID05x0666 )   && defined( NESTED_CH )
-!110   FORMAT(133E10.3)
-!#elif defined( GRID05x0666 )   && defined( NESTED_NA )
-!110   FORMAT(121E10.3)
-!#elif defined( GRID05x0666 )   && defined( NESTED_EU )
-!110   FORMAT(81E10.3)
 !#elif defined( GRID025x03125 ) && defined( NESTED_CH )
 !110   FORMAT(161E10.3)
 !#elif defined( GRID025x03125 ) && defined( NESTED_NA )
@@ -2055,12 +2049,6 @@
 110   FORMAT(91E10.3)
 #elif defined( GRID4x5 )
 110   FORMAT(46E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_CH )
-110   FORMAT(133E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_NA )
-110   FORMAT(121E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_EU )
-110   FORMAT(81E10.3)
 #elif defined( GRID05x0625 )   && defined( NESTED_AS )
 110   FORMAT(133E10.3)
 #elif defined( GRID05x0625 )   && defined( NESTED_NA )
@@ -2174,7 +2162,6 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : GC_Error
       USE Input_Opt_Mod,      ONLY : OptInput     
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -2206,7 +2193,7 @@
 !                                Replace TCVV with spc db MW and phys constant
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
-
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5479,9 +5466,22 @@
          ENDIF
       ELSE
          IF (am_I_Root ) THEN
+#if defined(ESMF_)
+         ! ExtData and HEMCO behave ambiguously - if the file was found
+         ! but was full of zeros throughout the domain of interest, it
+         ! will result in the same output from ExtData as if the field
+         ! was missing from the file. As such, HEMCO cannot distinguish
+         ! between a missing file and a field of zeros
+         WRITE(6,*) '    - UCX: PSC restart either all zeros in the '
+         WRITE(6,*) '           root domain, or the restart file did '
+         WRITE(6,*) '           not contain STATE_PSC. Root domain '
+         WRITE(6,*) '           will be initialized PSC-free'
+         ENDIF
+#else
          WRITE(6,*) 
      &      '    - UCX: PSC restart not found, initialize PSC-free'
          ENDIF
+#endif
       ENDIF
 
       END SUBROUTINE READ_PSC_FILE
@@ -5673,14 +5673,6 @@
       ! Initialize GEOS-Chem species array [kg/kg dry]
       Spc => State_Chm%Species
 
-      ! If specific humidity will be updated, set previous humidity to
-      ! to current humidity prior to change. This is used to preserve
-      ! species mass in mixing ratio update following moisture change
-      ! (ewl, 10/29/15)
-      IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
-         State_Met%SPHU_prev = State_Met%SPHU
-      ENDIF
-
       ! Error trap: make sure id_H2O is defined. There are instances 
       ! in GEOS-5 where we want to call this routine even with UCX
       ! turned off, in which case id_H2O might be undefined.
@@ -5717,10 +5709,6 @@
             ! using transported H2O [kg/kg dry] (ewl, 7/18/16)
             SPHU_kgkg =  Spc(I,J,L,id_H2O) / 
      &                  ( 1.0e+0_fp + Spc(I,J,L,id_H2O) ) 
-
-            ! Set previous humidity to current humidity prior to update
-            ! (ewl, 10/28/15)
-            State_Met%SPHU_prev(I,J,L) = State_Met%SPHU(I,J,L)
 
             ! Set State_Met specific humidity [g/kg]
             State_Met%SPHU(I,J,L) = SPHU_kgkg * 1.e+3_fp
@@ -6199,7 +6187,7 @@
          ! First line not important
          READ(IU_FILE,*,IOSTAT=IOS)
          IF ( IOS /= 0 ) THEN
-            WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
+            WRITE(6,*) 'UCX: READ ERROR L1 IN ', TRIM(FILENAME)
              CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SFCMR_READ')
          ENDIF
          
@@ -6212,27 +6200,31 @@
          DO I=1,2
             READ(IU_FILE,*,IOSTAT=IOS)
             IF ( IOS /= 0 ) THEN
-               WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
+               !WRITE(6,*) 'UCX: READ ERROR LX IN ', TRIM(FILENAME)
+               WRITE(6,'(a,I4,a,a,a,I4)') 'UCX: READ ERROR ', I-3, 
+     &             ' IN ', TRIM(FILENAME), '. Error code: ', IOS
                 CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SFCMR_READ')
             ENDIF
          ENDDO
-  
-         ! C2BR2F4 has a different format.
-         IF ( TRIM(iName) == 'C2BR2F4' ) THEN
-            FM = "(F7.2,F8.2)"
-         ELSE
-            !FM = "(F7.2,F11.2)"
-            FM = "(F7.2,F12.2)"
-         ENDIF
+ 
+         ! Not necessary to specify the format 
+         !! C2BR2F4 has a different format.
+         !IF ( TRIM(iName) == 'C2BR2F4' ) THEN
+         !   FM = "(F7.2,F8.2)"
+         !ELSE
+         !   !FM = "(F7.2,F11.2)"
+         !   FM = "(F7.2,F12.2)"
+         !ENDIF
    
          ! Read until end of file 
          DO
             ! Read values into temporary buffer
-            READ(IU_FILE,FM,IOSTAT=IOS) TMPYR, TMPMR
+            READ(IU_FILE,*,IOSTAT=IOS) TMPYR, TMPMR
    
             ! Error?
             IF ( IOS > 0 ) THEN
-               WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
+               WRITE(6,'(a,I4,a,a,a,I4)') 'UCX: READ ERROR ', NX, 
+     &             ' IN ', TRIM(FILENAME), '. Error code: ', IOS
                 CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SFCMR_READ')
             ENDIF
    
@@ -6511,12 +6503,6 @@
 110   FORMAT(91E10.3)
 #elif defined( GRID4x5 )
 110   FORMAT(46E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_CH )
-110   FORMAT(133E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_NA )
-110   FORMAT(121E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_EU )
-110   FORMAT(81E10.3)
 #elif defined( GRID05x0625 )   && defined( NESTED_AS )
 110   FORMAT(133E10.3)
 #elif defined( GRID05x0625 )   && defined( NESTED_NA )
@@ -6988,10 +6974,11 @@
          IDT_EMIT( N_EMIT) = id_CCl4
          TRAC_EMIT(N_EMIT) = 'CCl4'
 
-         ! CH3Cl
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_CH3Cl
-         TRAC_EMIT(N_EMIT) = 'CH3Cl'
+         ! This is now set in emissions_mod along with CH2Cl2 and CHCl3
+         !! CH3Cl
+         !N_EMIT = N_EMIT + 1
+         !IDT_EMIT( N_EMIT) = id_CH3Cl
+         !TRAC_EMIT(N_EMIT) = 'CH3Cl'
 
          ! CH3CCl3
          N_EMIT = N_EMIT + 1

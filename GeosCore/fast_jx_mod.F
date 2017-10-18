@@ -80,6 +80,12 @@
       INTEGER, PUBLIC :: RXN_NO3   = -1
       INTEGER, PUBLIC :: RXN_N2O   = -1
 
+      ! Species ID flags
+      INTEGER :: id_CH2IBr, id_IBr,  id_CH2ICl, id_ICl,   id_I2
+      INTEGER :: id_HOI,    id_IO,   id_OIO,    id_INO,   id_IONO
+      INTEGER :: id_IONO2,  id_I2O2, id_CH3I,   id_CH2I2, id_I2O4
+      INTEGER :: id_I2O3
+
       CONTAINS      
 !EOC
 !------------------------------------------------------------------------------
@@ -97,7 +103,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE FAST_JX( WLAOD, am_I_Root, Input_Opt, State_Met,
-     &                    State_Chm, RC )
+     &                    State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -111,6 +117,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
@@ -134,24 +141,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      ! How was AOD calculated? (1: 550 nm, 0: 999 nm)
-      INTEGER,        INTENT(IN)  :: WLAOD
-
-      ! Is this the root CPU?
-      LOGICAL,        INTENT(IN)  :: am_I_Root
-
-      ! Input options
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt
-
-      ! Meteorology State object
-      TYPE(MetState), INTENT(IN)  :: State_Met
-
-      ! Chemistry State object
-      TYPE(ChmState), INTENT(IN)  :: State_Chm
+      INTEGER,        INTENT(IN)    :: WLAOD       ! AOD calculated how? 
+                                                   ! (1: 550 nm, 0: 999 nm)
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options 
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State obj
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State obj
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State obj
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC
+      INTEGER,        INTENT(OUT)   :: RC
 !
 ! !REMARKS:
 !
@@ -231,6 +231,7 @@
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as for GEOS-FP
 !  21 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !  17 Jun 2016 - R. Yantosca - Now define id_O3 with the Ind_ function
+!  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -362,6 +363,8 @@
             SFCA            = State_Met%UVALBEDO(NLON,NLAT)
 
             ! Overhead ozone column [DU] at (NLON, NLAT)
+            ! These values are either from the met fields or TOMS/SBUV,
+            ! depending on the settings in input.geos
             O3_TOMS         = GET_OVERHEAD_O3( NLON, NLAT )
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
@@ -410,27 +413,23 @@
             ! Directly use OPTDEPTH = TAUCLD * CLDTOT
             !===========================================================
 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
             ! Column cloud fraction (not less than zero)
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
                
-            ! For GEOS-5, GEOS-FP, MERRA, and MERRA2 met fields, the optical
+            ! NOTE: For GEOS-FP and MERRA-2 met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 
             ! NOT been multiplied by cloud fraction yet.  Therefore, we can
             ! just apply the ! we can just apply the linear overlap formula 
             ! as written above (i.e. multiply by cloud fraction).
             OPTD = OPTD * CLDF1D
 
-#endif
-
             ! Call FAST-JX routines to compute J-values
             CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
      &                     O3_CTM,    O3_TOMS,   AOD999, OPTAER,
      &                     OPTDUST,   OPTD,      NLON,   NLAT,
      &                     YLAT,      DAY_OF_YR, MONTH,  DAY,
-     &                     am_I_Root, Input_Opt  )
+     &                     am_I_Root, Input_Opt, State_Diag  )
 
 
 #elif defined( USE_APPROX_RANDOM_OVERLAP )
@@ -443,31 +442,20 @@
             ! Column cloud fraction (not less than zero)
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
-               
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
-            ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
+            ! NOTE: For GEOS-FP and MERRA-2 met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 
             ! NOT been multiplied by cloud fraction yet.  Therefore, we can
             ! just apply the approximate random overlap formula as written 
             ! above (i.e. multiply by cloud fraction^1.5).
             OPTD = OPTD * ( CLDF1D )**1.5e+0_fp
-            
-#else
-            ! Otherwise, OPTD is the grid-box optical depth and has 
-            ! already been multiplied by  the cloud fraction.  Therefore 
-            ! we only need to multiply by the square root of the cloud 
-            ! fraction here for the approximate random overlap option. 
-            OPTD = OPTD * SQRT( CLDF1D )
-
-#endif
 
             ! Call FAST-JX routines to compute J-values
             CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
      &                     O3_CTM,    O3_TOMS,   AOD999, OPTAER,
      &                     OPTDUST,   OPTD,      NLON,   NLAT,
      &                     YLAT,      DAY_OF_YR, MONTH,  DAY,
-     &                     am_I_Root, Input_Opt  )
+     &                     am_I_Root, Input_Opt, State_Diag  )
 
 #elif defined( USE_MAXIMUM_RANDOM_OVERLAP )
             !===========================================================
@@ -549,9 +537,7 @@
 !                  ! Max cloud fraction
 !                  FMAX(KK) = MAXVAL( CLDF1D(KBOT(KK):KTOP(KK)) )
 !
-!#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-!
-!                  ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
+!                  ! NOTE: for the GEOS-FP and MERRA-2 met fields (i.e. with
 !                  ! optical depth & cloud fractions regridded with RegridTau)
 !                  ! OPTD is the in-cloud optical depth.  At this point it has
 !                  ! NOT been multiplied by cloud fraction yet.  Therefore,
@@ -560,17 +546,6 @@
 !                  ! ODNEW is adjusted in-cloud OD vertical distrib.
 !                  ODNEW(KBOT(KK):KTOP(KK)) = OPTD(KBOT(KK):KTOP(KK))
 !
-!#else
-!
-!                  ! Otherwise, OPTD is the grid-box optical depth.  
-!                  ! Therefore, we must divide out by the cloud fraction
-!                  ! and thus set ODNEW = OPTD / FMAX. (bmy, hyl, 10/24/08)
-!
-!                  ! ODNEW is adjusted in-cloud OD vertical distrib.
-!                  ODNEW(KBOT(KK):KTOP(KK)) = OPTD(KBOT(KK):KTOP(KK)) / 
-!     &                                       FMAX(KK)
-!
-!#endif
 !               ENDDO
 !            
 !               !--------------------------------------------------------
@@ -1676,6 +1651,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
+      USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1690,6 +1666,8 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
 !  05 Mar 2014 - R. Yantosca - Use correct filenames for use w/ ESMF
+!  27 Sep 2017 - M. Sulprizio- Define species IDs for ND22 diagnostic
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1700,7 +1678,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       CHARACTER(LEN=255)          :: FILENAME
       INTEGER                     :: NJXX
       CHARACTER*6,DIMENSION(JVN_) :: TITLEJXX
-      REAL(fp)                      :: ND64MULT
+      REAL(fp)                    :: ND64MULT
 
       !=================================================================
       ! INIT_FJX begins here!
@@ -1709,16 +1687,31 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Assume success
       RC = GC_SUCCESS
 
+      ! Define species IDs
+      id_CH2IBr   = IND_('CH2IBr'  )
+      id_IBr      = IND_('IBr'     )
+      id_CH2ICl   = IND_('CH2ICl'  )
+      id_ICl      = IND_('ICl'     )
+      id_I2       = IND_('I2'      )
+      id_HOI      = IND_('HOI'     )
+      id_IO       = IND_('IO'      )
+      id_OIO      = IND_('OIO'     )
+      id_INO      = IND_('INO'     )
+      id_IONO     = IND_('IONO'    )
+      id_IONO2    = IND_('IONO2'   )
+      id_I2O2     = IND_('I2O2'    )
+      id_CH3I     = IND_('CH3i'    )
+      id_CH2I2    = IND_('CH2I2'   )
+      id_I2O4     = IND_('I2O4'    )
+      id_I2O3     = IND_('I2O3'    )
+
       IF ( am_I_Root) THEN
          write(6,*) ' Initializing Fast-JX v7.0 standalone CTM code.'
 
          if (W_.ne.8 .and. W_.ne.12 .and. W_.ne.18) then
            call EXITC(' INIT_FJX: invalid no. wavelengths')
          endif
-      ENDIF
-
-      ! Set shared variable according to input argument
-      
+      ENDIF      
 
       ! Get a free LUN
       JXUNIT = findFreeLUN()
@@ -2937,13 +2930,15 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
      &                     AOD999,         ODAER_COL, ODMDUST_COL,
      &                     ODCLOUD_COL_IN, ILON,      ILAT,
      &                     YLAT,           DAY_OF_YR, MONTH,
-     &                     DAY,            am_I_Root, Input_Opt )
+     &                     DAY,            am_I_Root, Input_Opt,
+     &                     State_Diag )
 !
 ! !USES:
 !
       USE CMN_DIAG_MOD,       ONLY : LD22, LD64, ND22, ND64
       USE DIAG_MOD,           ONLY : AD22, AD64, LTJV
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
@@ -2962,12 +2957,15 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       LOGICAL, INTENT(IN)                           :: AOD999
       LOGICAL, INTENT(IN)                           :: am_I_Root
       TYPE(OptInput), INTENT(IN)                    :: Input_Opt
+      TYPE(DgnState), INTENT(INOUT)                 :: State_Diag
 !
 ! !REMARKS:
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
 !  05 Mar 2014 - R. Yantosca - Now only save ND64 with LD64 specified levels
+!  26 Sep 2017 - M. Sulprizio- Add new halogen species to ND22 (L. Zhu)
+!  04 Oct 2017 - E. Lundgren - Populate State_Diag J-Values array for nc diag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3017,6 +3015,9 @@ C-----------------------------------------------------------------------
       ! AD64 diagnostics
       REAL(fp), DIMENSION(JXL1_) :: FDIRECT, FDIFFUSE
 
+      ! Logical flags
+      LOGICAL :: IS_HALOGENS
+
       !Maps the new LUT optics wavelengths on to 
       !the 5 jv_spec_mie.dat wavelengths
       ! N.B. currently 200nm and 300nm data is the same in
@@ -3031,6 +3032,16 @@ C-----------------------------------------------------------------------
       if (LLPAR+1 .gt. JXL1_) then
         call EXITC(' PHOTO_JX: not enough levels in JX')
       endif
+
+      ! Define logical flags for ND22
+      IS_HALOGENS = ( id_CH2IBr > 0 .and. id_IBr   > 0 .and.
+     &                id_CH2ICl > 0 .and. id_ICl   > 0 .and.
+     &                id_I2     > 0 .and. id_HOI   > 0 .and.
+     &                id_IO     > 0 .and. id_OIO   > 0 .and.
+     &                id_INO    > 0 .and. id_IONO  > 0 .and.
+     &                id_IONO2  > 0 .and. id_I2O2  > 0 .and.
+     &                id_CH3I   > 0 .and. id_CH2I2 > 0 .and.
+     &                id_I2O4   > 0 .and. id_I2O3  > 0 )
 
       ! Copy cloud OD data to a variable array
       DO L=1,L_
@@ -3421,11 +3432,170 @@ C-----------------------------------------------------------------------
      &                                ZPJ(L,75,ILON,ILAT)
                AD22(ILON,ILAT,L,28) = AD22(ILON,ILAT,L,28) +  ! JGLYC
      &                                ZPJ(L,68,ILON,ILAT)
+               AD22(ILON,ILAT,L,29) = AD22(ILON,ILAT,L,29) +  ! JPIP
+     &                                ZPJ(L,106,ILON,ILAT)
+               AD22(ILON,ILAT,L,30) = AD22(ILON,ILAT,L,30) +  ! JIPMN
+     &                                ZPJ(L,107,ILON,ILAT)
+               AD22(ILON,ILAT,L,31) = AD22(ILON,ILAT,L,31) +  ! JETHLN
+     &                                ZPJ(L,108,ILON,ILAT)
+               AD22(ILON,ILAT,L,32) = AD22(ILON,ILAT,L,32) +  ! JDHDN
+     &                                ZPJ(L,109,ILON,ILAT)
+               AD22(ILON,ILAT,L,33) = AD22(ILON,ILAT,L,33) +  ! JHPALD
+     &                                ZPJ(L,110,ILON,ILAT)
+               AD22(ILON,ILAT,L,34) = AD22(ILON,ILAT,L,34) +  ! JISN1
+     &                                ZPJ(L,111,ILON,ILAT)
+               AD22(ILON,ILAT,L,35) = AD22(ILON,ILAT,L,35) +  ! JMONITS
+     &                                ZPJ(L,112,ILON,ILAT)
+               AD22(ILON,ILAT,L,36) = AD22(ILON,ILAT,L,36) +  ! JMONITU
+     &                                ZPJ(L,113,ILON,ILAT)
+               AD22(ILON,ILAT,L,37) = AD22(ILON,ILAT,L,37) +  ! JHONIT
+     &                                ZPJ(L,114,ILON,ILAT)
+               ! lei, 05/15/17 - added new halogen species below 
+               IF ( IS_HALOGENS ) THEN
+               AD22(ILON,ILAT,L,38) = AD22(ILON,ILAT,L,38) +  ! JCH3Br
+     &                                ZPJ(L,50,ILON,ILAT)
+               AD22(ILON,ILAT,L,39) = AD22(ILON,ILAT,L,39) +  ! JBrCl
+     &                                ZPJ(L,33,ILON,ILAT)
+               AD22(ILON,ILAT,L,40) = AD22(ILON,ILAT,L,40) +  ! JCH2Br2
+     &                                ZPJ(L,55,ILON,ILAT)
+               AD22(ILON,ILAT,L,41) = AD22(ILON,ILAT,L,41) +  ! JCH2IBr
+     &                                ZPJ(L,126,ILON,ILAT)
+               AD22(ILON,ILAT,L,42) = AD22(ILON,ILAT,L,42) +  ! JIBr
+     &                                ZPJ(L,129,ILON,ILAT)
+               AD22(ILON,ILAT,L,43) = AD22(ILON,ILAT,L,43) +  ! JCl2
+     &                                ZPJ(L,22,ILON,ILAT)
+               AD22(ILON,ILAT,L,44) = AD22(ILON,ILAT,L,44) +  ! JClO
+     &                                ZPJ(L,27,ILON,ILAT)
+               AD22(ILON,ILAT,L,45) = AD22(ILON,ILAT,L,45) +  ! JOClO
+     &                                ZPJ(L,25,ILON,ILAT)
+               AD22(ILON,ILAT,L,46) = AD22(ILON,ILAT,L,46) +  ! JCl2O2
+     &                                ZPJ(L,26,ILON,ILAT)
+               AD22(ILON,ILAT,L,47) = AD22(ILON,ILAT,L,47) +  ! JClNO2
+     &                                ZPJ(L,21,ILON,ILAT)
+               AD22(ILON,ILAT,L,48) = AD22(ILON,ILAT,L,48) +  ! JClNO3
+     &                                ZPJ(L,19,ILON,ILAT)  +
+     &                                ZPJ(L,20,ILON,ILAT)
+               AD22(ILON,ILAT,L,49) = AD22(ILON,ILAT,L,49) +  ! JHOCl
+     &                                ZPJ(L,24,ILON,ILAT)
+               AD22(ILON,ILAT,L,50) = AD22(ILON,ILAT,L,50) +  ! JCH3CCl3
+     &                                ZPJ(L,44,ILON,ILAT)
+               AD22(ILON,ILAT,L,51) = AD22(ILON,ILAT,L,51) +  ! JCFC113
+     &                                ZPJ(L,39,ILON,ILAT)
+               AD22(ILON,ILAT,L,52) = AD22(ILON,ILAT,L,52) +  ! JCFC114
+     &                                ZPJ(L,40,ILON,ILAT)
+               AD22(ILON,ILAT,L,53) = AD22(ILON,ILAT,L,53) +  ! JCFC115
+     &                                ZPJ(L,41,ILON,ILAT)
+               AD22(ILON,ILAT,L,54) = AD22(ILON,ILAT,L,54) +  ! JHCFC123
+     &                                ZPJ(L,47,ILON,ILAT)
+               AD22(ILON,ILAT,L,55) = AD22(ILON,ILAT,L,55) +  ! JHCFC141b
+     &                                ZPJ(L,48,ILON,ILAT)
+               AD22(ILON,ILAT,L,56) = AD22(ILON,ILAT,L,56) +  ! JHCFC142b
+     &                                ZPJ(L,49,ILON,ILAT)
+               AD22(ILON,ILAT,L,57) = AD22(ILON,ILAT,L,57) +  ! JHCFC22
+     &                                ZPJ(L,46,ILON,ILAT)
+               AD22(ILON,ILAT,L,58) = AD22(ILON,ILAT,L,58) +  ! JH1211
+     &                                ZPJ(L,51,ILON,ILAT)
+               AD22(ILON,ILAT,L,59) = AD22(ILON,ILAT,L,59) +  ! JClOO
+     &                                ZPJ(L,102,ILON,ILAT)
+               AD22(ILON,ILAT,L,60) = AD22(ILON,ILAT,L,60) +  ! JCH2Cl2
+     &                                ZPJ(L,45,ILON,ILAT)
+               AD22(ILON,ILAT,L,61) = AD22(ILON,ILAT,L,61) +  ! JCH2ICl
+     &                                ZPJ(L,125,ILON,ILAT)
+               AD22(ILON,ILAT,L,62) = AD22(ILON,ILAT,L,62) +  ! JICl
+     &                                ZPJ(L,130,ILON,ILAT)
+               AD22(ILON,ILAT,L,63) = AD22(ILON,ILAT,L,63) +  ! JI2
+     &                                ZPJ(L,115,ILON,ILAT)
+               AD22(ILON,ILAT,L,64) = AD22(ILON,ILAT,L,64) +  ! JHOI
+     &                                ZPJ(L,116,ILON,ILAT)
+               AD22(ILON,ILAT,L,65) = AD22(ILON,ILAT,L,65) +  ! JIO
+     &                                ZPJ(L,117,ILON,ILAT)
+               AD22(ILON,ILAT,L,66) = AD22(ILON,ILAT,L,66) +  ! JOIO
+     &                                ZPJ(L,118,ILON,ILAT)
+               AD22(ILON,ILAT,L,67) = AD22(ILON,ILAT,L,67) +  ! JINO
+     &                                ZPJ(L,119,ILON,ILAT)
+               AD22(ILON,ILAT,L,68) = AD22(ILON,ILAT,L,68) +  ! JIONO
+     &                                ZPJ(L,120,ILON,ILAT)
+               AD22(ILON,ILAT,L,69) = AD22(ILON,ILAT,L,69) +  ! JIONO2
+     &                                ZPJ(L,121,ILON,ILAT)
+               AD22(ILON,ILAT,L,70) = AD22(ILON,ILAT,L,70) +  ! JI2O2
+     &                                ZPJ(L,122,ILON,ILAT)
+               AD22(ILON,ILAT,L,71) = AD22(ILON,ILAT,L,71) +  ! JCH3I
+     &                                ZPJ(L,123,ILON,ILAT)
+               AD22(ILON,ILAT,L,72) = AD22(ILON,ILAT,L,72) +  ! JCH2I2
+     &                                ZPJ(L,124,ILON,ILAT)
+               AD22(ILON,ILAT,L,73) = AD22(ILON,ILAT,L,73) +  ! JI2O4
+     &                                ZPJ(L,127,ILON,ILAT)
+               AD22(ILON,ILAT,L,74) = AD22(ILON,ILAT,L,74) +  ! JI2O3
+     &                                ZPJ(L,128,ILON,ILAT)
+               AD22(ILON,ILAT,L,75) = AD22(ILON,ILAT,L,75) +  ! JH1301
+     &                                ZPJ(L,53,ILON,ILAT)
+               AD22(ILON,ILAT,L,76) = AD22(ILON,ILAT,L,76) +  ! JH2402
+     &                                ZPJ(L,54,ILON,ILAT)
+               ENDIF ! IS_HALOGENS
             ENDDO
 
          ENDIF
 
       ENDIF
+
+#if defined( NC_DIAG )
+      IF ( ( ASSOCIATED(State_Diag%JValues) ) .AND. 
+     &     ( LTJV(ILON,ILAT) > 0            ) ) THEN
+         
+         DO L = 1, LLPAR
+            ! AD22 IDs 5, 6, and 15 (J-values for O3 and O2)
+            ! are handled in routine PHOTRATE_ADJ
+            ! Hardcode ZPJ indices based on valued from FJX_j2j.dat
+            ! for now as is done for binary diag array AD22. We should
+            ! create a mapping for these in species database in the near
+            ! future rather than hard-code (ewl, 10/3/17)
+            !State_Diag%JValues(ILON,ILAT,L, 1) = ZPJ(L,11,ILON,ILAT)  ! JNO2
+            !State_Diag%JValues(ILON,ILAT,L, 2) = ZPJ(L,16,ILON,ILAT)  ! JHNO3
+            !State_Diag%JValues(ILON,ILAT,L, 3) = ZPJ(L, 9,ILON,ILAT)  ! JH2O2
+            !State_Diag%JValues(ILON,ILAT,L, 4) = ZPJ(L, 7,ILON,ILAT)  
+     &      !                                   + ZPJ(L, 8,ILON,ILAT)  ! JCH2O
+            !State_Diag%JValues(ILON,ILAT,L, 7) = ZPJ(L,72,ILON,ILAT)   
+     &      !                                   + ZPJ(L,73,ILON,ILAT)   
+     &      !                                   + ZPJ(L,74,ILON,ILAT)  ! JGLYX
+            !State_Diag%JValues(ILON,ILAT,L, 8) = ZPJ(L,71,ILON,ILAT)  ! JMGLY
+            !State_Diag%JValues(ILON,ILAT,L, 9) = ZPJ(L,28,ILON,ILAT)  ! JBrO
+            !State_Diag%JValues(ILON,ILAT,L,10) = ZPJ(L,32,ILON,ILAT)  ! JHOBr
+            !State_Diag%JValues(ILON,ILAT,L,11) = ZPJ(L,31,ILON,ILAT)  ! JBrNO2
+            !State_Diag%JValues(ILON,ILAT,L,12) = ZPJ(L,29,ILON,ILAT)   
+     &      !                                   + ZPJ(L,30,ILON,ILAT)  ! JBrNO3
+            !State_Diag%JValues(ILON,ILAT,L,13) = ZPJ(L,56,ILON,ILAT)  ! JCHBr3
+            !State_Diag%JValues(ILON,ILAT,L,14) = ZPJ(L,23,ILON,ILAT)  ! JBr2
+            !State_Diag%JValues(ILON,ILAT,L,16) = ZPJ(L,36,ILON,ILAT)  ! JN2O
+            !State_Diag%JValues(ILON,ILAT,L,17) = ZPJ(L, 6,ILON,ILAT)  ! JNO
+            !State_Diag%JValues(ILON,ILAT,L,18) = ZPJ(L,12,ILON,ILAT)   
+     &      !                                   + ZPJ(L,13,ILON,ILAT)  ! JNO3
+            !State_Diag%JValues(ILON,ILAT,L,19) = ZPJ(L,37,ILON,ILAT)  ! JCFC11
+            !State_Diag%JValues(ILON,ILAT,L,20) = ZPJ(L,38,ILON,ILAT)  ! JCFC12
+            !State_Diag%JValues(ILON,ILAT,L,21) = ZPJ(L,42,ILON,ILAT)  ! JCCl4
+            !State_Diag%JValues(ILON,ILAT,L,22) = ZPJ(L,43,ILON,ILAT)  ! JCH3Cl
+            !State_Diag%JValues(ILON,ILAT,L,23) = ZPJ(L,76,ILON,ILAT)   
+     &      !                                   + ZPJ(L,77,ILON,ILAT)  ! JACET
+            !State_Diag%JValues(ILON,ILAT,L,24) = ZPJ(L,61,ILON,ILAT)   
+     &      !                                   + ZPJ(L,62,ILON,ILAT)  ! JALD2
+            !State_Diag%JValues(ILON,ILAT,L,25) = ZPJ(L,63,ILON,ILAT)   
+     &      !                                   + ZPJ(L,64,ILON,ILAT)   
+     &      !                                   + ZPJ(L,65,ILON,ILAT)  ! JMVK
+            !State_Diag%JValues(ILON,ILAT,L,26) = ZPJ(L,66,ILON,ILAT)   
+     &      !                                   + ZPJ(L,67,ILON,ILAT)  ! JMACR
+            !State_Diag%JValues(ILON,ILAT,L,27) = ZPJ(L,75,ILON,ILAT)  ! JHAC
+            !State_Diag%JValues(ILON,ILAT,L,28) = ZPJ(L,68,ILON,ILAT)  ! JGLYC
+            !State_Diag%JValues(ILON,ILAT,L,29) = ZPJ(L,106,ILON,ILAT) ! JPIP
+            !State_Diag%JValues(ILON,ILAT,L,30) = ZPJ(L,107,ILON,ILAT) ! JIPMN
+            !State_Diag%JValues(ILON,ILAT,L,31) = ZPJ(L,108,ILON,ILAT) ! JETHLN
+            !State_Diag%JValues(ILON,ILAT,L,32) = ZPJ(L,109,ILON,ILAT) ! JDHDN
+            !State_Diag%JValues(ILON,ILAT,L,33) = ZPJ(L,110,ILON,ILAT) ! JHPALD
+            !State_Diag%JValues(ILON,ILAT,L,34) = ZPJ(L,111,ILON,ILAT) ! JISN1
+            !State_Diag%JValues(ILON,ILAT,L,35) = ZPJ(L,112,ILON,ILAT) ! JMONITS
+            !State_Diag%JValues(ILON,ILAT,L,36) = ZPJ(L,113,ILON,ILAT) ! JMONITU
+            !State_Diag%JValues(ILON,ILAT,L,37) = ZPJ(L,114,ILON,ILAT) ! JHONIT
+         ENDDO
+      ENDIF
+#endif
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% COMMENT OUT FAST-J DIAGNOSTICS FOR NOW (bmy, 3/5/14)
@@ -4231,14 +4401,14 @@ C---Always does PL(2) = P[1]
       REAL(fp), PARAMETER      :: ODMAX = 200.0e+0_fp
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL :: LO3FJX
+      LOGICAL :: USE_ONLINE_O3
 
       !=================================================================
       ! SET_PROF begins here!
       !=================================================================
 
       ! Copy fields from INPUT_OPT
-      LO3FJX = Input_Opt%LO3FJX
+      USE_ONLINE_O3   = Input_Opt%USE_ONLINE_O3
 
       ! Zero aerosol column
       DO K=1,A_
@@ -4437,13 +4607,21 @@ C---Always does PL(2) = P[1]
 
       ! Scale monthly O3 profile to the daily O3 profile (if available)
       DO I = 1, L1_
-         IF ((LO3FJX) .and. (I.le.LLCHEM) 
-     &       .and. (O3_CTM(I) > 0e+0_fp)) THEN
+
+         ! Use online O3 values in the chemistry grid if selected
+         IF ( (USE_ONLINE_O3) .and. 
+     &        (I.le.LLCHEM)   .and. (O3_CTM(I) > 0e+0_fp) ) THEN
+
             ! Convert from molec/cm3 to molec/cm2
             O3_CLIM(I) = O3_CTM(I) * (Z_CLIM(I+1)-Z_CLIM(I))
+
+         ! Otherwise, use O3 values from the met fields or TOMS/SBUV
          ELSEIF (O3_TOMS > 0e+0_fp) THEN
+
             O3_CLIM(I) = O3_CLIM(I) * ( O3_TOMS / PROFCOL )
+
          ENDIF
+
       ENDDO
 
       END SUBROUTINE SET_PROF
@@ -4716,13 +4894,15 @@ c  Ensure all 'AN_' types are valid selections
 !
       SUBROUTINE PHOTRATE_ADJ( am_I_root, I,    J,
      &                         L,         AD,   TEMP,
-     &                         C_H2O,     FRAC, RC      )
+     &                         C_H2O,     FRAC, State_Diag,
+     &                         RC      )
 !
 ! !USES:
 !
       USE CMN_DIAG_MOD,       ONLY : LD22, ND22
       USE DIAG_MOD,           ONLY : AD22, LTJV
       USE ErrCode_Mod
+      USE State_Diag_Mod,     ONLY : DgnState
       USE Precision_Mod,      ONLY : fp
 !     
 ! !INPUT PARAMETERS:
@@ -4733,7 +4913,10 @@ c  Ensure all 'AN_' types are valid selections
       REAL(fp),  INTENT(IN)  :: TEMP       ! Temperature [K]
       REAL(fp),  INTENT(IN)  :: C_H2O      ! H2O conc [molec/cm3]
       REAL(fp),  INTENT(IN)  :: FRAC       ! Result of SO4_PHOTFRAC,
-                                           !  called from flex_chemdr.F
+                                           ! called from flex_chemdr.F!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -4750,6 +4933,7 @@ c  Ensure all 'AN_' types are valid selections
 !                              and pass air density & temperature instead
 !  18 Apr 2016 - R. Yantosca - Also prevent div-by-zero conditions
 !  16 Mar 2017 - M. Sulprizio- Restore P(OH) from O3 photolysis for ND22
+!  04 Oct 2017 - E. Lundgren - Pass State_Diag and populate J-Values array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4785,6 +4969,14 @@ c  Ensure all 'AN_' types are valid selections
          ENDIF
       ENDIF
 
+#if defined( NC_DIAG ) 
+      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
+         IF ( LTJV(I,J) > 0 ) THEN
+            !State_Diag%JValues(I,J,L,15) = ZPJ(L,RXN_O2,I,J)
+         ENDIF
+      ENDIF
+#endif
+
 #endif
 
       !==============================================================
@@ -4813,6 +5005,15 @@ c  Ensure all 'AN_' types are valid selections
          ENDIF
       ENDIF
 
+#if defined( NC_DIAG )
+      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
+         IF ( LTJV(I,J) > 0 ) THEN
+            !State_Diag%JValues(I,J,L,5) = ZPJ(L,RXN_O3_2a,I,J)
+            !State_Diag%JValues(I,J,L,6) = ZPJ(L,RXN_O3_1, I,J)
+         ENDIF
+      ENDIF
+#endif
+
 #else
 
       ! Store unadjusted total J-O3 as AD22(:,:,:,5)
@@ -4822,6 +5023,14 @@ c  Ensure all 'AN_' types are valid selections
             AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,RXN_O3_2a,I,J)
          ENDIF
       ENDIF
+
+#if defined( NC_DIAG )
+      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
+         IF ( LTJV(I,J) > 0 ) THEN
+            !State_Diag%JValues(I,J,L,5) = ZPJ(L,RXN_O3_2a,I,J)
+         ENDIF
+      ENDIF
+#endif
 
       !========================================================
       ! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
@@ -4888,6 +5097,14 @@ c  Ensure all 'AN_' types are valid selections
      &                      ZPJ(L,RXN_O3_2b,I,J)
          ENDIF
       ENDIF
+#if defined( NC_DIAG )
+      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
+         IF ( LTJV(I,J) > 0 ) THEN
+           !State_Diag%JValues(I,J,L,6) = ZPJ(L,RXN_O3_2a,I,J) +
+     &     !                              + ZPJ(L,RXN_O3_2b,I,J)
+         ENDIF
+      ENDIF
+#endif
 
 #endif
       

@@ -169,6 +169,9 @@
 !  06 Jul 2016 - R. Yantosca - Removed GET_WETDEP_NSOL and GET_WETDEP_IDWETD,
 !                              these are now replaced by State_Chm fields
 !  17 Mar 2017 - R. Yantosca - Finally remove NSOL and IDWETD; they're unused
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!                              and rename routine WETDEP_MERRA to WETDEP (the
+!                              old WETDEP routine for GEOS-5 met was removed)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -197,11 +200,10 @@
       REAL(fp), ALLOCATABLE         :: QQ    (:,:,:) ! Rate of new precip
                                                      !  formation
                                                      !  [cm3 H2O/cm3 air/s]
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       REAL*8,  ALLOCATABLE          :: REEVAP(:,:,:) ! Rate of precip 
                                                      !  reevaporation
                                                      !  [cm3 H2O/cm3 air/s]
-#endif
+
       ! Define local shadow variables for values in Input_Opt
       LOGICAL                       :: LPRT
       LOGICAL                       :: LGTMM
@@ -250,12 +252,6 @@
 #endif
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE UnitConv_Mod
-#if defined( NC_DIAG )
-      USE SPECIES_MOD
-      USE HCO_ERROR_MOD
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -270,17 +266,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REMARKS:
-!  NOTE FROM HONGYU LIU (hyl@nianet.org) -- 3/5/08
-!                                                                             .
-!  Rainout and washout from convective precipitation for previous GEOS 
-!  archives were intended to represent precipitation from cloud anvils 
-!  [Liu et al., 2001]. For GEOS-5 (as archived at Harvard), the cloud anvil 
-!  precipitation was already included in the large-scale precipitation. 
-!                                                                             .
-!  Therefore, we insert a #if block to ensure that call MAKE_QQ and WETDEP 
-!  are not called for convective precip in GEOS-5. (hyl, bmy, 3/5/08)
 !
 ! !REVISION HISTORY: 
 !  27 Mar 2003 - R. Yantosca - Initial version
@@ -308,31 +293,12 @@
       LOGICAL  :: doPrt
       REAL(fp) :: DT_TEND
 
-      ! For netCDF diagnostics
-#if defined( NC_DIAG )
-      INTEGER                :: N, NW, L, cID, HCRC
-      CHARACTER(LEN=60)      :: DiagnName
-      REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
-      REAL(fp), POINTER      :: TMP3D(:,:,:)
-      REAL(fp), POINTER      :: TMP2D(:,:  )
-      REAL(fp)               :: DT
-
-      ! Objects
-      TYPE(Species), POINTER :: SpcInfo
-#endif
-
       !=================================================================
       ! Initialize
       !=================================================================
 
       ! Assume success
       RC                =  GC_SUCCESS
-
-#if defined( NC_DIAG )
-      ! Initialize pointers
-      TMP3D             => NULL()
-      TMP2D             => NULL()
-#endif
 
       ! Copy values from Input_Opt to module shadow variables
       LPRT              = Input_Opt%LPRT
@@ -353,35 +319,8 @@
      &                  State_Chm, 'WETD', RC )
 #endif
 
-#if   defined( NC_DIAG )
       !=================================================================
-      ! For netCDF diagnostics, mirror old species
-      !=================================================================
-      IF ( Input_Opt%ND39 > 0 ) THEN
-         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,State_Chm%nSpecies) )
-         BEFORE = State_Chm%Species
-      ENDIF
-#endif
-
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-      !=================================================================
-      ! MERRA: Only do wet deposition for large-scale + anvil precip
-      !=================================================================
-
-      ! Create precip fields
-      CALL MAKE_QQ( State_Met, LS=.TRUE. )
-      IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
-
-      ! Do wet deposition
-      CALL WETDEP_MERRA( am_I_Root, Input_Opt, State_Met, 
-     &                   State_Chm, RC, LS=.TRUE. )
-      IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
-
-#elif defined( GEOS_5 )
-
-      !=================================================================
-      ! GEOS5: Only do wet deposition for large-scale + anvil precip
+      ! Only do wet deposition for large-scale + anvil precip
       !=================================================================
 
       ! Create precip fields
@@ -392,110 +331,6 @@
       CALL WETDEP( am_I_Root, Input_Opt, State_Met, 
      &             State_Chm, RC, LS=.TRUE. )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
-
-#else
-
-      !=================================================================
-      ! Other met fields: Do wetdep for both LS & convective precip
-      !=================================================================
-
-      !---------------------
-      ! Large-scale precip
-      !---------------------
-
-      ! Create precip fields
-      CALL MAKE_QQ( State_Met, LS=.TRUE. )
-      IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
-
-      ! Do wet deposition
-      CALL WETDEP( am_I_Root, Input_Opt, State_Met, 
-     &             State_Chm, RC, LS=.TRUE. )
-      IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
-
-      !---------------------
-      ! Convective precip
-      !---------------------
-
-      ! Create precip fields
-      CALL MAKE_QQ( State_Met, LS=.FALSE. )
-      IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before conv wetdep' )
-
-      !  Do wet deposition
-      CALL WETDEP( am_I_Root, Input_opt, State_Met, 
-     &             State_Chm, RC, LS=.FALSE. )
-      IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
-
-
-#endif
-
-#if   defined( NC_DIAG )
-      !=================================================================
-      ! NetCDF diagnostics 
-      !=================================================================
-
-      ! Use ND38 as indicator for entire wet scavenging diagnostic group
-      IF ( Input_Opt%ND38 > 0 ) THEN
-
-         ! Assume success
-         HCRC = HCO_SUCCESS
-
-         ! Time step
-         DT = GET_TS_DYN() * 60e+0_fp
-
-         ! Allocate temporary pointer
-         ALLOCATE(TMP3D(IIPAR,JJPAR,LLPAR),TMP2D(IIPAR,JJPAR))
-        
-         ! Loop over all wetdep species
-         DO NW = 1, State_Chm%nWetDep
-
-            ! Get species ID from wetdep ID
-            N       =  State_Chm%Map_WetDep(NW)
-
-            ! Get information for this species from the species database
-            SpcInfo => State_Chm%SpcData(N)%Info
-
-            ! Is this a species selected for wetscav diagnostics?
-            IF ( ANY( Input_Opt%TINDEX(38,:) == N ) ) THEN
-
-               ! Convert [kg/kg/s] to [kg/m2/s] so that the vertical
-               ! sum makes physical sense (ewl, 8/14/15)      
-               TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Species(:,:,:,N) )
-     &           * State_Met%DELP_DRY * 1.e+2_fp 
-     &           / ( G0_100 * DT )
-
-               ! Convert loss rate [kg/m2/s] to [kg/s] for diagnostics 
-               ! NOTE: eventually diagnostic unit will be [kg/m2/s]
-               DO L = 1, LLPAR
-                  TMP3d(:,:,L) = TMP3d(:,:,L) * State_Met%AREA_M2(:,:,1)
-               ENDDO
-               TMP2D = SUM(TMP3D,DIM=3)
-
-               ! Update diagnostics using diagnostic name
-               DiagnName = 'WETSCAV_DEPLOSS_' 
-     &                     // TRIM( SpcInfo%Name )
-
-               CALL Diagn_Update ( am_I_Root, HcoState,
-     &                             cName   = DiagnName,
-     &                             Array2D = TMP2D,
-     &                             COL     = Input_Opt%DIAG_COLLECTION,
-     &                             PosOnly = .TRUE., 
-     &                             RC      = HCRC )
-               IF ( HCRC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP ( 'Error updating wetscav wetdep ' 
-     &               // ' loss diagnostic: ' // TRIM( DiagnName ), 
-     &               'DO_WETDEP (wetscav_mod.F)' )
-               ENDIF
-            ENDIF
-
-            ! Free pointer
-            SpcInfo => NULL()
-
-         ENDDO
-
-         ! Cleanup
-         DEALLOCATE( BEFORE, TMP3D, TMP2D )
-      ENDIF
-#endif
 
 #if defined( USE_TEND )
       !=================================================================
@@ -537,17 +372,13 @@
       TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
 ! 
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%%%       FOR MERRA, MERRA2, and GEOS-FP MET FIELDS ONLY      %%%%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!                                                                             .
-!  Construct QQ and PDOWN directly from GEOS-FP, MERRA, MERRA2  met fields.
+!  Construct QQ and PDOWN directly from met fields.
 !                                                                             .
 !  This only applies to large-scale precip, as the #if defined
 !  block in routine DO_WETDEP prevents the wet deposition
 !  routines from being called if it is convective precip.
 !                                                                             .
-!  MERRA met fields:
+!  Met fields:
 !  =================
 !  DQRLSAN   = 3-D precip production rate  (LS+anvil) [kg/kg/s]
 !  PFILSAN   = Dwnwd flux of ice precip    (LS+anvil) [kg/m2/s]
@@ -576,48 +407,6 @@
 !     m^2 * s |  917 kg ice |   m^3    | 1e4 cm2 
 !                                                                             .
 !  = [ (PFILSAN/1000) * 100 ] + [ (PFILSAN/1000) * 100]
-!                                                                             .
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-!  %%%%%     FOR ALL OTHER MET FIELDS EXCEPT MERRA and GEOS-FP     %%%%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!                                                                             .
-!  If there is total precipitation in the (I,J) column, then:
-!                                                                             .
-!  (1) Compute FRAC, the large scale fraction (if LS = .TRUE.) or 
-!      convective fraction (if LS = .FALSE.) total precipitation.  
-!      FRAC is computed from PREACC and PRECON.
-!                                                                             .
-!  (2) Compute QQ, the rate of formation of precipitation 
-!      [cm3 H2O/cm3 air/s].  From MOISTQ [kg H2O/kg air/s], 
-!      defined as the tendency in specific humidity, the unit conversion 
-!      is: 
-!                                                                             .
-!      kg H2O   |   m^3 H2O   | MAIRDEN kg air         m^3 H2O
-!   ------------+-------------+--------------- ==> -------------   
-!    kg air * s | 1000 kg H2O |    m^3 air          m^3 air * s
-!                                                                             .
-!  and
-!                                                                             .
-!          m^3 H2O                         cm^3 H2O
-!       -------------  is equivalent to  -------------- 
-!        m^3 air * s                      cm^3 air * s!
-!                                                                             .
-!  since the same conversion factor (10^6 cm^3/m^3) is in both
-!  the numerator and the denominator.
-! 
-!  Therefore, the equation for QQ is:
-! 
-!    QQ(L,I,J) = FRAC * MOISTQ(I,J,L) * MAIRDEN(I,J,L) / 1000.0
-!      
-!  (3) Compute PDOWN, the column precipitation 
-!      [cm3 H2O/cm2 air/s], by multiplying QQ(L,I,J) by 
-!      BXHEIGHT(I,J,L) * 100 cm.  
-! 
-!  (4) The reason why we do not force PTEMP to be positive is 
-!      that PREACC is the integral of the MOISTQ field.  MOISTQ 
-!      contains both negative (evap) and positive (precip) 
-!      values.  If we forced PTEMP to be positive, then we would
-!      be adding extra precipitation to PDOWN (hyl, bmy, 3/6/99).
 !
 ! !REVISION HISTORY: 
 !  29 Feb 2000 - H. Liu, R. Yantosca - Initial version
@@ -678,12 +467,10 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'QQ' )
          QQ = 0e+0_fp
 
-#if   defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
          ! Allocate REEVAP on first call
          ALLOCATE( REEVAP( LLPAR, IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAP' )
          REEVAP = 0d0
-#endif
 
          ! Reset flag
          FIRST = .FALSE.
@@ -700,13 +487,9 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-#if   defined( GEOS_FP ) || defined( MERRA2 )
-
          !==============================================================
-         ! %%%%% FOR GEOS-FP or MERRA2 MET FIELDS %%%%%  
-         !
-         ! In GEOS-FP, the PFILSAN and PFLLSAN fields are defined
-         ! on level edges.  Therefore, we must use L+1 to index them.
+         ! The PFILSAN and PFLLSAN fields are defined on level edges.
+         ! Therefore, we must use L+1 to index them.
          !==============================================================
 
          ! Loop over vertical levels
@@ -729,143 +512,6 @@
      &                   * 100e+0_fp
 
          ENDDO
-
-#elif   defined( MERRA )
-
-         !==============================================================
-         ! %%%%% FOR MERRA MET FIELDS ONLY %%%%%  
-         !==============================================================
-
-         ! Loop over vertical levels
-         DO L = 1, LLPAR
-
-            ! Rate of new precipitation formation in grid box (I,J,L)
-            ! [cm3 H2O/cm3 air/s]
-            QQ(L,I,J)    = ( State_Met%DQRLSAN(I,J,L)          )
-     &                   * ( State_Met%MAIRDEN(I,J,L)  / 1000e+0_fp )
-
-            ! Rate of re-evaporation in grid box (I,J,L)
-            ! [cm3 H2O/cm3 air/s]
-            REEVAP(L,I,J)= ( State_Met%REEVAPLS(I,J,L)          )
-     &                   * ( State_Met%AIRDEN(I,J,L)  / 1000e+0_fp )
-
-
-            ! Column precipitation [cm3 H2O/cm2 air/s]
-            PDOWN(L,I,J) = ( ( State_Met%PFLLSAN(I,J,L) / 1000e+0_fp ) 
-     &                   +   ( State_Met%PFILSAN(I,J,L) /  917e+0_fp ) )
-     &                   * 100e+0_fp
-
-         ENDDO
-
-#else 
-
-         !==============================================================
-         ! %%%%% FOR ALL OTHER MET FIELDS EXCEPT MERRA %%%%%
-         !==============================================================
-         IF ( State_Met%PRECTOT(I,J) > 0e+0_fp ) THEN
-
-            ! Large scale or convective fraction of precipitation
-            IF ( LS ) THEN
-               FRAC = ( State_Met%PRECTOT(I,J) - State_Met%PRECCON(I,J))
-     &                / State_Met%PRECTOT(I,J) 
-            ELSE
-               FRAC =   State_Met%PRECCON(I,J) / State_Met%PRECTOT(I,J)
-            ENDIF
-
-           !##################################################################
-           !### KLUDGE: On July 22, 2010, there is an error where PREACC
-           !### is set to a very small number (but nonzero).  This causes
-           !### FRAC to blow up to near infinity and PDOWN to be a very
-           !### large number.  For now, limit FRAC to be between 0 and 1.
-           !### 
-           IF ( FRAC > 1e+0_fp ) FRAC = 1e+0_fp
-           IF ( FRAC < 0e+0_fp ) FRAC = 0e+0_fp 
-           !##################################################################
-
-            ! Start at the top of the atmosphere
-            L = LLPAR
-
-            ! Compute QQ and PDOWN.  Keep PTEMP for the next level
-            QQ(L,I,J)    = FRAC                      *
-     &                     State_Met%MOISTQ(I,J,L)   *
-     &                     State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
-
-
-            PTEMP        = QQ(L,I,J)                 *
-     &                     State_Met%BXHEIGHT(I,J,L) * 1e+2_fp
-            PDOWN(L,I,J) = PTEMP
-
-            ! PDOWN cannot be negative
-            IF ( PDOWN(L,I,J) < 0e+0_fp ) PDOWN(L,I,J) = 0.e+0_fp
-
-            ! Loop down from LLPAR to the surface
-            DO L = LLPAR-1, 1, -1
-               
-               ! Compute QQ and PDOWN.  Keep PTEMP for the next level.
-               QQ(L,I,J)    = FRAC                      *
-     &                        State_Met%MOISTQ(I,J,L)   *
-     &                        State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
-
-               PDOWN(L,I,J) = PTEMP                     + QQ(L,I,J) *
-     &                        State_Met%BXHEIGHT(I,J,L) * 1e+2_fp  
-               PTEMP        = PDOWN(L,I,J)
-
-               ! PDOWN cannot be negative
-               IF ( PDOWN(L,I,J) < 0.0e+0_fp ) PDOWN(L,I,J) = 0.e+0_fp
-            ENDDO
-  
-         !==============================================================
-         ! If there is no precipitation reaching the surface in the 
-         ! (I,J) column, then assume any precipitation at altitude to 
-         ! be large-scale.
-         ! 
-         ! (1) Assume the large scale fraction = 1e+0_fp, 
-         !                convective fraction  = 0e+0_fp
-         ! (2) Compute QQ as described above
-         ! (3) Compute PDOWN as described above
-         !==============================================================
-         ELSE
-
-            ! Assume large-scale precipitation!
-            IF ( LS ) THEN
-               FRAC = 1e+0_fp
-            ELSE         
-               FRAC = 0e+0_fp
-            ENDIF
-
-            ! Start at the top of the atmosphere
-            L = LLPAR
-
-            ! Compute QQ and PDOWN.  Keep PTEMP for the next level
-            QQ(L,I,J)    = FRAC                      *
-     &                     State_Met%MOISTQ(I,J,L)   *
-     &                     State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
-
-            PTEMP        = QQ(L,I,J)                 *
-     &                     State_Met%BXHEIGHT(I,J,L) * 1e+2_fp
-            PDOWN(L,I,J) = PTEMP
-           
-            ! PDOWN cannot be negative
-            IF( PDOWN(L,I,J) < 0e+0_fp ) PDOWN(L,I,J) = 0.e+0_fp
-
-            ! Loop down from LLPAR to the surface
-            DO L = LLPAR-1, 1, -1
-              
-               ! Compute QQ and PDOWN.  Keep PTEMP for the next level
-               QQ(L,I,J)    = FRAC                      *
-     &                        State_Met%MOISTQ(I,J,L)   *
-     &                        State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
-
-               PDOWN(L,I,J) = PTEMP                     + QQ(L,I,J) *
-     &                        State_Met%BXHEIGHT(I,J,L) * 1e+2_fp 
-               PTEMP        = PDOWN(L,I,J)
-
-               ! PDOWN cannot be negative
-               IF ( PDOWN(L,I,J) < 0.0e+0_fp ) PDOWN(L,I,J) = 0.e+0_fp
-            ENDDO
-         ENDIF
-
-#endif
 
       ENDDO  
       ENDDO
@@ -2757,693 +2403,16 @@
 !
 ! !IROUTINE: wetdep
 !
-! !DESCRIPTION: Subroutine WETDEP computes the downward mass flux of species 
-!  due to washout and rainout of aerosols and soluble species in a column.  
-!  The timestep is the dynamic timestep.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE WETDEP( am_I_Root, Input_Opt, State_Met, State_Chm, 
-     &                   RC,        LS                               )
-!
-! !USES:
-!
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
-      USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
-      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
-      USE ErrCode_Mod
-      USE ERROR_MOD
-      USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE Species_Mod,        ONLY : Species
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_DYN
-      USE UnitConv_Mod
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      LOGICAL,        INTENT(IN)    :: LS         ! =T for large-scale precip
-                                                  ! =F for convective precip
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input options
-      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  Precipitation fields:
-!  =====================
-!                                                                             .
-!       Layer        Formation of       Precipitation
-!                     New Precip        falling down
-!      ==================================================== Top of Atm.
-!        LM           QQ(L,I,J)         PDOWN(LM,I,J)
-!                         |                   |
-!      ----------------------------------------------------
-!        LM-1         QQ(L,I,J)         PDOWN(LM-1,I,J)    
-!                         |                   |
-!      -------------------V-------------------V------------
-!                        ...                 ...     
-!                         |                   |
-!      -------------------V-------------------V------------
-!        3            QQ(L,I,J)         PDOWN(3,I,J)
-!                         |                   |
-!      -------------------V--------------------------------
-!        2            QQ(L,I,J)         PDOWN(2,I,J) 
-!                         |                   |
-!      ----------------------------------------------------
-!        1            QQ(L,I,J)         PDOWN(1,I,J) 
-!                         |                   |
-!      ===================V===================V============ Ground
-!                                                                             .
-!  Where:
-!    (a) New formation forming in grid box (I,J,L) = QQ(L,I,J)
-!    (b) Precip coming in  thru top    of layer L  = PDOWN(L+1,I,J)
-!    (c) Precip going  out thru bottom of layer L  = PDOWN(L,  I,J) 
-!                                                                             .
-!  Rainout:
-!  ========   
-!  Rainout occurs when there is more precipitation in grid box (I,J,L) than
-!  in grid box (I,J,L+1).  In other words, rainout occurs when the amount of 
-!  rain falling through the bottom of grid box (I,J,L) is more than the amount
-!  of rain coming in through the top of grid box (I,J,L). 
-!                                                                             .
-!  Soluble gases/aerosols are incorporated into the raindrops and are 
-!  completely removed from grid box (I,J,LLPAR).  There is no evaporation 
-!  and "resuspension" of aerosols during a rainout event.
-!                                                                             .
-!  For large-scale (a.k.a. stratiform) precipitation, the first order rate 
-!  constant for rainout in the grid box (I,J,L=LLPAR) (cf. Eq. 12, Jacob 
-!  et al, 2000) is given by:
-!                                                                             .
-!                           Q        
-!       K_RAIN = K_MIN + -------    [units: s^-1]
-!                         L + W    
-!                                                                             .
-!  and the areal fraction of grid box (I,J,L=LLPAR) that is actually 
-!  experiencing large-scale precipitation (cf. Eq. 11, Jacob et al, 2000) 
-!  is given by: 
-!                                                                             .
-!                         Q               
-!       F'     =  -------------------   [unitless]
-!                  K_RAIN * ( L + W )    
-!                                                                             .
-!  Where:
-!                                                                             .
-!       K_MIN  = minimum value for K_RAIN         
-!              = 1.0e-4 [s^-1]
-!                                                                             .
-!       L + W  = condensed water content in cloud 
-!              = 1.5e-6 [cm3 H2O/cm3 air]
-!                                                                             .
-!       Q = QQ = rate of precipitation formation 
-!                [ cm3 H2O / cm3 air / s ]
-!                                                                             .
-!  For convective precipitation, K_RAIN = 5.0e-3 [s^-1], and the expression 
-!  for F' (cf. Eq. 13, Jacob et al, 2000) becomes:
-!                                                                             .
-!                                       { DT        }
-!                         FMAX * Q * MIN{ --- , 1.0 }
-!                                       { TAU       }
-!       F' = ------------------------------------------------------
-!                    { DT        }
-!             Q * MIN{ --- , 1.0 }  +  FMAX * K_RAIN * ( L + W )
-!                    { TAU       } 
-!                                                                             .
-!  Where:
-!                                                                             .
-!       Q = QQ = rate of precipitation formation 
-!              [cm3 H2O/cm3 air/s]
-!                                                                             .
-!       FMAX   = maximum value for F' 
-!              = 0.3
-!                                                                             .
-!       DT     = dynamic time step from the CTM [s]
-!                                                                             .
-!       TAU    = duration of rainout event 
-!              = 1800 s (30 min)
-!                                                                             .
-!       L + W  = condensed water content in cloud 
-!              = 2.0e-6 [cm3 H2O/cm3 air]
-!                                                                             .
-!  K_RAIN and F' are needed to compute the fraction of species in grid box 
-!  (I,J,L=LLPAR) lost to rainout.  This is done in module routine RAINOUT.
-!                                                                             .
-!  Washout:
-!  ========   
-!  Washout occurs when we have evaporation (or no precipitation at all) at 
-!  grid box (I,J,L), but have rain coming down from grid box (I,J,L+1).
-
-! !REVISION HISTORY: 
-!  02 Apr 1999 - H. Liu, I. Bey, R. Yantosca - Initial version
-!  (1 ) WETDEP should be called twice, once with LS = .TRUE. and once
-!        with LS = .FALSE.  This will handle both large-scale and
-!        convective precipitation. (bmy, 2/28/00)
-!  (2 ) Call subroutine MAKE_QQ to construct the QQ and PDOWN precipitation
-!        fields before calling WETDEP. (bmy, 2/28/00)
-!  (3 ) Since we are working with an (I,J) column, the ordering of the
-!        loops goes J - I - L - N.  Dimension arrays DSTT, PDOWN, QQ
-!        to take advantage of this optimal configuration (bmy, 2/28/00)
-!  (4 ) Use double-precision exponents to force REAL(fp) accuracy
-!        (e.g. 1e+0_fp, bmy, 2/28/00)
-!  (5 ) Diagnostics ND16, ND17, ND18, and ND39 use allocatable arrays 
-!        from "diag_mod.f"  (bmy, bey, 3/14/00)
-!  (6 ) WETDEP only processes soluble tracers and/or aerosols, as are
-!        defined in the NSOL and IDWETD arrays (bmy, 3/14/00)
-!  (7 ) Add kludge to prevent wet deposition in the stratosphere (bmy, 6/21/00)
-!  (8 ) Removed obsolete code from 10/27/00 (bmy, 12/21/00)
-!  (9 ) Remove IREF, JREF -- they are obsolete (bmy, 9/27/01)
-!  (10) Removed obsolete commented out code from 9/01 (bmy, 10/24/01)
-!  (11) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
-!        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
-!  (12) Now reference BXHEIGHT from "dao_mod.f".  Also references routine
-!        GEOS_CHEM_STOP from "error_mod.f".  Also fix ND39 diagnostic so that
-!        the budget of tracer lost to wetdep is closed.  Now bundled into
-!        "wetscav_mod.f".  Now only save to AD16, AD17, AD18, AD39 if L<=LD16,
-!        L<=LD17, L<=LD18, and L<=LD39 respectively; this avoids out-of-bounds
-!        array errors. Updated comments, cosmetic changes. (qli, bmy, 11/26/02)
-!  (13) References IDTSO2, IDTSO4 from "tracerid_mod.f". SO2 in sulfate 
-!        chemistry is wet-scavenged on the raindrop and converted to SO4 by 
-!        aqueous chem. If evaporation occurs then SO2 comes back as SO4.
-!        (rjp, bmy, 3/23/03)  
-!  (14) Now use function GET_TS_DYN() from "time_mod.f" (bmy, 3/27/03)
-!  (15) Now parallelize over outermost J-loop.  Also move internal routines
-!        LS_K_RAIN, LS_F_PRIME, CONV_F_PRIME, and SAFETY to the module, since
-!        we cannot call internal routines from w/in a parallel loop. 
-!        (bmy, 3/18/04)
-!  (16) Now references STT & N_TRACERS from "tracer_mod.f".  Also now make
-!        DSTT a 4-d internal array so as to facilitate -C checking on the
-!        SGI platform. (bmy, 7/20/04)
-!  (17) Now references IDTHg2 from "tracerid_mod.f".  Now pass the amt of
-!        Hg2 wet scavenged out of the column to "ocean_mercury_mod.f" via
-!        routine ADD_Hg2_WD. (sas, bmy, 1/19/05)
-!  (18) Bug fix: replace line that can cause numerical blowup with a safer
-!        analytical expression. (bmy, 2/23/05)
-!  (19) Block out parallel loop with #ifdef statements for SGI_MIPS compiler.
-!        For some reason this causes an error. (bmy, 5/5/05)
-!  (20) Now use function IS_Hg2 to determine if a tracer is a tagged Hg2 
-!        tracer.  Now also pass N to ADD_Hg2_WD.  Now references LDYNOCEAN
-!        from "logical_mod.f".  Now do not call ADD_Hg2_WD if we are not
-!        using the dynamic ocean model. (eck, sas, cdh, bmy, 2/27/06)
-!  (21) Eliminate unnecessary variables XDSTT, L_PLUS_W.  Also zero all 
-!        unused variables for each grid box. (bmy, 5/24/06)
-!  (22) Redimension DSTT with NSOL instead of NSOLMAX. In many cases, NSOL is
-!        less than NSOLMAX and this will help to save memory especially when
-!        running at 2x25 or greater resolution. (bmy, 1/31/08)
-!  (23) Remove reference to SGI_MIPS (bmy, 7/8/09)
-!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
-!  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
-!  02 Apr 2015 - E. Lundgren - Move tracer unit conversion from kg/kg to kg
-!                              to within this routine
-!  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
-!  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
-!                              whether the dynamic ocean is used
-!  22 Sep 2015 - E. Lundgren - Tracer units now converted to kg/m2 from kg/kg
-!  22 Apr 2016 - R. Yantosca - Now get Is_Hg2, Is_HgP from species database
-!  25 Apr 2016 - R. Yantosca - Now get the Hg category # from species database
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  30 Jun 2016 - R. Yantosca - Replace STT with Spc and DSTT with DSpc
-!  05 Jul 2016 - R. Yantosca - Now replace IDWETD with State_Chm%Map_Wetdep
-!  05 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-!  05 Aug 2016 - R. Yantosca - Remove reference to Spc, it's not needed
-!  17 Mar 2017 - R. Yantosca - Replace NSOL with State_Chm%nWetDep
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      LOGICAL, SAVE          :: FIRST = .TRUE.
-      LOGICAL                :: IS_Hg
-      LOGICAL                :: KIN
-      INTEGER                :: I,     IDX,    J,         L
-      INTEGER                :: N,     NW,     Hg_Cat
-      REAL(fp)               :: Q,     QDOWN,  DT,        DT_OVER_TAU
-      REAL(fp)               :: K,     K_MIN,  K_RAIN,    RAINFRAC
-      REAL(fp)               :: F,     FTOP,   F_PRIME,   WASHFRAC
-      REAL(fp)               :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
-      REAL(fp)               :: ALPHA, ALPHA2, WETLOSS,   TMP
-      REAL(fp)               :: F_RAINOUT,     F_WASHOUT
-      REAL(fp)               :: DEP_HG
-
-      ! Arrays
-      ! DSTT is the accumulator array of rained-out 
-      ! soluble species for a given (I,J) column
-      REAL(fp)               :: DSpc(State_Chm%nWetDep,
-     &                               LLPAR,IIPAR,JJPAR)
-
-      ! Strings
-      CHARACTER(LEN=255)     :: ERRMSG
-
-      ! Pointers
-      TYPE(Species), POINTER :: SpcInfo
-
-      !=================================================================
-      ! (1)  I n i t i a l i z e   V a r i a b l e s
-      !=================================================================
-
-      ! Is this a mercury simulation?
-      IS_Hg = ( ITS_A_MERCURY_SIM )
-
-      ! Initialize pointers
-      SpcInfo => NULL()
-
-      ! Convert species concentration from mixing ratio (kg/kg dry air) to
-      ! mass per unit area (kg/m2) for wet deposition since computation is
-      ! done per column (ewl, 9/8/15)
-      CALL ConvertSpc_KgKgDry_to_Kgm2( am_I_Root, State_Met, 
-     &                                 State_Chm, RC         )   
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error('Unit conversion error', RC, 
-     &                 'WETDEP in wetscav_mod.F')
-         RETURN
-      ENDIF  
-
-      ! Dynamic timestep [s]
-      DT  = GET_TS_DYN() * 60e+0_fp
-      
-      ! Select index for diagnostic arrays -- will archive either
-      ! large-scale or convective rainout/washout fractions
-      IF ( LS ) THEN
-         IDX = 1
-      ELSE
-         IDX = 2
-      ENDIF
-
-      !=================================================================
-      ! (2)  L o o p   O v e r   (I, J)   S u r f a c e   B o x e s
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,       FTOP,      ERRMSG,    F          )
-!$OMP+PRIVATE( F_PRIME, K_RAIN,  L,         Q,         QDOWN      )
-!$OMP+PRIVATE( NW,      N,       F_RAINOUT, F_WASHOUT             )
-!$OMP+PRIVATE( DEP_HG,  SpcInfo, Hg_Cat                           )
-!$OMP+SCHEDULE( DYNAMIC )   
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Zero FTOP
-         FTOP = 0e+0_fp
-
-         ! Zero accumulator array
-         DO L  = 1, LLPAR
-         DO NW = 1, State_Chm%nWetDep
-            DSpc(NW,L,I,J) = 0e+0_fp
-         ENDDO
-         ENDDO
-
-         !==============================================================
-         ! (3)  R a i n o u t   F r o m   T o p   L a y e r  (L = LLPAR) 
-         !
-         ! Assume that rainout is happening in the top layer if 
-         ! QQ(LLPAR,I,J) > 0.  In other words, if any precipitation 
-         ! forms in grid box (I,J,LLPAR), assume that all of it falls 
-         ! down to lower levels.
-         !==============================================================
-
-         ! Zero variables for this level
-         ERRMSG    = 'RAINOUT: Top of atm'
-         F         = 0e+0_fp
-         F_PRIME   = 0e+0_fp
-         F_RAINOUT = 0e+0_fp      
-         F_WASHOUT = 0e+0_fp      
-         K_RAIN    = 0e+0_fp
-         Q         = 0e+0_fp
-         QDOWN     = 0e+0_fp
-
-         ! Start at the top of the atmosphere
-         L = LLPAR
-
-         ! If precip forms at (I,J,L), assume it all rains out
-         IF ( QQ(L,I,J) > 0e+0_fp ) THEN
-
-            ! Q is the new precip that is forming within grid box (I,J,L)
-            Q = QQ(L,I,J)
-
-            ! Compute K_RAIN and F' for either large-scale or convective
-            ! precipitation (cf. Eqs. 11-13, Jacob et al, 2000) 
-            IF ( LS ) THEN
-               K_RAIN  = LS_K_RAIN( Q )
-               F_PRIME = LS_F_PRIME( Q, K_RAIN )
-            ELSE
-               K_RAIN  = 1.5e-3_fp
-               F_PRIME = CONV_F_PRIME( Q, K_RAIN, DT )
-            ENDIF
-            
-            ! Set F = F', since there is no FTOP at L = LLPAR
-            F = F_PRIME
-
-            ! Only compute rainout if F > 0. 
-            ! This helps to eliminate unnecessary CPU cycles.
-            IF ( F > 0e+0_fp ) THEN 
-               CALL DO_RAINOUT_ONLY( am_I_Root, LS,        I, J, L,         
-     &                               IDX,       ERRMSG,    F,    
-     &                               K_RAIN,    DT,        DSpc,   
-     &                               Input_Opt, State_Met, State_Chm,
-     &                               RC                              )
-            ENDIF
-
-            ! Save FTOP for the next lower level 
-            FTOP = F
-         ENDIF
-
-         !==============================================================
-         ! (4)  R a i n o u t   i n   t h e   M i d d l e   L e v e l s
-         ! 
-         ! Rainout occurs when there is more precipitation in grid box 
-         ! (I,J,L) than in grid box (I,J,L+1).  In other words, rainout 
-         ! occurs when the amount of rain falling through the bottom of 
-         ! grid box (I,J,L) is more than the amount of rain coming in 
-         ! through the top of grid box (I,J,L). 
-         !
-         ! Thus ( PDOWN(L,I,J) > 0 and QQ(L,I,J) > 0 ) is the 
-         ! criterion for Rainout.
-         !==============================================================
-         DO L = LLPAR-1, 2, -1
-
-            ! Zero variables for each level
-            F         = 0e+0_fp
-            F_PRIME   = 0e+0_fp
-            F_RAINOUT = 0e+0_fp 
-            F_WASHOUT = 0e+0_fp 
-            K_RAIN    = 0e+0_fp
-            Q         = 0e+0_fp
-            QDOWN     = 0e+0_fp
-
-            ! If there is new precip forming w/in the grid box ...
-            IF ( QQ(L,I,J) > 0e+0_fp ) THEN
-
-               ! Compute K_RAIN and F' for either large-scale or convective
-               ! precipitation (cf. Eqs. 11-13, Jacob et al, 2000) 
-               IF ( LS ) THEN
-                  K_RAIN  = LS_K_RAIN( QQ(L,I,J) )
-                  F_PRIME = LS_F_PRIME( QQ(L,I,J), K_RAIN )
-               ELSE
-                  K_RAIN  = 1.5e-3_fp
-                  F_PRIME = CONV_F_PRIME( QQ(L,I,J), K_RAIN, DT )
-               ENDIF
-               
-            ELSE
-               
-               F_PRIME = 0e+0_fp
- 
-            ENDIF
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE from Chris Holmes (8/21/10)
-!%%%
-!%%% Qiaoqiao Wang implemented several changes to wet scavenging that I 
-!%%% know of:
-!%%% 1. Scavenging by snow has different collection efficiency to rain
-!%%% 2. Allow both washout and rainout when QQ>0 and FTOP >F_PRIME.
-!%%%    Previously only rainout occurred when QQ>0. Qiaoqiao reasoned that if
-!%%%    QQ>0 is very small and there is a lot of rain from above, then most of
-!%%%    the box should experience washout and only some of the box should
-!%%%    experience rainout.
-!%%% 3. Specific improvements for BC and OC.
-!%%%
-!%%% TO ENABLE QIAOQIAO'S "ITEM #2" MODIFICATION, UNCOMMENT THESE LINES:
-!%%%
-            ! The following block implements Qiaoqiao's changes
-            ! Calculate the fractional areas subjected to rainout and
-            ! washout. If PDOWN = 0, then all dissolved species returns
-            ! to the atmosphere. (cdh, 7/13/10)
-            IF ( PDOWN(L,I,J) > 0e+0_fp ) THEN
-               F_RAINOUT = F_PRIME
-               ! Washout occurs where there is no rainout
-               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0e+0_fp )
-            ELSE
-               F_RAINOUT = 0e+0_fp
-               F_WASHOUT = 0e+0_fp
-            ENDIF
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE from Chris Holmes (8/21/10)
-!%%% 
-!%%% I reorganized the code so that Qiaoqiao's changes for Item 2 could be 
-!%%% enabled or disabled by commenting just a few lines that Bob has 
-!%%% highlighted:
-!%%%
-!%%% TO DISABLE QIAOQIAO'S MODIFICATION "ITEM #2" AND RESTORE THE
-!%%% SAME ALGORITHM USED IN v8-03-01, UNCOMMENT THESE LINES:
-!%%%
-!            ! Zero
-!            F_RAINOUT = 0e+0_fp
-!            F_WASHOUT = 0e+0_fp
-!
-!            ! If there is downward-falling precip from the level above ...
-!            IF ( PDOWN(L,I,J) > 0e+0_fp ) THEN
-!               
-!               ! ... and if there is new precip forming in this level,
-!               ! then we have a rainout condition.  F_RAINOUT is the
-!               ! fraction of the grid box that where rainout occurs
-!               IF ( QQ(L,I,J) > 0e+0_fp ) THEN
-!                  F_RAINOUT = MAX( FTOP, F_PRIME )
-!               ENDIF 
-!
-!               ! The rest of the precipitating part of the box is
-!               ! undergoing washout.  Store this fraction in F_WASHOUT.
-!               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0e+0_fp )
-!
-!            ENDIF
-!
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-            ! F is the effective area of precip seen by grid box (I,J,L) 
-            F = MAX( F_PRIME, FTOP )
-
-            ! If there is rainout occurring ...
-            IF ( F_RAINOUT > 0e+0_fp  ) THEN
-
-               ! Error msg for stdout
-               ERRMSG = 'RAINOUT: Middle levels'
-
-               ! Do rainout if we meet the above criteria
-               CALL DO_RAINOUT_ONLY( am_I_Root, LS,        I, J, L, 
-     &                               IDX,       ERRMSG,    F_RAINOUT, 
-     &                               K_RAIN,    DT,        DSpc,      
-     &                               Input_Opt, State_Met, State_Chm,
-     &                               RC                              )
-            ENDIF
-
-            !==============================================================
-            ! (5)  W a s h o u t   i n   t h e   m i d d l e   l e v e l s
-            !
-            ! Washout occurs when we have evaporation (or no precipitation 
-            ! at all) at grid box (I,J,L), but have rain coming down from 
-            ! grid box (I,J,L+1).
-            !==============================================================
-            IF ( F_WASHOUT > 0e+0_fp ) THEN
-
-               ! QDOWN is the precip leaving thru the bottom of box (I,J,L)
-               ! Q     is the new precip that is forming within box (I,J,L)
-               QDOWN = PDOWN(L,I,J)
-               Q     = QQ(L,I,J)
-
-               ! Also test if we have rainout happening simultaneously
-               IF ( F_RAINOUT > 0e+0_fp ) THEN
-
-                  ! The precipitation causing washout is the precip entering
-                  ! the top
-                  QDOWN = PDOWN(L+1,I,J)
-
-                  ! The amount of precipitating water entering from above 
-                  ! which evaporates. If there is rainout (new precip
-                  ! forming) then we have no way to estimate this, so assume
-                  ! zero for now. Consequently there will be no resuspended
-                  ! aerosol.
-                  Q = 0e+0_fp
-                                   
-               ENDIF
-
-               ! Error msg for stdout
-               ERRMSG = 'WASHOUT: Middle levels'
-
-               ! Do the washout
-               CALL DO_WASHOUT_ONLY( am_I_Root, LS,        I, J, L,         
-     &                               IDX,       ERRMSG,    QDOWN,     
-     &                               Q,         F_WASHOUT, F_RAINOUT, 
-     &                               DT,        PDOWN,     DSpc,      
-     &                               Input_Opt, State_Met, State_Chm, 
-     &                               RC                              )
-            ENDIF
-
-            !===========================================================
-            ! (6)  N o   D o w n w a r d   P r e c i p i t a t i o n 
-            !
-            ! If there is no precipitation leaving grid box (I,J,L), 
-            ! then  set F, the effective area of precipitation in grid 
-            ! box (I,J,L), to zero.
-            !
-            ! Also, all of the previously rained-out species that is now 
-            ! coming down from grid box (I,J,L+1) will evaporate and 
-            ! re-enter the atmosphere in the gas phase in grid box 
-            ! (I,J,L).  This is called "resuspension".
-            !===========================================================
-            IF ( F_WASHOUT == 0e+0_fp .and. F_RAINOUT == 0e+0_fp ) THEN
-
-               ! No precipitation at grid box (I,J,L), thus F = 0
-               F = 0e+0_fp
-               
-               ! Error message
-               ERRMSG = 'RESUSPENSION in middle levels'
-
-               ! Re-evaporate all of the rain
-               CALL DO_COMPLETE_REEVAP( am_I_Root, LS,        I, J, L,         
-     &                                  IDX,       ERRMSG,    DT,
-     &                                  DSpc,      Input_Opt, State_Met, 
-     &                                  State_Chm, RC        )
-            ENDIF 
-
-            ! Save FTOP for next level
-            FTOP = F_RAINOUT + F_WASHOUT
-           
-         ENDDO               
-
-         !==============================================================
-         ! (7)  W a s h o u t   i n   L e v e l   1
-         !
-         ! Assume all of the species precipitating down from grid box 
-         ! (I,J,L=2) to grid box (I,J,L=1) gets washed out in grid box 
-         ! (I,J,L=1).
-         !==============================================================
-
-         ! Zero variables for this level
-         ERRMSG  = 'WASHOUT: at surface'
-         F       = 0e+0_fp
-         F_PRIME = 0e+0_fp
-         K_RAIN  = 0e+0_fp
-         Q       = 0e+0_fp
-         QDOWN   = 0e+0_fp
-         
-         ! We are at the surface, set L = 1
-         L = 1
-
-         ! Washout at level 1 criteria
-         IF ( PDOWN(L+1,I,J) > 0e+0_fp ) THEN
-
-            ! QDOWN is the precip leaving thru the bottom of box (I,J,L+1)
-            QDOWN = PDOWN(L+1,I,J)
-
-            ! Since no precipitation is forming within grid box (I,J,L),
-            ! F' = 0, and F = MAX( F', FTOP ) reduces to F = FTOP.
-            F = FTOP
-
-            ! Only compute washout if F > 0.
-            IF ( F > 0e+0_fp ) THEN
-               CALL DO_WASHOUT_AT_SFC( am_I_Root, LS,        I, J, L,         
-     &                                 IDX,       ERRMSG,    QDOWN,   
-     &                                 F,         DT,        DSpc,  
-     &                                 Input_Opt, State_Met, State_Chm, 
-     &                                 RC                             )
-            ENDIF    
-         ENDIF
-
-         !==============================================================
-         ! (8)  M e r c u r y   S i m u l a t i o n   O n l y 
-         !
-         ! For the mercury simulation, we need to archive the amt of 
-         ! Hg2 [kg] that is scavenged out of the column.  Also applies
-         ! to the tagged Hg simulation.
-         !
-         ! NOTES:
-         ! (a) Now moved outside the loop above for clarity and to 
-         !      fix a bug where HgP scavenging was not recorded. 
-         ! (b) The values of DSpc in the first layer accumulates all 
-         !      scavenging and washout in the column
-         ! (c) Updates from cdh. (ccc, 5/17/10)
-         !==============================================================
-         IF ( IS_Hg ) THEN
-
-            ! Loop over soluble species and/or aerosol species
-            DO NW = 1, State_Chm%nWetDep
-
-               ! Get species ID from wetdep ID
-               N      = State_Chm%Map_WetDep(NW)
-
-               ! Amount of Hg deposited out of the column
-               DEP_HG = DSpc(NW,1,I,J)
-
-               ! Point to the Species Database entry for species N
-               SpcInfo => State_Chm%SpcData(N)%Info
-
-               ! Check if it is a gaseous Hg2 tag
-               IF ( SpcInfo%Is_Hg2 ) THEN
-                  
-                  ! Get the category # for this Hg2 species
-                  Hg_Cat = SpcInfo%Hg_Cat
-                  
-                  ! Archive wet-deposited Hg2
-                  CALL ADD_Hg2_WD      ( I, J, Hg_Cat, DEP_HG    )
-                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, 
-     &                                                 State_Met )
-
-               ! Check if it is a HgP tag
-               ELSE IF ( SpcInfo%Is_HgP ) THEN 
-                                    
-                  ! Get the category # for this HgP species
-                  Hg_Cat = SpcInfo%Hg_Cat
-
-                  ! Archive wet-deposited HgP
-                  CALL ADD_HgP_WD      ( I, J, Hg_Cat, DEP_HG    )
-                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, 
-     &                                                 State_Met )
-                  
-               ENDIF
-
-               ! Free pointer
-               SpcInfo => NULL()
-            ENDDO
-         ENDIF
-
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Convert species units back to mixing ratio (ewl, 9/8/15)
-      CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, 
-     &                                 State_Chm, RC         )   
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error('Unit conversion error', RC, 
-     &                 'WETDEP in wetscav_mod.F')
-         RETURN
-      ENDIF  
-
-      END SUBROUTINE WETDEP
-!EOC
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: wetdep_merra
-!
-! !DESCRIPTION: Subroutine WETDEP\_MERRA computes the downward mass flux of 
+! !DESCRIPTION: Subroutine WETDEP computes the downward mass flux of 
 !  species due to washout and rainout of aerosols and soluble species in a 
-!  column.  This subroutine implements a new algorithm in which the 
-!  precipitation fields come directly from the MERRA archive.
+!  column.  This subroutine implements an algorithm in which the 
+!  precipitation fields come directly from the met archive.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEP_MERRA( am_I_Root, Input_Opt, State_Met, 
-     &                         State_Chm, RC, LS )
+      SUBROUTINE WETDEP( am_I_Root, Input_Opt, State_Met, 
+     &                   State_Chm, RC, LS )
 !
 ! !USES:
 !
@@ -3459,7 +2428,7 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE Species_Mod,        ONLY : Species
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3610,7 +2579,8 @@
 !  05 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  05 Aug 2016 - R. Yantosca - Remove reference to Spc, it's not needed
 !  17 Mar 2017 - R. Yantosca - Replace NSOL with State_Chm%nWetDep
-
+!  24 Aug 2017 - M. Sulprizio- Rename routine from WETDEP_MERRA to WETDEP
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3632,7 +2602,7 @@
       REAL(fp)               :: F_RAINOUT,     F_WASHOUT 
       REAL(fp)               :: DEP_HG
       REAL(fp)               :: CNVSCL
-
+      CHARACTER(LEN=63)      :: OrigUnit
 
       ! Arrays
       ! DSpc is the accumulator array of rained-out 
@@ -3656,14 +2626,14 @@
       ! Initialize pointers
       SpcInfo => NULL()
 
-      ! Convert species concentration from mixing ratio (kg/kg dry air) to
-      ! mass per unit area (kg/m2) for wet deposition since computation is
-      ! done per column (ewl, 9/8/15)
-      CALL ConvertSpc_KgKgDry_to_Kgm2( am_I_Root, State_Met, 
-     &                                 State_Chm, RC         )
+      ! Convert species concentration to mass per unit area (kg/m2) for 
+      ! wet deposition since computation is done per column (ewl, 9/8/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg/m2', RC, 
+     &                        OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
-     &                 'WETDEP_MERRA in wetscav_mod.F')
+     &                 'Start of WETDEP in wetscav_mod.F')
          RETURN
       ENDIF  
 
@@ -3846,7 +2816,7 @@
                   ! is the precip entering thru the top
                   QDOWN = PDOWN(L+1,I,J)            
                    
-                  !** GEOS-FP, MERRA, and MERRA-2 distinguish between rates of
+                  !** GEOS-FP and MERRA-2 distinguish between rates of
                   ! new precipitation (field DQRLSAN) and evaporation of
                   ! precipitation (field REEVAPLS).
                   ! So the assumption below is not required. ** VPS (6/21/16)
@@ -4047,21 +3017,17 @@
       ENDDO	
 !$OMP END PARALLEL DO
 
-      ! Convert species concentration back to kg/kg dry air (ewl, 9/8/15)
-      CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, 
-     &                                 State_Chm, RC         )
+      ! Convert species concentration back to original unit (ewl, 9/8/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
-     &                 'WETDEP_MERRA in wetscav_mod.F')
+     &                 'End of WETDEP in wetscav_mod.F')
          RETURN
       ENDIF  
 
-!      ! Free pointer
-!      Spc => NULL()
-
-      END SUBROUTINE WETDEP_MERRA
+      END SUBROUTINE WETDEP
 !EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -4277,24 +3243,14 @@
       INTEGER,          INTENT(OUT)   :: RC            ! Success or failure?    
 ! 
 ! !REMARKS:
-!  The modifications for the MERRA met fields require calling this same 
-!  sequence of code more than once.  The expedient solution was to just move
-!  the relevant code into this subroutine.
-!                                                                             .
 !  An IF statement in WETDEP decides if this rainout is to be done (and thus
 !  if this routine will be called.  The criteria for rainout is:
 !                                                                             .
-!  FOR MERRA MET FIELDS: 
 !     There is rainout if there is new precip formation in the grid box 
 !     (i.e. DQRLSAN(I,J,L) > 0) and the fraction of the grid box experiencing 
 !     rainout (i.e. F_RAINOUT) is greater than or equal to the fraction of 
 !     the grid box directly overhead experiencing precip (i.e. FTOP).
 !        -- Helen Amos (9/10/10)
-!                                                                             .
-!  FOR ALL OTHER MET FIELDS:
-!     We use a simple test: if the rainout fraction in this grid box 
-!     (i.e. F_RAINOUT) is nonzero, do rainout.  Don't compare to the grid 
-!     box immediately above us (i.e. FTOP).
 !
 ! !REVISION HISTORY: 
 !  16 Sep 2010 - R. Yantosca - Initial version
@@ -4467,11 +3423,6 @@
 ! !DESCRIPTION: Subroutine DO\_WASHOUT\_ONLY removes species by washout.
 !\\
 !\\
-!  The modifications for the MERRA met fields require calling this same 
-!  sequence of code more than once.  The expedient solution was to just move
-!  the relevant code into this this subroutine.
-!\\
-!\\
 ! !INTERFACE:
 !
       SUBROUTINE DO_WASHOUT_ONLY( am_I_Root, LS,        I, J, L, 
@@ -4590,7 +3541,7 @@
 !  PDOWN(L+1)-PDOWN(L).           
 !  =============================================================  
 !  Update (V. Shah 6/29/16)
-!  For GEOS-FP, MERRA and MERRA2 met fields we use the 
+!  For GEOS-FP and MERRA2 met fields we use the 
 !  following term in the numerator instead:
 !		REEVAP(L,I,J) * BXHEIGHT(I,J,L) 
 !  =============================================================
@@ -4704,10 +3655,7 @@
      &                 WASHFRAC,  KIN,          Input_Opt,
      &                 State_Met, State_Chm, RC )
 
-#if    defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-         !%%% BUG FIX: Only apply this section of when running
-         !%%% GEOS-Chem with GEOS-FP, MERRA, or MERRA2 met fields.  
-         ! (bmy, hamos, 5/26/11, 8/12/15)
+         !%%% BUG FIX (bmy, hamos, 5/26/11, 8/12/15)
          !
          ! Check if WASHFRAC = NaN or WASHFRAC < 0.1 %
          ! 
@@ -4728,7 +3676,6 @@
          IF ( IT_IS_NAN( WASHFRAC ) ) THEN
             CYCLE
          ENDIF
-#endif
 
          ! Adjust WASHFRAC accordingly for aerosols.  NOTE: TF is always 
          ! > 0 since DO_WASHOUT_ONLY is only called if F_WASHOUT > 0.  
@@ -4751,7 +3698,6 @@
 
             ! Restrict ALPHA to be less than 1 (>1 is unphysical)
             ! (hma, 24-Dec-2010)
-            ! NOTE: GEOS-5 should not produce any ALPHA > 1.
             IF ( ALPHA > 1e+0_fp ) THEN 
                ALPHA = 1e+0_fp
             ENDIF
@@ -5018,11 +3964,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,          INTENT(OUT)   :: RC            ! Success or failure?
-! 
-! !REMARKS:
-!  The modifications for the MERRA met fields require calling this same 
-!  sequence of code more than once.  The expedient solution was to just move
-!  the relevant code into this this subroutine.
 !
 ! !REVISION HISTORY: 
 !  16 Sep 2010 - R. Yantosca - Initial version
@@ -5271,10 +4212,6 @@
 ! !REMARKS:
 !  Assume all of the species precipitating down from grid box (I,J,L=2) to 
 !  grid box (I,J,L=1) gets washed out in grid box (I,J,L=1).
-!                                                                             .
-!  The modifications for the MERRA met fields require calling this same 
-!  sequence of code more than once.  The expedient solution was to just move
-!  the relevant code into this this subroutine.
 !
 ! !REVISION HISTORY: 
 !  16 Sep 2010 - R. Yantosca - Initial version
@@ -5583,9 +4520,8 @@
       VUD_DEFINED = .FALSE.
 
       !=================================================================
-      ! GEOS-5: Use vertical updraft velocity from GEOS-5. This array
-      ! is stored in State_Met object UPDVVEL, in hPa/s. Convert to
-      ! m/s here.
+      ! Use vertical updraft velocity from State_Met
+      ! Convert hPa/s to m/s here
       !=================================================================
       IF ( ASSOCIATED( State_Met%UPDVVEL ) ) THEN
          IF ( State_Met%DELP(I,J,L)    > TINY_FP .AND. 
@@ -6123,9 +5059,8 @@
       IF ( ALLOCATED( QQ     ) ) DEALLOCATE( QQ     )
       IF ( ALLOCATED( H2O2s  ) ) DEALLOCATE( H2O2s  )
       IF ( ALLOCATED( SO2s   ) ) DEALLOCATE( SO2s   )
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       IF ( ALLOCATED( REEVAP ) ) DEALLOCATE( REEVAP )
-#endif      
+
       END SUBROUTINE CLEANUP_WETSCAV
 !EOC
       END MODULE WETSCAV_MOD
