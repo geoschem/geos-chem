@@ -518,7 +518,6 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! CH4 MENU fields
      !----------------------------------------  
-     LOGICAL                     :: LCH4BUDGET
      LOGICAL                     :: GOSAT_CH4_OBS
      LOGICAL                     :: TCCON_CH4_OBS
      LOGICAL                     :: Analytical_Inv
@@ -1296,7 +1295,6 @@ CONTAINS
     !----------------------------------------
     ! CH4 MENU fields
     !----------------------------------------  
-    Input_Opt%LCH4BUDGET             = .FALSE.
     Input_Opt%GOSAT_CH4_OBS          = .FALSE.
     Input_Opt%TCCON_CH4_OBS          = .FALSE.
     Input_Opt%Analytical_Inv         = .FALSE.

@@ -6888,6 +6888,7 @@
 !                              handled by HEMCO
 !  16 Jun 2017 - M. Sulprizio- Add option for GOSAT CH4 observation operator
 !  17 Aug 2017 - M. Sulprizio- Add option for TCCON CH4 observation operator
+!  18 Oct 2017 - M. Sulprizio- Remove CH4 budget option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6903,11 +6904,7 @@
 
       !=================================================================
       ! READ_CH4_MENU begins here!
-      !=================================================================
-
-      ! Compute CH4 budget
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:1' )
-      READ( SUBSTRS(1:N), * ) Input_Opt%LCH4BUDGET     
+      !=================================================================   
                                                 
       ! Use GOSAT CH4 observation operator?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:2' )
@@ -6938,8 +6935,6 @@
       IF( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'CH4 MENU'
          WRITE( 6, '(  a)' ) '-----------'
-         WRITE( 6, 100     ) 'Compute CH4 budget?   : ',
-     &                        Input_Opt%LCH4BUDGET
          WRITE( 6, 100     ) 'Use GOSAT obs operator: ',
      &                        Input_Opt%GOSAT_CH4_OBS
          WRITE( 6, 100     ) 'Use TCCON obs operator: ',
@@ -6952,17 +6947,6 @@
      &                        Input_Opt%Emis_Pert_Num
 
       END IF
-
-      ! Error check (kjw)
-      IF ( Input_Opt%LCH4BUDGET ) THEN
-         MSG = 'To print CH4 budget information, be sure that ' //
-     &         'USE_CH4_BUDGET_DIAG is defined at the beginning' //
-     &         ' of global_ch4_mod.F'
-         IF ( am_I_Root ) THEN
-            print*,'CH4 Budget warning:'
-            print*,MSG
-         ENDIF
-      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -7663,9 +7647,6 @@
       IF ( TS_DIAG == -999999 ) THEN
          TS_DIAG = TS_CHEM
       ENDIF
-
-      ! Change TS_DIAG to TS_DYN for methane simulation. (ccc, 8/27/09)
-      IF ( Input_Opt%ITS_A_CH4_SIM ) TS_DIAG = TS_DYN
 
       ! Check if all time steps are multiples of the smallest.
       ! (ccc, 5/13/09)

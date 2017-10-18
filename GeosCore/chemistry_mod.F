@@ -631,13 +631,9 @@
          !---------------------------------
          ! CH4
          !---------------------------------
-         ELSE IF ( IT_IS_A_CH4_SIM ) THEN
- 
-            ! Only call after the first 24 hours
-            IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
-               CALL CHEMCH4
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-            ENDIF
+         ELSE IF ( IT_IS_A_CH4_SIM ) THEN 
+            CALL CHEMCH4
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
          !---------------------------------
          ! Mercury
