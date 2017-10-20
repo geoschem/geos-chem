@@ -457,7 +457,7 @@ CONTAINS
     !=====================================================================
     ! Allocate and initialize chemical species fields
     !=====================================================================   
-    chmID = 'SPC'
+    chmID = 'Species'
     ALLOCATE( State_Chm%Species( IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
     CALL GC_CheckVar( 'State_Chm%Species', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -1234,6 +1234,8 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  02 Oct 2017 - E. Lundgren - Initial version
+!  20 Oct 2017 - R. Yantosca - Update metadata to better match array names,
+!                              and to remove special characters like "+"
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1278,10 +1280,10 @@ CONTAINS
     !=======================================================================
     SELECT CASE ( TRIM( Name_AllCaps ) )
 
-       CASE ( 'SPC' )
-          IF ( isDesc  ) Desc  = 'Concentration for species'
-          IF ( isUnits ) Units = 'varies'
-          IF ( isRank  ) Rank  = 3
+       CASE ( 'SPECIES' )
+          IF ( isDesc    ) Desc  = 'Concentration for species'
+          IF ( isUnits   ) Units = 'varies'
+          IF ( isRank    ) Rank  = 3
           IF ( isSpecies ) PerSpecies = 'ALL'
 
        CASE ( 'AEROAREA_MDUST1' )
@@ -1402,7 +1404,6 @@ CONTAINS
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-
        CASE ( 'AERORADI_OC' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for organic carbon'
           IF ( isUnits ) Units = 'cm'
@@ -1466,7 +1467,6 @@ CONTAINS
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-
        CASE ( 'WETAEROAREA_SULF' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for tropospheric sulfate'
           IF ( isUnits ) Units = 'cm2 cm-3'
@@ -1504,7 +1504,6 @@ CONTAINS
                                  // ' (Mischenko)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
-
 
        CASE ( 'WETAERORADI_MDUST1' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (0.15 um)'
@@ -1585,57 +1584,57 @@ CONTAINS
           IF ( isUnits ) Units = 'count'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_N2O5+H2O' )
+       CASE ( 'KHETI_SLA_N2O5_H2O' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for N2O5 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_N2O5+HCL' )
+       CASE ( 'KHETI_SLA_N2O5_HCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for N2O5 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_CLNO3+H2O' )
+       CASE ( 'KHETI_SLA_CLNO3_H2O' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_CLNO3+HCL' )
+       CASE ( 'KHETI_SLA_CLNO3_HCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_CLNO3+HBR' )
+       CASE ( 'KHETI_SLA_CLNO3_HBR' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + HBr reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_BRNO3+H2O' )
+       CASE ( 'KHETI_SLA_BRNO3_H2O' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for BrNO3 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_BRNO3+HCL' )
+       CASE ( 'KHETI_SLA_BRNO3_HCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for BrNO3 + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_HOCL+HCL' )
+       CASE ( 'KHETI_SLA_HOCL_HCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOCl + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_HOCL+HBR' )
+       CASE ( 'KHETI_SLA_HOCL_HBR' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for HClr + HBr reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_HOBR+HCL' )
+       CASE ( 'KHETI_SLA_HOBR_HCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOBr + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHSLA_HOBR+HBR' )
+       CASE ( 'KHETI_SLA_HOBR_HBR' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOBr + HBr reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
