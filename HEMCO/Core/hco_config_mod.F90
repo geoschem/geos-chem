@@ -539,7 +539,7 @@ CONTAINS
     LOGICAL                   :: SKIP
     CHARACTER(LEN= 63)        :: cName
     CHARACTER(LEN=255)        :: srcFile
-    CHARACTER(LEN= 31)        :: srcVar
+    CHARACTER(LEN= 50)        :: srcVar
     CHARACTER(LEN= 31)        :: srcTime
     CHARACTER(LEN=  2)        :: TmCycle 
     CHARACTER(LEN=  1)        :: WildCard

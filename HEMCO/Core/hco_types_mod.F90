@@ -326,7 +326,7 @@ MODULE HCO_TYPES_MOD
   !-------------------------------------------------------------------------
   TYPE :: FileData
      CHARACTER(LEN=255)          :: ncFile    ! file path+name
-     CHARACTER(LEN= 31)          :: ncPara    ! file parameter
+     CHARACTER(LEN= 50)          :: ncPara    ! file parameter
      INTEGER                     :: ncYrs(2)  ! year range
      INTEGER                     :: ncMts(2)  ! month range
      INTEGER                     :: ncDys(2)  ! day range

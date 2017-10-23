@@ -3354,6 +3354,7 @@
       IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM ) THEN
          IF ( LNLPBL .and. am_I_Root ) THEN
 
+            WRITE( 6,* ) '' 
             WRITE( 6,* ) 'It has been noted in GEOS-Chem v11-01 and'
             WRITE( 6,* ) ' later that VDIFF (the non-local mixing'
             WRITE( 6,* ) ' option) does not strictly conserve mass.'
@@ -3371,6 +3372,7 @@
             WRITE( 6,* ) 'See this GEOS-Chem wiki page for details:'
             WRITE( 6,* ) ' wiki.geos-chem.org/Boundary_layer_mixing'
 
+            MSG = 'SEE ABOVE NOTE'
             CALL ERROR_STOP(MSG, 'READ_CONVECTION_MENU ("input_mod.f")')
 
          ENDIF

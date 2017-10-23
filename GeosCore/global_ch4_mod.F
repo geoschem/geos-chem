@@ -1309,29 +1309,6 @@
          ! Chemistry timestep [s]
          DT  = GET_TS_CHEM() * 60e+0_fp
 
-         IF ( ITS_A_FULLCHEM_SIM ) THEN
-            
-            !=============================================================
-            ! (0) Calculate each box's air density [molec/cm3]
-            !=============================================================
-
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-
-               ! Grid box volume [cm3]
-               BOXVL           = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
-               ! Air density [molec/cm3]
-               BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1e+3_fp      / 
-     &                           BOXVL               * AVO /
-     &                           AIRMW
-            ENDDO
-            ENDDO
-            ENDDO
-
-         ENDIF
-
          !=================================================================
          ! Loop over stratospheric boxes only
          !=================================================================
