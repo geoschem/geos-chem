@@ -545,6 +545,8 @@ CONTAINS
     INTEGER                      :: Ind_Dry,        Ind_Fix,       Ind_Gas
     INTEGER                      :: Ind_Kpp,        Ind_Pho,       Ind_Rst
     INTEGER                      :: Ind_Var,        Ind_Wet,       Ind
+    INTEGER                      :: HbHrs,          HbMin,         HbSec
+    INTEGER                      :: HeartBeatHms
     REAL(f8)                     :: UpdateAlarm,    HeartBeatDtSec
     REAL(f8)                     :: FileWriteAlarm, FileCloseAlarm
     REAL(f8)                     :: JulianDate,     JulianDateEnd
@@ -594,6 +596,13 @@ CONTAINS
     hhmmss         =  Input_Opt%NhmsB
     yyyymmdd_end   =  Input_Opt%NymdE
     hhmmss_end     =  Input_Opt%NhmsE
+
+    ! Convert the HeartBeatDtSec into hours:minutes:seconds
+    ! for defining the Update interval for time-averaged collections
+    HbMin          = HeartBeatDtSec / 60
+    HbHrs          = HbMin / 60
+    HbSec          = HeartBeatDtSec - ( HbMin * 60 ) - ( HbHrs * 3600 )
+    HeartBeatHms   = ( HbHrs * 10000 ) + ( HbMin * 100 ) + HbSec
 
     ! Initialize objects and pointers
     Container      => NULL()
@@ -806,74 +815,117 @@ CONTAINS
 
           END SELECT
 
+!------------------------------------------------------------------------------
+! Prior to 10/26/17:
+! Now use Frequency to set the file update for time-averaged collections
+! (unless acc_interval is specified). (bmy, 10/26/17)
+!          !-----------------------------------------------------------------
+!          ! Define UpdateHms and UpdateYmd
+!          ! 
+!          ! NOTE: If CollectionFrequency is 6 digits long, then assume that
+!          ! to be UpdateHms.  If longer, then assume that it is specifying
+!          ! both UpdateYmd and UpdateHms. (sde, bmy, 8/4/17)
+!          !-----------------------------------------------------------------
+!          IF ( LEN_TRIM( CollectionFrequency(C) ) == 6 ) THEN
+!             READ( CollectionFrequency(C), '(i6.6)'  ) UpdateHms
+!          ELSE
+!             READ( CollectionFrequency(C), '(2i6.6)' ) UpdateYmd,            &
+!                                                       UpdateHms
+!          ENDIF
+!
+!          ! SPECIAL CASE: If UpdateHms is 240000 then set
+!          ! and set UpdateYmd=000001 and UpdateHms=000000
+!          IF ( UpdateHms == 240000 ) THEN
+!             UpdateYmd = 000001
+!             UpdateHms = 000000
+!          ENDIF
+!
+!          !-----------------------------------------------------------------
+!          ! Define FileWriteYmd and FileWriteHms
+!          !-----------------------------------------------------------------
+!          IF ( Operation == COPY_FROM_SOURCE ) THEN
+!
+!             ! Instantaneous data: this defaults to the frequency attribute
+!             ! in the HISTORY.rc file, which is UpdateYmd, UpdateHms
+!             FileWriteYmd = UpdateYmd
+!             FileWriteHms = UpdateHms
+!
+!          ELSE
+!             
+!             ! Time-averaged data: Use the acc_interval field to denote
+!             ! when it is time to write to disk.  If acc_interval is not
+!             ! specified, then set the write int to the "heartbeat" timestep in
+!             ! seconds (which is
+!             ! which are specified by the "frequency" attribute.
+!             IF ( TRIM( CollectionAccInterval(C) ) == UNDEFINED_STR ) THEN
+!                FileWriteYmd = UpdateYmd
+!                FileWriteHms = UpdateHms
+!             ELSE IF ( LEN_TRIM( CollectionAccInterval(C) ) == 6 ) THEN
+!                READ( CollectionAccInterval(C), '(i6.6)'  ) FileWriteHms
+!             ELSE
+!                READ( CollectionAccInterval(C), '(2i6.6)' ) FileWriteYmd,    &
+!                                                            FileWriteHms
+!             ENDIF
+!          ENDIF
+!          
+!          ! SPECIAL CASE: If FileWriteYmd is 240000 then set
+!          ! and set FileWriteYmd=000001 and FileWriteHms=000000
+!          IF ( FileWriteHms == 240000 ) THEN
+!             FileWriteYmd = 000001
+!             FileWriteHms = 000000
+!          ENDIF
+!------------------------------------------------------------------------------
           !-----------------------------------------------------------------
-          ! Define UpdateHms and UpdateYmd
+          ! %%%%% INSTANTANEOUS AND TIME-AVERAGED COLLECTIONS %%%%%
+          !
+          ! Define the "File Write" interval
+          !
+          ! The ".frequency" tag in HISTORY.rc specifies the interval at
+          ! which data will be written to the netCDF file.  Thus, we can 
+          ! set FileWriteYmd and FileWriteHms from CollectionFrequency.
           ! 
-          ! NOTE: If CollectionFrequency is 6 digits long, then assume that
-          ! to be UpdateHms.  If longer, then assume that it is specifying
-          ! both UpdateYmd and UpdateHms. (sde, bmy, 8/4/17)
+          ! NOTE: If CollectionFrequency is 6 digits long, then assume 
+          ! that to be FileWriteHms.  If longer, then assume that it is 
+          ! both FileWriteYmd and FileWriteHms.  This is a hack that we 
+          ! introduced for GEOS-Chem "Classic" only, as this feature is
+          ! not supported in MAPL.  (sde, bmy, 8/4/17, 10/26/17)
           !-----------------------------------------------------------------
           IF ( LEN_TRIM( CollectionFrequency(C) ) == 6 ) THEN
-             READ( CollectionFrequency(C), '(i6.6)'  ) UpdateHms
+             READ( CollectionFrequency(C), '(i6.6)'  ) FileWriteHms
           ELSE
-             READ( CollectionFrequency(C), '(2i6.6)' ) UpdateYmd,            &
-                                                       UpdateHms
+             READ( CollectionFrequency(C), '(2i6.6)' ) FileWriteYmd,      &
+                                                       FileWriteHms
           ENDIF
 
-          ! SPECIAL CASE: If UpdateHms is 240000 then set
-          ! and set UpdateYmd=000001 and UpdateHms=000000
-          IF ( UpdateHms == 240000 ) THEN
-             UpdateYmd = 000001
-             UpdateHms = 000000
-          ENDIF
-
-          !-----------------------------------------------------------------
-          ! Define FileWriteYmd and FileWriteHms
-          !-----------------------------------------------------------------
-          IF ( Operation == COPY_FROM_SOURCE ) THEN
-
-             ! Instantaneous data: this defaults to the frequency attribute
-             ! in the HISTORY.rc file, which is UpdateYmd, UpdateHms
-             FileWriteYmd = UpdateYmd
-             FileWriteHms = UpdateHms
-
-          ELSE
-             
-             ! Time-averaged data: Use the acc_interval field to denote
-             ! when it is time to write to disk.  If acc_interval is not
-             ! specified, then default to UpdateYmd and UpdateHms,
-             ! which are specified by the "frequency" attribute.
-             IF ( TRIM( CollectionAccInterval(C) ) == UNDEFINED_STR ) THEN
-                FileWriteYmd = UpdateYmd
-                FileWriteHms = UpdateHms
-             ELSE IF ( LEN_TRIM( CollectionAccInterval(C) ) == 6 ) THEN
-                READ( CollectionAccInterval(C), '(i6.6)'  ) FileWriteHms
-             ELSE
-                READ( CollectionAccInterval(C), '(2i6.6)' ) FileWriteYmd,    &
-                                                            FileWriteHms
-             ENDIF
-          ENDIF
-          
-          ! SPECIAL CASE: If FileWriteYmd is 240000 then set
-          ! and set FileWriteYmd=000001 and FileWriteHms=000000
+          ! SPECIAL CASE: If FileWriteHms is 240000, set
+          ! FileWriteYmd=000001 and FileWriteHms=000000
           IF ( FileWriteHms == 240000 ) THEN
              FileWriteYmd = 000001
              FileWriteHms = 000000
           ENDIF
-   
+
           !-----------------------------------------------------------------
-          ! Define FileCloseHms and FileCloseYmd
+          ! %%%%% INSTANTANEOUS AND TIME-AVERAGED COLLECTIONS %%%%%
           !
-          ! NOTE: If CollectionDuration is 6 digits long, then assume that
-          ! to be UpdateHms.  If longer, then assume that it is specifying
-          ! both FileWriteYmd and FileWriteHms. (sde, bmy, 8/4/17)
+          ! Define the "File Close" interval
           !
-          ! ALSO NOTE: If "duration" is not found, then default to th
-          ! same values specified by the "frequency" attribute.
+          ! The ".duration" tag in HISTORY.rc denotes the interval when
+          ! each new netCDF file will be produced.  Thus, we can set
+          ! FileCloseYmd and FileCloseHms from CollectionDuration.
+          !
+          ! If ".duration" is not specified in HISTORY.rc, then both 
+          ! FileCloseYmd and FileCloseHms will both be defined from
+          ! the ".frequency" tag (stored in CollectionFrequency).
+          !
+          ! NOTE: If CollectionDuration is 6 digits long, then assume 
+          ! that to be FileCloseHms.  If longer, then assume that it is 
+          ! both FileCloseYmd and FileCloseHms.  This is a hack that we 
+          ! introduced for GEOS-Chem "Classic" only, as this feature is
+          ! not supported in MAPL.  (sde, bmy, 8/4/17, 10/26/17)
           !-----------------------------------------------------------------
           IF ( TRIM( CollectionDuration(C) ) == UNDEFINED_STR ) THEN
-             FileCloseYmd = UpdateYmd
-             FileCloseHms = UpdateHms
+             FileCloseYmd = FileWriteYmd
+             FileCloseHms = FileWriteHms
           ELSE IF ( LEN_TRIM( CollectionDuration(C) ) == 6 ) THEN
              READ( CollectionDuration(C), '(i6.6)'  ) FileCloseHms
           ELSE
@@ -881,11 +933,93 @@ CONTAINS
                                                       FileCloseHms
           ENDIF
 
-          ! SPECIAL CASE: If FileCloseHms is 240000 then set
-          ! and set FileCloseYmd=000001 and FileCloseYmd=000000
+          ! SPECIAL CASE: If FileCloseHms is 240000, set
+          ! FileCloseYmd=000001 and FileCloseYmd=000000
           IF ( FileCloseHms == 240000 ) THEN
              FileCloseYmd = 000001
              FileCloseHms = 000000
+          ENDIF
+
+          IF ( Operation == COPY_FROM_SOURCE ) THEN
+
+             !--------------------------------------------------------------
+             ! %%%%% INSTANTANEOUS COLLECTION %%%%%
+             !
+             ! Define the "Update" interval
+             !
+             ! Because there is no time-averaging, each field is written to 
+             ! the netCDF file as soon as it is updated.  Thus, we can set 
+             ! UpdateYmd and UpdateHms from the ".frequency" tag in 
+             ! HISTORY.rc (stored in CollectionFrequency).
+             !--------------------------------------------------------------
+             UpdateYmd = FileWriteYmd
+             UpdateHms = FileWriteHms
+
+          ELSE
+
+             !--------------------------------------------------------------
+             ! %%%% TIME-AVERAGED COLLECTION %%%%
+             !
+             ! Define the "Update" interval
+             !
+             ! Normally, we will set UpdateYmd and UpdateHms directly from
+             ! the "heartbeat" timestep of the simulation in seconds.
+             !
+             ! If the ".acc_interval" tag is specified in HISTORY.rc,
+             ! then we will set UpdateYmd and UpdateHms from 
+             ! CollectionAccInterval.  But if using this option, note
+             ! that the ".acc_interval" tag must not specify an interval
+             ! that is longer than the interval specified by ".frequency".
+             !
+             ! NOTE: If CollectionAccInterval is 6 digits long, then assume 
+             ! that to be UpdateHms.  If longer, then assume that it is 
+             ! both UpdateYmd and UpdateHms.  This is a hack that we 
+             ! introduced for GEOS-Chem "Classic" only, as this feature is
+             ! not supported in MAPL.  (sde, bmy, 8/4/17, 10/26/17)
+             !--------------------------------------------------------------
+             IF ( TRIM( CollectionAccInterval(C) ) == UNDEFINED_STR ) THEN
+
+                ! Set UpdateYmd and UpdateHms from the HeartBeat timestep
+                UpdateYmd = 000000
+                UpdateHms = HeartBeatHms
+             
+                ! SPECIAL CASE: If FileWriteYmd is 240000 then set
+                ! and set FileWriteYmd=000001 and FileWriteHms=000000
+                IF ( UpdateHms == 240000 ) THEN
+                   UpdateYmd = 000001
+                   UpdateHms = 000000
+                ENDIF
+
+             ELSE
+                
+                ! Set UpdateYmd and UpdateHms from the ".acc_interval" tag
+                IF ( LEN_TRIM( CollectionAccInterval(C) ) == 6 ) THEN
+                   READ( CollectionAccInterval(C), '(i6.6)'  ) UpdateHms
+                ELSE
+                   READ( CollectionAccInterval(C), '(2i6.6)' ) UpdateYmd,    &
+                                                               UpdateHms
+                ENDIF
+
+                ! SPECIAL CASE: If FileWriteYmd is 240000 then set
+                ! and set FileWriteYmd=000001 and FileWriteHms=000000
+                IF ( UpdateHms == 240000 ) THEN
+                   UpdateYmd = 000001
+                   UpdateHms = 000000
+                ENDIF
+
+                ! Error check: If using acc_interval, then the Update interval
+                ! has to be smaller or equal to the File Write interval
+                IF ( UpdateYmd > FileWriteYmd   .or.                         &
+                     UpdateHms > FileWriteHms ) THEN
+                   ErrMsg = 'Update interval is greater than File Write ' // &
+                            'interval for collection: '                   // &
+                            TRIM( CollectionName(C) ) 
+                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   RETURN
+                ENDIF
+
+             ENDIF
+
           ENDIF
           
           !=================================================================
@@ -1226,7 +1360,7 @@ CONTAINS
 
     ! Print information about each diagnostic collection
     CALL MetaHistContainer_Print( am_I_Root, CollectionList, RC )
-
+    
     ! Write spacer
     WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )   
 
