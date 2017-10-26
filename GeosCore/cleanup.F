@@ -256,7 +256,7 @@
 
       ! Echo info
       IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) 
+         WRITE( 6, 100 )
       ENDIF
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 

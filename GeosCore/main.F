@@ -1651,20 +1651,19 @@
 #endif
 
 #if defined( NC_DIAG )
+         !==============================================================
+         !           ***** H I S T O R Y   U P D A T E  *****
+         !==============================================================
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "History", RC )
+#endif
+
          ! Set species concentration diagnostic array using the 
          ! the units stored in the State_Diag metadata for 'SpeciesConc'
          CALL Set_SpcConc_Diagnostic( am_I_Root, 'SpeciesConc',  
      &                                State_Diag%SpeciesConc, 
      &                                Input_Opt, State_Met, State_Chm, 
      &                                RC )
-
-         !==============================================================
-         !           ***** H I S T O R Y   U P D A T E  *****
-         !==============================================================
-
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_Start( "History", RC )
-#endif
 
          ! Update each HISTORY ITEM from its data source
          CALL History_Update( am_I_Root, RC )
