@@ -731,27 +731,27 @@ CONTAINS
        ! Define identifying string
        SELECT CASE( N )
           CASE( 1  ) 
-             chmID = 'KHSLA_N2O5+H2O'
+             chmID = 'KHETI_SLA_N2O5_H2O'
           CASE( 2  ) 
-             chmID = 'KHSLA_N2O5+HCl'
+             chmID = 'KHETI_SLA_N2O5_HCl'
           CASE( 3  ) 
-             chmID = 'KHSLA_ClNO3+H2O'
+             chmID = 'KHETI_SLA_ClNO3_H2O'
           CASE( 4  ) 
-             chmID = 'KHSLA_ClNO3+HCl'
+             chmID = 'KHETI_SLA_ClNO3_HCl'
           CASE( 5  ) 
-             chmID = 'KHSLA_ClNO3+HBr'
+             chmID = 'KHETI_SLA_ClNO3_HBr'
           CASE( 6  ) 
-             chmID = 'KHSLA_BrNO3+H2O'
+             chmID = 'KHETI_SLA_BrNO3_H2O'
           CASE( 7  ) 
-             chmID = 'KHSLA_BrNO3+HCl'
+             chmID = 'KHETI_SLA_BrNO3_HCl'
           CASE( 8  ) 
-             chmID = 'KHSLA_HOCl+HCl'
+             chmID = 'KHETI_SLA_HOCl_HCl'
           CASE( 9  ) 
-             chmID = 'KHSLA_HOCl+HBr'
+             chmID = 'KHETI_SLA_HOCl_HBr'
           CASE( 10 ) 
-             chmID = 'KHSLA_HOBr+HCl'
+             chmID = 'KHETI_SLA_HOBr_HCl'
           CASE( 11 ) 
-             chmID = 'KHSLA_HOBr+HBr'
+             chmID = 'KHETI_SLA_HOBr_HBr'
           CASE DEFAULT
              ErrMsg = 'nKHLSA exceeds the number of defined' &
                       // ' KHETI_SLA categories'
