@@ -556,9 +556,10 @@ CONTAINS
     CHARACTER(LEN=255)           :: ErrMsg,         ThisLoc
     CHARACTER(LEN=255)           :: MetaData,       Reference
     CHARACTER(LEN=255)           :: Title,          Units
-    CHARACTER(LEN=255)           :: ItemName,       ItemTemplate
-    CHARACTER(LEN=255)           :: Description,    TmpMode
-    CHARACTER(LEN=255)           :: Contact,        Pattern
+    CHARACTER(LEN=255)           :: ItemTemplate,   ItemTemplateUC
+    CHARACTER(LEN=255)           :: ItemName,       Description
+    CHARACTER(LEN=255)           :: TmpMode,        Contact
+    CHARACTER(LEN=255)           :: Pattern
 
     ! Arrays
     INTEGER                      :: SubsetDims(3)
@@ -1123,27 +1124,28 @@ CONTAINS
              ! entry read from HISTORY.rc and add to the given COLLECTION
              !--------------------------------------------------------------
 
-             ! Save the item name in a temporary variable
-             ! so that we can parse it for wild cards
-             ItemTemplate = ItemName
+             ! Save the item name in temporary variables
+             ! so that we can parse for wild cards
+             ItemTemplate   = ItemName
+             ItemTemplateUC = To_UpperCase( ItemTemplate )
 
              ! Test if there are wild cards present, otherwise skip
-             IF ( INDEX( ItemTemplate, '?' ) >  0 ) THEN 
+             IF ( INDEX( ItemTemplateUC, '?' ) >  0 ) THEN 
 
                 !-----------------------------------------------------------
                 ! Item name contains wild cards; fill in species names
                 !-----------------------------------------------------------
-                Ind_Adv = INDEX( ItemTemplate, '?ADV?' ) ! Advected species
-                Ind_All = INDEX( ItemTemplate, '?ALL?' ) ! All species
-                Ind_Aer = INDEX( ItemTemplate, '?AER?' ) ! Aerosol species
-                Ind_Dry = INDEX( ItemTemplate, '?DRY?' ) ! Drydep species
-                Ind_Fix = INDEX( ItemTemplate, '?FIX?' ) ! KPP fixed species
-                Ind_Gas = INDEX( ItemTemplate, '?GAS?' ) ! Gas-phase species
-                Ind_Kpp = INDEX( ItemTemplate, '?KPP?' ) ! KPP species
-                Ind_Pho = INDEX( ItemTemplate, '?PHO?' ) ! Photolysis species
-                Ind_Pho = INDEX( ItemTemplate, '?JVN?' ) ! Photolysis species
-                Ind_Var = INDEX( ItemTemplate, '?VAR?' ) ! KPP active species
-                Ind_Wet = INDEX( ItemTemplate, '?WET?' ) ! Wetdep species
+                Ind_Adv = INDEX( ItemTemplateUC, '?ADV?' ) ! Advected species
+                Ind_All = INDEX( ItemTemplateUC, '?ALL?' ) ! All species
+                Ind_Aer = INDEX( ItemTemplateUC, '?AER?' ) ! Aerosol species
+                Ind_Dry = INDEX( ItemTemplateUC, '?DRY?' ) ! Drydep species
+                Ind_Fix = INDEX( ItemTemplateUC, '?FIX?' ) ! KPP fixed species
+                Ind_Gas = INDEX( ItemTemplateUC, '?GAS?' ) ! Gas-phase species
+                Ind_Kpp = INDEX( ItemTemplateUC, '?KPP?' ) ! KPP species
+                Ind_Pho = INDEX( ItemTemplateUC, '?PHO?' ) ! Photolysis species
+                Ind_Pho = INDEX( ItemTemplateUC, '?JVN?' ) ! Photolysis species
+                Ind_Var = INDEX( ItemTemplateUC, '?VAR?' ) ! KPP active species
+                Ind_Wet = INDEX( ItemTemplateUC, '?WET?' ) ! Wetdep species
 
                 ! Loop over all species
                 DO N = 1, State_Chm%nSpecies
@@ -1373,7 +1375,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Charpak_Mod,           ONLY : TranUc
+    USE Charpak_Mod,           ONLY : To_UpperCase
     USE ErrCode_Mod
     USE HistContainer_Mod
     USE HistItem_Mod
@@ -1418,6 +1420,7 @@ CONTAINS
 !  03 Aug 2017 - R. Yantosca - Inherit operation code from the Collection
 !  26 Sep 2017 - E. Lundgren - Replace Lookup_State_xx calls with direct
 !                              calls to Registry_Lookup
+!  01 Nov 2017 - R. Yantosca - Make the registry lookup case-insensitive
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1435,6 +1438,9 @@ CONTAINS
     INTEGER                      :: ItemDims(3)
 
     ! Strings
+    CHARACTER(LEN=4  )           :: StateMetUC
+    CHARACTER(LEN=5  )           :: StateChmUC
+    CHARACTER(LEN=255)           :: ItemNameUC
     CHARACTER(LEN=255)           :: Description
     CHARACTER(LEN=255)           :: ErrMsg
     CHARACTER(LEN=255)           :: ThisLoc
@@ -1464,6 +1470,9 @@ CONTAINS
     ErrMsg      =  ''
     ThisLoc     =  &
                 ' -> History_AddItemToCollection (in History/history_mod.F90)'
+    ItemNameUC  = To_UpperCase( ItemName )
+    StateMetUC  = State_Met%State // '_'   ! State_Met%State is uppercase
+    StateChmUC  = State_Chm%State // '_'   ! State_Chm%State is uppercase
     Ptr2d       => NULL()
     Ptr2d_4     => NULL()
     Ptr2d_I     => NULL()
@@ -1477,7 +1486,7 @@ CONTAINS
     ! registry (in State_Chm, State_Diag, State_Met) and get a pointer
     ! to the data source 
     !=======================================================================
-    IF ( INDEX( ItemName, State_Chm%State ) > 0 ) THEN
+    IF ( ItemNameUC(1:5) == StateChmUC ) THEN
 
        !--------------------------------------------------------------------
        ! Chemistry State
@@ -1504,7 +1513,7 @@ CONTAINS
           RETURN
        ENDIF
 
-    ELSE IF ( INDEX( ItemName, State_Met%State ) > 0 ) THEN
+    ELSE IF ( ItemNameUC(1:4) == StateMetUC ) THEN
 
        !--------------------------------------------------------------------
        ! Meteorology State

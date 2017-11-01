@@ -544,6 +544,7 @@ CONTAINS
 !  06 Oct 2017 - R. Yantosca - Add Ptr2d_8, Ptr3d_8 optional arguments
 !  01 Nov 2017 - R. Yantosca - Now use Str2Hash31 from charpak_mod.F90, which
 !                              computes a hash from an input string of 31 chars
+!  01 Nov 2017 - R. Yantosca - Make the registry lookup case-insensitive
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -569,6 +570,7 @@ CONTAINS
     CHARACTER(LEN=31)          :: FullName31,      ItemName31
     CHARACTER(LEN=255)         :: TmpName,         TmpFullName
     CHARACTER(LEN=255)         :: ErrMsg,          ThisLoc
+    CHARACTER(LEN=255)         :: VariableUC
 
     ! Objects
     TYPE(MetaRegItem), POINTER :: Current
@@ -580,18 +582,21 @@ CONTAINS
     Current         => NULL()
     ErrMsg          =  ''
     ThisLoc         =  ' -> at Registry_Lookup (in Headers/registry_mod.F90)'
-
-    ! Append the state name to the variable (if it's not already there)
     TmpState        = TRIM( State ) // '_' 
+    VariableUC      =  To_UpperCase( Variable )
+
+    ! Prefix the the state name (always uppercase) to the variable, unless:
+    ! (1) The state name is already part of the variable
+    ! (2) If it's a field from State_Diag, which requires no prefix
     IF ( ( TRIM( State ) == 'DIAG' ) .OR.  &
-         ( INDEX( Variable, TRIM( TmpState ) ) > 0 ) ) THEN
-       TmpFullName  = Variable
+         ( INDEX( VariableUC, TRIM( TmpState ) ) > 0 ) ) THEN
+       TmpFullName  = VariableUC
     ELSE
-       TmpFullName  = TRIM( TmpState ) // TRIM( Variable )
+       TmpFullName  = TRIM( TmpState ) // TRIM( VariableUC )
     ENDIF
 
     ! Construct a hash for the full name (i.e. "State_Variable"
-    FullName31      =  To_UpperCase( TmpFullName )
+    FullName31      =  TmpFullName
     FullHash        =  Str2Hash31( FullName31 )
 
     ! Set a flag to denote that we've found the field
