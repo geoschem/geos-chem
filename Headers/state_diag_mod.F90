@@ -49,14 +49,82 @@ MODULE State_Diag_Mod
   TYPE, PUBLIC :: DgnState
 
      !----------------------------------------------------------------------
-     ! Diagnostic arrays
+     ! Standard Simulation Diagnostic Arrays
      !----------------------------------------------------------------------
+
+     ! Concentrations
      REAL(f8),  POINTER :: SpeciesConc    (:,:,:,:) ! Spc Conc for diag output
+
+     ! Dry deposition
      REAL(f4),  POINTER :: DryDepFlux_Chm (:,:,:,:) ! Drydep flux from chemistry
      REAL(f4),  POINTER :: DryDepFlux_Mix (:,:,:,:) ! Drydep flux from mixing
+     REAL(f4),  POINTER :: DryDepFlux     (:,:,:,:) ! Total drydep flux
      REAL(f4),  POINTER :: DryDepVel      (:,:,:  ) ! Dry deposition velocity
-     REAL(f4),  POINTER :: JValues        (:,:,:,:) ! Photolysis rates
+     !REAL(f4),  POINTER :: DryDepRst_RA   (:,:,:  ) ! Aerodynamic resistance
+     !REAL(f4),  POINTER :: DryDepRst_RB   (:,:,:  ) ! Aerodynamic resistance
+     !REAL(f4),  POINTER :: DryDepRst_RC   (:,:,:  ) ! Total drydep resistance
+     !REAL(f4),  POINTER :: DryDepRst_RI   (:,:    ) ! Stomatal resistance
+     ! Waiting for inputs on new resistance diagnostics commented out above
 
+     ! Chemistry
+     REAL(f4),  POINTER :: JValues        (:,:,:,:) ! Photolysis rates
+     REAL(f4),  POINTER :: RxnRates       (:,:,:,:) ! Reaction rates from KPP
+     REAL(f4),  POINTER :: UVFluxDiffuse  (:,:,:  ) ! Diffuse UV flux per bin
+     REAL(f4),  POINTER :: UVFluxDirect   (:,:,:  ) ! Direct UV flux per bin
+     REAL(f4),  POINTER :: UVFluxNet      (:,:,:  ) ! Net UV flux per bin
+     
+     ! Aerosols
+     ! *** Need to add AOD ***
+     ! Waiting for input on rest of list from Aerosol WG?
+
+     ! Advection
+     REAL(f4),  POINTER :: AdvFluxZonal   (:,:,:,:) ! EW Advective Flux
+     REAL(f4),  POINTER :: AdvFluxMerid   (:,:,:,:) ! NW Advective Flux
+     REAL(f4),  POINTER :: AdvFluxVert    (:,:,:,:) ! Vertical Advective Flux
+
+     ! Mixing
+     REAL(f4),  POINTER :: PBLMixFrac     (:,:,:  ) ! Frac of BL occupied by lev
+     REAL(f4),  POINTER :: PBLFlux        (:,:,:,:) ! BL mixing mass flux
+
+     ! Convection and wet deposition
+     REAL(f4),  POINTER :: CloudConvFlux  (:,:,:,:) ! cloud convection mass flux
+     REAL(f4),  POINTER :: ConvLoss       (:,:,:,:) ! Loss in convective updraft
+     REAL(f4),  POINTER :: ConvPrecipFrac (:,:,:  ) ! Frac convective precip
+     REAL(f4),  POINTER :: ConvRainFrac   (:,:,:,:) ! Frac lost to conv rainout
+     REAL(f4),  POINTER :: ConvWashFrac   (:,:,:,:) ! Frac lost to conv washout
+     REAL(f4),  POINTER :: WetLossLS      (:,:,:,:) ! Loss in LS rainout/washout
+     REAL(f4),  POINTER :: PrecipFracLS   (:,:,:  ) ! Frac large scale precip
+     REAL(f4),  POINTER :: RainFracLS     (:,:,:,:) ! Frac lost to LS rainout
+     REAL(f4),  POINTER :: WashFracLS     (:,:,:,:) ! Frac lost to LS washout
+     
+     !----------------------------------------------------------------------
+     ! Specialty Simulation Diagnostic Arrays
+     !----------------------------------------------------------------------
+
+     ! Radon / Lead / Beryllium specialty simulation
+     REAL(f4),  POINTER :: PbFromRnDecay  (:,:,:  ) ! Pb emitted from Rn decay
+     REAL(f4),  POINTER :: RadDecay       (:,:,:,:) ! Radioactive decay
+
+     ! TOMAS aerosol microphysics specialty simulation
+ 
+     ! CO2 specialty simulation
+
+     ! CH4 specialty simulation
+ 
+     ! Persistent Organic Pollutants specialty simulation
+
+     ! Hg specialty simulation
+
+     ! Radiation simulation
+     REAL(f4),  POINTER :: RadAllSkyLWSurf(:,:,:  ) ! All-sky LW rad @ surface
+     REAL(f4),  POINTER :: RadAllSkyLWTOA (:,:,:  ) ! All-sky LW rad @ atm top
+     REAL(f4),  POINTER :: RadAllSkySWSurf(:,:,:  ) ! All-sky SW rad @ surface
+     REAL(f4),  POINTER :: RadAllSkySWTOA (:,:,:  ) ! All-sky SW rad @ atm top
+     REAL(f4),  POINTER :: RadClrSkyLWSurf(:,:,:  ) ! Clear-sky SW rad @ surface
+     REAL(f4),  POINTER :: RadClrSkyLWTOA (:,:,:  ) ! Clear-sky LW rad @ atm top
+     REAL(f4),  POINTER :: RadClrSkySWSurf(:,:,:  ) ! Clear-sky SW rad @ surface
+     REAL(f4),  POINTER :: RadClrSkySWTOA (:,:,:  ) ! Clear-sky SW rad @ atm top
+    
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Diag
      !----------------------------------------------------------------------
@@ -167,11 +235,44 @@ CONTAINS
     nWetDep  = State_Chm%nWetDep
 
     ! Free pointers
-    State_Diag%SpeciesConc    => NULL()
-    State_Diag%DryDepFlux_Chm => NULL()
-    State_Diag%DryDepFlux_Mix => NULL()
-    State_Diag%DryDepVel      => NULL()
-    State_Diag%JValues        => NULL()
+    State_Diag%SpeciesConc     => NULL()
+    State_Diag%DryDepFlux_Chm  => NULL()
+    State_Diag%DryDepFlux_Mix  => NULL()
+    State_Diag%DryDepVel       => NULL()
+    State_Diag%JValues         => NULL()
+    State_Diag%DryDepFlux_Chm  => NULL()
+    State_Diag%DryDepFlux_Mix  => NULL()
+    State_Diag%DryDepFlux      => NULL()
+    State_Diag%DryDepVel       => NULL()
+    State_Diag%JValues         => NULL()
+    State_Diag%RxnRates        => NULL()
+    State_Diag%UVFluxDiffuse   => NULL()
+    State_Diag%UVFluxDirect    => NULL()
+    State_Diag%UVFluxNet       => NULL()
+    State_Diag%AdvFluxZonal    => NULL()
+    State_Diag%AdvFluxMerid    => NULL()
+    State_Diag%AdvFluxVert     => NULL()
+    State_Diag%PBLMixFrac      => NULL()
+    State_Diag%PBLFlux         => NULL()
+    State_Diag%CloudConvFlux   => NULL()
+    State_Diag%ConvLoss        => NULL()
+    State_Diag%ConvPrecipFrac  => NULL()
+    State_Diag%ConvRainFrac    => NULL()
+    State_Diag%ConvWashFrac    => NULL()
+    State_Diag%WetLossLS       => NULL()
+    State_Diag%PrecipFracLS    => NULL()
+    State_Diag%RainFracLS      => NULL()
+    State_Diag%WashFracLS      => NULL()
+    State_Diag%PbFromRnDecay   => NULL()
+    State_Diag%RadDecay        => NULL()
+    State_Diag%RadAllSkyLWSurf => NULL()
+    State_Diag%RadAllSkyLWTOA  => NULL()
+    State_Diag%RadAllSkySWSurf => NULL()
+    State_Diag%RadAllSkySWTOA  => NULL()
+    State_Diag%RadClrSkyLWSurf => NULL()
+    State_Diag%RadClrSkyLWTOA  => NULL()
+    State_Diag%RadClrSkySWSurf => NULL()
+    State_Diag%RadClrSkySWTOA  => NULL()
 
 #if defined( NC_DIAG )
 
@@ -231,6 +332,23 @@ CONTAINS
     ENDIF
 
     !--------------------------------------------
+    ! Total dry deposition flux
+    !--------------------------------------------
+    arrayID = 'State_Diag%DryDepFlux'
+    diagID  = 'DryDepFlux'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%DryDepFlux( IM, JM, LM, nDryDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepFlux = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepFlux, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
     ! Dry deposition velocity
     !-------------------------------------------- 
     arrayID = 'State_Diag%DryDepVel'
@@ -252,7 +370,7 @@ CONTAINS
     !-------------------------------------------- 
     ! TODO: Mapping needs work
     arrayID = 'State_Diag%JValues'
-    diagID  = 'JValues'
+    diagID  = 'JVal'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -264,6 +382,501 @@ CONTAINS
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
+
+    !--------------------------------------------
+    ! KPP Reaction Rates
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%RxnRates'
+    diagID  = 'RxnRates'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%RxnRates( IM, JM, LM, nSpecies ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RxnRates = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RxnRates, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Diffuse UV flux per wavelength bin
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%UVFluxDiffuse'
+    diagID  = 'UVFluxDiffuse'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%UVFluxDiffuse( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%UVFluxDiffuse = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%UVFluxDiffuse, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Direct UV flux per wavelength bin
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%UVFluxDirect'
+    diagID  = 'UVFluxDirect'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%UVFluxDirect( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%UVFluxDirect = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%UVFluxDirect, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Net UV flux per wavelength bin
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%UVFluxNet'
+    diagID  = 'UVFluxNet'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%UVFluxNet( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%UVFluxNet = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%UVFluxNet, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Zonal Advective Flux (east positive)
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%AdvFluxZonal'
+    diagID  = 'AdvFluxZonal'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%AdvFluxZonal( IM, JM, LM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AdvFluxZonal = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%AdvFluxZonal, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Meridional Advective Flux (south positive)
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%AdvFluxMerid'
+    diagID  = 'AdvFluxMerid'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%AdvFluxMerid( IM, JM, LM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AdvFluxMerid = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%AdvFluxMerid, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !---------------------------------------------
+    ! Vertical Advective Flux (downwards positive)
+    !--------------------------------------------- 
+    arrayID = 'State_Diag%AdvFluxVert'
+    diagID  = 'AdvFluxVert'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%AdvFluxVert( IM, JM, LM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AdvFluxVert = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%AdvFluxVert, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Fraction of BL occupied by level L
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%PBLMixFrac'
+    diagID  = 'PBLMixFrac'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%PBLMixFrac( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PBLMixFrac = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%PBLMixFrac, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Mass change due to boundary layer mixing
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%PBLFlux'
+    diagID  = 'PBLFlux'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%PBLFlux( IM, JM, LM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PBLFlux = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%PBLFlux, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Mass change due to cloud convection
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%CloudConvFlux'
+    diagID  = 'CloudConvFlux'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%CloudConvFlux( IM, JM, LM, nWetDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%CloudConvFlux = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%CloudConvFlux, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------
+    ! Loss of soluble species in convective updrafts
+    !-----------------------------------------------
+    arrayID = 'State_Diag%ConvLoss'
+    diagID  = 'ConvLoss'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%ConvLoss( IM, JM, LM, nWetDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ConvLoss = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%ConvLoss, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !---------------------------------------------------------
+    ! Fraction of grid box undergoing convective precipitation
+    !---------------------------------------------------------
+    arrayID = 'State_Diag%ConvPrecipFrac'
+    diagID  = 'ConvPrecipFrac'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%ConvPrecipFrac( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ConvPrecipFrac = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%ConvPrecipFrac, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Fraction of soluble species lost to rainout in convective precipitation
+    !------------------------------------------------------------------------ 
+    arrayID = 'State_Diag%ConvRainFrac'
+    diagID  = 'ConvRainFrac'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%ConvRainFrac( IM, JM, LM, nWetDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ConvRainFrac = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%ConvRainFrac, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Fraction of soluble species lost to rainout in convective precipitation
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%ConvWashFrac'
+    diagID  = 'ConvWashFrac'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%ConvWashFrac( IM, JM, LM, nWetDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ConvWashFrac = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%ConvWashFrac, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Loss of solutble species in large-scale rainout/washout
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%WetLossLS'
+    diagID  = 'WetLossLS'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%WetLossLS( IM, JM, LM, nWetDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%WetLossLS = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%WetLossLS, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Fraction of grid box undergoing large-scale precipitation
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%PrecipFracLS'
+    diagID  = 'PrecipFracLS'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%PrecipFracLS( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PrecipFracLS = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%PrecipFracLS, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Fraction of soluble species lost to rainout in large-scale precipitation
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%RainFracLS'
+    diagID  = 'RainFracLS'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%RainFracLS( IM, JM, LM, nWetDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RainFracLS = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RainFracLS, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Fraction of soluble species lost to washout in large-scale precipitation
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%WashFracLS'
+    diagID  = 'WashFracLS'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%WashFracLS( IM, JM, LM, nWetDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%WashFracLS = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%WashFracLS, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Emission of Pb210 from Rn222 decay
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%PbFromRnDecay'
+    diagID  = 'PbFromRnDecay'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%PbFromRnDecay( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PbFromRnDecay = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%PbFromRnDecay, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Radioactive decay of Rn, Pb, and Be7
+    ! (separate into 3 different arrays??)
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%RadDecay'
+    diagID  = 'RadDecay'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%RadDecay( IM, JM, LM, nSpecies ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadDecay = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RadDecay, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! All-sky LW rad @ surface
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%RadAllSkyLWSurf'
+    diagID  = 'RadAllSkyLWSurf'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%RadAllSkyLWSurf( IM, JM, nSpecies ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadAllSkyLWSurf = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RadAllSkyLWSurf, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! All-sky LW rad @ atm top
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%RadAllSkyLWTOA'
+    diagID  = 'RadAllSkyLWTOA'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%RadAllSkyLWTOA( IM, JM, nSpecies ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadAllSkyLWTOA = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RadAllSkyLWTOA, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! All-sky SW rad @ surface
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%RadAllSkySWSurf'
+    diagID  = 'RadAllSkySWSurf'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%RadAllSkySWSurf( IM, JM, nSpecies ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadAllSkySWSurf = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RadAllSkySWSurf, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! All-sky SW rad @ atm top 
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%RadAllSkySWTOA'
+    diagID  = 'RadAllSkySWTOA'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%RadAllSkySWTOA( IM, JM, nSpecies ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadAllSkySWTOA = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RadAllSkySWTOA, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Clear-sky SW rad @ surface
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%RadClrSkyLWSurf'
+    diagID  = 'RadClrSkyLWSurf'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%RadClrSkyLWSurf( IM, JM, nSpecies ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadClrSkyLWSurf = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RadClrSkyLWSurf, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Clear-sky LW rad @ atm top
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%RadClrSkyLWTOA'
+    diagID  = 'RadClrSkyLWTOA'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%RadClrSkyLWTOA( IM, JM, nSpecies ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadClrSkyLWTOA = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RadClrSkyLWTOA, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Clear-sky SW rad @ surface 
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%RadClrSkySWSurf'
+    diagID  = 'RadClrSkySWSurf'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%RadClrSkySWSurf( IM, JM, nSpecies ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadClrSkySWSurf = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RadClrSkySWSurf, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    !  Clear-sky SW rad @ atm top
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%RadClrSkySWTOA'
+    diagID  = 'RadClrSkySWTOA'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%RadClrSkySWTOA( IM, JM, nSpecies ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadClrSkySWTOA = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RadClrSkySWTOA, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !!--------------------------------------------
+    !! Template for adding more diagnostics arrays
+    !! Search and replace 'xxx' with array name
+    !!-------------------------------------------- 
+    !arrayID = 'State_Diag%xxx'
+    !diagID  = 'xxx'
+    !CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    !IF ( Found ) THEN
+    !   WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+    !   ALLOCATE( State_Diag%xxx( IM, JM, LM, n ), STAT=RC ) ! Edits dims
+    !   CALL GC_CheckVar( arrayID, 0, RC )
+    !   IF ( RC /= GC_SUCCESS ) RETURN
+    !   State_Diag%xxx = 0.0_f4
+    !   CALL Register_DiagField( am_I_Root, diagID, State_Diag%xxx, &
+    !                            State_Chm, State_Diag, RC )
+    !   IF ( RC /= GC_SUCCESS ) RETURN
+    !ENDIF
 
     ! Format statement
  20 FORMAT( 1x, a32, ' is registered as: ', a )
@@ -384,6 +997,267 @@ CONTAINS
        DEALLOCATE( State_Diag%JValues, STAT=RC  )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not deallocate "State_Diag%JValues"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%DryDepFlux ) ) THEN
+       DEALLOCATE( State_Diag%DryDepFlux, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%DryDepFlux"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RxnRates ) ) THEN
+       DEALLOCATE( State_Diag%RxnRates, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%RxnRates"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%UVFluxDiffuse ) ) THEN
+       DEALLOCATE( State_Diag%UVFluxDiffuse, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%UVFluxDiffuse"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%UVFluxDirect ) ) THEN
+       DEALLOCATE( State_Diag%UVFluxDirect, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%UVFluxDirect"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%UVFluxNet ) ) THEN
+       DEALLOCATE( State_Diag%UVFluxNet, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%UVFluxNet"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AdvFluxZonal ) ) THEN
+       DEALLOCATE( State_Diag%AdvFluxZonal, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%AdvFluxZonal"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AdvFluxMerid ) ) THEN
+       DEALLOCATE( State_Diag%AdvFluxMerid, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%AdvFluxMerid"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AdvFluxVert ) ) THEN
+       DEALLOCATE( State_Diag%AdvFluxVert, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%AdvFluxVert"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%PBLMixFrac ) ) THEN
+       DEALLOCATE( State_Diag%PBLMixFrac, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%PBLMixFrac"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%PBLFlux ) ) THEN
+       DEALLOCATE( State_Diag%PBLFlux, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%PBLFlux"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%CloudConvFlux ) ) THEN
+       DEALLOCATE( State_Diag%CloudConvFlux, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%CloudConvFlux"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ConvLoss ) ) THEN
+       DEALLOCATE( State_Diag%ConvLoss, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%ConvLoss"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ConvPrecipFrac ) ) THEN
+       DEALLOCATE( State_Diag%ConvPrecipFrac, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%ConvPrecipFrac"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ConvRainFrac ) ) THEN
+       DEALLOCATE( State_Diag%ConvRainFrac, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%ConvRainFrac"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ConvWashFrac ) ) THEN
+       DEALLOCATE( State_Diag%ConvWashFrac, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%ConvWashFrac"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%WetLossLS ) ) THEN
+       DEALLOCATE( State_Diag%WetLossLS, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%WetLossLS"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%PrecipFracLS ) ) THEN
+       DEALLOCATE( State_Diag%PrecipFracLS, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%PrecipFracLS"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RainFracLS ) ) THEN
+       DEALLOCATE( State_Diag%RainFracLS, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%RainFracLS"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%WashFracLS ) ) THEN
+       DEALLOCATE( State_Diag%WashFracLS, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%WashFracLS"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%PbFromRnDecay ) ) THEN
+       DEALLOCATE( State_Diag%PbFromRnDecay, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%PbFromRnDecay"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadDecay ) ) THEN
+       DEALLOCATE( State_Diag%RadDecay, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%RadDecay"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadAllSkyLWSurf ) ) THEN
+       DEALLOCATE( State_Diag%RadAllSkyLWSurf, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%RadAllSkyLWSurf"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadAllSkyLWTOA ) ) THEN
+       DEALLOCATE( State_Diag%RadAllSkyLWTOA, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%RadAllSkyLWTOA"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadAllSkySWSurf ) ) THEN
+       DEALLOCATE( State_Diag%RadAllSkySWSurf, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%RadAllSkySWSurf"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadAllSkySWTOA ) ) THEN
+       DEALLOCATE( State_Diag%RadAllSkySWTOA, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%RadAllSkySWTOA"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadClrSkyLWSurf ) ) THEN
+       DEALLOCATE( State_Diag%RadClrSkyLWSurf, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%RadClrSkyLWSurf"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadClrSkyLWTOA ) ) THEN
+       DEALLOCATE( State_Diag%RadClrSkyLWTOA, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%RadClrSkyLWTOA"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadClrSkySWSurf ) ) THEN
+       DEALLOCATE( State_Diag%RadClrSkySWSurf, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%RadClrSkySWSurf"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RadClrSkySWTOA ) ) THEN
+       DEALLOCATE( State_Diag%RadClrSkySWTOA, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%RadClrSkySWTOA"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -513,11 +1387,178 @@ CONTAINS
           IF ( isRank    ) Rank       = 2
           IF ( isSpecies ) PerSpecies = 'DRY'
 
-       CASE ( 'JVALUES' )
+       CASE ( 'JVAL' )
           IF ( isDesc    ) Desc       = 'Photolysis rate' !TODO: append to this?
           IF ( isUnits   ) Units      = 's-1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'JVN' ! TODO: fix species mapping
+
+       CASE ( 'DRYDEPFLUX' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'DRY'
+
+       CASE ( 'RXNRATES' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'ALL'
+
+       CASE ( 'UVFLUXDIFFUSE' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+
+       CASE ( 'UVFLUXDIRECT' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+
+       CASE ( 'UVFLUXNET' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+
+       CASE ( 'ADVFLUXZONAL' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'ADV'
+
+       CASE ( 'ADVFLUXMERID' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'ADV'
+     
+       CASE ( 'ADVFLUXVERT' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'ADV'
+
+       CASE ( 'PBLMIXFRAC' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+
+       CASE ( 'PBLFLUX' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'ADV'
+
+       CASE ( 'CLOUDCONVFLUX' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'ADV'
+
+       CASE ( 'CONVLOSS' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'WET'
+
+       CASE ( 'CONVPRECIPFRAC' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+
+       CASE ( 'CONVRAINFRAC' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'WET'
+
+       CASE ( 'CONVWASHFRAC' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'WET'
+
+       CASE ( 'WETLOSSLS' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'WET'
+
+       CASE ( 'PRECIPFRACLS' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+
+       CASE ( 'RAINFRACLS' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'WET'
+
+       CASE ( 'WASHFRACLS' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'WET'
+
+       CASE ( 'PBFROMRNDECAY' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+
+       CASE ( 'RADDECAY' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'ADV'
+
+       CASE ( 'RADALLSKYLWSURF' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 2
+          IF ( isSpecies ) PerSpecies = 'placeholder'
+
+       CASE ( 'RADALLSKYLWTOA' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 2
+          IF ( isSpecies ) PerSpecies = 'placeholder'
+
+       CASE ( 'RADALLSKYSWSURF' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 2
+          IF ( isSpecies ) PerSpecies = 'placeholder'
+
+       CASE ( 'RADALLSKYSWTOA ' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 2
+          IF ( isSpecies ) PerSpecies = 'placeholder'
+
+       CASE ( 'RADCLRSKYLWSURF' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 2
+          IF ( isSpecies ) PerSpecies = 'placeholder'
+
+       CASE ( 'RADCLRSKYLWTOA ' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 2
+          IF ( isSpecies ) PerSpecies = 'placeholder'
+
+       CASE ( 'RADCLRSKYSWSURF' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 2
+          IF ( isSpecies ) PerSpecies = 'placeholder'
+
+       CASE ( 'RADCLRSKYSWTOA' )
+          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isRank    ) Rank       = 2
+          IF ( isSpecies ) PerSpecies = 'placeholder'
 
        CASE DEFAULT
           Found = .False.
