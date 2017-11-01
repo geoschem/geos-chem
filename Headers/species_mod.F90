@@ -22,7 +22,6 @@ MODULE Species_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Str2Hash
   PUBLIC :: SpcData_Init
   PUBLIC :: SpcData_Cleanup
   PUBLIC :: Spc_Create
@@ -209,77 +208,11 @@ MODULE Species_Mod
 !  04 Aug 2016 - R. Yantosca - Add parameter MISSING_MW = -1.0
 !  10 Aug 2016 - E. Lundgren - Add BackgroundVV field for default background 
 !                              and missing background concentration param [v/v]
+!  31 Oct 2017 - R. Yantosca - Move Str2Hash, To_UpperCase to species_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Str2Hash
-!
-! !DESCRIPTION: Returns a unique integer hash for a given character string.
-!  This allows us to implement a fast name lookup algorithm.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Str2Hash( Str ) RESULT( Hash )
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=14), INTENT(IN) :: Str    ! String (14 chars long)
-!
-! !RETURN VALUE:
-!
-    INTEGER                       :: Hash   ! Hash value from string
-!
-! !REMARKS:
-!  (1) Algorithm taken from this web page:
-!       https://fortrandev.wordpress.com/2013/07/06/fortran-hashing-algorithm/
-!
-!  (2) For now, we only use the first 14 characers of the character string
-!       to compute the hash value.  Most GEOS-Chem species names only use
-!       at most 14 unique characters.  We can change this later if need be.
-!
-! !REVISION HISTORY:
-!  04 May 2016 - R. Yantosca - Initial version
-!  05 May 2016 - R. Yantosca - Now make the input string 14 chars long
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Initialize
-    Hash = 5381
-
-    !-----------------------------------------------------------------------
-    ! Construct the hash from the first 14 characters of the string,
-    ! which is about the longest species name for GEOS-Chem.
-    !
-    ! NOTE: It's MUCH faster to explicitly write these statements
-    ! instead of writing them using a DO loop (bmy, 5/4/16)
-    !-----------------------------------------------------------------------
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 1: 1) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 2: 2) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 3: 3) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 4: 4) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 5: 5) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 6: 6) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 7: 7) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 8: 8) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 9: 9) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(10:10) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(11:11) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(12:12) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(13:13) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(14:14) )
-
-  END FUNCTION Str2Hash
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -360,7 +293,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHARPAK_MOD, ONLY : TRANUC
+    USE CharPak_Mod, ONLY : Str2Hash14, To_UpperCase
 !
 ! !INPUT PARAMETERS:
 !
@@ -384,7 +317,9 @@ CONTAINS
 !  04 May 2016 - R. Yantosca - Renamed to Spc_GetIndx
 !  05 May 2016 - R. Yantosca - The NAME argument is now of variable length 
 !  15 Jun 2016 - M. Sulprizio- Make species name uppercase before computing hash
-!EOP
+!  01 Nov 2017 - R. Yantosca - Now use Str2Hash14 from charpak_mod.F90, which
+!                              computes a hash from an input string of 14 chars
+!EOP!EOP
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -401,11 +336,10 @@ CONTAINS
     Indx   = -1
 
     ! Make species name uppercase for hash algorithm
-    Name14 = Name
-    CALL TRANUC( Name14 )
+    Name14 = To_UpperCase( Name )
 
     ! Compute the hash corresponding to the given species name
-    Hash   = Str2Hash( Name14 )
+    Hash   = Str2Hash14( Name14 )
 
     ! Loop over all entries in the Species Database object
     DO N = 1, SIZE( SpecDB )
@@ -511,8 +445,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHARPAK_MOD,        ONLY : TRANUC             ! String manipulation
-    USE PhysConstants,      ONLY : AIRMW, AVO         ! Physical constants
+    USE CharPak_Mod,        ONLY : Str2Hash14, To_UpperCase
+    USE PhysConstants,      ONLY : AIRMW,      AVO         
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -615,6 +549,8 @@ CONTAINS
 !  04 Aug 2016 - R. Yantosca - Now set missing molecular weights to -1, 
 !                              which seems to avoid numerical roundoff
 !  10 Aug 2016 - E. Lundgren - Add default background concentration argument
+!  01 Nov 2017 - R. Yantosca - Now use Str2Hash14 from charpak_mod.F90, which
+!                              computes a hash from an input string of 14 chars
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -649,9 +585,8 @@ CONTAINS
        ThisSpc%Name     = Name
 
        ! Make species name uppercase for hash algorithm
-       Name14 = Name
-       CALL TRANUC( Name14 )
-       ThisSpc%NameHash = Str2Hash( Name14 )
+       Name14           = To_UpperCase( Name )
+       ThisSpc%NameHash = Str2Hash14( Name14 )
     ELSE
        ThisSpc%Name     = ''
        ThisSpc%NameHash = MISSING_INT
@@ -678,8 +613,6 @@ CONTAINS
     ELSE
        ThisSpc%Formula = ''
     ENDIF
-
-
 
     !---------------------------------------------------------------------
     ! Molecular weight [g]

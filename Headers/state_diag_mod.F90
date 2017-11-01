@@ -1295,6 +1295,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Charpak_Mod,         ONLY: To_UpperCase
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -1318,6 +1319,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Sep 2017 - E. Lundgren - Initial version
 !  06 Oct 2017 - R. Yantosca - State_Diga%SpeciesConc is now an 8-byte real
+!  01 Nov 2017 - R. Yantosca - Now get To_UpperCase from charpak_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

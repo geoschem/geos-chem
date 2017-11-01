@@ -103,7 +103,6 @@ CONTAINS
    
     ! Is the drydep flux from mixing diagnostic turned on?
     Archive_DryDepFlux_Mix = ASSOCIATED( State_Diag%DryDepFlux_Mix )
-    print*, '### INIT_MIXING: archive: ', Archive_DryDepFlux_Mix
 
     !-----------------------------------------------------------------------
     ! Initialize PBL mixing scheme

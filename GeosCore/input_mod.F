@@ -16,6 +16,7 @@
 !
 ! !USES:
 !
+      USE CharPak_Mod,   ONLY : MAXDIM  => MAXSTRLEN
       USE inquireMod,    ONLY : findFreeLUN
       USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
@@ -30,7 +31,6 @@
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-      PRIVATE :: READ_ONE_LINE
       PRIVATE :: SPLIT_ONE_LINE        
       PRIVATE :: READ_SIMULATION_MENU
       PRIVATE :: READ_ADVECTED_SPECIES_MENU
@@ -156,16 +156,16 @@
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
 !                              MERRA; Also remove LUNZIP, LWAIT, and TEMP_DIR
 !                              options since they were only used for BPCH met
+!  01 Nov 2017 - R. Yantosca - Now define MAXDIM from charpak_mod.F90
+!  01 Nov 2017 - R. Yantosca - Now get ReadOneLine from charpak_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
-!
-      LOGICAL            :: VERBOSE  = .FALSE.
+!      LOGICAL            :: VERBOSE  = .FALSE.
       INTEGER            :: IU_GEOS
       INTEGER, PARAMETER :: FIRSTCOL = 26
-      INTEGER, PARAMETER :: MAXDIM   = 500
       INTEGER            :: CT1      = 0
       CHARACTER(LEN=255) :: FILENAME = 'input.geos'
 
@@ -195,7 +195,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CHARPAK_MOD,        ONLY : STRREPL
+      USE CHARPAK_MOD,        ONLY : ReadOneLine, STRREPL
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
       USE GAMAP_MOD,          ONLY : DO_GAMAP
@@ -249,12 +249,12 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL            :: EOF
-      INTEGER            :: IOS
-      CHARACTER(LEN=1)   :: TAB   = ACHAR(9)
-      CHARACTER(LEN=1)   :: SPACE = ' '
+      LOGICAL               :: EOF
+      INTEGER               :: IOS
+      CHARACTER(LEN=1)      :: TAB   = ACHAR(9)
+      CHARACTER(LEN=1)      :: SPACE = ' '
       CHARACTER(LEN=MAXDIM) :: LINE
-      CHARACTER(LEN=255) :: TOPTITLE
+      CHARACTER(LEN=255)    :: TOPTITLE
 
 
       !=================================================================
@@ -280,15 +280,17 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:1' )
 
       ! Read TOPTITLE for binary punch file
-      TOPTITLE = READ_ONE_LINE( EOF  )
-      IF ( EOF ) RETURN
+      TOPTITLE = ReadOneLine( IU_GEOS, EOF, IOS )
+      IF ( EOF     ) RETURN
+      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:2' )
 
       ! Loop until EOF
       DO 
          
          ! Read a line from the file, exit if EOF
-         LINE = READ_ONE_LINE( EOF ) 
-         IF ( EOF ) EXIT
+         LINE = ReadOneLine( IU_GEOS, EOF, IOS )
+         IF ( EOF     ) EXIT
+         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:3')
          
          ! Replace tab characters in LINE (if any) w/ spaces
          CALL STRREPL( LINE, TAB, SPACE )
@@ -447,87 +449,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_one_line
-!
-! !DESCRIPTION: Subroutine READ\_ONE\_LINE reads a line from the input file.  
-!  If the global variable VERBOSE is set, the line will be printed to stdout.  
-!  READ\_ONE\_LINE can trap an unexpected EOF if LOCATION is passed.  
-!  Otherwise, it will pass a logical flag back to the calling routine, 
-!  where the error trapping will be done.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION READ_ONE_LINE( EOF, LOCATION ) RESULT( LINE )
-!
-! !USES:
-!
-      USE FILE_MOD, ONLY : IOERROR
-!
-! !INPUT PARAMETERS: 
-!
-      CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: LOCATION    ! Msg to display
-!
-! !OUTPUT PARAMETERS:
-!
-      LOGICAL,          INTENT(OUT)          :: EOF         ! Denotes EOF 
-! 
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
-!                              so that we can define it with findFreeLun
-!  17 Sep 2013 - R. Yantosca - Extend line length to read in more tracers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER            :: IOS
-      CHARACTER(LEN=500) :: LINE, MSG
-
-      !=================================================================
-      ! READ_ONE_LINE begins here!
-      !=================================================================
-
-      ! Initialize
-      EOF = .FALSE.
-
-      ! Read a line from the file
-      READ( IU_GEOS, '(a)', IOSTAT=IOS ) LINE
-
-      ! IO Status < 0: EOF condition
-      IF ( IOS < 0 ) THEN
-         EOF = .TRUE.
-
-         ! Trap unexpected EOF -- stop w/ error msg if LOCATION is passed
-         ! Otherwise, return EOF to the calling program
-         IF ( PRESENT( LOCATION ) ) THEN
-            MSG = 'READ_ONE_LINE: error at: ' // TRIM( LOCATION )
-            WRITE( 6, '(a)' ) MSG
-            WRITE( 6, '(a)' ) 'Unexpected end of file encountered!'
-            WRITE( 6, '(a)' ) 'STOP in READ_ONE_LINE (input_mod.f)'
-            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-            STOP
-         ELSE
-            RETURN
-         ENDIF
-      ENDIF
-
-      ! IO Status > 0: true I/O error condition
-      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_one_line:1' )
-
-      ! Print the line (if necessary)
-      IF ( VERBOSE ) WRITE( 6, '(a)' ) TRIM( LINE )
-
-      END FUNCTION READ_ONE_LINE
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: split_one_line
 !
 ! !DESCRIPTION: Subroutine SPLIT\_ONE\_LINE reads a line from the input file 
@@ -546,7 +467,9 @@
 !
 ! !USES:
 !
-      USE CHARPAK_MOD, ONLY: STRSPLIT
+      USE Charpak_Mod, ONLY: ReadOneLine, StrSplit
+      Use Error_Mod,   ONLY: Error_Stop
+      USE File_Mod,    ONLY: IoError
 !
 ! !INPUT PARAMETERS: 
 !
@@ -574,29 +497,38 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL                         :: EOF
-      CHARACTER(LEN=MAXDIM)           :: LINE
-      CHARACTER(LEN=255)              :: MSG
+      INTEGER               :: IOS
+      LOGICAL               :: EOF
+      CHARACTER(LEN=MAXDIM) :: LINE
+      CHARACTER(LEN=255)    :: MSG
 
       !=================================================================
       ! SPLIT_ONE_LINE begins here!
       !=================================================================      
 
-      ! Create error msg
-      MSG = 'SPLIT_ONE_LINE: error at ' // TRIM( LOCATION )
+      ! Initialize
+      IOS  = 0
+      EOF  = .FALSE.
+      MSG  = ''
 
       !=================================================================
       ! Read a line from disk
       !=================================================================
-      LINE = READ_ONE_LINE( EOF )
-
+      LINE = ReadOneLine( IU_GEOS, EOF, IOS )
+      
       ! STOP on End-of-File w/ error msg
+      ! NOTE: Call ERROR_STOP here becuase this will also finalize memory
+      ! before stopping GEOS-Chem.  We need to implement a cleaner way of 
+      ! error trapping but will do that at a later date. (bmy, 11/1/17)
       IF ( EOF ) THEN
-         WRITE( 6, '(a)' ) TRIM( MSG )
-         WRITE( 6, '(a)' ) 'End of file encountered!' 
-         WRITE( 6, '(a)' ) 'STOP in SPLIT_ONE_LINE (input_mod.f)!'
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         STOP
+         MSG = 
+     &   'Unexpected end-of-file reading input.geos at split_one_line:1'
+         CALL Error_Stop( Msg, Location )
+      ENDIF
+      
+      ! IOS > 0 is an error condition
+      IF ( IOS > 0 ) THEN
+         CALL IOERROR( IOS, IU_GEOS, 'split_one_line:1' )
       ENDIF
 
       !=================================================================
@@ -608,8 +540,9 @@
       ! if N_EXP is greater than MAXDIM, then skip the error check
       IF ( N_EXP < 0 ) RETURN
 
-      ! Stop if we found the wrong 
+      ! Stop if we found the wrong # of substrings
       IF ( N_EXP /= N_SUBSTRS ) THEN
+         MSG = 'SPLIT_ONE_LINE: error at ' // TRIM( LOCATION )
          WRITE( 6, '(a)' ) TRIM( MSG )
          WRITE( 6, 100   ) N_EXP, N_SUBSTRS
          WRITE( 6, '(a)' ) 'STOP in SPLIT_ONE_LINE (input_mod.f)!'
@@ -6101,9 +6034,9 @@
 !
 ! !USES:
 !
-      USE CHARPAK_MOD,   ONLY : STRSQUEEZE
+      USE Charpak_Mod,   ONLY : ReadOneLine
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -6131,51 +6064,36 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL            :: EOF
-      INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+      LOGICAL               :: EOF
+      INTEGER               :: IOS
+      CHARACTER(LEN=255)    :: SUBSTRS(MAXDIM)
+      CHARACTER(LEN=MAXDIM) :: Line
 
       !=================================================================
       ! READ_UNIX_CMDS_MENU begins here!
       !=================================================================
 
-      ! Background
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_unix_cmds_menu:1' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%BACKGROUND
+      ! Skip over lines for now
+      ! Nobody uses e.g. the unix unzipping anymore
+      Line = ReadOneLine( IU_GEOS, EOF, IOS )  ! Background
+      Line = ReadOneLine( IU_GEOS, EOF, IOS )  ! Redirect
+      Line = ReadOneLine( IU_GEOS, EOF, IOS )  ! Remove_Cmd
+      Line = ReadOneLine( IU_GEOS, EOF, IOS )  ! Separator
+      Line = ReadOneLine( IU_GEOS, EOF, IOS )  ! Wild Card
+      Line = ReadOneLine( IU_GEOS, EOF, IOS )  ! Unzip
+      Line = ReadOneLine( IU_GEOS, EOF, IOS )  ! Zip suffix
+      Line = ReadOneLine( IU_GEOS, EOF, IOS )  ! Separator
 
-      ! Redirect
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_unix_cmds_menu:2' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%REDIRECT
-
-      ! Remove command
-      Input_Opt%REMOVE_CMD = READ_ONE_LINE( EOF,    
-     &                                      'read_unix_cmds_menu:3' ) 
-      Input_Opt%REMOVE_CMD = Input_Opt%REMOVE_CMD(FIRSTCOL:)
-      CALL STRSQUEEZE( Input_Opt%REMOVE_CMD )
-
-      ! Separator
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_unix_cmds_menu:4' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%SEPARATOR
-
-      ! Wild Card
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_unix_cmds_menu:5' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%WILD_CARD
-
-      ! Unzip command
-      Input_Opt%UNZIP_CMD = READ_ONE_LINE( EOF,     
-     &                                     'read_unix_cmds_menu:6' ) 
-      Input_Opt%UNZIP_CMD =Input_Opt% UNZIP_CMD(FIRSTCOL:)
-      CALL STRSQUEEZE( Input_Opt%UNZIP_CMD )
-
-      ! Zip suffix
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_unix_cmds_menu:7' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%ZIP_SUFFIX
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_unix_cmds_menu:8' )
-
-      ! Just hardwire the SPACE character
-      Input_Opt%SPACE = ' '
+      ! Just hardwire fields for now, we will remove this whole menu later
+      ! (bmy, 11/1/17)
+      Input_Opt%BACKGROUND = '&'
+      Input_Opt%REDIRECT   = '  >'
+      Input_Opt%REMOVE_CMD = 'rm -f'
+      Input_Opt%SEPARATOR  = '/'
+      Input_Opt%WILD_CARD  = '*'
+      Input_Opt%UNZIP_CMD  = 'gzip -dc'
+      Input_Opt%ZIP_SUFFIX = '.gz'
+      Input_Opt%SPACE      = ' '
 
       ! Return success
       RC = GC_SUCCESS

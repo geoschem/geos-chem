@@ -36,8 +36,6 @@ MODULE History_Mod
   PRIVATE :: History_ReadCollectionData
   PRIVATE :: History_AddItemToCollection
   PRIVATE :: History_Close_AllFiles
-  PRIVATE :: ReadOneLine ! consider putting in a general util file (ewl)
-  PRIVATE :: CleanText   ! consider putting in a general util file (ewl)
 !
 ! !REMARKS:
 !  
@@ -53,6 +51,7 @@ MODULE History_Mod
 !                              History_Close_AllFiles
 !  18 Aug 2017 - R. Yantosca - Added routine History_SetTime
 !  02 Oct 2017 - R. Yantosca - Added CollectionFileName
+!  01 Nov 2017 - R. Yantosca - Moved ReadOneLine, CleanText to charpak_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -263,10 +262,10 @@ CONTAINS
     ! Initialize
     !=======================================================================
 
-    ! Assume success
+    ! Zero local variables
+    EOF     = .FALSE.
+    IOS     = 0
     RC      = GC_SUCCESS
-
-    ! For error output
     ErrMsg  = ''
     ThisLoc = &
      ' -> at History_ReadCollectionNames (in module History/history_mod.F90)'
@@ -583,6 +582,8 @@ CONTAINS
     RC             =  GC_SUCCESS
 
     ! Initialize variables
+    EOF            =  .FALSE.
+    IOS            =  0   
     UpdateYmd      =  0 
     UpdateHms      =  0
     FileCloseYmd   =  0
@@ -2395,127 +2396,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CleanText
-!
-! !DESCRIPTION: Strips commas, apostrophes, spaces, and tabs from a string.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION CleanText( Str ) RESULT( CleanStr )
-!
-! !USES:
-!
-    USE Charpak_Mod, ONLY : CStrip, StrRepl, StrSqueeze
-!
-! !INPUT PARAMETERS: 
-!
-    CHARACTER(LEN=*), INTENT(IN) :: Str        ! Original string
-!
-! !RETURN VALUE
-!
-    CHARACTER(LEN=255)           :: CleanStr   ! Cleaned-up string
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!  21 Jun 2017 - R. Yantosca - Now call CSTRIP to remove tabs etc.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    ! Initialize
-    CleanStr = Str
-
-    ! Strip out non-printing characters (e.g. tabs)
-    CALL CStrip    ( CleanStr           )
-
-    ! Remove commas and quotes
-    CALL StrRepl   ( CleanStr, ",", " " )
-    CALL StrRepl   ( CleanStr, "'", " " )
-    
-    ! Remove leading and trailing spaces
-    CALL StrSqueeze( CleanStr           ) 
-
-  END FUNCTION CleanText
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: ReadOneLine
-!
-! !DESCRIPTION: Subroutine READ\_ONE\_LINE reads a line from the input file.  
-!  If the global variable VERBOSE is set, the line will be printed to stdout.  
-!  READ\_ONE\_LINE can trap an unexpected EOF if LOCATION is passed.  
-!  Otherwise, it will pass a logical flag back to the calling routine, 
-!  where the error trapping will be done.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION ReadOneLine( fId, EndOfFile, IoStatus, Squeeze ) RESULT( Line )
-!
-! !USES:
-!
-    USE Charpak_Mod, ONLY : StrSqueeze
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER, INTENT(IN)  :: fId        ! File unit number
-    LOGICAL, OPTIONAL    :: Squeeze    ! Call Strsqueeze?
-!
-! !OUTPUT PARAMETERS:
-!
-    LOGICAL, INTENT(OUT) :: EndOfFile  ! Denotes EOF condition
-    INTEGER, INTENT(OUT) :: IoStatus   ! I/O status code
-!
-! !RETURN VALUE:
-!
-    CHARACTER(LEN=255)   :: Line       ! Single line from the input file
-! 
-! !REVISION HISTORY: 
-!  16 Jun 2017 - R. Yantosca - Initial version, based on GEOS-Chem
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    !=================================================================
-    ! Initialize
-    !=================================================================
-    EndOfFile = .FALSE.
-    IoStatus  = 0
-    Line      = ''
-
-    !=================================================================
-    ! Read data from the file
-    !=================================================================
-
-    ! Read a line from the file
-    READ( fId, '(a)', IOSTAT=IoStatus ) Line
-
-    ! IO Status < 0: EOF condition
-    IF ( IoStatus < 0 ) THEN 
-       EndOfFile = .TRUE.
-       RETURN
-    ENDIF
-
-    ! If desired, call StrSqueeze to strip leading and trailing blanks
-    IF ( PRESENT( Squeeze ) ) THEN
-       IF ( Squeeze ) THEN
-          CALL StrSqueeze( Line )
-       ENDIF
-    ENDIF
-
-  END FUNCTION ReadOneLine
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: GetCollectionMetaData
 !
 ! !DESCRIPTION: Parses a line of the HISTORY.rc file and returns metadata
@@ -2528,7 +2408,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Charpak_Mod,       ONLY: StrSplit
+    USE Charpak_Mod,       ONLY: CleanText, StrSplit
     USE History_Util_Mod
 !
 ! !INPUT PARAMETERS: 
@@ -2548,6 +2428,7 @@ CONTAINS
 !  14 Aug 2017 - R. Yantosca - Initialize MetaData and nCollection
 !  15 Aug 2017 - R. Yantosca - Bug fix: TRIM string arguments to INDEX, and
 !                              initialize output arguments to undefined values
+!  01 Nov 2017 - R. Yantosca - Now get CleanText from charpak_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
