@@ -339,6 +339,8 @@ CONTAINS
 !  10 Apr 2015 - C. Keller   - Now create diagnostics based on entries 
 !                              in the HEMCO diagnostics definition file.
 !  06 Nov 2015 - C. Keller   - Added OutTimeStamp.
+!  01 Nov 2017 - E. Lundgren - Change default OutTimeStamp from end to start
+!                              for diagnostics collection
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -381,7 +383,7 @@ CONTAINS
                      OptValChar=OutTimeStampChar, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN
-       OutTimeStamp = HcoDiagnEnd
+       OutTimeStamp = HcoDiagnStart
     ELSE
        CALL TRANLC( OutTimeStampChar )
        IF (     TRIM(OutTimeStampChar) == 'start' ) THEN
@@ -395,9 +397,9 @@ CONTAINS
 
        ELSE
           WRITE(MSG,*) 'Unrecognized output time stamp location: ', &
-             TRIM(OutTimeStampChar), ' - will use default (end)'
+             TRIM(OutTimeStampChar), ' - will use default (start)'
           CALL HCO_WARNING(HcoState%Config%Err,MSG,RC,THISLOC=LOC,WARNLEV=1)
-          OutTimeStamp = HcoDiagnEnd
+          OutTimeStamp = HcoDiagnStart
        ENDIF 
     ENDIF
 
