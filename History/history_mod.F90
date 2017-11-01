@@ -777,11 +777,28 @@ CONTAINS
           ! "COLLECTIONS:" list and the corresponding metadata section.
           ! Quit with error if this occurs.
           IF ( C == UNDEFINED_INT ) THEN
-             ErrMsg = 'Mismatch between listed collection names and the ' // &
-                      'metadata!  Please check HISTORY.rc for typos.'
+
+             ! List the defined collections
+             WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
+             WRITE( 6, 200   ) 
+ 200         FORMAT( 'GEOS-Chem ERROR: one or more collection ',             &
+                     'attributes do not correspond',                      /  &
+                     'to any of these defined collection names '             &
+                     'in the "HISTORY.rc" input file:'                      )
+             DO N = 1, CollectionCount
+                WRITE( 6, 210 ) N, TRIM( CollectionName(N) )
+ 210            FORMAT( i3, ') ', a )
+             ENDDO
+             WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )
+             
+             ! Write error message and then return
+             ErrMsg = 'Inconsistency in collection names and attributes!' // &
+                      ' Please check "HISTORY.rc" for typos.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
+
+          ! Format statements
 
           ! Zero the counter of items
           ItemCount = 0
@@ -816,66 +833,6 @@ CONTAINS
 
           END SELECT
 
-!------------------------------------------------------------------------------
-! Prior to 10/26/17:
-! Now use Frequency to set the file update for time-averaged collections
-! (unless acc_interval is specified). (bmy, 10/26/17)
-!          !-----------------------------------------------------------------
-!          ! Define UpdateHms and UpdateYmd
-!          ! 
-!          ! NOTE: If CollectionFrequency is 6 digits long, then assume that
-!          ! to be UpdateHms.  If longer, then assume that it is specifying
-!          ! both UpdateYmd and UpdateHms. (sde, bmy, 8/4/17)
-!          !-----------------------------------------------------------------
-!          IF ( LEN_TRIM( CollectionFrequency(C) ) == 6 ) THEN
-!             READ( CollectionFrequency(C), '(i6.6)'  ) UpdateHms
-!          ELSE
-!             READ( CollectionFrequency(C), '(2i6.6)' ) UpdateYmd,            &
-!                                                       UpdateHms
-!          ENDIF
-!
-!          ! SPECIAL CASE: If UpdateHms is 240000 then set
-!          ! and set UpdateYmd=000001 and UpdateHms=000000
-!          IF ( UpdateHms == 240000 ) THEN
-!             UpdateYmd = 000001
-!             UpdateHms = 000000
-!          ENDIF
-!
-!          !-----------------------------------------------------------------
-!          ! Define FileWriteYmd and FileWriteHms
-!          !-----------------------------------------------------------------
-!          IF ( Operation == COPY_FROM_SOURCE ) THEN
-!
-!             ! Instantaneous data: this defaults to the frequency attribute
-!             ! in the HISTORY.rc file, which is UpdateYmd, UpdateHms
-!             FileWriteYmd = UpdateYmd
-!             FileWriteHms = UpdateHms
-!
-!          ELSE
-!             
-!             ! Time-averaged data: Use the acc_interval field to denote
-!             ! when it is time to write to disk.  If acc_interval is not
-!             ! specified, then set the write int to the "heartbeat" timestep in
-!             ! seconds (which is
-!             ! which are specified by the "frequency" attribute.
-!             IF ( TRIM( CollectionAccInterval(C) ) == UNDEFINED_STR ) THEN
-!                FileWriteYmd = UpdateYmd
-!                FileWriteHms = UpdateHms
-!             ELSE IF ( LEN_TRIM( CollectionAccInterval(C) ) == 6 ) THEN
-!                READ( CollectionAccInterval(C), '(i6.6)'  ) FileWriteHms
-!             ELSE
-!                READ( CollectionAccInterval(C), '(2i6.6)' ) FileWriteYmd,    &
-!                                                            FileWriteHms
-!             ENDIF
-!          ENDIF
-!          
-!          ! SPECIAL CASE: If FileWriteYmd is 240000 then set
-!          ! and set FileWriteYmd=000001 and FileWriteHms=000000
-!          IF ( FileWriteHms == 240000 ) THEN
-!             FileWriteYmd = 000001
-!             FileWriteHms = 000000
-!          ENDIF
-!------------------------------------------------------------------------------
           !-----------------------------------------------------------------
           ! %%%%% INSTANTANEOUS AND TIME-AVERAGED COLLECTIONS %%%%%
           !
@@ -1184,6 +1141,7 @@ CONTAINS
                 Ind_Gas = INDEX( ItemTemplate, '?GAS?' ) ! Gas-phase species
                 Ind_Kpp = INDEX( ItemTemplate, '?KPP?' ) ! KPP species
                 Ind_Pho = INDEX( ItemTemplate, '?PHO?' ) ! Photolysis species
+                Ind_Pho = INDEX( ItemTemplate, '?JVN?' ) ! Photolysis species
                 Ind_Var = INDEX( ItemTemplate, '?VAR?' ) ! KPP active species
                 Ind_Wet = INDEX( ItemTemplate, '?WET?' ) ! Wetdep species
 
@@ -1317,6 +1275,30 @@ CONTAINS
              ErrMsg = 'Could not add Container' //                           &
                       TRIM( CollectionName(C) ) //                           &
                       ' to the list of collections!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+       ELSE
+
+          !=================================================================
+          ! Print an error message if the ".fields" tag is not found
+          ! in HISTORY.rc (or if it has a collection name that is
+          ! not one of those in the list of defined collections).
+          !=================================================================
+          IF ( C == UNDEFINED_INT ) THEN
+
+             ! List the defined collections
+             WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
+             WRITE( 6, 200   ) 
+             DO N = 1, CollectionCount
+                WRITE( 6, 210 ) N, TRIM( CollectionName(N) )
+             ENDDO
+             WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )
+          
+             ! Write error message and then return
+             ErrMsg = 'Inconsistency in collection names and attributes!' // &
+                  '    Please check "HISTORY.rc" for typos.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
