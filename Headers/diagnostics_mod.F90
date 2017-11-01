@@ -35,8 +35,6 @@ MODULE Diagnostics_Mod
   PRIVATE :: Init_DiagItem
   PRIVATE :: InsertBeginning_DiagList
   PRIVATE :: Search_DiagList
-  PRIVATE :: ReadOneLine ! copied from history_mod. Consider consolidating.
-  PRIVATE :: CleanText   ! copied from history_mod. Consider consolidating.
 !
 ! !PUBLIC DATA TYPES:
 !
@@ -64,6 +62,7 @@ MODULE Diagnostics_Mod
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
+!  01 Nov 2017 - R. Yantosca - Moved ReadOneLine, CleanText to charpak_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -85,7 +84,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Charpak_Mod,      ONLY: StrSplit
+    USE Charpak_Mod,      ONLY: CleanText, ReadOneLine, StrSplit
     USE InquireMod,       ONLY: findFreeLun
 !
 ! !INPUT PARAMETERS:
@@ -447,25 +446,26 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Check_DiagList ( am_I_Root, DiagList, substr, found, RC )
+  SUBROUTINE Check_DiagList( am_I_Root, DiagList, substr, found, RC )
 !
 ! !USES:
 !
-    USE Registry_Mod, ONLY : To_Uppercase
+    USE Charpak_Mod, ONLY : To_UpperCase
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN) :: am_I_Root
-    TYPE(DgnList),     INTENT(IN) :: DiagList
-    CHARACTER(LEN=*),  INTENT(IN) :: substr
+    LOGICAL,           INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(DgnList),     INTENT(IN)  :: DiagList    ! Diagnostic list object
+    CHARACTER(LEN=*),  INTENT(IN)  :: substr      ! Substring
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(OUT) :: found
-    INTEGER,           INTENT(OUT) :: RC 
+    LOGICAL,           INTENT(OUT) :: found       ! Was a match found (T/F)?
+    INTEGER,           INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
+!  01 Nov 2017 - R. Yantosca - Now use To_UpperCase from charpak_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -510,7 +510,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_DiagList ( am_I_Root, DiagList, RC )
+  SUBROUTINE Print_DiagList( am_I_Root, DiagList, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -637,134 +637,5 @@ CONTAINS
     next    => NULL()
 
   END SUBROUTINE Cleanup_DiagList
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!BOP
-!
-! !IROUTINE: ReadOneLine
-!
-! !DESCRIPTION: Subroutine READ\_ONE\_LINE reads a line from the input file.  
-!  If the global variable VERBOSE is set, the line will be printed to stdout.  
-!  READ\_ONE\_LINE can trap an unexpected EOF if LOCATION is passed.  
-!  Otherwise, it will pass a logical flag back to the calling routine, 
-!  where the error trapping will be done.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION ReadOneLine( fId, EndOfFile, IoStatus, Squeeze ) RESULT( Line )
-!
-! !USES:
-!
-    USE Charpak_Mod,  ONLY : StrSqueeze, CStrip
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER, INTENT(IN)  :: fId        ! File unit number
-    LOGICAL, OPTIONAL    :: Squeeze    ! Call Strsqueeze?
-!
-! !OUTPUT PARAMETERS:
-!
-    LOGICAL, INTENT(OUT) :: EndOfFile  ! Denotes EOF condition
-    INTEGER, INTENT(OUT) :: IoStatus   ! I/O status code
-!
-! !RETURN VALUE:
-!
-    CHARACTER(LEN=255)   :: Line       ! Single line from the input file
-! 
-! !REVISION HISTORY: 
-!  16 Jun 2017 - R. Yantosca - Initial version, based on GEOS-Chem
-!  22 Sep 2017 - E. Lundgren - Copied from history_mod to allow use in
-!                              Headers subdirectory. Consider placing
-!                              elsewhere for common use!!!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    !=================================================================
-    ! Initialize
-    !=================================================================
-    EndOfFile = .FALSE.
-    IoStatus  = 0
-    Line      = ''
-
-    !=================================================================
-    ! Read data from the file
-    !=================================================================
-
-    ! Read a line from the file
-    READ( fId, '(a)', IOSTAT=IoStatus ) Line
-
-    ! IO Status < 0: EOF condition
-    IF ( IoStatus < 0 ) THEN 
-       EndOfFile = .TRUE.
-       RETURN
-    ENDIF
-
-    ! Remove blanks and null characters
-    CALL CSTRIP( Line ) 
-
-    ! If desired, call StrSqueeze to strip leading and trailing blanks
-    IF ( PRESENT( Squeeze ) ) THEN
-       IF ( Squeeze ) THEN
-          CALL StrSqueeze( Line )
-       ENDIF
-    ENDIF
-
-  END FUNCTION ReadOneLine
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: CleanText
-!
-! !DESCRIPTION: Strips commas, apostrophes, spaces, and tabs from a string.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION CleanText( Str ) RESULT( CleanStr )
-!
-! !USES:
-!
-    USE Charpak_Mod, ONLY : CStrip, StrRepl, StrSqueeze
-!
-! !INPUT PARAMETERS: 
-!
-    CHARACTER(LEN=*), INTENT(IN) :: Str        ! Original string
-!
-! !RETURN VALUE
-!
-    CHARACTER(LEN=255)           :: CleanStr   ! Cleaned-up string
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!  21 Jun 2017 - R. Yantosca - Now call CSTRIP to remove tabs etc.
-!  05 Oct 2017 - E. Lundgren - Copied from history_mod to allow use in
-!                              Headers subdirectory. Consider placing
-!                              elsewhere for common use!!!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    ! Initialize
-    CleanStr = Str
-
-    ! Strip out non-printing characters (e.g. tabs)
-    CALL CStrip    ( CleanStr           )
-
-    ! Remove commas and quotes
-    CALL StrRepl   ( CleanStr, ",", " " )
-    CALL StrRepl   ( CleanStr, "'", " " )
-    
-    ! Remove leading and trailing spaces
-    CALL StrSqueeze( CleanStr           ) 
-
-  END FUNCTION CleanText
 !EOC
 END MODULE Diagnostics_Mod

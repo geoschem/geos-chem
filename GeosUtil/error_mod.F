@@ -587,6 +587,7 @@
 !  15 Oct 2002 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  06 Jan 2017 - R. Yantosca - Added optional INSTRUCTIONS argument
+!  01 Nov 2017 - R. Yantosca - Flush the stdout buffer before halting
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -610,6 +611,9 @@
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
 !$OMP END CRITICAL
+      
+      ! Flush text to file before stopping
+      CALL FLUSH( 6 )
 
       ! Deallocate memory and stop the run
       CALL GEOS_CHEM_STOP()

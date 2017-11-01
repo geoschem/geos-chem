@@ -462,10 +462,13 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, J, L, N
-    REAL(fp)               :: MW_g
+    ! Scalars
+    INTEGER                :: I,    J,      L,   N
+    REAL(fp)               :: MW_g, MwRatio
+
+    ! Strings
     CHARACTER(LEN=255)     :: MSG, LOC
-    
+
     !====================================================================
     ! ConvertSpc_KgKgDry_to_VVDry begins here!
     !====================================================================
@@ -507,11 +510,11 @@ CONTAINS
     !    = Species(I,J,L,N) [kg/kg] * ( AIRMW / MW_G(N) )
     !                   
     !====================================================================
-    
+
     ! Loop over all species
-    !$OMP PARALLEL DO                 &
-    !$OMP DEFAULT( SHARED           ) &
-    !$OMP PRIVATE( I, J, L, N, MW_g ) 
+    !$OMP PARALLEL DO                          &
+    !$OMP DEFAULT( SHARED                    ) &
+    !$OMP PRIVATE( I, J, L, N, MW_g, MwRatio )
     DO N = 1, State_Chm%nSpecies
 
        ! (Emitted) molecular weight for the species [g]
@@ -521,12 +524,16 @@ CONTAINS
        ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
        MW_g = State_Chm%SpcData(N)%Info%emMW_g
     
+       ! Compute the ratio (MW air / MW species) outside of the IJL loop
+       MwRatio = ( AIRMW / MW_g )
+
        ! Loop over grid boxes and do unit conversion
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-          State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)  &
-                                     * ( AIRMW / MW_G )
+!          State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)  &
+!                                     * ( AIRMW / MW_G )
+          State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) * MwRatio
        ENDDO
        ENDDO
        ENDDO

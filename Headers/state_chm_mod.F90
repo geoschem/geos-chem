@@ -1212,6 +1212,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Charpak_Mod,        ONLY : To_UpperCase
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -2000,7 +2001,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHARPAK_MOD, ONLY : TRANUC
+    USE CharPak_Mod, ONLY : Str2Hash14, To_UpperCase
 !
 ! !INPUT PARAMETERS:
 !
@@ -2017,6 +2018,8 @@ CONTAINS
 !  07 Oct 2016 - M. Long     - Initial version
 !  15 Jun 2016 - M. Sulprizio- Make species name uppercase before computing hash
 !  17 Aug 2016 - M. Sulprizio- Tracer flag 'T' is now advected species flag 'A'
+!  01 Nov 2017 - R. Yantosca - Now use Str2Hash14 from charpak_mod.F90, which
+!                              computes a hash from an input string of 14 chars
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2033,12 +2036,11 @@ CONTAINS
     ! Initialize the output value
     Indx   = -1
 
-    ! Make species name uppercase for hash algorithm
-    Name14 = Name
-    CALL TRANUC( Name14 )
+    ! Make species name (14 chars only)  uppercase for hash algorithm
+    Name14 = To_UpperCase( Name )
 
     ! Compute the hash corresponding to the given species name
-    Hash   = Str2Hash( Name14 )
+    Hash   = Str2Hash14( Name14 )
 
     ! Loop over all entries in the Species Database object
     DO N = 1, SIZE( SpcDataLocal )

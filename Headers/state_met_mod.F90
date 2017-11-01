@@ -1952,6 +1952,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Charpak_Mod,         ONLY: To_UpperCase
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -1973,6 +1974,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  28 Aug 2017 - E. Lundgren - Initial version
+!  01 Nov 2017 - R. Yantosca - Now get To_UpperCase from charpak_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
