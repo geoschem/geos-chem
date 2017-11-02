@@ -291,7 +291,6 @@
       
       ! Are certain History diagnostics turned on?
       LOGICAL                        :: Archive_DryDepVel
-      LOGICAL                        :: Archive_DryDepFlux_Chm
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -4210,7 +4209,6 @@
       ! Set logical flags to determine if diagnostics are turned on
       !===================================================================
       Archive_DryDepVel      = ASSOCIATED( State_Diag%DryDepVel      )
-      Archive_DryDepFlux_Chm = ASSOCIATED( State_Diag%DryDepFlux_Chm )
 
       END SUBROUTINE INIT_DRYDEP
 !EOC

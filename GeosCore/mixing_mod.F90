@@ -36,7 +36,7 @@ MODULE MIXING_MOD
 !
 ! !PRIVATE TYPES:
 !
-  LOGICAL :: Archive_DryDepFlux_Mix   ! Is the DryDepFlux_Mix diag turned on?
+  LOGICAL :: Archive_DrydepMix   ! Is the DryDepMix diag turned on?
 
 CONTAINS
 !EOC
@@ -102,7 +102,7 @@ CONTAINS
     RC = GC_SUCCESS
    
     ! Is the drydep flux from mixing diagnostic turned on?
-    Archive_DryDepFlux_Mix = ASSOCIATED( State_Diag%DryDepFlux_Mix )
+    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix )
 
     !-----------------------------------------------------------------------
     ! Initialize PBL mixing scheme
@@ -388,8 +388,8 @@ CONTAINS
     ! (For example, if on the last iteration, the PBL height was higher than
     ! it is now, then we will have stored drydep fluxes up to that height,
     ! so we need to zero these out.)
-    IF ( Archive_DryDepFlux_Mix .and. DryDepID > 0 ) THEN
-       State_Diag%DryDepFlux_Mix = 0.0_f4
+    IF ( Archive_DryDepMix .and. DryDepID > 0 ) THEN
+       State_Diag%DryDepMix = 0.0_f4
     ENDIF
 
     ! DO_TEND previously operated in units of kg. The species arrays are in
@@ -730,8 +730,8 @@ CONTAINS
                    !
                    !    -- Bob Yantosca (yantosca@seas.harvard.edu)
                    !--------------------------------------------------------
-                   IF ( Archive_DryDepFlux_Mix .and. DryDepID > 0 ) THEN
-                      State_Diag%DryDepFlux_Mix(I,J,L,DryDepId) = Flux
+                   IF ( Archive_DryDepMix .and. DryDepID > 0 ) THEN
+                      State_Diag%DryDepMix(I,J,L,DryDepId) = Flux
                    ENDIF
 #endif
 

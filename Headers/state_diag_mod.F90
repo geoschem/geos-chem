@@ -56,14 +56,14 @@ MODULE State_Diag_Mod
      REAL(f8),  POINTER :: SpeciesConc    (:,:,:,:) ! Spc Conc for diag output
 
      ! Dry deposition
-     REAL(f4),  POINTER :: DryDepFlux_Chm (:,:,:,:) ! Drydep flux from chemistry
-     REAL(f4),  POINTER :: DryDepFlux_Mix (:,:,:,:) ! Drydep flux from mixing
-     REAL(f4),  POINTER :: DryDepFlux     (:,:,:,:) ! Total drydep flux
+     REAL(f4),  POINTER :: DryDepChm      (:,:,:,:) ! Drydep flux from chemistry
+     REAL(f4),  POINTER :: DryDepMix      (:,:,:,:) ! Drydep flux from mixing
+     REAL(f4),  POINTER :: DryDep         (:,:,:,:) ! Total drydep flux
      REAL(f4),  POINTER :: DryDepVel      (:,:,:  ) ! Dry deposition velocity
-     !REAL(f4),  POINTER :: DryDepRst_RA   (:,:,:  ) ! Aerodynamic resistance
-     !REAL(f4),  POINTER :: DryDepRst_RB   (:,:,:  ) ! Aerodynamic resistance
-     !REAL(f4),  POINTER :: DryDepRst_RC   (:,:,:  ) ! Total drydep resistance
-     !REAL(f4),  POINTER :: DryDepRst_RI   (:,:    ) ! Stomatal resistance
+    !REAL(f4),  POINTER :: DryDepRst_RA   (:,:,:  ) ! Aerodynamic resistance
+    !REAL(f4),  POINTER :: DryDepRst_RB   (:,:,:  ) ! Aerodynamic resistance
+    !REAL(f4),  POINTER :: DryDepRst_RC   (:,:,:  ) ! Total drydep resistance
+    !REAL(f4),  POINTER :: DryDepRst_RI   (:,:    ) ! Stomatal resistance
      ! Waiting for inputs on new resistance diagnostics commented out above
 
      ! Chemistry
@@ -88,10 +88,10 @@ MODULE State_Diag_Mod
 
      ! Convection and wet deposition
      REAL(f4),  POINTER :: CloudConvFlux  (:,:,:,:) ! cloud convection mass flux
-     REAL(f4),  POINTER :: ConvLoss       (:,:,:,:) ! Loss in convective updraft
-     REAL(f4),  POINTER :: ConvPrecipFrac (:,:,:  ) ! Frac convective precip
-     REAL(f4),  POINTER :: ConvRainFrac   (:,:,:,:) ! Frac lost to conv rainout
-     REAL(f4),  POINTER :: ConvWashFrac   (:,:,:,:) ! Frac lost to conv washout
+     REAL(f4),  POINTER :: WetLossConv    (:,:,:,:) ! Loss in convective updraft
+     REAL(f4),  POINTER :: PrecipFracConv (:,:,:  ) ! Frac convective precip
+     REAL(f4),  POINTER :: RainFracConv   (:,:,:,:) ! Frac lost to conv rainout
+     REAL(f4),  POINTER :: WashFracConv   (:,:,:,:) ! Frac lost to conv washout
      REAL(f4),  POINTER :: WetLossLS      (:,:,:,:) ! Loss in LS rainout/washout
      REAL(f4),  POINTER :: PrecipFracLS   (:,:,:  ) ! Frac large scale precip
      REAL(f4),  POINTER :: RainFracLS     (:,:,:,:) ! Frac lost to LS rainout
@@ -144,6 +144,7 @@ MODULE State_Diag_Mod
 !  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Diag and Print_State_Diag
 !  05 Oct 2017 - R. Yantosca - Add separate drydep fields for chem & mixing
 !  06 Oct 2017 - R. Yantosca - Declare SpeciesConc as an 8-byte real field
+!  02 Nov 2017 - R. Yantosca - Update wetdep and convection diagnostic names
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -236,13 +237,9 @@ CONTAINS
 
     ! Free pointers
     State_Diag%SpeciesConc     => NULL()
-    State_Diag%DryDepFlux_Chm  => NULL()
-    State_Diag%DryDepFlux_Mix  => NULL()
-    State_Diag%DryDepVel       => NULL()
-    State_Diag%JValues         => NULL()
-    State_Diag%DryDepFlux_Chm  => NULL()
-    State_Diag%DryDepFlux_Mix  => NULL()
-    State_Diag%DryDepFlux      => NULL()
+    State_Diag%DryDepChm       => NULL()
+    State_Diag%DryDepMix       => NULL()
+    State_Diag%DryDep          => NULL()
     State_Diag%DryDepVel       => NULL()
     State_Diag%JValues         => NULL()
     State_Diag%RxnRates        => NULL()
@@ -255,10 +252,10 @@ CONTAINS
     State_Diag%PBLMixFrac      => NULL()
     State_Diag%PBLFlux         => NULL()
     State_Diag%CloudConvFlux   => NULL()
-    State_Diag%ConvLoss        => NULL()
-    State_Diag%ConvPrecipFrac  => NULL()
-    State_Diag%ConvRainFrac    => NULL()
-    State_Diag%ConvWashFrac    => NULL()
+    State_Diag%WetLossConv     => NULL()
+    State_Diag%PrecipFracConv  => NULL()
+    State_Diag%RainFracConv    => NULL()
+    State_Diag%WashFracConv    => NULL()
     State_Diag%WetLossLS       => NULL()
     State_Diag%PrecipFracLS    => NULL()
     State_Diag%RainFracLS      => NULL()
@@ -300,16 +297,16 @@ CONTAINS
     !--------------------------------------------
     ! Dry deposition flux from chemistry
     !--------------------------------------------
-    arrayID = 'State_Diag%DryDepFlux_Chm'
-    diagID  = 'DryDepFlux_Chm'
+    arrayID = 'State_Diag%DryDepChm'
+    diagID  = 'DryDepChm'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepFlux_Chm( IM, JM, LM, nDryDep ), STAT=RC )
+       ALLOCATE( State_Diag%DryDepChm( IM, JM, LM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( ArrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepFlux_Chm = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepFlux_Chm, &
+       State_Diag%DryDepChm = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepChm, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -317,16 +314,16 @@ CONTAINS
     !--------------------------------------------
     ! Dry deposition flux from mixing
     !--------------------------------------------
-    arrayID = 'State_Diag%DryDepFlux_Mix'
-    diagID  = 'DryDepFlux_Mix'
+    arrayID = 'State_Diag%DryDepMix'
+    diagID  = 'DryDepMix'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepFlux_Mix( IM, JM, LM, nDryDep ), STAT=RC )
+       ALLOCATE( State_Diag%DryDepMix( IM, JM, LM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepFlux_Mix = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepFlux_Mix, &
+       State_Diag%DryDepMix = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepMix, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -334,16 +331,16 @@ CONTAINS
     !--------------------------------------------
     ! Total dry deposition flux
     !--------------------------------------------
-    arrayID = 'State_Diag%DryDepFlux'
-    diagID  = 'DryDepFlux'
+    arrayID = 'State_Diag%DryDep'
+    diagID  = 'DryDep'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepFlux( IM, JM, LM, nDryDep ), STAT=RC )
+       ALLOCATE( State_Diag%DryDep( IM, JM, LM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepFlux = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepFlux, &
+       State_Diag%DryDep = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDep, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -556,16 +553,16 @@ CONTAINS
     !-----------------------------------------------
     ! Loss of soluble species in convective updrafts
     !-----------------------------------------------
-    arrayID = 'State_Diag%ConvLoss'
-    diagID  = 'ConvLoss'
+    arrayID = 'State_Diag%WetLossConv'
+    diagID  = 'WetLossConv'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%ConvLoss( IM, JM, LM, nWetDep ), STAT=RC )
+       ALLOCATE( State_Diag%WetLossConv( IM, JM, LM, nWetDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ConvLoss = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%ConvLoss, &
+       State_Diag%WetLossConv = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%WetLossConv, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -573,16 +570,16 @@ CONTAINS
     !---------------------------------------------------------
     ! Fraction of grid box undergoing convective precipitation
     !---------------------------------------------------------
-    arrayID = 'State_Diag%ConvPrecipFrac'
-    diagID  = 'ConvPrecipFrac'
+    arrayID = 'State_Diag%PrecipFracConv'
+    diagID  = 'PrecipFracConv'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%ConvPrecipFrac( IM, JM, LM ), STAT=RC )
+       ALLOCATE( State_Diag%PrecipFracConv( IM, JM, LM ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ConvPrecipFrac = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%ConvPrecipFrac, &
+       State_Diag%PrecipFracConv = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%PrecipFracConv, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -590,16 +587,16 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Fraction of soluble species lost to rainout in convective precipitation
     !------------------------------------------------------------------------ 
-    arrayID = 'State_Diag%ConvRainFrac'
-    diagID  = 'ConvRainFrac'
+    arrayID = 'State_Diag%RainFracConv'
+    diagID  = 'RainFracConv'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%ConvRainFrac( IM, JM, LM, nWetDep ), STAT=RC )
+       ALLOCATE( State_Diag%RainFracConv( IM, JM, LM, nWetDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ConvRainFrac = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%ConvRainFrac, &
+       State_Diag%RainFracConv = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RainFracConv, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -607,16 +604,16 @@ CONTAINS
     !--------------------------------------------
     ! Fraction of soluble species lost to rainout in convective precipitation
     !-------------------------------------------- 
-    arrayID = 'State_Diag%ConvWashFrac'
-    diagID  = 'ConvWashFrac'
+    arrayID = 'State_Diag%WashFracConv'
+    diagID  = 'WashFracConv'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%ConvWashFrac( IM, JM, LM, nWetDep ), STAT=RC )
+       ALLOCATE( State_Diag%WashFracConv( IM, JM, LM, nWetDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ConvWashFrac = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%ConvWashFrac, &
+       State_Diag%WashFracConv = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%WashFracConv, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -966,19 +963,28 @@ CONTAINS
        ENDIF
     ENDIF
  
-    IF ( ASSOCIATED( State_Diag%DryDepFlux_Chm ) ) THEN
-       DEALLOCATE( State_Diag%DryDepFlux_Chm, STAT=RC )
+    IF ( ASSOCIATED( State_Diag%DryDepChm ) ) THEN
+       DEALLOCATE( State_Diag%DryDepChm, STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%DryDepFlux_Chm"!'
+          ErrMsg = 'Could not deallocate "State_Diag%DryDepChm"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%DryDepFlux_Mix ) ) THEN
-       DEALLOCATE( State_Diag%DryDepFlux_Mix, STAT=RC )
+    IF ( ASSOCIATED( State_Diag%DryDepMix ) ) THEN
+       DEALLOCATE( State_Diag%DryDepMix, STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%DryDepFlux_Mix"!'
+          ErrMsg = 'Could not deallocate "State_Diag%DryDepMix"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%DryDep ) ) THEN
+       DEALLOCATE( State_Diag%DryDep, STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%DryDep"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -997,15 +1003,6 @@ CONTAINS
        DEALLOCATE( State_Diag%JValues, STAT=RC  )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not deallocate "State_Diag%JValues"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%DryDepFlux ) ) THEN
-       DEALLOCATE( State_Diag%DryDepFlux, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%DryDepFlux"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -1101,37 +1098,37 @@ CONTAINS
        ENDIF
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%ConvLoss ) ) THEN
-       DEALLOCATE( State_Diag%ConvLoss, STAT=RC  )
+    IF ( ASSOCIATED( State_Diag%WetLossConv ) ) THEN
+       DEALLOCATE( State_Diag%WetLossConv, STAT=RC  )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%ConvLoss"!'
+          ErrMsg = 'Could not deallocate "State_Diag%WetLossConv"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%ConvPrecipFrac ) ) THEN
-       DEALLOCATE( State_Diag%ConvPrecipFrac, STAT=RC  )
+    IF ( ASSOCIATED( State_Diag%PrecipFracConv ) ) THEN
+       DEALLOCATE( State_Diag%PrecipFracConv, STAT=RC  )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%ConvPrecipFrac"!'
+          ErrMsg = 'Could not deallocate "State_Diag%PrecipFracConv"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%ConvRainFrac ) ) THEN
-       DEALLOCATE( State_Diag%ConvRainFrac, STAT=RC  )
+    IF ( ASSOCIATED( State_Diag%RainFracConv ) ) THEN
+       DEALLOCATE( State_Diag%RainFracConv, STAT=RC  )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%ConvRainFrac"!'
+          ErrMsg = 'Could not deallocate "State_Diag%RainFracConv"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%ConvWashFrac ) ) THEN
-       DEALLOCATE( State_Diag%ConvWashFrac, STAT=RC  )
+    IF ( ASSOCIATED( State_Diag%WashFracConv ) ) THEN
+       DEALLOCATE( State_Diag%WashFracConv, STAT=RC  )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%ConvWashFrac"!'
+          ErrMsg = 'Could not deallocate "State_Diag%WashFracConv"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -1320,6 +1317,7 @@ CONTAINS
 !  20 Sep 2017 - E. Lundgren - Initial version
 !  06 Oct 2017 - R. Yantosca - State_Diga%SpeciesConc is now an 8-byte real
 !  01 Nov 2017 - R. Yantosca - Now get To_UpperCase from charpak_mod.F90
+!  02 Nov 2017 - R. Yantosca - Update metadata to be consistent w/ arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1371,14 +1369,20 @@ CONTAINS
           IF ( isSpecies ) PerSpecies = 'ALL'
           IF ( isType    ) Type       = KINDVAL_F8
 
-       CASE ( 'DRYDEPFLUX_CHM' )
+       CASE ( 'DRYDEPCHM' )
           IF ( isDesc    ) Desc       = 'Dry deposition flux of species, from chemistry'
           IF ( isUnits   ) Units      = 'molec cm-2 s-1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'DRY'
 
-       CASE ( 'DRYDEPFLUX_MIX' )
+       CASE ( 'DRYDEPMIX' )
           IF ( isDesc    ) Desc       = 'Dry deposition flux of species, from mixing'
+          IF ( isUnits   ) Units      = 'molec cm-2 s-1'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = 'DRY'
+
+       CASE ( 'DRYDEP' )
+          IF ( isDesc    ) Desc       = 'Dry deposition flux of species'
           IF ( isUnits   ) Units      = 'molec cm-2 s-1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'DRY'
@@ -1395,12 +1399,6 @@ CONTAINS
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'JVN' ! TODO: fix species mapping
 
-       CASE ( 'DRYDEPFLUX' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'DRY'
-
        CASE ( 'RXNRATES' )
           IF ( isDesc    ) Desc       = 'placeholder'
           IF ( isUnits   ) Units      = 'placeholder'
@@ -1409,167 +1407,167 @@ CONTAINS
 
        CASE ( 'UVFLUXDIFFUSE' )
           IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isUnits   ) Units      = 'W m-2'
           IF ( isRank    ) Rank       = 3
 
        CASE ( 'UVFLUXDIRECT' )
           IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isUnits   ) Units      = 'W m-2'
           IF ( isRank    ) Rank       = 3
 
        CASE ( 'UVFLUXNET' )
           IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isUnits   ) Units      = 'W m-2'
           IF ( isRank    ) Rank       = 3
 
        CASE ( 'ADVFLUXZONAL' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Advection of species in zonal direction'
+          IF ( isUnits   ) Units      = 'kg s-1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'ADV'
 
        CASE ( 'ADVFLUXMERID' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Advection of species in meridional direction'
+          IF ( isUnits   ) Units      = 'kg s-1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'ADV'
      
        CASE ( 'ADVFLUXVERT' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Advection of species in vertical direction'
+          IF ( isUnits   ) Units      = 'kg s-1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'ADV'
 
        CASE ( 'PBLMIXFRAC' )
-          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Fraction of boundary layer occupied by each level'
           IF ( isUnits   ) Units      = 'placeholder'
           IF ( isRank    ) Rank       = 3
 
        CASE ( 'PBLFLUX' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Species mass change due to boundary-layer mixing'
+          IF ( isUnits   ) Units      = 'kg s-1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'ADV'
 
        CASE ( 'CLOUDCONVFLUX' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Mass change due to cloud convection'
+          IF ( isUnits   ) Units      = 'kg s-1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'ADV'
 
-       CASE ( 'CONVLOSS' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+       CASE ( 'WETLOSSCONV' )
+          IF ( isDesc    ) Desc       = 'Loss of soluble species in convective updrafts'
+          IF ( isUnits   ) Units      = 'kg s-1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'WET'
 
-       CASE ( 'CONVPRECIPFRAC' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+       CASE ( 'PRECIPFRACCONV' )
+          IF ( isDesc    ) Desc       = 'Fraction of grid box undergoing convective precipitation'
+          IF ( isUnits   ) Units      = '1'
           IF ( isRank    ) Rank       = 3
 
-       CASE ( 'CONVRAINFRAC' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+       CASE ( 'RAINFRACCONV' )
+          IF ( isDesc    ) Desc       = 'Fraction of soluble species lost to rainout in convective precipitation'
+          IF ( isUnits   ) Units      = '1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'WET'
 
-       CASE ( 'CONVWASHFRAC' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+       CASE ( 'WASHFRACCONV' )
+          IF ( isDesc    ) Desc       = 'Fraction of soluble species lost to washout in convective precipitation'
+          IF ( isUnits   ) Units      = '1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'WET'
 
        CASE ( 'WETLOSSLS' )
-          IF ( isDesc    ) Desc       = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Loss of soluble species in large-scale precipitation'
           IF ( isUnits   ) Units      = 'placeholder'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'WET'
 
        CASE ( 'PRECIPFRACLS' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Fraction of grid box undergoing large-scale precipitation'
+          IF ( isUnits   ) Units      = '1'
           IF ( isRank    ) Rank       = 3
 
        CASE ( 'RAINFRACLS' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Fraction of soluble species lost to rainout in large-scale precipitation'
+          IF ( isUnits   ) Units      = '1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'WET'
 
        CASE ( 'WASHFRACLS' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Fraction of soluble species lost to washout in large-scale precipitation'
+          IF ( isUnits   ) Units      = '1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'WET'
 
        CASE ( 'PBFROMRNDECAY' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Pb210 created from radioactive decay of Rn222'
+          IF ( isUnits   ) Units      = 'kg s-1'
           IF ( isRank    ) Rank       = 3
 
        CASE ( 'RADDECAY' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Radioactive decay of radionuclide species'
+          IF ( isUnits   ) Units      = 'kg s-1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'ADV'
 
        CASE ( 'RADALLSKYLWSURF' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'All-sky long-wave radiation at surface'
+          IF ( isUnits   ) Units      = 'W m-2'
           IF ( isRank    ) Rank       = 2
           IF ( isSpecies ) PerSpecies = 'placeholder'
 
        CASE ( 'RADALLSKYLWTOA' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'All-sky long-wave radiation at top of atmosphere'
+          IF ( isUnits   ) Units      = 'W m-2'
           IF ( isRank    ) Rank       = 2
           IF ( isSpecies ) PerSpecies = 'placeholder'
 
        CASE ( 'RADALLSKYSWSURF' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'All-sky short-wave radiation at surface'
+          IF ( isUnits   ) Units      = 'W m-2'
           IF ( isRank    ) Rank       = 2
           IF ( isSpecies ) PerSpecies = 'placeholder'
 
        CASE ( 'RADALLSKYSWTOA ' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'All-sky short-wave radiation at top of atmosphere'
+          IF ( isUnits   ) Units      = 'W m-2'
           IF ( isRank    ) Rank       = 2
           IF ( isSpecies ) PerSpecies = 'placeholder'
 
        CASE ( 'RADCLRSKYLWSURF' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Clear-sky long-wave radiation at surface'
+          IF ( isUnits   ) Units      = 'W m-2'
           IF ( isRank    ) Rank       = 2
           IF ( isSpecies ) PerSpecies = 'placeholder'
 
        CASE ( 'RADCLRSKYLWTOA ' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Clear-sky long-wave radiation at top of atmosphere'
+          IF ( isUnits   ) Units      = 'W m-2'
           IF ( isRank    ) Rank       = 2
           IF ( isSpecies ) PerSpecies = 'placeholder'
 
        CASE ( 'RADCLRSKYSWSURF' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Clear-sky short-wave radiation at surface'
+          IF ( isUnits   ) Units      = 'W m-2'
           IF ( isRank    ) Rank       = 2
           IF ( isSpecies ) PerSpecies = 'placeholder'
 
        CASE ( 'RADCLRSKYSWTOA' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
+          IF ( isDesc    ) Desc       = 'Clear-sky short-wave radiation at top of atmosphere'
+          IF ( isUnits   ) Units      = 'W m-2'
           IF ( isRank    ) Rank       = 2
           IF ( isSpecies ) PerSpecies = 'placeholder'
 
        CASE DEFAULT
           Found = .False.
-          ErrMsg = 'Metadata not found for State_Diag field ID: ' &
-                   // TRIM( metadataID ) // '. If the name in HISTORY.rc ' &
-                   // 'has species appended, make sure the species name ' &
-                   // 'is preceded by double underscores. Otherwise, ' &
-                   // 'check that the name is listed with all caps in ' &
-                   // 'subroutine Get_Metadata_State_Diag ' &
+          ErrMsg = 'Metadata not found for State_Diag field ID: '            &
+                   // TRIM( metadataID ) // '. If the name in HISTORY.rc '   &
+                   // 'has species appended, make sure the species name '    &
+                   // 'is preceded by double underscores. Otherwise, '       &
+                   // 'check that the name is listed with all caps in '      &
+                   // 'subroutine Get_Metadata_State_Diag '                  &
                    // '(Headers/state_diag_mod.F90).'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
