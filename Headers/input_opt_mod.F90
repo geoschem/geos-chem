@@ -136,7 +136,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      LOGICAL                     :: LEMIS
      INTEGER                     :: TS_EMIS
-     INTEGER                     :: LBIOFUEL
+     LOGICAL                     :: LBIOFUEL
      LOGICAL                     :: LOTDLOC
      LOGICAL                     :: LSOILNOX
      LOGICAL                     :: LWARWICK_VSLS
@@ -624,6 +624,7 @@ MODULE Input_Opt_Mod
 !                              default.
 !  14 Sep 2017 - M. Sulprizio- Add USE_ONLINE_O3 and USE_TOMS_O3 to options for
 !                              overhead O3 in chemistry menu
+!  02 Nov 2017 - R. Yantosca - Bug fix: LBIOFUEL should be LOGICAL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -713,6 +714,7 @@ CONTAINS
 !  16 Mar 2017 - R. Yantosca - Remove obsolete family and drydep variables
 !  17 Mar 2017 - R. Yantosca - Remove IDDEP, DUSTREFF, DUSTDEN
 !  12 Jul 2017 - R. Yantosca - Initialize Input_Opt%HistoryInputFile field
+!  02 Nov 2017 - R. Yantosca - LWINDO_CU should be .FALSE., not 0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1268,7 +1270,7 @@ CONTAINS
     Input_Opt%TPBC_DIR_CH            = './'
     Input_Opt%LWINDO_AS              = .FALSE.
     Input_Opt%TPBC_DIR_AS            = './'
-    Input_Opt%LWINDO_CU              = 0
+    Input_Opt%LWINDO_CU              = .FALSE.
     Input_Opt%TPBC_DIR               = './'
     Input_Opt%NESTED_TS              = 0
     Input_Opt%NESTED_I1              = 0

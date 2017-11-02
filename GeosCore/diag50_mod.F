@@ -1264,7 +1264,7 @@
             !---------------------            
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
-            GMNL      = ND50_ NL
+            GMNL      = ND50_NL
             GMTRC     = 6
 
          ELSE IF ( N == 518 ) THEN
@@ -1284,7 +1284,7 @@
             !---------------------            
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
-            GMNL      = ND50_ NL
+            GMNL      = ND50_NL
             GMTRC     = 12
             
          ELSE IF ( N == 520 ) THEN
