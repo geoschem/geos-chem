@@ -97,6 +97,10 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: RainFracLS     (:,:,:,:) ! Frac lost to LS rainout
      REAL(f4),  POINTER :: WashFracLS     (:,:,:,:) ! Frac lost to LS washout
      
+     ! Carbon aerosols
+     REAL(f4),  POINTER :: ProdBCPIfromBCPO(:,:,: )
+     REAL(f4),  POINTER :: ProdOCPIfromOCPO(:,:,: )
+
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
      !----------------------------------------------------------------------
@@ -236,40 +240,42 @@ CONTAINS
     nWetDep  = State_Chm%nWetDep
 
     ! Free pointers
-    State_Diag%SpeciesConc     => NULL()
-    State_Diag%DryDepChm       => NULL()
-    State_Diag%DryDepMix       => NULL()
-    State_Diag%DryDep          => NULL()
-    State_Diag%DryDepVel       => NULL()
-    State_Diag%JValues         => NULL()
-    State_Diag%RxnRates        => NULL()
-    State_Diag%UVFluxDiffuse   => NULL()
-    State_Diag%UVFluxDirect    => NULL()
-    State_Diag%UVFluxNet       => NULL()
-    State_Diag%AdvFluxZonal    => NULL()
-    State_Diag%AdvFluxMerid    => NULL()
-    State_Diag%AdvFluxVert     => NULL()
-    State_Diag%PBLMixFrac      => NULL()
-    State_Diag%PBLFlux         => NULL()
-    State_Diag%CloudConvFlux   => NULL()
-    State_Diag%WetLossConv     => NULL()
-    State_Diag%PrecipFracConv  => NULL()
-    State_Diag%RainFracConv    => NULL()
-    State_Diag%WashFracConv    => NULL()
-    State_Diag%WetLossLS       => NULL()
-    State_Diag%PrecipFracLS    => NULL()
-    State_Diag%RainFracLS      => NULL()
-    State_Diag%WashFracLS      => NULL()
-    State_Diag%PbFromRnDecay   => NULL()
-    State_Diag%RadDecay        => NULL()
-    State_Diag%RadAllSkyLWSurf => NULL()
-    State_Diag%RadAllSkyLWTOA  => NULL()
-    State_Diag%RadAllSkySWSurf => NULL()
-    State_Diag%RadAllSkySWTOA  => NULL()
-    State_Diag%RadClrSkyLWSurf => NULL()
-    State_Diag%RadClrSkyLWTOA  => NULL()
-    State_Diag%RadClrSkySWSurf => NULL()
-    State_Diag%RadClrSkySWTOA  => NULL()
+    State_Diag%SpeciesConc         => NULL()
+    State_Diag%DryDepChm           => NULL()
+    State_Diag%DryDepMix           => NULL()
+    State_Diag%DryDep              => NULL()
+    State_Diag%DryDepVel           => NULL()
+    State_Diag%JValues             => NULL()
+    State_Diag%RxnRates            => NULL()
+    State_Diag%UVFluxDiffuse       => NULL()
+    State_Diag%UVFluxDirect        => NULL()
+    State_Diag%UVFluxNet           => NULL()
+    State_Diag%AdvFluxZonal        => NULL()
+    State_Diag%AdvFluxMerid        => NULL()
+    State_Diag%AdvFluxVert         => NULL()
+    State_Diag%PBLMixFrac          => NULL()
+    State_Diag%PBLFlux             => NULL()
+    State_Diag%CloudConvFlux       => NULL()
+    State_Diag%WetLossConv         => NULL()
+    State_Diag%PrecipFracConv      => NULL()
+    State_Diag%RainFracConv        => NULL()
+    State_Diag%WashFracConv        => NULL()
+    State_Diag%WetLossLS           => NULL()
+    State_Diag%PrecipFracLS        => NULL()
+    State_Diag%RainFracLS          => NULL()
+    State_Diag%WashFracLS          => NULL()
+    State_Diag%PbFromRnDecay       => NULL()
+    State_Diag%RadDecay            => NULL()
+    State_Diag%RadAllSkyLWSurf     => NULL()
+    State_Diag%RadAllSkyLWTOA      => NULL()
+    State_Diag%RadAllSkySWSurf     => NULL()
+    State_Diag%RadAllSkySWTOA      => NULL()
+    State_Diag%RadClrSkyLWSurf     => NULL()
+    State_Diag%RadClrSkyLWTOA      => NULL()
+    State_Diag%RadClrSkySWSurf     => NULL()
+    State_Diag%RadClrSkySWTOA      => NULL()
+    State_Diag%ProdBCPIfromBCPO    => NULL()
+    State_Diag%ProdOCPIfromOCPO    => NULL()
 
 #if defined( NC_DIAG )
 
@@ -857,6 +863,44 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    !--------------------------------------------
+    ! Production of Hydrophilic BC (aka BCPI)
+    ! from Hydrophobic BC (aka BCPO)
+    !--------------------------------------------
+    arrayID = 'State_Diag%ProdBCPIfromBCPO'
+    diagID  = 'ProdBCPIfromBCPO'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%ProdBCPIfromBCPO( IM, JM, LM ), STAT=RC ) 
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdBCPIfromBCPO = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID,               &
+                                State_Diag%ProdBCPIfromBCPO,     &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Production of Hydrophilic OC (aka OCPI)
+    ! from Hydrophobic OC (aka OCPO)
+    !--------------------------------------------
+    arrayID = 'State_Diag%ProdOCPIfromOCPO'
+    diagID  = 'ProdOCPIfromOCPO'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%ProdOCPIfromOCPO( IM, JM, LM ), STAT=RC ) 
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdOCPIfromOCPO = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID,               &
+                                State_Diag%ProdOCPIfromOCPO,     &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     !!--------------------------------------------
     !! Template for adding more diagnostics arrays
     !! Search and replace 'xxx' with array name
@@ -1260,6 +1304,24 @@ CONTAINS
        ENDIF
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%ProdBCPIfromBCPO ) ) THEN
+       DEALLOCATE( State_Diag%ProdBCPIfromBCPO, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%%ProdBCPIfromBCPO"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdOCPIfromOCPO ) ) THEN
+       DEALLOCATE( State_Diag%ProdOCPIfromOCPO, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%ProdOCPIfromOCPO"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
     !=======================================================================
     ! Destroy the registry of fields for this module
     !=======================================================================
@@ -1312,6 +1374,7 @@ CONTAINS
     INTEGER,             INTENT(OUT), OPTIONAL :: VLoc       ! Vert placement
 !
 ! !REMARKS:
+!  If a diagnostic cannot use a wildcard, then set PerSpecies=''.
 !
 ! !REVISION HISTORY: 
 !  20 Sep 2017 - E. Lundgren - Initial version
@@ -1559,6 +1622,18 @@ CONTAINS
           IF ( isUnits   ) Units      = 'W m-2'
           IF ( isRank    ) Rank       = 2
           IF ( isSpecies ) PerSpecies = 'placeholder'
+
+       CASE ( 'PRODBCPIFROMBCPO' )
+          IF ( isDesc    ) Desc       = 'Production of hydrophilic black carbon from hydrophobic black carbon'
+          IF ( isUnits   ) Units      = 'kg'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = ''
+
+       CASE ( 'PRODOCPIFROMOCPO' )
+          IF ( isDesc    ) Desc       = 'Production of hydrophilic organic carbon from hydrophobic organic carbon'
+          IF ( isUnits   ) Units      = 'kg'
+          IF ( isRank    ) Rank       = 3
+          IF ( isSpecies ) PerSpecies = ''
 
        CASE DEFAULT
           Found = .False.

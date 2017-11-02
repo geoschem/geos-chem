@@ -7653,7 +7653,8 @@
 !  23 Jun 2016 - R. Yantosca - Now call INIT_DIAG_OH from here
 !  16 Aug 2016 - M. Sulprizio- Rename from GIGC_Init_Extra to GC_Init_Extra.
 !                              The "gigc" nomenclature is no longer used.
-!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument and
+!                              pass it to the various init routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7736,28 +7737,31 @@
 
       ! Initialize "carbon_mod.F"
       IF ( Input_Opt%LCARB ) THEN
-         CALL Init_Carbon( am_I_Root, Input_Opt, RC )
+         CALL Init_Carbon( am_I_Root, Input_Opt, State_Diag, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CARBON' )
       ENDIF
     
       ! Initialize "dust_mod.F"
       IF ( Input_Opt%LDUST ) then
-         CALL Init_Dust( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_Dust( am_I_Root, Input_Opt,
+     &                   State_Chm, State_Diag, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_DUST' )
       ENDIF
 
       ! Initialize "seasalt_mod.F
       IF ( Input_Opt%LSSALT ) THEN
-         CALL Init_Seasalt( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_Seasalt( am_I_Root, Input_Opt,
+     &                      State_Chm, State_Diag, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SEASALT' )
       ENDIF
 
       ! Initialize "sulfate_mod.F"
       IF ( Input_Opt%LSULF ) THEN
-         CALL Init_Sulfate( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_Sulfate( am_I_Root, Input_Opt,
+     &                      State_Chm, State_Diag, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SULFATE' )
       ENDIF

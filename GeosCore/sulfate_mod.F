@@ -233,6 +233,10 @@
       ! LVOLC      : Number of volcanic levels (20)   [unitless]
       !========================================================================
 
+      ! Diagnostic flags
+      LOGICAL                :: Archive_DryDepChm
+      LOGICAL                :: Archive_DryDep
+
       ! Time variable
       INTEGER                :: ELAPSED_SEC
 
@@ -317,8 +321,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMSULFATE( am_I_Root, Input_Opt, 
-     &                        State_Met, State_Chm, FullRun, RC )
+      SUBROUTINE CHEMSULFATE( am_I_Root, Input_Opt,  State_Met,
+     &                        State_Chm, State_Diag, FullRun,   RC )
 !
 ! !USES:
 !
@@ -330,6 +334,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -348,6 +353,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -406,6 +412,7 @@
 !                              species ID from State_Chm%Map_Advect.
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -527,12 +534,12 @@
       !=================================================================
 
       ! Perform all routines only when doing a "full" run
-      If (FullRun) Then
+      IF ( FullRun ) THEN
 
          ! SO4s [kg] gravitational settling
          IF ( id_SO4s > 0 ) THEN
-            CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                          State_Chm, id_SO4s,   RC         )
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
+     &                          State_Chm, State_Diag, id_SO4s,   RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
             ENDIF
@@ -540,8 +547,8 @@
 
          ! NITs [kg] gravitational settling
          IF ( id_NITs > 0 ) THEN 
-            CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met, 
-     &                         State_Chm, id_NITs,   RC )
+            CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
+     &                          State_Chm, State_Diag, id_NITs,   RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
             ENDIF
@@ -554,8 +561,8 @@
 
             ! SO4d1 [kg] gravitational settling
             IF ( id_SO4d1 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                             State_Chm, id_SO4d1,  RC         )
+               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
+     &                             State_Chm, State_Diag, id_SO4d1, RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d1')
                ENDIF
@@ -563,8 +570,8 @@
 
             ! SO4d2 [kg] gravitational settling
             IF ( id_SO4d2 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                             State_Chm, id_SO4d2,  RC         )
+               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
+     &                             State_Chm, State_Diag, id_SO4d2, RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d2')
                ENDIF
@@ -572,8 +579,8 @@
 
             ! SO4d3 [kg] gravitational settling
             IF ( id_SO4d3 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                             State_Chm, id_SO4d3,  RC         )
+               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
+     &                             State_Chm, State_Diag, id_SO4d3, RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d3')
                ENDIF
@@ -581,8 +588,8 @@
 
             ! SO4d4 [kg] gravitational settling
             IF ( id_SO4d4 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                             State_Chm, id_SO4d4,  RC         )
+               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
+     &                             State_Chm, State_Diag, id_SO4d4, RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d4')
                ENDIF
@@ -590,8 +597,8 @@
 
             ! NITd1 [kg] gravitational settling
             IF ( id_NITd1 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                             State_Chm, id_NITd1,  RC         )
+               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
+     &                             State_Chm, State_Diag, id_NITd1, RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd1')
                ENDIF
@@ -599,8 +606,8 @@
 
             ! NITd2 [kg] gravitational settling
             IF ( id_NITd2 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                             State_Chm, id_NITd2,  RC         )
+               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
+     &                             State_Chm, State_Diag, id_NITd2, RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd2')
                ENDIF
@@ -608,8 +615,8 @@
 
             ! NITd3 [kg] gravitational settling
             IF ( id_NITd3 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                             State_Chm, id_NITd3,  RC         )
+               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
+     &                             State_Chm, State_Diag, id_NITd3, RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd3')
                ENDIF
@@ -617,8 +624,8 @@
 
             ! NITd4 [kg] gravitational settling
             IF ( id_NITd4 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                             State_Chm, id_NITd4,  RC         )
+               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
+     &                             State_Chm, State_Diag, id_NITd4, RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd4')
                ENDIF
@@ -1415,7 +1422,6 @@
 
       END SUBROUTINE SRCSF30
 #endif
-
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1431,8 +1437,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GRAV_SETTLING( am_I_Root, Input_Opt, State_Met, 
-     &                          State_Chm, N,         RC         )
+      SUBROUTINE GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
+     &                          State_Chm, State_Diag, N,         RC )
 !
 ! !USES:
 !
@@ -1445,6 +1451,7 @@
       USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
@@ -1464,6 +1471,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 ! 
 ! !REMARKS:
 !  N=1 is SO4S; N=2 is NITS
@@ -1498,6 +1506,7 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  31 May 2016 - E. Lundgren - Remove usage of Input_Opt%XNUMOL
 !  24 Jun 2016 - R. Yantosca - Now return if id_SO4d1<0 or id_NITd1<0 (not ==0)
+!  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1528,7 +1537,7 @@
       ! Slip Slip correction factor
       ! Visc Viscosity of air (Pa s)
       ! VTS  Settling velocity of particle (m/s)
-      LOGICAL                :: LDSTUP
+      LOGICAL                :: Do_Diag
       LOGICAL                :: IS_UPTAKE_SPC
       INTEGER                :: I,         J,      L
       INTEGER                :: DryDep_ID, DTCHEM
@@ -1556,14 +1565,12 @@
       ! GRAV_SETTLING begins here!
       !=================================================================
 
-      ! Assume success
-      RC            =  GC_SUCCESS
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      LDSTUP        =  Input_Opt%LDSTUP
+      ! Initialize
+      RC       =  GC_SUCCESS
+      Do_Diag  = ( ND44 > 0 .or. Archive_DryDepChm .or. Archive_DryDep )
 
       ! Return if tracers are undefined
-      IF ( LDSTUP ) THEN
+      IF ( Input_Opt%LDSTUP ) THEN
          IF ( id_SO4d1 < 0 .and. id_NITd1 < 0 ) RETURN ! tdf
       ENDIF
 
@@ -1768,10 +1775,10 @@
          ENDDO
          
          !==============================================================
-         ! Calculate ND44 diagnostic: drydep flux [molec/cm2/s]
+         ! DIAGNOSTIC: Drydep flux [molec/cm2/s]
          ! (specifically sea salt loss diagnostics)
          !==============================================================
-         IF ( ND44 > 0 ) THEN
+         IF ( Do_Diag ) THEN
 
             ! Initialize
             TOT1 = 0e+0_fp
@@ -1792,10 +1799,38 @@
      &               / ( EmMW_g * 1.e-3_fp ) 
      &               / AREA_CM2 
 
-#if defined( BPCH_DIAG )   
+#if defined( BPCH_DIAG )
+            !-----------------------------------------------------------
+            ! ND44 DIAGNOSTIC (bpch)
+            ! Dry deposition flux loss [molec/cm2/s]
+            !
+            ! NOTE: Bpch diagnostics are being phased out.
+            !-----------------------------------------------------------
+
             ! Store in global AD44 array for bpch diagnostic output
             AD44(I,J,DryDep_Id,1) = AD44(I,J,DryDep_Id,1) + FLUX
 #endif
+
+#if defined( NC_DIAG )
+            !-----------------------------------------------------------
+            ! HISTORY (aka netCDF diagnostics)
+            ! Dry deposition flux loss [molec/cm2/s]
+            !
+            ! NOTE: Eventually think about converting this
+            ! diagnostic to more standard units [kg/m2/s]
+            !-----------------------------------------------------------
+
+            ! Drydep flux in chemistry only
+            IF ( Archive_DryDepChm ) THEN
+               State_Diag%DryDepChm(I,J,1,DryDep_Id) = FLUX
+            ENDIF
+
+            ! Total drydep flux
+            IF ( Archive_DryDep ) THEN
+               State_Diag%DryDep(I,J,1,DryDep_Id) = FLUX
+            ENDIF
+#endif
+
          ENDIF
       ENDDO ! I
       ENDDO ! J
@@ -2138,25 +2173,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_H2O2( am_I_Root, Input_Opt, 
+      SUBROUTINE CHEM_H2O2( am_I_Root, Input_Opt,
      &                      State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-#if defined( BPCH_DIAG )
-      USE DIAG_MOD,           ONLY : AD44 
-#endif
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MONTH
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Met_Mod,  ONLY : MetState
+      USE TIME_MOD,       ONLY : GET_MONTH
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH
 !
 ! !INPUT PARAMETERS:
 !
@@ -7283,7 +7315,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SULFATE( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE INIT_SULFATE( am_I_Root, Input_Opt,
+     &                         State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -7294,12 +7327,14 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -7337,6 +7372,7 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  21 Jun 2016 - R. Yantosca - Reorder the Ind_ declaration statements a bit
 !  24 Jun 2016 - R. Yantosca - Add error checks for dust uptake species
+!  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7352,6 +7388,10 @@
 
       ! Assume success
       RC = GC_SUCCESS
+
+      ! Check if netCDF diagnostics are turned on
+      Archive_DryDepChm = ASSOCIATED( State_Diag%DryDepChm )
+      Archive_DryDep    = ASSOCIATED( State_Diag%DryDep    )
 
       ! Allocate arrays
       ALLOCATE( SSTEMP( IIPAR, JJPAR ), STAT=AS )

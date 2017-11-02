@@ -80,8 +80,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_CHEMISTRY( am_I_Root, Input_Opt, 
-     &                         State_Chm, State_Met, State_Diag, RC )
+      SUBROUTINE DO_CHEMISTRY( am_I_Root, Input_Opt,  State_Chm,
+     &                         State_Met, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -384,9 +384,9 @@
 #endif
 
             ! Dry-run sulfate chem to get cloud pH
-            If (LSulf) Then
-               CALL CHEMSULFATE( am_I_Root,
-     &           Input_Opt, State_Met, State_Chm, .False., RC )
+            IF ( LSULF ) THEN
+               CALL CHEMSULFATE( am_I_Root, Input_Opt,  State_Met,
+     &                           State_Chm, State_Diag, .FALSE.,  RC )
             End If
 
             ! Call gas-phase chemistry
@@ -434,8 +434,8 @@
 
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) THEN
-               CALL CHEMSEASALT
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL CHEMSEASALT( am_I_Root, Input_Opt,  State_Met,
+     &                           State_Chm, State_Diag, RC         )
             ENDIF
 
 #if defined( UCX )
@@ -448,8 +448,8 @@
             IF ( LSULF ) THEN
 
                ! Do sulfate chemistry
-               CALL CHEMSULFATE( am_I_Root,
-     &           Input_Opt, State_Met, State_Chm, .True., RC )
+               CALL CHEMSULFATE( am_I_Root, Input_Opt,  State_Met,
+     &                           State_Chm, State_Diag, .TRUE.,    RC )
 
                ! Check units (ewl, 10/5/15)
                IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -478,14 +478,14 @@
 
             ! Do carbonaceous aerosol chemistry
             IF ( LCARB ) THEN
-               CALL CHEMCARBON
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL CHEMCARBON( am_I_Root, Input_Opt,  State_Met,
+     &                          State_Chm, State_Diag, RC )
             ENDIF
 
             ! Do dust aerosol chemistry
             IF ( LDUST .AND. id_DST1 > 0 ) THEN
-               CALL CHEMDUST
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL CHEMDUST( am_I_Root, Input_Opt,  State_Met,
+     &                        State_Chm, State_Diag, RC         )
             ENDIF
  
 #if   defined( TOMAS )
@@ -570,31 +570,30 @@
 
             !*** SEASALT AEROSOLS ***
             IF ( LSSALT ) THEN
-               CALL CHEMSEASALT
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL CHEMSEASALT( am_I_Root, Input_Opt,  State_Met,
+     &                           State_Chm, State_Diag, RC         )
             ENDIF
 
             !*** SULFATE AEROSOLS ***
             IF ( LSULF .or. LCRYST ) THEN
  
                ! Do sulfate chemistry
-               CALL CHEMSULFATE
-     &            ( am_I_Root, Input_Opt, State_Met, 
-     &              State_Chm, .True., RC )
+               CALL CHEMSULFATE( am_I_Root, Input_Opt,  State_Met,
+     &                           State_Chm, State_Diag, .TRUE.,    RC )
 
             ENDIF
 
-            !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
+            !*** CARBON AND SECONDARY ORGANIC AEROSOLS ***
             IF ( LCARB ) THEN
-               CALL CHEMCARBON
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL CHEMCARBON( am_I_Root, Input_Opt,  State_Met,
+     &                          State_Chm, State_Diag, RC         )
             ENDIF
 
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
                ! Do dust aerosol chemistry
-               CALL CHEMDUST
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL CHEMDUST( am_I_Root, Input_Opt,  State_Met,
+     &                        State_Chm, State_Diag, RC         )
 
                ! Compute dust OD's & surface areas
                WAVELENGTH = 0
