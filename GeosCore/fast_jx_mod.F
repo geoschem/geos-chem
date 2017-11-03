@@ -1643,21 +1643,22 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_FJX( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_FJX( am_I_Root, Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD,       ONLY : ND64
+      USE CMN_DIAG_MOD,   ONLY : ND64
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE inquireMod,         ONLY : findFreeLUN
-      USE State_Chm_Mod,      ONLY : Ind_
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE inquireMod,     ONLY : findFreeLUN
+      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-               
+      TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1667,7 +1668,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
 !  05 Mar 2014 - R. Yantosca - Use correct filenames for use w/ ESMF
 !  27 Sep 2017 - M. Sulprizio- Define species IDs for ND22 diagnostic
-
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC

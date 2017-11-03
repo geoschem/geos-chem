@@ -157,8 +157,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_CO( am_I_Root, Input_Opt,
-     &                           State_Met, State_Chm, RC )
+      SUBROUTINE CHEM_TAGGED_CO( am_I_Root, Input_Opt,  State_Met,
+     &                           State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -176,6 +176,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
@@ -190,6 +191,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -276,6 +278,7 @@
 !  27 Mar 2017 - R. Yantosca - Now compute ND65 diagnostic before applying the
 !                              loss to the CO tagged species 
 !  24 Apr 2017 - M. Sulprizio- Update CO + OH (+M) rate constant for JPL 15-10
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC

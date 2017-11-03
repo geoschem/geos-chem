@@ -867,8 +867,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMCH4( am_I_Root, Input_Opt,
-     &                    State_Met, State_Chm, RC )
+      SUBROUTINE CHEMCH4( am_I_Root, Input_Opt,  State_Met,
+     &                    State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -883,6 +883,7 @@
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_DAY,   GET_MONTH
 !
@@ -895,6 +896,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -953,6 +955,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC

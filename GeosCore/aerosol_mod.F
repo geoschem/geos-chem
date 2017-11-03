@@ -952,52 +952,55 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDAER( am_I_Root, Input_Opt, State_Met,  State_Chm,
-     &                  RC,        MONTH,     YEAR,       ODSWITCH   )
+      SUBROUTINE RDAER( am_I_Root, Input_Opt,  State_Met,
+     &                  State_Chm, State_Diag, RC,
+     &                  MONTH,     YEAR,       ODSWITCH   )
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_CHEMGRID
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_DIAG_MOD
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : AD21
+      USE DIAG_MOD,       ONLY : AD21
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE PhysConstants,      ONLY : CONSVAP
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TIME_MOD,           ONLY : SYSTEM_TIMESTAMP
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-      USE UCX_MOD,            ONLY : GET_STRAT_OPT
-      USE UCX_MOD,            ONLY : NDENS_AER
+      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE PhysConstants,  ONLY : CONSVAP
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Met_Mod,  ONLY : MetState
+      USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH
+      USE TIME_MOD,       ONLY : SYSTEM_TIMESTAMP
+      USE TRANSFER_MOD,   ONLY : TRANSFER_3D
+      USE UCX_MOD,        ONLY : GET_STRAT_OPT
+      USE UCX_MOD,        ONLY : NDENS_AER
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root     ! Are we on root CPU?
-      TYPE(MetState), INTENT(IN)  :: State_Met     ! Meteorology State
-      INTEGER,        OPTIONAL    :: MONTH         ! # of current month
-      INTEGER,        OPTIONAL    :: YEAR          ! 4-digit year
-      INTEGER,        OPTIONAL    :: ODSWITCH      ! Logical indicator
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on root CPU?
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State
+      INTEGER,        OPTIONAL      :: MONTH       ! # of current month
+      INTEGER,        OPTIONAL      :: YEAR        ! 4-digit year
+      INTEGER,        OPTIONAL      :: ODSWITCH    ! Logical indicator
                                                    !  = 0: AOD computed 
                                                    !       at 999 nm
                                                    !  = 1: AOD computed 
                                                    !       at wavelength set 
                                                    !       in Radiation Menu
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:                             
 !
-      INTEGER,        INTENT(OUT) :: RC            ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  (1 ) At the point in which "rdaer.f" is called, ABSHUM is actually
@@ -1061,6 +1064,7 @@
 !                              on comode_loop_mod.F
 !  22 Nov 2016 - M. Sulprizio- Now define aerosol densities in species database
 !                              and use SpcData%Info%Density to populate MSDENS
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1658,7 +1662,7 @@
                   AD21(I,J,L,7+3*(N-1)) = AD21(I,J,L,7+3*(N-1)) +
      &                                    SCALEOD
                ENDIF
-            
+
                !now calulate the surface areas
                !==============================================================
                !  Calculate Aerosol Surface Area

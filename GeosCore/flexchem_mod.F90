@@ -366,8 +366,9 @@ CONTAINS
 
     ! Call RDAER to compute AOD for FAST-JX (skim, 02/03/11)
     WAVELENGTH = 0
-    CALL RDAER( am_I_Root, Input_Opt, State_Met,  State_Chm, &
-                RC,        MONTH,     YEAR,       WAVELENGTH )
+    CALL RDAER( am_I_Root, Input_Opt,  State_Met,  &
+                State_Chm, State_Diag, RC,         &
+                MONTH,     YEAR,       WAVELENGTH )
 
     !### Debug
     IF ( prtDebug ) THEN 
@@ -384,15 +385,15 @@ CONTAINS
     ! (rjp, tdf, bmy, 4/1/04)
     !=================================================================
     IF ( LDUST ) THEN
-       CALL RDUST_ONLINE( am_I_Root, Input_Opt,  State_Met, State_Chm, &
-                          SOILDUST,  WAVELENGTH, RC )
+       CALL RDUST_ONLINE( am_I_Root,  Input_Opt, State_Met,  State_Chm,      &
+                          State_Diag, SOILDUST,  WAVELENGTH, RC             )
     ELSE
 #if !defined( TOMAS )
        ! Don't read dust emissions from disk when using TOMAS,
        ! because TOMAS uses a different set of dust species than the 
        ! std code (win, bmy, 1/25/10)
-       CALL RDUST_OFFLINE( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                           MONTH,     YEAR,      WAVELENGTH, RC )
+       CALL RDUST_OFFLINE( am_I_Root,  Input_Opt, State_Met, State_Chm,      &
+                           State_Diag, MONTH,     YEAR,      WAVELENGTH, RC )
 #endif
     ENDIF
 
@@ -1049,7 +1050,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !  
-  SUBROUTINE Init_FlexChem( am_I_Root, Input_Opt, RC)  
+  SUBROUTINE Init_FlexChem( am_I_Root, Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
@@ -1058,11 +1059,13 @@ CONTAINS
     USE gckpp_Global,       ONLY : NREACT
     USE gckpp_Monitor,      ONLY : EQN_NAMES
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !    
     LOGICAL,        INTENT(IN)    :: am_I_Root ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
+    TYPE(DgnState), INTENT(IN)    :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !    
@@ -1090,6 +1093,7 @@ CONTAINS
 !  24 Aug 2016 - M. Sulprizio- Remove CSPECTOKPP array. State_Chm%Map_KppSpc is
 !                              now used instead.
 !  20 Sep 2016 - R. Yantosca - Use fixed integer with in WRITE statement
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -327,8 +327,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMMERCURY( am_I_Root, Input_Opt,
-     &                        State_Met, State_Chm, RC )
+      SUBROUTINE CHEMMERCURY( am_I_Root, Input_Opt,  State_Met,
+     &                        State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -359,6 +359,7 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -374,6 +375,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -487,6 +489,7 @@
 !                              species ID from State_Chm%Map_Advect.
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  11 Oct 2016 - R. Yantosca - Pass additional args to SET_OPTIONS_FROM_HEMCO
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC

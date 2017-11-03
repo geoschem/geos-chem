@@ -380,8 +380,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_O3( am_I_Root, Input_Opt,
-     &                           State_Met, State_Chm, RC )
+      SUBROUTINE CHEM_TAGGED_O3( am_I_Root, Input_Opt,  State_Met,
+     &                           State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -396,6 +396,7 @@
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 
@@ -410,6 +411,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -457,6 +459,7 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC

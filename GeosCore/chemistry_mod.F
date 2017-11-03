@@ -543,8 +543,9 @@
             MONTH      = 0
             YEAR       = 0
             WAVELENGTH = 0
-            CALL RdAer( am_I_Root, Input_Opt, State_Met, State_Chm,
-     &                  RC,        MONTH,     YEAR,      WAVELENGTH )
+            CALL RdAer( am_I_Root, Input_Opt,  State_Met,
+     &                  State_Chm, State_Diag, RC,
+     &                  MONTH,     YEAR,       WAVELENGTH )
 
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSULF ) THEN
@@ -596,9 +597,9 @@
 
                ! Compute dust OD's & surface areas
                WAVELENGTH = 0
-               CALL Rdust_Online
-     &             ( am_I_Root, Input_Opt,  State_Met, State_Chm,
-     &               SOILDUST,  WAVELENGTH, RC )
+               CALL Rdust_Online( am_I_Root,  Input_Opt,  State_Met,
+     &                            State_Chm,  State_Diag, SOILDUST,
+     &                            WAVELENGTH, RC                     )
             ENDIF
 
 #if defined( USE_TIMERS )
@@ -609,15 +610,15 @@
          ! Rn-Pb-Be
          !---------------------------------                 
          ELSE IF ( IT_IS_A_RnPbBe_SIM ) THEN
-            CALL ChemRnPbBe 
-     &         (  am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            CALL ChemRnPbBe( am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC         )
 
          !---------------------------------
          ! Tagged O3
          !---------------------------------
          ELSE IF ( IT_IS_A_TAGO3_SIM ) THEN 
-            CALL Chem_Tagged_O3
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            CALL Chem_Tagged_O3( am_I_Root, Input_Opt,  State_Met,
+     &                           State_Chm, State_Diag, RC         )
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
@@ -629,8 +630,8 @@
          ! Tagged CO
          !---------------------------------
          ELSE IF ( IT_IS_A_TAGCO_SIM ) THEN
-            CALL Chem_Tagged_CO
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            CALL Chem_Tagged_CO( am_I_Root, Input_Opt,  State_Met,
+     &                           State_Chm, State_Diag, RC )
  
          !---------------------------------
          ! C2H6
@@ -646,8 +647,8 @@
  
             ! Only call after the first 24 hours
             IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
-               CALL ChemCh4
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL ChemCh4( am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC         )
             ENDIF
 
          !---------------------------------
@@ -656,8 +657,8 @@
          ELSE IF ( IT_IS_A_MERCURY_SIM ) THEN
  
             ! Do Hg chemistry
-            CALL ChemMercury
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            CALL ChemMercury( am_I_Root, Input_Opt,  State_Met,
+     &                        State_Chm, State_Diag, RC         )
 
          !---------------------------------
          ! POPs
@@ -665,8 +666,8 @@
          ELSE IF ( IT_IS_A_POPS_SIM ) THEN
  
             ! Do POPS chemistry
-            CALL ChemPOPs
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            CALL ChemPOPs( am_I_Root, Input_Opt,  State_Met,
+     &                     State_Chm, State_Diag, RC         )
 
          ENDIF
 
@@ -739,24 +740,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RECOMPUTE_OD( am_I_Root, Input_Opt, 
-     &                         State_Met, State_Chm, RC )
+      SUBROUTINE RECOMPUTE_OD( am_I_Root, Input_Opt,  State_Met,
+     &                         State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
       ! References to F90 modules
-      USE AEROSOL_MOD,        ONLY : AEROSOL_CONC
-      USE AEROSOL_MOD,        ONLY : RDAER
-      USE AEROSOL_MOD,        ONLY : SOILDUST
-      USE DUST_MOD,           ONLY : RDUST_ONLINE
-      USE DUST_MOD,           ONLY : RDUST_OFFLINE
+      USE AEROSOL_MOD,    ONLY : AEROSOL_CONC
+      USE AEROSOL_MOD,    ONLY : RDAER
+      USE AEROSOL_MOD,    ONLY : SOILDUST
+      USE DUST_MOD,       ONLY : RDUST_ONLINE
+      USE DUST_MOD,       ONLY : RDUST_OFFLINE
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MONTH
-      USE TIME_MOD,           ONLY : GET_YEAR
+      USE ERROR_MOD,      ONLY : DEBUG_MSG
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Met_Mod,  ONLY : MetState
+      USE TIME_MOD,       ONLY : GET_MONTH
+      USE TIME_MOD,       ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -767,6 +769,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -781,6 +784,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  12 Aug 2015 - E. Lundgren  - Input tracer units are now [kg/kg] and 
 !                               are converted to [kg] for recomputing OD
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -835,8 +839,9 @@
 
                ! Calculate the AOD at the wavelength specified in jv_spec_aod
                WAVELENGTH = 1
-               CALL RDAER( am_I_Root, Input_Opt, State_Met, State_Chm,
-     &                     RC,        MONTH,     YEAR,      WAVELENGTH )
+               CALL RDAER( am_I_Root, Input_Opt,  State_Met,
+     &                     State_Chm, State_Diag, RC,
+     &                     MONTH,     YEAR,       WAVELENGTH )
 
                !### Debug
                IF ( LPRT .and. am_I_Root ) THEN 
@@ -853,14 +858,14 @@
                ! (rjp, tdf, bmy, 4/1/04)
                !===============================================================
                IF ( LDUST ) THEN
-                  CALL RDUST_ONLINE
-     &               ( am_I_Root, Input_Opt,  State_Met, State_Chm,
-     &                 SOILDUST,  WAVELENGTH, RC )
+                  CALL RDUST_ONLINE( am_I_Root,  Input_Opt,  State_Met,
+     &                               State_Chm,  State_Diag, SOILDUST,
+     &                               WAVELENGTH, RC                    )
 #if  !defined( TOMAS )
                ELSE
-                  CALL RDUST_OFFLINE
-     &               ( am_I_Root, Input_Opt, State_Met,  State_Chm,
-     &                 MONTH,     YEAR,      WAVELENGTH, RC )
+                  CALL RDUST_OFFLINE( am_I_Root, Input_Opt,  State_Met,  
+     &                                State_Chm, State_Diag, MONTH,
+     &                                YEAR,      WAVELENGTH, RC        )
 #endif
                ENDIF
 
@@ -1000,16 +1005,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_CHEMISTRY( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE INIT_CHEMISTRY( am_I_Root, Input_Opt,
+     &                           State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD,       ONLY : LLTROP
+      USE CMN_SIZE_MOD,   ONLY : LLTROP
       USE ErrCode_Mod
-      USE FAST_JX_MOD,        ONLY : INIT_FJX
-      USE FlexChem_Mod,       ONLY : Init_FlexChem
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
+      USE FAST_JX_MOD,    ONLY : INIT_FJX
+      USE FlexChem_Mod,   ONLY : Init_FlexChem
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1019,6 +1026,7 @@
 !
       TYPE(OptInput), INTENT(INOUT)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(INOUT)  :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT)  :: State_Diag  ! Diagnostics State object
       INTEGER,        INTENT(INOUT)  :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
@@ -1026,6 +1034,7 @@
 !                              and chemdr.F)
 !  20 Jun 2014 - R. Yantosca - Now pass Input_Opt to INIT_FJX
 !  23 Jun 2016 - R. Yantosca - Remove call to SETTRACE, it's obsolete
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1044,10 +1053,10 @@
       IF ( FIRST ) THEN
 
          ! Initialize FlexChem
-         CALL Init_FlexChem( am_I_Root, Input_Opt, RC )
+         CALL Init_FlexChem( am_I_Root, Input_Opt, State_Diag, RC )
 
          ! Initialize Fast-JX photolysis
-         CALL INIT_FJX(      am_I_Root, Input_Opt, RC )
+         CALL Init_FJX     ( am_I_Root, Input_Opt, State_Diag, RC )
          
          ! Adjust first flag
          FIRST = .FALSE.

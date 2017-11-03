@@ -737,7 +737,8 @@
       ! of the variables are used for non-local PBL mixing BEFORE 
       ! the first call of the chemistry routines (ckeller, 05/19/14).
       IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM ) THEN
-         CALL INIT_CHEMISTRY ( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL INIT_CHEMISTRY( am_I_Root, Input_Opt,
+     &                        State_Chm, State_Diag, RC )
       ENDIF
 
       ! Initialize HEMCO. This reads the HEMCO configuration file
@@ -1565,8 +1566,8 @@
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
-            CALL RECOMPUTE_OD
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            CALL RECOMPUTE_OD( am_I_Root, Input_Opt,  State_Met,
+     &                         State_Chm, State_Diag, RC         )
          ENDIF
 
 #if defined( RRTMG )

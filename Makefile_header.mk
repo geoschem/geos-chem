@@ -422,17 +422,22 @@ endif
 # Diagnostic settings
 #------------------------------------------------------------------------------
 
-# %%%%% Use netCDF diagnostics if DEVEL=y %%%%%
+## %%%%% Use netCDF diagnostics if DEVEL=y %%%%%
 ifdef DEVEL
   NC_DIAG            :=yes
   BPCH_DIAG          :=no
 endif
 
-# %%%%% Test for diagnostic output type, set to bpch if not specified %%%%%
+# %%%%% Always use bpch diagnostics unless otherwise specified %%%%%
+# %%%%% Bpch diagnostics will eventually be disabled           %%%%%
 ifndef BPCH_DIAG
-  ifndef NC_DIAG
-    BPCH_DIAG        :=yes
-  endif
+  BPCH_DIAG          :=yes
+endif
+
+# %%%%% Never use netCDF diagnostics unless explicitly specified %%%%%
+# %%%%% netCDF diagnostics will eventually become the default    %%%%%
+ifndef NC_DIAG
+  NC_DIAG            :=no
 endif
 
 # %%%%% BPCH (for using old BPCH diagnostic output) %%%%%

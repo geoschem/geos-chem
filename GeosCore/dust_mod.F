@@ -984,9 +984,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_ONLINE( am_I_Root, Input_Opt,  State_Met, 
-     &                         State_Chm, DUST,       ODSWITCH,
-     &                         RC )
+      SUBROUTINE RDUST_ONLINE( am_I_Root, Input_Opt,  State_Met,
+     &                         State_Chm, State_Diag, DUST,
+     &                         ODSWITCH,  RC                     )
 !
 ! !USES:
 !
@@ -999,24 +999,26 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 !
 ! !INPUT PARAMETERS: 
 ! 
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met     ! Meteorology State object
       REAL(fp),       INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST) !Dust [kg/m3]
       INTEGER,        INTENT(IN)  :: ODSWITCH
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC       ! Success or failure?      
+      INTEGER,        INTENT(OUT) :: RC            ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Martin, R. Park - Initial version
@@ -1044,6 +1046,7 @@
 !  16 May 2016 - M. Sulprizio- Remove JLOOP entirely and loop over LLPAR, JJPAR,
 !                              IIPAR instead.
 !  27 Mar 2017 - R. Yantosca - Fixed bug in formula for NOUT diagnostic index
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1385,44 +1388,47 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_OFFLINE( am_I_Root, Input_Opt, State_Met,
-     &                          State_Chm, THISMONTH, THISYEAR,
-     &                          ODSWITCH,  RC )
+      SUBROUTINE RDUST_OFFLINE( am_I_Root, Input_Opt,  State_Met,
+     &                          State_Chm, State_Diag, THISMONTH, 
+     &                          THISYEAR,  ODSWITCH,   RC         )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_FJX_MOD
       USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD21
+      USE DIAG_MOD,       ONLY : AD21
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
+      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Met_Mod,  ONLY : MetState
+      USE TRANSFER_MOD,   ONLY : TRANSFER_3D
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
-      INTEGER,        INTENT(IN)  :: THISMONTH  ! Current month (1-12)
-      INTEGER,        INTENT(IN)  :: THISYEAR   ! Current year  (YYYY format)
-      INTEGER,        INTENT(IN)  :: ODSWITCH   ! Determine which wavelength to
-                                                !  use for optical properties
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: THISMONTH  ! Current month (1-12)
+      INTEGER,        INTENT(IN)    :: THISYEAR   ! Current year  (YYYY format)
+      INTEGER,        INTENT(IN)    :: ODSWITCH   ! Determine which wavelength 
+                                                  !  to use for optical 
+                                                  !  properties
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
 !
 ! !REMARKS:
 !  ##########################################################################
@@ -1503,6 +1509,7 @@
 !                              point to 3D fields in State_Chm.
 !  16 May 2016 - M. Sulprizio- Remove JLOOP entirely and loop over LLPAR, JJPAR,
 !                              IIPAR instead.
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
