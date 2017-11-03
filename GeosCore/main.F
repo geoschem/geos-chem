@@ -567,6 +567,10 @@
       ! want to replicate that behavior in GCC in the future. (ewl, 9/26/17)
       historyConfigFile = 'HISTORY.rc' ! cannot use Input_Opt variable in GCHP
       CALL Init_DiagList( am_I_Root, historyConfigFile, Diag_List, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_DiagList"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
 
       ! Initialize Input_Opt, State_Chm, State_Diag, State_Met objects
       CALL GC_Init_All( am_I_Root, Diag_List,  Input_Opt, 
@@ -575,7 +579,6 @@
          ErrMsg = 'Error encountered during initialization!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
-         
       !
       ! Also allocate arrays in GEOS-Chem modules that have not yet
       ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 
@@ -1717,8 +1720,8 @@
          ! jan 2015
          IF ( ND40 > 0 ) THEN 
             ! Archive data along the flight track
-            CALL PLANEFLIGHT
-     &           ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            CALL PLANEFLIGHT( am_I_Root, Input_Opt,  State_Met,
+     &                        State_Chm, State_Diag, RC )
          ENDIF
 
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
@@ -1779,8 +1782,8 @@
 
          ! 3-D timeseries
          IF ( ITS_TIME_FOR_DIAG49() ) THEN
-            CALL DIAG49
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            CALL DIAG49( am_I_Root, Input_Opt,  State_Met,
+     &                   State_Chm, State_Diag, RC         )
          ENDIF
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
 

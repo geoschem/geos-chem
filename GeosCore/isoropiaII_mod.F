@@ -84,13 +84,13 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Array for offline HNO3 (for relaxation of M.M.)
-      REAL(fp),  ALLOCATABLE :: HNO3_sav(:,:,:)
+      REAL(fp), ALLOCATABLE :: HNO3_sav(:,:,:)
 
       ! Array for offline use in sulfate_mod (SEASALT_CHEM) 
-      REAL(fp),  ALLOCATABLE :: GAS_HNO3(:,:,:)
+      REAL(fp), ALLOCATABLE :: GAS_HNO3(:,:,:)
 
       ! HEMCO pointers
-      REAL(sp), POINTER    :: HNO3(:,:,:) => NULL()
+      REAL(sp), POINTER     :: HNO3(:,:,:) => NULL()
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% Add a C-preprocessor switch to skip calling ISORROPIA if the pressure
@@ -124,8 +124,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_ISOROPIAII( am_I_Root, Input_Opt, 
-     &                          State_Met, State_Chm, RC )
+      SUBROUTINE DO_ISOROPIAII( am_I_Root, Input_Opt,  State_Met,
+     &                          State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -141,6 +141,7 @@
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
@@ -157,6 +158,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -190,6 +192,7 @@
 !                               in the proper range to yield a valid solution.
 !                               (Activate this with the #ifdef block above.)
 !  10 Mar 2017 - C. Keller    - Add print out statement after initialization. 
+!  02 Nov 2017 - R. Yantosca  - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -658,7 +661,7 @@
             SULFTEMP        = 1e-30_fp
             BISULTEMP       = 1e-30_fp
             NITRTEMP        = 1e-30_fp
-            State_Chm%PH_SAV(I,J,L) = -999e+0_fp
+            State_Diag%pHSav(I,J,L) = -999e+0_fp
          ELSE
             HPLUSTEMP       = AERLIQ(1) / AERLIQ(8) * 1e+3_fp/18e+0_fp
             SULFTEMP        = AERLIQ(5) / AERLIQ(8) * 1e+3_fp/18e+0_fp
@@ -666,15 +669,15 @@
             NITRTEMP        = AERLIQ(7) / AERLIQ(8) * 1e+3_fp/18e+0_fp
 
             ! Use SAFELOG10 to prevent NAN
-            State_Chm%PH_SAV(I,J,L) = -1e+0_fp * SAFELOG10( HPLUSTEMP )
+            State_Diag%pHSav(I,J,L) = -1e+0_fp * SAFELOG10( HPLUSTEMP )
          ENDIF
 
          ! Additional Info
-         State_Chm%HPLUS_SAV(I,J,L)  = HPLUSTEMP 
-         State_Chm%WATER_SAV(I,J,L)  = AERLIQ(8) * 18e+6_fp ! mol/m3 -> ug/m3
-         State_Chm%SULRAT_SAV(I,J,L) = SULFTEMP
-         State_Chm%NARAT_SAV(I,J,L)  = NITRTEMP
-         State_Chm%BISUL_SAV(I,J,L)  = BISULTEMP
+         State_Diag%HplusSav(I,J,L)  = HPLUSTEMP
+         State_Diag%WaterSav(I,J,L)  = AERLIQ(8) * 18e+6_fp ! mol/m3 -> ug/m3
+         State_Diag%SulratSav(I,J,L) = SULFTEMP
+         State_Diag%NaRatSav(I,J,L)  = NITRTEMP
+         State_Diag%BisulSav(I,J,L)  = BISULTEMP
 
          NUM_SAV    = ( Spc(I,J,L,id_NH3) /17e+0_fp         +
      &                  Spc(I,J,L,id_NH4) /18e+0_fp         +
@@ -686,18 +689,32 @@
      &                  Spc(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)
 
          ! Value if DEN_SAV and NUM_SAV too small.
-         State_Chm%ACIDPUR_SAV(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
-     &                                 0e+0_fp,       
-     &                                 999e+0_fp)
+         State_Diag%AcidPurSav(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
+     &                                           0e+0_fp, 999e+0_fp)
 
+         !==============================================================
+         ! DIAGNOSTICS: Archive ISORROPIA H+ and pH values
+         !==============================================================
+
+#if defined( BPCH_DIAG )
+         !--------------------------------------------------------------
+         ! ND73: bpch diagnostic (eam, 04/2015)
+         !--------------------------------------------------------------
          IF ( ND73 > 0 ) THEN
-            ! Archive ISORROPIA H+ and pH values (eam, 04/2015):
             IF ( L <= LD73 ) THEN
-               AD73(I,J,L,1) = AD73(I,J,L,1)+State_Chm%PH_SAV(   I,J,L)
-               AD73(I,J,L,2) = AD73(I,J,L,2)+State_Chm%HPLUS_SAV(I,J,L)
-               AD73(I,J,L,3) = AD73(I,J,L,3)+State_Chm%WATER_SAV(I,J,L)
+               AD73(I,J,L,1) = AD73(I,J,L,1)+State_Diag%pHSav(   I,J,L)
+               AD73(I,J,L,2) = AD73(I,J,L,2)+State_Diag%HplusSav(I,J,L)
+               AD73(I,J,L,3) = AD73(I,J,L,3)+State_Diag%WaterSav(I,J,L)
             ENDIF
          ENDIF
+#endif
+
+#if defined( NC_DIAG )
+         !--------------------------------------------------------------
+         ! HISTORY (aka netCDF diagnostics)
+         !--------------------------------------------------------------
+
+#endif
 
       ENDDO
       ENDDO

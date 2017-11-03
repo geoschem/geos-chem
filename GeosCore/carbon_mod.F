@@ -879,12 +879,28 @@
          ! Amount of BCPO converted to BCPI [kg/timestep]
          BCCONV(I,J,L) = ( TC0 - CNEW ) * KBC / ( KBC + FREQ )
 
+#if defined( BPCH_DIAG )
          !==============================================================
          ! ND07 diagnostic: H-philic BC from H_phobic BC [kg/timestep]
          !==============================================================
          IF ( ND07 > 0 .and. L <= LD07 ) THEN
              AD07_BC(I,J,L) = AD07_BC(I,J,L) + BCCONV(I,J,L)
          ENDIF
+#endif
+
+#if defined( NC_DIAG )
+         !==============================================================
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! Archive production of hydrophilic black carbon (BCPI) from
+         ! hydrophobic black carbon (BCPO) [kg]
+         !
+         ! NOTE: Consider converting to area-independent units kg/m2/s.
+         !==============================================================
+         IF ( Archive_ProdBCPIfromBCPO ) THEN
+            State_Diag%ProdBCPIfromBCPO(I,J,L) = BcConv(I,J,L)
+         ENDIF
+#endif
 
          ! Store new concentration back into species array
          TC(I,J,L) = CNEW
@@ -892,20 +908,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
-
-#if defined( NC_DIAG )
-      !=================================================================
-      ! HISTORY (aka netCDF diagnostics)
-      !
-      ! Archive production of hydrophilic black carbon (BCPI) from
-      ! hydrophobic black carbon (BCPO) [kg]
-      !
-      ! NOTE: Consider converting to area-independent units kg/m2/s.
-      !=================================================================
-      IF ( Archive_ProdBCPIfromBCPO ) THEN
-         State_Diag%ProdBCPIfromBCPO = BcConv
-      ENDIF
-#endif
 
       END SUBROUTINE CHEM_BCPO
 !EOC
@@ -1146,6 +1148,20 @@
             AD07_OC(I,J,L) = AD07_OC(I,J,L) + OCCONV(I,J,L) 
          ENDIF
 
+#if defined( NC_DIAG )
+         !=================================================================
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! Archive production of hydrophilic organic carbon (OCPI) from
+         ! hydrophobic organic carbon (OCPO) [kg]
+         !
+         ! NOTE: Consider converting to area-independent units kg/m2/s.
+         !=================================================================
+         IF ( Archive_ProdOCPIfromOCPO ) THEN
+            State_Diag%ProdOCPIfromOCPO(I,J,L) = OcConv(I,J,L)
+         ENDIF
+#endif
+
          ! Store modified OC concentration back in species array
          TC(I,J,L) = CNEW
 
@@ -1153,20 +1169,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
-
-#if defined( NC_DIAG )
-      !=================================================================
-      ! HISTORY (aka netCDF diagnostics)
-      !
-      ! Archive production of hydrophilic organic carbon (OCPI) from
-      ! hydrophobic organic carbon (OCPO) [kg]
-      !
-      ! NOTE: Consider converting to area-independent units kg/m2/s.
-      !=================================================================
-      IF ( Archive_ProdOCPIfromOCPO ) THEN
-         State_Diag%ProdOCPIfromOCPO = OcConv
-      ENDIF
-#endif
 
       END SUBROUTINE CHEM_OCPO
 !EOC

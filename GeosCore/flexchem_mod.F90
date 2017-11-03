@@ -60,8 +60,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_FlexChem( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                          State_Diag, RC  )
+  SUBROUTINE Do_FlexChem( am_I_Root, Input_Opt,  State_Met,  &
+                          State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -166,6 +166,7 @@ CONTAINS
 !                              for computing STE in strat_chem_mod.F90
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
+!  03 Nov 2017 - R. Yantosca - Pass State_Diag to SET_HET
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -616,7 +617,8 @@ CONTAINS
           SCF = SCOEFF(I,J,L,:)
 
           ! Set hetchem rates
-          CALL SET_HET( I, J, L, State_Chm, State_Met, Input_Opt, SCF )
+          CALL SET_HET( I,         J,         L,         State_Diag,  &
+                        State_Chm, State_Met, Input_Opt, SCF         )
 
           IF ( ND52 > 0 ) THEN
              ! Archive gamma values

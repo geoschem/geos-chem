@@ -111,17 +111,6 @@ MODULE State_Chm_Mod
      CHARACTER(LEN=4),  POINTER :: Hg_Cat_Name(:      ) ! Category names
 
      !----------------------------------------------------------------------
-     ! For isoprene SOA
-     !----------------------------------------------------------------------
-     REAL(fp),          POINTER :: PH_SAV     (:,:,:  ) ! ISORROPIA aerosol pH
-     REAL(fp),          POINTER :: HPLUS_SAV  (:,:,:  ) ! H+ concentration [M]
-     REAL(fp),          POINTER :: WATER_SAV  (:,:,:  ) ! ISORROPIA aerosol H2O
-     REAL(fp),          POINTER :: SULRAT_SAV (:,:,:  ) ! Sulfate conc [M]
-     REAL(fp),          POINTER :: NARAT_SAV  (:,:,:  ) ! Nitrate conc [M]
-     REAL(fp),          POINTER :: ACIDPUR_SAV(:,:,:  ) !
-     REAL(fp),          POINTER :: BISUL_SAV  (:,:,:  ) ! Bisulfate conc [M]
-
-     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -170,6 +159,7 @@ MODULE State_Chm_Mod
 !  31 Jul 2017 - R. Yantosca - Add fixes in registering ISORROPIA *_SAV fields
 !  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Chm and Print_State_Chm
 !  02 Oct 2017 - E. Lundgren - Abstract metadata and routine to add to Registry
+!  03 Nov 2017 - R. Yantosca - Move isoprene SOA fields to State_Diag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -329,15 +319,6 @@ CONTAINS
     State_Chm%Hg0_Id_List => NULL()
     State_Chm%Hg2_Id_List => NULL()
     State_Chm%HgP_Id_List => NULL()
-
-    ! For isoprene SOA
-    State_Chm%PH_SAV      => NULL()
-    State_Chm%HPLUS_SAV   => NULL()
-    State_Chm%WATER_SAV   => NULL()
-    State_Chm%SULRAT_SAV  => NULL()
-    State_Chm%NARAT_SAV   => NULL()
-    State_Chm%ACIDPUR_SAV => NULL()
-    State_Chm%BISUL_SAV   => NULL()
 
     ! Local variables
     Ptr2data => NULL()
@@ -765,98 +746,6 @@ CONTAINS
     ENDDO
 #endif
 
-    !=====================================================================
-    ! Allocate and initialize isoprene SOA fields
-    ! These are only relevant for fullchem or aerosol-only simulations
-    !=====================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-
-       !------------------------------------------------------------------
-       ! PH_SAV
-       !------------------------------------------------------------------
-       chmID = 'PH_SAV'
-       ALLOCATE( State_Chm%PH_SAV( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%PH_SAV', 0, RC )    
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%PH_SAV = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%PH_SAV, &
-                               State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
-       ! HPLUS_SAV
-       !------------------------------------------------------------------
-       chmID = 'HPLUS_SAV'
-       ALLOCATE( State_Chm%HPLUS_SAV( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%HPLUS_SAV', 0, RC )    
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%HPLUS_SAV = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%HPLUS_SAV, &
-                               State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
-       ! WATER_SAV
-       !------------------------------------------------------------------
-       chmID = 'WATER_SAV'
-       ALLOCATE( State_Chm%WATER_SAV( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%WATER_SAV', 0, RC )    
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%WATER_SAV = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%WATER_SAV, &
-                               State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
-       ! SULRAT_SAV
-       !------------------------------------------------------------------
-       chmID = 'SULRAT_SAV'
-       ALLOCATE( State_Chm%SULRAT_SAV( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%SULRAT_SAV', 0, RC )    
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%SULRAT_SAV = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SULRAT_SAV, &
-                               State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
-       ! NARAT_SAV
-       !------------------------------------------------------------------
-       chmID = 'NARAT_SAV'
-       ALLOCATE( State_Chm%NARAT_SAV( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%NARAT_SAV', 0, RC )    
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%NARAT_SAV = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%NARAT_SAV, &
-                               State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
-       ! ACIDPUR_SAV
-       !------------------------------------------------------------------
-       chmID = 'ACIDPUR_SAV'
-       ALLOCATE( State_Chm%ACIDPUR_SAV( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%ACIDPUR_SAV', 0, RC )    
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%ACIDPUR_SAV = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%ACIDPUR_SAV, &
-                               State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
-       ! BISUL_SAV
-       !------------------------------------------------------------------
-       chmID = 'BISUL_SAV'
-       ALLOCATE( State_Chm%BISUL_SAV( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%BISUL_SAV', 0, RC )    
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%BISUL_SAV = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%BISUL_SAV, &
-                               State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-    ENDIF
-
     !=======================================================================
     ! Print out the list of registered fields
     !=======================================================================
@@ -1130,48 +1019,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Chm%KHETI_SLA ) ) THEN
        DEALLOCATE( State_Chm%KHETI_SLA, STAT=RC  )
        CALL GC_CheckVar( 'State_Chm%KHETI_SLA', 3, RC )
-       RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%PH_SAV ) ) THEN
-       DEALLOCATE( State_Chm%PH_SAV, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%PH_SAV', 3, RC )
-       RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%HPLUS_SAV ) ) THEN
-       DEALLOCATE( State_Chm%HPLUS_SAV, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%HPLUS_SAV', 3, RC )
-       RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%WATER_SAV ) ) THEN
-       DEALLOCATE( State_Chm%WATER_SAV, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%WATER_SAV', 3, RC )
-       RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%SULRAT_SAV ) ) THEN
-       DEALLOCATE( State_Chm%SULRAT_SAV, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%SULRAT_SAV', 3, RC )
-       RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%NARAT_SAV ) ) THEN
-       DEALLOCATE( State_Chm%NARAT_SAV, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%NARAT_SAV', 3, RC )
-       RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%ACIDPUR_SAV ) ) THEN
-       DEALLOCATE( State_Chm%ACIDPUR_SAV, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%ACIDPUR_SAV', 3, RC )
-       RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%BISUL_SAV ) ) THEN
-       DEALLOCATE( State_Chm%BISUL_SAV, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%BISUL_SAV', 3, RC )
        RETURN
     ENDIF
 
@@ -1639,44 +1486,6 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOBr + HBr reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
-
-       ! NOTE: if the rest of these are only used for diagnostics, 
-       !       consider moving to State_Diag and out of State_Chm.
-       CASE ( 'PH_SAV' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA aerosol pH'
-          IF ( isUnits ) Units = '1'
-          IF ( isRank  ) Rank  = 3
-
-       CASE ( 'HPLUS_SAV' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA H+ concentration'
-          IF ( isUnits ) Units = 'mol L-1'
-          IF ( isRank  ) Rank  = 3
-
-       CASE ( 'WATER_SAV' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA aerosol water concentration'
-          IF ( isUnits ) Units = 'ug m-3'
-          IF ( isRank  ) Rank  = 3
-
-       CASE ( 'SULRAT_SAV' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA sulfate concentration'
-          IF ( isUnits ) Units = 'M'
-          IF ( isRank  ) Rank  = 3
-
-       CASE ( 'NARAT_SAV' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA sulfate concentration'
-          IF ( isUnits ) Units = 'M'
-          IF ( isRank  ) Rank  = 3
-
-       CASE ( 'ACIDPUR_SAV' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA ACIDPUR'
-          IF ( isUnits ) Units = 'M'
-          IF ( isRank  ) Rank  = 3
-
-       CASE ( 'BISUL_SAV' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA Bisulfate (general acid)' &
-                                 // ' concentration'
-          IF ( isUnits ) Units = 'M'
-          IF ( isRank  ) Rank  =  3
 
        CASE DEFAULT
           Found = .False.

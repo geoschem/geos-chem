@@ -53,61 +53,70 @@ MODULE State_Diag_Mod
      !----------------------------------------------------------------------
 
      ! Concentrations
-     REAL(f8),  POINTER :: SpeciesConc    (:,:,:,:) ! Spc Conc for diag output
+     REAL(f8),  POINTER :: SpeciesConc     (:,:,:,:) ! Spc Conc for diag output
 
      ! Dry deposition
-     REAL(f4),  POINTER :: DryDepChm      (:,:,:,:) ! Drydep flux from chemistry
-     REAL(f4),  POINTER :: DryDepMix      (:,:,:,:) ! Drydep flux from mixing
-     REAL(f4),  POINTER :: DryDep         (:,:,:,:) ! Total drydep flux
-     REAL(f4),  POINTER :: DryDepVel      (:,:,:  ) ! Dry deposition velocity
-    !REAL(f4),  POINTER :: DryDepRst_RA   (:,:,:  ) ! Aerodynamic resistance
-    !REAL(f4),  POINTER :: DryDepRst_RB   (:,:,:  ) ! Aerodynamic resistance
-    !REAL(f4),  POINTER :: DryDepRst_RC   (:,:,:  ) ! Total drydep resistance
-    !REAL(f4),  POINTER :: DryDepRst_RI   (:,:    ) ! Stomatal resistance
+     REAL(f4),  POINTER :: DryDepChm       (:,:,:,:) ! Drydep flux in chemistry
+     REAL(f4),  POINTER :: DryDepMix       (:,:,:,:) ! Drydep flux in mixing
+     REAL(f4),  POINTER :: DryDep          (:,:,:,:) ! Total drydep flux
+     REAL(f4),  POINTER :: DryDepVel       (:,:,:  ) ! Dry deposition velocity
+    !REAL(f4),  POINTER :: DryDepRst_RA    (:,:,:  ) ! Aerodynamic resistance
+    !REAL(f4),  POINTER :: DryDepRst_RB    (:,:,:  ) ! Aerodynamic resistance
+    !REAL(f4),  POINTER :: DryDepRst_RC    (:,:,:  ) ! Total drydep resistance
+    !REAL(f4),  POINTER :: DryDepRst_RI    (:,:    ) ! Stomatal resistance
      ! Waiting for inputs on new resistance diagnostics commented out above
 
      ! Chemistry
-     REAL(f4),  POINTER :: JValues        (:,:,:,:) ! Photolysis rates
-     REAL(f4),  POINTER :: RxnRates       (:,:,:,:) ! Reaction rates from KPP
-     REAL(f4),  POINTER :: UVFluxDiffuse  (:,:,:  ) ! Diffuse UV flux per bin
-     REAL(f4),  POINTER :: UVFluxDirect   (:,:,:  ) ! Direct UV flux per bin
-     REAL(f4),  POINTER :: UVFluxNet      (:,:,:  ) ! Net UV flux per bin
+     REAL(f4),  POINTER :: JValues         (:,:,:,:) ! Photolysis rates
+     REAL(f4),  POINTER :: RxnRates        (:,:,:,:) ! Reaction rates from KPP
+     REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:  ) ! Diffuse UV flux per bin
+     REAL(f4),  POINTER :: UVFluxDirect    (:,:,:  ) ! Direct UV flux per bin
+     REAL(f4),  POINTER :: UVFluxNet       (:,:,:  ) ! Net UV flux per bin
      
      ! Aerosols
      ! *** Need to add AOD ***
      ! Waiting for input on rest of list from Aerosol WG?
 
      ! Advection
-     REAL(f4),  POINTER :: AdvFluxZonal   (:,:,:,:) ! EW Advective Flux
-     REAL(f4),  POINTER :: AdvFluxMerid   (:,:,:,:) ! NW Advective Flux
-     REAL(f4),  POINTER :: AdvFluxVert    (:,:,:,:) ! Vertical Advective Flux
+     REAL(f4),  POINTER :: AdvFluxZonal    (:,:,:,:) ! EW Advective Flux
+     REAL(f4),  POINTER :: AdvFluxMerid    (:,:,:,:) ! NW Advective Flux
+     REAL(f4),  POINTER :: AdvFluxVert     (:,:,:,:) ! Vertical Advective Flux
 
      ! Mixing
-     REAL(f4),  POINTER :: PBLMixFrac     (:,:,:  ) ! Frac of BL occupied by lev
-     REAL(f4),  POINTER :: PBLFlux        (:,:,:,:) ! BL mixing mass flux
+     REAL(f4),  POINTER :: PBLMixFrac      (:,:,:  ) ! Frac of BL occupied by lev
+     REAL(f4),  POINTER :: PBLFlux         (:,:,:,:) ! BL mixing mass flux
 
      ! Convection and wet deposition
-     REAL(f4),  POINTER :: CloudConvFlux  (:,:,:,:) ! cloud convection mass flux
-     REAL(f4),  POINTER :: WetLossConv    (:,:,:,:) ! Loss in convective updraft
-     REAL(f4),  POINTER :: PrecipFracConv (:,:,:  ) ! Frac convective precip
-     REAL(f4),  POINTER :: RainFracConv   (:,:,:,:) ! Frac lost to conv rainout
-     REAL(f4),  POINTER :: WashFracConv   (:,:,:,:) ! Frac lost to conv washout
-     REAL(f4),  POINTER :: WetLossLS      (:,:,:,:) ! Loss in LS rainout/washout
-     REAL(f4),  POINTER :: PrecipFracLS   (:,:,:  ) ! Frac large scale precip
-     REAL(f4),  POINTER :: RainFracLS     (:,:,:,:) ! Frac lost to LS rainout
-     REAL(f4),  POINTER :: WashFracLS     (:,:,:,:) ! Frac lost to LS washout
+     REAL(f4),  POINTER :: CloudConvFlux   (:,:,:,:) ! Cloud conv. mass flux
+     REAL(f4),  POINTER :: WetLossConv     (:,:,:,:) ! Loss in convect. updraft
+     REAL(f4),  POINTER :: PrecipFracConv  (:,:,:  ) ! Frac convective precip
+     REAL(f4),  POINTER :: RainFracConv    (:,:,:,:) ! Frac lost to conv rainout
+     REAL(f4),  POINTER :: WashFracConv    (:,:,:,:) ! Frac lost to conv washout
+     REAL(f4),  POINTER :: WetLossLS       (:,:,:,:) ! Loss in LS rainout/washout
+     REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  ) ! Frac large scale precip
+     REAL(f4),  POINTER :: RainFracLS      (:,:,:,:) ! Frac lost to LS rainout
+     REAL(f4),  POINTER :: WashFracLS      (:,:,:,:) ! Frac lost to LS washout
      
      ! Carbon aerosols
-     REAL(f4),  POINTER :: ProdBCPIfromBCPO(:,:,: )
-     REAL(f4),  POINTER :: ProdOCPIfromOCPO(:,:,: )
+     REAL(f4),  POINTER :: ProdBCPIfromBCPO(:,:,:  ) ! Prod BCPI from BCPO
+     REAL(f4),  POINTER :: ProdOCPIfromOCPO(:,:,:  ) ! Prod OCPI from OCPO
 
+     ! For isoprene SOA (moved here from State_Chm)
+     REAL(fp),  POINTER :: pHSav           (:,:,:  ) ! ISORROPIA aerosol pH
+     REAL(fp),  POINTER :: HplusSav        (:,:,:  ) ! H+ concentration [M]
+     REAL(fp),  POINTER :: WaterSav        (:,:,:  ) ! ISORROPIA aerosol H2O
+     REAL(fp),  POINTER :: SulRatSav       (:,:,:  ) ! Sulfate conc [M]
+     REAL(fp),  POINTER :: NaRatSav        (:,:,:  ) ! Nitrate conc [M]
+     REAL(fp),  POINTER :: AcidPurSav      (:,:,:  ) !
+     REAL(fp),  POINTER :: BiSulSav        (:,:,:  ) ! Bisulfate conc [M]
+ 
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
      !----------------------------------------------------------------------
 
      ! Radon / Lead / Beryllium specialty simulation
-     REAL(f4),  POINTER :: PbFromRnDecay  (:,:,:  ) ! Pb emitted from Rn decay
-     REAL(f4),  POINTER :: RadDecay       (:,:,:,:) ! Radioactive decay
+     REAL(f4),  POINTER :: PbFromRnDecay   (:,:,:  ) ! Pb emitted from Rn decay
+     REAL(f4),  POINTER :: RadDecay        (:,:,:,:) ! Radioactive decay
 
      ! TOMAS aerosol microphysics specialty simulation
  
@@ -159,6 +168,7 @@ MODULE State_Diag_Mod
      MODULE PROCEDURE Register_DiagField_R4_2D
      MODULE PROCEDURE Register_DiagField_R4_3D
      MODULE PROCEDURE Register_DiagField_R4_4D
+     MODULE PROCEDURE Register_DiagField_Rfp_3D
      MODULE PROCEDURE Register_DiagField_R8_4D
   END INTERFACE Register_DiagField
 CONTAINS
@@ -219,7 +229,8 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255)     :: ErrMsg,   ThisLoc
     CHARACTER(LEN=255)     :: arrayID,  diagID
-    INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc, nWetDep
+    INTEGER                :: nSpecies, nAdvect, nDryDep
+    INTEGER                :: nKppSpc,  nWetDep, N
     LOGICAL                :: EOF,      Found
 
     !=======================================================================
@@ -276,6 +287,13 @@ CONTAINS
     State_Diag%RadClrSkySWTOA      => NULL()
     State_Diag%ProdBCPIfromBCPO    => NULL()
     State_Diag%ProdOCPIfromOCPO    => NULL()
+    State_Diag%pHSav              => NULL()
+    State_Diag%HplusSav           => NULL()
+    State_Diag%WaterSav           => NULL()
+    State_Diag%SulRatSav          => NULL()
+    State_Diag%NaRatSav           => NULL()
+    State_Diag%AcidPurSav         => NULL()
+    State_Diag%BisulSav           => NULL()
 
 #if defined( NC_DIAG )
 
@@ -901,6 +919,157 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    !=======================================================================
+    ! The following quantities are only relevant for either fullchem
+    ! or aerosol-only simulations.
+    !
+    ! If any of these quantites is listed in the HISTORY.rc file, it will
+    ! be archived to a netCDF diagnostic collection.  Otherwise, it will
+    ! be used internally in the chemistry modules but not saved to netCDF.
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+
+       !-----------------------------------------
+       ! phSav
+       !-----------------------------------------
+       arrayID = 'State_Diag%phSav'
+       diagID  = 'pHSav'
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%phSav( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%phSav = 0.0_fp
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%phSav, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !-----------------------------------------
+       ! HplusSav
+       !-----------------------------------------
+       arrayID = 'State_Diag%HplusSav'
+       diagID  = 'HplusSav'
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%HplusSav( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%HplusSav = 0.0_fp
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%HplusSav, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !-----------------------------------------
+       ! WaterSav
+       !-----------------------------------------
+       arrayID = 'State_Diag%WaterSav'
+       diagID  = 'WaterSav'
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%WaterSav( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%WaterSav = 0.0_fp
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%WaterSav, &
+                                State_Chm, State_Diag, RC )
+
+       !-----------------------------------------
+       ! SulRatSav
+       !-----------------------------------------
+       arrayID = 'State_Diag%SulRatSav'
+       diagID  = 'SulRatSav'
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%SulRatSav( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%SulRatSav = 0.0_fp
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%SulRatSav, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !-----------------------------------------
+       ! NaRatSav
+       !-----------------------------------------
+       arrayID = 'State_Diag%NaRatSav'
+       diagID  = 'NaRatSav'
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%NaRatSav( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%NaRatSav = 0.0_fp
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%NaRatSav, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !-----------------------------------------
+       ! AcidPurSav
+       !-----------------------------------------
+       arrayID = 'State_Diag%AcidPurSav'
+       diagID  = 'AcidPurSav'
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%AcidPurSav( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AcidPurSav = 0.0_fp
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%AcidPurSav, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !-----------------------------------------
+       ! BisulSav
+       !-----------------------------------------
+       arrayID = 'State_Diag%BisulSav'
+       diagID  = 'BisulSav'
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BisulSav( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BisulSav = 0.0_fp
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%BisulSav, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+    ELSE
+       
+       !----------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations other than
+       ! full-chemistry or aerosol-only.  
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !----------------------------------------------------------------
+       DO N = 1, 7
+          
+          ! Select the diagnostic ID
+          SELECT CASE( N )
+             CASE( 1 )
+                diagID = 'pHSav'
+             CASE( 2 )                
+                diagID = 'HplusSav'
+             CASE( 3 )
+                diagID = 'WaterSav'
+             CASE( 4 )
+                diagID = 'SulRatSav'
+             CASE( 5 ) 
+                diagID = 'NaRatSav'
+             CASE( 6 )
+                diagID = 'AcidPurSav'
+             CASE( 7 ) 
+                diagID = 'BisulSav'
+          END SELECT
+
+          ! Exit if any of the above are in the diagnostic list
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+          IF ( Found ) THEN
+             ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                      'but this is only appropriate for full-chemistry '  // &
+                      'or aerosol-only simulations.' 
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+    ENDIF
+
     !!--------------------------------------------
     !! Template for adding more diagnostics arrays
     !! Search and replace 'xxx' with array name
@@ -1322,6 +1491,81 @@ CONTAINS
        ENDIF
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%phSav ) ) THEN
+       DEALLOCATE( State_Diag%phSav, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%phSav"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%HplusSav ) ) THEN
+       DEALLOCATE( State_Diag%HplusSav, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%HplusSav"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%WaterSav ) ) THEN
+       DEALLOCATE( State_Diag%WaterSav, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%WaterSav"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%SulRatSav ) ) THEN
+       DEALLOCATE( State_Diag%SulRatSav, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%SulRatSav"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%NaRatSav ) ) THEN
+       DEALLOCATE( State_Diag%NaRatSav, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%Na_RatSav"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AcidPurSav ) ) THEN
+       DEALLOCATE( State_Diag%AcidPurSav, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%AcidPurSav"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BisulSav ) ) THEN
+       DEALLOCATE( State_Diag%BisulSav, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%BisulSav"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Template for deallocating more arrays, replace xxx with field name
+    !-----------------------------------------------------------------------
+    !IF ( ASSOCIATED( State_Diag%xxx ) ) THEN
+    !   DEALLOCATE( State_Diag%xxx, STAT=RC  )
+    !   IF ( RC /= GC_SUCCESS ) THEN
+    !      ErrMsg = 'Could not deallocate "State_Diag%xxx"!'
+    !      CALL GC_Error( ErrMsg, RC, ThisLoc )
+    !      RETURN
+    !   ENDIF
+    !ENDIF
+
     !=======================================================================
     ! Destroy the registry of fields for this module
     !=======================================================================
@@ -1627,13 +1871,47 @@ CONTAINS
           IF ( isDesc    ) Desc       = 'Production of hydrophilic black carbon from hydrophobic black carbon'
           IF ( isUnits   ) Units      = 'kg'
           IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = ''
 
        CASE ( 'PRODOCPIFROMOCPO' )
           IF ( isDesc    ) Desc       = 'Production of hydrophilic organic carbon from hydrophobic organic carbon'
           IF ( isUnits   ) Units      = 'kg'
           IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = ''
+
+       CASE ( 'PHSAV' )
+          IF ( isDesc    ) Desc  = 'ISORROPIA aerosol pH'
+          IF ( isUnits   ) Units = '1'
+          IF ( isRank    ) Rank  = 3
+
+       CASE ( 'HPLUSSAV' )
+          IF ( isDesc    ) Desc  = 'ISORROPIA H+ concentration'
+          IF ( isUnits   ) Units = 'mol L-1'
+          IF ( isRank    ) Rank  = 3
+
+       CASE ( 'WATERSAV' )
+          IF ( isDesc    ) Desc  = 'ISORROPIA aerosol water concentration'
+          IF ( isUnits   ) Units = 'ug m-3'
+          IF ( isRank    ) Rank  = 3
+
+       CASE ( 'SULRATSAV' )
+          IF ( isDesc    ) Desc  = 'ISORROPIA sulfate concentration'
+          IF ( isUnits   ) Units = 'M'
+          IF ( isRank    ) Rank  = 3
+
+       CASE ( 'NARATSAV' )
+          IF ( isDesc    ) Desc  = 'ISORROPIA sulfate concentration'
+          IF ( isUnits   ) Units = 'M'
+          IF ( isRank    ) Rank  = 3
+
+       CASE ( 'ACIDPURSAV' )
+          IF ( isDesc    ) Desc  = 'ISORROPIA ACIDPUR'
+          IF ( isUnits   ) Units = 'M'
+          IF ( isRank    ) Rank  = 3
+
+       CASE ( 'BISULSAV' )
+          IF ( isDesc    ) Desc  = 'ISORROPIA Bisulfate (general acid)' &
+                                 // ' concentration'
+          IF ( isUnits   ) Units = 'M'
+          IF ( isRank    ) Rank  =  3
 
        CASE DEFAULT
           Found = .False.
@@ -2087,7 +2365,145 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE Register_DiagField_R4_4D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Register_DiagField_Rfp_3D
+!
+! !DESCRIPTION: Registers a 3-dimensional, 4-byte real field of State_Diag,
+!  so that we can include it in the netCDF diagnostic output archive.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Register_DiagField_Rfp_3D( am_I_Root, metadataID, Ptr2Data,  &
+                                        State_Chm, State_Diag, RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
+    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
+    REAL(fp),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
+    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
+    TYPE(DgnState),    INTENT(INOUT) :: State_Diag      ! Obj for diag state
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  03 Nov 2017 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!   
+    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=255)     :: desc, units, perSpecies
+    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
+    INTEGER                :: N, D, nSpecies
+    INTEGER                :: rank, type,  vloc
+    LOGICAL                :: found
+    TYPE(Species), POINTER :: SpcInfo
 
+    ! Initialize
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
+    ErrMsg_reg = 'Error encountered while registering State_Diag field'
+
+    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
+                                  desc=desc,   units=units, rank=rank,    &
+                                  type=type,   vloc=vloc,                 &
+                                  perSpecies=perSpecies                 )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    
+    ! Check that metadata consistent with data pointer
+    IF ( ( ( perSpecies == '' ) .AND. ( rank /= 3 ) )  &
+         .OR. ( ( perSpecies /= '' ) .AND. ( rank /= 2 ) ) ) THEN
+       ErrMsg = 'Data dims and metadata rank do not match for ' // &
+                TRIM(metadataID)
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    IF ( perSpecies /= '' ) THEN
+
+       ! TODO: add more cases as needed
+       SELECT CASE ( perSpecies )
+          CASE ( 'ALL' )
+             nSpecies = State_Chm%nSpecies
+          CASE ( 'ADV' )
+             nSpecies = State_Chm%nAdvect
+          CASE ( 'DRY' )
+             nSpecies = State_Chm%nDryDep
+          CASE ( 'WET' )
+             nSpecies = State_Chm%nWetDep
+          CASE DEFAULT
+             ErrMsg = 'Handling of perSpecies ' // TRIM(perSpecies) // &
+                      ' is not implemented for this combo of data type and size'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+       END SELECT
+
+       DO N = 1, nSpecies          
+          ! TODO: add more cases as needed
+          SELECT CASE ( perSpecies )
+             CASE ( 'ALL', 'ADV' )
+                D = N
+             CASE ( 'DRY' )
+                D =  State_Chm%Map_DryDep(N)
+             CASE ( 'WET' )
+                D =  State_Chm%Map_WetDep(N)
+          END SELECT
+          SpcInfo  => State_Chm%SpcData(D)%Info
+          thisSpcName = TRIM( metadataID ) // '__' // TRIM( SpcInfo%Name )
+          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
+                                  Registry     = State_Diag%Registry,  &
+                                  State        = State_Diag%State,     &
+                                  Variable     = thisSpcName,          &
+                                  Description  = thisSpcDesc,          &
+                                  Units        = units,                &
+                                  Data2d       = Ptr2Data(:,:,N),      &
+                                  RC           = RC                   )
+          SpcInfo => NULL()
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = ErrMsg_reg // ' where perSpecies is ' // TRIM(perSpecies)
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+    ! If not tied to species then simply add the single field
+    ELSE
+       CALL Registry_AddField( am_I_Root    = am_I_Root,            &
+                               Registry     = State_Diag%Registry,  &
+                               State        = State_Diag%State,     &
+                               Variable     = metadataID,           &
+                               Description  = desc,                 &
+                               Units        = units,                &
+                               Data3d       = Ptr2Data,             &
+                               RC           = RC                   )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = ErrMsg_reg // ' where diagnostics is not tied to species'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE Register_DiagField_Rfp_3D
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

@@ -346,7 +346,7 @@
       !=================================================================
       ! Archive species concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
+      CALL Tend_Stage1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CHEM', RC )
 #endif
 
@@ -376,7 +376,7 @@
             ! data from w/in an !$OMP PARALLEL region. (bmy, 4/8/15)
             ! Now call READ_PSC_FILE on every time step to accomodate 
             ! replay simulations in GEOS-5 (ckeller, 5/8/15)
-            CALL READ_PSC_FILE( am_I_Root, State_Chm, RC )
+            CALL Read_PSC_File( am_I_Root, State_Chm, RC )
             IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 #if defined( USE_TIMERS )
@@ -385,19 +385,18 @@
 
             ! Dry-run sulfate chem to get cloud pH
             IF ( LSULF ) THEN
-               CALL CHEMSULFATE( am_I_Root, Input_Opt,  State_Met,
+               CALL ChemSulfate( am_I_Root, Input_Opt,  State_Met,
      &                           State_Chm, State_Diag, .FALSE.,  RC )
             End If
 
             ! Call gas-phase chemistry
-            CALL Do_FlexChem
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, State_Diag, 
-     &           RC )
+            CALL Do_FlexChem( am_I_Root, Input_Opt,  State_Met,
+     &                        State_Chm, State_Diag, RC         )
 
             ! Check units (ewl, 10/5/15)
             IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
                MSG = 'Incorrect species units after FLEX_CHEMDR!'
-               CALL ERROR_STOP( MSG, LOC )
+               CALL Error_Stop( MSG, LOC )
             ENDIF  
 
 #if defined( USE_TIMERS )
@@ -413,13 +412,13 @@
 
                ! Do linearized chemistry for the stratosphere (tropchem)
                ! or the mesosphere (UCX)
-               CALL DO_STRAT_CHEM
+               CALL Do_Strat_Chem
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                ! Check units (ewl, 10/5/15)
                IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
                   MSG = 'Incorrect species units after DO_STRAT_CHEM!'
-                  CALL ERROR_STOP( MSG, LOC )
+                  CALL Error_Stop( MSG, LOC )
                ENDIF  
 
 #if defined( USE_TIMERS )
@@ -434,13 +433,13 @@
 
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) THEN
-               CALL CHEMSEASALT( am_I_Root, Input_Opt,  State_Met,
+               CALL ChemSeaSalt( am_I_Root, Input_Opt,  State_Met,
      &                           State_Chm, State_Diag, RC         )
             ENDIF
 
 #if defined( UCX )
             ! Recalculate PSC properties
-            CALL CALC_STRAT_AER
+            CALL Calc_Strat_Aer
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
 
@@ -448,13 +447,13 @@
             IF ( LSULF ) THEN
 
                ! Do sulfate chemistry
-               CALL CHEMSULFATE( am_I_Root, Input_Opt,  State_Met,
+               CALL ChemSulfate( am_I_Root, Input_Opt,  State_Met,
      &                           State_Chm, State_Diag, .TRUE.,    RC )
 
                ! Check units (ewl, 10/5/15)
                IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
                   MSG =  'Incorrect species units after CHEMSULFATE!'
-                  CALL ERROR_STOP( MSG, LOC )
+                  CALL Error_Stop( MSG, LOC )
                ENDIF  
 
                ! Do aerosol thermodynamic equilibrium
@@ -462,14 +461,14 @@
 
 #if   !defined( NO_ISORROPIA )
                   ! ISOROPIA takes Na+, Cl- into account
-                  CALL DO_ISOROPIAII
-     &               ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+                  CALL Do_IsoropiaII( am_I_Root, Input_Opt,  State_Met,
+     &                                State_Chm, State_Diag, RC )
 #endif
 
                ELSE
 
                   ! RPMARES does not take Na+, Cl- into account
-                  CALL DO_RPMARES
+                  CALL Do_RPMARES
      &               ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                ENDIF
@@ -478,20 +477,20 @@
 
             ! Do carbonaceous aerosol chemistry
             IF ( LCARB ) THEN
-               CALL CHEMCARBON( am_I_Root, Input_Opt,  State_Met,
+               CALL ChemCarbon( am_I_Root, Input_Opt,  State_Met,
      &                          State_Chm, State_Diag, RC )
             ENDIF
 
             ! Do dust aerosol chemistry
             IF ( LDUST .AND. id_DST1 > 0 ) THEN
-               CALL CHEMDUST( am_I_Root, Input_Opt,  State_Met,
+               CALL ChemDust( am_I_Root, Input_Opt,  State_Met,
      &                        State_Chm, State_Diag, RC         )
             ENDIF
  
 #if   defined( TOMAS )
             ! Do TOMAS aerosol microphysics and dry dep
             IF ( id_NK1 > 0 ) THEN 
-               CALL DO_TOMAS
+               CALL Do_TOMAS
      &             ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
                IF ( RC /= GC_SUCCESS ) RETURN
             ENDIF
@@ -499,7 +498,7 @@
             ! Check units (ewl, 10/5/15)
             IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
                MSG = 'Incorrect species units after DO_TOMAS!' 
-               CALL ERROR_STOP( MSG, LOC )
+               CALL Error_Stop( MSG, LOC )
             ENDIF  
 
 #endif
@@ -509,14 +508,14 @@
 #endif
 
             ! ND43 chemical production
-            CALL DIAGOH()
+            CALL DiagOH()
 
             ! Write STATE_PSC to diagnostics. This is only of relevance in
             ! an ESMF environment, where the restart variables (STATE_PSC)
             ! need to be written to the internal state object on every time
             ! step (ckeller, 5/8/15). 
 #if defined( UCX )
-            CALL WRITE_STATE_PSC( am_I_Root, State_Chm, RC )
+            CALL Write_State_PSC( am_I_Root, State_Chm, RC )
             IF ( RC /= GC_SUCCESS ) RETURN
 #endif
  
@@ -531,20 +530,20 @@
 
             ! Compute aerosol & dust concentrations [kg/m3]
             ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
-            CALL AEROSOL_CONC
+            CALL Aerosol_Conc
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             ! Check units (ewl, 10/5/15)
             IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
                MSG = 'Incorrect species units after AEROSOL_CONC!'             
-               CALL ERROR_STOP( MSG, LOC )
+               CALL Error_Stop( MSG, LOC )
             ENDIF  
 
             ! Compute AOD's and surface areas at 999 nm
             MONTH      = 0
             YEAR       = 0
             WAVELENGTH = 0
-            CALL RDAER( am_I_Root, Input_Opt, State_Met, State_Chm,
+            CALL RdAer( am_I_Root, Input_Opt, State_Met, State_Chm,
      &                  RC,        MONTH,     YEAR,      WAVELENGTH )
 
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
@@ -553,8 +552,8 @@
 
 #if   !defined( NO_ISORROPIA )
                   ! ISOROPIA takes Na+, Cl- into account
-                  CALL DO_ISOROPIAII
-     &               ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+                  CALL Do_IsoropiaII( am_I_Root, Input_Opt,  State_Met,
+     &                                State_Chm, State_Diag, RC )
 #endif
 
                ELSE
@@ -562,7 +561,7 @@
                   ! RPMARES does not take Na+, Cl- into account
                   ! (skip for crystalline & aqueous offline run)
                   IF ( .not. LCRYST ) THEN
-                     CALL DO_RPMARES( am_I_Root, Input_Opt, 
+                     CALL Do_RPMARES( am_I_Root, Input_Opt, 
      &                                State_Met, State_Chm, RC )
                   ENDIF
                ENDIF
@@ -570,7 +569,7 @@
 
             !*** SEASALT AEROSOLS ***
             IF ( LSSALT ) THEN
-               CALL CHEMSEASALT( am_I_Root, Input_Opt,  State_Met,
+               CALL ChemSeaSalt( am_I_Root, Input_Opt,  State_Met,
      &                           State_Chm, State_Diag, RC         )
             ENDIF
 
@@ -578,26 +577,26 @@
             IF ( LSULF .or. LCRYST ) THEN
  
                ! Do sulfate chemistry
-               CALL CHEMSULFATE( am_I_Root, Input_Opt,  State_Met,
+               CALL ChemSulfate( am_I_Root, Input_Opt,  State_Met,
      &                           State_Chm, State_Diag, .TRUE.,    RC )
 
             ENDIF
 
             !*** CARBON AND SECONDARY ORGANIC AEROSOLS ***
             IF ( LCARB ) THEN
-               CALL CHEMCARBON( am_I_Root, Input_Opt,  State_Met,
+               CALL ChemCarbon( am_I_Root, Input_Opt,  State_Met,
      &                          State_Chm, State_Diag, RC         )
             ENDIF
 
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
                ! Do dust aerosol chemistry
-               CALL CHEMDUST( am_I_Root, Input_Opt,  State_Met,
+               CALL ChemDust( am_I_Root, Input_Opt,  State_Met,
      &                        State_Chm, State_Diag, RC         )
 
                ! Compute dust OD's & surface areas
                WAVELENGTH = 0
-               CALL RDUST_ONLINE
+               CALL Rdust_Online
      &             ( am_I_Root, Input_Opt,  State_Met, State_Chm,
      &               SOILDUST,  WAVELENGTH, RC )
             ENDIF
@@ -610,19 +609,19 @@
          ! Rn-Pb-Be
          !---------------------------------                 
          ELSE IF ( IT_IS_A_RnPbBe_SIM ) THEN
-            CALL CHEMRnPbBe 
+            CALL ChemRnPbBe 
      &         (  am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
          !---------------------------------
          ! Tagged O3
          !---------------------------------
          ELSE IF ( IT_IS_A_TAGO3_SIM ) THEN 
-            CALL CHEM_TAGGED_O3
+            CALL Chem_Tagged_O3
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
-               CALL DO_STRAT_CHEM
+               CALL Do_Strat_Chem
      &            ( am_I_Root, Input_Opt, State_met, State_Chm, RC )
             ENDIF
 
@@ -630,14 +629,14 @@
          ! Tagged CO
          !---------------------------------
          ELSE IF ( IT_IS_A_TAGCO_SIM ) THEN
-            CALL CHEM_TAGGED_CO
+            CALL Chem_Tagged_CO
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
  
          !---------------------------------
          ! C2H6
          !---------------------------------
          ELSE IF ( IT_IS_A_C2H6_SIM ) THEN
-            CALL CHEMC2H6
+            CALL ChemC2H6
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
  
          !---------------------------------
@@ -647,7 +646,7 @@
  
             ! Only call after the first 24 hours
             IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
-               CALL CHEMCH4
+               CALL ChemCh4
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
@@ -657,7 +656,7 @@
          ELSE IF ( IT_IS_A_MERCURY_SIM ) THEN
  
             ! Do Hg chemistry
-            CALL CHEMMERCURY
+            CALL ChemMercury
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
          !---------------------------------
@@ -666,7 +665,7 @@
          ELSE IF ( IT_IS_A_POPS_SIM ) THEN
  
             ! Do POPS chemistry
-            CALL CHEMPOPS
+            CALL ChemPOPs
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
          ENDIF
@@ -680,7 +679,7 @@
          ! ones). ckeller, 09/04/15
          ! CHEM_PASSIVE_SPECIES is defined below (ckeller, 11/3/16)
          !-----------------------------------------------------
-         CALL CHEM_PASSIVE_SPECIES
+         CALL Chem_Passive_Species
      &       ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -721,7 +720,7 @@
       DT_TEND = GET_TS_CHEM() * 60.0_fp
 
       ! Compute tendencies
-      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
+      CALL Tend_Stage2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CHEM', DT_TEND, RC )
 #endif
     

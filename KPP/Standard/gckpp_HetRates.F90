@@ -25,6 +25,7 @@ MODULE GCKPP_HETRATES
   USE gckpp_Global,       ONLY : HET
   USE State_Chm_Mod,      ONLY : ChmState
   USE State_Chm_Mod,      ONLY : Ind_
+  USE State_Diag_Mod,     ONLY : DgnState
   USE State_Met_Mod,      ONLY : MetState
   USE Input_Opt_Mod,      ONLY : OptInput
   USE PhysConstants,      ONLY : AVO, RGASLATM, CONSVAP
@@ -205,7 +206,7 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE SET_HET( I, J, L, SC, SM, IO, SCF )
+    SUBROUTINE SET_HET( I, J, L, SD, SC, SM, IO, SCF )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -216,7 +217,8 @@ MODULE GCKPP_HETRATES
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      TYPE(ChmState) :: SC        ! Chemistry Sate object
+      TYPE(ChmState) :: SC        ! Chemistry State object
+      TYPE(DgnState) :: SD        ! Diagnostics State object
       REAL(fp)       :: SCF(3)    ! Coefficients (Need help documenting this)
 !
 ! !REMARKS:
@@ -231,6 +233,8 @@ MODULE GCKPP_HETRATES
 !  26 Jul 2017 - M. Sulprizio- Remove hardcoded molecular weights from calls to
 !                              Het* functions and use MW from species database
 !                              instead
+!  03 Nov 2017 - R. Yantosca - HPlus_Sav, NaRat_Sav, SulRat_Sav, Bisul_Sav
+!                              now are contained in State_Diag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -524,16 +528,16 @@ MODULE GCKPP_HETRATES
       !--------------------------------------------------------------------
       ! Proton activity [unitless] and H+ concentration [M]
       ! (assumed equivalent - for now):
-      H_PLUS = SC%HPLUS_SAV(I,J,L)
+      H_PLUS = SD%HplusSav(I,J,L)
 
       ! Sulfate concentration [M]:
-      MSO4   = SC%SULRAT_SAV(I,J,L)
+      MSO4   = SD%SulRatSav(I,J,L)
 
       ! Nitrate concentration [M]:
-      MNO3   = SC%NARAT_SAV(I,J,L)
+      MNO3   = SD%NaRatSav(I,J,L)
 
       ! Bisulfate (general acid) concentration [M]:
-      MHSO4  = SC%BISUL_SAV(I,J,L)
+      MHSO4  = SD%BisulSav(I,J,L)
 
       !--------------------------------------------------------------------
       ! Get fields from State_Met, State_Chm, and Input_Opt

@@ -213,8 +213,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG49( am_I_Root, Input_Opt, 
-     &                   State_Met, State_Chm, RC )
+      SUBROUTINE DIAG49( am_I_Root, Input_Opt,  State_Met,
+     &                   State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -231,6 +231,7 @@
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD,           GET_NHMS
@@ -248,6 +249,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -312,6 +314,7 @@
 !                              species ID from State_Chm%Map_Advect.
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1605,7 +1608,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = State_Chm%PH_SAV(I,J,L)
+               Q(X,Y,K) = State_Diag%phSav(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -1631,7 +1634,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = State_Chm%WATER_SAV(I,J,L)
+               Q(X,Y,K) = State_Diag%WaterSav(I,J,L)
             ENDDO
             ENDDO
             ENDDO
