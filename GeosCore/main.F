@@ -796,7 +796,7 @@
       IF ( LUCX ) THEN
 
          ! Initialize the UCX module
-         CALL INIT_UCX( am_I_Root, Input_Opt, State_Chm )
+         CALL INIT_UCX( am_I_Root, Input_Opt, State_Chm, State_Diag )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
 
          ! Set simple initial tracer conditions [kg/kg dry air]
@@ -826,8 +826,9 @@
       ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
       ! and are converted locally to [kg] (mps, 11/29/16)
       IF ( LSTDRUN ) THEN 
-         CALL STDRUN( am_I_Root, Input_Opt, State_Met, State_Chm, RC, 
-     &                LBEGIN=.TRUE. )
+         CALL STDRUN( am_I_Root,    Input_Opt,  State_Met,
+     &                State_Chm,    State_Diag, RC,
+     &                LBEGIN=.TRUE.                        )
       ENDIF
 
 !-----------------------------------------------------------------------------
@@ -1285,8 +1286,8 @@
             ! within transport to [kg/kg total air] for advection 
             ! (ewl, 9/18/15)
             IF ( LTRAN ) THEN 
-               CALL DO_TRANSPORT
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL DO_TRANSPORT( am_I_Root, Input_Opt,  State_Met,
+     &                            State_Chm, State_Diag, RC         )
                IF ( RC /= GC_SUCCESS ) THEN
                   CALL ERROR_STOP('Error in DO_TRANSPORT!', 'main.F')
                ENDIF
@@ -1465,8 +1466,8 @@
                ! Call the appropriate convection routine
                ! NOTE: Tracer concentration units are converted locally
                ! to [kg/kg total air] for convection (ewl, 9/18/15)
-               CALL DO_CONVECTION
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL DO_CONVECTION( am_I_Root, Input_Opt,  State_Met,
+     &                             State_Chm, State_Diag, RC         )
                IF ( RC /= GC_SUCCESS ) THEN
                   CALL ERROR_STOP('Error in DO_CONVECTION!', 'main.F')
                ENDIF
@@ -1889,8 +1890,8 @@
       ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
       ! and are converted locally to [kg] (mps, 11/29/16)
       IF ( LSTDRUN ) THEN 
-         CALL STDRUN( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
-     &                LBEGIN=.FALSE. )
+         CALL STDRUN( am_I_Root, Input_Opt,  State_Met,
+     &                State_Chm, State_Diag, RC,        LBEGIN=.FALSE. )
       ENDIF
 
 #if defined( USE_TIMERS )

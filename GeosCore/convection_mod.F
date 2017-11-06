@@ -71,9 +71,14 @@
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !                              and rename routine DO_MERRA_CONVECTION to
 !                              DO_CLOUD_CONVECTION
+!   6 Nov 2017 - R. Yantosca - Now save equivalent of ND14, ND38 to netCDF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      ! Diagnostic flags
+      LOGICAL :: Archive_CloudConvFlux
+      LOGICAL :: Archive_WetLossConv
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -89,33 +94,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_CONVECTION( am_I_Root, Input_Opt,
-     &                          State_Met, State_Chm, RC )
+      SUBROUTINE DO_CONVECTION( am_I_Root, Input_Opt,  State_Met,
+     &                          State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : CONVFLUP
+      USE DIAG_MOD,       ONLY : CONVFLUP
       USE UnitConv_Mod
 #if defined( BPCH_DIAG )
-      USE DIAG_MOD,           ONLY : AD38
+      USE DIAG_MOD,       ONLY : AD38
 #endif
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE Species_Mod,        ONLY : Species
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_DYN
-      USE TIME_MOD,           ONLY : GET_TS_CONV
-      USE WETSCAV_MOD,        ONLY : COMPUTE_F
-      USE WETSCAV_MOD,        ONLY : H2O2s
-      USE WETSCAV_MOD,        ONLY : SO2s
+      USE ERROR_MOD,      ONLY : GEOS_CHEM_STOP
+      USE GC_GRID_MOD,    ONLY : GET_AREA_M2
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE Species_Mod,    ONLY : Species
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Met_Mod,  ONLY : MetState
+      USE TIME_MOD,       ONLY : GET_TS_DYN
+      USE TIME_MOD,       ONLY : GET_TS_CONV
+      USE WETSCAV_MOD,    ONLY : COMPUTE_F
+      USE WETSCAV_MOD,    ONLY : H2O2s
+      USE WETSCAV_MOD,    ONLY : SO2s
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
-      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Chm_Mod,  ONLY : Ind_
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -127,7 +133,8 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
@@ -192,6 +199,8 @@
 !  07 Jul 2016 - E. Lundgren - Now use spc kg/kg dry instead of kg/kg total
 !  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  06 Nov 2017 - R. Yantosca - Bug fix: ND14 should use 1..nAdvect species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -202,16 +211,19 @@
       INTEGER           :: N, NA, nAdvect, NW
       INTEGER           :: I, J, L, NN, TS_DYN
       REAL(fp)          :: AREA_M2, DT
-      LOGICAL           :: DO_ND14
-      LOGICAL           :: DO_ND38
+      LOGICAL           :: DO_ND14, DoConvFlux
+      LOGICAL           :: DO_ND38, DoWetLoss
 #if defined( USE_TEND )
       REAL(fp)          :: DT_TEND
 #endif
       
+      ! SAVEd scalars
+      LOGICAL, SAVE     :: First = .TRUE.
+
       ! Arrays        
       REAL(fp)          :: PEDGE  (          LLPAR+1                  )
       INTEGER           :: ISOL   (                  State_Chm%nAdvect)
-      REAL(fp)          :: DIAG14 (            LLPAR,State_Chm%nWetDep)
+      REAL(fp)          :: DIAG14 (            LLPAR,State_Chm%nAdvect)
       REAL(fp)          :: DIAG38 (            LLPAR,State_Chm%nWetDep)
       REAL(fp)          :: F      (            LLPAR,State_Chm%nAdvect)
       REAL(fp), TARGET  :: FSOL   (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
@@ -243,30 +255,26 @@
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
 
-      ! For netCDF diagnostics, archive old species concentration. At the 
-      ! moment, the new ND38 diagnostics only returns the total column 
-      ! loss due to convection. For these values, we don't need to 
-      ! write the diagnostics within the convection schemes but can
-      ! simply take the difference between the original and updated 
-      ! species field column.
-!#if defined( NC_DIAG )
-!      IF ( Input_Opt%ND38 > 0 ) THEN
-!         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,State_Chm%nSpecies) )
-!         BEFORE = State_Chm%Species
-!      ENDIF
-!#endif
-
       !=================================================================
       ! Call convection routines 
       !=================================================================
 
+      ! Deterimine if netCDF diagnostic arrays are associated
+      IF ( First ) THEN
+         Archive_CloudConvFlux = ASSOCIATED( State_Diag%CloudConvFlux )
+         Archive_WetLossConv   = ASSOCIATED( State_Diag%WetLossConv   )
+         First                 = .FALSE.
+      ENDIF
+
       ! Initialize
-      RC        =  GC_SUCCESS                   ! Assume success
-      DO_ND14   = ( Input_Opt%ND14 > 0 )          ! Should we use ND14 diat?
-      DO_ND38   = ( Input_Opt%ND38 > 0 )          ! Should we use ND38 diag?
-      TS_DYN    = GET_TS_DYN()                    ! Dynamic timestep [min]
-      DT        = DBLE( TS_DYN )                  ! Dynamic timestep [min]
-      FSOL      = 0e+0_fp                         ! Zero the FSOL array
+      RC         = GC_SUCCESS                   
+      TS_DYN     = GET_TS_DYN()                           ! Dyn timestep [min]
+      DT         = DBLE( TS_DYN )                         ! Dyn timestep [min]
+      FSOL       = 0e+0_fp                                ! Zero the FSOL array
+      DO_ND14    = ( Input_Opt%ND14 > 0                 ) ! Is CONVFLUP alloc'd?
+      DO_ND38    = ( Input_Opt%ND38 > 0                 ) ! Is AD38 alloc'd?
+      DoConvFlux = ( DO_ND14 .or. Archive_CloudConvFlux ) ! Save mass flux?
+      DoWetLoss  = ( DO_ND14 .or. Archive_WetLossConv   ) ! Save wet loss?
 
       ! Loop over advected species
 !$OMP PARALLEL DO
@@ -328,9 +336,9 @@
      &                             AREA_M2    = AREA_M2,
      &                             F          = F,
      &                             TS_DYN     = DT, 
-     &                             USE_DIAG14 = DO_ND14,
+     &                             USE_DIAG14 = DoConvFlux,
      &                             DIAG14     = DIAG14,
-     &                             USE_DIAG38 = DO_ND38,
+     &                             USE_DIAG38 = DoWetLoss,
      &                             DIAG38     = DIAG38,
      &                             RC         = RC         )
 
@@ -338,35 +346,62 @@
          IF ( RC /= GC_SUCCESS ) THEN
             CALL GEOS_CHEM_STOP
          ENDIF
-
-         !--------------------------
-         ! ND14 diagnostic [kg/s]
-         !--------------------------
+         
+#if defined( BPCH_DIAG )
+         !--------------------------------------------------------------
+         ! ND14 (bpch) DIAGNOSTIC 
+         !
+         ! Convective mass flux [kg/s]
+         ! NOTE: May be replaced soon with better flux diagnostics
+         !--------------------------------------------------------------
          IF ( DO_ND14 ) THEN
-
-            ! Loop over only the soluble species
-            DO NW = 1, State_Chm%nWetDep
-
-               ! Get the species ID From the wetdep ID
-               N = State_Chm%Map_Wetdep(NW)
-
-               ! Archive diagnostic
-               DO L = 1, LD14
-                  CONVFLUP(I,J,L,N) = CONVFLUP(I,J,L,N) + DIAG14(L,NW)
-               ENDDO
+            DO N = 1, State_Chm%nAdvect
+            DO L = 1, Input_Opt%LD14
+               CONVFLUP(I,J,L,N) = CONVFLUP(I,J,L,N) + DIAG14(L,N)
+            ENDDO
             ENDDO
          ENDIF
 
-#if defined( BPCH_DIAG )
-         !--------------------------
-         ! ND38 diagnostic [kg/s]
-         !--------------------------
+         !--------------------------------------------------------------
+         ! ND38 (bpch) DIAGNOSTIC
+         !
+         ! Loss of soluble species in convective mass flux [kg/s]
+         ! NOTE: May be replaced soon with better flux diagnostics
+         !--------------------------------------------------------------
          IF ( DO_ND38 ) THEN
-
-            ! Loop over only the soluble species
             DO NW = 1, State_Chm%nWetDep
-            DO L  = 1, LD38
+            DO L  = 1, Input_Opt%LD38
                AD38(I,J,L,NW) = AD38(I,J,L,NW) + DIAG38(L,NW)
+            ENDDO
+            ENDDO
+         ENDIF
+#endif
+
+#if defined( NC_DIAG )
+         !--------------------------------------------------------------
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! Convective mass flux [kg/s]
+         ! NOTE: May be replaced soon with better flux diagnostics
+         !--------------------------------------------------------------
+         IF ( Archive_CloudConvFlux ) THEN
+            DO N = 1, State_Chm%nAdvect
+            DO L = 1, LLPAR
+               State_Diag%CloudConvFlux(I,J,L,N) = Diag14(L,N)
+            ENDDO
+            ENDDO
+         ENDIF
+
+         !--------------------------------------------------------------
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! Loss of soluble species in convective mass flux [kg/s]
+         ! NOTE: May be replaced soon with better flux diagnostics
+         !--------------------------------------------------------------
+         IF ( Archive_WetLossConv ) THEN
+            DO NW = 1, State_Chm%nWetDep 
+            DO L  = 1, LLPAR
+               State_Diag%WetLossConv(I,J,L,NW) = Diag38(L,NW)
             ENDDO
             ENDDO
          ENDIF
@@ -428,6 +463,7 @@
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  ! hma Nov 3, debug
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE Species_Mod,        ONLY : Species
       USE WETSCAV_MOD,        ONLY : H2O2s_3D => H2O2s ! [v/v]
@@ -438,22 +474,22 @@
 !
 ! !INPUT PARAMETERS:
 !  
-      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
-      INTEGER,        INTENT(IN)    :: I, J       ! Lon & lat indices
-      REAL(fp),       INTENT(IN)    :: AREA_M2    ! Surface area [m2]
-      REAL(fp),       INTENT(IN)    :: F(:,:)     ! Fraction of soluble species
-                                                  !  for updraft scavenging 
-                                                  !  [unitless].  Computed by
-                                                  !  routine  COMPUTE_F.
-      REAL(fp),       INTENT(IN)    :: TS_DYN     ! Dynamic timestep [min]
-      LOGICAL,        INTENT(IN)    :: USE_DIAG14 ! Archive DIAG14?
-      LOGICAL,        INTENT(IN)    :: USE_DIAG38 ! Archive DIAG38?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: I, J        ! Lon & lat indices
+      REAL(fp),       INTENT(IN)    :: AREA_M2     ! Surface area [m2]
+      REAL(fp),       INTENT(IN)    :: F(:,:)      ! Fraction of soluble species
+                                                   !  for updraft scavenging 
+                                                   !  [unitless].  Computed by
+                                                   !  routine  COMPUTE_F.
+      REAL(fp),       INTENT(IN)    :: TS_DYN      ! Dynamic timestep [min]
+      LOGICAL,        INTENT(IN)    :: USE_DIAG14  ! Archive DIAG14?
+      LOGICAL,        INTENT(IN)    :: USE_DIAG38  ! Archive DIAG38?
 !                                                  
 ! !INPUT/OUTPUT PARAMETERS:                        
 !        
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !                                                  
 ! !OUTPUT PARAMETERS:                              
 !                     
@@ -555,6 +591,7 @@
 !  20 Sep 2016 - R. Yantosca - Rewrote IF test to avoid Gfortran compiler error
 !  24 Aug 2017 - M. Sulprizio- Rename routine from DO_MERRA_CONVECTION to
 !                              DO_CLOUD_CONVECTION
+!   6 Nov 2017 - R. Yantosca - Bug fix: ND14 should use 1..nAdvect species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -711,10 +748,12 @@
          ! Also get the corresponding wetdep ID
          NW       =  SpcInfo%WetDepId
 
-         ! Zero the ND14 and ND38 diagnostic arrays 
-         ! These are only sized for the # of soluble species
+         
+         ! Zero the DIAG14 diagnostic array
+         DIAG14(:,NA) = 0.0_fp 
+                     
+         ! Zero the DIAG38 diagnostic array
          IF ( NW > 0 ) THEN
-            DIAG14(:,NW) = 0.0_fp 
             DIAG38(:,NW) = 0.0_fp
          ENDIF
 
@@ -1057,9 +1096,9 @@
                   ! timesteps so that the sum represents the average loss rate 
                   ! across all internal timesteps.
                   !------------------------------------------------------------
-                  IF ( USE_DIAG14 .and. NW > 0 ) THEN
-                     DIAG14(K,NW) = 
-     &               DIAG14(K,NW) + ( -T2-T3 ) * AREA_M2 / DNS   
+                  IF ( USE_DIAG14 ) THEN 
+                     DIAG14(K,NA) = 
+     &               DIAG14(K,NA) + ( -T2-T3 ) * AREA_M2 / DNS   
                   ENDIF
 
                   !------------------------------------------------------------
@@ -1291,9 +1330,9 @@
                   ! timesteps so that the sum represents the average loss 
                   ! rate across all internal timesteps.
                   !------------------------------------------------------------
-                  IF ( USE_DIAG14 .and. NW > 0 ) THEN
-                     DIAG14(K,NW) = 
-     &               DIAG14(K,NW) + ( -T2-T3 ) * AREA_M2 / DNS 
+                  IF ( USE_DIAG14 ) THEN
+                     DIAG14(K,NA) = 
+     &               DIAG14(K,NA) + ( -T2-T3 ) * AREA_M2 / DNS 
                   ENDIF
 
                   !------------------------------------------------------------

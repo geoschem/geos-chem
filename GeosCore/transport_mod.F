@@ -125,19 +125,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_TRANSPORT( am_I_Root, Input_Opt,
-     &                         State_Met, State_Chm, RC )
+      SUBROUTINE DO_TRANSPORT( am_I_Root, Input_Opt,  State_Met,
+     &                         State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE GC_GRID_MOD,        ONLY : ITS_A_NESTED_GRID
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-      USE TPCORE_BC_MOD,      ONLY : INIT_TPCORE_BC
-      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE GC_GRID_MOD,    ONLY : ITS_A_NESTED_GRID
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Met_Mod,  ONLY : MetState
+      USE TPCORE_BC_MOD,  ONLY : INIT_TPCORE_BC
+      USE TIME_MOD,       ONLY : GET_TS_DYN
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
@@ -150,6 +151,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
@@ -172,6 +174,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  31 Mar 2015 - E. Lundgren - Make State_Met INTENT(INOUT) for AIRQNT calls
 !  19 Jul 2016 - R. Yantosca - Now bracket DO_TEND calls with #ifdef USE_TEND
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -191,14 +194,12 @@
 #if defined( GRID05x0625 ) || defined( GRID025x03125 )
 
       ! All nested grid simulations
-      CALL INIT_WINDOW_TRANSPORT
-     &     ( am_I_Root, Input_Opt, RC ) 
+      CALL INIT_WINDOW_TRANSPORT( am_I_Root, Input_Opt, State_Diag. RC )
 
 #else
 
       ! All global simulations
-      CALL INIT_TRANSPORT                   
-     &     ( am_I_Root, Input_Opt, RC )    
+      CALL INIT_TRANSPORT( am_I_Root, Input_Opt, State_Diag, RC )
 
 #endif
 
@@ -223,8 +224,8 @@
 #if defined( GRID05x0625 ) || defined( GRID025x03125 )
 
          ! Nested-grid simulation with GEOS-FP/MERRA2 met
-         CALL DO_WINDOW_TRANSPORT
-     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         CALL DO_WINDOW_TRANSPORT( am_I_Root, Input_Opt,  State_Met,
+     &                             State_Chm, State_Diag, RC         )
 
 #endif
 
@@ -234,8 +235,8 @@
       ELSE
 
          ! Call TPCORE w/ proper settings for the GEOS-FP/MERRA2 met fields
-         CALL DO_GLOBAL_ADV
-     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         CALL DO_GLOBAL_ADV( am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC         )
 
       ENDIF
 
@@ -265,8 +266,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_GLOBAL_ADV( am_I_Root, Input_Opt,
-     &                       State_Met, State_Chm, RC )
+      SUBROUTINE DO_GLOBAL_ADV( am_I_Root, Input_Opt,  State_Met,
+     &                          State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -280,6 +281,8 @@
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
+
       USE State_Met_Mod,      ONLY : MetState
       USE State_Met_Mod,      ONLY : MetState
       USE PhysConstants            ! Physical constants
@@ -295,8 +298,9 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -341,6 +345,7 @@
 !  20 Jul 2016 - R. Yantosca - Now replace NNPAR with State_Chm%nAdvect
 !  20 Jul 2016 - R. Yantosca - Now pass State_Chm to DiagnUpdate_Transport_Flux
 !  03 Aug 2016 - R. Yantosca - Removed temporary tracer-removal code
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -521,8 +526,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_WINDOW_TRANSPORT( am_I_Root, Input_Opt,
-     &                                State_Met, State_Chm, RC )
+      SUBROUTINE DO_WINDOW_TRANSPORT( am_I_Root, Input_Opt,  State_Met,
+     &                                State_Chm, State_Diag, RC        )
 !
 ! !USES:
 !
@@ -538,6 +543,7 @@
       USE Input_Opt_Mod,        ONLY : OptInput
       USE State_Chm_Mod,        ONLY : ChmState
       USE State_Met_Mod,        ONLY : MetState
+      USE State_Diag_Mod,       ONLY : DgnState
       USE PhysConstants              ! Physical constants
       USE PJC_PFIX_WINDOW_MOD,  ONLY : DO_PJC_PFIX_WINDOW
       USE TIME_MOD,             ONLY : GET_TS_DYN
@@ -554,8 +560,9 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -596,6 +603,7 @@
 !  20 Jul 2016 - R. Yantosca - Now pass State_Chm to DiagnUpdate_Transport_Flux
 !  03 Aug 2016 - R. Yantosca - Removed temporary tracer-removal code
 !  11 Jul 2017 - R. Yantosca - Prevent segfault if ND24, ND25, or ND26 are off
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -899,23 +907,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TRANSPORT( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TRANSPORT( am_I_Root, Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD           ! Size parameters
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2, GET_YMID_R
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE PhysConstants            ! Re
-      USE TIME_MOD,           ONLY : GET_TS_DYN
-      USE TPCORE_FVDAS_MOD,   ONLY : INIT_TPCORE
+      USE ERROR_MOD,        ONLY : ALLOC_ERR
+      USE GC_GRID_MOD,      ONLY : GET_AREA_M2, GET_YMID_R
+      USE Input_Opt_Mod,    ONLY : OptInput
+      USE State_Diag_Mod,   ONLY : DgnState
+      USE PhysConstants          ! Re
+      USE TIME_MOD,         ONLY : GET_TS_DYN
+      USE TPCORE_FVDAS_MOD, ONLY : INIT_TPCORE
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -940,6 +950,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  05 Dec 2014 - M. Yannetti - Added REAL_N_DYN
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -959,9 +970,6 @@
 
       ! Assume success
       RC        =  GC_SUCCESS
-
-      ! Copy values from Input_Opt
-      LTRAN     = Input_Opt%LTRAN
 
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates 
@@ -1019,8 +1027,8 @@
       REAL_N_DYN = N_DYN
 
       ! Call INIT routine from "tpcore_fvdas_mod.f" 
-      CALL INIT_TPCORE( IIPAR,  JJPAR, LLPAR,  JFIRST, JLAST, 
-     &                  NG, MG, REAL_N_DYN, Re,     YMID_R )
+      CALL INIT_TPCORE( IIPAR, JJPAR, LLPAR,      JFIRST, JLAST,
+     &                  NG,    MG,    REAL_N_DYN, Re,     YMID_R )
 
       END SUBROUTINE INIT_TRANSPORT
 !EOC
@@ -1038,28 +1046,31 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_WINDOW_TRANSPORT( am_I_Root,Input_Opt,RC )
+      SUBROUTINE INIT_WINDOW_TRANSPORT( am_I_Root,  Input_Opt,
+     &                                  State_Diag, RC         )
 !
 ! !USES:    
 !
-      USE CMN_SIZE_MOD                  ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
       USE ErrCode_Mod
-      USE ERROR_MOD,               ONLY : ALLOC_ERR
-      USE GC_GRID_MOD,             ONLY : GET_AREA_M2
-      USE GC_GRID_MOD,             ONLY : GET_YMID_R_W
-      USE Input_Opt_Mod,           ONLY : OptInput
-      USE PhysConstants                 ! Re
-      USE TIME_MOD,                ONLY : GET_TS_DYN
-      USE TPCORE_FVDAS_MOD,        ONLY : INIT_TPCORE
-      USE TPCORE_BC_MOD,           ONLY : I0_W, J0_W, I1_W, J1_W
-      USE TPCORE_BC_MOD,           ONLY : I2_W, J2_W, IM_W, JM_W
-      USE TPCORE_BC_MOD,           ONLY : IGZD, INIT_TPCORE_BC
-      USE TPCORE_WINDOW_MOD,       ONLY : INIT_WINDOW
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,        ONLY : GET_YMID_R_W
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants            ! Re
+      USE State_Diag_Mod,     ONLY : DgnState
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TPCORE_FVDAS_MOD,   ONLY : INIT_TPCORE
+      USE TPCORE_BC_MOD,      ONLY : I0_W, J0_W, I1_W, J1_W
+      USE TPCORE_BC_MOD,      ONLY : I2_W, J2_W, IM_W, JM_W
+      USE TPCORE_BC_MOD,      ONLY : IGZD, INIT_TPCORE_BC
+      USE TPCORE_WINDOW_MOD,  ONLY : INIT_WINDOW
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1078,6 +1089,7 @@
 !                              INIT_WINDOW_TRANSPORT for use with all nested
 !                              grids
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC

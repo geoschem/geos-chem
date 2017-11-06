@@ -6608,25 +6608,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_UCX( am_I_Root, Input_Opt, State_Chm )
+      SUBROUTINE INIT_UCX( am_I_Root, Input_Opt, State_Chm, State_Diag )
 !
 ! !USES:
 !
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE ERROR_MOD,          ONLY : IS_SAFE_DIV
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GC_GRID_MOD,        ONLY : GET_YEDGE
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE PhysConstants,      ONLY : PI_180
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
-      USE TIME_MOD,           ONLY : GET_YEAR
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE ERROR_MOD,      ONLY : IS_SAFE_DIV
+      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE GC_GRID_MOD,    ONLY : GET_YEDGE
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE PhysConstants,  ONLY : PI_180
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Diag_Mod, ONLY : DgnState
+      USE TIME_MOD,       ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
       TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(IN) :: State_Diag  ! Diagnostics State object
 !
 ! !REVISION HISTORY: 
 !  04 Apr 2013 - S. D. Eastham - Initial version
@@ -6635,6 +6637,7 @@
 !  24 Jun 2016 - R. Yantosca   - Bug fix: get advected species index for H2 
 !  20 Sep 2016 - R. Yantosca   - Now avoid using SIND, convert the argument
 !                                to radians and use the SIN function instead
+!  03 Nov 2017 - R. Yantosca   - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
