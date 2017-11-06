@@ -385,7 +385,6 @@
       LOGICAL                  :: LTRAN
       LOGICAL                  :: LTURB
       LOGICAL                  :: LUCX
-      LOGICAL                  :: LVARTROP
       LOGICAL                  :: LWETD
       LOGICAL                  :: LWINDO
 
@@ -530,7 +529,6 @@
       LTRAN               =  Input_Opt%LTRAN
       LTURB               =  Input_Opt%LTURB
       LUCX                =  Input_Opt%LUCX
-      LVARTROP            =  Input_Opt%LVARTROP
       LWETD               =  Input_Opt%LWETD
       LWINDO              =  Input_Opt%LWINDO
 
@@ -633,13 +631,6 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
-      ! Read annual mean tropopause if not a variable tropopause
-      ! read_tropopause is obsolete with variable tropopause
-      IF ( .not. Input_Opt%LVARTROP ) THEN
-         CALL READ_TROPOPAUSE( am_I_Root, Input_Opt, RC )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
-      ENDIF
-
       ! Added to read input file for linoz strat (dbj, jliu, bmy, 10/16/09)
       IF ( LLINOZ ) THEN
          CALL LINOZ_READ( am_I_Root, Input_Opt, RC )
@@ -665,8 +656,8 @@
       Input_Opt%HistoryInputFile = './HISTORY.rc'
 
       ! Initialize the GEOS-Chem history component
-      CALL History_Init( am_I_root,  Input_Opt, State_Chm, 
-     &                   State_Diag, State_Met, RC          )
+      CALL History_Init( am_I_root, Input_Opt,  State_Met,
+     &                   State_Chm, State_Diag, RC         )
 
       ! Trap error
       IF ( RC /= GC_SUCCESS ) THEN
@@ -1137,11 +1128,23 @@
          CALL INTERP( NSECb, ELAPSED_TODAY,
      &                N_DYN, Input_Opt,     State_Met )
 
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%% NOTE: This routine can probably be skipped.  It tests if
+         !%%% LLTROP is set too low.  Typically we no longer loop to 
+         !%%% LLTROP anymore but to LLPAR, and then test if we are no
+         !%%% longer in the chemistry grid.  This might save time.
+         !%%% (bmy, 11/6/17)
+         !
          ! Case of variable tropopause:
          ! Check LLTROP and set LMIN, LMAX, and LPAUSE
          ! since this is not done with READ_TROPOPAUSE anymore.
          ! (Need to double-check that LMIN, Lmax are not used before-phs) 
-         IF ( LVARTROP ) CALL CHECK_VAR_TROP( State_Met )
+         CALL Check_Var_Trop( am_I_Root, State_Met, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Check_Var_Trop"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ! If we are not doing transport, then make sure that
          ! the floating pressure is set to PSC2_WET (bdf, bmy, 8/22/02)
@@ -1179,11 +1182,8 @@
 
          ! Compute tropopause height for ND55 diagnostic
          ! Consider updating all Met diagnostics here (ewl, 1/22/16) 
-#if defined( BPCH_DIAG )
-         IF ( Input_Opt%ND55 > 0 ) THEN
-            CALL DIAG_TROPOPAUSE( am_I_root, Input_Opt, State_Met, RC )
-         ENDIF
-#endif
+         CALL DIAG_TROPOPAUSE( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Diag, RC )
 
          ! Update dynamic timestep
          CALL SET_CT_DYN( INCREMENT=.TRUE. )
@@ -1338,7 +1338,11 @@
          ! height is used by drydep and some of the emissions routines.
          ! (ckeller, 3/5/15) 
          !--------------------------------------------------------------
-         CALL COMPUTE_PBL_HEIGHT ( State_Met )
+         CALL COMPUTE_PBL_HEIGHT( am_I_Root, State_Met, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Erroe encountered in "Compute_PBL_Height"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
 
          !### Debug
          IF ( prtDebug ) THEN 

@@ -2033,6 +2033,9 @@ contains
     ! For diagnostics
     REAL(fp)                :: EmMW_kg
 
+    ! For error trapping
+    CHARACTER(LEN=255)      :: ErrMsg, ThisLoc
+
     !=================================================================
     ! vdiffdr begins here!
     !=================================================================
@@ -2703,7 +2706,15 @@ contains
        ! PBL is in m 
        State_Met%PBLH = pblh 
 
-       CALL COMPUTE_PBL_HEIGHT( State_Met )
+       CALL COMPUTE_PBL_HEIGHT( am_I_Root, State_Met, RC )
+
+       !! Trap potential errors
+       !IF ( RC /= GC_SUCCESS ) THEN
+       !   ErrMsg = 'Error encountered in "COMPUTE_PBL_HEIGHT"!'
+       !   CALL GC_Error( ErrMsg, RC, ThisLoc )
+       !   RETURN
+       !ENDIF
+
     endif
 
 #if defined( USE_TEND )

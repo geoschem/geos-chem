@@ -104,8 +104,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Init( am_I_root,  Input_Opt, State_Chm,                  &
-                           State_Diag, State_Met, RC                         )
+  SUBROUTINE History_Init( am_I_root, Input_Opt,  State_Met,                 &
+                           State_Chm, State_Diag, RC                        )
 !
 ! !USES:
 !
@@ -135,6 +135,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  06 Nov 2017 - R. Yantosca - Reorder arguments for consistency (Input_Opt, 
+!                              then State_Met, State_Chm, State_Diag).
 !EOP
 !------------------------------------------------------------------------------
 !BOC

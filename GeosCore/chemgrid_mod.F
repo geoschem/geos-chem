@@ -24,7 +24,6 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: CLEANUP_CHEMGRID
       PUBLIC  :: CHECK_VAR_TROP
       PUBLIC  :: DIAG_TROPOPAUSE
       PUBLIC  :: GET_MIN_CHEMGRID_LEVEL
@@ -40,7 +39,6 @@
       PUBLIC  :: ITS_IN_THE_STRATMESO
       PUBLIC  :: ITS_IN_THE_CHEMGRID
       PUBLIC  :: ITS_IN_THE_NOCHEMGRID
-      PUBLIC  :: READ_TROPOPAUSE
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -69,18 +67,19 @@
 !  06 Nov 2014 - M. Yannetti   - Added PRECISION_MOD
 !  24 Aug 2017 - M. Sulprizio  - Remove support for GCAP, GEOS-4, GEOS-5 and
 !                                MERRA
+!  06 Nov 2017 - R. Yantosca   - Remove the fixed-tropopause arrays and related
+!                                routines INIT_CHEMGRID, CLEANUP_CHEMGRID
+!  06 Nov 2017 - R. Yantosca   - Remove LVARTROP, we will always use the 
+!                                dynamic tropopause for GEOS-FP, MERRA-2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !      
-      ! Arrays
-      INTEGER, ALLOCATABLE :: TROPOPAUSE(:,:)
-      INTEGER, ALLOCATABLE :: IFLX(:,:)
-
-      ! Shadow variables for values in Input_Opt
-      LOGICAL              :: LVARTROP
+      ! Diagnostic flags
+      LOGICAL :: Archive_TropopauseLevel
+      LOGICAL :: Archive_TropopauseHeight
 
       CONTAINS
 !EOC
@@ -98,17 +97,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_VAR_TROP( State_Met )
+      SUBROUTINE CHECK_VAR_TROP( am_I_Root, State_Met, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE State_Met_Mod,      ONLY : MetState
+      USE ErrCode_Mod
+      USE State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  24 Aug 2006 - P. Le Sager - Initial version
@@ -122,8 +126,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J
-      REAL(fp)  :: TPAUSE_LEV(IIPAR,JJPAR)
+      INTEGER  :: I, J
+      REAL(fp) :: TPAUSE_LEV(IIPAR,JJPAR)
 
       !=================================================================
       ! CHECK_VAR_TROP begins here!
@@ -144,229 +148,14 @@
          WRITE( 6, '(a)' ) 'CHECK_VAR_TROP: LLTROP is set too low!' 
          WRITE( 6, 10   ) LMAX, LLTROP
  10      FORMAT( 'MAX TROPOSPHERE LEVEL = ', i3, ' and LLTROP = ', i3 )
-         WRITE( 6, '(a)' ) 'STOP in CHECK_VAR_TROP.F!!!'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         CALL GEOS_CHEM_STOP
+         
+         ! Exit with error!
+         RC = GC_FAILURE
+         RETURN
       ENDIF
 
       END SUBROUTINE CHECK_VAR_TROP
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_tropopause
-!
-! !DESCRIPTION: Subroutine READ\_TROPOPAUSE reads in the annual mean 
-!  tropopause. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_TROPOPAUSE( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE CMN_SIZE_MOD
-      USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE m_netcdf_io_open
-      USE m_netcdf_io_read
-      USE m_netcdf_io_readattr
-      USE m_netcdf_io_close
-!
-! !INPUT PARAMETERS:
-!     
-      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
-! 
-! !REMARKS:
-!  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!  ##########################################################################
-!
-! !REVISION HISTORY: 
-!  13 Dec 1999 - Q. Li, R. Yantosca - Initial version
-!  (1 ) Call READ_BPCH2 to read in the annual mean tropopause data
-!        which is stored in binary punch file format. (bmy, 12/13/99)
-!  (2 ) Now also read integer flags for ND27 diagnostic -- these determine
-!        how to sum fluxes from boxes adjacent to the annual mean tropoause.
-!        (qli, bmy, 1/7/00)
-!  (3 ) Cosmetic changes (bmy, 3/17/00)
-!  (4 ) Reference F90 module "bpch2_mod" which contains routine "read_bpch2"
-!        for reading data from binary punch files (bmy, 6/28/00)
-!  (5 ) Call TRANSFER_2D from "transfer_mod.f" to cast data from REAL*4 to
-!        INTEGER and also to resize to (IIPAR,JJPAR).  ARRAY needs to be of 
-!        size (IIPAR,JJPAR).  Also updated comments and made cosmetic changes. 
-!        Removed obsolete variables.(bmy, 9/26/01)
-!  (6 ) Removed obsolete code from 9/01 (bmy, 10/26/01)
-!  (7 ) Now read annual mean tropopause files from the ann_mean_trop_200202/
-!        subdirectory of DATA_DIR (bmy, 1/24/02)
-!  (8 ) Eliminated obsolete code from 1/02 (bmy, 2/27/02)
-!  (9 ) Now write file name to stdout (bmy, 4/3/02)
-!  (10) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
-!        allocated memory before stopping the run. (bmy, 10/15/02)
-!  (11) Now call READ_BPCH2 with QUIET=.TRUE. to suppress printing of extra
-!        info to stdout.  Also updated FORMAT strings. (bmy, 3/14/03)
-!  (12) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (13) Now bundled into "tropopause_mod.f' (bmy, 2/10/05)
-!  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (15) Simplify counting of # of tropospheric boxes (bmy, 11/1/05)
-!  09 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  21 Feb 2014 - M. Sulprizio- Remove call to INIT_TROPOPAUSE, this is now
-!                              done in the init stage
-!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
-!  06 Mar 2015 - R. Yantosca - Now read ann mean trop from netCDF 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER            :: I, J, COUNT
-      REAL(f4)           :: ARRAY(IIPAR,JJPAR,1)
-      CHARACTER(LEN=255) :: FILENAME
-
-      ! Variables for netCDF
-      INTEGER            :: fId                 ! netCDF file ID
-      INTEGER            :: st3d(3), ct3d(3)    ! For 3D arrays 
-      CHARACTER(LEN=255) :: v_name              ! netCDF variable name 
-      CHARACTER(LEN=255) :: a_name              ! netCDF attribute name
-      CHARACTER(LEN=255) :: a_val               ! netCDF attribute value
-
-      !=================================================================
-      ! READ_TROPOPAUSE begins here!
-      !
-      ! Read the annual mean tropopause from disk (binary punch file 
-      ! format).  Transfer data into an array of size (IIPAR,JJPAR).
-      !=================================================================
-      
-      ! Assume success
-      RC = GC_SUCCESS
-
-      !=================================================================
-      ! Open and read data from the netCDF file
-      !=================================================================
-
-      ! Create filename
-      FILENAME = TRIM( Input_Opt%CHEM_INPUTS_DIR )      // 
-     &           'ann_mean_trop_200202/ann_mean_trop.'  //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
-
-      ! Open netCDF file
-      CALL Ncop_Rd( fId, TRIM( FILENAME ) )
-      
-      ! Echo info to stdout
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 200 ) REPEAT( '%', 79 )
-         WRITE( 6, 210 ) TRIM( FILENAME )
-      ENDIF
-    
-      !----------------------------------------
-      ! VARIABLE: TP_LEVEL
-      !----------------------------------------
-
-      ! Variable and attribute names
-      v_name = "TP_LEVEL"
-      a_name = "units"
-
-      ! Read TP_LEVEL from file
-      st3d   = (/ 1,     1,     1 /)
-      ct3d   = (/ IIPAR, JJPAR, 1 /)
-      CALL NcRd( ARRAY, fId, TRIM( v_name ), st3d, ct3d )
-      
-      ! Read the TP_LEVEL:units attribute
-      a_name = "units"
-      CALL NcGet_Var_Attributes(fId, TRIM(v_name), TRIM(a_name), a_val)
-
-      ! Echo info to stdout
-      IF ( am_I_Root ) THEN 
-         WRITE( 6, 220 ) TRIM(v_name), TRIM(a_val)
-      ENDIF
-
-      ! Close netCDF file
-      CALL NcCl( fId )
-    
-      ! Echo info to stdout
-      IF ( am_I_Root ) THEN 
-         WRITE( 6, 230 )
-         WRITE( 6, 200 ) REPEAT( '%', 79 )
-      ENDIF
-
-      ! Copy from REAL*4 to INTEGER and resize to (IIPAR,JJPAR)
-      TROPOPAUSE = ARRAY(:,:,1)
-
-      !=================================================================
-      ! L <  TROPOPAUSE(I,J) are tropospheric boxes  
-      ! L >= TROPOPAUSE(I,J) are stratospheric boxes
-      !
-      ! LMIN   = level where minimum extent of the TROPOPAUSE occurs
-      ! LMAX   = level where maximum extent of the TROPOPAUSE occurs
-      !
-      ! LMIN-1 = level where minimum extent of the TROPOSPHERE occurs
-      ! LMAX-1 = level where maximum extent of the TROPOSPHERE occurs
-      !
-      ! Write LMAX-1 and LMIN-1 to the standard output.
-      !
-      ! Also make sure that LMAX-1 does not exceed LLTROP, since LLTROP 
-      ! is used to dimension the chemistry arrays in "comode.h". 
-      !=================================================================
-      LMIN = MINVAL( TROPOPAUSE )
-      LMAX = MAXVAL( TROPOPAUSE )
-      
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 120 ) LMIN-1
- 120     FORMAT( '     - READ_TROPOPAUSE: Minimum tropospheric extent,',
-     &           ' L=1 to L=', i3 )
-
-         WRITE( 6, 130 ) LMAX-1
- 130     FORMAT( '     - READ_TROPOPAUSE: Maximum tropospheric extent,',
-     &            ' L=1 to L=', i3 )
-      ENDIF
-
-      IF ( LMAX-1 > LLTROP ) THEN
-         IF ( am_I_Root ) THEN
-            WRITE( 6, '(a)' ) 'READ_TROPOPAUSE: LLTROP is set too low!' 
-            WRITE( 6, 131   ) LMAX-1, LLTROP
- 131        FORMAT( 'LMAX = ', i3, '  LLTROP = ', i3 )
-            WRITE( 6, '(a)' ) 'STOP in READ_TROPOPAUSE.F!!!'
-            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         ENDIF
-         CALL GEOS_CHEM_STOP
-      ENDIF
-
-      !=================================================================
-      ! Write the number of tropopsheric and stratospheric boxes.
-      ! Recall that tropospheric boxes extend up to TROPOPAUSE - 1.
-      !=================================================================
-      COUNT = SUM( TROPOPAUSE - 1 )
-
-      IF ( am_I_Root ) THEN
-       WRITE( 6, 140 ) COUNT
- 140   FORMAT( '     - READ_TROPOPAUSE: # of tropopsheric boxes:  ', i8)
-      
-       WRITE( 6, 150 ) ( IIPAR * JJPAR * LLPAR ) - COUNT
- 150   FORMAT( '     - READ_TROPOPAUSE: # of stratospheric boxes: ', i8)
-      ENDIF
-
- 200  FORMAT( a                                              )
- 210  FORMAT( '%% Opening file  : ',         a               )
- 220  FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
- 230  FORMAT( '%% Successfully closed file!'                 )
-
-      END SUBROUTINE READ_TROPOPAUSE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -592,8 +381,8 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE State_Met_Mod,      ONLY : MetState
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
+      USE State_Met_Mod, ONLY : MetState
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
@@ -614,6 +403,7 @@
 !  21 Feb 2014 - M. Sulprizio- Now pass State_Met object via the arg list
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
+!  06 Nov 2017 - R. Yantosca - Remove fixed-tropopause IF block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -626,57 +416,40 @@
       !=================================================================
       ! GET_TPAUSE_LEVEL begins here!
       !=================================================================
-      IF ( LVARTROP ) THEN
 
-         !--------------------------
-         ! Dynamic tropopause
-         !--------------------------
+      ! Start at the surface level
+      L = 1
 
-         ! Start at the surface level
-         L = 1
+      ! Loop over vertical levels in the (I,J) column
+      DO
 
-         ! Loop over vertical levels in the (I,J) column
-         DO
+         ! Pressure [hPa] at the bottom edge of grid box (I,J,L) 
+         PRESS_BEDGE = State_Met%PEDGE( I, J, L )
 
-            ! Pressure [hPa] at the bottom edge of grid box (I,J,L) 
-            PRESS_BEDGE = State_Met%PEDGE( I, J, L )
+         ! Break out of this loop if we encounter the box (I,J,L_TP)
+         ! where the tropopause occurs.  This box is partially in the
+         ! trop and partially in the strat.
+         IF ( State_Met%TROPP(I,J) >= PRESS_BEDGE ) THEN
+            L_TP = L - 1       
+            EXIT
+         ENDIF
 
-            ! Break out of this loop if we encounter the box (I,J,L_TP)
-            ! where the tropopause occurs.  This box is partially in the
-            ! trop and partially in the strat.
-            IF ( State_Met%TROPP(I,J) >= PRESS_BEDGE ) THEN
-               L_TP = L - 1       
-               EXIT
-            ENDIF
+         ! Increment L for next iteration
+         L = L + 1
 
-            ! Increment L for next iteration
-            L = L + 1
+         ! Stop w/ error if tropopause not found
+         ! (i.e. in case TROPP value is bad)
+         IF ( L .GT. LLPAR ) THEN
+            WRITE( 6, '(a)' ) 'CGM: GET_TPAUSE_LEVEL: CANNOT ' //
+     &           'FIND T-PAUSE !'
+            WRITE( 6, 160   ) L
+ 160        FORMAT( 'L reaches ', i3 )
+            WRITE( 6, '(a)' ) 'STOP in GET_TPAUSE_LEVEL'
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+            CALL GEOS_CHEM_STOP
+         ENDIF
 
-            ! Stop w/ error if tropopause not found
-            ! (i.e. in case TROPP value is bad)
-            IF ( L .GT. LLPAR ) THEN
-               WRITE( 6, '(a)' ) 'CGM: GET_TPAUSE_LEVEL: CANNOT ' //
-     &              'FIND T-PAUSE !'
-               WRITE( 6, 160   ) L
- 160           FORMAT( 'L reaches ', i3 )
-               WRITE( 6, '(a)' ) 'STOP in GET_TPAUSE_LEVEL'
-               WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-               CALL GEOS_CHEM_STOP
-            ENDIF
-
-         ENDDO
-
-      ELSE
-
-         !--------------------------
-         ! Annual mean tropopause 
-         !--------------------------
-
-         ! Otherwise, if we are using the annual mean tropopause,
-         ! set L_TP to the value read in from disk.
-         L_TP = TROPOPAUSE(I,J)
-
-      ENDIF
+      ENDDO
 
       END FUNCTION GET_TPAUSE_LEVEL
 !EOC
@@ -720,6 +493,7 @@
 !  21 Feb 2014 - M. Sulprizio- Now pass State_Met object via the arg list
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
+!  06 Nov 2017 - R. Yantosca - Remove fixed-tropopause IF block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -731,20 +505,12 @@
       !=================================================================
       ! ITS_IN_THE_TROP begins here
       !=================================================================
-      IF ( LVARTROP ) THEN
 
-         ! Get bottom pressure edge
-         PRESS_BEDGE = State_Met%PEDGE(I,J,L)
+      ! Get bottom pressure edge
+      PRESS_BEDGE = State_Met%PEDGE(I,J,L)
 
-         ! Check against actual tropopause pressure
-         IS_TROP     = ( PRESS_BEDGE > State_Met%TROPP(I,J) )
-
-      ELSE
-         
-         ! Check against annual mean tropopause
-         IS_TROP     = ( L < TROPOPAUSE(I,J) ) 
-
-      ENDIF
+      ! Check against actual tropopause pressure
+      IS_TROP     = ( PRESS_BEDGE > State_Met%TROPP(I,J) )
 
       END FUNCTION ITS_IN_THE_TROP
 !EOC
@@ -1009,39 +775,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG_TROPOPAUSE( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE DIAG_TROPOPAUSE( am_I_Root, Input_Opt, 
+     &                            State_Met, State_Diag, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! Diagnostic switches
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
 #if defined( BPCH_DIAG )
-      USE DIAG_MOD,           ONLY : AD55
+      USE DIAG_MOD,       ONLY : AD55
 #endif
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Met_Mod,      ONLY : MetState    
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Met_Mod,  ONLY : MetState    
+      USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input options object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(INOUT) :: RC           ! Success or failure
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+      INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
 !
 ! !REMARKS:
-!  For GEOS-4, GEOS-5, 'MERRA', we use the tropopause pressure from the met 
-!  field archive to determine if we are in the tropopause or not.  Therefore, 
-!  the 3rd slot of AD55 should be archived with the tropopause pressure from 
-!  the met fields.
-!                                                                             .
-!  For other met fields, we have to estimate the tropopause pressure from the
-!  tropopause level.  Archive the pressure at the midpoint of the level in 
-!  which the tropopause occurs.  NOTE: this may result in lower minimum 
-!  tropopause pressure than reality. 
+!  For GEOS-FP and MERRA-2, we use the tropopause pressure from the met 
+!  field archive to determine if we are in the tropopause or not.
 !
 ! !REVISION HISTORY:
 !  30 Nov 1999 - H. Liu, R. Yantosca - Initial version
@@ -1081,6 +843,7 @@
 !                              Remove dependency on pressure_mod.
 !  21 Jan 2016 - E. Lundgren - Update diagnostic for netcdf output using HEMCO
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  06 Nov 2017 - R. Yantosca - Now attach netCDF diagnostics (level, height)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1088,7 +851,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      !Scalars
+      ! Scalars
+      LOGICAL   :: Do_Diag
       INTEGER   :: I, J, L
       INTEGER   :: L_TP
       REAL(fp)  :: H, FRAC, Pb, Pt
@@ -1097,14 +861,15 @@
       ! DIAG_TROPOPAUSE begins here!
       !=======================================================================
 
-      ! Assume successful return
-      RC = GC_SUCCESS
+      ! Initialize
+      RC      = GC_SUCCESS
+      Do_Diag = ( Input_Opt%ND55 > 0      .or.
+     &            Archive_TropopauseLevel .or. 
+     &            Archive_TropopauseHeight )
 
       ! Exit if diagnostic is not turned on
-#if defined( BPCH_DIAG )
-      IF ( Input_Opt%ND55 <= 0 ) RETURN
-#endif
-      
+      IF ( .not. Do_Diag ) RETURN
+
       !=================================================================
       ! We get tropopause pressure directly from the met field archive
       ! Compute tropopause height to be consistent w/ the pressure
@@ -1143,14 +908,34 @@
          H    = H + ( FRAC * State_Met%BXHEIGHT(I,J,L_TP) )
 
 #if defined( BPCH_DIAG )
-         !---------------------------
-         ! Archive into ND55 array
-         !---------------------------
+         !-------------------------------------------------------------
+         ! ND55 (bpch) DIAGNOSTIC
+         !
+         ! Tropopause level, height [km], and pressure [hPa]
+         !-------------------------------------------------------------
          AD55(I,J,1) = AD55(I,J,1) + L_TP        ! T'pause level
          AD55(I,J,2) = AD55(I,J,2) + H/1.0e+3_fp ! T'pause height [km]
          AD55(I,J,3) = AD55(I,J,3) +             ! T'pause pressure [hPa]
      &                    State_Met%TROPP(I,J)
 #endif
+
+
+#if defined( NC_DIAG )
+         !-------------------------------------------------------------
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! Tropopause level and height [km]
+         ! Tropopuase pressure is obtained with MET_TROPP
+         !-------------------------------------------------------------
+         IF ( Archive_TropopauseLevel ) THEN
+            State_Diag%TropopauseLevel(I,J) = L_TP
+         ENDIF
+
+         IF ( Archive_TropopauseHeight ) THEN
+            State_Diag%TropopauseHeight(I,J) = H / 1.0e+3_fp
+         ENDIF
+#endif
+
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1169,19 +954,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_CHEMGRID( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_CHEMGRID( am_I_Root, Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1191,6 +976,7 @@
 !  10 Feb 2005 - R. Yantosca - Initial version
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  29 Mar 2013 - R. Yantosca - Now made public so we can shadow LVARTROP
+!  06 Nov 2017 - R. Yantosca - Remove allocations, initialize diagnostic flags
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1206,52 +992,14 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
-      ! Shadow Input_Opt%LVARTROP in a module variable
-      LVARTROP = Input_Opt%LVARTROP
+      ! Test if the tropopause level diagnostic is activated
+      Archive_TropopauseLevel  = 
+     &     ASSOCIATED( State_Diag%TropopauseLevel )
 
-      ! Only allocate arrays if we are not using the variable tropopause
-      IF ( .not. LVARTROP ) THEN 
-
-         ! Array for the ann mean tropopause
-         ALLOCATE( TROPOPAUSE( IIPAR, JJPAR ), STAT=AS ) 
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPOPAUSE' )
-         TROPOPAUSE = 0
-
-         ! For now don't allocate IFLX
-         !ALLOCATE( IFLX( IIPAR, JJPAR ), STAT=AS ) 
-         !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IFLX' )
-         !IFLX = 0
-
-      ENDIF
+      ! Test if the tropopause height diagnostic is activated
+      Archive_TropopauseHeight = 
+     &     ASSOCIATED( State_Diag%TropopauseHeight )
 
       END SUBROUTINE INIT_CHEMGRID
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_chemgrid
-!
-! !DESCRIPTION: Subroutine CLEANUP\_CHEMGRID deallocates module arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CLEANUP_CHEMGRID
-! 
-! !REVISION HISTORY: 
-!  10 Feb 2005 - R. Yantosca - Initial version
-!  09 Sep 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! CLEANUP_CHEMGRID begins here!
-      !=================================================================
-      IF ( ALLOCATED( TROPOPAUSE ) ) DEALLOCATE( TROPOPAUSE )
-      IF ( ALLOCATED( IFLX       ) ) DEALLOCATE( IFLX       ) 
-
-      END SUBROUTINE CLEANUP_CHEMGRID 
 !EOC
       END MODULE CHEMGRID_MOD

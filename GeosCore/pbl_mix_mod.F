@@ -238,18 +238,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_PBL_HEIGHT( State_Met )
+      SUBROUTINE COMPUTE_PBL_HEIGHT( am_I_Root, State_Met, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
-      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ErrCode_Mod
       USE PhysConstants            ! Scale height
       USE State_Met_Mod,      ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -265,19 +273,25 @@
 !  22 Aug 2014 - R. Yantosca - Now declare State_Met INTENT(INOUT)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
+!  06 Nov 2017 - R. Yantosca - Now return error to main program level
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,     J,      L,    LTOP
-      REAL(fp)  :: BLTOP, BLTHIK, DELP
-      REAL(fp)  :: P(0:LLPAR)
+      LOGICAL  :: Bad_Sum
+      INTEGER  :: I,     J,      L,    LTOP
+      REAL(fp) :: BLTOP, BLTHIK, DELP
+      REAL(fp) :: P(0:LLPAR)
 
       !=================================================================
       ! COMPUTE_PBL_HEIGHT begins here!
       !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      Bad_Sum = .FALSE.
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -434,13 +448,21 @@
 
          ! Error check
          IF (ABS(SUM( F_OF_PBL(I,J,:) ) - 1.e+0_fp) > 1.e-3_fp) THEN
+!$OMP CRITICAL
             PRINT*, 'bad sum at: ', I, J
-            CALL ERROR_STOP( 'Error in computing F_OF_PBL!',
-     &                       'COMPUTE_PBL_HEIGHT ("pbl_mix_mod.f")' )
+            Bad_Sum = .TRUE.
+!$OMP END CRITICAL
          ENDIF
       ENDDO
       ENDDO 
 !$OMP END PARALLEL DO
+
+      ! Exit to main program level if bad sum was encountered
+      IF ( Bad_Sum ) THEN 
+         CALL GC_Error( 'Error in computing F_OF_PBL !', RC,
+     &                  'COMPUTE_PBL_HEIGHT ("pbl_mix_mod.f")' )
+         RETURN
+      ENDIF
 
       ! Model level where PBL top occurs
       PBL_MAX_L = MAXVAL( IMIX ) 

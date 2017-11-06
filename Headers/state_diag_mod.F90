@@ -110,6 +110,10 @@ MODULE State_Diag_Mod
      REAL(fp),  POINTER :: AcidPurSav      (:,:,:  ) !
      REAL(fp),  POINTER :: BiSulSav        (:,:,:  ) ! Bisulfate conc [M]
  
+     ! Tropopause diagnostics
+     REAL(f4),  POINTER :: TropopauseLevel (:,:    ) ! T-pause level [1]
+     REAL(f4),  POINTER :: TropopauseHeight(:,:    ) ! T-pause level [km]
+
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
      !----------------------------------------------------------------------
@@ -251,23 +255,21 @@ CONTAINS
     nWetDep  = State_Chm%nWetDep
 
     ! Free pointers
-    State_Diag%SpeciesConc         => NULL()
-    State_Diag%DryDepChm           => NULL()
-    State_Diag%DryDepMix           => NULL()
-    State_Diag%DryDep              => NULL()
-    State_Diag%DryDepVel           => NULL()
-    State_Diag%JValues             => NULL()
-    State_Diag%RxnRates            => NULL()
-    State_Diag%UVFluxDiffuse       => NULL()
-    State_Diag%UVFluxDirect        => NULL()
-    State_Diag%UVFluxNet           => NULL()
     State_Diag%AdvFluxZonal        => NULL()
     State_Diag%AdvFluxMerid        => NULL()
     State_Diag%AdvFluxVert         => NULL()
-    State_Diag%PBLMixFrac          => NULL()
-    State_Diag%PBLFlux             => NULL()
+
+    State_Diag%DryDep              => NULL()
+    State_Diag%DryDepChm           => NULL()
+    State_Diag%DryDepMix           => NULL()
+    State_Diag%DryDepVel           => NULL()
+
     State_Diag%CloudConvFlux       => NULL()
     State_Diag%WetLossConv         => NULL()
+
+    State_Diag%PBLMixFrac          => NULL()
+    State_Diag%PBLFlux             => NULL()
+
     State_Diag%PrecipFracConv      => NULL()
     State_Diag%RainFracConv        => NULL()
     State_Diag%WashFracConv        => NULL()
@@ -275,8 +277,29 @@ CONTAINS
     State_Diag%PrecipFracLS        => NULL()
     State_Diag%RainFracLS          => NULL()
     State_Diag%WashFracLS          => NULL()
+
+    State_Diag%SpeciesConc         => NULL()
+    State_Diag%JValues             => NULL()
+    State_Diag%RxnRates            => NULL()
+    State_Diag%UVFluxDiffuse       => NULL()
+    State_Diag%UVFluxDirect        => NULL()
+    State_Diag%UVFluxNet           => NULL()
+    State_Diag%ProdBCPIfromBCPO    => NULL()
+    State_Diag%ProdOCPIfromOCPO    => NULL()
+    State_Diag%TropopauseHeight    => NULL()
+    State_Diag%TropopauseLevel     => NULL()
+
+    State_Diag%pHSav               => NULL()
+    State_Diag%HplusSav            => NULL()
+    State_Diag%WaterSav            => NULL()
+    State_Diag%SulRatSav           => NULL()
+    State_Diag%NaRatSav            => NULL()
+    State_Diag%AcidPurSav          => NULL()
+    State_Diag%BisulSav            => NULL()
+
     State_Diag%PbFromRnDecay       => NULL()
     State_Diag%RadDecay            => NULL()
+
     State_Diag%RadAllSkyLWSurf     => NULL()
     State_Diag%RadAllSkyLWTOA      => NULL()
     State_Diag%RadAllSkySWSurf     => NULL()
@@ -285,15 +308,6 @@ CONTAINS
     State_Diag%RadClrSkyLWTOA      => NULL()
     State_Diag%RadClrSkySWSurf     => NULL()
     State_Diag%RadClrSkySWTOA      => NULL()
-    State_Diag%ProdBCPIfromBCPO    => NULL()
-    State_Diag%ProdOCPIfromOCPO    => NULL()
-    State_Diag%pHSav              => NULL()
-    State_Diag%HplusSav           => NULL()
-    State_Diag%WaterSav           => NULL()
-    State_Diag%SulRatSav          => NULL()
-    State_Diag%NaRatSav           => NULL()
-    State_Diag%AcidPurSav         => NULL()
-    State_Diag%BisulSav           => NULL()
 
 #if defined( NC_DIAG )
 
@@ -302,9 +316,9 @@ CONTAINS
  10 FORMAT( /, 'Allocating the following fields of the State_Diag object:' )
     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-    !--------------------------------------------
+    !------------------------------------------------------------------------
     ! Species Concentration
-    !--------------------------------------------
+    !------------------------------------------------------------------------
     arrayID = 'State_Diag%SpeciesConc'
     diagID  = 'SpeciesConc'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -318,9 +332,9 @@ CONTAINS
                                 State_Chm, State_Diag, RC )
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Dry deposition flux from chemistry
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%DryDepChm'
     diagID  = 'DryDepChm'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -335,9 +349,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Dry deposition flux from mixing
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%DryDepMix'
     diagID  = 'DryDepMix'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -352,9 +366,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Total dry deposition flux
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%DryDep'
     diagID  = 'DryDep'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -369,9 +383,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Dry deposition velocity
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%DryDepVel'
     diagID  = 'DryDepVel'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -386,9 +400,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! J-Values
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     ! TODO: Mapping needs work
     arrayID = 'State_Diag%JValues'
     diagID  = 'JVal'
@@ -404,9 +418,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! KPP Reaction Rates
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%RxnRates'
     diagID  = 'RxnRates'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -421,9 +435,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Diffuse UV flux per wavelength bin
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%UVFluxDiffuse'
     diagID  = 'UVFluxDiffuse'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -438,9 +452,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Direct UV flux per wavelength bin
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%UVFluxDirect'
     diagID  = 'UVFluxDirect'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -455,9 +469,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Net UV flux per wavelength bin
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%UVFluxNet'
     diagID  = 'UVFluxNet'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -472,9 +486,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Zonal Advective Flux (east positive)
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%AdvFluxZonal'
     diagID  = 'AdvFluxZonal'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -489,9 +503,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Meridional Advective Flux (south positive)
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%AdvFluxMerid'
     diagID  = 'AdvFluxMerid'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -506,9 +520,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !---------------------------------------------
+    !-----------------------------------------------------------------------
     ! Vertical Advective Flux (downwards positive)
-    !--------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%AdvFluxVert'
     diagID  = 'AdvFluxVert'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -523,9 +537,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Fraction of BL occupied by level L
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%PBLMixFrac'
     diagID  = 'PBLMixFrac'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -540,9 +554,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Mass change due to boundary layer mixing
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%PBLFlux'
     diagID  = 'PBLFlux'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -557,9 +571,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Mass change due to cloud convection
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%CloudConvFlux'
     diagID  = 'CloudConvFlux'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -574,9 +588,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !-----------------------------------------------
+    !-----------------------------------------------------------------------
     ! Loss of soluble species in convective updrafts
-    !-----------------------------------------------
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%WetLossConv'
     diagID  = 'WetLossConv'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -591,9 +605,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !---------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Fraction of grid box undergoing convective precipitation
-    !---------------------------------------------------------
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%PrecipFracConv'
     diagID  = 'PrecipFracConv'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -608,9 +622,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !------------------------------------------------------------------------
-    ! Fraction of soluble species lost to rainout in convective precipitation
-    !------------------------------------------------------------------------ 
+    !-----------------------------------------------------------------------
+    ! Fraction of soluble species lost to rainout in convective precip
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%RainFracConv'
     diagID  = 'RainFracConv'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -625,9 +639,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
-    ! Fraction of soluble species lost to rainout in convective precipitation
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
+    ! Fraction of soluble species lost to washout in convective precip
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%WashFracConv'
     diagID  = 'WashFracConv'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -642,9 +656,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Loss of solutble species in large-scale rainout/washout
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%WetLossLS'
     diagID  = 'WetLossLS'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -659,9 +673,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Fraction of grid box undergoing large-scale precipitation
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%PrecipFracLS'
     diagID  = 'PrecipFracLS'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -676,9 +690,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
-    ! Fraction of soluble species lost to rainout in large-scale precipitation
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
+    ! Fraction of soluble species lost to rainout in large-scale precip
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%RainFracLS'
     diagID  = 'RainFracLS'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -693,9 +707,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
-    ! Fraction of soluble species lost to washout in large-scale precipitation
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
+    ! Fraction of soluble species lost to washout in large-scale precip
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%WashFracLS'
     diagID  = 'WashFracLS'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -710,9 +724,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Emission of Pb210 from Rn222 decay
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%PbFromRnDecay'
     diagID  = 'PbFromRnDecay'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -727,10 +741,10 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Radioactive decay of Rn, Pb, and Be7
     ! (separate into 3 different arrays??)
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%RadDecay'
     diagID  = 'RadDecay'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -745,9 +759,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
-    ! All-sky LW rad @ surface
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
+    ! RRTMG: All-sky LW rad @ surface
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%RadAllSkyLWSurf'
     diagID  = 'RadAllSkyLWSurf'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -762,9 +776,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
-    ! All-sky LW rad @ atm top
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
+    ! RRTMG: All-sky LW rad @ atm top
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%RadAllSkyLWTOA'
     diagID  = 'RadAllSkyLWTOA'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -779,9 +793,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
-    ! All-sky SW rad @ surface
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
+    ! RRTMG: All-sky SW rad @ surface
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%RadAllSkySWSurf'
     diagID  = 'RadAllSkySWSurf'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -796,9 +810,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
-    ! All-sky SW rad @ atm top 
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
+    ! RRTMG: All-sky SW rad @ atm top 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%RadAllSkySWTOA'
     diagID  = 'RadAllSkySWTOA'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -813,9 +827,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
-    ! Clear-sky SW rad @ surface
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
+    ! RRTMG: Clear-sky SW rad @ surface
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%RadClrSkyLWSurf'
     diagID  = 'RadClrSkyLWSurf'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -830,9 +844,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
-    ! Clear-sky LW rad @ atm top
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
+    ! RRTMG: Clear-sky LW rad @ atm top
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%RadClrSkyLWTOA'
     diagID  = 'RadClrSkyLWTOA'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -847,9 +861,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
-    ! Clear-sky SW rad @ surface 
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
+    ! RRTMG: Clear-sky SW rad @ surface 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%RadClrSkySWSurf'
     diagID  = 'RadClrSkySWSurf'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -864,9 +878,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
-    !  Clear-sky SW rad @ atm top
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
+    ! RRTMG: Clear-sky SW rad @ atm top
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%RadClrSkySWTOA'
     diagID  = 'RadClrSkySWTOA'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -881,10 +895,10 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Production of Hydrophilic BC (aka BCPI)
     ! from Hydrophobic BC (aka BCPO)
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%ProdBCPIfromBCPO'
     diagID  = 'ProdBCPIfromBCPO'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -900,10 +914,10 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Production of Hydrophilic OC (aka OCPI)
     ! from Hydrophobic OC (aka OCPO)
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%ProdOCPIfromOCPO'
     diagID  = 'ProdOCPIfromOCPO'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -915,6 +929,41 @@ CONTAINS
        State_Diag%ProdOCPIfromOCPO = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID,               &
                                 State_Diag%ProdOCPIfromOCPO,     &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Tropopause level
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%TropopauseLevel'
+    diagID  = 'TropopauseLevel'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%TropopauseLevel( IM, JM ), STAT=RC ) ! Edits dims
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%TropopauseLevel = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%TropopauseLevel, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Tropopause height 
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%TropopauseHeight'
+    diagID  = 'TropopauseHeight'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%TropopauseHeight( IM, JM ), STAT=RC ) ! Edits dims
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%TropopauseHeight = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID,           &
+                                State_Diag%TropopauseHeight, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1070,10 +1119,10 @@ CONTAINS
 
     ENDIF
 
-    !!--------------------------------------------
+    !!-----------------------------------------------------------------------
     !! Template for adding more diagnostics arrays
     !! Search and replace 'xxx' with array name
-    !!-------------------------------------------- 
+    !!-----------------------------------------------------------------------
     !arrayID = 'State_Diag%xxx'
     !diagID  = 'xxx'
     !CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -1554,6 +1603,24 @@ CONTAINS
        ENDIF
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%TropopauseLevel ) ) THEN
+       DEALLOCATE( State_Diag%TropopauseLevel, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%TropopauseLevel"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%TropopauseHeight ) ) THEN
+       DEALLOCATE( State_Diag%TropopauseHeight, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%TropopauseHeight"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
     !-----------------------------------------------------------------------
@@ -1912,6 +1979,16 @@ CONTAINS
                                  // ' concentration'
           IF ( isUnits   ) Units = 'M'
           IF ( isRank    ) Rank  =  3
+
+       CASE ( 'TROPOPAUSELEVEL' )
+          IF ( isDesc    ) Desc  = 'GEOS-Chem level in which the tropopause occurs'
+          IF ( isUnits   ) Units = '1'
+          IF ( isRank    ) Rank  =  2
+
+       CASE ( 'TROPOPAUSEHEIGHT' )
+          IF ( isDesc    ) Desc  = 'Tropopause height'
+          IF ( isUnits   ) Units = 'km'
+          IF ( isRank    ) Rank  =  2
 
        CASE DEFAULT
           Found = .False.

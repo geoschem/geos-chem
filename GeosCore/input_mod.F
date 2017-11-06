@@ -7781,7 +7781,7 @@
       ENDIF
 
       ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
-      CALL Init_ChemGrid( am_I_Root, Input_Opt, RC )
+      CALL Init_ChemGrid( am_I_Root, Input_Opt, State_Diag, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CHEMGRID' )
 
       ! Initialize "chemgrid_mod.F" (TROPOPAUSE)

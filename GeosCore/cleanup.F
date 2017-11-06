@@ -18,7 +18,6 @@
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
       USE C2H6_MOD,                ONLY : CLEANUP_C2H6
       USE CARBON_MOD,              ONLY : CLEANUP_CARBON
-      USE CHEMGRID_MOD,            ONLY : CLEANUP_CHEMGRID
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
       USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
@@ -247,6 +246,7 @@
 !  16 Aug 2017 - R. Yantosca - Now call History_Cleanup from here
 !  23 Aug 2017 - R. Yantosca - Now time how long HISTORY_CLEANUP takes
 !  23 Aug 2017 - R. Yantosca - Now call Cleanup_Grid_Registry
+!  06 Nov 2017 - R. Yantosca - Remove call to Cleanup_Chemgrid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -291,7 +291,6 @@
       CALL CLEANUP_AEROSOL()
       CALL CLEANUP_C2H6()
       CALL CLEANUP_CARBON()
-      CALL CLEANUP_CHEMGRID()
       CALL CLEANUP_CO2()
       CALL CLEANUP_DIAG()
       CALL CLEANUP_DIAG03()

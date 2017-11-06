@@ -90,16 +90,23 @@ CONTAINS
 !  26 Oct 2016 - R. Yantosca - Now also call COMPUTE_PBL_HEIGHT so that we
 !                              populate PBL quantities w/ the initial met
 !  09 Mar 2017 - C. Keller   - Do not call COMPUTE_PBL_HEIGHT in ESMF env.
+!   6 Nov 2017 - R. Yantosca - Return error condition to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
     ! DO_MIXING begins here!
     !=======================================================================
 
     ! Assume success
-    RC = GC_SUCCESS
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at INIT_MIXING (in module GeosCore/mixing_mod.F90)'
    
     ! Is the drydep flux from mixing diagnostic turned on?
     Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix )
@@ -108,21 +115,51 @@ CONTAINS
     ! Initialize PBL mixing scheme
     !-----------------------------------------------------------------------
     IF ( Input_Opt%LNLPBL ) THEN
+
+       ! Initialize non-local PBL mixing scheme
        CALL DO_PBL_MIX_2( am_I_Root, .FALSE. ,  Input_Opt,                   &
                           State_Met, State_Chm, State_Diag, RC              )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "DO_PBL_MIX" at initialization!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ELSE 
+
+       ! Initialize full PBL mixing scheme
        CALL DO_PBL_MIX(   am_I_Root, .FALSE.,   Input_Opt,                   &
                           State_Met, State_Chm, State_Diag, RC              )
+       
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "DO_PBL_MIX" at initialization!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDIF
 
+#if !defined( ESMF_ )
+    !-----------------------------------------------------------------------
     ! Compute the various PBL quantities with the initial met fields.
     ! This is needed so that HEMCO won't be passed a zero PBL height
     ! (bmy, 10/26/16)
+    !
     ! In ESMF mode this routine should not be called during the init
     ! stage: the required met quantities are not yet defined.
     ! (ckeller, 11/23/16)
-#if !defined(ESMF_)
-    CALL COMPUTE_PBL_HEIGHT( State_Met )
+    !-----------------------------------------------------------------------
+    CALL COMPUTE_PBL_HEIGHT( am_I_Root, State_Met, RC )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "COMPUTE_PBL_HEIGHT" at initialization!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 #endif
 
   END SUBROUTINE INIT_MIXING 
