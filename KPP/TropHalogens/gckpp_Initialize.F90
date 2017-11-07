@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Initialize.f90
-! Time                 : Tue Nov  7 17:29:47 2017
-! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Halogens
+! Time                 : Tue Nov  7 17:40:40 2017
+! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/TropHalogens
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 

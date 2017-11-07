@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Tue Nov  7 17:29:48 2017
-! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Halogens
+! Time                 : Tue Nov  7 17:40:40 2017
+! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/TropHalogens
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -39,7 +39,7 @@ MODULE gckpp_Global
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
 !      EQUIVALENCE( C(1),VAR(1) )
-!      EQUIVALENCE( C(232),FIX(1) )
+!      EQUIVALENCE( C(210),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time
