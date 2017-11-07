@@ -216,6 +216,7 @@ CONTAINS
 !  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !  28 Sep 2017 - E. Lundgren - Move unit conversions to individual routines
+!  07 Nov 2017 - R. Yantosca - Now return error condition to calling routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -223,53 +224,97 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL :: OnlyAbovePBL
+    LOGICAL            :: OnlyAbovePBL
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
-    !=================================================================
+    !=======================================================================
     ! DO_MIXING begins here!
-    !=================================================================
+    !=======================================================================
 
-    ! Assume success
-    RC = GC_SUCCESS
+    ! Initialz3
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at DO_MIXING (in module GeosCore/mixing_mod.F90)'
 
-    ! ------------------------------------------------------------------
+    ! Initialize the diagnostic array for the History Component.  This will 
+    ! prevent leftover values from being carried over to this timestep.
+    ! (For example, if on the last iteration, the PBL height was higher than
+    ! it is now, then we will have stored drydep fluxes up to that height,
+    ! so we need to zero these out.)
+    IF ( Archive_DryDepMix ) THEN
+       State_Diag%DryDepMix = 0.0_f4
+    ENDIF
+
+    !-----------------------------------------------------------------------
     ! Do non-local PBL mixing. This will apply the species tendencies
     ! (emission fluxes and dry deposition rates) below the PBL.
     ! This is done for all species with defined emissions / dry
     ! deposition rates, including dust.
+    !
     ! Set OnlyAbovePBL flag (used below by DO_TEND) to indicate that
     ! fluxes within the PBL have already been applied. 
-    ! ------------------------------------------------------------------
+    ! ----------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. Input_Opt%LNLPBL ) THEN
+
+       ! Non-local mixing
        CALL DO_PBL_MIX_2( am_I_Root, Input_Opt%LTURB, Input_Opt,             &
                           State_Met, State_Chm,       State_Diag,  RC       )
+ 
+       ! Trap potential error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountred in "DO_PBL_MIX_2"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Fluxes in PBL have been applied (non-local PBL mixing)
        OnlyAbovePBL = .TRUE.
+
     ELSE
+
+       ! Fluxes in PBL have not been applied (full PBL mixing)
        OnlyAbovePBL = .FALSE.
+
     ENDIF
 
-    ! ------------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Apply tendencies. This will apply dry deposition rates and 
     ! emission fluxes below the PBL if it has not yet been done
     ! via the non-local PBL mixing. It also adds the emissions above 
     ! the PBL to the species array. Emissions of some species may be 
     ! capped at the tropopause to avoid build-up in stratosphere.
-    ! ------------------------------------------------------------------
+    !-----------------------------------------------------------------------
 
     ! Apply tendencies
-    CALL DO_TEND ( am_I_Root,  Input_Opt,    State_Met, State_Chm,           &
-                   State_Diag, OnlyAbovePBL, RC                             )
+    CALL DO_TEND( am_I_Root,  Input_Opt,    State_Met, State_Chm,           &
+                  State_Diag, OnlyAbovePBL, RC                             )
 
-    ! ------------------------------------------------------------------
+    ! Trap potential error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountred in "DO_TEND"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
     ! Do full pbl mixing. This fully mixes the updated species 
     ! concentrations within the PBL. 
     ! 
     ! Now also archive concentrations and calculate turbulence 
     ! tendencies (ckeller, 7/15/2015)
-    ! ------------------------------------------------------------------
+    !-----------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. .NOT. Input_Opt%LNLPBL ) THEN
+
+       ! Full PBL mixing
        CALL DO_PBL_MIX( am_I_Root, Input_Opt%LTURB, Input_Opt,               &
                         State_Met, State_Chm,       State_Diag, RC          )
+
+       ! Trap potential error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountred in "DO_PBL_MIX"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
   END SUBROUTINE DO_MIXING 
@@ -287,8 +332,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_TEND ( am_I_Root,  Input_Opt,    State_Met, State_Chm,       &
-                       State_Diag, OnlyAbovePBL, RC,        DT               ) 
+  SUBROUTINE DO_TEND( am_I_Root,  Input_Opt,    State_Met, State_Chm,        &
+                      State_Diag, OnlyAbovePBL, RC,        DT                ) 
 !
 ! !USES:
 !
@@ -420,21 +465,14 @@ CONTAINS
     ! Initialize pointer
     SpcInfo    => NULL()
 
-    ! Initialize the diagnostic array for the History Component.  This will 
-    ! prevent leftover values from being carried over to this timestep.
-    ! (For example, if on the last iteration, the PBL height was higher than
-    ! it is now, then we will have stored drydep fluxes up to that height,
-    ! so we need to zero these out.)
-    IF ( Archive_DryDepMix .and. DryDepID > 0 ) THEN
-       State_Diag%DryDepMix = 0.0_f4
-    ENDIF
-
     ! DO_TEND previously operated in units of kg. The species arrays are in
     ! v/v for mixing, hence needed to convert before and after.
     ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to 
     ! remove area-dependency (ewl, 9/30/15)
     CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
                             'kg/m2', RC, OrigUnit=OrigUnit )
+
+    ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
        MSG = 'Unit conversion error!'
        CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )

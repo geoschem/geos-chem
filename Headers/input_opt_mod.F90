@@ -64,7 +64,6 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: GEOS_FP_DIR        
      CHARACTER(LEN=255)          :: MERRA2_DIR          
      CHARACTER(LEN=255)          :: DATA_DIR_1x1       
-     LOGICAL                     :: LVARTROP           
      LOGICAL                     :: LCAPTROP
      REAL(fp)                    :: OZONOPAUSE
      INTEGER                     :: NESTED_I0          
@@ -624,6 +623,7 @@ MODULE Input_Opt_Mod
 !                              default.
 !  14 Sep 2017 - M. Sulprizio- Add USE_ONLINE_O3 and USE_TOMS_O3 to options for
 !                              overhead O3 in chemistry menu
+!   7 Nov 2017 - R. Yantosca - Remove LVARTROP; it's not needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -713,6 +713,7 @@ CONTAINS
 !  16 Mar 2017 - R. Yantosca - Remove obsolete family and drydep variables
 !  17 Mar 2017 - R. Yantosca - Remove IDDEP, DUSTREFF, DUSTDEN
 !  12 Jul 2017 - R. Yantosca - Initialize Input_Opt%HistoryInputFile field
+!   7 Nov 2017 - R. Yantosca - Remove LVARTROP; it's not needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -755,7 +756,6 @@ CONTAINS
     Input_Opt%GEOS_FP_DIR            = './'
     Input_Opt%MERRA2_DIR             = './'
     Input_Opt%DATA_DIR_1x1           = './'      ! NOTE: Now deprecated!
-    Input_Opt%LVARTROP               = .FALSE.
     Input_Opt%LCAPTROP               = .FALSE.
     Input_Opt%OZONOPAUSE             = -999.0 
     Input_Opt%NESTED_I0              = 0

@@ -633,6 +633,8 @@
 !                              restart file name is hardcoded in restart_mod.F.
 !  09 Aug 2016 - E. Lundgren - Remove call to routine set_restart; use input
 !                              rst filename directly in restart_mod.F.
+!  07 Nov 2017 - R. Yantosca - Don't assign to Input_Opt%VARTROP, and will
+!                              eventually remove the line from input.geo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -824,7 +826,6 @@
       Input_Opt%NYMDe         = NYMDe
       Input_Opt%NHMSe         = NHMSe
 #endif
-      Input_Opt%LVARTROP      = LVARTROP
 
       !=================================================================
       ! Determine if we are running a nested-grid simulation based on
@@ -861,7 +862,6 @@
      &                    TRIM( Input_Opt%DATA_DIR_1x1 )
          WRITE( 6, 110 ) 'Input restart file          : ', 
      &                    TRIM( Input_Opt%IN_RST_FILE )
-         WRITE( 6, 120 ) 'Use variable tropopause?    : ', LVARTROP
          WRITE( 6, 120 ) 'Is this a nested-grid sim?  : ', 
      &                    Input_Opt%ITS_A_NESTED_GRID
          WRITE( 6, 130 ) 'Global offsets I0, J0       : ', 
@@ -7562,8 +7562,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GC_Init_Extra( am_I_Root, Input_Opt, 
-     &                          State_Chm, State_Diag, RC )
+      SUBROUTINE GC_Init_Extra( am_I_Root, Diag_List,  Input_Opt, 
+     &                          State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -7573,6 +7573,7 @@
       USE C2H6_Mod,           ONLY : Init_C2H6
       USE Chemgrid_Mod,       ONLY : Init_Chemgrid
       USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
+      USE Diagnostics_Mod
       USE Diag03_Mod,         ONLY : Init_Diag03
       USE Diag20_Mod,         ONLY : Init_Diag20
       USE Diag_OH_Mod,        ONLY : Init_Diag_OH
@@ -7604,6 +7605,7 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(DgnList ), INTENT(IN)    :: Diag_List   ! Diagnostics list object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -7655,23 +7657,26 @@
 !                              The "gigc" nomenclature is no longer used.
 !  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument and
 !                              pass it to the various init routines
+!  07 Nov 2017 - R. Yantosca - Now accept Diag_List as an argument
+!  07 Nov 2017 - R. Yantosca - Return error condition to main level
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: prtDebug
+      LOGICAL            :: prtDebug
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       !=================================================================
       ! GC_Init_Extra begins here!
       !=================================================================
 
-      ! Assume success
+      ! Initialize
       RC       = GC_SUCCESS
-
-      ! Set a flag for debugging
       prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
+      ErrMsg   = ''
+      ThisLoc  = ' -> at GC_Init_Extra (in module GeosCore/input_mod.F)'
 
       !=================================================================
       ! Make sure various input options are consistent with the
@@ -7680,16 +7685,28 @@
       !=================================================================
       CALL Do_Error_Checks( am_I_Root, Input_Opt, RC )
 
-      !=================================================================
-      ! Call setup routines for drydep and wetdep
-      !=================================================================
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Do_Error_Checks"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
-      ! Initialize dry deposition arrays
+      !=================================================================
+      ! Call setup routines for drydep
+      !=================================================================
       IF ( Input_Opt%LDRYD ) THEN
 
          ! Setup for dry deposition
          CALL Init_DryDep( am_I_Root, Input_Opt, 
      &                     State_Chm, State_Diag, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Drydep"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       
          ! Print extra info message for Hg simulation
          IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
@@ -7705,133 +7722,320 @@
  121  FORMAT( 'All tagged HgP species have the same dep velocity '
      &        'as the total HgP species.' )
 
-      ! We need to initialize the wetdep module if either wet deposition 
-      ! or convection is turned on, so that we can do the large-scale and 
-      ! convective scavenging.  Also initialize the wetdep module if both 
-      ! wetdep and convection are turned off, but chemistry is turned on.
-      ! The INIT_WETSCAV routine will also allocate the H2O2s and SO2s 
-      ! arrays that are referenced in the convection code. (bmy, 9/23/15)
+      !=================================================================
+      ! Call setup routines for wetdep
+      !
+      ! We need to initialize the wetdep module if either wet 
+      ! deposition or convection is turned on, so that we can do the 
+      ! large-scale and convective scavenging.  Also initialize the 
+      ! wetdep module if both wetdep and convection are turned off, 
+      ! but chemistry is turned on.  The INIT_WETSCAV routine will also 
+      ! allocate the H2O2s and SO2s arrays that are referenced in the 
+      ! convection code. (bmy, 9/23/15)
+      !=================================================================
       IF ( Input_Opt%LCONV   .or. 
      &     Input_Opt%LWETD   .or.    
      &     Input_Opt%LCHEM ) THEN
          CALL Init_WetScav( am_I_Root, Input_Opt, State_Chm, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Wetscav"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
          
       !=================================================================
       ! Call setup routines from other F90 modules
       !=================================================================
 
+      !-----------------------------------------------------------------
       ! Initialize the MODIS leaf area index module
+      !-----------------------------------------------------------------
       CALL Init_Modis_LAI( am_I_Root, Input_Opt, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_Modis_LAI"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
+      !-----------------------------------------------------------------
       ! Call SET_VDIFF_VALUES so that we can pass several values from 
       ! Input_Opt to the vdiff_mod.F90.  This replaces the functionality
       ! of logical_mod.F and tracer_mod.F..  This has to be called
       ! after the input.geos file has been read from disk.
+      !-----------------------------------------------------------------
       CALL Set_Vdiff_Values( am_I_Root, Input_Opt, State_Chm, RC )
 
-      ! Initialize the GET_NDEP_MOD for soil NOx deposition (bmy, 6/17/16)
-      CALL Init_Get_Ndep( am_I_Root, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Set_Vdiff_Values"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
+
+      !-----------------------------------------------------------------
+      ! Initialize the GET_NDEP_MOD for soil NOx deposition (bmy, 6/17/16)
+      !-----------------------------------------------------------------
+      CALL Init_Get_Ndep( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_Get_Ndep"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-----------------------------------------------------------------
       ! Initialize "carbon_mod.F"
+      !-----------------------------------------------------------------
       IF ( Input_Opt%LCARB ) THEN
          CALL Init_Carbon( am_I_Root, Input_Opt, State_Diag, RC )
-         IF ( RC /= GC_SUCCESS ) RETURN
-         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CARBON' )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in ""!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
-    
+
+      !-----------------------------------------------------------------
       ! Initialize "dust_mod.F"
+      !-----------------------------------------------------------------
       IF ( Input_Opt%LDUST ) then
          CALL Init_Dust( am_I_Root, Input_Opt,
      &                   State_Chm, State_Diag, RC )
-         IF ( RC /= GC_SUCCESS ) RETURN
-         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_DUST' )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Dust"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
 
+      !-----------------------------------------------------------------
       ! Initialize "seasalt_mod.F
+      !-----------------------------------------------------------------
       IF ( Input_Opt%LSSALT ) THEN
          CALL Init_Seasalt( am_I_Root, Input_Opt,
      &                      State_Chm, State_Diag, RC )
-         IF ( RC /= GC_SUCCESS ) RETURN
-         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SEASALT' )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Seasalt"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
 
+      !-----------------------------------------------------------------
       ! Initialize "sulfate_mod.F"
+      !-----------------------------------------------------------------
       IF ( Input_Opt%LSULF ) THEN
          CALL Init_Sulfate( am_I_Root, Input_Opt,
      &                      State_Chm, State_Diag, RC )
-         IF ( RC /= GC_SUCCESS ) RETURN
-         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SULFATE' )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Sulfate"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
-
-      ! Initialize "aerosol_mod.F"
-      IF ( Input_Opt%LSULF .or. Input_Opt%LCARB   .or. 
-     &     Input_Opt%LDUST .or. Input_Opt%LSSALT) THEN
-         CALL Init_Aerosol( am_I_Root, Input_Opt, RC )
-         IF ( RC /= GC_SUCCESS ) RETURN
-         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_AEROSOL' )
-      ENDIF
-
-      ! Initialize "linoz_mod.F"
-      IF ( Input_Opt%LLINOZ ) THEN
-         CALL Init_Linoz( am_I_Root, Input_Opt, RC )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
-      ENDIF
-
-      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
-      CALL Init_ChemGrid( am_I_Root, Input_Opt, State_Diag, RC )
-      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CHEMGRID' )
-
-      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
-      CALL Init_Toms( am_I_Root, Input_Opt, RC )
-      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_TOMS' )
 
       !-----------------------------------------------------------------
-      ! Also initialize specialty simulation modules here
+      ! Initialize "aerosol_mod.F"
+      !-----------------------------------------------------------------
+      IF ( Input_Opt%LSULF .or. Input_Opt%LCARB    .or. 
+     &     Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
+         CALL Init_Aerosol( am_I_Root, Input_Opt, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Aerosol"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Initialize "linoz_mod.F"
+      !-----------------------------------------------------------------
+      IF ( Input_Opt%LLINOZ ) THEN
+         CALL Init_Linoz( am_I_Root, Input_Opt, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Linoz"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
+      !-----------------------------------------------------------------
+      CALL Init_ChemGrid( am_I_Root, Diag_List, 
+     &                    Input_Opt, State_Diag, RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_ChemGrid"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
+      !-----------------------------------------------------------------
+      CALL Init_Toms( am_I_Root, Input_Opt, RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_Toms"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !=================================================================
+      ! Initialize specialty simulation modules here
       !
       ! Hg modules are initialized in READ_MERCURY_MENU
       ! POPS modules are initialized in READ_POPS_MENU
-      !-----------------------------------------------------------------
+      !=================================================================
 
-      ! Initialize "co2_mod.F"
+      !-----------------------------------------------------------------
+      ! CO2
+      !-----------------------------------------------------------------
       IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
          CALL Init_CO2( am_I_Root, Input_Opt, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_CO2"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
 
-      ! Initialize "c2h6_mod.F"
+      !-----------------------------------------------------------------
+      ! C2H6 -- note: simulation is obsolete, needs help!
+      !-----------------------------------------------------------------
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. 
      &     Input_Opt%ITS_A_C2H6_SIM     ) THEN
          CALL Init_C2H6( am_I_Root, Input_Opt, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_C2H6"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
 
-      ! Initialize "global_ch4_mod.F"
+      !-----------------------------------------------------------------
+      ! CH4
+      !-----------------------------------------------------------------
       IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
          CALL Init_Global_Ch4( am_I_Root, Input_Opt, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Global_CH4"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
 
-      ! Initialize "tagged_co_mod.F"
+      !-----------------------------------------------------------------
+      ! Tagged CO
+      !-----------------------------------------------------------------
       IF ( Input_Opt%ITS_A_TAGCO_SIM   .or.
      &     Input_Opt%ITS_A_H2HD_SIM  ) THEN
          CALL Init_Tagged_CO( am_I_Root, Input_Opt, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Tagged_CO"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
 
-      ! Initialize "tagged_o3_mod.F"
+      !-----------------------------------------------------------------
+      ! Tagged O3
+      !-----------------------------------------------------------------
       IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
          CALL Init_Tagged_O3( am_I_Root, Input_Opt, State_Chm, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Tagged_O3"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
 
+      !-----------------------------------------------------------------
+      ! POPs
+      !-----------------------------------------------------------------
       IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
          CALL Init_POPs( am_I_Root, Input_Opt, State_Chm, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_POPs"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
 
+      !-----------------------------------------------------------------
       ! Initialize Mercury simulation routines
+      !-----------------------------------------------------------------
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
-         CALL Init_Mercury      ( am_I_Root, Input_Opt, State_Chm, RC )
-         CALL Init_Land_Mercury ( am_I_Root, Input_Opt, State_Chm, RC )
+
+         ! Main mercury module
+         CALL Init_Mercury( am_I_Root, Input_Opt, State_Chm, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Mercury"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Land mercury module
+         CALL Init_Land_Mercury( am_I_Root, Input_Opt, State_Chm, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Land_Mercury"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Mercury deposition module
          CALL Init_Depo_Mercury ( am_I_Root, Input_Opt, State_Chm, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Depo_Mercury"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Ocean mercury module
          CALL Init_Ocean_Mercury( am_I_Root, Input_Opt, State_Chm, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Ocean_Mercury"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
 
 #if defined( TOMAS )
@@ -7840,8 +8044,17 @@
      &                              State_Chm, RC )    
 #endif
 
+      !-----------------------------------------------------------------
       ! Initialize tpcore_bc for nested grid simulations
+      !-----------------------------------------------------------------
       CALL INIT_TPCORE_BC( am_I_Root, Input_Opt, State_Chm, RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_Tpcore_BC"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       !=================================================================
       ! Call setup routines for certain GEOS-Chem diagnostics
@@ -7864,6 +8077,8 @@
 
       ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
       CALL Do_Gamap( am_I_Root, Input_Opt, State_Chm, RC )
+
+      IF ( prtDebug ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
 
       END SUBROUTINE GC_Init_Extra
 !EOC

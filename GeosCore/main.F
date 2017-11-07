@@ -570,6 +570,9 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
+      !### Print diagnostic list if needed for debugging 
+      !CALL Print_DiagList( am_I_Root, Diag_List, RC )
+
       ! Initialize Input_Opt, State_Chm, State_Diag, State_Met objects
       CALL GC_Init_All( am_I_Root, Diag_List,  Input_Opt, 
      &                  State_Chm, State_Diag, State_Met, RC )
@@ -583,8 +586,8 @@
       ! SULFATE_MOD).  This removes the init calls from the run stage,
       ! which is required when connecting to the GEOS-5 GCM w/ ESMF.
       ! (bmy, 3/4/13)
-      CALL GC_Init_Extra( am_I_Root, Input_Opt, 
-     &                    State_Chm, State_Diag, RC )
+      CALL GC_Init_Extra( am_I_Root, Diag_List,  Input_Opt, 
+     &                    State_Chm, State_Diag, RC         )
       !
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
@@ -722,7 +725,11 @@
       ! Add option for non-local PBL (Lin, 03/31/09)
       CALL INIT_MIXING ( am_I_Root, Input_Opt,  State_Met,
      &                  State_Chm,  State_Diag, RC         )
- 
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in INIT_MIXING!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
       ! Initialize chemistry
       ! Moved here (from chemistry_mod.F and chemdr.F) because some
       ! of the variables are used for non-local PBL mixing BEFORE 
@@ -1451,12 +1458,11 @@
             ! be updated to use [kg/kg total air] (ewl, 9/18/15)
             CALL DO_MIXING ( am_I_Root, Input_Opt,  State_Met,
      &                       State_Chm, State_Diag, RC         )
-            IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP('Error in DO_MIXING!', 'main.F')
-            ENDIF
 
+            ! Trap potential error
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP( 'Error in MIX_TRACERS!', 'main.F' )
+               ErrMsg = 'Error encountered in "DO_MIXING"!'
+               CALL ERror_Stop( ErrMsg, ThisLoc )
             ENDIF
 
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:2' )
@@ -1472,8 +1478,11 @@
                ! to [kg/kg total air] for convection (ewl, 9/18/15)
                CALL DO_CONVECTION( am_I_Root, Input_Opt,  State_Met,
      &                             State_Chm, State_Diag, RC         )
+
+               ! Trap potential error
                IF ( RC /= GC_SUCCESS ) THEN
-                  CALL ERROR_STOP('Error in DO_CONVECTION!', 'main.F')
+                  ErrMsg = 'Error encountered in "DO_CONVECTION"!'
+                  CALL Error_Stop( ErrMsg, ThisLoc )
                ENDIF
 
                !### Debug
@@ -1522,8 +1531,11 @@
             ! once FlexChem is implemented (ewl, 9/18/15)
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
      &                         State_Chm, State_Met, State_Diag, RC ) 
+
+            ! Trap potential error
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP('Error in DO_CHEMISTRY!', 'main.F')
+               ErrMsg = 'Error encountered in DO_CHEMISTRY!'
+               CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
 
          ENDIF 

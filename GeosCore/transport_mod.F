@@ -194,7 +194,7 @@
 #if defined( GRID05x0625 ) || defined( GRID025x03125 )
 
       ! All nested grid simulations
-      CALL INIT_WINDOW_TRANSPORT( am_I_Root, Input_Opt, State_Diag. RC )
+      CALL INIT_WINDOW_TRANSPORT( am_I_Root, Input_Opt, State_Diag, RC )
 
 #else
 

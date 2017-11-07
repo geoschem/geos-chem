@@ -220,8 +220,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Init_All( am_I_Root,  Diag_List, Input_Opt, State_Chm,   &
-                          State_Diag, State_Met, RC )
+  SUBROUTINE GC_Init_All( am_I_Root,  Diag_List, Input_Opt, State_Chm,       &
+                          State_Diag, State_Met, RC                         )
 !
 ! !USES:
 !

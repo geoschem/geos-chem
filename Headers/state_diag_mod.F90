@@ -109,10 +109,6 @@ MODULE State_Diag_Mod
      REAL(fp),  POINTER :: NaRatSav        (:,:,:  ) ! Nitrate conc [M]
      REAL(fp),  POINTER :: AcidPurSav      (:,:,:  ) !
      REAL(fp),  POINTER :: BiSulSav        (:,:,:  ) ! Bisulfate conc [M]
- 
-     ! Tropopause diagnostics
-     REAL(f4),  POINTER :: TropopauseLevel (:,:    ) ! T-pause level [1]
-     REAL(f4),  POINTER :: TropopauseHeight(:,:    ) ! T-pause level [km]
 
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
@@ -286,8 +282,6 @@ CONTAINS
     State_Diag%UVFluxNet           => NULL()
     State_Diag%ProdBCPIfromBCPO    => NULL()
     State_Diag%ProdOCPIfromOCPO    => NULL()
-    State_Diag%TropopauseHeight    => NULL()
-    State_Diag%TropopauseLevel     => NULL()
 
     State_Diag%pHSav               => NULL()
     State_Diag%HplusSav            => NULL()
@@ -933,41 +927,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !-----------------------------------------------------------------------
-    ! Tropopause level
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%TropopauseLevel'
-    diagID  = 'TropopauseLevel'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%TropopauseLevel( IM, JM ), STAT=RC ) ! Edits dims
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%TropopauseLevel = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%TropopauseLevel, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Tropopause height 
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%TropopauseHeight'
-    diagID  = 'TropopauseHeight'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%TropopauseHeight( IM, JM ), STAT=RC ) ! Edits dims
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%TropopauseHeight = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID,           &
-                                State_Diag%TropopauseHeight, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
     !=======================================================================
     ! The following quantities are only relevant for either fullchem
     ! or aerosol-only simulations.
@@ -1603,24 +1562,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%TropopauseLevel ) ) THEN
-       DEALLOCATE( State_Diag%TropopauseLevel, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%TropopauseLevel"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%TropopauseHeight ) ) THEN
-       DEALLOCATE( State_Diag%TropopauseHeight, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%TropopauseHeight"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
     !-----------------------------------------------------------------------
@@ -1979,16 +1920,6 @@ CONTAINS
                                  // ' concentration'
           IF ( isUnits   ) Units = 'M'
           IF ( isRank    ) Rank  =  3
-
-       CASE ( 'TROPOPAUSELEVEL' )
-          IF ( isDesc    ) Desc  = 'GEOS-Chem level in which the tropopause occurs'
-          IF ( isUnits   ) Units = '1'
-          IF ( isRank    ) Rank  =  2
-
-       CASE ( 'TROPOPAUSEHEIGHT' )
-          IF ( isDesc    ) Desc  = 'Tropopause height'
-          IF ( isUnits   ) Units = 'km'
-          IF ( isRank    ) Rank  =  2
 
        CASE DEFAULT
           Found = .False.

@@ -78,8 +78,8 @@
 ! !PRIVATE TYPES:
 !      
       ! Diagnostic flags
-      LOGICAL :: Archive_TropopauseLevel
-      LOGICAL :: Archive_TropopauseHeight
+      LOGICAL :: Archive_MetTropLev
+      LOGICAL :: Archive_MetTropHt
 
       CONTAINS
 !EOC
@@ -863,9 +863,9 @@
 
       ! Initialize
       RC      = GC_SUCCESS
-      Do_Diag = ( Input_Opt%ND55 > 0      .or.
-     &            Archive_TropopauseLevel .or. 
-     &            Archive_TropopauseHeight )
+      Do_Diag = ( Input_Opt%ND55 > 0 .or. 
+     &            Archive_MetTropLev .or. 
+     &            Archive_MetTropHt       )
 
       ! Exit if diagnostic is not turned on
       IF ( .not. Do_Diag ) RETURN
@@ -927,12 +927,12 @@
          ! Tropopause level and height [km]
          ! Tropopuase pressure is obtained with MET_TROPP
          !-------------------------------------------------------------
-         IF ( Archive_TropopauseLevel ) THEN
-            State_Diag%TropopauseLevel(I,J) = L_TP
+         IF ( Archive_MetTropLev ) THEN
+            State_Met%TropLev(I,J) = L_TP
          ENDIF
 
-         IF ( Archive_TropopauseHeight ) THEN
-            State_Diag%TropopauseHeight(I,J) = H / 1.0e+3_fp
+         IF ( Archive_MetTropHt ) THEN
+            State_Met%TropHt(I,J) = H / 1.0e+3_fp
          ENDIF
 #endif
 
@@ -954,17 +954,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_CHEMGRID( am_I_Root, Input_Opt, State_Diag, RC )
+      SUBROUTINE INIT_CHEMGRID( am_I_Root, Diag_List, 
+     &                          Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
+      USE Diagnostics_Mod, ONLY : Check_DiagList, DgnList
       USE ErrCode_Mod
-      USE Input_Opt_Mod,  ONLY : OptInput
-      USE State_Diag_Mod, ONLY : DgnState
+      USE Input_Opt_Mod,   ONLY : OptInput
+      USE State_Diag_Mod,  ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(DgnList ), INTENT(IN)  :: Diag_List   ! Diagnostics list object
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
@@ -983,23 +986,32 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS 
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       !=================================================================
       ! INIT_CHEMGRID begins here!
       !=================================================================
 
-      ! Assume success
-      RC        =  GC_SUCCESS
+      ! Initialize
+      RC      =  GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &     ' -> at INIT_CHEMGRID (in module GeosCore/chemgrid_mod.F)'
+      
+      ! Test if the tropopause level diagnostic is requested
+      CALL Check_DiagList( am_I_Root = am_I_Root,
+     &                     DiagList  = Diag_List,
+     &                     SubStr    = 'MET_TROPLEV',
+     &                     Found     = Archive_MetTropLev, 
+     &                     RC        = RC                  )
 
-      ! Test if the tropopause level diagnostic is activated
-      Archive_TropopauseLevel  = 
-     &     ASSOCIATED( State_Diag%TropopauseLevel )
-
-      ! Test if the tropopause height diagnostic is activated
-      Archive_TropopauseHeight = 
-     &     ASSOCIATED( State_Diag%TropopauseHeight )
-
+      ! Test if the tropopause height diagnostic is requested
+      CALL Check_DiagList( am_I_Root = am_I_Root,
+     &                     DiagList  = Diag_List,
+     &                     SubStr    = 'MET_TROPHT',
+     &                     Found     = Archive_MetTropHt, 
+     &                     RC        = RC                  )
+   
       END SUBROUTINE INIT_CHEMGRID
 !EOC
       END MODULE CHEMGRID_MOD
