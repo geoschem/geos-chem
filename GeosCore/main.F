@@ -423,7 +423,7 @@
       ! For error trapping
       !
       ErrMsg                  = ''
-      ThisLoc                 = ' -> at GEOS-Chem (in GeosCore/main.F)'
+      ThisLoc                 = 'GEOS-Chem (in GeosCore/main.F)'
       !
       ! Define NI, NJ, NL dimensions for use below
       !
@@ -497,12 +497,24 @@
 
       ! Read input file and call init routines from other modules
       CALL Read_Input_File( am_I_Root, Input_Opt, RC ) 
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Read_Input_File"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
 
       ! Initialize the regridding module by storing shadow copies
       CALL Initialize_Regridding( am_I_Root, Input_Opt, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Initialize_Regridding"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
 
       ! Store shadow copies of am_I_Root, Input_Opt in error_mod.F
       CALL Init_Error( am_I_Root, Input_Opt, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_Error"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
 
       ! Copy values from Input_Opt.  These replace the variables
       ! from logical_mod.F and tracer_mod.F. (bmy, 3/29/13)
@@ -577,7 +589,7 @@
       CALL GC_Init_All( am_I_Root, Diag_List,  Input_Opt, 
      &                  State_Chm, State_Diag, State_Met, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered during initialization!'
+         ErrMsg = 'Error encountered in "GC_Init_All!"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
       !
@@ -588,6 +600,11 @@
       ! (bmy, 3/4/13)
       CALL GC_Init_Extra( am_I_Root, Diag_List,  Input_Opt, 
      &                    State_Chm, State_Diag, RC         )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "GC_Init_Extra"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
       !
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
@@ -815,7 +832,8 @@
 
          ! Stop with error
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP( 'Error in INIT_STRAT_CHEM!', 'main.F')
+            ErrMsg = 'Error encountered in "Init_Strat_Chem"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
       ENDIF
 

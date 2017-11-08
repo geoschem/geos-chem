@@ -73,6 +73,7 @@ CONTAINS
 !  16 Aug 2016 - M. Sulprizio- Rename from GIGC_ERROR to GC_ERROR
 !  23 Jun 2017 - R. Yantosca - Now moved from error_mod.F to errcode_mod.F90
 !  28 Aug 2017 - R. Yantosca - Now flush the error msg to stdout/log file
+!   8 Nov 2017 - R. Yantosca - Add separator lines to make msgs more visible
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -83,6 +84,9 @@ CONTAINS
     ! GC_ERROR begins here 
     !=======================================================================
 
+    ! Separator
+    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
     ! Print error message to log
     Message =  'GEOS-Chem ERROR: ' // TRIM(ErrMsg)
     WRITE( 6, '(a)' ) TRIM( Message )
@@ -92,6 +96,9 @@ CONTAINS
        Message = 'ERROR LOCATION: ' // TRIM( ThisLoc )
        WRITE( 6, '(a)' ) TRIM( ThisLoc )
     ENDIF
+
+    ! Separator
+    WRITE( 6, '(a)') REPEAT( '=', 79 )
 
     ! Write a blank line to improve readability between error messages
     WRITE( 6, '(a)' ) ''
