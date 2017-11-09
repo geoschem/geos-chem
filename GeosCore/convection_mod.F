@@ -364,7 +364,6 @@
      &                             DIAG38     = DIAG38,
      &                             RC         = EC          )
 
-         EC = GC_FAILURE
          ! Trap potential errors (we can't exit an OpenMP loop)
          IF ( EC /= GC_SUCCESS ) THEN
             RC = EC
