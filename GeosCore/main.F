@@ -830,7 +830,7 @@
          CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, 
      &                         State_Met, RC )
 
-         ! Stop with error
+         ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "Init_Strat_Chem"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1243,6 +1243,10 @@
                ! Copy UV Albedo data (for photolysis) into the
                ! State_Met%UVALBEDO field. (bmy, 3/20/15)
                CALL GET_UVALBEDO(am_I_Root, Input_Opt, State_Met, RC)
+               IF ( RC /= GC_SUCCESS ) THEN
+                  ErrMsg = 'Error encountered in "Get_UvAlbedo"!'
+                  CALL Error_Stop( ErrMsg, ThisLoc )
+               ENDIF
 
                IF ( Input_Opt%USE_TOMS_O3 ) THEN
                   ! Get TOMS overhead O3 columns for photolysis from
@@ -1313,8 +1317,11 @@
             IF ( LTRAN ) THEN 
                CALL DO_TRANSPORT( am_I_Root, Input_Opt,  State_Met,
      &                            State_Chm, State_Diag, RC         )
+
+               ! Trap potential error
                IF ( RC /= GC_SUCCESS ) THEN
-                  CALL ERROR_STOP('Error in DO_TRANSPORT!', 'main.F')
+                  ErrMsg = 'Error encountered in "Do_Transport"!'
+                  CALL Error_Stop( ErrMsg, ThisLoc )
                ENDIF
 
                !### Debug
@@ -1330,6 +1337,12 @@
             CALL SETUP_WETSCAV
      &           ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
+               ! Trap potential error
+               IF ( RC /= GC_SUCCESS ) THEN
+                  ErrMsg = 'Error encountered in "Setup_WetScav"!'
+                  CALL Error_Stop( ErrMsg, ThisLoc )
+               ENDIF
+
 #else 
 
             ! ... Standard GEOS-Chem: Call INIT_WETSCAV if   ...
@@ -1337,6 +1350,12 @@
             IF ( LCONV .or. LWETD .or. LCHEM ) THEN
                CALL SETUP_WETSCAV
      &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+               ! Trap potential error
+               IF ( RC /= GC_SUCCESS ) THEN
+                  ErrMsg = 'Error encountered in "Setup_WetScav"!'
+                  CALL Error_Stop( ErrMsg, ThisLoc )
+               ENDIF
 
                !### Debug
                IF ( prtDebug ) THEN 
@@ -1364,8 +1383,10 @@
          ! (ckeller, 3/5/15) 
          !--------------------------------------------------------------
          CALL COMPUTE_PBL_HEIGHT( am_I_Root, State_Met, RC )
+
+         ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Erroe encountered in "Compute_PBL_Height"!'
+            ErrMsg = 'Error encountered in "Compute_PBL_Height"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
@@ -1392,11 +1413,14 @@
 #if defined( USE_TIMERS )
                CALL GEOS_Timer_Start( "Dry deposition", RC )
 #endif
-
+               ! Compute drydep velocities
                CALL DO_DRYDEP( am_I_Root, Input_Opt,  State_Met, 
      &                         State_Chm, State_Diag, RC )
+
+               ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
-                  CALL ERROR_STOP('Error in DO_DRYDEP!', 'main.F')
+                  ErrMsg = 'Error encountered in "Do_Drydep!"!'
+                  CALL Error_Stop( ErrMsg, ThisLoc )
                ENDIF
 
 #if defined( USE_TIMERS )
@@ -1430,10 +1454,11 @@
             CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                          State_Chm, ITS_TIME_FOR_EMIS(), 2, RC )
 
-            ! Stop the run if the HEMCO run sequence dies w/ an error
+            ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP( 'Error in EMISSIONS_RUN after drydep!',
-     &                          'main.F' )
+               ErrMsg = 
+     &           'Error encountered in "Emissions_Run"! after drydep!'
+               CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
 
             !### Debug
@@ -1477,9 +1502,9 @@
             CALL DO_MIXING ( am_I_Root, Input_Opt,  State_Met,
      &                       State_Chm, State_Diag, RC         )
 
-            ! Trap potential error
+            ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error encountered in "DO_MIXING"!'
+               ErrMsg = 'Error encountered in "Do_Mixing"!'
                CALL ERror_Stop( ErrMsg, ThisLoc )
             ENDIF
 
@@ -1488,7 +1513,6 @@
             !===========================================================
             !        ***** C L O U D   C O N V E C T I O N *****
             !===========================================================
-
             IF ( LCONV ) THEN
 
                ! Call the appropriate convection routine
@@ -1497,9 +1521,9 @@
                CALL DO_CONVECTION( am_I_Root, Input_Opt,  State_Met,
      &                             State_Chm, State_Diag, RC         )
 
-               ! Trap potential error
+               ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
-                  ErrMsg = 'Error encountered in "DO_CONVECTION"!'
+                  ErrMsg = 'Error encountered in "Do_Convection"!'
                   CALL Error_Stop( ErrMsg, ThisLoc )
                ENDIF
 
@@ -1541,18 +1565,24 @@
             IF ( ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
                CALL SET_H2O_TRAC( am_I_Root, (.not. LUCX), Input_Opt ,
      &                            State_Met, State_Chm, RC )
+
+               ! Trap potential errors
+               IF ( RC == GC_SUCCESS ) THEN
+                  ErrMsg = 'Error encountered in "Set_H2O_Trac"!'
+                  CALL Error_Stop( ErrMsg, ThisLoc )
+               ENDIF
             ENDIF
 
             ! Do GEOS-Chem chemistry
             ! NOTE: Tracer concentration units are converted locally
             ! to [kg] for all of chemistry. We will replace use of [kg] 
             ! once FlexChem is implemented (ewl, 9/18/15)
-            CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
-     &                         State_Chm, State_Met, State_Diag, RC ) 
+            CALL DO_CHEMISTRY( am_I_Root, Input_Opt,  State_Met, 
+     &                         State_Chm, State_Diag, RC         ) 
 
-            ! Trap potential error
+            ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error encountered in DO_CHEMISTRY!'
+               ErrMsg = 'Error encountered in "Do_Chemistry"!'
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
 
@@ -1581,10 +1611,13 @@
             ! NOTE: Tracer concentration units are converted locally
             ! to [kg/m2] in wet deposition to enable calculations
             ! along the column (ewl, 9/18/15)
-            CALL DO_WETDEP
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            CALL DO_WETDEP( am_I_Root, Input_Opt,  State_Met, 
+     &                      State_Chm, State_Diag, RC         )
+
+            ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP('Error in DO_WETDEP!', 'main.F')
+               ErrMsg = 'Error encountered in "Do_WetDep"!'
+               CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
 
 #if defined( USE_TIMERS )
@@ -1596,13 +1629,20 @@
          !==============================================================
          !      ***** U P D A T E  O P T I C A L  D E P T H *****          
          !==============================================================
-         ! Recalculate the optical depth at the wavelength(s) specified
-         ! in the Radiation Menu. This must be done before the call to any
-         ! diagnostic and only on a chemistry timestep.
-         ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
+
+            ! Recalculate the optical depth at the wavelength(s) specified
+            ! in the Radiation Menu. This must be done before the call to any
+            ! diagnostic and only on a chemistry timestep.
+            ! (skim, 02/05/11)
             CALL RECOMPUTE_OD( am_I_Root, Input_Opt,  State_Met,
      &                         State_Chm, State_Diag, RC         )
+
+            ! Trap potential errors
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error encountered in "Recompute_OD"!'
+               CALL Error_Stop( ErrMsg, ThisLoc )
+            ENDIF
          ENDIF
 
 #if defined( RRTMG )
@@ -1648,6 +1688,12 @@
      &                                     ICLD, 0, ISEED, Input_Opt, 
      &                                     State_Met, State_Chm, RC)
 
+               ! Trap potential errors
+               IF ( RC /= GC_SUCCESS ) THEN
+                  ErrMsg = 'Error encountered in "Do_RRTMG #1"!'
+                  CALL Error_Stop( ErrMsg, ThisLoc )
+               ENDIF
+
                !Second call with aerosols or ozone if requested
                DO N = 1, NSPECRADMENU
                   IF (LSPECRADMENU(N).EQ.1) THEN
@@ -1657,14 +1703,14 @@
      &                                           ICLD, N, ISEED, 
      &                                           Input_Opt, State_Met, 
      &                                           State_Chm, RC )
+
+                     ! Trap potential errors
+                     IF ( RC /= GC_SUCCESS ) THEN
+                        ErrMsg = 'Error encountered in "Do_RRTMG 21"!'
+                        CALL Error_Stop( ErrMsg, ThisLoc )
+                     ENDIF
                   ENDIF
                ENDDO
-
-               ! Stop the run if DO_RRTMG_RAD_TRANSFER returns an error
-               IF ( RC /= GC_SUCCESS ) THEN
-                  CALL ERROR_STOP('Error in DO_RRTMG_RAD_TRANSFER!',
-     &                            'main.F')
-               ENDIF
 
                ! Increment radiation timestep counter
                CALL SET_CT_RAD( INCREMENT=.TRUE. )
@@ -1706,6 +1752,8 @@
 
          ! Update each HISTORY ITEM from its data source
          CALL History_Update( am_I_Root, RC )
+
+         ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "History_Update"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1715,6 +1763,8 @@
          ! This is becasue we need to write out data with the timestamp
          ! at the end of the heartbeat timestep (i.e. at end of run)
          CALL History_SetTime( am_I_Root, RC )
+
+         ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "History_SetTime"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1739,8 +1789,16 @@
          ! Planeflight diagnostic
          IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
             IF ( ITS_A_NEW_DAY() ) THEN
+
+               ! Initialize planeflight diagnostic
                CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, 
      &                                 State_Chm, RC )
+
+               ! Trap potential errors
+               IF ( RC /= GC_SUCCESS ) THEN
+                  ErrMsg = 'Error encountered in "Setup_Planeflight"!'
+                  CALL Error_Stop( ErrMsg, ThisLoc )
+               ENDIF
             ENDIF
          ENDIF
 
@@ -1758,6 +1816,12 @@
             ! Archive data along the flight track
             CALL PLANEFLIGHT( am_I_Root, Input_Opt,  State_Met,
      &                        State_Chm, State_Diag, RC )
+
+            ! Trap potential errors
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error encountered in "Planeflight"!'
+               CALL Error_Stop( ErrMsg, ThisLoc )
+            ENDIF
          ENDIF
 
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
@@ -1861,6 +1925,8 @@
          ! Write HISTORY ITEMS in each diagnostic collection to disk
          ! (or skip writing if it is not the proper output time.
          CALL History_Write( am_I_Root, State_Chm%Spc_Units, RC )
+
+         ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "History_Write"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1926,6 +1992,12 @@
       IF ( LSTDRUN ) THEN 
          CALL STDRUN( am_I_Root, Input_Opt,  State_Met,
      &                State_Chm, State_Diag, RC,        LBEGIN=.FALSE. )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_Write"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
       ENDIF
 
 #if defined( USE_TIMERS )
@@ -1941,28 +2013,52 @@
 
       ! Deallocate fields of the Input Options object
       CALL Cleanup_Input_Opt( am_I_Root, Input_Opt, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_Input_Opt"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup Input_Opt' )
 
       ! Deallocate fields of the Chemistry State object
       CALL Cleanup_State_Chm( am_I_Root, State_Chm, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_State_Chm"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_Chm' )
 
-      ! Deallocate fields of the Chemistry State object
+      ! Deallocate fields of the Diagnostics State object
       CALL Cleanup_State_Diag( am_I_Root, State_Diag, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_State_Chm"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_Diag' )
 
       ! Deallocate fields of the Meteorology State object
       CALL Cleanup_State_Met( am_I_Root, State_Met, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_State_Met"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_met' )
 
       ! Deallocate dynamic module arrays
       CALL CLEANUP( am_I_Root, .FALSE., RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
 
       ! Deallocate the derived type object w/ mapping info
       CALL CLEANUP_MAPPING( mapping )
 
       ! Deallocate fields of the diagnostics list object
       CALL Cleanup_DiagList( am_I_Root, Diag_List, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_DiagList"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup Diag_List' )
 
 !-----------------------------------------------------------------------------

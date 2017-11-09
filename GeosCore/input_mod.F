@@ -9502,7 +9502,8 @@
       IF ( Input_Opt%LCONV   .or. 
      &     Input_Opt%LWETD   .or.    
      &     Input_Opt%LCHEM ) THEN
-         CALL Init_WetScav( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_WetScav( am_I_Root, Input_Opt, 
+     &                      State_Chm, State_Diag, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN

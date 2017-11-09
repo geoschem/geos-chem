@@ -80,8 +80,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_CHEMISTRY( am_I_Root, Input_Opt,  State_Chm,
-     &                         State_Met, State_Diag, RC         )
+      SUBROUTINE DO_CHEMISTRY( am_I_Root, Input_Opt,  State_Met,
+     &                         State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -237,6 +237,8 @@
 !  09 Mar 2017 - C. Keller   - Bug fix: call TEND_STAGE1 before unit conversion
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions with wrapper routine
 !  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
+!   9 Nov 2017 - R. Yantosca - Reorder arguments for consistency: Input_Opt,
+!                              State_Met, State_Chm, State_Diag
 !EOP
 !------------------------------------------------------------------------------
 !BOC

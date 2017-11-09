@@ -15,8 +15,6 @@
 ! 
 ! !USES:
 !
-      USE ErrCode_Mod
-      USE PhysConstants    ! Physical constants
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -102,7 +100,6 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,       ONLY : CONVFLUP
-      USE UnitConv_Mod
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,       ONLY : AD38
 #endif
@@ -110,12 +107,14 @@
       USE ERROR_MOD,      ONLY : GEOS_CHEM_STOP
       USE GC_GRID_MOD,    ONLY : GET_AREA_M2
       USE Input_Opt_Mod,  ONLY : OptInput
+      USE PhysConstants
       USE Species_Mod,    ONLY : Species
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
       USE State_Met_Mod,  ONLY : MetState
       USE TIME_MOD,       ONLY : GET_TS_DYN
       USE TIME_MOD,       ONLY : GET_TS_CONV
+      USE UnitConv_Mod
       USE WETSCAV_MOD,    ONLY : COMPUTE_F
       USE WETSCAV_MOD,    ONLY : H2O2s
       USE WETSCAV_MOD,    ONLY : SO2s
@@ -201,6 +200,7 @@
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  06 Nov 2017 - R. Yantosca - Bug fix: ND14 should use 1..nAdvect species
+!  09 Nov 2017 - R. Yantosca - Return error condition to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,38 +208,42 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER           :: N, NA, nAdvect, NW
-      INTEGER           :: I, J, L, NN, TS_DYN
-      REAL(fp)          :: AREA_M2, DT
-      LOGICAL           :: DO_ND14, DoConvFlux
-      LOGICAL           :: DO_ND38, DoWetLoss
+      INTEGER            :: N, NA, nAdvect, NW, EC
+      INTEGER            :: I, J, L, NN, TS_DYN
+      REAL(fp)           :: AREA_M2, DT
+      LOGICAL            :: DO_ND14, DoConvFlux
+      LOGICAL            :: DO_ND38, DoWetLoss
 #if defined( USE_TEND )
-      REAL(fp)          :: DT_TEND
+      REAL(fp)           :: DT_TEND
 #endif
       
       ! SAVEd scalars
-      LOGICAL, SAVE     :: First = .TRUE.
+      LOGICAL, SAVE      :: First = .TRUE.
+
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       ! Arrays        
-      REAL(fp)          :: PEDGE  (          LLPAR+1                  )
-      INTEGER           :: ISOL   (                  State_Chm%nAdvect)
-      REAL(fp)          :: DIAG14 (            LLPAR,State_Chm%nAdvect)
-      REAL(fp)          :: DIAG38 (            LLPAR,State_Chm%nWetDep)
-      REAL(fp)          :: F      (            LLPAR,State_Chm%nAdvect)
-      REAL(fp), TARGET  :: FSOL   (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+      REAL(fp)           :: PEDGE  (          LLPAR+1                  )
+      INTEGER            :: ISOL   (                  State_Chm%nAdvect)
+      REAL(fp)           :: DIAG14 (            LLPAR,State_Chm%nAdvect)
+      REAL(fp)           :: DIAG38 (            LLPAR,State_Chm%nWetDep)
+      REAL(fp)           :: F      (            LLPAR,State_Chm%nAdvect)
+      REAL(fp), TARGET   :: FSOL   (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
       ! Pointers
-      REAL(fp), POINTER :: p_FSOL (:,:,:)
+      REAL(fp), POINTER  :: p_FSOL (:,:,:)
 
       !=================================================================
       ! DO_CONVECT begins here!
       !=================================================================
-      ! Initialize pointers
-      p_FSOL => NULL()
-#if defined ( NETCDF )
-      Tmp2d => NULL()
-      Tmp3d => NULL()
-#endif
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      p_FSOL  => NULL()
+      ErrMsg  = ''
+      ThisLoc = 
+     &   ' -> at Do_Convection (in module GeosCore/convection_mod.F)'
 
 #if defined( USE_TEND )
       !=================================================================
@@ -247,11 +251,15 @@
       !=================================================================
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CONV', RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Tend_Stage1"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 #endif
  
-      ! Assume success
-      RC = GC_SUCCESS
-
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
 
@@ -266,8 +274,7 @@
          First                 = .FALSE.
       ENDIF
 
-      ! Initialize
-      RC         = GC_SUCCESS                   
+      ! More initializations
       TS_DYN     = GET_TS_DYN()                           ! Dyn timestep [min]
       DT         = DBLE( TS_DYN )                         ! Dyn timestep [min]
       FSOL       = 0e+0_fp                                ! Zero the FSOL array
@@ -279,7 +286,7 @@
       ! Loop over advected species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( NA, N, p_FSOL, RC )
+!$OMP+PRIVATE( NA, N, p_FSOL, EC )
       DO NA = 1, nAdvect
          
          ! Species ID
@@ -289,8 +296,13 @@
          p_FSOL => FSOL(:,:,:,NA)
 
          ! Fraction of soluble species
-         CALL COMPUTE_F( am_I_Root, N, p_FSOL, ISOL(NA), 
-     &                   Input_Opt, State_Met, State_Chm, RC ) 
+         CALL COMPUTE_F( am_I_Root, N,         p_FSOL,    ISOL(NA), 
+     &                   Input_Opt, State_Met, State_Chm, RC=EC     ) 
+
+         ! Trap potential errors (we can't exit an OpenMP loop)
+         IF ( EC /= GC_SUCCESS ) THEN
+            RC = EC
+         ENDIF
 
          ! Free pointer memory
          p_FSOL => NULL()
@@ -298,16 +310,26 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Return if COMPUTE_F returned an error
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Compute_F"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
       !-----------------------------------------------------------------
       ! Do convection column by column
       !-----------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J,      I,      AREA_M2, L, F  ) 
-!$OMP+PRIVATE( DIAG14, DIAG38, RC,      N, NA,    NW )
+!$OMP+PRIVATE( J,      I,      AREA_M2, L, F,  EC ) 
+!$OMP+PRIVATE( DIAG14, DIAG38, RC,      N, NA, NW )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! PRIVATE error trapping variable
+         EC = GC_SUCCESS
 
          ! Skip buffer zone for nested grids (lzh, 4/1/15)
          IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
@@ -318,11 +340,11 @@
          ENDIF
 
          ! Grid box surface area [m2]
-         AREA_M2     =  GET_AREA_M2( I, J, 1 ) 
+         AREA_M2 =  GET_AREA_M2( I, J, 1 )
 
          ! NOTE: For some reason the code chokes when we try
          ! to use a pointer, so we'll use a 2D array here.
-         F           =  FSOL(I,J,:,:)
+         F       =  FSOL(I,J,:,:)
          
          !--------------------------
          ! Do the cloud convection
@@ -340,11 +362,12 @@
      &                             DIAG14     = DIAG14,
      &                             USE_DIAG38 = DoWetLoss,
      &                             DIAG38     = DIAG38,
-     &                             RC         = RC         )
+     &                             RC         = EC          )
 
-         ! Stop if error is encountered
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GEOS_CHEM_STOP
+         EC = GC_FAILURE
+         ! Trap potential errors (we can't exit an OpenMP loop)
+         IF ( EC /= GC_SUCCESS ) THEN
+            RC = EC
          ENDIF
          
 #if defined( BPCH_DIAG )
@@ -411,6 +434,13 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Return if COMPUTE_F returned an error
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Do_Cloud_Convection"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
 #if defined( USE_TEND )
       !=================================================================
       ! Calculate tendencies and write to diagnostics 
@@ -419,6 +449,13 @@
       DT_TEND = GET_TS_CONV() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CONV', DT_TEND, RC )
+
+       ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Tend_Stage2"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 #endif
 
       END SUBROUTINE DO_CONVECTION
@@ -458,12 +495,12 @@
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
+      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE ERROR_MOD,          ONLY : IT_IS_FINITE
-      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  ! hma Nov 3, debug
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE Species_Mod,        ONLY : Species
       USE WETSCAV_MOD,        ONLY : H2O2s_3D => H2O2s ! [v/v]
@@ -591,7 +628,8 @@
 !  20 Sep 2016 - R. Yantosca - Rewrote IF test to avoid Gfortran compiler error
 !  24 Aug 2017 - M. Sulprizio- Rename routine from DO_MERRA_CONVECTION to
 !                              DO_CLOUD_CONVECTION
-!   6 Nov 2017 - R. Yantosca - Bug fix: ND14 should use 1..nAdvect species
+!  06 Nov 2017 - R. Yantosca - Bug fix: ND14 should use 1..nAdvect species
+!  09 Nov 2017 - R. Yantosca - Return error condition to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -621,6 +659,9 @@
       REAL(fp)               :: WET_HgP,     MB,        QB
       REAL(fp)               :: QB_NUM,      DELP_DRY_NUM
 
+      ! Strings
+      CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
+
       ! Arrays               
       REAL(fp)               :: BMASS    (LLPAR    )    
       REAL(fp)               :: PDOWN    (LLPAR    )
@@ -643,6 +684,12 @@
       !========================================================================
       ! (0)  I n i t i a l i z a t i o n
       !========================================================================
+
+      ! Initialize
+      RC       = GC_SUCCESS
+      ErrMsg   = ''
+      ThisLoc  = 
+     &' -> at Do_Merra_Convection (in module GeosCore/convection_mod.F)'
       
       ! Point to columns of derived-type object fields
       BXHEIGHT => State_Met%BXHEIGHT(I,J,:        ) ! Box height [m]
@@ -1065,9 +1112,13 @@
                   ! Increment the species array [kg/kg]
                   Q(K,IC) = Q(K,IC) + DELQ
 
-                  ! check for infinity
+                  ! Return if we encounter NInf
                   IF ( .not. IT_IS_FINITE( Q(K,IC) ) ) THEN
-                     CALL GEOS_CHEM_STOP
+                     WRITE( 6, 200 )
+ 200                 FORMAT( 'Infinity in DO_CLOUD_CONVECTION!' )
+                     WRITE( 6, 255 ) K, IC, Q(K,IC) 
+                     RC = GC_FAILURE
+                     RETURN
                   ENDIF
 
                   ! Return if we encounter NaN
@@ -1115,8 +1166,10 @@
 
                      ! check for infinity (added by hma, 20101117)
                      IF ( .not. IT_IS_FINITE( DIAG38(K,NW) ) ) THEN
-                        PRINT*, 'DIAG38 IS INFINITY at K = ', K
-                        CALL GEOS_CHEM_STOP
+                        WRITE( ErrMsg, 300 ) K
+ 300                    FORMAT( 'DIAG38 is infinity (K,NW)= ', i6,' #1')
+                        CALL GC_Error( ErrMsg, RC, ThisLoc )
+                        RETURN
                      ENDIF
                   ENDIF
                   
@@ -1200,11 +1253,19 @@
 
                   ! Call WASHOUT to compute the fraction of species lost
                   ! to washout in grid box (I,J,K)
-                  CALL WASHOUT( am_I_Root, I, J, K, IC, BXHEIGHT(K), 
-     &                          T(K),      QDOWN,    SDT,   
-     &                          F_WASHOUT, H2O2s(K), SO2s(K), 
-     &                          WASHFRAC,  AER,      Input_Opt,
-     &                          State_Met, State_Chm, RC         )
+                  CALL WASHOUT( am_I_Root, I,          J,
+     &                          K,         IC,         BXHEIGHT(K),
+     &                          T(K),      QDOWN,      SDT,
+     &                          F_WASHOUT, H2O2s(K),   SO2s(K),
+     &                          WASHFRAC,  AER,        Input_Opt,
+     &                          State_Met, State_Chm,  RC           )
+
+                  ! Trap potential errors
+                  IF ( RC /= GC_SUCCESS ) THEN
+                     ErrMsg = 'Error encountered in "Washout"!'
+                     CALL GC_Error( ErrMsg, RC, ThisLoc )
+                     RETURN
+                  ENDIF
 
                   ! Check if the species is an aerosol or not
                   IF ( AER ) THEN
@@ -1352,11 +1413,13 @@
                      DIAG38(K,NW) = 
      &               DIAG38(K,NW) + ( WETLOSS * AREA_M2 / NDT )
                   ENDIF
-                
-                  ! CHECK for infinity (added by hma, 20101117)
+
+                  ! check for infinity (added by hma, 20101117)
                   IF ( .not. IT_IS_FINITE( DIAG38(K,NW) ) ) THEN
-                     PRINT*, 'DIAG38 IS INFINITY at K = ', K
-                     CALL GEOS_CHEM_STOP
+                     WRITE( ErrMsg, 310 ) K, NW
+ 310                 FORMAT( 'DIAG38 is infinity (K,NW)= ', 2i6, ' #3' )
+                     CALL GC_Error( ErrMsg, RC, ThisLoc )
+                     RETURN
                   ENDIF
                ENDIF
             ENDDO     ! End of loop over levels below cloud base  
