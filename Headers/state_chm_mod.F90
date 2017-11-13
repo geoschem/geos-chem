@@ -356,22 +356,22 @@ CONTAINS
     !=====================================================================
 
     ALLOCATE( State_Chm%Map_Advect( State_Chm%nAdvect  ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%Map_Advect', 0, RC )  
+    CALL GC_CheckVar( 'State_Chm%Map_Advect', 0, RC )  
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_Advect = 0
 
     ALLOCATE( State_Chm%Map_Drydep( State_Chm%nDryDep  ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%Map_Drydep', 0, RC )
+    CALL GC_CheckVar( 'State_Chm%Map_Drydep', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_DryDep = 0
 
     ALLOCATE( State_Chm%Map_KppSpc( NSPEC ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%Map_KppSpc', 0, RC )
+    CALL GC_CheckVar( 'State_Chm%Map_KppSpc', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_KppSpc = 0
 
     ALLOCATE( State_Chm%Map_WetDep( State_Chm%nWetDep  ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%Map_Wetdep', 0, RC )
+    CALL GC_CheckVar( 'State_Chm%Map_Wetdep', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_WetDep = 0
 
@@ -455,7 +455,7 @@ CONTAINS
        State_Chm%nAero = nAerosol
 
        !------------------------------------------------------------------
-       ! AEROAREA
+       ! AeroArea
        !------------------------------------------------------------------
        ALLOCATE( State_Chm%AeroArea( IM, JM, LM, State_Chm%nAero ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AeroArea', 0, RC )
@@ -468,33 +468,33 @@ CONTAINS
           ! Define identifying string
           SELECT CASE( N )
              CASE( 1  )
-                chmID = 'AEROAREA_MDUST1'
+                chmID = 'AeroAreaMDUST1'
              CASE( 2  )
-                chmID = 'AEROAREA_MDUST2'
+                chmID = 'AeroAreaMDUST2'
              CASE( 3  )
-                chmID = 'AEROAREA_MDUST3'
+                chmID = 'AeroAreaMDUST3'
              CASE( 4  )
-                chmID = 'AEROAREA_MDUST4'
+                chmID = 'AeroAreaMDUST4'
              CASE( 5  )
-                chmID = 'AEROAREA_MDUST5'
+                chmID = 'AeroAreaMDUST5'
              CASE( 6  )
-                chmID = 'AEROAREA_MDUST6'
+                chmID = 'AeroAreaMDUST6'
              CASE( 7  )
-                chmID = 'AEROAREA_MDUST7'
+                chmID = 'AeroAreaMDUST7'
              CASE( 8  )
-                chmID = 'AEROAREA_SULF'
+                chmID = 'AeroAreaSULF'
              CASE( 9  )
-                chmID = 'AEROAREA_BC'
+                chmID = 'AeroAreaBC'
              CASE( 10 )
-                chmID = 'AEROAREA_OC'
+                chmID = 'AeroAreaOC'
              CASE( 11 )
-                chmID = 'AEROAREA_SSA'
+                chmID = 'AeroAreaSSA'
              CASE( 12 )
-                chmID = 'AEROAREA_SSC'
+                chmID = 'AeroAreaSSC'
              CASE( 13 )
-                chmID = 'AEROAREA_BGSULF'
+                chmID = 'AeroAreaBGSULF'
              CASE( 14 )
-                chmID  = 'AEROAREA_ICEI'
+                chmID  = 'AeroAreaICEI'
              CASE DEFAULT
                 ErrMsg = 'State_Chm%nAero exceeds the number of defined' &
                          // ' dry aerosol area categories'
@@ -508,7 +508,7 @@ CONTAINS
        ENDDO
 
        !------------------------------------------------------------------
-       ! AERORADI
+       ! AeroRadi
        !------------------------------------------------------------------
        ALLOCATE( State_Chm%AeroRadi( IM, JM, LM, State_Chm%nAero ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AeroRadi', 0, RC )
@@ -521,33 +521,33 @@ CONTAINS
           ! Define identifying string
           SELECT CASE( N )
              CASE( 1  )
-                chmID = 'AERORADI_MDUST1'
+                chmID = 'AeroRadiMDUST1'
              CASE( 2  )
-                chmID = 'AERORADI_MDUST2'
+                chmID = 'AeroRadiMDUST2'
              CASE( 3  )
-                chmID = 'AERORADI_MDUST3'
+                chmID = 'AeroRadiMDUST3'
              CASE( 4  )
-                chmID = 'AERORADI_MDUST4'
+                chmID = 'AeroRadiMDUST4'
              CASE( 5  )
-                chmID = 'AERORADI_MDUST5'
+                chmID = 'AeroRadiMDUST5'
              CASE( 6  )
-                chmID = 'AERORADI_MDUST6'
+                chmID = 'AeroRadiMDUST6'
              CASE( 7  )
-                chmID = 'AERORADI_MDUST7'
+                chmID = 'AeroRadiMDUST7'
              CASE( 8  )
-                chmID = 'AERORADI_SULF'
+                chmID = 'AeroRadiSULF'
              CASE( 9  )
-                chmID = 'AERORADI_BC'
+                chmID = 'AeroRadiBC'
              CASE( 10 )
-                chmID = 'AERORADI_OC'
+                chmID = 'AeroRadiOC'
              CASE( 11 )
-                chmID = 'AERORADI_SSA'
+                chmID = 'AeroRadiSSA'
              CASE( 12 )
-                chmID = 'AERORADI_SSC'
+                chmID = 'AeroRadiSSC'
              CASE( 13 )
-                chmID = 'AERORADI_BGSULF'
+                chmID = 'AeroRadiBGSULF'
              CASE( 14 )
-                chmID = 'AERORADI_ICEI'
+                chmID = 'AeroRadiICEI'
              CASE DEFAULT
                 ErrMsg = 'State_Chm%nAero exceeds the number of defined' &
                          // ' dry aerosol radius categories'
@@ -561,7 +561,7 @@ CONTAINS
        ENDDO
 
        !------------------------------------------------------------------
-       ! WETAEROAREA
+       ! WetAeroArea
        !------------------------------------------------------------------
        ALLOCATE( State_Chm%WetAeroArea( IM, JM, LM, State_Chm%nAero ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WetAeroArea', 0, RC )
@@ -574,33 +574,33 @@ CONTAINS
           ! Define identifying string
           SELECT CASE( N )
              CASE( 1  )
-                chmID = 'WETAEROAREA_MDUST1'
+                chmID = 'WetAeroAreaMDUST1'
              CASE( 2  )
-                chmID = 'WETAEROAREA_MDUST2'
+                chmID = 'WetAeroAreaMDUST2'
              CASE( 3  )
-                chmID = 'WETAEROAREA_MDUST3'
+                chmID = 'WetAeroAreaMDUST3'
              CASE( 4  )
-                chmID = 'WETAEROAREA_MDUST4'
+                chmID = 'WetAeroAreaMDUST4'
              CASE( 5  )
-                chmID = 'WETAEROAREA_MDUST5'
+                chmID = 'WetAeroAreaMDUST5'
              CASE( 6  )
-                chmID = 'WETAEROAREA_MDUST6'
+                chmID = 'WetAeroAreaMDUST6'
              CASE( 7  )
-                chmID = 'WETAEROAREA_MDUST7'
+                chmID = 'WetAeroAreaMDUST7'
              CASE( 8  )
-                chmID = 'WETAEROAREA_SULF'
+                chmID = 'WetAeroAreaSULF'
              CASE( 9  )
-                chmID = 'WETAEROAREA_BC'
+                chmID = 'WetAeroAreaBC'
              CASE( 10 )
-                chmID = 'WETAEROAREA_OC'
+                chmID = 'WetAeroAreaOC'
              CASE( 11 )
-                chmID = 'WETAEROAREA_SSA'
+                chmID = 'WetAeroAreaSSA'
              CASE( 12 )
-                chmID = 'WETAEROAREA_SSC'
+                chmID = 'WetAeroAreaSSC'
              CASE( 13 )
-                chmID = 'WETAEROAREA_BGSULF'
+                chmID = 'WetAeroAreaBGSULF'
              CASE( 14 )
-                chmID = 'WETAEROAREA_ICEI'
+                chmID = 'WetAeroAreaICEI'
              CASE DEFAULT
                 ErrMsg = 'State_Chm%nAero exceeds the number of defined' &
                          // ' wet aerosol area categories'
@@ -614,7 +614,7 @@ CONTAINS
        ENDDO
 
        !------------------------------------------------------------------
-       ! WETAERORADI
+       ! WetAeroRadi
        !------------------------------------------------------------------
        ALLOCATE( State_Chm%WetAeroRadi( IM, JM, LM, State_Chm%nAero ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WetAeroRadi', 0, RC )
@@ -627,33 +627,33 @@ CONTAINS
           ! Define identifying string
           SELECT CASE( N )
              CASE( 1  )
-                chmID = 'WETAERORADI_MDUST1'
+                chmID = 'WetAeroRadiMDUST1'
              CASE( 2  )
-                chmID = 'WETAERORADI_MDUST2'
+                chmID = 'WetAeroRadiMDUST2'
              CASE( 3  )
-                chmID = 'WETAERORADI_MDUST3'
+                chmID = 'WetAeroRadiMDUST3'
              CASE( 4  )
-                chmID = 'WETAERORADI_MDUST4'
+                chmID = 'WetAeroRadiMDUST4'
              CASE( 5  )
-                chmID = 'WETAERORADI_MDUST5'
+                chmID = 'WetAeroRadiMDUST5'
              CASE( 6  )
-                chmID = 'WETAERORADI_MDUST6'
+                chmID = 'WetAeroRadiMDUST6'
              CASE( 7  )
-                chmID = 'WETAERORADI_MDUST7'
+                chmID = 'WetAeroRadiMDUST7'
              CASE( 8  )
-                chmID = 'WETAERORADI_SULF'
+                chmID = 'WetAeroRadiSULF'
              CASE( 9  )
-                chmID = 'WETAERORADI_BC'
+                chmID = 'WetAeroRadiBC'
              CASE( 10 )
-                chmID = 'WETAERORADI_OC'
+                chmID = 'WetAeroRadiOC'
              CASE( 11 )
-                chmID = 'WETAERORADI_SSA'
+                chmID = 'WetAeroRadiSSA'
              CASE( 12 )
-                chmID = 'WETAERORADI_SSC'
+                chmID = 'WetAeroRadiSSC'
              CASE( 13 )
-                chmID = 'WETAERORADI_BGSULF'
+                chmID = 'WetAeroRadiBGSULF'
              CASE( 14 )
-                chmID = 'WETAERORADI_ICEI'
+                chmID = 'WetAeroRadiICEI'
              CASE DEFAULT
                 ErrMsg = 'State_Chm%nAero exceeds the number of defined' &
                          // ' wet aerosol radius categories'
@@ -688,7 +688,7 @@ CONTAINS
     !---------------------------------------------------------------------
     ! STATE_PSC
     !---------------------------------------------------------------------
-    chmID = 'STATE_PSC'
+    chmID = 'StatePSC'
     ALLOCATE( State_Chm%STATE_PSC( IM, JM, LM ), STAT=RC )
     CALL GC_CheckVar( 'State_Chm%STATE_PSC', 0, RC )    
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -702,7 +702,7 @@ CONTAINS
     !---------------------------------------------------------------------
     nKHLSA = 11 ! TODO: should this be in CMN_SIZE_Mod?
     ALLOCATE( State_Chm%KHETI_SLA ( IM, JM, LM, nKHLSA ), STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%KHETI_SLA', 0, RC )
+    CALL GC_CheckVar( 'State_Chm%KHETISLA', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%KHETI_SLA = 0.0_fp
 
@@ -712,27 +712,27 @@ CONTAINS
        ! Define identifying string
        SELECT CASE( N )
           CASE( 1  ) 
-             chmID = 'KHETI_SLA_N2O5_H2O'
+             chmID = 'KhetiSLAN2O5H2O'
           CASE( 2  ) 
-             chmID = 'KHETI_SLA_N2O5_HCl'
+             chmID = 'KhetiSLAN2O5HCl'
           CASE( 3  ) 
-             chmID = 'KHETI_SLA_ClNO3_H2O'
+             chmID = 'KhetiSLAClNO3H2O'
           CASE( 4  ) 
-             chmID = 'KHETI_SLA_ClNO3_HCl'
+             chmID = 'KhetiSLAClNO3HCl'
           CASE( 5  ) 
-             chmID = 'KHETI_SLA_ClNO3_HBr'
+             chmID = 'KhetiSLAClNO3HBr'
           CASE( 6  ) 
-             chmID = 'KHETI_SLA_BrNO3_H2O'
+             chmID = 'KhetiSLABrNO3H2O'
           CASE( 7  ) 
-             chmID = 'KHETI_SLA_BrNO3_HCl'
+             chmID = 'KhetiSLABrNO3HCl'
           CASE( 8  ) 
-             chmID = 'KHETI_SLA_HOCl_HCl'
+             chmID = 'KhetiSLAHOClHCl'
           CASE( 9  ) 
-             chmID = 'KHETI_SLA_HOCl_HBr'
+             chmID = 'KhetiSLAHOClHBr'
           CASE( 10 ) 
-             chmID = 'KHETI_SLA_HOBr_HCl'
+             chmID = 'KhetiSLAHOBrHCl'
           CASE( 11 ) 
-             chmID = 'KHETI_SLA_HOBr_HBr'
+             chmID = 'KhetiSLAHOBrHBr'
           CASE DEFAULT
              ErrMsg = 'nKHLSA exceeds the number of defined' &
                       // ' KHETI_SLA categories'
@@ -1134,355 +1134,355 @@ CONTAINS
           IF ( isRank    ) Rank  = 3
           IF ( isSpecies ) PerSpecies = 'ALL'
 
-       CASE ( 'AEROAREA_MDUST1' )
+       CASE ( 'AEROAREAMDUST1' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (0.15 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROAREA_MDUST2' )
+       CASE ( 'AEROAREAMDUST2' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (0.25 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROAREA_MDUST3' )
+       CASE ( 'AEROAREAMDUST3' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (0.4 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROAREA_MDUST4' )
+       CASE ( 'AEROAREAMDUST4' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (0.8 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROAREA_MDUST5' )
+       CASE ( 'AEROAREAMDUST5' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (1.5 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROAREA_MDUST6' )
+       CASE ( 'AEROAREAMDUST6' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (2.5 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROAREA_MDUST7' )
+       CASE ( 'AEROAREAMDUST7' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (4.0 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROAREA_SULF' )
+       CASE ( 'AEROAREASULF' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for black carbon'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROAREA_BC' )
+       CASE ( 'AEROAREABC' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for black carbon'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROAREA_OC' )
+       CASE ( 'AEROAREAOC' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for organic carbon'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROAREA_SSA' )
+       CASE ( 'AEROAREASSA' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for sea salt,' &
                                  // ' accumulation mode'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROAREA_SSC' )
+       CASE ( 'AEROAREASSC' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for sea salt, coarse mode'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROAREA_BGSULF' )
+       CASE ( 'AEROAREABGSULF' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for background' &
                                  // ' stratospheric sulfate'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROAREA_ICEI' )
+       CASE ( 'AEROAREAICEI' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for irregular ice cloud' &
                                  // ' (Mischenko)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AERORADI_MDUST1' )
+       CASE ( 'AERORADIMDUST1' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (0.15 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AERORADI_MDUST2' )
+       CASE ( 'AERORADIMDUST2' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (0.25 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AERORADI_MDUST3' )
+       CASE ( 'AERORADIMDUST3' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (0.4 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AERORADI_MDUST4' )
+       CASE ( 'AERORADIMDUST4' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (0.8 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AERORADI_MDUST5' )
+       CASE ( 'AERORADIMDUST5' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (1.5 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AERORADI_MDUST6' )
+       CASE ( 'AERORADIMDUST6' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (2.5 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AERORADI_MDUST7' )
+       CASE ( 'AERORADIMDUST7' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for mineral dust (4.0 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AERORADI_SULF' )
+       CASE ( 'AERORADISULF' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for tropospheric sulfate'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AERORADI_BC' )
+       CASE ( 'AERORADIBC' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for black carbon'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AERORADI_OC' )
+       CASE ( 'AERORADIOC' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for organic carbon'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AERORADI_SSA' )
+       CASE ( 'AERORADISSA' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for sea salt,' & 
                                  // ' accumulation mode'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AERORADI_SSC' )
+       CASE ( 'AERORADISSC' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for sea salt, coarse mode'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AERORADI_BGSULF' )
+       CASE ( 'AERORADIBGSULF' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for background' &
                                  // ' stratospheric sulfate'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AERORADI_ICEI' )
+       CASE ( 'AERORADIICEI' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for irregular ice' &
                                  // ' cloud (Mischenko)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAEROAREA_MDUST1' )
+       CASE ( 'WETAEROAREAMDUST1' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (0.15 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAEROAREA_MDUST2' )
+       CASE ( 'WETAEROAREAMDUST2' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (0.25 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAEROAREA_MDUST3' )
+       CASE ( 'WETAEROAREAMDUST3' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (0.4 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAEROAREA_MDUST4' )
+       CASE ( 'WETAEROAREAMDUST4' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (0.8 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAEROAREA_MDUST5' )
+       CASE ( 'WETAEROAREAMDUST5' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (1.5 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAEROAREA_MDUST6' )
+       CASE ( 'WETAEROAREAMDUST6' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (2.5 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAEROAREA_MDUST7' )
+       CASE ( 'WETAEROAREAMDUST7' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (4.0 um)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAEROAREA_SULF' )
+       CASE ( 'WETAEROAREASULF' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for tropospheric sulfate'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAEROAREA_BC' )
+       CASE ( 'WETAEROAREABC' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for black carbon'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAEROAREA_OC' )
+       CASE ( 'WETAEROAREAOC' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for organic carbon'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAEROAREA_SSA' )
+       CASE ( 'WETAEROAREASSA' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for sea salt,' &
                                  // ' accumulation mode'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAEROAREA_SSC' )
+       CASE ( 'WETAEROAREASSC' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for sea salt, coarse mode'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAEROAREA_BGSULF' )
+       CASE ( 'WETAEROAREABGSULF' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for background' &
                                  // ' stratospheric sulfate'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAEROAREA_ICEI' )
+       CASE ( 'WETAEROAREAICEI' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for irregular ice cloud' &
                                  // ' (Mischenko)'
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAERORADI_MDUST1' )
+       CASE ( 'WETAERORADIMDUST1' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (0.15 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAERORADI_MDUST2' )
+       CASE ( 'WETAERORADIMDUST2' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (0.25 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAERORADI_MDUST3' )
+       CASE ( 'WETAERORADIMDUST3' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (0.4 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAERORADI_MDUST4' )
+       CASE ( 'WETAERORADIMDUST4' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (0.8 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAERORADI_MDUST5' )
+       CASE ( 'WETAERORADIMDUST5' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (1.5 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAERORADI_MDUST6' )
+       CASE ( 'WETAERORADIMDUST6' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (2.5 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAERORADI_MDUST7' )
+       CASE ( 'WETAERORADIMDUST7' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for mineral dust (4.0 um)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAERORADI_SULF' )
+       CASE ( 'WETAERORADISULF' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for tropospheric sulfate'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAERORADI_BC' )
+       CASE ( 'WETAERORADIBC' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for black carbon'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAERORADI_OC' )
+       CASE ( 'WETAERORADIOC' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for organic carbon'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAERORADI_SSA' )
+       CASE ( 'WETAERORADISSA' )
           IF ( isDesc  ) Desc= 'Wet aerosol radius for sea salt,' &
                                // ' accumulation mode'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAERORADI_SSC' )
+       CASE ( 'WETAERORADISSC' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for sea salt, coarse mode'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAERORADI_BGSULF' )
+       CASE ( 'WETAERORADIBGSULF' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for background' &
                                 // ' stratospheric sulfate'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'WETAERORADI_ICEI' )
+       CASE ( 'WETAERORADIICEI' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for irregular ice cloud' &
                                 // ' (Mischenko)'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'STATE_PSC' )
+       CASE ( 'STATEPSC' )
           IF ( isDesc  ) Desc  = 'Polar stratospheric cloud type (cf Kirner' &
                                 // ' et al 2011, GMD)'
           IF ( isUnits ) Units = 'count'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHETI_SLA_N2O5_H2O' )
+       CASE ( 'KHETISLAN2O5H2O' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for N2O5 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHETI_SLA_N2O5_HCL' )
+       CASE ( 'KHETISLAN2O5HCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for N2O5 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHETI_SLA_CLNO3_H2O' )
+       CASE ( 'KHETISLACLNO3H2O' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHETI_SLA_CLNO3_HCL' )
+       CASE ( 'KHETISLACLNO3HCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHETI_SLA_CLNO3_HBR' )
+       CASE ( 'KHETISLACLNO3HBR' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + HBr reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHETI_SLA_BRNO3_H2O' )
+       CASE ( 'KHETISLABRNO3H2O' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for BrNO3 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHETI_SLA_BRNO3_HCL' )
+       CASE ( 'KHETISLABRNO3HCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for BrNO3 + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHETI_SLA_HOCL_HCL' )
+       CASE ( 'KHETISLAHOCLHCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOCl + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHETI_SLA_HOCL_HBR' )
+       CASE ( 'KHETISLAHOCLHBR' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for HClr + HBr reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHETI_SLA_HOBR_HCL' )
+       CASE ( 'KHETISLAHOBRHCL' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOBr + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'KHETI_SLA_HOBR_HBR' )
+       CASE ( 'KHETISLAHOBRHBR' )
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOBr + HBr reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
@@ -1758,7 +1758,7 @@ CONTAINS
     IF ( perSpecies == 'ALL' ) THEN       
        DO N = 1, State_Chm%nSpecies
           SpcInfo  => State_Chm%SpcData(N)%Info
-          thisSpcName = TRIM( metadataID ) // '__' // TRIM( SpcInfo%Name )
+          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
           thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Chm%Registry ,  &
