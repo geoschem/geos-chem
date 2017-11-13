@@ -1926,8 +1926,8 @@ CONTAINS
           ErrMsg = 'Metadata not found for State_Diag field ID: '            &
                    // TRIM( metadataID ) // '. If the name in HISTORY.rc '   &
                    // 'has species appended, make sure the species name '    &
-                   // 'is preceded by double underscores. Otherwise, '       &
-                   // 'check that the name is listed with all caps in '      &
+                   // 'is preceded by a single underscore. Otherwise, '      &
+                   // 'check that the name is listed with all capitals in '  &
                    // 'subroutine Get_Metadata_State_Diag '                  &
                    // '(Headers/state_diag_mod.F90).'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2039,7 +2039,7 @@ CONTAINS
                 D =  State_Chm%Map_WetDep(N)
           END SELECT
           SpcInfo  => State_Chm%SpcData(D)%Info
-          thisSpcName = TRIM( metadataID ) // '__' // TRIM( SpcInfo%Name )
+          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
           thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
@@ -2178,7 +2178,7 @@ CONTAINS
                 D =  State_Chm%Map_WetDep(N)
           END SELECT
           SpcInfo  => State_Chm%SpcData(D)%Info
-          thisSpcName = TRIM( metadataID ) // '__' // TRIM( SpcInfo%Name )
+          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
           thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
@@ -2348,12 +2348,12 @@ CONTAINS
        END SELECT
        IF ( perSpecies /= 'JVN' ) THEN
           SpcInfo  => State_Chm%SpcData(D)%Info
-          thisSpcName = TRIM( metadataID ) // '__' // TRIM( SpcInfo%Name )
+          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
           thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
        ELSE
           ! Temporary implementation for J-Values. Add to specdb in near future
           ! to avoid having to do special treatment.
-          thisSpcName = TRIM( metadataID ) // '__' // TRIM( JNAMES(N) )
+          thisSpcName = TRIM( metadataID ) // '_' // TRIM( JNAMES(N) )
           thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( JNAMES(N) )
        ENDIF
        CALL Registry_AddField( am_I_Root    = am_I_Root,            &
@@ -2476,7 +2476,7 @@ CONTAINS
                 D =  State_Chm%Map_WetDep(N)
           END SELECT
           SpcInfo  => State_Chm%SpcData(D)%Info
-          thisSpcName = TRIM( metadataID ) // '__' // TRIM( SpcInfo%Name )
+          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
           thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
@@ -2646,12 +2646,12 @@ CONTAINS
        END SELECT
        IF ( perSpecies /= 'JVN' ) THEN
           SpcInfo  => State_Chm%SpcData(D)%Info
-          thisSpcName = TRIM( metadataID ) // '__' // TRIM( SpcInfo%Name )
+          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
           thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
        ELSE
           ! Temporary implementation for J-Values. Add to specdb in near future
           ! to avoid having to do special treatment.
-          thisSpcName = TRIM( metadataID ) // '__' // TRIM( JNAMES(N) )
+          thisSpcName = TRIM( metadataID ) // '_' // TRIM( JNAMES(N) )
           thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( JNAMES(N) )
        ENDIF
        CALL Registry_AddField( am_I_Root    = am_I_Root,            &

@@ -84,7 +84,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Charpak_Mod,      ONLY: CleanText, ReadOneLine, StrSplit
+    USE Charpak_Mod
     USE InquireMod,       ONLY: findFreeLun
 !
 ! !INPUT PARAMETERS:
@@ -110,7 +110,7 @@ CONTAINS
 !
     INTEGER                 :: fId, IOS, N, I
     INTEGER                 :: numSpcWords, numIDWords
-    CHARACTER(LEN=255)      :: errMsg, thisLoc
+    CHARACTER(LEN=255)      :: errMsg, thisLoc, nameAllCaps
     CHARACTER(LEN=255)      :: line, SubStrs(500), SubStr
     CHARACTER(LEN=255)      :: wildcard, species, name, state
     CHARACTER(LEN=255)      :: metadataID, registryID
@@ -143,7 +143,6 @@ CONTAINS
     DO
     
        ! Read line and strip leading/trailing spaces
-       ! TODO: Beware that this currently does not strip tabs!!!
        Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
        IF ( EOF ) EXIT
        IF ( IOS > 0 ) THEN
@@ -169,26 +168,28 @@ CONTAINS
        ELSE
           name = TRIM(SubStrs(1))
        ENDIF
+       nameAllCaps = To_Uppercase( TRIM(name) )
 
-       ! Get GC state
-       IF ( INDEX( name, '_') > 0 ) THEN
-          CALL StrSplit( name, '_', SubStrs, N )
-          IF ( SubStrs(1) == 'MET' .or. SubStrs(1) == 'CHEM' ) THEN
-             state = TRIM( SubStrs(1) )
-          ELSE
-             state = 'DIAG'
-          ENDIF
+       ! Set GC state
+       IF ( nameAllCaps(1:4) == 'MET_' ) THEN
+          state = 'MET'
+       ELSEIF ( nameAllCaps(1:5) == 'CHEM_' ) THEN
+          state = 'CHEM'
+#if defined( ESMF_ )
+       ! Emissions diagnostics are included in HISTORY.rc in GCHP only
+       ELSEIF ( nameAllCaps(1:4) == 'EMIS' ) THEN
+          state = 'EMISSIONS'
+       ELSEIF ( nameAllCaps(1:4) == 'SPC_' ) THEN
+          state = 'INTERNAL'
+#endif
        ELSE
-          ! TODO: need to not classify GCHP internal state as DIAG!
           state = 'DIAG'
        ENDIF
 
-       ! Get wildcard or species, if any 
-       ! NOTE: Must be prefaced with double underscore in HISTORY.rc!
+       ! Get wildcard, if any 
+       ! NOTE: Must be prefaced with single underscore in HISTORY.rc!
        isWildcard = .FALSE.
-       isSpecies  = .FALSE.
        wildcard   = ''
-       species    = ''
        IF ( INDEX( name, '?' ) > 0 ) THEN
 #if defined( ESMF_ )
           ! Exit with an error if using GCHP and wildcard is present
@@ -199,26 +200,35 @@ CONTAINS
           CALL StrSplit( name, '?', SubStrs, N )
           wildcard = SubStrs(N-1)
        ENDIF
+
+       ! Get species, if any
+       isSpecies  = .FALSE.
+       species    = ''
        IF ( .NOT. isWildcard ) THEN
-          I = INDEX( TRIM(name), '__' ) 
-          IF ( I > 0 ) THEN
+          CALL StrSplit( name, '_', SubStrs, N )
+          IF ( TRIM(state) == 'DIAG' .AND. N == 2 ) THEN
              isSpecies = .TRUE.
-             species = name(I+2:)
+             species = SubStrs(2)
+          ELSEIF ( ( TRIM(state) == 'MET' .OR. TRIM(state) == 'CHEM' ) &
+                   .AND. N == 3 ) THEN
+             isSpecies = .TRUE.
+             species = SubStrs(3)
           ENDIF
        ENDIF
 
-       ! Get registryID (name minus state prefix and wildcard suffix, but 
-       ! keep species)
-       registryID = TRIM(name)
+       ! Get registryID - start with the full name in HISTORY.rc
+       registryID = TRIM(nameAllCaps)
+       ! Strip off the state prefix, if any
        IF ( TRIM(state) == 'MET' ) THEN
           registryID = registryID(5:)
        ELSE IF ( TRIM(state) == 'CHEM' ) THEN
           registryID = registryID(6:)
        ENDIF
+       ! Strip off the wildcard, if any
        IF ( isWildcard ) THEN
-          I = INDEX( TRIM(registryID), '__' ) 
+          I = INDEX( TRIM(registryID), '_' ) 
           IF ( I .le. 0 ) THEN
-             ErrMsg = 'Error setting registryID. Double underscore must' &
+             ErrMsg = 'Error setting registryID. Single underscore must' &
                       // ' precede wildcard in HISTORY.rc!'
              CALL GC_ERROR( ErrMsg, RC, ThisLoc )
              RETURN
@@ -226,15 +236,14 @@ CONTAINS
           registryID = registryID(1:I-1)
        ENDIF
 
-       ! Get metadataID (name minus state prefix and species/wildcard suffix)
-       ! Start with registryID since that already has state prefix and wilcard
-       ! (if any) stripped. It only needs species stripped, if any.
+       ! Get metadataID - start with the registry ID
        metadataID = registryID
+       ! Strip off the species suffix, if any
        IF ( isSpecies ) THEN
-          I = INDEX( TRIM(metadataID), '__' ) 
+          I = INDEX( TRIM(metadataID), '_' ) 
           metadataID = metadataID(1:I-1)
        ENDIF
-
+       
        ! Skip if already encountered entry with same full name
        ! TODO: make this into a function that returns true or false
        ! Have a series of functions that do quality checks too
