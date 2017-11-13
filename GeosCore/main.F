@@ -1195,6 +1195,13 @@
             CALL SET_H2O_TRAC( am_I_Root, 
      &                         ( ( .not. LUCX ) .or. LSETH2O ),
      &                         Input_Opt, State_Met, State_Chm, RC )
+
+            ! Trap potential errors
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error encountered in "Set_H2O_Trac" #1!'
+               CALL Error_Stop( ErrMsg, ThisLoc )
+            ENDIF
+
             ! Only force strat once if using UCX
             IF (LSETH2O) LSETH2O = .FALSE.
          ENDIF
@@ -1567,8 +1574,8 @@
      &                            State_Met, State_Chm, RC )
 
                ! Trap potential errors
-               IF ( RC == GC_SUCCESS ) THEN
-                  ErrMsg = 'Error encountered in "Set_H2O_Trac"!'
+               IF ( RC /= GC_SUCCESS ) THEN
+                  ErrMsg = 'Error encountered in "Set_H2O_Trac" #2!'
                   CALL Error_Stop( ErrMsg, ThisLoc )
                ENDIF
             ENDIF
