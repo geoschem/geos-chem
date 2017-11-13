@@ -94,8 +94,11 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: WashFracConv    (:,:,:,:) ! Frac lost to conv washout
      REAL(f4),  POINTER :: WetLossLS       (:,:,:,:) ! Loss in LS rainout/washout
      REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  ) ! Frac large scale precip
+     REAL(f4),  POINTER :: PrecipFracCount (:,:,:  ) !  and counter array
      REAL(f4),  POINTER :: RainFracLS      (:,:,:,:) ! Frac lost to LS rainout
+     REAL(f4),  POINTER :: RainFracCount   (:,:,:  ) !  and counter array
      REAL(f4),  POINTER :: WashFracLS      (:,:,:,:) ! Frac lost to LS washout
+     REAL(f4),  POINTER :: WashFracCount   (:,:,:  ) !  and counter array
      
      ! Carbon aerosols
      REAL(f4),  POINTER :: ProdBCPIfromBCPO(:,:,:  ) ! Prod BCPI from BCPO
@@ -273,6 +276,9 @@ CONTAINS
     State_Diag%PrecipFracLS        => NULL()
     State_Diag%RainFracLS          => NULL()
     State_Diag%WashFracLS          => NULL()
+    State_Diag%PrecipFracCount     => NULL()
+    State_Diag%RainFracCount       => NULL()
+    State_Diag%WashFracCount       => NULL()
 
     State_Diag%SpeciesConc         => NULL()
     State_Diag%JValues             => NULL()
@@ -682,6 +688,19 @@ CONTAINS
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%PrecipFracLS, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+
+       ! Also allocate and register the associated counter array
+       arrayID = 'State_Diag%PrecipFracCount'
+       diagID  = 'PrecipFracCount'
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%PrecipFracCount( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PrecipFracCount = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID,             &
+                                State_Diag%PrecipFracCount,    &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -699,6 +718,19 @@ CONTAINS
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%RainFracLS, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+
+       ! Also allocate and register the associated counter array
+       arrayID = 'State_Diag%RainFracCount'
+       diagID  = 'RainFracCount'
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%RainFracCount( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RainFracCount = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID,             &
+                                State_Diag%RainFracCount,      &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -714,6 +746,19 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%WashFracLS = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%WashFracLS, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       ! Also allocate and register the associated counter array
+       arrayID = 'State_Diag%WashFracCount'
+       diagID  = 'WashFracCount'
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%WashFracCount( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%WashFracCount = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID,             &
+                                State_Diag%WashFracCount,      &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1391,6 +1436,33 @@ CONTAINS
        ENDIF
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%PrecipFracCount ) ) THEN
+       DEALLOCATE( State_Diag%PrecipFracCount, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%PrecipFracCount"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%RainFracCount ) ) THEN
+       DEALLOCATE( State_Diag%RainFracCount, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%RainFracCount"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%WashFracCount ) ) THEN
+       DEALLOCATE( State_Diag%WashFracCount, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%WashFracCount"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%PbFromRnDecay ) ) THEN
        DEALLOCATE( State_Diag%PbFromRnDecay, STAT=RC  )
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1804,17 +1876,32 @@ CONTAINS
           IF ( isUnits   ) Units      = '1'
           IF ( isRank    ) Rank       = 3
 
+       CASE ( 'PRECIPFRACCOUNT' )
+          IF ( isDesc    ) Desc       = 'Associated counter for PrecipFracLS'
+          IF ( isUnits   ) Units      = '1'
+          IF ( isRank    ) Rank       = 3
+
        CASE ( 'RAINFRACLS' )
           IF ( isDesc    ) Desc       = 'Fraction of soluble species lost to rainout in large-scale precipitation'
           IF ( isUnits   ) Units      = '1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'WET'
 
+       CASE ( 'RAINFRACCOUNT' )
+          IF ( isDesc    ) Desc       = 'Associated counter for RainFracLS'
+          IF ( isUnits   ) Units      = '1'
+          IF ( isRank    ) Rank       = 3
+
        CASE ( 'WASHFRACLS' )
           IF ( isDesc    ) Desc       = 'Fraction of soluble species lost to washout in large-scale precipitation'
           IF ( isUnits   ) Units      = '1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'WET'
+
+       CASE ( 'WASHFRACCOUNT' )
+          IF ( isDesc    ) Desc       = 'Associated counter for WashFracLS'
+          IF ( isUnits   ) Units      = '1'
+          IF ( isRank    ) Rank       = 3
 
        CASE ( 'PBFROMRNDECAY' )
           IF ( isDesc    ) Desc       = 'Pb210 created from radioactive decay of Rn222'
