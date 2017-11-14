@@ -172,6 +172,7 @@
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !                              and rename routine WETDEP_MERRA to WETDEP (the
 !                              old WETDEP routine for GEOS-5 met was removed)
+!  13 Nov 2017 - R. Yantosca - Added arrays for State_Diag diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -219,6 +220,12 @@
       INTEGER                       :: id_SF1
       INTEGER                       :: id_SO2
       INTEGER                       :: id_SO4
+
+      ! netCDF diagnostic flags
+      LOGICAL                       :: Archive_PrecipFracLS
+      LOGICAL                       :: Archive_RainFracLS
+      LOGICAL                       :: Archive_WashFracLS
+      LOGICAL                       :: Archive_WetLossLS
 
       CONTAINS
 !EOC
@@ -294,11 +301,12 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: doPrt
-      REAL(fp)           :: DT_TEND
+      LOGICAL                 :: doPrt
+      INTEGER                 :: I, J, L
+      REAL(fp)                :: DT_TEND
 
       ! Strings
-      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+      CHARACTER(LEN=255)      :: ErrMsg, ThisLoc
 
       !=================================================================
       ! Initialize
@@ -325,16 +333,37 @@
       ! Archive species concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'WETD', RC )
+     &                  State_Chm, 'WETD',    RC         )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "TEND_STAGE1"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 #endif
 
       !=================================================================
       ! Only do wet deposition for large-scale + anvil precip
       !=================================================================
 
-      !-------------------------
+#if defined( NC_DIAG )
+      !------------------------------------------
+      ! Zero diagnostic arrays in State_Diag
+      ! at the start of a new wetdep cycle
+      !
+      ! *FracLs diagnostics might need work...
+      !------------------------------------------
+      IF ( Archive_PrecipFracLS ) State_Diag%PrecipFracLS = 0.0_f4
+      IF ( Archive_RainFracLS   ) State_Diag%RainFracLS   = 0.0_f4
+      IF ( Archive_WashFracLS   ) State_Diag%WashFracLS   = 0.0_f4
+      IF ( Archive_WetLossLS    ) State_Diag%WetLossLS    = 0.0_f4
+#endif
+
+      !------------------------------------------
       ! Create precip fields
-      !-------------------------
+      ! (Always assume large-scale precip)
+      !------------------------------------------
       CALL MAKE_QQ( am_I_Root = am_I_Root,
      &              State_Met = State_Met,
      &              LS        =.TRUE.,
@@ -350,9 +379,10 @@
       ! Debug print
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
-      !-------------------------
+      !-----------------------------------------
       ! Do wet deposition
-      !-------------------------
+      ! (Always assume large-scale precip)
+      !-----------------------------------------
       CALL WETDEP( am_I_Root  = am_I_Root,
      &             Input_Opt  = Input_Opt, 
      &             State_Met  = State_Met,
@@ -378,7 +408,14 @@
       !=================================================================
       DT_TEND = GET_TS_DYN() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'WETD', DT_TEND, RC )
+     &                  State_Chm, 'WETD',    DT_TEND,   RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "TEND_STAGE1"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 #endif
 
       END SUBROUTINE DO_WETDEP
@@ -2722,6 +2759,13 @@
       
       ! Select index for diagnostic arrays -- will archive either
       ! large-scale or convective rainout/washout fractions
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%% NOTE: FOR GEOS-FP AND MERRA-2, WE ALWAYS ASSUME THAT   %%%%%
+      !%%%% WETDEP OPERATES ONLY ON LARGE-SCALE PRECIP.  THUS, LS  %%%%%
+      !%%%% IS ALWAYS SET TO "TRUE" IN THE CALLING ROUTINE, AND    %%%%%
+      !%%%% IDX WILL ALWAYS BE 1 HERE AND IN SUBSEQUENT ROUTINES.  %%%%%  
+      !%%%% (bmy, 11/13/17)                                        %%%%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( LS ) THEN
          IDX = 1
       ELSE
@@ -3486,6 +3530,11 @@
       ! Point to the chemical species array [kg/m2]
       Spc => State_Chm%Species
 
+#if defined( BPCH_DIAG )
+      !-----------------------------------------------------------------
+      ! ND16 (bpch) diagnostic
+      !-----------------------------------------------------------------
+
       ! ND16 diagnostic...save F 
       IF ( ND16 > 0 .and. L <= LD16 ) THEN
          AD16(I,J,L,IDX) = AD16(I,J,L,IDX) + F_RAINOUT
@@ -3496,6 +3545,29 @@
       IF ( ND17 > 0 .and. L <= LD17 ) THEN
          CT17(I,J,L,IDX) = CT17(I,J,L,IDX) + 1
       ENDIF
+#endif
+
+#if defined( NC_DIAG )
+      !-----------------------------------------------------------------
+      ! HISTORY (aka netCDF diagnostics)
+      !
+      ! Archive the fraction of the box that is undergoing large-scale 
+      ! precipitation (PrecipFracLs).  This includes contributions
+      ! from both rainout and washout.  Here we add the contribution
+      ! from rainout.
+      !
+      ! NOTE: We always assume large-scale precipitation, because
+      ! the LS flag is always set to TRUE in the calling routine 
+      ! for both GEOS-FP and MERRA-2 meteorology.
+      !-----------------------------------------------------------------
+
+      ! NOTE: This diagnostic may need some work
+      ! Units: [1]
+      IF ( Archive_PrecipFracLS ) THEN
+         State_Diag%PrecipFracLS(I,J,L) = 
+     &   State_Diag%PrecipFracLS(I,J,L) + F_Rainout
+      ENDIF
+#endif
 
       !-----------------------------------------------------------------
       ! Loop over all wet deposition species
@@ -3564,8 +3636,9 @@
 
          ENDIF
 
+#if defined( BPCH_DIAG )
          !--------------------------------------------------------------
-         ! Archive diagnostics for each species
+         ! ND17 and ND39 (bpch) diagnostics
          !--------------------------------------------------------------
 
          ! ND17 diagnostic...rainout fractions [unitless]
@@ -3574,13 +3647,38 @@
      &           AD17(I,J,L,NW,IDX) + RAINFRAC / F_RAINOUT
          ENDIF
 
-#if defined( BPCH_DIAG )
          ! ND39 diag -- save rainout losses in [kg/s] 
          ! NOTE: eventually change this to kg/m2/s (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
      &                       * State_Met%AREA_M2(I,J,1)
+         ENDIF
+#endif
+
+#if defined( NC_DIAG )
+         !--------------------------------------------------------------
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! (1) Archive the fraction of soluble species lost to rainout
+         !     in large-scale precipitation (RainFracLS)
+         !     
+         ! (2) Archive the amount of soluble species lost to large-
+         !     scale precipitation (WetLossLS).  This includes 
+         !     contributions from rainout, washout, and reevaporation.
+         !     Here we add the component from rainout.
+         !--------------------------------------------------------------
+
+         ! Units: [1]
+         IF ( Archive_RainFracLs .and. F_Rainout > 0.0_fp ) THEN 
+            State_Diag%RainFracLs(I,J,L,NW) = RainFrac / F_Rainout
+         ENDIF
+
+         ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
+         IF ( Archive_WetLossLs ) THEN
+            State_Diag%WetLossLs(I,J,L,NW) =
+     &      State_Diag%WetLossLs(I,J,L,NW) + ( WetLoss / DT )
+     &                                     *  State_Met%Area_M2(I,J,1)
          ENDIF
 #endif
 
@@ -3839,16 +3937,44 @@
       ! Point to the chemical species array [kg/m2]
       Spc => State_Chm%Species
 
+#if defined( BPCH_DIAG )
+      !-----------------------------------------------------------------
+      ! ND16 (bpch) diagnostic
+      !-----------------------------------------------------------------
+
       ! ND16 diagnostic...save F (fraction of grid box raining)
       IF ( ND16 > 0e+0_fp .and. L <= LD16 ) THEN
          AD16(I,J,L,IDX) = AD16(I,J,L,IDX) + F_WASHOUT
-         CT16(I,J,L,IDX) = CT16(I,J,L,IDX) + 1
+         CT16(I,J,L,IDX) = CT16(I,J,L,IDX) + 1 
       ENDIF
 
       ! ND18 diagnostic...increment counter
       IF ( ND18 > 0 .and. L <= LD18 ) THEN
          CT18(I,J,L,IDX) = CT18(I,J,L,IDX) + 1
       ENDIF
+#endif
+
+#if defined( NC_DIAG )
+      !-----------------------------------------------------------------
+      ! HISTORY (aka netCDF diagnostics)
+      !
+      ! Archive the fraction of the box that is undergoing large-scale 
+      ! precipitation (PrecipFracLs).  This includes contributions
+      ! from both rainout and washout.  Here we add the contribution
+      ! from washout.
+      !
+      ! NOTE: We always assume large-scale precipitation, because
+      ! the LS flag is always set to TRUE in the calling routine 
+      ! for both GEOS-FP and MERRA-2 meteorology.
+      !-----------------------------------------------------------------
+
+      ! NOTE: This diagnostic may need some work
+      ! Units: [1]
+      IF ( Archive_PrecipFracLS ) THEN
+         State_Diag%PrecipFracLS(I,J,L) = 
+     &   State_Diag%PrecipFracLS(I,J,L) + F_Washout
+      ENDIF
+#endif
 
       ! air temperature [K]
       TK  = State_Met%T(I,J,L)
@@ -3918,12 +4044,11 @@
          IF ( KIN ) THEN
            WASHFRAC = WASHFRAC / TF * F_WASHOUT
          ENDIF
-                  
-         !--------------------------------------------------------------
+            
+         !==============================================================      
          ! Washout of aerosol species -- 
          ! this is modeled as a kinetic process
-         !--------------------------------------------------------------
-
+         !==============================================================      
          IF ( KIN ) THEN
 
             ! Define ALPHA, the fraction of the raindrops that 
@@ -4038,16 +4163,38 @@
                DSpc(NW,L,I,J) = DSpc(NW,L+1,I,J) + WETLOSS
             ENDIF
 
+#if defined( BPCH_DIAG )
+            !-----------------------------------------------------------
+            ! ND18 (bpch) diagnostic
+            !-----------------------------------------------------------
+
             ! ND18 diagnostic...divide washout fraction by F
             IF ( ND18 > 0 .and. L <= LD18 ) THEN
                AD18(I,J,L,NW,IDX) = 
      &         AD18(I,J,L,NW,IDX) + ( WASHFRAC / F_WASHOUT )
             ENDIF
+#endif
 
-         !--------------------------------------------------------------
+#if defined( NC_DIAG )
+            !-----------------------------------------------------------
+            ! HISTORY (aka netCDF diagnostics)
+            !
+            ! Archive the fraction of soluble species lost to washout
+            ! in large-scale precipitation (WashFracLS)
+            !
+            ! Here we only handle the soluble aerosol species
+            !-----------------------------------------------------------
+            
+            ! Units: [1]
+            IF ( Archive_WashFracLS .and. F_Washout > 0.0_fp ) THEN
+               State_Diag%WashFracLS(I,J,L,NW) = WashFrac / F_Washout
+            ENDIF
+#endif
+
+         !==============================================================      
          ! Washout of non-aerosol species
          ! This is modeled as an equilibrium process
-         !--------------------------------------------------------------
+         !==============================================================      
          ELSE
                   
             ! MASS_NOWASH is the amount of non-aerosol species in 
@@ -4079,22 +4226,69 @@
                DSpc(NW,L,I,J) = DSpc(NW,L+1,I,J) + WETLOSS
             ENDIF
 
+#if defined( BPCH_DIAG )
+            !-----------------------------------------------------------
+            ! ND18 (bpch) diagnostic
+            !-----------------------------------------------------------
+
             ! ND18 diagnostic...we don't have to divide the
             ! washout fraction by F since this is accounted for.
             IF ( ND18 > 0 .and. L <= LD18 ) THEN
                AD18(I,J,L,NW,IDX) = 
      &         AD18(I,J,L,NW,IDX) + WASHFRAC
             ENDIF
+#endif
+
+#if defined( NC_DIAG )
+            !-----------------------------------------------------------
+            ! HISTORY (aka netCDF diagnostics)
+            !
+            ! Archive the fraction of soluble species lost to washout
+            ! in large-scale precipitation (WashFracLS)
+            !
+            ! Here we handle the non-aerosol soluble species.  We don't 
+            ! have to divide by F_Washout, since this has already been 
+            ! accounted for in the equations above.
+            !-----------------------------------------------------------
+            
+            ! Units: [1]
+            IF ( Archive_WashFracLS ) THEN
+               State_Diag%WashFracLS(I,J,L,NW) = WashFrac
+            ENDIF
+#endif
+
          ENDIF
 
 #if defined( BPCH_DIAG )
-         ! ND39 diag -- save rainout losses in [kg/s]
+         !--------------------------------------------------------------
+         ! ND39 (bpch) diagnostic
+         !--------------------------------------------------------------
+
+         ! ND39 diag -- save washout losses in [kg/s]
          ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
      &                       * State_Met%AREA_M2(I,J,1)
 
+         ENDIF
+#endif
+
+#if defined( NC_DIAG )
+         !--------------------------------------------------------------
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! Archive the amount of soluble species lost to large-scale 
+         ! precipitation (WetLossLS).  This includes contributions 
+         ! from rainout, washout, and reevaporation.  Here we add the 
+         ! component from washout.
+         !--------------------------------------------------------------
+
+         ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
+         IF ( Archive_WetLossLs ) THEN
+            State_Diag%WetLossLS(I,J,L,NW) = 
+     &      State_Diag%WetLossLS(I,J,L,NW) + ( WetLoss / DT )
+     &                                     *  State_Met%Area_M2(I,J,1)
          ENDIF
 #endif
 
@@ -4349,11 +4543,11 @@
          ! (I,J,L), so set DSpc at grid box (I,J,L) to zero.
          DSpc(NW,L,I,J) = 0e+0_fp
          
+#if defined( BPCH_DIAG )
          !--------------------------------------------------------------
-         ! Diagnostics
+         ! ND39 (bpch) diagnostic
          !--------------------------------------------------------------
 
-#if defined( BPCH_DIAG )
          ! ND39 diag -- save rainout losses in [kg/s]
          ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
@@ -4361,6 +4555,24 @@
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + ( WETLOSS / DT )
      &                       * State_Met%AREA_M2(I,J,1)
 
+         ENDIF
+#endif
+
+#if defined( NC_DIAG )
+         !--------------------------------------------------------------
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! Archive the amount of soluble species lost to large-scale 
+         ! precipitation (WetLossLs).  This includes contributions 
+         ! from rainout, washout, and reevaporation.  Here we add the 
+         ! component from reevaporation (which is negative).
+         !--------------------------------------------------------------
+
+         ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
+         IF ( Archive_WetLossLs ) THEN
+            State_Diag%WetLossLs(I,J,L,NW) = 
+     &      State_Diag%WetLossLs(I,J,L,NW) + ( WetLoss / DT )
+     &                                     *  State_Met%Area_M2(I,J,1)
          ENDIF
 #endif
 
@@ -4524,6 +4736,11 @@
       ! Point to the chemical species array [kg/m2]
       Spc => State_Chm%Species
 
+#if defined( BPCH_DIAG )
+      !-----------------------------------------------------------------
+      ! ND16 (bpch) diagnostic
+      !-----------------------------------------------------------------
+
       ! ND16 diagnostic...save F 
       IF ( ND16 > 0 .and. L <= LD16 ) THEN
          AD16(I,J,L,IDX) = AD16(I,J,L,IDX) + F
@@ -4534,6 +4751,30 @@
       IF ( ND18 > 0 .and. L <= LD18 ) THEN
          CT18(I,J,L,IDX) = CT18(I,J,L,IDX) + 1
       ENDIF
+#endif
+
+#if defined( NC_DIAG )
+      !-----------------------------------------------------------------
+      ! HISTORY (aka netCDF diagnostics)
+      !
+      ! Archive the fraction of the box that is undergoing large-scale 
+      ! precipitation (PrecipFracLs).  This includes contributions
+      ! from both rainout and washout.  Here we add the contribution
+      ! from washout.
+      !
+      ! NOTE: We always assume large-scale precipitation, because
+      ! the LS flag is always set to TRUE in the calling routine 
+      ! for both GEOS-FP and MERRA-2 meteorology.
+      !-----------------------------------------------------------------
+
+      ! NOTE: This diagnostic may need some work
+      ! Units: [1]
+      IF ( Archive_PrecipFracLS ) THEN
+         State_Diag%PrecipFracLS(I,J,L) =
+     &   State_Diag%PrecipFracLS(I,J,L) + F
+
+      ENDIF
+#endif
 
       ! air temperature [K]
       TK = State_Met%T(I,J,L)
@@ -4579,8 +4820,9 @@
          ! (added cdh, 4/14/2009)
          DSpc(NW,L,I,J) = DSpc(NW,L+1,I,J) + WETLOSS
 
+#if defined( BPCH_DIAG )
          !--------------------------------------------------------------
-         ! Diagnostics
+         ! ND18 and ND39 (bpch) diagnostics
          !--------------------------------------------------------------
 
          ! ND18 diagnostic...LS and conv washout fractions [unitless]
@@ -4597,7 +4839,6 @@
             AD18(I,J,L,NW,IDX) = AD18(I,J,L,NW,IDX) + TMP
          ENDIF
 
-#if defined( BPCH_DIAG )
          ! ND39 diag -- save washout loss in [kg/s]
          ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
@@ -4605,6 +4846,45 @@
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
      &                       * State_Met%AREA_M2(I,J,1)
          ENDIF
+#endif
+
+#if defined( NC_DIAG )
+         !--------------------------------------------------------------
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! Archive the fraction of soluble species lost to washout
+         ! in large-scale precipitation (WashFracLS)
+         !--------------------------------------------------------------
+         IF ( Archive_WashFracLS ) THEN
+
+            ! Only divide WASHFRAC by F for aerosols, since
+            ! for non-aerosols this is already accounted for
+            IF ( KIN ) THEN
+               Tmp = WashFrac / F
+            ELSE
+               TMP = WashFrac
+            ENDIF
+
+            ! Units: [1]
+            State_Diag%WashFracLS(I,J,L,NW) = Tmp
+         ENDIF
+
+         !--------------------------------------------------------------
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! Archive the amount of soluble species lost to large-scale 
+         ! precipitation (WetLossLS).  This includes contributions 
+         ! from rainout, washout, and reevaporation.  Here we add the 
+         ! component from washout.
+         !--------------------------------------------------------------
+
+         ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
+         IF ( Archive_WetLossLS ) THEN
+            State_Diag%WetLossLS(I,J,L,NW) = 
+     &      State_Diag%WetLossLS(I,J,L,NW) + ( WetLoss / DT )
+     &                                     *  State_Met%Area_M2(I,J,1)
+         ENDIF
+
 #endif
 
          ! Archive wet loss in kg/m2/s (check source code for this routine
@@ -4658,7 +4938,7 @@
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
                Spc      => NULL()
-               ErrorMsg = 'Error encountered in ""!'
+               ErrorMsg = 'Error encountered in "Safety"!'
                CALL GC_Error( ErrorMsg, RC, ThisLoc )
                RETURN
             ENDIF
@@ -4798,12 +5078,12 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      INTEGER,        INTENT(IN)    :: I, J, L     ! Location 
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(IN) :: I, J, L     ! Location 
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                      :: VUD     ! Vertical updraft velocity in m/s. 
+      REAL(fp)                   :: VUD    ! Vertical updraft velocity in m/s. 
 ! 
 ! !REVISION HISTORY:
 !  12 Feb 2015 - C. Keller   - Initial version
@@ -4996,11 +5276,14 @@
       ! INIT_WETSCAV begins here!
       !=================================================================
 
+      ! Assume success
+      RC       = GC_SUCCESS
+
       ! Exit if we have already executed this routine
       IF ( .not. FIRST ) RETURN
 
       ! Initialize
-      SpcInfo => NULL()
+      SpcInfo  => NULL()
       
       ! Define species ID flags
       id_NK1   = Ind_('NK1'  )
@@ -5009,6 +5292,12 @@
       id_SO2   = Ind_('SO2'  )
       id_SO4   = Ind_('SO4'  )
       id_H2O2  = Ind_('H2O2' )
+
+      ! Test if the wetdep diagnostics in State_Diag are activated
+      Archive_PrecipFracLS = ASSOCIATED( State_Diag%PrecipFracLS )
+      Archive_RainFracLS   = ASSOCIATED( State_Diag%RainFracLS   )
+      Archive_WashFracLS   = ASSOCIATED( State_Diag%WashFracLS   )
+      Archive_WetLossLS    = ASSOCIATED( State_Diag%WetLossLS    )
 
       !-----------------------------------------------------------------
       ! Allocate H2O2s and SO2s for wet deposition 
@@ -5241,7 +5530,7 @@
       ! Pointers
       REAL(fp), POINTER :: PL
       REAL(fp), POINTER :: TK
-            
+
       !=====================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
       !=====================================================================

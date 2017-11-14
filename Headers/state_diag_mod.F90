@@ -93,7 +93,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: RainFracConv    (:,:,:,:) ! Frac lost to conv rainout
      REAL(f4),  POINTER :: WashFracConv    (:,:,:,:) ! Frac lost to conv washout
      REAL(f4),  POINTER :: WetLossLS       (:,:,:,:) ! Loss in LS rainout/washout
-     REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  ) ! Frac large scale precip
+     REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  ) ! Frac of box in LS precip
      REAL(f4),  POINTER :: RainFracLS      (:,:,:,:) ! Frac lost to LS rainout
      REAL(f4),  POINTER :: WashFracLS      (:,:,:,:) ! Frac lost to LS washout
      
@@ -128,7 +128,7 @@ MODULE State_Diag_Mod
 
      ! Hg specialty simulation
 
-     ! Radiation simulation
+     ! Radiation simulation (RRTMG)
      REAL(f4),  POINTER :: RadAllSkyLWSurf(:,:,:  ) ! All-sky LW rad @ surface
      REAL(f4),  POINTER :: RadAllSkyLWTOA (:,:,:  ) ! All-sky LW rad @ atm top
      REAL(f4),  POINTER :: RadAllSkySWSurf(:,:,:  ) ! All-sky SW rad @ surface
