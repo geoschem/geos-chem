@@ -50,7 +50,7 @@ MODULE Diagnostics_Mod
   !=========================================================================
   TYPE, PUBLIC :: DgnItem
      CHARACTER(LEN=63)      :: name 
-     CHARACTER(LEN=7)       :: state
+     CHARACTER(LEN=63)      :: state
      CHARACTER(LEN=63)      :: metadataID
      CHARACTER(LEN=63)      :: registryID
      LOGICAL                :: isWildcard
