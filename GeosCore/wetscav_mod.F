@@ -351,25 +351,13 @@
       !------------------------------------------
       ! Zero diagnostic arrays in State_Diag
       ! at the start of a new wetdep cycle
+      !
+      ! *FracLs diagnostics might need work...
       !------------------------------------------
-      IF ( Archive_PrecipFracLS ) THEN
-         State_Diag%PrecipFracLS    = 0.0_f4
-         State_Diag%PrecipFracCount = 0.0_f4
-      ENDIF
-
-      IF ( Archive_RainFracLS   ) THEN
-         State_Diag%RainFracLS      = 0.0_f4
-         State_Diag%RainFracCount   = 0.0_f4
-      ENDIF
-      
-      IF ( Archive_WashFracLS   ) THEN
-         State_Diag%WashFracLS      = 0.0_f4
-         State_Diag%WashFracCount   = 0.0_f4 
-      ENDIF
-
-      IF ( Archive_WetLossLS    ) THEN
-         State_Diag%WetLossLS       = 0.0_f4
-      ENDIF
+      IF ( Archive_PrecipFracLS ) State_Diag%PrecipFracLS = 0.0_f4
+      IF ( Archive_RainFracLS   ) State_Diag%RainFracLS   = 0.0_f4
+      IF ( Archive_WashFracLS   ) State_Diag%WashFracLS   = 0.0_f4
+      IF ( Archive_WetLossLS    ) State_Diag%WetLossLS    = 0.0_f4
 #endif
 
       !------------------------------------------
@@ -412,60 +400,6 @@
 
       ! Debug print
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
-
-#if defined( NC_DIAG )
-      !------------------------------------------
-      ! Compute timestep averages for the
-      ! precipitation fraction quantities
-      !------------------------------------------
-      IF ( Archive_PrecipFracLS .or.
-     &     Archive_RainFracLS   .or.
-     &     Archive_WashFracLs        ) THEN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         
-            ! Divide PrecipFracLS by the number of times 
-            ! we added into it on this timestep
-            IF ( Archive_PrecipFracLS ) THEN
-               IF ( State_Diag%PrecipFracCount(I,J,L) > 0.0_f4 ) THEN
-                  State_Diag%PrecipFracLS(I,J,L) =
-     &            State_Diag%PrecipFracLS(I,J,L) / 
-     &                 State_Diag%PrecipFracCount(I,J,L)
-               ENDIF
-            ENDIF
-
-            ! Divide RainFracLS by the number of times 
-            ! we added into it on this timestep
-            IF ( Archive_RainFracLS ) THEN
-               IF ( State_Diag%RainFracCount(I,J,L) > 0.0_f4 ) THEN
-                  State_Diag%RainFracLS(I,J,L,:) =
-     &            State_Diag%RainFracLS(I,J,L,:) /
-     &                 State_Diag%RainFracCount(I,J,L)
-               ENDIF
-            ENDIF
-
-            ! Divide WashFracLs by the number of times 
-            ! we added into it on this timestep
-            IF ( Archive_WashFracLS ) THEN
-               IF ( State_Diag%WashFracCount(I,J,L) > 0.0_f4 ) THEN
-                  State_Diag%WashFracLS(I,J,L,:) =
-     &            State_Diag%WashFracLS(I,J,L,:) /
-     &                 State_Diag%WashFracCount(I,J,L)
-               ENDIF
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif
-
 
 #if defined( USE_TEND )
       !=================================================================
@@ -3625,30 +3559,13 @@
       ! NOTE: We always assume large-scale precipitation, because
       ! the LS flag is always set to TRUE in the calling routine 
       ! for both GEOS-FP and MERRA-2 meteorology.
-      !
-      ! Keep track of the number of times we have added data into the
-      ! PrecipFracLS and RainFracLS arrays, so that we can take the 
-      ! average at the end of this timestep.  We need to do this because 
-      ! we are adding fractions into PrecipFracLS and RainFracLS, 
-      ! otherwise the resultant fraction would be larger than 1.
-      ! This also mimics the behavior of the bpch diagnostics.
       !-----------------------------------------------------------------
-      IF ( Archive_PrecipFracLS ) THEN
 
-         ! Units: [1]
+      ! NOTE: This diagnostic may need some work
+      ! Units: [1]
+      IF ( Archive_PrecipFracLS ) THEN
          State_Diag%PrecipFracLS(I,J,L) = 
      &   State_Diag%PrecipFracLS(I,J,L) + F_Rainout
-
-         ! Update count for PrecipFracLS
-         State_Diag%PrecipFracCount(I,J,L) = 
-     &   State_Diag%PrecipFracCount(I,J,L) + 1.0_f4
-
-      ENDIF
-
-      ! Update count for RainFracLS
-      IF ( Archive_RainFracLS ) THEN
-         State_Diag%RainFracCount(I,J,L) = 
-     &   State_Diag%RainFracCount(I,J,L) + 1.0_f4
       ENDIF
 #endif
 
@@ -4049,30 +3966,13 @@
       ! NOTE: We always assume large-scale precipitation, because
       ! the LS flag is always set to TRUE in the calling routine 
       ! for both GEOS-FP and MERRA-2 meteorology.
-      !
-      ! Keep track of the number of times we have added data into the
-      ! PrecipFracLS and RainFracLS arrays, so that we can take the 
-      ! average at the end of this timestep.  We need to do this because 
-      ! we are adding fractions into PrecipFracLS and RainFracLS, 
-      ! otherwise the resultant fraction would be larger than 1.
-      ! This also mimics the behavior of the bpch diagnostics.
       !-----------------------------------------------------------------
-      IF ( Archive_PrecipFracLS ) THEN
 
-         ! Units: [1]
+      ! NOTE: This diagnostic may need some work
+      ! Units: [1]
+      IF ( Archive_PrecipFracLS ) THEN
          State_Diag%PrecipFracLS(I,J,L) = 
      &   State_Diag%PrecipFracLS(I,J,L) + F_Washout
-
-         ! Update count for PrecipFracLS
-         State_Diag%PrecipFracCount(I,J,L) = 
-     &   State_Diag%PrecipFracCount(I,J,L) + 1.0_f4
-
-      ENDIF
-
-      ! Update count for WashFracLS
-      IF ( Archive_WashFracLS ) THEN
-         State_Diag%WashFracCount(I,J,L) = 
-     &   State_Diag%WashFracCount(I,J,L) + 1.0_f4
       ENDIF
 #endif
 
@@ -4865,30 +4765,14 @@
       ! NOTE: We always assume large-scale precipitation, because
       ! the LS flag is always set to TRUE in the calling routine 
       ! for both GEOS-FP and MERRA-2 meteorology.
-      !
-      ! Keep track of the number of times we have added data into the
-      ! PrecipFracLS and RainFracLS arrays, so that we can take the 
-      ! average at the end of this timestep.  We need to do this because 
-      ! we are adding fractions into PrecipFracLS and RainFracLS, 
-      ! otherwise the resultant fraction would be larger than 1.
-      ! This also mimics the behavior of the bpch diagnostics.
       !-----------------------------------------------------------------
-      IF ( Archive_PrecipFracLS ) THEN
 
-         ! Units: [1]
+      ! NOTE: This diagnostic may need some work
+      ! Units: [1]
+      IF ( Archive_PrecipFracLS ) THEN
          State_Diag%PrecipFracLS(I,J,L) =
      &   State_Diag%PrecipFracLS(I,J,L) + F
 
-         ! Update count for PrecipFracLS
-         State_Diag%PrecipFracCount(I,J,L) = 
-     &   State_Diag%PrecipFracCount(I,J,L) + 1.0_f4
-
-      ENDIF
-
-      ! Update count for WashFracLS
-      IF ( Archive_WashFracLS ) THEN
-         State_Diag%WashFracCount(I,J,L) = 
-     &   State_Diag%WashFracCount(I,J,L) + 1.0_f4
       ENDIF
 #endif
 
@@ -5194,12 +5078,12 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      INTEGER,        INTENT(IN)    :: I, J, L     ! Location 
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(IN) :: I, J, L     ! Location 
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                      :: VUD     ! Vertical updraft velocity in m/s. 
+      REAL(fp)                   :: VUD    ! Vertical updraft velocity in m/s. 
 ! 
 ! !REVISION HISTORY:
 !  12 Feb 2015 - C. Keller   - Initial version
