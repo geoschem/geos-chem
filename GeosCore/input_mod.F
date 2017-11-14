@@ -9113,7 +9113,7 @@
       MAX_DYN = 10 
 #elif defined( GRID025x03125 )
       MAX_DYN = 5
-#elif defined( EXTERNAL_FORCING )
+#else
       MAX_DYN = 60
 #endif
 
