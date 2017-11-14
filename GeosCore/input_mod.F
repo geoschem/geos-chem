@@ -3400,6 +3400,8 @@
       ! Error check settings
       !=================================================================       
 
+      ! Skip LUCX error checking for GCHP since always compiles with UCX=y
+#if !defined( ESMF_ )
       ! Use of unified trop-strat chem necessitates recompilation 
 #if !defined( UCX )
       IF ( LUCX ) THEN
@@ -3413,6 +3415,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
+#endif
 #endif
 
 !      !================
