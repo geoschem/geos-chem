@@ -49,6 +49,7 @@ v11-02d (Sep 2017)
 ----------------------
 
  (1) Add halogen chemistry from Sherwen2017 (TS,JAS,SDE,LZHU)
+ (2) Add sulfur oxidation by reactive halogens (QJC)
 
 ===============================================================================
 DEVELOPERS (alphabetical order; add your name!)
@@ -73,6 +74,7 @@ LZHU: Lei Zhu;                 leizhu@fas.harvard.edu
 MJE : Mat Evans;               mat.evans@york.ac.uk
 MPS : Melissa Sulprizio;       mpayer@seas.harvard.edu
 MSL : Mike Long;               mlong@seas.harvard.edu
+QJC : Qianjie Chen;            chenqjie@uw.edu
 RHS : Rebecca Schwantes;       rschwant@caltech.edu 
 SAS : Sarah Safieddine;        sarahsaf@mit.edu
 SDE : Sebastian Eastham;       seastham@seas.harvard.edu
@@ -85,6 +87,7 @@ REFERENCES (alphabetical order)
 * Bates2014:    Bates et al., J. Phys. Chem A, 118, doi:10.1021/jp4107958, 2014.
 * Browne2011:   Browne et al., Atmos. Chem. Phys., doi:10.5194/acp-11-4209-2011, 2011.
 * Browne2014:   Browne et al., Atmos. Chem. Phys., doi:10.5194/acp-14-1225-2014, 2014.
+* Chen2017:     Chen et al., Geophys. Res. Lett., doi:10.1002/2017GL073812, 2017.
 * Crounse2012:  Crounse et al., J. Phys. Chem. A, doi:10.1021/jp211560u, 2012.
 * Eastham2014:  Eastham et al., Atmos. Env., doi:10.1016/j.atmosenv.2014.02.001, 2014.
 * Fischer2014:  Fischer et al., Atmos. Chem. Phys., doi:10.5194/acp-14-2679-2014, 2014.
@@ -348,6 +351,8 @@ ROH        = IGNORE; {C3H7OH; > C2 alcohols}
 RP         = IGNORE; {CH3CH2C(O)OOH; Peroxide from RCO3}
 SO2        = IGNORE; {SO2; Sulfur dioxide}
 SO4        = IGNORE; {SO4; Sulfate}
+SO4H1      = IGNORE; {SO4; Sulfate produced by HOBr}
+SO4H2      = IGNORE; {SO4; Sulfate produced by HOBr}
 SOAGX      = IGNORE; {CHOCHO; Aerosol-phase glyoxal}
 SOAIE      = IGNORE; {C5H10O3; Aerosol-phase IEPOX}
 SOAME      = IGNORE; {C4H6O3; Aerosol-phase IMAE}
@@ -1166,6 +1171,8 @@ HO2 = O2 :                                  HET(ind_HO2,1);                    {
 NO2 = 0.500HNO3 + 0.500HNO2 :               HET(ind_NO2,1);
 NO3 = HNO3 :                                HET(ind_NO3,1);
 N2O5 = 2.000HNO3 :                          HET(ind_N2O5,1);
+N2O5 + HCl = ClNO2 + HNO3 :                 HET(ind_N2O5,2);                   {2017/09/22; Sherwen2017;TS,JAS,SDE}
+N2O5 = ClNO2 + HNO3 :                       HET(ind_N2O5,3);                   {2017/09/22; Sherwen2017;TS,JAS,SDE}
 BrNO3 + H2O = HOBr + HNO3 :                 HET(ind_BrNO3,1);                  {2014/02/03; Eastham2014; SDE}
 BrNO3 + HCl = BrCl + HNO3 :                 HET(ind_BrNO3,2);                  {2014/02/03; Eastham2014; SDE}
 ClNO3 + H2O = HOCl + HNO3 :                 HET(ind_ClNO3,1);                  {2014/02/03; Eastham2014; SDE}
@@ -1176,19 +1183,17 @@ HOCl + HBr = BrCl + H2O :                   HET(ind_HOCl,2);                   {
 HOBr + HBr = Br2 + H2O :                    HET(ind_HOBr,1);                   {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HOBr + HCl = BrCl + H2O :                   HET(ind_HOBr,2);                   {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HOBr = BrCl + H2O :                         HET(ind_HOBr,3);                   {2017/09/22; Sherwen2017;TS,JAS,SDE}
-O3 + HBr = HOBr :                           HET(ind_O3,1);                     {2017/09/22; Sherwen2017;TS,JAS,SDE}
-HCl = O2 :                                  HET(ind_HCl,1);                    {2017/09/22; Sherwen2017;TS,JAS,SDE}
-HCl = O2 :                                  HET(ind_HCl,2);                    {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HOBr + BrSALA = Br2 :                       HET(ind_HOBr,4);                   {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HOBr + BrSALC = Br2 :                       HET(ind_HOBr,5);                   {2017/09/22; Sherwen2017;TS,JAS,SDE}
-ClNO3 + BrSALA = BrCl + HNO3 :              HET(ind_ClNO3,4);                  {2017/09/22; Sherwen2017;TS,JAS,SDE}
-ClNO3 + BrSALC = BrCl + HNO3 :              HET(ind_ClNO3,5);                  {2017/09/22; Sherwen2017;TS,JAS,SDE}
+HOBr = SO4H1 + HBr :                        HET(ind_HOBr,6);                   {2017/11/15; Chen2017; QJC}
+HOBr = SO4H2 + HBr :                        HET(ind_HOBr,7);                   {2017/11/15; Chen2017; QJC}
+HCl = O2 :                                  HET(ind_HCl,1);                    {2017/09/22; Sherwen2017;TS,JAS,SDE}
+HCl = O2 :                                  HET(ind_HCl,2);                    {2017/09/22; Sherwen2017;TS,JAS,SDE}
+O3 + HBr = HOBr :                           HET(ind_O3,1);                     {2017/09/22; Sherwen2017;TS,JAS,SDE}
 O3 + BrSALA = HOBr :                        HET(ind_O3,2);                     {2017/09/22; Sherwen2017;TS,JAS,SDE}
 O3 + BrSALC = HOBr :                        HET(ind_O3,3);                     {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HBr = BrSALA :                              HET(ind_HBr,1);                    {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HBr = BrSALC :                              HET(ind_HBr,2);                    {2017/09/22; Sherwen2017;TS,JAS,SDE}
-N2O5 + HCl = ClNO2 + HNO3 :                 HET(ind_N2O5,2);                   {2017/09/22; Sherwen2017;TS,JAS,SDE}
-N2O5 = ClNO2 + HNO3 :                       HET(ind_N2O5,3);                   {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HI = AERI :                                 HET(ind_HI,1);                     {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HI = ISALA :                                HET(ind_HI,2);                     {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HI = ISALC :                                HET(ind_HI,3);                     {2017/09/22; Sherwen2017;TS,JAS,SDE}
