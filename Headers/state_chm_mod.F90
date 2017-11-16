@@ -1756,11 +1756,10 @@ CONTAINS
           IF ( isUnits ) Units = 'mol/L'
           IF ( isRank  ) Rank  =  3
 
-       CASE ( 'fupdateHOBr' )
+       CASE ( 'FUPDATEHOBR' )
           IF ( isDesc  ) Desc  = 'Correction factor for HOBr removal by SO2'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  =  3
-
 
        CASE DEFAULT
           Found = .False.
