@@ -594,6 +594,10 @@ MODULE GCKPP_HETRATES
       ! Cloud sulfite (SO3--) concentration [mol/l] from sulfate_mod.F
       SO3conc_Cld  = SC%SO3_AQ(I,J,L)
 
+      ! Avoid div-by-zero issues in GAMMA_HOBr_X
+      !IF ( HSO3conc_Cld <= 0.0_fp) HSO3conc_Cld = 1e-20_fp
+      !IF (  SO3conc_Cld  <= 0.0_fp)  SO3conc_Cld = 1e-20_fp
+
       ! Correction factor for HOBr removal by SO2 [unitless]
       fupdateHOBr  = SC%fupdateHOBr(I,J,L)
 
@@ -3980,8 +3984,6 @@ MODULE GCKPP_HETRATES
 
     END FUNCTION HETHOBr_HBr_JS
 !EOC
-
-
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

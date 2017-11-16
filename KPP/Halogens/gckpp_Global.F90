@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Wed Nov 15 17:27:08 2017
+! Time                 : Thu Nov 16 13:06:06 2017
 ! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Halogens
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -69,7 +69,7 @@ MODULE gckpp_Global
 
 ! INLINED global variable declarations
 
-      REAL(kind=dp) :: HET(NSPEC,5), PHOTOL(1000)
+      REAL(kind=dp) :: HET(NSPEC,7), PHOTOL(1000)
       REAL(kind=dp) :: NUMDEN, H2O, PRESS
 
 !-----------------------------------------------------------------------
