@@ -175,32 +175,58 @@
 !  31 Mar 2015 - E. Lundgren - Make State_Met INTENT(INOUT) for AIRQNT calls
 !  19 Jul 2016 - R. Yantosca - Now bracket DO_TEND calls with #ifdef USE_TEND
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  09 Nov 2017 - R. Yantosca - Return error condition to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)          :: DT
-      LOGICAL, SAVE     :: FIRST = .TRUE.
+      ! Scalars
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      REAL(fp)           :: DT
+
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
 
       !=================================================================
       ! DO_TRANSPORT begins here!
       !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &   ' -> at Do_Transport  (in module GeosCore/transport_mod.F)'
 
       ! First-time initialization
       IF ( FIRST ) THEN 
 
 #if defined( GRID05x0625 ) || defined( GRID025x03125 )
 
-      ! All nested grid simulations
-      CALL INIT_WINDOW_TRANSPORT( am_I_Root, Input_Opt, State_Diag, RC )
+         ! All nested grid simulations
+         CALL INIT_WINDOW_TRANSPORT( am_I_Root,  Input_Opt, 
+     &                               State_Diag, RC         )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Window_Transport"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
 
 #else
 
-      ! All global simulations
-      CALL INIT_TRANSPORT( am_I_Root, Input_Opt, State_Diag, RC )
+         ! All global simulations
+         CALL INIT_TRANSPORT( am_I_Root, Input_Opt, State_Diag, RC )
 
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Transport"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
 #endif
 
          FIRST = .FALSE.
@@ -212,7 +238,14 @@
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'ADV', RC )
+     &                  State_Chm, 'ADV',     RC         )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Tend_Stage1"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 #endif
 
       !=================================================================
@@ -227,6 +260,13 @@
          CALL DO_WINDOW_TRANSPORT( am_I_Root, Input_Opt,  State_Met,
      &                             State_Chm, State_Diag, RC         )
 
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Do_Window_Transport"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
 #endif
 
       !=================================================================
@@ -238,6 +278,13 @@
          CALL DO_GLOBAL_ADV( am_I_Root, Input_Opt,  State_Met,
      &                       State_Chm, State_Diag, RC         )
 
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Do_Global_Adv"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
       ENDIF
 
 #if defined( USE_TEND )
@@ -248,6 +295,13 @@
       DT = GET_TS_DYN() * 60.0_fp
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'ADV', DT, RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Tend_Stage2"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 #endif
 
       ! Return to calling program
@@ -469,14 +523,15 @@
 #endif
 
       ! Do the advection
-      CALL TPCORE_FVDAS( D_DYN,    Re,       IIPAR,    JJPAR,
-     &                   LLPAR,    JFIRST,   JLAST,    NG,
-     &                   MG,       nAdvect,  Ap,       Bp,
-     &                   p_UWND,   p_VWND,   P_TP1,    P_TP2,
-     &                   P_TEMP,   p_Spc,    IORD,     JORD,      
-     &                   KORD,     N_ADJ,    p_XMASS,  p_YMASS, 
-     &                   LFILL,    p_MFLEW,  p_MFLNS,  p_MFLUP,
-     &                   A_M2,     ND24,     ND25,     ND26 )
+      CALL TPCORE_FVDAS( D_DYN,     Re,       IIPAR,    JJPAR,
+     &                   LLPAR,     JFIRST,   JLAST,    NG,
+     &                   MG,        nAdvect,  Ap,       Bp,
+     &                   p_UWND,    p_VWND,   P_TP1,    P_TP2,
+     &                   P_TEMP,    p_Spc,    IORD,     JORD,      
+     &                   KORD,      N_ADJ,    p_XMASS,  p_YMASS, 
+     &                   LFILL,     p_MFLEW,  p_MFLNS,  p_MFLUP,
+     &                   A_M2,      ND24,     ND25,     ND26,
+     &                   State_Diag                            )
 
       ! Free pointer memory
       p_UWND  => NULL()
@@ -951,25 +1006,29 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  05 Dec 2014 - M. Yannetti - Added REAL_N_DYN
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  09 Nov 2017 - R. Yantosca - Return error condition to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: J, K, L, N_DYN
-      REAL(fp) :: YMID_R(JJPAR)
-      REAL(fp) :: REAL_N_DYN
+      ! Scalars
+      LOGICAL            :: LTRAN
+      INTEGER            :: J, K, L, N_DYN
+      REAL(fp)           :: YMID_R(JJPAR)
+      REAL(fp)           :: REAL_N_DYN
 
-      ! For fields from Input_Opt
-      LOGICAL  :: LTRAN
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       !=================================================================
       ! Initialize
       !=================================================================
-
-      ! Assume success
-      RC        =  GC_SUCCESS
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &   ' -> at Init_Transport  (in module GeosCore/transport_mod.F)'
 
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates 
@@ -982,10 +1041,12 @@
       ! index levels from the atm. top downwards (bdf, bmy, 10/30/07)
       !=================================================================
       ALLOCATE( Ap( LLPAR+1 ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Ap' )
+      CALL GC_CheckVar( 'transport_mod.F:Ap', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
  
       ALLOCATE( Bp( LLPAR+1 ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Bp' )
+      CALL GC_CheckVar( 'transport_mod.F:Bp', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
 
       ! Flip Ap and Bp for TPCORE
       DO L = 1, LLPAR+1 
@@ -1002,7 +1063,8 @@
       ! Allocate arrays for surface area and layer thickness
       !=================================================================
       ALLOCATE( A_M2( JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'A_M2' )
+      CALL GC_CheckVar( 'transport_mod.F:A_m2', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
 
       ! Surface area [m2]
       DO J = 1, JJPAR
@@ -1027,8 +1089,16 @@
       REAL_N_DYN = N_DYN
 
       ! Call INIT routine from "tpcore_fvdas_mod.f" 
-      CALL INIT_TPCORE( IIPAR, JJPAR, LLPAR,      JFIRST, JLAST,
-     &                  NG,    MG,    REAL_N_DYN, Re,     YMID_R )
+      CALL INIT_TPCORE( IIPAR, JJPAR,  LLPAR,      JFIRST, 
+     &                  JLAST, NG,     MG,         REAL_N_DYN, 
+     &                  Re,    YMID_R, State_Diag, RC          )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_Tpcore"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       END SUBROUTINE INIT_TRANSPORT
 !EOC
