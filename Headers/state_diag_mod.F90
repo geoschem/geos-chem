@@ -86,12 +86,11 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: PBLMixFrac      (:,:,:  ) ! Frac of BL occupied by lev
      REAL(f4),  POINTER :: PBLFlux         (:,:,:,:) ! BL mixing mass flux
 
-     ! Convection and wet deposition
+     ! Convection
      REAL(f4),  POINTER :: CloudConvFlux   (:,:,:,:) ! Cloud conv. mass flux
      REAL(f4),  POINTER :: WetLossConv     (:,:,:,:) ! Loss in convect. updraft
-     REAL(f4),  POINTER :: PrecipFracConv  (:,:,:  ) ! Frac convective precip
-     REAL(f4),  POINTER :: RainFracConv    (:,:,:,:) ! Frac lost to conv rainout
-     REAL(f4),  POINTER :: WashFracConv    (:,:,:,:) ! Frac lost to conv washout
+
+     ! Wet deposition
      REAL(f4),  POINTER :: WetLossLS       (:,:,:,:) ! Loss in LS rainout/washout
      REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  ) ! Frac of box in LS precip
      REAL(f4),  POINTER :: RainFracLS      (:,:,:,:) ! Frac lost to LS rainout
@@ -266,9 +265,6 @@ CONTAINS
     State_Diag%PBLMixFrac          => NULL()
     State_Diag%PBLFlux             => NULL()
 
-    State_Diag%PrecipFracConv      => NULL()
-    State_Diag%RainFracConv        => NULL()
-    State_Diag%WashFracConv        => NULL()
     State_Diag%WetLossLS           => NULL()
     State_Diag%PrecipFracLS        => NULL()
     State_Diag%RainFracLS          => NULL()
@@ -595,57 +591,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%WetLossConv = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%WetLossConv, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Fraction of grid box undergoing convective precipitation
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%PrecipFracConv'
-    diagID  = 'PrecipFracConv'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%PrecipFracConv( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PrecipFracConv = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%PrecipFracConv, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Fraction of soluble species lost to rainout in convective precip
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%RainFracConv'
-    diagID  = 'RainFracConv'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%RainFracConv( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RainFracConv = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RainFracConv, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Fraction of soluble species lost to washout in convective precip
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%WashFracConv'
-    diagID  = 'WashFracConv'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%WashFracConv( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WashFracConv = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%WashFracConv, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1328,33 +1273,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%PrecipFracConv ) ) THEN
-       DEALLOCATE( State_Diag%PrecipFracConv, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%PrecipFracConv"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RainFracConv ) ) THEN
-       DEALLOCATE( State_Diag%RainFracConv, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%RainFracConv"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%WashFracConv ) ) THEN
-       DEALLOCATE( State_Diag%WashFracConv, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%WashFracConv"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
     IF ( ASSOCIATED( State_Diag%WetLossLS ) ) THEN
        DEALLOCATE( State_Diag%WetLossLS, STAT=RC  )
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1773,23 +1691,6 @@ CONTAINS
        CASE ( 'WETLOSSCONV' )
           IF ( isDesc    ) Desc       = 'Loss of soluble species in convective updrafts'
           IF ( isUnits   ) Units      = 'kg s-1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'WET'
-
-       CASE ( 'PRECIPFRACCONV' )
-          IF ( isDesc    ) Desc       = 'Fraction of grid box undergoing convective precipitation'
-          IF ( isUnits   ) Units      = '1'
-          IF ( isRank    ) Rank       = 3
-
-       CASE ( 'RAINFRACCONV' )
-          IF ( isDesc    ) Desc       = 'Fraction of soluble species lost to rainout in convective precipitation'
-          IF ( isUnits   ) Units      = '1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'WET'
-
-       CASE ( 'WASHFRACCONV' )
-          IF ( isDesc    ) Desc       = 'Fraction of soluble species lost to washout in convective precipitation'
-          IF ( isUnits   ) Units      = '1'
           IF ( isRank    ) Rank       = 3
           IF ( isSpecies ) PerSpecies = 'WET'
 

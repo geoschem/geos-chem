@@ -398,12 +398,12 @@
       IF ( ND16 > 0 ) THEN
          LD16 = MIN( ND16, LLPAR )
 
-         ! Store both LS and convective fractions
-         ALLOCATE( AD16( IIPAR, JJPAR, LD16, 2 ), STAT=AS ) 
+         ! Store LS Precip fraction only
+         ALLOCATE( AD16( IIPAR, JJPAR, LD16, 1 ), STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD16' )
 
          ! Counter array for AD16
-         ALLOCATE( CT16( IIPAR, JJPAR, LD16, 2 ), STAT=AS ) 
+         ALLOCATE( CT16( IIPAR, JJPAR, LD16, 1 ), STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CT16' )
       ENDIF
 
@@ -427,12 +427,12 @@
          ! Number of levels
          LD17 = MIN( ND17, LLPAR )
 
-         ! Store both LS and convective rainout fractions
-         ALLOCATE( AD17( IIPAR, JJPAR, LD17, NMAX, 2 ), STAT=AS ) 
+         ! Store both LS precip only
+         ALLOCATE( AD17( IIPAR, JJPAR, LD17, NMAX, 1 ), STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD17' )
 
          ! Counter array for AD17
-         ALLOCATE( CT17( IIPAR, JJPAR, LD17, 2 ), STAT=AS ) 
+         ALLOCATE( CT17( IIPAR, JJPAR, LD17, 1 ), STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CT17' )
       ENDIF
 
@@ -456,12 +456,12 @@
          ! Number of levels
          LD18 = MIN( ND18, LLPAR )
 
-         ! Store both LS and convective rainout fractions         
-         ALLOCATE( AD18( IIPAR, JJPAR, LD18, NMAX, 2 ), STAT=AS) 
+         ! Store both LS precip fraction only
+         ALLOCATE( AD18( IIPAR, JJPAR, LD18, NMAX, 1 ), STAT=AS) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD18' )
 
          ! Counter array for AD17
-         ALLOCATE( CT18( IIPAR, JJPAR, LD18, 2 ), STAT=AS ) 
+         ALLOCATE( CT18( IIPAR, JJPAR, LD18, 1 ), STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CT18' )
       ENDIF
 

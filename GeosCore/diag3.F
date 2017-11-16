@@ -1808,22 +1808,19 @@
          CATEGORY = 'WD-FRC-$'
          UNIT     = 'unitless'
 
-         DO M = 1, TMAX(16)
-            N  = TINDEX(16,M)
-            IF ( N > PD16 ) CYCLE
-            NN = N 
-              
-            DO L = 1, LD16
-               SCALE_TMP(:,:) = FLOAT( CT16(:,:,L,N) ) + 1e-20_fp
-               ARRAY(:,:,L)   = AD16(:,:,L,N) / SCALE_TMP(:,:)
-            ENDDO
-
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD16,     IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD16) )
+         ! GEOS-FP/MERRA-2 only has LS wetdep, so only need to save N=1
+         ! (bmy, 11/16/17)
+         DO L = 1, LD16
+            SCALE_TMP(:,:) = FLOAT( CT16(:,:,L,1) ) + 1e-20_fp
+            ARRAY(:,:,L)   = AD16(:,:,L,1) / SCALE_TMP(:,:)
          ENDDO
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, 1,    
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     LD16,     IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD16) )
+
       ENDIF
 !
 !******************************************************************************
@@ -1832,7 +1829,6 @@
 !   #  Field    : Description                  : Units     : Scale factor
 !  --------------------------------------------------------------------------
 !  (1) WD-LSR-$ : Rainout fraction/LS Precip   : unitless  : CT17(:,:,:,1)
-!  (2) WD-CVR-$ : Rainout fraction/conv precip : unitless  : CT17(:,:,:,2)
 !
 !  NOTES:
 !  (1) Now loop over all soluble tracers (bmy, 3/19/04)
@@ -1872,21 +1868,6 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  IIPAR,     JJPAR,     LD17,     IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD17) )
-
-
-            ! Convective rainout/washout fractions
-            CATEGORY = 'WD-CVR-$'
-
-            DO L = 1, LD17
-               SCALE_TMP(:,:) = FLOAT( CT17(:,:,L,2) ) + 1e-20_fp
-               ARRAY(:,:,L)   = AD17(:,:,L,NW,2) / SCALE_TMP(:,:) 
-            ENDDO
-
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, N,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD17,     IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD17) )
          ENDDO
       ENDIF
 !
@@ -1896,7 +1877,6 @@
 !   #  Field    : Description                  : Units     : Scale factor
 !  --------------------------------------------------------------------------
 !  (1) WD-LSW-$ : Washout fraction/LS precip   : unitless  : CT18(:,:,:,1)
-!  (2) WD-CVW-$ : Washout fraction/conv precip : unitless  : CT18(:,:,:,2)
 !
 !  NOTES:
 !  (1) Now loop over all soluble tracers (bmy, 3/19/04)
@@ -1929,21 +1909,6 @@
             DO L = 1, LD18
                SCALE_TMP(:,:) = FLOAT( CT18(:,:,L,1) ) + 1e-20_fp
                ARRAY(:,:,L)   = AD18(:,:,L,NW,1) / SCALE_TMP(:,:) 
-            ENDDO
-
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, N,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD18,     IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD18) )
-
-
-            ! Convective washout fractions
-            CATEGORY = 'WD-CVW-$'
-
-            DO L = 1, LD18
-               SCALE_TMP(:,:) = FLOAT( CT18(:,:,L,2) ) + 1e-20_fp
-               ARRAY(:,:,L)   = AD18(:,:,L,NW,2) / SCALE_TMP(:,:) 
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
