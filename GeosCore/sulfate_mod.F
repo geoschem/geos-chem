@@ -2972,9 +2972,14 @@
      &                       O3,  HPLUS, KaqH2O2, KaqO3, KaqO3_1,
      &                       HSO3aq, SO3aq ) 
 
-            ! Store HSO3aq, SO3aq for use in gckpp_HetRates.F90
-            State_Chm%HSO3_AQ(I,J,L) = HSO3aq
-            State_Chm%SO3_AQ(I,J,L)  = SO3aq
+!------------------------------------------------------------------------------
+! Prior to 11/16/17:
+! Bug fix: HSO3_AQ and SO3_AQ are now saved below after the rSIV calculation
+! (qjc, mps,11/16/17)
+!            ! Store HSO3aq, SO3aq for use in gckpp_HetRates.F90
+!            State_Chm%HSO3_AQ(I,J,L) = HSO3aq
+!            State_Chm%SO3_AQ(I,J,L)  = SO3aq
+!------------------------------------------------------------------------------
 
             !----------------------------------------------------------
             ! Compute loss by H2O2.  Prevent floating-point exception
@@ -3363,6 +3368,12 @@
             ! Factor to calculate effective SO3 and HSO3 in aqchem_so2 to
             ! be used in HOBr+HSO3/SO3 (qjc, 06/20/16)
             rSIV = SO2_sr/SO2_ss0
+            rSIV = MAX(rSIV, 0.0d0)
+            rSIV = MIN(rSIV, 1.0d0)
+
+            ! Store HSO3aq, SO3aq for use in gckpp_HetRates.F90
+            State_Chm%HSO3_AQ(I,J,L) = HSO3aq*(1+rSIV)/2
+            State_Chm%SO3_AQ(I,J,L)  = SO3aq *(1+rSIV)/2
 
             H2O20  = MAX( H2O20  - L2S,                MINDAT )
 
@@ -3386,8 +3397,9 @@
             SRo3         = 0.e+0_fp
 
             ! Store HSO3aq, SO3aq for use in gckpp_HetRates.F90
-            State_Chm%HSO3_AQ(I,J,L)     = 0.e+0_fp
-            State_Chm%SO3_AQ(I,J,L)      = 0.e+0_fp
+            ! Avoid divide-by-zero errors
+            State_Chm%HSO3_AQ(I,J,L)     = 1.0e-32_fp
+            State_Chm%SO3_AQ(I,J,L)      = 1.0e-32_fp
 
             ! This is the ratio used to calculate the actual removal of
             ! HOBr by SO2 for use in gckpp_HetRates.F90 (qjc, 06/20/16)
@@ -5457,7 +5469,7 @@
       REAL(fp)              :: XHSO3,  XSO3,   KH1, HCH2O2, FHCH2O2
       REAL(fp)              :: XH2O2G, H2O2aq, KO0, KO1,    KO2
       REAL(fp)              :: HCO3,   XO3g,   O3aq
-      REAL(fp)              :: rSIV    ! qjc, 06/20/16
+!      REAL(fp)              :: rSIV    ! qjc, 06/20/16
 
       !=================================================================
       ! AQCHEM_SO2 begins here!
@@ -5513,11 +5525,21 @@
 
       ! Effective HSO3aq for HOBr+HSO3
       HSO3aq = SIV * XHSO3           ! unit: M (qjc, 06/10/16)
-      HSO3aq = HSO3aq * (1 + rSIV)/2 ! unit: M (qjc, 06/20/16)
+!------------------------------------------------------------------------------
+! Prior to 11/16/17:
+! Bug fix: rSIV was not defined here. This calculation is now done in CHEM_SO2
+! (qjc, mps, 11/16/17)
+!      HSO3aq = HSO3aq * (1 + rSIV)/2 ! unit: M (qjc, 06/20/16)
+!------------------------------------------------------------------------------
 
       ! Effective SO3aq for HOBr+SO3
       SO3aq  = SIV * XSO3            ! unit: M (qjc, 06/10/16)
-      SO3aq  = SO3aq * (1+rSIV)/2    ! unit: M (qjc, 06/20/16)
+!------------------------------------------------------------------------------
+! Prior to 11/16/17:
+! Bug fix: rSIV was not defined here. This calculation is now done in CHEM_SO2
+! (qjc, mps, 11/16/17)
+!      SO3aq  = SO3aq * (1+rSIV)/2    ! unit: M (qjc, 06/20/16)
+!------------------------------------------------------------------------------
 
       !=================================================================
       ! H2O2 equilibrium reaction
