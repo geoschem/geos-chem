@@ -551,6 +551,7 @@ CONTAINS
     REAL(f8)                     :: UpdateAlarm,    HeartBeatDtSec
     REAL(f8)                     :: FileWriteAlarm, FileCloseAlarm
     REAL(f8)                     :: JulianDate,     JulianDateEnd
+    REAL(f8)                     :: UpdateCheck,    FileWriteCheck
     REAL(f8)                     :: SimLengthSec
 
     ! Strings
@@ -968,10 +969,17 @@ CONTAINS
                    UpdateHms = 000000
                 ENDIF
 
+                ! Combine UpdateYmd and UpdateHms
+                UpdateCheck    = ( DBLE( UpdateYmd    ) * 1.0e6_f8 )         &
+                               + ( DBLE( UpdateHms    )            )
+
+                ! Combine FileWriteYmd and FileWriteHms
+                FileWriteCheck = ( DBLE( FileWriteYmd ) * 1.0e6_f8 )         & 
+                               + ( DBLE( FileWriteHMs )            )
+
                 ! Error check: If using acc_interval, then the Update interval
                 ! has to be smaller or equal to the File Write interval
-                IF ( UpdateYmd > FileWriteYmd   .or.                         &
-                     UpdateHms > FileWriteHms ) THEN
+                IF ( UpdateCheck > FileWriteCheck ) THEN
                    ErrMsg = 'Update interval is greater than File Write ' // &
                             'interval for collection: '                   // &
                             TRIM( CollectionName(C) ) 
