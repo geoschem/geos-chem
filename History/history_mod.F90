@@ -672,6 +672,16 @@ CONTAINS
        ! Skip if the line is commented out
        IF ( Line(1:1) == "#" ) CYCLE
 
+       ! Zero variables
+       FileCloseYmd   = 0
+       FileCloseHms   = 0
+       FileWriteYmd   = 0
+       FileWriteHms   = 0
+       FileWriteCheck = 0.0_f8
+       UpdateYmd      = 0
+       UpdateHms      = 0
+       UpdateCheck    = 0.0_f8
+
        !====================================================================
        ! The HISTORY.rc file specifies collection metadata as:
        !
@@ -801,8 +811,6 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-
-          ! Format statements
 
           ! Zero the counter of items
           ItemCount = 0
