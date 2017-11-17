@@ -247,7 +247,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_O3_MOD               ! SAVEOH
+!      USE CMN_O3_MOD               ! SAVEOH
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
@@ -489,14 +489,14 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( Spc(I,J,L,N) * 
      &                      ( AIRMW 
      &                      / State_Chm%SpcData(N)%Info%emMW_g ) )
-
-            ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
-
-               !--------------------------------------
-               ! OH CONCENTRATION [molec/cm3]
-               ! NOTE: Only archive at chem timestep
-               !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEOH(I,J,L)
+!
+!            ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
+!
+!               !--------------------------------------
+!               ! OH CONCENTRATION [molec/cm3]
+!               ! NOTE: Only archive at chem timestep
+!               !--------------------------------------
+!               Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEOH(I,J,L)
 
             ELSE IF ( N == 502 .and. IS_NOy ) THEN
 

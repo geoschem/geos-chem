@@ -353,18 +353,18 @@
      &                State_Chm%SpcData(N)%Info%emMW_g )
             ENDDO
 
-         ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
-
-            !-------------------------------------
-            ! OH CONCENTRATION [molec/cm3]
-            !-------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'molec/cm3'
-            GMTRC    = 1
-
-            DO L = 1, K
-               Q(L) = SAVEOH(I,J,L)
-            ENDDO
+!         ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
+!
+!            !-------------------------------------
+!            ! OH CONCENTRATION [molec/cm3]
+!            !-------------------------------------
+!            CATEGORY = 'TIME-SER'
+!            UNIT     = 'molec/cm3'
+!            GMTRC    = 1
+!
+!            DO L = 1, K
+!               Q(L) = SAVEOH(I,J,L)
+!            ENDDO
 
          ELSE IF ( N == 502 .and. IS_NOy ) THEN
 

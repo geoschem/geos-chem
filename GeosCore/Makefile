@@ -579,8 +579,8 @@ drydep_mod.o                : drydep_mod.F                                   \
                               pbl_mix_mod.o           tomas_mod.o            \
                               hco_interface_mod.o
 
-diagoh.o                    : diagoh.F                                       \
-                              diag_mod.o
+#diagoh.o                    : diagoh.F                                       \
+#                              diag_mod.o
 
 dust_mod.o                  : dust_mod.F                                     \
                               diag_mod.o              drydep_mod.o           \
@@ -621,10 +621,6 @@ gamap_mod.o                 : gamap_mod.F                                    \
                               diag56_mod.o            diag63_mod.o           \
                               drydep_mod.o            tomas_mod.o            \
                               wetscav_mod.o
-
-ifeq ($(COMPILER),sun)
-	$(F90) -O0 -c $<
-endif
 
 gc_environment_mod.o        : gc_environment_mod.F90                         \
                               vdiff_pre_mod.o
@@ -765,8 +761,8 @@ ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
                               diag03_mod.o            toms_mod.o             \
                               hco_interface_mod.o
 
-ohsave.o                    : ohsave.F                                       \
-                              chemgrid_mod.o          
+#ohsave.o                    : ohsave.F                                       \
+#                              chemgrid_mod.o          
 
 olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               mapping_mod.o

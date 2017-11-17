@@ -221,7 +221,7 @@
       USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_O3_MOD	           ! SAVEOH, SAVEOA
+      USE CMN_O3_MOD	           ! SAVEOH  SAVEOA
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
@@ -589,30 +589,30 @@
 
             ENDIF
 
-         ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
-
-            !--------------------------------------
-            ! OH CONCENTRATION [molec/cm3]
-            !--------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'molec/cm3'
-            GMNL     = ND49_NL
-            GMTRC    = 1
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, X, Y, K )
-            DO K = 1, ND49_NL
-               L = LOFF + K
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,K) = SAVEOH(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
+!         ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
+!
+!            !--------------------------------------
+!            ! OH CONCENTRATION [molec/cm3]
+!            !--------------------------------------
+!            CATEGORY = 'TIME-SER'
+!            UNIT     = 'molec/cm3'
+!            GMNL     = ND49_NL
+!            GMTRC    = 1
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, X, Y, K )
+!            DO K = 1, ND49_NL
+!               L = LOFF + K
+!            DO Y = 1, ND49_NJ
+!               J = JOFF + Y
+!            DO X = 1, ND49_NI
+!               I = GET_I( X )
+!               Q(X,Y,K) = SAVEOH(I,J,L)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
 
          ELSE IF ( N == 502 .and. IS_NOy ) THEN
 

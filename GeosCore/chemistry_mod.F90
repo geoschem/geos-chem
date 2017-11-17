@@ -25,7 +25,6 @@ MODULE Chemistry_Mod
 !
   PUBLIC  :: INIT_CHEMISTRY
   PUBLIC  :: DO_CHEMISTRY
-  PUBLIC  :: DIAG_OH_HO2_O1D_O3P
   PUBLIC  :: RECOMPUTE_OD
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -74,12 +73,7 @@ MODULE Chemistry_Mod
 ! !PRIVATE TYPES:
 !
 
-  INTEGER :: id_O3, id_CO,  id_DST1, id_NK1   ! Species ID flags
-  INTEGER :: id_OH, id_HO2, id_O1D,  id_O3P   ! Species ID flags
-  LOGICAL :: ok_OH, ok_HO2, ok_O1D,  ok_O3P   ! Is each species defined?
-      
-  LOGICAL :: Do_ND43
-  LOGICAL :: Archive
+  INTEGER :: id_O3, id_CO, id_DST1, id_NK1   ! Species ID flags
 
 CONTAINS
 !EOC
@@ -622,14 +616,21 @@ CONTAINS
           CALL GEOS_Timer_End( "=> All aerosol chem", RC )
 #endif
 
-          !----------------------------------
-          ! Chemical production diagnostics
-          !----------------------------------
+          !---------------------------------------------
+          ! Chemical production diagnostics (e.g. ND43)
+          !---------------------------------------------
+!-----------------------------------------------------------------------------
+! Prior to 11/17/17:
+! This is now obsolete, we can get the info directly from State_Chm%SPECIES
+! (bmy, 11/17/17)
+!
+!          CALL DiagOH()
+!-----------------------------------------------------------------------------
+          IF ( Do_DiagOH_Etc ) THEN
+             CALL Diag_OH_HO2_O1D_O3P( am_I_Root, Input_Opt,  State_Met,     &
+                                       State_Chm, State_Diag, RC            )
+          ENDIF
 
-          CALL DiagOH()
-!          CALL Diag_OH_HO2_O1D_O3P( am_I_Root, Input_Opt,  State_Met,        &
-!                                   State_Chm, State_Diag, RC               )
-         
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Diag_OH_HO2_O1D_O3P"!'
@@ -1316,125 +1317,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Diag_OH_HO2_O1D_O3P
-!
-! !DESCRIPTION: Archives the chemical production of OH, HO2, O1D, O3P.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Diag_OH_HO2_O1D_O3P( am_I_Root, Input_Opt,  State_Met,          &
-                                  State_Chm, State_Diag, RC                 )
-!
-! !USES:
-!
-    USE ChemGrid_Mod,   ONLY : Its_In_The_NoChemGrid
-    USE CMN_SIZE_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Diag_Mod, ONLY : DgnState
-    USE State_Met_Mod,  ONLY : MetState
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !REMARKS:
-!  This routine replaces both OHSAVE and DIAGOH.  Those routines were needed
-!  for SMVGEAR, when we had separate arrays for the non-advected species.
-!  But now, all species are stored in State_Chm%SPECIES, so the various
-!  arrays (SAVEOH, SAVEHO2, etc.) are no longer necessary.  We can now just
-!  just get values directly from State_Chm%SPECIES.
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-
-    ! Scalars
-    LOGICAL            :: Do_Diag
-    INTEGER            :: I,       J,       L
-
-    ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    !=======================================================================
-    ! Diag_OH_HO2_O1D_O3P begins here!
-    !=======================================================================
-
-! stub for now
-!!
-!
-!      !=====================================================================
-!
-!
-!      DO
-!
-!
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!!$OMP+SCHEDULE( DYNAMIC )
-!      DO L = 1, LLPAR
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! Skip non-chemistry boxes
-!         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
-!
-!         ! OH concentration [molec/cm3]
-!         IF ( ok_OH ) THEN
-!            
-!            IF ( ND4
-!
-!            SAVEOH(I,J,L)  = State_Chm%Species(I,J,L,id_OH)
-!         ENDIF
-!
-!         ! HO2 concentration [v/v] 
-!         IF ( ok_HO2 ) THEN
-!            SAVEHO2(I,J,L) = State_Chm%Species(I,J,L,id_HO2) /
-!     &                       State_Met%AIRNUMDEN(I,J,L)
-!         ENDIF
-!
-!#if defined( UCX )
-!         ! O1D concentration [molec/cm3]
-!         IF ( ok_O1D ) THEN
-!            SAVEO1D(I,J,L) = State_Chm%Species(I,J,L,id_O1D)
-!         ENDIF
-!
-!         ! O3P concentration [molec/cm3]
-!         IF ( ok_O3P ) THEN
-!            SAVEO3P(I,J,L) = State_Chm%Species(I,J,L,id_O3P)
-!         ENDIF
-!#endif
-!
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-
-  END SUBROUTINE Diag_OH_HO2_O1D_O3P
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: init_chemistry
 !
 ! !DESCRIPTION: Subroutine INIT\_CHEMISTRY initializes chemistry
@@ -1498,22 +1380,10 @@ CONTAINS
        FIRST  = .FALSE.
 
        ! Define species ID's
-       id_O3   = Ind_('O3'  )
-       id_CO   = Ind_('CO'  )
-       id_DST1 = Ind_('DST1')
-       id_NK1  = Ind_('NK1' )
-
-       ! Define species ID's for diagnostics
-       id_OH  = Ind_( 'OH'  )
-       id_HO2 = Ind_( 'HO2' )
-       id_O1D = Ind_( 'O1D' )
-       id_O3P = Ind_( 'O'   )
-
-       ! Set logicals to denote if each species is defined
-       ok_OH  = ( id_OH  > 0 )
-       ok_HO2 = ( id_HO2 > 0 )
-       ok_O1D = ( id_O1D > 0 )
-       ok_O3P = ( id_O3P > 0 )
+       id_O3   = Ind_( 'O3'   )
+       id_CO   = Ind_( 'CO'   )
+       id_DST1 = Ind_( 'DST1' )
+       id_NK1  = Ind_( 'NK1'  )
 
        !--------------------------------
        ! Initialize FlexChem

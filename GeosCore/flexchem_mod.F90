@@ -22,9 +22,13 @@ MODULE FlexChem_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Do_FlexChem
-  PUBLIC :: Init_FlexChem
-  PUBLIC :: Cleanup_FlexChem
+  PUBLIC  :: Do_FlexChem
+  PUBLIC  :: Init_FlexChem
+  PUBLIC  :: Cleanup_FlexChem
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: Diag_OH_HO2_O1D_O3P
 !    
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
@@ -36,12 +40,18 @@ MODULE FlexChem_Mod
 !  24 Aug 2016 - M. Sulprizio- Rename from flexchem_setup_mod.F90 to
 !                              flexchem_mod.F90
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  17 Nov 2017 - R. Yantosca - Now call Diag_OH_HO2_O1D_O3P, which will let
+!                              us remove arrays in CMN_O3_SIZE_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
+  ! Species ID flags (and logicals to denote if species are present)
+  INTEGER :: id_OH, id_HO2, id_O3P, id_O1D
+  LOGICAL :: ok_OH, ok_HO2, ok_O1D, ok_O3P
+
   ! Save the H value for the Rosenbrock solver
   REAL(fp),  ALLOCATABLE :: HSAVE_KPP(:,:,:) 
 
@@ -208,7 +218,6 @@ CONTAINS
     REAL(fp)               :: Start, Finish, rtim, itim
     INTEGER                :: TotSteps, TotFuncs, TotJacob
     INTEGER                :: TotAccep, TotRejec, TotNumLU
-    CHARACTER(LEN=255)     :: ERR_MSG
 
     ! For passing SO4_PHOTFRAC output to PHOTRATE_ADJ (bmy, 3/28/16)
     REAL(fp)               :: SO4_FRAC
@@ -227,11 +236,17 @@ CONTAINS
     ! Initial mass [kg] for computing stratospheric chemical tendency
     REAL(fp)               :: Before(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
     !=================================================================
     ! Do_FlexChem begins here!
     !=================================================================
 
-    ! Initialize pointer
+    ! Initialize
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Do_FlexChem (in module GeosCore/flexchem_mod.F)'
     SpcInfo => NULL()
 
     ! Turn heterogeneous chemistry and photolysis on/off here
@@ -241,9 +256,9 @@ CONTAINS
 
     IF ( FIRSTCHEM .AND. am_I_Root ) THEN
        WRITE( 6, '(a)' ) REPEAT( '#', 32 )
-       WRITE( 6, '(a,l,a)' ) '# FLEX_CHEMDR: DO_HETCHEM  =', &
+       WRITE( 6, '(a,l,a)' ) '# Do_FlexChem: DO_HETCHEM  =', &
                                              DO_HETCHEM,  ' #'
-       WRITE( 6, '(a,l,a)' ) '# FLEX_CHEMDR: DO_PHOTCHEM =', &
+       WRITE( 6, '(a,l,a)' ) '# Do_FlexChem: DO_PHOTCHEM =', &
                                              DO_PHOTCHEM, ' #'
        WRITE( 6, '(a)' ) REPEAT( '#', 32 )
     ENDIF
@@ -311,7 +326,7 @@ CONTAINS
        ! Calculate stratospheric aerosol properties (SDE 04/18/13)
        CALL CALC_STRAT_AER( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
        IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### FLEX_CHEMDR: after CALC_PSC' )
+          CALL DEBUG_MSG( '### Do_FlexChem: after CALC_PSC' )
        ENDIF
 #endif
 
@@ -372,7 +387,7 @@ CONTAINS
 
     !### Debug
     IF ( prtDebug ) THEN 
-       CALL DEBUG_MSG( '### FLEX_CHEMDR: after RDAER' )
+       CALL DEBUG_MSG( '### Do_FlexChem: after RDAER' )
     ENDIF
 
     !=================================================================
@@ -399,7 +414,7 @@ CONTAINS
 
     !### Debug
     IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### FLEX_CHEMDR: after RDUST' )
+       CALL DEBUG_MSG( '### Do_FlexChem: after RDUST' )
     ENDIF
 
 #if defined( UCX )
@@ -424,8 +439,8 @@ CONTAINS
     CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, & 
                             State_Chm, 'molec/cm3', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
-       Err_Msg = 'Unit conversion error!'
-       CALL GC_Error( Err_Msg, RC, 'flexchem_mod.F90')
+       ErrMsg = 'Unit conversion error!'
+       CALL GC_Error( ErrMsg, RC, 'flexchem_mod.F90')
        RETURN
     ENDIF 
       
@@ -437,7 +452,7 @@ CONTAINS
 
     !### Debug
     IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### FLEX_CHEMDR: after FAST_JX' )
+       CALL DEBUG_MSG( '### Do_FlexChem: after FAST_JX' )
     ENDIF
 
     !=================================================================
@@ -833,8 +848,8 @@ CONTAINS
                           RCNTRL, ISTATUS, RSTATE, IERR )
           IF ( IERR < 0 ) THEN 
              WRITE(6,*) '## INTEGRATE FAILED TWICE !!! '
-             WRITE(ERR_MSG,'(a,i3)') 'Integrator error code :',IERR
-             CALL ERROR_STOP(ERR_MSG, 'INTEGRATE_KPP')
+             WRITE(ERRMSG,'(a,i3)') 'Integrator error code :',IERR
+             CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
           ENDIF
             
        ENDIF
@@ -951,11 +966,35 @@ CONTAINS
 !!!#endif
 
     !=================================================================
-    ! Call OHSAVE which saves info on OH AND HO2 concentrations
+    ! Archive info OH AND HO2 concentrations
     !=================================================================
-    CALL OHSAVE( State_Met, State_Chm )
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### FLEX_CHEMDR: after OHSAVE' )
+!-----------------------------------------------------------------------------
+! Prior to 11/17/17:
+! This is now obsolete, we can get the info directly from State_Chm%SPECIES
+! (bmy, 11/17/17)
+!    CALL OHSAVE( State_Met, State_Chm 
+!    IF ( prtDebug ) THEN
+!       CALL DEBUG_MSG( '### Do_FlexChem: after OHSAVE' )
+!    ENDIF
+!-----------------------------------------------------------------------------
+    IF ( Input_Opt%ND43 > 0 ) THEN
+
+       ! Save OH, HO2, O1D, O3P for the ND43 diagnostic
+       ! NOTE: These might not be needed for netCDF, as they will already
+       ! have been archived in State_Chm%Species output.
+       CALL Diag_OH_HO2_O1D_O3P( am_I_Root, Input_Opt,  State_Met,           &
+                                 State_Chm, State_Diag, RC                  )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Diag_OH_HO2_O1D_O3P"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### Do_FlexChem: after OHSAVE' )
+       ENDIF
     ENDIF
 
     !=================================================================
@@ -963,7 +1002,7 @@ CONTAINS
     !=================================================================
     CALL DO_DIAG_OH( State_Met, State_Chm )
     IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### FLEX_CHEMDR: after DO_DIAG_OH' )
+       CALL DEBUG_MSG( '### Do_FlexChem: after DO_DIAG_OH' )
     ENDIF
 
     !=================================================================
@@ -972,7 +1011,7 @@ CONTAINS
     IF ( Input_Opt%DO_SAVE_O3 ) THEN
        CALL DIAG20( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
        IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### FLEX_CHEMDR: after DIAG20' )
+          CALL DEBUG_MSG( '### Do_FlexChem: after DIAG20' )
        ENDIF
     ENDIF
 
@@ -982,8 +1021,8 @@ CONTAINS
     CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
                             State_Chm, OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       Err_Msg = 'Unit conversion error!'
-       CALL GC_Error( Err_Msg, RC, 'flexchem_mod.F90' )
+       ErrMsg = 'Unit conversion error!'
+       CALL GC_Error( ErrMsg, RC, 'flexchem_mod.F90' )
        RETURN
     ENDIF  
 
@@ -1042,6 +1081,137 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Diag_OH_HO2_O1D_O3P
+!
+! !DESCRIPTION: Archives the chemical production of OH, HO2, O1D, O3P.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diag_OH_HO2_O1D_O3P( am_I_Root, Input_Opt,  State_Met,          &
+                                  State_Chm, State_Diag, RC                 )
+!
+! !USES:
+!
+    USE ChemGrid_Mod,   ONLY : Its_In_The_NoChemGrid
+    USE CMN_SIZE_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Met_Mod,  ONLY : MetState
+    !-----------------------------------------------------------
+    ! NOTE: These modules are only needed for BPCH diagnostics
+    ! which are slated to be removed in the near future
+    USE Diag_Mod,       ONLY : AD43, LTOH, LTHO2, LTO1D, LTO3P
+    !-----------------------------------------------------------
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REMARKS:
+!  This routine replaces both OHSAVE and DIAGOH.  Those routines were needed
+!  for SMVGEAR, when we had separate arrays for the non-advected species.
+!  But now, all species are stored in State_Chm%SPECIES, so the various
+!  arrays (SAVEOH, SAVEHO2, etc.) are no longer necessary.  We can now just
+!  just get values directly from State_Chm%SPECIES.
+!
+!  Also note: remove multiplication by LTOH etc arrays.  These are almost
+!  always set between 0 and 24.
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+
+    ! Scalars
+    LOGICAL            :: Do_Diag
+    INTEGER            :: I,       J,       L
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    ! Pointers
+    REAL(fp), POINTER  :: AirNumDen(:,:,:  )
+    REAL(fp), POINTER  :: Spc      (:,:,:,:)
+    
+    !=======================================================================
+    ! Diag_OH_HO2_O1D_O3P begins here!
+    !=======================================================================
+
+    ! Point to the array of species concentrations
+    AirNumDen => State_Met%AirNumDen
+    Spc       => State_Chm%Species
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+
+         ! OH concentration [molec/cm3]
+         IF ( ok_OH ) THEN
+            AD43(I,J,L,1) = AD43(I,J,L,1)                                    &
+                          + ( Spc(I,J,L,id_OH) * LTOH(I,J) )
+         ENDIF
+
+         ! HO2 concentration [v/v] 
+         IF ( ok_HO2 ) THEN
+            AD43(I,J,L,3) = AD43(I,J,L,3)                                    &
+                          + ( Spc(I,J,L,id_HO2) / AirNumDen(I,J,L) )         &
+                          * ( LTHO2(I,J)                           )
+         ENDIF
+
+#if defined( UCX )
+         ! O1D concentration [molec/cm3]
+         IF ( ok_O1D ) THEN
+            AD43(I,J,L,4) = AD43(I,J,L,4)                                    &
+                          + ( Spc(I,J,L,id_O1D) * LTO1D(I,J) )
+         ENDIF
+
+         ! O3P concentration [molec/cm3]
+         IF ( ok_O3P ) THEN
+            AD43(I,J,L,5) = AD43(I,J,L,5)                                    &
+                          + ( Spc(I,J,L,id_O3P) * LTO3P(I,J) )
+         ENDIF
+#endif
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Free pointers
+      AirNumDen => NULL()
+      Spc       => NULL()
+
+  END SUBROUTINE Diag_OH_HO2_O1D_O3P
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: init_flexchem
 !
 ! !DESCRIPTION: Subroutine Init\_FlexChem is used to allocate arrays for the
@@ -1050,26 +1220,29 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !  
-  SUBROUTINE Init_FlexChem( am_I_Root, Input_Opt, State_Diag, RC )
+  SUBROUTINE Init_FlexChem( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE gckpp_Global,       ONLY : NREACT
-    USE gckpp_Monitor,      ONLY : EQN_NAMES
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Diag_Mod,     ONLY : DgnState
+    USE gckpp_Global,   ONLY : NREACT
+    USE gckpp_Monitor,  ONLY : EQN_NAMES
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Chm_Mod,  ONLY : Ind_
+    USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !    
-    LOGICAL,        INTENT(IN)    :: am_I_Root ! Is this the root CPU?
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
-    TYPE(DgnState), INTENT(IN)    :: State_Diag  ! Diagnostics State object
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+    TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Diagnostics State object
+    TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !    
-    INTEGER,        INTENT(OUT)   :: RC        ! Success or failure?
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !    
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
@@ -1126,6 +1299,18 @@ CONTAINS
           WRITE( 6, '(i8,a3,a85)' ) D,' | ',EQN_NAMES(D)
        END DO
     ENDIF
+
+    ! Initialize species flags for diagnostics
+    id_OH   = Ind_( 'OH'   )
+    id_HO2  = Ind_( 'HO2'  )
+    id_O3P  = Ind_( 'O'    )
+    id_O1D  = Ind_( 'O1D'  )
+
+    ! Set logicals to denote if each species is defined
+    ok_OH   = ( id_OH  > 0 )
+    ok_HO2  = ( id_HO2 > 0 )
+    ok_O1D  = ( id_O1D > 0 )
+    ok_O3P  = ( id_O3P > 0 )
 
   END SUBROUTINE Init_FlexChem
 !EOC
