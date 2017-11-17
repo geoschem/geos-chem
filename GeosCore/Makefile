@@ -458,12 +458,12 @@ chemgrid_mod.o              : chemgrid_mod.F                                 \
                               dao_mod.o               diag_mod.o             \
                               hco_interface_mod.o
 
-chemistry_mod.o             : chemistry_mod.F                                \
+chemistry_mod.o             : chemistry_mod.F90                              \
                               aerosol_mod.o           isoropiaII_mod.o       \
                               c2h6_mod.o              carbon_mod.o           \
                               dust_mod.o              drydep_mod.o           \
                               global_ch4_mod.o        mercury_mod.o          \
-                              pops_mod.o             \
+                              pops_mod.o                                     \
                               rpmares_mod.o           RnPbBe_mod.o           \
                               seasalt_mod.o           strat_chem_mod.o       \
                               sulfate_mod.o           tagged_co_mod.o        \
