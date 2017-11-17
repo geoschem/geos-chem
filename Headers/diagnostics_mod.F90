@@ -11,6 +11,12 @@
 !  used to allocate diagnostics stored in container State_Diag and to 
 !  declare exports in GCHP. It does not store collection information.
 !
+! TODO: Also read input.geos to get the wavelengths in the radiation menu
+!       Store in module-level variables RadWL1, RadWL2, and RadWL3 (strings).
+!       If wavelength not present, store as 'WL2' etc. This must be done
+!       during init_diaglist. Will use these in state_diag_mod, in both
+!       init_state_diag and in get_metdata_state_diag.
+! 
 ! !INTERFACE:
 !
 MODULE Diagnostics_Mod
@@ -55,8 +61,8 @@ MODULE Diagnostics_Mod
      CHARACTER(LEN=63)      :: registryID
      LOGICAL                :: isWildcard
      CHARACTER(LEN=7)       :: wildcard
-     LOGICAL                :: isSpecies
-     CHARACTER(LEN=63)      :: species
+     LOGICAL                :: isTagged
+     CHARACTER(LEN=63)      :: tag
      TYPE(DgnItem), POINTER :: next
   END TYPE DgnItem
 !
@@ -112,9 +118,9 @@ CONTAINS
     INTEGER                 :: numSpcWords, numIDWords
     CHARACTER(LEN=255)      :: errMsg, thisLoc, nameAllCaps
     CHARACTER(LEN=255)      :: line, SubStrs(500), SubStr
-    CHARACTER(LEN=255)      :: wildcard, species, name, state
+    CHARACTER(LEN=255)      :: wildcard, tag, name, state
     CHARACTER(LEN=255)      :: metadataID, registryID
-    LOGICAL                 :: EOF, found, isWildcard, isSpecies
+    LOGICAL                 :: EOF, found, isWildcard, isTagged
     TYPE(DgnItem),  POINTER :: NewDiagItem
 
     ! ================================================================
@@ -130,7 +136,7 @@ CONTAINS
     ! Create DiagList object
     DiagList%head => NULL()
 
-    ! Open the file
+    ! Open the history config file
     fId = FindFreeLun()
     OPEN( fId, FILE=TRIM(historyConfigFile), STATUS='OLD', IOSTAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -201,18 +207,18 @@ CONTAINS
           wildcard = SubStrs(N-1)
        ENDIF
 
-       ! Get species, if any
-       isSpecies  = .FALSE.
-       species    = ''
+       ! Get tag, if any
+       isTagged  = .FALSE.
+       tag = ''
        IF ( .NOT. isWildcard ) THEN
           CALL StrSplit( name, '_', SubStrs, N )
           IF ( TRIM(state) == 'DIAG' .AND. N == 2 ) THEN
-             isSpecies = .TRUE.
-             species = SubStrs(2)
+             isTagged = .TRUE.
+             tag = SubStrs(2)
           ELSEIF ( ( TRIM(state) == 'MET' .OR. TRIM(state) == 'CHEM' ) &
                    .AND. N == 3 ) THEN
-             isSpecies = .TRUE.
-             species = SubStrs(3)
+             isTagged = .TRUE.
+             tag = SubStrs(3)
           ENDIF
        ENDIF
 
@@ -238,8 +244,8 @@ CONTAINS
 
        ! Get metadataID - start with the registry ID
        metadataID = registryID
-       ! Strip off the species suffix, if any
-       IF ( isSpecies ) THEN
+       ! Strip off the tag suffix, if any
+       IF ( isTagged ) THEN
           I = INDEX( TRIM(metadataID), '_' ) 
           metadataID = metadataID(1:I-1)
        ENDIF
@@ -258,8 +264,8 @@ CONTAINS
                            registryID=registryID,  &
                            isWildcard=isWildcard,  &
                            wildcard=wildcard,      &
-                           isSpecies=isSpecies,     &
-                           species=species,        &
+                           isTagged=isTagged,     &
+                           tag=tag,        &
                            RC=RC  )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error initializing DiagItem ' // TRIM(name)
@@ -292,7 +298,7 @@ CONTAINS
 !
   SUBROUTINE Init_DiagItem ( am_I_Root,  NewDiagItem, name,       state,     &
                              metadataID, registryID,  isWildcard, wildcard,  &
-                             isSpecies,  species,     RC  )
+                             isTagged,   tag,         RC  )
 !
 ! !INPUT PARAMETERS:
 !
@@ -303,8 +309,8 @@ CONTAINS
     CHARACTER(LEN=*),    OPTIONAL   :: registryID
     LOGICAL,             OPTIONAL   :: isWildcard
     CHARACTER(LEN=*),    OPTIONAL   :: wildcard
-    LOGICAL,             OPTIONAL   :: isSpecies
-    CHARACTER(LEN=*),    OPTIONAL   :: species
+    LOGICAL,             OPTIONAL   :: isTagged
+    CHARACTER(LEN=*),    OPTIONAL   :: tag
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -333,8 +339,8 @@ CONTAINS
     NewDiagItem%registryID = TRIM(registryID)
     NewDiagItem%isWildcard = isWildcard
     NewDiagItem%wildcard   = TRIM(wildcard)
-    NewDiagItem%isSpecies  = isSpecies
-    NewDiagItem%species    = TRIM(species)
+    NewDiagItem%isTagged   = isTagged
+    NewDiagItem%tag        = TRIM(tag)
 
   END SUBROUTINE Init_DiagItem
 !EOC
@@ -560,14 +566,14 @@ CONTAINS
           PRINT *, TRIM(current%name)
           PRINT *, "   state:      ", TRIM(current%state)
           PRINT *, "   metadataID: ", TRIM(current%metadataID)
-          PRINT *, "   registryID (GCHP-only): ", TRIM(current%registryID)
-          PRINT *, "   isWildcard: ", current%isWildcard
+          PRINT *, "   registryID: ", TRIM(current%registryID)
           IF ( current%isWildcard ) THEN
+             PRINT *, "   isWildcard: ", current%isWildcard
              PRINT *, "   wildcard:   ", TRIM(current%wildcard)
           ENDIF
-          PRINT *, "   isSpecies:  ", current%isSpecies
-          IF ( current%isSpecies ) THEN
-             PRINT *, "   species:    ", TRIM(current%species)
+          IF ( current%isTagged ) THEN
+             PRINT *, "   isTagged:  ", current%isTagged
+             PRINT *, "   tag:    ", TRIM(current%tag)
           ENDIF
           PRINT *, " "
        ENDIF
