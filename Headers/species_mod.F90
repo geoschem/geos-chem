@@ -83,6 +83,7 @@ MODULE Species_Mod
      LOGICAL            :: Is_ActiveChem    ! Is it an active chemical species?
      LOGICAL            :: Is_FixedChem     ! Is it a fixed chemical species?
      LOGICAL            :: Is_Photolysis    ! Is it an photolysis species?
+     LOGICAL            :: Is_HygroGrowth   ! Does it have hygroscropic growth?
      LOGICAL            :: Is_InRestart     ! Is it in the restart file?
 
      ! Molecular weights
@@ -209,6 +210,7 @@ MODULE Species_Mod
 !  10 Aug 2016 - E. Lundgren - Add BackgroundVV field for default background 
 !                              and missing background concentration param [v/v]
 !  31 Oct 2017 - R. Yantosca - Move Str2Hash, To_UpperCase to species_mod.F90
+!  16 Nov 2017 - E. Lundgren - Add Is_HygroGrowth for cloud diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -426,22 +428,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_Create( am_I_Root,     ThisSpc,       ModelID,        &
-                         DryDepID,      Name,          FullName,       &
-                         Formula,                                      &
-                         MW_g,          EmMW_g,        MolecRatio,     &
-                         BackgroundVV,  Henry_K0,      Henry_CR,       &
-                         Henry_PKA,     Density,       Radius,         &
-                         DD_AeroDryDep, DD_DustDryDep, DD_DvzAerSnow,  &
-                         DD_DvzMinVal,  DD_F0,         DD_KOA,         &
-                         DD_HStar_Old,  MP_SizeResAer, MP_SizeResNum,  &
-                         WD_RetFactor,  WD_LiqAndGas,  WD_ConvFacI2G,  &
-                         WD_AerScavEff, WD_KcScaleFac, WD_RainoutEff,  &
-                         WD_CoarseAer,  Is_Advected,   Is_Gas,         &
-                         Is_Drydep,     Is_Wetdep,     Is_Photolysis,  &
-                         Is_InRestart,  Is_Hg0,        Is_Hg2,         &
-                         Is_HgP,        KppSpcId,      KppVarId,       &
-                         KppFixId,      RC )
+  SUBROUTINE Spc_Create( am_I_Root,      ThisSpc,       ModelID,        &
+                         DryDepID,       Name,          FullName,       &
+                         Formula,                                       &
+                         MW_g,           EmMW_g,        MolecRatio,     &
+                         BackgroundVV,   Henry_K0,      Henry_CR,       &
+                         Henry_PKA,      Density,       Radius,         &
+                         DD_AeroDryDep,  DD_DustDryDep, DD_DvzAerSnow,  &
+                         DD_DvzMinVal,   DD_F0,         DD_KOA,         &
+                         DD_HStar_Old,   MP_SizeResAer, MP_SizeResNum,  &
+                         WD_RetFactor,   WD_LiqAndGas,  WD_ConvFacI2G,  &
+                         WD_AerScavEff,  WD_KcScaleFac, WD_RainoutEff,  &
+                         WD_CoarseAer,   Is_Advected,   Is_Gas,         &
+                         Is_Drydep,      Is_Wetdep,     Is_Photolysis,  &
+                         Is_HygroGrowth, Is_InRestart,  Is_Hg0,         &
+                         Is_Hg2,         Is_HgP,        KppSpcId,       &
+                         KppVarId,       KppFixId,      RC )
 !
 ! !USES:
 !
@@ -498,6 +500,7 @@ CONTAINS
     LOGICAL,          OPTIONAL    :: Is_Drydep        ! Is it dry deposited?
     LOGICAL,          OPTIONAL    :: Is_Wetdep        ! Is it wet deposited?
     LOGICAL,          OPTIONAL    :: Is_Photolysis    ! Is it photolysis spc?
+    LOGICAL,          OPTIONAL    :: Is_HygroGrowth   ! Is hygroscopic growth?
     LOGICAL,          OPTIONAL    :: Is_InRestart     ! Is it in restart file?
     LOGICAL,          OPTIONAL    :: Is_Hg0           ! Denotes Hg0 species
     LOGICAL,          OPTIONAL    :: Is_Hg2           ! Denotes Hg2 species
@@ -953,6 +956,15 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
+    ! Is it an aerosol with hygroscopic growth?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_HygroGrowth ) ) THEN
+       ThisSpc%Is_HygroGrowth = Is_HygroGrowth
+    ELSE
+       ThisSpc%Is_HygroGrowth = .FALSE.
+    ENDIF
+    
+    !---------------------------------------------------------------------
     ! Is it stored in the restart file?
     !---------------------------------------------------------------------
     IF ( PRESENT( Is_InRestart ) ) THEN
@@ -1217,6 +1229,11 @@ CONTAINS
        ! Print photolysis info
        !-------------------------
        WRITE( 6, 130 ) 'Is it a photol. spc? ',          ThisSpc%Is_Photolysis
+
+       !------------------------------
+       ! Print hygroscopic growth info
+       !------------------------------
+       WRITE( 6, 130 ) 'Is it a hygro. spc? ',          ThisSpc%Is_HygroGrowth
 
        !-------------------------
        ! Print drydep info
