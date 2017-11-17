@@ -2533,12 +2533,6 @@ CONTAINS
              ELSE
                 WRITE ( Nstr, "(I2)" ) N
              ENDIF
-             ! TODO: Use wavelength from input.geos in variable name
-             !I = INDEX( metadataID, 'WL' )
-             !print *,I
-             !READ(metadataID(I+2:I+2),*) WV 
-             !thisSpcName = TRIM( metadataID(1:I-1) ) //  &
-             !              TRIM(STRWVSELECT(WV)) // '_bin' // TRIM(Nstr)
              thisSpcName = TRIM(metadataID) // '_bin' // TRIM(Nstr) 
              thisSpcDesc = TRIM( Desc ) // ' for ' // TRIM(Nstr)
           CASE ( 'DRY' )
@@ -2799,18 +2793,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    
-    ! ewl debugging
-    PRINT *, metadataID
-    PRINT *, Found
-    PRINT *, desc
-    PRINT *, units
-    PRINT *, rank
-    PRINT *, type
-    PRINT *, vloc
-    PRINT *, tagId
-    
-
     ! Check that metadata consistent with data pointer
     IF ( rank /= 3 ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' // &
@@ -2826,9 +2808,6 @@ CONTAINS
        CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
-
-    ! ewl debugging
-    PRINT *, nTags
 
     ! Register each tagged name as a separate diagnostic
     DO N = 1, nTags          
