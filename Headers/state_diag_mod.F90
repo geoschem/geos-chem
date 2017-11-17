@@ -964,8 +964,7 @@ CONTAINS
     ! Dust Optical Depth per bin at 1st wavelength
     !-----------------------------------------------------------------
     arrayID = 'State_Diag%ODDustBinsWL1'
-!    diagID  = 'OpticalDepthDust' // TRIM(RadWL1)
-    diagID  = 'OpticalDepthDustWL1'
+    diagID  = 'OpticalDepthDust' // TRIM(RadWL(1))
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -983,8 +982,7 @@ CONTAINS
     ! Dust Optical Depth per bin at 2nd wavelength
     !-----------------------------------------------------------------
     arrayID = 'State_Diag%ODDustBinsWL2'
-!    diagID  = 'OpticalDepthDust' // TRIM(RadWL2)
-    diagID  = 'OpticalDepthDustWL2'
+    diagID  = 'OpticalDepthDust' // TRIM(RadWL(2))
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1002,8 +1000,7 @@ CONTAINS
     ! Dust Optical Depth per bin at 3rd wavelength
     !-----------------------------------------------------------------
     arrayID = 'State_Diag%ODDustBinsWL3'
-!    diagID  = 'OpticalDepthDust' // TRIM(RadWL3)
-    diagID  = 'OpticalDepthDustWL3'
+    diagID  = 'OpticalDepthDust' // TRIM(RadWL(3))
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1811,284 +1808,277 @@ CONTAINS
     !=======================================================================
     ! Values for Retrieval (string comparison slow but happens only once)
     !=======================================================================
-    SELECT CASE ( TRIM( Name_AllCaps ) )
-
-       CASE ( 'SPECIESCONC' )
+    IF ( TRIM(Name_AllCaps) == 'SPECIESCONC' ) THEN
           IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
           IF ( isUnits   ) Units = 'mol mol-1 dry'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'ALL'
           IF ( isType    ) Type  = KINDVAL_F8
 
-       CASE ( 'DRYDEPCHM' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'DRYDEPCHM' ) THEN
           IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from chemistry'
           IF ( isUnits   ) Units = 'molec cm-2 s-1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'DRY'
 
-       CASE ( 'DRYDEPMIX' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'DRYDEPMIX' ) THEN
           IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from mixing'
           IF ( isUnits   ) Units = 'molec cm-2 s-1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'DRY'
 
-       CASE ( 'DRYDEP' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'DRYDEP' ) THEN
           IF ( isDesc    ) Desc  = 'Dry deposition flux of species'
           IF ( isUnits   ) Units = 'molec cm-2 s-1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'DRY'
 
-       CASE ( 'DRYDEPVEL' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'DRYDEPVEL' ) THEN
           IF ( isDesc    ) Desc  = 'Dry deposition velocity of species'
           IF ( isUnits   ) Units = 'cm s-1'
           IF ( isRank    ) Rank  = 2
           IF ( isTagged  ) TagId = 'DRY'
 
-       CASE ( 'JVAL' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'JVAL' ) THEN
           IF ( isDesc    ) Desc  = 'Photolysis rate' !TODO: append to this?
           IF ( isUnits   ) Units = 's-1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'JVN' ! TODO: fix species mapping
 
-       CASE ( 'RXNRATES' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'RXNRATES' ) THEN
           IF ( isDesc    ) Desc  = 'placeholder'
           IF ( isUnits   ) Units = 'placeholder'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'ALL'
 
-       CASE ( 'UVFLUXDIFFUSE' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'UVFLUXDIFFUSE' ) THEN
           IF ( isDesc    ) Desc  = 'placeholder'
           IF ( isUnits   ) Units = 'W m-2'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'UVFLUXDIRECT' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'UVFLUXDIRECT' ) THEN
           IF ( isDesc    ) Desc  = 'placeholder'
           IF ( isUnits   ) Units = 'W m-2'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'UVFLUXNET' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'UVFLUXNET' ) THEN
           IF ( isDesc    ) Desc  = 'placeholder'
           IF ( isUnits   ) Units = 'W m-2'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'ADVFLUXZONAL' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'ADVFLUXZONAL' ) THEN
           IF ( isDesc    ) Desc  = 'Advection of species in zonal direction'
           IF ( isUnits   ) Units = 'kg s-1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'ADV'
 
-       CASE ( 'ADVFLUXMERID' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'ADVFLUXMERID' ) THEN
           IF ( isDesc    ) Desc  = 'Advection of species in meridional direction'
           IF ( isUnits   ) Units = 'kg s-1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'ADV'
      
-       CASE ( 'ADVFLUXVERT' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'ADVFLUXVERT' ) THEN
           IF ( isDesc    ) Desc  = 'Advection of species in vertical direction'
           IF ( isUnits   ) Units = 'kg s-1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'ADV'
 
-       CASE ( 'PBLMIXFRAC' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'PBLMIXFRAC' ) THEN
           IF ( isDesc    ) Desc  = 'Fraction of boundary layer occupied by each level'
           IF ( isUnits   ) Units = 'placeholder'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'PBLFLUX' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'PBLFLUX' ) THEN
           IF ( isDesc    ) Desc  = 'Species mass change due to boundary-layer mixing'
           IF ( isUnits   ) Units = 'kg s-1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'ADV'
 
-       CASE ( 'CLOUDCONVFLUX' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'CLOUDCONVFLUX' ) THEN
           IF ( isDesc    ) Desc  = 'Mass change due to cloud convection'
           IF ( isUnits   ) Units = 'kg s-1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'ADV'
 
-       CASE ( 'WETLOSSCONV' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'WETLOSSCONV' ) THEN
           IF ( isDesc    ) Desc  = 'Loss of soluble species in convective updrafts'
           IF ( isUnits   ) Units = 'kg s-1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'WET'
 
-       CASE ( 'PRECIPFRACCONV' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'PRECIPFRACCONV' ) THEN
           IF ( isDesc    ) Desc  = 'Fraction of grid box undergoing convective precipitation'
           IF ( isUnits   ) Units = '1'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'RAINFRACCONV' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'RAINFRACCONV' ) THEN
           IF ( isDesc    ) Desc  = 'Fraction of soluble species lost to rainout in convective precipitation'
           IF ( isUnits   ) Units = '1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'WET'
 
-       CASE ( 'WASHFRACCONV' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'WASHFRACCONV' ) THEN
           IF ( isDesc    ) Desc  = 'Fraction of soluble species lost to washout in convective precipitation'
           IF ( isUnits   ) Units = '1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'WET'
 
-       CASE ( 'WETLOSSLS' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'WETLOSSLS' ) THEN
           IF ( isDesc    ) Desc  = 'Loss of soluble species in large-scale precipitation'
           IF ( isUnits   ) Units = 'placeholder'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'WET'
 
-       CASE ( 'PRECIPFRACLS' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'PRECIPFRACLS' ) THEN
           IF ( isDesc    ) Desc  = 'Fraction of grid box undergoing large-scale precipitation'
           IF ( isUnits   ) Units = '1'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'RAINFRACLS' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'RAINFRACLS' ) THEN
           IF ( isDesc    ) Desc  = 'Fraction of soluble species lost to rainout in large-scale precipitation'
           IF ( isUnits   ) Units = '1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'WET'
 
-       CASE ( 'WASHFRACLS' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'WASHFRACLS' ) THEN
           IF ( isDesc    ) Desc  = 'Fraction of soluble species lost to washout in large-scale precipitation'
           IF ( isUnits   ) Units = '1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'WET'
 
-       CASE ( 'PBFROMRNDECAY' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'PBFROMRNDECAY' ) THEN
           IF ( isDesc    ) Desc  = 'Pb210 created from radioactive decay of Rn222'
           IF ( isUnits   ) Units = 'kg s-1'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'RADDECAY' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADDECAY' ) THEN
           IF ( isDesc    ) Desc  = 'Radioactive decay of radionuclide species'
           IF ( isUnits   ) Units = 'kg s-1'
           IF ( isRank    ) Rank  = 3
           IF ( isTagged  ) TagId = 'ADV'
 
-       CASE ( 'RADALLSKYLWSURF' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADALLSKYLWSURF' ) THEN
           IF ( isDesc    ) Desc  = 'All-sky long-wave radiation at surface'
           IF ( isUnits   ) Units = 'W m-2'
           IF ( isRank    ) Rank  = 2
           IF ( isTagged  ) TagId = 'placeholder'
 
-       CASE ( 'RADALLSKYLWTOA' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADALLSKYLWTOA' ) THEN
           IF ( isDesc    ) Desc  = 'All-sky long-wave radiation at top of atmosphere'
           IF ( isUnits   ) Units = 'W m-2'
           IF ( isRank    ) Rank  = 2
           IF ( isTagged  ) TagId = 'placeholder'
 
-       CASE ( 'RADALLSKYSWSURF' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADALLSKYSWSURF' ) THEN
           IF ( isDesc    ) Desc  = 'All-sky short-wave radiation at surface'
           IF ( isUnits   ) Units = 'W m-2'
           IF ( isRank    ) Rank  = 2
           IF ( isTagged  ) TagId = 'placeholder'
 
-       CASE ( 'RADALLSKYSWTOA ' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADALLSKYSWTOA ' ) THEN
           IF ( isDesc    ) Desc  = 'All-sky short-wave radiation at top of atmosphere'
           IF ( isUnits   ) Units = 'W m-2'
           IF ( isRank    ) Rank  = 2
           IF ( isTagged  ) TagId = 'placeholder'
 
-       CASE ( 'RADCLRSKYLWSURF' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADCLRSKYLWSURF' ) THEN
           IF ( isDesc    ) Desc  = 'Clear-sky long-wave radiation at surface'
           IF ( isUnits   ) Units = 'W m-2'
           IF ( isRank    ) Rank  = 2
           IF ( isTagged  ) TagId = 'placeholder'
 
-       CASE ( 'RADCLRSKYLWTOA ' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADCLRSKYLWTOA ' ) THEN
           IF ( isDesc    ) Desc  = 'Clear-sky long-wave radiation at top of atmosphere'
           IF ( isUnits   ) Units = 'W m-2'
           IF ( isRank    ) Rank  = 2
           IF ( isTagged  ) TagId = 'placeholder'
 
-       CASE ( 'RADCLRSKYSWSURF' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADCLRSKYSWSURF' ) THEN
           IF ( isDesc    ) Desc  = 'Clear-sky short-wave radiation at surface'
           IF ( isUnits   ) Units = 'W m-2'
           IF ( isRank    ) Rank  = 2
           IF ( isTagged  ) TagId =  'placeholder'
 
-       CASE ( 'RADCLRSKYSWTOA' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADCLRSKYSWTOA' ) THEN
           IF ( isDesc    ) Desc  = 'Clear-sky short-wave radiation at top of atmosphere'
           IF ( isUnits   ) Units = 'W m-2'
           IF ( isRank    ) Rank  = 2
           IF ( isTagged  ) TagId = 'placeholder'
 
-       CASE ( 'PRODBCPIFROMBCPO' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'PRODBCPIFROMBCPO' ) THEN
           IF ( isDesc    ) Desc  = 'Production of hydrophilic black carbon from hydrophobic black carbon'
           IF ( isUnits   ) Units = 'kg'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'PRODOCPIFROMOCPO' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'PRODOCPIFROMOCPO' ) THEN
           IF ( isDesc    ) Desc  = 'Production of hydrophilic organic carbon from hydrophobic organic carbon'
           IF ( isUnits   ) Units = 'kg'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'PHSAV' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'PHSAV' ) THEN
           IF ( isDesc    ) Desc  = 'ISORROPIA aerosol pH'
           IF ( isUnits   ) Units = '1'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'HPLUSSAV' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'HPLUSSAV' ) THEN
           IF ( isDesc    ) Desc  = 'ISORROPIA H+ concentration'
           IF ( isUnits   ) Units = 'mol L-1'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'WATERSAV' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'WATERSAV' ) THEN
           IF ( isDesc    ) Desc  = 'ISORROPIA aerosol water concentration'
           IF ( isUnits   ) Units = 'ug m-3'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'SULRATSAV' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'SULRATSAV' ) THEN
           IF ( isDesc    ) Desc  = 'ISORROPIA sulfate concentration'
           IF ( isUnits   ) Units = 'M'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'NARATSAV' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'NARATSAV' ) THEN
           IF ( isDesc    ) Desc  = 'ISORROPIA sulfate concentration'
           IF ( isUnits   ) Units = 'M'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'ACIDPURSAV' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'ACIDPURSAV' ) THEN
           IF ( isDesc    ) Desc  = 'ISORROPIA ACIDPUR'
           IF ( isUnits   ) Units = 'M'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'BISULSAV' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'BISULSAV' ) THEN
           IF ( isDesc    ) Desc  = 'ISORROPIA Bisulfate (general acid)' &
                                  // ' concentration'
           IF ( isUnits   ) Units = 'M'
           IF ( isRank    ) Rank  =  3
 
-       CASE ( 'OPTICALDEPTHDUST' )
+    ELSEIF ( TRIM(Name_AllCaps) == 'OPTICALDEPTHDUST' ) THEN
           IF ( isDesc    ) Desc  = 'Optical depth for mineral dust'
           IF ( isUnits   ) Units = 'unitless'
           IF ( isRank    ) Rank  =  3
 
-!       CASE ( 'OPTICALDEPTHDUST' // TRIM(RadWL1) ) 
-       CASE ( 'OPTICALDEPTHDUSTWL1' )
-!          IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
-!                                     TRIM(RadWL1) // ' nm'
-          IF ( isDesc    ) Desc    = 'Optical depth for dust at 1st wavelength'
+    ELSEIF ( TRIM(Name_AllCaps) == 'OPTICALDEPTHDUST' // TRIM(RadWL(1)) ) THEN 
+          IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
+                                     TRIM(RadWL(1)) // ' nm'
           IF ( isUnits   ) Units   = 'unitless'
           IF ( isRank    ) Rank    =  3
           IF ( isTagged  ) TagId   = 'DUSTBIN'
 
-!       CASE ( 'OPTICALDEPTHDUST' // TRIM(RadWL2) ) 
-       CASE ( 'OPTICALDEPTHDUSTWL2' )
-!          IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
-!                                     TRIM(RadWL2) // ' nm'
-          IF ( isDesc    ) Desc    = 'Optical depth for dust at 2nd wavelength'
+    ELSEIF ( TRIM(Name_AllCaps) == 'OPTICALDEPTHDUST' // TRIM(RadWL(2)) ) THEN
+          IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
+                                     TRIM(RadWL(2)) // ' nm'
           IF ( isUnits   ) Units   = 'unitless'
           IF ( isRank    ) Rank    =  3
           IF ( isTagged  ) TagId   = 'DUSTBIN'
 
-!       CASE ( 'OPTICALDEPTHDUST' // TRIM(RadWL3) ) 
-       CASE ( 'OPTICALDEPTHDUSTWL3' )
-!          IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
-!                                     TRIM(RadWL3) // ' nm'
-          IF ( isDesc    ) Desc    = 'Optical depth for dust at 3rd wavelength'
+    ELSEIF ( TRIM(Name_AllCaps) == 'OPTICALDEPTHDUST' // TRIM(RadWL(3)) ) THEN
+          IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
+                                     TRIM(RadWL(3)) // ' nm'
           IF ( isUnits   ) Units   = 'unitless'
           IF ( isRank    ) Rank    =  3
           IF ( isTagged  ) TagId   = 'DUSTBIN'
-       CASE DEFAULT
+
+    ELSE
           Found = .False.
           ErrMsg = 'Metadata not found for State_Diag field ID: '            &
                    // TRIM( metadataID ) // '. If the name in HISTORY.rc '   &
@@ -2099,8 +2089,7 @@ CONTAINS
                    // '(Headers/state_diag_mod.F90).'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
-
-    END SELECT
+    ENDIF
 
    END SUBROUTINE Get_Metadata_State_Diag
 !EOC
@@ -2117,7 +2106,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_TagInfo( am_I_Root, tagID, State_Chm, Found, RC, numTags )
+  SUBROUTINE Get_TagInfo( am_I_Root, tagID, State_Chm, Found, RC, nTags )
 !
 ! !USES:
 !
@@ -2132,7 +2121,7 @@ CONTAINS
 !
     LOGICAL,  INTENT(OUT)           :: Found      ! Item found?
     INTEGER,  INTENT(OUT)           :: RC         ! Return code
-    INTEGER,  INTENT(OUT), OPTIONAL :: numTags    ! # tags
+    INTEGER,  INTENT(OUT), OPTIONAL :: nTags    ! # tags
 !
 ! !REMARKS:
 !
@@ -2157,23 +2146,23 @@ CONTAINS
     Found = .TRUE.
 
     ! Optional arguments present?
-    isNumTags  = PRESENT( numTags )
+    isNumTags  = PRESENT( nTags )
 
     ! Set defaults for optional arguments
-    IF ( isNumTags  ) numTags = 0  
+    IF ( isNumTags  ) nTags = 0  
 
     ! TODO: add more cases as needed
     SELECT CASE ( TRIM(tagId) )
        CASE ( 'ALL' )
-          numTags = State_Chm%nSpecies
+          nTags = State_Chm%nSpecies
        CASE ( 'ADV' )
-          numTags = State_Chm%nAdvect
+          nTags = State_Chm%nAdvect
        CASE ( 'DUSTBIN' )
-          numTags = NDUST
+          nTags = NDUST
        CASE ( 'DRY' )
-          numTags = State_Chm%nDryDep
+          nTags = State_Chm%nDryDep
        CASE ( 'WET' )
-          numTags = State_Chm%nWetDep
+          nTags = State_Chm%nWetDep
        CASE DEFAULT
           FOUND = .FALSE.
           ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &
@@ -2228,7 +2217,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, tagId, Nstr
     CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    INTEGER                :: N, D, I, nTags, numTags
+    INTEGER                :: N, D, I, nTags
     INTEGER                :: rank, type, vloc
     LOGICAL                :: found
     TYPE(Species), POINTER :: SpcInfo
@@ -2260,7 +2249,7 @@ CONTAINS
 
        ! Get the number of tags
        CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
-                         numTags=numTags )
+                         nTags=nTags )
        IF ( RC /= GC_SUCCESS ) THEN
           CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
           RETURN
@@ -2360,7 +2349,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, tagID, Nstr
     CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    INTEGER                :: N, D, I, nTags, numTags
+    INTEGER                :: N, D, I, nTags
     INTEGER                :: rank, type,  vloc
     LOGICAL                :: found
     TYPE(Species), POINTER :: SpcInfo
@@ -2393,7 +2382,7 @@ CONTAINS
 
        ! Get the number of tags
        CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
-                         numTags=numTags )
+                         nTags=nTags )
        IF ( RC /= GC_SUCCESS ) THEN
           CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
           RETURN
@@ -2497,7 +2486,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: desc, units, tagId, Nstr
     CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
     CHARACTER(LEN=10)      :: JNames(37)
-    INTEGER                :: N, D, I, WV, nTags, numTags
+    INTEGER                :: N, D, I, WV, nTags
     INTEGER                :: rank, type,  vloc
     LOGICAL                :: found
     TYPE(Species), POINTER :: SpcInfo
@@ -2525,7 +2514,7 @@ CONTAINS
     
     ! Assume always tagged
     CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
-                      numTags=numTags )
+                      nTags=nTags )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
@@ -2654,7 +2643,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, tagId, Nstr
     CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    INTEGER                :: N, D, I, nTags, numTags
+    INTEGER                :: N, D, I, nTags
     INTEGER                :: rank, type, vloc
     LOGICAL                :: found
     TYPE(Species), POINTER :: SpcInfo
@@ -2687,7 +2676,7 @@ CONTAINS
 
        ! Get the number of tags
        CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
-                         numTags=numTags )
+                         nTags=nTags )
        IF ( RC /= GC_SUCCESS ) THEN
           CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
           RETURN
@@ -2791,7 +2780,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: desc, units, tagId, Nstr
     CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
     CHARACTER(LEN=10)      :: JNames(37)
-    INTEGER                :: N, D, I, nTags, numTags
+    INTEGER                :: N, D, I, nTags
     INTEGER                :: rank, type,  vloc
     LOGICAL                :: found
     TYPE(Species), POINTER :: SpcInfo
@@ -2810,6 +2799,18 @@ CONTAINS
        RETURN
     ENDIF
 
+    
+    ! ewl debugging
+    PRINT *, metadataID
+    PRINT *, Found
+    PRINT *, desc
+    PRINT *, units
+    PRINT *, rank
+    PRINT *, type
+    PRINT *, vloc
+    PRINT *, tagId
+    
+
     ! Check that metadata consistent with data pointer
     IF ( rank /= 3 ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' // &
@@ -2820,17 +2821,20 @@ CONTAINS
     
     ! Assume always tagged
     CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
-                      numTags=numTags )
+                      nTags=nTags )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    ! ewl debugging
+    PRINT *, nTags
+
     ! Register each tagged name as a separate diagnostic
     DO N = 1, nTags          
 
        ! TODO: add more cases as needed and refactor
-       SELECT CASE ( tagId )
+       SELECT CASE ( TRIM(tagId) )
           CASE ( 'ALL', 'ADV' )
              D = N
           CASE ( 'DRY' )

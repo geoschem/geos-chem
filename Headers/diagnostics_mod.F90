@@ -65,6 +65,11 @@ MODULE Diagnostics_Mod
      CHARACTER(LEN=63)      :: tag
      TYPE(DgnItem), POINTER :: next
   END TYPE DgnItem
+
+  !=========================================================================
+  ! Configurable Settings Used for Diagnostic Names at Run-time
+  !=========================================================================
+  CHARACTER(LEN=5), PUBLIC :: RadWL(3) ! Wavelengths configured in rad menu
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
@@ -114,7 +119,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                 :: fId, IOS, N, I
+    INTEGER                 :: fId, IOS, N, I, J
     INTEGER                 :: numSpcWords, numIDWords
     CHARACTER(LEN=255)      :: errMsg, thisLoc, nameAllCaps
     CHARACTER(LEN=255)      :: line, SubStrs(500), SubStr
@@ -132,6 +137,7 @@ CONTAINS
     EOF = .FALSE.
     found = .FALSE.
     NewDiagItem => NULL()
+    RadWL(:) = ['WL1  ','WL2  ','WL3  ']
 
     ! Create DiagList object
     DiagList%head => NULL()
@@ -277,6 +283,45 @@ CONTAINS
        CALL InsertBeginning_DiagList( am_I_Root, NewDiagItem, DiagList, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
+    ENDDO
+    
+    ! Close the file
+    CLOSE( fId )
+
+! ewl new:
+    ! Open the input.geos config file
+    fId = FindFreeLun()
+    OPEN( fId, FILE=TRIM('input.geos'), STATUS='OLD', IOSTAT=RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Could not open "' //TRIM('input.geos') // '"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    
+    ! Read data from the file
+    DO    
+       ! Read line and strip leading/trailing spaces
+       Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+       IF ( EOF ) EXIT
+       IF ( IOS > 0 ) THEN
+          ErrMsg = 'Unexpected end-of-file in "'       // &
+                    TRIM('input.geos') // '"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    
+       ! Skip line if not relevant
+       IF ( INDEX( Line, 'AOD Wavelength' ) .le. 0 ) CYCLE
+    
+       ! Update wavelength(s) with string in file
+       I = INDEX( Line, ':' )
+       CALL StrSplit( Line(I:), ' ', SubStrs, N )
+       DO J = 1, N-1
+          WRITE ( RadWL(J), "(a5)" ) SubStrs(J+1)
+       ENDDO
+    
+       ! End the loop
+       EXIT
     ENDDO
     
     ! Close the file

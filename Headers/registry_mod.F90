@@ -1009,7 +1009,7 @@ CONTAINS
              WRITE( 6, 100 ) Item%FullName,    Item%Description,             &
                              Item%DimNames,    CellPos,                      &
                              TRIM( Item%Units )
-  100        FORMAT( 1x, a20, ' | ', a30, ' | ', a3, ' ', a1, ' | ', a )
+  100        FORMAT( 1x, a30, ' | ', a20, ' | ', a3, ' ', a1, ' | ', a )
 
           ELSE
 
