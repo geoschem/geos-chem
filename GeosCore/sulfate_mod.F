@@ -3395,6 +3395,7 @@
             SR           = 0.e+0_fp
             SRhobr       = 0.e+0_fp
             SRo3         = 0.e+0_fp
+            HPLUS        = 0.e+0_fp
 
             ! Store HSO3aq, SO3aq for use in gckpp_HetRates.F90
             ! Avoid divide-by-zero errors
