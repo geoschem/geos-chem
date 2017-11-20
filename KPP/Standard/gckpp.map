@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp.map
-! Time                 : Mon Jun 26 16:19:55 2017
-! Working directory    : /work/home/ts551/data/all_model_simulations/iodine_runs/iGEOSChem_5.0/code_TMS_new/KPP/Standard
+! Time                 : Mon Nov 20 16:28:20 2017
+! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -32,86 +32,105 @@ REORDER  - ON
 ### Parameters ----------------------------------------
 
 ! NSPEC - Number of chemical species
-  INTEGER, PARAMETER :: NSPEC = 177 
+  INTEGER, PARAMETER :: NSPEC = 238 
 ! NVAR - Number of Variable species
-  INTEGER, PARAMETER :: NVAR = 171 
+  INTEGER, PARAMETER :: NVAR = 233 
 ! NVARACT - Number of Active species
-  INTEGER, PARAMETER :: NVARACT = 155 
+  INTEGER, PARAMETER :: NVARACT = 205 
 ! NFIX - Number of Fixed species
-  INTEGER, PARAMETER :: NFIX = 6 
+  INTEGER, PARAMETER :: NFIX = 5 
 ! NREACT - Number of reactions
-  INTEGER, PARAMETER :: NREACT = 538 
+  INTEGER, PARAMETER :: NREACT = 720 
 ! NVARST - Starting of variables in conc. vect.
   INTEGER, PARAMETER :: NVARST = 1 
 ! NFIXST - Starting of fixed in conc. vect.
-  INTEGER, PARAMETER :: NFIXST = 172 
+  INTEGER, PARAMETER :: NFIXST = 234 
 
 ### Species -------------------------------------------
 
 Variable species
-  1 = MONX (r)   59 = ETP (r)   117 = MACRN (r) 
-  2 = MSA (n)    60 = CH3Br (r) 118 = CH3CHOO (r)
-  3 = LISOPOH (n) 61 = CH3Cl (r) 119 = MAN2 (r)  
-  4 = LISOPNO3 (n) 62 = MAOP (r)  120 = H2O2 (r)  
-  5 = LBRO2H (n) 63 = HNO4 (r)  121 = PRN1 (r)  
-  6 = LBRO2N (n) 64 = ClOO (r)  122 = KO2 (r)   
-  7 = LTRO2H (n) 65 = MP (r)    123 = VRO2 (r)  
-  8 = LTRO2N (n) 66 = RP (r)    124 = ClNO3 (r) 
-  9 = LXRO2H (n) 67 = BrCl (r)  125 = B3O2 (r)  
- 10 = LXRO2N (n) 68 = PRPN (r)  126 = HC5OO (r) 
- 11 = PYAC (n)   69 = SO4 (r)   127 = ETO2 (r)  
- 12 = CO2 (n)    70 = Br2 (r)   128 = RCO3 (r)  
- 13 = POx (n)    71 = ETHLN (r) 129 = MRO2 (r)  
- 14 = LOx (n)    72 = PP (r)    130 = HNO3 (r)  
- 15 = PCO (n)    73 = R4P (r)   131 = HOCl (r)  
- 16 = LCO (n)    74 = C2H6 (r)  132 = GLYC (r)  
- 17 = PSO4 (n)   75 = RIP (r)   133 = R4N1 (r)  
- 18 = TOLU (r)   76 = VRP (r)   134 = ATO2 (r)  
- 19 = XYLE (r)   77 = ATOOH (r) 135 = ISN1 (r)  
- 20 = BENZ (r)   78 = IAP (r)   136 = MAO3 (r)  
- 21 = CH3CCl3 (r) 79 = DHMOB (r) 137 = RIO2 (r)  
- 22 = PPN (r)    80 = MOBA (r)  138 = INO2 (r)  
- 23 = BrNO2 (r)  81 = MRP (r)   139 = HC5 (r)   
- 24 = IEPOX (r)  82 = N2O5 (r)  140 = MGLY (r)  
- 25 = PMNN (r)   83 = HCOOH (r) 141 = MACROO (r)
- 26 = CCl4 (r)   84 = ISNP (r)  142 = ISOPNBO2 (r)
- 27 = CFC11 (r)  85 = INPN (r)  143 = ISOPNDO2 (r)
- 28 = CFC12 (r)  86 = ISOPNB (r)144 = HAC (r)   
- 29 = CFC113 (r) 87 = ROH (r)   145 = R4O2 (r)  
- 30 = CFC114 (r) 88 = MOBAOO (r)146 = R4N2 (r)  
- 31 = CFC115 (r) 89 = DIBOO (r) 147 = BrO (r)   
- 32 = H1301 (r)  90 = IEPOXOO (r)148 = RCHO (r)  
- 33 = H2402 (r)  91 = PMN (r)   149 = ClO (r)   
- 34 = N2O (r)    92 = BrNO3 (r) 150 = MEK (r)   
- 35 = BRO2 (r)   93 = MACRNO2 (r)151 = MACR (r)  
- 36 = TRO2 (r)   94 = H (r)     152 = ALD2 (r)  
- 37 = XRO2 (r)   95 = ISOP (r)  153 = MVK (r)   
- 38 = H1211 (r)  96 = PRPE (r)  154 = MCO3 (r)  
- 39 = N (r)      97 = Cl2 (r)   155 = SO2 (r)   
- 40 = PAN (r)    98 = ISNOHOO (r)156 = CH2O (r)  
- 41 = OCS (r)    99 = ISOPND (r)157 = H2O (r)   
- 42 = ALK4 (r)  100 = ISNOOB (r)158 = O (r)     
- 43 = MAP (r)   101 = HOBr (r)  159 = NO (r)    
- 44 = CHBr3 (r) 102 = MVKN (r)  160 = MO2 (r)   
- 45 = CH2Br2 (r)103 = PROPNN (r)161 = HCl (r)   
- 46 = MPN (r)   104 = GLYX (r)  162 = NO3 (r)   
- 47 = Cl2O2 (r) 105 = GAOO (r)  163 = NO2 (r)   
- 48 = C3H8 (r)  106 = CH4 (r)   164 = OH (r)    
- 49 = RA3P (r)  107 = MVKOO (r) 165 = Br (r)    
- 50 = RB3P (r)  108 = MGLYOO (r)166 = O3 (r)    
- 51 = DMS (r)   109 = MAOPO2 (r)167 = CO (r)    
- 52 = HNO2 (r)  110 = A3O2 (r)  168 = HO2 (r)   
- 53 = OClO (r)  111 = ACET (r)  169 = O1D (r)   
- 54 = ClNO2 (r) 112 = MGLOO (r) 170 = HBr (r)   
- 55 = HCFC22 (r)113 = CH2OO (r) 171 = Cl (r)    
- 56 = HCFC123 (r)114 = ACTA (r)  
- 57 = HCFC141b (r)115 = ISNOOA (r)
- 58 = HCFC142b (r)116 = PO2 (r)   
+  1 = CH2I2 (r)  79 = MPN (r)   157 = GLYX (r)  
+  2 = CH2ICl (r) 80 = CH2Br2 (r)158 = MVKN (r)  
+  3 = CH2IBr (r) 81 = CH2Cl2 (r)159 = PRN1 (r)  
+  4 = MONX (r)   82 = HCFC123 (r)160 = MONITU (r)
+  5 = AERI (n)   83 = HCFC141b (r)161 = MGLOO (r) 
+  6 = CO2 (n)    84 = HCFC142b (r)162 = A3O2 (r)  
+  7 = INDIOL (n) 85 = ETP (r)   163 = CH2OO (r) 
+  8 = ISALA (n)  86 = HCFC22 (r)164 = ISNOOA (r)
+  9 = ISALC (n)  87 = IONO (r)  165 = PROPNN (r)
+ 10 = ISN1OA (n) 88 = ClNO2 (r) 166 = MAN2 (r)  
+ 11 = ISN1OG (r) 89 = OIO (r)   167 = PO2 (r)   
+ 12 = LBRO2H (n) 90 = RA3P (r)  168 = ISOPNDO2 (r)
+ 13 = LBRO2N (n) 91 = RB3P (r)  169 = B3O2 (r)  
+ 14 = LISOPOH (n) 92 = XYLE (r)  170 = HOBr (r)  
+ 15 = LISOPNO3 (n) 93 = DMS (r)   171 = MACROO (r)
+ 16 = LTRO2H (n) 94 = CH3Cl (r) 172 = R4N1 (r)  
+ 17 = LTRO2N (n) 95 = CH3Br (r) 173 = MACRN (r) 
+ 18 = LVOCOA (n) 96 = HNO4 (r)  174 = H2O2 (r)  
+ 19 = LVOC (r)   97 = ClOO (r)  175 = MAOPO2 (r)
+ 20 = LXRO2H (n) 98 = OClO (r)  176 = ISOP (r)  
+ 21 = LXRO2N (n) 99 = PAN (r)   177 = ATO2 (r)  
+ 22 = MSA (n)   100 = RP (r)    178 = HCOOH (r) 
+ 23 = PYAC (n)  101 = BrCl (r)  179 = ClNO3 (r) 
+ 24 = SO4H1 (n) 102 = HNO2 (r)  180 = I (r)     
+ 25 = SO4H2 (n) 103 = PP (r)    181 = RCO3 (r)  
+ 26 = SOAGX (n) 104 = PRPN (r)  182 = OLNN (r)  
+ 27 = SOAIE (n) 105 = SO4 (r)   183 = OLND (r)  
+ 28 = SOAME (n) 106 = ALK4 (r)  184 = IO (r)    
+ 29 = IMAE (r)  107 = HPALD (r) 185 = LIMO2 (r) 
+ 30 = SOAMG (n) 108 = PIP (r)   186 = KO2 (r)   
+ 31 = POx (n)   109 = R4P (r)   187 = PIO2 (r)  
+ 32 = LOx (n)   110 = Br2 (r)   188 = HC5OO (r) 
+ 33 = PCO (n)   111 = N2O5 (r)  189 = ISOPNBO2 (r)
+ 34 = LCO (n)   112 = C3H8 (r)  190 = HNO3 (r)  
+ 35 = PSO4 (n)  113 = DHPCARP (r)191 = ISOPND (r)
+ 36 = I2O4 (r)  114 = HC187 (r) 192 = GLYC (r)  
+ 37 = DHDN (r)  115 = IAP (r)   193 = HOCl (r)  
+ 38 = DHDC (r)  116 = HOI (r)   194 = ACTA (r)  
+ 39 = I2O2 (r)  117 = HPC52O2 (r)195 = VRO2 (r)  
+ 40 = CH3CCl3 (r)118 = VRP (r)   196 = NMAO3 (r) 
+ 41 = MONITA (r)119 = ATOOH (r) 197 = ISN1 (r)  
+ 42 = BENZ (r)  120 = MOBA (r)  198 = MGLY (r)  
+ 43 = CH3I (r)  121 = HONIT (r) 199 = ACET (r)  
+ 44 = H1301 (r) 122 = DHMOB (r) 200 = HC5 (r)   
+ 45 = H2402 (r) 123 = RIPB (r)  201 = BrO (r)   
+ 46 = I2O3 (r)  124 = MP (r)    202 = RIO2 (r)  
+ 47 = PMNN (r)  125 = ISNP (r)  203 = ETO2 (r)  
+ 48 = PPN (r)   126 = MAOP (r)  204 = INO2 (r)  
+ 49 = TOLU (r)  127 = MRP (r)   205 = R4O2 (r)  
+ 50 = BrNO2 (r) 128 = ETHLN (r) 206 = R4N2 (r)  
+ 51 = CCl4 (r)  129 = RIPA (r)  207 = HAC (r)   
+ 52 = CFC11 (r) 130 = RIPD (r)  208 = MRO2 (r)  
+ 53 = CFC12 (r) 131 = EOH (r)   209 = PRPE (r)  
+ 54 = CFC113 (r)132 = ISNOHOO (r)210 = RCHO (r)  
+ 55 = CFC114 (r)133 = C2H6 (r)  211 = MEK (r)   
+ 56 = CFC115 (r)134 = MTPA (r)  212 = MACR (r)  
+ 57 = H1211 (r) 135 = NPMN (r)  213 = CH2O (r)  
+ 58 = IBr (r)   136 = IONO2 (r) 214 = ALD2 (r)  
+ 59 = IEPOXD (r)137 = MOBAOO (r)215 = MVK (r)   
+ 60 = INO (r)   138 = DIBOO (r) 216 = MCO3 (r)  
+ 61 = N2O (r)   139 = ISNOOB (r)217 = SO2 (r)   
+ 62 = TRO2 (r)  140 = LIMO (r)  218 = HBr (r)   
+ 63 = BRO2 (r)  141 = IPMN (r)  219 = HCl (r)   
+ 64 = IEPOXA (r)142 = INPN (r)  220 = NO3 (r)   
+ 65 = IEPOXB (r)143 = MACRNO2 (r)221 = OH (r)    
+ 66 = IONITA (r)144 = H (r)     222 = HO2 (r)   
+ 67 = N (r)     145 = BrNO3 (r) 223 = NO2 (r)   
+ 68 = OCS (r)   146 = ROH (r)   224 = Br (r)    
+ 69 = XRO2 (r)  147 = I2 (r)    225 = O1D (r)   
+ 70 = HI (r)    148 = MONITS (r)226 = O3 (r)    
+ 71 = MAP (r)   149 = Cl2 (r)   227 = H2O (r)   
+ 72 = BrSALA (r)150 = ISOPNB (r)228 = ClO (r)   
+ 73 = BrSALC (r)151 = CH4 (r)   229 = CO (r)    
+ 74 = CHBr3 (r) 152 = MVKOO (r) 230 = MO2 (r)   
+ 75 = ICl (r)   153 = GAOO (r)  231 = O (r)     
+ 76 = Cl2O2 (r) 154 = CH3CHOO (r)232 = Cl (r)    
+ 77 = IMAO3 (r) 155 = MGLYOO (r)233 = NO (r)    
+ 78 = CHCl3 (r) 156 = IEPOXOO (r)
 
 Fixed species
-  1 = EOH (r)     4 = N2 (r)    
-  2 = H2 (r)      5 = O2 (r)    
-  3 = MOH (r)     6 = RCOOH (n) 
+  1 = H2 (r)      3 = N2 (r)      5 = RCOOH (n) 
+  2 = MOH (r)     4 = O2 (r)    
 
 ### Subroutines ---------------------------------------
 
