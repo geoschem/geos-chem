@@ -527,7 +527,7 @@
       INTEGER, SAVE     :: id_INDIOL,   id_LVOCOA, id_ISN1OA
       INTEGER, SAVE     :: id_ISOA1,    id_ISOA2,  id_ISOA3
       INTEGER, SAVE     :: id_SO4,      id_NH4,    id_NIT
-      INTEGER, SAVE     :: id_BCPI,     id_BCPO
+      INTEGER, SAVE     :: id_BCPI,     id_BCPO,   id_OH
 
       ! Scalars
       LOGICAL           :: IS_CHEM,     IS_DIAG,   IS_EMIS
@@ -589,6 +589,7 @@
          id_NIT     = Ind_('NIT'    )
          id_BCPI    = Ind_('BCPI'   )
          id_BCPO    = Ind_('BCPO'   )
+         id_OH      = Ind_('OH'     )
 
          ! Set logical flags on first call
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
@@ -739,6 +740,8 @@
      &                      ( Spc(I,J,L,N) * (AIRMW 
      &                 / State_Chm%SpcData(N)%Info%emMW_g ) * GOOD(I) )
 
+! NOTE: We can restore this once we figure out what the
+! proper unit conversion is (bmy, 11/20/17)
 !            ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
 !
 !               !--------------------------------------
@@ -748,8 +751,8 @@
 !
 !               ! Accumulate data
 !               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-!     &              ( SAVEOH(I,J,L) * GOOD_CHEM(X) )
-
+!     &              ( SAVEOH(I,J,L,id_OH) * GOOD_CHEM(X) )
+!
             ELSE IF ( N == 502 .and. IS_NOy ) THEN
 
                !--------------------------------------
@@ -1384,8 +1387,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: ITS_TIME
-      REAL(fp)  :: TAU, HOUR, DYN, TS_DIAG
+      LOGICAL  :: ITS_TIME
+      REAL(fp) :: TAU, HOUR, DYN, TS_DIAG
 
       !=================================================================
       ! ITS_TIME_FOR_WRITE_DIAG51 begins here!
@@ -1397,10 +1400,13 @@
       ! Add a check for the time to save. Must be a multiple of TS_DIAG
       ! (ccc, 7/21/09)
       TS_DIAG = ( GET_TS_DIAG() / 60e+0_fp )
-      IF ( MOD(ND51_HR_WRITE, TS_DIAG) /= 0 ) THEN
-         WRITE( 6, 100 ) 'ND51', ND51_HR_WRITE, TS_DIAG
- 100     FORMAT( 'The ',a,' output frequency must be a multiple '
-     &        'of the largest time step:', i5, i5 )
+
+      ! NOTE: Change from equality to greater than an a small number, 
+      ! because 20min or 40min timesteps are irrational numbers in hours
+      IF ( MOD(ND51_HR_WRITE, TS_DIAG) > 1e-5_fp ) THEN
+         WRITE( 6, 100 ) ND51_HR_WRITE, TS_DIAG
+ 100     FORMAT( 'The ND51 output frequency must be a multiple '
+     &        'of the largest time step:', f9.2, f9.2 )
          CALL GEOS_CHEM_STOP
       ENDIF
 

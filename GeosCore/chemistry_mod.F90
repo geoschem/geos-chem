@@ -247,8 +247,9 @@ CONTAINS
 !  09 Mar 2017 - C. Keller   - Bug fix: call TEND_STAGE1 before unit conversion
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions with wrapper routine
 !  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
-!   9 Nov 2017 - R. Yantosca - Reorder arguments for consistency: Input_Opt,
+!  09 Nov 2017 - R. Yantosca - Reorder arguments for consistency: Input_Opt,
 !                              State_Met, State_Chm, State_Diag
+!  20 Nov 2017 - R. Yantosca - Move ND43 diagnostics to flexchem_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -615,28 +616,6 @@ CONTAINS
 #if defined( USE_TIMERS )
           CALL GEOS_Timer_End( "=> All aerosol chem", RC )
 #endif
-
-          !---------------------------------------------
-          ! Chemical production diagnostics (e.g. ND43)
-          !---------------------------------------------
-!-----------------------------------------------------------------------------
-! Prior to 11/17/17:
-! This is now obsolete, we can get the info directly from State_Chm%SPECIES
-! (bmy, 11/17/17)
-!
-!          CALL DiagOH()
-!-----------------------------------------------------------------------------
-          IF ( Do_DiagOH_Etc ) THEN
-             CALL Diag_OH_HO2_O1D_O3P( am_I_Root, Input_Opt,  State_Met,     &
-                                       State_Chm, State_Diag, RC            )
-          ENDIF
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Diag_OH_HO2_O1D_O3P"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
 
           !----------------------------------------------------------------
           ! Write STATE_PSC to diagnostics. This is only of relevance in
@@ -1007,7 +986,7 @@ CONTAINS
        RETURN
     ENDIF
 #endif
-    
+
   END SUBROUTINE DO_CHEMISTRY
 !EOC
 !------------------------------------------------------------------------------
@@ -1388,7 +1367,7 @@ CONTAINS
        !--------------------------------
        ! Initialize FlexChem
        !--------------------------------
-       CALL Init_FlexChem( am_I_Root, Input_Opt, State_Diag, RC )
+       CALL Init_FlexChem( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

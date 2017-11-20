@@ -136,7 +136,7 @@
       INTEGER              :: id_HNO3, id_N2O5, id_HNO4, id_NO
       INTEGER              :: id_PAN,  id_NPMN, id_PPN,  id_O3
       INTEGER              :: id_R4N2, id_SALA, id_SALC, id_NO2
-      INTEGER              :: id_IPMN
+      INTEGER              :: id_IPMN, id_OH
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -187,9 +187,10 @@
 !
       ! References to F90 modules
       USE BPCH2_MOD,          ONLY : BPCH2
+      USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_O3_MOD               ! SAVEOH, XNUMOLAIR
+!      USE CMN_O3_MOD               ! SAVEOH, XNUMOLAIR
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
@@ -278,6 +279,7 @@
          id_SALA = Ind_('SALA')
          id_SALC = Ind_('SALC')
          id_NO2  = Ind_('NO2' )
+         id_OH   = Ind_('OH'  )
 
          ! Set logical flags on first timestep
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
@@ -353,6 +355,8 @@
      &                State_Chm%SpcData(N)%Info%emMW_g )
             ENDDO
 
+! NOTE: Restore this when we figure out what the right unit conversion is
+! This can be replaced by the netCDF diagnostic (bmy, 11/20/17)
 !         ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
 !
 !            !-------------------------------------
