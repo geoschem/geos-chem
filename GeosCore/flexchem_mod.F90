@@ -49,8 +49,16 @@ MODULE FlexChem_Mod
 ! !PRIVATE TYPES:
 !
   ! Species ID flags (and logicals to denote if species are present)
-  INTEGER :: id_OH, id_HO2, id_O3P, id_O1D
+  INTEGER :: id_OH, id_HO2, id_O3P, id_O1D, id_CH4
   LOGICAL :: ok_OH, ok_HO2, ok_O1D, ok_O3P
+
+  ! Diagnostic flags
+  LOGICAL :: Do_Diag_OH_HO2_O1D_O3P
+  LOGICAL :: Do_ND43
+  LOGICAL :: Archive_OHconcAfterchem
+  LOGICAL :: Archive_HO2concAfterchem
+  LOGICAL :: Archive_O1DconcAfterchem
+  LOGICAL :: Archive_O3PconcAfterchem
 
   ! Save the H value for the Rosenbrock solver
   REAL(fp),  ALLOCATABLE :: HSAVE_KPP(:,:,:) 
@@ -195,7 +203,6 @@ CONTAINS
     ! SAVEd variables
     LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
     INTEGER, SAVE          :: CH4_YEAR  = -1
-    INTEGER, SAVE          :: id_CH4    = -1
 
     ! For grid-box latitude
     REAL(fp)               :: YLAT
@@ -279,11 +286,6 @@ CONTAINS
     ! Get month and year
     MONTH     = GET_MONTH()
     YEAR      = GET_YEAR()
-
-    ! Define advected species ID flag
-    ! Make sure that id_CH4 is also defined if EXTERNAL_GRID
-    ! or EXTERNAL_FORCING compiler switches are on (ckeller, 3/10/17).
-    id_CH4 = Ind_('CH4','A')
 
     !---------------------------------------
     ! Initialize global concentration of CH4
@@ -636,6 +638,7 @@ CONTAINS
           CALL SET_HET( I,         J,         L,         State_Diag,  &
                         State_Chm, State_Met, Input_Opt, SCF         )
 
+#if defined( BPCH_DIAG )
           IF ( ND52 > 0 ) THEN
              ! Archive gamma values
              AD52(I,J,L,1) = AD52(I,J,L,1) + HET(ind_HO2,   1)
@@ -648,6 +651,7 @@ CONTAINS
              AD52(I,J,L,5) = AD52(I,J,L,5) + HET(ind_DHDN,  1)
              AD52(I,J,L,6) = AD52(I,J,L,6) + HET(ind_GLYX,  1)
           ENDIF
+#endif
 
           ! Copy SCF back into SCOEFF
           SCOEFF(I,J,L,:) = SCF
@@ -966,18 +970,10 @@ CONTAINS
 !!!#endif
 
     !=================================================================
-    ! Archive info OH AND HO2 concentrations
+    ! Archive OH, HO2, O1D, O3P concentrations after FlexChem solver
+    ! (NOTE: This was formerly done by ohsave.F and diagoh.F)
     !=================================================================
-!-----------------------------------------------------------------------------
-! Prior to 11/17/17:
-! This is now obsolete, we can get the info directly from State_Chm%SPECIES
-! (bmy, 11/17/17)
-!    CALL OHSAVE( State_Met, State_Chm 
-!    IF ( prtDebug ) THEN
-!       CALL DEBUG_MSG( '### Do_FlexChem: after OHSAVE' )
-!    ENDIF
-!-----------------------------------------------------------------------------
-    IF ( Input_Opt%ND43 > 0 ) THEN
+    IF ( Do_Diag_OH_HO2_O1D_O3P ) THEN
 
        ! Save OH, HO2, O1D, O3P for the ND43 diagnostic
        ! NOTE: These might not be needed for netCDF, as they will already
@@ -1167,32 +1163,129 @@ CONTAINS
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
 
+#if defined( NC_DIAG )
+            ! Zero the netCDF diagnostic arrays (if activated) above the 
+            ! tropopause or mesopause to avoid having leftover values
+            ! from previous timesteps
+            IF ( Archive_OHconcAfterChem ) THEN
+               State_Diag%OHconcAfterChem(I,J,L)  = 0.0_f4
+            ENDIF
+
+            IF ( Archive_HO2concAfterChem ) THEN
+               State_Diag%HO2concAfterChem(I,J,L) = 0.0_f4
+            ENDIF
+            
+#if defined( UCX ) 
+            IF ( Archive_O1DconcAfterChem ) THEN
+               State_Diag%O1DconcAfterChem(I,J,L) = 0.0_f4
+            ENDIF
+
+            IF ( Archive_O3PconcAfterChem ) THEN
+               State_Diag%O3PconcAfterChem(I,J,L) = 0.0_f4
+            ENDIF
+#endif
+#endif           
+            ! Skip to next grid box
+            CYCLE
+         ENDIF
+
+         !------------------------------------------------------------------
          ! OH concentration [molec/cm3]
+         !------------------------------------------------------------------
          IF ( ok_OH ) THEN
-            AD43(I,J,L,1) = AD43(I,J,L,1)                                    &
-                          + ( Spc(I,J,L,id_OH) * LTOH(I,J) )
+
+#if defined( BPCH_DIAG )
+            ! ND43 (bpch) diagnostic
+            IF ( Do_ND43 ) THEN
+               AD43(I,J,L,1) = AD43(I,J,L,1)                                 &
+                             + ( Spc(I,J,L,id_OH) * LTOH(I,J)              )
+            ENDIF
+#endif
+
+#if defined( NC_DIAG )
+            ! HISTORY (aka netCDF diagnostics)
+            IF ( Archive_OHconcAfterChem ) THEN
+               State_Diag%OHconcAfterChem(I,J,L) = ( Spc(I,J,L,id_OH)        &
+                                                 *   LTOH(I,J)             )
+            ENDIF
+#endif
+
+
          ENDIF
 
+         !------------------------------------------------------------------
          ! HO2 concentration [v/v] 
+         !------------------------------------------------------------------
          IF ( ok_HO2 ) THEN
-            AD43(I,J,L,3) = AD43(I,J,L,3)                                    &
-                          + ( Spc(I,J,L,id_HO2) / AirNumDen(I,J,L) )         &
-                          * ( LTHO2(I,J)                           )
+
+#if defined( BPCH_DIAG )
+            ! ND43 (bpch) diagnostic
+            IF ( Do_ND43 ) THEN
+               AD43(I,J,L,3) = AD43(I,J,L,3)                                 &
+                             + ( Spc(I,J,L,id_HO2) / AirNumDen(I,J,L) )      &
+                             * ( LTHO2(I,J)                           )
+            ENDIF
+#endif
+
+#if defined( NC_DIAG ) 
+            ! HISTORY (aka netCDF diagnostics)
+            IF ( Archive_HO2concAfterChem ) THEN
+               State_Diag%HO2concAfterChem(I,J,L) = ( Spc(I,J,L,id_HO2)      &
+                                                  /   AirNumDen(I,J,L)     ) &
+                                                  * ( LTHO2(I,J)           )
+            ENDIF
+#endif
          ENDIF
+
 
 #if defined( UCX )
+
+         !------------------------------------------------------------------
          ! O1D concentration [molec/cm3]
+         !------------------------------------------------------------------
          IF ( ok_O1D ) THEN
-            AD43(I,J,L,4) = AD43(I,J,L,4)                                    &
-                          + ( Spc(I,J,L,id_O1D) * LTO1D(I,J) )
+
+#if defined( BPCH_DIAG ) 
+            ! ND43 (bpch) diagnostic
+            IF ( Do_ND43 ) THEN
+               AD43(I,J,L,4) = AD43(I,J,L,4)                                 &
+                             + ( Spc(I,J,L,id_O1D) * LTO1D(I,J)            )
+            ENDIF
+#endif
+
+#if defined( NC_DIAG )
+            ! HISTORY (aka netCDFdiagnostics)
+            IF ( Archive_O1DconcAfterChem ) THEN
+               State_Diag%O1DconcAfterChem(I,J,L) = ( Spc(I,J,L,id_O1D)      &
+                                                  *   LTO1D(I,J)           )
+            ENDIF
+#endif
          ENDIF
 
+
+         !------------------------------------------------------------------
          ! O3P concentration [molec/cm3]
+         !------------------------------------------------------------------
          IF ( ok_O3P ) THEN
-            AD43(I,J,L,5) = AD43(I,J,L,5)                                    &
-                          + ( Spc(I,J,L,id_O3P) * LTO3P(I,J) )
+
+#if defined( BPCH_DIAG )
+            ! ND43 (bpch) diagnostic
+            IF ( Do_ND43 ) THEN
+               AD43(I,J,L,5) = AD43(I,J,L,5)                                 &
+                             + ( Spc(I,J,L,id_O3P) * LTO3P(I,J)            )
+            ENDIF
+#endif
+
+#if defined( NC_DIAG )
+            ! HISTORY (aka netCDF diagnostics)
+            IF ( Archive_O3PconcAfterChem ) THEN
+               State_Diag%O3PconcAfterChem = ( Spc(I,J,L,id_O3P)             &
+                                           *   LTO3P(I,J)                  )
+            ENDIF
+#endif
+
          ENDIF
 #endif
 
@@ -1280,38 +1373,64 @@ CONTAINS
     ! Init_FlexChem begins here!
     !=================================================================
 
-    ! Assume success
-    RC = GC_SUCCESS
-
+    !--------------------------------
     ! Initialize variables
-    prtDebug  = Input_Opt%LPRT
+    !-------------------------------
+    RC       = GC_SUCCESS
+    prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
 
-    IF ( prtDebug .and. am_I_Root ) WRITE( 6, 100 )
+    IF ( prtDebug ) WRITE( 6, 100 )
 100 FORMAT( '     - INIT_FLEXCHEM: Allocating arrays for FLEX_CHEMISTRY' )
 
     ALLOCATE( HSAVE_KPP( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+    CALL GC_CheckVar( 'flexchem_mod.F90:HSAVE_KPP', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     HSAVE_KPP = 0.d0
 
-    IF ( prtDebug .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        write(*,'(a)') ' KPP Reaction Reference '
        DO D = 1,NREACT
           WRITE( 6, '(i8,a3,a85)' ) D,' | ',EQN_NAMES(D)
        END DO
     ENDIF
 
-    ! Initialize species flags for diagnostics
-    id_OH   = Ind_( 'OH'   )
-    id_HO2  = Ind_( 'HO2'  )
-    id_O3P  = Ind_( 'O'    )
-    id_O1D  = Ind_( 'O1D'  )
+    !-------------------------------
+    ! Initialize species flags
+    !-------------------------------
 
-    ! Set logicals to denote if each species is defined
-    ok_OH   = ( id_OH  > 0 )
-    ok_HO2  = ( id_HO2 > 0 )
-    ok_O1D  = ( id_O1D > 0 )
-    ok_O3P  = ( id_O3P > 0 )
+    ! Initialize species flags
+    id_CH4                   = Ind_( 'CH4', 'A'     ) ! CH4 advected species
+    id_HO2                   = Ind_( 'HO2'          )
+    id_O3P                   = Ind_( 'O'            )
+    id_O1D                   = Ind_( 'O1D'          )
+    id_OH                    = Ind_( 'OH'           ) 
 
+    ! Set flags to denote if each species is defined
+    ok_HO2                   = ( id_HO2 > 0         )
+    ok_O1D                   = ( id_O1D > 0         )
+    ok_O3P                   = ( id_O3P > 0         )
+    ok_OH                    = ( id_OH  > 0         )
+    
+    !-------------------------------
+    ! Initialize diagnostics flags
+    !-------------------------------
+
+    ! Is the ND43 bpch diagnostic turned on?
+    Do_ND43                  = ( Input_Opt%ND43 > 0 ) 
+
+    ! Are the relevant netCDF diagnostics turned on?
+    Archive_OHconcAfterChem  = ASSOCIATED( State_Diag%OHconcAfterChem  )
+    Archive_HO2concAfterChem = ASSOCIATED( State_Diag%HO2concAfterChem )
+    Archive_O1DconcAfterChem = ASSOCIATED( State_Diag%O1DconcAfterChem )
+    Archive_O3PconcAfterChem = ASSOCIATED( State_Diag%O3PconcAfterChem )
+
+    ! Should we archive OH, HO2, O1D, O3P diagnostics?
+    Do_Diag_OH_HO2_O1D_O3P   = ( Do_ND43                  .or.               &
+                                 Archive_OHconcAfterChem  .or.               &
+                                 Archive_HO2concAfterChem .or.               &
+                                 Archive_O1DconcAfterChem .or.               &
+                                 Archive_O3PconcAfterChem                   )
+ 
   END SUBROUTINE Init_FlexChem
 !EOC
 !------------------------------------------------------------------------------

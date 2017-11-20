@@ -72,6 +72,10 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:  ) ! Diffuse UV flux per bin
      REAL(f4),  POINTER :: UVFluxDirect    (:,:,:  ) ! Direct UV flux per bin
      REAL(f4),  POINTER :: UVFluxNet       (:,:,:  ) ! Net UV flux per bin
+     REAL(f4),  POINTER :: OHconcAfterChem (:,:,:  ) ! OH, HO2, O1D, and O3P
+     REAL(f4),  POINTER :: HO2concAfterChem(:,:,:  ) !  concentrations 
+     REAL(f4),  POINTER :: O1DconcAfterChem(:,:,:  ) !  upon exiting the
+     REAL(f4),  POINTER :: O3PconcAfterChem(:,:,:  ) !  FlexChem solver 
      
      ! Aerosols
      ! *** Need to add AOD ***
@@ -278,6 +282,10 @@ CONTAINS
     State_Diag%UVFluxNet           => NULL()
     State_Diag%ProdBCPIfromBCPO    => NULL()
     State_Diag%ProdOCPIfromOCPO    => NULL()
+    State_Diag%OHconcAfterChem     => NULL()
+    State_Diag%HO2concAfterChem    => NULL()
+    State_Diag%O1DconcAfterChem    => NULL()
+    State_Diag%O3PconcAfterChem    => NULL()
 
     State_Diag%pHSav               => NULL()
     State_Diag%HplusSav            => NULL()
@@ -404,74 +412,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%JValues = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%JValues, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! KPP Reaction Rates
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%RxnRates'
-    diagID  = 'RxnRates'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%RxnRates( IM, JM, LM, nSpecies ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RxnRates = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RxnRates, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Diffuse UV flux per wavelength bin
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%UVFluxDiffuse'
-    diagID  = 'UVFluxDiffuse'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%UVFluxDiffuse( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%UVFluxDiffuse = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%UVFluxDiffuse, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Direct UV flux per wavelength bin
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%UVFluxDirect'
-    diagID  = 'UVFluxDirect'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%UVFluxDirect( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%UVFluxDirect = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%UVFluxDirect, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Net UV flux per wavelength bin
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%UVFluxNet'
-    diagID  = 'UVFluxNet'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%UVFluxNet( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%UVFluxNet = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%UVFluxNet, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -870,6 +810,199 @@ CONTAINS
                                 State_Diag%ProdOCPIfromOCPO,     &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !=======================================================================
+    ! The following quantities are only relevant for fullchem simulations
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+
+       !--------------------------------------------------------------------
+       ! KPP Reaction Rates
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%RxnRates'
+       diagID  = 'RxnRates'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%RxnRates( IM, JM, LM, nSpecies ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%RxnRates = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%RxnRates,   &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Diffuse UV flux per wavelength bin
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%UVFluxDiffuse'
+       diagID  = 'UVFluxDiffuse'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%UVFluxDiffuse( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%UVFluxDiffuse = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%UVFluxDiffuse,                 &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Direct UV flux per wavelength bin
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%UVFluxDirect'
+       diagID  = 'UVFluxDirect'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%UVFluxDirect( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%UVFluxDirect = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%UVFluxDirect,                  &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Net UV flux per wavelength bin
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%UVFluxNet'
+       diagID  = 'UVFluxNet'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%UVFluxNet( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%UVFluxNet = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%UVFluxNet, &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! OH concentration upon exiting the FlexChem solver
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%OHconcAfterChem'
+       diagID  = 'OHconcAfterChem'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%OHconcAfterChem( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%OHconcAfterChem = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%OHconcAfterChem,               &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! HO2 concentration upon exiting the FlexChem solver
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%HO2concAfterChem'
+       diagID  = 'HO2concAfterChem'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%HO2concAfterChem( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%HO2concAfterChem = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%HO2concAfterChem,              &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! O1D concentration upon exiting the FlexChem solver
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%O1DconcAfterChem'
+       diagID  = 'O1DconcAfterChem'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%O1DconcAfterChem( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%O1DconcAfterChem = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        & 
+                                   State_Diag%O1DconcAfterChem,              &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! O3P concentration upon exiting the FlexChem solver
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%O3PconcAfterChem'
+       diagID  = 'O3PconcAfterChem'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%O3PconcAfterChem( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%O3PconcAfterChem = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%O3PconcAfterChem,              &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+    ELSE
+
+       !-------------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations other than
+       ! full-chemistry simulations.
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !-------------------------------------------------------------------
+       DO N = 1, 8
+          
+          ! Select the diagnostic ID
+          SELECT CASE( N )
+             CASE( 1 ) 
+                diagID = 'RxnRates'
+             CASE( 2 ) 
+                diagID = 'UvFluxDiffuse'
+             CASE( 3 ) 
+                diagID = 'UvFluxDirect'
+             CASE( 4 ) 
+                diagID = 'UvFluxNet'
+             CASE( 5 )
+                diagID = 'OHconcAfterChem'
+             CASE( 6 )                
+                diagID = 'HO2concAfterChem'
+             CASE( 7 )
+                diagID = 'O1DconcAfterChem'
+             CASE( 8 )
+                diagID = 'O3PconcAfterChem'
+          END SELECT
+
+          ! Exit if any of the above are in the diagnostic list
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+          IF ( Found ) THEN
+             ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                      'but this is only appropriate for full-chemistry '  // &
+                      'simulations.' 
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
     ENDIF
 
     !=======================================================================
@@ -1480,6 +1613,42 @@ CONTAINS
        ENDIF
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%OhconcAfterChem ) ) THEN
+       DEALLOCATE( State_Diag%OhconcAfterChem, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%OhconcAfterChem"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%HO2concAfterChem ) ) THEN
+       DEALLOCATE( State_Diag%HO2concAfterChem, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%HO2concAfterChem"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%O1DconcAfterChem ) ) THEN
+       DEALLOCATE( State_Diag%O1DconcAfterChem, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%O1DconcAfterChem"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%O3PconcAfterChem ) ) THEN
+       DEALLOCATE( State_Diag%O3PconcAfterChem, STAT=RC  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not deallocate "State_Diag%O3PconcAfterChem"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
     !-----------------------------------------------------------------------
@@ -1784,6 +1953,26 @@ CONTAINS
        CASE ( 'PRODOCPIFROMOCPO' )
           IF ( isDesc    ) Desc       = 'Production of hydrophilic organic carbon from hydrophobic organic carbon'
           IF ( isUnits   ) Units      = 'kg'
+          IF ( isRank    ) Rank       = 3
+
+       CASE ( 'OHCONCAFTERCHEM' )
+          IF ( isDesc    ) Desc       = 'OH concentration immediately after chemistry'
+          IF ( isUnits   ) Units      = 'molec cm-3'
+          IF ( isRank    ) Rank       = 3
+
+       CASE ( 'HO2CONCAFTERCHEM' )
+          IF ( isDesc    ) Desc       = 'HO2 concentration immediately after chemistry'
+          IF ( isUnits   ) Units      = 'mol mol-1'
+          IF ( isRank    ) Rank       = 3
+
+       CASE ( 'O1DCONCAFTERCHEM' )
+          IF ( isDesc    ) Desc       = 'O1D concentration immediately after chemistry'
+          IF ( isUnits   ) Units      = 'molec cm-3'
+          IF ( isRank    ) Rank       = 3
+
+       CASE ( 'O3PCONCAFTERCHEM' )
+          IF ( isDesc    ) Desc       = 'O3P concentration immediately after chemistry'
+          IF ( isUnits   ) Units      = 'molec cm-3'
           IF ( isRank    ) Rank       = 3
 
        CASE ( 'PHSAV' )

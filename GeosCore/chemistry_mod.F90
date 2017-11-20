@@ -635,7 +635,7 @@ CONTAINS
 #endif
           
        !====================================================================
-       ! Full-chemistry simulations: NOx-Ox-VOCs-Br-SOA etc.
+       ! Aerosol-only simulation
        !====================================================================
        ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
