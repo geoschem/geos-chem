@@ -899,32 +899,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !-----------------------------------------------------------------
-    ! TODO:
-    ! 1. Hydroscopic growth - (:,:,:,N) where N is one of five hygro spc
-    ! 2. Optical depth for each of five hygro spc, for each wavelength
-    ! 3+ UCX-only strat diags - 5 or 7 total (hard-code)
-    ! 4? isoprene optical depth??? check if AD21(:,:,:,58) is actually set
-    !-----------------------------------------------------------------
-
-    !!-------------------------------------------------------------------
-    !! Template for adding more diagnostics arrays
-    !! Search and replace 'xxx' with array name
-    !!-------------------------------------------------------------------
-    !arrayID = 'State_Diag%xxx'
-    !diagID  = 'xxx'
-    !CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    !IF ( Found ) THEN
-    !   WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-    !   ALLOCATE( State_Diag%xxx( IM, JM, LM, n ), STAT=RC ) ! Edits dims
-    !   CALL GC_CheckVar( arrayID, 0, RC )
-    !   IF ( RC /= GC_SUCCESS ) RETURN
-    !   State_Diag%xxx = 0.0_f4
-    !   CALL Register_DiagField( am_I_Root, diagID, State_Diag%xxx, &
-    !                            State_Chm, State_Diag, RC )
-    !   IF ( RC /= GC_SUCCESS ) RETURN
-    !ENDIF
-
     !=======================================================================
     ! The following quantities are only relevant for fullchem simulations
     !=======================================================================
@@ -1001,24 +975,6 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! OH concentration upon exiting the FlexChem solver
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%OHconcAfterChem'
-       diagID  = 'OHconcAfterChem'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%OHconcAfterChem( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%OHconcAfterChem = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%OHconcAfterChem,               &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
        ! HO2 concentration upon exiting the FlexChem solver
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%HO2concAfterChem'
@@ -1083,7 +1039,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 8
+       DO N = 1, 7
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -1095,13 +1051,11 @@ CONTAINS
                 diagID = 'UvFluxDirect'
              CASE( 4 ) 
                 diagID = 'UvFluxNet'
-             CASE( 5 )
-                diagID = 'OHconcAfterChem'
-             CASE( 6 )                
+             CASE( 5 )                
                 diagID = 'HO2concAfterChem'
-             CASE( 7 )
+             CASE( 6 )
                 diagID = 'O1DconcAfterChem'
-             CASE( 8 )
+             CASE( 7 )
                 diagID = 'O3PconcAfterChem'
           END SELECT
 
@@ -1115,6 +1069,56 @@ CONTAINS
              RETURN
           ENDIF
        ENDDO
+
+    ENDIF
+
+    !=======================================================================
+    ! The following quantities are only relevant for either fullchem
+    ! or CH4 simulations.
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CH4_SIM ) THEN
+
+       !--------------------------------------------------------------------
+       ! OH concentration upon exiting the FlexChem solver (fullchem
+       ! simulations) or the CH4 specialty simulation chemistry routine
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%OHconcAfterChem'
+       diagID  = 'OHconcAfterChem'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%OHconcAfterChem( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%OHconcAfterChem = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%OHconcAfterChem,               &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+    ELSE
+       
+       !-------------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations other than
+       ! full-chemistry or CH4 simulations.
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !-------------------------------------------------------------------
+       diagID  = 'OHconcAfterChem'
+
+       ! Exit if any of the above are in the diagnostic list
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                   'but this is only appropriate for full-chemistry '  // &
+                   'or CH4 simulations.' 
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
     ENDIF
 
@@ -1269,9 +1273,33 @@ CONTAINS
     ENDIF
 
     ! Format statement
-    IF ( am_I_Root ) THEN
- 20 FORMAT( 1x, a32, ' is registered as: ', a )
-    ENDIF
+20  FORMAT( 1x, a32, ' is registered as: ', a )
+
+    !-----------------------------------------------------------------
+    ! TODO:
+    ! 1. Hydroscopic growth - (:,:,:,N) where N is one of five hygro spc
+    ! 2. Optical depth for each of five hygro spc, for each wavelength
+    ! 3+ UCX-only strat diags - 5 or 7 total (hard-code)
+    ! 4? isoprene optical depth??? check if AD21(:,:,:,58) is actually set
+    !-----------------------------------------------------------------
+
+    !!-------------------------------------------------------------------
+    !! Template for adding more diagnostics arrays
+    !! Search and replace 'xxx' with array name
+    !!-------------------------------------------------------------------
+    !arrayID = 'State_Diag%xxx'
+    !diagID  = 'xxx'
+    !CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    !IF ( Found ) THEN
+    !   WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+    !   ALLOCATE( State_Diag%xxx( IM, JM, LM, n ), STAT=RC ) ! Edits dims
+    !   CALL GC_CheckVar( arrayID, 0, RC )
+    !   IF ( RC /= GC_SUCCESS ) RETURN
+    !   State_Diag%xxx = 0.0_f4
+    !   CALL Register_DiagField( am_I_Root, diagID, State_Diag%xxx, &
+    !                            State_Chm, State_Diag, RC )
+    !   IF ( RC /= GC_SUCCESS ) RETURN
+    !ENDIF
 
     !=======================================================================
     ! Print information about the registered fields (short format)

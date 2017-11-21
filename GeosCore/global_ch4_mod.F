@@ -135,6 +135,9 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Diagnostic flags
+      LOGICAL               :: Archive_OHconcAfterChem
+
       ! Species ID flag
       INTEGER               :: id_CH4
 
@@ -1056,15 +1059,43 @@
       ! BOH is in kg/m3 (from HEMCO), convert to molecules/cm3 
       ! (ckeller, 9/16/2014)
       !=================================================================
+      IF ( ND43 > 0 .or. Archive_OHconcAfterChem ) THEN
 
-      IF ( ND43 > 0 ) THEN
-         DO L = 1, LD43
+         ! Zero the diagnostic array for OH to avoid leftover values
+         IF ( Archive_OHconcAfterChem ) THEN
+            State_Diag%OHconcAfterChem = 0.0_f4
+         ENDIF
+
+         ! NOTE: Can parallelize this loop later
+         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 !               AD43(I,J,L,1) = AD43(I,J,L,1) + BOH(I,J,L,LMN)
-               AD43(I,J,L,1) = AD43(I,J,L,1) + 
-     &                       ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
+
+#if defined( BPCH_DIAG )
+               !--------------------------------------------------------
+               ! ND43 (bpch) diagnostic
+               ! OH concentration in [molec/cm3] after chemistry
+               !--------------------------------------------------------
+               IF ( L <= LD43 ) THEN
+                  AD43(I,J,L,1) = AD43(I,J,L,1) +
+     &                            ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
+               ENDIF
+#endif
+
+
+#if defined( NC_DIAG )
+               !--------------------------------------------------------
+               ! HISTORY (aka netCDF diagnostics)
+               ! OH concentration in [molec/cm3] after chemistry
+               !--------------------------------------------------------
+               IF ( Archive_OHconcAfterChem ) THEN
+                  State_Diag%OHconcAfterChem(I,J,L) =
+     &                 ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
+               ENDIF
+#endif
+
             ENDIF
          ENDDO
          ENDDO
@@ -2529,7 +2560,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_GLOBAL_CH4( am_I_Root, Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
@@ -2540,11 +2571,13 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2562,6 +2595,7 @@
 !  16 Jun 2016 - M. Sulprizio- Now define IDT_CH4 locally
 !  20 Jun 2016 - R. Yantosca - Rename IDTCH4 to id_CH4 for consistency
 !  20 Jun 2016 - R. Yantosca - Now stop run if id_CH4 is undefined
+!  09 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2618,6 +2652,9 @@
 
       ! Initialize tropoch4 (counts total decay of CH4 due to OH)
       TROPOCH4 = 0e+0_fp
+
+      ! Set a flag to denote if netCDF diagnostics are activated
+      Archive_OHconcAfterChem = ASSOCIATED( State_Diag%OHconcAfterChem )
 
       END SUBROUTINE INIT_GLOBAL_CH4
 !EOC

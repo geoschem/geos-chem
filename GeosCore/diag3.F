@@ -3913,7 +3913,9 @@
 !  24 Feb 2014 - M. Sulprizio- Added O1D and O3P for UCX strat chem
 !******************************************************************************
 !
-      IF ( ND43 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+!      IF ( ND43 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+      IF ( ND43 > 0 .and. ( Input_Opt%ITS_A_FULLCHEM_SIM .or. 
+     &                      Input_Opt%ITS_A_CH4_SIM           ) ) THEN
 
          CATEGORY = 'CHEM-L=$' 
 
