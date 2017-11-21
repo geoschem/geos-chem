@@ -225,7 +225,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_Size_Mod, ONLY : IIPAR, JJPAR, LLPAR, NDUST, NAER
     USE Diagnostics_Mod
     USE ErrCode_Mod
     USE Input_Opt_Mod
@@ -278,6 +277,8 @@ CONTAINS
 !  26 Jun 2017 - R. Yantosca - Now call GC_ERROR to give better error feedback
 !  05 Jul 2017 - R. Yantosca - Now initialize the Diagnostics State object
 !  26 Sep 2017 - E. Lundgren - Pass diagnostics list object as argument
+!  16 Nov 2017 - E. Lundgren - Do not pass IIPAR, JJPAR, LLPAR, NDUST, AER
+!                              since available from CMN_Size_Mod in routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -296,9 +297,6 @@ CONTAINS
     ! Initialize the Meteorology State object
     !=======================================================================
     CALL Init_State_Met( am_I_Root   = am_I_Root,   & ! Root CPU (T/F?)
-                         IM          = IIPAR,       & ! # of longitudes
-                         JM          = JJPAR,       & ! # of latitudes
-                         LM          = LLPAR,       & ! # of levels
                          State_Met   = State_Met,   & ! Meteorology State
                          RC          = RC          )  ! Success or failure?
 
@@ -313,10 +311,6 @@ CONTAINS
     ! Initialize the Chemistry State object
     !=======================================================================
     CALL Init_State_Chm(  am_I_Root  = am_I_Root,   &  ! Root CPU (Y/N)?
-                          IM         = IIPAR,       &  ! # of lons
-                          JM         = JJPAR,       &  ! # of lats
-                          LM         = LLPAR,       &  ! # of levels
-                          nAerosol   = NDUST+NAER,  &  ! # of aerosol types
                           Input_Opt  = Input_Opt,   &  ! Input Options
                           State_Chm  = State_Chm,   &  ! Chemistry State
                           RC         = RC          )   ! Success or failure
@@ -332,9 +326,6 @@ CONTAINS
     ! Initialize the Diagnostics State object
     !=======================================================================
     CALL Init_State_Diag( am_I_Root  = am_I_Root,   &  ! Root CPU (Y/N)?
-                          IM         = IIPAR,       &  ! # of lons
-                          JM         = JJPAR,       &  ! # of lats
-                          LM         = LLPAR,       &  ! # of levels
                           Input_Opt  = Input_Opt,   &  ! Input Options
                           State_Chm  = State_Chm,   &  ! Chemistry State
                           Diag_List  = Diag_List,   &  ! Diagnostic list obj 

@@ -187,12 +187,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Chm( am_I_Root, IM,        JM,         &   
-                             LM,        Input_Opt, State_Chm,  &
-                             nAerosol,  RC                    )
+  SUBROUTINE Init_State_Chm( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
+    USE CMN_Size_Mod,         ONLY : IIPAR, JJPAR, LLPAR, NDUST, NAER
     USE GCKPP_Parameters,     ONLY : NSPEC
     USE Input_Opt_Mod,        ONLY : OptInput
     USE Species_Database_Mod, ONLY : Init_Species_Database
@@ -200,10 +199,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-    INTEGER,        INTENT(IN)    :: IM          ! # longitudes on this PET
-    INTEGER,        INTENT(IN)    :: JM          ! # longitudes on this PET
-    INTEGER,        INTENT(IN)    :: LM          ! # longitudes on this PET
-    INTEGER,        INTENT(IN)    :: nAerosol    ! # aerosol species
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -247,6 +242,8 @@ CONTAINS
 !                              simulations; set to NULL otherwise
 !  28 Nov 2016 - R. Yantosca - Only allocate State_Chm%*Aero* fields for
 !                              fullchem and/or aerosol-only simulations
+!  16 Nov 2017 - E. Lundgren - Get grid params and # aerosls from CMN_Size_Mod 
+!                              rather than arguments list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -254,9 +251,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: N,          C
+    INTEGER                :: N, C, IM, JM, LM
     INTEGER                :: N_Hg0_CATS, N_Hg2_CATS, N_HgP_CATS
-    INTEGER                :: nKHLSA
+    INTEGER                :: nKHLSA, nAerosol
 
     ! Strings
     CHARACTER(LEN=255)     :: ErrMsg, ThisLoc, ChmID
@@ -273,6 +270,14 @@ CONTAINS
     !=====================================================================
     ! Initialization
     !=====================================================================
+
+    ! Shorten grid parameters for readability
+    IM = IIPAR ! # latitudes
+    JM = JJPAR ! # longitudes
+    LM = LLPAR ! # levels
+
+    ! Number of aerosols
+    nAerosol = NDUST + NAER
 
     ! Number of each type of species
     State_Chm%nSpecies    =  0

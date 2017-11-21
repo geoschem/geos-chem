@@ -583,7 +583,7 @@
       ENDIF
 
       !### Print diagnostic list if needed for debugging 
-      !CALL Print_DiagList( am_I_Root, Diag_List, RC )
+      CALL Print_DiagList( am_I_Root, Diag_List, RC )
 
       ! Initialize Input_Opt, State_Chm, State_Diag, State_Met objects
       CALL GC_Init_All( am_I_Root, Diag_List,  Input_Opt, 

@@ -1047,6 +1047,7 @@
 !                              IIPAR instead.
 !  27 Mar 2017 - R. Yantosca - Fixed bug in formula for NOUT diagnostic index
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  15 Nov 2017 - E. Lundgren - Implement optical depth netcdf diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1071,6 +1072,10 @@
       REAL(fp), POINTER   :: TAREA(:,:,:,:)
       REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
       REAL(fp), POINTER   :: WTAREA(:,:,:,:)
+
+      ! For diagnostics
+      REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NWVSELECT,NDUST)
+      LOGICAL             :: LINTERPARR(NWVSELECT)
 
       !=================================================================
       ! RDUST_ONLINE begins here!
@@ -1245,6 +1250,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( BPCH_DIAG )
       !=================================================================
       ! ND21 Diagnostic: 
       !
@@ -1278,20 +1284,9 @@
             ELSE
                LINTERP=.TRUE.
             ENDIF
-
-            ! There are always 5 + (NRHAER*3) preceding size-res dust
-            ! Each subsequent set is separated by a further distance of
-            ! (NRHAER + NDUST)
-!-----------------------------------------------------------------------------
-! Prior to 3/27/17:
-! This formula for NOUT caused the size-resolved dust AOD's to be written
-! to slots 16-22 of AD21, thus overwriting other diagnostics.  They should
-! be written to slots 21-27.  Change the NRHAERR*2 to NRHAER*3 to make the 
-! counting come out right.  This is just an empirical fix.  Maybe the issue
-! was caused by a modification in aerosol_mod.F. (cdh, bmy, 3/27/17)
-!            NOUT = 5 + (NRHAER*2) + ((NRHAER+NDUST)*(W-1)) + N
-!-----------------------------------------------------------------------------
             NOUT = 5 + (NRHAER*3) + ((NRHAER+NDUST)*(W-1)) + N
+            ! equivalent to getting 21-27 in the loop for W = 1
+            ! etc for W = 2 and W=3 (fills OD dust bins 1-7 for each lambda)
 
             DO L = 1, LD21
             DO J = 1, JJPAR
@@ -1363,8 +1358,95 @@
 !###
 !###!$OMP END PARALLEL DO
 !#############################################################################
+      ENDIF
+#endif
 
-      ENDIF 
+#if defined( NC_DIAG )
+      IF ( ( ASSOCIATED( State_Diag%ODDust ).OR.
+     &       ASSOCIATED( State_Diag%ODDustBinsWL1 ) .OR.
+     &       ASSOCIATED( State_Diag%ODDustBinsWL2 ) .OR.
+     &       ASSOCIATED( State_Diag%ODDustBinsWL3 ) ) .AND.
+     &       ODSWITCH .EQ. 1 ) THEN
+         
+         ! Initialize local arrays
+         tempOD(:,:,:,:,:) = 0.0_fp
+         LINTERPARR(:) = .FALSE.
+
+         ! Interpolate?
+         DO W = 1, NWVSELECT
+            IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
+               LINTERPARR(W) =.FALSE.
+            ELSE
+               LINTERPARR(W) =.TRUE.
+            ENDIF
+         ENDDO
+
+         ! Loop over dust bins, # of wavelengths, and all grid cells
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
+         DO N = 1, NDUST
+         DO W = 1, NWVSELECT
+         DO L = 1, LLCHEM
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR               
+            IF ( .not. LINTERPARR(W) ) THEN
+
+               tempOD(I,J,L,W,N) = ODMDUST(I,J,L,IWVSELECT(1,W),N)
+
+            ELSEIF ((ODMDUST(I,J,L,IWVSELECT(1,W),N).GT.0).AND.
+     &             (ODMDUST(I,J,L,IWVSELECT(2,W),N).GT.0)) THEN
+
+               ! Interpolate using angstrom exponent between
+               ! closest available wavelengths (coefs pre-calculated 
+               ! in CALC_AOD)
+               ! AOD sometimes zero (if Q zero), must catch this!
+               tempOD(I,J,L,W,N) = 
+     &                  ODMDUST(I,J,L,IWVSELECT(2,W),N)*
+     &                  ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
+     &                  ODMDUST(I,J,L,IWVSELECT(1,W),N)/
+     &                  ODMDUST(I,J,L,IWVSELECT(2,W),N)))
+
+            ENDIF
+         ENDDO ! longitude
+         ENDDO ! latitude
+         ENDDO ! level
+         ENDDO ! wavelength
+         ENDDO ! bin
+!$OMP END PARALLEL DO
+
+         !---------------------------------------------------
+         ! Set dust optical depth diagnostic
+         !---------------------------------------------------
+         IF ( ASSOCIATED( State_Diag%ODDust ) ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+            DO L = 1, LLCHEM
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               State_Diag%ODDust(I,J,L) = SUM( tempOD(I,J,L,:,:) )
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDIF
+
+         !---------------------------------------------------
+         ! Set size-resolved dust optical depth diagnostic
+         !---------------------------------------------------
+         IF ( ASSOCIATED( State_Diag%ODDustBinsWL1 ) ) THEN
+            State_Diag%ODDustBinsWL1(:,:,:,:) = tempOD(:,:,:,1,:)
+         ENDIF
+         IF ( ASSOCIATED( State_Diag%ODDustBinsWL2 ) ) THEN
+            State_Diag%ODDustBinsWL2(:,:,:,:) = tempOD(:,:,:,2,:)
+         ENDIF
+         IF ( ASSOCIATED( State_Diag%ODDustBinsWL3 ) ) THEN
+            State_Diag%ODDustBinsWL3(:,:,:,:) = tempOD(:,:,:,3,:)
+         ENDIF
+
+      ENDIF
+#endif 
 
       ! Free pointers
       ERADIUS  => NULL()
