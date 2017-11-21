@@ -1281,8 +1281,8 @@ CONTAINS
 #if defined( NC_DIAG )
             ! HISTORY (aka netCDF diagnostics)
             IF ( Archive_O3PconcAfterChem ) THEN
-               State_Diag%O3PconcAfterChem = ( Spc(I,J,L,id_O3P)             &
-                                           *   LTO3P(I,J)                  )
+               State_Diag%O3PconcAfterChem(I,J,L) = ( Spc(I,J,L,id_O3P)      &
+                                                  *   LTO3P(I,J)           )
             ENDIF
 #endif
 

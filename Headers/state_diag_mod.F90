@@ -1554,39 +1554,37 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%HplusSav ) ) THEN
-       DEALLOCATE( State_Diag%HplusSav, STAT=RC  )
+       DEALLOCATE( State_Diag%HplusSav, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%HplusSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%WaterSav ) ) THEN
-       DEALLOCATE( State_Diag%WaterSav, STAT=RC  )
+       DEALLOCATE( State_Diag%WaterSav, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%WaterSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%SulRatSav ) ) THEN
-       DEALLOCATE( State_Diag%SulRatSav, STAT=RC  )
+       DEALLOCATE( State_Diag%SulRatSav, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%SulRatSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%NaRatSav ) ) THEN
-       DEALLOCATE( State_Diag%NaRatSav, STAT=RC  )
+       DEALLOCATE( State_Diag%NaRatSav, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%NaRatSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AcidPurSav ) ) THEN
-       DEALLOCATE( State_Diag%AcidPurSav, STAT=RC  )
+       DEALLOCATE( State_Diag%AcidPurSav, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AcidPurSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BisulSav ) ) THEN
-       DEALLOCATE( State_Diag%BisulSav, STAT=RC  )
+       DEALLOCATE( State_Diag%BisulSav, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BiSulSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1616,13 +1614,13 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ODDust ) ) THEN
-       DEALLOCATE( State_Diag%ODDust, STAT=RC  )
+       DEALLOCATE( State_Diag%ODDust, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ODDust', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ODDustBinsWL1 ) ) THEN
-       DEALLOCATE( State_Diag%ODDustBinsWL1, STAT=RC  )
+       DEALLOCATE( State_Diag%ODDustBinsWL1, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ODDustBinsWL1', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
