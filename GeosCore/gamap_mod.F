@@ -5048,32 +5048,14 @@
       ! LS or conv precipitation (ND16)
       !-------------------------------------   
       IF ( ND16 > 0 ) THEN
-
-         ! Number of tracers
-         NTRAC(16) = 2
-
-         ! Loop over tracers
-         DO T = 1, NTRAC(16)
-
-            ! Get name, longname
-            SELECT CASE( T )
-               CASE( 1 )
-                  NAME (T,16) = 'LS-f'
-                  FNAME(T,16) = 'Large scale fraction'
-               CASE( 2 )
-                  NAME (T,16) = 'CV-f'
-                  FNAME(T,16) = 'Convective fraction' 
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
-
-            ! Define the rest of the quantities
-            UNIT (T,16) = 'unitless'
-            INDEX(T,16) = T + ( SPACING * 28 )
-            MOLC (T,16) = 1
-            MWT  (T,16) = 0e0
-            SCALE(T,16) = 1e0
-         ENDDO
+         NTRAC(16)   = 1
+         NAME (T,16) = 'LS-f'
+         FNAME(T,16) = 'Large scale fraction'
+         UNIT (T,16) = 'unitless'
+         INDEX(T,16) = T + ( SPACING * 28 )
+         MOLC (T,16) = 1
+         MWT  (T,16) = 0e0
+         SCALE(T,16) = 1e0
       ENDIF
 
       !-------------------------------------      

@@ -171,7 +171,7 @@ CONTAINS
   END SELECT
 
   ! Define location string
-  ThisLoc   = ' -> at Init_State_Met (in Headers/state_met_mod.F90)'
+  ThisLoc   = ' -> at GC_CheckVar (in Headers/errcode_mod.F90)'
 
   !=========================================================================
   ! Display error message if necessary

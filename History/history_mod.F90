@@ -551,6 +551,7 @@ CONTAINS
     REAL(f8)                     :: UpdateAlarm,    HeartBeatDtSec
     REAL(f8)                     :: FileWriteAlarm, FileCloseAlarm
     REAL(f8)                     :: JulianDate,     JulianDateEnd
+    REAL(f8)                     :: UpdateCheck,    FileWriteCheck
     REAL(f8)                     :: SimLengthSec
 
     ! Strings
@@ -672,6 +673,16 @@ CONTAINS
 
        ! Skip if the line is commented out
        IF ( Line(1:1) == "#" ) CYCLE
+
+       ! Zero variables
+       FileCloseYmd   = 0
+       FileCloseHms   = 0
+       FileWriteYmd   = 0
+       FileWriteHms   = 0
+       FileWriteCheck = 0.0_f8
+       UpdateYmd      = 0
+       UpdateHms      = 0
+       UpdateCheck    = 0.0_f8
 
        !====================================================================
        ! The HISTORY.rc file specifies collection metadata as:
@@ -802,8 +813,6 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-
-          ! Format statements
 
           ! Zero the counter of items
           ItemCount = 0
@@ -970,10 +979,17 @@ CONTAINS
                    UpdateHms = 000000
                 ENDIF
 
+                ! Combine UpdateYmd and UpdateHms
+                UpdateCheck    = ( DBLE( UpdateYmd    ) * 1.0e6_f8 )         &
+                               + ( DBLE( UpdateHms    )            )
+
+                ! Combine FileWriteYmd and FileWriteHms
+                FileWriteCheck = ( DBLE( FileWriteYmd ) * 1.0e6_f8 )         & 
+                               + ( DBLE( FileWriteHMs )            )
+
                 ! Error check: If using acc_interval, then the Update interval
                 ! has to be smaller or equal to the File Write interval
-                IF ( UpdateYmd > FileWriteYmd   .or.                         &
-                     UpdateHms > FileWriteHms ) THEN
+                IF ( UpdateCheck > FileWriteCheck ) THEN
                    ErrMsg = 'Update interval is greater than File Write ' // &
                             'interval for collection: '                   // &
                             TRIM( CollectionName(C) ) 
