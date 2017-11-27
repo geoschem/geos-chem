@@ -498,20 +498,6 @@ ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   IS_CHEM_SET        :=1
 endif
 
-# %%%%% Test if CHEM=Halogens %%%%%
-REGEXP               :=(^[Hh][Aa][Ll][Oo][Gg][Ee][Nn][Ss])
-ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=Halogens
-  IS_CHEM_SET        :=1
-endif
-
-# %%%%% Test if CHEM=TropHalogens %%%%%
-REGEXP               :=(^[Tt][Rr][Oo][Pp][Hh][Aa][Ll][Oo][Gg][Ee][Nn][Ss])
-ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=TropHalogens
-  IS_CHEM_SET        :=1
-endif
-
 # %%%%% Test if CHEM=SOA (same as Tropchem as of v11-02a) %%%%%
 REGEXP               :=(^[Ss][Oo][Aa])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)

@@ -141,16 +141,12 @@ realclean:
 	@$(MAKE) -C SOA_SVPOA     clean
 	@$(MAKE) -C Tropchem      clean
 	@$(MAKE) -C Custom        clean
-	@$(MAKE) -C Halogens      clean
-	@$(MAKE) -C TropHalogens  clean
 
 slowrealclean:
 	@$(MAKE) -C Standard      slowclean
 	@$(MAKE) -C SOA_SVPOA     slowclean
 	@$(MAKE) -C Tropchem      slowclean
 	@$(MAKE) -C Custom        slowclean
-	@$(MAKE) -C Halogens      slowclean
-	@$(MAKE) -C TropHalogens  slowclean
 
 help:
 	@$(MAKE) -C $(HELP) 
