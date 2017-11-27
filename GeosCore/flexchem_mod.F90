@@ -1154,10 +1154,10 @@ CONTAINS
     AirNumDen => State_Met%AirNumDen
     Spc       => State_Chm%Species
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-!$OMP+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED )  &
+!$OMP PRIVATE( I, J, L ) &
+!$OMP SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
