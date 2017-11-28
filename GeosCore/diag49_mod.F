@@ -1635,7 +1635,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = State_Diag%phSav(I,J,L)
+               Q(X,Y,K) = State_Chm%phSav(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -1661,7 +1661,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = State_Diag%WaterSav(I,J,L)
+               Q(X,Y,K) = State_Chm%WaterSav(I,J,L)
             ENDDO
             ENDDO
             ENDDO

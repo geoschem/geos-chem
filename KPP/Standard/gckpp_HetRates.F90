@@ -233,8 +233,6 @@ MODULE GCKPP_HETRATES
 !  26 Jul 2017 - M. Sulprizio- Remove hardcoded molecular weights from calls to
 !                              Het* functions and use MW from species database
 !                              instead
-!  03 Nov 2017 - R. Yantosca - HPlus_Sav, NaRat_Sav, SulRat_Sav, Bisul_Sav
-!                              now are contained in State_Diag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -528,16 +526,16 @@ MODULE GCKPP_HETRATES
       !--------------------------------------------------------------------
       ! Proton activity [unitless] and H+ concentration [M]
       ! (assumed equivalent - for now):
-      H_PLUS = SD%HplusSav(I,J,L)
+      H_PLUS = SC%HplusSav(I,J,L)
 
       ! Sulfate concentration [M]:
-      MSO4   = SD%SulRatSav(I,J,L)
+      MSO4   = SC%SulRatSav(I,J,L)
 
       ! Nitrate concentration [M]:
-      MNO3   = SD%NaRatSav(I,J,L)
+      MNO3   = SC%NaRatSav(I,J,L)
 
       ! Bisulfate (general acid) concentration [M]:
-      MHSO4  = SD%BisulSav(I,J,L)
+      MHSO4  = SC%BisulSav(I,J,L)
 
       !--------------------------------------------------------------------
       ! Get fields from State_Met, State_Chm, and Input_Opt

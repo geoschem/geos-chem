@@ -102,6 +102,17 @@ MODULE State_Chm_Mod
                                                         !  reaction cofactors
 
      !----------------------------------------------------------------------
+     ! For isoprene SOA via ISORROPIA
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: pHSav      (:,:,:  ) ! ISORROPIA aerosol pH
+     REAL(fp),          POINTER :: HplusSav   (:,:,:  ) ! H+ concentration [M]
+     REAL(fp),          POINTER :: WaterSav   (:,:,:  ) ! ISORROPIA aerosol H2O
+     REAL(fp),          POINTER :: SulRatSav  (:,:,:  ) ! Sulfate conc [M]
+     REAL(fp),          POINTER :: NaRatSav   (:,:,:  ) ! Nitrate conc [M]
+     REAL(fp),          POINTER :: AcidPurSav (:,:,:  ) !
+     REAL(fp),          POINTER :: BiSulSav   (:,:,:  ) ! Bisulfate conc [M]
+
+     !----------------------------------------------------------------------
      ! For the tagged Hg simulation
      !----------------------------------------------------------------------
      INTEGER                    :: N_HG_CATS            ! # of Hg categories
@@ -159,7 +170,6 @@ MODULE State_Chm_Mod
 !  31 Jul 2017 - R. Yantosca - Add fixes in registering ISORROPIA *_SAV fields
 !  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Chm and Print_State_Chm
 !  02 Oct 2017 - E. Lundgren - Abstract metadata and routine to add to Registry
-!  03 Nov 2017 - R. Yantosca - Move isoprene SOA fields to State_Diag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -267,9 +277,9 @@ CONTAINS
     ErrMsg = ''
     ThisLoc = ' -> at Init_State_Chm (in Headers/state_chm_mod.F90)'
 
-    !=====================================================================
+    !=======================================================================
     ! Initialization
-    !=====================================================================
+    !=======================================================================
 
     ! Shorten grid parameters for readability
     IM = IIPAR ! # latitudes
@@ -306,6 +316,15 @@ CONTAINS
     State_Chm%AeroRadi    => NULL()
     State_Chm%WetAeroArea => NULL()
     State_Chm%WetAeroRadi => NULL()
+    
+    ! Isoprene SOA
+    State_Chm%pHSav       => NULL()
+    State_Chm%HplusSav    => NULL()
+    State_Chm%WaterSav    => NULL()
+    State_Chm%SulRatSav   => NULL()
+    State_Chm%NaRatSav    => NULL()
+    State_Chm%AcidPurSav  => NULL()
+    State_Chm%BisulSav    => NULL()
 
     ! Fields for UCX mechanism
     State_Chm%STATE_PSC   => NULL()
@@ -328,19 +347,19 @@ CONTAINS
     ! Local variables
     Ptr2data => NULL()
 
-    !=====================================================================
+    !=======================================================================
     ! Populate the species database object field
     ! (assumes Input_Opt has already been initialized)
-    !=====================================================================
-    CALL Init_Species_Database( am_I_Root = am_I_Root,          &
-                                Input_Opt = Input_Opt,          &
-                                SpcData   = State_Chm%SpcData,  &
-                                RC        = RC                 )
+    !=======================================================================
+    CALL Init_Species_Database( am_I_Root = am_I_Root,                      &
+                                Input_Opt = Input_Opt,                      &
+                                SpcData   = State_Chm%SpcData,              &
+                                RC        = RC                             )
     SpcDataLocal => State_Chm%SpcData
 
-    !=====================================================================
+    !=======================================================================
     ! Determine the number of advected, drydep, wetdep, and total species
-    !=====================================================================
+    !=======================================================================
 
     ! The total number of species is the size of SpcData
     State_Chm%nSpecies = SIZE( State_Chm%SpcData )
@@ -348,17 +367,17 @@ CONTAINS
     ! Get the number of advected, dry-deposited, KPP chemical species,
     ! and and wet-deposited species.  Also return the # of Hg0, Hg2, and 
     ! HgP species (these are zero unless the Hg simulation is used).
-    CALL Spc_GetNumSpecies( State_Chm%nAdvect,  &
-                            State_Chm%nDryDep,  &
-                            State_Chm%nKppSpc,  &
-                            State_Chm%nWetDep,  &
-                            N_Hg0_CATS,         &
-                            N_Hg2_CATS,         &
-                            N_HgP_CATS         )
+    CALL Spc_GetNumSpecies( State_Chm%nAdvect,                              &
+                            State_Chm%nDryDep,                              &
+                            State_Chm%nKppSpc,                              &
+                            State_Chm%nWetDep,                              &
+                            N_Hg0_CATS,                                     &
+                            N_Hg2_CATS,                                     &
+                            N_HgP_CATS                                     )
 
-    !=====================================================================
+    !=======================================================================
     ! Allocate and initialize mapping vectors to subset species
-    !=====================================================================
+    !=======================================================================
 
     ALLOCATE( State_Chm%Map_Advect( State_Chm%nAdvect  ), STAT=RC )
     CALL GC_CheckVar( 'State_Chm%Map_Advect', 0, RC )  
@@ -440,9 +459,9 @@ CONTAINS
 
     ENDDO
 
-    !=====================================================================
+    !=======================================================================
     ! Allocate and initialize chemical species fields
-    !=====================================================================   
+    !======================================================================= 
     chmID = 'Species'
     ALLOCATE( State_Chm%Species( IM, JM, LM, State_Chm%nSpecies ), STAT=RC )
     CALL GC_CheckVar( 'State_Chm%Species', 0, RC )
@@ -450,18 +469,18 @@ CONTAINS
     State_Chm%Species = 0.0_fp
     CALL Register_ChmField( am_I_Root, chmID, State_Chm%Species, State_Chm, RC )
 
-    !=====================================================================
-    ! Allocate and initialize aerosol area and radius fields
-    ! These are only relevant for fullchem or aerosol-only simulations
-    !=====================================================================
+    !=======================================================================
+    ! Allocate and initialize quantities that are only relevant for the
+    ! the various fullchem simulations or the aerosol-only simulation
+    !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
        ! Save nAerosol to State_Chm
        State_Chm%nAero = nAerosol
 
-       !------------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! AeroArea
-       !------------------------------------------------------------------
+       !------------------------------------------------------------------==
        ALLOCATE( State_Chm%AeroArea( IM, JM, LM, State_Chm%nAero ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AeroArea', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -501,20 +520,20 @@ CONTAINS
              CASE( 14 )
                 chmID  = 'AeroAreaICEI'
              CASE DEFAULT
-                ErrMsg = 'State_Chm%nAero exceeds the number of defined' &
+                ErrMsg = 'State_Chm%nAero exceeds the number of defined'    &
                          // ' dry aerosol area categories'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
           END SELECT
 
-          CALL Register_ChmField( am_I_Root, chmID, State_Chm%AeroArea, &
+          CALL Register_ChmField( am_I_Root, chmID, State_Chm%AeroArea,     &
                                   State_Chm, RC,    Ncat=N )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
 
-       !------------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! AeroRadi
-       !------------------------------------------------------------------
+       !--------------------------------------------------------------------
        ALLOCATE( State_Chm%AeroRadi( IM, JM, LM, State_Chm%nAero ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AeroRadi', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -554,20 +573,20 @@ CONTAINS
              CASE( 14 )
                 chmID = 'AeroRadiICEI'
              CASE DEFAULT
-                ErrMsg = 'State_Chm%nAero exceeds the number of defined' &
+                ErrMsg = 'State_Chm%nAero exceeds the number of defined'     &
                          // ' dry aerosol radius categories'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
           END SELECT
 
-          CALL Register_ChmField( am_I_Root, chmID, State_Chm%AeroRadi, &
-                                  State_Chm, RC,    Ncat=N )
+          CALL Register_ChmField( am_I_Root, chmID, State_Chm%AeroRadi,      &
+                                  State_Chm, RC,    Ncat=N                  )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
 
-       !------------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! WetAeroArea
-       !------------------------------------------------------------------
+       !--------------------------------------------------------------------
        ALLOCATE( State_Chm%WetAeroArea( IM, JM, LM, State_Chm%nAero ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WetAeroArea', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -607,20 +626,20 @@ CONTAINS
              CASE( 14 )
                 chmID = 'WetAeroAreaICEI'
              CASE DEFAULT
-                ErrMsg = 'State_Chm%nAero exceeds the number of defined' &
+                ErrMsg = 'State_Chm%nAero exceeds the number of defined'     &
                          // ' wet aerosol area categories'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
           END SELECT
 
-          CALL Register_ChmField( am_I_Root, chmID, State_Chm%WetAeroArea, &
-                                  State_Chm, RC,    Ncat=N )
+          CALL Register_ChmField( am_I_Root, chmID, State_Chm%WetAeroArea,   &
+                                  State_Chm, RC,    Ncat=N                  )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
 
-       !------------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! WetAeroRadi
-       !------------------------------------------------------------------
+       !--------------------------------------------------------------------
        ALLOCATE( State_Chm%WetAeroRadi( IM, JM, LM, State_Chm%nAero ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WetAeroRadi', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -671,84 +690,186 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
 
+       !--------------------------------------------------------------------
+       ! phSav
+       !--------------------------------------------------------------------
+       chmId = 'phSav'
+       ALLOCATE( State_Chm%phSav( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%phSav', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%phSav = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%phSav,            &
+                               State_Chm, RC                                )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! HplusSav
+       !--------------------------------------------------------------------
+       chmID  = 'HplusSav'
+       ALLOCATE( State_Chm%HplusSav( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%HplusSav', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%HplusSav = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%HplusSav,         &
+                               State_Chm, RC                                )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! WaterSav
+       !--------------------------------------------------------------------
+       chmID  = 'WaterSav'
+       ALLOCATE( State_Chm%WaterSav( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%WaterSav', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%WaterSav = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%WaterSav,         &
+                               State_Chm, RC                                )
+
+       !--------------------------------------------------------------------
+       ! SulRatSav
+       !--------------------------------------------------------------------
+       chmID  = 'SulRatSav'
+       ALLOCATE( State_Chm%SulRatSav( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SulRatSav', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SulRatSav = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SulRatSav,        &
+                               State_Chm, RC                                )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! NaRatSav
+       !--------------------------------------------------------------------
+       chmID  = 'NaRatSav'
+       ALLOCATE( State_Chm%NaRatSav( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%NaRatSav', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%NaRatSav = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%NaRatSav,         &
+                               State_Chm, RC                                )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! AcidPurSav
+       !--------------------------------------------------------------------
+       chmID  = 'AcidPurSav'
+       ALLOCATE( State_Chm%AcidPurSav( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AcidPurSav', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AcidPurSav = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%AcidPurSav,       &
+                               State_Chm, RC                                )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! BisulSav
+       !--------------------------------------------------------------------
+       chmID  = 'BisulSav'
+       ALLOCATE( State_Chm%BisulSav( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BiSulSav', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%BisulSav = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%BisulSav,         &
+                               State_Chm, RC                                )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
     ENDIF
 
-    !=====================================================================
+    !======================================================================
     ! Allocate and initialize fields for halogen chemistry
-    !=====================================================================
-    
-    ALLOCATE( State_Chm%pHCloud    ( IM, JM, LM                    ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%pHCloud = 0e+0_fp
+    !======================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
-    ALLOCATE( State_Chm%SSAlk      ( IM, JM, LM, 2                 ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%SSAlk = 0e+0_fp
-
-    !=====================================================================
-    ! Allocate and initialize fields for UCX mechamism
-    !=====================================================================
-#if defined( UCX )
-
-    !---------------------------------------------------------------------
-    ! STATE_PSC
-    !---------------------------------------------------------------------
-    chmID = 'StatePSC'
-    ALLOCATE( State_Chm%STATE_PSC( IM, JM, LM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%STATE_PSC', 0, RC )    
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%STATE_PSC = 0.0_f4
-    CALL Register_ChmField( am_I_Root, chmID, State_Chm%STATE_PSC, &
-                            State_Chm, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !---------------------------------------------------------------------
-    ! KHETI_SLA
-    !---------------------------------------------------------------------
-    nKHLSA = 11 ! TODO: should this be in CMN_SIZE_Mod?
-    ALLOCATE( State_Chm%KHETI_SLA ( IM, JM, LM, nKHLSA ), STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%KHETISLA', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%KHETI_SLA = 0.0_fp
-
-    ! Loop over all entries to register each category individually
-    DO N = 1, nKHLSA
-
-       ! Define identifying string
-       SELECT CASE( N )
-          CASE( 1  ) 
-             chmID = 'KhetiSLAN2O5H2O'
-          CASE( 2  ) 
-             chmID = 'KhetiSLAN2O5HCl'
-          CASE( 3  ) 
-             chmID = 'KhetiSLAClNO3H2O'
-          CASE( 4  ) 
-             chmID = 'KhetiSLAClNO3HCl'
-          CASE( 5  ) 
-             chmID = 'KhetiSLAClNO3HBr'
-          CASE( 6  ) 
-             chmID = 'KhetiSLABrNO3H2O'
-          CASE( 7  ) 
-             chmID = 'KhetiSLABrNO3HCl'
-          CASE( 8  ) 
-             chmID = 'KhetiSLAHOClHCl'
-          CASE( 9  ) 
-             chmID = 'KhetiSLAHOClHBr'
-          CASE( 10 ) 
-             chmID = 'KhetiSLAHOBrHCl'
-          CASE( 11 ) 
-             chmID = 'KhetiSLAHOBrHBr'
-          CASE DEFAULT
-             ErrMsg = 'nKHLSA exceeds the number of defined' &
-                      // ' KHETI_SLA categories'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-       END SELECT
-
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%KHETI_SLA, &
-                               State_Chm, RC,    Ncat=N )
+       !--------------------------------------------------------------------
+       ! phCloud
+       !--------------------------------------------------------------------
+       chmId = 'pHCloud'
+       ALLOCATE( State_Chm%pHCloud( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%pHCloud', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-    ENDDO
+       State_Chm%pHCloud = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%pHCloud,          &
+                               State_Chm, RC                                )
+
+       !--------------------------------------------------------------------
+       ! SSAlk
+       !--------------------------------------------------------------------
+       chmId = 'SSAlk'
+       ALLOCATE( State_Chm%SSAlk( IM, JM, LM, 2 ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SSAlk', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SSAlk = 0e+0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%pHCloud,          &
+                               State_Chm, RC                                )
+
+    ENDIF
+
+    !=======================================================================
+    ! Allocate and initialize fields for UCX mechamism
+    !=======================================================================
+#if defined( UCX )
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+
+       !--------------------------------------------------------------------
+       ! STATE_PSC
+       !--------------------------------------------------------------------
+       chmID = 'StatePSC'
+       ALLOCATE( State_Chm%STATE_PSC( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%STATE_PSC', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%STATE_PSC = 0.0_f4
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%STATE_PSC,        &
+                            State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! KHETI_SLA
+       !--------------------------------------------------------------------
+       nKHLSA = 11 ! TODO: should this be in CMN_SIZE_Mod?
+       ALLOCATE( State_Chm%KHETI_SLA ( IM, JM, LM, nKHLSA ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%KHETISLA', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KHETI_SLA = 0.0_fp
+       
+       ! Loop over all entries to register each category individually
+       DO N = 1, nKHLSA
+
+          ! Define identifying string
+          SELECT CASE( N )
+             CASE( 1  ) 
+                chmID = 'KhetiSLAN2O5H2O'
+             CASE( 2  ) 
+                chmID = 'KhetiSLAN2O5HCl'
+             CASE( 3  ) 
+                chmID = 'KhetiSLAClNO3H2O'
+             CASE( 4  ) 
+                chmID = 'KhetiSLAClNO3HCl'
+             CASE( 5  ) 
+                chmID = 'KhetiSLAClNO3HBr'
+             CASE( 6  ) 
+                chmID = 'KhetiSLABrNO3H2O'
+             CASE( 7  ) 
+                chmID = 'KhetiSLABrNO3HCl'
+             CASE( 8  ) 
+                chmID = 'KhetiSLAHOClHCl'
+             CASE( 9  ) 
+                chmID = 'KhetiSLAHOClHBr'
+             CASE( 10 ) 
+                chmID = 'KhetiSLAHOBrHCl'
+             CASE( 11 ) 
+                chmID = 'KhetiSLAHOBrHBr'
+             CASE DEFAULT
+                ErrMsg = 'nKHLSA exceeds the number of defined' &
+                       // ' KHETI_SLA categories'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+          END SELECT
+
+          CALL Register_ChmField( am_I_Root, chmID, State_Chm%KHETI_SLA,     &
+                                  State_Chm, RC,    Ncat=N                  )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDDO
+    ENDIF
 #endif
 
     !=======================================================================
@@ -765,7 +886,7 @@ CONTAINS
                          RC          = RC                    )
 
     !=======================================================================
-    ! Special handling for the Hg and tagHg  simulations: get the # of Hg
+    ! Special handling for the Hg and tagHg simulations: get the # of Hg
     ! categories for total & tagged tracers from the species database
     !=======================================================================
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
@@ -775,8 +896,8 @@ CONTAINS
        IF ( N_Hg0_CATS == N_Hg2_CATS .and. N_Hg0_CATS == N_HgP_CATS ) THEN
           State_Chm%N_Hg_CATS = N_Hg0_CATS
        ELSE
-          RC = GC_FAILURE
-          PRINT*, '### Inconsistent number of Hg categories!'
+          ErrMsg = 'Inconsistent number of Hg categories!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
@@ -1007,12 +1128,58 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( ASSOCIATED(State_Chm%pHCloud) ) THEN
-       DEALLOCATE(State_Chm%pHCloud)
+    IF ( ASSOCIATED( State_Chm%phSav ) ) THEN
+       DEALLOCATE( State_Chm%phSav, STAT=RC  )
+       CALL GC_CheckVar( 'State_Chm%phSav', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED(State_Chm%SSAlk) ) THEN
-       DEALLOCATE(State_Chm%SSAlk)
+    IF ( ASSOCIATED( State_Chm%HplusSav ) ) THEN
+       DEALLOCATE( State_Chm%HplusSav, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%HplusSav', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%WaterSav ) ) THEN
+       DEALLOCATE( State_Chm%WaterSav, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%WaterSav', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SulRatSav ) ) THEN
+       DEALLOCATE( State_Chm%SulRatSav, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SulRatSav', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%NaRatSav ) ) THEN
+       DEALLOCATE( State_Chm%NaRatSav, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%NaRatSav', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%AcidPurSav ) ) THEN
+       DEALLOCATE( State_Chm%AcidPurSav, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AcidPurSav', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BisulSav ) ) THEN
+       DEALLOCATE( State_Chm%BisulSav, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BiSulSav', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%pHCloud ) ) THEN
+       DEALLOCATE( State_Chm%pHCloud, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%pHCloud', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SSAlk ) ) THEN
+       DEALLOCATE( State_Chm%SSAlk, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SSAlk', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%STATE_PSC ) ) THEN
@@ -1491,6 +1658,52 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOBr + HBr reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
+
+       CASE( 'PHSAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA aerosol pH'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'HPLUSSAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA H+ concentration'
+          IF ( isUnits ) Units = 'mol L-1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'WATERSAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA aerosol water concentration'
+          IF ( isUnits ) Units = 'ug m-3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'SULRATSAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA sulfate concentration'
+          IF ( isUnits ) Units = 'M'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'NARATSAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA sulfate concentration'
+          IF ( isUnits ) Units = 'M'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'ACIDPURSAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA ACIDPUR'
+          IF ( isUnits ) Units = 'M'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'BISULSAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA Bisulfate (general acid)' &
+                                 // ' concentration'
+          IF ( isUnits ) Units = 'M'
+          IF ( isRank  ) Rank  =  3
+
+       CASE( 'PHCLOUD' )
+          IF ( isDesc  ) Desc  = 'Cloud pH'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE( 'SSALK' )
+          IF ( isDesc  ) Desc  = 'Sea salt alkalinity'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  =  3
 
        CASE DEFAULT
           Found = .False.
