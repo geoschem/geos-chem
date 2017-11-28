@@ -340,7 +340,9 @@ MODULE GCKPP_HETRATES
       NATSURFACE    = .FALSE.
 
       ! KHETI_SLA = sticking coefficients for PSC reactions on SLA
-      KHETI_SLA     = SC%KHETI_SLA(I,J,L,:)
+      IF ( IO%LUCX ) THEN
+         KHETI_SLA  = SC%KHETI_SLA(I,J,L,:)
+      ENDIF
 
       ! Point to the chemical species array [molec/cm3]
       spcVec          => SC%Species(I,J,L,:)
