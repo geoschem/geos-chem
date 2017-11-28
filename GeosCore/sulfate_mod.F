@@ -3347,6 +3347,7 @@
                SR     = 0.e+0_fp
                SRhobr = 0.e+0_fp
                SRo3   = 0.e+0_fp
+               so2_sr = 0.e+0_fp
 	    ENDIF
 
             ! We have used the in-cloud LWC to compute the sulfate
