@@ -4306,7 +4306,7 @@ MODULE GCKPP_HETRATES
       !----------
       ! Henry's law constant [M/bar], Estimate, but also recommended by IUPAC 
       REAL(fp),  PARAMETER   :: H_HOBr    = 6.1e3_fp * con_atm_bar
-      REAL(fp),  PARAMETER   :: H_HOBr_E  = 0.0 ! No value given
+      REAL(fp),  PARAMETER   :: H_HOBr_E  = 6014.0
       REAL(fp),  PARAMETER   :: H_HOBr_T  = 298.15
       REAL(fp),  PARAMETER   :: M_HOBr    = 9.6911e-2_fp !Hardcoded MW [kg/mol]
 
