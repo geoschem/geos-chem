@@ -1323,6 +1323,9 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! ewl debugging
+    PRINT *, "reached end of init_state_diag"
+
   END SUBROUTINE Init_State_Diag
 !EOC
 !------------------------------------------------------------------------------
@@ -2124,27 +2127,20 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: D
+    INTEGER            :: D, numTags
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Nstr
     LOGICAL            :: isNumTags, isTagName
     CHARACTER(LEN=10)  :: JNames(37) ! temporary, will be replaced (ewl)
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
 
     ! Assume success
     RC    =  GC_SUCCESS
     ThisLoc = ' -> at Get_TagInfo (in Headers/state_diag_mod.F90)'
     Found = .TRUE.
-
+    numTags = 0
+    
     ! Optional arguments present?
     isTagName  = PRESENT( TagName )
     isNumTags  = PRESENT( nTags   )
-
-    ! Set defaults for optional arguments
-    IF ( isTagName  ) tagName = ''  
-    IF ( isNumTags  ) nTags   = 0  
 
     ! Exit with error if getting tag name but index not specified
     IF ( isTagName .AND. .NOT. PRESENT( N ) ) THEN
@@ -2153,34 +2149,34 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Add more cases as needed
+    ! Get number of tags
     SELECT CASE ( TRIM(tagId) )
        CASE ( 'ALL' )
-          nTags = State_Chm%nSpecies
+          numTags = State_Chm%nSpecies
        CASE ( 'ADV' )
-          nTags = State_Chm%nAdvect
+          numTags = State_Chm%nAdvect
        CASE ( 'AER' )
-          nTags = State_Chm%nAero
+          numTags = State_Chm%nAero
        CASE ( 'DRY' )
-          nTags = State_Chm%nDryDep
+          numTags = State_Chm%nDryDep
        CASE ( 'DUSTBIN' )
-          nTags = NDUST
+          numTags = NDUST
        CASE ( 'FIX' )
-          nTags = State_Chm%nKppFix
+          numTags = State_Chm%nKppFix
        CASE ( 'GAS' )
-          nTags = State_Chm%nGasSpc
+          numTags = State_Chm%nGasSpc
        CASE ( 'HYG' )
-          nTags = State_Chm%nHygGrth
+          numTags = State_Chm%nHygGrth
        CASE ( 'KPP' )
-          nTags = State_Chm%nKppSpc
+          numTags = State_Chm%nKppSpc
        CASE ( 'PHO' )
-          nTags = State_Chm%nPhotol
+          numTags = State_Chm%nPhotol
        CASE ( 'VAR' )
-          nTags = State_Chm%nKppVar
+          numTags = State_Chm%nKppVar
        CASE ( 'WET' )
-          nTags = State_Chm%nWetDep
+          numTags = State_Chm%nWetDep
        CASE ( 'JVN' ) ! temporary, will be replaced (ewl)
-          nTags = 37
+          numTags = 37
        CASE DEFAULT
           FOUND = .FALSE.
           ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &
@@ -2189,9 +2185,12 @@ CONTAINS
           RETURN
     END SELECT
 
-    ! Exit if not getting tag name
-    IF ( .NOT. isTagName ) RETURN
-       
+    ! If not getting tag name then set nTags and exit
+    IF ( .NOT. isTagName ) THEN 
+       nTags = numTags
+       RETURN
+    ENDIF
+
     ! Exit with error if index exceeds number of tags for this wildcard
     IF ( isTagName .AND. .NOT. PRESENT( N ) ) THEN
        ErrMsg = 'Index must be greater than total number of tags for wildcard' &
@@ -2201,7 +2200,7 @@ CONTAINS
     ENDIF
 
     ! Get mapping index
-    SELECT CASE ( tagID )
+    SELECT CASE ( TRIM(tagID) )
        CASE ( 'ALL', 'ADV', 'DUSTBIN', 'JVN' ) ! will remove JVN (ewl)
           D = N
        CASE ( 'AER' )
@@ -2231,6 +2230,7 @@ CONTAINS
     END SELECT
 
     ! Get tag name
+    IF ( isTagName ) tagName = ''  
     IF ( TRIM(tagID) == 'DUSTBIN' ) THEN
        IF ( D < 10 ) THEN
           WRITE ( Nstr, "(A1,I1)" ) '0', D
