@@ -2628,7 +2628,12 @@
          ! Initial SO2, H2O2, HOBr, and O3 [v/v]
          SO20   = Spc(I,J,L,id_SO2)         
          H2O20  = Spc(I,J,L,id_H2O2)
-         HOBr0  = Spc(I,J,L,id_HOBr) !(qjc, 01/30/17)
+         IF ( IS_FULLCHEM ) THEN
+            ! HOBr is only a defined species in fullchem simulations
+            HOBr0  = Spc(I,J,L,id_HOBr) !(qjc, 01/30/17)
+         ELSE
+            HOBr0  = 0.e+0_fp
+         ENDIF
          O3     = GET_O3( I, J, L, Input_Opt, State_Chm, State_Met )
 
          ! PATM  : Atmospheric pressure in atm
@@ -3009,10 +3014,10 @@
                ! and negative infinity.
                IF ( XX > 0.e+0_fp ) THEN 
                   L2S = H2O20 
-               ELSE IF ( XX < 0.d0) THEN
+               ELSE IF ( XX < 0.e+0_fp) THEN
                   L2S = SO2_ss
-               !(qjc, 04/10/16) different solution when SO2_ss = H2O20
-               ELSE IF (XX == 0.d0) THEN       
+               ELSE
+                  !(qjc, 04/10/16) different solution when SO2_ss = H2O20
                   L2S = SO2_ss - 1/(KaqH2O2*DTCHEM+1/SO2_ss)
                ENDIF
 
@@ -3042,10 +3047,10 @@
                ! Jintai Lin's note above (bmy, 4/28/10)
                IF ( XX > 0.e+0_fp ) THEN 
                   L3S = O3 
-               ELSE IF ( XX < 0.d0) THEN
+               ELSE IF ( XX < 0.e+0_fp) THEN
                   L3S = SO2_ss 
-               !(qjc, 04/10/16) different solution when SO2_ss = O3
-               ELSE IF (XX == 0.d0) THEN       
+               ELSE
+                  !(qjc, 04/10/16) different solution when SO2_ss = O3
                   L3S = SO2_ss - 1/(KaqO3*DTCHEM+1/SO2_ss)
                ENDIF
             ENDIF
@@ -3073,12 +3078,12 @@
  
                ! Follow the same logic for L3S_1 as described in
                ! Jintai Lin's note above
-               IF ( XX > 0.d0 ) THEN 
+               IF ( XX > 0.e+0_fp ) THEN 
                   L3S_1 = O3 
-               ELSE IF ( XX < 0.d0) THEN
+               ELSE IF ( XX < 0.e+0_fp) THEN
                   L3S_1 = SO2_ss 
-               !(qjc, 04/10/16) different solution when SO2_ss = O3
-               ELSE IF (XX == 0.d0) THEN       
+               ELSE
+                  !(qjc, 04/10/16) different solution when SO2_ss = O3
                   L3S_1 = SO2_ss - 1/(KaqO3_1*DTCHEM+1/SO2_ss)
                ENDIF
             ENDIF 
@@ -3090,8 +3095,13 @@
             !----------------------------------------------------------
 
             ! Get SO4H (sulfate produced via HOBr) from the Spc array [v/v dry]
-            SO4H1_vv = Spc(I,J,L,id_SO4H1)
-            SO4H2_vv = Spc(I,J,L,id_SO4H2)
+            IF ( IS_FULLCHEM ) THEN
+               SO4H1_vv = Spc(I,J,L,id_SO4H1)
+               SO4H2_vv = Spc(I,J,L,id_SO4H2)
+            ELSE
+               SO4H1_vv = 0.e+0_fp
+               SO4H2_vv = 0.e+0_fp
+            ENDIF
 
             L5S   = SO4H1_vv + SO4H2_vv
             L5S_1 = SO4H2_vv
@@ -3105,7 +3115,7 @@
             ELSE
                L5S = L5S
                L5S_1 = L5S_1
-               fupdateHOBr_0 = 1.d0
+               fupdateHOBr_0 = 1.e+0_fp
             ENDIF
 
             L2S   =  L2S   * FC
@@ -3369,8 +3379,8 @@
             ! Factor to calculate effective SO3 and HSO3 in aqchem_so2 to
             ! be used in HOBr+HSO3/SO3 (qjc, 06/20/16)
             rSIV = SO2_sr/SO2_ss0
-            rSIV = MAX(rSIV, 0.0d0)
-            rSIV = MIN(rSIV, 1.0d0)
+            rSIV = MAX(rSIV, 0.e+0_fp)
+            rSIV = MIN(rSIV, 1.e+0_fp)
 
             ! Store HSO3aq, SO3aq for use in gckpp_HetRates.F90
             State_Chm%HSO3_AQ(I,J,L) = HSO3aq*(1+rSIV)/2
