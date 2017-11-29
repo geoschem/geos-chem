@@ -3891,12 +3891,6 @@
 !  (3)  HO2    : HO2    Chemical Diagnostic : v/v       : CTHO2
 !  (4)  O1D    : O2D    Chemical Diagnostic : molec/cm3 : CTO1D
 !  (5)  O3P    : O3P    Chemical Diagnostic : molec/cm3 : CTO3P
-!  (6)  LBRO2H : LBRO2H Chemical Diagnostic : molec/cm3 : CTO3P
-!  (7)  LBRO2N : LBRO2N Chemical Diagnostic : molec/cm3 : CTO3P
-!  (8)  LTRO2H : LTRO2H Chemical Diagnostic : molec/cm3 : CTO3P
-!  (9)  LTRO2N : LTRO2N Chemical Diagnostic : molec/cm3 : CTO3P
-!  (10) LXRO2H : LxRO2H Chemical Diagnostic : molec/cm3 : CTO3P
-!  (11) LxRO2N : LXRO2N Chemical Diagnostic : molec/cm3 : CTO3P
 !
 !
 !  NOTES:
@@ -3973,72 +3967,10 @@
 
                   UNIT = 'molec/cm3'
 #endif
-
-               CASE ( 6 )
-                  WHERE( CTLBRO2H /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTLBRO2H )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-
-               CASE ( 7 )
-                  WHERE( CTLBRO2N /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTLBRO2N )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-
-               CASE ( 8 )
-                  WHERE( CTLTRO2H /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTLTRO2H )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-
-               CASE ( 9 )
-                  WHERE( CTLTRO2N /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTLTRO2N )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-
-               CASE ( 10 )
-                  WHERE( CTLXRO2H /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTLXRO2H )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-
-               CASE ( 11 )
-                  WHERE( CTLXRO2N /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTLXRO2N )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-
-               CASE DEFAULT
-                  CYCLE
+            CASE DEFAULT
+               ! Nothing
 
             END SELECT
-
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    

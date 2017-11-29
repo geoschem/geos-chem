@@ -1680,7 +1680,7 @@ CONTAINS
           IF ( isRank  ) Rank  = 3
 
        CASE( 'NARATSAV' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA sulfate concentration'
+          IF ( isDesc  ) Desc  = 'ISORROPIA Na+ concentration'
           IF ( isUnits ) Units = 'M'
           IF ( isRank  ) Rank  = 3
 

@@ -40,12 +40,6 @@
       USE DIAG_MOD,           ONLY : CTO3_24h
       USE DIAG_MOD,           ONLY : CTO1D,    LTO1D
       USE DIAG_MOD,           ONLY : CTO3P,    LTO3P
-      USE DIAG_MOD,           ONLY : LTLBRO2H, LTLBRO2N
-      USE DIAG_MOD,           ONLY : LTLTRO2H, LTLTRO2N
-      USE DIAG_MOD,           ONLY : LTLXRO2H, LTLXRO2N
-      USE DIAG_MOD,           ONLY : CTLBRO2H, CTLBRO2N
-      USE DIAG_MOD,           ONLY : CTLTRO2H, CTLTRO2N
-      USE DIAG_MOD,           ONLY : CTLXRO2H, CTLXRO2N
       USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_LOCALTIME
@@ -132,7 +126,7 @@
 !$OMP+PRIVATE( I, J, L )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-#if defined( BPCH_DIAG )
+
          !-----------------------------
          ! ND45 -- mixing ratios
          !-----------------------------
@@ -157,7 +151,7 @@
 
             ENDIF
          ENDIF
-#endif
+
          !-----------------------------
          ! ND47_O3 / ND65 -- "chemistry all day long" counter
          !-----------------------------
@@ -200,10 +194,6 @@
                LTHO2(I,J) = 1
                LTO1D(I,J) = 1
                LTO3P(I,J) = 1
-               ! update for arom (dkh, 06/22/07)  
-               LTLBRO2H(I,J) = 1
-               LTLTRO2H(I,J) = 1
-               LTLXRO2H(I,J) = 1
 
                ! Counters for # of OH, HO2 boxes in the chemgrid (phs, 1/24/07)
                DO L = 1, LD43 
@@ -212,10 +202,6 @@
                      CTHO2(I,J,L) = CTHO2(I,J,L) + 1
                      CTO1D(I,J,L) = CTO1D(I,J,L) + 1
                      CTO3P(I,J,L) = CTO3P(I,J,L) + 1
-                     ! update for arom (dkh, 06/22/07)  
-                     CTLBRO2H(I,J,L) = CTLBRO2H(I,J,L) + 1
-                     CTLTRO2H(I,J,L) = CTLTRO2H(I,J,L) + 1
-                     CTLXRO2H(I,J,L) = CTLXRO2H(I,J,L) + 1
                   ENDIF
                ENDDO
 
@@ -224,10 +210,6 @@
                LTHO2(I,J) = 0
                LTO1D(I,J) = 0
                LTO3P(I,J) = 0
-               ! update for arom (dkh, 06/22/07)  
-               LTLBRO2H(I,J) = 0
-               LTLTRO2H(I,J) = 0
-               LTLXRO2H(I,J) = 0 
             ENDIF
          ENDIF
 

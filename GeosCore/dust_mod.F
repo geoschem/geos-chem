@@ -641,12 +641,16 @@
                MEMIS = Spc(I,J,1,id_DUST1-1+K) - MINIT(I,J,1,K)
                IF ( MEMIS == 0.e+0_fp ) GOTO 10
 
+#if defined( BPCH_DIAG )
                AD59_DUST(I,J,1,K) = AD59_DUST(I,J,1,K) + MEMIS ! kg ????
+#endif
                Spc(I,J,1,id_NK1-1+K) = Spc(I,J,1,id_NK1-1+K) +
      &                                 MEMIS / (sqrt(Xk(K)*Xk(K+1)))
 
+#if defined( BPCH_DIAG )
                AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + 
      &                              MEMIS / (sqrt(Xk(K)*Xk(K+1)))
+#endif
  10            CONTINUE
             ENDDO
             ENDDO

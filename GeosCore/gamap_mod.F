@@ -6317,31 +6317,6 @@
                   UNIT(T,43) = 'molec/cm3'
                   MWT (T,43) = 16e-3
 #endif
-               ! update for arom (dkh, 06/22/07)  
-               CASE( 6 )
-                  NAME(T,43) = 'LBRO2H'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 127e-3
-               CASE( 7 )
-                  NAME(T,43) = 'LBRO2N'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 127e-3
-               CASE( 8 )
-                  NAME(T,43) = 'LTRO2H'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 141e-3
-               CASE( 9 )
-                  NAME(T,43) = 'LTRO2N'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 141e-3
-               CASE( 10)
-                  NAME(T,43) = 'LXRO2H'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 155e-3
-               CASE( 11)
-                  NAME(T,43) = 'LXRO2N'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 155e-3
                CASE DEFAULT
                   ! Nothing
             END SELECT
