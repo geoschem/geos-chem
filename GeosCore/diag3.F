@@ -3915,7 +3915,6 @@
 
          DO M = 1, TMAX(43)
             N  = TINDEX(43,M)
-            NN = N 
 
             ! Default units
             UNIT = 'molec/cm3'
@@ -3932,9 +3931,10 @@
                   ENDWHERE
 
                   UNIT = 'molec/cm3'
+                  NN   = 1             ! backwards compat. w/ prior code
 
                ! HO2 (rvm, bmy, 2/27/02)
-               CASE ( 3 )
+               CASE ( 2 )
                   WHERE( CTHO2 /= 0 )
                      ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
      &                    FLOAT( CTHO2 )
@@ -3943,10 +3943,11 @@
                   ENDWHERE
 
                   UNIT = 'v/v'
+                  NN   = 3             ! backwards compat. w/ prior code
 
 #if defined( UCX )
                ! O1D
-               CASE ( 4 )
+               CASE ( 3 )
                   WHERE( CTO1D /= 0 )
                      ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
      &                    FLOAT( CTO1D )
@@ -3955,9 +3956,11 @@
                   ENDWHERE
 
                   UNIT = 'molec/cm3'
+                  NN   = 4             ! backwards compat. w/ prior code
 
                ! O3P
-               CASE ( 5 )
+               CASE ( 4 )
+                  NN = 5
                   WHERE( CTO3P /= 0 )
                      ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
      &                    FLOAT( CTO3P )
@@ -3966,6 +3969,8 @@
                   ENDWHERE
 
                   UNIT = 'molec/cm3'
+                  NN   = 5             ! backwards compat. w/ prior code
+
 #endif
             CASE DEFAULT
                ! Nothing

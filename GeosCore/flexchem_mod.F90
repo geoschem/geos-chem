@@ -1223,7 +1223,7 @@ CONTAINS
 #if defined( BPCH_DIAG )
             ! ND43 (bpch) diagnostic
             IF ( Do_ND43 ) THEN
-               AD43(I,J,L,3) = AD43(I,J,L,3)                                 &
+               AD43(I,J,L,2) = AD43(I,J,L,2)                                 &
                              + ( Spc(I,J,L,id_HO2) / AirNumDen(I,J,L) )      &
                              * ( LTHO2(I,J)                           )
             ENDIF
@@ -1250,7 +1250,7 @@ CONTAINS
 #if defined( BPCH_DIAG ) 
             ! ND43 (bpch) diagnostic
             IF ( Do_ND43 ) THEN
-               AD43(I,J,L,4) = AD43(I,J,L,4)                                 &
+               AD43(I,J,L,3) = AD43(I,J,L,3)                                 &
                              + ( Spc(I,J,L,id_O1D) * LTO1D(I,J)            )
             ENDIF
 #endif
@@ -1273,7 +1273,7 @@ CONTAINS
 #if defined( BPCH_DIAG )
             ! ND43 (bpch) diagnostic
             IF ( Do_ND43 ) THEN
-               AD43(I,J,L,5) = AD43(I,J,L,5)                                 &
+               AD43(I,J,L,4) = AD43(I,J,L,4)                                 &
                              + ( Spc(I,J,L,id_O3P) * LTO3P(I,J)            )
             ENDIF
 #endif
