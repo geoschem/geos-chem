@@ -530,7 +530,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
      ! Scalars
-    LOGICAL                      :: EOF   
+    LOGICAL                      :: EOF,            Found   
     INTEGER                      :: yyyymmdd,       hhmmss
     INTEGER                      :: yyyymmdd_end,   hhmmss_end
     INTEGER                      :: C,              N,             W
@@ -547,7 +547,7 @@ CONTAINS
     INTEGER                      :: Ind_Kpp,        Ind_Pho,       Ind_Rst
     INTEGER                      :: Ind_Var,        Ind_Wet,       Ind
     INTEGER                      :: HbHrs,          HbMin,         HbSec
-    INTEGER                      :: HeartBeatHms
+    INTEGER                      :: HeartBeatHms,   nTags
     REAL(f8)                     :: UpdateAlarm,    HeartBeatDtSec
     REAL(f8)                     :: FileWriteAlarm, FileCloseAlarm
     REAL(f8)                     :: JulianDate,     JulianDateEnd
@@ -562,12 +562,14 @@ CONTAINS
     CHARACTER(LEN=255)           :: ItemTemplate,   ItemTemplateUC
     CHARACTER(LEN=255)           :: ItemName,       Description
     CHARACTER(LEN=255)           :: TmpMode,        Contact
-    CHARACTER(LEN=255)           :: Pattern
+    CHARACTER(LEN=255)           :: Pattern,        ItemPrefix
+    CHARACTER(LEN=255)           :: tagId,          tagName
 
     ! Arrays
     INTEGER                      :: SubsetDims(3)
     CHARACTER(LEN=255)           :: Subs1(255)
     CHARACTER(LEN=255)           :: Subs2(255)
+    CHARACTER(LEN=255)           :: SubStrs(255)
 
     ! Objects
     TYPE(HistContainer), POINTER :: Container
@@ -1143,114 +1145,74 @@ CONTAINS
              !--------------------------------------------------------------
 
              ! Save the item name in temporary variables
-             ! so that we can parse for wild cards
+             ! so that we can parse for wildcards
              ItemTemplate   = ItemName
              ItemTemplateUC = To_UpperCase( ItemTemplate )
 
-             ! Test if there are wild cards present, otherwise skip
+             ! Test if there are wildcards present, otherwise skip
              IF ( INDEX( ItemTemplateUC, '?' ) >  0 ) THEN 
 
-                !-----------------------------------------------------------
-                ! Item name contains wild cards; fill in species names
-                !-----------------------------------------------------------
-                Ind_Adv = INDEX( ItemTemplateUC, '?ADV?' ) ! Advected species
-                Ind_All = INDEX( ItemTemplateUC, '?ALL?' ) ! All species
-                Ind_Aer = INDEX( ItemTemplateUC, '?AER?' ) ! Aerosol species
-                Ind_Dry = INDEX( ItemTemplateUC, '?DRY?' ) ! Drydep species
-                Ind_Fix = INDEX( ItemTemplateUC, '?FIX?' ) ! KPP fixed species
-                Ind_Gas = INDEX( ItemTemplateUC, '?GAS?' ) ! Gas-phase species
-                Ind_Kpp = INDEX( ItemTemplateUC, '?KPP?' ) ! KPP species
-                Ind_Pho = INDEX( ItemTemplateUC, '?PHO?' ) ! Photolysis species
-                Ind_Pho = INDEX( ItemTemplateUC, '?JVN?' ) ! Photolysis species
-                Ind_Var = INDEX( ItemTemplateUC, '?VAR?' ) ! KPP active species
-                Ind_Wet = INDEX( ItemTemplateUC, '?WET?' ) ! Wetdep species
+                ! Split the name to get wildcard and string prior to wildcard
+                CALL StrSplit( ItemTemplateUC, '?', SubStrs, N )
+                tagId = SubStrs(N-1)
+                ItemPrefix = SubStrs(1)
 
-                ! Loop over all species
-                DO N = 1, State_Chm%nSpecies
-
-                   ! Point to this entry of the species database 
-                   ThisSpc => State_Chm%SpcData(N)%Info
-
-                   ! For a given wild card, skip the unnecessary species
-                   IF ( Ind_All > 0 ) THEN
-                      Ind = Ind_All
-                   ELSE IF ( Ind_Adv > 0 ) THEN
-                      IF ( .not. ThisSpc%Is_Advected   ) CYCLE
-                      Ind = Ind_Adv
-                   ELSE IF ( Ind_Aer > 0 ) THEN
-                      IF ( ThisSpc%Is_Gas              ) CYCLE
-                      Ind = Ind_Aer
-                   ELSE IF ( Ind_Dry > 0 ) THEN
-                      IF ( .not. ThisSpc%Is_DryDep     ) CYCLE
-                      Ind = Ind_Dry
-                   ELSE IF ( Ind_Fix > 0 ) THEN
-                      IF ( .not. ThisSpc%Is_FixedChem  ) CYCLE
-                      Ind = Ind_Fix
-                   ELSE IF ( Ind_Gas > 0 ) THEN
-                      IF ( .not. ThisSpc%Is_Gas        ) CYCLE
-                      Ind = Ind_Gas
-                   ELSE IF ( Ind_Kpp > 0 ) THEN
-                      IF ( .not. ThisSpc%Is_Kpp        ) CYCLE
-                      Ind = Ind_Kpp
-                   ELSE IF ( Ind_Pho > 0 ) THEN
-                      IF ( .not. ThisSpc%Is_Photolysis ) CYCLE
-                      Ind = Ind_Pho
-                   ELSE IF ( Ind_Var > 0 ) THEN
-                      IF ( .not. ThisSpc%Is_ActiveChem ) CYCLE
-                      Ind = Ind_Var
-                   ELSE IF ( Ind_Wet > 0 ) THEN
-                      IF ( .not. ThisSpc%Is_WetDep     ) CYCLE
-                      Ind = Ind_Wet
-                   ELSE
-                      Ind = -1
-                   ENDIF
-
-                   IF ( Ind <= 0 ) THEN
-                      ErrMsg = 'Could not find wild card!'
-                      CALL GC_Error( ErrMsg, RC, ThisLoc )
-                      RETURN
-                   ENDIF 
+                ! Get number of tags for this wildcard
+                CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                                  nTags=nTags )
+                IF ( RC /= GC_SUCCESS ) THEN
+                   ErrMsg = 'Error retrieving # of tags for' // &
+                                  ' wildcard ' // TRIM(tagId)
+                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   RETURN
+                ENDIF
+                
+                ! Add each tagged name as a separate item in the collection
+                DO N = 1, nTags
 
                    ! Construct the item name
-                   ItemName    = ItemTemplate( 1:Ind-1 ) // &
-                                 TRIM( ThisSpc%Name    ) // &
-                                 ItemTemplate( Ind+5:  ) 
+                   CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                                     N=N, tagName=tagName )
+                   IF ( RC /= GC_SUCCESS ) THEN
+                      ErrMsg = 'Error retrieving tag name for' // &
+                                     ' wildcard ' // TRIM(tagId)
+                      CALL GC_Error( ErrMsg, RC, ThisLoc )
+                      RETURN
+                   ENDIF
+                   ItemName = TRIM(ItemPrefix) // TRIM(tagName)
 
                    ! Increment the item count
                    ItemCount   = ItemCount + 1
-
+                   
                    ! Create the a HISTORY ITEM object for this diagnostic
                    ! and add it to the given DIAGNOSTIC COLLECTION
-                   CALL History_AddItemToCollection(                         &
-                            am_I_Root    = am_I_Root,                        &
-                            Input_Opt    = Input_Opt,                        &
-                            State_Chm    = State_Chm,                        &
-                            State_Diag   = State_Diag,                       &
-                            State_Met    = State_Met,                        &
-                            Collection   = Container,                        &
-                            CollectionId = C,                                &
-                           !SubsetDims   = CollectionSubsetDims(C),          &
-                            ItemName     = ItemName,                         &
-                            ItemCount    = ItemCount,                        &
-                            RC           = RC                               )
-
-                   ! Trap potential error
+                   CALL History_AddItemToCollection(            &
+                            am_I_Root    = am_I_Root,           &
+                            Input_Opt    = Input_Opt,           &
+                            State_Chm    = State_Chm,           &
+                            State_Diag   = State_Diag,          &
+                            State_Met    = State_Met,           &
+                            Collection   = Container,           &
+                            CollectionId = C,                   &
+                           !SubsetDims   = CollectionSubsetDims(C),  &
+                            ItemName     = ItemName,            &
+                            ItemCount    = ItemCount,           &
+                            RC           = RC                     )
+                
+                   ! Error checking
                    IF ( RC /= GC_SUCCESS ) THEN
-                      ErrMsg = 'Could not add diagnostic :'            //     &
-                               TRIM( ItemName ) // '" to collection: ' //    &
+                      ErrMsg = 'Could not add diagnostic :'            // &
+                               TRIM( ItemName ) // '" to collection: ' // &
                                TRIM( CollectionName(C) ) 
                       CALL GC_Error( ErrMsg, RC, ThisLoc )
                       RETURN
                    ENDIF
-         
-                   ! Free the species database pointer
-                   ThisSpc => NULL()
                 ENDDO
 
              ELSE
 
                 !-----------------------------------------------------------
-                ! Item name does not have wild cards; no special handling
+                ! Item name does not have wildcards; no special handling
                 !-----------------------------------------------------------
 
                 ! Increment the number of HISTORY items

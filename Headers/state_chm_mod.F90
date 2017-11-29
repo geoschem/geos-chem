@@ -57,19 +57,31 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      ! Count of each type of species
      !----------------------------------------------------------------------
-     INTEGER                    :: nSpecies             ! # of species
-     INTEGER                    :: nAdvect              ! # of advected species
-     INTEGER                    :: nDryDep              ! # of drydep species
-     INTEGER                    :: nKppSpc              ! # of KPP chem species
-     INTEGER                    :: nWetDep              ! # of wetdep species
+     INTEGER                    :: nSpecies             ! # species (all)
+     INTEGER                    :: nAdvect              ! # advected species
+     INTEGER                    :: nAero                ! # of Aerosol Types
+     INTEGER                    :: nDryDep              ! # drydep species
+     INTEGER                    :: nGasSpc              ! # gas phase species
+     INTEGER                    :: nHygGrth             ! # hygroscopic growth
+     INTEGER                    :: nKppVar              ! # KPP variable species
+     INTEGER                    :: nKppFix              ! # KPP fixed species
+     INTEGER                    :: nKppSpc              ! # KPP chem species
+     INTEGER                    :: nPhotol              ! # photolysis species
+     INTEGER                    :: nWetDep              ! # wetdep species
 
      !----------------------------------------------------------------------
      ! Mapping vectors to subset types of species
      !----------------------------------------------------------------------
-     INTEGER,           POINTER :: Map_Advect (:      ) ! Advected species ID's
-     INTEGER,           POINTER :: Map_DryDep (:      ) ! Drydep species ID's
-     INTEGER,           POINTER :: Map_KppSpc (:      ) ! KPP chem species ID's
-     INTEGER,           POINTER :: Map_WetDep (:      ) ! Wetdep species IDs'
+     INTEGER,           POINTER :: Map_Advect (:      ) ! Advected species IDs
+     INTEGER,           POINTER :: Map_Aero   (:      ) ! Aerosol species IDs
+     INTEGER,           POINTER :: Map_DryDep (:      ) ! Drydep species IDs
+     INTEGER,           POINTER :: Map_GasSpc (:      ) ! Gas species IDs
+     INTEGER,           POINTER :: Map_HygGrth(:      ) ! HygGrth species IDs
+     INTEGER,           POINTER :: Map_KppVar (:      ) ! Kpp variable spc IDs
+     INTEGER,           POINTER :: Map_KppFix (:      ) ! KPP fixed species IDs
+     INTEGER,           POINTER :: Map_KppSpc (:      ) ! KPP chem species IDs
+     INTEGER,           POINTER :: Map_Photol (:      ) ! Photolysis species IDs
+     INTEGER,           POINTER :: Map_WetDep (:      ) ! Wetdep species IDs
 
      !----------------------------------------------------------------------
      ! Physical properties & indices for each species
@@ -85,7 +97,6 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      ! Aerosol quantities
      !----------------------------------------------------------------------
-     INTEGER                    :: nAero                ! # of Aerosol Types
      REAL(fp),          POINTER :: AeroArea   (:,:,:,:) ! Aerosol Area [cm2/cm3]
      REAL(fp),          POINTER :: AeroRadi   (:,:,:,:) ! Aerosol Radius [cm]
      REAL(fp),          POINTER :: WetAeroArea(:,:,:,:) ! Aerosol Area [cm2/cm3]
@@ -170,6 +181,7 @@ MODULE State_Chm_Mod
 !  31 Jul 2017 - R. Yantosca - Add fixes in registering ISORROPIA *_SAV fields
 !  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Chm and Print_State_Chm
 !  02 Oct 2017 - E. Lundgren - Abstract metadata and routine to add to Registry
+!  27 Nov 2017 - E. Lundgren - Add # and ID mapping for more species categories
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -290,16 +302,29 @@ CONTAINS
     nAerosol = NDUST + NAER
 
     ! Number of each type of species
-    State_Chm%nSpecies    =  0
-    State_Chm%nAdvect     =  0
-    State_Chm%nDryDep     =  0
-    State_Chm%nKppSpc     =  0
-    State_Chm%nWetDep     =  0
+    State_Chm%nSpecies =  0
+    State_Chm%nAdvect  =  0
+    State_Chm%nAero    =  0
+    State_Chm%nDryDep  =  0
+    State_Chm%nGasSpc  =  0
+    State_Chm%nHygGrth =  0
+    State_Chm%nKppVar  =  0
+    State_Chm%nKppFix  =  0
+    State_Chm%nKppSpc  =  0
+    State_Chm%nPhotol  =  0
+    State_Chm%nWetDep  =  0
+
 
     ! Mapping vectors for subsetting each type of species
     State_Chm%Map_Advect  => NULL()
+    State_Chm%Map_Aero    => NULL()
     State_Chm%Map_DryDep  => NULL()
+    State_Chm%Map_GasSpc  => NULL() 
+    State_Chm%Map_HygGrth => NULL()
+    State_Chm%Map_KppVar  => NULL()
+    State_Chm%Map_KppFix  => NULL()
     State_Chm%Map_KppSpc  => NULL()
+    State_Chm%Map_Photol  => NULL() 
     State_Chm%Map_WetDep  => NULL()
 
     ! Chemical species
@@ -311,7 +336,6 @@ CONTAINS
     ThisSpc               => NULL()
 
     ! Aerosol parameters
-    State_Chm%nAero       = 0
     State_Chm%AeroArea    => NULL()
     State_Chm%AeroRadi    => NULL()
     State_Chm%WetAeroArea => NULL()
@@ -355,6 +379,9 @@ CONTAINS
                                 Input_Opt = Input_Opt,                      &
                                 SpcData   = State_Chm%SpcData,              &
                                 RC        = RC                             )
+
+    ! Point to a private module copy of the species database
+    ! which will be used by the Ind_ indexing function
     SpcDataLocal => State_Chm%SpcData
 
     !=======================================================================
@@ -367,12 +394,12 @@ CONTAINS
     ! Get the number of advected, dry-deposited, KPP chemical species,
     ! and and wet-deposited species.  Also return the # of Hg0, Hg2, and 
     ! HgP species (these are zero unless the Hg simulation is used).
-    CALL Spc_GetNumSpecies( State_Chm%nAdvect,                              &
-                            State_Chm%nDryDep,                              &
-                            State_Chm%nKppSpc,                              &
-                            State_Chm%nWetDep,                              &
-                            N_Hg0_CATS,                                     &
-                            N_Hg2_CATS,                                     &
+    CALL Spc_GetNumSpecies( State_Chm%nAdvect,  State_Chm%nAero,            &
+                            State_Chm%nDryDep,  State_Chm%nGasSpc,          &
+                            State_Chm%nHygGrth, State_Chm%nKppVar,          &
+                            State_Chm%nKppFix,  State_Chm%nKppSpc,          &
+                            State_Chm%nPhotol,  State_Chm%nWetDep,          &
+                            N_Hg0_CATS,         N_Hg2_CATS,                 &
                             N_HgP_CATS                                     )
 
     !=======================================================================
@@ -384,15 +411,45 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_Advect = 0
 
+    ALLOCATE( State_Chm%Map_Aero( State_Chm%nAero ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%Map_Aero', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%Map_Aero = 0
+
     ALLOCATE( State_Chm%Map_Drydep( State_Chm%nDryDep  ), STAT=RC )
     CALL GC_CheckVar( 'State_Chm%Map_Drydep', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_DryDep = 0
 
+    ALLOCATE( State_Chm%Map_GasSpc( State_Chm%nGasSpc ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%Map_GasSpc', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%Map_GasSpc = 0
+
+    ALLOCATE( State_Chm%Map_HygGrth( State_Chm%nHygGrth ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%Map_HygGrth', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%Map_HygGrth = 0
+
+    ALLOCATE( State_Chm%Map_KppVar( State_Chm%nKppVar ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%Map_KppVar', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%Map_KppVar = 0
+
+    ALLOCATE( State_Chm%Map_KppFix( State_Chm%nKppFix ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%Map_KppFix', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%Map_KppFix = 0
+
     ALLOCATE( State_Chm%Map_KppSpc( NSPEC ), STAT=RC )
     CALL GC_CheckVar( 'State_Chm%Map_KppSpc', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Map_KppSpc = 0
+
+    ALLOCATE( State_Chm%Map_Photol( State_Chm%nPhotol ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%Map_Photol', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%Map_Photol = 0
 
     ALLOCATE( State_Chm%Map_WetDep( State_Chm%nWetDep  ), STAT=RC )
     CALL GC_CheckVar( 'State_Chm%Map_Wetdep', 0, RC )
@@ -420,8 +477,8 @@ CONTAINS
        IF ( ThisSpc%Is_Advected ) THEN
 
           ! Update the mapping vector of advected species
-          C                         = ThisSpc%AdvectId
-          State_Chm%Map_Advect(C)   = ThisSpc%ModelId
+          C                       = ThisSpc%AdvectId
+          State_Chm%Map_Advect(C) = ThisSpc%ModelId
           
           ! Print to screen
           IF ( am_I_Root ) THEN
@@ -431,27 +488,75 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! Set up the mapping for AEROSOL SPECIES
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_Aero ) THEN
+          C                     = ThisSpc%AeroId
+          State_Chm%Map_Aero(C) = ThisSpc%ModelId
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! Set up the mapping for DRYDEP SPECIES
        !--------------------------------------------------------------------
        IF ( ThisSpc%Is_DryDep ) THEN
-          C                         = ThisSpc%DryDepId
-          State_Chm%Map_Drydep(C)   = ThisSpc%ModelId
+          C                       = ThisSpc%DryDepId
+          State_Chm%Map_Drydep(C) = ThisSpc%ModelId
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for GAS SPECIES
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_Gas ) THEN
+          C                       = ThisSpc%GasSpcId
+          State_Chm%Map_GasSpc(C) = ThisSpc%ModelId
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for HYGROSCOPIC GROWTH SPECIES
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_HygroGrowth ) THEN
+          C                        = ThisSpc%HygGrthId
+          State_Chm%Map_HygGrth(C) = ThisSpc%ModelId
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for KPP ACTIVE (VARIABLE) SPECIES
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_ActiveChem ) THEN
+          C                       = ThisSpc%KppVarId
+          State_Chm%Map_KppVar(C) = ThisSpc%ModelId
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for KPP FIXED SPECIES
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_FixedChem ) THEN
+          C                       = ThisSpc%KppFixId
+          State_Chm%Map_KppFix(C) = ThisSpc%ModelId
        ENDIF
 
        !--------------------------------------------------------------------
        ! Set up the mapping for SPECIES IN THE KPP MECHANISM
        !--------------------------------------------------------------------
        IF ( ThisSpc%Is_Kpp ) THEN
-          C                         = ThisSpc%KppSpcId
-          State_Chm%Map_KppSpc(C)   = ThisSpc%ModelId
+          C                       = ThisSpc%KppSpcId
+          State_Chm%Map_KppSpc(C) = ThisSpc%ModelId
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Set up the mapping for SPECIES IN THE KPP MECHANISM
+       ! Set up the mapping for PHOTOLYSIS SPECIES
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_Photolysis ) THEN
+          C                       = ThisSpc%PhotolId
+          State_Chm%Map_Photol(C) = ThisSpc%ModelId
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for WETDEP SPECIES
        !--------------------------------------------------------------------
        IF ( ThisSpc%Is_WetDep ) THEN
-          C                         = ThisSpc%WetDepId
-          State_Chm%Map_WetDep(C)   = ThisSpc%ModelId
+          C                       = ThisSpc%WetDepId
+          State_Chm%Map_WetDep(C) = ThisSpc%ModelId
        ENDIF
 
        ! Free pointer
@@ -807,8 +912,7 @@ CONTAINS
     !=======================================================================
     ! Allocate and initialize fields for UCX mechamism
     !=======================================================================
-#if defined( UCX )
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. Input_Opt%LUCX ) THEN
 
        !--------------------------------------------------------------------
        ! STATE_PSC
@@ -870,7 +974,6 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
     ENDIF
-#endif
 
     !=======================================================================
     ! Print out the list of registered fields
@@ -1056,15 +1159,51 @@ CONTAINS
        RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%Map_Aero) ) THEN
+       DEALLOCATE( State_Chm%Map_Aero, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_Aero', 3, RC )
+       RETURN
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%Map_DryDep ) ) THEN
        DEALLOCATE( State_Chm%Map_DryDep, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Drydep', 3, RC )
        RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%Map_GasSpc) ) THEN
+       DEALLOCATE( State_Chm%Map_GasSpc, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_GasSpc', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Map_HygGrth) ) THEN
+       DEALLOCATE( State_Chm%Map_HygGrth, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_HygGrth', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Map_KppVar) ) THEN
+       DEALLOCATE( State_Chm%Map_KppVar, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_KppVar', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Map_KppFix) ) THEN
+       DEALLOCATE( State_Chm%Map_KppFix, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_KppFix', 3, RC )
+       RETURN
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%Map_KppSpc ) ) THEN
        DEALLOCATE( State_Chm%Map_KppSpc, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_KppSpc', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Map_Photol) ) THEN
+       DEALLOCATE( State_Chm%Map_Photol, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_Photol', 3, RC )
        RETURN
     ENDIF
 
@@ -2047,6 +2186,7 @@ CONTAINS
 !  17 Aug 2016 - M. Sulprizio- Tracer flag 'T' is now advected species flag 'A'
 !  01 Nov 2017 - R. Yantosca - Now use Str2Hash14 from charpak_mod.F90, which
 !                              computes a hash from an input string of 14 chars
+!  27 Nov 2017 - E. Lundgren - Add flags for additional species categories
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2085,46 +2225,64 @@ CONTAINS
           ELSE
 
              ! Only need first character of the flag for this.
-             IF     (flag(1:1) .eq. 'S' .or. flag(1:1) .eq. 's') THEN
-
-                ! Species/ModelID
-                Indx = SpcDataLocal(N)%Info%ModelID
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'A' .or. flag(1:1) .eq. 'a') THEN
+             IF (flag(1:1) .eq. 'A' .or. flag(1:1) .eq. 'a') THEN
 
                 ! Advected species flag
                 Indx = SpcDataLocal(N)%Info%AdvectID
                 RETURN
 
-             ELSEIF (flag(1:1) .eq. 'K' .or. flag(1:1) .eq. 'k') THEN
+             ELSEIF (flag(1:1) .eq. 'D' .or. flag(1:1) .eq. 'd') THEN
 
-                ! KPP species ID
-                Indx = SpcDataLocal(N)%Info%KppSpcId
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'V' .or. flag(1:1) .eq. 'v') THEN
-
-                ! KPP VAR ID
-                Indx = SpcDataLocal(N)%Info%KppVarId
+                ! Dry-deposited species ID
+                Indx = SpcDataLocal(N)%Info%DryDepId
                 RETURN
 
              ELSEIF (flag(1:1) .eq. 'F' .or. flag(1:1) .eq. 'f') THEN
 
-                ! KPP FIX ID
+                ! KPP fixed species ID
                 Indx = SpcDataLocal(N)%Info%KppFixId
+                RETURN
+
+             ELSEIF (flag(1:1) .eq. 'G' .or. flag(1:1) .eq. 'g') THEN
+
+                ! Gas-phase species ID
+                Indx = SpcDataLocal(N)%Info%GasSpcId
+                RETURN
+
+             ELSEIF (flag(1:1) .eq. 'H' .or. flag(1:1) .eq. 'h') THEN
+
+                ! Hygroscopic growth species ID
+                Indx = SpcDataLocal(N)%Info%HygGrthId
+                RETURN
+
+             ELSEIF (flag(1:1) .eq. 'K' .or. flag(1:1) .eq. 'k') THEN
+
+                ! KPP chemical species ID
+                Indx = SpcDataLocal(N)%Info%KppSpcId
+                RETURN
+
+             ELSEIF (flag(1:1) .eq. 'P' .or. flag(1:1) .eq. 'p') THEN
+
+                ! Photolysis species ID
+                Indx = SpcDataLocal(N)%Info%PhotolId
+                RETURN
+
+             ELSEIF (flag(1:1) .eq. 'S' .or. flag(1:1) .eq. 's') THEN
+
+                ! Species/ModelID
+                Indx = SpcDataLocal(N)%Info%ModelID
+                RETURN
+
+             ELSEIF (flag(1:1) .eq. 'V' .or. flag(1:1) .eq. 'v') THEN
+
+                ! KPP variable species ID
+                Indx = SpcDataLocal(N)%Info%KppVarId
                 RETURN
 
              ELSEIF (flag(1:1) .eq. 'W' .or. flag(1:1) .eq. 'w') THEN
 
                 ! WetDep ID
                 Indx = SpcDataLocal(N)%Info%WetDepId
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'D' .or. flag(1:1) .eq. 'd') THEN
-
-                ! DryDep ID
-                Indx = SpcDataLocal(N)%Info%DryDepId
                 RETURN
 
              ENDIF

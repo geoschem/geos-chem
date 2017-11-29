@@ -152,6 +152,8 @@ CONTAINS
 !                              (B. Henderson)
 !  13 Jun 2017 - M. Sulprizio- Add species for mechanistic isoprene SOA
 !                              (E. Marais)
+!  27 Nov 2017 - E. Lundgren - Add SALA, SALC, OCPO/OCPI, BCPO/BCPI, and SO4
+!                              as hygroscopic growth species for cloud diags
 !EOP
 !------------------------------------------------------------------------------
 !BOC

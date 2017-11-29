@@ -39,11 +39,11 @@ MODULE State_Diag_Mod
   PUBLIC :: Init_State_Diag
   PUBLIC :: Cleanup_State_Diag
   PUBLIC :: Get_Metadata_State_Diag
+  PUBLIC :: Get_TagInfo
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
   PRIVATE :: Register_DiagField
-  PRIVATE :: Get_TagInfo
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -1156,6 +1156,9 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! ewl debugging
+    PRINT *, "reached end of init_state_diag"
+
   END SUBROUTINE Init_State_Diag
 !EOC
 !------------------------------------------------------------------------------
@@ -1849,22 +1852,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_TagInfo( am_I_Root, tagID, State_Chm, Found, RC, nTags )
+  SUBROUTINE Get_TagInfo( am_I_Root, tagID,   State_Chm, Found, RC, &
+                          N,         tagName, nTags )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 ! 
-    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
-    CHARACTER(LEN=*),    INTENT(IN)  :: tagID      ! ID of tag (e.g. wildcard)
-    TYPE(ChmState),      INTENT(IN)  :: State_Chm         ! Obj for chem state
+    LOGICAL,            INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+    CHARACTER(LEN=*),   INTENT(IN)  :: tagID       ! ID of tag (e.g. wildcard)
+    TYPE(ChmState),     INTENT(IN)  :: State_Chm   ! Obj for chem state
+    INTEGER,            INTENT(IN),  OPTIONAL :: N ! index (1 to # tags)
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,  INTENT(OUT)           :: Found      ! Item found?
-    INTEGER,  INTENT(OUT)           :: RC         ! Return code
-    INTEGER,  INTENT(OUT), OPTIONAL :: nTags    ! # tags
+    LOGICAL,            INTENT(OUT)           :: Found   ! Item found?
+    INTEGER,            INTENT(OUT)           :: RC      ! Return code
+    CHARACTER(LEN=255), INTENT(OUT), OPTIONAL :: tagName ! tag name for index N 
+    INTEGER,            INTENT(OUT), OPTIONAL :: nTags   ! # tags
 !
 ! !REMARKS:
 !
@@ -1876,43 +1882,142 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-    LOGICAL            :: isNumTags
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
+    INTEGER            :: D, numTags
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Nstr
+    LOGICAL            :: isNumTags, isTagName
+    CHARACTER(LEN=10)  :: JNames(37) ! temporary, will be replaced (ewl)
 
     ! Assume success
     RC    =  GC_SUCCESS
     ThisLoc = ' -> at Get_TagInfo (in Headers/state_diag_mod.F90)'
     Found = .TRUE.
-
+    numTags = 0
+    
     ! Optional arguments present?
-    isNumTags  = PRESENT( nTags )
+    isTagName  = PRESENT( TagName )
+    isNumTags  = PRESENT( nTags   )
 
-    ! Set defaults for optional arguments
-    IF ( isNumTags  ) nTags = 0  
+    ! Exit with error if getting tag name but index not specified
+    IF ( isTagName .AND. .NOT. PRESENT( N ) ) THEN
+       ErrMsg = 'Index must be specified if retrieving an individual tag name'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-    ! TODO: add more cases as needed
+    ! Get number of tags
     SELECT CASE ( TRIM(tagId) )
        CASE ( 'ALL' )
-          nTags = State_Chm%nSpecies
+          numTags = State_Chm%nSpecies
        CASE ( 'ADV' )
-          nTags = State_Chm%nAdvect
-       CASE ( 'DUSTBIN' )
-          nTags = NDUST
+          numTags = State_Chm%nAdvect
+       CASE ( 'AER' )
+          numTags = State_Chm%nAero
        CASE ( 'DRY' )
-          nTags = State_Chm%nDryDep
+          numTags = State_Chm%nDryDep
+       CASE ( 'DUSTBIN' )
+          numTags = NDUST
+       CASE ( 'FIX' )
+          numTags = State_Chm%nKppFix
+       CASE ( 'GAS' )
+          numTags = State_Chm%nGasSpc
+       CASE ( 'HYG' )
+          numTags = State_Chm%nHygGrth
+       CASE ( 'KPP' )
+          numTags = State_Chm%nKppSpc
+       CASE ( 'PHO' )
+          numTags = State_Chm%nPhotol
+       CASE ( 'VAR' )
+          numTags = State_Chm%nKppVar
        CASE ( 'WET' )
-          nTags = State_Chm%nWetDep
+          numTags = State_Chm%nWetDep
+       CASE ( 'JVN' ) ! temporary, will be replaced (ewl)
+          numTags = 37
        CASE DEFAULT
           FOUND = .FALSE.
           ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &
-                   ' is not implemented for this combo of data type and size'
+                   ' is not implemented for getting number of tags'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
     END SELECT
+
+    ! If not getting tag name then set nTags and exit
+    IF ( .NOT. isTagName ) THEN 
+       nTags = numTags
+       RETURN
+    ENDIF
+
+    ! Exit with error if index exceeds number of tags for this wildcard
+    IF ( isTagName .AND. .NOT. PRESENT( N ) ) THEN
+       ErrMsg = 'Index must be greater than total number of tags for wildcard' &
+                // TRIM(tagId)
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Get mapping index
+    SELECT CASE ( TRIM(tagID) )
+       CASE ( 'ALL', 'ADV', 'DUSTBIN', 'JVN' ) ! will remove JVN (ewl)
+          D = N
+       CASE ( 'AER' )
+          D = State_Chm%Map_Aero(N)
+       CASE ( 'DRY' )
+          D = State_Chm%Map_DryDep(N)
+       CASE ( 'GAS' )
+          D = State_Chm%Map_GasSpc(N)
+       CASE ( 'HYG' )
+          D = State_Chm%Map_HygGrth(N)
+       CASE ( 'VAR' )
+          D = State_Chm%Map_KppVar(N)
+       CASE ( 'FIX' )
+          D = State_Chm%Map_KppFix(N)
+       CASE ( 'KPP' )
+          D = State_Chm%Map_KppSpc(N)
+       CASE ( 'PHO' )
+          D = State_Chm%Map_Photol(N)
+       CASE ( 'WET' )
+          D = State_Chm%Map_WetDep(N)
+       CASE DEFAULT
+          FOUND = .FALSE.
+          ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &
+                   ' is not implemented for getting tag name'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+    END SELECT
+
+    ! Get tag name
+    IF ( isTagName ) tagName = ''  
+    IF ( TRIM(tagID) == 'DUSTBIN' ) THEN
+       IF ( D < 10 ) THEN
+          WRITE ( Nstr, "(A1,I1)" ) '0', D
+       ELSE
+          WRITE ( Nstr, "(I2)" ) D
+       ENDIF
+       tagName = 'bin' // TRIM(Nstr) 
+    ELSEIF ( TRIM(tagId) == 'JVN' ) THEN   ! temporary, will be removed (ewl)
+       JNAMES = [ 'NO2       ', 'HNO3      ', 'H2O2      ',            &
+                  'CH2O      ', 'x         ', 'x         ',            &
+                  'GLYX      ', 'MGLY      ', 'BrO       ',            &
+                  'HOBr      ', 'BrNO2     ', 'BrNO3     ',            &
+                  'CHBr3     ', 'Br2       ', 'O2inadj   ',            &
+                  'N2O       ', 'NO        ', 'NO3       ',            &
+                  'CFC11     ', 'CFC12     ', 'CCl4      ',            &
+                  'CH3Cl     ', 'ACET      ', 'ALD2      ',            &
+                  'MVK       ', 'MACR      ', 'HAC       ',            &
+                  'GLYC      ', 'PIP       ', 'IPMN      ',            &
+                  'ETHLN     ', 'DHDN      ', 'HPALD     ',            &
+                  'ISN1      ', 'MONITS    ', 'MONITU    ',            &
+                     'HONIT     ' ]
+#if defined( UCX )
+        JNAMES(5) = 'O3_O1D'
+        JNAMES(6) = 'O3_O3P'
+#else
+        JNAMES(5) = 'O3'
+        JNAMES(6) = 'O3_POH'
+#endif
+       tagName = TRIM( JNAMES(D) )
+    ELSE
+       tagName = State_Chm%SpcData(D)%Info%Name
+    ENDIF
 
   END SUBROUTINE Get_TagInfo
 !EOC
@@ -1958,18 +2063,17 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagId, Nstr
-    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    INTEGER                :: N, D, I, nTags
-    INTEGER                :: rank, type, vloc
+    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
+    CHARACTER(LEN=255)     :: diagName, diagDesc
+    INTEGER                :: N, nTags, rank, type, vloc
     LOGICAL                :: found
-    TYPE(Species), POINTER :: SpcInfo
 
     ! Initialize
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R4_2D (in Headers/state_diag_mod.F90)'
     ErrMsg_reg = 'Error encountered while registering State_Diag field'
 
+    ! Get metadata for this diagnostic
     CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
                                   desc=desc,   units=units, rank=rank,    &
                                   type=type,   vloc=vloc,   tagId=tagId      )
@@ -1978,7 +2082,7 @@ CONTAINS
        RETURN
     ENDIF
     
-    ! Check that metadata consistent with data pointer
+    ! Check that metadata dimensions consistent with data pointer
     IF ( ( ( tagId == '' ) .AND. ( rank /= 2 ) )  &
          .OR. ( ( tagId /= '' ) .AND. ( rank /= 1 ) ) ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' // &
@@ -1987,10 +2091,8 @@ CONTAINS
        RETURN
     ENDIF
           
-    ! Special handling if there are tags
+    ! Special handling if there are tags (wildcard)
     IF ( tagId /= '' ) THEN
-
-       ! Get the number of tags
        CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
                          nTags=nTags )
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2000,28 +2102,22 @@ CONTAINS
 
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags          
-
-          ! TODO: add more cases as needed and refactor
-          SELECT CASE ( tagID )
-             CASE ( 'ALL', 'ADV' )
-                D = N
-             CASE ( 'DRY' )
-                D =  State_Chm%Map_DryDep(N)
-             CASE ( 'WET' )
-                D =  State_Chm%Map_WetDep(N)
-          END SELECT
-          SpcInfo  => State_Chm%SpcData(D)%Info
-          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
-          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                            N=N, tagName=tagName )
+          IF ( RC /= GC_SUCCESS ) THEN
+             CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+             RETURN
+          ENDIF
+          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+          diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
                                   State        = State_Diag%State,     &
-                                  Variable     = thisSpcName,          &
-                                  Description  = thisSpcDesc,          &
+                                  Variable     = diagName,             &
+                                  Description  = diagDesc,             &
                                   Units        = units,                &
                                   Data1d_4     = Ptr2Data(:,N),        &
                                   RC           = RC                   )
-          SpcInfo => NULL()
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = ErrMsg_reg // ' where tagID is ' // TRIM(tagID)
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2090,18 +2186,17 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagID, Nstr
-    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    INTEGER                :: N, D, I, nTags
-    INTEGER                :: rank, type,  vloc
-    LOGICAL                :: found
-    TYPE(Species), POINTER :: SpcInfo
+    CHARACTER(LEN=255)     :: desc, units, tagID, tagName
+    CHARACTER(LEN=255)     :: diagName, diagDesc
+    INTEGER                :: N, nTags, rank, type,  vloc
+    LOGICAL                :: Found
 
     ! Initialize
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
     ErrMsg_reg = 'Error encountered while registering State_Diag field'
 
+    ! Get metadata for this diagnostic
     CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
                                   desc=desc,   units=units, rank=rank,    &
                                   type=type,   vloc=vloc,                 &
@@ -2111,7 +2206,7 @@ CONTAINS
        RETURN
     ENDIF
     
-    ! Check that metadata consistent with data pointer
+    ! Check that metadata dimensions consistent with data pointer
     IF ( ( ( tagID == '' ) .AND. ( rank /= 3 ) )  &
          .OR. ( ( tagID /= '' ) .AND. ( rank /= 2 ) ) ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' // &
@@ -2122,8 +2217,6 @@ CONTAINS
 
     ! Special handling if there are tags
     IF ( tagID /= '' ) THEN
-
-       ! Get the number of tags
        CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
                          nTags=nTags )
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2133,28 +2226,22 @@ CONTAINS
 
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags          
-
-          ! TODO: add more cases as needed and refactor
-          SELECT CASE ( tagID )
-             CASE ( 'ALL', 'ADV' )
-                D = N
-             CASE ( 'DRY' )
-                D =  State_Chm%Map_DryDep(N)
-             CASE ( 'WET' )
-                D =  State_Chm%Map_WetDep(N)
-          END SELECT
-          SpcInfo  => State_Chm%SpcData(D)%Info
-          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
-          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                            N=N, tagName=tagName )
+          IF ( RC /= GC_SUCCESS ) THEN
+             CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+             RETURN
+          ENDIF
+          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+          diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
                                   State        = State_Diag%State,     &
-                                  Variable     = thisSpcName,          &
-                                  Description  = thisSpcDesc,          &
+                                  Variable     = diagName,             &
+                                  Description  = diagDesc,             &
                                   Units        = units,                &
                                   Data2d_4     = Ptr2Data(:,:,N),      &
                                   RC           = RC                   )
-          SpcInfo => NULL()
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = ErrMsg_reg // ' where tagID is ' // TRIM(tagID)
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2226,19 +2313,17 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagId, Nstr
-    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    CHARACTER(LEN=10)      :: JNames(37)
-    INTEGER                :: N, D, I, WV, nTags
-    INTEGER                :: rank, type,  vloc
+    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
+    CHARACTER(LEN=255)     :: diagName, diagDesc
+    INTEGER                :: N, nTags, rank, type, vloc
     LOGICAL                :: found
-    TYPE(Species), POINTER :: SpcInfo
 
     ! Initialize
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R4_4D (in Headers/state_diag_mod.F90)'
     ErrMsg_reg = 'Error encountered while registering State_Diag field'
 
+    ! Get metadata for this diagnostic
     CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
                                   desc=desc,   units=units, rank=rank,    &
                                   type=type,   vloc=vloc,   tagId=tagId  )
@@ -2247,7 +2332,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Check that metadata consistent with data pointer
+    ! Check that metadata dimensions consistent with data pointer
     IF ( rank /= 3 ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' // &
                 TRIM(metadataID)
@@ -2255,7 +2340,7 @@ CONTAINS
        RETURN
     ENDIF
     
-    ! Assume always tagged
+    ! Assume always tagged if 4D
     CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
                       nTags=nTags )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2265,68 +2350,22 @@ CONTAINS
 
     ! Register each tagged name as a separate diagnostic
     DO N = 1, nTags          
-
-       ! TODO: add more cases as needed and refactor
-       SELECT CASE ( tagId )
-          CASE ( 'ALL', 'ADV' )
-             D = N
-          CASE ( 'DUSTBIN' )
-             IF ( N < 10 ) THEN
-                WRITE ( Nstr, "(A1,I1)" ) '0', N
-             ELSE
-                WRITE ( Nstr, "(I2)" ) N
-             ENDIF
-             thisSpcName = TRIM(metadataID) // '_bin' // TRIM(Nstr) 
-             thisSpcDesc = TRIM( Desc ) // ' for ' // TRIM(Nstr)
-          CASE ( 'DRY' )
-             D =  State_Chm%Map_DryDep(N)
-          CASE ( 'WET' )
-             D =  State_Chm%Map_WetDep(N)
-          CASE ( 'JVN' )
-             ! TODO: For now, hard-code the names based on AD22. RNAMES and
-             !  JLABEL are not yet initialized at this point. Put index mapping
-             !  in  species database in near future if possible.
-             JNAMES = [ 'NO2       ', 'HNO3      ', 'H2O2      ',            &
-                        'CH2O      ', 'x         ', 'x         ',            &
-                        'GLYX      ', 'MGLY      ', 'BrO       ',            &
-                        'HOBr      ', 'BrNO2     ', 'BrNO3     ',            &
-                        'CHBr3     ', 'Br2       ', 'O2inadj   ',            &
-                        'N2O       ', 'NO        ', 'NO3       ',            &
-                        'CFC11     ', 'CFC12     ', 'CCl4      ',            &
-                        'CH3Cl     ', 'ACET      ', 'ALD2      ',            &
-                        'MVK       ', 'MACR      ', 'HAC       ',            &
-                        'GLYC      ', 'PIP       ', 'IPMN      ',            &
-                        'ETHLN     ', 'DHDN      ', 'HPALD     ',            &
-                        'ISN1      ', 'MONITS    ', 'MONITU    ',            &
-                        'HONIT     ' ]
-#if defined( UCX )
-             JNAMES(5) = 'O3_O1D'
-             JNAMES(6) = 'O3_O3P'
-#else
-             JNAMES(5) = 'O3'
-             JNAMES(6) = 'O3_POH'
-#endif
-       END SELECT
-       IF ( tagId == 'JVN' ) THEN
-          ! Temporary implementation for J-Values. Add to specdb in near future
-          ! to avoid having to do special treatment.
-          thisSpcName = TRIM( metadataID ) // '_' // TRIM( JNAMES(N) )
-          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( JNAMES(N) )
-       ELSEIF ( tagId /= 'DUSTBIN' ) THEN
-          SpcInfo  => State_Chm%SpcData(D)%Info
-          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
-          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                         N=N, tagName=tagName )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          RETURN
        ENDIF
-
+       diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+       diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
        CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                Registry     = State_Diag%Registry,  &
                                State        = State_Diag%State,     &
-                               Variable     = thisSpcName,          &
-                               Description  = thisSpcDesc,          &
+                               Variable     = diagName,             &
+                               Description  = diagDesc,             &
                                Units        = units,                &
                                Data3d_4     = Ptr2Data(:,:,:,N),    &
                                RC           = RC                   )
-       SpcInfo => NULL()
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = ErrMsg_reg // ' where tagId is ' // TRIM(tagId)
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2378,18 +2417,17 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagId, Nstr
-    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    INTEGER                :: N, D, I, nTags
-    INTEGER                :: rank, type, vloc
-    LOGICAL                :: found
-    TYPE(Species), POINTER :: SpcInfo
+    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
+    CHARACTER(LEN=255)     :: diagName, diagDesc
+    INTEGER                :: N, nTags, rank, type, vloc
+    LOGICAL                :: Found
 
     ! Initialize
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
     ErrMsg_reg = 'Error encountered while registering State_Diag field'
 
+    ! Get metadata for this diagnostic
     CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
                                   desc=desc,   units=units, rank=rank,    &
                                   type=type,   vloc=vloc,                 &
@@ -2399,7 +2437,7 @@ CONTAINS
        RETURN
     ENDIF
     
-    ! Check that metadata consistent with data pointer
+    ! Check that metadata dimensions consistent with data pointer
     IF ( ( ( tagId == '' ) .AND. ( rank /= 3 ) )  &
          .OR. ( ( tagId /= '' ) .AND. ( rank /= 2 ) ) ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' // &
@@ -2410,8 +2448,6 @@ CONTAINS
 
     ! Special handling if there are tags
     IF ( tagId /= '' ) THEN
-
-       ! Get the number of tags
        CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
                          nTags=nTags )
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2421,28 +2457,22 @@ CONTAINS
 
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags          
-
-          ! TODO: add more cases as needed and refactor
-          SELECT CASE ( tagId )
-             CASE ( 'ALL', 'ADV' )
-                D = N
-             CASE ( 'DRY' )
-                D =  State_Chm%Map_DryDep(N)
-             CASE ( 'WET' )
-                D =  State_Chm%Map_WetDep(N)
-          END SELECT
-          SpcInfo  => State_Chm%SpcData(D)%Info
-          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
-          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                            N=N, tagName=tagName )
+          IF ( RC /= GC_SUCCESS ) THEN
+             CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+             RETURN
+          ENDIF
+          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+          diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
                                   State        = State_Diag%State,     &
-                                  Variable     = thisSpcName,          &
-                                  Description  = thisSpcDesc,          &
+                                  Variable     = diagName,             &
+                                  Description  = diagDesc,             &
                                   Units        = units,                &
                                   Data2d       = Ptr2Data(:,:,N),      &
                                   RC           = RC                   )
-          SpcInfo => NULL()
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = ErrMsg_reg // ' where tagId is ' // TRIM(tagId)
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2514,19 +2544,17 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagId, Nstr
-    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    CHARACTER(LEN=10)      :: JNames(37)
-    INTEGER                :: N, D, I, nTags
-    INTEGER                :: rank, type,  vloc
+    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
+    CHARACTER(LEN=255)     :: diagName, diagDesc
+    INTEGER                :: N, nTags, rank, type,  vloc
     LOGICAL                :: found
-    TYPE(Species), POINTER :: SpcInfo
 
     ! Initialize
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R8_4D (in Headers/state_diag_mod.F90)'
     ErrMsg_reg = 'Error encountered while registering State_Diag field'
 
+    ! Get metadata for this diagnostic
     CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
                                   desc=desc,   units=units, rank=rank,    &
                                   type=type,   vloc=vloc,                 &
@@ -2536,7 +2564,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Check that metadata consistent with data pointer
+    ! Check that metadata dimensions consistent with data pointer
     IF ( rank /= 3 ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' // &
                 TRIM(metadataID)
@@ -2544,7 +2572,7 @@ CONTAINS
        RETURN
     ENDIF
     
-    ! Assume always tagged
+    ! Assume always tagged. Get number of tags.
     CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
                       nTags=nTags )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2554,28 +2582,22 @@ CONTAINS
 
     ! Register each tagged name as a separate diagnostic
     DO N = 1, nTags          
-
-       ! TODO: add more cases as needed and refactor
-       SELECT CASE ( TRIM(tagId) )
-          CASE ( 'ALL', 'ADV' )
-             D = N
-          CASE ( 'DRY' )
-             D =  State_Chm%Map_DryDep(N)
-          CASE ( 'WET' )
-             D =  State_Chm%Map_WetDep(N)
-       END SELECT
-       SpcInfo  => State_Chm%SpcData(D)%Info
-       thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
-       thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                         N=N, tagName=tagName )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+       diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
        CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                Registry     = State_Diag%Registry,  &
                                State        = State_Diag%State,     &
-                               Variable     = thisSpcName,          &
-                               Description  = thisSpcDesc,          &
+                               Variable     = diagName,             &
+                               Description  = diagDesc,             &
                                Units        = units,                &
                                Data3d_8     = Ptr2Data(:,:,:,N),    &
                                RC           = RC                   )
-       SpcInfo => NULL()
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = ErrMsg_reg // ' where tagId is ' // TRIM(tagId)
           CALL GC_Error( ErrMsg, RC, ThisLoc )
