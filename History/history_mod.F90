@@ -1150,10 +1150,10 @@ CONTAINS
              ItemTemplateUC = To_UpperCase( ItemTemplate )
 
              ! Test if there are wildcards present, otherwise skip
-             IF ( INDEX( ItemTemplateUC, '?' ) >  0 ) THEN 
+             IF ( INDEX( ItemTemplate, '?' ) >  0 ) THEN 
 
                 ! Split the name to get wildcard and string prior to wildcard
-                CALL StrSplit( ItemTemplateUC, '?', SubStrs, N )
+                CALL StrSplit( ItemTemplate, '?', SubStrs, N )
                 tagId = SubStrs(N-1)
                 ItemPrefix = SubStrs(1)
 
