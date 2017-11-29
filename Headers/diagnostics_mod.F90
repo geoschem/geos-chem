@@ -102,6 +102,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - initial version
+!  28 Nov 2017 - C. J. Lee   - Allow state MET variables to have underscores
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,7 +210,7 @@ CONTAINS
           IF ( TRIM(state) == 'DIAG' .AND. N == 2 ) THEN
              isSpecies = .TRUE.
              species = SubStrs(2)
-          ELSEIF ( ( TRIM(state) == 'MET' .OR. TRIM(state) == 'CHEM' ) &
+          ELSEIF ( TRIM(state) == 'CHEM' &
                    .AND. N == 3 ) THEN
              isSpecies = .TRUE.
              species = SubStrs(3)
