@@ -80,7 +80,8 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: HO2concAfterChem(:,:,:  ) !  concentrations 
      REAL(f4),  POINTER :: O1DconcAfterChem(:,:,:  ) !  upon exiting the
      REAL(f4),  POINTER :: O3PconcAfterChem(:,:,:  ) !  FlexChem solver 
-     
+     REAL(f4),  POINTER :: ProdLoss        (:,:,:,:) ! Prod/loss diagnostic
+
      ! Aerosols
      ! *** Need to add AOD ***
      ! Waiting for input on rest of list from Aerosol WG?
@@ -291,6 +292,7 @@ CONTAINS
     State_Diag%HO2concAfterChem    => NULL()
     State_Diag%O1DconcAfterChem    => NULL()
     State_Diag%O3PconcAfterChem    => NULL()
+    State_Diag%ProdLoss            => NULL()
 
     State_Diag%PbFromRnDecay       => NULL()
     State_Diag%RadDecay            => NULL()
@@ -1176,9 +1178,6 @@ CONTAINS
 !
   SUBROUTINE Cleanup_State_Diag( am_I_Root, State_Diag, RC )
 !
-! !USES:
-!
-!
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
@@ -1456,6 +1455,12 @@ CONTAINS
     IF ( ASSOCIATED( State_Diag%ODDustBinsWL3 ) ) THEN
        DEALLOCATE( State_Diag%ODDustBinsWL3, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%ODDustBinsWL3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdLoss ) ) THEN
+       DEALLOCATE( State_Diag%ProdLoss, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdLoss', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
