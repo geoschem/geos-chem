@@ -1,4 +1,3 @@
-
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1323,9 +1322,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! ewl debugging
-    PRINT *, "reached end of init_state_diag"
-
   END SUBROUTINE Init_State_Diag
 !EOC
 !------------------------------------------------------------------------------
@@ -2232,12 +2228,8 @@ CONTAINS
     ! Get tag name
     IF ( isTagName ) tagName = ''  
     IF ( TRIM(tagID) == 'DUSTBIN' ) THEN
-       IF ( D < 10 ) THEN
-          WRITE ( Nstr, "(A1,I1)" ) '0', D
-       ELSE
-          WRITE ( Nstr, "(I2)" ) D
-       ENDIF
-       tagName = 'bin' // TRIM(Nstr) 
+       WRITE ( Nstr, "(I1)" ) D
+       tagName = 'BIN' // TRIM(Nstr)
     ELSEIF ( TRIM(tagId) == 'JVN' ) THEN   ! temporary, will be removed (ewl)
        JNAMES = [ 'NO2       ', 'HNO3      ', 'H2O2      ',            &
                   'CH2O      ', 'x         ', 'x         ',            &
