@@ -2092,6 +2092,7 @@
 
          PSO2_DMS(I,J,L) =  DMS0 - DMS - PMSA_DMS(I,J,L)
 
+#if defined( BPCH_DIAG )
          !==============================================================
          ! ND05 diagnostic: production and loss  
          !
@@ -2137,6 +2138,7 @@
             AD05(I,J,L,10) = AD05(I,J,L,10) + LNO3
 
          ENDIF
+#endif
 
          !==============================================================
          ! For a coupled fullchem/aerosol run, save OH [molec/cm3] 
@@ -3776,11 +3778,13 @@
       ENDIF
 
       !tdf Added loss of HNO3 on sea salt diagnostic
+#if defined( BPCH_DIAG )
       IF ( FullRun .and. (ND05 > 0) ) THEN
          ! L(HNO3) on sea-salt aerosols [kg N/timestep]
          AD05(I,J,L,14) = AD05(I,J,L,14) +
      &                  ( HNO3_ss * State_Met%AD(I,J,L) / TCVV_N )
       ENDIF
+#endif
 
       ! NITS produced converted from [eq/timestep] to [v/v/timestep] 
       ! Remove species molecular weight from equation (bmy, 2/10/17)

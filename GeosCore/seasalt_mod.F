@@ -1426,11 +1426,13 @@
                !==============================================================
                ! ND59 Diagnostic: Sea salt emission in [kg/box/timestep]       
                !==============================================================
+#if defined( BPCH_DIAG )
                IF ( ND59 > 0) THEN
                   AD59_NUMB(I,J,1,k) = AD59_NUMB(I,J,1,k) + NUM
                   AD59_SALT(I,J,1,k) = AD59_SALT(I,J,1,k) + 
      &                                       NUM*sqrt(xk(k)*xk(k+1))
                ENDIF
+#endif
 
             ENDDO
             

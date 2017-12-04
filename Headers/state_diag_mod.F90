@@ -79,7 +79,8 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: HO2concAfterChem(:,:,:  ) !  concentrations 
      REAL(f4),  POINTER :: O1DconcAfterChem(:,:,:  ) !  upon exiting the
      REAL(f4),  POINTER :: O3PconcAfterChem(:,:,:  ) !  FlexChem solver 
-     
+     REAL(f4),  POINTER :: ProdLoss        (:,:,:,:) ! Prod/loss diagnostic
+
      ! Aerosols
      ! *** Need to add AOD ***
      ! Waiting for input on rest of list from Aerosol WG?
@@ -110,15 +111,6 @@ MODULE State_Diag_Mod
      ! Carbon aerosols
      REAL(f4),  POINTER :: ProdBCPIfromBCPO(:,:,:  ) ! Prod BCPI from BCPO
      REAL(f4),  POINTER :: ProdOCPIfromOCPO(:,:,:  ) ! Prod OCPI from OCPO
-
-     ! For isoprene SOA (moved here from State_Chm)
-     REAL(fp),  POINTER :: pHSav           (:,:,:  ) ! ISORROPIA aerosol pH
-     REAL(fp),  POINTER :: HplusSav        (:,:,:  ) ! H+ concentration [M]
-     REAL(fp),  POINTER :: WaterSav        (:,:,:  ) ! ISORROPIA aerosol H2O
-     REAL(fp),  POINTER :: SulRatSav       (:,:,:  ) ! Sulfate conc [M]
-     REAL(fp),  POINTER :: NaRatSav        (:,:,:  ) ! Nitrate conc [M]
-     REAL(fp),  POINTER :: AcidPurSav      (:,:,:  ) !
-     REAL(fp),  POINTER :: BiSulSav        (:,:,:  ) ! Bisulfate conc [M]
 
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
@@ -299,14 +291,7 @@ CONTAINS
     State_Diag%HO2concAfterChem    => NULL()
     State_Diag%O1DconcAfterChem    => NULL()
     State_Diag%O3PconcAfterChem    => NULL()
-
-    State_Diag%pHSav               => NULL()
-    State_Diag%HplusSav            => NULL()
-    State_Diag%WaterSav            => NULL()
-    State_Diag%SulRatSav           => NULL()
-    State_Diag%NaRatSav            => NULL()
-    State_Diag%AcidPurSav          => NULL()
-    State_Diag%BisulSav            => NULL()
+    State_Diag%ProdLoss            => NULL()
 
     State_Diag%PbFromRnDecay       => NULL()
     State_Diag%RadDecay            => NULL()
@@ -1121,156 +1106,6 @@ CONTAINS
 
     ENDIF
 
-    !=======================================================================
-    ! The following quantities are only relevant for either fullchem
-    ! or aerosol-only simulations.
-    !
-    ! If any of these quantites is listed in the HISTORY.rc file, it will
-    ! be archived to a netCDF diagnostic collection.  Otherwise, it will
-    ! be used internally in the chemistry modules but not saved to netCDF.
-    !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-
-       !-----------------------------------------
-       ! phSav
-       !-----------------------------------------
-       arrayID = 'State_Diag%phSav'
-       diagID  = 'pHSav'
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%phSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%phSav = 0.0_fp
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%phSav, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !-----------------------------------------
-       ! HplusSav
-       !-----------------------------------------
-       arrayID = 'State_Diag%HplusSav'
-       diagID  = 'HplusSav'
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%HplusSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%HplusSav = 0.0_fp
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%HplusSav, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !-----------------------------------------
-       ! WaterSav
-       !-----------------------------------------
-       arrayID = 'State_Diag%WaterSav'
-       diagID  = 'WaterSav'
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%WaterSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WaterSav = 0.0_fp
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%WaterSav, &
-                                State_Chm, State_Diag, RC )
-
-       !-----------------------------------------
-       ! SulRatSav
-       !-----------------------------------------
-       arrayID = 'State_Diag%SulRatSav'
-       diagID  = 'SulRatSav'
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%SulRatSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SulRatSav = 0.0_fp
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%SulRatSav, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !-----------------------------------------
-       ! NaRatSav
-       !-----------------------------------------
-       arrayID = 'State_Diag%NaRatSav'
-       diagID  = 'NaRatSav'
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%NaRatSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%NaRatSav = 0.0_fp
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%NaRatSav, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !-----------------------------------------
-       ! AcidPurSav
-       !-----------------------------------------
-       arrayID = 'State_Diag%AcidPurSav'
-       diagID  = 'AcidPurSav'
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%AcidPurSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AcidPurSav = 0.0_fp
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%AcidPurSav, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !-----------------------------------------
-       ! BisulSav
-       !-----------------------------------------
-       arrayID = 'State_Diag%BisulSav'
-       diagID  = 'BisulSav'
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BisulSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BisulSav = 0.0_fp
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%BisulSav, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-    ELSE
-       
-       !----------------------------------------------------------------
-       ! Halt with an error message if any of the following quantities
-       ! have been requested as diagnostics in simulations other than
-       ! full-chemistry or aerosol-only.  
-       !
-       ! This will prevent potential errors caused by the quantities
-       ! being requested as diagnostic output when the corresponding
-       ! array has not been allocated.
-       !----------------------------------------------------------------
-       DO N = 1, 7
-          
-          ! Select the diagnostic ID
-          SELECT CASE( N )
-             CASE( 1 )
-                diagID = 'pHSav'
-             CASE( 2 )                
-                diagID = 'HplusSav'
-             CASE( 3 )
-                diagID = 'WaterSav'
-             CASE( 4 )
-                diagID = 'SulRatSav'
-             CASE( 5 ) 
-                diagID = 'NaRatSav'
-             CASE( 6 )
-                diagID = 'AcidPurSav'
-             CASE( 7 ) 
-                diagID = 'BisulSav'
-          END SELECT
-
-          ! Exit if any of the above are in the diagnostic list
-          CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-          IF ( Found ) THEN
-             ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
-                      'but this is only appropriate for full-chemistry '  // &
-                      'or aerosol-only simulations.' 
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDDO
-    ENDIF
-
     ! Format statement
 20  FORMAT( 1x, a32, ' is registered as: ', a )
 
@@ -1338,9 +1173,6 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Cleanup_State_Diag( am_I_Root, State_Diag, RC )
-!
-! !USES:
-!
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1574,48 +1406,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%phSav ) ) THEN
-       DEALLOCATE( State_Diag%phSav, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%phSav', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%HplusSav ) ) THEN
-       DEALLOCATE( State_Diag%HplusSav, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%HplusSav', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%WaterSav ) ) THEN
-       DEALLOCATE( State_Diag%WaterSav, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%WaterSav', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%SulRatSav ) ) THEN
-       DEALLOCATE( State_Diag%SulRatSav, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%SulRatSav', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%NaRatSav ) ) THEN
-       DEALLOCATE( State_Diag%NaRatSav, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%NaRatSav', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AcidPurSav ) ) THEN
-       DEALLOCATE( State_Diag%AcidPurSav, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AcidPurSav', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BisulSav ) ) THEN
-       DEALLOCATE( State_Diag%BisulSav, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BiSulSav', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
     IF ( ASSOCIATED( State_Diag%OHconcAfterChem ) ) THEN
        DEALLOCATE( State_Diag%OhconcAfterChem, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%OHconcAfterChem', 2, RC )
@@ -1661,6 +1451,12 @@ CONTAINS
     IF ( ASSOCIATED( State_Diag%ODDustBinsWL3 ) ) THEN
        DEALLOCATE( State_Diag%ODDustBinsWL3, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%ODDustBinsWL3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdLoss ) ) THEN
+       DEALLOCATE( State_Diag%ProdLoss, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdLoss', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -1983,36 +1779,6 @@ CONTAINS
           IF ( isUnits   ) Units = 'kg'
           IF ( isRank    ) Rank  = 3
 
-    ELSEIF ( TRIM(Name_AllCaps) == 'PHSAV' ) THEN
-          IF ( isDesc    ) Desc  = 'ISORROPIA aerosol pH'
-          IF ( isUnits   ) Units = '1'
-          IF ( isRank    ) Rank  = 3
-
-    ELSEIF ( TRIM(Name_AllCaps) == 'HPLUSSAV' ) THEN
-          IF ( isDesc    ) Desc  = 'ISORROPIA H+ concentration'
-          IF ( isUnits   ) Units = 'mol L-1'
-          IF ( isRank    ) Rank  = 3
-
-    ELSEIF ( TRIM(Name_AllCaps) == 'WATERSAV' ) THEN
-          IF ( isDesc    ) Desc  = 'ISORROPIA aerosol water concentration'
-          IF ( isUnits   ) Units = 'ug m-3'
-          IF ( isRank    ) Rank  = 3
-
-    ELSEIF ( TRIM(Name_AllCaps) == 'SULRATSAV' ) THEN
-          IF ( isDesc    ) Desc  = 'ISORROPIA sulfate concentration'
-          IF ( isUnits   ) Units = 'M'
-          IF ( isRank    ) Rank  = 3
-
-    ELSEIF ( TRIM(Name_AllCaps) == 'NARATSAV' ) THEN
-          IF ( isDesc    ) Desc  = 'ISORROPIA sulfate concentration'
-          IF ( isUnits   ) Units = 'M'
-          IF ( isRank    ) Rank  = 3
-
-    ELSEIF ( TRIM(Name_AllCaps) == 'ACIDPURSAV' ) THEN
-          IF ( isDesc    ) Desc  = 'ISORROPIA ACIDPUR'
-          IF ( isUnits   ) Units = 'M'
-          IF ( isRank    ) Rank  = 3
-
     ELSEIF ( TRIM(Name_AllCaps) == 'OHCONCAFTERCHEM' ) THEN
           IF ( isDesc    ) Desc  = 'OH concentration immediately after chemistry'
           IF ( isUnits   ) Units = 'molec cm-3'
@@ -2032,12 +1798,6 @@ CONTAINS
           IF ( isDesc    ) Desc  = 'O3P concentration immediately after chemistry'
           IF ( isUnits   ) Units = 'molec cm-3'
           IF ( isRank    ) Rank  = 3
-
-    ELSEIF ( TRIM(Name_AllCaps) == 'BISULSAV' ) THEN
-          IF ( isDesc    ) Desc  = 'ISORROPIA Bisulfate (general acid)' &
-                                 // ' concentration'
-          IF ( isUnits   ) Units = 'M'
-          IF ( isRank    ) Rank  =  3
 
     ELSEIF ( TRIM(Name_AllCaps) == 'OPTICALDEPTHDUST' ) THEN
           IF ( isDesc    ) Desc  = 'Optical depth for mineral dust'

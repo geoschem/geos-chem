@@ -894,23 +894,24 @@ CONTAINS
        !==============================================================
        IF ( Input_Opt%DO_SAVE_PL ) THEN
 
-          ! Loop over # prod/loss families
-          DO F = 1, NFAM
+          ! Loop over # prod/loss species
+          DO F = 1, State_Chm%nProdLoss
 
-             ! Determine dummy species index in KPP
-             KppID = Ind_(TRIM(FAM_NAMES(F)),'K')
+             ! Determine the KPP ID # for each prod/loss diagnostic species
+             ! NOTE: This is the index for the VAR array, and not the
+             ! "master" GEOS-Chem species Id (aka "ModelId")>
+             KppID = State_Chm%Map_ProdLoss(F)
 
+#if defined( BPCH_DIAG )
              !--------------------------------------------------------
-             ! Add to AD65 array [molec/cm3/s]
+             ! ND65 (bpch) diagnostic:
+             ! Prod and loss of families or species [molec/cm3/s]
              !--------------------------------------------------------
-             IF ( KppID > 0 ) THEN
-                AD65(I,J,L,F) = AD65(I,J,L,F) + VAR(KppID) / DT
-             ENDIF
+             AD65(I,J,L,F) = AD65(I,J,L,F) + VAR(KppID) / DT
 
-             !--------------------------------------------------------
              ! Save out P(Ox) and L(Ox) from the fullchem simulation
              ! for a future tagged O3 run
-             !--------------------------------------------------------
+             ! NOTE: Probably not needed for netCDF diagnostics
              IF ( Input_Opt%DO_SAVE_O3 ) THEN
                 IF ( TRIM(FAM_NAMES(F)) == 'POx' ) THEN
                    POx(I,J,L) = VAR(KppID) / DT
@@ -919,6 +920,15 @@ CONTAINS
                    LOx(I,J,L) = VAR(KppID) / DT
                 ENDIF
              ENDIF
+#endif
+
+#if defined( NC_DIAG )
+             !--------------------------------------------------------
+             ! HISTORY (aka netCDF diagnostics)
+             ! Prod and loss of families or species [molec/cm3/s]
+             !--------------------------------------------------------
+             !State_Diag%ProdLoss(I,J,L,F) = VAR(KppID) / DT
+#endif
 
           ENDDO
        ENDIF
@@ -1223,7 +1233,7 @@ CONTAINS
 #if defined( BPCH_DIAG )
             ! ND43 (bpch) diagnostic
             IF ( Do_ND43 ) THEN
-               AD43(I,J,L,3) = AD43(I,J,L,3)                                 &
+               AD43(I,J,L,2) = AD43(I,J,L,2)                                 &
                              + ( Spc(I,J,L,id_HO2) / AirNumDen(I,J,L) )      &
                              * ( LTHO2(I,J)                           )
             ENDIF
@@ -1250,7 +1260,7 @@ CONTAINS
 #if defined( BPCH_DIAG ) 
             ! ND43 (bpch) diagnostic
             IF ( Do_ND43 ) THEN
-               AD43(I,J,L,4) = AD43(I,J,L,4)                                 &
+               AD43(I,J,L,3) = AD43(I,J,L,3)                                 &
                              + ( Spc(I,J,L,id_O1D) * LTO1D(I,J)            )
             ENDIF
 #endif
@@ -1273,7 +1283,7 @@ CONTAINS
 #if defined( BPCH_DIAG )
             ! ND43 (bpch) diagnostic
             IF ( Do_ND43 ) THEN
-               AD43(I,J,L,5) = AD43(I,J,L,5)                                 &
+               AD43(I,J,L,4) = AD43(I,J,L,4)                                 &
                              + ( Spc(I,J,L,id_O3P) * LTO3P(I,J)            )
             ENDIF
 #endif

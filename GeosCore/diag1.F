@@ -24,10 +24,8 @@
       USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
       USE DIAG_MOD,           ONLY : AD33, AD35, AD54 
       USE DIAG_MOD,           ONLY : AD47
-#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD30, AD31, AD45, AD57 
       USE DIAG_MOD,           ONLY : AD67, AD68, AD69, LTOTH
-#endif
       USE DIAG_MOD,           ONLY : AD71
       USE DIAG_MOD,           ONLY : AD71_DAY,   AD71_HR
       USE DIAG_MOD,           ONLY : AD71_LDAY,  AD71_LHR
@@ -328,7 +326,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
-#endif
+
       !================================================================= 
       ! ND33: Atmospheric column sum of species [kg]
       !=================================================================  
@@ -376,7 +374,6 @@
 !$OMP END PARALLEL DO
       ENDIF
 
-#if defined( BPCH_DIAG )
       !================================================================= 
       ! ND45: Species (V/V) at level 1 to level LD45, averaged over 
       !       the time period OTH_HR1 to OTH_HR2.  
@@ -410,7 +407,6 @@
          ENDDO   
 !$OMP END PARALLEL DO
       ENDIF
-#endif
 
       !================================================================= 
       ! ND47: Species (V/V) at level 1 to level LD45, 
@@ -455,7 +451,7 @@
             ENDDO
             
       ENDIF
-#if defined( BPCH_DIAG )
+
       !================================================================= 
       ! ND57: Potential temperature
       !================================================================= 
@@ -478,8 +474,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
+
       !=================================================================  
       ! ND67: Store PBL top pressure [hPa]
       !=================================================================  
@@ -495,8 +490,7 @@
          ENDDO
          ENDDO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
+
       !================================================================= 
       ! ND68: 1:  BXHEIGHT     - box height [m] 
       !       2:  AD           - dry air mass [kg]
@@ -528,8 +522,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
+
       !================================================================= 
       ! ND69: Grid box surface areas [m2]
       !
@@ -543,7 +536,6 @@
          ENDDO
          ENDDO
       ENDIF
-#endif
       
       !================================================================= 
       ! ND71: Species (V/V) at level 1, daily maximum hourly avg.
@@ -595,5 +587,6 @@
          AD71_HRCT = AD71_HRCT + 1
       ENDIF
 
+#endif
       END SUBROUTINE DIAG1
 !EOC
