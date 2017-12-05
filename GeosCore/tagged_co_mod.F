@@ -380,6 +380,10 @@
          CALL ERROR_STOP( 'HcoState not associated!', LOC )
       ENDIF 
 
+      ! Zero diagnostic archival arrays to make sure that we don't have any
+      ! leftover values from the last timestep near the top of the chemgrid
+      IF ( Archive_Loss ) State_Diag%Loss = 0.0_f4
+
       !=================================================================
       ! Get pointers from HEMCO for OH, P(CO), and L(CO) fields
       ! 

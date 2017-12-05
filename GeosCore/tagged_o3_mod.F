@@ -502,6 +502,11 @@
       ! Chemistry timestep [s]
       DTCHEM    =  GET_TS_CHEM() * 60e+0_fp
 
+      ! Zero diagnostic archival arrays to make sure that we don't have any
+      ! leftover values from the last timestep near the top of the chemgrid
+      IF ( Archive_Loss ) State_Diag%Loss = 0.0_f4
+      IF ( Archive_Prod ) State_Diag%Prod = 0.0_f4
+
       !=================================================================
       ! Get production and loss frequencies from HEMCO. The target
       ! will be updated automatically by HEMCO. 

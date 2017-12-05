@@ -292,6 +292,11 @@ CONTAINS
     MONTH     = GET_MONTH()
     YEAR      = GET_YEAR()
 
+    ! Zero diagnostic archival arrays to make sure that we don't have any
+    ! leftover values from the last timestep near the top of the chemgrid
+    IF ( Archive_Loss ) State_Diag%Loss = 0.0_f4
+    IF ( Archive_Prod ) State_Diag%Prod = 0.0_f4
+
     !---------------------------------------
     ! Initialize global concentration of CH4
     !---------------------------------------
