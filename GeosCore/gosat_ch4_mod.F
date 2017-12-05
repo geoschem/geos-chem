@@ -433,7 +433,7 @@
       REAL(fp)           :: CH4_PRIOR_cm2(MAXLEV)
       REAL(fp)           :: molecongos(MAXLEV)
       REAL(fp)           :: GOS_XCH4, GC_XCH4, GOS_XCH4_ERROR
-      REAL(fp)           :: p(MAXLEV)!, h(MAXLEV)
+      REAL(fp)           :: p(MAXLEV), h(MAXLEV)
       REAL(fp)           :: ak(MAXLEV), prior(MAXLEV)
       REAL(fp)           :: pres_w(MAXLEV)
       REAL(fp)           :: XCH4m, XCH4a
@@ -820,54 +820,49 @@
          !--------------------------------------------------------------
 
          ! Pressure weighting array
-         !h(:)          = 0.0_fp
+         h(:)          = 0.0_fp
          p(1:LGOS)     = GOS(NT)%PRES(1:LGOS)
          ak(1:LGOS)    = GOS(NT)%AVG_KERNEL(1:LGOS)
-         ! JDM Replace calculated h with pres_w provided by GOSAT files
-         pres_w(1:LGOS)= GOS(NT)%P_WEIGHT(1:LGOS)
          prior(1:LGOS) = GOS(NT)%PRIOR(1:LGOS) * 1e-9_fp  ! [ppb] --> [v/v]
 
-!         ! Need to integrate from the toa to surface (ajt, 05/21/13)
-!         IF (LGOS .GT. 1) THEN
-!            IF(GOS(NT)%PRES(2) .LT. GOS(NT)%PRES(1)) THEN
-!               p(1:LGOS) = p(LGOS:1:-1)
-!            ENDIF
-!         ENDIF
-!
-!         L = 1
-!         h(L) = 1./GOS(NT)%PRES(1) * ABS( 
-!     &         ( -1e0*p(L) + ( (p(L+1)-p(L))/(LOG(p(L+1)/p(L))) ) ) )
-!         L = LGOS
-!         h(L) = 1./GOS(NT)%PRES(1) * ABS( 
-!     &         (  p(L) - ( (p(L)-p(L-1))/(LOG(p(L)/p(L-1))) ) ) )
-!         DO L=2,LGOS-1
-!            h(L) = 1./GOS(NT)%PRES(1) * ABS( 
-!     &         ( -1e0*p(L) + ( (p(L+1)-p(L))/(LOG(p(L+1)/p(L))) ) ) +  
-!     &         (      p(L) - ( (p(L)-p(L-1))/(LOG(p(L)/p(L-1))) ) )   )
-!         ENDDO
-!
-!         ! Now return to the orientation of the other variables
-!         IF (LGOS .GT. 1) THEN 
-!            IF(GOS(NT)%PRES(2) .LT. GOS(NT)%PRES(1)) THEN 
-!               h(1:LGOS) = h(LGOS:1:-1)
-!               p(1:LGOS) = p(LGOS:1:-1)
-!            ENDIF
-!         ENDIF
+         ! Need to integrate from the toa to surface (ajt, 05/21/13)
+         IF (LGOS .GT. 1) THEN
+            IF(GOS(NT)%PRES(2) .LT. GOS(NT)%PRES(1)) THEN
+               p(1:LGOS) = p(LGOS:1:-1)
+            ENDIF
+         ENDIF
+
+         L = 1
+         h(L) = 1./GOS(NT)%PRES(1) * ABS( 
+     &         ( -1e0*p(L) + ( (p(L+1)-p(L))/(LOG(p(L+1)/p(L))) ) ) )
+         L = LGOS
+         h(L) = 1./GOS(NT)%PRES(1) * ABS( 
+     &         (  p(L) - ( (p(L)-p(L-1))/(LOG(p(L)/p(L-1))) ) ) )
+         DO L=2,LGOS-1
+            h(L) = 1./GOS(NT)%PRES(1) * ABS( 
+     &         ( -1e0*p(L) + ( (p(L+1)-p(L))/(LOG(p(L+1)/p(L))) ) ) +  
+     &         (      p(L) - ( (p(L)-p(L-1))/(LOG(p(L)/p(L-1))) ) )   )
+         ENDDO
+
+         ! Now return to the orientation of the other variables
+         IF (LGOS .GT. 1) THEN 
+            IF(GOS(NT)%PRES(2) .LT. GOS(NT)%PRES(1)) THEN 
+               h(1:LGOS) = h(LGOS:1:-1)
+               p(1:LGOS) = p(LGOS:1:-1)
+            ENDIF
+         ENDIF
 
          ! Calculate Xch4_a
          XCH4a = 0.0_fp
          DO L = 1,LGOS
-            !XCH4a = XCH4a + h(L) * prior(L)
-            XCH4a = XCH4a + pres_w(L) * prior(L)
+            XCH4a = XCH4a + h(L) * prior(L)
          ENDDO
 
          ! Calculate Xch4_m
          XCH4m = 0.0_fp
          XCH4m = XCH4a
          DO L = 1, LGOS
-!            XCH4m = XCH4m + ( h(L) * ak(L) * ( GC_CH4(L) - prior(L) ) )
-            XCH4m = XCH4m + ( pres_w(L) * ak(L) * 
-     &              ( GC_CH4(L) - prior(L) ) )
+            XCH4m = XCH4m + ( h(L) * ak(L) * ( GC_CH4(L) - prior(L) ) )
          ENDDO
          GC_XCH4 = 0.0_fp
          GC_XCH4 = XCH4m
