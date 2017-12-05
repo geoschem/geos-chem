@@ -151,7 +151,8 @@ MODULE Strat_Chem_Mod
   LOGICAL, PARAMETER   :: PLMUSTFIND = .FALSE.
 
   ! Number of species from GMI model
-  INTEGER, PARAMETER   :: NTR_GMI   = 125
+  ! Now includes some UCX species for Cl and I (mps, 12/5/17)
+  INTEGER, PARAMETER   :: NTR_GMI   = 153
 
   ! Minit_Is_Set indicates whether Minit has been set or not
   LOGICAL              :: Minit_Is_Set = .FALSE. 
@@ -921,13 +922,16 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CMN_SIZE_MOD
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants,      ONLY : AVO, AIRMW
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -935,15 +939,17 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorological State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
     INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  16 Jan 2015 - C. Keller   - Initial version
+!  05 Dec 2017 - M. Sulprizio- Update to use prod/loss rates from UCX for 
+!                              certain Cl and I species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -956,6 +962,12 @@ CONTAINS
     CHARACTER(LEN=1023) :: MSG, ERR
     INTEGER             :: N, TRCID
     LOGICAL             :: FND
+    LOGICAL             :: Is_UCX_Spc
+
+    INTEGER             :: I, J, L
+    REAL(fp)            :: BOXVL, AIRDENS
+    CHARACTER(LEN=63)   :: OrigUnit
+    CHARACTER(LEN=255)  :: Err_Msg
 
     !=================================================================
     ! Set_PLVEC begins here 
@@ -969,6 +981,16 @@ CONTAINS
           'expected to be listed in the HEMCO configuration file. '// &
           'This error occured when trying to get field'
 
+    ! Convert species to [molec/cm3]
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, & 
+                            State_Chm, 'molec/cm3', RC, &
+                            OrigUnit=OrigUnit )
+    IF ( RC /= GC_SUCCESS ) THEN
+       Err_Msg = 'Unit conversion error!'
+       CALL GC_Error( Err_Msg, RC, 'flexchem_mod.F90')
+       RETURN
+    ENDIF 
+
     ! Do for every species 
     DO N = 1,NSCHEM
 
@@ -981,12 +1003,51 @@ CONTAINS
        ! Get species name
        ThisName = State_Chm%SpcData(TRCID)%Info%Name
 
+       ! Determine if the rates for this species are obtained from UCX
+       ! Otherwise default to GMI rates
+       IF ( TRIM( ThisName ) .eq. 'ClNO3'  .or. &
+            TRIM( ThisName ) .eq. 'ClNO2'  .or. &
+            TRIM( ThisName ) .eq. 'ClOO'   .or. &
+            TRIM( ThisName ) .eq. 'BrSALA' .or. &
+            TRIM( ThisName ) .eq. 'BrSALC' .or. &
+            TRIM( ThisName ) .eq. 'CHCl3'  .or. &
+            TRIM( ThisName ) .eq. 'CH2Cl2' .or. &
+            TRIM( ThisName ) .eq. 'CH3I'   .or. &
+            TRIM( ThisName ) .eq. 'CH2I2'  .or. &
+            TRIM( ThisName ) .eq. 'CH2ICl' .or. &
+            TRIM( ThisName ) .eq. 'CH2IBr' .or. &
+            TRIM( ThisName ) .eq. 'HOI'    .or. &
+            TRIM( ThisName ) .eq. 'I2'     .or. &
+            TRIM( ThisName ) .eq. 'IBr'    .or. &
+            TRIM( ThisName ) .eq. 'ICl'    .or. &
+            TRIM( ThisName ) .eq. 'I'      .or. &
+            TRIM( ThisName ) .eq. 'IO'     .or. &
+            TRIM( ThisName ) .eq. 'HI'     .or. &
+            TRIM( ThisName ) .eq. 'OIO'    .or. &
+            TRIM( ThisName ) .eq. 'INO'    .or. &
+            TRIM( ThisName ) .eq. 'IONO'   .or. &
+            TRIM( ThisName ) .eq. 'IONO2'  .or. &
+            TRIM( ThisName ) .eq. 'I2O2'   .or. &
+            TRIM( ThisName ) .eq. 'I2O3'   .or. &
+            TRIM( ThisName ) .eq. 'I2O4'   .or. &
+            TRIM( ThisName ) .eq. 'ISALA'  .or. &
+            TRIM( ThisName ) .eq. 'ISALC'  .or. &
+            TRIM( ThisName ) .eq. 'AERI' ) THEN
+          Is_UCX_Spc = .TRUE.
+       ELSE
+          Is_UCX_Spc = .FALSE.
+       ENDIF
+
        ! ---------------------------------------------------------------
        ! Get pointers to fields
        ! ---------------------------------------------------------------
 
        ! Production rates [v/v/s]
-       FIELDNAME = 'GMI_PROD_'//TRIM(ThisName)
+       IF ( Is_UCX_Spc ) THEN
+          FIELDNAME = 'UCX_PROD_'//TRIM(ThisName)
+       ELSE
+          FIELDNAME = 'GMI_PROD_'//TRIM(ThisName)
+       ENDIF
        CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
                         PLVEC(N)%PROD, RC,       FOUND=FND )
        IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
@@ -1003,7 +1064,11 @@ CONTAINS
        ENDIF
 
        ! Loss frequency [s-1]
-       FIELDNAME = 'GMI_LOSS_'//TRIM(ThisName)
+       IF ( Is_UCX_Spc ) THEN
+          FIELDNAME = 'UCX_LOSS_'//TRIM(ThisName)
+       ELSE
+          FIELDNAME = 'GMI_LOSS_'//TRIM(ThisName)
+       ENDIF
        CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
                         PLVEC(N)%LOSS, RC,       FOUND=FND )
        IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
@@ -1019,7 +1084,52 @@ CONTAINS
           WRITE(6,*) TRIM(MSG)
        ENDIF
 
+       ! UCX rates are in molec/cm3/s; need to convert to expected units
+       IF ( Is_UCX_Spc ) THEN
+          ! Do not parellelize for now -- this may be replaced in v11-02e
+          ! (also we need to include loop over N)
+          !!!$OMP PARALLEL DO &
+          !!!$OMP DEFAULT( SHARED ) &
+          !!!$OMP PRIVATE( I, J, L, BOXVL, AIRDENS )
+          DO L = 1, LLPAR
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
+
+             ! Grid box volume [cm3]
+             BOXVL    = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+
+             ! Air density [molec/cm3]
+             AIRDENS= State_Met%AD(I,J,L) * 1000e+0_fp   / &
+                      BOXVL               * AVO / AIRMW
+
+             ! Convert PROD from molec/cm3/s to v/v/s for
+             PLVEC(N)%PROD(I,J,L) = PLVEC(N)%PROD(I,J,L) / AIRDENS
+
+             ! Convert LOSS from molec/cm3/s to 1/s
+             IF ( State_Chm%Species(I,J,L,TRCID) > 0 ) THEN
+                PLVEC(N)%LOSS(I,J,L) = PLVEC(N)%LOSS(I,J,L) / &
+                                       State_Chm%Species(I,J,L,TRCID)
+             ELSE
+                PLVEC(N)%LOSS(I,J,L) = 0e+0_fp
+             ENDIF
+
+          ENDDO
+          ENDDO
+          ENDDO
+          !!!$OMP END PARALLEL DO
+       ENDIF
+
+
     ENDDO !N
+
+    ! Convert species back to original units (ewl, 8/16/16)
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       Err_Msg = 'Unit conversion error!'
+       CALL GC_Error( Err_Msg, RC, 'flexchem_mod.F90' )
+       RETURN
+    ENDIF  
 
     ! Get pointer to STRAT_OH
     CALL HCO_GetPtr( am_I_Root, HcoState, 'STRAT_OH', &
@@ -1456,7 +1566,15 @@ CONTAINS
                     'RCOOH   ', 'RIO1    ', 'RIO2    ', 'RIP     ',   &
                     'ROH     ', 'RP      ', 'VRO2    ', 'VRP     ',   &
                     'RIPA    ', 'RIPB    ', 'RIPD    ', 'NPMN    ',   &
-                    'IPMN    ' /)
+                    'IPMN    ', 'ClNO3   ', 'ClNO2   ', 'ClOO    ',   &
+                    'BrSALA  ', 'BrSALC  ', 'CHCl3   ', 'CH2Cl2  ',   &
+                    'CH3I    ', 'CH2I2   ', 'CH2ICl  ', 'CH2IBr  ',   &
+                    'HOI     ', 'I2      ', 'IBr     ', 'ICl     ',   &
+                    'I       ', 'IO      ', 'HI      ', 'OIO     ',   &
+                    'INO     ', 'IONO    ', 'IONO2   ', 'I2O2    ',   &
+                    'I2O3    ', 'I2O4    ', 'ISALA   ', 'ISALC   ',   &
+                    'AERI    '   /)
+
 
     !===========================!
     ! Full chemistry simulation !
@@ -1523,6 +1641,37 @@ CONTAINS
                 ELSE IF ( Input_Opt%LSYNOZ .AND. TRIM( SpcInfo%Name ) .eq. 'O3' ) THEN
                    IF ( am_I_Root ) THEN
                       WRITE( 6, '(a)' ) TRIM( SpcInfo%Name ) // ' (via Synoz)'
+                   ENDIF
+                ELSE IF ( TRIM( SpcInfo%Name ) .eq. 'ClNO3'  .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'ClNO2'  .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'ClOO'   .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'BrSALA' .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'BrSALC' .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'CHCl3'  .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'CH2Cl2' .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'CH3I'   .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'CH2I2'  .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'CH2ICl' .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'CH2IBr' .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'HOI'    .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'I2'     .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'IBr'    .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'ICl'    .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'I'      .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'IO'     .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'HI'     .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'OIO'    .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'INO'    .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'IONO'   .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'IONO2'  .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'I2O2'   .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'I2O3'   .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'I2O4'   .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'ISALA'  .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'ISALC'  .or. &
+                          TRIM( SpcInfo%Name ) .eq. 'AERI' ) THEN
+                   IF ( am_I_Root ) THEN
+                      WRITE( 6, '(a)' ) TRIM( SpcInfo%Name )//' (via UCX rates)'
                    ENDIF
                 ELSE
                    IF ( am_I_Root ) THEN
