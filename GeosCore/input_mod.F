@@ -9709,7 +9709,7 @@
       ! CH4
       !-----------------------------------------------------------------
       IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-         CALL Init_Global_Ch4( am_I_Root, Input_Opt, RC )
+         CALL Init_Global_Ch4( am_I_Root, Input_Opt, State_Diag, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN

@@ -661,7 +661,7 @@
             SULFTEMP        = 1e-30_fp
             BISULTEMP       = 1e-30_fp
             NITRTEMP        = 1e-30_fp
-            State_Diag%pHSav(I,J,L) = -999e+0_fp
+            State_Chm%pHSav(I,J,L) = -999e+0_fp
          ELSE
             HPLUSTEMP       = AERLIQ(1) / AERLIQ(8) * 1e+3_fp/18e+0_fp
             SULFTEMP        = AERLIQ(5) / AERLIQ(8) * 1e+3_fp/18e+0_fp
@@ -669,15 +669,15 @@
             NITRTEMP        = AERLIQ(7) / AERLIQ(8) * 1e+3_fp/18e+0_fp
 
             ! Use SAFELOG10 to prevent NAN
-            State_Diag%pHSav(I,J,L) = -1e+0_fp * SAFELOG10( HPLUSTEMP )
+            State_Chm%pHSav(I,J,L) = -1e+0_fp * SAFELOG10( HPLUSTEMP )
          ENDIF
 
          ! Additional Info
-         State_Diag%HplusSav(I,J,L)  = HPLUSTEMP
-         State_Diag%WaterSav(I,J,L)  = AERLIQ(8) * 18e+6_fp ! mol/m3 -> ug/m3
-         State_Diag%SulratSav(I,J,L) = SULFTEMP
-         State_Diag%NaRatSav(I,J,L)  = NITRTEMP
-         State_Diag%BisulSav(I,J,L)  = BISULTEMP
+         State_Chm%HplusSav(I,J,L)  = HPLUSTEMP
+         State_Chm%WaterSav(I,J,L)  = AERLIQ(8) * 18e+6_fp ! mol/m3 -> ug/m3
+         State_Chm%SulratSav(I,J,L) = SULFTEMP
+         State_Chm%NaRatSav(I,J,L)  = NITRTEMP
+         State_Chm%BisulSav(I,J,L)  = BISULTEMP
 
          NUM_SAV    = ( Spc(I,J,L,id_NH3) /17e+0_fp         +
      &                  Spc(I,J,L,id_NH4) /18e+0_fp         +
@@ -689,8 +689,8 @@
      &                  Spc(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)
 
          ! Value if DEN_SAV and NUM_SAV too small.
-         State_Diag%AcidPurSav(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
-     &                                           0e+0_fp, 999e+0_fp)
+         State_Chm%AcidPurSav(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
+     &                                          0e+0_fp, 999e+0_fp)
 
          !==============================================================
          ! DIAGNOSTICS: Archive ISORROPIA H+ and pH values
@@ -702,9 +702,9 @@
          !--------------------------------------------------------------
          IF ( ND73 > 0 ) THEN
             IF ( L <= LD73 ) THEN
-               AD73(I,J,L,1) = AD73(I,J,L,1)+State_Diag%pHSav(   I,J,L)
-               AD73(I,J,L,2) = AD73(I,J,L,2)+State_Diag%HplusSav(I,J,L)
-               AD73(I,J,L,3) = AD73(I,J,L,3)+State_Diag%WaterSav(I,J,L)
+               AD73(I,J,L,1) = AD73(I,J,L,1)+State_Chm%pHSav(   I,J,L)
+               AD73(I,J,L,2) = AD73(I,J,L,2)+State_Chm%HplusSav(I,J,L)
+               AD73(I,J,L,3) = AD73(I,J,L,3)+State_Chm%WaterSav(I,J,L)
             ENDIF
          ENDIF
 #endif

@@ -467,6 +467,8 @@
 !                              rather than module-level variable
 !  03 Aug 2016 - E. Lundgren - Remove tracers; now only use species
 !  11 Aug 2016 - E. Lundgren - Move source of background values to spc database
+!  28 Nov 2017 - R. Yantosca - Now only replace tokens in filename but not
+!                              in the rest of the path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -486,7 +488,8 @@
       ! NetCDF file info
       INTEGER              :: fId                ! netCDF file ID
       INTEGER              :: NX, NY, NZ, NT     ! netCDF file dimensions
-      CHARACTER(LEN=255)   :: nc_file            ! filename
+      CHARACTER(LEN=255)   :: nc_path            ! filename
+      CHARACTER(LEN=255)   :: nc_file            ! Only the file name
 
       ! NetCDF variable info
       CHARACTER(LEN=255)   :: v_name             ! variable name 
@@ -533,13 +536,22 @@
 
       ! Set minimum value threshold for [mol/mol]
       SMALL_NUM = 1.0e-30_fp
+      
+      ! Copy input filename to a local variable; this is the full path
+      nc_path = TRIM( Input_Opt%IN_RST_FILE )
 
-      ! Copy input filename to a local variable
-      nc_file = TRIM( Input_Opt%IN_RST_FILE )
+      ! Get only the filename part of the path
+      N       = INDEX( nc_path, '/', BACK=.TRUE. )
+      nc_file = nc_path(N+1:)
 
-      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
+      ! Replace YYYY, MM, DD, HH tokens in filename w/ actual values
+      ! NOTE: Only do this in the file name to avoid trying to replace
+      ! "mm" or "ss" in the directory name with date values (bmy, 11/28/17)
       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
+      ! Recombine the file name with expanded tokens to the path
+      nc_path = nc_path(1:N) // TRIM( nc_file )
+      
       !=================================================================
       ! If running Hg simulation, set Hg-specific local variables
       !=================================================================
@@ -562,7 +574,7 @@
       !=================================================================
 
       ! Open file for read
-      CALL Ncop_Rd( fID, TRIM( nc_file ) )
+      CALL Ncop_Rd( fID, TRIM( nc_path ) )
 
       ! Read the dimensions from the netCDF file
       CALL NcGet_DimLen( fID, 'lon',   NX )
@@ -1153,8 +1165,9 @@
       REAL(fp)             :: MW_g
       REAL(fp)             :: SMALL_NUM
       CHARACTER(LEN=60)    :: ContainerName, Prefix, OrigUnit
-      CHARACTER(LEN=255)   :: MSG, FILENAME, LOC = 
+      CHARACTER(LEN=255)   :: MSG, LOC = 
      &                       'WRITE_GC_RESTART (restart_mod.F90)'
+      CHARACTER(LEN=255)   :: Nc_Path, Nc_File
 
       ! Temporary arrays and pointers
       REAL*4,            TARGET :: Temp3D( IIPAR, JJPAR, LLPAR )
@@ -1211,17 +1224,26 @@
       ! Construct output restart filename
       !=================================================================
 
-      ! Define output restart filename with date tokens
-      FILENAME = TRIM( Output_GC_RST_Prefix ) // '.YYYYMMDDhhmm'
+      ! Define output restart file path with date tokens
+      Nc_Path = TRIM( Output_GC_RST_Prefix ) // '.YYYYMMDDhhmm'
 
-      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
-      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
+      ! Get only the filename part of the path
+      N       = INDEX( Nc_Path, '/', BACK=.TRUE. )
+      Nc_File = Nc_Path(N+1:)
+      
+      ! Replace YYYY, MM, DD, HH tokens in filename w/ actual values
+      ! NOTE: Only do this in the file name to avoid trying to replace
+      ! "mm" or "ss" in the directory name with date values (bmy, 11/28/17)
+      CALL EXPAND_DATE( Nc_File, YYYYMMDD, HHMMSS )
+
+      ! Recombine the file name with expanded tokens to the path
+      Nc_Path = Nc_path(1:N) // TRIM( Nc_File )
 
       ! Write to log
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
       WRITE( 6, '(a,/)' ) 'R E S T A R T   F I L E   O U T P U T ' 
      &                   // '( NetCDF )'
-      WRITE( 6, 200 ) TRIM( FILENAME )
+      WRITE( 6, 200 ) TRIM( Nc_Path )
  200  FORMAT( 'WRITE_GC_RESTART: Writing ', a )
       
       !=================================================================

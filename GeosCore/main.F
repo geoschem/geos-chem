@@ -583,7 +583,7 @@
       ENDIF
 
       !### Print diagnostic list if needed for debugging 
-      !CALL Print_DiagList( am_I_Root, Diag_List, RC )
+      CALL Print_DiagList( am_I_Root, Diag_List, RC )
 
       ! Initialize Input_Opt, State_Chm, State_Diag, State_Met objects
       CALL GC_Init_All( am_I_Root, Diag_List,  Input_Opt, 
@@ -998,9 +998,10 @@
             ! Write bpch file
             IF ( DO_DIAG_WRITE ) THEN
 
+#if defined( BPCH_DIAG )
                CALL DIAG3
      &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
- 
+#endif 
                ! Flush file units
                CALL CTM_FLUSH
 
@@ -1872,6 +1873,7 @@
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
          ENDIF
 
+#if defined( BPCH_DIAG )
          !==============================================================
          !   ***** T I M E S E R I E S   D I A G N O S T I C S  *****
          !
@@ -1920,6 +1922,7 @@
 
          !### After diagnostics
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after TIMESERIES' )
+#endif
 
 #if defined( NC_DIAG )
          !==============================================================

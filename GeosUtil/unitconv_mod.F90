@@ -197,6 +197,12 @@ CONTAINS
     ! Archive units of input data for output if passed as argument
     IF ( PRESENT(OrigUnit) ) OrigUnit = State_Chm%Spc_Units 
 
+    ! Debugging print
+    IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN
+       WRITE(6,'(a)') '     ### Species Unit Conversion: ' // &
+                      TRIM(InUnit) // ' -> ' // TRIM(OutUnit) // ' ###'
+    ENDIF
+
     ! Exit if in and out units are the same
     IF ( TRIM(OutUnit) == TRIM(InUnit) ) RETURN
 
@@ -399,7 +405,7 @@ CONTAINS
        IF ( TRIM(Units) == 'kg m-2'        ) Units = 'kg/m2'
        IF ( TRIM(Units) == 'molec cm-3'    ) Units = 'molec/cm3'
        
-       ! Convert State_Chm%Species unit to diagnostic unitx
+       ! Convert State_Chm%Species unit to diagnostic units
        CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
                                Units, RC, OrigUnit=OrigUnit )
        

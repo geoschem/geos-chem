@@ -283,18 +283,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Met( am_I_Root, IM, JM, LM, State_Met, RC )
+  SUBROUTINE Init_State_Met( am_I_Root, State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD, ONLY : NSURFTYPE
+    USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR, NSURFTYPE
 !
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-    INTEGER,        INTENT(IN)    :: IM          ! # longitudes on this PET
-    INTEGER,        INTENT(IN)    :: JM          ! # longitudes on this PET
-    INTEGER,        INTENT(IN)    :: LM          ! # longitudes on this PET
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -330,6 +327,7 @@ CONTAINS
 !  26 Jun 2017 - R. Yantosca - Now register each variable after it's allocated
 !  24 Aug 2017 - R. Yantosca - Now register level-edged variables appropriately
 !  07 Sep 2017 - E. Lundgren - Abstract the metadata and method add to registry
+!  16 Nov 2017 - E. Lundgren - Get grid params from CMN_Size_Mod not arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -337,7 +335,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: LX
+    INTEGER            :: LX, IM, JM, LM
     
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -347,6 +345,11 @@ CONTAINS
     !=======================================================================
     RC    =  GC_SUCCESS
     ThisLoc = ' -> Init_State_Met (in Headers/state_met_mod.F90)'
+
+    ! Shorten grid parameters for readability
+    IM = IIPAR ! # latitudes
+    JM = JJPAR ! # longitudes
+    LM = LLPAR ! # levels
 
     !=======================================================================
     ! The following fields of State_Met may or may not get allocated

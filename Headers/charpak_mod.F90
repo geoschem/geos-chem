@@ -7,7 +7,7 @@
 !
 ! !DESCRIPTION: Module CHARPAK\_MOD contains routines from the CHARPAK 
 !  string and character manipulation package used by GEOS-Chem.
-!\\   
+!\\
 !\\
 ! !INTERFACE: 
 !

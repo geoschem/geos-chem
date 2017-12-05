@@ -1141,12 +1141,14 @@
          ! Amount of OCPO converted to OCPI [kg/timestep]
          OCCONV(I,J,L) = ( TC0 - CNEW ) * KOC / ( KOC + FREQ )
 
+#if defined( BPCH_DIAG )
          !==============================================================
          ! ND07 diagnostic: H-Philic OC from H-phobic [kg/timestep]
          !==============================================================
          IF ( ND07 > 0 .and. L <= LD07 ) THEN
             AD07_OC(I,J,L) = AD07_OC(I,J,L) + OCCONV(I,J,L) 
          ENDIF
+#endif
 
 #if defined( NC_DIAG )
          !=================================================================
@@ -3594,6 +3596,7 @@
             ENDDO
             ENDDO
 
+#if defined( BPCH_DIAG )
             ! semivolpoa4: add diagnostic information on POG ox (hotp 3/28/09)
             ! units: kgC cumulative
             IF ( ND07 > 0 .and. L <= LD07 ) THEN
@@ -3602,7 +3605,7 @@
      &                                GLOB_POGRXN(I,J,L,1) +
      &                                GLOB_POGRXN(I,J,L,2)
             ENDIF
-
+#endif
 
          ENDIF 
 
@@ -3904,6 +3907,7 @@
       !-----------------------------
       ! SOA net production [kg]
       !-----------------------------
+#if defined( BPCH_DIAG )
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
      &                    + ( AERMASS - 
@@ -3912,6 +3916,7 @@
      &                        Spc(I,J,L,id_TSOA3) -
      &                        Spc(I,J,L,id_TSOA0)  )
       ENDIF
+#endif
 
       !-----------------------------
       ! Transient mass bal prod/evap
@@ -3995,6 +4000,7 @@
       !-----------------------------
       ! SOA net production [kg]
       !-----------------------------
+#if defined( BPCH_DIAG )
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
      &                    + ( AERMASS - 
@@ -4002,6 +4008,7 @@
      &                        Spc(I,J,L,id_ISOA2) -
      &                        Spc(I,J,L,id_ISOA3)   )
       ENDIF
+#endif
 
       !-----------------------------
       ! Transient mass bal prod/evap
@@ -4074,6 +4081,7 @@
       !-----------------------------
       ! SOA net production [kg]
       !-----------------------------
+#if defined( BPCH_DIAG )
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
      &                    + ( AERMASS - 
@@ -4082,6 +4090,7 @@
      &                        Spc(I,J,L,id_ASOA2) -
      &                        Spc(I,J,L,id_ASOA3)   )
       ENDIF
+#endif
 
       !-----------------------------
       ! Transient mass bal prod/evap
@@ -4174,11 +4183,13 @@
          !---------------------------
          ! POA net emission (kg)
          !---------------------------
+#if defined( BPCH_DIAG )
          IF ( ND07 > 0 .and. L <= LD07 ) THEN
             AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
      &                         + ( AERMASS - Spc(I,J,L,id_POA1) -
      &                                       Spc(I,J,L,id_POA2) )
          ENDIF
+#endif
 
          !---------------------------
          ! Transient SOA PROD/EVAP
@@ -4241,11 +4252,13 @@
          !---------------------------
          ! OPOA net production (kg)
          !---------------------------
+#if defined( BPCH_DIAG )
          IF ( ND07 > 0 .and. L <= LD07 ) THEN
             AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
      &                         + ( AERMASS - Spc(I,J,L,id_OPOA1) -
      &                                       Spc(I,J,L,id_OPOA2) )
          ENDIF
+#endif
 
          !---------------------------
          ! Transient SOA PROD/EVAP

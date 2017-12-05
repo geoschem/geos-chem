@@ -21,6 +21,8 @@ MODULE State_Diag_Mod
 !
 ! USES:
 !
+  USE CMN_Size_Mod,  ONLY : IIPAR, JJPAR, LLPAR, NDUST
+  USE CMN_FJX_Mod,   ONLY : STRWVSELECT
   USE Diagnostics_Mod
   USE ErrCode_Mod
   USE Precision_Mod
@@ -36,6 +38,7 @@ MODULE State_Diag_Mod
   PUBLIC :: Init_State_Diag
   PUBLIC :: Cleanup_State_Diag
   PUBLIC :: Get_Metadata_State_Diag
+  PUBLIC :: Get_TagInfo
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
@@ -72,10 +75,19 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:  ) ! Diffuse UV flux per bin
      REAL(f4),  POINTER :: UVFluxDirect    (:,:,:  ) ! Direct UV flux per bin
      REAL(f4),  POINTER :: UVFluxNet       (:,:,:  ) ! Net UV flux per bin
-     
+     REAL(f4),  POINTER :: OHconcAfterChem (:,:,:  ) ! OH, HO2, O1D, and O3P
+     REAL(f4),  POINTER :: HO2concAfterChem(:,:,:  ) !  concentrations 
+     REAL(f4),  POINTER :: O1DconcAfterChem(:,:,:  ) !  upon exiting the
+     REAL(f4),  POINTER :: O3PconcAfterChem(:,:,:  ) !  FlexChem solver 
+     REAL(f4),  POINTER :: ProdLoss        (:,:,:,:) ! Prod/loss diagnostic
+
      ! Aerosols
      ! *** Need to add AOD ***
      ! Waiting for input on rest of list from Aerosol WG?
+     REAL(f4),  POINTER :: ODDust          (:,:,:  ) ! Dust optical depth
+     REAL(f4),  POINTER :: ODDustBinsWL1   (:,:,:,:) ! All bins 1st WL dust OD
+     REAL(f4),  POINTER :: ODDustBinsWL2   (:,:,:,:) ! All bins 2nd WL dust OD
+     REAL(f4),  POINTER :: ODDustBinsWL3   (:,:,:,:) ! All bins 3rd WL dust OD
 
      ! Advection
      REAL(f4),  POINTER :: AdvFluxZonal    (:,:,:,:) ! EW Advective Flux
@@ -86,12 +98,11 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: PBLMixFrac      (:,:,:  ) ! Frac of BL occupied by lev
      REAL(f4),  POINTER :: PBLFlux         (:,:,:,:) ! BL mixing mass flux
 
-     ! Convection and wet deposition
+     ! Convection
      REAL(f4),  POINTER :: CloudConvFlux   (:,:,:,:) ! Cloud conv. mass flux
      REAL(f4),  POINTER :: WetLossConv     (:,:,:,:) ! Loss in convect. updraft
-     REAL(f4),  POINTER :: PrecipFracConv  (:,:,:  ) ! Frac convective precip
-     REAL(f4),  POINTER :: RainFracConv    (:,:,:,:) ! Frac lost to conv rainout
-     REAL(f4),  POINTER :: WashFracConv    (:,:,:,:) ! Frac lost to conv washout
+
+     ! Wet deposition
      REAL(f4),  POINTER :: WetLossLS       (:,:,:,:) ! Loss in LS rainout/washout
      REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  ) ! Frac of box in LS precip
      REAL(f4),  POINTER :: RainFracLS      (:,:,:,:) ! Frac lost to LS rainout
@@ -100,15 +111,6 @@ MODULE State_Diag_Mod
      ! Carbon aerosols
      REAL(f4),  POINTER :: ProdBCPIfromBCPO(:,:,:  ) ! Prod BCPI from BCPO
      REAL(f4),  POINTER :: ProdOCPIfromOCPO(:,:,:  ) ! Prod OCPI from OCPO
-
-     ! For isoprene SOA (moved here from State_Chm)
-     REAL(fp),  POINTER :: pHSav           (:,:,:  ) ! ISORROPIA aerosol pH
-     REAL(fp),  POINTER :: HplusSav        (:,:,:  ) ! H+ concentration [M]
-     REAL(fp),  POINTER :: WaterSav        (:,:,:  ) ! ISORROPIA aerosol H2O
-     REAL(fp),  POINTER :: SulRatSav       (:,:,:  ) ! Sulfate conc [M]
-     REAL(fp),  POINTER :: NaRatSav        (:,:,:  ) ! Nitrate conc [M]
-     REAL(fp),  POINTER :: AcidPurSav      (:,:,:  ) !
-     REAL(fp),  POINTER :: BiSulSav        (:,:,:  ) ! Bisulfate conc [M]
 
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
@@ -129,14 +131,14 @@ MODULE State_Diag_Mod
      ! Hg specialty simulation
 
      ! Radiation simulation (RRTMG)
-     REAL(f4),  POINTER :: RadAllSkyLWSurf(:,:,:  ) ! All-sky LW rad @ surface
-     REAL(f4),  POINTER :: RadAllSkyLWTOA (:,:,:  ) ! All-sky LW rad @ atm top
-     REAL(f4),  POINTER :: RadAllSkySWSurf(:,:,:  ) ! All-sky SW rad @ surface
-     REAL(f4),  POINTER :: RadAllSkySWTOA (:,:,:  ) ! All-sky SW rad @ atm top
-     REAL(f4),  POINTER :: RadClrSkyLWSurf(:,:,:  ) ! Clear-sky SW rad @ surface
-     REAL(f4),  POINTER :: RadClrSkyLWTOA (:,:,:  ) ! Clear-sky LW rad @ atm top
-     REAL(f4),  POINTER :: RadClrSkySWSurf(:,:,:  ) ! Clear-sky SW rad @ surface
-     REAL(f4),  POINTER :: RadClrSkySWTOA (:,:,:  ) ! Clear-sky SW rad @ atm top
+     REAL(f4),  POINTER :: RadAllSkyLWSurf (:,:,:  ) ! All-sky LW rad @ surface
+     REAL(f4),  POINTER :: RadAllSkyLWTOA  (:,:,:  ) ! All-sky LW rad @ atm top
+     REAL(f4),  POINTER :: RadAllSkySWSurf (:,:,:  ) ! All-sky SW rad @ surface
+     REAL(f4),  POINTER :: RadAllSkySWTOA  (:,:,:  ) ! All-sky SW rad @ atm top
+     REAL(f4),  POINTER :: RadClrSkyLWSurf (:,:,:  ) ! Clr-sky SW rad @ surface
+     REAL(f4),  POINTER :: RadClrSkyLWTOA  (:,:,:  ) ! Clr-sky LW rad @ atm top
+     REAL(f4),  POINTER :: RadClrSkySWSurf (:,:,:  ) ! Clr-sky SW rad @ surface
+     REAL(f4),  POINTER :: RadClrSkySWTOA  (:,:,:  ) ! Clr-sky SW rad @ atm top
     
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Diag
@@ -166,9 +168,12 @@ MODULE State_Diag_Mod
 !
   INTERFACE Register_DiagField
      MODULE PROCEDURE Register_DiagField_R4_2D
+     ! real(fp) and real(8) 2D not implemented
      MODULE PROCEDURE Register_DiagField_R4_3D
-     MODULE PROCEDURE Register_DiagField_R4_4D
      MODULE PROCEDURE Register_DiagField_Rfp_3D
+     ! real(8) 3D not implemented
+     MODULE PROCEDURE Register_DiagField_R4_4D
+     ! real(fp) 4D not implemented
      MODULE PROCEDURE Register_DiagField_R8_4D
   END INTERFACE Register_DiagField
 CONTAINS
@@ -186,8 +191,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Diag( am_I_Root, IM, JM, LM, Input_Opt, &
-                              State_Chm, Diag_List,  State_Diag, RC )
+  SUBROUTINE Init_State_Diag( am_I_Root, Input_Opt,  State_Chm, &
+                              Diag_List, State_Diag, RC )
 !
 ! !USES:
 !
@@ -196,9 +201,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-    INTEGER,        INTENT(IN)    :: IM          ! # latitudes
-    INTEGER,        INTENT(IN)    :: JM          ! # longitudes
-    INTEGER,        INTENT(IN)    :: LM          ! # levels
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry state object
     TYPE(DgnList),  INTENT(IN)    :: Diag_List   ! Diagnostics list object
@@ -216,10 +218,10 @@ CONTAINS
 !  For consistency, maybe this should be moved to a different module.
 !
 ! !REVISION HISTORY: 
-!  05 Jul 2017 - R. Yantosca -  Initial version
-!  22 Sep 2017 - E. Lundgren -  Fill in content
-!  06 Oct 2017 - R. Yantosca -  State_Diag%SpeciesConc is now an 8-byte real
-!  11 Oct 2017 - R. Yantosca -  Bug fix: nAdvect is now defined properly
+!  05 Jul 2017 - R. Yantosca - Initial version
+!  22 Sep 2017 - E. Lundgren - Fill in content
+!  06 Oct 2017 - R. Yantosca - State_Diag%SpeciesConc is now an 8-byte real
+!  11 Oct 2017 - R. Yantosca - Bug fix: nAdvect is now defined properly  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -229,8 +231,9 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255)     :: ErrMsg,   ThisLoc
     CHARACTER(LEN=255)     :: arrayID,  diagID
+    INTEGER                :: N, IM, JM, LM
     INTEGER                :: nSpecies, nAdvect, nDryDep
-    INTEGER                :: nKppSpc,  nWetDep, N
+    INTEGER                :: nKppSpc,  nWetDep
     LOGICAL                :: EOF,      Found
 
     !=======================================================================
@@ -242,6 +245,11 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
     Found    = .FALSE.
+    
+    ! Shorten grid parameters for readability
+    IM = IIPAR ! # latitudes
+    JM = JJPAR ! # longitudes
+    LM = LLPAR ! # levels
 
     ! Number of species per category
     nSpecies = State_Chm%nSpecies
@@ -266,9 +274,6 @@ CONTAINS
     State_Diag%PBLMixFrac          => NULL()
     State_Diag%PBLFlux             => NULL()
 
-    State_Diag%PrecipFracConv      => NULL()
-    State_Diag%RainFracConv        => NULL()
-    State_Diag%WashFracConv        => NULL()
     State_Diag%WetLossLS           => NULL()
     State_Diag%PrecipFracLS        => NULL()
     State_Diag%RainFracLS          => NULL()
@@ -282,14 +287,11 @@ CONTAINS
     State_Diag%UVFluxNet           => NULL()
     State_Diag%ProdBCPIfromBCPO    => NULL()
     State_Diag%ProdOCPIfromOCPO    => NULL()
-
-    State_Diag%pHSav               => NULL()
-    State_Diag%HplusSav            => NULL()
-    State_Diag%WaterSav            => NULL()
-    State_Diag%SulRatSav           => NULL()
-    State_Diag%NaRatSav            => NULL()
-    State_Diag%AcidPurSav          => NULL()
-    State_Diag%BisulSav            => NULL()
+    State_Diag%OHconcAfterChem     => NULL()
+    State_Diag%HO2concAfterChem    => NULL()
+    State_Diag%O1DconcAfterChem    => NULL()
+    State_Diag%O3PconcAfterChem    => NULL()
+    State_Diag%ProdLoss            => NULL()
 
     State_Diag%PbFromRnDecay       => NULL()
     State_Diag%RadDecay            => NULL()
@@ -306,9 +308,11 @@ CONTAINS
 #if defined( NC_DIAG )
 
     ! Write header
+    IF ( am_I_Root ) THEN
     WRITE( 6, 10 )
  10 FORMAT( /, 'Allocating the following fields of the State_Diag object:' )
     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    ENDIF
 
     !------------------------------------------------------------------------
     ! Species Concentration
@@ -408,74 +412,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%JValues = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%JValues, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! KPP Reaction Rates
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%RxnRates'
-    diagID  = 'RxnRates'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%RxnRates( IM, JM, LM, nSpecies ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RxnRates = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RxnRates, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Diffuse UV flux per wavelength bin
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%UVFluxDiffuse'
-    diagID  = 'UVFluxDiffuse'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%UVFluxDiffuse( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%UVFluxDiffuse = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%UVFluxDiffuse, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Direct UV flux per wavelength bin
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%UVFluxDirect'
-    diagID  = 'UVFluxDirect'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%UVFluxDirect( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%UVFluxDirect = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%UVFluxDirect, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Net UV flux per wavelength bin
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%UVFluxNet'
-    diagID  = 'UVFluxNet'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%UVFluxNet( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%UVFluxNet = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%UVFluxNet, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -595,57 +531,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%WetLossConv = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%WetLossConv, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Fraction of grid box undergoing convective precipitation
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%PrecipFracConv'
-    diagID  = 'PrecipFracConv'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%PrecipFracConv( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%PrecipFracConv = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%PrecipFracConv, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Fraction of soluble species lost to rainout in convective precip
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%RainFracConv'
-    diagID  = 'RainFracConv'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%RainFracConv( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RainFracConv = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RainFracConv, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Fraction of soluble species lost to washout in convective precip
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%WashFracConv'
-    diagID  = 'WashFracConv'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%WashFracConv( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WashFracConv = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%WashFracConv, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -927,142 +812,235 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    !-----------------------------------------------------------------
+    ! Dust Optical Depth
+    !-----------------------------------------------------------------
+    arrayID = 'State_Diag%ODDust'
+    diagID  = 'OpticalDepthDust'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%ODDust( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ODDust = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%ODDust, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Dust Optical Depth per bin at 1st wavelength
+    !-----------------------------------------------------------------
+    arrayID = 'State_Diag%ODDustBinsWL1'
+    diagID  = 'OpticalDepthDust' // TRIM(RadWL(1))
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%ODDustBinsWL1( IM, JM, LM, NDUST ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ODDustBinsWL1 = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID,        &
+                                State_Diag%ODDustBinsWL1, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Dust Optical Depth per bin at 2nd wavelength
+    !-----------------------------------------------------------------
+    arrayID = 'State_Diag%ODDustBinsWL2'
+    diagID  = 'OpticalDepthDust' // TRIM(RadWL(2))
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%ODDustBinsWL2( IM, JM, LM, NDUST ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ODDustBinsWL2 = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID,        &
+                                State_Diag%ODDustBinsWL2, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Dust Optical Depth per bin at 3rd wavelength
+    !-----------------------------------------------------------------
+    arrayID = 'State_Diag%ODDustBinsWL3'
+    diagID  = 'OpticalDepthDust' // TRIM(RadWL(3))
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%ODDustBinsWL3( IM, JM, LM, NDUST ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ODDustBinsWL3 = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID,        &
+                                State_Diag%ODDustBinsWL3, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     !=======================================================================
-    ! The following quantities are only relevant for either fullchem
-    ! or aerosol-only simulations.
-    !
-    ! If any of these quantites is listed in the HISTORY.rc file, it will
-    ! be archived to a netCDF diagnostic collection.  Otherwise, it will
-    ! be used internally in the chemistry modules but not saved to netCDF.
+    ! The following quantities are only relevant for fullchem simulations
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
-       !-----------------------------------------
-       ! phSav
-       !-----------------------------------------
-       arrayID = 'State_Diag%phSav'
-       diagID  = 'pHSav'
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%phSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%phSav = 0.0_fp
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%phSav, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+       !--------------------------------------------------------------------
+       ! KPP Reaction Rates
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%RxnRates'
+       diagID  = 'RxnRates'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%RxnRates( IM, JM, LM, nSpecies ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%RxnRates = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%RxnRates,   &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
 
-       !-----------------------------------------
-       ! HplusSav
-       !-----------------------------------------
-       arrayID = 'State_Diag%HplusSav'
-       diagID  = 'HplusSav'
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%HplusSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%HplusSav = 0.0_fp
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%HplusSav, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+       !--------------------------------------------------------------------
+       ! Diffuse UV flux per wavelength bin
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%UVFluxDiffuse'
+       diagID  = 'UVFluxDiffuse'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%UVFluxDiffuse( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%UVFluxDiffuse = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%UVFluxDiffuse,                 &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
 
-       !-----------------------------------------
-       ! WaterSav
-       !-----------------------------------------
-       arrayID = 'State_Diag%WaterSav'
-       diagID  = 'WaterSav'
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%WaterSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WaterSav = 0.0_fp
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%WaterSav, &
-                                State_Chm, State_Diag, RC )
+       !--------------------------------------------------------------------
+       ! Direct UV flux per wavelength bin
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%UVFluxDirect'
+       diagID  = 'UVFluxDirect'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%UVFluxDirect( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%UVFluxDirect = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%UVFluxDirect,                  &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
 
-       !-----------------------------------------
-       ! SulRatSav
-       !-----------------------------------------
-       arrayID = 'State_Diag%SulRatSav'
-       diagID  = 'SulRatSav'
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%SulRatSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SulRatSav = 0.0_fp
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%SulRatSav, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+       !--------------------------------------------------------------------
+       ! Net UV flux per wavelength bin
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%UVFluxNet'
+       diagID  = 'UVFluxNet'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%UVFluxNet( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%UVFluxNet = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%UVFluxNet, &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
 
-       !-----------------------------------------
-       ! NaRatSav
-       !-----------------------------------------
-       arrayID = 'State_Diag%NaRatSav'
-       diagID  = 'NaRatSav'
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%NaRatSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%NaRatSav = 0.0_fp
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%NaRatSav, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+       !--------------------------------------------------------------------
+       ! HO2 concentration upon exiting the FlexChem solver
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%HO2concAfterChem'
+       diagID  = 'HO2concAfterChem'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%HO2concAfterChem( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%HO2concAfterChem = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%HO2concAfterChem,              &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
 
-       !-----------------------------------------
-       ! AcidPurSav
-       !-----------------------------------------
-       arrayID = 'State_Diag%AcidPurSav'
-       diagID  = 'AcidPurSav'
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%AcidPurSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AcidPurSav = 0.0_fp
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%AcidPurSav, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+       !--------------------------------------------------------------------
+       ! O1D concentration upon exiting the FlexChem solver
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%O1DconcAfterChem'
+       diagID  = 'O1DconcAfterChem'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%O1DconcAfterChem( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%O1DconcAfterChem = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        & 
+                                   State_Diag%O1DconcAfterChem,              &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
 
-       !-----------------------------------------
-       ! BisulSav
-       !-----------------------------------------
-       arrayID = 'State_Diag%BisulSav'
-       diagID  = 'BisulSav'
-       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BisulSav( IM, JM, LM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BisulSav = 0.0_fp
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%BisulSav, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+       !--------------------------------------------------------------------
+       ! O3P concentration upon exiting the FlexChem solver
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%O3PconcAfterChem'
+       diagID  = 'O3PconcAfterChem'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%O3PconcAfterChem( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%O3PconcAfterChem = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%O3PconcAfterChem,              &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
 
     ELSE
-       
-       !----------------------------------------------------------------
+
+       !-------------------------------------------------------------------
        ! Halt with an error message if any of the following quantities
        ! have been requested as diagnostics in simulations other than
-       ! full-chemistry or aerosol-only.  
+       ! full-chemistry simulations.
        !
        ! This will prevent potential errors caused by the quantities
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
-       !----------------------------------------------------------------
+       !-------------------------------------------------------------------
        DO N = 1, 7
           
           ! Select the diagnostic ID
           SELECT CASE( N )
-             CASE( 1 )
-                diagID = 'pHSav'
-             CASE( 2 )                
-                diagID = 'HplusSav'
-             CASE( 3 )
-                diagID = 'WaterSav'
-             CASE( 4 )
-                diagID = 'SulRatSav'
-             CASE( 5 ) 
-                diagID = 'NaRatSav'
+             CASE( 1 ) 
+                diagID = 'RxnRates'
+             CASE( 2 ) 
+                diagID = 'UvFluxDiffuse'
+             CASE( 3 ) 
+                diagID = 'UvFluxDirect'
+             CASE( 4 ) 
+                diagID = 'UvFluxNet'
+             CASE( 5 )                
+                diagID = 'HO2concAfterChem'
              CASE( 6 )
-                diagID = 'AcidPurSav'
-             CASE( 7 ) 
-                diagID = 'BisulSav'
+                diagID = 'O1DconcAfterChem'
+             CASE( 7 )
+                diagID = 'O3PconcAfterChem'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -1070,7 +1048,7 @@ CONTAINS
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for full-chemistry '  // &
-                      'or aerosol-only simulations.' 
+                      'simulations.' 
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -1078,10 +1056,71 @@ CONTAINS
 
     ENDIF
 
-    !!-----------------------------------------------------------------------
+    !=======================================================================
+    ! The following quantities are only relevant for either fullchem
+    ! or CH4 simulations.
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CH4_SIM ) THEN
+
+       !--------------------------------------------------------------------
+       ! OH concentration upon exiting the FlexChem solver (fullchem
+       ! simulations) or the CH4 specialty simulation chemistry routine
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%OHconcAfterChem'
+       diagID  = 'OHconcAfterChem'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%OHconcAfterChem( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%OHconcAfterChem = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%OHconcAfterChem,               &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+    ELSE
+       
+       !-------------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations other than
+       ! full-chemistry or CH4 simulations.
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !-------------------------------------------------------------------
+       diagID  = 'OHconcAfterChem'
+
+       ! Exit if any of the above are in the diagnostic list
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                   'but this is only appropriate for full-chemistry '  // &
+                   'or CH4 simulations.' 
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    ENDIF
+
+    ! Format statement
+20  FORMAT( 1x, a32, ' is registered as: ', a )
+
+    !-----------------------------------------------------------------
+    ! TODO:
+    ! 1. Hydroscopic growth - (:,:,:,N) where N is one of five hygro spc
+    ! 2. Optical depth for each of five hygro spc, for each wavelength
+    ! 3+ UCX-only strat diags - 5 or 7 total (hard-code)
+    ! 4? isoprene optical depth??? check if AD21(:,:,:,58) is actually set
+    !-----------------------------------------------------------------
+
+    !!-------------------------------------------------------------------
     !! Template for adding more diagnostics arrays
     !! Search and replace 'xxx' with array name
-    !!-----------------------------------------------------------------------
+    !!-------------------------------------------------------------------
     !arrayID = 'State_Diag%xxx'
     !diagID  = 'xxx'
     !CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -1095,9 +1134,6 @@ CONTAINS
     !                            State_Chm, State_Diag, RC )
     !   IF ( RC /= GC_SUCCESS ) RETURN
     !ENDIF
-
-    ! Format statement
- 20 FORMAT( 1x, a32, ' is registered as: ', a )
 
     !=======================================================================
     ! Print information about the registered fields (short format)
@@ -1138,9 +1174,6 @@ CONTAINS
 !
   SUBROUTINE Cleanup_State_Diag( am_I_Root, State_Diag, RC )
 !
-! !USES:
-!
-!
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
@@ -1177,389 +1210,254 @@ CONTAINS
     !=======================================================================
     IF ( ASSOCIATED( State_Diag%SpeciesConc ) ) THEN
        DEALLOCATE( State_Diag%SpeciesConc, STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%SpeciesConc"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%SpeciesConc', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
  
     IF ( ASSOCIATED( State_Diag%DryDepChm ) ) THEN
        DEALLOCATE( State_Diag%DryDepChm, STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%DryDepChm"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%DryDepChm', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%DryDepMix ) ) THEN
        DEALLOCATE( State_Diag%DryDepMix, STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%DryDepMix"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%DryDepMix', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%DryDep ) ) THEN
        DEALLOCATE( State_Diag%DryDep, STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%DryDep"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%DryDep', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%DryDepVel ) ) THEN
        DEALLOCATE( State_Diag%DryDepVel, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%DryDepVel"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%DryDepVel', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%JValues ) ) THEN
        DEALLOCATE( State_Diag%JValues, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%JValues"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%Jvalues', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RxnRates ) ) THEN
        DEALLOCATE( State_Diag%RxnRates, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%RxnRates"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%RxnRates', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%UVFluxDiffuse ) ) THEN
        DEALLOCATE( State_Diag%UVFluxDiffuse, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%UVFluxDiffuse"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%UvFluxDiffuse', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%UVFluxDirect ) ) THEN
        DEALLOCATE( State_Diag%UVFluxDirect, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%UVFluxDirect"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%UvFluxDirect', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%UVFluxNet ) ) THEN
        DEALLOCATE( State_Diag%UVFluxNet, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%UVFluxNet"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%UvFluxNet', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AdvFluxZonal ) ) THEN
        DEALLOCATE( State_Diag%AdvFluxZonal, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%AdvFluxZonal"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%AdvFluxZonal', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AdvFluxMerid ) ) THEN
        DEALLOCATE( State_Diag%AdvFluxMerid, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%AdvFluxMerid"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%AdvFluxMerid', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AdvFluxVert ) ) THEN
        DEALLOCATE( State_Diag%AdvFluxVert, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%AdvFluxVert"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%AdvFluxVert', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PBLMixFrac ) ) THEN
        DEALLOCATE( State_Diag%PBLMixFrac, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%PBLMixFrac"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%PBLMixFrac', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PBLFlux ) ) THEN
-       DEALLOCATE( State_Diag%PBLFlux, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%PBLFlux"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       DEALLOCATE( State_Diag%PBLFlux, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%PBLFlux', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%CloudConvFlux ) ) THEN
        DEALLOCATE( State_Diag%CloudConvFlux, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%CloudConvFlux"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%CloudConvFlux', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%WetLossConv ) ) THEN
        DEALLOCATE( State_Diag%WetLossConv, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%WetLossConv"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PrecipFracConv ) ) THEN
-       DEALLOCATE( State_Diag%PrecipFracConv, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%PrecipFracConv"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%RainFracConv ) ) THEN
-       DEALLOCATE( State_Diag%RainFracConv, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%RainFracConv"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%WashFracConv ) ) THEN
-       DEALLOCATE( State_Diag%WashFracConv, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%WashFracConv"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%WetLossConv', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%WetLossLS ) ) THEN
        DEALLOCATE( State_Diag%WetLossLS, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%WetLossLS"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%WetLossLS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PrecipFracLS ) ) THEN
        DEALLOCATE( State_Diag%PrecipFracLS, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%PrecipFracLS"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%PrecipFracLS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RainFracLS ) ) THEN
        DEALLOCATE( State_Diag%RainFracLS, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%RainFracLS"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%RainFracLS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%WashFracLS ) ) THEN
        DEALLOCATE( State_Diag%WashFracLS, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%WashFracLS"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%WashFracLS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PbFromRnDecay ) ) THEN
        DEALLOCATE( State_Diag%PbFromRnDecay, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%PbFromRnDecay"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%PbFromRnDecay', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadDecay ) ) THEN
        DEALLOCATE( State_Diag%RadDecay, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%RadDecay"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%RadDecay', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadAllSkyLWSurf ) ) THEN
        DEALLOCATE( State_Diag%RadAllSkyLWSurf, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%RadAllSkyLWSurf"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%RadAllSkyLWSurf', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadAllSkyLWTOA ) ) THEN
        DEALLOCATE( State_Diag%RadAllSkyLWTOA, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%RadAllSkyLWTOA"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%RadAllSkyLWTOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadAllSkySWSurf ) ) THEN
        DEALLOCATE( State_Diag%RadAllSkySWSurf, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%RadAllSkySWSurf"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%RadAllSkySWSurf', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadAllSkySWTOA ) ) THEN
        DEALLOCATE( State_Diag%RadAllSkySWTOA, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%RadAllSkySWTOA"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%RadAllSkySWTOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadClrSkyLWSurf ) ) THEN
        DEALLOCATE( State_Diag%RadClrSkyLWSurf, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%RadClrSkyLWSurf"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%RadClrSkyLWSurf', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadClrSkyLWTOA ) ) THEN
        DEALLOCATE( State_Diag%RadClrSkyLWTOA, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%RadClrSkyLWTOA"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%RadClrSkyLWTOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadClrSkySWSurf ) ) THEN
        DEALLOCATE( State_Diag%RadClrSkySWSurf, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%RadClrSkySWSurf"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%RadClrSkySWSurf', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadClrSkySWTOA ) ) THEN
        DEALLOCATE( State_Diag%RadClrSkySWTOA, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%RadClrSkySWTOA"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%RadClrSkySWTOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdBCPIfromBCPO ) ) THEN
        DEALLOCATE( State_Diag%ProdBCPIfromBCPO, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%%ProdBCPIfromBCPO"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%ProdBCPIfromBCPO', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdOCPIfromOCPO ) ) THEN
        DEALLOCATE( State_Diag%ProdOCPIfromOCPO, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%ProdOCPIfromOCPO"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( 'State_Diag%ProdOCPIfromOCPO', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%phSav ) ) THEN
-       DEALLOCATE( State_Diag%phSav, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%phSav"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+    IF ( ASSOCIATED( State_Diag%OHconcAfterChem ) ) THEN
+       DEALLOCATE( State_Diag%OhconcAfterChem, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%OHconcAfterChem', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF 
+
+    IF ( ASSOCIATED( State_Diag%HO2concAfterChem ) ) THEN
+       DEALLOCATE( State_Diag%HO2concAfterChem, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%HO2concAfterChem', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF 
+
+    IF ( ASSOCIATED( State_Diag%O1DconcAfterChem ) ) THEN
+       DEALLOCATE( State_Diag%O1DconcAfterChem, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%O1DconcAfterChem', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%HplusSav ) ) THEN
-       DEALLOCATE( State_Diag%HplusSav, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%HplusSav"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+    IF ( ASSOCIATED( State_Diag%O3PconcAfterChem ) ) THEN
+       DEALLOCATE( State_Diag%O3PconcAfterChem, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%O3PconcAfterChem', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%WaterSav ) ) THEN
-       DEALLOCATE( State_Diag%WaterSav, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%WaterSav"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+    IF ( ASSOCIATED( State_Diag%ODDust ) ) THEN
+       DEALLOCATE( State_Diag%ODDust, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%ODDust', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%SulRatSav ) ) THEN
-       DEALLOCATE( State_Diag%SulRatSav, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%SulRatSav"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+    IF ( ASSOCIATED( State_Diag%ODDustBinsWL1 ) ) THEN
+       DEALLOCATE( State_Diag%ODDustBinsWL1, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%ODDustBinsWL1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%NaRatSav ) ) THEN
-       DEALLOCATE( State_Diag%NaRatSav, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%Na_RatSav"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+    IF ( ASSOCIATED( State_Diag%ODDustBinsWL2 ) ) THEN
+       DEALLOCATE( State_Diag%ODDustBinsWL2, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ODDustBinsWL2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%AcidPurSav ) ) THEN
-       DEALLOCATE( State_Diag%AcidPurSav, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%AcidPurSav"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+    IF ( ASSOCIATED( State_Diag%ODDustBinsWL3 ) ) THEN
+       DEALLOCATE( State_Diag%ODDustBinsWL3, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ODDustBinsWL3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%BisulSav ) ) THEN
-       DEALLOCATE( State_Diag%BisulSav, STAT=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not deallocate "State_Diag%BisulSav"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+    IF ( ASSOCIATED( State_Diag%ProdLoss ) ) THEN
+       DEALLOCATE( State_Diag%ProdLoss, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdLoss', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -1567,11 +1465,8 @@ CONTAINS
     !-----------------------------------------------------------------------
     !IF ( ASSOCIATED( State_Diag%xxx ) ) THEN
     !   DEALLOCATE( State_Diag%xxx, STAT=RC  )
-    !   IF ( RC /= GC_SUCCESS ) THEN
-    !      ErrMsg = 'Could not deallocate "State_Diag%xxx"!'
-    !      CALL GC_Error( ErrMsg, RC, ThisLoc )
-    !      RETURN
-    !   ENDIF
+    !   CALL GC_CheckVar( 'State_Diag%xxx', 2, RC )
+    !   IF ( RC /= GC_SUCCESS ) RETURN
     !ENDIF
 
     !=======================================================================
@@ -1601,8 +1496,8 @@ CONTAINS
 !
   SUBROUTINE Get_Metadata_State_Diag( am_I_Root,  metadataID, Found,    &
                                       RC,         Desc,       Units,    &
-                                      PerSpecies, Rank,       Type,     &
-                                      VLoc )
+                                      TagId,      Rank,       Type,     &
+                                      VLoc                             )
 !
 ! !USES:
 !
@@ -1620,17 +1515,17 @@ CONTAINS
     INTEGER,             INTENT(OUT)           :: RC         ! Return code
     CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Desc       ! Long name string
     CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Units      ! Units string
-    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: PerSpecies ! Max spc wildcard
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: TagId      ! Tag wildcard (wc)
     INTEGER,             INTENT(OUT), OPTIONAL :: Rank       ! # of dimensions
     INTEGER,             INTENT(OUT), OPTIONAL :: Type       ! Desc of data type
     INTEGER,             INTENT(OUT), OPTIONAL :: VLoc       ! Vert placement
 !
 ! !REMARKS:
-!  If a diagnostic cannot use a wildcard, then set PerSpecies=''.
+!  If a diagnostic cannot use a wildcard, then set Tag=''.
 !
 ! !REVISION HISTORY: 
 !  20 Sep 2017 - E. Lundgren - Initial version
-!  06 Oct 2017 - R. Yantosca - State_Diga%SpeciesConc is now an 8-byte real
+!  06 Oct 2017 - R. Yantosca - State_Diag%SpeciesConc is now an 8-byte real
 !  01 Nov 2017 - R. Yantosca - Now get To_UpperCase from charpak_mod.F90
 !  02 Nov 2017 - R. Yantosca - Update metadata to be consistent w/ arrays
 !EOP
@@ -1639,9 +1534,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Name_AllCaps
-    LOGICAL            :: isDesc, isUnits, isRank, isType, isVLoc, isSpecies
-    
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc,  Name_AllCaps
+    LOGICAL            :: isDesc, isUnits,  isRank, isType
+    LOGICAL            :: isVLoc, isTagged
+
     !=======================================================================
     ! Initialize
     !=======================================================================
@@ -1652,22 +1548,22 @@ CONTAINS
     Found = .TRUE.
 
     ! Optional arguments present?
-    isDesc    = PRESENT( Desc       )
-    isUnits   = PRESENT( Units      )
-    isRank    = PRESENT( Rank       )
-    isType    = PRESENT( Type       )
-    isVLoc    = PRESENT( VLoc       )
-    isSpecies = PRESENT( PerSpecies )
+    isDesc    = PRESENT( Desc    )
+    isUnits   = PRESENT( Units   )
+    isRank    = PRESENT( Rank    )
+    isType    = PRESENT( Type    )
+    isVLoc    = PRESENT( VLoc    )
+    isTagged  = PRESENT( TagID   ) 
 
     ! Set defaults for optional arguments. Assume type and vertical 
     ! location are real (flexible precision) and center unless specified 
     ! otherwise
-    IF ( isUnits   ) Units = ''
-    IF ( isDesc    ) Desc  = ''              
-    IF ( isRank    ) Rank  = -1              ! Initialize # dims as bad value 
-    IF ( isType    ) Type  = KINDVAL_F4      ! Assume real*4 for diagnostics
-    IF ( isVLoc    ) VLoc  = VLocationCenter ! Assume vertically centered
-    IF ( isSpecies ) PerSpecies = ''         ! Assume not per species
+    IF ( isUnits   ) Units   = ''
+    IF ( isDesc    ) Desc    = ''              
+    IF ( isRank    ) Rank    = -1 
+    IF ( isType    ) Type    = KINDVAL_F4      ! Assume real*4
+    IF ( isVLoc    ) VLoc    = VLocationCenter ! Assume vertically centered
+    IF ( isTagged )  TagID   = '' 
 
     ! Convert name to uppercase
     Name_AllCaps = To_Uppercase( TRIM( metadataID ) )
@@ -1675,253 +1571,261 @@ CONTAINS
     !=======================================================================
     ! Values for Retrieval (string comparison slow but happens only once)
     !=======================================================================
-    SELECT CASE ( TRIM( Name_AllCaps ) )
+    IF ( TRIM(Name_AllCaps) == 'SPECIESCONC' ) THEN
+          IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
+          IF ( isUnits   ) Units = 'mol mol-1 dry'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'ALL'
+          IF ( isType    ) Type  = KINDVAL_F8
 
-       CASE ( 'SPECIESCONC' )
-          IF ( isDesc    ) Desc       = 'Dry mixing ratio of species'
-          IF ( isUnits   ) Units      = 'mol mol-1 dry'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'ALL'
-          IF ( isType    ) Type       = KINDVAL_F8
+    ELSEIF ( TRIM(Name_AllCaps) == 'DRYDEPCHM' ) THEN
+          IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from chemistry'
+          IF ( isUnits   ) Units = 'molec cm-2 s-1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'DRY'
 
-       CASE ( 'DRYDEPCHM' )
-          IF ( isDesc    ) Desc       = 'Dry deposition flux of species, from chemistry'
-          IF ( isUnits   ) Units      = 'molec cm-2 s-1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'DRY'
+    ELSEIF ( TRIM(Name_AllCaps) == 'DRYDEPMIX' ) THEN
+          IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from mixing'
+          IF ( isUnits   ) Units = 'molec cm-2 s-1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'DRY'
 
-       CASE ( 'DRYDEPMIX' )
-          IF ( isDesc    ) Desc       = 'Dry deposition flux of species, from mixing'
-          IF ( isUnits   ) Units      = 'molec cm-2 s-1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'DRY'
+    ELSEIF ( TRIM(Name_AllCaps) == 'DRYDEP' ) THEN
+          IF ( isDesc    ) Desc  = 'Dry deposition flux of species'
+          IF ( isUnits   ) Units = 'molec cm-2 s-1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'DRY'
 
-       CASE ( 'DRYDEP' )
-          IF ( isDesc    ) Desc       = 'Dry deposition flux of species'
-          IF ( isUnits   ) Units      = 'molec cm-2 s-1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'DRY'
+    ELSEIF ( TRIM(Name_AllCaps) == 'DRYDEPVEL' ) THEN
+          IF ( isDesc    ) Desc  = 'Dry deposition velocity of species'
+          IF ( isUnits   ) Units = 'cm s-1'
+          IF ( isRank    ) Rank  = 2
+          IF ( isTagged  ) TagId = 'DRY'
 
-       CASE ( 'DRYDEPVEL' )
-          IF ( isDesc    ) Desc       = 'Dry deposition velocity of species'
-          IF ( isUnits   ) Units      = 'cm s-1'
-          IF ( isRank    ) Rank       = 2
-          IF ( isSpecies ) PerSpecies = 'DRY'
+    ELSEIF ( TRIM(Name_AllCaps) == 'JVAL' ) THEN
+          IF ( isDesc    ) Desc  = 'Photolysis rate' !TODO: append to this?
+          IF ( isUnits   ) Units = 's-1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'JVN' ! TODO: fix species mapping
 
-       CASE ( 'JVAL' )
-          IF ( isDesc    ) Desc       = 'Photolysis rate' !TODO: append to this?
-          IF ( isUnits   ) Units      = 's-1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'JVN' ! TODO: fix species mapping
+    ELSEIF ( TRIM(Name_AllCaps) == 'RXNRATES' ) THEN
+          IF ( isDesc    ) Desc  = 'placeholder'
+          IF ( isUnits   ) Units = 'placeholder'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'ALL'
 
-       CASE ( 'RXNRATES' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'placeholder'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'ALL'
+    ELSEIF ( TRIM(Name_AllCaps) == 'UVFLUXDIFFUSE' ) THEN
+          IF ( isDesc    ) Desc  = 'placeholder'
+          IF ( isUnits   ) Units = 'W m-2'
+          IF ( isRank    ) Rank  = 3
 
-       CASE ( 'UVFLUXDIFFUSE' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'W m-2'
-          IF ( isRank    ) Rank       = 3
+    ELSEIF ( TRIM(Name_AllCaps) == 'UVFLUXDIRECT' ) THEN
+          IF ( isDesc    ) Desc  = 'placeholder'
+          IF ( isUnits   ) Units = 'W m-2'
+          IF ( isRank    ) Rank  = 3
 
-       CASE ( 'UVFLUXDIRECT' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'W m-2'
-          IF ( isRank    ) Rank       = 3
+    ELSEIF ( TRIM(Name_AllCaps) == 'UVFLUXNET' ) THEN
+          IF ( isDesc    ) Desc  = 'placeholder'
+          IF ( isUnits   ) Units = 'W m-2'
+          IF ( isRank    ) Rank  = 3
 
-       CASE ( 'UVFLUXNET' )
-          IF ( isDesc    ) Desc       = 'placeholder'
-          IF ( isUnits   ) Units      = 'W m-2'
-          IF ( isRank    ) Rank       = 3
+    ELSEIF ( TRIM(Name_AllCaps) == 'ADVFLUXZONAL' ) THEN
+          IF ( isDesc    ) Desc  = 'Advection of species in zonal direction'
+          IF ( isUnits   ) Units = 'kg s-1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'ADV'
 
-       CASE ( 'ADVFLUXZONAL' )
-          IF ( isDesc    ) Desc       = 'Advection of species in zonal direction'
-          IF ( isUnits   ) Units      = 'kg s-1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'ADV'
-
-       CASE ( 'ADVFLUXMERID' )
-          IF ( isDesc    ) Desc       = 'Advection of species in meridional direction'
-          IF ( isUnits   ) Units      = 'kg s-1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'ADV'
+    ELSEIF ( TRIM(Name_AllCaps) == 'ADVFLUXMERID' ) THEN
+          IF ( isDesc    ) Desc  = 'Advection of species in meridional direction'
+          IF ( isUnits   ) Units = 'kg s-1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'ADV'
      
-       CASE ( 'ADVFLUXVERT' )
-          IF ( isDesc    ) Desc       = 'Advection of species in vertical direction'
-          IF ( isUnits   ) Units      = 'kg s-1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'ADV'
+    ELSEIF ( TRIM(Name_AllCaps) == 'ADVFLUXVERT' ) THEN
+          IF ( isDesc    ) Desc  = 'Advection of species in vertical direction'
+          IF ( isUnits   ) Units = 'kg s-1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'ADV'
 
-       CASE ( 'PBLMIXFRAC' )
-          IF ( isDesc    ) Desc       = 'Fraction of boundary layer occupied by each level'
-          IF ( isUnits   ) Units      = 'placeholder'
-          IF ( isRank    ) Rank       = 3
+    ELSEIF ( TRIM(Name_AllCaps) == 'PBLMIXFRAC' ) THEN
+          IF ( isDesc    ) Desc  = 'Fraction of boundary layer occupied by each level'
+          IF ( isUnits   ) Units = 'placeholder'
+          IF ( isRank    ) Rank  = 3
 
-       CASE ( 'PBLFLUX' )
-          IF ( isDesc    ) Desc       = 'Species mass change due to boundary-layer mixing'
-          IF ( isUnits   ) Units      = 'kg s-1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'ADV'
+    ELSEIF ( TRIM(Name_AllCaps) == 'PBLFLUX' ) THEN
+          IF ( isDesc    ) Desc  = 'Species mass change due to boundary-layer mixing'
+          IF ( isUnits   ) Units = 'kg s-1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'ADV'
 
-       CASE ( 'CLOUDCONVFLUX' )
-          IF ( isDesc    ) Desc       = 'Mass change due to cloud convection'
-          IF ( isUnits   ) Units      = 'kg s-1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'ADV'
+    ELSEIF ( TRIM(Name_AllCaps) == 'CLOUDCONVFLUX' ) THEN
+          IF ( isDesc    ) Desc  = 'Mass change due to cloud convection'
+          IF ( isUnits   ) Units = 'kg s-1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'ADV'
 
-       CASE ( 'WETLOSSCONV' )
-          IF ( isDesc    ) Desc       = 'Loss of soluble species in convective updrafts'
-          IF ( isUnits   ) Units      = 'kg s-1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'WET'
+    ELSEIF ( TRIM(Name_AllCaps) == 'WETLOSSCONV' ) THEN
+          IF ( isDesc    ) Desc  = 'Loss of soluble species in convective updrafts'
+          IF ( isUnits   ) Units = 'kg s-1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'WET'
 
-       CASE ( 'PRECIPFRACCONV' )
-          IF ( isDesc    ) Desc       = 'Fraction of grid box undergoing convective precipitation'
-          IF ( isUnits   ) Units      = '1'
-          IF ( isRank    ) Rank       = 3
-
-       CASE ( 'RAINFRACCONV' )
-          IF ( isDesc    ) Desc       = 'Fraction of soluble species lost to rainout in convective precipitation'
-          IF ( isUnits   ) Units      = '1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'WET'
-
-       CASE ( 'WASHFRACCONV' )
-          IF ( isDesc    ) Desc       = 'Fraction of soluble species lost to washout in convective precipitation'
-          IF ( isUnits   ) Units      = '1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'WET'
-
-       CASE ( 'WETLOSSLS' )
-          IF ( isDesc    ) Desc       = 'Loss of soluble species in large-scale precipitation'
-          IF ( isUnits   ) Units      = 'placeholder'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'WET'
-
-       CASE ( 'PRECIPFRACLS' )
-          IF ( isDesc    ) Desc       = 'Fraction of grid box undergoing large-scale precipitation'
-          IF ( isUnits   ) Units      = '1'
-          IF ( isRank    ) Rank       = 3
-
-       CASE ( 'RAINFRACLS' )
-          IF ( isDesc    ) Desc       = 'Fraction of soluble species lost to rainout in large-scale precipitation'
-          IF ( isUnits   ) Units      = '1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'WET'
-
-       CASE ( 'WASHFRACLS' )
-          IF ( isDesc    ) Desc       = 'Fraction of soluble species lost to washout in large-scale precipitation'
-          IF ( isUnits   ) Units      = '1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'WET'
-
-       CASE ( 'PBFROMRNDECAY' )
-          IF ( isDesc    ) Desc       = 'Pb210 created from radioactive decay of Rn222'
-          IF ( isUnits   ) Units      = 'kg s-1'
-          IF ( isRank    ) Rank       = 3
-
-       CASE ( 'RADDECAY' )
-          IF ( isDesc    ) Desc       = 'Radioactive decay of radionuclide species'
-          IF ( isUnits   ) Units      = 'kg s-1'
-          IF ( isRank    ) Rank       = 3
-          IF ( isSpecies ) PerSpecies = 'ADV'
-
-       CASE ( 'RADALLSKYLWSURF' )
-          IF ( isDesc    ) Desc       = 'All-sky long-wave radiation at surface'
-          IF ( isUnits   ) Units      = 'W m-2'
-          IF ( isRank    ) Rank       = 2
-          IF ( isSpecies ) PerSpecies = 'placeholder'
-
-       CASE ( 'RADALLSKYLWTOA' )
-          IF ( isDesc    ) Desc       = 'All-sky long-wave radiation at top of atmosphere'
-          IF ( isUnits   ) Units      = 'W m-2'
-          IF ( isRank    ) Rank       = 2
-          IF ( isSpecies ) PerSpecies = 'placeholder'
-
-       CASE ( 'RADALLSKYSWSURF' )
-          IF ( isDesc    ) Desc       = 'All-sky short-wave radiation at surface'
-          IF ( isUnits   ) Units      = 'W m-2'
-          IF ( isRank    ) Rank       = 2
-          IF ( isSpecies ) PerSpecies = 'placeholder'
-
-       CASE ( 'RADALLSKYSWTOA ' )
-          IF ( isDesc    ) Desc       = 'All-sky short-wave radiation at top of atmosphere'
-          IF ( isUnits   ) Units      = 'W m-2'
-          IF ( isRank    ) Rank       = 2
-          IF ( isSpecies ) PerSpecies = 'placeholder'
-
-       CASE ( 'RADCLRSKYLWSURF' )
-          IF ( isDesc    ) Desc       = 'Clear-sky long-wave radiation at surface'
-          IF ( isUnits   ) Units      = 'W m-2'
-          IF ( isRank    ) Rank       = 2
-          IF ( isSpecies ) PerSpecies = 'placeholder'
-
-       CASE ( 'RADCLRSKYLWTOA ' )
-          IF ( isDesc    ) Desc       = 'Clear-sky long-wave radiation at top of atmosphere'
-          IF ( isUnits   ) Units      = 'W m-2'
-          IF ( isRank    ) Rank       = 2
-          IF ( isSpecies ) PerSpecies = 'placeholder'
-
-       CASE ( 'RADCLRSKYSWSURF' )
-          IF ( isDesc    ) Desc       = 'Clear-sky short-wave radiation at surface'
-          IF ( isUnits   ) Units      = 'W m-2'
-          IF ( isRank    ) Rank       = 2
-          IF ( isSpecies ) PerSpecies = 'placeholder'
-
-       CASE ( 'RADCLRSKYSWTOA' )
-          IF ( isDesc    ) Desc       = 'Clear-sky short-wave radiation at top of atmosphere'
-          IF ( isUnits   ) Units      = 'W m-2'
-          IF ( isRank    ) Rank       = 2
-          IF ( isSpecies ) PerSpecies = 'placeholder'
-
-       CASE ( 'PRODBCPIFROMBCPO' )
-          IF ( isDesc    ) Desc       = 'Production of hydrophilic black carbon from hydrophobic black carbon'
-          IF ( isUnits   ) Units      = 'kg'
-          IF ( isRank    ) Rank       = 3
-
-       CASE ( 'PRODOCPIFROMOCPO' )
-          IF ( isDesc    ) Desc       = 'Production of hydrophilic organic carbon from hydrophobic organic carbon'
-          IF ( isUnits   ) Units      = 'kg'
-          IF ( isRank    ) Rank       = 3
-
-       CASE ( 'PHSAV' )
-          IF ( isDesc    ) Desc  = 'ISORROPIA aerosol pH'
+    ELSEIF ( TRIM(Name_AllCaps) == 'PRECIPFRACCONV' ) THEN
+          IF ( isDesc    ) Desc  = 'Fraction of grid box undergoing convective precipitation'
           IF ( isUnits   ) Units = '1'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'HPLUSSAV' )
-          IF ( isDesc    ) Desc  = 'ISORROPIA H+ concentration'
-          IF ( isUnits   ) Units = 'mol L-1'
+    ELSEIF ( TRIM(Name_AllCaps) == 'RAINFRACCONV' ) THEN
+          IF ( isDesc    ) Desc  = 'Fraction of soluble species lost to rainout in convective precipitation'
+          IF ( isUnits   ) Units = '1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'WET'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'WASHFRACCONV' ) THEN
+          IF ( isDesc    ) Desc  = 'Fraction of soluble species lost to washout in convective precipitation'
+          IF ( isUnits   ) Units = '1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'WET'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'WETLOSSLS' ) THEN
+          IF ( isDesc    ) Desc  = 'Loss of soluble species in large-scale precipitation'
+          IF ( isUnits   ) Units = 'placeholder'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'WET'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'PRECIPFRACLS' ) THEN
+          IF ( isDesc    ) Desc  = 'Fraction of grid box undergoing large-scale precipitation'
+          IF ( isUnits   ) Units = '1'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'WATERSAV' )
-          IF ( isDesc    ) Desc  = 'ISORROPIA aerosol water concentration'
-          IF ( isUnits   ) Units = 'ug m-3'
+    ELSEIF ( TRIM(Name_AllCaps) == 'RAINFRACLS' ) THEN
+          IF ( isDesc    ) Desc  = 'Fraction of soluble species lost to rainout in large-scale precipitation'
+          IF ( isUnits   ) Units = '1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'WET'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'WASHFRACLS' ) THEN
+          IF ( isDesc    ) Desc  = 'Fraction of soluble species lost to washout in large-scale precipitation'
+          IF ( isUnits   ) Units = '1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'WET'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'PBFROMRNDECAY' ) THEN
+          IF ( isDesc    ) Desc  = 'Pb210 created from radioactive decay of Rn222'
+          IF ( isUnits   ) Units = 'kg s-1'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'SULRATSAV' )
-          IF ( isDesc    ) Desc  = 'ISORROPIA sulfate concentration'
-          IF ( isUnits   ) Units = 'M'
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADDECAY' ) THEN
+          IF ( isDesc    ) Desc  = 'Radioactive decay of radionuclide species'
+          IF ( isUnits   ) Units = 'kg s-1'
+          IF ( isRank    ) Rank  = 3
+          IF ( isTagged  ) TagId = 'ADV'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADALLSKYLWSURF' ) THEN
+          IF ( isDesc    ) Desc  = 'All-sky long-wave radiation at surface'
+          IF ( isUnits   ) Units = 'W m-2'
+          IF ( isRank    ) Rank  = 2
+          IF ( isTagged  ) TagId = 'placeholder'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADALLSKYLWTOA' ) THEN
+          IF ( isDesc    ) Desc  = 'All-sky long-wave radiation at top of atmosphere'
+          IF ( isUnits   ) Units = 'W m-2'
+          IF ( isRank    ) Rank  = 2
+          IF ( isTagged  ) TagId = 'placeholder'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADALLSKYSWSURF' ) THEN
+          IF ( isDesc    ) Desc  = 'All-sky short-wave radiation at surface'
+          IF ( isUnits   ) Units = 'W m-2'
+          IF ( isRank    ) Rank  = 2
+          IF ( isTagged  ) TagId = 'placeholder'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADALLSKYSWTOA ' ) THEN
+          IF ( isDesc    ) Desc  = 'All-sky short-wave radiation at top of atmosphere'
+          IF ( isUnits   ) Units = 'W m-2'
+          IF ( isRank    ) Rank  = 2
+          IF ( isTagged  ) TagId = 'placeholder'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADCLRSKYLWSURF' ) THEN
+          IF ( isDesc    ) Desc  = 'Clear-sky long-wave radiation at surface'
+          IF ( isUnits   ) Units = 'W m-2'
+          IF ( isRank    ) Rank  = 2
+          IF ( isTagged  ) TagId = 'placeholder'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADCLRSKYLWTOA ' ) THEN
+          IF ( isDesc    ) Desc  = 'Clear-sky long-wave radiation at top of atmosphere'
+          IF ( isUnits   ) Units = 'W m-2'
+          IF ( isRank    ) Rank  = 2
+          IF ( isTagged  ) TagId = 'placeholder'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADCLRSKYSWSURF' ) THEN
+          IF ( isDesc    ) Desc  = 'Clear-sky short-wave radiation at surface'
+          IF ( isUnits   ) Units = 'W m-2'
+          IF ( isRank    ) Rank  = 2
+          IF ( isTagged  ) TagId =  'placeholder'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'RADCLRSKYSWTOA' ) THEN
+          IF ( isDesc    ) Desc  = 'Clear-sky short-wave radiation at top of atmosphere'
+          IF ( isUnits   ) Units = 'W m-2'
+          IF ( isRank    ) Rank  = 2
+          IF ( isTagged  ) TagId = 'placeholder'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'PRODBCPIFROMBCPO' ) THEN
+          IF ( isDesc    ) Desc  = 'Production of hydrophilic black carbon from hydrophobic black carbon'
+          IF ( isUnits   ) Units = 'kg'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'NARATSAV' )
-          IF ( isDesc    ) Desc  = 'ISORROPIA sulfate concentration'
-          IF ( isUnits   ) Units = 'M'
+    ELSEIF ( TRIM(Name_AllCaps) == 'PRODOCPIFROMOCPO' ) THEN
+          IF ( isDesc    ) Desc  = 'Production of hydrophilic organic carbon from hydrophobic organic carbon'
+          IF ( isUnits   ) Units = 'kg'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'ACIDPURSAV' )
-          IF ( isDesc    ) Desc  = 'ISORROPIA ACIDPUR'
-          IF ( isUnits   ) Units = 'M'
+    ELSEIF ( TRIM(Name_AllCaps) == 'OHCONCAFTERCHEM' ) THEN
+          IF ( isDesc    ) Desc  = 'OH concentration immediately after chemistry'
+          IF ( isUnits   ) Units = 'molec cm-3'
           IF ( isRank    ) Rank  = 3
 
-       CASE ( 'BISULSAV' )
-          IF ( isDesc    ) Desc  = 'ISORROPIA Bisulfate (general acid)' &
-                                 // ' concentration'
-          IF ( isUnits   ) Units = 'M'
+    ELSEIF ( TRIM(Name_AllCaps) == 'HO2CONCAFTERCHEM' )  THEN
+          IF ( isDesc    ) Desc  = 'HO2 concentration immediately after chemistry'
+          IF ( isUnits   ) Units = 'mol mol-1'
+          IF ( isRank    ) Rank  = 3
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'O1DCONCAFTERCHEM' ) THEN
+          IF ( isDesc    ) Desc  = 'O1D concentration immediately after chemistry'
+          IF ( isUnits   ) Units = 'molec cm-3'
+          IF ( isRank    ) Rank  = 3
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'O3PCONCAFTERCHEM' ) THEN
+          IF ( isDesc    ) Desc  = 'O3P concentration immediately after chemistry'
+          IF ( isUnits   ) Units = 'molec cm-3'
+          IF ( isRank    ) Rank  = 3
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'OPTICALDEPTHDUST' ) THEN
+          IF ( isDesc    ) Desc  = 'Optical depth for mineral dust'
+          IF ( isUnits   ) Units = 'unitless'
           IF ( isRank    ) Rank  =  3
 
-       CASE DEFAULT
+    ELSEIF ( TRIM(Name_AllCaps) == 'OPTICALDEPTHDUST' // TRIM(RadWL(1)) ) THEN 
+          IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
+                                     TRIM(RadWL(1)) // ' nm'
+          IF ( isUnits   ) Units   = 'unitless'
+          IF ( isRank    ) Rank    =  3
+          IF ( isTagged  ) TagId   = 'DUSTBIN'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'OPTICALDEPTHDUST' // TRIM(RadWL(2)) ) THEN
+          IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
+                                     TRIM(RadWL(2)) // ' nm'
+          IF ( isUnits   ) Units   = 'unitless'
+          IF ( isRank    ) Rank    =  3
+          IF ( isTagged  ) TagId   = 'DUSTBIN'
+
+    ELSEIF ( TRIM(Name_AllCaps) == 'OPTICALDEPTHDUST' // TRIM(RadWL(3)) ) THEN
+          IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
+                                     TRIM(RadWL(3)) // ' nm'
+          IF ( isUnits   ) Units   = 'unitless'
+          IF ( isRank    ) Rank    =  3
+          IF ( isTagged  ) TagId   = 'DUSTBIN'
+
+    ELSE
           Found = .False.
           ErrMsg = 'Metadata not found for State_Diag field ID: '            &
                    // TRIM( metadataID ) // '. If the name in HISTORY.rc '   &
@@ -1932,10 +1836,187 @@ CONTAINS
                    // '(Headers/state_diag_mod.F90).'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
-
-    END SELECT
+    ENDIF
 
    END SUBROUTINE Get_Metadata_State_Diag
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_TagInfo
+!
+! !DESCRIPTION: Subroutine GET\_TAGINFO retrieves basic information about 
+! tags given a wildcard string.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_TagInfo( am_I_Root, tagID,   State_Chm, Found, RC, &
+                          N,         tagName, nTags )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+! 
+    LOGICAL,            INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+    CHARACTER(LEN=*),   INTENT(IN)  :: tagID       ! ID of tag (e.g. wildcard)
+    TYPE(ChmState),     INTENT(IN)  :: State_Chm   ! Obj for chem state
+    INTEGER,            INTENT(IN),  OPTIONAL :: N ! index (1 to # tags)
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,            INTENT(OUT)           :: Found   ! Item found?
+    INTEGER,            INTENT(OUT)           :: RC      ! Return code
+    CHARACTER(LEN=255), INTENT(OUT), OPTIONAL :: tagName ! tag name for index N 
+    INTEGER,            INTENT(OUT), OPTIONAL :: nTags   ! # tags
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  16 Nov 2017 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: D, numTags
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Nstr
+    LOGICAL            :: isNumTags, isTagName
+    CHARACTER(LEN=10)  :: JNames(37) ! temporary, will be replaced (ewl)
+
+    ! Assume success
+    RC    =  GC_SUCCESS
+    ThisLoc = ' -> at Get_TagInfo (in Headers/state_diag_mod.F90)'
+    Found = .TRUE.
+    numTags = 0
+    
+    ! Optional arguments present?
+    isTagName  = PRESENT( TagName )
+    isNumTags  = PRESENT( nTags   )
+
+    ! Exit with error if getting tag name but index not specified
+    IF ( isTagName .AND. .NOT. PRESENT( N ) ) THEN
+       ErrMsg = 'Index must be specified if retrieving an individual tag name'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Get number of tags
+    SELECT CASE ( TRIM(tagId) )
+       CASE ( 'ALL' )
+          numTags = State_Chm%nSpecies
+       CASE ( 'ADV' )
+          numTags = State_Chm%nAdvect
+       CASE ( 'AER' )
+          numTags = State_Chm%nAero
+       CASE ( 'DRY' )
+          numTags = State_Chm%nDryDep
+       CASE ( 'DUSTBIN' )
+          numTags = NDUST
+       CASE ( 'FIX' )
+          numTags = State_Chm%nKppFix
+       CASE ( 'GAS' )
+          numTags = State_Chm%nGasSpc
+       CASE ( 'HYG' )
+          numTags = State_Chm%nHygGrth
+       CASE ( 'KPP' )
+          numTags = State_Chm%nKppSpc
+       CASE ( 'PHO' )
+          numTags = State_Chm%nPhotol
+       CASE ( 'VAR' )
+          numTags = State_Chm%nKppVar
+       CASE ( 'WET' )
+          numTags = State_Chm%nWetDep
+       CASE ( 'JVN' ) ! temporary, will be replaced (ewl)
+          numTags = 37
+       CASE DEFAULT
+          FOUND = .FALSE.
+          ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &
+                   ' is not implemented for getting number of tags'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+    END SELECT
+
+    ! If not getting tag name then set nTags and exit
+    IF ( .NOT. isTagName ) THEN 
+       nTags = numTags
+       RETURN
+    ENDIF
+
+    ! Exit with error if index exceeds number of tags for this wildcard
+    IF ( isTagName .AND. .NOT. PRESENT( N ) ) THEN
+       ErrMsg = 'Index must be greater than total number of tags for wildcard' &
+                // TRIM(tagId)
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Get mapping index
+    SELECT CASE ( TRIM(tagID) )
+       CASE ( 'ALL', 'ADV', 'DUSTBIN', 'JVN' ) ! will remove JVN (ewl)
+          D = N
+       CASE ( 'AER' )
+          D = State_Chm%Map_Aero(N)
+       CASE ( 'DRY' )
+          D = State_Chm%Map_DryDep(N)
+       CASE ( 'GAS' )
+          D = State_Chm%Map_GasSpc(N)
+       CASE ( 'HYG' )
+          D = State_Chm%Map_HygGrth(N)
+       CASE ( 'VAR' )
+          D = State_Chm%Map_KppVar(N)
+       CASE ( 'FIX' )
+          D = State_Chm%Map_KppFix(N)
+       CASE ( 'KPP' )
+          D = State_Chm%Map_KppSpc(N)
+       CASE ( 'PHO' )
+          D = State_Chm%Map_Photol(N)
+       CASE ( 'WET' )
+          D = State_Chm%Map_WetDep(N)
+       CASE DEFAULT
+          FOUND = .FALSE.
+          ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &
+                   ' is not implemented for getting tag name'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+    END SELECT
+
+    ! Get tag name
+    IF ( isTagName ) tagName = ''  
+    IF ( TRIM(tagID) == 'DUSTBIN' ) THEN
+       WRITE ( Nstr, "(I1)" ) D
+       tagName = 'BIN' // TRIM(Nstr)
+    ELSEIF ( TRIM(tagId) == 'JVN' ) THEN   ! temporary, will be removed (ewl)
+       JNAMES = [ 'NO2       ', 'HNO3      ', 'H2O2      ',            &
+                  'CH2O      ', 'x         ', 'x         ',            &
+                  'GLYX      ', 'MGLY      ', 'BrO       ',            &
+                  'HOBr      ', 'BrNO2     ', 'BrNO3     ',            &
+                  'CHBr3     ', 'Br2       ', 'O2inadj   ',            &
+                  'N2O       ', 'NO        ', 'NO3       ',            &
+                  'CFC11     ', 'CFC12     ', 'CCl4      ',            &
+                  'CH3Cl     ', 'ACET      ', 'ALD2      ',            &
+                  'MVK       ', 'MACR      ', 'HAC       ',            &
+                  'GLYC      ', 'PIP       ', 'IPMN      ',            &
+                  'ETHLN     ', 'DHDN      ', 'HPALD     ',            &
+                  'ISN1      ', 'MONITS    ', 'MONITU    ',            &
+                     'HONIT     ' ]
+#if defined( UCX )
+        JNAMES(5) = 'O3_O1D'
+        JNAMES(6) = 'O3_O3P'
+#else
+        JNAMES(5) = 'O3'
+        JNAMES(6) = 'O3_POH'
+#endif
+       tagName = TRIM( JNAMES(D) )
+    ELSE
+       tagName = State_Chm%SpcData(D)%Info%Name
+    ENDIF
+
+  END SUBROUTINE Get_TagInfo
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1979,79 +2060,63 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, perSpecies
-    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    INTEGER                :: N, D, nSpecies
-    INTEGER                :: rank, type, vloc
+    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
+    CHARACTER(LEN=255)     :: diagName, diagDesc
+    INTEGER                :: N, nTags, rank, type, vloc
     LOGICAL                :: found
-    TYPE(Species), POINTER :: SpcInfo
 
     ! Initialize
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R4_2D (in Headers/state_diag_mod.F90)'
     ErrMsg_reg = 'Error encountered while registering State_Diag field'
 
+    ! Get metadata for this diagnostic
     CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
                                   desc=desc,   units=units, rank=rank,    &
-                                  type=type,   vloc=vloc,                 &
-                                  perSpecies=perSpecies                 )
+                                  type=type,   vloc=vloc,   tagId=tagId      )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
     
-    ! Check that metadata consistent with data pointer
-    IF ( ( ( perSpecies == '' ) .AND. ( rank /= 2 ) )  &
-         .OR. ( ( perSpecies /= '' ) .AND. ( rank /= 1 ) ) ) THEN
+    ! Check that metadata dimensions consistent with data pointer
+    IF ( ( ( tagId == '' ) .AND. ( rank /= 2 ) )  &
+         .OR. ( ( tagId /= '' ) .AND. ( rank /= 1 ) ) ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' // &
                 TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
           
-    IF ( perSpecies /= '' ) THEN
+    ! Special handling if there are tags (wildcard)
+    IF ( tagId /= '' ) THEN
+       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                         nTags=nTags )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       ! TODO: add more cases as needed
-       SELECT CASE ( perSpecies )
-          CASE ( 'ALL' )
-             nSpecies = State_Chm%nSpecies
-          CASE ( 'ADV' )
-             nSpecies = State_Chm%nAdvect
-          CASE ( 'DRY' )
-             nSpecies = State_Chm%nDryDep
-          CASE ( 'WET' )
-             nSpecies = State_Chm%nWetDep
-          CASE DEFAULT
-             ErrMsg = 'Handling of perSpecies ' // TRIM(perSpecies) // &
-                      ' is not implemented for this combo of data type and size'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+       ! Register each tagged name as a separate diagnostic
+       DO N = 1, nTags          
+          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                            N=N, tagName=tagName )
+          IF ( RC /= GC_SUCCESS ) THEN
+             CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
              RETURN
-       END SELECT
-
-       DO N = 1, nSpecies          
-          ! TODO: add more cases as needed
-          SELECT CASE ( perSpecies )
-             CASE ( 'ALL', 'ADV' )
-                D = N
-             CASE ( 'DRY' )
-                D =  State_Chm%Map_DryDep(N)
-             CASE ( 'WET' )
-                D =  State_Chm%Map_WetDep(N)
-          END SELECT
-          SpcInfo  => State_Chm%SpcData(D)%Info
-          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
-          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+          ENDIF
+          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+          diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
                                   State        = State_Diag%State,     &
-                                  Variable     = thisSpcName,          &
-                                  Description  = thisSpcDesc,          &
+                                  Variable     = diagName,             &
+                                  Description  = diagDesc,             &
                                   Units        = units,                &
                                   Data1d_4     = Ptr2Data(:,N),        &
                                   RC           = RC                   )
-          SpcInfo => NULL()
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = ErrMsg_reg // ' where perSpecies is ' // TRIM(perSpecies)
+             ErrMsg = ErrMsg_reg // ' where tagID is ' // TRIM(tagID)
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -2118,79 +2183,64 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, perSpecies
-    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    INTEGER                :: N, D, nSpecies
-    INTEGER                :: rank, type,  vloc
-    LOGICAL                :: found
-    TYPE(Species), POINTER :: SpcInfo
+    CHARACTER(LEN=255)     :: desc, units, tagID, tagName
+    CHARACTER(LEN=255)     :: diagName, diagDesc
+    INTEGER                :: N, nTags, rank, type,  vloc
+    LOGICAL                :: Found
 
     ! Initialize
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
     ErrMsg_reg = 'Error encountered while registering State_Diag field'
 
+    ! Get metadata for this diagnostic
     CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
                                   desc=desc,   units=units, rank=rank,    &
                                   type=type,   vloc=vloc,                 &
-                                  perSpecies=perSpecies                 )
+                                  tagID=tagID                 )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
     
-    ! Check that metadata consistent with data pointer
-    IF ( ( ( perSpecies == '' ) .AND. ( rank /= 3 ) )  &
-         .OR. ( ( perSpecies /= '' ) .AND. ( rank /= 2 ) ) ) THEN
+    ! Check that metadata dimensions consistent with data pointer
+    IF ( ( ( tagID == '' ) .AND. ( rank /= 3 ) )  &
+         .OR. ( ( tagID /= '' ) .AND. ( rank /= 2 ) ) ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' // &
                 TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    IF ( perSpecies /= '' ) THEN
+    ! Special handling if there are tags
+    IF ( tagID /= '' ) THEN
+       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                         nTags=nTags )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       ! TODO: add more cases as needed
-       SELECT CASE ( perSpecies )
-          CASE ( 'ALL' )
-             nSpecies = State_Chm%nSpecies
-          CASE ( 'ADV' )
-             nSpecies = State_Chm%nAdvect
-          CASE ( 'DRY' )
-             nSpecies = State_Chm%nDryDep
-          CASE ( 'WET' )
-             nSpecies = State_Chm%nWetDep
-          CASE DEFAULT
-             ErrMsg = 'Handling of perSpecies ' // TRIM(perSpecies) // &
-                      ' is not implemented for this combo of data type and size'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+       ! Register each tagged name as a separate diagnostic
+       DO N = 1, nTags          
+          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                            N=N, tagName=tagName )
+          IF ( RC /= GC_SUCCESS ) THEN
+             CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
              RETURN
-       END SELECT
-
-       DO N = 1, nSpecies          
-          ! TODO: add more cases as needed
-          SELECT CASE ( perSpecies )
-             CASE ( 'ALL', 'ADV' )
-                D = N
-             CASE ( 'DRY' )
-                D =  State_Chm%Map_DryDep(N)
-             CASE ( 'WET' )
-                D =  State_Chm%Map_WetDep(N)
-          END SELECT
-          SpcInfo  => State_Chm%SpcData(D)%Info
-          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
-          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+          ENDIF
+          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+          diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
                                   State        = State_Diag%State,     &
-                                  Variable     = thisSpcName,          &
-                                  Description  = thisSpcDesc,          &
+                                  Variable     = diagName,             &
+                                  Description  = diagDesc,             &
                                   Units        = units,                &
                                   Data2d_4     = Ptr2Data(:,:,N),      &
                                   RC           = RC                   )
-          SpcInfo => NULL()
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = ErrMsg_reg // ' where perSpecies is ' // TRIM(perSpecies)
+             ErrMsg = ErrMsg_reg // ' where tagID is ' // TRIM(tagID)
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -2260,29 +2310,26 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, perSpecies
-    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    CHARACTER(LEN=10)      :: JNames(37) ! Temp for J-Values until in specdb
-    INTEGER                :: N, D, nSpecies
-    INTEGER                :: rank, type,  vloc
+    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
+    CHARACTER(LEN=255)     :: diagName, diagDesc
+    INTEGER                :: N, nTags, rank, type, vloc
     LOGICAL                :: found
-    TYPE(Species), POINTER :: SpcInfo
 
     ! Initialize
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R4_4D (in Headers/state_diag_mod.F90)'
     ErrMsg_reg = 'Error encountered while registering State_Diag field'
 
+    ! Get metadata for this diagnostic
     CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
                                   desc=desc,   units=units, rank=rank,    &
-                                  type=type,   vloc=vloc,                 &
-                                  perSpecies=perSpecies                 )
+                                  type=type,   vloc=vloc,   tagId=tagId  )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    ! Check that metadata consistent with data pointer
+    ! Check that metadata dimensions consistent with data pointer
     IF ( rank /= 3 ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' // &
                 TRIM(metadataID)
@@ -2290,83 +2337,34 @@ CONTAINS
        RETURN
     ENDIF
     
-    ! Assume always tied to a species
-    ! TODO: add more cases as needed
-    SELECT CASE ( perSpecies )
-       CASE ( 'ALL' )
-          nSpecies = State_Chm%nSpecies
-       CASE ( 'ADV' )
-          nSpecies = State_Chm%nAdvect
-       CASE ( 'DRY' )
-          nSpecies = State_Chm%nDryDep
-       CASE ( 'WET' )
-          nSpecies = State_Chm%nWetDep
-       CASE ( 'JVN' ) 
-          ! TODO: # of J-Values. For now, hard-code them based on AD22.
-          !       In the near future, build photol into species database.
-          nSpecies = 37
-       CASE DEFAULT
-          ErrMsg = 'Handling of perSpecies ' // TRIM(perSpecies) // &
-                   ' is not implemented for this combo of data type and size'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-    END SELECT
+    ! Assume always tagged if 4D
+    CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                      nTags=nTags )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-    DO N = 1, nSpecies          
-       ! TODO: add more cases as needed
-       SELECT CASE ( perSpecies )
-          CASE ( 'ALL', 'ADV' )
-             D = N
-          CASE ( 'DRY' )
-             D =  State_Chm%Map_DryDep(N)
-          CASE ( 'WET' )
-             D =  State_Chm%Map_WetDep(N)
-          CASE ( 'JVN' )
-             ! TODO: For now, hard-code the names based on AD22. RNAMES and
-             !  JLABEL are not yet initialized at this point. Put index mapping
-             !  in  species database in near future if possible.
-             JNAMES = [ 'NO2       ', 'HNO3      ', 'H2O2      ',            &
-                        'CH2O      ', 'x         ', 'x         ',            &
-                        'GLYX      ', 'MGLY      ', 'BrO       ',            &
-                        'HOBr      ', 'BrNO2     ', 'BrNO3     ',            &
-                        'CHBr3     ', 'Br2       ', 'O2inadj   ',            &
-                        'N2O       ', 'NO        ', 'NO3       ',            &
-                        'CFC11     ', 'CFC12     ', 'CCl4      ',            &
-                        'CH3Cl     ', 'ACET      ', 'ALD2      ',            &
-                        'MVK       ', 'MACR      ', 'HAC       ',            &
-                        'GLYC      ', 'PIP       ', 'IPMN      ',            &
-                        'ETHLN     ', 'DHDN      ', 'HPALD     ',            &
-                        'ISN1      ', 'MONITS    ', 'MONITU    ',            &
-                        'HONIT     ' ]
-#if defined( UCX )
-             JNAMES(5) = 'O3_O1D'
-             JNAMES(6) = 'O3_O3P'
-#else
-             JNAMES(5) = 'O3'
-             JNAMES(6) = 'O3_POH'
-#endif
-       END SELECT
-       IF ( perSpecies /= 'JVN' ) THEN
-          SpcInfo  => State_Chm%SpcData(D)%Info
-          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
-          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
-       ELSE
-          ! Temporary implementation for J-Values. Add to specdb in near future
-          ! to avoid having to do special treatment.
-          thisSpcName = TRIM( metadataID ) // '_' // TRIM( JNAMES(N) )
-          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( JNAMES(N) )
+    ! Register each tagged name as a separate diagnostic
+    DO N = 1, nTags          
+       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                         N=N, tagName=tagName )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          RETURN
        ENDIF
+       diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+       diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
        CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                Registry     = State_Diag%Registry,  &
                                State        = State_Diag%State,     &
-                               Variable     = thisSpcName,          &
-                               Description  = thisSpcDesc,          &
+                               Variable     = diagName,             &
+                               Description  = diagDesc,             &
                                Units        = units,                &
                                Data3d_4     = Ptr2Data(:,:,:,N),    &
                                RC           = RC                   )
-       SpcInfo => NULL()
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = ErrMsg_reg // ' where perSpecies is ' // TRIM(perSpecies)
+          ErrMsg = ErrMsg_reg // ' where tagId is ' // TRIM(tagId)
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -2416,79 +2414,64 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, perSpecies
-    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    INTEGER                :: N, D, nSpecies
-    INTEGER                :: rank, type,  vloc
-    LOGICAL                :: found
-    TYPE(Species), POINTER :: SpcInfo
+    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
+    CHARACTER(LEN=255)     :: diagName, diagDesc
+    INTEGER                :: N, nTags, rank, type, vloc
+    LOGICAL                :: Found
 
     ! Initialize
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
     ErrMsg_reg = 'Error encountered while registering State_Diag field'
 
+    ! Get metadata for this diagnostic
     CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
                                   desc=desc,   units=units, rank=rank,    &
                                   type=type,   vloc=vloc,                 &
-                                  perSpecies=perSpecies                 )
+                                  tagId=tagId                 )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
     
-    ! Check that metadata consistent with data pointer
-    IF ( ( ( perSpecies == '' ) .AND. ( rank /= 3 ) )  &
-         .OR. ( ( perSpecies /= '' ) .AND. ( rank /= 2 ) ) ) THEN
+    ! Check that metadata dimensions consistent with data pointer
+    IF ( ( ( tagId == '' ) .AND. ( rank /= 3 ) )  &
+         .OR. ( ( tagId /= '' ) .AND. ( rank /= 2 ) ) ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' // &
                 TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    IF ( perSpecies /= '' ) THEN
+    ! Special handling if there are tags
+    IF ( tagId /= '' ) THEN
+       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                         nTags=nTags )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       ! TODO: add more cases as needed
-       SELECT CASE ( perSpecies )
-          CASE ( 'ALL' )
-             nSpecies = State_Chm%nSpecies
-          CASE ( 'ADV' )
-             nSpecies = State_Chm%nAdvect
-          CASE ( 'DRY' )
-             nSpecies = State_Chm%nDryDep
-          CASE ( 'WET' )
-             nSpecies = State_Chm%nWetDep
-          CASE DEFAULT
-             ErrMsg = 'Handling of perSpecies ' // TRIM(perSpecies) // &
-                      ' is not implemented for this combo of data type and size'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+       ! Register each tagged name as a separate diagnostic
+       DO N = 1, nTags          
+          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                            N=N, tagName=tagName )
+          IF ( RC /= GC_SUCCESS ) THEN
+             CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
              RETURN
-       END SELECT
-
-       DO N = 1, nSpecies          
-          ! TODO: add more cases as needed
-          SELECT CASE ( perSpecies )
-             CASE ( 'ALL', 'ADV' )
-                D = N
-             CASE ( 'DRY' )
-                D =  State_Chm%Map_DryDep(N)
-             CASE ( 'WET' )
-                D =  State_Chm%Map_WetDep(N)
-          END SELECT
-          SpcInfo  => State_Chm%SpcData(D)%Info
-          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
-          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
+          ENDIF
+          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+          diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
           CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                   Registry     = State_Diag%Registry,  &
                                   State        = State_Diag%State,     &
-                                  Variable     = thisSpcName,          &
-                                  Description  = thisSpcDesc,          &
+                                  Variable     = diagName,             &
+                                  Description  = diagDesc,             &
                                   Units        = units,                &
                                   Data2d       = Ptr2Data(:,:,N),      &
                                   RC           = RC                   )
-          SpcInfo => NULL()
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = ErrMsg_reg // ' where perSpecies is ' // TRIM(perSpecies)
+             ErrMsg = ErrMsg_reg // ' where tagId is ' // TRIM(tagId)
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -2558,29 +2541,27 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, perSpecies
-    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
-    CHARACTER(LEN=10)      :: JNames(37) ! Temp for J-Values until in specdb
-    INTEGER                :: N, D, nSpecies
-    INTEGER                :: rank, type,  vloc
+    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
+    CHARACTER(LEN=255)     :: diagName, diagDesc
+    INTEGER                :: N, nTags, rank, type,  vloc
     LOGICAL                :: found
-    TYPE(Species), POINTER :: SpcInfo
 
     ! Initialize
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R8_4D (in Headers/state_diag_mod.F90)'
     ErrMsg_reg = 'Error encountered while registering State_Diag field'
 
+    ! Get metadata for this diagnostic
     CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
                                   desc=desc,   units=units, rank=rank,    &
                                   type=type,   vloc=vloc,                 &
-                                  perSpecies=perSpecies                 )
+                                  tagId=tagId                 )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    ! Check that metadata consistent with data pointer
+    ! Check that metadata dimensions consistent with data pointer
     IF ( rank /= 3 ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' // &
                 TRIM(metadataID)
@@ -2588,83 +2569,34 @@ CONTAINS
        RETURN
     ENDIF
     
-    ! Assume always tied to a species
-    ! TODO: add more cases as needed
-    SELECT CASE ( perSpecies )
-       CASE ( 'ALL' )
-          nSpecies = State_Chm%nSpecies
-       CASE ( 'ADV' )
-          nSpecies = State_Chm%nAdvect
-       CASE ( 'DRY' )
-          nSpecies = State_Chm%nDryDep
-       CASE ( 'WET' )
-          nSpecies = State_Chm%nWetDep
-       CASE ( 'JVN' ) 
-          ! TODO: # of J-Values. For now, hard-code them based on AD22.
-          !       In the near future, build photol into species database.
-          nSpecies = 37
-       CASE DEFAULT
-          ErrMsg = 'Handling of perSpecies ' // TRIM(perSpecies) // &
-                   ' is not implemented for this combo of data type and size'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-    END SELECT
+    ! Assume always tagged. Get number of tags.
+    CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                      nTags=nTags )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-    DO N = 1, nSpecies          
-       ! TODO: add more cases as needed
-       SELECT CASE ( perSpecies )
-          CASE ( 'ALL', 'ADV' )
-             D = N
-          CASE ( 'DRY' )
-             D =  State_Chm%Map_DryDep(N)
-          CASE ( 'WET' )
-             D =  State_Chm%Map_WetDep(N)
-          CASE ( 'JVN' )
-             ! TODO: For now, hard-code the names based on AD22. RNAMES and
-             !  JLABEL are not yet initialized at this point. Put index mapping
-             !  in  species database in near future if possible.
-             JNAMES = [ 'NO2       ', 'HNO3      ', 'H2O2      ',            &
-                        'CH2O      ', 'x         ', 'x         ',            &
-                        'GLYX      ', 'MGLY      ', 'BrO       ',            &
-                        'HOBr      ', 'BrNO2     ', 'BrNO3     ',            &
-                        'CHBr3     ', 'Br2       ', 'O2inadj   ',            &
-                        'N2O       ', 'NO        ', 'NO3       ',            &
-                        'CFC11     ', 'CFC12     ', 'CCl4      ',            &
-                        'CH3Cl     ', 'ACET      ', 'ALD2      ',            &
-                        'MVK       ', 'MACR      ', 'HAC       ',            &
-                        'GLYC      ', 'PIP       ', 'IPMN      ',            &
-                        'ETHLN     ', 'DHDN      ', 'HPALD     ',            &
-                        'ISN1      ', 'MONITS    ', 'MONITU    ',            &
-                        'HONIT     ' ]
-#if defined( UCX )
-             JNAMES(5) = 'O3_O1D'
-             JNAMES(6) = 'O3_O3P'
-#else
-             JNAMES(5) = 'O3'
-             JNAMES(6) = 'O3_POH'
-#endif
-       END SELECT
-       IF ( perSpecies /= 'JVN' ) THEN
-          SpcInfo  => State_Chm%SpcData(D)%Info
-          thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
-          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
-       ELSE
-          ! Temporary implementation for J-Values. Add to specdb in near future
-          ! to avoid having to do special treatment.
-          thisSpcName = TRIM( metadataID ) // '_' // TRIM( JNAMES(N) )
-          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( JNAMES(N) )
+    ! Register each tagged name as a separate diagnostic
+    DO N = 1, nTags          
+       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                         N=N, tagName=tagName )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          RETURN
        ENDIF
+       diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+       diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
        CALL Registry_AddField( am_I_Root    = am_I_Root,            &
                                Registry     = State_Diag%Registry,  &
                                State        = State_Diag%State,     &
-                               Variable     = thisSpcName,          &
-                               Description  = thisSpcDesc,          &
+                               Variable     = diagName,             &
+                               Description  = diagDesc,             &
                                Units        = units,                &
                                Data3d_8     = Ptr2Data(:,:,:,N),    &
                                RC           = RC                   )
-       SpcInfo => NULL()
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = ErrMsg_reg // ' where perSpecies is ' // TRIM(perSpecies)
+          ErrMsg = ErrMsg_reg // ' where tagId is ' // TRIM(tagId)
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
