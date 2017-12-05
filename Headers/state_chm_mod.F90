@@ -66,8 +66,9 @@ MODULE State_Chm_Mod
      INTEGER                    :: nKppVar              ! # KPP variable species
      INTEGER                    :: nKppFix              ! # KPP fixed species
      INTEGER                    :: nKppSpc              ! # KPP chem species
+     INTEGER                    :: nLoss                ! # of loss species
      INTEGER                    :: nPhotol              ! # photolysis species
-     INTEGER                    :: nProdLoss            ! # of prod/loss species
+     INTEGER                    :: nProd                ! # of prod species
      INTEGER                    :: nWetDep              ! # wetdep species
 
      !----------------------------------------------------------------------
@@ -81,10 +82,12 @@ MODULE State_Chm_Mod
      INTEGER,           POINTER :: Map_KppVar (:      ) ! Kpp variable spc IDs
      INTEGER,           POINTER :: Map_KppFix (:      ) ! KPP fixed species IDs
      INTEGER,           POINTER :: Map_KppSpc (:      ) ! KPP chem species IDs
+     INTEGER,           POINTER :: Map_Loss   (:      ) ! Loss diag species
+     CHARACTER(LEN=36), POINTER :: Name_Loss  (:      ) !  ID's and names
      INTEGER,           POINTER :: Map_Photol (:      ) ! Photolysis species IDs
+     INTEGER,           POINTER :: Map_Prod   (:      ) ! Prod diag species
+     CHARACTER(LEN=36), POINTER :: Name_Prod  (:      ) !  ID and names
      INTEGER,           POINTER :: Map_WetDep (:      ) ! Wetdep species IDs
-     INTEGER,           POINTER :: Map_ProdLoss (:    ) ! Prod/Loss species ID's
-     CHARACTER(LEN=36), POINTER :: Name_ProdLoss(:    ) ! Prod/Loss names
 
      !----------------------------------------------------------------------
      ! Physical properties & indices for each species
@@ -314,8 +317,9 @@ CONTAINS
     State_Chm%nKppVar       =  0
     State_Chm%nKppFix       =  0
     State_Chm%nKppSpc       =  0
+    State_Chm%nLoss         =  0
     State_Chm%nPhotol       =  0
-    State_Chm%nProdLoss     =  0
+    State_Chm%nProd         =  0
     State_Chm%nWetDep       =  0
 
 
@@ -328,9 +332,11 @@ CONTAINS
     State_Chm%Map_KppVar    => NULL()
     State_Chm%Map_KppFix    => NULL()
     State_Chm%Map_KppSpc    => NULL()
+    State_Chm%Name_Loss     => NULL() 
+    State_Chm%Map_Loss      => NULL() 
     State_Chm%Map_Photol    => NULL()
-    State_Chm%Name_ProdLoss => NULL() 
-    State_Chm%Map_ProdLoss  => NULL() 
+    State_Chm%Name_Prod     => NULL() 
+    State_Chm%Map_Prod      => NULL() 
     State_Chm%Map_WetDep    => NULL()
 
     ! Chemical species
@@ -483,6 +489,18 @@ CONTAINS
        State_Chm%Map_KppSpc = 0
     ENDIF
 
+    IF ( State_Chm%nLoss > 0 ) THEN
+       ALLOCATE( State_Chm%Name_Loss( State_Chm%nLoss ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Name_Loss', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Name_Loss = ''
+
+       ALLOCATE( State_Chm%Map_Loss( State_Chm%nLoss ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_Loss', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_Loss = 0
+    ENDIF
+
     IF ( State_Chm%nPhotol > 0 ) THEN
        ALLOCATE( State_Chm%Map_Photol( State_Chm%nPhotol ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Photol', 0, RC )
@@ -490,16 +508,16 @@ CONTAINS
        State_Chm%Map_Photol = 0
     ENDIF
 
-    IF ( State_Chm%nProdLoss >0 ) THEN
-       ALLOCATE( State_Chm%Name_ProdLoss( State_Chm%nProdLoss ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%Name_ProdLoss', 0, RC )
+    IF ( State_Chm%nProd >0 ) THEN
+       ALLOCATE( State_Chm%Name_Prod( State_Chm%nProd ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Name_Prod', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%Name_ProdLoss = ''
+       State_Chm%Name_Prod = ''
 
-       ALLOCATE( State_Chm%Map_ProdLoss( State_Chm%nProdLoss ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%Map_ProdLoss', 0, RC )
+       ALLOCATE( State_Chm%Map_Prod( State_Chm%nProd ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_Prod', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%Map_ProdLoss = 0
+       State_Chm%Map_Prod = 0
     ENDIF
 
     IF ( State_Chm%nWetDep > 0 ) THEN
@@ -620,7 +638,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Set up the mapping for PRODUCTION AND LOSS DIAGNOSTIC SPECIES
     !-----------------------------------------------------------------------
-    IF ( State_Chm%nProdLoss > 0 ) THEN
+    IF ( State_Chm%nProd > 0 .or. State_Chm%nLoss > 0 ) THEN
        CALL MapProdLossSpecies( am_I_Root, Input_Opt, State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "MapProdLossSpecies"!'
@@ -1259,21 +1277,33 @@ CONTAINS
        RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%Name_Loss ) ) THEN
+       DEALLOCATE( State_Chm%Name_Loss, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Name_Loss', 2, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Map_Loss ) ) THEN
+       DEALLOCATE( State_Chm%Map_Loss, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_Loss', 2, RC )
+       RETURN
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%Map_Photol ) ) THEN
        DEALLOCATE( State_Chm%Map_Photol, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Photol', 2, RC )
        RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%Name_ProdLoss ) ) THEN
-       DEALLOCATE( State_Chm%Name_ProdLoss, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%Name_ProdLoss', 2, RC )
+    IF ( ASSOCIATED( State_Chm%Name_Prod ) ) THEN
+       DEALLOCATE( State_Chm%Name_Prod, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Name_Prod', 2, RC )
        RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%Map_ProdLoss ) ) THEN
-       DEALLOCATE( State_Chm%Map_ProdLoss, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%Map_ProdLoss', 2, RC )
+    IF ( ASSOCIATED( State_Chm%Map_Prod ) ) THEN
+       DEALLOCATE( State_Chm%Map_Prod, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_Prod', 2, RC )
        RETURN
     ENDIF
 
@@ -2439,28 +2469,47 @@ CONTAINS
     ! Get the number of prod and loss species depending on the simulation
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-     
-       ! Full-chemistry simulations:
-       ! Get the # of prod/loss species from gckpp_Parameters.F90
-       State_Chm%nProdLoss = nFam
+
+       !------------------------------
+       ! Full-chemistry simulations
+       !------------------------------
+
+       ! Get the # of prod/loss species by querying the first leter of
+       ! the species in the Fam_Names array (in gckpp_Monitor.F90)
+       DO N = 1, nFam
+          IF ( Fam_Names(N)(1:1) == 'L' ) State_Chm%nLoss = State_Chm%nLoss + 1
+          IF ( Fam_Names(N)(1:1) == 'P' ) State_Chm%nProd = State_Chm%nProd + 1
+       ENDDO
 
     ELSE IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
 
+       !------------------------------
        ! Tagged CO simulation
-       ! Each advected species can have a prod/loss diagnostic
-       State_Chm%nProdLoss = State_Chm%nAdvect
+       !------------------------------
+
+       ! Each advected species can have a loss diagnostic attached ...
+       State_Chm%nLoss = State_Chm%nAdvect
+
+       ! ... but no prod diagnostics.  These will get archived by separate 
+       ! array fields of the State_Diag object (e.g. ProdCOfromISOP, etc.)
+       State_Chm%nProd = 0
 
     ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
 
+       !------------------------------
        ! Tagged O3 simulation
-       ! Each advected species can have a prod and loss diagnostic entry
-       State_Chm%nProdLoss = State_Chm%nAdvect *2
+       !-----------------------------
+
+       ! Each advected species can have a prod and loss diagnostic attached
+       State_Chm%nLoss = State_Chm%nAdvect
+       State_Chm%nProd = State_Chm%nAdvect
 
     ELSE
        
        ! Other simulations do not have a prod/loss functionality
        ! but this can be added in if necessary
-       State_Chm%nProdLoss = 0
+       State_Chm%nLoss = 0
+       State_Chm%nProd = 0
 
     ENDIF
 
@@ -2483,8 +2532,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GcKpp_Monitor, ONLY : Fam_Names
-    USE Input_Opt_Mod, ONLY : OptInput
+    USE GcKpp_Monitor,    ONLY : Fam_Names
+    USE GcKpp_Parameters, ONLY : nFam
+    USE Input_Opt_Mod,    ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -2511,6 +2561,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: Id,     N
+    INTEGER            :: P,      L
     
     ! Strings
     CHARACTER(LEN=36)  :: Name
@@ -2522,6 +2573,8 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
+    P       = 0
+    L       = 0
     ErrMsg  = ''
     ThisLoc = &
          ' -> at MapProdLossSpecies (in module Headers/state_chm_mod.F90)'
@@ -2536,7 +2589,7 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! Loop over the number of prod/loss species
-       DO N = 1, State_Chm%nProdLoss 
+       DO N = 1, nFam
          
           ! Get the KPP prod/loss species from the FAM_NAMES
           ! array in the gckpp_Parameters.F90 module.
@@ -2552,12 +2605,14 @@ CONTAINS
              
              ! Fix the name so that it is of the form Prod_<spcname> or
              ! Loss_<spcname>.  This will facilitate the new diagnostics.
-             IF ( Name(1:1) == 'P' ) THEN
-                State_Chm%Map_ProdLoss(N)  = Id
-                State_Chm%Name_ProdLoss(N) = 'Prod_' // TRIM( Name(2:) )
-             ELSE IF ( Name(1:1) == 'L' ) THEN
-                State_Chm%Map_ProdLoss(N)  = Id
-                State_Chm%Name_ProdLoss(N) = 'Loss_' // TRIM( Name(2:) )
+             IF ( Name(1:1) == 'L' ) THEN
+                L                      = L + 1
+                State_Chm%Map_Loss(L)  = Id
+                State_Chm%Name_Loss(L) = 'Loss_' // TRIM( Name(2:) )
+             ELSE IF ( Name(1:1) == 'P' ) THEN
+                P                      = P + 1
+                State_Chm%Map_Prod(P)  = Id
+                State_Chm%Name_Prod(P) = 'Prod_' // TRIM( Name(2:) )
              ELSE
                 ErrMsg = 'Invalid prod/loss species name!' //                &
                           TRIM( Fam_Names(N) )
@@ -2580,34 +2635,39 @@ CONTAINS
     ELSE IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
 
        !--------------------------------------------------------------------
-       ! Tagged CO simulation
+       ! Tagged CO simulations
        !--------------------------------------------------------------------
 
-       ! Each advected species can have a prod/loss diagnostic
-       State_Chm%nProdLoss = State_Chm%nAdvect
+       ! Each advected species can have an attached loss diagnostic ...
+       DO Id = 1, State_Chm%nLoss
+          Name = 'Loss_' // TRIM( State_Chm%SpcData(Id)%Info%Name )
+          State_Chm%Name_Loss(Id) = TRIM( Name )
+          State_Chm%Map_Loss(Id)  = Id
+       ENDDO
+
+       ! ... but not an attached prod diagnostic.  These will be
+       ! archived by other fields of the State_Diag object.
+       State_Chm%Name_Prod => NULL()
+       State_Chm%Map_Prod  => NULL()
 
     ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
 
        !--------------------------------------------------------------------
-       ! Tagged O3 simulation
+       ! Tagged O3 simulations
        !--------------------------------------------------------------------
-       
-       ! Each advected species can have a prod/loss diagnostic
-       DO N = 1, State_Chm%nProdLoss
 
-          ! Prod species are numbered 1...........nAdvect
-          ! Loss species are numbered nAdvect+1...nAdvect*2
-          IF ( N > State_Chm%nAdvect ) THEN
-             Id   =  N - State_Chm%nAdvect
-             Name = 'Loss_' // TRIM( State_Chm%SpcData(Id)%Info%Name )
-          ELSE
-             Id   =  N
-             Name = 'Prod_' // TRIM( State_Chm%SpcData(Id)%Info%Name )
-          ENDIF
+       ! Each advected species can have an attached loss diagnostic ...
+       DO Id = 1, State_Chm%nLoss
+          Name = 'Loss_' // TRIM( State_Chm%SpcData(Id)%Info%Name )
+          State_Chm%Name_Loss(Id) = TRIM( Name )
+          State_Chm%Map_Loss(Id)  = Id
+       ENDDO
 
-          ! Save into mapping array
-          State_Chm%Name_ProdLoss(N) = TRIM( Name )
-          State_Chm%Map_ProdLoss(N)  = N
+       ! ... as well as an attached production diagnostic
+       DO Id = 1, State_Chm%nProd
+          Name = 'Prod_' // TRIM( State_Chm%SpcData(Id)%Info%Name )
+          State_Chm%Name_Prod(Id) = TRIM( Name )
+          State_Chm%Map_Prod(Id)  = Id
        ENDDO
 
     ELSE
@@ -2615,7 +2675,8 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Other simulations do not have prod/loss capability
        !--------------------------------------------------------------------
-
+       State_Chm%Name_Prod => NULL()
+       State_Chm%Map_Prod  => NULL()
     ENDIF
 
   END SUBROUTINE MapProdLossSpecies

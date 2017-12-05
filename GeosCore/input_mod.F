@@ -9724,7 +9724,7 @@
       !-----------------------------------------------------------------
       IF ( Input_Opt%ITS_A_TAGCO_SIM   .or.
      &     Input_Opt%ITS_A_H2HD_SIM  ) THEN
-         CALL Init_Tagged_CO( am_I_Root, Input_Opt, RC )
+         CALL Init_Tagged_CO( am_I_Root, Input_Opt, State_Diag, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -9738,7 +9738,8 @@
       ! Tagged O3
       !-----------------------------------------------------------------
       IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
-         CALL Init_Tagged_O3( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_Tagged_O3( am_I_Root, Input_Opt, 
+     &                        State_Chm, State_Diag, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
