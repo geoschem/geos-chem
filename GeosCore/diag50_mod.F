@@ -335,7 +335,7 @@
       INTEGER, SAVE       :: id_HNO3,     id_HNO4, id_N2O5, id_NO
       INTEGER, SAVE       :: id_PAN,      id_NPMN,  id_PPN,  id_O3
       INTEGER, SAVE       :: id_R4N2,     id_SALA, id_SALC, id_NO2
-      INTEGER, SAVE       :: id_IPMN
+      INTEGER, SAVE       :: id_IPMN,     id_OH
 
       ! Scalars
       LOGICAL             :: IS_CHEM

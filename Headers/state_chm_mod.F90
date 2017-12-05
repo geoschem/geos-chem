@@ -136,17 +136,6 @@ MODULE State_Chm_Mod
      CHARACTER(LEN=4),  POINTER :: Hg_Cat_Name(:      ) ! Category names
 
      !----------------------------------------------------------------------
-     ! For isoprene SOA
-     !----------------------------------------------------------------------
-     REAL(fp),          POINTER :: PH_SAV     (:,:,:  ) ! ISORROPIA aerosol pH
-     REAL(fp),          POINTER :: HPLUS_SAV  (:,:,:  ) ! H+ concentration [M]
-     REAL(fp),          POINTER :: WATER_SAV  (:,:,:  ) ! ISORROPIA aerosol H2O
-     REAL(fp),          POINTER :: SULRAT_SAV (:,:,:  ) ! Sulfate conc [M]
-     REAL(fp),          POINTER :: NARAT_SAV  (:,:,:  ) ! Nitrate conc [M]
-     REAL(fp),          POINTER :: ACIDPUR_SAV(:,:,:  ) !
-     REAL(fp),          POINTER :: BISUL_SAV  (:,:,:  ) ! Bisulfate conc [M]
-
-     !----------------------------------------------------------------------
      ! For HOBr + S(IV) heterogeneous chemistry
      !----------------------------------------------------------------------
      REAL(fp),          POINTER :: HSO3_AQ    (:,:,:  ) ! Cloud bisulfite[mol/l]
@@ -1051,6 +1040,11 @@ CONTAINS
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
           END SELECT
+
+          CALL Register_ChmField( am_I_Root, chmID, State_Chm%KHETI_SLA, &
+                                  State_Chm, RC,    Ncat=N )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDDO
 
        !------------------------------------------------------------------
        ! HSO3_AQ
