@@ -136,6 +136,26 @@ MODULE State_Chm_Mod
      CHARACTER(LEN=4),  POINTER :: Hg_Cat_Name(:      ) ! Category names
 
      !----------------------------------------------------------------------
+     ! For isoprene SOA
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: PH_SAV     (:,:,:  ) ! ISORROPIA aerosol pH
+     REAL(fp),          POINTER :: HPLUS_SAV  (:,:,:  ) ! H+ concentration [M]
+     REAL(fp),          POINTER :: WATER_SAV  (:,:,:  ) ! ISORROPIA aerosol H2O
+     REAL(fp),          POINTER :: SULRAT_SAV (:,:,:  ) ! Sulfate conc [M]
+     REAL(fp),          POINTER :: NARAT_SAV  (:,:,:  ) ! Nitrate conc [M]
+     REAL(fp),          POINTER :: ACIDPUR_SAV(:,:,:  ) !
+     REAL(fp),          POINTER :: BISUL_SAV  (:,:,:  ) ! Bisulfate conc [M]
+
+     !----------------------------------------------------------------------
+     ! For HOBr + S(IV) heterogeneous chemistry
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: HSO3_AQ    (:,:,:  ) ! Cloud bisulfite[mol/l]
+     REAL(fp),          POINTER :: SO3_AQ     (:,:,:  ) ! Cloud sulfite  [mol/l]
+     REAL(fp),          POINTER :: fupdateHOBr(:,:,:  ) ! Correction factor for
+                                                        ! HOBr removal by SO2
+                                                        ! [unitless]
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -373,6 +393,11 @@ CONTAINS
     State_Chm%Hg0_Id_List   => NULL()
     State_Chm%Hg2_Id_List   => NULL()
     State_Chm%HgP_Id_List   => NULL()
+
+    ! For HOBr + S(IV) chemistry
+    State_Chm%HSO3_AQ     => NULL()
+    State_Chm%SO3_AQ      => NULL()
+    State_Chm%fupdateHOBr => NULL()
 
     ! Local variables
     Ptr2data                => NULL()
@@ -1027,10 +1052,42 @@ CONTAINS
                 RETURN
           END SELECT
 
-          CALL Register_ChmField( am_I_Root, chmID, State_Chm%KHETI_SLA,     &
-                                  State_Chm, RC,    Ncat=N                  )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDDO
+       !------------------------------------------------------------------
+       ! HSO3_AQ
+       !------------------------------------------------------------------
+       chmID = 'HSO3_AQ'
+       ALLOCATE( State_Chm%HSO3_AQ( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%HSO3_AQ', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%HSO3_AQ = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%HSO3_AQ, &
+                               State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! SO3_AQ
+       !------------------------------------------------------------------
+       chmID = 'SO3_AQ'
+       ALLOCATE( State_Chm%SO3_AQ( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SO3_AQ', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SO3_AQ = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SO3_AQ, &
+                               State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! fupdateHOBr
+       !------------------------------------------------------------------
+       chmID = 'fupdateHOBr'
+       ALLOCATE( State_Chm%fupdateHOBr( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%fupdateHOBr', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%fupdateHOBr = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%fupdateHOBr, &
+                               State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
     ENDIF
 
     !=======================================================================
@@ -1400,6 +1457,24 @@ CONTAINS
     IF ( ASSOCIATED( State_Chm%KHETI_SLA ) ) THEN
        DEALLOCATE( State_Chm%KHETI_SLA, STAT=RC  )
        CALL GC_CheckVar( 'State_Chm%KHETI_SLA', 2, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%HSO3_AQ ) ) THEN
+       DEALLOCATE( State_Chm%HSO3_AQ, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%HSO3_AQ', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SO3_AQ ) ) THEN
+       DEALLOCATE( State_Chm%SO3_AQ, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SO3_AQ', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%fupdateHOBr ) ) THEN
+       DEALLOCATE( State_Chm%fupdateHOBr, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%fupdateHOBr', 3, RC )
        RETURN
     ENDIF
 
@@ -1911,6 +1986,21 @@ CONTAINS
 
        CASE( 'SSALK' )
           IF ( isDesc  ) Desc  = 'Sea salt alkalinity'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'HSO3_AQ' )
+          IF ( isDesc  ) Desc  = 'Cloud bisulfite concentration'
+          IF ( isUnits ) Units = 'mol/L'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'SO3_AQ' )
+          IF ( isDesc  ) Desc  = 'Cloud sulfite concentration'
+          IF ( isUnits ) Units = 'mol/L'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'FUPDATEHOBR' )
+          IF ( isDesc  ) Desc  = 'Correction factor for HOBr removal by SO2'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  =  3
 

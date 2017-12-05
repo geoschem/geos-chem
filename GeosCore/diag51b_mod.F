@@ -758,8 +758,7 @@
      &                        / State_Chm%SpcData(id_IPMN)%Info%emMW_g )        
      &                       * GOOD(I) * Spc(I,J,L,id_IPMN)   )
 
-               ! PPN 
-     &                         
+               ! PPN
                TMP = TMP + ( ( AIRMW 
      &                        / State_Chm%SpcData(id_PPN)%Info%emMW_g )       
      &                       * GOOD(I) * Spc(I,J,L,id_PPN)   )

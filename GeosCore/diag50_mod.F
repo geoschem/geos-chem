@@ -335,7 +335,7 @@
       INTEGER, SAVE       :: id_HNO3,     id_HNO4, id_N2O5, id_NO
       INTEGER, SAVE       :: id_PAN,      id_NPMN,  id_PPN,  id_O3
       INTEGER, SAVE       :: id_R4N2,     id_SALA, id_SALC, id_NO2
-      INTEGER, SAVE       :: id_IPMN,     id_OH
+      INTEGER, SAVE       :: id_IPMN
 
       ! Scalars
       LOGICAL             :: IS_CHEM
@@ -1269,7 +1269,7 @@
             !---------------------            
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
-            GMNL      = ND50_ NL
+            GMNL      = ND50_NL
             GMTRC     = 6
 
          ELSE IF ( N == 518 ) THEN
@@ -1289,7 +1289,7 @@
             !---------------------            
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
-            GMNL      = ND50_ NL
+            GMNL      = ND50_NL
             GMTRC     = 12
             
          ELSE IF ( N == 520 ) THEN

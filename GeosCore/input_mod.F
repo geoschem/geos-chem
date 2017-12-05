@@ -4772,8 +4772,7 @@
       ENDIF
       READ( SUBSTRS(1), * ) ND09
       ND09 = 0
-      CALL SET_TINDEX( am_I_Root, 
-     &     09, ND09, SUBSTRS(2:N), N-1, N_ADVECT+PD09 )
+      CALL SET_TINDEX( am_I_Root, 09, ND09, SUBSTRS(2:N), N-1, PD09 )
 
       !--------------------------
       ! ND10: Free
