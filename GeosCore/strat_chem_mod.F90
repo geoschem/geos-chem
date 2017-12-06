@@ -966,6 +966,7 @@ CONTAINS
 
     INTEGER             :: I, J, L
     REAL(fp)            :: BOXVL, AIRDENS
+    REAL(f4)            :: SpcConc
     CHARACTER(LEN=63)   :: OrigUnit
     CHARACTER(LEN=255)  :: Err_Msg
 
@@ -1106,9 +1107,9 @@ CONTAINS
              PLVEC(N)%PROD(I,J,L) = PLVEC(N)%PROD(I,J,L) / AIRDENS
 
              ! Convert LOSS from molec/cm3/s to 1/s
-             IF ( State_Chm%Species(I,J,L,TRCID) > 0 ) THEN
-                PLVEC(N)%LOSS(I,J,L) = PLVEC(N)%LOSS(I,J,L) / &
-                                       State_Chm%Species(I,J,L,TRCID)
+             SpcConc = State_Chm%Species(I,J,L,TRCID)
+             IF ( SpcConc > 0 ) THEN
+                PLVEC(N)%LOSS(I,J,L) = PLVEC(N)%LOSS(I,J,L) / SpcConc
              ELSE
                 PLVEC(N)%LOSS(I,J,L) = 0e+0_fp
              ENDIF
