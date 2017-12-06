@@ -1685,7 +1685,7 @@
       OFFSET(N)   = SPACING * 53
 
       N           = N + 1
-      CATEGORY(N) = 'FJX-FLUX-$'
+      CATEGORY(N) = 'FJX-FLX$'
       DESCRIPT(N) = 'Radiative flux from FAST-JX'
       OFFSET(N)   = SPACING * 54
 
@@ -7291,15 +7291,15 @@
             ENDIF
             ! Define quantities
             IF (N .eq. 1) THEN
-                WRITE(NAME(T,64),'(a,I02)') 'NETWL', NN
+                WRITE(NAME(T,64),'(a,I2.2)') 'NETWL', NN
                 WRITE(FNAME(T,64),'(a,I2)') 
      &                'Net UV flux in bin ', NN
             ELSEIF (N .eq. 2) THEN
-                WRITE(NAME(T,64),'(a,I02)') 'DIRWL', NN
+                WRITE(NAME(T,64),'(a,I2.2)') 'DIRWL', NN
                 WRITE(FNAME(T,64),'(a,I2)') 
      &                'Direct UV flux in bin ', NN
             ELSEIF (N .eq. 3) THEN
-                WRITE(NAME(T,64),'(a,I02)') 'DIFWL', NN
+                WRITE(NAME(T,64),'(a,I2.2)') 'DIFWL', NN
                 WRITE(FNAME(T,64),'(a,I2)') 
      &                'Diffuse UV flux in bin ', NN
             ENDIF

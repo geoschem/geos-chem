@@ -5348,7 +5348,7 @@
       !--------------------------
       ! ND64: Radiative flux
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND63', RC )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND64', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
@@ -5359,7 +5359,7 @@
       !--------------------------
       ! ND66: DAO 3-D fields
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND64', RC )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND66', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
