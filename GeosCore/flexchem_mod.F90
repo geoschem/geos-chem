@@ -49,16 +49,21 @@ MODULE FlexChem_Mod
 ! !PRIVATE TYPES:
 !
   ! Species ID flags (and logicals to denote if species are present)
-  INTEGER :: id_OH, id_HO2, id_O3P, id_O1D, id_CH4
-  LOGICAL :: ok_OH, ok_HO2, ok_O1D, ok_O3P
+  INTEGER                :: id_OH, id_HO2, id_O3P, id_O1D, id_CH4
+  LOGICAL                :: ok_OH, ok_HO2, ok_O1D, ok_O3P
 
   ! Diagnostic flags
-  LOGICAL :: Do_Diag_OH_HO2_O1D_O3P
-  LOGICAL :: Do_ND43
-  LOGICAL :: Archive_OHconcAfterchem
-  LOGICAL :: Archive_HO2concAfterchem
-  LOGICAL :: Archive_O1DconcAfterchem
-  LOGICAL :: Archive_O3PconcAfterchem
+  LOGICAL                :: Do_Diag_OH_HO2_O1D_O3P
+  LOGICAL                :: Do_ND43
+  LOGICAL                :: Archive_OHconcAfterchem
+  LOGICAL                :: Archive_HO2concAfterchem
+  LOGICAL                :: Archive_O1DconcAfterchem
+  LOGICAL                :: Archive_O3PconcAfterchem
+  LOGICAL                :: Archive_Prod
+  LOGICAL                :: Archive_Loss
+  
+  ! Diagnostic indices for ND65 bpch diagnostic
+  INTEGER,   ALLOCATABLE :: ND65_KPP_Id(:)
 
   ! Save the H value for the Rosenbrock solver
   REAL(fp),  ALLOCATABLE :: HSAVE_KPP(:,:,:) 
@@ -286,6 +291,11 @@ CONTAINS
     ! Get month and year
     MONTH     = GET_MONTH()
     YEAR      = GET_YEAR()
+
+    ! Zero diagnostic archival arrays to make sure that we don't have any
+    ! leftover values from the last timestep near the top of the chemgrid
+    IF ( Archive_Loss ) State_Diag%Loss = 0.0_f4
+    IF ( Archive_Prod ) State_Diag%Prod = 0.0_f4
 
     !---------------------------------------
     ! Initialize global concentration of CH4
@@ -889,24 +899,23 @@ CONTAINS
 
        ENDDO
 
+#if defined( BPCH_DIAG )
        !==============================================================
+       ! ND65 (bpch) diagnostic
+       !
        ! Obtain prod/loss rates from KPP [molec/cm3]
        !==============================================================
        IF ( Input_Opt%DO_SAVE_PL ) THEN
 
           ! Loop over # prod/loss species
-          DO F = 1, State_Chm%nProdLoss
+          DO F = 1, nFam
 
-             ! Determine the KPP ID # for each prod/loss diagnostic species
-             ! NOTE: This is the index for the VAR array, and not the
-             ! "master" GEOS-Chem species Id (aka "ModelId")>
-             KppID = State_Chm%Map_ProdLoss(F)
+             ! NOTE: KppId is the KPP ID # for each of the prod and loss
+             ! diagnostic species.  This is the value used to index the
+             ! KPP "VAR" array (in module gckpp_Global.F90).
+             KppId         = ND65_Kpp_Id(F)
 
-#if defined( BPCH_DIAG )
-             !--------------------------------------------------------
-             ! ND65 (bpch) diagnostic:
-             ! Prod and loss of families or species [molec/cm3/s]
-             !--------------------------------------------------------
+             ! Archive prod or loss for species or families [molec/cm3/s]
              AD65(I,J,L,F) = AD65(I,J,L,F) + VAR(KppID) / DT
 
              ! Save out P(Ox) and L(Ox) from the fullchem simulation
@@ -920,15 +929,6 @@ CONTAINS
                    LOx(I,J,L) = VAR(KppID) / DT
                 ENDIF
              ENDIF
-#endif
-
-#if defined( NC_DIAG )
-             !--------------------------------------------------------
-             ! HISTORY (aka netCDF diagnostics)
-             ! Prod and loss of families or species [molec/cm3/s]
-             !--------------------------------------------------------
-             !State_Diag%ProdLoss(I,J,L,F) = VAR(KppID) / DT
-#endif
 
           ENDDO
        ENDIF
@@ -938,7 +938,8 @@ CONTAINS
        DO F = 1, NFAM
 
           ! Determine dummy species index in KPP
-          KppID = Ind_(TRIM(FAM_NAMES(F)),'K')
+          KppID =  ND65_Kpp_Id(F)
+
           !-------------------------------------------------------
           ! FOR TOMAS MICROPHYSICS:
           !
@@ -963,6 +964,36 @@ CONTAINS
           ENDIF
        ENDDO
 #endif
+#endif
+
+#if defined( NC_DIAG )
+       !==============================================================
+       ! HISTORY (aka netCDF diagnostics)
+       !
+       ! Prod and loss of families or species [molec/cm3/s]
+       !
+       ! NOTE: KppId is the KPP ID # for each of the prod and loss
+       ! diagnostic species.  This is the value used to index the
+       ! KPP "VAR" array (in module gckpp_Global.F90).
+       !==============================================================
+
+       ! Chemical loss of species or families [molec/cm3/s]
+       IF ( Archive_Loss ) THEN
+          DO F = 1, State_Chm%nLoss
+             KppID                    = State_Chm%Map_Loss(F)
+             State_Diag%Loss(I,J,L,F) = VAR(KppID) / DT
+          ENDDO
+       ENDIF
+
+       ! Chemical production of species or families [molec/cm3/s]
+       IF ( Archive_Prod ) THEN
+          DO F = 1, State_Chm%nProd
+             KppID                    = State_Chm%Map_Prod(F)
+             State_Diag%Prod(I,J,L,F) = VAR(KppID) / DT
+          ENDDO
+       ENDIF
+#endif
+
 
     ENDDO
     ENDDO
@@ -1329,12 +1360,13 @@ CONTAINS
 !
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE gckpp_Global,   ONLY : NREACT
-    USE gckpp_Monitor,  ONLY : EQN_NAMES
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Chm_Mod,  ONLY : Ind_
-    USE State_Diag_Mod, ONLY : DgnState
+    USE Gckpp_Global,     ONLY : nReact
+    USE Gckpp_Monitor,    ONLY : Eqn_Names, Fam_Names
+    USE Gckpp_Parameters, ONLY : nFam
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Chm_Mod,    ONLY : Ind_
+    USE State_Diag_Mod,   ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !    
@@ -1376,8 +1408,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: D
-    LOGICAL :: prtDebug
+    ! Scalars
+    INTEGER            :: KppId,    N
+    LOGICAL            :: prtDebug
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg,   ThisLoc
 
     !=================================================================
     ! Init_FlexChem begins here!
@@ -1387,6 +1423,8 @@ CONTAINS
     ! Initialize variables
     !-------------------------------
     RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = ' -> at Init_FlexChem (in module GeosCore/flexchem_mod.F90)'
     prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
 
     IF ( prtDebug ) WRITE( 6, 100 )
@@ -1398,9 +1436,9 @@ CONTAINS
     HSAVE_KPP = 0.d0
 
     IF ( prtDebug ) THEN
-       write(*,'(a)') ' KPP Reaction Reference '
-       DO D = 1,NREACT
-          WRITE( 6, '(i8,a3,a85)' ) D,' | ',EQN_NAMES(D)
+       write( 6 ,'(a)' ) ' KPP Reaction Reference '
+       DO N = 1, NREACT
+          WRITE( 6, '(i8,a3,a85)' ) N,' | ',EQN_NAMES(N)
        END DO
     ENDIF
 
@@ -1433,6 +1471,8 @@ CONTAINS
     Archive_HO2concAfterChem = ASSOCIATED( State_Diag%HO2concAfterChem )
     Archive_O1DconcAfterChem = ASSOCIATED( State_Diag%O1DconcAfterChem )
     Archive_O3PconcAfterChem = ASSOCIATED( State_Diag%O3PconcAfterChem )
+    Archive_Loss             = ASSOCIATED( State_Diag%Loss             )
+    Archive_Prod             = ASSOCIATED( State_Diag%Prod             )
 
     ! Should we archive OH, HO2, O1D, O3P diagnostics?
     Do_Diag_OH_HO2_O1D_O3P   = ( Do_ND43                  .or.               &
@@ -1440,7 +1480,36 @@ CONTAINS
                                  Archive_HO2concAfterChem .or.               &
                                  Archive_O1DconcAfterChem .or.               &
                                  Archive_O3PconcAfterChem                   )
- 
+    
+    ! Pre-store the KPP indices for each KPP prod/loss species or family
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. nFam > 0 ) THEN
+             
+       ! Allocate mapping array for KPP Id's for ND65 bpch diagnostic
+       ALLOCATE( ND65_Kpp_Id( nFam ), STAT=RC )
+       CALL GC_CheckVar( 'flexchem_mod.F90:ND65_Kpp_Id', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       ! Loop over all KPP prod/loss species
+       DO N = 1, nFam
+
+          ! NOTE: KppId is the KPP ID # for each of the prod and loss
+          ! diagnostic species.  This is the value used to index the
+          ! KPP "VAR" array (in module gckpp_Global.F90).
+          KppID = Ind_( TRIM ( Fam_Names(N) ), 'K' )
+
+          ! Exit if an invalid ID is encountered
+          IF ( KppId <= 0 ) THEN
+             ErrMsg = 'Invalid KPP ID for prod/loss species: '            // &
+                       TRIM( Fam_Names(N) )
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+          ! If the species ID is OK, save in ND65_Kpp_Id
+          ND65_Kpp_Id(N) = KppId
+       ENDDO
+    ENDIF
+
   END SUBROUTINE Init_FlexChem
 !EOC
 !------------------------------------------------------------------------------
@@ -1471,4 +1540,3 @@ CONTAINS
   END SUBROUTINE Cleanup_FlexChem
 !EOC
 END MODULE FlexChem_Mod
-

@@ -69,7 +69,8 @@ MODULE Diagnostics_Mod
   !=========================================================================
   ! Configurable Settings Used for Diagnostic Names at Run-time
   !=========================================================================
-  CHARACTER(LEN=5), PUBLIC :: RadWL(3) ! Wavelengths configured in rad menu
+  CHARACTER(LEN=5), PUBLIC :: RadWL(3)    ! Wavelengths configured in rad menu
+  LOGICAL,          PUBLIC :: IsFullChem  ! Is this a fullchem simulation?
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
@@ -86,7 +87,17 @@ CONTAINS
 !
 ! !IROUTINE: Init_DiagList 
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Reads the HISTORY.rc and input.geos input files to get 
+!  determine which GEOS-Chem diagnostics have been requested.  Then it 
+!  uses this information to initialize the master list of diagnostics,
+!  aka, the DiagList object.
+!\\
+!\\
+!  NOTE: This routine has to be called before any of the GEOS-Chem objects
+!  Input_Opt, State_Chm, State_Met, and State_Diag are created.  When using
+!  GCHP, we must create the ESMF/MAPL export objects for the diagnostics
+!  in the Set_Services routine.  Set_Services is called before GEOS-Chem
+!  is initialized.
 !\\
 !\\
 ! !INTERFACE:
@@ -129,19 +140,26 @@ CONTAINS
     LOGICAL                 :: EOF, found, isWildcard, isTagged
     TYPE(DgnItem),  POINTER :: NewDiagItem
 
-    ! ================================================================
+    !=======================================================================
     ! Init_DiagList begins here
-    ! ================================================================
-    thisLoc = 'Init_DiagList (diagnostics_mod.F90)'
+    !=======================================================================
 
-    ! Init
-    EOF = .FALSE.
-    found = .FALSE.
-    NewDiagItem => NULL()
-    RadWL(:) = ['WL1  ','WL2  ','WL3  ']
+    ! Initialize
+    RC            = GC_SUCCESS
+    ErrMsg        = ''
+    ThisLoc       = ' -> at Init_DiagList (Headers/diagnostics_mod.F90)'
+    EOF           = .FALSE.
+    found         = .FALSE.
+    NewDiagItem   => NULL()
+    RadWL(:)      =  [ 'WL1  ','WL2  ','WL3  ']
+    IsFullChem    =  .FALSE.
 
     ! Create DiagList object
     DiagList%head => NULL()
+
+    !=======================================================================
+    ! Read data from the HISTORY.rc configuration file
+    !=======================================================================
 
     ! Open the history config file
     fId = FindFreeLun()
@@ -152,7 +170,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Read data from the file
+    ! Read data from history config file
     DO
     
        ! Read line and strip leading/trailing spaces
@@ -271,8 +289,8 @@ CONTAINS
                            registryID=registryID,  &
                            isWildcard=isWildcard,  &
                            wildcard=wildcard,      &
-                           isTagged=isTagged,     &
-                           tag=tag,        &
+                           isTagged=isTagged,      &
+                           tag=tag,                &
                            RC=RC  )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error initializing DiagItem ' // TRIM(name)
@@ -289,8 +307,13 @@ CONTAINS
     ! Close the file
     CLOSE( fId )
 
-! ewl new:
-    ! Open the input.geos config file
+    !=======================================================================
+    ! Read the input.geos configuration file to find out:
+    ! (1) Which wavelength has been selected for optical depth diag output
+    ! (2) If this is a fullchem simulation
+    !=======================================================================
+
+    ! Open input.geos file
     fId = FindFreeLun()
     OPEN( fId, FILE=TRIM('input.geos'), STATUS='OLD', IOSTAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -299,7 +322,7 @@ CONTAINS
        RETURN
     ENDIF
     
-    ! Read data from the file
+    ! Read data from the input.geos file
     DO    
        ! Read line and strip leading/trailing spaces
        Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
@@ -311,23 +334,28 @@ CONTAINS
           RETURN
        ENDIF
     
-       ! Skip line if not relevant
-       IF ( INDEX( Line, 'AOD Wavelength' ) .le. 0 ) CYCLE
-    
+       ! Find out if this is a full-chemistry simulation
+       IF ( INDEX( Line, 'Type of simulation' ) > 0 ) THEN
+          CALL StrSplit( Line, ':', SubStrs, N )
+          IsFullChem = ( TRIM( ADJUSTL( SubStrs(2) ) ) == '3' )
+       ENDIF
+
        ! Update wavelength(s) with string in file
-       I = INDEX( Line, ':' )
-       CALL StrSplit( Line(I:), ' ', SubStrs, N )
-       DO J = 1, N-1
-          WRITE ( RadWL(J), "(a5)" ) SubStrs(J+1)
-       ENDDO
-    
-       ! End the loop
-       EXIT
+       IF ( INDEX( Line, 'AOD Wavelength' ) > 0 ) THEN
+          I = INDEX( Line, ':' )
+          CALL StrSplit( Line(I:), ' ', SubStrs, N )
+          DO J = 1, N-1
+             WRITE ( RadWL(J), "(a5)" ) SubStrs(J+1)
+          ENDDO
+
+          ! Exit the search
+          EXIT
+       ENDIF
     ENDDO
     
     ! Close the file
     CLOSE( fId )
-
+    
   END SUBROUTINE Init_DiagList
 !EOC
 !------------------------------------------------------------------------------
@@ -337,7 +365,9 @@ CONTAINS
 !
 ! !IROUTINE: Init_DiagItem
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Initializes a DiagItem object, which contains information
+!  about a single GEOS-Chem diagnostic.  Several DiagItem objects will be
+!  linked together in the master diagnostics list (DiagList).
 !\\
 !\\
 ! !INTERFACE:
@@ -397,7 +427,8 @@ CONTAINS
 !
 ! !IROUTINE: InsertBeginning_DiagList 
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Inserts a new node at the beginning of the DiagList linked
+!  list object.
 !\\
 !\\
 ! !INTERFACE:
@@ -449,7 +480,8 @@ CONTAINS
 !
 ! !IROUTINE: Search_DiagList
 !
-! !DESCRIPTION:
+! !DESCRIPTION: Searches for a given diagnostic name within the DiagList
+!  diagnostic list object.
 !\\
 !\\
 ! !INTERFACE:
@@ -502,7 +534,8 @@ CONTAINS
 !
 ! !IROUTINE: Check_DiagList
 !
-! !DESCRIPTION:
+! !DESCRIPTION: Returns TRUE if a diagnostic name (or just a substring of a 
+!  diagnostic name) is found in the DiagList diagnostic list object.
 !\\
 !\\
 ! !INTERFACE:

@@ -1158,11 +1158,11 @@ CONTAINS
                 ItemPrefix = SubStrs(1)
 
                 ! Get number of tags for this wildcard
-                CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,    &
                                   nTags=nTags )
                 IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Error retrieving # of tags for' // &
-                                  ' wildcard ' // TRIM(tagId)
+                   ErrMsg = 'Error retrieving # of tags for' //              &
+                            ' wildcard ' // TRIM(tagId)
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF
@@ -1174,35 +1174,37 @@ CONTAINS
                    CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
                                      N=N, tagName=tagName )
                    IF ( RC /= GC_SUCCESS ) THEN
-                      ErrMsg = 'Error retrieving tag name for' // &
-                                     ' wildcard ' // TRIM(tagId)
+                      ErrMsg = 'Error retrieving tag name for' //            &
+                               ' wildcard ' // TRIM(tagId)
                       CALL GC_Error( ErrMsg, RC, ThisLoc )
                       RETURN
                    ENDIF
-                   ItemName = TRIM(ItemPrefix) // TRIM(tagName)
+
+                   ! Append the tag name to the item name
+                   ItemName = TRIM( ItemPrefix ) // TRIM( tagName )
 
                    ! Increment the item count
                    ItemCount   = ItemCount + 1
                    
                    ! Create the a HISTORY ITEM object for this diagnostic
                    ! and add it to the given DIAGNOSTIC COLLECTION
-                   CALL History_AddItemToCollection(            &
-                            am_I_Root    = am_I_Root,           &
-                            Input_Opt    = Input_Opt,           &
-                            State_Chm    = State_Chm,           &
-                            State_Diag   = State_Diag,          &
-                            State_Met    = State_Met,           &
-                            Collection   = Container,           &
-                            CollectionId = C,                   &
-                           !SubsetDims   = CollectionSubsetDims(C),  &
-                            ItemName     = ItemName,            &
-                            ItemCount    = ItemCount,           &
-                            RC           = RC                     )
+                   CALL History_AddItemToCollection(                         &
+                            am_I_Root    = am_I_Root,                        &
+                            Input_Opt    = Input_Opt,                        &
+                            State_Chm    = State_Chm,                        &
+                            State_Diag   = State_Diag,                       &
+                            State_Met    = State_Met,                        &
+                            Collection   = Container,                        &
+                            CollectionId = C,                                &
+                           !SubsetDims   = CollectionSubsetDims(C),          &
+                            ItemName     = ItemName,                         &
+                            ItemCount    = ItemCount,                        &
+                            RC           = RC                               )
                 
                    ! Error checking
                    IF ( RC /= GC_SUCCESS ) THEN
-                      ErrMsg = 'Could not add diagnostic :'            // &
-                               TRIM( ItemName ) // '" to collection: ' // &
+                      ErrMsg = 'Could not add diagnostic "'               // &
+                               TRIM( ItemName ) // '" to collection: '    // &
                                TRIM( CollectionName(C) ) 
                       CALL GC_Error( ErrMsg, RC, ThisLoc )
                       RETURN
@@ -1235,7 +1237,7 @@ CONTAINS
 
                 ! Trap potential error
                 IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Could not add diagnostic :' // TRIM( ItemName ) &
+                   ErrMsg = 'Could not add diagnostic "' // TRIM( ItemName ) &
                             // '" to collection: ' // TRIM( CollectionName(C) ) 
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
