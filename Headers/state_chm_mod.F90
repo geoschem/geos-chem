@@ -881,13 +881,13 @@ CONTAINS
              CASE( 14 )
                 chmID = 'WetAeroRadiICEI'
              CASE DEFAULT
-                ErrMsg = 'State_Chm%nAero exceeds the number of defined' &
+                ErrMsg = 'State_Chm%nAero exceeds the number of defined'     &
                          // ' wet aerosol radius categories'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
           END SELECT          
 
-          CALL Register_ChmField( am_I_Root, chmID, State_Chm%WetAeroRadi, &
+          CALL Register_ChmField( am_I_Root, chmID, State_Chm%WetAeroRadi,   &
                                   State_Chm, RC,    Ncat=N )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
@@ -997,6 +997,41 @@ CONTAINS
        CALL Register_ChmField( am_I_Root, chmID, State_Chm%pHCloud,          &
                                State_Chm, RC                                )
 
+       !------------------------------------------------------------------
+       ! HSO3_AQ
+       !------------------------------------------------------------------
+       chmID = 'HSO3_AQ'
+       ALLOCATE( State_Chm%HSO3_AQ( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%HSO3_AQ', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%HSO3_AQ = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%HSO3_AQ,          &
+                               State_Chm, RC                                )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! SO3_AQ
+       !------------------------------------------------------------------
+       chmID = 'SO3_AQ'
+       ALLOCATE( State_Chm%SO3_AQ( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SO3_AQ', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SO3_AQ = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SO3_AQ,           &
+                               State_Chm, RC                                )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! fupdateHOBr
+       !------------------------------------------------------------------
+       chmID = 'fupdateHOBr'
+       ALLOCATE( State_Chm%fupdateHOBr( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%fupdateHOBr', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%fupdateHOBr = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%fupdateHOBr,     &
+                               State_Chm, RC                               )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     !=======================================================================
@@ -1063,43 +1098,6 @@ CONTAINS
                                   State_Chm, RC,    Ncat=N )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
-
-       !------------------------------------------------------------------
-       ! HSO3_AQ
-       !------------------------------------------------------------------
-       chmID = 'HSO3_AQ'
-       ALLOCATE( State_Chm%HSO3_AQ( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%HSO3_AQ', 0, RC )    
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%HSO3_AQ = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%HSO3_AQ, &
-                               State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
-       ! SO3_AQ
-       !------------------------------------------------------------------
-       chmID = 'SO3_AQ'
-       ALLOCATE( State_Chm%SO3_AQ( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%SO3_AQ', 0, RC )    
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%SO3_AQ = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SO3_AQ, &
-                               State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
-       ! fupdateHOBr
-       !------------------------------------------------------------------
-       chmID = 'fupdateHOBr'
-       ALLOCATE( State_Chm%fupdateHOBr( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%fupdateHOBr', 0, RC )    
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%fupdateHOBr = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%fupdateHOBr, &
-                               State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-
     ENDIF
 
     !=======================================================================
