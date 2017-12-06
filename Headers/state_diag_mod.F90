@@ -1325,9 +1325,9 @@ CONTAINS
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1 )
-                diagID  = 'Loss'
+                diagID  = 'Loss_'
              CASE( 2 )
-                diagID  = 'Prod'
+                diagID  = 'Prod_'
            END SELECT
 
            ! Exit if any of the above are in the diagnostic list
