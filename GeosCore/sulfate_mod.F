@@ -302,6 +302,16 @@
       INTEGER                :: DRYNITd1,  DRYNITd2,  DRYNITd3 
       INTEGER                :: DRYNITd4
 
+      ! Diagnostic flags
+      LOGICAL                :: Archive_ProdSO4fromGasPhase
+      LOGICAL                :: Archive_ProdSO4fromH2O2inCloud
+      LOGICAL                :: Archive_ProdSO4fromO3InCloud
+      LOGICAL                :: Archive_ProdSO4fromHOBrInCloud
+      LOGICAL                :: Archive_ProdSO4fromO3inSeaSalt
+      LOGICAL                :: Archive_ProdSO4fromSRO3
+      LOGICAL                :: Archive_ProdSO4fromSRHOBr
+      LOGICAL                :: Archive_ProdSO4fromO3s
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -437,7 +447,7 @@
       CHARACTER(LEN=63)        :: OrigUnit
 
       ! Strings
-      CHARACTER(LEN=255)       :: LOC = 'CHEMSULFATE (sulfate_mod.F)'
+      CHARACTER(LEN=255)       :: ErrMsg, ThisLoc
 
       ! Pointers
       REAL(fp),        POINTER :: Spc(:,:,:,:)
@@ -446,11 +456,12 @@
       ! CHEMSULFATE begins here!
       !=================================================================
 
-      ! Assume success
-      RC                   = GC_SUCCESS
-
-      ! am I root? 
-      aIR                  = am_I_Root
+      ! Initialize
+      RC       = GC_SUCCESS
+      aIR      = am_I_Root
+      ErrMsg   = ''
+      ThisLoc  = 
+     & ' -> at CHEMSULFATE (in module GeosCore/sulfate_mod.F)'
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LCRYST               = Input_Opt%LCRYST
@@ -474,29 +485,47 @@
          ! Get offline oxidant fields from HEMCO (mps, 9/18/14)
          IF ( FIRSTCHEM ) THEN
 
-            CALL HCO_GetPtr( aIR, HcoState, 'O3',    O3m,    RC )
-            IF ( RC /= GC_SUCCESS )
-     &      CALL ERROR_STOP( 'Cannot get pointer to O3',    LOC )
+            CALL HCO_GetPtr( aIR, HcoState, 'O3', O3m, RC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Cannot get pointer to O3!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
 
             CALL HCO_GetPtr( aIR, HcoState, 'PH2O2', PH2O2m, RC )
-            IF ( RC /= GC_SUCCESS )
-     &      CALL ERROR_STOP( 'Cannot get pointer to PH2O2', LOC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg =  'Cannot get pointer to PH2O2!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
 
             CALL HCO_GetPtr( aIR, HcoState, 'JH2O2', JH2O2,  RC )
-            IF ( RC /= GC_SUCCESS )
-     &      CALL ERROR_STOP( 'Cannot get pointer to JH2O2', LOC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Cannot get pointer to JH2O2!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
 
             CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_OH',  OH,    RC )
-            IF ( RC /= GC_SUCCESS )
-     &      CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_OH',   LOC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Cannot get pointer to GLOBAL_OH!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
 
             CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_NO3', NO3,   RC )
-            IF ( RC /= GC_SUCCESS )
-     &      CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_NO3',  LOC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Cannot get pointer to GLOBAL_NO3!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
 
             CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_HNO3', HNO3, RC )
-            IF ( RC /= GC_SUCCESS )
-     &      CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', LOC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Cannot get pointer to GLOBAL_HNO3!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
          ENDIF
 
          ! And compute time scaling arrays for offline OH, NO3
@@ -513,8 +542,11 @@
       ! TS_EMIS is the emission timestep (in seconds). This is a module
       ! variable, hence define only on first call.
       IF ( FIRSTCHEM ) THEN
-         IF ( .NOT. ASSOCIATED(HcoState) ) 
-     &        CALL ERROR_STOP ( 'Cannot get HcoState', LOC )
+         IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+            ErrMsg = 'Cannot get HEMCO state variable "HCOState"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            IF ( RC /= GC_SUCCESS ) RETURN
+         ENDIF
          TS_EMIS = HcoState%TS_EMIS
       ENDIF
 
@@ -676,17 +708,37 @@
 
          ENDIF
 
-         ! SO2
-         ! CHEM_SO2 now includes the effect of dust chemistry  tdf 04/07/08
-         CALL CHEM_SO2( am_I_Root, Input_Opt, State_Met,
-     &                  State_Chm, .TRUE.,    RC )
+         !-----------------------
+         ! SO2 chemistry
+         !-----------------------
+         CALL CHEM_SO2( am_I_Root, Input_Opt,  State_Met,
+     &                  State_Chm, State_Diag,  .TRUE.,   RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Chem_SO2"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Debug info
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
          ENDIF
       
-         ! SO4
-         ! CHEM_SO4 now includes the effect of dust chemistry  tdf 04/07/08
-         CALL CHEM_SO4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         !-----------------------
+         ! SO4 chemistry
+         !-----------------------
+         CALL CHEM_SO4( am_I_Root, Input_Opt,  State_Met, 
+     &                  State_Chm, State_Diag, RC         )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Chem_SO4"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
          ENDIF
@@ -738,10 +790,18 @@
          ENDIF
 
          ! Call the SO2 routine to get cloud pH parameters
-         CALL CHEM_SO2( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, .FALSE.,   RC )
+         CALL CHEM_SO2( am_I_Root, Input_Opt,  State_Met, 
+     &                  State_Chm, State_Diag, .FALSE.,   RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Chem_SO2"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
          IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
+            CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2 false' )
          ENDIF
 
       ENDIF ! FullRun
@@ -2378,8 +2438,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_SO2( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, FullRun, RC )
+      SUBROUTINE CHEM_SO2( am_I_Root, Input_Opt,  State_Met,
+     &                     State_Chm, State_Diag, FullRun,   RC )
 !
 ! !USES:
 !
@@ -2397,6 +2457,7 @@
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE WETSCAV_MOD,        ONLY : H2O2s
@@ -2413,6 +2474,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2504,6 +2566,7 @@
 !  23 Sep 2015 - R. Yantosca - Remove reference to obsolete DRYSO2 flag
 !  24 Jun 2016 - R. Yantosca - Now return id_H2O2 < 0 or id_SO2 < 0 (not == 0)
 !  22 Mar 2017 - M. Sulprizio- Add fixes for LWC unit conversion (V. Shah)
+!  07 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3490,6 +3553,7 @@
 
          ENDIF    !tdf end of if (LDSTUP) condition
 
+#if defined( BPCH_DIAG )
          !=================================================================
          ! ND05 Diagnostics [kg S/timestep]
          !=================================================================
@@ -3564,6 +3628,64 @@
             ENDIF
 
          ENDIF
+#endif
+
+#if defined( NC_DIAG )
+         !=================================================================
+         ! HISTORY (aka netCDF diagnostics)
+         !=================================================================
+         IF ( FullRun ) THEN
+
+            ! P(SO4) from gas-phase oxidation [kg S/timestep]
+            IF ( Archive_ProdSO4fromGasPhase ) THEN
+               State_Diag%ProdSO4fromGasPhase(I,J,L) = 
+     &            ( L1  * State_Met%AD(I,J,L) / TCVV_S )
+            ENDIF
+
+            ! P(SO4) from aqueous-phase oxidation with H2O2 [kg S/timestep]
+            IF ( Archive_ProdSO4fromH2O2inCloud ) THEN
+               State_Diag%ProdSO4fromH2O2inCloud(I,J,L) =
+     &            ( L2S * State_Met%AD(I,J,L) / TCVV_S )
+            ENDIF
+
+            ! P(SO4) from aqueous-phase oxidation with O3 [kg S/timestep]
+            IF ( Archive_ProdSO4fromO3InCloud ) THEN
+               State_Diag%ProdSO4fromHOBrInCloud(I,J,L) =
+     &            ( ( L3S + SRo3 ) * State_Met%AD(I,J,L) / TCVV_S )
+            ENDIF
+
+            ! P(SO4) from aqueous-phase oxidation with HOBr [kg S/timestep]
+            IF ( Archive_ProdSO4fromHOBrInCloud ) THEN
+               State_Diag%ProdSO4fromHOBrInCloud(I,J,L) =
+     &            ( ( L5S + SRhobr ) * State_Met%AD(I,J,L) / TCVV_S )
+            ENDIF
+
+            IF ( Archive_ProdSO4fromO3inSeaSalt ) THEN
+               State_Diag%ProdSO4fromO3inSeaSalt(I,J,L) = 
+     &            ( ( PSO4E + PSO4F ) * State_Met%AD(I,J,L) / TCVV_S )
+            ENDIF
+
+            ! P(SO4) by SRo3
+            IF ( Archive_ProdSO4fromSRO3 ) THEN
+               State_Diag%ProdSO4fromSRO3(I,J,L) = 
+     &            ( SRo3 * State_Met%AD(I,J,L) / TCVV_S )
+            ENDIF
+
+            ! P(SO4) by SRhobr
+            IF ( Archive_ProdSO4fromSRHOBr ) THEN
+               State_Diag%ProdSO4fromSRO3(I,J,L) = 
+     &            ( SRhobr * State_Met%AD(I,J,L) / TCVV_S)
+            ENDIF
+
+            ! P(SO4) by o3s
+            IF ( Archive_ProdSO4fromO3s ) THEN
+               State_Diag%ProdSO4fromO3s(I,J,L) = 
+     &            ( L3S_1 * State_Met%AD(I,J,L) / TCVV_S )
+            ENDIF
+
+         ENDIF
+#endif
+
       ENDDO
       ENDDO
       ENDDO
@@ -5918,25 +6040,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_SO4( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
+      SUBROUTINE CHEM_SO4( am_I_Root, Input_Opt,  State_Met,
+     &                     State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Met_Mod,  ONLY : MetState
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -5994,6 +6118,7 @@
 !  24 Jun 2016 - R. Yantosca - Now return if id_SO4<0 or id_SO4s<0 (not == 0)
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  07 Dec 2017 - R. Yantosca - Now accept State_DIag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7570,12 +7695,10 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : Alloc_Err
-      USE ERROR_MOD,          ONLY : Error_Stop
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
-      USE State_Diag_Mod,     ONLY : DgnState
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
@@ -7628,76 +7751,122 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER :: AS, I, J, N
+      INTEGER            :: I, J, N
+
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       !=================================================================
       ! INIT_SULFATE begins here!
       !=================================================================
 
-      ! Assume success
-      RC = GC_SUCCESS
+      ! Initialize
+      RC       = GC_SUCCESS
+      ErrMsg   = ''
+      ThisLoc  = 
+     & ' -> at Init_Sulfate (in module GeosCore/sulfate_mod.F)'
 
       ! Check if netCDF diagnostics are turned on
-      Archive_DryDepChm = ASSOCIATED( State_Diag%DryDepChm )
-      Archive_DryDep    = ASSOCIATED( State_Diag%DryDep    )
+      Archive_DryDepChm = 
+     &     ASSOCIATED( State_Diag%DryDepChm              )
+
+      Archive_DryDep = 
+     &     ASSOCIATED( State_Diag%DryDep                 )
+
+      Archive_ProdSO4fromSRO3 = 
+     &     ASSOCIATED( State_Diag%ProdSO4fromSRO3        )
+
+      Archive_ProdSO4fromSRHOBr =
+     &     ASSOCIATED( State_Diag%ProdSO4fromSRHOBr      )
+
+      Archive_ProdSO4fromO3s = 
+     &     ASSOCIATED( State_Diag%ProdSO4fromO3s         )
+
+      Archive_ProdSO4fromGasPhase = 
+     &     ASSOCIATED( State_Diag%ProdSO4fromGasPhase    )
+
+      Archive_ProdSO4fromH2O2inCloud = 
+     &     ASSOCIATED( State_Diag%ProdSO4fromH2O2inCloud )
+
+      Archive_ProdSO4fromO3InCloud = 
+     &     ASSOCIATED( State_Diag%ProdSO4fromO3InCloud   )
+
+      Archive_ProdSO4fromHOBrInCloud = 
+     &     ASSOCIATED( State_Diag%ProdSO4fromHOBrInCloud )
+
+      Archive_ProdSO4fromO3inSeaSalt = 
+     &     ASSOCIATED( State_Diag%ProdSO4fromO3inSeaSalt )
 
       ! Allocate arrays
-      ALLOCATE( SSTEMP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SSTEMP' )
+      ALLOCATE( SSTEMP( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'sulfate_mod.F:SSTEMP', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SSTEMP = 0e+0_fp
 
-      ALLOCATE( DMSo( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMSo' )
+      ALLOCATE( DMSo( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'sulfate_mod.F:DMSo', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       DMSo = 0e+0_fp
 
-      ALLOCATE( PMSA_DMS( IIPAR, JJPAR, LLCHEM ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PMSA_DMS' )
+      ALLOCATE( PMSA_DMS( IIPAR, JJPAR, LLCHEM ), STAT=RC ) 
+      CALL GC_CheckVar( 'sulfate_mod.F:PMSA_DMS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PMSA_DMS = 0e+0_fp
 
-      ALLOCATE( PSO2_DMS( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO2_DMS' )
+      ALLOCATE( PSO2_DMS( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      CALL GC_CheckVar( 'sulfate_mod.F:PSO2_DMS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PSO2_DMS = 0e+0_fp
 
-      ALLOCATE( PSO4_SO2( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_SO2' )
+      ALLOCATE( PSO4_SO2( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      CALL GC_CheckVar( 'sulfate_mod.F:PSO4_SO2', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PSO4_SO2 = 0e+0_fp
 
-      ALLOCATE( PSO4_ss( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_ss' )
+      ALLOCATE( PSO4_ss( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      CALL GC_CheckVar( 'sulfate_mod.F:PSO4_ss', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PSO4_ss = 0e+0_fp
 
-      ALLOCATE( PNITs( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNITs' )
+      ALLOCATE( PNITs( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      CALL GC_CheckVar( 'sulfate_mod.F:PNITs', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PNITs = 0e+0_fp
 
       !tdf
       ALLOCATE( PSO4_dust( IIPAR, JJPAR, LLCHEM, NDSTBIN ),
-     &          STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_dust' )
+     &          STAT=RC )
+      CALL GC_CheckVar( 'sulfate_mod.F:PSO4_dust', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PSO4_dust = 0e+0_fp
 
       !tdf
       ALLOCATE( PNIT_dust( IIPAR, JJPAR, LLCHEM, NDSTBIN ),
-     &          STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNIT_dust' )
+     &          STAT=RC )
+      CALL GC_CheckVar( 'sulfate_mod.F:PNIT_dust', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PNIT_dust = 0e+0_fp
 
-      ALLOCATE( SOx_SCALE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
+      ALLOCATE( SOx_SCALE( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'sulfate_mod.F:SOx_SCALE', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SOx_SCALE = 0e+0_fp
 
 #if   defined( TOMAS )
       ! Allocate for TOMAS microphysics
-      ALLOCATE( PSO4_SO2AQ( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_SO2AQ' )
+      ALLOCATE( PSO4_SO2AQ( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'sulfate_mod.F:PSO4_SO2aq', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PSO4_SO2AQ = 0e+0_fp
 
-      ALLOCATE( SO4_ANTH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_ANTH' )
+      ALLOCATE( SO4_ANTH( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'sulfate_mod.F:SO4_ANTH', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SO4_ANTH = 0e+0_fp
 
-      ALLOCATE( SO4_BIOF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_BIOF' )
+      ALLOCATE( SO4_BIOF( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'sulfate_mod.F:SO4_BIOF', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SO4_BIOF = 0e+0_fp
 #endif
 
@@ -7706,16 +7875,19 @@
       !=================================================================
       IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-         ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
+         ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'sulfate_mod.F:TCOSZ', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          TCOSZ = 0e+0_fp
 
-         ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTDAY' )
+         ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'sulfate_mod.F:TTDAY', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          TTDAY = 0e+0_fp
  
-         ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'COSZM' )
+         ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'sulfate_mod.F:COSZM', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          COSZM = 0e+0_fp
       ENDIF
 
@@ -7790,8 +7962,9 @@
      &        id_DAL4  < 0 .or. id_NITd1 < 0 .or. id_NITd2 < 0   .or.
      &        id_NITd3 < 0 .or. id_NITd4 < 0 .or. id_SO4d1 < 0   .or.
      &        id_SO4d2 < 0 .or. id_SO4d3 < 0 .or. id_SO4d4 < 0 ) THEN
-            CALL ERROR_STOP( 'Dust uptake tracers are undefined!', 
-     &                       'INIT_DUST (GeosCore/dust_mod.F'      )
+            ErrMsg =' Dust uptake tracers are undefined!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
       ENDIF
 

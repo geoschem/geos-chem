@@ -113,6 +113,26 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: ProdBCPIfromBCPO(:,:,:  ) ! Prod BCPI from BCPO
      REAL(f4),  POINTER :: ProdOCPIfromOCPO(:,:,:  ) ! Prod OCPI from OCPO
 
+     ! Sulfur aerosols prod & loss
+     REAL(f4),  POINTER :: ProdSO2fromDMSandOH        (:,:,:) 
+     REAL(f4),  POINTER :: ProdSO2fromDMSandNO3       (:,:,:) 
+     REAL(f4),  POINTER :: ProdSO2                    (:,:,:)   
+     REAL(f4),  POINTER :: ProdMSAfromDMS             (:,:,:) 
+     REAL(f4),  POINTER :: ProdNITfromHNO3uptakeOnDust(:,:,:)
+     REAL(f4),  POINTER :: ProdSO4fromGasPhase        (:,:,:) 
+     REAL(f4),  POINTER :: ProdSO4fromH2O2inCloud     (:,:,:) 
+     REAL(f4),  POINTER :: ProdSO4fromO3inCloud       (:,:,:) 
+     REAL(f4),  POINTER :: ProdSO4fromO3inSeaSalt     (:,:,:) 
+     REAL(f4),  POINTER :: ProdSO4fromOxidationOnDust (:,:,:) 
+     REAL(f4),  POINTER :: ProdSO4fromUptakeOfH2SO4g  (:,:,:)
+     REAL(f4),  POINTER :: ProdSO4fromHOBrInCloud     (:,:,:)
+     REAL(f4),  POINTER :: ProdSO4fromSRO3            (:,:,:)
+     REAL(f4),  POINTER :: ProdSO4fromSRHOBr          (:,:,:)
+     REAL(f4),  POINTER :: ProdSO4fromO3s             (:,:,:)
+     REAL(f4),  POINTER :: LossOHbyDMS                (:,:,:) 
+     REAL(f4),  POINTER :: LossNO3byDMS               (:,:,:) 
+     REAL(f4),  POINTER :: LossHNO3onSeaSalt          (:,:,:) 
+     
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
      !----------------------------------------------------------------------
@@ -262,52 +282,71 @@ CONTAINS
     nWetDep   = State_Chm%nWetDep
 
     ! Free pointers
-    State_Diag%AdvFluxZonal        => NULL()
-    State_Diag%AdvFluxMerid        => NULL()
-    State_Diag%AdvFluxVert         => NULL()
+    State_Diag%AdvFluxZonal               => NULL()
+    State_Diag%AdvFluxMerid               => NULL()
+    State_Diag%AdvFluxVert                => NULL()
 
-    State_Diag%DryDep              => NULL()
-    State_Diag%DryDepChm           => NULL()
-    State_Diag%DryDepMix           => NULL()
-    State_Diag%DryDepVel           => NULL()
+    State_Diag%DryDep                     => NULL()
+    State_Diag%DryDepChm                  => NULL()
+    State_Diag%DryDepMix                  => NULL()
+    State_Diag%DryDepVel                  => NULL()
 
-    State_Diag%CloudConvFlux       => NULL()
-    State_Diag%WetLossConv         => NULL()
+    State_Diag%CloudConvFlux              => NULL()
+    State_Diag%WetLossConv                => NULL()
 
-    State_Diag%PBLMixFrac          => NULL()
-    State_Diag%PBLFlux             => NULL()
+    State_Diag%PBLMixFrac                 => NULL()
+    State_Diag%PBLFlux                    => NULL()
 
-    State_Diag%WetLossLS           => NULL()
-    State_Diag%PrecipFracLS        => NULL()
-    State_Diag%RainFracLS          => NULL()
-    State_Diag%WashFracLS          => NULL()
+    State_Diag%WetLossLS                  => NULL()
+    State_Diag%PrecipFracLS               => NULL()
+    State_Diag%RainFracLS                 => NULL()
+    State_Diag%WashFracLS                 => NULL()
 
-    State_Diag%SpeciesConc         => NULL()
-    State_Diag%JValues             => NULL()
-    State_Diag%RxnRates            => NULL()
-    State_Diag%UVFluxDiffuse       => NULL()
-    State_Diag%UVFluxDirect        => NULL()
-    State_Diag%UVFluxNet           => NULL()
-    State_Diag%ProdBCPIfromBCPO    => NULL()
-    State_Diag%ProdOCPIfromOCPO    => NULL()
-    State_Diag%OHconcAfterChem     => NULL()
-    State_Diag%HO2concAfterChem    => NULL()
-    State_Diag%O1DconcAfterChem    => NULL()
-    State_Diag%O3PconcAfterChem    => NULL()
-    State_Diag%Loss                => NULL()
-    State_Diag%Prod                => NULL()
+    State_Diag%SpeciesConc                => NULL()
+    State_Diag%JValues                    => NULL()
+    State_Diag%RxnRates                   => NULL()
+    State_Diag%UVFluxDiffuse              => NULL()
+    State_Diag%UVFluxDirect               => NULL()
+    State_Diag%UVFluxNet                  => NULL()
+    State_Diag%ProdBCPIfromBCPO           => NULL()
+    State_Diag%ProdOCPIfromOCPO           => NULL()
+    State_Diag%OHconcAfterChem            => NULL()
+    State_Diag%HO2concAfterChem           => NULL()
+    State_Diag%O1DconcAfterChem           => NULL()
+    State_Diag%O3PconcAfterChem           => NULL()
+    State_Diag%Loss                       => NULL()
+    State_Diag%Prod                       => NULL()
 
-    State_Diag%PbFromRnDecay       => NULL()
-    State_Diag%RadDecay            => NULL()
+    State_Diag%PbFromRnDecay              => NULL()
+    State_Diag%RadDecay                   => NULL()
 
-    State_Diag%RadAllSkyLWSurf     => NULL()
-    State_Diag%RadAllSkyLWTOA      => NULL()
-    State_Diag%RadAllSkySWSurf     => NULL()
-    State_Diag%RadAllSkySWTOA      => NULL()
-    State_Diag%RadClrSkyLWSurf     => NULL()
-    State_Diag%RadClrSkyLWTOA      => NULL()
-    State_Diag%RadClrSkySWSurf     => NULL()
-    State_Diag%RadClrSkySWTOA      => NULL()
+    State_Diag%ProdMSAfromDMS             => NULL() 
+    State_Diag%ProdSO2fromDMSandOH        => NULL() 
+    State_Diag%ProdSO2fromDMSandNO3       => NULL() 
+    State_Diag%ProdSO2                    => NULL()   
+    State_Diag%ProdSO4fromGasPhase        => NULL() 
+    State_Diag%ProdSO4fromH2O2inCloud     => NULL() 
+    State_Diag%ProdSO4fromO3inCloud       => NULL() 
+    State_Diag%ProdSO4fromHOBrInCloud     => NULL()
+    State_Diag%ProdSO4fromO3inSeaSalt     => NULL() 
+    State_Diag%ProdSO4fromOxidationOnDust => NULL() 
+    State_Diag%ProdSO4fromUptakeOfH2SO4g  => NULL()
+    State_Diag%ProdSO4fromSRO3            => NULL()
+    State_Diag%ProdSO4fromSRHOBr          => NULL()
+    State_Diag%ProdSO4fromO3s             => NULL()
+    State_Diag%ProdNITfromHNO3uptakeOnDust=> NULL()
+    State_Diag%LossOHbyDMS                => NULL() 
+    State_Diag%LossNO3byDMS               => NULL() 
+    State_Diag%LossHNO3onSeaSalt          => NULL() 
+
+    State_Diag%RadAllSkyLWSurf            => NULL()
+    State_Diag%RadAllSkyLWTOA             => NULL()
+    State_Diag%RadAllSkySWSurf            => NULL()
+    State_Diag%RadAllSkySWTOA             => NULL()
+    State_Diag%RadClrSkyLWSurf            => NULL()
+    State_Diag%RadClrSkyLWTOA             => NULL()
+    State_Diag%RadClrSkySWSurf            => NULL()
+    State_Diag%RadClrSkySWTOA             => NULL()
 
 #if defined( NC_DIAG )
 
@@ -1219,6 +1258,185 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
+       !--------------------------------------------------------------------
+       ! Total production of SO2
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSO2'
+       diagID  = 'ProdSO2'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSO2( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSO2 = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%ProdSO2,   &
+                                   State_Chm, State_Diag, RC               )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of MSA from DMS
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdMSAfromDMS'
+       diagID  = 'ProdMSAfromDMS'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdMSAfromDMS( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdMSAfromDMS = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                       &
+                                   State_Diag%ProdMSAfromDMS,               &
+                                   State_Chm, State_Diag, RC               )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of SO4 in gas phase
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSO4fromGasPhase'
+       diagID  = 'ProdSO4fromGasPhase'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSO4fromGasPhase( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSO4fromGasPhase = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                       & 
+                                   State_Diag%ProdSO4fromGasPhase,            &
+                                   State_Chm, State_Diag, RC               )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of SO4 from aqueous oxidation of H2O2 in cloud
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSO4fromH2O2inCloud'
+       diagID  = 'ProdSO4fromH2O2inCloud'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSO4fromH2O2inCloud( IM, JM, LM ), STAT=RC ) 
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSO4fromH2O2inCloud = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdSO4fromH2O2inCloud,        &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of SO4 from aqueous oxidation of O3 in cloud
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSO4fromO3inCloud'
+       diagID  = 'ProdSO4fromO3inCloud'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSO4fromO3inCloud( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSO4fromO3inCloud = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdSO4fromO3inCloud,          &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of SO4 by aqueous oxidation of HOBr in cloud
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSO4fromHOBrInCloud'
+       diagID  = 'ProdSO4fromHOBrInCloud'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSO4fromHOBrInCloud( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSO4fromHOBrInCloud = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        & 
+                                   State_Diag%ProdSO4fromHOBrInCloud,        &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of SO4 from O3 in sea salt aerosols
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSo4fromO3inSeaSalt'
+       diagID  = 'ProdSo4fromO3inSeaSalt'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSo4fromO3inSeaSalt( IM, JM, LM ), STAT=RC ) 
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSo4fromO3inSeaSalt = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdSo4fromO3inSeaSalt,        &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of SO4 by SRO3
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSO4fromSRO3'
+       diagID  = 'ProdSO4fromSRO3'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSO4fromSRO3( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSO4fromSRO3 = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                       &
+                                   State_Diag%ProdSO4fromSRO3,                &
+                                   State_Chm, State_Diag, RC               )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of SO4 by SRHOBr
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSO4fromSRHOBr'
+       diagID  = 'ProdSO4fromSRHOBr'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSO4fromSRHOBr( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSO4fromSRHOBr = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                       &
+                                   State_Diag%ProdSO4fromSRHOBr,              &
+                                   State_Chm, State_Diag, RC               )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of SO4 by O3s
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSO4fromO3s'
+       diagID  = 'ProdSO4fromO3s'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSO4fromO3s( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSO4fromO3s = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdSO4fromO3s,                  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
     ELSE
 
        !-------------------------------------------------------------------
@@ -1230,22 +1448,40 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 6
+       DO N = 1, 15
           
           ! Select the diagnostic ID
           SELECT CASE( N )
-             CASE( 1 ) 
+             CASE( 1  ) 
                 diagID = 'ProdBCPIfromBCPO'
-             CASE( 2 ) 
+             CASE( 2  ) 
                 diagID = 'ProdOCPIfromOCPO'
-             CASE( 3 ) 
+             CASE( 3  ) 
                 diagID = 'OpticalDepthDust'
-             CASE( 4 ) 
+             CASE( 4  ) 
                 diagID = 'OpticalDepthDust' // TRIM( RadWL(1) )
-             CASE( 5 ) 
+             CASE( 5  ) 
                 diagID = 'OpticalDepthDust' // TRIM( RadWL(2) )
-             CASE( 6 )                
+             CASE( 6  )                
                 diagID = 'OpticalDepthDust' // TRIM( RadWL(3) )
+             CASE( 7  )                
+                diagID = 'ProdSO2'
+             CASE( 8  )                
+                diagID = 'ProdSO4fromGasPhase'
+             CASE( 9  )                
+                diagID = 'ProdSO4fromH2O2inCloud'
+             CASE( 10 )                
+                diagID = 'ProdSO4fromO3inCloud'
+             CASE( 11 )                
+                diagID = 'ProdSO4fromHOBrInCloud'
+             CASE( 12 )                
+                diagID = 'ProdSO4fromO3inSeaSalt'
+             CASE( 13 )                
+                diagID = 'ProdSO4fromSRO3'
+             CASE( 14 )                
+                diagID = 'ProdSO4fromSRHOBr'
+             CASE( 15 )                
+                diagID = 'ProdSO4fromO3s'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -1703,6 +1939,114 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%ProdSO2fromDMSandOH ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO2fromDMSandOH, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO2fromDMSandOH', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdSO2fromDMSandNO3 ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO2fromDMSandNO3, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO2fromDMSandNO3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdSO2 ) ) THEN
+       DEALLOCATE(  State_Diag%ProdSO2, STAT=RC  )
+       CALL GC_CheckVar( ' State_Diag%ProdSO2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdMSAfromDMS ) ) THEN
+       DEALLOCATE( State_Diag%ProdMSAfromDMS, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdMSAfromDMS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdNITfromHNO3uptakeOnDust ) ) THEN
+       DEALLOCATE( State_Diag%ProdNITfromHNO3uptakeOnDust, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdNITfromHNO3uptakeOnDust', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdSO4fromGasPhase ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO4fromGasPhase, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO4fromGasPhase', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdSO4fromH2O2inCloud ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO4fromH2O2inCloud, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO4fromH2O2inCloud', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdSO4fromO3inCloud ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO4fromO3inCloud, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO4fromO3inCloud', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdSO4fromHOBrInCloud ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO4fromHOBrInCloud, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO4fromHOBrInCloud', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdSO4fromO3inSeaSalt ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO4fromO3inSeaSalt, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO4fromO3inSeaSalt', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdSO4fromOxidationOnDust  ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO4fromOxidationOnDust, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO4fromOxidationOnDust', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdSO4fromUptakeOfH2SO4g ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO4fromUptakeOfH2SO4g, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO4fromUptakeOfH2SO4g', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdSO4fromSRO3 ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO4fromSRO3, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO4fromSRO3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdSO4fromSRHOBr ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO4fromSRHOBr, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO4fromSRHOBr', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdSO4fromO3s ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO4fromO3s, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO4fromO3s', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%LossOHbyDMS ) ) THEN
+       DEALLOCATE( State_Diag%LossOHbyDMS, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%LossOHbyDMS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%LossNO3byDMS ) ) THEN
+       DEALLOCATE( State_Diag%LossNO3byDMS, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%LossNO3byDMS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%LossHNO3onSeaSalt  ) ) THEN
+       DEALLOCATE( State_Diag%LossHNO3onSeaSalt, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%LossHNO3onSeaSalt', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
     !-----------------------------------------------------------------------
@@ -1819,261 +2163,261 @@ CONTAINS
     !=======================================================================
     ! Values for Retrieval (string comparison slow but happens only once)
     !=======================================================================
-    IF ( TRIM(Name_AllCaps) == 'SPECIESCONC' ) THEN
+    IF ( TRIM( Name_AllCaps ) == 'SPECIESCONC' ) THEN
        IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
        IF ( isUnits   ) Units = 'mol mol-1 dry'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isType    ) Type  = KINDVAL_F8
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'DRYDEPCHM' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPCHM' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from chemistry'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'DRY'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'DRYDEPMIX' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPMIX' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from mixing'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'DRY'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'DRYDEP' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEP' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'DRY'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'DRYDEPVEL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVEL' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition velocity of species'
        IF ( isUnits   ) Units = 'cm s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'JVAL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'JVAL' ) THEN
        IF ( isDesc    ) Desc  = 'Photolysis rate' !TODO: append to this?
        IF ( isUnits   ) Units = 's-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'JVN' ! TODO: fix species mapping
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'RXNRATES' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RXNRATES' ) THEN
        IF ( isDesc    ) Desc  = 'placeholder'
        IF ( isUnits   ) Units = 'placeholder'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'UVFLUXDIFFUSE' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'UVFLUXDIFFUSE' ) THEN
        IF ( isDesc    ) Desc  = 'placeholder'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'UVFLUXDIRECT' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'UVFLUXDIRECT' ) THEN
        IF ( isDesc    ) Desc  = 'placeholder'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 3
 
-    ELSEIF ( TRIM(Name_AllCaps) == 'UVFLUXNET' ) THEN
+    ELSEIF ( TRIM( Name_AllCaps ) == 'UVFLUXNET' ) THEN
        IF ( isDesc    ) Desc  = 'placeholder'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'ADVFLUXZONAL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ADVFLUXZONAL' ) THEN
        IF ( isDesc    ) Desc  = 'Advection of species in zonal direction'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ADV'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'ADVFLUXMERID' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ADVFLUXMERID' ) THEN
        IF ( isDesc    ) Desc  = 'Advection of species in meridional direction'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ADV'
      
-    ELSE IF ( TRIM(Name_AllCaps) == 'ADVFLUXVERT' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ADVFLUXVERT' ) THEN
        IF ( isDesc    ) Desc  = 'Advection of species in vertical direction'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ADV'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'PBLMIXFRAC' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PBLMIXFRAC' ) THEN
        IF ( isDesc    ) Desc  = 'Fraction of boundary layer occupied by each level'
        IF ( isUnits   ) Units = 'placeholder'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'PBLFLUX' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PBLFLUX' ) THEN
        IF ( isDesc    ) Desc  = 'Species mass change due to boundary-layer mixing'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ADV'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'CLOUDCONVFLUX' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CLOUDCONVFLUX' ) THEN
        IF ( isDesc    ) Desc  = 'Mass change due to cloud convection'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ADV'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'WETLOSSCONV' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'WETLOSSCONV' ) THEN
        IF ( isDesc    ) Desc  = 'Loss of soluble species in convective updrafts'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'PRECIPFRACCONV' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRECIPFRACCONV' ) THEN
        IF ( isDesc    ) Desc  = 'Fraction of grid box undergoing convective precipitation'
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'RAINFRACCONV' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RAINFRACCONV' ) THEN
        IF ( isDesc    ) Desc  = 'Fraction of soluble species lost to rainout in convective precipitation'
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'WASHFRACCONV' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'WASHFRACCONV' ) THEN
        IF ( isDesc    ) Desc  = 'Fraction of soluble species lost to washout in convective precipitation'
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'WETLOSSLS' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'WETLOSSLS' ) THEN
        IF ( isDesc    ) Desc  = 'Loss of soluble species in large-scale precipitation'
        IF ( isUnits   ) Units = 'placeholder'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'PRECIPFRACLS' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRECIPFRACLS' ) THEN
        IF ( isDesc    ) Desc  = 'Fraction of grid box undergoing large-scale precipitation'
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'RAINFRACLS' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RAINFRACLS' ) THEN
        IF ( isDesc    ) Desc  = 'Fraction of soluble species lost to rainout in large-scale precipitation'
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'WASHFRACLS' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'WASHFRACLS' ) THEN
        IF ( isDesc    ) Desc  = 'Fraction of soluble species lost to washout in large-scale precipitation'
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'PBFROMRNDECAY' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PBFROMRNDECAY' ) THEN
        IF ( isDesc    ) Desc  = 'Pb210 created from radioactive decay of Rn222'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'RADDECAY' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADDECAY' ) THEN
        IF ( isDesc    ) Desc  = 'Radioactive decay of radionuclide species'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ADV'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'RADALLSKYLWSURF' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADALLSKYLWSURF' ) THEN
        IF ( isDesc    ) Desc  = 'All-sky long-wave radiation at surface'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'placeholder'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'RADALLSKYLWTOA' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADALLSKYLWTOA' ) THEN
        IF ( isDesc    ) Desc  = 'All-sky long-wave radiation at top of atmosphere'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'placeholder'
 
-    ELSEIF ( TRIM(Name_AllCaps) == 'RADALLSKYSWSURF' ) THEN
+    ELSEIF ( TRIM( Name_AllCaps ) == 'RADALLSKYSWSURF' ) THEN
        IF ( isDesc    ) Desc  = 'All-sky short-wave radiation at surface'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'placeholder'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'RADALLSKYSWTOA ' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADALLSKYSWTOA ' ) THEN
        IF ( isDesc    ) Desc  = 'All-sky short-wave radiation at top of atmosphere'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'placeholder'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'RADCLRSKYLWSURF' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYLWSURF' ) THEN
        IF ( isDesc    ) Desc  = 'Clear-sky long-wave radiation at surface'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'placeholder'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'RADCLRSKYLWTOA ' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYLWTOA ' ) THEN
        IF ( isDesc    ) Desc  = 'Clear-sky long-wave radiation at top of atmosphere'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'placeholder'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'RADCLRSKYSWSURF' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYSWSURF' ) THEN
        IF ( isDesc    ) Desc  = 'Clear-sky short-wave radiation at surface'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId =  'placeholder'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'RADCLRSKYSWTOA' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYSWTOA' ) THEN
        IF ( isDesc    ) Desc  = 'Clear-sky short-wave radiation at top of atmosphere'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'placeholder'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'PRODBCPIFROMBCPO' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODBCPIFROMBCPO' ) THEN
        IF ( isDesc    ) Desc  = 'Production of hydrophilic black carbon from hydrophobic black carbon'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'PRODOCPIFROMOCPO' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODOCPIFROMOCPO' ) THEN
        IF ( isDesc    ) Desc  = 'Production of hydrophilic organic carbon from hydrophobic organic carbon'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'OHCONCAFTERCHEM' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'OHCONCAFTERCHEM' ) THEN
        IF ( isDesc    ) Desc  = 'OH concentration immediately after chemistry'
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'HO2CONCAFTERCHEM' )  THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HO2CONCAFTERCHEM' )  THEN
        IF ( isDesc    ) Desc  = 'HO2 concentration immediately after chemistry'
        IF ( isUnits   ) Units = 'mol mol-1'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'O1DCONCAFTERCHEM' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'O1DCONCAFTERCHEM' ) THEN
        IF ( isDesc    ) Desc  = 'O1D concentration immediately after chemistry'
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'O3PCONCAFTERCHEM' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'O3PCONCAFTERCHEM' ) THEN
        IF ( isDesc    ) Desc  = 'O3P concentration immediately after chemistry'
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'OPTICALDEPTHDUST' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'OPTICALDEPTHDUST' ) THEN
        IF ( isDesc    ) Desc  = 'Optical depth for mineral dust'
        IF ( isUnits   ) Units = 'unitless'
        IF ( isRank    ) Rank  =  3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'OPTICALDEPTHDUST' // TRIM(RadWL(1)) ) THEN 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'OPTICALDEPTHDUST' // TRIM(RadWL(1)) ) THEN 
        IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
                                    TRIM(RadWL(1)) // ' nm'
        IF ( isUnits   ) Units   = 'unitless'
        IF ( isRank    ) Rank    =  3
        IF ( isTagged  ) TagId   = 'DUSTBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'OPTICALDEPTHDUST' // TRIM(RadWL(2)) ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'OPTICALDEPTHDUST' // TRIM(RadWL(2)) ) THEN
        IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
                                    TRIM(RadWL(2)) // ' nm'
        IF ( isUnits   ) Units   = 'unitless'
        IF ( isRank    ) Rank    =  3
        IF ( isTagged  ) TagId   = 'DUSTBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'OPTICALDEPTHDUST' // TRIM(RadWL(3)) ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'OPTICALDEPTHDUST' // TRIM(RadWL(3)) ) THEN
        IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
                                    TRIM(RadWL(3)) // ' nm'
        IF ( isUnits   ) Units   = 'unitless'
        IF ( isRank    ) Rank    =  3
        IF ( isTagged  ) TagId   = 'DUSTBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'LOSS' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSS' ) THEN
        IF ( IsDesc    ) Desc  = 'Chemical loss of'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'LOS'
@@ -2089,7 +2433,7 @@ CONTAINS
           ENDIF
        ENDIF
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'PROD' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PROD' ) THEN
        IF ( isDesc    ) Desc  = 'Chemical production of'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'PRD'
@@ -2104,6 +2448,96 @@ CONTAINS
              Units = 'kg/s'
           ENDIF
        ENDIF
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO2FROMDMSANDOH' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO2 from DMS+OH reaction'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO2FROMDMSANDNO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO2 from DMS+NO3 reaction'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO2' ) THEN
+       IF ( isDesc    ) Desc  = 'Total production of SO2'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODMSAFROMDMS' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of MSA from DMS'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMGASPHASE' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO4 from gas phase reactions'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMH2O2INCLOUD' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO4 from aqueous oxidation of H2O2 in clouds'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMO3INCLOUD' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO4 from aqueous oxidation of O3 in clouds'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMHOBRINCLOUD' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO4 from aqueous oxidation of HOBr in clouds'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMO3INSEASALT' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO4 from O3 in sea salt aerosols'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMOXIDATIONONDUST' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO4 from oxidation on dust aerosols'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODNITFROMHNO3UPTAKEONDUST' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of NIT from HNO3 uptake on dust aerosols'
+       IF ( isUnits   ) Units = 'kg N'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMUPTAKEOFH2SO4G' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO4 from uptake of H2SO4(g)'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMSRO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO4 by SRO3'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMSRHOBR' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO4 from SRHOBr'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMO3S' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO4 from O3s'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSOHBYDMS' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of OH by DMS'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSNO3BYDMS' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of NO3 by DMS'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSHNO3ONSEASALT' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of HNO3 on sea salt aerosols'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  3
 
     ELSE
        
