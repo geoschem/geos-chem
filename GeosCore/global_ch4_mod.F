@@ -545,11 +545,13 @@
          DO I = 1, IIPAR
 
             ! Only apply emission perturbation to current cluster number
+            IF ( Input_Opt%Emis_Pert_Num .GT. 0 ) THEN
             IF ( CLUSTERS(I,J) == Input_Opt%Emis_Pert_Num ) THEN
                CH4_EMIS(I,J,1) = CH4_EMIS(I,J,1) * Input_Opt%Emis_Pert
                Print*, 'Analytical Inv: Scaled cluster ',
      &                  Input_Opt%Emis_Pert_Num, ' by ',
      &                  Input_Opt%Emis_Pert
+            ENDIF
             ENDIF
 
          ENDDO
