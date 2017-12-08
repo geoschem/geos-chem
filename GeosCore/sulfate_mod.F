@@ -303,14 +303,24 @@
       INTEGER                :: DRYNITd4
 
       ! Diagnostic flags
+      LOGICAL                :: Archive_LossHNO3onSeaSalt
+      LOGICAL                :: Archive_LossNO3byDMS
+      LOGICAL                :: Archive_LossOHbyDMS
+      LOGICAL                :: Archive_ProdMSAfromDMS
+      LOGICAL                :: Archive_ProdNITfromHNO3UptakeOnDust
+      LOGICAL                :: Archive_ProdSO2fromDMS
+      LOGICAL                :: Archive_ProdSO2fromDMSandNO3
+      LOGICAL                :: Archive_ProdSO2fromDMSandOH
       LOGICAL                :: Archive_ProdSO4fromGasPhase
       LOGICAL                :: Archive_ProdSO4fromH2O2inCloud
-      LOGICAL                :: Archive_ProdSO4fromO3InCloud
       LOGICAL                :: Archive_ProdSO4fromHOBrInCloud
+      LOGICAL                :: Archive_ProdSO4fromO3InCloud
       LOGICAL                :: Archive_ProdSO4fromO3inSeaSalt
-      LOGICAL                :: Archive_ProdSO4fromSRO3
-      LOGICAL                :: Archive_ProdSO4fromSRHOBr
       LOGICAL                :: Archive_ProdSO4fromO3s
+      LOGICAL                :: Archive_ProdSO4fromOxidationOnDust
+      LOGICAL                :: Archive_ProdSO4fromSRHOBr
+      LOGICAL                :: Archive_ProdSO4fromSRO3
+      LOGICAL                :: Archive_ProdSO4fromUptakeOfH2SO4g
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -692,16 +702,37 @@
          ! For offline runs only ...
          IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
-            ! DMS (offline only)
-            CALL CHEM_DMS( am_I_Root, Input_Opt, State_Met,
-     &                                State_Chm, RC )
+            !--------------------------------
+            ! DMS chemistry (offline only)
+            !--------------------------------
+            CALL CHEM_DMS( am_I_Root, Input_Opt,  State_Met,
+     &                     State_Chm, State_Diag, RC         )
+
+            ! Trap potential errors
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error encountered in "Chem_DMS"!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
+
+            ! Debug info
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_DMS' )
             ENDIF
 
+            !--------------------------------
             ! H2O2 (offline only)
-            CALL CHEM_H2O2( am_I_Root, Input_Opt, State_Met, State_Chm,
-     &                      RC )
+            !--------------------------------
+            CALL CHEM_H2O2( am_I_Root, Input_Opt,  State_Met, 
+     &                      State_Chm, State_Diag, RC         )
+
+            ! Trap potential errors
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error encountered in "Chem_H2O2"!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
+
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_H2O2' )
             ENDIF
@@ -1917,8 +1948,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_DMS( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
+      SUBROUTINE CHEM_DMS( am_I_Root, Input_Opt,  State_Met,
+     &                     State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -1929,6 +1960,7 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -1941,6 +1973,8 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2000,6 +2034,7 @@
 !  24 Jun 2016 - R. Yantosca - Now Return if id_DMS < 0 (not == 0)
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  08 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2155,7 +2190,7 @@
 
 #if defined( BPCH_DIAG )
          !==============================================================
-         ! ND05 diagnostic: production and loss  
+         ! ND05 (bpch) diagnostic: production and loss
          !
          ! For the offline run, we are reading in monthly mean OH, NO3 
          ! from disk.  We don't modify these, so LOH = 0 and LNO3 = 0.
@@ -2168,13 +2203,13 @@
             XN3  = ( DMS_OH - DMS ) / Fx * State_Met%AD(I,J,L) / TCVV_S
             XX   = ( ( DMS0 - DMS ) * State_Met%AD(I,J,L) / TCVV_S )
      &               - XOH  - XN3
-        
+
             ! Grid box volume [cm3]
             BOXVL = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
             ! Convert L(OH) and L(NO3) from [molec/cm3] to [kg/timestep]
             LOH  = ( OH0   - OH  ) * BOXVL / XNUMOL_OH
-            LNO3 = ( XNO30 - XNO3) * BOXVL / XNUMOL_NO3 
+            LNO3 = ( XNO30 - XNO3) * BOXVL / XNUMOL_NO3
 
             ! Store P(SO2) from DMS + OH [kg S/timestep]
             AD05(I,J,L,1) = AD05(I,J,L,1) + XOH
@@ -2198,6 +2233,60 @@
             ! Store L(NO3) by DMS [kg NO3/timestep]
             AD05(I,J,L,10) = AD05(I,J,L,10) + LNO3
 
+         ENDIF
+#endif
+
+#if defined( NC_DIAG )
+         !==============================================================
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! Production and loss diagnostics
+         !==============================================================
+
+         ! P(SO2) from DMS+OH, DMS+NO3, and DMS+X
+         XOH  = ( DMS0   - DMS_OH - PMSA_DMS(I,J,L) ) /
+     &              Fx   * State_Met%AD(I,J,L) / TCVV_S
+         XN3  = ( DMS_OH - DMS ) / Fx * State_Met%AD(I,J,L) / TCVV_S
+         XX   = ( ( DMS0 - DMS ) * State_Met%AD(I,J,L) / TCVV_S )
+     &            - XOH  - XN3
+
+         ! Grid box volume [cm3]
+         BOXVL = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+
+         ! Convert L(OH) and L(NO3) from [molec/cm3] to [kg/timestep]
+         LOH  = ( OH0   - OH  ) * BOXVL / XNUMOL_OH
+         LNO3 = ( XNO30 - XNO3) * BOXVL / XNUMOL_NO3
+
+         ! Store P(SO2) from DMS + OH [kg S/timestep]
+         IF ( Archive_ProdSO2fromDMSandOH ) THEN
+            State_Diag%ProdSO2fromDMSandOH(I,J,L) = XOH
+         ENDIF
+
+         ! Store P(SO2) from DMS + NO3 [kg S/timestep]
+         IF ( Archive_ProdSO2fromDMSandNO3 ) THEN
+            State_Diag%ProdSO2fromDMSandNO3(I,J,L) = XN3
+         ENDIF
+
+         ! Store P(SO2) from DMS + NO3 [kg S/timestep]
+         IF ( Archive_ProdSO2fromDMS ) THEN
+            State_Diag%ProdSO2fromDMS(I,J,L) =
+     &         ( PSO2_DMS(I,J,L) * State_Met%AD(I,J,L) / TCVV_S )
+         ENDIF
+
+         ! Store P(MSA) from DMS [kg S/timestep]
+         IF ( Archive_ProdMSAfromDMS ) THEN
+            State_Diag%ProdMSAfromDMS(I,J,L) =
+     &         ( PMSA_DMS(I,J,L) * State_Met%AD(I,J,L) / TCVV_S )
+         ENDIF
+
+         ! Store L(OH) by DMS [kg OH/timestep]
+         IF ( Archive_LossOHbyDMS ) THEN
+            State_Diag%LossOHbyDMS(I,J,L) = LOH
+         ENDIF
+
+         ! Store L(NO3) by DMS [kg NO3/timestep]
+         IF ( Archive_LossNO3byDMS ) THEN
+            State_Diag%LossNO3byDMS(I,J,L) = LNO3
          ENDIF
 #endif
 
@@ -2236,8 +2325,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_H2O2( am_I_Root, Input_Opt,
-     &                      State_Met, State_Chm, RC )
+      SUBROUTINE CHEM_H2O2( am_I_Root, Input_Opt,  State_Met,
+     &                      State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -2248,6 +2337,7 @@
       USE Input_Opt_Mod,  ONLY : OptInput
       USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
       USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Diag_Mod, ONLY : DgnState
       USE State_Met_Mod,  ONLY : MetState
       USE TIME_MOD,       ONLY : GET_MONTH
       USE TIME_MOD,       ONLY : GET_TS_CHEM
@@ -2262,6 +2352,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2314,6 +2405,7 @@
 !  24 Jun 2016 - R. Yantosca - Now return if id_H2O2 < 0 (not == 0)
 !  30 Jun 2016 - R. Yantosca - Remove instances of Spc.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -2828,12 +2920,14 @@
 
             ! Compute oxidation of SO2 -> SO4 and condensation of
             ! HNO3 -> nitrate within the seasalt aerosol
-            CALL SEASALT_CHEM( I,         J,         L,        ALK1, 
-     &                         ALK2,      SO2_cd,    Kt1,      Kt2,   
-     &                         Kt1N,      Kt2N,      SO2_ss,   PSO4E,  
-     &                         PSO4F,     AlkA,      AlkC,
-     &                         am_I_Root, Input_Opt, 
-     &                         State_Met, State_Chm, FullRun,  RC     )
+            CALL SEASALT_CHEM( I,         J,          L,        
+     &                         ALK1,      ALK2,       SO2_cd,     
+     &                         Kt1,       Kt2,        Kt1N,      
+     &                         Kt2N,      SO2_ss,     PSO4E,  
+     &                         PSO4F,     AlkA,       AlkC,     
+     &                         am_I_Root, Input_Opt,  State_Met, 
+     &                         State_Chm, State_Diag, FullRun,    
+     &                         RC                                )
 
          ELSE
 
@@ -3712,14 +3806,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SEASALT_CHEM ( I,         J,         L,
-     &                          ALK1,      ALK2,      SO2_cd,
-     &                          Kt1,       Kt2,       Kt1N,
-     &                          Kt2N,      SO2_ss,    PSO4E,
-     &                          PSO4F,     AlkA,      AlkC,
-     &                          am_I_Root, Input_Opt,
-     &                          State_Met, State_Chm, 
-     &                          FullRun,   RC )
+      SUBROUTINE SEASALT_CHEM ( I,         J,          L,
+     &                          ALK1,      ALK2,       SO2_cd,
+     &                          Kt1,       Kt2,        Kt1N,
+     &                          Kt2N,      SO2_ss,     PSO4E,
+     &                          PSO4F,     AlkA,       AlkC,
+     &                          am_I_Root, Input_Opt,  State_Met,
+     &                          State_Chm, State_Diag, FullRun,
+     &                          RC                                )
 !
 ! !USES:
 !
@@ -3736,6 +3830,7 @@
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
@@ -3764,6 +3859,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -3810,6 +3906,7 @@
 !                              for aerosol-only sims (where id_HNO3 < 0)
 !  10 Feb 2017 - R. Yantosca - Remove species molecular weights from
 !                              conversions from v/v to equivalents & back
+!  08 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4107,14 +4204,31 @@
 
       ENDIF
 
-      !tdf Added loss of HNO3 on sea salt diagnostic
 #if defined( BPCH_DIAG )
-      IF ( FullRun .and. (ND05 > 0) ) THEN
+      !=================================================================
+      ! ND05 (bpch) diagnostic
+      !
+      ! Loss of HNO3 on sea salt
+      !=================================================================
+      IF ( FullRun .and. ( ND05 > 0 .and. L <= LD05 ) ) THEN
          ! L(HNO3) on sea-salt aerosols [kg N/timestep]
          AD05(I,J,L,14) = AD05(I,J,L,14) +
      &                  ( HNO3_ss * State_Met%AD(I,J,L) / TCVV_N )
       ENDIF
 #endif
+
+#if defined( NC_DIAG ) 
+      !=================================================================
+      ! HISTORY (aka netCDF diagnostics)
+      !
+      ! Loss of HNO3 on sea salt
+      !=================================================================
+      IF ( FullRun .and. Archive_LossHNO3onSeaSalt ) THEN
+         State_Diag%LossHNO3onSeaSalt(I,J,L) =
+     &      ( HNO3_ss * State_Met%AD(I,J,L) / TCVV_N )
+      ENDIF
+#endif
+      
 
       ! NITS produced converted from [eq/timestep] to [v/v/timestep] 
       ! Remove species molecular weight from equation (bmy, 2/10/17)
@@ -7768,36 +7882,69 @@
 
       ! Check if netCDF diagnostics are turned on
       Archive_DryDepChm = 
-     &     ASSOCIATED( State_Diag%DryDepChm              )
+     &     ASSOCIATED( State_Diag%DryDepChm                   )
 
       Archive_DryDep = 
-     &     ASSOCIATED( State_Diag%DryDep                 )
+     &     ASSOCIATED( State_Diag%DryDep                      )
 
-      Archive_ProdSO4fromSRO3 = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromSRO3        )
+      Archive_LossHNO3onSeaSalt =
+     &     ASSOCIATED( State_Diag%LossHNO3onSeaSalt           )
 
-      Archive_ProdSO4fromSRHOBr =
-     &     ASSOCIATED( State_Diag%ProdSO4fromSRHOBr      )
+      Archive_LossNO3byDMS =
+     &     ASSOCIATED( State_Diag%LossNO3byDMS                )
 
-      Archive_ProdSO4fromO3s = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromO3s         )
+      Archive_LossOHbyDMS =
+     &     ASSOCIATED( State_Diag%LossOHbyDMS                 )
+
+      Archive_ProdMSAfromDMS =
+     &     ASSOCIATED( State_Diag%LossOHbyDMS                 )
+
+      Archive_ProdNITfromHNO3uptakeOnDust =
+     &     ASSOCIATED( State_Diag%ProdNITfromHNO3uptakeOnDust )
+
+      Archive_ProdSO2fromDMS = 
+     &     ASSOCIATED( State_Diag%ProdSO2fromDMS              )
+
+      Archive_ProdSO2fromDMSandNO3 = 
+     &     ASSOCIATED( State_Diag%ProdSO2fromDMSandNO3        )
+
+      Archive_ProdSO2fromDMSandOH = 
+     &     ASSOCIATED( State_Diag%ProdSO2fromDMSandOH         )
 
       Archive_ProdSO4fromGasPhase = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromGasPhase    )
+     &     ASSOCIATED( State_Diag%ProdSO4fromGasPhase         )
 
       Archive_ProdSO4fromH2O2inCloud = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromH2O2inCloud )
-
-      Archive_ProdSO4fromO3InCloud = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromO3InCloud   )
+     &     ASSOCIATED( State_Diag%ProdSO4fromH2O2inCloud      )
 
       Archive_ProdSO4fromHOBrInCloud = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromHOBrInCloud )
+     &     ASSOCIATED( State_Diag%ProdSO4fromHOBrInCloud      )
+
+      Archive_ProdSO4fromO3InCloud = 
+     &     ASSOCIATED( State_Diag%ProdSO4fromO3InCloud        )
 
       Archive_ProdSO4fromO3inSeaSalt = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromO3inSeaSalt )
+     &     ASSOCIATED( State_Diag%ProdSO4fromO3inSeaSalt      )
 
+      Archive_ProdSO4fromO3s = 
+     &     ASSOCIATED( State_Diag%ProdSO4fromO3s              )
+
+      Archive_ProdSO4fromOxidationOnDust= 
+     &     ASSOCIATED( State_Diag%ProdSO4fromOxidationOnDust  )
+
+      Archive_ProdSO4fromSRO3 = 
+     &     ASSOCIATED( State_Diag%ProdSO4fromSRO3             )
+
+      Archive_ProdSO4fromSRHOBr =
+     &     ASSOCIATED( State_Diag%ProdSO4fromSRHOBr           )
+
+      Archive_ProdSO4fromUptakeOfH2SO4g =
+     &     ASSOCIATED( State_Diag%ProdSO4fromUptakeOfH2SO4g   )
+
+
+      !=================================================================
       ! Allocate arrays
+      !=================================================================
       ALLOCATE( SSTEMP( IIPAR, JJPAR ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:SSTEMP', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN

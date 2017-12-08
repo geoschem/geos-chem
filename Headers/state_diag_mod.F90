@@ -20,7 +20,7 @@
 MODULE State_Diag_Mod
 !
 ! USES:
-!
+
   USE CMN_Size_Mod,    ONLY : IIPAR, JJPAR, LLPAR, NDUST
   USE CMN_FJX_Mod,     ONLY : STRWVSELECT
   USE Diagnostics_Mod
@@ -116,7 +116,7 @@ MODULE State_Diag_Mod
      ! Sulfur aerosols prod & loss
      REAL(f4),  POINTER :: ProdSO2fromDMSandOH        (:,:,:) 
      REAL(f4),  POINTER :: ProdSO2fromDMSandNO3       (:,:,:) 
-     REAL(f4),  POINTER :: ProdSO2                    (:,:,:)   
+     REAL(f4),  POINTER :: ProdSO2fromDMS             (:,:,:)   
      REAL(f4),  POINTER :: ProdMSAfromDMS             (:,:,:) 
      REAL(f4),  POINTER :: ProdNITfromHNO3uptakeOnDust(:,:,:)
      REAL(f4),  POINTER :: ProdSO4fromGasPhase        (:,:,:) 
@@ -323,7 +323,7 @@ CONTAINS
     State_Diag%ProdMSAfromDMS             => NULL() 
     State_Diag%ProdSO2fromDMSandOH        => NULL() 
     State_Diag%ProdSO2fromDMSandNO3       => NULL() 
-    State_Diag%ProdSO2                    => NULL()   
+    State_Diag%ProdSO2fromDMS             => NULL()   
     State_Diag%ProdSO4fromGasPhase        => NULL() 
     State_Diag%ProdSO4fromH2O2inCloud     => NULL() 
     State_Diag%ProdSO4fromO3inCloud       => NULL() 
@@ -1259,23 +1259,6 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Total production of SO2
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO2'
-       diagID  = 'ProdSO2'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO2( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO2 = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%ProdSO2,   &
-                                   State_Chm, State_Diag, RC               )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
        ! Production of MSA from DMS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdMSAfromDMS'
@@ -1448,7 +1431,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 15
+       DO N = 1, 14
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -1465,22 +1448,20 @@ CONTAINS
              CASE( 6  )                
                 diagID = 'OpticalDepthDust' // TRIM( RadWL(3) )
              CASE( 7  )                
-                diagID = 'ProdSO2'
-             CASE( 8  )                
                 diagID = 'ProdSO4fromGasPhase'
-             CASE( 9  )                
+             CASE( 8  )                
                 diagID = 'ProdSO4fromH2O2inCloud'
-             CASE( 10 )                
+             CASE( 9  )                
                 diagID = 'ProdSO4fromO3inCloud'
-             CASE( 11 )                
+             CASE( 10 )                
                 diagID = 'ProdSO4fromHOBrInCloud'
-             CASE( 12 )                
+             CASE( 11 )                
                 diagID = 'ProdSO4fromO3inSeaSalt'
-             CASE( 13 )                
+             CASE( 12 )                
                 diagID = 'ProdSO4fromSRO3'
-             CASE( 14 )                
+             CASE( 13 )                
                 diagID = 'ProdSO4fromSRHOBr'
-             CASE( 15 )                
+             CASE( 14 )                
                 diagID = 'ProdSO4fromO3s'
           END SELECT
 
@@ -1494,6 +1475,162 @@ CONTAINS
              RETURN
           ENDIF
        ENDDO   
+    ENDIF
+
+    !=======================================================================
+    ! The following quantities are only relevant for 
+    ! aerosol-only simulations
+    !=======================================================================
+    IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+
+       !--------------------------------------------------------------------
+       ! Loss of NO3 by DMS
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%LossNO3byDMS'
+       diagID  = 'LossNO3byDMS'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%LossNO3byDMS( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%LossNO3byDMS = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%LossNO3byDMS,                  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Loss of OH by DMS
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%LossOHbyDMS'
+       diagID  = 'LossOHbyDMS'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%LossOHbyDMS( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%LossOHbyDMS = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%LossOHbyDMS,                   &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of MSA from DMS
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdMSAfromDMS'
+       diagID  = 'ProdMSAfromDMS'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdMSAfromDMS( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdMSAfromDMS = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdMSAfromDMS,                &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Total production of SO2 from DMS
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSO2fromDMS'
+       diagID  = 'ProdSO2fromDMS'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSO2fromDMS( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSO2fromDMS = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                       &
+                                   State_Diag%ProdSO2fromDMS,               &
+                                   State_Chm, State_Diag, RC               )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of SO2 from DMS and NO3
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSO2fromDMSandNO3'
+       diagID  = 'ProdSO2fromDMSandNO3'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSO2fromDMSandNO3( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSO2fromDMSandNO3 = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                       &
+                                   State_Diag%ProdSO2fromDMSandNO3,         &
+                                   State_Chm, State_Diag, RC               )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of SO2 from DMS and OH
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSO2fromDMSandOH'
+       diagID  = 'ProdSO2fromDMSandOH'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSO2fromDMSandOH( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSO2fromDMSandOH = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                       &
+                                   State_Diag%ProdSO2fromDMSandOH,          &
+                                   State_Chm, State_Diag, RC               )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+    ELSE
+
+       !-------------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations other than
+       ! aerosol-only.
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !-------------------------------------------------------------------
+       DO N = 1, 6
+
+          ! Select the diagnostic ID
+          SELECT CASE( N )
+             CASE( 1  ) 
+                diagID = 'LossNO3byDMS'
+             CASE( 2  ) 
+                diagID = 'LossOHbyDMS'
+             CASE( 3  ) 
+                diagID = 'ProdMSAfromDMS'
+             CASE( 4  ) 
+                diagID = 'ProdSO2fromDMS'
+             CASE( 5  ) 
+                diagID = 'ProdSO2fromDMSandNO3'
+             CASE( 6  ) 
+                diagID = 'ProdSO2fromDMSandOH'
+          END SELECT
+
+          ! Exit if any of the above are in the diagnostic list
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+          IF ( Found ) THEN
+             ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                      'but this is only appropriate for aerosol-only '    // &
+                      'simulations.' 
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+ 
     ENDIF
 
     !=======================================================================
@@ -1578,6 +1715,8 @@ CONTAINS
         ENDDO
 
     ENDIF
+
+
 
     ! Format statement
 20  FORMAT( 1x, a32, ' is registered as: ', a )
@@ -1951,9 +2090,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%ProdSO2 ) ) THEN
-       DEALLOCATE(  State_Diag%ProdSO2, STAT=RC  )
-       CALL GC_CheckVar( ' State_Diag%ProdSO2', 2, RC )
+    IF ( ASSOCIATED( State_Diag%ProdSO2fromDMS ) ) THEN
+       DEALLOCATE(  State_Diag%ProdSO2fromDMS, STAT=RC  )
+       CALL GC_CheckVar( ' State_Diag%ProdSO2fromDMS', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -2459,8 +2598,8 @@ CONTAINS
        IF ( isUnits   ) Units = 'kg S'
        IF ( isRank    ) Rank  =  3
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO2' ) THEN
-       IF ( isDesc    ) Desc  = 'Total production of SO2'
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO2FROMDMS' ) THEN
+       IF ( isDesc    ) Desc  = 'Total production of SO2 from DMS'
        IF ( isUnits   ) Units = 'kg S'
        IF ( isRank    ) Rank  =  3
 
