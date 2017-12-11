@@ -7941,7 +7941,6 @@
       Archive_ProdSO4fromUptakeOfH2SO4g =
      &     ASSOCIATED( State_Diag%ProdSO4fromUptakeOfH2SO4g   )
 
-
       !=================================================================
       ! Allocate arrays
       !=================================================================

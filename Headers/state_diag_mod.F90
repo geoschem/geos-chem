@@ -1259,24 +1259,6 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Production of MSA from DMS
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdMSAfromDMS'
-       diagID  = 'ProdMSAfromDMS'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdMSAfromDMS( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdMSAfromDMS = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,                       &
-                                   State_Diag%ProdMSAfromDMS,               &
-                                   State_Chm, State_Diag, RC               )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
        ! Production of SO4 in gas phase
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO4fromGasPhase'
