@@ -469,30 +469,35 @@
       CALL GEOS_Timer_Setup( 1 )
 
       ! Add timers for various operations
-      CALL GEOS_Timer_Add( "GEOS-Chem",           RC )
-      CALL GEOS_Timer_Add( "Initialization",      RC )
-      CALL GEOS_Timer_Add( "Timesteps",           RC )
-      CALL GEOS_Timer_Add( "HEMCO",               RC )
-      CALL GEOS_Timer_Add( "All chemistry",       RC )
-      CALL GEOS_Timer_Add( "=> Strat chem",       RC )
-      CALL GEOS_Timer_Add( "=> Gas-phase chem",   RC )
-      CALL GEOS_Timer_Add( "=> All aerosol chem", RC )
-      CALL GEOS_Timer_Add( "Transport",           RC )
-      CALL GEOS_Timer_Add( "Convection",          RC )
-      CALL GEOS_Timer_Add( "Dry deposition",      RC )
-      CALL GEOS_Timer_Add( "Wet deposition",      RC )
-      CALL GEOS_Timer_Add( "RRTMG",               RC )
-      CALL GEOS_Timer_Add( "Diagnostics",         RC )
+      CALL GEOS_Timer_Add( "GEOS-Chem",            RC )
+      CALL GEOS_Timer_Add( "Initialization",       RC )
+      CALL GEOS_Timer_Add( "Timesteps",            RC )
+      CALL GEOS_Timer_Add( "HEMCO",                RC )
+      CALL GEOS_Timer_Add( "All chemistry",        RC )
+      CALL GEOS_Timer_Add( "=> Strat chem",        RC )
+      CALL GEOS_Timer_Add( "=> Gas-phase chem",    RC )
+      CALL GEOS_Timer_Add( "=> All aerosol chem",  RC )
+      CALL GEOS_Timer_Add( "Transport",            RC )
+      CALL GEOS_Timer_Add( "Convection",           RC )
+      CALL GEOS_Timer_Add( "Dry deposition",       RC )
+      CALL GEOS_Timer_Add( "Wet deposition",       RC )
+      CALL GEOS_Timer_Add( "RRTMG",                RC )
+      CALL GEOS_Timer_Add( "Diagnostics",          RC )
 #if defined( NC_DIAG )
-      CALL GEOS_Timer_Add( 'History',             RC )
+      CALL GEOS_Timer_Add( 'History',              RC )
 #endif
-      CALL GEOS_Timer_Add( "Reading met fields",  RC )
-      CALL GEOS_Timer_Add( "Reading restart file",RC )
-      CALL GEOS_Timer_Add( "Writing restart file",RC )
+      CALL GEOS_Timer_Add( "Reading met fields",   RC )
+      CALL GEOS_Timer_Add( "Reading restart file", RC )
+      CALL GEOS_Timer_Add( "Writing restart file", RC )
+      !%$%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% FOR TESTING SPEEDUP DUE TO STRUCTURAL IMPROVEMENTS
+      !%%% YOU CAN COMMENT THIS OUT IF YOU LIKE
+      CALL GEOS_Timer_Add( "Code Speedup",         RC )
+      !%$%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Start running the main and initialization timer
-      CALL GEOS_Timer_Start( "GEOS-Chem",         RC )
-      CALL GEOS_Timer_Start( "Initialization",    RC )
+      CALL GEOS_Timer_Start( "GEOS-Chem",          RC )
+      CALL GEOS_Timer_Start( "Initialization",     RC )
 #endif
 
       ! Read input file and call init routines from other modules
@@ -1154,6 +1159,9 @@
          CALL INTERP( NSECb, ELAPSED_TODAY,
      &                N_DYN, Input_Opt,     State_Met )
 
+#if defined( USE_TIMERS ) 
+         CALL Geos_Timer_Start( "Code Speedup" , RC )
+#endif
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          !%%% NOTE: This routine can probably be skipped.  It tests if
          !%%% LLTROP is set too low.  Typically we no longer loop to 
@@ -1165,12 +1173,15 @@
          ! Check LLTROP and set LMIN, LMAX, and LPAUSE
          ! since this is not done with READ_TROPOPAUSE anymore.
          ! (Need to double-check that LMIN, Lmax are not used before-phs) 
-         CALL Check_Var_Trop( am_I_Root, State_Met, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Error encountered in "Check_Var_Trop"!'
-            CALL Error_Stop( ErrMsg, ThisLoc )
-         ENDIF
+         !CALL Check_Var_Trop( am_I_Root, State_Met, RC )
+         !IF ( RC /= GC_SUCCESS ) THEN
+         !   ErrMsg = 'Error encountered in "Check_Var_Trop"!'
+         !   CALL Error_Stop( ErrMsg, ThisLoc )
+         !ENDIF
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#if defined( USE_TIMERS ) 
+         CALL Geos_Timer_End( "Code Speedup" , RC )
+#endif
 
          ! If we are not doing transport, then make sure that
          ! the floating pressure is set to PSC2_WET (bdf, bmy, 8/22/02)
@@ -1596,13 +1607,20 @@
 
          ENDIF 
 
-         ! Check State_Chm tracers (yxw)   
-#if defined( GRID05x0625 ) || defined( GRID025x03125 )
-         CALL CHECK_SPC_NESTED( State_Chm, Input_Opt,
-     &                          'after chemistry' )
-#endif 
-
 #if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "Code Speedup", RC )
+#endif
+!-----------------------------------------------------------------------------
+! Prior to 12/11/17:
+! Comment this out to speed up GEOS-Chem (bmy, 12/11/17)
+!         ! Check State_Chm tracers (yxw)   
+!#if defined( GRID05x0625 ) || defined( GRID025x03125 )
+!         CALL CHECK_SPC_NESTED( State_Chm, Input_Opt,
+!     &                          'after chemistry' )
+!#endif 
+!-----------------------------------------------------------------------------
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "Code Speedup", RC )
          CALL GEOS_Timer_End( "All chemistry", RC )
 #endif
 
@@ -1842,10 +1860,16 @@
             !### Debug
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
 
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "Code Speedup", RC )
+#endif
             ! Accumulate several diagnostic quantities
             CALL DIAG1
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG1' )
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "Code Speedup", RC )
+#endif
 
             ! ND41: save PBL height in 1200-1600 LT (amf)
             ! (for comparison w/ Holzworth, 1967)
@@ -1955,17 +1979,26 @@
          ! saved. (ccc, 5/13/09)
          IF ( ITS_TIME_FOR_DIAG() ) THEN
 
-         ! Sometimes tracers in the stratosphere can be negative at 
-         ! the nested-grid domain edges. Force them to be zero before
-         ! CHECK_SPC. (yxw)
-#if defined( GRID05x0625 ) || defined( GRID025x03125)
-            CALL CHECK_SPC_NESTED( State_Chm, Input_Opt,
-     &                             'End of Dynamic Loop' )
-#else
-            CALL CHECK_SPC( State_Chm, Input_Opt, 
-     &                      'End of Dynamic Loop' )
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "Code Speedup", RC )
 #endif
-
+!-----------------------------------------------------------------------------
+! Prior to 12/11/17:
+! Comment this out to speed up GEOS-Chem (bmy, 12/11/17)
+!         ! Sometimes tracers in the stratosphere can be negative at 
+!         ! the nested-grid domain edges. Force them to be zero before
+!         ! CHECK_SPC. (yxw)
+!#if defined( GRID05x0625 ) || defined( GRID025x03125)
+!            CALL CHECK_SPC_NESTED( State_Chm, Input_Opt,
+!     &                             'End of Dynamic Loop' )
+!#else
+!            CALL CHECK_SPC( State_Chm, Input_Opt, 
+!     &                      'End of Dynamic Loop' )
+!#endif
+!-----------------------------------------------------------------------------
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "Code Speedup", RC )
+#endif
          ENDIF
 
 #if defined( USE_TIMERS )

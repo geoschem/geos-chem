@@ -1540,7 +1540,11 @@
       USE CHEMGRID_MOD,       ONLY : GET_MIN_TPAUSE_LEVEL
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : CHECK_SPC
+!-----------------------------------------------------------------------------
+! Prior to 12/11/17:
+! Comment this out to speed up GEOS-Chem (bmy, 12/11/17)
+!      USE ERROR_MOD,          ONLY : CHECK_SPC
+!-----------------------------------------------------------------------------
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -1718,9 +1722,13 @@
 
 !      FIRSTCHEM = .FALSE.
 
-      ! Check Spc for negatives and NaN
-      CALL CHECK_SPC( State_Chm, Input_Opt,
-     &                'IN global_ch4_mod.F: CH4_STRAT' )
+!----------------------------------------------------------------------------
+! Prior to 12/11/17:
+! Comment this out to speed up GEOS-Chem (bmy, 12/11/17)
+!      ! Check Spc for negatives and NaN
+!      CALL CHECK_SPC( State_Chm, Input_Opt,
+!     &                'IN global_ch4_mod.F: CH4_STRAT' )
+!----------------------------------------------------------------------------
 
       ! Free pointer
       Spc => NULL()

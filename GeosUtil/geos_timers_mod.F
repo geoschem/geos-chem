@@ -73,7 +73,7 @@
 
       ! Maximum Supported Timers. Increasing will increase memory
       ! footprint.
-      INTEGER, PARAMETER         :: TimerMaxSize = 18
+      INTEGER, PARAMETER         :: TimerMaxSize = 19
 
       ! The definition of the GEOS_Timer type.
       TYPE GEOS_Timer

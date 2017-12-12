@@ -24,7 +24,11 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: CHECK_VAR_TROP
+      !--------------------------------------------------------------------
+      ! Prior to 12/11/17:
+      ! Comment this routine out to speed up GEOS-Chem (bmy, 12/11/17)
+      !PUBLIC  :: CHECK_VAR_TROP
+      !--------------------------------------------------------------------
       PUBLIC  :: DIAG_TROPOPAUSE
       PUBLIC  :: GET_MIN_CHEMGRID_LEVEL
       PUBLIC  :: GET_MAX_CHEMGRID_LEVEL
@@ -83,80 +87,84 @@
 
       CONTAINS
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Prior to 12/11/17:
+!%%% Comment out this routine to speed up GEOS-Chem (bmy, 12/11/17)
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: check_var_trop
+!!
+!! !DESCRIPTION: Subroutine CHECK\_VAR\_TROP checks that the entire variable 
+!!  troposphere is included in the 1..LLTROP range, and set the LMIN and LMAX
+!!  to current min and max tropopause. 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE CHECK_VAR_TROP( am_I_Root, State_Met, RC )
+!!
+!! !USES:
+!!
+!      USE CMN_SIZE_MOD
+!      USE ErrCode_Mod
+!      USE State_Met_Mod, ONLY : MetState
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!! 
+!! !REVISION HISTORY: 
+!!  24 Aug 2006 - P. Le Sager - Initial version
+!!  (1 ) LLTROP is set at the first level entirely above 20 km (phs, 9/29/06)
+!!  (2 ) Fix LPAUSE for CH4 chemistry (phs, 1/19/07)
+!!  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!!  21 Feb 2014 - M. Sulprizio- Now pass State_Met object via the arg list
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER  :: I, J
+!      REAL(fp) :: TPAUSE_LEV(IIPAR,JJPAR)
 !
-! !IROUTINE: check_var_trop
+!      !=================================================================
+!      ! CHECK_VAR_TROP begins here!
+!      !=================================================================
 !
-! !DESCRIPTION: Subroutine CHECK\_VAR\_TROP checks that the entire variable 
-!  troposphere is included in the 1..LLTROP range, and set the LMIN and LMAX
-!  to current min and max tropopause. 
-!\\
-!\\
-! !INTERFACE:
+!      ! set LMIN and LMAX to current min and max tropopause
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         TPAUSE_LEV(I,J) = GET_TPAUSE_LEVEL( I, J, State_Met )
+!      ENDDO
+!      ENDDO
 !
-      SUBROUTINE CHECK_VAR_TROP( am_I_Root, State_Met, RC )
+!      LMIN = MINVAL( TPAUSE_LEV )
+!      LMAX = MAXVAL( TPAUSE_LEV )
 !
-! !USES:
+!      ! check to be sure LLTROP is large enough.
+!      IF ( LLTROP < LMAX ) THEN
+!         WRITE( 6, '(a)' ) 'CHECK_VAR_TROP: LLTROP is set too low!' 
+!         WRITE( 6, 10   ) LMAX, LLTROP
+! 10      FORMAT( 'MAX TROPOSPHERE LEVEL = ', i3, ' and LLTROP = ', i3 )
+!         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!         
+!         ! Exit with error!
+!         RC = GC_FAILURE
+!         RETURN
+!      ENDIF
 !
-      USE CMN_SIZE_MOD
-      USE ErrCode_Mod
-      USE State_Met_Mod, ONLY : MetState
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
-!  24 Aug 2006 - P. Le Sager - Initial version
-!  (1 ) LLTROP is set at the first level entirely above 20 km (phs, 9/29/06)
-!  (2 ) Fix LPAUSE for CH4 chemistry (phs, 1/19/07)
-!  09 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  21 Feb 2014 - M. Sulprizio- Now pass State_Met object via the arg list
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER  :: I, J
-      REAL(fp) :: TPAUSE_LEV(IIPAR,JJPAR)
-
-      !=================================================================
-      ! CHECK_VAR_TROP begins here!
-      !=================================================================
-
-      ! set LMIN and LMAX to current min and max tropopause
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         TPAUSE_LEV(I,J) = GET_TPAUSE_LEVEL( I, J, State_Met )
-      ENDDO
-      ENDDO
-
-      LMIN = MINVAL( TPAUSE_LEV )
-      LMAX = MAXVAL( TPAUSE_LEV )
-
-      ! check to be sure LLTROP is large enough.
-      IF ( LLTROP < LMAX ) THEN
-         WRITE( 6, '(a)' ) 'CHECK_VAR_TROP: LLTROP is set too low!' 
-         WRITE( 6, 10   ) LMAX, LLTROP
- 10      FORMAT( 'MAX TROPOSPHERE LEVEL = ', i3, ' and LLTROP = ', i3 )
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         
-         ! Exit with error!
-         RC = GC_FAILURE
-         RETURN
-      ENDIF
-
-      END SUBROUTINE CHECK_VAR_TROP
-!EOC
+!      END SUBROUTINE CHECK_VAR_TROP
+!!EOC
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
