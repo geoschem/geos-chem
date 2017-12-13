@@ -148,7 +148,8 @@
       INTEGER, SAVE       :: id_POA1,   id_POA2
       INTEGER, SAVE       :: id_SOAIE,  id_SOAME, id_INDIOL
       INTEGER, SAVE       :: id_SOAGX,  id_SOAMG
-      INTEGER, SAVE       :: id_LVOCOA, id_ISN1OA, IS_BETANOSAVE
+      INTEGER, SAVE       :: id_LVOCOA, id_ISN1OA
+      LOGICAL, SAVE       :: IS_BETANOSAVE
       LOGICAL             :: IS_POA
 
       ! Define number of carbon atoms in each irreversible isoprene
@@ -175,16 +176,16 @@
       IF ( FIRST ) THEN
 
          ! Define species ID flags
-         id_POA1   = Ind_('POA1' )
-         id_POA2   = Ind_('POA2' )
-         id_SOAIE  = Ind_('SOAIE' )
-         id_SOAME  = Ind_('SOAME' )
-         id_INDIOL = Ind_('INDIOL' )
-         id_SOAGX  = Ind_('SOAGX' )
-         id_SOAMG  = Ind_('SOAMG' )
-         id_LVOCOA = Ind_('LVOCOA' )
-         id_ISN1OA = Ind_('ISN1OA' )
-         IS_BETANOSAVE = ASSOCIATED( BETANOSAVE )
+         id_POA1       = Ind_( 'POA1'   )
+         id_POA2       = Ind_( 'POA2'   )
+         id_SOAIE      = Ind_( 'SOAIE'  )
+         id_SOAME      = Ind_( 'SOAME'  )
+         id_INDIOL     = Ind_( 'INDIOL' )
+         id_SOAGX      = Ind_( 'SOAGX'  )
+         id_SOAMG      = Ind_( 'SOAMG'  )
+         id_LVOCOA     = Ind_( 'LVOCOA' )
+         id_ISN1OA     = Ind_( 'ISN1OA' )
+         IS_BETANOSAVE = ALLOCATED( BETANOSAVE )
 
          ! Reset first-time flag
          FIRST = .FALSE.

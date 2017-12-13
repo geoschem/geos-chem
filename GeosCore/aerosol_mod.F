@@ -162,6 +162,9 @@
 
       ! Diagnostic flags
       LOGICAL :: Archive_PM25
+      LOGICAL :: Archive_TerpeneSOA
+      LOGICAL :: Archive_IsopreneSOA
+      LOGICAL :: Archive_AromaticSOA
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -927,14 +930,35 @@
      &               * ( T(I,J,L)   / 298.0_fp    )
 
 #if defined( NC_DIAG )
-         !--------------------------------------------------------------
+         !==============================================================
          ! HISTORY (aka netCDF diagnostics)
          !
-         ! PM2.5 concentration at STP [ug/m3]
+         ! SOA and PM2.5 diagnostics
          !
-         ! NOTE: Convert from [kg/m3] to [ug/m3] below so as to
-         !       match the units of the ND42 bpch diagnostic.
-         !--------------------------------------------------------------
+         ! NOTE: Convert from [kg/m3] to [ug/m3] (factor = 1e9) so 
+         !       as to match the units of the ND42 bpch diagnostic.
+         !==============================================================
+
+         ! Terpene SOA [ug/m3]
+         IF ( Archive_TerpeneSOA ) THEN
+            State_Diag%TerpeneSOA(I,J,L) = ( TSOA(I,J,L) * 1.0e+9_fp )
+         ENDIF
+
+         ! Isoprene SOA [ug/m3]
+         ! NOTE: Includes contribution from semivolatile isoprene OA
+         ! (aka ISOA) and mechanistic isoprene OA (aka ISOAAQ).
+         ! This is done to match the ND42 bpch diagnostic.
+         IF ( Archive_IsopreneSOA ) THEN
+            State_Diag%IsopreneSOA(I,J,L) = 
+     &         ( ( ISOA(I,J,L) + ISOAAQ(I,J,L) ) * 1.0e+9_fp )
+         ENDIF 
+
+         ! Aromatic SOA [ug/m3]
+         IF ( Archive_AromaticSOA ) THEN
+            State_Diag%AromaticSOA(I,J,L) = ( ASOA(I,J,L) * 1.0e+9_fp )
+         ENDIF
+          
+         ! PM2.5 concentration at STP [ug/m3]
          IF ( Archive_PM25 ) THEN
             State_Diag%PM25(I,J,L) = ( PM25(I,J,L) * 1.0e+9_fp )
          ENDIF
@@ -2100,54 +2124,57 @@
       !=================================================================
 
       ! Initialize
-      RC           = GC_SUCCESS
-      ErrMsg       = ''
-      ThisLoc      = 
+      RC        = GC_SUCCESS
+      ErrMsg    = ''
+      ThisLoc   = 
      &   ' -> at Init_Aerosol (in module GeosCore/aerosol_mod.F)'
 
       ! Add tracer ID flags as module variables (bmy, 6/16/16)
-      id_BCPI      = Ind_( 'BCPI'   )
-      id_BCPO      = Ind_( 'BCPO'   )
-      id_DST1      = Ind_( 'DST1'   )
-      id_DST2      = Ind_( 'DST2'   )
-      id_DST3      = Ind_( 'DST3'   ) 
-      id_DST4      = Ind_( 'DST4'   )
-      id_DUST1     = Ind_( 'DUST1'  )
-      id_NH4       = Ind_( 'NH4'    )
-      id_NIT       = Ind_( 'NIT'    ) 
-      id_OCPO      = Ind_( 'OCPO'   ) 
-      id_OCPI      = Ind_( 'OCPI'   )  
-      id_SOAS      = Ind_( 'SOAS'   )  
-      id_SALA      = Ind_( 'SALA'   )  
-      id_SALC      = Ind_( 'SALC'   )   
-      id_SO4       = Ind_( 'SO4'    )         
-      id_SO4s      = Ind_( 'SO4s'   )  
-      id_NITs      = Ind_( 'NITs'   ) 
-      id_POA1      = Ind_( 'POA1'   )   
-      id_POA2      = Ind_( 'POA2'   )    
-      id_OPOA1     = Ind_( 'OPOA1'  )   
-      id_OPOA2     = Ind_( 'OPOA2'  )    
-      id_TSOA1     = Ind_( 'TSOA1'  ) 
-      id_TSOA2     = Ind_( 'TSOA2'  ) 
-      id_TSOA3     = Ind_( 'TSOA3'  )
-      id_TSOA0     = Ind_( 'TSOA0'  ) 
-      id_ISOA1     = Ind_( 'ISOA1'  )  
-      id_ISOA2     = Ind_( 'ISOA2'  )  
-      id_ISOA3     = Ind_( 'ISOA3'  )
-      id_ASOAN     = Ind_( 'ASOAN'  ) 
-      id_ASOA1     = Ind_( 'ASOA1'  )  
-      id_ASOA2     = Ind_( 'ASOA2'  ) 
-      id_ASOA3     = Ind_( 'ASOA3'  )
-      id_SOAGX     = Ind_( 'SOAGX'  )
-      id_SOAMG     = Ind_( 'SOAMG'  )
-      id_SOAIE     = Ind_( 'SOAIE'  )
-      id_SOAME     = Ind_( 'SOAME'  )
-      id_INDIOL    = Ind_( 'INDIOL' )
-      id_LVOCOA    = Ind_( 'LVOCOA' )
-      id_ISN1OA    = Ind_( 'ISN1OA' )
+      id_BCPI   = Ind_( 'BCPI'   )
+      id_BCPO   = Ind_( 'BCPO'   )
+      id_DST1   = Ind_( 'DST1'   )
+      id_DST2   = Ind_( 'DST2'   )
+      id_DST3   = Ind_( 'DST3'   ) 
+      id_DST4   = Ind_( 'DST4'   )
+      id_DUST1  = Ind_( 'DUST1'  )
+      id_NH4    = Ind_( 'NH4'    )
+      id_NIT    = Ind_( 'NIT'    ) 
+      id_OCPO   = Ind_( 'OCPO'   ) 
+      id_OCPI   = Ind_( 'OCPI'   )  
+      id_SOAS   = Ind_( 'SOAS'   )  
+      id_SALA   = Ind_( 'SALA'   )  
+      id_SALC   = Ind_( 'SALC'   )   
+      id_SO4    = Ind_( 'SO4'    )         
+      id_SO4s   = Ind_( 'SO4s'   )  
+      id_NITs   = Ind_( 'NITs'   ) 
+      id_POA1   = Ind_( 'POA1'   )   
+      id_POA2   = Ind_( 'POA2'   )    
+      id_OPOA1  = Ind_( 'OPOA1'  )   
+      id_OPOA2  = Ind_( 'OPOA2'  )    
+      id_TSOA1  = Ind_( 'TSOA1'  ) 
+      id_TSOA2  = Ind_( 'TSOA2'  ) 
+      id_TSOA3  = Ind_( 'TSOA3'  )
+      id_TSOA0  = Ind_( 'TSOA0'  ) 
+      id_ISOA1  = Ind_( 'ISOA1'  )  
+      id_ISOA2  = Ind_( 'ISOA2'  )  
+      id_ISOA3  = Ind_( 'ISOA3'  )
+      id_ASOAN  = Ind_( 'ASOAN'  ) 
+      id_ASOA1  = Ind_( 'ASOA1'  )  
+      id_ASOA2  = Ind_( 'ASOA2'  ) 
+      id_ASOA3  = Ind_( 'ASOA3'  )
+      id_SOAGX  = Ind_( 'SOAGX'  )
+      id_SOAMG  = Ind_( 'SOAMG'  )
+      id_SOAIE  = Ind_( 'SOAIE'  )
+      id_SOAME  = Ind_( 'SOAME'  )
+      id_INDIOL = Ind_( 'INDIOL' )
+      id_LVOCOA = Ind_( 'LVOCOA' )
+      id_ISN1OA = Ind_( 'ISN1OA' )
 
       ! Are certain diagnostics turned on?
-      Archive_PM25 = ASSOCIATED( State_Diag%PM25 )
+      Archive_PM25        = ASSOCIATED( State_Diag%PM25        )
+      Archive_TerpeneSOA  = ASSOCIATED( State_Diag%TerpeneSOA  )
+      Archive_IsopreneSOA = ASSOCIATED( State_Diag%IsopreneSOA )
+      Archive_AromaticSOA = ASSOCIATED( State_Diag%AromaticSOA )
 
       !=================================================================
       ! Allocate arrays

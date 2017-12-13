@@ -90,6 +90,9 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: ODDustBinsWL2   (:,:,:,:) ! All bins 2nd WL dust OD
      REAL(f4),  POINTER :: ODDustBinsWL3   (:,:,:,:) ! All bins 3rd WL dust OD
      REAL(f4),  POINTER :: PM25            (:,:,:  ) ! Part. matter, r < 2.5 um
+     REAL(f4),  POINTER :: TerpeneSOA      (:,:,:  )
+     REAL(f4),  POINTER :: IsopreneSOA     (:,:,:  )
+     REAL(f4),  POINTER :: AromaticSOA     (:,:,:  )
 
      ! Advection
      REAL(f4),  POINTER :: AdvFluxZonal    (:,:,:,:) ! EW Advective Flux
@@ -318,6 +321,9 @@ CONTAINS
     State_Diag%Loss                       => NULL()
     State_Diag%Prod                       => NULL()
     State_Diag%PM25                       => NULL()
+    State_Diag%TerpeneSOA                 => NULL()
+    State_Diag%IsopreneSOA                => NULL()
+    State_Diag%AromaticSOA                => NULL()
 
     State_Diag%PbFromRnDecay              => NULL()
     State_Diag%RadDecay                   => NULL()
@@ -1421,6 +1427,59 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
+       !--------------------------------------------------------------------
+       ! Terpene SOA
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%TerpeneSOA'
+       diagID  = 'TerpeneSOA'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%TerpeneSOA( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%TerpeneSOA = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%TerpeneSOA,                    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Isoprene SOA
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%IsopreneSOA'
+       diagID  = 'IsopreneSOA'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%IsopreneSOA( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%IsopreneSOA = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%IsopreneSOA,                   &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Aromatic SOA
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%AromaticSOA'
+       diagID  = 'AromaticSOA'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AromaticSOA( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AromaticSOA = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%AromaticSOA,    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
     ELSE
 
        !-------------------------------------------------------------------
@@ -1432,7 +1491,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 15
+       DO N = 1, 18
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -1466,6 +1525,12 @@ CONTAINS
                 diagID = 'ProdSO4fromO3s'
              CASE( 15 )                
                 diagID = 'PM25'
+             CASE( 16 )                
+                diagID = 'TerpeneSOA'
+             CASE( 17 )                
+                diagID = 'IsopreneSOA'
+             CASE( 18 )                
+                diagID = 'AromaticSOA'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -2195,6 +2260,25 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%TerpeneSOA ) ) THEN
+       DEALLOCATE( State_Diag%TerpeneSOA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%TerpeneSOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%IsopreneSOA ) ) THEN
+       DEALLOCATE( State_Diag%IsopreneSOA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%IsopreneSOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AromaticSOA ) ) THEN
+       DEALLOCATE( State_Diag%AromaticSOA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AromaticSOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
     !-----------------------------------------------------------------------
@@ -2688,7 +2772,22 @@ CONTAINS
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radius < 2.5 um'
+       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TERPENESOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Monoterpene and sesqiterpene SOA'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISOPRENESOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Isoprene (biogenic) SOA from either semivolatile partitioning or irreversible uptake'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AROMATICSOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Aromatic and intermediate volatility (anthropogenic) SOA'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
