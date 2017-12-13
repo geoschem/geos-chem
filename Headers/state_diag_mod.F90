@@ -89,6 +89,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: ODDustBinsWL1   (:,:,:,:) ! All bins 1st WL dust OD
      REAL(f4),  POINTER :: ODDustBinsWL2   (:,:,:,:) ! All bins 2nd WL dust OD
      REAL(f4),  POINTER :: ODDustBinsWL3   (:,:,:,:) ! All bins 3rd WL dust OD
+     REAL(f4),  POINTER :: PM25            (:,:,:  ) ! Part. matter, r < 2.5 um
 
      ! Advection
      REAL(f4),  POINTER :: AdvFluxZonal    (:,:,:,:) ! EW Advective Flux
@@ -316,6 +317,7 @@ CONTAINS
     State_Diag%O3PconcAfterChem           => NULL()
     State_Diag%Loss                       => NULL()
     State_Diag%Prod                       => NULL()
+    State_Diag%PM25                       => NULL()
 
     State_Diag%PbFromRnDecay              => NULL()
     State_Diag%RadDecay                   => NULL()
@@ -1378,9 +1380,9 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromSRHOBr = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,                       &
-                                   State_Diag%ProdSO4fromSRHOBr,              &
-                                   State_Chm, State_Diag, RC               )
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdSO4fromSRHOBr,             &
+                                   State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
@@ -1397,7 +1399,24 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromO3s = 0.0_f4
           CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%ProdSO4fromO3s,                  &
+                                   State_Diag%ProdSO4fromO3s,                &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! PM25, particulate matter with radius < 2.5 um
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%PM25'
+       diagID  = 'PM25'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%PM25( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%PM25 = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%PM25,    &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -1413,7 +1432,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 14
+       DO N = 1, 15
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -1445,6 +1464,8 @@ CONTAINS
                 diagID = 'ProdSO4fromSRHOBr'
              CASE( 14 )                
                 diagID = 'ProdSO4fromO3s'
+             CASE( 15 )                
+                diagID = 'PM25'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -2168,6 +2189,12 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%PM25 ) ) THEN
+       DEALLOCATE( State_Diag%PM25, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%PM25', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
     !-----------------------------------------------------------------------
@@ -2658,6 +2685,11 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSHNO3ONSEASALT' ) THEN
        IF ( isDesc    ) Desc  = 'Loss of HNO3 on sea salt aerosols'
        IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25' ) THEN
+       IF ( isDesc    ) Desc  = 'Particulate matter with radius < 2.5 um'
+       IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
     ELSE

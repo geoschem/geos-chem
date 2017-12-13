@@ -647,8 +647,8 @@ CONTAINS
           ! Compute aerosol & dust concentrations [kg/m3]
           ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
           !-------------------------------------------------------
-          CALL Aerosol_Conc( am_I_Root, Input_Opt, State_Met,                &
-                             State_Chm, RC                                  )
+          CALL Aerosol_Conc( am_I_Root, Input_Opt,  State_Met,               &
+                             State_Chm, State_Diag, RC                      )
 
           ! Check units (ewl, 10/5/15)
           IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -929,12 +929,9 @@ CONTAINS
        ! NOTE: To speed up execution, only call Chem_Passive_Species
        ! if there is at least one passive species with a finite 
        ! atmospheric lifetime.  There is no reason to apply a loss rate
-       ! to those passive species whose lifetime is infinity.  This
-       ! will help to speed up GEOS-Chem simulations. (bmy, 12/13/17)
+       ! of unity to those passive species whose lifetime is infinity.  
+       ! This will speed up GEOS-Chem simulations. (bmy, 12/13/17)
        !====================================================================
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_Start( "Code Speedup", RC )
-#endif
        IF ( Input_Opt%NPassive_Decay > 0 ) THEN
 
           ! Apply loss rate to passive species with finite lifetimes
@@ -954,9 +951,7 @@ CONTAINS
           ENDIF
 
        ENDIF
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_End( "Code Speedup", RC )
-#endif
+
     ENDIF
      
     !-----------------------------------------------------------------------
@@ -1113,8 +1108,8 @@ CONTAINS
           IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
              ! Skip this section if all of these are turned off
-             CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met,             &
-                                State_Chm, RC                               )
+             CALL AEROSOL_CONC( am_I_Root, Input_Opt,  State_Met,            &
+                                State_Chm, State_Diag, RC                   )
 
              !==============================================================
              ! Call RDAER -- computes aerosol optical depths
@@ -1202,7 +1197,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD,   ONLY : IIPAR, JJPAR, LLPAR, MAXPASV  
+    USE CMN_SIZE_Mod,   ONLY : IIPAR, JJPAR, LLPAR, MAXPASV  
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
@@ -1267,10 +1262,9 @@ CONTAINS
     ! Initialize
     RC       = GC_SUCCESS
     prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
-    DT       = GET_TS_CHEM() * 60.0_fp
     ErrMsg   = ''
     ThisLoc  = &
-         ' -> at Chem_Passive_Species (in module GeosCore/chemistry_mod.F)'
+       ' -> at Chem_Passive_Species (in module GeosCore/chemistry_mod.F)'
 
     !=======================================================================
     ! First-time setup: Get the GEOS-Chem species ID number corresponding
@@ -1279,6 +1273,7 @@ CONTAINS
     IF ( First ) THEN
 
        ! Initialize
+       DT      = GET_TS_CHEM() * 60.0_fp  ! timestep in seconds
        ModelId = -1
        Rate    =  1.0_fp
 

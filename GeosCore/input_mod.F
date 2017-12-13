@@ -9632,7 +9632,7 @@
       !-----------------------------------------------------------------
       IF ( Input_Opt%LSULF .or. Input_Opt%LCARB    .or. 
      &     Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
-         CALL Init_Aerosol( am_I_Root, Input_Opt, RC )
+         CALL Init_Aerosol( am_I_Root, Input_Opt, State_Diag, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN

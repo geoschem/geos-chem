@@ -336,14 +336,15 @@ CONTAINS
 
 #if defined( UCX )
        ! Calculate stratospheric aerosol properties (SDE 04/18/13)
-       CALL CALC_STRAT_AER( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       CALL CALC_STRAT_AER( am_I_Root, Input_Opt, State_Met, State_Chm, RC  )
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### Do_FlexChem: after CALC_PSC' )
        ENDIF
 #endif
 
        ! Compute aerosol concentrations
-       CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       CALL AEROSOL_CONC( am_I_Root, Input_Opt,  State_Met,                  &
+                          State_Chm, State_Diag, RC                         )
 
     ENDIF
 
