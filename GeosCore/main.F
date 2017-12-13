@@ -1159,30 +1159,6 @@
          CALL INTERP( NSECb, ELAPSED_TODAY,
      &                N_DYN, Input_Opt,     State_Met )
 
-#if defined( USE_TIMERS ) 
-         CALL Geos_Timer_Start( "Code Speedup" , RC )
-#endif
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !%%% NOTE: This routine can probably be skipped.  It tests if
-         !%%% LLTROP is set too low.  Typically we no longer loop to 
-         !%%% LLTROP anymore but to LLPAR, and then test if we are no
-         !%%% longer in the chemistry grid.  This might save time.
-         !%%% (bmy, 11/6/17)
-         !
-         ! Case of variable tropopause:
-         ! Check LLTROP and set LMIN, LMAX, and LPAUSE
-         ! since this is not done with READ_TROPOPAUSE anymore.
-         ! (Need to double-check that LMIN, Lmax are not used before-phs) 
-         !CALL Check_Var_Trop( am_I_Root, State_Met, RC )
-         !IF ( RC /= GC_SUCCESS ) THEN
-         !   ErrMsg = 'Error encountered in "Check_Var_Trop"!'
-         !   CALL Error_Stop( ErrMsg, ThisLoc )
-         !ENDIF
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#if defined( USE_TIMERS ) 
-         CALL Geos_Timer_End( "Code Speedup" , RC )
-#endif
-
          ! If we are not doing transport, then make sure that
          ! the floating pressure is set to PSC2_WET (bdf, bmy, 8/22/02)
          ! Now also includes PSC2_DRY (ewl, 5/4/16)
@@ -1607,9 +1583,6 @@
 
          ENDIF 
 
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_Start( "Code Speedup", RC )
-#endif
 !-----------------------------------------------------------------------------
 ! Prior to 12/11/17:
 ! Comment this out to speed up GEOS-Chem (bmy, 12/11/17)
@@ -1620,7 +1593,6 @@
 !#endif 
 !-----------------------------------------------------------------------------
 #if defined( USE_TIMERS )
-         CALL GEOS_Timer_End( "Code Speedup", RC )
          CALL GEOS_Timer_End( "All chemistry", RC )
 #endif
 
@@ -1860,16 +1832,10 @@
             !### Debug
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
 
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_Start( "Code Speedup", RC )
-#endif
             ! Accumulate several diagnostic quantities
             CALL DIAG1
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG1' )
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_End( "Code Speedup", RC )
-#endif
 
             ! ND41: save PBL height in 1200-1600 LT (amf)
             ! (for comparison w/ Holzworth, 1967)

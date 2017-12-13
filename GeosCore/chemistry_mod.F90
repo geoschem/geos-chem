@@ -919,29 +919,44 @@ CONTAINS
        ENDIF
 
        !====================================================================
-       ! Passive species
-       ! This performs a simple loss chemistry on all passive 
-       ! species. Call this routine for all simulation types
-       ! since passive species can be defined for various 
-       ! simulations (as additional species to the default
-       ! ones). ckeller, 09/04/15
-       ! CHEM_PASSIVE_SPECIES is defined below (ckeller, 11/3/16)
+       ! PASSIVE SPECIES
+       !
+       ! This performs a simple loss chemistry on passive species.  Call 
+       ! this routine for all simulation types since passive species can 
+       ! be defined for various simulations (as additional species to the 
+       ! default! ones). ckeller, 09/04/15
+       !
+       ! NOTE: To speed up execution, only call Chem_Passive_Species
+       ! if there is at least one passive species with a finite 
+       ! atmospheric lifetime.  There is no reason to apply a loss rate
+       ! to those passive species whose lifetime is infinity.  This
+       ! will help to speed up GEOS-Chem simulations. (bmy, 12/13/17)
        !====================================================================
-       CALL Chem_Passive_Species( am_I_Root, Input_Opt, State_Met,           &
-                                  State_Chm, RC                             )
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "Code Speedup", RC )
+#endif
+       IF ( Input_Opt%NPassive_Decay > 0 ) THEN
 
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Chem_Passive_Species"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
+          ! Apply loss rate to passive species with finite lifetimes
+          CALL Chem_Passive_Species( am_I_Root, Input_Opt,                   & 
+                                     State_Met, State_Chm, RC               )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Chem_Passive_Species"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+          !### Debug
+          IF ( LPRT .and. am_I_Root ) THEN
+             CALL Debug_Msg( '### MAIN: a CHEMISTRY' )
+          ENDIF
+
        ENDIF
-
-       !### Debug
-       IF ( LPRT .and. am_I_Root ) THEN
-          CALL Debug_Msg( '### MAIN: a CHEMISTRY' )
-       ENDIF
-
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "Code Speedup", RC )
+#endif
     ENDIF
      
     !-----------------------------------------------------------------------
@@ -1177,22 +1192,23 @@ CONTAINS
 ! !IROUTINE: chem_passive_species
 !
 ! !DESCRIPTION: Subroutine RUN\_PASSIVE\_SPECIES performs loss chemistry 
-!  on all passive species.
+!  on passive species with finite atmospheric lifetimes.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CHEM_PASSIVE_SPECIES( am_I_Root, Input_Opt,                     &
+  SUBROUTINE Chem_Passive_Species( am_I_Root, Input_Opt,                     &
                                    State_Met, State_Chm, RC                 ) 
 !
 ! !USES:
 !
+    USE CMN_SIZE_MOD,   ONLY : IIPAR, JJPAR, LLPAR, MAXPASV  
     USE ErrCode_Mod
-    USE Input_Opt_Mod,       ONLY : OptInput
-    USE State_Chm_Mod,       ONLY : ChmState
-    USE State_Met_Mod,       ONLY : MetState
-    USE State_Chm_Mod,       ONLY : ind_ 
-    USE Time_Mod,            ONLY : Get_Ts_Chem
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Met_Mod,  ONLY : MetState
+    USE State_Chm_Mod,  ONLY : ind_ 
+    USE Time_Mod,       ONLY : Get_Ts_Chem
 !
 ! !INPUT PARAMETERS:
 !
@@ -1216,6 +1232,8 @@ CONTAINS
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !  14 Jul 2017 - E. Lundgren - Remove dependency on passive_species_mod.F90
 !  02 Aug 2017 - R. Yantosca - Turn off debug print unless ND70 is activated
+!  13 Dec 2017 - R. Yantosca - Now apply decay only to those passive species
+!                              with finite atmospheric lifetimes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1223,11 +1241,20 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER             :: N, GCID
-    REAL(fp)            :: DT, Rate, Decay
+    LOGICAL             :: prtDebug
+    INTEGER             :: I,       J,      L
+    INTEGER             :: N,       GCId,   Id
+    REAL(fp)            :: DT,      Decay
+
+    ! SAVEd scalars
+    LOGICAL,  SAVE      :: First = .TRUE.
 
     ! Strings
-    CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)  :: ErrMsg,  ThisLoc
+
+    ! Arrays
+    INTEGER,  SAVE      :: ModelId(MAXPASV)
+    REAL(fp), SAVE      :: Rate   (MAXPASV)
 !
 ! !DEFINED PARAMETERS:
 !   
@@ -1238,56 +1265,91 @@ CONTAINS
     !=======================================================================
 
     ! Initialize
-    RC      = GC_SUCCESS
-    DT      = GET_TS_CHEM() * 60.0_fp
-    ErrMsg  = ''
-    ThisLoc = &
+    RC       = GC_SUCCESS
+    prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
+    DT       = GET_TS_CHEM() * 60.0_fp
+    ErrMsg   = ''
+    ThisLoc  = &
          ' -> at Chem_Passive_Species (in module GeosCore/chemistry_mod.F)'
 
-    ! Return if there are no passive species
-    IF ( Input_Opt%NPASSIVE <= 0 ) RETURN
-     
-    !### Debug output
-    IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
-       WRITE( 6, '(a)' ) '### Passive species chemistry: '
+    !=======================================================================
+    ! First-time setup: Get the GEOS-Chem species ID number corresponding
+    ! to each passive species with a finite atmospheric lifetime
+    !=======================================================================
+    IF ( First ) THEN
+
+       ! Initialize
+       ModelId = -1
+       Rate    =  1.0_fp
+
+       ! Loop over all decaying passive species
+       DO N = 1, Input_Opt%NPassive_Decay
+
+          !----------------------------------
+          ! Find the GEOS-Chem species Id
+          !----------------------------------
+
+          ! Get the Id of the species in the passive decay menu
+          Id         = Input_Opt%Passive_DecayID(N)
+
+          ! Convert this to a GEOS-Chem species Id number
+          ModelId(N) = Ind_( TRIM( Input_Opt%PASSIVE_NAME(Id) ) )
+
+          ! Make sure the model ID is valid
+          IF ( ModelId(N) < 0 ) THEN
+             ErrMsg = 'Could not find the GEOS-Chem species ID # '        // &
+                      'for passive species : '                            // &
+                      TRIM( Input_Opt%PASSIVE_NAME(Id) )
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+          !----------------------------------
+          ! Pre-compute the decay rate
+          ! and store in an array 
+          !----------------------------------
+
+          ! Compute the decay rate for each passive species
+          Decay    = ln2 / Input_Opt%PASSIVE_TAU(Id)
+          Rate(N)  = EXP( - DT * Decay )
+
+          !### Debug output
+          IF ( prtDebug ) THEN
+             WRITE( 6,100 ) ADJUSTL( Input_Opt%PASSIVE_NAME(Id) ),           &
+                            ModelId(N), Rate(N)
+ 100         FORMAT( '     -  Pass. species name, Id, loss rate:',           &
+                      a15, i5, 1x, es13.6 )
+          ENDIF
+       ENDDO
+
+       ! Reset
+       First = .FALSE.
     ENDIF
-    
-    !-------------------------------
-    ! Do for every passive species
-    !-------------------------------
-    DO N = 1, Input_Opt%NPASSIVE
 
-       ! Sanity check (GCID should never be negative)
-       GCID = ind_( TRIM(Input_Opt%PASSIVE_NAME(N)) )
-       IF ( GCID <= 0 ) CYCLE
+    !=======================================================================
+    ! Apply decay loss rate only to those passive species that have a
+    ! finite atmospheric lifetime (this speeds up execution)
+    !=======================================================================
+    !$OMP PARALLEL DO                  &
+    !$OMP DEFAULT( SHARED            ) &
+    !$OMP PRIVATE( I, J, L, N, GcId  )
+    DO N = 1, Input_Opt%NPassive_Decay
 
-       ! No loss needed if tau is zero or negative;
-       ! otherwise, calculate rate
-       IF ( Input_Opt%PASSIVE_TAU(N) <= 0.0_fp ) THEN
-          Rate = 1.0_fp
-       ELSE 
-          Decay    = ln2 / Input_Opt%PASSIVE_TAU(N)
-          Rate     = EXP( - DT * Decay )
-       ENDIF
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Passive species rate error: ' //                         &
-                    TRIM(Input_Opt%PASSIVE_NAME(N))
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+       ! Get the GEOS-Chem species Id number
+       GcId  = ModelId(N)
 
        ! Apply loss
-       State_Chm%Species(:,:,:,GCID) = State_Chm%Species(:,:,:,GCID) * Rate
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          State_Chm%Species(I,J,L,GcId) = State_Chm%Species(I,J,L,GcId)      &
+                                        * Rate(N)
+       ENDDO
+       ENDDO
+       ENDDO
 
-       !### Debug output
-       IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
-          WRITE(6,*) '- Pass. species, Species ID, loss rate: ',            &
-                      TRIM(Input_Opt%PASSIVE_NAME(N)), GCID, Rate
-       ENDIF
-       
     ENDDO
+    !$OMP END PARALLEL DO
  
   END SUBROUTINE Chem_Passive_Species
 !EOC
@@ -1339,9 +1401,9 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      
-    ! Scalars
-    LOGICAL, SAVE :: FIRST = .TRUE.
+
+    ! SAVEd scalars
+    LOGICAL, SAVE      :: FIRST = .TRUE.
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc

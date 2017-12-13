@@ -74,11 +74,13 @@ MODULE Input_Opt_Mod
      ! PASSIVE SPECIES MENU fields
      !----------------------------------------
      INTEGER                     :: NPASSIVE
+     INTEGER                     :: NPASSIVE_DECAY
      CHARACTER(LEN=63), POINTER  :: PASSIVE_NAME    (:)
      INTEGER,           POINTER  :: PASSIVE_ID      (:)
      REAL(fp),          POINTER  :: PASSIVE_MW      (:)
      REAL(fp),          POINTER  :: PASSIVE_TAU     (:)
      REAL(fp),          POINTER  :: PASSIVE_INITCONC(:)
+     INTEGER,           POINTER  :: PASSIVE_DECAYID (:)
 
      !----------------------------------------
      ! ADVECTED SPECIES MENU fields
@@ -772,13 +774,16 @@ CONTAINS
     ALLOCATE( Input_Opt%PASSIVE_MW      ( MAXPASV ), STAT=RC )
     ALLOCATE( Input_Opt%PASSIVE_TAU     ( MAXPASV ), STAT=RC )
     ALLOCATE( Input_Opt%PASSIVE_INITCONC( MAXPASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_DECAYID ( MAXPASV ), STAT=RC )
 
-    Input_Opt%NPASSIVE               = 0           
-    Input_Opt%PASSIVE_NAME    (:)    = ''
-    Input_Opt%PASSIVE_ID      (:)    = -999
-    Input_Opt%PASSIVE_MW      (:)    = 0.0_fp
-    Input_Opt%PASSIVE_TAU     (:)    = 0.0_fp
-    Input_Opt%PASSIVE_INITCONC(:)    = 0.0_fp
+    Input_Opt%NPASSIVE               = 0 
+    Input_Opt%NPASSIVE_DECAY         = 0 
+    Input_Opt%PASSIVE_NAME           = ''
+    Input_Opt%PASSIVE_ID             = -999
+    Input_Opt%PASSIVE_MW             = 0.0_fp
+    Input_Opt%PASSIVE_TAU            = 0.0_fp
+    Input_Opt%PASSIVE_INITCONC       = 0.0_fp
+    Input_Opt%PASSIVE_DECAYID        = 0
                                   
     !----------------------------------------
     ! ADVECTED SPECIES MENU fields

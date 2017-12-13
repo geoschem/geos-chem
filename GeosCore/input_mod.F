@@ -8601,7 +8601,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: I, N, NP, P, IDX, nPassive
+      INTEGER            :: I, N, NP, P, IDX, nPassive, D
       CHARACTER(LEN=31)  :: SpcName
       REAL(fp)           :: SpcMW, SpcTau, SpcInitConc
 
@@ -8637,6 +8637,9 @@
       ! - Atmospheric lifetime (s)
       ! - Default atmospheric concentration (v/v)
       IF ( Input_Opt%NPASSIVE > 0 ) THEN
+
+         ! Index for decaying passive species
+         D = 0
 
          ! Loop over the number of listed passive species
          DO NP = 1, Input_Opt%NPASSIVE
@@ -8677,11 +8680,21 @@
             Input_Opt%PASSIVE_INITCONC(IDX) = SpcInitConc 
             Input_Opt%PASSIVE_MW(IDX)       = SpcMW
 
+            ! Determine if the passive species decays (i.e. if it has 
+            ! an atmospheric lifetime that is not -1).  This will allow
+            ! us to skip those passive species that do not decay in
+            ! routine CHEM_PASSIVE_SPECIES, to speed up execution.
+            IF ( SpcTau > 0.0_fp ) THEN
+               D                            = D + 1
+               Input_Opt%NPASSIVE_DECAY     = D
+               Input_Opt%PASSIVE_DECAYID(D) = IDX
+            ENDIF
+
             ! Verbose
             IF ( am_I_Root ) THEN
                WRITE( 6, '(a)' ) 'Added passive species: '
                WRITE( 6, 110   ) ' - Species name                : ', 
-     &               Input_Opt%PASSIVE_NAME(IDX) 
+     &               TRIM( Input_Opt%PASSIVE_NAME(IDX) ) 
                WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ', 
      &               Input_Opt%PASSIVE_MW(IDX)
                WRITE( 6, 120   ) ' - Lifetime [s]                : ', 
