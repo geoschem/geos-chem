@@ -102,8 +102,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE FAST_JX( WLAOD, am_I_Root, Input_Opt, State_Met,
-     &                    State_Chm, State_Diag, RC )
+      SUBROUTINE FAST_JX( WLAOD,     am_I_Root, Input_Opt, 
+     &                    State_Met, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -147,11 +147,14 @@
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options 
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State obj
       TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State obj
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State obj
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !
@@ -271,24 +274,42 @@
       ! Species ID flags
       INTEGER, SAVE :: id_O3
 
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
       !=================================================================
       ! FAST_JX begins here!
       !=================================================================
 
-      ! Assume success
-      RC = GC_SUCCESS
+      ! Initialize
+      RC        = GC_SUCCESS
+      ErrMsg    = ''
+      ThisLoc   = ' -> at Fast_JX (in module GeosCore/fast_jx_mod.F)'
+      LPRT      = ( am_I_Root .and. Input_Opt%LPRT )
 
-      ! Copy fields from INPUT_OPT
-      LPRT = ( am_I_Root .and. Input_Opt%LPRT )
+      ! Get day of year (0-365 or 0-366)
+      DAY_OF_YR = GET_DAY_OF_YEAR()
 
+      ! Get current month
+      MONTH     = GET_MONTH()
+
+      ! Get day of month
+      DAY       = GET_DAY()
+
+      ! Was AOD calculated at 999 nm or reference?
+      AOD999    = ( WLAOD == 0 )
+
+      !-----------------------------------------------------------------
       ! Special handling for first-time setup
+      !-----------------------------------------------------------------
       IF ( FIRST ) THEN
 
          ! Get the species ID for O3
          id_O3 = Ind_('O3')
          IF ( id_O3 < 0 ) THEN
-            CALL ERROR_STOP( 'O3 is not a defined species!', 
-     &                       'GeosCore/fast_jx_mod.F' )
+            ErrMsg = 'O3 is not a defined species!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
 #if defined( USE_MAXIMUM_RANDOM_OVERLAP )
@@ -302,18 +323,6 @@
          FIRST = .FALSE.
 
       ENDIF
-
-      ! Get day of year (0-365 or 0-366)
-      DAY_OF_YR = GET_DAY_OF_YEAR()
-
-      ! Get current month
-      MONTH     = GET_MONTH()
-
-      ! Get day of month
-      DAY       = GET_DAY()
-
-      ! Was AOD calculated at 999 nm or reference?
-      AOD999    = ( WLAOD == 0 )
 
       !=================================================================
       ! For each (NLON,NLAT) location, call subroutine PHOTO_JX (in a 
@@ -1643,7 +1652,8 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_FJX( am_I_Root, Input_Opt, State_Diag, RC )
+      SUBROUTINE INIT_FJX( am_I_Root, Input_Opt, 
+     &                     State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -1651,13 +1661,15 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE inquireMod,     ONLY : findFreeLUN
-      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Chm_Mod,  ONLY : Ind_      
       USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Diagnostics State object
       TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
@@ -1675,18 +1687,23 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                     :: JXUNIT,J
-      CHARACTER(LEN=255)          :: FILENAME
-      INTEGER                     :: NJXX
-      CHARACTER*6,DIMENSION(JVN_) :: TITLEJXX
-      REAL(fp)                    :: ND64MULT
+      ! Scalars
+      INTEGER            :: JXUNIT, J, NJXX, PhotoId
+      REAL(fp)           :: ND64MULT
+
+       ! Strings
+      CHARACTER(LEN=6)   :: TITLEJXX(JVN_)
+      CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       !=================================================================
       ! INIT_FJX begins here!
       !=================================================================
 
-      ! Assume success
-      RC = GC_SUCCESS
+      ! Initialize
+      RC       = GC_SUCCESS
+      ErrMsg   = ''
+      ThisLoc  = ' -> at Init_FJX (in module GeosCore/fast_jx_mod.F)'
 
       ! Define species IDs
       id_CH2IBr   = IND_('CH2IBr'  )
@@ -1717,7 +1734,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Get a free LUN
       JXUNIT = findFreeLUN()
 
+      !=====================================================================
       ! Read in fast-J X-sections (spectral data)
+      !=====================================================================
       FILENAME = 'FJX_spec.dat'
 
       ! Echo info
@@ -1737,7 +1756,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          ENDDO
       ENDIF
 
+      !=====================================================================
       ! Read in 5-wavelength scattering data
+      !=====================================================================
       FILENAME = 'jv_spec_mie.dat'
 
       ! Echo info
@@ -1747,13 +1768,18 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root, Input_Opt )
 
+      !=====================================================================
       ! Read in AOD data
+      !=====================================================================
       call RD_AOD(JXUNIT, am_I_Root, Input_Opt )
 
       ! Set up MIEDX array to interpret between GC and FJX aerosol indexing
       call SET_AER(am_I_Root)
 
-      ! Read in T & O3 climatology used to fill e.g. upper layers or if O3 not calc.
+      !=====================================================================
+      ! Read in T & O3 climatology used to fill e.g. upper layers 
+      ! or if O3 not calc.
+      !=====================================================================
       call RD_PROF_NC( am_I_Root, Input_Opt, RC )
 
       NJXX = NJX
@@ -1761,8 +1787,10 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
         TITLEJXX(J) = TITLEJX(J)
       enddo
 
-      ! Read in photolysis rates used in chemistry code and mapping onto FJX J's
-      ! CTM call:  read in J-values names and link to fast-JX names
+      !=====================================================================
+      ! Read in photolysis rates used in chemistry code and mapping onto 
+      ! FJX J's CTM call:  read in J-values names and link to fast-JX names
+      !=====================================================================
       FILENAME = 'FJX_j2j.dat'
 
       ! Echo info
@@ -1770,7 +1798,17 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
       ENDIF
 
-      call RD_JS_JX(JXUNIT,TRIM( FILENAME ), TITLEJXX,NJXX,am_I_Root)
+      ! Read mapping information
+      CALL RD_JS_JX( JXUNIT,   TRIM( FILENAME ), 
+     &               TITLEJXX, NJXX,             am_I_Root )
+
+      ! Get the GEOS-Chem photolysis index for each of the 1...JVN_ entries 
+      ! in the FJX_j2j.dat file.  We'll use this for the diagnostics.
+      DO J = 1, JVN_
+         GC_Photo_Id(J) = Ind_( RNAMES(J), 'P' )
+         WRITE( 6, 200 ) RNAMES(J), J, GC_Photo_Id(J), JFACTA(J)
+ 200     FORMAT( a10, ':', 2i7, f7.4 )
+      ENDDO
 
       END SUBROUTINE INIT_FJX
 !EOC
@@ -2848,7 +2886,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
  150  FORMAT( 'RXN_O3_2b [ O3  + hv -> O2 + O(1D) #2 ]  =  ', i5 )
  160  FORMAT( 'RXN_H2SO4 [ SO4 + hv -> SO2 + OH + OH ]  =  ', i5 )
  170  FORMAT( 'RXN_NO2   [ NO2 + hv -> NO + O        ]  =  ', i5 )
-
+      
       END SUBROUTINE RD_JS_JX
 !EOC
 !------------------------------------------------------------------------------
@@ -3360,6 +3398,7 @@ C-----------------------------------------------------------------------
          ENDDO
       ENDIF
 
+#if defined( BPCH_DIAG )
       !---------------------------------------------------------------
       ! Archive J-values for ND22 diagnostic
       !---------------------------------------------------------------
@@ -3538,65 +3577,66 @@ C-----------------------------------------------------------------------
          ENDIF
 
       ENDIF
-
-#if defined( NC_DIAG )
-      IF ( ( ASSOCIATED(State_Diag%JValues) ) .AND. 
-     &     ( LTJV(ILON,ILAT) > 0            ) ) THEN
-         
-         DO L = 1, LLPAR
-            ! AD22 IDs 5, 6, and 15 (J-values for O3 and O2)
-            ! are handled in routine PHOTRATE_ADJ
-            ! Hardcode ZPJ indices based on valued from FJX_j2j.dat
-            ! for now as is done for binary diag array AD22. We should
-            ! create a mapping for these in species database in the near
-            ! future rather than hard-code (ewl, 10/3/17)
-            !State_Diag%JValues(ILON,ILAT,L, 1) = ZPJ(L,11,ILON,ILAT)  ! JNO2
-            !State_Diag%JValues(ILON,ILAT,L, 2) = ZPJ(L,16,ILON,ILAT)  ! JHNO3
-            !State_Diag%JValues(ILON,ILAT,L, 3) = ZPJ(L, 9,ILON,ILAT)  ! JH2O2
-            !State_Diag%JValues(ILON,ILAT,L, 4) = ZPJ(L, 7,ILON,ILAT)  
-     &      !                                   + ZPJ(L, 8,ILON,ILAT)  ! JCH2O
-            !State_Diag%JValues(ILON,ILAT,L, 7) = ZPJ(L,72,ILON,ILAT)   
-     &      !                                   + ZPJ(L,73,ILON,ILAT)   
-     &      !                                   + ZPJ(L,74,ILON,ILAT)  ! JGLYX
-            !State_Diag%JValues(ILON,ILAT,L, 8) = ZPJ(L,71,ILON,ILAT)  ! JMGLY
-            !State_Diag%JValues(ILON,ILAT,L, 9) = ZPJ(L,28,ILON,ILAT)  ! JBrO
-            !State_Diag%JValues(ILON,ILAT,L,10) = ZPJ(L,32,ILON,ILAT)  ! JHOBr
-            !State_Diag%JValues(ILON,ILAT,L,11) = ZPJ(L,31,ILON,ILAT)  ! JBrNO2
-            !State_Diag%JValues(ILON,ILAT,L,12) = ZPJ(L,29,ILON,ILAT)   
-     &      !                                   + ZPJ(L,30,ILON,ILAT)  ! JBrNO3
-            !State_Diag%JValues(ILON,ILAT,L,13) = ZPJ(L,56,ILON,ILAT)  ! JCHBr3
-            !State_Diag%JValues(ILON,ILAT,L,14) = ZPJ(L,23,ILON,ILAT)  ! JBr2
-            !State_Diag%JValues(ILON,ILAT,L,16) = ZPJ(L,36,ILON,ILAT)  ! JN2O
-            !State_Diag%JValues(ILON,ILAT,L,17) = ZPJ(L, 6,ILON,ILAT)  ! JNO
-            !State_Diag%JValues(ILON,ILAT,L,18) = ZPJ(L,12,ILON,ILAT)   
-     &      !                                   + ZPJ(L,13,ILON,ILAT)  ! JNO3
-            !State_Diag%JValues(ILON,ILAT,L,19) = ZPJ(L,37,ILON,ILAT)  ! JCFC11
-            !State_Diag%JValues(ILON,ILAT,L,20) = ZPJ(L,38,ILON,ILAT)  ! JCFC12
-            !State_Diag%JValues(ILON,ILAT,L,21) = ZPJ(L,42,ILON,ILAT)  ! JCCl4
-            !State_Diag%JValues(ILON,ILAT,L,22) = ZPJ(L,43,ILON,ILAT)  ! JCH3Cl
-            !State_Diag%JValues(ILON,ILAT,L,23) = ZPJ(L,76,ILON,ILAT)   
-     &      !                                   + ZPJ(L,77,ILON,ILAT)  ! JACET
-            !State_Diag%JValues(ILON,ILAT,L,24) = ZPJ(L,61,ILON,ILAT)   
-     &      !                                   + ZPJ(L,62,ILON,ILAT)  ! JALD2
-            !State_Diag%JValues(ILON,ILAT,L,25) = ZPJ(L,63,ILON,ILAT)   
-     &      !                                   + ZPJ(L,64,ILON,ILAT)   
-     &      !                                   + ZPJ(L,65,ILON,ILAT)  ! JMVK
-            !State_Diag%JValues(ILON,ILAT,L,26) = ZPJ(L,66,ILON,ILAT)   
-     &      !                                   + ZPJ(L,67,ILON,ILAT)  ! JMACR
-            !State_Diag%JValues(ILON,ILAT,L,27) = ZPJ(L,75,ILON,ILAT)  ! JHAC
-            !State_Diag%JValues(ILON,ILAT,L,28) = ZPJ(L,68,ILON,ILAT)  ! JGLYC
-            !State_Diag%JValues(ILON,ILAT,L,29) = ZPJ(L,106,ILON,ILAT) ! JPIP
-            !State_Diag%JValues(ILON,ILAT,L,30) = ZPJ(L,107,ILON,ILAT) ! JIPMN
-            !State_Diag%JValues(ILON,ILAT,L,31) = ZPJ(L,108,ILON,ILAT) ! JETHLN
-            !State_Diag%JValues(ILON,ILAT,L,32) = ZPJ(L,109,ILON,ILAT) ! JDHDN
-            !State_Diag%JValues(ILON,ILAT,L,33) = ZPJ(L,110,ILON,ILAT) ! JHPALD
-            !State_Diag%JValues(ILON,ILAT,L,34) = ZPJ(L,111,ILON,ILAT) ! JISN1
-            !State_Diag%JValues(ILON,ILAT,L,35) = ZPJ(L,112,ILON,ILAT) ! JMONITS
-            !State_Diag%JValues(ILON,ILAT,L,36) = ZPJ(L,113,ILON,ILAT) ! JMONITU
-            !State_Diag%JValues(ILON,ILAT,L,37) = ZPJ(L,114,ILON,ILAT) ! JHONIT
-         ENDDO
-      ENDIF
 #endif
+
+!#if defined( NC_DIAG )
+!      IF ( ( ASSOCIATED(State_Diag%JValues) ) .AND. 
+!     &     ( LTJV(ILON,ILAT) > 0            ) ) THEN
+!         
+!         DO L = 1, LLPAR
+!            ! AD22 IDs 5, 6, and 15 (J-values for O3 and O2)
+!            ! are handled in routine PHOTRATE_ADJ
+!            ! Hardcode ZPJ indices based on valued from FJX_j2j.dat
+!            ! for now as is done for binary diag array AD22. We should
+!            ! create a mapping for these in species database in the near
+!            ! future rather than hard-code (ewl, 10/3/17)
+!            !State_Diag%JValues(ILON,ILAT,L, 1) = ZPJ(L,11,ILON,ILAT)  ! JNO2
+!            !State_Diag%JValues(ILON,ILAT,L, 2) = ZPJ(L,16,ILON,ILAT)  ! JHNO3
+!            !State_Diag%JValues(ILON,ILAT,L, 3) = ZPJ(L, 9,ILON,ILAT)  ! JH2O2
+!            !State_Diag%JValues(ILON,ILAT,L, 4) = ZPJ(L, 7,ILON,ILAT)  
+!     &      !                                   + ZPJ(L, 8,ILON,ILAT)  ! JCH2O
+!            !State_Diag%JValues(ILON,ILAT,L, 7) = ZPJ(L,72,ILON,ILAT)   
+!     &      !                                   + ZPJ(L,73,ILON,ILAT)   
+!     &      !                                   + ZPJ(L,74,ILON,ILAT)  ! JGLYX
+!            !State_Diag%JValues(ILON,ILAT,L, 8) = ZPJ(L,71,ILON,ILAT)  ! JMGLY
+!            !State_Diag%JValues(ILON,ILAT,L, 9) = ZPJ(L,28,ILON,ILAT)  ! JBrO
+!            !State_Diag%JValues(ILON,ILAT,L,10) = ZPJ(L,32,ILON,ILAT)  ! JHOBr
+!            !State_Diag%JValues(ILON,ILAT,L,11) = ZPJ(L,31,ILON,ILAT)  ! JBrNO2
+!            !State_Diag%JValues(ILON,ILAT,L,12) = ZPJ(L,29,ILON,ILAT)   
+!     &      !                                   + ZPJ(L,30,ILON,ILAT)  ! JBrNO3
+!            !State_Diag%JValues(ILON,ILAT,L,13) = ZPJ(L,56,ILON,ILAT)  ! JCHBr3
+!            !State_Diag%JValues(ILON,ILAT,L,14) = ZPJ(L,23,ILON,ILAT)  ! JBr2
+!            !State_Diag%JValues(ILON,ILAT,L,16) = ZPJ(L,36,ILON,ILAT)  ! JN2O
+!            !State_Diag%JValues(ILON,ILAT,L,17) = ZPJ(L, 6,ILON,ILAT)  ! JNO
+!            !State_Diag%JValues(ILON,ILAT,L,18) = ZPJ(L,12,ILON,ILAT)   
+!     &      !                                   + ZPJ(L,13,ILON,ILAT)  ! JNO3
+!            !State_Diag%JValues(ILON,ILAT,L,19) = ZPJ(L,37,ILON,ILAT)  ! JCFC11
+!            !State_Diag%JValues(ILON,ILAT,L,20) = ZPJ(L,38,ILON,ILAT)  ! JCFC12
+!            !State_Diag%JValues(ILON,ILAT,L,21) = ZPJ(L,42,ILON,ILAT)  ! JCCl4
+!            !State_Diag%JValues(ILON,ILAT,L,22) = ZPJ(L,43,ILON,ILAT)  ! JCH3Cl
+!            !State_Diag%JValues(ILON,ILAT,L,23) = ZPJ(L,76,ILON,ILAT)   
+!     &      !                                   + ZPJ(L,77,ILON,ILAT)  ! JACET
+!            !State_Diag%JValues(ILON,ILAT,L,24) = ZPJ(L,61,ILON,ILAT)   
+!     &      !                                   + ZPJ(L,62,ILON,ILAT)  ! JALD2
+!            !State_Diag%JValues(ILON,ILAT,L,25) = ZPJ(L,63,ILON,ILAT)   
+!     &      !                                   + ZPJ(L,64,ILON,ILAT)   
+!     &      !                                   + ZPJ(L,65,ILON,ILAT)  ! JMVK
+!            !State_Diag%JValues(ILON,ILAT,L,26) = ZPJ(L,66,ILON,ILAT)   
+!     &      !                                   + ZPJ(L,67,ILON,ILAT)  ! JMACR
+!            !State_Diag%JValues(ILON,ILAT,L,27) = ZPJ(L,75,ILON,ILAT)  ! JHAC
+!            !State_Diag%JValues(ILON,ILAT,L,28) = ZPJ(L,68,ILON,ILAT)  ! JGLYC
+!            !State_Diag%JValues(ILON,ILAT,L,29) = ZPJ(L,106,ILON,ILAT) ! JPIP
+!            !State_Diag%JValues(ILON,ILAT,L,30) = ZPJ(L,107,ILON,ILAT) ! JIPMN
+!            !State_Diag%JValues(ILON,ILAT,L,31) = ZPJ(L,108,ILON,ILAT) ! JETHLN
+!            !State_Diag%JValues(ILON,ILAT,L,32) = ZPJ(L,109,ILON,ILAT) ! JDHDN
+!            !State_Diag%JValues(ILON,ILAT,L,33) = ZPJ(L,110,ILON,ILAT) ! JHPALD
+!            !State_Diag%JValues(ILON,ILAT,L,34) = ZPJ(L,111,ILON,ILAT) ! JISN1
+!            !State_Diag%JValues(ILON,ILAT,L,35) = ZPJ(L,112,ILON,ILAT) ! JMONITS
+!            !State_Diag%JValues(ILON,ILAT,L,36) = ZPJ(L,113,ILON,ILAT) ! JMONITU
+!            !State_Diag%JValues(ILON,ILAT,L,37) = ZPJ(L,114,ILON,ILAT) ! JHONIT
+!         ENDDO
+!      ENDIF
+!#endif
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% COMMENT OUT FAST-J DIAGNOSTICS FOR NOW (bmy, 3/5/14)
@@ -4970,13 +5010,13 @@ c  Ensure all 'AN_' types are valid selections
          ENDIF
       ENDIF
 
-#if defined( NC_DIAG ) 
-      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
-         IF ( LTJV(I,J) > 0 ) THEN
-            !State_Diag%JValues(I,J,L,15) = ZPJ(L,RXN_O2,I,J)
-         ENDIF
-      ENDIF
-#endif
+!#if defined( NC_DIAG ) 
+!      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
+!         IF ( LTJV(I,J) > 0 ) THEN
+!            !State_Diag%JValues(I,J,L,15) = ZPJ(L,RXN_O2,I,J)
+!         ENDIF
+!      ENDIF
+!#endif
 
 #endif
 
@@ -5006,14 +5046,14 @@ c  Ensure all 'AN_' types are valid selections
          ENDIF
       ENDIF
 
-#if defined( NC_DIAG )
-      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
-         IF ( LTJV(I,J) > 0 ) THEN
-            !State_Diag%JValues(I,J,L,5) = ZPJ(L,RXN_O3_2a,I,J)
-            !State_Diag%JValues(I,J,L,6) = ZPJ(L,RXN_O3_1, I,J)
-         ENDIF
-      ENDIF
-#endif
+!#if defined( NC_DIAG )
+!      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
+!         IF ( LTJV(I,J) > 0 ) THEN
+!            !State_Diag%JValues(I,J,L,5) = ZPJ(L,RXN_O3_2a,I,J)
+!            !State_Diag%JValues(I,J,L,6) = ZPJ(L,RXN_O3_1, I,J)
+!         ENDIF
+!      ENDIF
+!#endif
 
 #else
 
@@ -5025,13 +5065,13 @@ c  Ensure all 'AN_' types are valid selections
          ENDIF
       ENDIF
 
-#if defined( NC_DIAG )
-      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
-         IF ( LTJV(I,J) > 0 ) THEN
-            !State_Diag%JValues(I,J,L,5) = ZPJ(L,RXN_O3_2a,I,J)
-         ENDIF
-      ENDIF
-#endif
+!#if defined( NC_DIAG )
+!      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
+!         IF ( LTJV(I,J) > 0 ) THEN
+!            !State_Diag%JValues(I,J,L,5) = ZPJ(L,RXN_O3_2a,I,J)
+!         ENDIF
+!      ENDIF
+!#endif
 
       !========================================================
       ! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
@@ -5098,14 +5138,14 @@ c  Ensure all 'AN_' types are valid selections
      &                      ZPJ(L,RXN_O3_2b,I,J)
          ENDIF
       ENDIF
-#if defined( NC_DIAG )
-      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
-         IF ( LTJV(I,J) > 0 ) THEN
-           !State_Diag%JValues(I,J,L,6) = ZPJ(L,RXN_O3_2a,I,J) +
-     &     !                              + ZPJ(L,RXN_O3_2b,I,J)
-         ENDIF
-      ENDIF
-#endif
+!#if defined( NC_DIAG )
+!      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
+!         IF ( LTJV(I,J) > 0 ) THEN
+!           !State_Diag%JValues(I,J,L,6) = ZPJ(L,RXN_O3_2a,I,J) +
+!     &     !                              + ZPJ(L,RXN_O3_2b,I,J)
+!         ENDIF
+!      ENDIF
+!#endif
 
 #endif
       

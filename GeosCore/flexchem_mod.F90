@@ -61,6 +61,7 @@ MODULE FlexChem_Mod
   LOGICAL                :: Archive_O3PconcAfterchem
   LOGICAL                :: Archive_Prod
   LOGICAL                :: Archive_Loss
+  LOGICAL                :: Archive_Jval
   
   ! Diagnostic indices for ND65 bpch diagnostic
   INTEGER,   ALLOCATABLE :: ND65_KPP_Id(:)
@@ -94,7 +95,7 @@ CONTAINS
     USE CMN_DIAG_MOD,         ONLY : ND52
     USE CMN_FJX_MOD
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
-    USE DIAG_MOD,             ONLY : AD65, AD52
+    USE DIAG_MOD,             ONLY : AD65,  AD52,  LTJV, ad22
     USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
     USE DIAG20_MOD,           ONLY : DIAG20, POx, LOx
     USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
@@ -196,7 +197,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, J, L, N, NA, F, SpcID, KppID
+    INTEGER                :: I, J, L, N, NA, F, SpcID, KppID, P
     INTEGER                :: MONTH, YEAR
     INTEGER                :: WAVELENGTH
     INTEGER                :: HCRC
@@ -296,7 +297,8 @@ CONTAINS
     ! leftover values from the last timestep near the top of the chemgrid
     IF ( Archive_Loss ) State_Diag%Loss = 0.0_f4
     IF ( Archive_Prod ) State_Diag%Prod = 0.0_f4
-
+    IF ( Archive_JVal ) State_Diag%JVal = 0.0_f4
+    
     !-----------------------------------------------------------------------
     ! Initialize global concentration of CH4
     !-----------------------------------------------------------------------
@@ -579,7 +581,7 @@ CONTAINS
     !$OMP PRIVATE  ( I,     J,        L,          N,     YLAT ) &
     !$OMP PRIVATE  ( SCF,   SO4_FRAC, IERR,       RCNTRL      ) &
     !$OMP PRIVATE  ( START, FINISH,   ISTATUS,    RSTATE      ) &
-    !$OMP PRIVATE  ( SpcID, KppID,    F                       ) &
+    !$OMP PRIVATE  ( SpcID, KppID,    F,          P           ) &
     !$OMP REDUCTION( +:ITIM                                   ) &
     !$OMP REDUCTION( +:RTIM                                   ) &
     !$OMP REDUCTION( +:TOTSTEPS                               ) &
@@ -610,7 +612,8 @@ CONTAINS
        SO4_FRAC = 0.0_fp    ! Fraction of SO4 available for photolysis
        TEMP     = 0.0_fp    ! Temperature
        YLAT     = 0.0_fp    ! Latitude
-
+       P        = 0
+       
        !====================================================================
        ! Test if we need to do the chemistry for box (I,J,L),
        ! otherwise move onto the next box.
@@ -700,11 +703,11 @@ CONTAINS
 
           ! Get the fraction of H2SO4 that is available for photolysis
           ! (this is only valid for UCX-enabled mechanisms)
-#if defined( UCX )
-          SO4_FRAC = SO4_PHOTFRAC( I, J, L )
-#else
-          SO4_FRAC = 0.0_fp
-#endif
+          IF ( Input_Opt%LUCX ) THEN
+             SO4_FRAC = SO4_PHOTFRAC( I, J, L )
+          ELSE
+             SO4_FRAC = 0.0_fp
+          ENDIF
 
           ! Adjust certain photolysis rates:
           ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
@@ -713,13 +716,63 @@ CONTAINS
           CALL PHOTRATE_ADJ( am_I_root, I, J, L, NUMDEN, TEMP, &
                              H2O, SO4_FRAC, State_Diag, IERR  )
 
-          IF ( DO_PHOTCHEM ) THEN
+          ! Loop over the FAST-JX photolysis species
+          DO N = 1, JVN_
 
-             ! Copy ZPJ from fast_jx_mod.F to PHOTOL array
-             PHOTOL(1:JVN_) = ZPJ(L,1:JVN_,I,J)
+             ! Copy photolysis rate from FAST_JX into KPP's PHOTOL array
+             PHOTOL(N) = ZPJ(L,N,I,J)
+                
+#if defined( NC_DIAG )
+             !--------------------------------------------------------------
+             ! HISTORY (aka netCDF diagnostics)
+             !
+             ! Photolysis rates (aka J-values) [s-1]
+             !
+             ! The mapping between the GEOS-Chem photolysis species and 
+             ! the FAST-JX photolysis species is contained in the lookup 
+             ! table in input file FJX_j2j.dat.
+             !
+             ! Some GEOS-Chem photolysis species may have multiple 
+             ! branches for photolysis reactions.  These will be 
+             ! represented by multiple entries in the FJX_j2j.dat
+             ! lookup table.
+             !
+             ! To match the legacy bpch diagnostic, we archive the sum of 
+             ! photolysis rates for a given GEOS-Chem species over all of 
+             ! the reaction branches.
+             !
+             ! For convenience, we have stored the GEOS-Chem photolysis
+             ! species index (range: 1..State_Chm%nPhotol) for each of
+             ! the FAST-JX photolysis species (range; 1..JVN_) in the
+             ! GC_PHOTO_ID array (in module CMN_FJX_MOD.F).
+             !--------------------------------------------------------------
+             
+             ! GC photolysis species index
+             P = GC_Photo_Id(N)
 
-          ENDIF
+             ! If this FAST_JX photolysis species maps
+             ! to a valid GEOS-Chem photolysis species ...
+             IF ( P > 0 ) THEN
 
+                ! Archive the J-value diagnostic
+                IF ( Archive_JVal ) THEN
+                   State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)       &
+                                            + PHOTOL(N)                      
+                ENDIF
+
+                ! Archive the daily noontime J-value diagnostic
+                ! NOTE: Multiply by a factor of 12 to compensate for the
+                ! fact that this diagnostic will be divided by the number
+                ! of "heartbeat" timesteps in the diagnostic averaging
+                ! period and not only for those 2 hours when the grid box
+                ! was near local noon.
+                !IF ( Archive_JNoon .and. LTJV(I,J) > 0 )  THEN
+                !   State_Diag%JNoon(I,J,L,P) = State_Diag%JVal(I,J,L,P)      &
+                !                             + ( PHOTOL(N) * 12.0_fp        )
+                !ENDIF
+             ENDIF
+#endif
+          ENDDO
        ENDIF
 
        !====================================================================
@@ -1443,13 +1496,11 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg,   ThisLoc
 
-    !=================================================================
+    !=======================================================================
     ! Init_FlexChem begins here!
-    !=================================================================
-
-    !--------------------------------
+    !
     ! Initialize variables
-    !-------------------------------
+    !=======================================================================
     RC       = GC_SUCCESS
     ErrMsg   = ''
     ThisLoc  = ' -> at Init_FlexChem (in module GeosCore/flexchem_mod.F90)'
@@ -1470,8 +1521,10 @@ CONTAINS
        END DO
     ENDIF
 
+    !=======================================================================
     !-------------------------------
     ! Initialize species flags
+    !=======================================================================
     !-------------------------------
 
     ! Initialize species flags
@@ -1487,9 +1540,9 @@ CONTAINS
     ok_O3P                   = ( id_O3P > 0         )
     ok_OH                    = ( id_OH  > 0         )
     
-    !-------------------------------
-    ! Initialize diagnostics flags
-    !-------------------------------
+    !=======================================================================
+    ! Initialize diagnostics flags and arrays
+    !=======================================================================
 
     ! Is the ND43 bpch diagnostic turned on?
     Do_ND43                  = ( Input_Opt%ND43 > 0 ) 
@@ -1501,6 +1554,7 @@ CONTAINS
     Archive_O3PconcAfterChem = ASSOCIATED( State_Diag%O3PconcAfterChem )
     Archive_Loss             = ASSOCIATED( State_Diag%Loss             )
     Archive_Prod             = ASSOCIATED( State_Diag%Prod             )
+    Archive_JVal             = ASSOCIATED( State_Diag%Jval             )
 
     ! Should we archive OH, HO2, O1D, O3P diagnostics?
     Do_Diag_OH_HO2_O1D_O3P   = ( Do_ND43                  .or.               &

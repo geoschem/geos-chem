@@ -59,6 +59,9 @@
       ! Mapping array from Harvard species names to UCI species names
       INTEGER            :: RINDEX(JVN_)                
 
+      ! GEOS-Chem "ModelId" corresponding to each photolysis species
+      INTEGER            :: GC_Photo_Id(JVN_)    
+
       ! Output J values
       REAL(fp), ALLOCATABLE :: ZPJ(:,:,:,:)
 

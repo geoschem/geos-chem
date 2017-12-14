@@ -1406,10 +1406,13 @@ CONTAINS
     !=======================================================================
     ! INIT_CHEMISTRY begins here!
     !=======================================================================
+    
+    ! Initialize
+    RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = ' -> at Init_Chemistry  (in module GeosCore/chemistry_mod.F)'
 
-    ! Assume success
-    RC = GC_SUCCESS
-
+    ! Skip if we have already done this
     IF ( FIRST ) THEN
 
        ! Adjust first flag
@@ -1421,10 +1424,10 @@ CONTAINS
        id_DST1 = Ind_( 'DST1' )
        id_NK1  = Ind_( 'NK1'  )
 
-       !--------------------------------
+       !--------------------------------------------------------------------
        ! Initialize FlexChem
-       !--------------------------------
-       CALL Init_FlexChem( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
+       !--------------------------------------------------------------------
+       CALL Init_FlexChem( am_I_Root, Input_Opt, State_Chm, State_Diag, RC  )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1433,10 +1436,10 @@ CONTAINS
           RETURN
        ENDIF
 
-       !--------------------------------
+       !--------------------------------------------------------------------
        ! Initialize Fast-JX photolysis
-       !--------------------------------
-       CALL Init_FJX( am_I_Root, Input_Opt, State_Diag, RC )
+       !--------------------------------------------------------------------
+       CALL Init_FJX( am_I_Root, Input_Opt, State_Chm, State_Diag, RC       )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

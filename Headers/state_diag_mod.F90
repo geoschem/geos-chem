@@ -70,7 +70,7 @@ MODULE State_Diag_Mod
      ! Waiting for inputs on new resistance diagnostics commented out above
 
      ! Chemistry
-     REAL(f4),  POINTER :: JValues         (:,:,:,:) ! Photolysis rates
+     REAL(f4),  POINTER :: JVal            (:,:,:,:) ! Photolysis rates
      REAL(f4),  POINTER :: RxnRates        (:,:,:,:) ! Reaction rates from KPP
      REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:  ) ! Diffuse UV flux per bin
      REAL(f4),  POINTER :: UVFluxDirect    (:,:,:  ) ! Direct UV flux per bin
@@ -257,8 +257,8 @@ CONTAINS
     CHARACTER(LEN=255)     :: ErrMsg,   ThisLoc
     CHARACTER(LEN=255)     :: arrayID,  diagID
     INTEGER                :: N, IM, JM, LM
-    INTEGER                :: nSpecies, nAdvect, nDryDep
-    INTEGER                :: nKppSpc,  nWetDep, nProd,  nLoss
+    INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc
+    INTEGER                :: nWetDep,  nPhotol, nProd,   nLoss
     LOGICAL                :: EOF,      Found
 
     !=======================================================================
@@ -282,6 +282,7 @@ CONTAINS
     nDryDep   = State_Chm%nDryDep
     nKppSpc   = State_Chm%nKppSpc
     nLoss     = State_Chm%nLoss
+    nPhotol   = State_Chm%nPhotol
     nProd     = State_Chm%nProd
     nWetDep   = State_Chm%nWetDep
 
@@ -307,7 +308,7 @@ CONTAINS
     State_Diag%WashFracLS                 => NULL()
 
     State_Diag%SpeciesConc                => NULL()
-    State_Diag%JValues                    => NULL()
+    State_Diag%JVal                       => NULL()
     State_Diag%RxnRates                   => NULL()
     State_Diag%UVFluxDiffuse              => NULL()
     State_Diag%UVFluxDirect               => NULL()
@@ -933,17 +934,16 @@ CONTAINS
        !--------------------------------------------------------------------
        ! J-Values
        !--------------------------------------------------------------------
-       ! TODO: Mapping needs work
-       arrayID = 'State_Diag%JValues'
+       arrayID = 'State_Diag%JVal'
        diagID  = 'JVal'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%JValues( IM, JM, LM, nSpecies ), STAT=RC )
+          ALLOCATE( State_Diag%JVal( IM, JM, LM, nPhotol ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%JValues = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%JValues,    &
+          State_Diag%JVal = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%JVal,       &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -1918,9 +1918,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%JValues ) ) THEN
-       DEALLOCATE( State_Diag%JValues, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%Jvalues', 2, RC )
+    IF ( ASSOCIATED( State_Diag%JVal ) ) THEN
+       DEALLOCATE( State_Diag%JVal, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%Jval', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -2427,10 +2427,10 @@ CONTAINS
        IF ( isTagged  ) TagId = 'DRY'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'JVAL' ) THEN
-       IF ( isDesc    ) Desc  = 'Photolysis rate' !TODO: append to this?
+       IF ( isDesc    ) Desc  = 'Photolysis rate for species' 
        IF ( isUnits   ) Units = 's-1'
        IF ( isRank    ) Rank  = 3
-       IF ( isTagged  ) TagId = 'JVN' ! TODO: fix species mapping
+       IF ( isTagged  ) TagId = 'PHO'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RXNRATES' ) THEN
        IF ( isDesc    ) Desc  = 'placeholder'
@@ -2834,14 +2834,14 @@ CONTAINS
     LOGICAL,            INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
     CHARACTER(LEN=*),   INTENT(IN)  :: tagID       ! ID of tag (e.g. wildcard)
     TYPE(ChmState),     INTENT(IN)  :: State_Chm   ! Obj for chem state
-    INTEGER,            INTENT(IN),  OPTIONAL :: N ! index (1 to # tags)
+    INTEGER,            OPTIONAL    :: N           ! index (1 to # tags)
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,            INTENT(OUT)           :: Found   ! Item found?
-    INTEGER,            INTENT(OUT)           :: RC      ! Return code
-    CHARACTER(LEN=255), INTENT(OUT), OPTIONAL :: tagName ! tag name for index N 
-    INTEGER,            INTENT(OUT), OPTIONAL :: nTags   ! # tags
+    LOGICAL,            INTENT(OUT) :: Found       ! Item found?
+    INTEGER,            INTENT(OUT) :: RC          ! Return code
+    CHARACTER(LEN=255), OPTIONAL    :: tagName     ! tag name for index N 
+    INTEGER,            OPTIONAL    :: nTags       ! # tags
 !
 ! !REMARKS:
 !
@@ -2979,27 +2979,27 @@ CONTAINS
        D       = INDEX( tagName, '_' )
        tagName = tagName(D+1:)
 
-    ELSEIF ( TRIM(tagId) == 'JVN' ) THEN   ! temporary, will be removed (ewl)
-       JNAMES = [ 'NO2       ', 'HNO3      ', 'H2O2      ',            &
-                  'CH2O      ', 'x         ', 'x         ',            &
-                  'GLYX      ', 'MGLY      ', 'BrO       ',            &
-                  'HOBr      ', 'BrNO2     ', 'BrNO3     ',            &
-                  'CHBr3     ', 'Br2       ', 'O2inadj   ',            &
-                  'N2O       ', 'NO        ', 'NO3       ',            &
-                  'CFC11     ', 'CFC12     ', 'CCl4      ',            &
-                  'CH3Cl     ', 'ACET      ', 'ALD2      ',            &
-                  'MVK       ', 'MACR      ', 'HAC       ',            &
-                  'GLYC      ', 'PIP       ', 'IPMN      ',            &
-                  'ETHLN     ', 'DHDN      ', 'HPALD     ',            &
-                  'ISN1      ', 'MONITS    ', 'MONITU    ',            &
-                     'HONIT     ' ]
-#if defined( UCX )
-        JNAMES(5) = 'O3_O1D'
-        JNAMES(6) = 'O3_O3P'
-#else
-        JNAMES(5) = 'O3'
-        JNAMES(6) = 'O3_POH'
-#endif
+!    ELSEIF ( TRIM(tagId) == 'JVN' ) THEN   ! temporary, will be removed (ewl)
+!       JNAMES = [ 'NO2       ', 'HNO3      ', 'H2O2      ',            &
+!                  'CH2O      ', 'x         ', 'x         ',            &
+!                  'GLYX      ', 'MGLY      ', 'BrO       ',            &
+!                  'HOBr      ', 'BrNO2     ', 'BrNO3     ',            &
+!                  'CHBr3     ', 'Br2       ', 'O2inadj   ',            &
+!                  'N2O       ', 'NO        ', 'NO3       ',            &
+!                  'CFC11     ', 'CFC12     ', 'CCl4      ',            &
+!                  'CH3Cl     ', 'ACET      ', 'ALD2      ',            &
+!                  'MVK       ', 'MACR      ', 'HAC       ',            &
+!                  'GLYC      ', 'PIP       ', 'IPMN      ',            &
+!                  'ETHLN     ', 'DHDN      ', 'HPALD     ',            &
+!                  'ISN1      ', 'MONITS    ', 'MONITU    ',            &
+!                     'HONIT     ' ]
+!#if defined( UCX )
+!        JNAMES(5) = 'O3_O1D'
+!        JNAMES(6) = 'O3_O3P'
+!#else
+!        JNAMES(5) = 'O3'
+!        JNAMES(6) = 'O3_POH'
+!#endif
        tagName = TRIM( JNAMES(D) )
     ELSE
        tagName = State_Chm%SpcData(D)%Info%Name
