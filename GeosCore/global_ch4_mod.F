@@ -136,10 +136,6 @@
       REAL(f4), POINTER     :: CH4LOSS(:,:,:) => NULL()
       REAL(f4), POINTER     :: CLUSTERS(:,:)  => NULL()
 
-      ! Online CH4 only
-      REAL(fp), ALLOCATABLE :: SUMANTHRO(:,:)
-      REAL(fp), ALLOCATABLE :: SUMBIOG(:,:)
-
       REAL(fp)              :: TROPOCH4
 
       CONTAINS
@@ -170,7 +166,6 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET, GET_YOFFSET 
-      USE HCO_STATE_MOD,      ONLY : HCO_STATE
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
 !
@@ -185,7 +180,7 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
-!  WARNING: Soil absorption has to be the 11th field in CH4_EMIS
+!  WARNING: Soil absorption has to be the 15th field in CH4_EMIS
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
@@ -229,22 +224,16 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER                  :: I, I0, IREF, J, J0, JREF, N
-      INTEGER                  :: FLAG, ERR
+      INTEGER                  :: I, J, N
+      INTEGER                  :: ERR
       REAL(fp)                 :: DTSRCE, AREA_M2
-
-      ! Arrays
-      REAL(fp), DIMENSION(7)   :: DBGANTHRO
-      REAL(fp), DIMENSION(3)   :: DBGBIO
 
       ! Strings
       CHARACTER(LEN= 63)       :: DgnName
-      CHARACTER(LEN=255)       :: MSG
       CHARACTER(LEN=255)       :: LOC = 'EMISSCH4 (global_ch4_mod.F)'
 
       ! For fields from Input_Opt
       LOGICAL                  :: ITS_A_CH4_SIM
-      LOGICAL                  :: ITS_A_FULLCHEM_SIM
       LOGICAL                  :: LPRT
       LOGICAL                  :: prtDebug
       LOGICAL, SAVE            :: FIRST = .TRUE.
@@ -262,13 +251,8 @@
       ! Assume success
       RC                  = GC_SUCCESS
 
-      ! Get nested-grid offsets
-      I0                  = GET_XOFFSET()
-      J0                  = GET_YOFFSET()
-
       ! Copy values from Input_Opt
       ITS_A_CH4_SIM       = Input_Opt%ITS_A_CH4_SIM
-      ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
       LPRT                = Input_Opt%LPRT
 
       ! Do we have to print debug output?
@@ -621,13 +605,11 @@
       USE DIAG_MOD,           ONLY : AD43
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
-      USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_DAY,   GET_MONTH
 !
 ! !INPUT PARAMETERS:
 !
@@ -703,8 +685,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
-      INTEGER            :: I, J, L, K, M, N, NA, nAdvect
-      INTEGER            :: NPART
+      INTEGER            :: I, J, L
 
       REAL(fp)           :: PREVCH4(IIPAR, JJPAR, LLPAR)
       REAL(fp)           :: BOXVL  
@@ -731,23 +712,22 @@
       ! Assume success
       RC      = GC_SUCCESS
 
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
       ! Copy values from Input_Opt
-      LSPLIT     = Input_Opt%LSPLIT
-      LPRT       = Input_Opt%LPRT
+      LSPLIT  = Input_Opt%LSPLIT
+      LPRT    = Input_Opt%LPRT
 
       ! Point to the chemical species 
       Spc     => State_Chm%Species
 
-      !=================================================================
-      ! (0) Calculate each box's air density [molec/cm3]
-      !        do this for saving mean OH concentrations (kjw, 6/12/09)
-      !=================================================================
       IF ( LPRT ) THEN
          WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
       ENDIF
+
+      !=================================================================
+      ! (0) Calculate each box's air density [molec/cm3]
+      !     Do this for saving mean OH concentrations in CH4_DECAY
+      !     and in CH4_OHSAVE (kjw, 6/12/09)
+      !=================================================================
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -759,6 +739,7 @@
          ! Air density [molec/cm3]
          BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1000e+0_fp   /
      &                     BOXVL               * AVO / AIRMW
+
       ENDDO
       ENDDO
       ENDDO
@@ -929,8 +910,9 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER           :: I,  J,    L,        N,     NA,    nAdvect
-      REAL(fp)          :: DT, GCH4, Spc2GCH4, KRATE, BOXVL, C_OH
+      INTEGER           :: I,  J,    L
+      REAL(fp)          :: DT, GCH4, Spc2GCH4
+      REAL(fp)          :: KRATE, C_OH
       REAL(fp)          :: KRATE_Cl, C_Cl
 
       ! Pointers
@@ -965,7 +947,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( L, J, I, KRATE, Spc2GCH4, GCH4, BOXVL, C_OH )
+!$OMP+PRIVATE( L, J, I, KRATE, Spc2GCH4, GCH4, C_OH )
 !$OMP+PRIVATE( C_Cl, KRATE_Cl )
 !$OMP+REDUCTION( +:TROPOCH4 )
       DO L = 1, LLPAR
@@ -974,13 +956,6 @@
 
          ! Only consider tropospheric boxes
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-
-            ! Grid box volume [cm3]
-            BOXVL    = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
-            ! Air density [molec/cm3]
-            BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1000e+0_fp   /
-     &                        BOXVL               * AVO / AIRMW
 
             ! Calculate rate coefficients
             KRATE    = 2.45e-12_fp * EXP( -1775e+0_fp /
@@ -1068,7 +1043,6 @@
       USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MONTH
 !
 ! !INPUT PARAMETERS:
 !
@@ -1093,6 +1067,7 @@
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  14 Dec 2017 - M. Sulprizio- Parallelize DO loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1101,8 +1076,7 @@
 !
       ! Scalars
       INTEGER           :: I,       J,           L
-      INTEGER           :: N,       NA,          nAdvect
-      REAL(fp)          :: MASST,   AREA_CM2
+      REAL(fp)          :: MASST,   AREA_M2
       REAL(fp)          :: KCLO,    LOSS,        OHMASS  
       REAL(fp)          :: KCH4,    CH4LOSE,     CH4MASS
       REAL(fp)          :: CH4EMIS, CH4TROPMASS, BOXVL
@@ -1121,7 +1095,11 @@
       ! Point to chemical species array [kg]
       Spc => State_Chm%Species
 
-      ! 1. Calculate OH mass and total air mass
+      ! Calculate OH mass and total air mass
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, BOXVL, C_OH, OHMASS, MASST, KCLO, LOSS, KCH4 )
+!$OMP+PRIVATE( CH4TROPMASS, CH4MASS, CH4LOSE, CH4EMIS, AREA_M2 )
       DO L = 1, LLPAR
       DO J = 1, JJPAR 
       DO I = 1, IIPAR 
@@ -1170,10 +1148,12 @@
             IF ( L .GT. 1 ) THEN 
                CH4EMIS = 0e+0_fp
             ELSE
-               AREA_CM2 = GET_AREA_CM2( I, J, L ) / 10000.0e+0_fp         ! now in m2!!
-               CH4EMIS  = SUM(CH4_EMIS(I,J,2:10)) + CH4_EMIS(I,J,12)
-               CH4EMIS  = CH4EMIS * AREA_CM2                          ! [kg/m2/s]  --> [kg/box/s]
-               CH4EMIS  = CH4EMIS * XNUMOL_CH4                        ! [kg/box/s] --> [molec/box/s]
+               AREA_M2 = GET_AREA_CM2( I, J, L ) / 10000.0e+0_fp
+
+               ! [kg/m2/s]  --> [molec/box/s]
+               CH4EMIS  = CH4_EMIS(I,J,1)
+               CH4EMIS  = CH4EMIS * AREA_M2 * XNUMOL_CH4
+
             ENDIF
 
          ELSE
@@ -1197,6 +1177,7 @@
       ENDDO
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! Free pointer
       Spc => NULL()
@@ -1232,7 +1213,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 
 ! !INPUT PARAMETERS:
 !
@@ -1273,6 +1254,7 @@
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  14 Dec 2017 - M. Sulprizio- Parallelize DO loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1280,13 +1262,11 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER           :: N,  NA,   nAdvect
       INTEGER           :: I,  J,    L,        BASELEV
       REAL(fp)          :: DT, GCH4, Spc2GCH4, LRATE,  BOXVL
 
       ! Local variables for quantities from Input_Opt
       LOGICAL           :: LUCX
-      LOGICAL           :: ITS_A_FULLCHEM_SIM
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
@@ -1300,7 +1280,6 @@
 
       ! Copy fields from INPUT_OPT
       LUCX                =  Input_Opt%LUCX
-      ITS_A_FULLCHEM_SIM  =  Input_Opt%ITS_A_FULLCHEM_SIM
 
       ! Point to chemical species
       Spc                 => State_Chm%Species
@@ -1315,6 +1294,10 @@
          ! Loop over stratospheric boxes only
          !=================================================================
          BASELEV = GET_MIN_TPAUSE_LEVEL()
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, Spc2GCH4, GCH4, LRATE )
          DO L = BASELEV, LLPAR 
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -1340,15 +1323,16 @@
                ! Write to AD19 diagnostic (jdm, mps, 6/16/17)
                IF ( ND19 > 0 ) THEN ! --> [kg/box]
                   AD19(I,J,L,2) = AD19(I,J,L,2) +
-     &	              ( LRATE * DT ) / Spc2GCH4
+     &	                          ( LRATE * DT ) / Spc2GCH4
                ENDIF
 
             ENDIF
          ENDDO
          ENDDO
          ENDDO
+!$OMP END PARALLEL DO
 
-      ENDIF ! LUCX (SDE 03/25/13)
+      ENDIF ! not LUCX (SDE 03/25/13)
 
       ! Check Spc for negatives and NaN
       CALL CHECK_SPC( State_Chm, Input_Opt,
@@ -1385,7 +1369,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp)                        :: PREVCH4(IIPAR,JJPAR,LLPAR)! CH4 bef chem
+      REAL(fp)                      :: PREVCH4(IIPAR,JJPAR,LLPAR)! CH4 bef chem
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1498,7 +1482,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: AS
+      INTEGER :: AS
 
       !=================================================================
       ! INIT_GLOBAL_CH4 begins here!
@@ -1523,14 +1507,6 @@
       ALLOCATE( CH4_EMIS( IIPAR, JJPAR, PD58), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_EMIS' )
       CH4_EMIS = 0e+0_fp
-
-      ALLOCATE( SUMANTHRO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMANTHRO' )
-      SUMANTHRO = 0e+0_fp
-
-      ALLOCATE( SUMBIOG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMBIOG' )
-      SUMBIOG = 0e+0_fp
 
       ! Initialize tropoch4 (counts total decay of CH4 due to OH)
       TROPOCH4 = 0e+0_fp
@@ -1566,12 +1542,10 @@
       !=================================================================
 
       IF ( ALLOCATED( BAIRDENS  ) ) DEALLOCATE( BAIRDENS  )
+      IF ( ALLOCATED( CH4_EMIS  ) ) DEALLOCATE( CH4_EMIS  )
       IF ( ASSOCIATED( BOH      ) ) BOH     => NULL()
       IF ( ASSOCIATED( BCl      ) ) BCl     => NULL()
       IF ( ASSOCIATED( CH4LOSS  ) ) CH4LOSS => NULL()
-      IF ( ALLOCATED( CH4_EMIS  ) ) DEALLOCATE( CH4_EMIS  )
-      IF ( ALLOCATED( SUMANTHRO ) ) DEALLOCATE( SUMANTHRO )
-      IF ( ALLOCATED( SUMBIOG   ) ) DEALLOCATE( SUMBIOG   )
 
       END SUBROUTINE CLEANUP_GLOBAL_CH4
 !EOC
