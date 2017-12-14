@@ -1417,6 +1417,9 @@
       ! Point to chemical species array [kg]
       Spc => State_Chm%Species
 
+      ! fix nAdvect (Xueying Yu, 12/10/2017)
+      nAdvect = State_Chm%nAdvect
+
       ! Loop over the number of advected species
       DO NA = 2, nAdvect
 

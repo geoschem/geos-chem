@@ -363,6 +363,9 @@ CONTAINS
 
     ! Pointers and objects
     TYPE(Species), POINTER  :: SpcInfo
+	
+    ! Temporary save for total ch4
+    REAL(fp)                :: total_ch4_pre_soil_absorp(IIPAR,JJPAR,LLPAR) 
 
     !=================================================================
     ! DO_TEND begins here!
@@ -774,6 +777,242 @@ CONTAINS
 
     ENDDO !N
 !$OMP END PARALLEL DO
+
+! beginning of the modification by Xueying Yu
+    ! Distribute soil absorption to each tracers (Xueying Yu, 12/08/2017)
+    ! save the total CH4 concentration before apply soil absorption
+    NA = 1
+    N = State_Chm%Map_Advect(NA)
+    DO L = 1, LLPAR
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+       total_ch4_pre_soil_absorp(I,J,L) = State_Chm%Species(I,J,L,N)
+    ENDDO
+    ENDDO
+    ENDDO
+
+    ! add soil absorption into total CH4
+    NA = 1
+    N = State_Chm%Map_Advect(NA)
+    ! Get info about this species from the species database
+    SpcInfo => State_Chm%SpcData(N)%Info
+	   
+    ! Loop over all grid boxes
+    DO J = 1, JJPAR    
+    DO I = 1, IIPAR    
+
+       !------------------------------------------------------------
+       ! Define various quantities before computing tendencies
+       !------------------------------------------------------------
+
+       ! Get PBL_TOP at this grid box
+       PBL_TOP = State_Met%PBL_TOP_L(I,J)
+		  
+       ! Determine lower level L1 to be used: 
+       ! If specified so, apply emissions only above the PBL_TOP.
+       ! This will also disable dry deposition. 
+       IF ( OnlyAbovePBL ) THEN 
+          L1 = PBL_TOP + 1
+       ELSE
+          L1 = 1 
+       ENDIF
+
+       ! Set dry deposition top level based on PBL_DRYDEP flag of
+       ! Input_Opt.
+       IF ( PBL_DRYDEP ) THEN
+          DRYD_TOP = PBL_TOP 
+       ELSE
+          DRYD_TOP = 1
+       ENDIF
+		  
+       ! Set emissions top level:
+       ! This is the top of atmosphere unless concentration build-up
+       ! in stratosphere wants to be avoided.
+       ChemGridOnly = .FALSE.
+
+       ! Set emissions to zero above chemistry grid for the following 
+       ! VOCs (adopted from aeic_mod.F).
+       IF ( N == id_MACR .OR. N == id_RCHO .OR. &
+            N == id_ACET .OR. N == id_ALD2 .OR. & 
+            N == id_ALK4 .OR. N == id_C2H6 .OR. & 
+            N == id_C3H8 .OR. N == id_CH2O .OR. & 
+            N == id_PRPE                         ) THEN 
+          ChemGridOnly = .TRUE. 
+       ENDIF
+
+       ! Bry concentrations become prescribed in lin. strat. chemistry.
+       ! Therefore avoid any emissions of these compounds above the 
+       ! chemistry grid (lin. strat. chem. applies above chemistry grid
+       ! only).
+       IF ( LSCHEM ) THEN
+          IF ( N == id_BrO  .OR. N == id_Br2   .OR. &
+               N == id_Br   .OR. N == id_HOBr  .OR. & 
+               N == id_HBr  .OR. N == id_BrNO3       ) THEN
+             ChemGridOnly = .TRUE.
+          ENDIF
+       ENDIF
+
+       ! For non-UCX runs, never emit above the chemistry grid.
+       ! (ckeller, 6/18/15)
+       ! Exclude all specialty simulations (ewl, 3/17/16)
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM .AND.  &
+            .NOT. Input_Opt%LUCX ) THEN
+          ChemGridOnly = .TRUE.
+       ENDIF
+
+       ! Restrict to chemistry grid
+       IF ( ChemGridOnly ) THEN
+          EMIS_TOP = GET_CHEMGRID_LEVEL( I, J, State_Met )
+          EMIS_TOP = MIN(LLPAR,EMIS_TOP)
+       ELSE
+          EMIS_TOP = LLPAR
+       ENDIF
+
+       ! L2 is the upper level index to loop over
+       L2 = MAX(DRYD_TOP, EMIS_TOP)
+
+       ! This should not happen:
+       IF ( L2 < L1 ) CYCLE
+
+       ! Loop over selected vertical levels 
+       DO L = L1, L2
+		  
+          !IF ( EmisSpec .AND. ( L <= EMIS_TOP ) ) THEN
+          IF ( ( L <= EMIS_TOP ) ) THEN
+             ! Get HEMCO emissions of soil absorption. Units are [kg/m2/s].
+             CALL GetHcoVal ( 15, I, J, L, FND, emis=TMP )
+           
+             ! Add emissions (if any)
+             ! Bug fix: allow negative fluxes. (ckeller, 4/12/17)
+             !IF ( FND .AND. (TMP > 0.0_fp) ) THEN
+             IF ( FND ) THEN
+
+                ! Flux: [kg/m2] = [kg m-2 s-1 ] x [s]
+                FLUX = TMP * TS
+
+                ! Add to species array
+                State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) & 
+                                              - FLUX 
+             ENDIF
+          ENDIF
+
+          ! Prevent negative concentrations. (ckeller, 3/29/16)
+          State_Chm%Species(I,J,L,N) = MAX(State_Chm%Species(I,J,L,N),0.0_fp)
+			 
+       ENDDO !L
+    ENDDO !J
+    ENDDO !I
+	
+    ! distribute soil absorption to other tracers
+    DO NA = 2, nAdvect-1
+
+       ! Get the species ID from the advected species ID
+       N = State_Chm%Map_Advect(NA)
+	   	   
+       ! Get info about this species from the species database
+       SpcInfo => State_Chm%SpcData(N)%Info
+	   
+       ! Loop over all grid boxes
+       DO J = 1, JJPAR    
+       DO I = 1, IIPAR    
+
+          !------------------------------------------------------------
+          ! Define various quantities before computing tendencies
+          !------------------------------------------------------------
+
+          ! Get PBL_TOP at this grid box
+          PBL_TOP = State_Met%PBL_TOP_L(I,J)
+		  
+          ! Determine lower level L1 to be used: 
+          ! If specified so, apply emissions only above the PBL_TOP.
+          ! This will also disable dry deposition. 
+          IF ( OnlyAbovePBL ) THEN 
+             L1 = PBL_TOP + 1
+          ELSE
+             L1 = 1 
+          ENDIF
+
+          ! Set dry deposition top level based on PBL_DRYDEP flag of
+          ! Input_Opt.
+          IF ( PBL_DRYDEP ) THEN
+             DRYD_TOP = PBL_TOP 
+          ELSE
+             DRYD_TOP = 1
+          ENDIF
+		  
+          ! Set emissions top level:
+          ! This is the top of atmosphere unless concentration build-up
+          ! in stratosphere wants to be avoided.
+          ChemGridOnly = .FALSE.
+
+          ! Set emissions to zero above chemistry grid for the following 
+          ! VOCs (adopted from aeic_mod.F).
+          IF ( N == id_MACR .OR. N == id_RCHO .OR. &
+               N == id_ACET .OR. N == id_ALD2 .OR. & 
+               N == id_ALK4 .OR. N == id_C2H6 .OR. & 
+               N == id_C3H8 .OR. N == id_CH2O .OR. & 
+               N == id_PRPE                         ) THEN 
+             ChemGridOnly = .TRUE. 
+          ENDIF
+
+          ! Bry concentrations become prescribed in lin. strat. chemistry.
+          ! Therefore avoid any emissions of these compounds above the 
+          ! chemistry grid (lin. strat. chem. applies above chemistry grid
+          ! only).
+          IF ( LSCHEM ) THEN
+             IF ( N == id_BrO  .OR. N == id_Br2   .OR. &
+                  N == id_Br   .OR. N == id_HOBr  .OR. & 
+                  N == id_HBr  .OR. N == id_BrNO3       ) THEN
+                ChemGridOnly = .TRUE.
+             ENDIF
+          ENDIF
+
+          ! For non-UCX runs, never emit above the chemistry grid.
+          ! (ckeller, 6/18/15)
+          ! Exclude all specialty simulations (ewl, 3/17/16)
+          IF ( Input_Opt%ITS_A_FULLCHEM_SIM .AND.  &
+               .NOT. Input_Opt%LUCX ) THEN
+             ChemGridOnly = .TRUE.
+          ENDIF
+
+          ! Restrict to chemistry grid
+          IF ( ChemGridOnly ) THEN
+             EMIS_TOP = GET_CHEMGRID_LEVEL( I, J, State_Met )
+             EMIS_TOP = MIN(LLPAR,EMIS_TOP)
+          ELSE
+             EMIS_TOP = LLPAR
+          ENDIF
+
+          ! L2 is the upper level index to loop over
+          L2 = MAX(DRYD_TOP, EMIS_TOP)
+
+          ! This should not happen:
+          IF ( L2 < L1 ) CYCLE
+
+          ! Loop over selected vertical levels 
+          DO L = L1, L2
+		  
+             !IF ( EmisSpec .AND. ( L <= EMIS_TOP ) ) THEN
+             IF ( ( L <= EMIS_TOP ) ) THEN
+                ! apply soil absorption to each tracers
+                State_Chm%Species(I,J,L,N) = SAFE_DIV(State_Chm%Species(I,J,L,N),total_ch4_pre_soil_absorp(I,J,L),0.e+0_fp) &
+                     * State_Chm%Species(I,J,L,1)
+	 
+             ENDIF
+
+             ! Prevent negative concentrations. (ckeller, 3/29/16)
+             State_Chm%Species(I,J,L,N) = MAX(State_Chm%Species(I,J,L,N),0.0_fp)
+
+          ENDDO !L
+       ENDDO !J
+       ENDDO !I
+
+       ! Nullify pointer
+       SpcInfo  => NULL()
+
+    ENDDO !N
+	
+! end of the modification by Xueying Yu
 
 #if defined( USE_TEND )
       ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
