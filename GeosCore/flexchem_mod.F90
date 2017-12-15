@@ -49,25 +49,25 @@ MODULE FlexChem_Mod
 ! !PRIVATE TYPES:
 !
   ! Species ID flags (and logicals to denote if species are present)
-  INTEGER                :: id_OH, id_HO2, id_O3P, id_O1D, id_CH4
-  LOGICAL                :: ok_OH, ok_HO2, ok_O1D, ok_O3P
+  INTEGER               :: id_OH, id_HO2, id_O3P, id_O1D, id_CH4
+  LOGICAL               :: ok_OH, ok_HO2, ok_O1D, ok_O3P
 
   ! Diagnostic flags
-  LOGICAL                :: Do_Diag_OH_HO2_O1D_O3P
-  LOGICAL                :: Do_ND43
-  LOGICAL                :: Archive_OHconcAfterchem
-  LOGICAL                :: Archive_HO2concAfterchem
-  LOGICAL                :: Archive_O1DconcAfterchem
-  LOGICAL                :: Archive_O3PconcAfterchem
-  LOGICAL                :: Archive_Prod
-  LOGICAL                :: Archive_Loss
-  LOGICAL                :: Archive_Jval
+  LOGICAL               :: Do_Diag_OH_HO2_O1D_O3P
+  LOGICAL               :: Do_ND43
+  LOGICAL               :: Archive_OHconcAfterchem
+  LOGICAL               :: Archive_HO2concAfterchem
+  LOGICAL               :: Archive_O1DconcAfterchem
+  LOGICAL               :: Archive_O3PconcAfterchem
+  LOGICAL               :: Archive_Prod
+  LOGICAL               :: Archive_Loss
+  LOGICAL               :: Archive_JVal
+  LOGICAL               :: Archive_JNoon
   
-  ! Diagnostic indices for ND65 bpch diagnostic
-  INTEGER,   ALLOCATABLE :: ND65_KPP_Id(:)
-
-  ! Save the H value for the Rosenbrock solver
-  REAL(fp),  ALLOCATABLE :: HSAVE_KPP(:,:,:) 
+  ! Arrays
+  INTEGER,  ALLOCATABLE :: ND65_KPP_Id(:    )  ! Indices for ND65 bpch diag
+  REAL(fp), ALLOCATABLE :: HSAVE_KPP  (:,:,:)  ! H-value for Rosenbrock solver
+  REAL(fp), ALLOCATABLE :: JvCount    (:,:,:)  ! For J-value running average
 
 CONTAINS
 !EOC
@@ -92,12 +92,15 @@ CONTAINS
     USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
     USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_CHEMGRID
     USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_STRAT
-    USE CMN_DIAG_MOD,         ONLY : ND52
     USE CMN_FJX_MOD
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
-    USE DIAG_MOD,             ONLY : AD65,  AD52,  LTJV, ad22
+    USE DIAG_MOD,             ONLY : LTJV,  CTJV
+#if defined( BPCH_DIAG )
+    USE CMN_DIAG_MOD,         ONLY : ND52
+    USE DIAG_MOD,             ONLY : AD65,  AD52, ad22
     USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
     USE DIAG20_MOD,           ONLY : DIAG20, POx, LOx
+#endif
     USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
     USE ErrCode_Mod
     USE ERROR_MOD
@@ -197,101 +200,77 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, J, L, N, NA, F, SpcID, KppID, P
-    INTEGER                :: MONTH, YEAR
-    INTEGER                :: WAVELENGTH
-    INTEGER                :: HCRC
-    LOGICAL                :: prtDebug
-    LOGICAL                :: LDUST
-    CHARACTER(LEN=155)     :: DiagnName
+    ! Scalars
+    LOGICAL                :: prtDebug, LDUST,    IsLocNoon
+    INTEGER                :: I,        J,        L,         N
+    INTEGER                :: NA,       F,        SpcID,     KppID
+    INTEGER                :: P,        MONTH,    YEAR,      WAVELENGTH
+    INTEGER                :: TotSteps, TotFuncs, TotJacob,  TotAccep
+    INTEGER                :: TotRejec, TotNumLU, HCRC,      IERR
+    REAL(fp)               :: Start,    Finish,   rtim,      itim
+    REAL(fp)               :: SO4_FRAC, J_Value,  YLAT,      T    
+    REAL(fp)               :: TIN,      TOUT
+
+    ! Strings
     CHARACTER(LEN=63)      :: OrigUnit
+    CHARACTER(LEN=255)     :: ErrMsg,   ThisLoc
 
-    ! SAVEd variables
-    LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
-    INTEGER, SAVE          :: CH4_YEAR  = -1
+    ! SAVEd scalars
+    LOGICAL,  SAVE         :: FIRSTCHEM = .TRUE.
+    INTEGER,  SAVE         :: CH4_YEAR  = -1
+    REAL(fp), SAVE         :: C3090S,   C0030S,   C0030N,    C3090N
 
-    ! For grid-box latitude
-    REAL(fp)               :: YLAT
+    ! Arrays
+    INTEGER                :: ICNTRL     (                  20               )
+    INTEGER                :: ISTATUS    (                  20               )
+    REAL(dp)               :: RCNTRL     (                  20               )
+    REAL(dp)               :: RSTATE     (                  20               )
+    REAL(fp)               :: SCF        (                  3                )
+    REAL(fp)               :: SCOEFF     (IIPAR,JJPAR,LLPAR,3                )
+    REAL(dp)               :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT           )
+    REAL(fp)               :: Before     (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
-    ! For interannually-varying Methane
-    REAL(fp), SAVE         :: C3090S, C0030S, C0030N, C3090N
-
-    ! Global rate constants
-    REAL(dp)               :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT)
-
-    ! KPP variables
-    INTEGER                :: IERR
-    REAL(fp)               :: T, TIN, TOUT
-    REAL(dp)               :: RCNTRL(20)
-    REAL(dp)               :: RSTATE(20)
-    INTEGER                :: ICNTRL(20)
-    INTEGER                :: ISTATUS(20)
-
-    ! For computing statistics from the integrator
-    REAL(fp)               :: Start, Finish, rtim, itim
-    INTEGER                :: TotSteps, TotFuncs, TotJacob
-    INTEGER                :: TotAccep, TotRejec, TotNumLU
-
-    ! For passing SO4_PHOTFRAC output to PHOTRATE_ADJ (bmy, 3/28/16)
-    REAL(fp)               :: SO4_FRAC
-
-    ! To avoid array temporaries in call to SET_HET (bmy, 3/28/16)
-    REAL(fp)               :: SCOEFF(IIPAR,JJPAR,LLPAR,3)
-    REAL(fp)               :: SCF(3)
-
-    ! For testing only, may be removed later (mps, 4/26/16)
-    LOGICAL                :: DO_HETCHEM
-    LOGICAL                :: DO_PHOTCHEM
+    ! SAVEd arrays
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
 
-    ! Initial mass [kg] for computing stratospheric chemical tendency
-    REAL(fp)               :: Before(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-
-    ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    ! For testing only, may be removed later (mps, 4/26/16)
+    LOGICAL                :: DO_HETCHEM
 
     !=======================================================================
     ! Do_FlexChem begins here!
     !=======================================================================
 
     ! Initialize
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Do_FlexChem (in module GeosCore/flexchem_mod.F)'
-    SpcInfo => NULL()
+    RC        =  GC_SUCCESS
+    ErrMsg    =  ''
+    ThisLoc   =  ' -> at Do_FlexChem (in module GeosCore/flexchem_mod.F)'
+    SpcInfo   => NULL()
+    prtDebug  =  ( Input_Opt%LPRT .and. am_I_Root )
+    LDUST     =  Input_Opt%LDUST
+    itim      =  0.0_fp
+    rtim      =  0.0_fp
+    totsteps  =  0
+    totfuncs  =  0
+    totjacob  =  0
+    totaccep  =  0
+    totrejec  =  0
+    totnumLU  =  0
+    MONTH     =  GET_MONTH()  ! Current month
+    YEAR      =  GET_YEAR()   ! Current year
 
     ! Turn heterogeneous chemistry and photolysis on/off here
     ! This is for testing only and may be removed later (mps, 4/26/16)
     DO_HETCHEM  = .TRUE.
-    DO_PHOTCHEM = .TRUE.
 
-    IF ( FIRSTCHEM .AND. am_I_Root ) THEN
-       WRITE( 6, '(a)' ) REPEAT( '#', 32 )
-       WRITE( 6, '(a,l,a)' ) '# Do_FlexChem: DO_HETCHEM  =', &
-                                             DO_HETCHEM,  ' #'
-       WRITE( 6, '(a,l,a)' ) '# Do_FlexChem: DO_PHOTCHEM =', &
-                                             DO_PHOTCHEM, ' #'
-       WRITE( 6, '(a)' ) REPEAT( '#', 32 )
-    ENDIF
-
-    ! Initialize variables
-    prtDebug  = ( Input_Opt%LPRT .and. am_I_Root )
-    LDUST     = Input_Opt%LDUST
-
-    itim      = 0.0_fp
-    rtim      = 0.0_fp
-    totsteps  = 0
-    totfuncs  = 0
-    totjacob  = 0
-    totaccep  = 0
-    totrejec  = 0
-    totnumLU  = 0
-
-    ! Get month and year
-    MONTH     = GET_MONTH()
-    YEAR      = GET_YEAR()
+    ! Remove debug output
+    !IF ( FIRSTCHEM .AND. am_I_Root ) THEN
+    !   WRITE( 6, '(a)' ) REPEAT( '#', 32 )
+    !   WRITE( 6, '(a,l,a)' ) '# Do_FlexChem: DO_HETCHEM  =', &
+    !                                         DO_HETCHEM,  ' #'
+    !   WRITE( 6, '(a)' ) REPEAT( '#', 32 )
+    !ENDIF
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
@@ -303,6 +282,13 @@ CONTAINS
     ! Initialize global concentration of CH4
     !-----------------------------------------------------------------------
     IF ( FIRSTCHEM ) THEN
+
+       ! Only zero the noontime J-values on the first chemistry call
+       ! so that we can compute the running average
+       IF ( Archive_JNoon ) THEN
+          JvCount          = 0.0_fp
+          State_Diag%JNoon = 0.0_f4
+       ENDIF
 
        ! Check that CH4 is not an advected species
        ! Check that CH4 is a KPP species (ind_CH4 is from gckpp_Monitor.F90)
@@ -576,21 +562,20 @@ CONTAINS
     ! statements below: C, VAR, FIX, RCONST, TIME, TEMP, NUMDEN, 
     ! H2O, PRESS, PHOTOL, HET, and CFACTOR. (bmy, 3/28/16)
     !-----------------------------------------------------------------------
-    !$OMP PARALLEL DO                                           &
-    !$OMP DEFAULT  ( SHARED                                   ) &
-    !$OMP PRIVATE  ( I,     J,        L,          N,     YLAT ) &
-    !$OMP PRIVATE  ( SCF,   SO4_FRAC, IERR,       RCNTRL      ) &
-    !$OMP PRIVATE  ( START, FINISH,   ISTATUS,    RSTATE      ) &
-    !$OMP PRIVATE  ( SpcID, KppID,    F,          P           ) &
-    !$OMP REDUCTION( +:ITIM                                   ) &
-    !$OMP REDUCTION( +:RTIM                                   ) &
-    !$OMP REDUCTION( +:TOTSTEPS                               ) &
-    !$OMP REDUCTION( +:TOTFUNCS                               ) &
-    !$OMP REDUCTION( +:TOTJACOB                               ) &
-    !$OMP REDUCTION( +:TOTACCEP                               ) &
-    !$OMP REDUCTION( +:TOTREJEC                               ) &
-    !$OMP REDUCTION( +:TOTNUMLU                               ) &
-    !$OMP SCHEDULE ( DYNAMIC, 1                               )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT  ( SHARED                                                 )&
+    !$OMP PRIVATE  ( I,        J,     L,      N,     YLAT,   SCF            )&
+    !$OMP PRIVATE  ( SO4_FRAC, IERR,  RCNTRL, START, FINISH, ISTATUS        )&
+    !$OMP PRIVATE  ( RSTATE,   SpcID, KppID,  F,     P,      IsLocNoon      )&
+    !$OMP REDUCTION( +:ITIM                                                 )&
+    !$OMP REDUCTION( +:RTIM                                                 )&
+    !$OMP REDUCTION( +:TOTSTEPS                                             )&
+    !$OMP REDUCTION( +:TOTFUNCS                                             )&
+    !$OMP REDUCTION( +:TOTJACOB                                             )&
+    !$OMP REDUCTION( +:TOTACCEP                                             )&
+    !$OMP REDUCTION( +:TOTREJEC                                             )&
+    !$OMP REDUCTION( +:TOTNUMLU                                             )&
+    !$OMP SCHEDULE ( DYNAMIC,  1                                            )
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
@@ -599,21 +584,27 @@ CONTAINS
        ! For safety's sake, zero variables for each grid box (I,J,L),
        ! whether or not chemistry will be done there.
        !====================================================================
-       HET      = 0.0_dp    ! Het chem array
-       H2O      = 0.0_dp    ! H2O concentration
-       IERR     = 0         ! Success or failure flag
-       ISTATUS  = 0.0_dp    ! Rosenbrock output 
-       PHOTOL   = 0.0_dp    ! Photolysis array
-       PRESS    = 0.0_dp    ! Pressure
-       NUMDEN   = 0.0_dp    ! Air number density
-       RCNTRL   = 0.0_fp    ! Rosenbrock input
-       RSTATE   = 0.0_dp    ! Rosenbrock output
-       SCF      = 0.0_dp    ! For hetchem diagnostics
-       SO4_FRAC = 0.0_fp    ! Fraction of SO4 available for photolysis
-       TEMP     = 0.0_fp    ! Temperature
-       YLAT     = 0.0_fp    ! Latitude
-       P        = 0
-       
+       HET       = 0.0_dp            ! Het chem array
+       H2O       = 0.0_dp            ! H2O concentration
+       IERR      = 0                 ! Success or failure flag
+       ISTATUS   = 0.0_dp            ! Rosenbrock output 
+       PHOTOL    = 0.0_dp            ! Photolysis array
+       PRESS     = 0.0_dp            ! Pressure
+       NUMDEN    = 0.0_dp            ! Air number density
+       RCNTRL    = 0.0_fp            ! Rosenbrock input
+       RSTATE    = 0.0_dp            ! Rosenbrock output
+       SCF       = 0.0_dp            ! For hetchem diagnostics
+       SO4_FRAC  = 0.0_fp            ! Fraction of SO4 available for photolysis
+       TEMP      = 0.0_fp            ! Temperature
+       YLAT      = 0.0_fp            ! Latitude
+       P         = 0                 ! GEOS-Chem photolyis species ID
+       IsLocNoon = ( LTJV(I,J) > 0 ) ! Is it local noon (11am to 1pm LST)?
+
+       ! Keep a running total of the # of times it was local noon at each box
+       IF ( Archive_JNoon .and. IsLocNoon ) THEN
+          JvCount(I,J,L) = JvCount(I,J,L) + 1.0_fp
+       ENDIF
+
        !====================================================================
        ! Test if we need to do the chemistry for box (I,J,L),
        ! otherwise move onto the next box.
@@ -703,11 +694,11 @@ CONTAINS
 
           ! Get the fraction of H2SO4 that is available for photolysis
           ! (this is only valid for UCX-enabled mechanisms)
-          IF ( Input_Opt%LUCX ) THEN
-             SO4_FRAC = SO4_PHOTFRAC( I, J, L )
-          ELSE
-             SO4_FRAC = 0.0_fp
-          ENDIF
+#if defined( UCX ) 
+          SO4_FRAC = SO4_PHOTFRAC( I, J, L )
+#else
+          SO4_FRAC = 0.0_fp
+#endif
 
           ! Adjust certain photolysis rates:
           ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
@@ -726,53 +717,91 @@ CONTAINS
              !--------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
              !
-             ! Photolysis rates (aka J-values) [s-1]
+             ! Instantaneous photolysis rates [s-1] (aka J-values)
+             ! and noontime photolysis rates [s-1]
+             !
+             !    NOTE: Attach diagnostics here instead of in module 
+             !    fast_jx_mod.F so that we can get the adjusted photolysis
+             !    rates (output from routne PHOTRATE_ADJ above).
              !
              ! The mapping between the GEOS-Chem photolysis species and 
              ! the FAST-JX photolysis species is contained in the lookup 
              ! table in input file FJX_j2j.dat.
+             ! 
+             !    NOTE: Depending on the simulation, some GEOS-Chem 
+             !    species might not map to a of the FAST-JX species 
+             !    (e.g. SOA species will not be present in a tropchem run).
              !
              ! Some GEOS-Chem photolysis species may have multiple 
              ! branches for photolysis reactions.  These will be 
              ! represented by multiple entries in the FJX_j2j.dat
              ! lookup table.
              !
+             !    NOTE: For convenience, we have stored the GEOS-Chem 
+             !    photolysis species index (range: 1..State_Chm%nPhotol) 
+             !    for each of the FAST-JX photolysis species (range; 
+             !    1..JVN_) in the GC_PHOTO_ID array (located in module 
+             !    CMN_FJX_MOD.F).
+             !
              ! To match the legacy bpch diagnostic, we archive the sum of 
              ! photolysis rates for a given GEOS-Chem species over all of 
              ! the reaction branches.
              !
-             ! For convenience, we have stored the GEOS-Chem photolysis
-             ! species index (range: 1..State_Chm%nPhotol) for each of
-             ! the FAST-JX photolysis species (range; 1..JVN_) in the
-             ! GC_PHOTO_ID array (in module CMN_FJX_MOD.F).
+             !    NOTE: The legacy ND22 bpch diagnostic divides by the
+             !    number of times the when grid box (I,J,L) was between
+             !    11am and 1pm local solar time.  Because the HISTORY
+             !    component can only divide by the number of times the
+             !    diagnostic was updated, we have to manually compute
+             !    the running average for J-values here.   We also must
+             !    take care to only place JNOON in an instantaneous
+             !    collection to avoid double-dividing.
              !--------------------------------------------------------------
              
              ! GC photolysis species index
              P = GC_Photo_Id(N)
-
-             ! If this FAST_JX photolysis species maps
+             
+             ! If this FAST_JX photolysis species maps 
              ! to a valid GEOS-Chem photolysis species ...
              IF ( P > 0 ) THEN
 
-                ! Archive the J-value diagnostic
+                ! Archive the instantaneous J-value diagnostic
                 IF ( Archive_JVal ) THEN
                    State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)       &
                                             + PHOTOL(N)                      
                 ENDIF
 
                 ! Archive the daily noontime J-value diagnostic
-                ! NOTE: Multiply by a factor of 12 to compensate for the
-                ! fact that this diagnostic will be divided by the number
-                ! of "heartbeat" timesteps in the diagnostic averaging
-                ! period and not only for those 2 hours when the grid box
-                ! was near local noon.
-                !IF ( Archive_JNoon .and. LTJV(I,J) > 0 )  THEN
-                !   State_Diag%JNoon(I,J,L,P) = State_Diag%JVal(I,J,L,P)      &
-                !                             + ( PHOTOL(N) * 12.0_fp        )
-                !ENDIF
+                IF ( Archive_JNoon .and. IsLocNoon ) THEN
+                   State_Diag%JNoon(I,J,L,P) = State_Diag%JNoon(I,J,L,P)     &
+                                             + PHOTOL(N)
+                ENDIF
              ENDIF
 #endif
           ENDDO
+
+#if defined( NC_DIAG )
+          !-----------------------------------------------------------------
+          ! HISTORY (aka netCDF diagnostics)
+          !
+          ! Take the running average of the noontime J-value diagnostcs
+          !-----------------------------------------------------------------
+          IF ( Archive_JNoon .and. IsLocNoon ) THEN
+             DO P = 1, State_Chm%nPhotol
+                State_Diag%JNoon(I,J,L,P) = State_Diag%JNoon(I,J,L,P)        &
+                                          / JvCount(I,J,L)
+
+                !If ( I==1 .and. J==34 .and. L==1 .and. P==5 ) THEN
+                !   PRINT*, '@@@ LTJV : ', LTJV(I,J), IsLocNoon
+                !   print*, '@@@ CTJV : ', CTJV(I,J), JvCount(I,J,L)
+                !   print*, '@@@ AD,SD: ', AD22(I,J,L,3),                     &
+                !                          AD22(I,J,L,3) / JVCount(I,J,L),    &
+                !                          State_Diag%JNoon(I,J,L,P)
+                !ENDIF
+
+             ENDDO
+          ENDIF
+#endif 
+
        ENDIF
 
        !====================================================================
@@ -800,7 +829,6 @@ CONTAINS
           DO F = 1, NFAM
 
              ! Determine dummy species index in KPP
-             !KppID = Ind_(TRIM(FAM_NAMES(F)),'K')
              KppID =  ND65_Kpp_Id(F)
 
              ! Initialize prod/loss rates
@@ -1217,11 +1245,9 @@ CONTAINS
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Met_Mod,  ONLY : MetState
-    !-----------------------------------------------------------
-    ! NOTE: These modules are only needed for BPCH diagnostics
-    ! which are slated to be removed in the near future
+#if defined( BPCH_DIAG )
     USE Diag_Mod,       ONLY : AD43, LTOH, LTHO2, LTO1D, LTO3P
-    !-----------------------------------------------------------
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1509,6 +1535,7 @@ CONTAINS
     IF ( prtDebug ) WRITE( 6, 100 )
 100 FORMAT( '     - INIT_FLEXCHEM: Allocating arrays for FLEX_CHEMISTRY' )
 
+    ! Allocate arrays
     ALLOCATE( HSAVE_KPP( IIPAR, JJPAR, LLCHEM ), STAT=RC )
     CALL GC_CheckVar( 'flexchem_mod.F90:HSAVE_KPP', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -1520,12 +1547,6 @@ CONTAINS
           WRITE( 6, '(i8,a3,a85)' ) N,' | ',EQN_NAMES(N)
        END DO
     ENDIF
-
-    !=======================================================================
-    !-------------------------------
-    ! Initialize species flags
-    !=======================================================================
-    !-------------------------------
 
     ! Initialize species flags
     id_CH4                   = Ind_( 'CH4', 'A'     ) ! CH4 advected species
@@ -1555,6 +1576,7 @@ CONTAINS
     Archive_Loss             = ASSOCIATED( State_Diag%Loss             )
     Archive_Prod             = ASSOCIATED( State_Diag%Prod             )
     Archive_JVal             = ASSOCIATED( State_Diag%Jval             )
+    Archive_JNoon            = ASSOCIATED( State_Diag%JNoon            )
 
     ! Should we archive OH, HO2, O1D, O3P diagnostics?
     Do_Diag_OH_HO2_O1D_O3P   = ( Do_ND43                  .or.               &
@@ -1563,33 +1585,50 @@ CONTAINS
                                  Archive_O1DconcAfterChem .or.               &
                                  Archive_O3PconcAfterChem                   )
     
-    ! Pre-store the KPP indices for each KPP prod/loss species or family
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. nFam > 0 ) THEN
+    ! Do the following only if it's a full-chemistry simulation
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+
+       !--------------------------------------------------------------------
+       ! Allocate the counter array which will let us take the running
+       ! average of J-values where it is between 11am and 1pm local time
+       !--------------------------------------------------------------------
+       IF ( Archive_JNoon ) THEN
+          ALLOCATE( JvCount( IIPAR, JJPAR, LLPAR ), STAT=RC )
+          CALL GC_CheckVar( 'flexchem_mod.F90:JvCount', 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+       
+       !--------------------------------------------------------------------
+       ! Pre-store the KPP indices for each KPP prod/loss species or family
+       !--------------------------------------------------------------------
+       IF ( nFam > 0 ) THEN
              
-       ! Allocate mapping array for KPP Id's for ND65 bpch diagnostic
-       ALLOCATE( ND65_Kpp_Id( nFam ), STAT=RC )
-       CALL GC_CheckVar( 'flexchem_mod.F90:ND65_Kpp_Id', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+          ! Allocate mapping array for KPP Id's for ND65 bpch diagnostic
+          ALLOCATE( ND65_Kpp_Id( nFam ), STAT=RC )
+          CALL GC_CheckVar( 'flexchem_mod.F90:ND65_Kpp_Id', 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
 
-       ! Loop over all KPP prod/loss species
-       DO N = 1, nFam
+          ! Loop over all KPP prod/loss species
+          DO N = 1, nFam
 
-          ! NOTE: KppId is the KPP ID # for each of the prod and loss
-          ! diagnostic species.  This is the value used to index the
-          ! KPP "VAR" array (in module gckpp_Global.F90).
-          KppID = Ind_( TRIM ( Fam_Names(N) ), 'K' )
+             ! NOTE: KppId is the KPP ID # for each of the prod and loss
+             ! diagnostic species.  This is the value used to index the
+             ! KPP "VAR" array (in module gckpp_Global.F90).
+             KppID = Ind_( TRIM ( Fam_Names(N) ), 'K' )
 
-          ! Exit if an invalid ID is encountered
-          IF ( KppId <= 0 ) THEN
-             ErrMsg = 'Invalid KPP ID for prod/loss species: '            // &
-                       TRIM( Fam_Names(N) )
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
+             ! Exit if an invalid ID is encountered
+             IF ( KppId <= 0 ) THEN
+                ErrMsg = 'Invalid KPP ID for prod/loss species: '         // &
+                          TRIM( Fam_Names(N) )
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
 
-          ! If the species ID is OK, save in ND65_Kpp_Id
-          ND65_Kpp_Id(N) = KppId
-       ENDDO
+             ! If the species ID is OK, save in ND65_Kpp_Id
+             ND65_Kpp_Id(N) = KppId
+          ENDDO
+
+       ENDIF
     ENDIF
 
   END SUBROUTINE Init_FlexChem
@@ -1606,7 +1645,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !  
-  SUBROUTINE Cleanup_FlexChem()  
+  SUBROUTINE Cleanup_FlexChem( am_I_Root, RC )  
+!
+! !USES:
+!
+    USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!    
+    LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!    
+    INTEGER, INTENT(OUT) :: RC          ! Success or failure?
 !    
 ! !REVISION HISTORY:
 !  24 Aug 2016 - M. Sulprizio- Initial version
@@ -1617,7 +1668,21 @@ CONTAINS
     !=================================================================
     ! Cleanup_FlexChem begins here!
     !=================================================================
-    IF ( ALLOCATED( HSAVE_KPP ) ) DEALLOCATE( HSAVE_KPP )
+
+    ! INitialize
+    RC = GC_SUCCESS
+
+    IF ( ALLOCATED( HSave_KPP ) ) THEN
+       DEALLOCATE( HSave_KPP, STAT=RC  )
+       CALL GC_CheckVar( 'flexchem_mod.F90:Hsave_Kpp', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ALLOCATED( JvCount ) ) THEN
+       DEALLOCATE( JvCount, STAT=RC  )
+       CALL GC_CheckVar( 'flexchem_mod.F90:JvCount', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
 
   END SUBROUTINE Cleanup_FlexChem
 !EOC

@@ -321,7 +321,14 @@
       CALL CLEANUP_DIAG_OH()
       CALL CLEANUP_DRYDEP()
       CALL CLEANUP_DUST()
-      CALL CLEANUP_FLEXCHEM()
+
+      CALL Cleanup_FlexChem( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_FlexChem"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
       CALL CLEANUP_GLOBAL_CH4()
 
       CALL CLEANUP_GRID( am_I_Root, RC )

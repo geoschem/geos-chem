@@ -70,7 +70,8 @@ MODULE State_Diag_Mod
      ! Waiting for inputs on new resistance diagnostics commented out above
 
      ! Chemistry
-     REAL(f4),  POINTER :: JVal            (:,:,:,:) ! Photolysis rates
+     REAL(f4),  POINTER :: JVal            (:,:,:,:) ! Photo rates, inst.
+     REAL(f4),  POINTER :: JNoon           (:,:,:,:) ! Photo rates, noontime
      REAL(f4),  POINTER :: RxnRates        (:,:,:,:) ! Reaction rates from KPP
      REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:  ) ! Diffuse UV flux per bin
      REAL(f4),  POINTER :: UVFluxDirect    (:,:,:  ) ! Direct UV flux per bin
@@ -309,6 +310,7 @@ CONTAINS
 
     State_Diag%SpeciesConc                => NULL()
     State_Diag%JVal                       => NULL()
+    State_Diag%JNoon                      => NULL()
     State_Diag%RxnRates                   => NULL()
     State_Diag%UVFluxDiffuse              => NULL()
     State_Diag%UVFluxDirect               => NULL()
@@ -927,12 +929,12 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RxnRates = 0.0_f4
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%RxnRates,   &
-                                   State_Chm, State_Diag, RC )
+                                   State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
        !--------------------------------------------------------------------
-       ! J-Values
+       ! J-Values (instantaneous values)
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%JVal'
        diagID  = 'JVal'
@@ -944,7 +946,24 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%JVal = 0.0_f4
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%JVal,       &
-                                   State_Chm, State_Diag, RC )
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Noontime J-values
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%JNoon'
+       diagID  = 'JNoon'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%JNoon( IM, JM, LM, nPhotol ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%JNoon = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%JNoon,  &
+                                   State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
@@ -1066,25 +1085,27 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 8
+       DO N = 1, 9
           
           ! Select the diagnostic ID
           SELECT CASE( N )
-             CASE( 1 ) 
+             CASE( 1  ) 
                 diagID = 'RxnRates'
-             CASE( 2 ) 
-                diagID = 'Jval'
-             CASE( 3 ) 
+             CASE( 2  ) 
+                diagID = 'JVal'
+             CASE( 3  ) 
+                diagID = 'JNoon'
+             CASE( 4  ) 
                 diagID = 'UvFluxDiffuse'
-             CASE( 4 ) 
+             CASE( 5  ) 
                 diagID = 'UvFluxDirect'
-             CASE( 5 ) 
+             CASE( 6  ) 
                 diagID = 'UvFluxNet'
-             CASE( 6 )                
+             CASE( 7  )                
                 diagID = 'HO2concAfterChem'
-             CASE( 7 )
+             CASE( 8  )
                 diagID = 'O1DconcAfterChem'
-             CASE( 8 )
+             CASE( 9  )
                 diagID = 'O3PconcAfterChem'
           END SELECT
 
@@ -1924,6 +1945,12 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%JNoon ) ) THEN
+       DEALLOCATE( State_Diag%JNoon, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%JNoon', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%RxnRates ) ) THEN
        DEALLOCATE( State_Diag%RxnRates, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%RxnRates', 2, RC )
@@ -2432,6 +2459,12 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'PHO'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'JNOON' ) THEN
+       IF ( isDesc    ) Desc  = 'Noontime photolysis rate for species' 
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'PHO'
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'RXNRATES' ) THEN
        IF ( isDesc    ) Desc  = 'placeholder'
        IF ( isUnits   ) Units = 'placeholder'
@@ -2905,8 +2938,6 @@ CONTAINS
           numTags = State_Chm%nKppVar
        CASE( 'WET'     )
           numTags = State_Chm%nWetDep
-       CASE( 'JVN'     ) ! temporary, will be replaced (ewl)
-          numTags = 37
        CASE DEFAULT
           FOUND = .FALSE.
           ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &

@@ -2865,7 +2865,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       !------------------------------------
       IF ( am_I_Root ) THEN
          WRITE( 6, 100 ) REPEAT( '=', 79 )
-      wRITE( 6, 110 )
+         WRITE( 6, 110 )
          WRITE( 6, 120 ) RXN_O2
          WRITE( 6, 130 ) RXN_O3_1
          WRITE( 6, 140 ) RXN_O3_2a
@@ -2974,29 +2974,34 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD,       ONLY : LD22, LD64, ND22, ND64
-      USE DIAG_MOD,           ONLY : AD22, AD64, LTJV
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Diag_Mod,     ONLY : DgnState
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD,   ONLY : LD22, LD64, ND22, ND64
+      USE DIAG_MOD,       ONLY : AD22, AD64, LTJV
+#endif
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)                           :: ILON,ILAT
-      INTEGER, INTENT(IN)                           :: DAY_OF_YR
-      INTEGER, INTENT(IN)                           :: MONTH,DAY
-      REAL(fp),  INTENT(IN)                         :: YLAT
-      REAL(fp),  INTENT(IN)                         :: U0,REFLB
-      REAL(fp),  INTENT(IN),DIMENSION(L1_+1)        :: P_COL
-      REAL(fp),  INTENT(IN),DIMENSION(L1_)          :: T_COL
-      REAL(fp),  INTENT(IN),DIMENSION(L1_)          :: O3_COL
-      REAL(fp),  INTENT(IN)                         :: O3_TOMS
-      REAL(fp),  INTENT(IN),DIMENSION(L_,A_)        :: ODAER_COL
-      REAL(fp),  INTENT(IN),DIMENSION(L_,NDUST)     :: ODMDUST_COL
-      REAL(fp),  INTENT(IN),DIMENSION(L_)           :: ODCLOUD_COL_IN
-      LOGICAL, INTENT(IN)                           :: AOD999
-      LOGICAL, INTENT(IN)                           :: am_I_Root
-      TYPE(OptInput), INTENT(IN)                    :: Input_Opt
-      TYPE(DgnState), INTENT(INOUT)                 :: State_Diag
+      INTEGER,        INTENT(IN)                      :: ILON, ILAT
+      INTEGER,        INTENT(IN)                      :: DAY_OF_YR
+      INTEGER,        INTENT(IN)                      :: MONTH,DAY
+      REAL(fp),       INTENT(IN)                      :: YLAT
+      REAL(fp),       INTENT(IN)                      :: U0,REFLB
+      REAL(fp),       INTENT(IN), DIMENSION(L1_+1   ) :: P_COL
+      REAL(fp),       INTENT(IN), DIMENSION(L1_     ) :: T_COL
+      REAL(fp),       INTENT(IN), DIMENSION(L1_     ) :: O3_COL
+      REAL(fp),       INTENT(IN)                      :: O3_TOMS
+      REAL(fp),       INTENT(IN), DIMENSION(L_,A_   ) :: ODAER_COL
+      REAL(fp),       INTENT(IN), DIMENSION(L_,NDUST) :: ODMDUST_COL
+      REAL(fp),       INTENT(IN), DIMENSION(L_      ) :: ODCLOUD_COL_IN
+      LOGICAL,        INTENT(IN)                      :: AOD999
+      LOGICAL,        INTENT(IN)                      :: am_I_Root
+      TYPE(OptInput), INTENT(IN)                      :: Input_Opt
+!                                                    
+! !INPUT/OUTPUT PARAMETERS:                          
+!                                                    
+      TYPE(DgnState), INTENT(INOUT)                   :: State_Diag
 !
 ! !REMARKS:
 ! 
@@ -3366,10 +3371,15 @@ C-----------------------------------------------------------------------
          ENDDO
       ENDIF
 
-      !---------------------------------------------------------------
+#if defined( BPCH_DIAG )
+      !=================================================================
+      ! ND64 (bpch) diagnostic
+      ! 
+      ! UV radiative fluxes (direct, diffuse, net) [W/m2]
+      !
       ! New diagnostic (SDE 2013-10-25) 
       ! Use it to calculate fluxes for output if necessary
-      !---------------------------------------------------------------
+      !=================================================================
       IF ( ND64 > 0 .and. L <= LD64 ) THEN
          ! Get net direct and net diffuse fluxes separately
          ! Order:
@@ -3398,10 +3408,15 @@ C-----------------------------------------------------------------------
          ENDDO
       ENDIF
 
-#if defined( BPCH_DIAG )
-      !---------------------------------------------------------------
-      ! Archive J-values for ND22 diagnostic
-      !---------------------------------------------------------------
+      !=================================================================
+      ! ND22 (bpch) diagnostic
+      !
+      ! Archive photolysis rates [s-1] for each species 
+      ! summed over all reaction branches
+      !
+      ! NOTE: Special handling for some reactions is done in 
+      ! routine PHOTRATE_ADJ, which is called in DO_FLEXCHEM.
+      !=================================================================
       IF ( ND22 > 0 ) THEN
 
          ! Save J-values for 2PM diagnostic boxes
@@ -3578,65 +3593,6 @@ C-----------------------------------------------------------------------
 
       ENDIF
 #endif
-
-!#if defined( NC_DIAG )
-!      IF ( ( ASSOCIATED(State_Diag%JValues) ) .AND. 
-!     &     ( LTJV(ILON,ILAT) > 0            ) ) THEN
-!         
-!         DO L = 1, LLPAR
-!            ! AD22 IDs 5, 6, and 15 (J-values for O3 and O2)
-!            ! are handled in routine PHOTRATE_ADJ
-!            ! Hardcode ZPJ indices based on valued from FJX_j2j.dat
-!            ! for now as is done for binary diag array AD22. We should
-!            ! create a mapping for these in species database in the near
-!            ! future rather than hard-code (ewl, 10/3/17)
-!            !State_Diag%JValues(ILON,ILAT,L, 1) = ZPJ(L,11,ILON,ILAT)  ! JNO2
-!            !State_Diag%JValues(ILON,ILAT,L, 2) = ZPJ(L,16,ILON,ILAT)  ! JHNO3
-!            !State_Diag%JValues(ILON,ILAT,L, 3) = ZPJ(L, 9,ILON,ILAT)  ! JH2O2
-!            !State_Diag%JValues(ILON,ILAT,L, 4) = ZPJ(L, 7,ILON,ILAT)  
-!     &      !                                   + ZPJ(L, 8,ILON,ILAT)  ! JCH2O
-!            !State_Diag%JValues(ILON,ILAT,L, 7) = ZPJ(L,72,ILON,ILAT)   
-!     &      !                                   + ZPJ(L,73,ILON,ILAT)   
-!     &      !                                   + ZPJ(L,74,ILON,ILAT)  ! JGLYX
-!            !State_Diag%JValues(ILON,ILAT,L, 8) = ZPJ(L,71,ILON,ILAT)  ! JMGLY
-!            !State_Diag%JValues(ILON,ILAT,L, 9) = ZPJ(L,28,ILON,ILAT)  ! JBrO
-!            !State_Diag%JValues(ILON,ILAT,L,10) = ZPJ(L,32,ILON,ILAT)  ! JHOBr
-!            !State_Diag%JValues(ILON,ILAT,L,11) = ZPJ(L,31,ILON,ILAT)  ! JBrNO2
-!            !State_Diag%JValues(ILON,ILAT,L,12) = ZPJ(L,29,ILON,ILAT)   
-!     &      !                                   + ZPJ(L,30,ILON,ILAT)  ! JBrNO3
-!            !State_Diag%JValues(ILON,ILAT,L,13) = ZPJ(L,56,ILON,ILAT)  ! JCHBr3
-!            !State_Diag%JValues(ILON,ILAT,L,14) = ZPJ(L,23,ILON,ILAT)  ! JBr2
-!            !State_Diag%JValues(ILON,ILAT,L,16) = ZPJ(L,36,ILON,ILAT)  ! JN2O
-!            !State_Diag%JValues(ILON,ILAT,L,17) = ZPJ(L, 6,ILON,ILAT)  ! JNO
-!            !State_Diag%JValues(ILON,ILAT,L,18) = ZPJ(L,12,ILON,ILAT)   
-!     &      !                                   + ZPJ(L,13,ILON,ILAT)  ! JNO3
-!            !State_Diag%JValues(ILON,ILAT,L,19) = ZPJ(L,37,ILON,ILAT)  ! JCFC11
-!            !State_Diag%JValues(ILON,ILAT,L,20) = ZPJ(L,38,ILON,ILAT)  ! JCFC12
-!            !State_Diag%JValues(ILON,ILAT,L,21) = ZPJ(L,42,ILON,ILAT)  ! JCCl4
-!            !State_Diag%JValues(ILON,ILAT,L,22) = ZPJ(L,43,ILON,ILAT)  ! JCH3Cl
-!            !State_Diag%JValues(ILON,ILAT,L,23) = ZPJ(L,76,ILON,ILAT)   
-!     &      !                                   + ZPJ(L,77,ILON,ILAT)  ! JACET
-!            !State_Diag%JValues(ILON,ILAT,L,24) = ZPJ(L,61,ILON,ILAT)   
-!     &      !                                   + ZPJ(L,62,ILON,ILAT)  ! JALD2
-!            !State_Diag%JValues(ILON,ILAT,L,25) = ZPJ(L,63,ILON,ILAT)   
-!     &      !                                   + ZPJ(L,64,ILON,ILAT)   
-!     &      !                                   + ZPJ(L,65,ILON,ILAT)  ! JMVK
-!            !State_Diag%JValues(ILON,ILAT,L,26) = ZPJ(L,66,ILON,ILAT)   
-!     &      !                                   + ZPJ(L,67,ILON,ILAT)  ! JMACR
-!            !State_Diag%JValues(ILON,ILAT,L,27) = ZPJ(L,75,ILON,ILAT)  ! JHAC
-!            !State_Diag%JValues(ILON,ILAT,L,28) = ZPJ(L,68,ILON,ILAT)  ! JGLYC
-!            !State_Diag%JValues(ILON,ILAT,L,29) = ZPJ(L,106,ILON,ILAT) ! JPIP
-!            !State_Diag%JValues(ILON,ILAT,L,30) = ZPJ(L,107,ILON,ILAT) ! JIPMN
-!            !State_Diag%JValues(ILON,ILAT,L,31) = ZPJ(L,108,ILON,ILAT) ! JETHLN
-!            !State_Diag%JValues(ILON,ILAT,L,32) = ZPJ(L,109,ILON,ILAT) ! JDHDN
-!            !State_Diag%JValues(ILON,ILAT,L,33) = ZPJ(L,110,ILON,ILAT) ! JHPALD
-!            !State_Diag%JValues(ILON,ILAT,L,34) = ZPJ(L,111,ILON,ILAT) ! JISN1
-!            !State_Diag%JValues(ILON,ILAT,L,35) = ZPJ(L,112,ILON,ILAT) ! JMONITS
-!            !State_Diag%JValues(ILON,ILAT,L,36) = ZPJ(L,113,ILON,ILAT) ! JMONITU
-!            !State_Diag%JValues(ILON,ILAT,L,37) = ZPJ(L,114,ILON,ILAT) ! JHONIT
-!         ENDDO
-!      ENDIF
-!#endif
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% COMMENT OUT FAST-J DIAGNOSTICS FOR NOW (bmy, 3/5/14)
@@ -4940,8 +4896,10 @@ c  Ensure all 'AN_' types are valid selections
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD,       ONLY : LD22, ND22
       USE DIAG_MOD,           ONLY : AD22, LTJV
+#endif
       USE ErrCode_Mod
       USE State_Diag_Mod,     ONLY : DgnState
       USE Precision_Mod,      ONLY : fp
@@ -5003,20 +4961,14 @@ c  Ensure all 'AN_' types are valid selections
       ! RXN_H2SO4 specifies SO4 + hv -> SO2 + OH + OH
       ZPJ(L,RXN_H2SO4,I,J) = ZPJ(L,RXN_H2SO4,I,J) * FRAC
 
+#if defined( BPCH_DIAG )
       ! Store unadjusted O2 rate for ND22
       IF ( ND22 > 0 ) THEN
          IF ( L <= LD22 .and. LTJV(I,J) > 0 ) THEN
             AD22(I,J,L,15) = AD22(I,J,L,15) + ZPJ(L,RXN_O2,I,J)
          ENDIF
       ENDIF
-
-!#if defined( NC_DIAG ) 
-!      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
-!         IF ( LTJV(I,J) > 0 ) THEN
-!            !State_Diag%JValues(I,J,L,15) = ZPJ(L,RXN_O2,I,J)
-!         ENDIF
-!      ENDIF
-!#endif
+#endif
 
 #endif
 
@@ -5038,6 +4990,7 @@ c  Ensure all 'AN_' types are valid selections
       ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
       ZPJ(L,RXN_O3_1,I,J) = ZPJ(L,RXN_O3_1,I,J) - ZPJ(L,RXN_O3_2a,I,J)
 
+#if defined( BPCH_DIAG )
       ! For UCX, store O1D and O3P rates separately
       IF ( ND22 > 0  ) THEN
          IF ( L <= LD22 .and. LTJV(I,J) > 0 ) THEN
@@ -5045,18 +4998,11 @@ c  Ensure all 'AN_' types are valid selections
             AD22(I,J,L,6) = AD22(I,J,L,6) + ZPJ(L,RXN_O3_1, I,J)
          ENDIF
       ENDIF
-
-!#if defined( NC_DIAG )
-!      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
-!         IF ( LTJV(I,J) > 0 ) THEN
-!            !State_Diag%JValues(I,J,L,5) = ZPJ(L,RXN_O3_2a,I,J)
-!            !State_Diag%JValues(I,J,L,6) = ZPJ(L,RXN_O3_1, I,J)
-!         ENDIF
-!      ENDIF
-!#endif
+#endif
 
 #else
 
+#if defined( BPCH_DIAG )
       ! Store unadjusted total J-O3 as AD22(:,:,:,5)
       ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
       IF ( ND22 > 0 ) THEN
@@ -5064,14 +5010,7 @@ c  Ensure all 'AN_' types are valid selections
             AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,RXN_O3_2a,I,J)
          ENDIF
       ENDIF
-
-!#if defined( NC_DIAG )
-!      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
-!         IF ( LTJV(I,J) > 0 ) THEN
-!            !State_Diag%JValues(I,J,L,5) = ZPJ(L,RXN_O3_2a,I,J)
-!         ENDIF
-!      ENDIF
-!#endif
+#endif
 
       !========================================================
       ! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
@@ -5130,6 +5069,7 @@ c  Ensure all 'AN_' types are valid selections
 
       ENDIF
 
+#if defined( BPCH_DIAG )
       ! Store P(OH) from O3 photolysis as AD22(:,:,:,6)
       IF ( ND22 > 0 ) THEN
          IF ( L <= LD22 .and. LTJV(I,J) > 0 ) THEN
@@ -5138,14 +5078,7 @@ c  Ensure all 'AN_' types are valid selections
      &                      ZPJ(L,RXN_O3_2b,I,J)
          ENDIF
       ENDIF
-!#if defined( NC_DIAG )
-!      IF ( ASSOCIATED(State_Diag%JValues) ) THEN
-!         IF ( LTJV(I,J) > 0 ) THEN
-!           !State_Diag%JValues(I,J,L,6) = ZPJ(L,RXN_O3_2a,I,J) +
-!     &     !                              + ZPJ(L,RXN_O3_2b,I,J)
-!         ENDIF
-!      ENDIF
-!#endif
+#endif
 
 #endif
       

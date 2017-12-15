@@ -2228,7 +2228,8 @@
      &                  IIPAR,     JJPAR,     LD22,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD22) )
 
-         ENDDO    
+         ENDDO 
+         !print*, '@@@ AD22 at end: ', AD22(1,34,1,3) / SCALE_TMP(1,34)
       ENDIF     
 #if defined( BPCH_DIAG )
 !
