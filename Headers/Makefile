@@ -175,7 +175,8 @@ diagnostics_mod.o      : diagnostics_mod.F90      \
                          inquireMod.o             \
                          registry_mod.o
 
-errcode_mod.o          : errcode_mod.F90
+errcode_mod.o          : errcode_mod.F90          \
+                         charpak_mod.o
 
 input_opt_mod.o        : input_opt_mod.F90        \
                          errcode_mod.o            \

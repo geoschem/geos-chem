@@ -34,7 +34,8 @@ MODULE Charpak_Mod
   PUBLIC  :: To_UpperCase
   PUBLIC  :: TranLc     
   PUBLIC  :: TranUc     
-  PUBLIC  :: Txtext 
+  PUBLIC  :: Txtext
+  PUBLIC  :: WordWrapPrint
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
@@ -89,15 +90,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CntMat( str1, str2, imat )
+  SUBROUTINE CntMat( Str1, Str2, Imat, Locations )
 !
 ! !INPUT PARAMETERS: 
 !
-    CHARACTER(LEN=*), INTENT(IN) ::  str1, str2
+    CHARACTER(LEN=*), INTENT(IN) ::  Str1             ! Text to scan
+    CHARACTER(LEN=*), INTENT(IN) ::  Str2             ! Character to match
 !
 ! !OUTPUT PARAMETERS: 
 !
-    INTEGER,          INTENT(OUT) :: imat
+    INTEGER,          INTENT(OUT) :: imat             ! Number of matches
+    INTEGER,          OPTIONAL    :: Locations(255)   ! Positions of matches
 !
 ! !REVISION HISTORY:
 !     DATE:   JAN. 6, 1995
@@ -106,25 +109,34 @@ CONTAINS
 !               blanks in str1 are ignored.  Revised again
 !               on 3-6-1996.
 !   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!  20 Dec 2017 - R. Yantosca - Now returns the positions where matches occur
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: L1,L2,i,j
+    ! Scalars
+    INTEGER :: L1, L2, i, j
     LOGICAL :: again
-      
-    L1 = MAX(1,LEN_TRIM(str1))
-    L2 = LEN(str2)
-    imat = 0
+
+    ! Arrays
+    INTEGER :: TmpLocations(255)
+
+    ! Initialize
+    TmpLocations = 0    
+    L1           = MAX(1,LEN_TRIM(str1))
+    L2           = LEN(str2)
+    imat         = 0
+
     DO i=1,L1
        again = .true.
        j = 1
        DO WHILE (again)
           IF (str2(j:j).EQ.str1(i:i)) THEN
-             imat = imat+1
-             again = .false.
+             imat               = imat+1
+             TmpLocations(imat) = i
+             again              = .false.
           ELSEIF (j.LT.L2) THEN
              j=j+1
           ELSE
@@ -133,6 +145,9 @@ CONTAINS
        ENDDO
     ENDDO
    
+    ! Return positions where matches occured (OPTIONAL)
+    IF ( PRESENT( Locations ) ) Locations = TmpLocations
+
   END SUBROUTINE CntMat
 !EOC
 !------------------------------------------------------------------------------
@@ -1032,5 +1047,105 @@ CONTAINS
     CALL StrSqueeze( CleanStr           ) 
 
   END FUNCTION CleanText
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: WordWrapPrint
+!
+! !DESCRIPTION: Prints a text string wrapped to a specified line width.
+!  Useful for displaying error and warning messages.
+!\\
+!\\
+! !INTERFACE:
+  !
+  SUBROUTINE WordWrapPrint( Text, LineWidth, Delimiter )
+!
+! !INPUT PARAMETERS: 
+!
+    CHARACTER(LEN=*), INTENT(IN) :: Text        ! Text to print
+    INTEGER,          INTENT(IN) :: LineWidth   ! Width (characters) of lines
+    CHARACTER(LEN=1), OPTIONAL   :: Delimiter   ! Delimiter between words
+!
+! !REMARKS:
+!  The default DELIMITER is the space (" ") character.
+!
+! !REVISION HISTORY:
+!  20 Dec 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER          :: C, S, B, Matches, Length
+
+    ! Arrays
+    INTEGER          :: BreakPts(100)
+    INTEGER          :: SpaceLoc(500)
+
+    ! Strings
+    CHARACTER(LEN=1) :: Delim
+
+    !=======================================================================
+    ! WordWrapPrint begins here!
+    !=======================================================================
+
+    ! SpaceLoc is the array of where delimiters (usually the " " 
+    ! character) occur in the text, and S is its index.
+    S           = 1
+    SpaceLoc    = 0
+
+    ! BreakPts is the array of where line breaks occur
+    ! and B is its index.  
+    BreakPts    = 0
+    B           = 1
+    BreakPts(B) = 1
+
+    ! Delimiter for separating words (will be the space character by default)
+    IF ( PRESENT( Delimiter ) ) THEN
+       Delim = Delimiter
+    ELSE
+       Delim = ' '
+    ENDIF
+
+    ! Find the Location of spaces in the text
+    CALL CntMat( Text, ' ', Matches, SpaceLoc )
+
+    ! Loop through the number of matches
+    DO 
+     
+       ! Move to the next delimiter location
+       S = S + 1
+
+       ! Compute the length of the line
+       Length = SpaceLoc(S) - BreakPts(B) 
+
+       ! If the length of this segment is greater than the requested
+       ! line length, store the position of this line break
+       IF ( Length > LineWidth ) THEN
+          B           = B             + 1
+          BreakPts(B) = SpaceLoc(S-1) + 1
+       ENDIF
+
+       ! If we have exceeded the number of delimiters in the text, then set
+       ! the last breakpoint at the end of the text and exit the loop.
+       IF ( S > Matches ) THEN
+          B           = B + 1
+          BreakPts(B) = LEN_TRIM( Text ) + 1
+          EXIT
+       ENDIF
+     
+    ENDDO
+  
+    ! Print each line
+    DO C = 1, B-1
+       WRITE( 6, '(a)' ) Text( BreakPts(C):BreakPts(C+1)-1 )
+    ENDDO
+
+  END SUBROUTINE WordWrapPrint
 !EOC
 END MODULE CharPak_Mod

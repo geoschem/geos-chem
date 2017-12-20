@@ -61,6 +61,10 @@ CONTAINS
 !
   SUBROUTINE GC_Error( ErrMsg, RC, ThisLoc )
 !
+! !USES:
+!
+    USE Charpak_Mod, ONLY : WordWrapPrint
+!
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
@@ -90,8 +94,8 @@ CONTAINS
     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
     ! Print error message to log
-    Message =  'GEOS-Chem ERROR: ' // TRIM(ErrMsg)
-    WRITE( 6, '(a)' ) TRIM( Message )
+    Message =  'GEOS-Chem ERROR: ' // TRIM( ErrMsg )
+    CALL WordWrapPrint( Message, 78 )
       
     ! Print error location to log
     IF ( PRESENT( ThisLoc ) ) THEN
@@ -128,6 +132,10 @@ CONTAINS
 !
   SUBROUTINE GC_Warning( WarnMsg, RC, ThisLoc )
 !
+! !USES:
+!
+    USE Charpak_Mod, ONLY : WordWrapPrint
+!!
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN   )            :: WarnMsg 
@@ -158,7 +166,7 @@ CONTAINS
 
     ! Print error message to log
     Message =  'GEOS-Chem WARNING: ' // TRIM( WarnMsg )
-    WRITE( 6, '(a)' ) TRIM( Message )
+    CALL WordWrapPrint( Message, 78 )
       
     ! Print error location to log
     IF ( PRESENT( ThisLoc ) ) THEN
