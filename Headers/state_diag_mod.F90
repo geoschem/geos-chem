@@ -165,7 +165,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: RadClrSkyLWTOA  (:,:,:  ) ! Clr-sky LW rad @ atm top
      REAL(f4),  POINTER :: RadClrSkySWSurf (:,:,:  ) ! Clr-sky SW rad @ surface
      REAL(f4),  POINTER :: RadClrSkySWTOA  (:,:,:  ) ! Clr-sky SW rad @ atm top
-    
+
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Diag
      !----------------------------------------------------------------------
@@ -202,6 +202,12 @@ MODULE State_Diag_Mod
      ! real(fp) 4D not implemented
      MODULE PROCEDURE Register_DiagField_R8_4D
   END INTERFACE Register_DiagField
+!
+! !PRIVATE TYPES:
+!
+  ! Shadow variables from Input_Opt
+  LOGICAL :: Is_UCX
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -271,6 +277,9 @@ CONTAINS
     ErrMsg    = ''
     ThisLoc   = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
     Found     = .FALSE.
+
+    ! Save shadow variables from Input_Opt
+    Is_UCX    = Input_Opt%LUCX
     
     ! Shorten grid parameters for readability
     IM        = IIPAR ! # latitudes
@@ -935,13 +944,16 @@ CONTAINS
 
        !--------------------------------------------------------------------
        ! J-Values (instantaneous values)
+       !
+       ! NOTE: Dimension array nPhotol+2 to archive special photolysis
+       ! reactions for O3_O1D, O3_O3P (with UCX) or O3, POH (w/o UCX)
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%JVal'
        diagID  = 'JVal'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%JVal( IM, JM, LM, nPhotol ), STAT=RC )
+          ALLOCATE( State_Diag%JVal( IM, JM, LM, nPhotol+2 ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%JVal = 0.0_f4
@@ -952,13 +964,16 @@ CONTAINS
 
        !--------------------------------------------------------------------
        ! Noontime J-values
+       !
+       ! NOTE: Dimension array nPhotol+2 to archive special photolysis
+       ! reactions for O3_O1D, O3_O3P (with UCX) or O3, POH (w/o UCX)
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%JNoon'
        diagID  = 'JNoon'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%JNoon( IM, JM, LM, nPhotol ), STAT=RC )
+          ALLOCATE( State_Diag%JNoon( IM, JM, LM, nPhotol+2 ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%JNoon = 0.0_f4
@@ -1845,18 +1860,19 @@ CONTAINS
             'Registered variables contained within the State_Diag object:' )
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     ENDIF
-    CALL Registry_Print( am_I_Root   = am_I_Root,            &
-                         Registry    = State_Diag%Registry,  &
-                         ShortFormat = .TRUE.,               &
-                         RC          = RC                      )
-#endif
+    CALL Registry_Print( am_I_Root   = am_I_Root,                            &
+                         Registry    = State_Diag%Registry,                  &
+                         ShortFormat = .TRUE.,                               &
+                         RC          = RC                                   )
 
-    ! Trap error
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered!'
+       ErrMsg = 'Error encountered in "Registry_Print"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+#endif
 
   END SUBROUTINE Init_State_Diag
 !EOC
@@ -2856,8 +2872,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_TagInfo( am_I_Root, tagID,   State_Chm, Found, RC,          &
-                          N,         tagName, nTags                         )
+  SUBROUTINE Get_TagInfo( am_I_Root, tagID, State_Chm, Found,                &
+                          RC,        N,     tagName,   nTags                )
 !
 ! !USES:
 !
@@ -2866,7 +2882,7 @@ CONTAINS
 ! 
     LOGICAL,            INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
     CHARACTER(LEN=*),   INTENT(IN)  :: tagID       ! ID of tag (e.g. wildcard)
-    TYPE(ChmState),     INTENT(IN)  :: State_Chm   ! Obj for chem state
+    TYPE(ChmState),     INTENT(IN)  :: State_Chm   ! Chemistry State object
     INTEGER,            OPTIONAL    :: N           ! index (1 to # tags)
 !
 ! !OUTPUT PARAMETERS:
@@ -2886,30 +2902,40 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: D, numTags
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Nstr
-    LOGICAL            :: isNumTags, isTagName
-    CHARACTER(LEN=10)  :: JNames(37) ! temporary, will be replaced (ewl)
+    ! Scalars
+    INTEGER            :: D,         numTags
+    LOGICAL            :: isNumTags, isTagName, isN
 
-    ! Assume success
-    RC    =  GC_SUCCESS
-    ThisLoc = ' -> at Get_TagInfo (in Headers/state_diag_mod.F90)'
-    Found = .TRUE.
-    numTags = 0
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg,    ThisLoc,   Nstr
+
+    !=======================================================================
+    ! Get_TagName begins here
+    !=======================================================================
+
+    ! Initialize
+    RC         = GC_SUCCESS
+    ErrMsg     = ''
+    ThisLoc    = ' -> at Get_TagInfo (in Headers/state_diag_mod.F90)'
+    Found      = .TRUE.
+    numTags    = 0
     
     ! Optional arguments present?
+    isN        = PRESENT( N       )
     isTagName  = PRESENT( TagName )
     isNumTags  = PRESENT( nTags   )
 
     ! Exit with error if getting tag name but index not specified
-    IF ( isTagName .AND. .NOT. PRESENT( N ) ) THEN
+    IF ( isTagName .AND. .NOT. isN ) THEN
        ErrMsg = 'Index must be specified if retrieving an individual tag name'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    !=======================================================================
     ! Get number of tags
-    SELECT CASE ( TRIM(tagId) )
+    !=======================================================================
+    SELECT CASE( TRIM( tagId ) )
        CASE( 'ALL'     )
           numTags = State_Chm%nSpecies
        CASE( 'ADV'     )
@@ -2931,7 +2957,7 @@ CONTAINS
        CASE( 'LOS'     )
           numTags = State_Chm%nLoss
        CASE( 'PHO'     )
-          numTags = State_Chm%nPhotol
+          numTags = State_Chm%nPhotol+2  ! NOTE: Extra slots for diagnostics
        CASE( 'PRD'     )
           numTags = State_Chm%nProd
        CASE( 'VAR'     )
@@ -2946,6 +2972,10 @@ CONTAINS
           RETURN
     END SELECT
 
+    !=======================================================================
+    ! Sanity checks -- exit under certain conditions
+    !=======================================================================
+
     ! If not getting tag name then set nTags and exit
     IF ( .NOT. isTagName ) THEN 
        nTags = numTags
@@ -2953,16 +2983,18 @@ CONTAINS
     ENDIF
 
     ! Exit with error if index exceeds number of tags for this wildcard
-    IF ( isTagName .AND. .NOT. PRESENT( N ) ) THEN
+    IF ( isTagName .AND. .NOT. isN ) THEN
        ErrMsg = 'Index must be greater than total number of tags for wildcard' &
                 // TRIM(tagId)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    !=======================================================================
     ! Get mapping index
-    SELECT CASE ( TRIM(tagID) )
-       CASE( 'ALL', 'ADV', 'DUSTBIN', 'JVN' ) ! will remove JVN (ewl)
+    !=======================================================================
+    SELECT CASE( TRIM( tagID ) )
+       CASE( 'ALL', 'ADV', 'DUSTBIN', 'PRD', 'LOS' )
           D = N
        CASE( 'AER'  )
           D = State_Chm%Map_Aero(N)
@@ -2978,63 +3010,80 @@ CONTAINS
           D = State_Chm%Map_KppFix(N)
        CASE( 'KPP'  )
           D = State_Chm%Map_KppSpc(N)
-       CASE( 'LOS'  )
-          D = N
        CASE( 'PHO'  )
-          D = State_Chm%Map_Photol(N)
-       CASE( 'PRD'  )
-          D = N
+          IF ( N > State_Chm%nPhotol ) THEN
+             D = N
+          ELSE
+             D = State_Chm%Map_Photol(N)
+          ENDIF
        CASE( 'WET'  )
           D = State_Chm%Map_WetDep(N)
        CASE DEFAULT
           FOUND = .FALSE.
-          ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &
+          ErrMsg = 'Handling of tagId ' // TRIM( tagId ) // &
                    ' is not implemented for getting tag name'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
     END SELECT
 
-    ! Get tag name
-    IF ( isTagName ) tagName = ''  
-    IF ( TRIM(tagID) == 'DUSTBIN' ) THEN
-       WRITE ( Nstr, "(I1)" ) D
-       tagName = 'BIN' // TRIM(Nstr)
+    !=======================================================================
+    ! Return the tag name
+    !=======================================================================
+
+    ! Initialize
+    tagName = ''  
+
+    ! Special handling for certain tagID's
+    SELECT CASE( TRIM( tagID ) )
+
+       ! Dust bins
+       CASE( 'DUSTBIN' )
+          WRITE ( Nstr, "(I1)" ) D
+          tagName = 'BIN' // TRIM(Nstr)
+
+       ! Loss species
+       CASE( 'LOS' ) 
+          tagName = State_Chm%Name_Loss(N)
+          D       = INDEX( tagName, '_' )
+          tagName = tagName(D+1:)
+
+       ! Prod species
+       CASE( 'PRD' )
+          tagName = State_Chm%Name_Prod(N)
+          D       = INDEX( tagName, '_' )
+          tagName = tagName(D+1:)
+
+       ! Photolysis species
+       CASE( 'PHO' )
+
+          ! Save O1_O3D (UCX) or O3 (non-UCX) in the nPhotol+1 slot
+          IF ( D == State_Chm%nPhotol+1 ) THEN
+             IF ( Is_UCX ) THEN
+                tagName = 'O3O1D'
+             ELSE
+                tagName = 'O3x'
+             ENDIF
+
+          ! Save O3_O3P (UCX) or POH (non UCX) in the nPhotol+2 slot
+          ELSE IF ( D == State_Chm%nPhotol+2 ) THEN
+             IF ( Is_UCX ) THEN
+                tagName = 'O3O3P'
+             ELSE
+                tagName = 'POH'
+             ENDIF
+          
+          ! For all other photolysis species, get the name
+          ! from the GEOS-Chem species database
+          ELSE
+             tagName = State_Chm%SpcData(D)%Info%Name
+             
+          ENDIF
        
-    ELSE IF ( TRIM( tagId ) == 'LOS' ) THEN
-       tagName = State_Chm%Name_Loss(N)
-       D       = INDEX( tagName, '_' )
-       tagName = tagName(D+1:)
+          ! Default tag name is the name in the species database
+       CASE DEFAULT
+          tagName = State_Chm%SpcData(D)%Info%Name
 
-    ELSE IF ( TRIM( tagId ) == 'PRD' ) THEN
-       tagName = State_Chm%Name_Prod(N)
-       D       = INDEX( tagName, '_' )
-       tagName = tagName(D+1:)
-
-!    ELSEIF ( TRIM(tagId) == 'JVN' ) THEN   ! temporary, will be removed (ewl)
-!       JNAMES = [ 'NO2       ', 'HNO3      ', 'H2O2      ',            &
-!                  'CH2O      ', 'x         ', 'x         ',            &
-!                  'GLYX      ', 'MGLY      ', 'BrO       ',            &
-!                  'HOBr      ', 'BrNO2     ', 'BrNO3     ',            &
-!                  'CHBr3     ', 'Br2       ', 'O2inadj   ',            &
-!                  'N2O       ', 'NO        ', 'NO3       ',            &
-!                  'CFC11     ', 'CFC12     ', 'CCl4      ',            &
-!                  'CH3Cl     ', 'ACET      ', 'ALD2      ',            &
-!                  'MVK       ', 'MACR      ', 'HAC       ',            &
-!                  'GLYC      ', 'PIP       ', 'IPMN      ',            &
-!                  'ETHLN     ', 'DHDN      ', 'HPALD     ',            &
-!                  'ISN1      ', 'MONITS    ', 'MONITU    ',            &
-!                     'HONIT     ' ]
-!#if defined( UCX )
-!        JNAMES(5) = 'O3_O1D'
-!        JNAMES(6) = 'O3_O3P'
-!#else
-!        JNAMES(5) = 'O3'
-!        JNAMES(6) = 'O3_POH'
-!#endif
-       tagName = TRIM( JNAMES(D) )
-    ELSE
-       tagName = State_Chm%SpcData(D)%Info%Name
-    ENDIF
+    END SELECT
 
   END SUBROUTINE Get_TagInfo
 !EOC

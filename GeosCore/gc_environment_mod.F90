@@ -134,14 +134,31 @@ CONTAINS
 !  17 Jun 2016 - R. Yantosca - Move call to INIT_GET_NDEP to GIGC_INIT_EXTRA
 !                              which is called after species database init
 !  30 Jun 2016 - M. Sulprizio- Remove call to INIT_COMODE_LOOP; it's obsolete
+!  20 Dec 2017 - R. Yantosca - Return when encountering errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    
+    !=======================================================================
+    ! GC_Allocate_All begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = &
+       ' -> at GC_Allocate_All  (in module GeosCore/gc_environment_mod.F90)'
+
     ! Initialize fields of the Input Options object
     CALL Set_Input_Opt( am_I_Root, Input_Opt, RC )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       WRITE( 6, '(a)' ) 'ERROR initializing Input_Opt'
+       ErrMsg = 'Error encountered within call to "Set_Input_Opt"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -172,6 +189,13 @@ CONTAINS
                         value_LLSTRAT  = 59,              &
                         RC             = RC              )
 
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_State_Diag"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
     ! Exit upon error
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -187,22 +211,56 @@ CONTAINS
 
     ! Set dimensions in CMN_SIZE
     CALL Init_CMN_SIZE( am_I_Root, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_CMN_SIZE"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
 #endif
 
     ! Set dimensions in CMN_DEP_mod.F and allocate arrays
     CALL Init_CMN_DIAG( am_I_Root, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
 
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_CMN_DIAG"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Initialize CMN_O3_mod.F
     CALL Init_CMN_O3( am_I_Root, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
 
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_CMN_O3"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+
+    ! Initialize vdiff_pre_mod.F90
     CALL Init_VDIFF_PRE( am_I_Root, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
 
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_Vdiff_Pre"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Initialize CMN_FJX_mod.F
     CALL Init_CMN_FJX( am_I_Root, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_CMN_FJX"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
           
   END SUBROUTINE GC_Allocate_All
 !EOC
@@ -300,7 +358,7 @@ CONTAINS
                          State_Met   = State_Met,   & ! Meteorology State
                          RC          = RC          )  ! Success or failure?
 
-    ! Trap errors
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered within call to "Init_State_Met"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -315,7 +373,7 @@ CONTAINS
                           State_Chm  = State_Chm,   &  ! Chemistry State
                           RC         = RC          )   ! Success or failure
     
-    ! Trap errors
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered within call to "Init_State_Chm"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -332,7 +390,7 @@ CONTAINS
                           State_Diag = State_Diag,  &  ! Chemistry State
                           RC         = RC          )   ! Success or failure
 
-    ! Trap errors
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered within call to "Init_State_Diag"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

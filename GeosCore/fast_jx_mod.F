@@ -1727,7 +1727,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          write(6,*) ' Initializing Fast-JX v7.0 standalone CTM code.'
 
          if (W_.ne.8 .and. W_.ne.12 .and. W_.ne.18) then
-           call EXITC(' INIT_FJX: invalid no. wavelengths')
+            ErrMsg =  ' INIT_FJX: invalid no. wavelengths'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          endif
       ENDIF      
 
@@ -1782,6 +1784,13 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       !=====================================================================
       call RD_PROF_NC( am_I_Root, Input_Opt, RC )
 
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Rd_Prof_Nc"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
       NJXX = NJX
       do J = 1,NJX
         TITLEJXX(J) = TITLEJX(J)
@@ -1799,15 +1808,76 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ENDIF
 
       ! Read mapping information
-      CALL RD_JS_JX( JXUNIT,   TRIM( FILENAME ), 
-     &               TITLEJXX, NJXX,             am_I_Root )
+      CALL RD_JS_JX( JXUNIT,   TRIM( FILENAME ), TITLEJXX,
+     &               NJXX,     am_I_Root,        Input_Opt, RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Rd_Js_Jx"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       ! Get the GEOS-Chem photolysis index for each of the 1...JVN_ entries 
       ! in the FJX_j2j.dat file.  We'll use this for the diagnostics.
       DO J = 1, JVN_
-         GC_Photo_Id(J) = Ind_( RNAMES(J), 'P' )
-         WRITE( 6, 200 ) RNAMES(J), J, GC_Photo_Id(J), JFACTA(J)
- 200     FORMAT( a10, ':', 2i7, f7.4 )
+
+         IF ( J == Rxn_O3_2a ) THEN
+            
+            !---------------------------------------------------------------
+            ! O3 + hv = O + O(1D) branch 1
+            !
+            ! UCX     : Save this as JO3_O1D in the nPhotol+1 slot 
+            ! non_UCX : Save this as JO3     in the nPhotol+1 slot
+            !---------------------------------------------------------------
+            GC_Photo_Id(J) = State_Chm%nPhotol + 1
+
+         ELSE IF ( J == Rxn_O3_1 ) THEN
+
+            !---------------------------------------------------------------
+            ! O3 + hv -> O + O
+            !
+            ! UCX     : Save this as JO3_O3P in the nPhotol+2 slot
+            ! non-UCX : undefined
+            !---------------------------------------------------------------
+            IF ( Input_Opt%LUCX ) THEN
+               GC_Photo_Id(J) = State_Chm%nPhotol + 2
+            ELSE
+               GC_Photo_Id(J) = -999
+            ENDIF
+         
+         ELSE IF ( J == Rxn_O3_2b ) THEN
+
+            !---------------------------------------------------------------
+            ! O3 + hv -> O2 + O(1d) branch 2
+            ! 
+            ! UCX     : undefined
+            ! non-UCX : Save into the nPhotol+2 slot 
+            !           NOTE: The JPOH rate in the bpch diagnostic will
+            !           now be the sum of the nPhotol+1 + nPhotol+2 slots!
+            !---------------------------------------------------------------
+            IF ( Input_Opt%LUCX ) THEN
+               GC_Photo_Id(J) = -999
+            ELSE
+               GC_Photo_Id(J) = State_Chm%nPhotol + 2
+            ENDIF
+
+         ELSE
+
+            !---------------------------------------------------------------
+            ! Everything else
+            !
+            ! Find the matching GEOS-Chem photolysis species number
+            !---------------------------------------------------------------
+            GC_Photo_Id(J) = Ind_( RNAMES(J), 'P' )
+            
+         ENDIF
+
+         ! Print the mapping
+         IF ( GC_Photo_Id(J) > 0 ) THEN
+            WRITE( 6, 200 ) RNAMES(J), J, GC_Photo_Id(J), JFACTA(J)
+ 200        FORMAT( a10, ':', i7, 2x, i7, 2x, f7.4 )
+         ENDIF
       ENDDO
 
       END SUBROUTINE INIT_FJX
@@ -2633,12 +2703,14 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_JS_JX(NUNIT,NAMFIL,TITLEJX,NJXX,am_I_Root)
+      SUBROUTINE RD_JS_JX( NUNIT, NAMFIL,    TITLEJX,
+     &                     NJXX,  am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE CHARPAK_MOD, ONLY : CSTRIP
-      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE Charpak_Mod,   ONLY : CStrip
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2647,6 +2719,11 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       CHARACTER(LEN=*), INTENT(IN)                  :: NAMFIL
       CHARACTER(LEN=6), INTENT(IN), DIMENSION(NJXX) :: TITLEJX
       LOGICAL,          INTENT(IN)                  :: am_I_Root
+      TYPE(OptInput),   INTENT(IN)                  :: Input_Opt
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,          INTENT(OUT)                 :: RC
 !
 ! !REMARKS:
 !  Now flag special reactions that are to be adjusted for FlexChem later.
@@ -2657,6 +2734,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !  29 Mar 2016 - R. Yantosca   - Now flag rxn numbers for use in PHOTRATE_ADJ
 !  27 Jun 2016 - M. Sulprizio  - Add RXN_NO2 flag for PARANOX
 !  10 Mar 2017 - C. Keller     - Wrapped print out into am_I_Root statement
+!  19 Dec 2017 - R. Yantosca   - Now return error code to calling routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2671,9 +2749,8 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       CHARACTER(LEN=6  ) :: T_FJX
       CHARACTER(LEN=50 ) :: T_REACT
       CHARACTER(LEN=50 ) :: TEXT
-      CHARACTER(LEN=80 ) :: MSG
-      CHARACTER(LEN=80 ) :: LOC = 'RD_JS_JX (GeosCore/fast_jx_mod.F)'
       CHARACTER(LEN=120) :: CLINE
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       ! String arrays
       CHARACTER(LEN=6)   :: JMAP(JVN_)
@@ -2681,6 +2758,11 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       !=================================================================
       ! RD_JS_JX begins here!
       !=================================================================
+
+      ! Initialize
+      RC       = GC_SUCCESS
+      ErrMsg   = ''
+      ThisLoc  = ' -> at Rd_Js_Jx  (in module GeosCore/fast_jx_mod.F)'
 
 ! Read the FJX_j2j.dat file to map model specific J's onto fast-JX J's
 ! The chemistry code title describes fully the reaction (a50)
@@ -2814,50 +2896,63 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       ! Error check the various rxn flags
       !------------------------------------
       IF ( RXN_O2 < 0 ) THEN
-         MSG = 'Could not find rxn O2 + hv -> O + O'
-         CALL ERROR_STOP( MSG, LOC )
+         ErrMsg = 'Could not find rxn O2 + hv -> O + O'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       IF ( RXN_O3_1 < 0 ) THEN
-         MSG = 'Could not find rxn O3 + hv -> O2 + O'
-         CALL ERROR_STOP( MSG, LOC )
+         ErrMsg = 'Could not find rxn O3 + hv -> O2 + O'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       IF ( RXN_O3_2a < 0 ) THEN
-         MSG = 'Could not find rxn O3 + hv -> O2 + O(1D) #1'
-         CALL ERROR_STOP( MSG, LOC )
+         ErrMsg = 'Could not find rxn O3 + hv -> O2 + O(1D) #1'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       IF ( RXN_O3_2b  < 0 ) THEN
-         MSG = 'Could not find rxn O3 + hv -> O2 + O(1D) #2'
-         CALL ERROR_STOP( MSG, LOC )
+         ErrMsg = 'Could not find rxn O3 + hv -> O2 + O(1D) #2'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
       ENDIF
-
-#if defined( UCX )
-      IF ( RXN_H2SO4  < 0 ) THEN
-         MSG = 'Could not find rxn SO4 + hv -> SO2 + OH + OH!'
-         CALL ERROR_STOP( MSG, LOC )
-      ENDIF
-
-      IF ( RXN_NO3 < 0 ) THEN
-         MSG = 'Could not find rxn NO3 + hv -> NO2 + O'
-         CALL ERROR_STOP( MSG, LOC )
-      ENDIF
-
-      IF ( RXN_NO < 0 ) THEN
-         MSG = 'Could not find rxn NO + hv -> O + N'
-         CALL ERROR_STOP( MSG, LOC )
-      ENDIF
-
-      IF ( RXN_N2O < 0 ) THEN
-         MSG = 'Could not find rxn N2O + hv -> N2 + O(1D)'
-         CALL ERROR_STOP( MSG, LOC )
-      ENDIF
-#endif
 
       IF ( RXN_NO2 < 0 ) THEN
-         MSG = 'Could not find rxn NO2 + hv -> NO + O'
-         CALL ERROR_STOP( MSG, LOC )
+         ErrMsg = 'Could not find rxn NO2 + hv -> NO + O'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! These reactions are only defined for the UCX mechanism!
+      !-----------------------------------------------------------------
+      IF ( Input_Opt%LUCX ) THEN
+
+         IF ( RXN_H2SO4  < 0 ) THEN
+            ErrMsg = 'Could not find rxn SO4 + hv -> SO2 + OH + OH!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         IF ( RXN_NO3 < 0 ) THEN
+            ErrMsg = 'Could not find rxn NO3 + hv -> NO2 + O'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         IF ( RXN_NO < 0 ) THEN
+            ErrMsg = 'Could not find rxn NO + hv -> O + N'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         IF ( RXN_N2O < 0 ) THEN
+            ErrMsg = 'Could not find rxn N2O + hv -> N2 + O(1D)'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
       ENDIF
 
       !------------------------------------
@@ -4889,39 +4984,44 @@ c  Ensure all 'AN_' types are valid selections
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PHOTRATE_ADJ( am_I_root, I,    J,
-     &                         L,         AD,   TEMP,
-     &                         C_H2O,     FRAC, State_Diag,
-     &                         RC      )
+      SUBROUTINE PHOTRATE_ADJ( am_I_root, Input_Opt, State_Diag,
+     &                         I,         J,         L,
+     &                         NUMDEN,    TEMP,      C_H2O,
+     &                         FRAC,      RC                    )
 !
 ! !USES:
 !
 #if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD,       ONLY : LD22, ND22
-      USE DIAG_MOD,           ONLY : AD22, LTJV
+      USE CMN_DIAG_MOD,   ONLY : LD22, ND22
+      USE DIAG_MOD,       ONLY : AD22, LTJV
 #endif
       USE ErrCode_Mod
-      USE State_Diag_Mod,     ONLY : DgnState
-      USE Precision_Mod,      ONLY : fp
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
 !     
 ! !INPUT PARAMETERS:
 !     
-      LOGICAL,   INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
-      INTEGER,   INTENT(IN)  :: I, J, L    ! Grid box indices (lon, lat, lev)
-      REAL(fp),  INTENT(IN)  :: AD         ! Air number density [molec/m3] ??
-      REAL(fp),  INTENT(IN)  :: TEMP       ! Temperature [K]
-      REAL(fp),  INTENT(IN)  :: C_H2O      ! H2O conc [molec/cm3]
-      REAL(fp),  INTENT(IN)  :: FRAC       ! Result of SO4_PHOTFRAC,
-                                           ! called from flex_chemdr.F!
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input_Options object
+      INTEGER,        INTENT(IN)    :: I, J, L    ! Lon, lat, lev indices
+      REAL(fp),       INTENT(IN)    :: NUMDEN     ! Air # density [molec/m3]
+      REAL(fp),       INTENT(IN)    :: TEMP       ! Temperature [K]
+      REAL(fp),       INTENT(IN)    :: C_H2O      ! H2O conc [molec/cm3]
+      REAL(fp),       INTENT(IN)    :: FRAC       ! Result of SO4_PHOTFRAC,
+                                                  !  called from DO_FLEXCHEM
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,   INTENT(OUT) :: RC         ! Success or failure
+      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure
 !
 ! !REMARKS:
+!  NOTE: The netCDF diagnostics are attached in DO_FLEXCHEM so that we have
+!  access to the adjusted rates.  Only the bpch diagnostics are updated
+!  here. 
+!    -- Bob Yantosca, 19 Dec 2017
 !
 !  %%%% NOTE: WE SHOULD UPDATE THE COMMENTS TO MAKE SURE THAT WE DO      %%%%
 !  %%%% NOT KEEP ANY CONFLICTING OR INCORRECT INFORMATION (bmy, 3/28/16) %%%%
@@ -4933,154 +5033,191 @@ c  Ensure all 'AN_' types are valid selections
 !  18 Apr 2016 - R. Yantosca - Also prevent div-by-zero conditions
 !  16 Mar 2017 - M. Sulprizio- Restore P(OH) from O3 photolysis for ND22
 !  04 Oct 2017 - E. Lundgren - Pass State_Diag and populate J-Values array
+!  19 Dec 2017 - R. Yantosca - Now use Input_Opt%LUCX instead of ifdefs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
+      ! Scalars
+      LOGICAL  :: DO_ND22
       REAL(fp) :: C_O2,      C_N2,     C_H2, ITEMPK
       REAL(fp) :: RO1DplH2O, RO1DplH2, RO1D
 
-      !==============================================================
+      !=================================================================
       ! PHOTRATE_ADJ begins here!
-      !==============================================================
+      !=================================================================
 
-      ! Assume success
-      RC = GC_SUCCESS
+      ! Initialize
+      RC      = GC_SUCCESS
+      Do_ND22 = ( ND22 > 0 .and. L <= LD22 .and. LTJV(I,J) > 0 ) 
 
-#if defined( UCX )
-      !==============================================================
-      ! SPECIAL TREATMENT FOR H2SO4+hv -> SO2 + 2OH
-      !
-      ! Only allow photolysis of H2SO4 when gaseous (SDE 04/11/13)
-      !==============================================================
+      ! Test if the UCX mechanism is being used
+      IF ( Input_Opt%LUCX ) THEN
 
-      ! Calculate if H2SO4 expected to be gaseous or aqueous
-      ! Only allow photolysis above 6 hPa
-      ! RXN_H2SO4 specifies SO4 + hv -> SO2 + OH + OH
-      ZPJ(L,RXN_H2SO4,I,J) = ZPJ(L,RXN_H2SO4,I,J) * FRAC
+         !==============================================================
+         ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! %%% FOR MECHANISMS WITH UCX                              %%%
+         ! %%% (standard, benchmark, *SOA*, marinePOA, aciduptake)  %%%
+         ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !
+         ! SPECIAL TREATMENT FOR H2SO4+hv -> SO2 + 2OH
+         !
+         ! Only allow photolysis of H2SO4 when gaseous (SDE 04/11/13)
+         !==============================================================
+
+         ! Calculate if H2SO4 expected to be gaseous or aqueous
+         ! Only allow photolysis above 6 hPa
+         ! RXN_H2SO4 specifies SO4 + hv -> SO2 + OH + OH
+         ZPJ(L,RXN_H2SO4,I,J) = ZPJ(L,RXN_H2SO4,I,J) * FRAC
 
 #if defined( BPCH_DIAG )
-      ! Store unadjusted O2 rate for ND22
-      IF ( ND22 > 0 ) THEN
-         IF ( L <= LD22 .and. LTJV(I,J) > 0 ) THEN
+         !--------------------------------------------------------------
+         ! ND22 (bpch) diagnostic
+         !
+         ! Store unadjusted O2 photolysis rate as ND22(:,:,:,15)
+         !--------------------------------------------------------------
+         IF ( Do_ND22 ) THEN
             AD22(I,J,L,15) = AD22(I,J,L,15) + ZPJ(L,RXN_O2,I,J)
          ENDIF
-      ENDIF
 #endif
 
-#endif
+         !==============================================================
+         ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! %%% FOR MECHANISMS WITH UCX                              %%%
+         ! %%% (standard, benchmark, *SOA*, marinePOA, aciduptake)  %%%
+         ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !
+         ! SPECIAL TREATMENT FOR O3+hv -> O+O2  (UCX simulation)
+         !
+         ! [O1D]ss=J[O3]/(k[H2O]+k[N2]+k[O2])
+         ! SO, THE EFFECTIVE J-VALUE IS J*k[H2O]/(k[H2O]+k[N2]+k[O2])
+         !
+         ! We don't want to do this if strat-chem is in use, as all
+         ! the intermediate reactions are included - this would be
+         ! double-counting (SDE 04/01/13)
+         !==============================================================
 
-      !==============================================================
-      ! SPECIAL TREATMENT FOR O3+hv -> OH+OH (trop-only simulation)
-      !                    or O3+hv -> O+O2  (UCX simulation)
-      !
-      ! [O1D]ss=J[O3]/(k[H2O]+k[N2]+k[O2])
-      ! SO, THE EFFECTIVE J-VALUE IS J*k[H2O]/(k[H2O]+k[N2]+k[O2])
-      !
-      ! We don't want to do this if strat-chem is in use, as all
-      ! the intermediate reactions are included - this would be
-      ! double-counting (SDE 04/01/13)
-      !==============================================================
-#if defined( UCX )
-
-      ! Need to subtract O3->O1D from rate
-      ! RXN_O3_1  specifies: O3 + hv -> O2 + O
-      ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
-      ZPJ(L,RXN_O3_1,I,J) = ZPJ(L,RXN_O3_1,I,J) - ZPJ(L,RXN_O3_2a,I,J)
+         ! Need to subtract O3->O1D from rate
+         ! RXN_O3_1  specifies: O3 + hv -> O2 + O
+         ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
+         ZPJ(L,RXN_O3_1,I,J) = ZPJ(L,RXN_O3_1,I,J)
+     &                       - ZPJ(L,RXN_O3_2a,I,J)
 
 #if defined( BPCH_DIAG )
-      ! For UCX, store O1D and O3P rates separately
-      IF ( ND22 > 0  ) THEN
-         IF ( L <= LD22 .and. LTJV(I,J) > 0 ) THEN
+         !--------------------------------------------------------------
+         ! ND22 (bpch) diagnostic
+         !
+         ! For UCX, store O1D and O3P photolysis rates separately
+         !--------------------------------------------------------------
+         IF ( Do_ND22 ) THEN
             AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,RXN_O3_2a,I,J)
             AD22(I,J,L,6) = AD22(I,J,L,6) + ZPJ(L,RXN_O3_1, I,J)
          ENDIF
-      ENDIF
 #endif
 
-#else
+      ELSE
+
+         !==============================================================
+         ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! %%% FOR MECHANISMS WITHOUT UCX %%%
+         ! %%% (tropchem)                 %%%
+         ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !
+         ! SPECIAL TREATMENT FOR O3+hv -> OH+OH (trop-only simulation)
+         !==============================================================
 
 #if defined( BPCH_DIAG )
-      ! Store unadjusted total J-O3 as AD22(:,:,:,5)
-      ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
-      IF ( ND22 > 0 ) THEN
-         IF ( L <= LD22 .and. LTJV(I,J) > 0 ) THEN
+         !--------------------------------------------------------------
+         ! ND22 (bpch) diagnostic
+         !
+         ! Store unadjusted total O3 photolysis rate as AD22(:,:,:,5)
+         ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
+         !--------------------------------------------------------------
+         IF ( Do_ND22 ) THEN
             AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,RXN_O3_2a,I,J)
          ENDIF
-      ENDIF
 #endif
 
-      !========================================================
-      ! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
-      ! than 2.6e-11.  The temperature dependence remains the
-      ! same, so the constant changes from 1.8e-11 to 2.14e-11
-      ! according to Heard, pers. comm.,2002. (amf, bmy, 1/7/02)
-      !========================================================
-      ! Change the rate of O(1D)+H2O from 2.2e-10 to 1.45e-10*
-      ! exp(89/temp) on the basis of Dunlea and Ravishankara
-      ! 'Measurement of the Rate coefficient for the reaction 
-      ! of O(1D) with H2O and re-evaluation of the atmospheric
-      ! OH Production Rate'.  One of the RSC Journals
-      ! (mje 4/5/04)
-      !========================================================
-      ! Updated from JPL2006, the difference is pretty small.
-      ! (jmao,02/26/2009)
-      !========================================================
-      ! Additional update from JPL 10-6 for reaction of
-      ! O3 + hv --> HO2 + OH and O1D + H2:
-      ! Includes calculation of k[O3], where
-      ! k[O3]  = J[O3]*1.2e-10/k[O1D], where
-      ! k[O1D] = ([O1D]*[H2]+[O1D]*[H2O])/
-      !          ([O1D]*[H2]+[O1D]*[H2O]+[O1D][N2]+[O1D][O2])
-      ! (bhh, jmao, eam, 7/18/11)
-      !========================================================
+         !==============================================================
+         ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! %%% FOR MECHANISMS WITHOUT UCX %%%
+         ! %%% (tropchem)                 %%%
+         ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !
+         ! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
+         ! than 2.6e-11.  The temperature dependence remains the
+         ! same, so the constant changes from 1.8e-11 to 2.14e-11
+         ! according to Heard, pers. comm.,2002. (amf, bmy, 1/7/02)
+         !==============================================================
+         ! Change the rate of O(1D)+H2O from 2.2e-10 to 1.45e-10*
+         ! exp(89/temp) on the basis of Dunlea and Ravishankara
+         ! 'Measurement of the Rate coefficient for the reaction 
+         ! of O(1D) with H2O and re-evaluation of the atmospheric
+         ! OH Production Rate'.  One of the RSC Journals
+         ! (mje 4/5/04)
+         !==============================================================
+         ! Updated from JPL2006, the difference is pretty small.
+         ! (jmao,02/26/2009)
+         !==============================================================
+         ! Additional update from JPL 10-6 for reaction of
+         ! O3 + hv --> HO2 + OH and O1D + H2:
+         ! Includes calculation of k[O3], where
+         ! k[O3]  = J[O3]*1.2e-10/k[O1D], where
+         ! k[O1D] = ([O1D]*[H2]+[O1D]*[H2O])/
+         !          ([O1D]*[H2]+[O1D]*[H2O]+[O1D][N2]+[O1D][O2])
+         ! (bhh, jmao, eam, 7/18/11)
+         !==============================================================
 
-      ! Inverse temperature [K-1]
-      ITEMPK    = 1.0_fp / TEMP
+         ! Inverse temperature [K-1]
+         ITEMPK    = 1.0_fp / TEMP
+      
+         ! Set species concentrations [molec/m3] ???
+         C_O2      = 0.2095e+0_fp * NUMDEN
+         C_N2      = 0.7808e+0_fp * NUMDEN
 
-      ! Set species concentrations [molec/m3] ???
-      C_O2      = 0.2095e+0_fp * AD
-      C_N2      = 0.7808e+0_fp * AD
+         ! Added H2 concentration (bhh, jmao, eam, 7/18/11)
+         ! Seasonal variability of H2 may be important, 
+         ! but not included in this update (bhh, jmao, eam, 7/18/11)
+         C_H2      = 0.5000e-6_fp * NUMDEN
 
-      ! Added H2 concentration (bhh, jmao, eam, 7/18/11)
-      ! Seasonal variability of H2 may be important, 
-      ! but not included in this update (bhh, jmao, eam, 7/18/11)
-      C_H2      = 0.5000e-6_fp * AD
+         RO1DplH2O = 1.63e-10_fp * EXP(  60.0_fp * ITEMPK ) * C_H2O
 
-      RO1DplH2O = 1.63e-10_fp * EXP(  60.0_fp * ITEMPK ) * C_H2O
+         RO1DplH2  = 1.2e-10                                * C_H2
 
-      RO1DplH2  = 1.2e-10                                * C_H2
+         RO1D      = RO1DplH2O
+     &             + RO1DplH2  
+     &             + 2.15e-11_fp * EXP( 110.0_fp * ITEMPK ) * C_N2
+     &             + 3.30e-11_fp * EXP(  55.0_fp * ITEMPK ) * C_O2
 
-      RO1D      = RO1DplH2O
-     &          + RO1DplH2  
-     &          + 2.15e-11_fp * EXP( 110.0_fp * ITEMPK ) * C_N2
-     &          + 3.30e-11_fp * EXP(  55.0_fp * ITEMPK ) * C_O2
+         ! Prevent div-by-zero
+         IF ( RO1D > 0.0_fp ) THEN
 
-      ! Prevent div-by-zero
-      IF ( RO1D > 0.0_fp ) THEN
+            ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D) #1
+            ZPJ(L,RXN_O3_2a,I,J) = ZPJ(L,RXN_O3_2a,I,J)
+     &                           * RO1DplH2O / RO1D
 
-         ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D) #1
-         ZPJ(L,RXN_O3_2a,I,J) = ZPJ(L,RXN_O3_2a,I,J) * RO1DplH2O / RO1D
+            ! RXN_O3_2b specifies: O3 + hv -> O2 + O(1D) #2
+            ZPJ(L,RXN_O3_2b,I,J) = ZPJ(L,RXN_O3_2b,I,J)
+     &                           * RO1DplH2  / RO1D
 
-         ! RXN_O3_2b specifies: O3 + hv -> O2 + O(1D) #2
-         ZPJ(L,RXN_O3_2b,I,J) = ZPJ(L,RXN_O3_2b,I,J) * RO1DplH2  / RO1D
-
-      ENDIF
+         ENDIF
 
 #if defined( BPCH_DIAG )
-      ! Store P(OH) from O3 photolysis as AD22(:,:,:,6)
-      IF ( ND22 > 0 ) THEN
-         IF ( L <= LD22 .and. LTJV(I,J) > 0 ) THEN
-            AD22(I,J,L,6) = AD22(I,J,L,6)        + 
-     &                      ZPJ(L,RXN_O3_2a,I,J) +
-     &                      ZPJ(L,RXN_O3_2b,I,J)
+         !--------------------------------------------------------------
+         ! ND22 (bpch) diagnostic
+         !
+         ! Store P(OH) from O3 photolysis as AD22(:,:,:,6)
+         !--------------------------------------------------------------
+         IF ( Do_ND22 ) THEN
+            AD22(I,J,L,6) = AD22(I,J,L,6)
+     &                    + ZPJ(L,RXN_O3_2a,I,J)
+     &                    + ZPJ(L,RXN_O3_2b,I,J)
          ENDIF
-      ENDIF
 #endif
 
-#endif
+      ENDIF
       
       END SUBROUTINE PHOTRATE_ADJ
 !EOC

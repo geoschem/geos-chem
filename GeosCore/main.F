@@ -1,4 +1,4 @@
-!     BOC
+!BOC
 #if !defined(ESMF_)
 !EOC
 !------------------------------------------------------------------------------
@@ -759,6 +759,12 @@
       IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM ) THEN
          CALL INIT_CHEMISTRY( am_I_Root, Input_Opt,
      &                        State_Chm, State_Diag, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Chemistry"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
       ENDIF
 
       ! Initialize HEMCO. This reads the HEMCO configuration file
