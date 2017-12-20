@@ -206,7 +206,7 @@ transfer_mod.o      : transfer_mod.F        \
 unitconv_mod.o	    : unitconv_mod.F90      \
                       error_mod.o
 
-geos_timers_mod.o   : geos_timers_mod.F
+geos_timers_mod.o   : geos_timers_mod.F90
 
 #%%% NOTE: THIS IS NOW OBSOLETE, WE SHOULD REMOVE IT %%% 
 # NOTE: if HDF5=yes then we need to also look for the hdf5.mod 
