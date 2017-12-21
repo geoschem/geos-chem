@@ -28,7 +28,6 @@ MODULE Registry_Mod
   PUBLIC  :: Registry_Lookup
   PUBLIC  :: Registry_Print
   PUBLIC  :: Registry_Destroy
-  PUBLIC  :: To_UpperCase ! consider putting in common util file (ewl)
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -36,7 +35,6 @@ MODULE Registry_Mod
   PRIVATE :: MetaRegItem_Create
   PRIVATE :: MetaRegItem_Insert
   PRIVATE :: MetaRegItem_Destroy
-  PRIVATE :: Str2Hash ! consider putting in a common util file (ewl)
 !
 ! ! PUBLIC TYPES::
 !
@@ -119,6 +117,7 @@ MODULE Registry_Mod
 !  29 Jun 2017 - R. Yantosca - Added Ptr1DI to type RegItem
 !  30 Jun 2017 - R. Yantosca - Add more pointers to 4-byte and integer data
 !  23 Aug 2017 - R. Yantosca - Added OnLevelEdges field
+!  31 Oct 2017 - R. Yantosca - Move Str2Hash, To_UpperCase to charpak_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -152,6 +151,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CharPak_Mod, ONLY : Str2Hash31, To_Uppercase
     USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
@@ -470,6 +470,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Charpak_Mod, ONLY : Str2Hash31, To_UpperCase
     USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
@@ -541,6 +542,9 @@ CONTAINS
 !  25 Aug 2017 - R. Yantosca - Added optional Data0d_8 and Data1d_8 arguments
 !  25 Sep 2017 - E. Lundgren - Only use state name prefix if not from state_diag
 !  06 Oct 2017 - R. Yantosca - Add Ptr2d_8, Ptr3d_8 optional arguments
+!  01 Nov 2017 - R. Yantosca - Now use Str2Hash31 from charpak_mod.F90, which
+!                              computes a hash from an input string of 31 chars
+!  01 Nov 2017 - R. Yantosca - Make the registry lookup case-insensitive
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -566,6 +570,7 @@ CONTAINS
     CHARACTER(LEN=31)          :: FullName31,      ItemName31
     CHARACTER(LEN=255)         :: TmpName,         TmpFullName
     CHARACTER(LEN=255)         :: ErrMsg,          ThisLoc
+    CHARACTER(LEN=255)         :: VariableUC
 
     ! Objects
     TYPE(MetaRegItem), POINTER :: Current
@@ -577,19 +582,22 @@ CONTAINS
     Current         => NULL()
     ErrMsg          =  ''
     ThisLoc         =  ' -> at Registry_Lookup (in Headers/registry_mod.F90)'
-
-    ! Append the state name to the variable (if it's not already there)
     TmpState        = TRIM( State ) // '_' 
+    VariableUC      =  To_UpperCase( Variable )
+
+    ! Prefix the the state name (always uppercase) to the variable, unless:
+    ! (1) The state name is already part of the variable
+    ! (2) If it's a field from State_Diag, which requires no prefix
     IF ( ( TRIM( State ) == 'DIAG' ) .OR.  &
-         ( INDEX( Variable, TRIM( TmpState ) ) > 0 ) ) THEN
-       TmpFullName  = Variable
+         ( INDEX( VariableUC, TRIM( TmpState ) ) > 0 ) ) THEN
+       TmpFullName  = VariableUC
     ELSE
-       TmpFullName  = TRIM( TmpState ) // TRIM( Variable )
+       TmpFullName  = TRIM( TmpState ) // TRIM( VariableUC )
     ENDIF
 
     ! Construct a hash for the full name (i.e. "State_Variable"
-    FullName31      =  To_UpperCase( TmpFullName )
-    FullHash        =  Str2Hash( FullName31 )
+    FullName31      =  TmpFullName
+    FullHash        =  Str2Hash31( FullName31 )
 
     ! Set a flag to denote that we've found the field
     Found           = .FALSE.
@@ -663,7 +671,7 @@ CONTAINS
 
        ! Construct a hash for the full name of this REGISTRY ITEM 
        ItemName31 = Current%Item%FullName
-       ItemHash   = Str2Hash( ItemName31 )
+       ItemHash   = Str2Hash31( ItemName31 )
 
        ! If the name-hashes match ...
        IF ( FullHash == ItemHash ) THEN
@@ -1001,7 +1009,7 @@ CONTAINS
              WRITE( 6, 100 ) Item%FullName,    Item%Description,             &
                              Item%DimNames,    CellPos,                      &
                              TRIM( Item%Units )
-  100        FORMAT( 1x, a20, ' | ', a30, ' | ', a3, ' ', a1, ' | ', a )
+  100        FORMAT( 1x, a30, ' | ', a20, ' | ', a3, ' ', a1, ' | ', a )
 
           ELSE
 
@@ -1613,146 +1621,5 @@ CONTAINS
     Node    => NULL()
 
   END SUBROUTINE MetaRegItem_Destroy
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Str2Hash
-!
-! !DESCRIPTION: Returns a unique integer hash for a given character string.
-!  This allows us to implement a fast name lookup algorithm.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Str2Hash( Str ) RESULT( Hash )
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=31), INTENT(IN) :: Str    ! String (31 chars long)
-!
-! !RETURN VALUE:
-!
-    INTEGER                       :: Hash   ! Hash value from string
-!
-! !REMARKS:
-!  (1) Algorithm taken from this web page:
-!       https://fortrandev.wordpress.com/2013/07/06/fortran-hashing-algorithm/
-!
-!  (2) For now, we only use the first 31 characers of the character string
-!       to compute the hash value.  Most GEOS-Chem variable names only use
-!       up to 31 unique characters.  We can change this later if need be.
-!
-! !REVISION HISTORY:
-!  26 Jun 2017 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Initialize
-    Hash = 5381
-
-    !-----------------------------------------------------------------------
-    ! Construct the hash from the first 31 characters of the string,
-    ! which is about the longest variable name for GEOS-Chem.
-    !
-    ! NOTE: It's MUCH faster to explicitly write these statements
-    ! instead of writing them using a DO loop.
-    !-----------------------------------------------------------------------
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 1: 1) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 2: 2) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 3: 3) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 4: 4) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 5: 5) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 6: 6) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 7: 7) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 8: 8) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 9: 9) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(10:10) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(11:11) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(12:12) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(13:13) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(14:14) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(15:15) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(16:16) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(17:17) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(18:18) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(19:19) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(20:20) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(21:21) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(22:22) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(23:23) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(24:24) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(25:25) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(26:26) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(27:27) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(28:28) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(29:29) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(30:30) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(31:31) )
-
-  END FUNCTION Str2Hash
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: To_Uppercase
-!
-! !DESCRIPTION: Converts a string to uppercase, so that we can reliably
-!  do string matching.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION To_UpperCase( Text ) RESULT( UpCaseText )
-!
-! !INPUT PARAMETERS: 
-!
-    CHARACTER(LEN=*), INTENT(IN) :: Text         ! Input test
-!
-! !RETURN VALUE:
-!
-    CHARACTER(LEN=255)           :: UpCaseText   ! Output text, uppercase
-!
-! !REMARKS:
-!  Code originally from routine TRANUC (Author: R. D. Stewart, 19 May 1992)
-!
-! !REVISION HISTORY:
-!  26 Jun 2017 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER :: C, Ascii 
-    
-    !=======================================================================
-    ! Convert to uppercase
-    !=======================================================================
-
-    ! Initialize
-    UpCaseText = Text
-
-    ! Loop over all characters
-    DO C = 1, LEN_TRIM( UpCaseText )
-
-       ! Get the ASCII code for each character
-       Ascii = ICHAR( UpCaseText(C:C) )
-       
-       ! If lowercase, convert to uppercase
-       IF ( Ascii > 96 .and. Ascii < 123 ) THEN
-          UpCaseText(C:C) = CHAR( Ascii - 32 )
-       ENDIF
-    ENDDO
-
-  END FUNCTION To_UpperCase
 !EOC
 END MODULE Registry_Mod

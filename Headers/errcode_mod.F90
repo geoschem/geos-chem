@@ -21,6 +21,7 @@ MODULE ErrCode_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: GC_Error
+  PUBLIC :: GC_Warning
   PUBLIC :: GC_CheckVar
 !
 ! !DEFINED PARAMETERS: 
@@ -38,6 +39,7 @@ MODULE ErrCode_Mod
 !                              no longer used.
 !  23 Jun 2017 - R. Yantosca - Moved subroutine GC_Error here
 !  27 Jun 2017 - R. Yantosca - Added routine GC_CheckVar
+!  20 Dec 2017 - R. Yantosca - Added routine GC_Warning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -59,6 +61,10 @@ CONTAINS
 !
   SUBROUTINE GC_Error( ErrMsg, RC, ThisLoc )
 !
+! !USES:
+!
+    USE Charpak_Mod, ONLY : WordWrapPrint
+!
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
@@ -73,6 +79,7 @@ CONTAINS
 !  16 Aug 2016 - M. Sulprizio- Rename from GIGC_ERROR to GC_ERROR
 !  23 Jun 2017 - R. Yantosca - Now moved from error_mod.F to errcode_mod.F90
 !  28 Aug 2017 - R. Yantosca - Now flush the error msg to stdout/log file
+!   8 Nov 2017 - R. Yantosca - Add separator lines to make msgs more visible
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -83,9 +90,12 @@ CONTAINS
     ! GC_ERROR begins here 
     !=======================================================================
 
+    ! Separator
+    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
     ! Print error message to log
-    Message =  'GEOS-Chem ERROR: ' // TRIM(ErrMsg)
-    WRITE( 6, '(a)' ) TRIM( Message )
+    Message =  'GEOS-Chem ERROR: ' // TRIM( ErrMsg )
+    CALL WordWrapPrint( Message, 78 )
       
     ! Print error location to log
     IF ( PRESENT( ThisLoc ) ) THEN
@@ -93,11 +103,12 @@ CONTAINS
        WRITE( 6, '(a)' ) TRIM( ThisLoc )
     ENDIF
 
-    ! Write a blank line to improve readability between error messages
+    ! Separators
+    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     WRITE( 6, '(a)' ) ''
 
     ! Force the message to be flushed to the log file
-    CALL FLUSH( 6 )
+    CALL Flush( 6 )
 
     ! Return with failure, but preserve existing error code
     IF ( RC == GC_SUCCESS ) THEN
@@ -105,6 +116,75 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE GC_Error
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GC_Warning
+!
+! !DESCRIPTION: Subroutine GC\_Warning prints an warning (i.e. non-fatal
+!  error message) and sets RC to GC\_SUCCESS. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GC_Warning( WarnMsg, RC, ThisLoc )
+!
+! !USES:
+!
+    USE Charpak_Mod, ONLY : WordWrapPrint
+!!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN   )            :: WarnMsg 
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: ThisLoc 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)            :: RC 
+!
+! !REVISION HISTORY:
+!  13 Aug 2015 - E. Lundgren - Initial version, based on C. Keller's HCO_ERROR
+!  16 Aug 2016 - M. Sulprizio- Rename from GIGC_ERROR to GC_ERROR
+!  23 Jun 2017 - R. Yantosca - Now moved from error_mod.F to errcode_mod.F90
+!  28 Aug 2017 - R. Yantosca - Now flush the error msg to stdout/log file
+!   8 Nov 2017 - R. Yantosca - Add separator lines to make msgs more visible
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    CHARACTER(LEN=255) :: Message
+
+    !=======================================================================
+    ! GC_ERROR begins here 
+    !=======================================================================
+
+    ! Separator
+    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
+    ! Print error message to log
+    Message =  'GEOS-Chem WARNING: ' // TRIM( WarnMsg )
+    CALL WordWrapPrint( Message, 78 )
+      
+    ! Print error location to log
+    IF ( PRESENT( ThisLoc ) ) THEN
+       Message = 'WARNING LOCATION: ' // TRIM( ThisLoc )
+       WRITE( 6, '(a)' ) TRIM( ThisLoc )
+    ENDIF
+
+    ! Separators
+    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    WRITE( 6, '(a)' ) ''
+
+    ! Force the message to be flushed to the log file
+    CALL Flush( 6 )
+
+    ! Return with success, since this is only a warning message
+    RC = GC_SUCCESS
+
+  END SUBROUTINE GC_Warning
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -164,7 +244,7 @@ CONTAINS
   END SELECT
 
   ! Define location string
-  ThisLoc   = ' -> at Init_State_Met (in Headers/state_met_mod.F90)'
+  ThisLoc   = ' -> at GC_CheckVar (in Headers/errcode_mod.F90)'
 
   !=========================================================================
   ! Display error message if necessary

@@ -101,6 +101,8 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: SWGDN     (:,:  ) ! Incident radiation @ grnd [W/m2]
      REAL(fp), POINTER :: TO3       (:,:  ) ! Total overhead O3 column [DU]
      REAL(fp), POINTER :: TROPP     (:,:  ) ! Tropopause pressure [hPa]
+     REAL(fp), POINTER :: TropLev   (:,:  ) ! Tropopause level [1]
+     REAL(fp), POINTER :: TropHt    (:,:  ) ! Tropopause height [km]
      REAL(fp), POINTER :: TS        (:,:  ) ! Surface temperature [K]
      REAL(fp), POINTER :: TSKIN     (:,:  ) ! Surface skin temperature [K]
      REAL(fp), POINTER :: U10M      (:,:  ) ! E/W wind speed @ 10m height [m/s]
@@ -252,6 +254,7 @@ MODULE State_Met_Mod
 !  14 Sep 2017 - M. Sulprizio- Comment out met fields that aren't actually used
 !                              in GEOS-Chem (EVAP, GRN, PRECSNO, PV, RADLWG)
 !  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Met and Print_State_Met
+!  07 Nov 2017 - R. Yantosca - Add tropht and troplev fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -280,18 +283,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Met( am_I_Root, IM, JM, LM, State_Met, RC )
+  SUBROUTINE Init_State_Met( am_I_Root, State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD, ONLY : NSURFTYPE
+    USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR, NSURFTYPE
 !
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-    INTEGER,        INTENT(IN)    :: IM          ! # longitudes on this PET
-    INTEGER,        INTENT(IN)    :: JM          ! # longitudes on this PET
-    INTEGER,        INTENT(IN)    :: LM          ! # longitudes on this PET
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -327,6 +327,7 @@ CONTAINS
 !  26 Jun 2017 - R. Yantosca - Now register each variable after it's allocated
 !  24 Aug 2017 - R. Yantosca - Now register level-edged variables appropriately
 !  07 Sep 2017 - E. Lundgren - Abstract the metadata and method add to registry
+!  16 Nov 2017 - E. Lundgren - Get grid params from CMN_Size_Mod not arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -334,7 +335,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: LX
+    INTEGER            :: LX, IM, JM, LM
     
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -344,6 +345,11 @@ CONTAINS
     !=======================================================================
     RC    =  GC_SUCCESS
     ThisLoc = ' -> Init_State_Met (in Headers/state_met_mod.F90)'
+
+    ! Shorten grid parameters for readability
+    IM = IIPAR ! # latitudes
+    JM = JJPAR ! # longitudes
+    LM = LLPAR ! # levels
 
     !=======================================================================
     ! The following fields of State_Met may or may not get allocated
@@ -791,6 +797,28 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%TO3 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'TO3', State_Met%TO3, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! TropLev [1]
+    !-------------------------
+    ALLOCATE( State_Met%TropLev( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%TropLev', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%TropLev = 0.0_fp
+    CALL Register_MetField( am_I_Root, 'TROPLEV', State_Met%TropLev, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! TropHt [hPa]
+    !-------------------------
+    ALLOCATE( State_Met%TropHt( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%TropHt', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%TropHt = 0.0_fp
+    CALL Register_MetField( am_I_Root, 'TROPHT', State_Met%TropHt, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -1798,6 +1826,8 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%SUNCOS     )) DEALLOCATE( State_Met%SUNCOS     )
     IF ( ASSOCIATED( State_Met%SUNCOSmid  )) DEALLOCATE( State_Met%SUNCOSmid  )
     IF ( ASSOCIATED( State_Met%SWGDN      )) DEALLOCATE( State_Met%SWGDN      )
+    IF ( ASSOCIATED( State_Met%TropLev    )) DEALLOCATE( State_Met%TropLev    )
+    IF ( ASSOCIATED( State_Met%TropHt     )) DEALLOCATE( State_Met%TropHt     )
     IF ( ASSOCIATED( State_Met%TROPP      )) DEALLOCATE( State_Met%TROPP      )
     IF ( ASSOCIATED( State_Met%TS         )) DEALLOCATE( State_Met%TS         )
     IF ( ASSOCIATED( State_Met%TSKIN      )) DEALLOCATE( State_Met%TSKIN      )
@@ -1952,6 +1982,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Charpak_Mod,         ONLY: To_UpperCase
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -1973,6 +2004,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  28 Aug 2017 - E. Lundgren - Initial version
+!  01 Nov 2017 - R. Yantosca - Now get To_UpperCase from charpak_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2224,6 +2256,16 @@ CONTAINS
        CASE ( 'TO3' )
           IF ( isDesc  ) Desc  = 'Total overhead ozone column'
           IF ( isUnits ) Units = 'dobsons'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'TROPLEV' )
+          IF ( isDesc  ) Desc  = 'GEOS-Chem level where the tropopause occurs'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'TROPHT' )
+          IF ( isDesc  ) Desc  = 'Tropopause height'
+          IF ( isUnits ) Units = 'km'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'TROPP' )

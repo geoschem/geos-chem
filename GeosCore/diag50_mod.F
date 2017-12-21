@@ -244,10 +244,11 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_O3_MOD               ! SAVEOH
+!      USE CMN_O3_MOD               ! SAVEOH
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
@@ -334,7 +335,7 @@
       INTEGER, SAVE       :: id_HNO3,     id_HNO4, id_N2O5, id_NO
       INTEGER, SAVE       :: id_PAN,      id_NPMN,  id_PPN,  id_O3
       INTEGER, SAVE       :: id_R4N2,     id_SALA, id_SALC, id_NO2
-      INTEGER, SAVE       :: id_IPMN
+      INTEGER, SAVE       :: id_IPMN,     id_OH
 
       ! Scalars
       LOGICAL             :: IS_CHEM
@@ -381,6 +382,7 @@
          id_SALA = Ind_('SALA')
          id_SALC = Ind_('SALC')
          id_NO2  = Ind_('NO2' )
+         id_OH   = Ind_('OH'  )
 
          ! Set logical flags
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
@@ -490,13 +492,16 @@
      &                      ( AIRMW 
      &                      / State_Chm%SpcData(N)%Info%emMW_g ) )
 
-            ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
-
-               !--------------------------------------
-               ! OH CONCENTRATION [molec/cm3]
-               ! NOTE: Only archive at chem timestep
-               !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEOH(I,J,L)
+! NOTE: We can restore this once we figure out what the proper unit
+! conversion is (bmy, 11/20/17)
+!            ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
+!
+!               !--------------------------------------
+!               ! OH CONCENTRATION [molec/cm3]
+!               ! NOTE: Only archive at chem timestep
+!               !--------------------------------------
+!!               Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEOH(I,J,L)
+!               Q(X,Y,K,W) = Q(X,Y,K,W) + Spc(I,J,L,id_OH)
 
             ELSE IF ( N == 502 .and. IS_NOy ) THEN
 

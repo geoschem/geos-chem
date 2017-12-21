@@ -40,7 +40,12 @@
      &                           (NSTRATAER*3)
       INTEGER, PARAMETER :: PD22=76
       INTEGER, PARAMETER :: PD40=4       
-      INTEGER, PARAMETER :: PD43=7  
+!-------------------------------------------------------------------
+! Prior to 11/29/17:
+! The SOA slots of ND43 seem to have been removed (bmy, 11/29/17)
+!      INTEGER, PARAMETER :: PD43=7  
+!-------------------------------------------------------------------
+      INTEGER, PARAMETER :: PD43=4
       INTEGER, PARAMETER :: PD52=6
       INTEGER, PARAMETER :: PD55=3
       ! Potential temperature diagnostic (hotp 7/31/09)

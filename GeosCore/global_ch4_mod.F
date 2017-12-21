@@ -135,6 +135,9 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Diagnostic flags
+      LOGICAL               :: Archive_OHconcAfterChem
+
       ! Species ID flag
       INTEGER               :: id_CH4
 
@@ -867,8 +870,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMCH4( am_I_Root, Input_Opt,
-     &                    State_Met, State_Chm, RC )
+      SUBROUTINE CHEMCH4( am_I_Root, Input_Opt,  State_Met,
+     &                    State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -883,6 +886,7 @@
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_DAY,   GET_MONTH
 !
@@ -895,6 +899,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -953,6 +958,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1053,15 +1059,43 @@
       ! BOH is in kg/m3 (from HEMCO), convert to molecules/cm3 
       ! (ckeller, 9/16/2014)
       !=================================================================
+      IF ( ND43 > 0 .or. Archive_OHconcAfterChem ) THEN
 
-      IF ( ND43 > 0 ) THEN
-         DO L = 1, LD43
+         ! Zero the diagnostic array for OH to avoid leftover values
+         IF ( Archive_OHconcAfterChem ) THEN
+            State_Diag%OHconcAfterChem = 0.0_f4
+         ENDIF
+
+         ! NOTE: Can parallelize this loop later
+         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 !               AD43(I,J,L,1) = AD43(I,J,L,1) + BOH(I,J,L,LMN)
-               AD43(I,J,L,1) = AD43(I,J,L,1) + 
-     &                       ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
+
+#if defined( BPCH_DIAG )
+               !--------------------------------------------------------
+               ! ND43 (bpch) diagnostic
+               ! OH concentration in [molec/cm3] after chemistry
+               !--------------------------------------------------------
+               IF ( L <= LD43 ) THEN
+                  AD43(I,J,L,1) = AD43(I,J,L,1) +
+     &                            ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
+               ENDIF
+#endif
+
+
+#if defined( NC_DIAG )
+               !--------------------------------------------------------
+               ! HISTORY (aka netCDF diagnostics)
+               ! OH concentration in [molec/cm3] after chemistry
+               !--------------------------------------------------------
+               IF ( Archive_OHconcAfterChem ) THEN
+                  State_Diag%OHconcAfterChem(I,J,L) =
+     &                 ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
+               ENDIF
+#endif
+
             ENDIF
          ENDDO
          ENDDO
@@ -1506,7 +1540,11 @@
       USE CHEMGRID_MOD,       ONLY : GET_MIN_TPAUSE_LEVEL
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : CHECK_SPC
+!-----------------------------------------------------------------------------
+! Prior to 12/11/17:
+! Comment this out to speed up GEOS-Chem (bmy, 12/11/17)
+!      USE ERROR_MOD,          ONLY : CHECK_SPC
+!-----------------------------------------------------------------------------
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -1684,9 +1722,13 @@
 
 !      FIRSTCHEM = .FALSE.
 
-      ! Check Spc for negatives and NaN
-      CALL CHECK_SPC( State_Chm, Input_Opt,
-     &                'IN global_ch4_mod.F: CH4_STRAT' )
+!----------------------------------------------------------------------------
+! Prior to 12/11/17:
+! Comment this out to speed up GEOS-Chem (bmy, 12/11/17)
+!      ! Check Spc for negatives and NaN
+!      CALL CHECK_SPC( State_Chm, Input_Opt,
+!     &                'IN global_ch4_mod.F: CH4_STRAT' )
+!----------------------------------------------------------------------------
 
       ! Free pointer
       Spc => NULL()
@@ -2526,7 +2568,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_GLOBAL_CH4( am_I_Root, Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
@@ -2537,11 +2579,13 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2559,6 +2603,7 @@
 !  16 Jun 2016 - M. Sulprizio- Now define IDT_CH4 locally
 !  20 Jun 2016 - R. Yantosca - Rename IDTCH4 to id_CH4 for consistency
 !  20 Jun 2016 - R. Yantosca - Now stop run if id_CH4 is undefined
+!  09 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2615,6 +2660,9 @@
 
       ! Initialize tropoch4 (counts total decay of CH4 due to OH)
       TROPOCH4 = 0e+0_fp
+
+      ! Set a flag to denote if netCDF diagnostics are activated
+      Archive_OHconcAfterChem = ASSOCIATED( State_Diag%OHconcAfterChem )
 
       END SUBROUTINE INIT_GLOBAL_CH4
 !EOC

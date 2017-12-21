@@ -36,7 +36,7 @@ MODULE MIXING_MOD
 !
 ! !PRIVATE TYPES:
 !
-  LOGICAL :: Archive_DryDepFlux_Mix   ! Is the DryDepFlux_Mix diag turned on?
+  LOGICAL :: Archive_DrydepMix   ! Is the DryDepMix diag turned on?
 
 CONTAINS
 !EOC
@@ -90,40 +90,76 @@ CONTAINS
 !  26 Oct 2016 - R. Yantosca - Now also call COMPUTE_PBL_HEIGHT so that we
 !                              populate PBL quantities w/ the initial met
 !  09 Mar 2017 - C. Keller   - Do not call COMPUTE_PBL_HEIGHT in ESMF env.
+!   6 Nov 2017 - R. Yantosca - Return error condition to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
     ! DO_MIXING begins here!
     !=======================================================================
 
     ! Assume success
-    RC = GC_SUCCESS
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at INIT_MIXING (in module GeosCore/mixing_mod.F90)'
    
     ! Is the drydep flux from mixing diagnostic turned on?
-    Archive_DryDepFlux_Mix = ASSOCIATED( State_Diag%DryDepFlux_Mix )
-    print*, '### INIT_MIXING: archive: ', Archive_DryDepFlux_Mix
+    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix )
 
     !-----------------------------------------------------------------------
     ! Initialize PBL mixing scheme
     !-----------------------------------------------------------------------
     IF ( Input_Opt%LNLPBL ) THEN
+
+       ! Initialize non-local PBL mixing scheme
        CALL DO_PBL_MIX_2( am_I_Root, .FALSE. ,  Input_Opt,                   &
                           State_Met, State_Chm, State_Diag, RC              )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "DO_PBL_MIX" at initialization!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ELSE 
+
+       ! Initialize full PBL mixing scheme
        CALL DO_PBL_MIX(   am_I_Root, .FALSE.,   Input_Opt,                   &
                           State_Met, State_Chm, State_Diag, RC              )
+       
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "DO_PBL_MIX" at initialization!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDIF
 
+#if !defined( ESMF_ )
+    !-----------------------------------------------------------------------
     ! Compute the various PBL quantities with the initial met fields.
     ! This is needed so that HEMCO won't be passed a zero PBL height
     ! (bmy, 10/26/16)
+    !
     ! In ESMF mode this routine should not be called during the init
     ! stage: the required met quantities are not yet defined.
     ! (ckeller, 11/23/16)
-#if !defined(ESMF_)
-    CALL COMPUTE_PBL_HEIGHT( State_Met )
+    !-----------------------------------------------------------------------
+    CALL COMPUTE_PBL_HEIGHT( am_I_Root, State_Met, RC )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "COMPUTE_PBL_HEIGHT" at initialization!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 #endif
 
   END SUBROUTINE INIT_MIXING 
@@ -180,6 +216,7 @@ CONTAINS
 !  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !  28 Sep 2017 - E. Lundgren - Move unit conversions to individual routines
+!  07 Nov 2017 - R. Yantosca - Now return error condition to calling routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -187,53 +224,97 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL :: OnlyAbovePBL
+    LOGICAL            :: OnlyAbovePBL
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
-    !=================================================================
+    !=======================================================================
     ! DO_MIXING begins here!
-    !=================================================================
+    !=======================================================================
 
-    ! Assume success
-    RC = GC_SUCCESS
+    ! Initialz3
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at DO_MIXING (in module GeosCore/mixing_mod.F90)'
 
-    ! ------------------------------------------------------------------
+    ! Initialize the diagnostic array for the History Component.  This will 
+    ! prevent leftover values from being carried over to this timestep.
+    ! (For example, if on the last iteration, the PBL height was higher than
+    ! it is now, then we will have stored drydep fluxes up to that height,
+    ! so we need to zero these out.)
+    IF ( Archive_DryDepMix ) THEN
+       State_Diag%DryDepMix = 0.0_f4
+    ENDIF
+
+    !-----------------------------------------------------------------------
     ! Do non-local PBL mixing. This will apply the species tendencies
     ! (emission fluxes and dry deposition rates) below the PBL.
     ! This is done for all species with defined emissions / dry
     ! deposition rates, including dust.
+    !
     ! Set OnlyAbovePBL flag (used below by DO_TEND) to indicate that
     ! fluxes within the PBL have already been applied. 
-    ! ------------------------------------------------------------------
+    ! ----------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. Input_Opt%LNLPBL ) THEN
+
+       ! Non-local mixing
        CALL DO_PBL_MIX_2( am_I_Root, Input_Opt%LTURB, Input_Opt,             &
                           State_Met, State_Chm,       State_Diag,  RC       )
+ 
+       ! Trap potential error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountred in "DO_PBL_MIX_2"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Fluxes in PBL have been applied (non-local PBL mixing)
        OnlyAbovePBL = .TRUE.
+
     ELSE
+
+       ! Fluxes in PBL have not been applied (full PBL mixing)
        OnlyAbovePBL = .FALSE.
+
     ENDIF
 
-    ! ------------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Apply tendencies. This will apply dry deposition rates and 
     ! emission fluxes below the PBL if it has not yet been done
     ! via the non-local PBL mixing. It also adds the emissions above 
     ! the PBL to the species array. Emissions of some species may be 
     ! capped at the tropopause to avoid build-up in stratosphere.
-    ! ------------------------------------------------------------------
+    !-----------------------------------------------------------------------
 
     ! Apply tendencies
-    CALL DO_TEND ( am_I_Root,  Input_Opt,    State_Met, State_Chm,           &
-                   State_Diag, OnlyAbovePBL, RC                             )
+    CALL DO_TEND( am_I_Root,  Input_Opt,    State_Met, State_Chm,           &
+                  State_Diag, OnlyAbovePBL, RC                             )
 
-    ! ------------------------------------------------------------------
+    ! Trap potential error
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountred in "DO_TEND"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
     ! Do full pbl mixing. This fully mixes the updated species 
     ! concentrations within the PBL. 
     ! 
     ! Now also archive concentrations and calculate turbulence 
     ! tendencies (ckeller, 7/15/2015)
-    ! ------------------------------------------------------------------
+    !-----------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. .NOT. Input_Opt%LNLPBL ) THEN
+
+       ! Full PBL mixing
        CALL DO_PBL_MIX( am_I_Root, Input_Opt%LTURB, Input_Opt,               &
                         State_Met, State_Chm,       State_Diag, RC          )
+
+       ! Trap potential error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountred in "DO_PBL_MIX"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
   END SUBROUTINE DO_MIXING 
@@ -251,8 +332,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_TEND ( am_I_Root,  Input_Opt,    State_Met, State_Chm,       &
-                       State_Diag, OnlyAbovePBL, RC,        DT               ) 
+  SUBROUTINE DO_TEND( am_I_Root,  Input_Opt,    State_Met, State_Chm,        &
+                      State_Diag, OnlyAbovePBL, RC,        DT                ) 
 !
 ! !USES:
 !
@@ -384,21 +465,14 @@ CONTAINS
     ! Initialize pointer
     SpcInfo    => NULL()
 
-    ! Initialize the diagnostic array for the History Component.  This will 
-    ! prevent leftover values from being carried over to this timestep.
-    ! (For example, if on the last iteration, the PBL height was higher than
-    ! it is now, then we will have stored drydep fluxes up to that height,
-    ! so we need to zero these out.)
-    IF ( Archive_DryDepFlux_Mix .and. DryDepID > 0 ) THEN
-       State_Diag%DryDepFlux_Mix = 0.0_f4
-    ENDIF
-
     ! DO_TEND previously operated in units of kg. The species arrays are in
     ! v/v for mixing, hence needed to convert before and after.
     ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to 
     ! remove area-dependency (ewl, 9/30/15)
     CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
                             'kg/m2', RC, OrigUnit=OrigUnit )
+
+    ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
        MSG = 'Unit conversion error!'
        CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
@@ -731,8 +805,8 @@ CONTAINS
                    !
                    !    -- Bob Yantosca (yantosca@seas.harvard.edu)
                    !--------------------------------------------------------
-                   IF ( Archive_DryDepFlux_Mix .and. DryDepID > 0 ) THEN
-                      State_Diag%DryDepFlux_Mix(I,J,L,DryDepId) = Flux
+                   IF ( Archive_DryDepMix .and. DryDepID > 0 ) THEN
+                      State_Diag%DryDepMix(I,J,L,DryDepId) = Flux
                    ENDIF
 #endif
 

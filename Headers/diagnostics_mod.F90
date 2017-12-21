@@ -11,6 +11,12 @@
 !  used to allocate diagnostics stored in container State_Diag and to 
 !  declare exports in GCHP. It does not store collection information.
 !
+! TODO: Also read input.geos to get the wavelengths in the radiation menu
+!       Store in module-level variables RadWL1, RadWL2, and RadWL3 (strings).
+!       If wavelength not present, store as 'WL2' etc. This must be done
+!       during init_diaglist. Will use these in state_diag_mod, in both
+!       init_state_diag and in get_metdata_state_diag.
+! 
 ! !INTERFACE:
 !
 MODULE Diagnostics_Mod
@@ -35,8 +41,6 @@ MODULE Diagnostics_Mod
   PRIVATE :: Init_DiagItem
   PRIVATE :: InsertBeginning_DiagList
   PRIVATE :: Search_DiagList
-  PRIVATE :: ReadOneLine ! copied from history_mod. Consider consolidating.
-  PRIVATE :: CleanText   ! copied from history_mod. Consider consolidating.
 !
 ! !PUBLIC DATA TYPES:
 !
@@ -52,18 +56,25 @@ MODULE Diagnostics_Mod
   !=========================================================================
   TYPE, PUBLIC :: DgnItem
      CHARACTER(LEN=63)      :: name 
-     CHARACTER(LEN=7)       :: state
+     CHARACTER(LEN=63)      :: state
      CHARACTER(LEN=63)      :: metadataID
      CHARACTER(LEN=63)      :: registryID
      LOGICAL                :: isWildcard
      CHARACTER(LEN=7)       :: wildcard
-     LOGICAL                :: isSpecies
-     CHARACTER(LEN=63)      :: species
+     LOGICAL                :: isTagged
+     CHARACTER(LEN=63)      :: tag
      TYPE(DgnItem), POINTER :: next
   END TYPE DgnItem
+
+  !=========================================================================
+  ! Configurable Settings Used for Diagnostic Names at Run-time
+  !=========================================================================
+  CHARACTER(LEN=5), PUBLIC :: RadWL(3)    ! Wavelengths configured in rad menu
+  LOGICAL,          PUBLIC :: IsFullChem  ! Is this a fullchem simulation?
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
+!  01 Nov 2017 - R. Yantosca - Moved ReadOneLine, CleanText to charpak_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -76,7 +87,17 @@ CONTAINS
 !
 ! !IROUTINE: Init_DiagList 
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Reads the HISTORY.rc and input.geos input files to get 
+!  determine which GEOS-Chem diagnostics have been requested.  Then it 
+!  uses this information to initialize the master list of diagnostics,
+!  aka, the DiagList object.
+!\\
+!\\
+!  NOTE: This routine has to be called before any of the GEOS-Chem objects
+!  Input_Opt, State_Chm, State_Met, and State_Diag are created.  When using
+!  GCHP, we must create the ESMF/MAPL export objects for the diagnostics
+!  in the Set_Services routine.  Set_Services is called before GEOS-Chem
+!  is initialized.
 !\\
 !\\
 ! !INTERFACE:
@@ -85,7 +106,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Charpak_Mod,      ONLY: StrSplit
+    USE Charpak_Mod
     USE InquireMod,       ONLY: findFreeLun
 !
 ! !INPUT PARAMETERS:
@@ -103,35 +124,44 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - initial version
+!  28 Nov 2017 - C. J. Lee   - Allow state MET variables to have underscores
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                 :: fId, IOS, N, I
+    INTEGER                 :: fId, IOS, N, I, J
     INTEGER                 :: numSpcWords, numIDWords
-    CHARACTER(LEN=255)      :: errMsg, thisLoc
+    CHARACTER(LEN=255)      :: errMsg, thisLoc, nameAllCaps
     CHARACTER(LEN=255)      :: line, SubStrs(500), SubStr
-    CHARACTER(LEN=255)      :: wildcard, species, name, state
+    CHARACTER(LEN=255)      :: wildcard, tag, name, state
     CHARACTER(LEN=255)      :: metadataID, registryID
-    LOGICAL                 :: EOF, found, isWildcard, isSpecies
+    LOGICAL                 :: EOF, found, isWildcard, isTagged
     TYPE(DgnItem),  POINTER :: NewDiagItem
 
-    ! ================================================================
+    !=======================================================================
     ! Init_DiagList begins here
-    ! ================================================================
-    thisLoc = 'Init_DiagList (diagnostics_mod.F90)'
+    !=======================================================================
 
-    ! Init
-    EOF = .FALSE.
-    found = .FALSE.
-    NewDiagItem => NULL()
+    ! Initialize
+    RC            = GC_SUCCESS
+    ErrMsg        = ''
+    ThisLoc       = ' -> at Init_DiagList (Headers/diagnostics_mod.F90)'
+    EOF           = .FALSE.
+    found         = .FALSE.
+    NewDiagItem   => NULL()
+    RadWL(:)      =  [ 'WL1  ','WL2  ','WL3  ']
+    IsFullChem    =  .FALSE.
 
     ! Create DiagList object
     DiagList%head => NULL()
 
-    ! Open the file
+    !=======================================================================
+    ! Read data from the HISTORY.rc configuration file
+    !=======================================================================
+
+    ! Open the history config file
     fId = FindFreeLun()
     OPEN( fId, FILE=TRIM(historyConfigFile), STATUS='OLD', IOSTAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -140,11 +170,10 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Read data from the file
+    ! Read data from history config file
     DO
     
        ! Read line and strip leading/trailing spaces
-       ! TODO: Beware that this currently does not strip tabs!!!
        Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
        IF ( EOF ) EXIT
        IF ( IOS > 0 ) THEN
@@ -170,26 +199,28 @@ CONTAINS
        ELSE
           name = TRIM(SubStrs(1))
        ENDIF
+       nameAllCaps = To_Uppercase( TRIM(name) )
 
-       ! Get GC state
-       IF ( INDEX( name, '_') > 0 ) THEN
-          CALL StrSplit( name, '_', SubStrs, N )
-          IF ( SubStrs(1) == 'MET' .or. SubStrs(1) == 'CHEM' ) THEN
-             state = TRIM( SubStrs(1) )
-          ELSE
-             state = 'DIAG'
-          ENDIF
+       ! Set GC state
+       IF ( nameAllCaps(1:4) == 'MET_' ) THEN
+          state = 'MET'
+       ELSEIF ( nameAllCaps(1:5) == 'CHEM_' ) THEN
+          state = 'CHEM'
+#if defined( ESMF_ )
+       ! Emissions diagnostics are included in HISTORY.rc in GCHP only
+       ELSEIF ( nameAllCaps(1:4) == 'EMIS' ) THEN
+          state = 'EMISSIONS'
+       ELSEIF ( nameAllCaps(1:4) == 'SPC_' ) THEN
+          state = 'INTERNAL'
+#endif
        ELSE
-          ! TODO: need to not classify GCHP internal state as DIAG!
           state = 'DIAG'
        ENDIF
 
-       ! Get wildcard or species, if any 
-       ! NOTE: Must be prefaced with double underscore in HISTORY.rc!
+       ! Get wildcard, if any 
+       ! NOTE: Must be prefaced with single underscore in HISTORY.rc!
        isWildcard = .FALSE.
-       isSpecies  = .FALSE.
        wildcard   = ''
-       species    = ''
        IF ( INDEX( name, '?' ) > 0 ) THEN
 #if defined( ESMF_ )
           ! Exit with an error if using GCHP and wildcard is present
@@ -200,26 +231,35 @@ CONTAINS
           CALL StrSplit( name, '?', SubStrs, N )
           wildcard = SubStrs(N-1)
        ENDIF
+
+       ! Get tag, if any
+       isTagged  = .FALSE.
+       tag = ''
        IF ( .NOT. isWildcard ) THEN
-          I = INDEX( TRIM(name), '__' ) 
-          IF ( I > 0 ) THEN
-             isSpecies = .TRUE.
-             species = name(I+2:)
+          CALL StrSplit( name, '_', SubStrs, N )
+          IF ( TRIM(state) == 'DIAG' .AND. N == 2 ) THEN
+             isTagged = .TRUE.
+             tag = SubStrs(2)
+          ELSEIF ( TRIM(state) == 'CHEM' &
+                   .AND. N == 3 ) THEN
+             isTagged = .TRUE.
+             tag = SubStrs(3)
           ENDIF
        ENDIF
 
-       ! Get registryID (name minus state prefix and wildcard suffix, but 
-       ! keep species)
-       registryID = TRIM(name)
+       ! Get registryID - start with the full name in HISTORY.rc
+       registryID = TRIM(nameAllCaps)
+       ! Strip off the state prefix, if any
        IF ( TRIM(state) == 'MET' ) THEN
           registryID = registryID(5:)
        ELSE IF ( TRIM(state) == 'CHEM' ) THEN
           registryID = registryID(6:)
        ENDIF
+       ! Strip off the wildcard, if any
        IF ( isWildcard ) THEN
-          I = INDEX( TRIM(registryID), '__' ) 
+          I = INDEX( TRIM(registryID), '_' ) 
           IF ( I .le. 0 ) THEN
-             ErrMsg = 'Error setting registryID. Double underscore must' &
+             ErrMsg = 'Error setting registryID. Single underscore must' &
                       // ' precede wildcard in HISTORY.rc!'
              CALL GC_ERROR( ErrMsg, RC, ThisLoc )
              RETURN
@@ -227,15 +267,14 @@ CONTAINS
           registryID = registryID(1:I-1)
        ENDIF
 
-       ! Get metadataID (name minus state prefix and species/wildcard suffix)
-       ! Start with registryID since that already has state prefix and wilcard
-       ! (if any) stripped. It only needs species stripped, if any.
+       ! Get metadataID - start with the registry ID
        metadataID = registryID
-       IF ( isSpecies ) THEN
-          I = INDEX( TRIM(metadataID), '__' ) 
+       ! Strip off the tag suffix, if any
+       IF ( isTagged ) THEN
+          I = INDEX( TRIM(metadataID), '_' ) 
           metadataID = metadataID(1:I-1)
        ENDIF
-
+       
        ! Skip if already encountered entry with same full name
        ! TODO: make this into a function that returns true or false
        ! Have a series of functions that do quality checks too
@@ -250,8 +289,8 @@ CONTAINS
                            registryID=registryID,  &
                            isWildcard=isWildcard,  &
                            wildcard=wildcard,      &
-                           isSpecies=isSpecies,     &
-                           species=species,        &
+                           isTagged=isTagged,      &
+                           tag=tag,                &
                            RC=RC  )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error initializing DiagItem ' // TRIM(name)
@@ -268,6 +307,55 @@ CONTAINS
     ! Close the file
     CLOSE( fId )
 
+    !=======================================================================
+    ! Read the input.geos configuration file to find out:
+    ! (1) Which wavelength has been selected for optical depth diag output
+    ! (2) If this is a fullchem simulation
+    !=======================================================================
+
+    ! Open input.geos file
+    fId = FindFreeLun()
+    OPEN( fId, FILE=TRIM('input.geos'), STATUS='OLD', IOSTAT=RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Could not open "' //TRIM('input.geos') // '"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    
+    ! Read data from the input.geos file
+    DO    
+       ! Read line and strip leading/trailing spaces
+       Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+       IF ( EOF ) EXIT
+       IF ( IOS > 0 ) THEN
+          ErrMsg = 'Unexpected end-of-file in "'       // &
+                    TRIM('input.geos') // '"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    
+       ! Find out if this is a full-chemistry simulation
+       IF ( INDEX( Line, 'Type of simulation' ) > 0 ) THEN
+          CALL StrSplit( Line, ':', SubStrs, N )
+          IsFullChem = ( TRIM( ADJUSTL( SubStrs(2) ) ) == '3' )
+       ENDIF
+
+       ! Update wavelength(s) with string in file
+       IF ( INDEX( Line, 'AOD Wavelength' ) > 0 ) THEN
+          I = INDEX( Line, ':' )
+          CALL StrSplit( Line(I:), ' ', SubStrs, N )
+          DO J = 1, N-1
+             WRITE ( RadWL(J), "(a5)" ) SubStrs(J+1)
+          ENDDO
+
+          ! Exit the search
+          EXIT
+       ENDIF
+    ENDDO
+    
+    ! Close the file
+    CLOSE( fId )
+    
   END SUBROUTINE Init_DiagList
 !EOC
 !------------------------------------------------------------------------------
@@ -277,14 +365,16 @@ CONTAINS
 !
 ! !IROUTINE: Init_DiagItem
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Initializes a DiagItem object, which contains information
+!  about a single GEOS-Chem diagnostic.  Several DiagItem objects will be
+!  linked together in the master diagnostics list (DiagList).
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE Init_DiagItem ( am_I_Root,  NewDiagItem, name,       state,     &
                              metadataID, registryID,  isWildcard, wildcard,  &
-                             isSpecies,  species,     RC  )
+                             isTagged,   tag,         RC  )
 !
 ! !INPUT PARAMETERS:
 !
@@ -295,8 +385,8 @@ CONTAINS
     CHARACTER(LEN=*),    OPTIONAL   :: registryID
     LOGICAL,             OPTIONAL   :: isWildcard
     CHARACTER(LEN=*),    OPTIONAL   :: wildcard
-    LOGICAL,             OPTIONAL   :: isSpecies
-    CHARACTER(LEN=*),    OPTIONAL   :: species
+    LOGICAL,             OPTIONAL   :: isTagged
+    CHARACTER(LEN=*),    OPTIONAL   :: tag
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -325,8 +415,8 @@ CONTAINS
     NewDiagItem%registryID = TRIM(registryID)
     NewDiagItem%isWildcard = isWildcard
     NewDiagItem%wildcard   = TRIM(wildcard)
-    NewDiagItem%isSpecies  = isSpecies
-    NewDiagItem%species    = TRIM(species)
+    NewDiagItem%isTagged   = isTagged
+    NewDiagItem%tag        = TRIM(tag)
 
   END SUBROUTINE Init_DiagItem
 !EOC
@@ -337,7 +427,8 @@ CONTAINS
 !
 ! !IROUTINE: InsertBeginning_DiagList 
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Inserts a new node at the beginning of the DiagList linked
+!  list object.
 !\\
 !\\
 ! !INTERFACE:
@@ -389,7 +480,8 @@ CONTAINS
 !
 ! !IROUTINE: Search_DiagList
 !
-! !DESCRIPTION:
+! !DESCRIPTION: Searches for a given diagnostic name within the DiagList
+!  diagnostic list object.
 !\\
 !\\
 ! !INTERFACE:
@@ -442,30 +534,32 @@ CONTAINS
 !
 ! !IROUTINE: Check_DiagList
 !
-! !DESCRIPTION:
+! !DESCRIPTION: Returns TRUE if a diagnostic name (or just a substring of a 
+!  diagnostic name) is found in the DiagList diagnostic list object.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Check_DiagList ( am_I_Root, DiagList, substr, found, RC )
+  SUBROUTINE Check_DiagList( am_I_Root, DiagList, substr, found, RC )
 !
 ! !USES:
 !
-    USE Registry_Mod, ONLY : To_Uppercase
+    USE Charpak_Mod, ONLY : To_UpperCase
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN) :: am_I_Root
-    TYPE(DgnList),     INTENT(IN) :: DiagList
-    CHARACTER(LEN=*),  INTENT(IN) :: substr
+    LOGICAL,           INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(DgnList),     INTENT(IN)  :: DiagList    ! Diagnostic list object
+    CHARACTER(LEN=*),  INTENT(IN)  :: substr      ! Substring
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(OUT) :: found
-    INTEGER,           INTENT(OUT) :: RC 
+    LOGICAL,           INTENT(OUT) :: found       ! Was a match found (T/F)?
+    INTEGER,           INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
+!  01 Nov 2017 - R. Yantosca - Now use To_UpperCase from charpak_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -486,8 +580,13 @@ CONTAINS
     current => DiagList%head
     DO WHILE ( ASSOCIATED( current ) )
        currentName_AllCaps = To_Uppercase( current%name )
-       IF ( ( current%state == 'DIAG' ) .AND. &
-            INDEX( currentName_AllCaps, TRIM( substr_AllCaps ) ) > 0 ) THEN
+!------------------------------------------------------------------------------
+! Prior to 11/16/17:
+! Don't just restrict to State_Diag (bmy, 11/16/17)
+!       IF ( ( current%state == 'DIAG' ) .AND. &
+!            INDEX( currentName_AllCaps, TRIM( substr_AllCaps ) ) > 0 ) THEN
+!------------------------------------------------------------------------------
+       IF ( INDEX( currentName_AllCaps, TRIM( substr_AllCaps ) ) > 0 ) THEN
           found = .TRUE.
           EXIT
        ENDIF
@@ -510,7 +609,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_DiagList ( am_I_Root, DiagList, RC )
+  SUBROUTINE Print_DiagList( am_I_Root, DiagList, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -551,14 +650,14 @@ CONTAINS
           PRINT *, TRIM(current%name)
           PRINT *, "   state:      ", TRIM(current%state)
           PRINT *, "   metadataID: ", TRIM(current%metadataID)
-          PRINT *, "   registryID (GCHP-only): ", TRIM(current%registryID)
-          PRINT *, "   isWildcard: ", current%isWildcard
+          PRINT *, "   registryID: ", TRIM(current%registryID)
           IF ( current%isWildcard ) THEN
+             PRINT *, "   isWildcard: ", current%isWildcard
              PRINT *, "   wildcard:   ", TRIM(current%wildcard)
           ENDIF
-          PRINT *, "   isSpecies:  ", current%isSpecies
-          IF ( current%isSpecies ) THEN
-             PRINT *, "   species:    ", TRIM(current%species)
+          IF ( current%isTagged ) THEN
+             PRINT *, "   isTagged:  ", current%isTagged
+             PRINT *, "   tag:    ", TRIM(current%tag)
           ENDIF
           PRINT *, " "
        ENDIF
@@ -637,134 +736,5 @@ CONTAINS
     next    => NULL()
 
   END SUBROUTINE Cleanup_DiagList
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!BOP
-!
-! !IROUTINE: ReadOneLine
-!
-! !DESCRIPTION: Subroutine READ\_ONE\_LINE reads a line from the input file.  
-!  If the global variable VERBOSE is set, the line will be printed to stdout.  
-!  READ\_ONE\_LINE can trap an unexpected EOF if LOCATION is passed.  
-!  Otherwise, it will pass a logical flag back to the calling routine, 
-!  where the error trapping will be done.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION ReadOneLine( fId, EndOfFile, IoStatus, Squeeze ) RESULT( Line )
-!
-! !USES:
-!
-    USE Charpak_Mod,  ONLY : StrSqueeze, CStrip
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER, INTENT(IN)  :: fId        ! File unit number
-    LOGICAL, OPTIONAL    :: Squeeze    ! Call Strsqueeze?
-!
-! !OUTPUT PARAMETERS:
-!
-    LOGICAL, INTENT(OUT) :: EndOfFile  ! Denotes EOF condition
-    INTEGER, INTENT(OUT) :: IoStatus   ! I/O status code
-!
-! !RETURN VALUE:
-!
-    CHARACTER(LEN=255)   :: Line       ! Single line from the input file
-! 
-! !REVISION HISTORY: 
-!  16 Jun 2017 - R. Yantosca - Initial version, based on GEOS-Chem
-!  22 Sep 2017 - E. Lundgren - Copied from history_mod to allow use in
-!                              Headers subdirectory. Consider placing
-!                              elsewhere for common use!!!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    !=================================================================
-    ! Initialize
-    !=================================================================
-    EndOfFile = .FALSE.
-    IoStatus  = 0
-    Line      = ''
-
-    !=================================================================
-    ! Read data from the file
-    !=================================================================
-
-    ! Read a line from the file
-    READ( fId, '(a)', IOSTAT=IoStatus ) Line
-
-    ! IO Status < 0: EOF condition
-    IF ( IoStatus < 0 ) THEN 
-       EndOfFile = .TRUE.
-       RETURN
-    ENDIF
-
-    ! Remove blanks and null characters
-    CALL CSTRIP( Line ) 
-
-    ! If desired, call StrSqueeze to strip leading and trailing blanks
-    IF ( PRESENT( Squeeze ) ) THEN
-       IF ( Squeeze ) THEN
-          CALL StrSqueeze( Line )
-       ENDIF
-    ENDIF
-
-  END FUNCTION ReadOneLine
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: CleanText
-!
-! !DESCRIPTION: Strips commas, apostrophes, spaces, and tabs from a string.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION CleanText( Str ) RESULT( CleanStr )
-!
-! !USES:
-!
-    USE Charpak_Mod, ONLY : CStrip, StrRepl, StrSqueeze
-!
-! !INPUT PARAMETERS: 
-!
-    CHARACTER(LEN=*), INTENT(IN) :: Str        ! Original string
-!
-! !RETURN VALUE
-!
-    CHARACTER(LEN=255)           :: CleanStr   ! Cleaned-up string
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!  21 Jun 2017 - R. Yantosca - Now call CSTRIP to remove tabs etc.
-!  05 Oct 2017 - E. Lundgren - Copied from history_mod to allow use in
-!                              Headers subdirectory. Consider placing
-!                              elsewhere for common use!!!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    ! Initialize
-    CleanStr = Str
-
-    ! Strip out non-printing characters (e.g. tabs)
-    CALL CStrip    ( CleanStr           )
-
-    ! Remove commas and quotes
-    CALL StrRepl   ( CleanStr, ",", " " )
-    CALL StrRepl   ( CleanStr, "'", " " )
-    
-    ! Remove leading and trailing spaces
-    CALL StrSqueeze( CleanStr           ) 
-
-  END FUNCTION CleanText
 !EOC
 END MODULE Diagnostics_Mod

@@ -149,6 +149,7 @@
       INTEGER, SAVE       :: id_SOAIE,  id_SOAME, id_INDIOL
       INTEGER, SAVE       :: id_SOAGX,  id_SOAMG
       INTEGER, SAVE       :: id_LVOCOA, id_ISN1OA
+      LOGICAL, SAVE       :: IS_BETANOSAVE
       LOGICAL             :: IS_POA
 
       ! Define number of carbon atoms in each irreversible isoprene
@@ -175,15 +176,16 @@
       IF ( FIRST ) THEN
 
          ! Define species ID flags
-         id_POA1   = Ind_('POA1' )
-         id_POA2   = Ind_('POA2' )
-         id_SOAIE  = Ind_('SOAIE' )
-         id_SOAME  = Ind_('SOAME' )
-         id_INDIOL = Ind_('INDIOL' )
-         id_SOAGX  = Ind_('SOAGX' )
-         id_SOAMG  = Ind_('SOAMG' )
-         id_LVOCOA = Ind_('LVOCOA' )
-         id_ISN1OA = Ind_('ISN1OA' )
+         id_POA1       = Ind_( 'POA1'   )
+         id_POA2       = Ind_( 'POA2'   )
+         id_SOAIE      = Ind_( 'SOAIE'  )
+         id_SOAME      = Ind_( 'SOAME'  )
+         id_INDIOL     = Ind_( 'INDIOL' )
+         id_SOAGX      = Ind_( 'SOAGX'  )
+         id_SOAMG      = Ind_( 'SOAMG'  )
+         id_LVOCOA     = Ind_( 'LVOCOA' )
+         id_ISN1OA     = Ind_( 'ISN1OA' )
+         IS_BETANOSAVE = ALLOCATED( BETANOSAVE )
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -307,8 +309,10 @@
          !--------------------------------------------------------------
          ! NO branching ratio [dimless]
          !--------------------------------------------------------------
-         ! will have zero or junk values if not in troposphere
-         AD42(I,J,L,9) = AD42(I,J,L,9) + BETANOSAVE(I,J,L)
+         IF ( IS_BETANOSAVE ) THEN
+            ! will have zero or junk values if not in troposphere
+            AD42(I,J,L,9) = AD42(I,J,L,9) + BETANOSAVE(I,J,L)
+         ENDIF
 
          !--------------------------------------------------------------
          ! POA [ugC/m3]
@@ -615,12 +619,13 @@
       !=================================================================
       ! INIT_DIAG42 begins here!
       !=================================================================
-
-      ! Turn off ND42 if SOA tracers are not used
-      IF ( .not. Input_Opt%LSOA ) THEN
-         ND42 = 0
-         RETURN
-      ENDIF
+     
+      ! This is no longer necessary (bmy, 12/13/17)
+      !! Turn off ND42 if SOA tracers are not used
+      !IF ( .not. Input_Opt%LSOA ) THEN
+      !   ND42 = 0
+      !   RETURN
+      !ENDIF
 
       ! Exit if ND42 is turned off
       IF ( ND42 == 0 ) RETURN

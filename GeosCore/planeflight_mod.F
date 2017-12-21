@@ -1401,8 +1401,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PLANEFLIGHT( am_I_Root, Input_Opt,
-     &                        State_Met, State_Chm, RC )
+      SUBROUTINE PLANEFLIGHT( am_I_Root, Input_Opt,  State_Met,
+     &                        State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -1422,6 +1422,7 @@
       USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
       USE PhysConstants,      ONLY : CONSVAP, AIRMW
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
@@ -1435,6 +1436,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1481,6 +1483,7 @@
 !  17 May 2016 - M. Sulprizio- Remove PCHEM, IJLOOP and use IS_FULLCHEM instead
 !  22 Jun 2016 - M. Yannetti - Replaced references to TCVV with spec db
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1984,16 +1987,16 @@
                   ! ISORROPIA H+ and pH (eam, 06/2015)
                   !--------------------------
                   CASE( 5001 )
-                     VARI(V) = State_Chm%HPLUS_SAV(I,J,L)
+                     VARI(V) = State_Chm%HplusSav(I,J,L)
 
                   CASE( 5002 )
-                     VARI(V) = State_Chm%PH_SAV(I,J,L)
+                     VARI(V) = State_Chm%pHSaV(I,J,L)
 
                   CASE( 5003 )
-                     VARI(V) = State_Chm%WATER_SAV(I,J,L)
+                     VARI(V) = State_Chm%WaterSav(I,J,L)
 
                   CASE( 5004 )
-                     VARI(V) = State_Chm%BISUL_SAV(I,J,L)
+                     VARI(V) = State_Chm%BisulSav(I,J,L)
 
                   !--------------------------
                   ! Local Time (eam, 06/2015)
