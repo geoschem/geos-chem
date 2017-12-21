@@ -62,13 +62,20 @@ MODULE FlexChem_Mod
   LOGICAL               :: Archive_Prod
   LOGICAL               :: Archive_Loss
   LOGICAL               :: Archive_JVal
-  LOGICAL               :: Archive_JNoon
+  LOGICAL               :: Archive_JNoonDailyAvg
+  LOGICAL               :: Archive_JNoonMonthlyAvg
+
+  ! SAVEd scalars
+  INTEGER,  SAVE        :: PrevDay   = -1
+  INTEGER,  SAVE        :: PrevMonth = -1
   
   ! Arrays
   INTEGER,  ALLOCATABLE :: ND65_KPP_Id(:      )  ! Indices for ND65 bpch diag
   REAL(fp), ALLOCATABLE :: HSAVE_KPP  (:,:,:  )  ! H-value for Rosenbrock solver
-  REAL(f4), ALLOCATABLE :: JvCount    (:,:,:  )  ! For J-value running average
-  REAL(f4), ALLOCATABLE :: JvSum      (:,:,:,:)  ! For J-value running average
+  REAL(f4), ALLOCATABLE :: JvCountDay (:,:,:  )  ! For daily   avg of J-values
+  REAL(f4), ALLOCATABLE :: JvCountMon (:,:,:  )  ! For daily   avg of J-values
+  REAL(f4), ALLOCATABLE :: JvSumDay   (:,:,:,:)  ! For monthly avg of J-values
+  REAL(f4), ALLOCATABLE :: JvSumMon   (:,:,:,:)  ! For monthly avg of J-values
 
 CONTAINS
 !EOC
@@ -127,8 +134,9 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE Strat_Chem_Mod,       ONLY : SChem_Tend
     USE TIME_MOD,             ONLY : GET_TS_CHEM
-    USE TIME_MOD,             ONLY : GET_MONTH
-    USE TIME_MOD,             ONLY : GET_YEAR
+    USE TIME_MOD,             ONLY : Get_Day
+    USE TIME_MOD,             ONLY : Get_Month
+    USE TIME_MOD,             ONLY : Get_Year
     USE UnitConv_Mod,         ONLY : Convert_Spc_Units
     USE UCX_MOD,              ONLY : CALC_STRAT_AER
     USE UCX_MOD,              ONLY : SO4_PHOTFRAC
@@ -192,7 +200,7 @@ CONTAINS
 !                              for computing STE in strat_chem_mod.F90
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
-!  03 Nov 2017 - R. Yantosca - Pass State_Diag to SET_HET
+!  21 Dec 2017 - R. Yantosca - Add netCDF diagnostics for J-values, prod/loss
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -206,6 +214,7 @@ CONTAINS
     INTEGER                :: P,        MONTH,    YEAR,      WAVELENGTH
     INTEGER                :: TotSteps, TotFuncs, TotJacob,  TotAccep
     INTEGER                :: TotRejec, TotNumLU, HCRC,      IERR
+    INTEGER                :: Day
     REAL(fp)               :: Start,    Finish,   rtim,      itim
     REAL(fp)               :: SO4_FRAC, YLAT,     T,         TIN
     REAL(fp)               :: TOUT
@@ -228,8 +237,6 @@ CONTAINS
     REAL(fp)               :: SCOEFF     (IIPAR,JJPAR,LLPAR,3                )
     REAL(dp)               :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT           )
     REAL(fp)               :: Before     (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-
-    ! SAVEd arrays
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
@@ -256,8 +263,9 @@ CONTAINS
     totaccep  =  0
     totrejec  =  0
     totnumLU  =  0
-    MONTH     =  GET_MONTH()  ! Current month
-    YEAR      =  GET_YEAR()   ! Current year
+    Day       =  Get_Day()    ! Current day
+    Month     =  Get_Month()  ! Current month
+    Year      =  Get_Year()   ! Current year
 
     ! Turn heterogeneous chemistry and photolysis on/off here
     ! This is for testing only and may be removed later (mps, 4/26/16)
@@ -276,17 +284,33 @@ CONTAINS
     IF ( Archive_Loss ) State_Diag%Loss = 0.0_f4
     IF ( Archive_Prod ) State_Diag%Prod = 0.0_f4
     IF ( Archive_JVal ) State_Diag%JVal = 0.0_f4
+
+    ! If we have turned on the daily average of noontime J-values
+    ! diagnostic, then zero appropriate arrays when the day changes
+    IF ( Archive_JNoonDailyAvg ) THEN
+       IF ( Day /= PrevDay ) THEN
+          State_Diag%JNoonDailyAvg   = 0.0_f4
+          JvSumDay                   = 0.0_f4
+          JvCountDay                 = 0.0_f4
+          PrevDay                    = Day
+       ENDIF
+    ENDIF
+
+    ! If we have turned on the monthly average of noontime J-values
+    ! diagnostic, then zero appropriate arrays when the month changes
+    IF ( Archive_JNoonMonthlyAvg ) THEN
+       IF ( Month /= PrevMonth ) THEN
+          State_Diag%JNoonMonthlyAvg = 0.0_f4
+          JvSumMon                   = 0.0_f4
+          JvCountMon                 = 0.0_f4
+          PrevMonth                  = Month
+       ENDIF
+    ENDIF
     
     !-----------------------------------------------------------------------
     ! Initialize global concentration of CH4
     !-----------------------------------------------------------------------
     IF ( FIRSTCHEM ) THEN
-
-       ! Only zero the noontime J-values on the first chemistry call
-       ! so that we can compute the running average
-       IF ( Archive_JNoon ) THEN
-          State_Diag%JNoon = 0.0_f4
-       ENDIF
 
        ! Check that CH4 is not an advected species
        ! Check that CH4 is a KPP species (ind_CH4 is from gckpp_Monitor.F90)
@@ -607,8 +631,18 @@ CONTAINS
        IF ( .not. ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) CYCLE
 
        ! Keep a running total of the # of times it was local noon at each box
-       IF ( Archive_JNoon .and. IsLocNoon ) THEN
-          JvCount(I,J,L) = JvCount(I,J,L) + 1.0_f4
+       IF ( IsLocNoon ) THEN
+
+          ! For the daily avg of noontime J-value diagnostic
+          IF ( Archive_JNoonDailyAvg ) THEN
+             JvCountDay(I,J,L) = JvCountDay(I,J,L) + 1.0_f4
+          ENDIF
+
+          ! For the monthly avg of noontime J-value diagnostic
+          IF ( Archive_JNoonMonthlyAvg ) THEN
+             JvCountMon(I,J,L) = JvCountMon(I,J,L) + 1.0_f4
+          ENDIF
+
        ENDIF
 
        ! Skipping buffer zone (lzh, 08/10/2014)
@@ -753,8 +787,8 @@ CONTAINS
              !    component can only divide by the number of times the
              !    diagnostic was updated, we have to manually compute
              !    the running average for J-values here.   We also must
-             !    take care to only place JNOON in an instantaneous
-             !    collection to avoid double-dividing.
+             !    take care to only place the noontime J-value diagnostics
+             !    in an instantaneous collection to avoid double-dividing.
              !--------------------------------------------------------------
              
              ! GC photolysis species index
@@ -770,10 +804,23 @@ CONTAINS
                    State_Diag%JVal(I,J,L,P) = PHOTOL(N)
                 ENDIF
 
-                ! Compute the noontime sum of the photolysis rate
-                ! over all branches for this GEOS-Chem species
-                IF ( Archive_JNoon .and. IsLocNoon ) THEN
-                   JvSum(I,J,L,P) = JvSum(I,J,L,P) + PHOTOL(N)
+
+                ! If it is local noon ...
+                IF ( IsLocNoon ) THEN
+
+                   ! Compute the noontime sum of the photolysis rate
+                   ! over all branches for this GEOS-Chem species
+                   ! (for the daily average diagnostic)
+                   IF ( Archive_JNoonDailyAvg ) THEN
+                      JvSumDay(I,J,L,P) = JvSumDay(I,J,L,P) + PHOTOL(N)
+                   ENDIF
+
+                   ! Compute the noontime sum of the photolysis rate
+                   ! over all branches for this GEOS-Chem species
+                   ! (for the monthly average diagnostic)
+                   IF ( Archive_JNoonMonthlyAvg .and. IsLocNoon ) THEN
+                      JvSumMon(I,J,L,P) = JvSumMon(I,J,L,P) + PHOTOL(N)
+                   ENDIF
                 ENDIF
              ENDIF
 #endif
@@ -783,21 +830,24 @@ CONTAINS
           !-----------------------------------------------------------------
           ! HISTORY (aka netCDF diagnostics)
           !
-          ! Take the running average of J-values where it is noon
+          ! Take the average of J-values only where it is noon
           !-----------------------------------------------------------------
-          IF ( Archive_JNoon .and. IsLocNoon ) THEN
-             DO P = 1, State_Chm%nPhotol+2
-                State_Diag%JNoon(I,J,L,P) = ( JvSum(I,J,L,P) / JvCount(I,J,L) )
-             ENDDO
+          IF ( IsLocNoon ) THEN
+          
+             ! For the daily-average diagnostic
+             IF ( Archive_JNoonDailyAvg ) THEN
+                DO P = 1, State_Chm%nPhotol+2
+                   State_Diag%JNoonDailyAvg(I,J,L,P) = ( JvSumDay(I,J,L,P)    &
+                                                     /   JvCountDay(I,J,L)   )
+                ENDDO
+             ENDIF
 
-             IF ( I==1 .and. J==34 .and. L==1 ) THEN
-                print*, '@@@@@@@@@@@@: ', I, J, L
-                PRINT*, '@@@ AD22 raw: ', AD22(I,J,L,5)
-                PRINT*, '@@@ AD22 div: ', AD22(I,J,L,5) / JvCount(I,J,L)
-                print*, '@@@ LTJV    : ', LTJV(I,J)
-                print*, '@@@ JVCOUNT : ', JvCount(I,J,L)
-                print*, '@@@ JVSUM   : ', JvSum(I,J,L,State_Chm%nPhotol+1)
-                print*, '@@@ SD   div: ', State_Diag%JNoon(I,J,L,State_Chm%nPhotol+1)
+             ! For the monthly-average diagnostic
+             IF ( Archive_JNoonMonthlyAvg ) THEN
+                DO P = 1, State_Chm%nPhotol+2
+                   State_Diag%JNoonMonthlyAvg(I,J,L,P) = ( JvSumMon(I,J,L,P)  &
+                                                       /   JvCountMon(I,J,L) )
+                ENDDO
              ENDIF
           ENDIF
 #endif 
@@ -1559,12 +1609,14 @@ CONTAINS
     Archive_Loss             = ASSOCIATED( State_Diag%Loss             )
     Archive_Prod             = ASSOCIATED( State_Diag%Prod             )
     Archive_JVal             = ASSOCIATED( State_Diag%Jval             )
-    Archive_JNoon            = ASSOCIATED( State_Diag%JNoon            )
+    Archive_JNoonDailyAvg    = ASSOCIATED( State_Diag%JNoonDailyAvg    )
+    Archive_JNoonMonthlyAvg  = ASSOCIATED( State_Diag%JNoonMonthlyAvg  )
     Archive_O1DconcAfterChem = ASSOCIATED( State_Diag%O1DconcAfterChem )
     Archive_O3PconcAfterChem = ASSOCIATED( State_Diag%O3PconcAfterChem )
 
     ! Throw an error if certain diagnostics for UCX are turned on,
     ! but the UCX mechanism is not used in this fullchem simulation
+    ! NOTE: Maybe eventually move this error check to state_diag_mod.F90
     IF ( .not. Input_Opt%LUCX ) THEN  
        
        ! O1D diagnostic is only used w/ UCX
@@ -1597,7 +1649,7 @@ CONTAINS
     !=======================================================================
 
     !-----------------------------------------------------------------------
-    ! 
+    ! For archiving the H value from KPP
     !-----------------------------------------------------------------------
     ALLOCATE( HSAVE_KPP( IIPAR, JJPAR, LLCHEM ), STAT=RC )
     CALL GC_CheckVar( 'flexchem_mod.F90:HSAVE_KPP', 0, RC )
@@ -1605,24 +1657,48 @@ CONTAINS
     HSAVE_KPP = 0.d0
 
     !-----------------------------------------------------------------------
-    ! Allocate arrays for noontime J-value diagnostic (State_Diag%JNoon).
-    ! Because the HISTORY component cannot do local-time averaging,
-    ! we must do it manually in this module.  This means that we must
-    ! save State_Diag%JNoon to an instantaneous collection.
+    ! Allocate arrays for the daily average of noontime J-value diagnostic 
+    ! (State_Diag%JNoonDailyAvg).  Because the HISTORY component cannot do 
+    ! local-time averaging, we must do it manually in this module.  This 
+    ! means that we must always save State_Diag%JNoonDailyAvg to an 
+    ! instantaneous collection.
     !-----------------------------------------------------------------------
-    IF ( Archive_JNoon ) THEN
+    IF ( Archive_JNoonDailyAvg ) THEN
 
        ! Counter of number of times it is near local noon
-       ALLOCATE( JvCount( IIPAR, JJPAR, LLPAR ), STAT=RC )
-       CALL GC_CheckVar( 'flexchem_mod.F90:JvCount', 0, RC )
+       ALLOCATE( JvCountDay( IIPAR, JJPAR, LLPAR ), STAT=RC )
+       CALL GC_CheckVar( 'flexchem_mod.F90:JvCountDay', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       JvCount = 0.0_f4
+       JvCountDay = 0.0_f4
 
        ! Sum of J-values in each grid box where it is local noon
-       ALLOCATE( JvSum (IIPAR,JJPAR,LLPAR,State_Chm%nPhotol+2 ), STAT=RC )
-       CALL GC_CheckVar( 'flexchem_mod.F90:JvCount', 0, RC )
+       ALLOCATE( JvSumDay(IIPAR,JJPAR,LLPAR,State_Chm%nPhotol+2 ), STAT=RC )
+       CALL GC_CheckVar( 'flexchem_mod.F90:JvSumDay', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       JvSum = 0.0_f4
+       JvSumDay = 0.0_f4
+
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Allocate arrays for the monthly average of noontime J-value diagnostic 
+    ! (State_Diag%JNoonDailyAvg).  Because the HISTORY component cannot do 
+    ! local-time averaging, we must do it manually in this module.  This 
+    ! means that we must always save State_Diag%JNoonMonthlyAvg to an 
+    ! instantaneous collection.
+    !-----------------------------------------------------------------------
+    IF ( Archive_JNoonMonthlyAvg ) THEN
+
+       ! Counter of number of times it is near local noon
+       ALLOCATE( JvCountMon( IIPAR, JJPAR, LLPAR ), STAT=RC )
+       CALL GC_CheckVar( 'flexchem_mod.F90:JvCountMon', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       JvCountMon = 0.0_f4
+
+       ! Sum of J-values in each grid box where it is local noon
+       ALLOCATE( JvSumMon(IIPAR,JJPAR,LLPAR,State_Chm%nPhotol+2 ), STAT=RC )
+       CALL GC_CheckVar( 'flexchem_mod.F90:JvSumMon', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       JvSumMon = 0.0_f4
 
     ENDIF
        
@@ -1705,15 +1781,27 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ALLOCATED( JvCount ) ) THEN
-       DEALLOCATE( JvCount, STAT=RC  )
-       CALL GC_CheckVar( 'flexchem_mod.F90:JvCount', 2, RC )
+    IF ( ALLOCATED( JvCountDay ) ) THEN
+       DEALLOCATE( JvCountDay, STAT=RC  )
+       CALL GC_CheckVar( 'flexchem_mod.F90:JvCountDay', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ALLOCATED( JvSum ) ) THEN
-       DEALLOCATE( JvSum, STAT=RC  )
-       CALL GC_CheckVar( 'flexchem_mod.F90:JvCount', 2, RC )
+    IF ( ALLOCATED( JvSumDay ) ) THEN
+       DEALLOCATE( JvSumDay, STAT=RC  )
+       CALL GC_CheckVar( 'flexchem_mod.F90:JvCountDay', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ALLOCATED( JvCountMon ) ) THEN
+       DEALLOCATE( JvCountMon, STAT=RC  )
+       CALL GC_CheckVar( 'flexchem_mod.F90:JvCountMon', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ALLOCATED( JvSumMon ) ) THEN
+       DEALLOCATE( JvSumMon, STAT=RC  )
+       CALL GC_CheckVar( 'flexchem_mod.F90:JvCountMon', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 

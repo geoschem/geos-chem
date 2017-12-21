@@ -2892,9 +2892,9 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
          END SELECT
       ENDDO
 
-      !------------------------------------
+      !---------------------------------------------------------------------
       ! Error check the various rxn flags
-      !------------------------------------
+      !---------------------------------------------------------------------
       IF ( RXN_O2 < 0 ) THEN
          ErrMsg = 'Could not find rxn O2 + hv -> O + O'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2924,9 +2924,9 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
          RETURN
       ENDIF
 
-      !-----------------------------------------------------------------
+      !---------------------------------------------------------------------
       ! These reactions are only defined for the UCX mechanism!
-      !-----------------------------------------------------------------
+      !---------------------------------------------------------------------
       IF ( Input_Opt%LUCX ) THEN
 
          IF ( RXN_H2SO4  < 0 ) THEN
