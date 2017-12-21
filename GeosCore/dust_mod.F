@@ -1160,7 +1160,13 @@
          ! Skip non-chemistry boxes
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
+#if defined ( UCX )
+         ! Bug fix: Dust properties are read from file #8 in RD_AOD
+         ! for UCX simulations (mps, 12/21/17)
+         ERADIUS(I,J,L,N) = RDAA(N,8) * 1.0e-4_fp
+#else
          ERADIUS(I,J,L,N) = RDAA(N,6) * 1.0e-4_fp
+#endif
          
          TAREA(I,J,L,N)   = 3.e+0_fp / ERADIUS(I,J,L,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
