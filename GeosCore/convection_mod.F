@@ -281,7 +281,7 @@
       DO_ND14    = ( Input_Opt%ND14 > 0                 ) ! Is CONVFLUP alloc'd?
       DO_ND38    = ( Input_Opt%ND38 > 0                 ) ! Is AD38 alloc'd?
       DoConvFlux = ( DO_ND14 .or. Archive_CloudConvFlux ) ! Save mass flux?
-      DoWetLoss  = ( DO_ND14 .or. Archive_WetLossConv   ) ! Save wet loss?
+      DoWetLoss  = ( DO_ND38 .or. Archive_WetLossConv   ) ! Save wet loss?
 
       ! Loop over advected species
 !$OMP PARALLEL DO
