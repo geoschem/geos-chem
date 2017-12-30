@@ -140,6 +140,8 @@ MODULE HCOX_LightNOx_Mod
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !  02 Dec 2016 - M. Sulprizio- Update WEST_NS_DIV from 23d0 to 35d0 (K. Travis)
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  17 Oct 2017 - C. Keller   - Add option to use GEOS-5 lightning flash rate
+!                              (LFR). Autoselection of flash rate scale factor.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -175,6 +177,7 @@ MODULE HCOX_LightNOx_Mod
    LOGICAL                       :: OTD_LIS_PRESC ! Is OTD_LIS_SCALE prescribed?
    LOGICAL                       :: LOTDLOC       ! Use OTD-LIS dist factors?
    LOGICAL                       :: LCNVFRC       ! Use convective fractions? 
+   LOGICAL                       :: LLFR          ! Use GEOS-5 flash rates 
 
    ! Arrays
    REAL(dp), POINTER             :: PROFILE(:,:)
@@ -388,6 +391,7 @@ CONTAINS
     INTEGER           :: I,         J,           L,        LCHARGE
     INTEGER           :: LMAX,      LTOP,        LBOTTOM,  L_MFLUX
     INTEGER           :: cMt,       MTYPE,       LTOP1,    LTOP2 
+    INTEGER           :: LTOP_LFR
     REAL*8            :: A_KM2,     A_M2,        CC,       DLNP     
     REAL*8            :: DZ,        FLASHRATE,   H0,       HBOTTOM
     REAL*8            :: HCHARGE,   IC_CG_RATIO, MFLUX,    P1
@@ -397,6 +401,7 @@ CONTAINS
     REAL*8            :: YMID,      Z_IC,        Z_CG,     ZUP
     REAL*8            :: XMID
     REAL*8            :: VERTPROF(HcoState%NZ)
+    REAL*8            :: RATE_LFR, IC_CG_RATIO_LFR, H0_LFR
     INTEGER           :: LNDTYPE, SFCTYPE
     INTEGER           :: DiagnID
     REAL(hp), TARGET  :: DIAGN(HcoState%NX,HcoState%NY,3)
@@ -487,6 +492,7 @@ CONTAINS
 !$OMP PRIVATE( X,           TOTAL_IC, TOTAL_CG, TOTAL,  REDIST    ) &
 !$OMP PRIVATE( RATE_SAVE,   VERTPROF, SFCTYPE,  LNDTYPE, TROPP    ) &
 !$OMP PRIVATE( MTYPE,       LTOP1,    LTOP2                       ) &
+!$OMP PRIVATE( RATE_LFR,    H0_LFR,   IC_CG_RATIO_LFR, LTOP_LFR   ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over surface boxes
@@ -544,6 +550,48 @@ CONTAINS
        ENDIF
 
        !===========================================================
+       ! Use GEOS-5 LFR if option is selected
+       ! LFR is in flashes s-1 km-2
+       ! Use arbitrary value of 1.0 for IC/CG ratio. This value has
+       ! no impact on the total lightning emissions. 
+       !===========================================================
+       IF ( Inst%LLFR                                  &
+            .AND. ASSOCIATED( ExtState%LFR%Arr%Val   ) &
+            .AND. ASSOCIATED( ExtState%BYNCY%Arr%Val )  ) THEN
+          RATE_LFR        = ExtState%LFR%Arr%Val(I,J) * A_KM2 * 60.0d0 * 360.0d0
+          IC_CG_RATIO_LFR = 1.0
+
+          ! Apply scaling factor to make sure annual average flash rate 
+          ! equals that of the climatology. (ltm, 09/24/07)
+          RATE_LFR = RATE_LFR * Inst%OTD_LIS_SCALE
+
+          ! Set LTOP to top of buoyancy
+          DO L = HcoState%NZ, 1, -1
+             IF ( ExtState%BYNCY%Arr%Val(I,J,L) >= 0.0_sp ) THEN
+                LTOP_LFR = L + 1
+                EXIT
+             ENDIF
+          ENDDO
+          !LTOP = MAX( LTOP, LMAX )
+
+          ! H0 is the convective cloud top height [m].  This is the
+          ! distance from the surface to the top edge of box (I,J,LTOP).
+          H0_LFR = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LTOP_LFR))
+
+       ELSE
+          IC_CG_RATIO_LFR = -999.0
+          RATE_LFR        = -999.0
+          H0_LFR          = -999.0
+          LTOP_LFR        = -999.0
+
+       ENDIF
+
+       ! Init
+       RATE        = -999.0
+       H0          = -999.0
+       IC_CG_RATIO = -999.0
+
+       !===========================================================
        ! (1) FIND NEGATIVE CHARGE LAYER
        !
        ! LCHARGE is the L-value where the negative charge layer is
@@ -574,7 +622,8 @@ CONTAINS
 
        ! Error check LCHARGE
        IF ( LCHARGE >= LMAX ) LCHARGE = LMAX
-       IF ( LCHARGE <= 1    ) CYCLE
+       !IF ( LCHARGE <= 1    ) CYCLE
+       IF ( LCHARGE > 1 ) THEN
 
        !-----------------------------------------------------------
        ! (1a) Define more quantities
@@ -703,14 +752,16 @@ CONTAINS
        !----------------------------------------------------------------
 
        ! Error check LTOP
-       IF ( LTOP == 0 ) CYCLE
+       !IF ( LTOP == 0 ) CYCLE
+       IF ( LTOP > 0 ) THEN
 
        ! Error check LTOP as described above
        IF ( LTOP        >  LMAX      ) LTOP = LMAX
-       IF ( LTOP        <  LCHARGE   ) CYCLE
+       !IF ( LTOP        <  LCHARGE   ) CYCLE
+       IF ( LTOP        >= LCHARGE   ) THEN
 
        ! Diagnose used LTOP
-       IF ( Inst%DoDiagn ) THEN 
+       IF ( Inst%DoDiagn ) THEN
           TOPDIAGN(I,J) = LTOP
        ENDIF
 
@@ -755,7 +806,8 @@ CONTAINS
 
        ! Error check LBOTTOM as described above
        IF ( LBOTTOM >= LMAX ) LBOTTOM = LMAX
-       IF ( LBOTTOM <= 1    ) CYCLE 
+       !IF ( LBOTTOM <= 1    ) CYCLE 
+       IF ( LBOTTOM > 1    ) THEN 
 
        !-----------------------------------------------------------
        ! (3a) Define more quantities
@@ -956,6 +1008,25 @@ CONTAINS
        ! Apply scaling factor to make sure annual average flash rate 
        ! equals that of the climatology. (ltm, 09/24/07)
        RATE = RATE * Inst%OTD_LIS_SCALE
+
+       END IF ! LBOTTOM >  1
+       END IF ! LTOP    >= LCHARGE 
+       END IF ! LTOP    >  0 
+       END IF ! LCHARGE >  1 
+
+       !-----------------------------------------------------------
+       ! Eventually overwrite with values determined from imported
+       ! flash rate 
+       !-----------------------------------------------------------
+       IF ( RATE_LFR > RATE ) THEN
+          RATE        = RATE_LFR
+          H0          = H0_LFR
+          LTOP        = LTOP_LFR
+          IC_CG_RATIO = IC_CG_RATIO_LFR
+       END IF
+
+       ! Error check: continue if flash rate is zero
+       IF ( RATE <= 0.0 ) CYCLE
 
        !-----------------------------------------------------------
        ! (6b) Compute cloud-ground/total flash ratio
@@ -1582,6 +1653,7 @@ CONTAINS
 !
     ! lun of error log
     INTEGER :: cYr, cMt
+    REAL*8  :: DY
 
     !=================================================================
     ! Define the average annual flash rate (flashes per second), as
@@ -1764,6 +1836,30 @@ CONTAINS
 
 #endif
 
+    ! If not defined yet, try to estimate it from grid spacing
+    ! ckeller, 6/6/2017
+    IF ( BETA == 1d0 ) THEN
+       ! average latitude spacing
+       DY = ABS(MAXVAL(HcoState%Grid%YMID%Val) - MINVAL(HcoState%Grid%YMID%Val)) / ( HcoState%NY - 1 )
+
+       ! 0.125 degrees / C720
+       IF ( DY < 0.175d0 ) THEN
+          BETA = 1.4152d-3
+       ! 0.25 degrees / C360
+       ELSEIF ( DY < 0.375d0 ) THEN
+          BETA = 7.024d-3
+       ! 0.5 degrees / C180
+       ELSEIF ( DY < 0.75d0 ) THEN
+          BETA = 1.527d-2
+       ! 1.0 degrees / C90
+       ELSEIF ( DY < 1.5d0 ) THEN
+          BETA = 0.10d0
+       ! 2.0 degrees / C48
+       ELSEIF ( DY < 3.0d0 ) THEN
+          BETA = 0.355d0
+       ENDIF
+    ENDIF
+
     IF ( BETA == 1d0 ) THEN
 
        WRITE( *,* ) 'Your model framework has not had its'
@@ -1923,6 +2019,14 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) Inst%LCNVFRC = .TRUE. 
 
+    ! Check for usage of GEOS-5 lightning flash rates. If on, the GEOS-5
+    ! flash rates (where available) are used instead of the computed flash
+    ! rates. This is off by default.
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'GEOS-5 flash rates', &
+                     OptValBool=Inst%LLFR, FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) Inst%LLFR = .FALSE.
+
     ! Get species ID
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1949,6 +2053,8 @@ CONTAINS
        WRITE(MSG,*) ' - Use species ', TRIM(SpcNames(1)), '->', Inst%IDTNO 
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) ' - Use OTD-LIS factors from file? ', Inst%LOTDLOC 
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+       WRITE(MSG,*) ' - Use GEOS-5 flash rates: ', Inst%LLFR 
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) ' - Use scalar scale factor: ', Inst%SpcScalVal(1)
        CALL HCO_MSG(HcoState%Config%Err,MSG)
@@ -2054,6 +2160,7 @@ CONTAINS
     ExtState%BYNCY%DoUse   = .TRUE.
     ExtState%ALBD%DoUse    = .TRUE.
     ExtState%WLI%DoUse     = .TRUE.
+    ExtState%LFR%DoUse     = .TRUE.
 
     ! Cleanup
     Inst => NULL()

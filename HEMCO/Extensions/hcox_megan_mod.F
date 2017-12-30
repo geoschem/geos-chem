@@ -514,11 +514,13 @@
 
       ! Fill restart variables. This has to be done on the first call
       ! or after rewinding the clock (in replay simulations). 
-      IF ( FIRST .OR. HcoClock_Rewind( HcoState%Clock, .TRUE. ) ) THEN
+      ! For safety's sake fill it on every call. It doesn't hurt and 
+      ! avoids possible errors in GEOS applications (ckeller, 12/29/17).
+      !IF ( FIRST .OR. HcoClock_Rewind( HcoState%Clock, .TRUE. ) ) THEN
          CALL FILL_RESTART_VARS( am_I_Root, HcoState, 
      &                           ExtState,  Inst, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
-      ENDIF
+      !ENDIF
 
       ! LAI_PREVDAY is now continuously updated (ckeller, 12/8/15)
 !      ! On a new day, copy previous LAI values to array that holds

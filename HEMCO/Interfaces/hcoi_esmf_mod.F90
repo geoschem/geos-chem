@@ -465,6 +465,9 @@ CONTAINS
       ! Get pointers to fields
       CALL HCO_Imp2Ext ( am_I_Root, HcoState, ExtState%BYNCY, 'BYNCY', __RC__ )
 
+      ! Get pointers to fields
+      CALL HCO_Imp2Ext ( am_I_Root, HcoState, ExtState%LFR, 'LFR', __RC__ )
+
       ! Return success
       RC = HCO_SUCCESS 
 
@@ -521,29 +524,23 @@ CONTAINS
 
       ! Only do if being used...
       IF ( ExtDat%DoUse ) THEN
- 
-         ASSERT_( ASSOCIATED(HcoState%IMPORT) ) 
-         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr2D, TRIM(FldName), &
-                               NotFoundOk=.TRUE., __RC__ )
+         ASSERT_( ASSOCIATED(HcoState%IMPORT) )
+         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr2D, TRIM(FldName), __RC__ )
+         CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, STAT )
+         ASSERT_(STAT==HCO_SUCCESS)
+         ExtDat%Arr%Val = 0.0
          IF ( ASSOCIATED( Ptr2D ) ) THEN
-            CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, STAT )
-            ASSERT_(STAT==HCO_SUCCESS) 
-            ExtDat%Arr%Val = 0.0
             WHERE( Ptr2D /= MAPL_UNDEF )
                ExtDat%Arr%Val = Ptr2D
             END WHERE
          ENDIF
          Ptr2D => NULL()
-
-         ! Verbose
-         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
-            CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
-         ENDIF
-      ELSE
-         ! Warning
-         MSG = 'Field not found in import, cannot pass to ExtState: '//TRIM(FldName) 
-         CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1, THISLOC=Iam )
       ENDIF ! DoUse
+
+      ! Verbose
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+      ENDIF
 
       ! Return success
       RETURN_(ESMF_SUCCESS)      
@@ -601,38 +598,32 @@ CONTAINS
 
       ! Only do if being used...
       IF ( ExtDat%DoUse ) THEN
- 
-         ASSERT_( ASSOCIATED(HcoState%IMPORT) ) 
-         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr3D, TRIM(FldName), &
-                               NotFoundOk=.TRUE., __RC__ )
-         IF ( ASSOCIATED(Ptr3D) ) THEN
 
-            ! Make sure the array in ExtDat is allocated and has the right size
-            NZ = SIZE(Ptr3D,3)
-            CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, NZ, STAT )
-            ASSERT_(STAT==HCO_SUCCESS) 
+         ASSERT_( ASSOCIATED(HcoState%IMPORT) )
+         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr3D, TRIM(FldName), __RC__ )
+         ASSERT_( ASSOCIATED(Ptr3D) )
 
-            ! Pass field to ExtDat
-            OFF = LBOUND(Ptr3D,3)
-            DO L = 1, NZ
-               WHERE ( Ptr3D(:,:,NZ-L+OFF) == MAPL_UNDEF )
-                  ExtDat%Arr%Val(:,:,L) = 0.0
-               ELSEWHERE
-                  ExtDat%Arr%Val(:,:,L) = Ptr3D(:,:,NZ-L+OFF)
-               END WHERE
-            ENDDO
-            Ptr3D => NULL()
+         ! Make sure the array in ExtDat is allocated and has the right size
+         NZ = SIZE(Ptr3D,3)
+         CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, NZ, STAT )
+         ASSERT_(STAT==HCO_SUCCESS)
 
-            ! Verbose
-            IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
-               CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
-            ENDIF
-         ELSE
-            ! Warning
-            MSG = 'Field not found in import, cannot pass to ExtState: '//TRIM(FldName) 
-            CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1, THISLOC=Iam )
-         ENDIF
+         ! Pass field to ExtDat
+         OFF = LBOUND(Ptr3D,3)
+         DO L = 1, NZ
+            WHERE ( Ptr3D(:,:,NZ-L+OFF) == MAPL_UNDEF )
+               ExtDat%Arr%Val(:,:,L) = 0.0
+            ELSEWHERE
+               ExtDat%Arr%Val(:,:,L) = Ptr3D(:,:,NZ-L+OFF)
+            END WHERE
+         ENDDO
+         Ptr3D => NULL()
       ENDIF ! DoUse
+
+      ! Verbose
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+      ENDIF
 
       ! Return success
       RETURN_(ESMF_SUCCESS)      
@@ -690,30 +681,26 @@ CONTAINS
 
       ! Only do if being used...
       IF ( ExtDat%DoUse ) THEN
- 
-         ASSERT_( ASSOCIATED(HcoState%IMPORT) ) 
-         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr2D, TRIM(FldName), &
-                               NotFoundOk=.TRUE., __RC__ )
-         IF ( ASSOCIATED( Ptr2D ) ) THEN
-            CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, STAT )
-            ASSERT_(STAT==HCO_SUCCESS) 
 
-            ExtDat%Arr%Val = 0.0
+         ASSERT_( ASSOCIATED(HcoState%IMPORT) )
+         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr2D, TRIM(FldName), __RC__ )
+
+         CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, STAT )
+         ASSERT_(STAT==HCO_SUCCESS)
+
+         ExtDat%Arr%Val = 0.0
+         IF ( ASSOCIATED( Ptr2D ) ) THEN
             WHERE( Ptr2D /= MAPL_UNDEF )
                ExtDat%Arr%Val = Ptr2D
             END WHERE
-            Ptr2D => NULL()
-
-            ! Verbose
-            IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
-               CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
-            ENDIF
-         ELSE
-            ! Warning
-            MSG = 'Field not found in import, cannot pass to ExtState: '//TRIM(FldName) 
-            CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1, THISLOC=Iam )
          ENDIF
+         Ptr2D => NULL()
       ENDIF ! DoUse
+
+      ! Verbose
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+      ENDIF
 
       ! Return success
       RETURN_(ESMF_SUCCESS)      
@@ -771,38 +758,32 @@ CONTAINS
 
       ! Only do if being used...
       IF ( ExtDat%DoUse ) THEN
- 
-         ASSERT_( ASSOCIATED(HcoState%IMPORT) ) 
-         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr3D, TRIM(FldName), &
-                               NotFoundOk=.TRUE., __RC__ )
-         IF ( ASSOCIATED(Ptr3D) ) THEN 
-   
-            ! Make sure the array in ExtDat is allocated and has the right size
-            NZ = SIZE(Ptr3D,3)
-            CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, NZ, STAT )
-            ASSERT_(STAT==HCO_SUCCESS) 
-   
-            ! Pass field to ExtDat
-            OFF = LBOUND(Ptr3D,3)
-            DO L = 1, NZ
-               WHERE ( Ptr3D(:,:,NZ-L+OFF) == MAPL_UNDEF )
-                  ExtDat%Arr%Val(:,:,L) = 0.0
-               ELSEWHERE
-                  ExtDat%Arr%Val(:,:,L) = Ptr3D(:,:,NZ-L+OFF)
-               END WHERE
-            ENDDO
-            Ptr3D => NULL()
 
-            ! Verbose
-            IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
-               CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
-            ENDIF
-         ELSE
-            ! Warning
-            MSG = 'Field not found in import, cannot pass to ExtState: '//TRIM(FldName) 
-            CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1, THISLOC=Iam )
-         ENDIF
+         ASSERT_( ASSOCIATED(HcoState%IMPORT) )
+         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr3D, TRIM(FldName), __RC__ )
+         ASSERT_( ASSOCIATED(Ptr3D) )
+
+         ! Make sure the array in ExtDat is allocated and has the right size
+         NZ = SIZE(Ptr3D,3)
+         CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, NZ, STAT )
+         ASSERT_(STAT==HCO_SUCCESS)
+
+         ! Pass field to ExtDat
+         OFF = LBOUND(Ptr3D,3)
+         DO L = 1, NZ
+            WHERE ( Ptr3D(:,:,NZ-L+OFF) == MAPL_UNDEF )
+               ExtDat%Arr%Val(:,:,L) = 0.0
+            ELSEWHERE
+               ExtDat%Arr%Val(:,:,L) = Ptr3D(:,:,NZ-L+OFF)
+            END WHERE
+         ENDDO
+         Ptr3D => NULL()
       ENDIF ! DoUse
+
+      ! Verbose
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+      ENDIF
 
       ! Return success
       RETURN_(ESMF_SUCCESS)      
@@ -860,32 +841,26 @@ CONTAINS
 
       ! Only do if being used...
       IF ( ExtDat%DoUse ) THEN
- 
-         ASSERT_( ASSOCIATED(HcoState%IMPORT) ) 
-         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr2D, TRIM(FldName), &
-                               NotFoundOk=.TRUE., __RC__ )
-         IF ( ASSOCIATED(Ptr2D) ) THEN
 
-            CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, STAT )
-            ASSERT_(STAT==HCO_SUCCESS) 
-    
-            ExtDat%Arr%Val = 0.0
-            IF ( ASSOCIATED( Ptr2D ) ) THEN
-               WHERE( Ptr2D /= MAPL_UNDEF )
-                  ExtDat%Arr%Val = Ptr2D
-               END WHERE
-            ENDIF
-            Ptr2D => NULL()
-            ! Verbose
-            IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
-               CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
-            ENDIF
-         ELSE
-            ! Warning
-            MSG = 'Field not found in import, cannot pass to ExtState: '//TRIM(FldName) 
-            CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1, THISLOC=Iam )
+         ASSERT_( ASSOCIATED(HcoState%IMPORT) )
+         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr2D, TRIM(FldName), __RC__ )
+
+         CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, STAT )
+         ASSERT_(STAT==HCO_SUCCESS)
+
+         ExtDat%Arr%Val = 0.0
+         IF ( ASSOCIATED( Ptr2D ) ) THEN
+            WHERE( Ptr2D /= MAPL_UNDEF )
+               ExtDat%Arr%Val = Ptr2D
+            END WHERE
          ENDIF
+         Ptr2D => NULL()
       ENDIF ! DoUse
+
+      ! Verbose
+      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+      ENDIF
 
       ! Return success
       RETURN_(ESMF_SUCCESS)      
