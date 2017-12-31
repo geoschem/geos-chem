@@ -757,6 +757,8 @@ CONTAINS
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
 !  19 Jul 2016 - R. Yantosca - Now use State_Chm%Species
+!  17 Oct 2017 - C. Keller   - Stage2 now updates internal array to tendency
+!                              array (instead of resetting it to zero).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -977,8 +979,10 @@ CONTAINS
           RETURN
        ENDIF
 
-       ! Reset values 
-       Ptr3D = 0.0_fp
+       !! Reset values 
+       !Ptr3D = 0.0_fp
+       ! Update values in the internal array to current tendency
+       Ptr3D =  Tend
        Ptr3D => NULL()
 
     ENDDO !I

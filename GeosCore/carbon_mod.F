@@ -39,6 +39,10 @@
       ! SOAupdate: for branching ratio diagnostic (hotp 5/24/10)
       PUBLIC :: BETANOSAVE
 
+      ! ORVC_SESQ needs to be public so that it can be added as a
+      ! restart variable to GEOS-5. (ckeller, 10/10/17)
+      PUBLIC :: ORVC_SESQ
+
 !      ! Make BIOG_SESQ array public so that it can be used by HEMCO
 !      ! (ckeller, 05/19/14)
 !      PUBLIC :: BIOG_SESQ
