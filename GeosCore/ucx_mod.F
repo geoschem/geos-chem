@@ -4555,6 +4555,7 @@
 !  19 Apr 2013 - S. D. Eastham - Initial version
 !  16 Apr 2015 - M. Yannetti   - Changed EXP to SAFE_EXP in H_HCL
 !  01 Jan 2016 - E. Lundgren   - Calculate R_ATM from global params
+!  29 Dec 2017 - C. Keller     - Add error traps to prevent float invalids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4622,6 +4623,9 @@
 
       ! Derived parameters
       REAL(fp) :: A,B,C,PHI
+      
+      ! Error trapping (ckeller, 12/29/17)
+      REAL(fp) :: TMP1,TMP2,TMP3,TMP4 
       
       ! Debug message
       CHARACTER(LEN=255)   :: DBGMSG
@@ -4695,10 +4699,21 @@
 
       ! Determine H2SO4/H2O pure solution concentration
       ! Mole fraction of H2SO4 in binary solution
-      X_H2SO4_BIN = 1.0e+0_fp/(2.0e+0_fp*(KS(3)+KS(4)/TCENTER))*
-     &   (-KS(1)-KS(2)/TCENTER-((KS(1)+KS(2)/TCENTER)**
+      ! Added error trap for negative sqrt (ckeller, 12/29/17)
+      TMP1 = (KS(1)+KS(2)/TCENTER)**
      &   2.0e+0_fp-4.0e+0_fp*(KS(3)+KS(4)/TCENTER)*(KS(5)+KS(6)/
-     &   TCENTER+KS(7)*LOG(TCENTER)-LOG(PATMH2O)))**0.5e+0_fp)
+     &   TCENTER+KS(7)*LOG(TCENTER)-LOG(PATMH2O))
+      IF ( TMP1 > 0.0_fp ) THEN
+         X_H2SO4_BIN = 1.0e+0_fp/(2.0e+0_fp*(KS(3)+KS(4)/TCENTER))*
+     &      (-KS(1)-KS(2)/TCENTER-(TMP1)**0.5e+0_fp)
+      ELSE
+         X_H2SO4_BIN = 1.0e+0_fp/(2.0e+0_fp*(KS(3)+KS(4)/TCENTER))*
+     &      (-KS(1)-KS(2)/TCENTER)
+      ENDIF
+!      X_H2SO4_BIN = 1.0e+0_fp/(2.0e+0_fp*(KS(3)+KS(4)/TCENTER))*
+!     &   (-KS(1)-KS(2)/TCENTER-((KS(1)+KS(2)/TCENTER)**
+!     &   2.0e+0_fp-4.0e+0_fp*(KS(3)+KS(4)/TCENTER)*(KS(5)+KS(6)/
+!     &   TCENTER+KS(7)*LOG(TCENTER)-LOG(PATMH2O)))**0.5e+0_fp)
 
       ! Molality (mol H2SO4/kg H2O) in binary solution
       M_H2SO4_BIN = 55.51e+0_fp*X_H2SO4_BIN/(1.0e+0_fp-X_H2SO4_BIN)
@@ -4771,6 +4786,20 @@
       ! H2SO4/HNO3/HCl/HBr/H2O solutions to low stratospheric
       ! temperatures, 1995)
       IF (PATMHCL.gt.0.0e+0_fp) THEN
+         TMP1 = W_HNO3+0.610e+0_fp*W_H2SO4
+         IF ( TMP1 <= 0.0_fp ) THEN
+            TMP2 = 0.0_fp
+         ELSE
+            TMP2 = LOG(TMP1)
+         ENDIF
+         TMP3 = 36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
+     &      M_H2SO4+63.012e+0_fp*
+     &      M_HNO3)
+         IF ( TMP3 <= 0.0_fp ) THEN
+            TMP4 = 0.0_fp
+         ELSE
+            TMP4 = LOG(TMP3)
+         ENDIF
          H_HCL = EXP(-(21.0e+0_fp+46.610e+0_fp*W_HNO3+
      &      4.0690e+0_fp*W_H2SO4-
      &      4.8370e+0_fp*SQRT(W_HNO3)+2.1860e+0_fp*
@@ -4782,15 +4811,53 @@
      &      W_H2SO4+1087.20e+0_fp*SQRT(W_HNO3)-242.710e+0_fp*
      &      SQRT(W_H2SO4)+
      &      18749.0e+0_fp*W_HNO3**2+18500.0e+0_fp*W_HNO3*W_H2SO4+
-     &      5632.0e+0_fp*W_H2SO4**2)-LOG(W_HNO3+0.610e+0_fp*W_H2SO4)-
-     &      LOG(36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
-     &      M_H2SO4+63.012e+0_fp*
-     &      M_HNO3)))*(ATM*1e-2_fp)
-         M_HCl = (1.0e+0_fp/R_ATM/TCENTER*PATMHCL)/
-     &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HCL)
-         W_HCL=M_HCL*36.461e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
-     &      63.012e+0_fp*M_HNO3)
-         PVAP_HCl = M_HCl/H_HCl
+     &      5632.0e+0_fp*W_H2SO4**2)-TMP2-TMP4)*(ATM*1e-2_fp)
+!         H_HCL = EXP(-(21.0e+0_fp+46.610e+0_fp*W_HNO3+
+!     &      4.0690e+0_fp*W_H2SO4-
+!     &      4.8370e+0_fp*SQRT(W_HNO3)+2.1860e+0_fp*
+!     &      SQRT(W_H2SO4)-63.0e+0_fp*
+!     &      W_HNO3**2-40.170e+0_fp*W_HNO3*W_H2SO4-
+!     &      1.5710e+0_fp*W_H2SO4**2)-
+!     &      1.0e+0_fp/TCENTER*(-7437.0e+0_fp-8327.80e+0_fp*
+!     &      W_HNO3+1300.90e+0_fp*
+!     &      W_H2SO4+1087.20e+0_fp*SQRT(W_HNO3)-242.710e+0_fp*
+!     &      SQRT(W_H2SO4)+
+!     &      18749.0e+0_fp*W_HNO3**2+18500.0e+0_fp*W_HNO3*W_H2SO4+
+!     &      5632.0e+0_fp*W_H2SO4**2)-LOG(W_HNO3+0.610e+0_fp*W_H2SO4)-
+!     &      LOG(36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
+!     &      M_H2SO4+63.012e+0_fp*
+!     &      M_HNO3)))*(ATM*1e-2_fp)
+         IF ( M_H2SO4 <= 0.0_fp ) THEN
+            TMP1 = 0.0_fp
+         ELSE
+            TMP1 = MOLDENS_H2SO4/M_H2SO4
+         ENDIF
+         IF ( H_HCL <= 0.0_fp ) THEN
+            TMP2 = 0.0_fp
+         ELSE
+            TMP2 = 1.0e+0_fp/R_ATM/TCENTER/H_HCL
+         ENDIF
+         IF ( TMP1 == 0.0_fp .AND. TMP2 == 0.0_fp ) THEN
+            M_HCl = 0.0_fp
+         ELSE
+            M_HCl = (1.0e+0_fp/R_ATM/TCENTER*PATMHCL)/
+     &         (TMP1 + TMP2)
+         ENDIF
+!         M_HCl = (1.0e+0_fp/R_ATM/TCENTER*PATMHCL)/
+!     &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HCL)
+         TMP1 = 1.0e+3_fp+98.076e+0_fp*M_H2SO4+63.012e+0_fp*M_HNO3
+         IF ( TMP1 <= 0.0_fp ) THEN
+            W_HCL=0.0_fp
+         ELSE
+            W_HCL=M_HCL*36.461e+0_fp/TMP1
+         ENDIF
+!         W_HCL=M_HCL*36.461e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
+!     &      63.012e+0_fp*M_HNO3)
+         IF ( H_HCl <= 0.0_fp ) THEN
+            PVAP_HCl = 0.0_fp
+         ELSE
+            PVAP_HCl = M_HCl/H_HCl
+         ENDIF
          HClGASFRAC=1.0e+0_fp-(PATMHCL-PVAP_HCL)/PATMHCL
       ELSE
          W_HCl=0.0e+0_fp
@@ -4802,8 +4869,23 @@
          H_HOCl=EXP(6.49460e+0_fp-(-0.041070e+0_fp+54.56e+0_fp/TCENTER)*
      &      (M_H2SO4+M_HNO3)-5862.0e+0_fp*(1.0e+0_fp/298.15e+0_fp-
      &      1.0e+0_fp/TCENTER))
-         M_HOCl=(1.0e+0_fp/R_ATM/TCENTER*PATMHOCl)/
-     &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HOCL)
+         IF ( M_H2SO4 <= 0.0_fp ) THEN
+            TMP1 = 0.0_fp
+         ELSE
+            TMP1 = MOLDENS_H2SO4/M_H2SO4
+         ENDIF
+         IF ( H_HOCL <= 0.0_fp ) THEN
+            TMP2 = 0.0_fp
+         ELSE
+            TMP2 = 1.0e+0_fp/R_ATM/TCENTER/H_HOCL
+         ENDIF
+         IF ( TMP1 == 0.0_fp .AND. TMP2 == 0.0_fp ) THEN
+            M_HOCl = 0.0_fp
+         ELSE
+            M_HOCl = (1.0e+0_fp/R_ATM/TCENTER*PATMHOCl)/(TMP1+TMP2)
+         ENDIF
+!         M_HOCl=(1.0e+0_fp/R_ATM/TCENTER*PATMHOCl)/
+!     &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HOCL)
          W_HOCL=M_HOCL*52.46e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
      &      63.012e+0_fp*M_HNO3)
          ! Realistically expect no gas phase removal
@@ -4817,6 +4899,19 @@
       ! H2SO4/HNO3/HCl/HBr/H2O solutions to low stratospheric
       ! temperatures, 1995)
       IF (PATMHBr.gt.0.0e+0_fp) THEN
+         TMP1 = W_HNO3+0.410e+0_fp*W_H2SO4
+         IF ( TMP1 <= 0.0_fp ) THEN
+            TMP2 = 0.0_fp
+         ELSE
+            TMP2 = LOG(TMP1)
+         ENDIF
+         TMP3 = 36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
+     &      M_H2SO4+63.012e+0_fp*M_HNO3)
+         IF ( TMP3 > 0.0_fp ) THEN
+            TMP4 = LOG(TMP3)
+         ELSE
+            TMP4 = 0.0_fp
+         ENDIF
          H_HBr = EXP(-(17.83e+0_fp+1.02e+0_fp*W_HNO3-1.08e+0_fp*W_H2SO4+
      &      3.9e+0_fp*SQRT(W_HNO3)+4.38e+0_fp*SQRT(W_H2SO4)-8.87e+0_fp*
      &      W_HNO3**2-17.0e+0_fp*W_HNO3*W_H2SO4+3.73e+0_fp*W_H2SO4**2)-
@@ -4824,15 +4919,42 @@
      &      W_HNO3+658.93e+0_fp*
      &      W_H2SO4-914.0e+0_fp*SQRT(W_HNO3)-955.3e+0_fp*SQRT(W_H2SO4)+
      &      9976.6e+0_fp*W_HNO3**2+19778.5e+0_fp*W_HNO3*W_H2SO4+
-     &      7680.0e+0_fp*W_H2SO4**2)-LOG(W_HNO3+0.410e+0_fp*W_H2SO4)-
-     &      LOG(36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
-     &      M_H2SO4+63.012e+0_fp*
-     &      M_HNO3)))*(ATM*1e-2_fp)
-         M_HBr = (1.0e+0_fp/R_ATM/TCENTER*PATMHBr)/
-     &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HBr)
+     &      7680.0e+0_fp*W_H2SO4**2)-TMP2-TMP4)*(ATM*1e-2_fp)
+!         H_HBr = EXP(-(17.83e+0_fp+1.02e+0_fp*W_HNO3-1.08e+0_fp*W_H2SO4+
+!     &      3.9e+0_fp*SQRT(W_HNO3)+4.38e+0_fp*SQRT(W_H2SO4)-8.87e+0_fp*
+!     &      W_HNO3**2-17.0e+0_fp*W_HNO3*W_H2SO4+3.73e+0_fp*W_H2SO4**2)-
+!     &      1.0e+0_fp/TCENTER*(-8220.5e+0_fp-362.76e+0_fp*
+!     &      W_HNO3+658.93e+0_fp*
+!     &      W_H2SO4-914.0e+0_fp*SQRT(W_HNO3)-955.3e+0_fp*SQRT(W_H2SO4)+
+!     &      9976.6e+0_fp*W_HNO3**2+19778.5e+0_fp*W_HNO3*W_H2SO4+
+!     &      7680.0e+0_fp*W_H2SO4**2)-LOG(W_HNO3+0.410e+0_fp*W_H2SO4)-
+!     &      LOG(36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
+!     &      M_H2SO4+63.012e+0_fp*
+!     &      M_HNO3)))*(ATM*1e-2_fp)
+         IF ( M_H2SO4 <= 0.0_fp ) THEN
+            TMP1 = 0.0_fp
+         ELSE
+            TMP1 = MOLDENS_H2SO4/M_H2SO4
+         ENDIF
+         IF ( H_HBr <= 0.0_fp ) THEN
+            TMP2 = 0.0_fp
+         ELSE
+            TMP2 = 1.0e+0_fp/R_ATM/TCENTER/H_HBr
+         ENDIF
+         IF ( TMP1==0.0_fp .AND. TMP2==0.0_fp ) THEN
+            M_HBr = 0.0_fp
+         ELSE
+            M_HBr = (1.0e+0_fp/R_ATM/TCENTER*PATMHBr)/(TMP1+TMP2)
+         ENDIF
+!         M_HBr = (1.0e+0_fp/R_ATM/TCENTER*PATMHBr)/
+!     &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HBr)
          W_HBr=M_HBr*80.91e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
      &      63.012e+0_fp*M_HNO3)
-         PVAP_HBr = M_HBr/H_HBr
+         IF ( H_HBr <= 0.0_fp ) THEN
+            PVAP_HBr = 0.0_fp
+         ELSE
+            PVAP_HBr = M_HBr/H_HBr
+         ENDIF
          HBrGASFRAC=1.0e+0_fp-(PATMHBr-PVAP_HBr)/PATMHBr
       ELSE
          W_HBr=0.0e+0_fp
@@ -4847,12 +4969,33 @@
          ! Henry's Law coefficient for HOBr in H2SO4 is 10^6 M/atm.
          ! The molality-based Henry's law constant, H_HOBr, is
          ! therefore:
-         H_HOBr = (1.0e+6_fp) * MOLDENS_H2SO4 / M_H2SO4
-         M_HOBr = (1.0e+0_fp/R_ATM/TCENTER*PATMHOBr)/
-     &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HOBr)
+         IF ( M_H2SO4 <= 0.0_fp ) THEN
+            H_HOBr = 0.0_fp
+         ELSE
+            H_HOBr = (1.0e+6_fp) * MOLDENS_H2SO4 / M_H2SO4
+         ENDIF
+         IF ( M_H2SO4 <= 0.0_fp ) THEN
+            TMP1 = 0.0_fp
+         ELSE
+            TMP1 = MOLDENS_H2SO4/M_H2SO4
+         ENDIF
+         IF ( H_HOBr <= 0.0_fp ) THEN
+            TMP2 = 0.0_fp
+         ELSE
+            TMP2 = 1.0e+0_fp/R_ATM/TCENTER/H_HOBr
+         ENDIF
+         IF ( TMP1 == 0.0_fp .AND. TMP2 == 0.0_fp ) THEN
+            M_HOBr = 0.0_fp
+         ELSE
+            M_HOBr = (1.0e+0_fp/R_ATM/TCENTER*PATMHOBr)/(TMP1 + TMP2)
+         ENDIF
          W_HOBr = M_HOBr*96.911e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
      &      63.012e+0_fp*M_HNO3)
-         PVAP_HOBr = M_HOBr/H_HOBr
+         IF ( H_HOBr <= 0.0_fp ) THEN
+            PVAP_HOBr = 0.0_fp
+         ELSE
+            PVAP_HOBr = M_HOBr/H_HOBr
+         ENDIF
          HOBrGASFRAC=1.0e+0_fp-(PATMHOBr-PVAP_HOBr)/PATMHOBr
       ELSE
          W_HOBr=0e+0_fp
@@ -4862,11 +5005,19 @@
       ! Take W_H2O as remainder
       W_H2O = 1.e+0_fp-(W_H2SO4+W_HNO3+W_HCl+W_HOCl+W_HBr+W_HOBr)
 
+      ! restrict values to range that prevents invalids (12/29/17)
+      IF ( M_H2SO4 < 1.0e-30_fp ) M_H2SO4 = 0.0_fp
+      IF ( M_HNO3  < 1.0e-30_fp ) M_HNO3  = 0.0_fp
+
       ! Aerosol mass density in kg/m3 aerosol
       SLA_RHO = CARSLAW_DENSITY(M_H2SO4,M_HNO3,TCENTER)
 
       ! Aerosol volume in m3/m3 air
-      SLA_VOL = (MOLDENS_H2SO4*98.076e+0_fp/W_H2SO4/SLA_RHO)*1.e-3_fp
+      IF ( W_H2SO4 == 0.0_fp .OR. SLA_RHO == 0.0_fp ) THEN
+         SLA_VOL = 0.0_fp
+      ELSE
+         SLA_VOL = (MOLDENS_H2SO4*98.076e+0_fp/W_H2SO4/SLA_RHO)*1.e-3_fp
+      ENDIF
 
       END SUBROUTINE TERNARY
 !EOC
@@ -4893,6 +5044,7 @@
 !
 ! !REVISION HISTORY: 
 !  19 Apr 2013 - S. D. Eastham - Initial version
+!  29 Dec 2017 - C. Keler      - Added error traps for zeros
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4915,8 +5067,13 @@
      &       *T**2+1.458e+0_fp*CN**2  -1.198e-3_fp*CN**2*T  
      &       -9.703e-6_fp*CN**2*T**2
 
-        CARSLAW_DENSITY=1.0e+0_fp/((1.0e+0_fp/DENSS*CS/(CS+CN)  
-     &  +1.0e+0_fp/DENSN*CN/(CS+CN)))
+        ! Error trap for zeros (ckeller, 12/29/17)
+        IF ( CS == 0.0_fp .AND. CN == 0.0_fp ) THEN
+           CARSLAW_DENSITY = 0.0_fp
+        ELSE
+           CARSLAW_DENSITY=1.0e+0_fp/((1.0e+0_fp/DENSS*CS/(CS+CN)
+     &     +1.0e+0_fp/DENSN*CN/(CS+CN)))
+        ENDIF
       RETURN
 
       END FUNCTION CARSLAW_DENSITY
@@ -5042,6 +5199,7 @@
 ! !REVISION HISTORY: 
 !  10 Oct 2012 - S. D. Eastham - Initial version
 !  15 Apr 2015 - M. Yannetti   - Adjustment to f8 from fp due to overflow concerns
+!  29 Dec 2017 - C. Keller     - Avoid div by zero.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5207,9 +5365,15 @@
          Gsp         =  FHCl*Gs
          GbHClp      =  FHCl*GbHCl
          Gb          =  GbHClp  + GClNO3rxn* khydr/( kHCl+ khydr)
-         gClNO3      =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/(Gsp + Gb))
-         gClNO3_HCl  =  gClNO3 *(Gsp + GbHClp)/(Gsp + Gb)
-         gClNO3_H2O  =  gClNO3 - gClNO3_HCl
+         ! Catch for zero (ckeller, 12/29/17)
+         IF ( Gsp == 0.0_fp .AND. Gb == 0.0_fp ) THEN
+            gClNO3_HCl  =  TINY(1e+0_f8)
+            gClNO3_H2O  =  TINY(1e+0_f8)
+         ELSE
+            gClNO3      =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/(Gsp + Gb))
+            gClNO3_HCl  =  gClNO3 *(Gsp + GbHClp)/(Gsp + Gb)
+            gClNO3_H2O  =  gClNO3 - gClNO3_HCl
+         ENDIF
    
          !IF (HClOK) THEN
          RXNGAMMA(3) =  gClNO3_H2O
@@ -5247,7 +5411,9 @@
          endif
          GHOClrxn  =  4.e+0_f8*HHOCl*0.082e+0_f8*T*
      &                sqrt(DHOCl*kHOCl_HCl)/c_HOCl
-         IF (fHOCl.eq.0.) THEN
+         !IF (fHOCl.eq.0.) THEN
+         ! Catch for zero (ckeller, 12/29/17)
+         IF ((fHOCl*GHOClrxn*FHCl).eq.0.) THEN
             gHOCl_HCl =  TINY(1e+0_f8)
          ELSE
             gHOCl_HCl =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/
@@ -5289,11 +5455,13 @@
          else
             fHOBr     =  1.e+0_f8/tanh(arad/lHOBr)- lHOBr/arad
          endif
-!         IF ((fHOBr*GHOBrrxn).eq.0.) THEN
+         ! catch for zeros (ckeller, 12/29/17)
+         IF ((fHOBr*GHOBrrxn).eq.0.) THEN
+           gHOBr_HCl = TINY(1e+0_f8)
 !           gHOBr_HCl =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/TINY(1e+0_fp))
-!         ELSE
+         ELSE
            gHOBr_HCl =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/(fHOBr*GHOBrrxn))
-!         ENDIF
+         ENDIF
          RXNGAMMA(10) = gHOBr_HCl
       ELSE
          RXNGAMMA(10) = TINY(1e+0_f8)
@@ -5575,7 +5743,7 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
+      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL 
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : AIRQNT
       USE ErrCode_Mod
@@ -5619,6 +5787,8 @@
 !  18 Jul 2016 - E. Lundgren   - Remove dependency on grid box mass
 !  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
 !  13 Mar 2017 - C. Keller     - Add error trap for id_H2O
+!  12 Nov 2017 - C. Keller     - Add option to prescribe trop. H2O up to 
+!                                tropopause plus offset.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5626,6 +5796,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: I,J,L
+      INTEGER           :: TPLEV
       LOGICAL           :: READ_SPHU
       REAL(fp)          :: SPHU_kgkg, H2OVV_moist, Ev_mid
       REAL(fp)          :: Esat, EsatA, EsatB, EsatC, EsatD
@@ -5652,6 +5823,11 @@
       
       ! Pointers
       REAL(fp), POINTER     :: Spc (:,:,:,:)
+
+      ! If H2O in strat. is not prescribed, set H2O up to tropopause
+      ! level plus a given offset (to avoid H2O leaking into
+      ! stratosphere).
+      INTEGER, PARAMETER    :: TROPPLEV_OFFSET = 0
 
       !=================================================================
       ! SET_H2O_TRAC begins here!
@@ -5683,60 +5859,72 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, READ_SPHU)
+!$OMP+PRIVATE( I, J, L, TPLEV, READ_SPHU)
 !$OMP+PRIVATE( SPHU_kgkg, H2OVV_moist, Ev_mid )
 !$OMP+PRIVATE( Esat, EsatA, EsatB, EsatC, EsatD )
-      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         READ_SPHU = ( ITS_IN_THE_TROP( I, J, L, State_Met ) .or.
-     &                 SETSTRAT .or. ( .not. LACTIVEH2O )  )
+         ! Tropopause level for this grid box
+         TPLEV = GET_TPAUSE_LEVEL ( I, J, State_Met )
 
+         DO L = 1, LLPAR
 
-         IF ( READ_SPHU ) THEN
+            ! Mark as tropospheric air everything that is at current 
+            ! tropopause or 2 levels above. This is to avoid H2O leaks
+            ! into the stratosphere due to jumps in the model
+            ! tropopause.
+            ! (ckeller, 11/12/17).
+            READ_SPHU = ( ( (L-TPLEV) < TROPPLEV_OFFSET ) .or.
+     &                    SETSTRAT .or. ( .not. LACTIVEH2O )  )
+!            READ_SPHU = ( ITS_IN_THE_TROP( I, J, L, State_Met ) .or.
+!     &                    SETSTRAT .or. ( .not. LACTIVEH2O )  )
 
-            ! Calculate specific humidity [g H2O/kg total air] as [kg/kg] 
-            SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.e-3_fp
-            
-            ! Set H2O species concentration [kg/kg dry] using SPHU [kg/kg]
-            ! without using box mass (ewl, 7/18/16)
-            Spc(I,J,L,id_H2O) = SPHU_kgkg / ( 1.0e+0_fp - SPHU_kgkg )
+            IF ( READ_SPHU ) THEN
 
-         ELSE
+               ! Calculate specific humidity [g H2O/kg total air] as
+               ! [kg/kg] 
+               SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.e-3_fp
 
-            ! Calculate specific humidity in [kg H2O / kg total air] 
-            ! using transported H2O [kg/kg dry] (ewl, 7/18/16)
-            SPHU_kgkg =  Spc(I,J,L,id_H2O) / 
-     &                  ( 1.0e+0_fp + Spc(I,J,L,id_H2O) ) 
+               ! Set H2O species concentration [kg/kg dry] using SPHU
+               ! [kg/kg]
+               ! without using box mass (ewl, 7/18/16)
+               Spc(I,J,L,id_H2O) = SPHU_kgkg / ( 1.0e+0_fp - SPHU_kgkg )
 
-            ! Set State_Met specific humidity [g/kg]
-            State_Met%SPHU(I,J,L) = SPHU_kgkg * 1.e+3_fp
-            
-            ! Calculate water vapor saturation pressure [hPa] from T
-            ! (see local variables above for method reference)
-            EsatA = ESATP1 + ESATP2 * log10( State_Met%T(I,J,L) ) 
-            EsatB = ESATP3 * 10**( ESATP4 + ESATP5/State_Met%T(I,J,L) )
-            EsatC = ESATP6 * 10**( ESATP7 + ESATP8*State_Met%T(I,J,L) )
-            EsatD = ESATP9 / State_Met%T(I,J,L)
-            Esat = 10**( EsatA + EsatB + EsatC + EsatD ) 
+            ELSE
 
-            ! Calculate mol water vapor per mol moist air from SPHU
-            ! Note that SPHU must be converted to [kg/kg] to use 1-SPHU
-            ! as mass dry air / mass moist air
-            H2OVV_moist = SPHU_kgkg * AIRMW 
-     &               / ( SPHU_kgkg * AIRMW + ( 1 - SPHU_kgkg ) * H2OMW )
+               ! Calculate specific humidity in [kg H2O / kg total air] 
+               ! using transported H2O [kg/kg dry] (ewl, 7/18/16)
+               SPHU_kgkg =  Spc(I,J,L,id_H2O) / 
+     &                     ( 1.0e+0_fp + Spc(I,J,L,id_H2O) ) 
    
-            ! Calculate water vapor partial pressure at grid box center [hPa]
-            ! Note that grid box center is defined as the arithmetic average
-            ! of the grid box pressure edges not the vertical mid-point.
-            Ev_mid = State_Met%PMID(I,J,L) * H2OVV_MOIST
+               ! Set State_Met specific humidity [g/kg]
+               State_Met%SPHU(I,J,L) = SPHU_kgkg * 1.e+3_fp
+               
+               ! Calculate water vapor saturation pressure [hPa] from T
+               ! (see local variables above for method reference)
+               EsatA = ESATP1 + ESATP2 * log10( State_Met%T(I,J,L) ) 
+               EsatB = ESATP3 * 10**( ESATP4+ESATP5/State_Met%T(I,J,L) )
+               EsatC = ESATP6 * 10**( ESATP7+ESATP8*State_Met%T(I,J,L) )
+               EsatD = ESATP9 / State_Met%T(I,J,L)
+               Esat = 10**( EsatA + EsatB + EsatC + EsatD ) 
+   
+               ! Calculate mol water vapor per mol moist air from SPHU
+               ! Note that SPHU must be converted to [kg/kg] to use 1-SPHU
+               ! as mass dry air / mass moist air
+               H2OVV_moist = SPHU_kgkg * AIRMW 
+     &                 / ( SPHU_kgkg * AIRMW + (1 - SPHU_kgkg) * H2OMW )
+      
+               ! Calculate water vapor partial pressure at grid box center [hPa]
+               ! Note that grid box center is defined as the arithmetic average
+               ! of the grid box pressure edges not the vertical mid-point.
+               Ev_mid = State_Met%PMID(I,J,L) * H2OVV_MOIST
     
-            ! Set State_Met relative humidity [%]
-            State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp 
+               ! Set State_Met relative humidity [%]
+               State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp 
 
-         ENDIF
-      ENDDO ! L
+            ENDIF
+         ENDDO ! L
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO

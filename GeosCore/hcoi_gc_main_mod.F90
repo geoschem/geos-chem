@@ -374,7 +374,7 @@ CONTAINS
     ! met fields used by each extension.
     !=================================================================
     CALL HCOX_Init( am_I_Root, HcoState, ExtState, HMRC )
-    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC, INS )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCOX_INIT', LOC, INS )
 
     !-----------------------------------------------------------------
     ! Update and check logical switches in Input_Opt 

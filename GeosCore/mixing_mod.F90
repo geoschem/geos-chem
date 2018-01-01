@@ -236,6 +236,10 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at DO_MIXING (in module GeosCore/mixing_mod.F90)'
 
+    ! Set DryDepFlux mixing flag inside DO_TEND. The initialization routine
+    ! is not called in ESMF environment (ckeller, 11/29/17).
+    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix )
+
     ! Initialize the diagnostic array for the History Component.  This will 
     ! prevent leftover values from being carried over to this timestep.
     ! (For example, if on the last iteration, the PBL height was higher than

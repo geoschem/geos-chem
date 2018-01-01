@@ -125,6 +125,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - initial version
 !  28 Nov 2017 - C. J. Lee   - Allow state MET variables to have underscores
+!  29 Dec 2017 - C. Keller   - Look for GEOSCHEMCHEM instead of GIGCchem when
+!                              on NCCS Discover.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,7 +186,13 @@ CONTAINS
        ENDIF
 
        ! Skip line if GIGCchem not present
+       ! GEOS-Chem is names 'GEOSCHEMCHEM' on NCCS discover,
+       ! scan accordingly (ckeller, 12/29/17)
+#if defined( DISCOVER )
+       IF ( INDEX( line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
+#else
        IF ( INDEX( line, 'GIGCchem' ) .le. 0 ) CYCLE
+#endif
     
        ! Remove commas, spaces, and tabs
        Line = CleanText( Line )    

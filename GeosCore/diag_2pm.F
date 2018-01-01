@@ -33,9 +33,7 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE DIAG_MOD,           ONLY : LTJV,  CTJV
       USE DIAG_MOD,           ONLY : LTOH,  CTOH
-#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : LTOTH, CTOTH
-#endif
       USE DIAG_MOD,           ONLY : LTHO2, CTHO2
       USE DIAG_MOD,           ONLY : CTO3_24h
       USE DIAG_MOD,           ONLY : CTO1D,    LTO1D

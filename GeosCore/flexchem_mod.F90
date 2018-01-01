@@ -42,6 +42,7 @@ MODULE FlexChem_Mod
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  17 Nov 2017 - R. Yantosca - Now call Diag_OH_HO2_O1D_O3P, which will let
 !                              us remove arrays in CMN_O3_SIZE_mod.F
+!  29 Dec 2017 - C. Keller   - Make HSAVE_KPP public (needed for GEOS-5 restart)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -70,12 +71,12 @@ MODULE FlexChem_Mod
   INTEGER,  SAVE        :: PrevMonth = -1
   
   ! Arrays
-  INTEGER,  ALLOCATABLE :: ND65_KPP_Id(:      )  ! Indices for ND65 bpch diag
-  REAL(fp), ALLOCATABLE :: HSAVE_KPP  (:,:,:  )  ! H-value for Rosenbrock solver
-  REAL(f4), ALLOCATABLE :: JvCountDay (:,:,:  )  ! For daily   avg of J-values
-  REAL(f4), ALLOCATABLE :: JvCountMon (:,:,:  )  ! For daily   avg of J-values
-  REAL(f4), ALLOCATABLE :: JvSumDay   (:,:,:,:)  ! For monthly avg of J-values
-  REAL(f4), ALLOCATABLE :: JvSumMon   (:,:,:,:)  ! For monthly avg of J-values
+  INTEGER,  ALLOCATABLE         :: ND65_KPP_Id(:      )  ! Indices for ND65 bpch diag
+  REAL(fp), ALLOCATABLE, PUBLIC :: HSAVE_KPP  (:,:,:  )  ! H-value for Rosenbrock solver
+  REAL(f4), ALLOCATABLE         :: JvCountDay (:,:,:  )  ! For daily   avg of J-values
+  REAL(f4), ALLOCATABLE         :: JvCountMon (:,:,:  )  ! For daily   avg of J-values
+  REAL(f4), ALLOCATABLE         :: JvSumDay   (:,:,:,:)  ! For monthly avg of J-values
+  REAL(f4), ALLOCATABLE         :: JvSumMon   (:,:,:,:)  ! For monthly avg of J-values
 
 CONTAINS
 !EOC
@@ -201,6 +202,7 @@ CONTAINS
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
 !  21 Dec 2017 - R. Yantosca - Add netCDF diagnostics for J-values, prod/loss
+!  29 Dec 2017 - C. Keller   - Check if LTJV is allocated before using it.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -620,7 +622,12 @@ CONTAINS
        TEMP      = 0.0_fp            ! Temperature
        YLAT      = 0.0_fp            ! Latitude
        P         = 0                 ! GEOS-Chem photolyis species ID
-       IsLocNoon = ( LTJV(I,J) > 0 ) ! Is it local noon (11am to 1pm LST)?
+       ! LTJV is not allocated if not BPCH_DIAG (ckeller, 12/29/17)
+       IF ( ALLOCATED(LTJV) ) THEN
+          IsLocNoon = ( LTJV(I,J) > 0 ) ! Is it local noon (11am to 1pm LST)?
+       ELSE
+          IsLocNoon = .FALSE. 
+       ENDIF
 
        !====================================================================
        ! Test if we need to do the chemistry for box (I,J,L),
@@ -1189,6 +1196,7 @@ CONTAINS
     !=======================================================================
     ! Save quantities for computing mean OH lifetime
     !=======================================================================
+#if defined( BPCH_DIAG )
     CALL DO_DIAG_OH( State_Met, State_Chm )
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### Do_FlexChem: after DO_DIAG_OH' )
@@ -1203,6 +1211,7 @@ CONTAINS
           CALL DEBUG_MSG( '### Do_FlexChem: after DIAG20' )
        ENDIF
     ENDIF
+#endif
 
     !=======================================================================
     ! Convert species back to original units (ewl, 8/16/16)
@@ -1295,9 +1304,7 @@ CONTAINS
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Met_Mod,  ONLY : MetState
-#if defined( BPCH_DIAG )
     USE Diag_Mod,       ONLY : AD43, LTOH, LTHO2, LTO1D, LTO3P
-#endif
 !
 ! !INPUT PARAMETERS:
 !

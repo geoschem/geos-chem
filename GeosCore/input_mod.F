@@ -6055,11 +6055,11 @@
          WRITE( 6, 100 ) 'Turn on ND48 timeseries?    : ', DO_ND48
          WRITE( 6, 110 ) 'ND48 timeseries file name   : ', TRIM( FILE )
          WRITE( 6, 120 ) 'ND48 save frequency [min]   : ', FREQ
-      ENDIF
 
-      DO S = 1, N_STA
-         WRITE( 6, 130 ) S, IARR(S), JARR(S), LARR(S), NARR(S) 
-      ENDDO
+         DO S = 1, N_STA
+            WRITE( 6, 130 ) S, IARR(S), JARR(S), LARR(S), NARR(S) 
+         ENDDO
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )

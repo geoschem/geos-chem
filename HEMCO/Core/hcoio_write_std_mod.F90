@@ -460,7 +460,7 @@ CONTAINS
 
     ! Special case where we have an old file but it has the same time stamp: in
     ! that case simply overwrite the current values
-    IF ( OldFile .AND. ntime == 2 ) THEN
+    IF ( IsOldFile .AND. ntime == 2 ) THEN
        IF ( timeVec(1) == JD_DELTA_RND ) ntime = 1
     ENDIF
     allocate(nctime(ntime))

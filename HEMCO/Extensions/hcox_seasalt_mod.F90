@@ -550,6 +550,8 @@ CONTAINS
 !  09 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !  21 Sep 2016 - R. Yantosca - Bug fix: don't initialize SS_DEN before
 !                              it is allocated.  This causes a segfault.
+!  29 Dec 2017 - C. Keller   - Bug fix: define index location of BrSALA and
+!                              BrSALC based upon # of species ID entries.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -631,8 +633,8 @@ CONTAINS
     IDTSALA = HcoIDsSS(1) 
     IDTSALC = HcoIDsSS(2)
     IF ( CalcBr2 ) IDTBR2 = HcoIDsSS(3)
-    IF ( CalcBrSalt ) IDTBrSALA = HcoIDsSS(minLen-1)
-    IF ( CalcBrSalt ) IDTBrSALC = HcoIDsSS(minLen)
+    IF ( CalcBrSalt ) IDTBrSALA = HcoIDsSS(nSpcSS-1)
+    IF ( CalcBrSalt ) IDTBrSALC = HcoIDsSS(nSpcSS)
     
     ! Get the marine organic aerosol species defined for MarinePOA option
     IF ( ExtNrMPOA > 0 ) THEN
@@ -709,11 +711,12 @@ CONTAINS
        ENDIF
 
        IF ( CalcBrSalt ) THEN
-          WRITE(MSG,*) 'BrSALA: ', TRIM(SpcNamesSS(minLen-1)), IDTBrSALA
-          WRITE(MSG,*) 'BrSALC: ', TRIM(SpcNamesSS(minLen)), IDTBrSALC
-          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'BrSALA: ', TRIM(SpcNamesSS(nSpcSS-1)), IDTBrSALA
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
+          WRITE(MSG,*) 'BrSALC: ', TRIM(SpcNamesSS(nSpcSS)), IDTBrSALC
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Br- mass content: ', BrContent
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
        IF ( ExtNrMPOA > 0 ) THEN

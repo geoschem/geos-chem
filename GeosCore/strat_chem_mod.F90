@@ -950,6 +950,7 @@ CONTAINS
 !  16 Jan 2015 - C. Keller   - Initial version
 !  05 Dec 2017 - M. Sulprizio- Update to use prod/loss rates from UCX for 
 !                              certain Cl and I species
+!  29 Dec 2017 - C. Keller   - Disable UCX rates in GEOS-5 - not yet implemented.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1038,6 +1039,12 @@ CONTAINS
        ELSE
           Is_UCX_Spc = .FALSE.
        ENDIF
+
+       ! UCX prod/loss rates not yet implemented in GEOS-5
+       ! (ckeller, 12/29/17).
+#if defined(DISCOVER)
+       Is_UCX_Spc = .FALSE.
+#endif
 
        ! ---------------------------------------------------------------
        ! Get pointers to fields

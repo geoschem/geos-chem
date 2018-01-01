@@ -63,6 +63,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: DryDepMix       (:,:,:,:) ! Drydep flux in mixing
      REAL(f4),  POINTER :: DryDep          (:,:,:,:) ! Total drydep flux
      REAL(f4),  POINTER :: DryDepVel       (:,:,:  ) ! Dry deposition velocity
+     REAL(f4),  POINTER :: DryDepRa        (:,:    ) ! Aerodynamic resistance 
     !REAL(f4),  POINTER :: DryDepRst_RA    (:,:,:  ) ! Aerodynamic resistance
     !REAL(f4),  POINTER :: DryDepRst_RB    (:,:,:  ) ! Aerodynamic resistance
     !REAL(f4),  POINTER :: DryDepRst_RC    (:,:,:  ) ! Total drydep resistance
@@ -114,6 +115,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  ) ! Frac of box in LS precip
      REAL(f4),  POINTER :: RainFracLS      (:,:,:,:) ! Frac lost to LS rainout
      REAL(f4),  POINTER :: WashFracLS      (:,:,:,:) ! Frac lost to LS washout
+     REAL(f4),  POINTER :: WetDepFlux      (:,:,:,:) ! 3D wet dep flux in kg/m2/s 
      
      ! Carbon aerosols
      REAL(f4),  POINTER :: ProdBCPIfromBCPO(:,:,:  ) ! Prod BCPI from BCPO
@@ -187,6 +189,8 @@ MODULE State_Diag_Mod
 !  05 Oct 2017 - R. Yantosca - Add separate drydep fields for chem & mixing
 !  06 Oct 2017 - R. Yantosca - Declare SpeciesConc as an 8-byte real field
 !  02 Nov 2017 - R. Yantosca - Update wetdep and convection diagnostic names
+!  17 Nov 2017 - C. Keller   - Added Ra and WetDepFlux. This is likely redundant
+!                              and should be consolidated.
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -306,6 +310,7 @@ CONTAINS
     State_Diag%DryDepChm                  => NULL()
     State_Diag%DryDepMix                  => NULL()
     State_Diag%DryDepVel                  => NULL()
+    State_Diag%DryDepRa                   => NULL()
 
     State_Diag%CloudConvFlux              => NULL()
     State_Diag%WetLossConv                => NULL()
@@ -317,6 +322,7 @@ CONTAINS
     State_Diag%PrecipFracLS               => NULL()
     State_Diag%RainFracLS                 => NULL()
     State_Diag%WashFracLS                 => NULL()
+    State_Diag%WetDepFlux                 => NULL()
 
     State_Diag%SpeciesConc                => NULL()
     State_Diag%JVal                       => NULL()
@@ -459,6 +465,23 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepVel = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepVel, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Aerodynamic resistance (ckeller, 11/17/17) 
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%DryDepRa'
+    diagID  = 'DryDepRa'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%DryDepRa( IM, JM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepRa = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepRa, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -646,6 +669,23 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%WashFracLS = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%WashFracLS,   &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Wet deposition flux (ckeller, 11/17/17) 
+    !--------------------------------------------
+    arrayID = 'State_Diag%WetDepFlux'
+    diagID  = 'WetDepFlux'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%WetDepFlux( IM, JM, LM, nWetDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%WetDepFlux = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%WetDepFlux, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1981,6 +2021,12 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%DryDepRa ) ) THEN
+       DEALLOCATE( State_Diag%DryDepRa, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%DryDepRa', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%JVal ) ) THEN
        DEALLOCATE( State_Diag%JVal, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%Jval', 2, RC )
@@ -2086,6 +2132,12 @@ CONTAINS
     IF ( ASSOCIATED( State_Diag%WashFracLS ) ) THEN
        DEALLOCATE( State_Diag%WashFracLS, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%WashFracLS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%WetDepFlux ) ) THEN
+       DEALLOCATE( State_Diag%WetDepFlux, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%WetDepFlux', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -2502,6 +2554,11 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPRA' ) THEN
+       IF ( isDesc    ) Desc  = 'Aerodynamic resistance'
+       IF ( isUnits   ) Units = 's cm-1'
+       IF ( isRank    ) Rank  = 2
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'JVAL' ) THEN
        IF ( isDesc    ) Desc  = 'Photolysis rate for species' 
        IF ( isUnits   ) Units = 's-1'
@@ -2619,6 +2676,12 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'WASHFRACLS' ) THEN
        IF ( isDesc    ) Desc  = 'Fraction of soluble species lost to washout in large-scale precipitation'
        IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'WET'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'WETDEPFLUX' ) THEN
+       IF ( isDesc    ) Desc  = 'Wet deposition flux of species'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 

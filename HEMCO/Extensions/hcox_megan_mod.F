@@ -4742,7 +4742,7 @@
       ENDIF
       Inst%AEF_PRPE = 0.0_hp
 
-      ALLOCATE( Inst%ARRAY_16( NX, NY ), STAT=AS )
+      ALLOCATE( Inst%ARRAY_16( NX, NY, 16 ), STAT=AS )
       IF ( AS /= 0 ) THEN 
          CALL HCO_ERROR( HcoState%Config%Err,
      &                  'ARRAY_16', RC )
