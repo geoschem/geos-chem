@@ -3616,8 +3616,8 @@
             Spc(I,J,L,id_H2O2) = H2O2s(I,J,L)
 
             ! Set SO4H1 and SO4H2 to zero at end of each timestep
-            Spc(I,J,L,id_SO4H1) = 0.0e+0_fp
-            Spc(I,J,L,id_SO4H2) = 0.0e+0_fp
+            IF ( id_SO4H1 > 0 ) Spc(I,J,L,id_SO4H1) = 0.0e+0_fp
+            IF ( id_SO4H2 > 0 ) Spc(I,J,L,id_SO4H2) = 0.0e+0_fp
          End If
 
          ! SO2 chemical loss rate  = SO4 production rate [v/v/timestep]
