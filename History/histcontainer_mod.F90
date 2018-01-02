@@ -312,6 +312,7 @@ CONTAINS
 !                               UpdateAlarm value so as to update collections
 !                               at the same times w/r/t the "legacy" diags
 !  18 Sep 2017 - R. Yantosca - Now accept heartbeat dt in seconds
+!  02 Jan 2018 - R. Yantosca - Fix construction of default file template
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -523,11 +524,23 @@ CONTAINS
     !----------------------------------
     ! File Template
     !----------------------------------
-    IF ( LEN_TRIM( FileTemplate) > 0 ) THEN
-       TempStr                = FileTemplate
-       Container%FileTemplate = TempStr
+    IF ( LEN_TRIM( FileTemplate ) > 0 ) THEN
+
+       ! If the FILETEMPLATE argument is passed (and not the undefined
+       ! string) then use it.  Otherwise, construct a default template.
+       IF ( TRIM( FileTemplate ) /= UNDEFINED_STR ) THEN
+          TempStr                = FileTemplate
+          Container%FileTemplate = TempStr
+       ELSE
+          Container%FileTemplate = '%y4%m2%d2.nc4'
+       ENDIF
+
     ELSE
-       Container%FileTemplate = UNDEFINED_STR
+
+       ! If the FILETEMPLATE argument isn't passed, 
+       ! then construct a default template 
+       Container%FileTemplate = '%y4%m2%d2.nc4'
+
     ENDIF
 
     !----------------------------------
