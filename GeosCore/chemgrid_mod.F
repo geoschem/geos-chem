@@ -75,6 +75,7 @@
 !                                routines INIT_CHEMGRID, CLEANUP_CHEMGRID
 !  06 Nov 2017 - R. Yantosca   - Remove LVARTROP, we will always use the 
 !                                dynamic tropopause for GEOS-FP, MERRA-2
+!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -242,10 +243,15 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_MIN_CHEMGRID_LEVEL() RESULT( L_MIN )
+      FUNCTION GET_MIN_CHEMGRID_LEVEL( Input_Opt ) RESULT( L_MIN )
 !
 ! !USES:
 !
+      USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input options
 !
 ! !RETURN VALUE:
 !
@@ -263,12 +269,12 @@
       ! GET_MIN_CHEMGRID_LEVEL begins here!
       !=================================================================
 
-#if defined( UCX )
-      ! Minimum level is fixed at stratopause
-      L_MIN = LLSTRAT
-#else
-      L_MIN = LMIN
-#endif
+      IF ( Input_Opt%LUCX ) THEN
+         ! Minimum level is fixed at stratopause
+         L_MIN = LLSTRAT
+      ELSE
+         L_MIN = LMIN
+      ENDIF
 
       END FUNCTION GET_MIN_CHEMGRID_LEVEL
 !EOC
@@ -285,10 +291,15 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_MAX_CHEMGRID_LEVEL() RESULT( L_MAX )
+      FUNCTION GET_MAX_CHEMGRID_LEVEL( Input_Opt ) RESULT( L_MAX )
 !
 ! !USES:
 !
+      USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input options
 !
 ! !RETURN VALUE:
 !
@@ -306,12 +317,12 @@
       ! GET_MAX_CHEMGRID_LEVEL begins here!
       !=================================================================
 
-#if defined( UCX )
-      ! Maximum level is fixed at stratopause
-      L_MAX = LLSTRAT
-#else
-      L_MAX = LMAX
-#endif
+      IF ( Input_Opt%LUCX ) THEN
+         ! Maximum level is fixed at stratopause
+         L_MAX = LLSTRAT
+      ELSE
+         L_MAX = LMAX
+      ENDIF
 
       END FUNCTION GET_MAX_CHEMGRID_LEVEL
 !EOC
@@ -331,16 +342,19 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_CHEMGRID_LEVEL( I, J, State_Met ) RESULT( L_CHEM )
+      FUNCTION GET_CHEMGRID_LEVEL( I, J, Input_Opt, State_Met )
+     &                             RESULT( L_CHEM )
 !
 ! !USES:
 !
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       INTEGER,        INTENT(IN) :: I           ! Longitude index
       INTEGER,        INTENT(IN) :: J           ! Latitude index
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
@@ -358,15 +372,16 @@
       ! GET_CHEMGRID_LEVEL begins here!
       !=================================================================
 
-#if defined( UCX )
-      ! Chemistry grid level is fixed at stratopause
-      ! None of the vertical grids currently employed have terrain
-      ! following coordinates at this altitude, so the level is fixed
-      L_CHEM = LLSTRAT
-#else
-      ! Use GET_TPAUSE_LEVEL otherwise - no point in duplicating code
-      L_CHEM = GET_TPAUSE_LEVEL( I, J, State_Met )
-#endif
+      IF ( Input_Opt%LUCX ) THEN
+         ! Chemistry grid level is fixed at stratopause
+         ! None of the vertical grids currently employed have terrain
+         ! following coordinates at this altitude, so the level is fixed
+         L_CHEM = LLSTRAT
+      ELSE
+         ! Use GET_TPAUSE_LEVEL otherwise - no point in duplicating code
+         L_CHEM = GET_TPAUSE_LEVEL( I, J, State_Met )
+      ENDIF
+
       END FUNCTION GET_CHEMGRID_LEVEL
 !
 !EOC
@@ -680,19 +695,21 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) 
+      FUNCTION ITS_IN_THE_CHEMGRID( I, J, L, Input_Opt, State_Met ) 
      &                              RESULT( IS_CHEM )
 !
 ! !USES:
 !
-      USE State_Met_Mod,      ONLY : MetState
       USE CMN_SIZE_MOD,       Only : LLCHEM
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN) :: I           ! Longitude index
       INTEGER,        INTENT(IN) :: J           ! Latitude index
       INTEGER,        INTENT(IN) :: L           ! Level index
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
@@ -710,15 +727,15 @@
       ! ITS_IN_THE_CHEMGRID begins here
       !=================================================================
 
-      If (L.gt.LLCHEM) Then
+      IF (L .gt. LLCHEM ) THEN
          IS_CHEM = .False.
-      Else
-#if defined( UCX )
-         IS_CHEM = ( .not. ITS_IN_THE_MESO( I, J, L ) )
-#else
-         IS_CHEM = ITS_IN_THE_TROP( I, J, L, State_Met )
-#endif
-      End If
+      ELSE
+         IF ( Input_Opt%LUCX ) THEN
+            IS_CHEM = ( .not. ITS_IN_THE_MESO( I, J, L ) )
+         ELSE
+            IS_CHEM = ITS_IN_THE_TROP( I, J, L, State_Met )
+         ENDIF
+      END IF
 
       END FUNCTION ITS_IN_THE_CHEMGRID
 !EOC
@@ -735,11 +752,12 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met )
+      FUNCTION ITS_IN_THE_NOCHEMGRID( I, J, L, Input_Opt, State_Met )
      &                              RESULT( IS_NOCHEM )
 !
 ! !USES:
 !
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
@@ -747,6 +765,7 @@
       INTEGER,        INTENT(IN) :: I           ! Longitude index
       INTEGER,        INTENT(IN) :: J           ! Latitude index
       INTEGER,        INTENT(IN) :: L           ! Level index
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 
 !
@@ -766,7 +785,7 @@
 
       ! Function simply complement of ITS_IN_THE_CHEMGRID
       ! Provided for consistency with old approach
-      IS_NOCHEM = ( .not. ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) )
+      IS_NOCHEM = (.not. ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met))
 
       END FUNCTION ITS_IN_THE_NOCHEMGRID
 !EOC

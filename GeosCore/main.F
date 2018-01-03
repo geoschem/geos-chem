@@ -438,6 +438,7 @@
       Input_Opt%MAX_DIAG      = MAX_DIAG
       Input_Opt%MAX_FAM       = 250      ! Set to large placeholder value
       Input_Opt%MAX_SPC       = 500      ! Set to large placeholder value
+      Input_Opt%MAX_PASV      = 50       ! Set to large placeholder value
       Input_Opt%LINOZ_NLAT    = 18
       Input_Opt%LINOZ_NMONTHS = 12
       Input_Opt%LINOZ_NFIELDS = 7
@@ -1221,7 +1222,7 @@
          ! (NOTE: maybe improve this later on)
          ! Placed after interpolation to get correct value of TROPP. 
          ! (ccc, 12/9/08)
-         CALL DIAG_2PM( State_Met )
+         CALL DIAG_2PM( Input_Opt, State_Met )
 
          !----------------------------------------------------------
          ! %%% GET SOME NON-EMISSIONS DATA FIELDS VIA HEMCO %%%

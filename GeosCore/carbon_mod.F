@@ -1714,7 +1714,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) CYCLE
 
          ! Volume of grid box [m3]
          VOL    = State_Met%AIRVOL(I,J,L)
@@ -5580,7 +5580,7 @@ ccc
          !---------------------
 
          ! OH is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
 
             ! Get OH from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio = State_Chm%SpcData(id_OH)%Info%MolecRatio
@@ -5717,7 +5717,7 @@ ccc
          !----------------------
 
          ! NO3 is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
 
             ! Get NO3 from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio  = State_Chm%SpcData(id_NO3)%Info%MolecRatio
@@ -5873,7 +5873,7 @@ ccc
          !--------------------
 
          ! O3 is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
             
             ! Get O3 from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio = State_Chm%SpcData(id_O3)%Info%MolecRatio
@@ -6021,7 +6021,7 @@ ccc
          !--------------------
 
          ! Test if we are in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
 
             ! Get information on the 
             ! specified type of aromatic peroxy radical
@@ -6253,7 +6253,7 @@ ccc
          !--------------------
 
          ! Test if we are in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN 
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN 
  
             !-----------------------------------------------------------
             ! Get LISOPOH (ISOP lost to OH) from State_Chm%Species
@@ -7390,7 +7390,7 @@ ccc
          !---------------------
 
          ! NO is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
 
             ! Get NO from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio = State_Chm%SpcData(id_NO)%Info%MolecRatio
@@ -7484,7 +7484,7 @@ ccc
          !---------------------
 
          ! HO2 is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
 
             ! Get HO2 from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio = State_Chm%SpcData(id_HO2)%Info%MolecRatio
@@ -7588,7 +7588,7 @@ ccc
          !--------------------
 
          ! Test if we are in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN 
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN 
  
             !-----------------------------------------------------------
             ! Get ISOPNO3 (ISOP list to NO3) from State_Chm%Species

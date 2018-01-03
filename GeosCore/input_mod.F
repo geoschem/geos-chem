@@ -3400,27 +3400,9 @@
       ! Error check settings
       !=================================================================       
 
-      ! Skip LUCX error checking for GCHP since always compiles with UCX=y
-#if !defined( ESMF_ )
-      ! Use of unified trop-strat chem necessitates recompilation 
-#if !defined( UCX )
-      IF ( LUCX ) THEN
-         ErrMsg  = 'LUCX=T but UCX not defined at compile time!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN         
-      ENDIF
-#else
-      IF ( .not. LUCX ) THEN
-         ErrMsg = 'LUCX=F but UCX defined at compile time!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-#endif
-#endif
-
-!      !================
-!      ! SDE 08/28/13: Can have both now (linearized chem applies only
-!      ! above stratopause)
+      !================
+      ! SDE 08/28/13: Can have both now (linearized chem applies only
+      ! above stratopause)
       IF ( LUCX .and. LSCHEM ) THEN
          ! However, cannot use synoz
          IF (.not.LLINOZ) THEN
@@ -3429,7 +3411,7 @@
             RETURN
          ENDIF
       ENDIF
-!      !================
+      !================
 
       ! Cannot have active H2O without stratospheric chemistry
       IF ( (.not.LUCX) .and. LACTIVEH2O ) THEN
@@ -3755,19 +3737,21 @@
          WRITE( 6, 125     ) 'Clear-sky/All-sky           : ',
      &                    LSKYRAD(1),'/',LSKYRAD(2)
          WRITE( 6, 110     ) 'Radiation timestep [min]    : ', TS_RAD
-         WRITE( 6, 120     ) 'Flux output selection       : ', 
-     &      LSPECRADMENU
+         IF ( Input_Opt%LUCX ) THEN
+            WRITE( 6, 120     ) 'Flux output selection       : ', 
+     &         LSPECRADMENU
+         ELSE
+            WRITE( 6, 130     ) 'Flux output selection       : ', 
+     &         LSPECRADMENU
+         ENDIF
       ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
  110  FORMAT( A, I5  )
  115  FORMAT( A, F7.1)
-#if defined( UCX )
  120  FORMAT( A, 11I1 )
-#else
- 120  FORMAT( A, 10I1 )
-#endif
+ 130  FORMAT( A, 10I1 )
  125  FORMAT( A,L5,A,L5 )
 
       END SUBROUTINE READ_RADIATION_MENU
@@ -10282,8 +10266,7 @@
       !=================================================================
       ! Error check stratospheric H2O
       !=================================================================
-#if defined( UCX )
-      IF ( Input_Opt%LSETH2O ) THEN
+      IF ( Input_Opt%LUCX .and. Input_Opt%LSETH2O ) THEN
          IF (Ind_('H2O') < 0 ) THEN
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
@@ -10291,10 +10274,9 @@
             Input_Opt%LSETH2O = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
          ENDIF
+      ELSE
+         Input_Opt%LSETH2O = .FALSE.
       ENDIF
-#else
-      Input_Opt%LSETH2O = .FALSE.
-#endif
 
       !=================================================================
       ! Error check halogen emissions

@@ -76,6 +76,7 @@
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  17 Mar 2017 - R. Yantosca - Remove reference to Input_Opt fields
 !  02 Nov 2017 - R. Yantosca - Add modifications for netCDF diagnostics
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1062,6 +1063,7 @@
       INTEGER            :: I, J, L, N, NOUT, W
       INTEGER            :: IWV, IIWV, NWVS, IDST
       REAL(fp)           :: MSDENS(NDUST), XTAU
+
       ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
       ! (tmf, 3/6/09)
       REAL(fp)           :: XRH
@@ -1095,10 +1097,13 @@
       WTAREA    => State_Chm%WetAeroArea  ! Wet Aerosol Area   [cm2/cm3]
 
       ! Index for dust in ODAER and LUT arrays
-      IDST      = 6 
-#if defined( UCX )
-      IDST      = 8
-#endif
+      ! Dust properties are saved to different indices in RD_AOD for
+      ! UCX vs tropchem simulations
+      IF ( Input_Opt%LUCX ) THEN
+         IDST   = 8
+      ELSE
+         IDST   = 6
+      ENDIF
 
       ! Dust density 
       MSDENS(1) = 2500.0e+0_fp
@@ -1183,7 +1188,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            ! dust stored in the 6th species bin of LUT variables
+            ! dust stored in the IDST species bin of LUT variables
             ODMDUST(I,J,L,IWV,N) = 0.75e+0_fp *
      &                             State_Met%BXHEIGHT(I,J,L) * 
      &                             DUST(I,J,L,N) * QQAA(IWV,N,IDST)  / 
@@ -1230,15 +1235,9 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) CYCLE
 
-#if defined ( UCX )
-         ! Bug fix: Dust properties are read from file #8 in RD_AOD
-         ! for UCX simulations (mps, 12/21/17)
-         ERADIUS(I,J,L,N) = RDAA(N,8) * 1.0e-4_fp
-#else
-         ERADIUS(I,J,L,N) = RDAA(N,6) * 1.0e-4_fp
-#endif
+         ERADIUS(I,J,L,N) = RDAA(N,IDST) * 1.0e-4_fp
          
          TAREA(I,J,L,N)   = 3.e+0_fp / ERADIUS(I,J,L,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
@@ -1645,10 +1644,13 @@
       WTAREA    => State_Chm%WetAeroArea  ! Wet Aerosol Area   [cm2/cm3]
 
       ! Index for dust in ODAER and LUT arrays
-      IDST      = 6 
-#if defined( UCX )
-      IDST      = 8
-#endif
+      ! Dust properties are saved to different indices in RD_AOD for
+      ! UCX vs tropchem simulations
+      IF ( Input_Opt%LUCX ) THEN
+         IDST   = 8
+      ELSE
+         IDST   = 6
+      ENDIF
 
       ! Read aerosol data from the binary punch file during the first 
       ! chemistry timestep and, after that, at the start of each month.
@@ -1768,7 +1770,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            ! dust stored in the 6th species bin of LUT variables
+            ! dust stored in the IDST species bin of LUT variables
             ODMDUST(I,J,L,IWV,N) = 0.75e+0_fp *
      &                             State_Met%BXHEIGHT(I,J,L) *
      &                             DUST(I,J,L,N) * QQAA(IWV,N,IDST)  /
@@ -1822,7 +1824,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) CYCLE
 
          ERADIUS(I,J,L,N) = RDAA(N,6) * 1.0e-4_fp
 

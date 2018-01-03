@@ -434,6 +434,7 @@
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -450,6 +451,7 @@
       LOGICAL                  :: LPRT
       LOGICAL                  :: LGRAVSTRAT
       LOGICAL                  :: LDSTUP
+      LOGICAL                  :: LUCX
       LOGICAL                  :: IT_IS_AN_AEROSOL_SIM
       LOGICAL                  :: prtDebug
       INTEGER                  :: I, J, L, N, MONTH
@@ -478,6 +480,7 @@
       LPRT                 = Input_Opt%LPRT
       LGRAVSTRAT           = Input_Opt%LGRAVSTRAT
       LDSTUP               = Input_Opt%LDSTUP
+      LUCX                 = Input_Opt%LUCX
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
       ! Initialize pointers
@@ -675,16 +678,14 @@
             ENDIF
          ENDIF
 
-#if defined( UCX )
-         ! Stratospheric aerosol gravitational settling
-         IF ( LGRAVSTRAT ) THEN
+         ! Stratospheric aerosol gravitational settling for UCX simulations
+         IF ( LUCX .and. LGRAVSTRAT ) THEN
             CALL SETTLE_STRAT_AER( am_I_Root, Input_Opt, 
      &                             State_Met, State_Chm, RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
             ENDIF
          ENDIF
-#endif
 
          ! Convert species to [v/v dry]
          CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
@@ -2096,7 +2097,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) CYCLE
 
          ! Temperature [K]
          TK     = State_Met%T(I,J,L)
@@ -2467,7 +2468,7 @@
          FREQ = 0e+0_fp
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) CYCLE
 
          ! Density of air [molec/cm3]
          M     = State_Met%AIRDEN(I,J,L) * f  
@@ -2812,7 +2813,7 @@
          Ld       = 0e+0_fp
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) CYCLE
 
          ! Initial SO2, H2O2, HOBr, and O3 [v/v]
          SO20   = Spc(I,J,L,id_SO2)         
@@ -6288,7 +6289,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) CYCLE
 
          ! Initialize for safety's sake
          SO4  = 0e+0_fp
@@ -6485,7 +6486,7 @@
       DO I = 1, IIPAR
                   
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) CYCLE
 
          SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L)
      &               / ( AIRMW / State_Chm%SpcData(id_SO4)%Info%emMW_g )
@@ -6659,7 +6660,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE      
+         IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) CYCLE      
 
          ! Initial MSA [v/v]
          MSA0 = Spc(I,J,L,id_MSA) 
@@ -6829,7 +6830,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) CYCLE
 
          !==============================================================
          ! NITs chemistry
@@ -7035,7 +7036,7 @@
 
          ! Take OH from State_Chm%Species [molec/cm3]
          ! OH is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
             OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH)
          ELSE
             OH_MOLEC_CM3 = 0e+0_fp
@@ -7155,7 +7156,7 @@
             
          ! Take NO3 from State_Chm%Species [molec/cm3]
          ! NO3 is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
 
             ! Grid box volume [cm3]
             BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -7300,7 +7301,7 @@
 
          ! Get O3 from State_Chm%Species [molec/cm3] and convert it to [v/v]
          ! O3 is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
             O3_VV = State_Chm%Species(I,J,L,id_O3)
          ELSE
             O3_VV = 0e+0_fp

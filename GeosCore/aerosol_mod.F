@@ -135,6 +135,7 @@
 !  13 Jun 2017 - M. Sulprizio- Added AOD calculation for isoprene only. Don't
 !                              add to OCPI, as this would be double-counting
 !                              the isoprene SOA contribution to AOD (eam, 2014)
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -289,6 +290,7 @@
       LOGICAL             :: LSSALT
       LOGICAL             :: LSULF
       LOGICAL             :: LPRT
+      LOGICAL             :: LUCX
       LOGICAL             :: IS_OCPO,  IS_OCPI,  IS_BC
       LOGICAL             :: IS_SO4,   IS_NH4,   IS_NIT
       LOGICAL             :: IS_SAL,   IS_DST
@@ -321,6 +323,7 @@
       LSSALT  = Input_Opt%LSSALT
       LSULF   = Input_Opt%LSULF
       LPRT    = Input_Opt%LPRT
+      LUCX    = Input_Opt%LUCX
 
       ! Do we have to print debug output?
       prtDebug   = ( LPRT .and. am_I_Root )
@@ -444,14 +447,56 @@
          ! Units of SO4_NH4_NIT are [kg/m3].  (rjp, bmy, 3/23/03)
          !==============================================================
          IF ( LSULF ) THEN
-#if defined( UCX )
-            ! If we are using the full stratospheric chemistry mechanism,
-            ! stratospheric NH4 is ignored, stratospheric NIT is taken
-            ! as available for NAT formation and stratospheric SO4 is
-            ! taken as sulfuric acid
-            IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
 
-               ! Tropospheric - keep as normal
+            IF ( LUCX ) THEN
+
+               !--------------------------------------------------------
+               !          %%%%%%% UCX-based mechanisms %%%%%%%
+               !--------------------------------------------------------
+
+               ! If we are using the full stratospheric chemistry mechanism,
+               ! stratospheric NH4 is ignored, stratospheric NIT is taken
+               ! as available for NAT formation and stratospheric SO4 is
+               ! taken as sulfuric acid
+               IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
+
+                  ! Tropospheric - keep as normal
+                  ! now including sulfate and nitrate associated with sea-salt
+                  ! NOTE: these should be treated as having a sea-salt size
+                  ! distribution but are currently simply treated in the same
+                  ! way (size and optics) as all other sulfate aerosol (DAR
+                  ! 2013)
+                  SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)    + 
+     &                                   Spc(I,J,L,id_NH4)    +
+     &                                   Spc(I,J,L,id_NIT)    +
+     &                                   Spc(I,J,L,id_SO4s)   +
+     &                                   Spc(I,J,L,id_NITs) ) /
+     &                                   AIRVOL(I,J,L)
+                  SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
+                  NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
+                  NIT(I,J,L) = Spc(I,J,L,id_NIT) / AIRVOL(I,J,L)
+                  SLA(I,J,L) = 0e+0_fp
+                  SPA(I,J,L) = 0e+0_fp
+
+               ELSE
+
+                  ! Tropospheric sulfate is zero in stratosphere
+                  SO4_NH4_NIT(I,J,L) = 0e+0_fp
+                  SO4(I,J,L) = 0e+0_fp
+                  NH4(I,J,L) = 0e+0_fp
+                  NIT(I,J,L) = 0e+0_fp
+                  SLA(I,J,L) = KG_STRAT_AER(I,J,L,1) / AIRVOL(I,J,L)
+                  SPA(I,J,L) = KG_STRAT_AER(I,J,L,2) / AIRVOL(I,J,L)
+
+               ENDIF
+
+            ELSE
+
+               !--------------------------------------------------------
+               !        %%%%%%% Tropchem only mechanism %%%%%%%
+               !--------------------------------------------------------
+
+               ! Compute SO4 aerosol concentration [kg/m3]
                ! now including sulfate and nitrate associated with sea-salt
                ! NOTE: these should be treated as having a sea-salt size
                ! distribution but are currently simply treated in the same
@@ -463,42 +508,12 @@
      &                                Spc(I,J,L,id_SO4s)   +
      &                                Spc(I,J,L,id_NITs) ) /
      &                                AIRVOL(I,J,L)
+               
                SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
                NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
                NIT(I,J,L) = Spc(I,J,L,id_NIT) / AIRVOL(I,J,L)
-               SLA(I,J,L) = 0e+0_fp
-               SPA(I,J,L) = 0e+0_fp
-
-            ELSE
-
-               ! Tropospheric sulfate is zero in stratosphere
-               SO4_NH4_NIT(I,J,L) = 0e+0_fp
-               SO4(I,J,L) = 0e+0_fp
-               NH4(I,J,L) = 0e+0_fp
-               NIT(I,J,L) = 0e+0_fp
-               SLA(I,J,L) = KG_STRAT_AER(I,J,L,1) / AIRVOL(I,J,L)
-               SPA(I,J,L) = KG_STRAT_AER(I,J,L,2) / AIRVOL(I,J,L)
 
             ENDIF
-#else
-            ! Compute SO4 aerosol concentration [kg/m3]
-            ! now including sulfate and nitrate associated with sea-salt
-            ! NOTE: these should be treated as having a sea-salt size
-            ! distribution but are currently simply treated in the same
-            ! way (size and optics) as all other sulfate aerosol (DAR
-            ! 2013)
-            SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)    + 
-     &                             Spc(I,J,L,id_NH4)    +
-     &                             Spc(I,J,L,id_NIT)    +
-     &                             Spc(I,J,L,id_SO4s)   +
-     &                             Spc(I,J,L,id_NITs) ) /
-     &                             AIRVOL(I,J,L)
-
-            SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
-            NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
-            NIT(I,J,L) = Spc(I,J,L,id_NIT) / AIRVOL(I,J,L)
-
-#endif
             
             ! Add error check for safe division (bmy, 4/7/15)
             IF ( SO4_NH4_NIT(I,J,L) > 0e+0_fp ) THEN
@@ -1185,13 +1200,17 @@
       REAL(fp)            :: RAER, SADSTRAT, RHOSTRAT, XSASTRAT
       INTEGER             :: ISTRAT
 
-      ! Index to aerosol types in FJX_spec.dat
-      ! The following are ordered according to the mass densities below
-#if defined( UCX )
-      INTEGER, SAVE       :: IND(NAER) = (/22, 29, 36, 43, 50, 4, 14/)
-#else
-      INTEGER, SAVE	  :: IND(NAER) = (/22, 29, 36, 43, 50/)
-#endif
+!------------------------------------------------------------------------------
+! Prior to 1/3/18:
+! IND is not used here (mps, 1/3/18)
+!      ! Index to aerosol types in FJX_spec.dat
+!      ! The following are ordered according to the mass densities below
+!#if defined( UCX )
+!      INTEGER, SAVE      :: IND(NAER) = (/22, 29, 36, 43, 50, 4, 14/)
+!#else
+!      INTEGER, SAVE	  :: IND(NAER) = (/22, 29, 36, 43, 50/)
+!#endif
+!------------------------------------------------------------------------------
 
       ! Aqueous aerosol volume (cm3/cm3):
       REAL(fp)            :: TAERVOL
@@ -1203,6 +1222,7 @@
       LOGICAL             :: LSOA
       LOGICAL             :: LSTRATOD
       LOGICAL             :: LRAD
+      LOGICAL             :: LUCX
       LOGICAL             :: IS_POA, IS_OCPI
       REAL(fp)            :: GF_RH
 
@@ -1232,6 +1252,7 @@
       LSOA                 = Input_Opt%LSOA
       LSTRATOD             = Input_Opt%LSTRATOD
       LRAD                 = Input_Opt%LRAD
+      LUCX                 = Input_Opt%LUCX
 
       ! Define logical flags
       IS_OCPI              = ( id_OCPI > 0 )
@@ -1372,11 +1393,12 @@
 !$OMP END PARALLEL DO
       ENDIF 
 
-#if defined( UCX )
-      ! SDE 04/17/13 - Transfer stratospheric aerosol data
-      WAERSL(:,:,:,NRHAER+1) = SLA
-      WAERSL(:,:,:,NRHAER+2) = SPA
-#endif
+      IF ( LUCX ) THEN
+         ! For UCX-based mechanisms transfer stratospheric aerosol data
+         ! SDE 04/17/13 
+         WAERSL(:,:,:,NRHAER+1) = SLA
+         WAERSL(:,:,:,NRHAER+2) = SPA
+      ENDIF
 
       !=================================================================
       ! Calculate optical depth and surface area at each timestep
@@ -1399,11 +1421,12 @@
       ENDIF
       MSDENS(4) = State_Chm%SpcData(id_SALA)%Info%Density
       MSDENS(5) = State_Chm%SpcData(id_SALC)%Info%Density
-#if defined( UCX )
-      ! These default values unused (actively retrieved from ucx_mod)
-      MSDENS(NRHAER+1) = 1700.0d0! SSA/STS
-      MSDENS(NRHAER+2) = 1000.0d0! NAT/ice PSC
-#endif
+
+      IF ( LUCX ) THEN
+         ! These default values unused (actively retrieved from ucx_mod)
+         MSDENS(NRHAER+1) = 1700.0d0 ! SSA/STS
+         MSDENS(NRHAER+2) = 1000.0d0 ! NAT/ice PSC
+      ENDIF
 
       !set default values for RH index array
       IRHARR(:,:,:)=1
@@ -1467,7 +1490,7 @@
          ENDIF
 
       ! Loop over types of aerosol with hygroscopic growth
-      ! (this will include strat aerosol if UCX=yes)
+      ! (this will include strat aerosol when using UCX)
       DO N = 1, NAER 
          !index for strat aerosol (only >0 for strat aero)
          ISTRAT=N-NRHAER
@@ -1534,16 +1557,14 @@
 #if defined( RRTMG )
 !$OMP+PRIVATE( IR                                               )
 #endif
-#if defined( UCX )
 !$OMP+PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT            )
-#endif
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
             ! Skip non-chemistry boxes
-            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+            IF (ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met)) CYCLE
 
             ! Calculate RH. Not clear why the result of this calc is 
             ! slightly different than State_Met%RH
@@ -1623,52 +1644,59 @@
             SCALER  = REFF / RW(1)
             SCALEOD = SCALEQ * SCALER * SCALER
 
-#if defined( UCX )
-            IF (N.LE.NRHAER) THEN
-#endif
-            !calculate optics for hyrdophillic aerosol here
-            !However MDENS in LUT was in g/cm3 not kg/m3 so x1e3
-            ODAER(I,J,L,IWV,N) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0 
-     &                         * WAERSL(I,J,L,N) * QQAA(IWV,1,N) / 
-     &                         ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+            IF ( .not. LUCX .or. ( LUCX .and. (N.LE.NRHAER)) ) THEN
 
-            IF ((N.eq.2).or.(N.eq.3)) THEN
-               !now combine with hydrophilic OD as before
-               ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) +
-     &                             0.75d0 * BXHEIGHT(I,J,L) *
-     &                             DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  /
-     &                             ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
-            ENDIF
+               !--------------------------------------------------------
+               ! %%%%%%% Aerosols undergoing hygroscopic growth %%%%%%%
+               !--------------------------------------------------------
 
-            ! Get the AOD contribution from isoprene SOA
-            ! only (eam, 2014):
-            IF ((N.eq.3) .and. LSOA ) THEN
-               ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0
-     &                           * State_Met%BXHEIGHT(I,J,L) 
-     &                           * ISOAAQ(I,J,L) * QQAA(IWV,1,N) / 
-     &                           ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
-            ENDIF
+               !calculate optics for hyrdophillic aerosol here
+               !However MDENS in LUT was in g/cm3 not kg/m3 so x1e3
+               ODAER(I,J,L,IWV,N) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0 
+     &                            * WAERSL(I,J,L,N) * QQAA(IWV,1,N) / 
+     &                            ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
 
-#if defined( UCX )
+               IF ((N.eq.2).or.(N.eq.3)) THEN
+                  !now combine with hydrophilic OD as before
+                  ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) +
+     &                                0.75d0 * BXHEIGHT(I,J,L) *
+     &                                DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)/
+     &                                ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+               ENDIF
+
+               ! Get the AOD contribution from isoprene SOA
+               ! only (eam, 2014):
+               IF ((N.eq.3) .and. LSOA ) THEN
+                  ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0
+     &                              * State_Met%BXHEIGHT(I,J,L) 
+     &                              * ISOAAQ(I,J,L) * QQAA(IWV,1,N) / 
+     &                              ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+               ENDIF
+
             ELSE           
-            ! Get aerosol effective radius
-            CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
 
-            ! SDE 2014-02-04
-            ! The calculation used for the aerosols above
-            ! is essentially a roundabout way of deriving
-            ! the cross-sectional area. For log-normally
-            ! distributed aerosols, this is much easier,
-            ! and a direct query prevents the possibility
-            ! of dividing a small mass by a small calculated
-            ! radius and blowing up
+               !--------------------------------------------------------
+               !        %%%%%%% Stratospheric aerosols %%%%%%%
+               !--------------------------------------------------------
 
-            ! Aerosol optical depth
-            ODAER(I,J,L,IWV,N) = BXHEIGHT(I,J,L) * XSASTRAT
-     &                           * QQAA(IWV,1,N)
+               ! Get aerosol effective radius
+               CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,
+     &                            XSASTRAT)
+
+               ! SDE 2014-02-04
+               ! The calculation used for the aerosols above
+               ! is essentially a roundabout way of deriving
+               ! the cross-sectional area. For log-normally
+               ! distributed aerosols, this is much easier,
+               ! and a direct query prevents the possibility
+               ! of dividing a small mass by a small calculated
+               ! radius and blowing up
+
+               ! Aerosol optical depth
+               ODAER(I,J,L,IWV,N) = BXHEIGHT(I,J,L) * XSASTRAT
+     &                              * QQAA(IWV,1,N)
+
             ENDIF
-
-#endif
 
 #if defined( RRTMG )            
             !SNA currently treated as one with optics but considered
@@ -1806,53 +1834,57 @@
       ENDDO !Loop over NAER
       ENDDO !Loop over NWVSELECT
 
-#if defined( UCX )
       !==============================================================
-      ! Account for stratospheric aerosols (SDE 04/17/13)
+      ! Account for stratospheric aerosols in UCX mechanisms (SDE 04/17/13)
       !==============================================================
-      DO ISTRAT = 1,NSTRATAER
+      IF ( LUCX ) THEN
 
-         ! Index for combination of aerosol type and RH
-         N = NRHAER + ISTRAT
-         ! For ND21
-         IOUT = 5 + 2*NRHAER + (3*(NDUST+NRHAER)) + (ISTRAT-1)*3
+         DO ISTRAT = 1,NSTRATAER
+
+            ! Index for combination of aerosol type and RH
+            N = NRHAER + ISTRAT
+            ! For ND21
+            IOUT = 5 + 2*NRHAER + (3*(NDUST+NRHAER)) + (ISTRAT-1)*3
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, L, RAER, REFF )
 !$OMP+PRIVATE( SADSTRAT, XSASTRAT )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
-            ! Get aerosol effective radius
-            CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
+               ! Get aerosol effective radius
+               CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,
+     &                            SADSTRAT,XSASTRAT)
 
-            ! Moved this from a separate loop for clarity
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+               ! Moved this from a separate loop for clarity
+               IF (ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met)) THEN
 
-               ! Add surface area to TAREA array
-               TAREA(I,J,L,NDUST+N)  = SADSTRAT
-               WTAREA(I,J,L,NDUST+N) = SADSTRAT
+                  ! Add surface area to TAREA array
+                  TAREA(I,J,L,NDUST+N)  = SADSTRAT
+                  WTAREA(I,J,L,NDUST+N) = SADSTRAT
 
-               ! Store radius
-               ERADIUS(I,J,L,NDUST+N)  = RAER
-               WERADIUS(I,J,L,NDUST+N) = RAER 
+                  ! Store radius
+                  ERADIUS(I,J,L,NDUST+N)  = RAER
+                  WERADIUS(I,J,L,NDUST+N) = RAER 
 
-            ENDIF
+               ENDIF
 
-            ! Store SAD
-            IF ((ND21.gt.0).and.(L.le.LD21)) THEN
-                AD21(I,J,L,IOUT+2) = AD21(I,J,L,IOUT+2) + SADSTRAT
-            ENDIF
+               ! Store SAD
+               IF ((ND21.gt.0).and.(L.le.LD21)) THEN
+                   AD21(I,J,L,IOUT+2) = AD21(I,J,L,IOUT+2) + SADSTRAT
+               ENDIF
 
-         ENDDO
-         ENDDO
-         ENDDO
+            ENDDO
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
-      ENDDO
-#endif
+
+         ENDDO
+
+      ENDIF
        
       !==============================================================
       ! ND21 Diagnostic: Aerosol OD's, Growth Rates, Surface Areas
@@ -1910,33 +1942,36 @@
 
       IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
 
-#if defined( UCX )
          ! Get stratospheric aerosol properties from 1st WL (for now)
+         IF ( LUCX ) THEN
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, W, IOUT, ISTRAT )
 !$OMP+SCHEDULE( DYNAMIC )
-         !---------------------------------------------------
-         ! Strat Aerosol OD [-] and ND [#/cm3]
-         ! SAD was stored in previous loop
-         !---------------------------------------------------
-         DO ISTRAT=1,NSTRATAER
-            W = 1
-            N = NRHAER + ISTRAT
-            IOUT = 5 + 5*NRHAER + 3*NDUST + (ISTRAT-1)*3
-            DO L=1,LD21
-            DO J=1,JJPAR
-            DO I=1,IIPAR
-               AD21(I,J,L,IOUT+1) = AD21(I,J,L,IOUT+1) +
-     &                              ODAER(I,J,L,IWVSELECT(1,W),N)
-               AD21(I,J,L,IOUT+3) = AD21(I,J,L,IOUT+3) +
-     &                              NDENS_AER(I,J,L,ISTRAT)*1.d-6
+            !---------------------------------------------------
+            ! Strat Aerosol OD [-] and ND [#/cm3]
+            ! SAD was stored in previous loop
+            !---------------------------------------------------
+            DO ISTRAT=1,NSTRATAER
+               W = 1
+               N = NRHAER + ISTRAT
+               IOUT = 5 + 5*NRHAER + 3*NDUST + (ISTRAT-1)*3
+               DO L=1,LD21
+               DO J=1,JJPAR
+               DO I=1,IIPAR
+                  AD21(I,J,L,IOUT+1) = AD21(I,J,L,IOUT+1) +
+     &                                 ODAER(I,J,L,IWVSELECT(1,W),N)
+                  AD21(I,J,L,IOUT+3) = AD21(I,J,L,IOUT+3) +
+     &                                 NDENS_AER(I,J,L,ISTRAT)*1.d-6
+               ENDDO
+               ENDDO
+               ENDDO
             ENDDO
-            ENDDO
-            ENDDO
-         ENDDO
 !$OMP END PARALLEL DO
-#endif
+
+         ENDIF
+
          ! Loop over aerosol types (dust handled in dust_mod.f)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -2029,13 +2064,13 @@
 !$OMP END PARALLEL DO
       
       ENDIF 
-#if defined( UCX )
+
       ! Turn off radiative effects of stratospheric aerosols?
-      IF (.not.(LSTRATOD)) THEN
+      IF ( LUCX .and. .not.(LSTRATOD)) THEN
          ODAER(:,:,:,:,NRH+1) = 0.d0
          ODAER(:,:,:,:,NRH+2) = 0.d0
       ENDIF
-#endif
+
       !=================================================================
       ! To turn off the radiative effects of different aerososl
       ! uncomment the following lines

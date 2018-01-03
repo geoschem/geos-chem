@@ -48,6 +48,7 @@ MODULE Input_Opt_Mod
      INTEGER                     :: MAX_DIAG
      INTEGER                     :: MAX_FAM
      INTEGER                     :: MAX_SPC
+     INTEGER                     :: MAX_PASV
 
      !----------------------------------------
      ! SIMULATION MENU fields 
@@ -533,13 +534,6 @@ MODULE Input_Opt_Mod
      REAL(fp)                    :: POP_DEL_Hw
 
      !----------------------------------------
-     ! Fields for drydep and dust.  These get
-     ! set in the init stage based on info 
-     ! from file "input.geos". (mlong, 1/5/13)
-     !----------------------------------------
-     INTEGER                     :: N_DUST_BINS
-
-     !----------------------------------------
      ! Fields for interface to GEOS-5 GCM
      !----------------------------------------
      LOGICAL                     :: haveImpRst
@@ -649,7 +643,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod,     ONLY : NDSTBIN, MAXPASV
     USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
@@ -671,10 +664,11 @@ CONTAINS
 !  (3 ) Input_Opt%MAX_MEMB      : Max # of members per family tracer
 !  (4 ) Input_Opt%MAX_FAM       : Max # of P/L diagnostic families
 !  (5 ) Input_Opt%MAX_DEP       : Max # of dry depositing species
-!  (6 ) Input_Opt%LINOZ_NLEVELS : Number of levels    in LINOZ climatology
-!  (7 ) Input_Opt%LINOZ_NLAT    : Number of latitudes in LINOZ climatology
-!  (8 ) Input_Opt%LINOZ_NMONTHS : Number of months    in LINOZ climatology
-!  (9 ) Input_Opt%LINOZ_NFIELDS : Number of species   in LINOZ climatology
+!  (6 ) Input_Opt%MAX_PASV      : Max # of passive species
+!  (7 ) Input_Opt%LINOZ_NLEVELS : Number of levels    in LINOZ climatology
+!  (8 ) Input_Opt%LINOZ_NLAT    : Number of latitudes in LINOZ climatology
+!  (9 ) Input_Opt%LINOZ_NMONTHS : Number of months    in LINOZ climatology
+!  (10) Input_Opt%LINOZ_NFIELDS : Number of species   in LINOZ climatology
 !                                                                             .
 !  We also need to implement better error checking.
 !
@@ -724,7 +718,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: MAX_DIAG, MAX_FAM, MAX_SPC
+    INTEGER :: MAX_DIAG, MAX_FAM, MAX_SPC, MAX_PASV
 
     ! Assume success
     RC                               = GC_SUCCESS
@@ -743,6 +737,7 @@ CONTAINS
     MAX_DIAG                         = Input_Opt%MAX_DIAG
     MAX_FAM                          = Input_Opt%MAX_FAM
     MAX_SPC                          = Input_Opt%MAX_SPC
+    MAX_PASV                         = Input_Opt%MAX_PASV
   
     !----------------------------------------
     ! SIMULATION MENU fields 
@@ -769,12 +764,12 @@ CONTAINS
     !----------------------------------------
     ! PASSIVE SPECIES MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%PASSIVE_NAME    ( MAXPASV ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_ID      ( MAXPASV ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_MW      ( MAXPASV ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_TAU     ( MAXPASV ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_INITCONC( MAXPASV ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_DECAYID ( MAXPASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_NAME    ( MAX_PASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_ID      ( MAX_PASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_MW      ( MAX_PASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_TAU     ( MAX_PASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_INITCONC( MAX_PASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_DECAYID ( MAX_PASV ), STAT=RC )
 
     Input_Opt%NPASSIVE               = 0 
     Input_Opt%NPASSIVE_DECAY         = 0 
@@ -1337,12 +1332,6 @@ CONTAINS
     Input_Opt%POP_DEL_Hw             = 0e+0_fp
 
     !----------------------------------------
-    ! Fields for DRYDEP and DUST based on
-    ! input from the file "input.geos"
-    !----------------------------------------
-    Input_Opt%N_DUST_BINS            = NDSTBIN
-
-    !----------------------------------------
     ! Fields for interface to GEOS-5 GCM
     !----------------------------------------
     Input_Opt%haveImpRst             = .FALSE.
@@ -1351,7 +1340,7 @@ CONTAINS
     ! Fields for LINOZ strat chem
     !----------------------------------------
     Input_Opt%LINOZ_NLEVELS          = 25
-    Input_Opt%LINOZ_NLAT             =  18
+    Input_Opt%LINOZ_NLAT             = 18
     Input_Opt%LINOZ_NMONTHS          = 12
     Input_Opt%LINOZ_NFIELDS          = 7
 

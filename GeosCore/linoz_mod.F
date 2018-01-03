@@ -346,7 +346,7 @@
       ! highest possible tropopause level.  This is only required
       ! when doing a tagged O3 simulation. (bmy, 3/18/13)
       !-----------------------------------------------------------------
-      L_OVERWRLD = GET_MAX_CHEMGRID_LEVEL()
+      L_OVERWRLD = GET_MAX_CHEMGRID_LEVEL( Input_Opt )
 #endif
 
       !=================================================================
@@ -413,7 +413,7 @@
             ! CALL FLUSH(6) 
             !END IF
 
-            LBOT = GET_CHEMGRID_LEVEL( I, J, State_Met )+1
+            LBOT = GET_CHEMGRID_LEVEL( I, J, Input_Opt, State_Met ) + 1
             LPOS = 1
             DO WHILE (State_Met%PEDGE(I,J,LPOS+1) .GE. 0.3e+0_f8)
                LPOS = LPOS +1

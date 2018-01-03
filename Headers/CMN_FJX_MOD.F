@@ -43,11 +43,8 @@
 
       INTEGER, PARAMETER :: JVN_ = 130     ! Max number of J-values
 
-#if defined( UCX )
-      INTEGER, PARAMETER :: AN_  = 37      ! Including PSCs
-#else
-      INTEGER, PARAMETER :: AN_  = 35      ! # of separate aerosols per layer
-#endif
+      INTEGER            :: AN_            ! # of separate aerosols per layer
+                                           ! Now set in Init_CMN_FJX below
 
       ! Variables used to interface GEOS-Chem and Fast-JX at runtime
       ! Branches for photolysis species
@@ -101,11 +98,8 @@
       INTEGER, PARAMETER ::  A_    = 56
 
       ! W_   = dim = no. of Wavelength bins:  =18 std, =12 trop only
-#if defined( UCX )
-      INTEGER, PARAMETER ::  W_    = 18
-#else
-      INTEGER, PARAMETER ::  W_    = 12
-#endif
+      ! Now set below in Init_CMN_FJX (mps, 1/3/18)
+      INTEGER            ::  W_
 
       ! N_  = no. of levels in Mie scattering arrays
       !     = 2*NC+1 = 4*(L_+1) + 1 + 2*sum(JADDLV)
@@ -140,7 +134,7 @@
       REAL(fp), PARAMETER  :: ATAU0  = 0.010e+0_fp
 
       ! JTAUMX = maximum number of divisions (i.e., may not get to ATAUMN)
-      INTEGER            :: JTAUMX
+      INTEGER              :: JTAUMX
 
       ! Physical constants
       REAL(fp), PARAMETER  :: UVXPLANCK = 6.62606957e-34
@@ -176,13 +170,13 @@
       REAL(fp)             :: TQQ(3,X_)
 
       ! LQQ = 1, 2, or 3 to determine interpolation with T or P
-      INTEGER            :: LQQ(X_)
+      INTEGER              :: LQQ(X_)
 
       ! TITLEJX: Title for supplied cross sections, from 'FJX_spec.dat'
-      CHARACTER*6        :: TITLEJX(X_)
+      CHARACTER*6          :: TITLEJX(X_)
 
       ! SQQ: Flag for supplied cross sections, from 'FJX_spec.dat'
-      CHARACTER*1        :: SQQ(X_)
+      CHARACTER*1          :: SQQ(X_)
 
       !-----------------------------------------------------------------------
       ! Variables in file 'jv_spec_mie.dat' (RD_MIE)
@@ -204,7 +198,7 @@
       REAL(fp)             :: SAA(5,A_)
 
       ! NAA: Number of categories for scattering phase functions
-      INTEGER            :: NAA
+      INTEGER              :: NAA
 
       !-----------------------------------------------------------------------
       ! Variables in file 'jv_spec_aod.dat' (RD_AOD)
@@ -233,7 +227,7 @@
       REAL(fp), DIMENSION(51,18,12) :: TREF, OREF
 
       ! Interfacing indices for GC and FJX aerosols
-      INTEGER, DIMENSION(AN_)     :: MIEDX
+      INTEGER, ALLOCATABLE  :: MIEDX(:)
 
       ! TITLEAA: Title for scattering data
       CHARACTER*80, DIMENSION(A_) :: TITLEAA
@@ -253,34 +247,29 @@
       INTEGER, PARAMETER :: NWVAA0  = 11     !number of non-RRTMG wavelengths
       INTEGER, PARAMETER :: NWVAART = NWVAA-NWVAA0 !number of RRTMG wvs
       INTEGER, PARAMETER :: NRAA    = 7      !number of aer sizes in LUT
-#if defined( UCX )
-      INTEGER, PARAMETER :: NSPAA   = 8      !number of species in LUT
-      INTEGER, PARAMETER :: NASPECRAD = 16   !aerosol species in RT
-      INTEGER, PARAMETER :: NSPECRAD  = 18   !aerosol+gas species in RT
-      INTEGER, PARAMETER :: NSPECRADMENU = 11!number of choices for RT flux
-#else
-      INTEGER, PARAMETER :: NSPAA     = 6    !number of species in LUT
-      INTEGER, PARAMETER :: NASPECRAD = 14   !aerosol species in RT
-      INTEGER, PARAMETER :: NSPECRAD  = 16   !aerosol+gas species in RT
-      INTEGER, PARAMETER :: NSPECRADMENU = 10!number of choices for RT flux
-#endif
       INTEGER, PARAMETER :: NALBD   = 2
       INTEGER, PARAMETER :: NEMISS  = 16
 
+      ! Now set the following in Init_CMN_FJX below (mps, 1/3/8)
+      INTEGER            :: NSPAA            !number of species in LUT
+      INTEGER            :: NASPECRAD        !aerosol species in RT
+      INTEGER            :: NSPECRAD         !aerosol+gas species in RT
+      INTEGER            :: NSPECRADMENU     !number of choices for RT flux
+
       ! New optical arrays
-      REAL*8  :: WVAA(NWVAA,NSPAA)
-      REAL*8  :: RHAA(NRAA,NSPAA)
-      REAL*8  :: NRLAA(NWVAA,NRAA,NSPAA)
-      REAL*8  :: NCMAA(NWVAA,NRAA,NSPAA)
-      REAL*8  :: RDAA(NRAA,NSPAA)
-      REAL*8  :: RWAA(NRAA,NSPAA)
-      REAL*8  :: SGAA(NRAA,NSPAA)
-      REAL*8  :: QQAA(NWVAA,NRAA,NSPAA)
-      REAL*8  :: ALPHAA(NWVAA,NRAA,NSPAA)
-      REAL*8  :: REAA(NRAA,NSPAA)
-      REAL*8  :: SSAA(NWVAA,NRAA,NSPAA)
-      REAL*8  :: ASYMAA(NWVAA,NRAA,NSPAA)
-      REAL*8  :: PHAA(NWVAA,NRAA,NSPAA,8)
+      REAL*8, ALLOCATABLE :: WVAA(:,:)
+      REAL*8, ALLOCATABLE :: RHAA(:,:)
+      REAL*8, ALLOCATABLE :: NRLAA(:,:,:)
+      REAL*8, ALLOCATABLE :: NCMAA(:,:,:)
+      REAL*8, ALLOCATABLE :: RDAA(:,:)
+      REAL*8, ALLOCATABLE :: RWAA(:,:)
+      REAL*8, ALLOCATABLE :: SGAA(:,:)
+      REAL*8, ALLOCATABLE :: QQAA(:,:,:)
+      REAL*8, ALLOCATABLE :: ALPHAA(:,:,:)
+      REAL*8, ALLOCATABLE :: REAA(:,:)
+      REAL*8, ALLOCATABLE :: SSAA(:,:,:)
+      REAL*8, ALLOCATABLE :: ASYMAA(:,:,:)
+      REAL*8, ALLOCATABLE :: PHAA(:,:,:,:)
       REAL*8  :: WVSELECT(3)  !wavelengths requested by user
       INTEGER :: IWVSELECT(2,3) !index of requested wavelengths
       INTEGER :: IRTWVSELECT(2,3) !index of requested RT wavelengths
@@ -300,9 +289,10 @@
       REAL*8      :: ACOEF_WV(3),BCOEF_WV(3),CCOEF_WV(3)
       REAL*8      :: ACOEF_RTWV(3),BCOEF_RTWV(3),CCOEF_RTWV(3)
       CHARACTER*5 :: STRWVSELECT(3) !String array of requested wavelengths
-      INTEGER     :: LSPECRADMENU(NSPECRADMENU) !indices for number of species on input menu 
-      INTEGER     :: SPECMASK(NSPECRAD) !list of binary switches for different 
-                                    !species flux output
+      INTEGER, ALLOCATABLE :: LSPECRADMENU(:) !indices for number of species on
+                                              !input menu 
+      INTEGER, ALLOCATABLE :: SPECMASK(:) !list of binary switches for different
+                                          !species flux output
 
       ! RH indices 
       INTEGER, ALLOCATABLE :: IRHARR(:,:,:)
@@ -331,25 +321,28 @@
 !\\
 ! !INTERFACE:
 
-      SUBROUTINE Init_CMN_FJX( am_I_Root, RC )
+      SUBROUTINE Init_CMN_FJX( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 ! 
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  21 Feb 2014 - M. Sulprizio- Renamed from Set_CMN_FJX_MOD to Init_CMN_FJX.
 !                              We now set several variables here that depend on
 !                              LLPAR, since LLPAR is no longer a parameter and
 !                              can't be used to define a parameter.
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -371,6 +364,34 @@
       JTAUMX = ( N_ - 4*JXL_ ) / 2  ! Maximum number of divisions ( i.e., may
                                     ! not get to ATAUMN)
 
+      !-----------------------------------------------------------------------
+      !  Variables that differ for UCX-based mechanisms (mps, 1/3/18)
+      !-----------------------------------------------------------------------
+
+      IF ( Input_Opt%LUCX ) THEN
+         AN_          = 37  ! # of separate aerosols per layer; Including PSCs
+         W_           = 18  ! # of wavelength bins 
+
+         ! For RRTMG:
+         NSPAA        = 8   ! number of species in LUT
+         NASPECRAD    = 16  ! aerosol species in RT
+         NSPECRAD     = 18  ! aerosol+gas species in RT
+         NSPECRADMENU = 11  ! number of choices for RT flux
+      ELSE
+         AN_          = 35  ! # of separate aerosols per layer
+         W_           = 12  ! # of wavelength bins 
+
+         ! For RRTMG:
+         NSPAA        = 6   ! number of species in LUT
+         NASPECRAD    = 14  ! aerosol species in RT
+         NSPECRAD     = 16  ! aerosol+gas species in RT
+         NSPECRADMENU = 10  ! number of choices for RT flux
+      ENDIF
+
+      !-----------------------------------------------------------------------
+      !  Allocate arrays
+      !-----------------------------------------------------------------------
+
       ALLOCATE( ZPJ( LLPAR, JVN_, IIPAR, JJPAR ), STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       ZPJ = 0e+0_fp
@@ -382,6 +403,10 @@
       ALLOCATE( ODAER( IIPAR, JJPAR, LLPAR, NWVAA, NAER), STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       ODAER = 0e+0_fp
+
+      ALLOCATE( MIEDX(AN_), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      MIEDX = 0
 
       ! Allocate array for isoprene SOA AOD (eam, 2014):
       ALLOCATE( ISOPOD( IIPAR, JJPAR, LLPAR, NWVAA), STAT=RC )
@@ -395,6 +420,66 @@
       ALLOCATE( IRHARR(IIPAR,JJPAR,LLPAR), STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       IRHARR = 0d0
+
+      ALLOCATE( WVAA(NWVAA,NSPAA), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      WVAA = 0d0
+
+      ALLOCATE( RHAA(NRAA,NSPAA), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      RHAA = 0d0
+
+      ALLOCATE( NRLAA(NWVAA,NRAA,NSPAA), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      NRLAA = 0d0
+
+      ALLOCATE( NCMAA(NWVAA,NRAA,NSPAA), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      NCMAA = 0d0
+
+      ALLOCATE( RDAA(NRAA,NSPAA), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      RDAA = 0d0
+
+      ALLOCATE( RWAA(NRAA,NSPAA), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      RWAA = 0d0
+
+      ALLOCATE( SGAA(NRAA,NSPAA), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      SGAA = 0d0
+
+      ALLOCATE( QQAA(NWVAA,NRAA,NSPAA), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      QQAA = 0d0
+
+      ALLOCATE( ALPHAA(NWVAA,NRAA,NSPAA), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ALPHAA = 0d0
+
+      ALLOCATE( REAA(NRAA,NSPAA), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      REAA = 0d0
+
+      ALLOCATE( SSAA(NWVAA,NRAA,NSPAA), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      SSAA = 0d0
+
+      ALLOCATE( ASYMAA(NWVAA,NRAA,NSPAA), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ASYMAA = 0d0
+
+      ALLOCATE( PHAA(NWVAA,NRAA,NSPAA,8), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      PHAA = 0d0
+
+      ALLOCATE( LSPECRADMENU(NSPECRADMENU), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      LSPECRADMENU = 0
+
+      ALLOCATE( SPECMASK(NSPECRAD), STAT=RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      SPECMASK = 0
 
 #if defined( RRTMG )
       ! +2 to split SNA into SU, NI and AM

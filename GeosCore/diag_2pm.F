@@ -24,7 +24,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG_2PM( State_Met )
+      SUBROUTINE DIAG_2PM( Input_Opt, State_Met )
 !
 ! !USES:
 !
@@ -40,6 +40,7 @@
       USE DIAG_MOD,           ONLY : CTO3_24h
       USE DIAG_MOD,           ONLY : CTO1D,    LTO1D
       USE DIAG_MOD,           ONLY : CTO3P,    LTO3P
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_LOCALTIME
@@ -52,6 +53,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input options
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
@@ -160,7 +162,8 @@
                ! Counter for # of O3 boxes in the chemgrid (phs, 11/17/08)
                DO L = 1, MAX( LD47, LD65 )
                  IF ( IS_CHEM .and.
-     &                ITS_IN_THE_CHEMGRID( I, J, L, State_Met )) THEN
+     &                ITS_IN_THE_CHEMGRID( I, J, L,
+     &                                     Input_Opt, State_Met)) THEN
                      CTO3_24h(I,J,L) = CTO3_24h(I,J,L) + 1
                   ENDIF
                ENDDO
@@ -197,7 +200,8 @@
 
                ! Counters for # of OH, HO2 boxes in the chemgrid (phs, 1/24/07)
                DO L = 1, LD43 
-                  IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+                  IF ( ITS_IN_THE_CHEMGRID( I, J, L,
+     &                                      Input_Opt, State_Met) ) THEN
                      CTOH(I,J,L)  = CTOH(I,J,L)  + 1
                      CTHO2(I,J,L) = CTHO2(I,J,L) + 1
                      CTO1D(I,J,L) = CTO1D(I,J,L) + 1

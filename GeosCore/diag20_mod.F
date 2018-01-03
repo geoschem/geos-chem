@@ -263,7 +263,7 @@
          L_Ox  = 0e+0_fp
 
          ! If this is a grid box where we have done chemistry, then ...
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, Input_Opt, State_Met )) THEN
 
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%% NOTE: If you want to restrict output to a given local

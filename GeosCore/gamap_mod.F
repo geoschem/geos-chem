@@ -93,6 +93,7 @@
 !                              (orig. 29/11/11)
 !  20 Jun 2016 - R. Yantosca - Now define species ID flags as module variables
 !                              that are defined only in the INIT phase
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -646,11 +647,11 @@
 
       ENDIF
 
-#if defined( UCX)
       !-------------------------------------      
       ! SPACING*55: PSC restart file
       !-------------------------------------   
-      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. 
+     &     Input_Opt%LUCX ) THEN
          
          ! Write separator line
          CALL WRITE_SEPARATOR( IU_FILE, 999 )
@@ -664,7 +665,6 @@
      &                      REAL(1e0,4), UNIT_NEW,    55001  )
 
       ENDIF
-#endif
 
       !-------------------------------------
       ! All other diagnostics 
@@ -1841,10 +1841,10 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N, NN, NYMDb, NHMSb, T, T0, T1
-      INTEGER :: nAdvect, nDryDep, nSpecies
-      LOGICAL :: DO_TIMESERIES
-
+      INTEGER                 :: N, NN, NYMDb, NHMSb, T, T0, T1
+      INTEGER                 :: nAdvect, nDryDep, nSpecies
+      LOGICAL                 :: DO_TIMESERIES
+      CHARACTER(LEN=40)       :: NAME5, NAME6
       REAL(fp),      SAVE     :: POP_XMW
       REAL(fp)                :: DUM, MolecRatio
       INTEGER                 :: N_Hg_CATS
@@ -5392,6 +5392,14 @@
             ! Full-chem run
             !------------------
 
+            IF ( Input_Opt%LUCX ) THEN
+               NAME5 = 'JO3_O1D'
+               NAME6 = 'JO3_O3P'
+            ELSE
+               NAME5 = 'JO3'
+               NAME6 = 'POH'
+            ENDIF
+
             ! Number of tracers
             NTRAC(22) = PD22
 
@@ -5408,17 +5416,10 @@
                      NAME(T,22) = 'JH2O2'
                   CASE( 4  )
                      NAME(T,22) = 'JCH2O'
-#if defined( UCX )
                   CASE( 5  )
-                     NAME(T,22) = 'JO3_O1D'
+                     NAME(T,22) = NAME5
                   CASE( 6  )
-                     NAME(T,22) = 'JO3_O3P'
-#else
-                  CASE( 5  )
-                     NAME(T,22) = 'JO3'
-                  CASE( 6  )
-                     NAME(T,22) = 'POH'
-#endif
+                     NAME(T,22) = NAME6
                   CASE( 7  )
                      NAME(T,22) = 'JGLYX'
                   CASE( 8  )

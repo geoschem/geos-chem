@@ -175,6 +175,8 @@ CONTAINS
 
     ! Set dimensions in CMN_SIZE
     CALL Init_CMN_SIZE( am_I_Root      = am_I_Root,       &
+                        Input_Opt      = Input_Opt,       &
+                        RC             = RC,              &
                         value_I_LO     = value_I_LO,      &
                         value_J_LO     = value_J_LO,      &
                         value_I_HI     = value_I_HI,      &
@@ -186,8 +188,7 @@ CONTAINS
                         value_JM_WORLD = value_JM_WORLD,  &
                         value_LM_WORLD = value_LM_WORLD,  &
                         value_LLTROP   = 40,              &
-                        value_LLSTRAT  = 59,              &
-                        RC             = RC              )
+                        value_LLSTRAT  = 59               )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -210,7 +211,7 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Set dimensions in CMN_SIZE
-    CALL Init_CMN_SIZE( am_I_Root, RC )
+    CALL Init_CMN_SIZE( am_I_Root, Input_Opt, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -253,7 +254,7 @@ CONTAINS
     ENDIF
 
     ! Initialize CMN_FJX_mod.F
-    CALL Init_CMN_FJX( am_I_Root, RC )
+    CALL Init_CMN_FJX( am_I_Root, Input_Opt, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
