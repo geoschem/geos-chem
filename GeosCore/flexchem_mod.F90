@@ -620,6 +620,11 @@ CONTAINS
        TEMP      = 0.0_fp            ! Temperature
        YLAT      = 0.0_fp            ! Latitude
        P         = 0                 ! GEOS-Chem photolyis species ID
+
+       ! NOTE: We should eventually replace the use of LTJV which is used for
+       ! bpch diagnostics. LTJV is only calculated if ND22 is turned on, so
+       ! turning off bpch diagnostics will impact the netCDF J-value diagnostic.
+       ! (mps, 1/5/18)
        IsLocNoon = ( LTJV(I,J) > 0 ) ! Is it local noon (11am to 1pm LST)?
 
        !====================================================================

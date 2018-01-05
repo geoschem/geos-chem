@@ -5051,7 +5051,9 @@ c  Ensure all 'AN_' types are valid selections
 
       ! Initialize
       RC      = GC_SUCCESS
+#if defined( BPCH_DIAG )
       Do_ND22 = ( ND22 > 0 .and. L <= LD22 .and. LTJV(I,J) > 0 ) 
+#endif
 
       ! Test if the UCX mechanism is being used
       IF ( Input_Opt%LUCX ) THEN
