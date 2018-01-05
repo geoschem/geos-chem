@@ -194,6 +194,13 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: XCHLR_NATIVE(:,:,:) ! avg CHLR per type (I,J,type)
 
      !----------------------------------------------------------------------
+     ! Fields for querying in which vertical regime a grid box is in
+     !----------------------------------------------------------------------
+     LOGICAL,  POINTER :: InChemGrid   (:,:,:) ! Are we in the chemistry grid?
+     LOGICAL,  POINTER :: InPbl        (:,:,:) ! Are we in the PBL?
+     LOGICAL,  POINTER :: InTroposphere(:,:,:) ! Are we in the troposphere?  
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Met
      !----------------------------------------------------------------------
      CHARACTER(LEN=3)             :: State     = 'MET'    ! Name of this state
@@ -1691,10 +1698,49 @@ CONTAINS
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+
+    !=======================================================================
+    ! Allocate arrays for querying which vertical regime a grid box is in
+    !=======================================================================
+
+    !-------------------------
+    ! InChemGrid
+    !-------------------------
+    ALLOCATE( State_Met%InChemGrid( IM, JM, LM ), STAT=RC )        
+    CALL GC_CheckVar( 'State_Met%IsChemGrid', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%InChemGrid = .FALSE.
+!    CALL Register_MetField( am_I_Root, 'INCHEMGRID', State_Met%InChemGrid,   &
+!                            State_Met,  RC                                  )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! InTroposphere
+    !-------------------------
+    ALLOCATE( State_Met%InTroposphere( IM, JM, LM ), STAT=RC )        
+    CALL GC_CheckVar( 'State_Met%InTropoSphere', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%InTroposphere = .FALSE.
+!    CALL Register_MetField( am_I_Root, 'INTROPOSPHERE',                      &
+!                            State_Met%InTroposphere,                         &
+!                            State_Met,  RC                                  )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! InPBL
+    !-------------------------
+    ALLOCATE( State_Met%InPbl( IM, JM, LM ), STAT=RC )        
+    CALL GC_CheckVar( 'State_Met%InPbl', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%InPbl = .FALSE.
+!    CALL Register_MetField( am_I_Root, 'INPBL', State_Met%InPbl,             &
+!                            State_Met, RC                                   )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     !=======================================================================
     ! Print information about the registered fields (short format)
     !=======================================================================
-    if ( am_I_Root ) THEN
+    IF ( am_I_Root ) THEN
        WRITE( 6, 10 )
 10     FORMAT( /, 'Registered variables contained within the State_Met object:')
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -1950,6 +1996,14 @@ CONTAINS
     IF (ASSOCIATED( State_Met%LANDTYPEFRAC)) DEALLOCATE( State_Met%LANDTYPEFRAC)
     IF (ASSOCIATED( State_Met%XLAI_NATIVE )) DEALLOCATE( State_Met%XLAI_NATIVE )
     IF (ASSOCIATED( State_Met%XCHLR_NATIVE)) DEALLOCATE( State_Met%XCHLR_NATIVE)
+
+
+    !=======================================================================
+    ! Fields for querying which vertical regime a grid box is in
+    !=======================================================================
+    IF (ASSOCIATED( State_Met%InChemGrid   )) DEALLOCATE(State_Met%InChemGrid  )
+    IF (ASSOCIATED( State_Met%InTroposphere)) DEALLOCATE(State_Met%InTroposphere)
+    IF (ASSOCIATED( State_Met%InPbl        )) DEALLOCATE(State_Met%InPbl       )
 
     !=======================================================================
     ! Destroy the registry of fields for this module
@@ -2688,6 +2742,21 @@ CONTAINS
           IF ( isUnits ) Units = 'mg m-3'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationNone
+
+!       CASE ( 'INCHEMGRID' )
+!          IF ( isDesc  ) Desc  = 'Is each grid box in the chemistry grid?'
+!          IF ( isUnits ) Units = 'boolean'
+!          IF ( isRank  ) Rank  = 3
+!
+!       CASE ( 'INTROPOSPHERE' )
+!          IF ( isDesc  ) Desc  = 'Is each grid box in the troposphere?'
+!          IF ( isUnits ) Units = 'boolean'
+!          IF ( isRank  ) Rank  = 3
+!
+!       CASE ( 'INPBL' )
+!          IF ( isDesc  ) Desc  = 'Is each grid box in the planetary boundary layer?'
+!          IF ( isUnits ) Units = 'boolean'
+!          IF ( isRank  ) Rank  = 3
 
        CASE DEFAULT
           Found = .False.

@@ -552,11 +552,11 @@
      &                                 * LOG( State_Met%PEDGE(I,J,L)      
      &                                 / PEdge_Top )                      
                                                                           
-         !=============================================================   
+         !==============================================================  
          ! Set grid box surface area [m2]                                 
          ! NOTE: We intend to gradually remove area use by                
          ! changing tracer units to mixing ratio                          
-         !=============================================================   
+         !==============================================================  
                                                                           
 #if defined( ESMF_ )                                                      
             AREA_M2                   = State_Met%AREA_M2(I,J,1)          
@@ -564,9 +564,9 @@
             AREA_M2                   = GET_AREA_M2( I,J,L )              
 #endif                                                                    
                                                                           
-         !=============================================================   
+         !==============================================================  
          ! Set grid box volume [m3]                                       
-         !=============================================================   
+         !==============================================================  
          !                                                                
          ! AIRVOL is the volume of grid box (I,J,L) in meters^3           
          !                                                                
@@ -586,12 +586,11 @@
          !                                                                
          State_Met%AIRVOL( I,J,L ) = State_Met%BXHEIGHT(I,J,L) * AREA_M2  
                                                                           
-
-         !=============================================================
+         !==============================================================
          ! Set grid box dry air partial pressures at grid box edges
          ! and at grid box centroid (arithmetic mean pressure level)
          ! [hPa]. Assume constant humidity across grid box.
-         !=============================================================  
+         !============================================================== 
 
          ! Partial pressure of dry air at lower edge of grid box [hPa]
          State_Met%PEDGE_DRY( I,J,L ) = State_Met%PEDGE(I,J,L) - Ev_edge
@@ -612,7 +611,7 @@
          ! dry surface pressure
          State_Met%DELP_DRY(I,J,L) = GET_DELP_DRY(I,J,L)
 
-         !===============================================================
+         !==============================================================
          ! Set mass of dry air in grid box [kg]
          !==============================================================
          
@@ -637,11 +636,11 @@
          State_Met%AD(I,J,L) = (State_Met%DELP_DRY(I,J,L) * G0_100)
      &                         * AREA_M2
 
-         !=============================================================
+         !==============================================================
          ! Set grid box dry air partial pressures at grid box 
          ! altitude-weighted mean pressure [hPa]
          ! Assume constant humidity across grid box.
-         !=============================================================  
+         !==============================================================
 
          ! Mean altitude-weighted pressures in grid box [hPa] defined as   
          ! average P(z) over z. Use in the ideal gas law yields a         
@@ -651,6 +650,7 @@
      &                                   PEdge_Top )     
          Ev_mean = PMEAN * Ev_mid / State_Met%PMID(I,J,L)
          PMEAN_DRY = PMEAN - Ev_mean
+
          ! NOTE: Try the below definition in the future to change the
          ! AIRDEN equation to use the ideal gas law, thereby removing 
          ! area-independence of AIRDEN
@@ -658,9 +658,9 @@
          !&                              log( State_Met%PEDGE(I,J,L) /         
          !&                                   PEdge_Top )     
 
-         !===========================================================
+         !==============================================================
          ! Set grid box densities
-         !=============================================================  
+         !============================================================== 
          
          ! Set grid box dry air density [kg/m3]
          !
@@ -701,6 +701,19 @@
      &                                * AIRMW + Ev_mean * H2OMW ) 
      &                              * PCONV * MCONV
      &                              / RSTARG / State_Met%T(I,J,L)
+
+
+         !==============================================================
+         ! Query in which vertical regime each grid box lies in 
+         !============================================================== 
+ 
+         ! Is grid box (I,J,L) within the troposphere?
+         State_Met%InTroposphere(I,J,L) = ( State_Met%PEDGE(I,J,L) > 
+     &                                      State_Met%TROPP(I,J)     )
+
+         ! Is grid box (I,J,L) within the chemistry grid?
+         
+         
 
       ENDDO
       ENDDO
