@@ -625,7 +625,12 @@ CONTAINS
        ! bpch diagnostics. LTJV is only calculated if ND22 is turned on, so
        ! turning off bpch diagnostics will impact the netCDF J-value diagnostic.
        ! (mps, 1/5/18)
+#if defined( ESMF_ ) 
+       ! J-value diagnostics not yet functional in GCHP (ewl, 1/5/118)
+       IsLocNoon = .FALSE.
+#else
        IsLocNoon = ( LTJV(I,J) > 0 ) ! Is it local noon (11am to 1pm LST)?
+#endif
 
        !====================================================================
        ! Test if we need to do the chemistry for box (I,J,L),
