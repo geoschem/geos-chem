@@ -544,15 +544,18 @@
          ALLOCATE( AD22( IIPAR, JJPAR, LD22, PD22 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD22' )
 
-         ! Locations where LT is between HR1_JV and HR2_JV
-         ALLOCATE( LTJV( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTJV' )         
-
          ! Number of times where LT is between HR1_JV and HR2_JV
          ALLOCATE( CTJV( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTJV' )         
 #endif
       ENDIF
+
+      ! Locations where LT is between HR1_JV and HR2_JV
+      ! NOTE: LTJV is currently used for netCDF diagnostics in flexchem_mod.F90
+      ! regardless of the ND22 setting, so we always need to allocate it here
+      ! (mps, 1/5/18)
+      ALLOCATE( LTJV( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTJV' )         
 
       !=================================================================
       ! ND27: Flux of Ox across the annual mean tropopause [kg/s]

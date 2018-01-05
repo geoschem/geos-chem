@@ -272,8 +272,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETTLEDUST( am_I_Root, Input_Opt, 
-     &                       State_Met, State_Chm, RC )
+      SUBROUTINE SETTLEDUST( am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC )
 !
 ! !USES:
 ! 
@@ -294,7 +294,6 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD,          ONLY : IBINS, Xk, SRTDUST
       USE Species_Mod,        ONLY : Species
-
 !
 ! !INPUT PARAMETERS:
 !
