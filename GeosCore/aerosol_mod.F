@@ -47,7 +47,7 @@
       ! SLA         : Stratospheric liquid aerosol       [kg/m3]
       ! SPA         : Stratospheric particulate aerosol  [kg/m3]
       ! TSOA        : Terpene SOA                        [kg/m3]
-      ! ISOA        : Isoprene SOA                       [kg/m3]
+      ! ISOA        : Isoprene SOA (VBS scheme)          [kg/m3]
       ! ASOA        : Aromatic + IVOC SOA                [kg/m3]
       ! OPOA        : Aerosol product of SVOC oxidation  [kg/m3]
       ! SOAGX       : SOA product of GLYX                [kg/m3]
@@ -259,6 +259,8 @@
 !  07 Sep 2017 - M. Sulprizio- Add simple SOA to PM2.5 calculation
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversion with wrapper routine
 !  13 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  05 Jan 2018 - M. Sulprizio- Use simple SOA by default in calculation of PM2.5
+!                              and OCPISOA (used in hetchem and AOD)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -284,8 +286,6 @@
       LOGICAL             :: prtDebug
       LOGICAL             :: LCARB
       LOGICAL             :: LDUST
-      LOGICAL             :: LSOA
-      LOGICAL             :: LISOPOA
       LOGICAL             :: LSSALT
       LOGICAL             :: LSULF
       LOGICAL             :: LPRT
@@ -295,6 +295,8 @@
       LOGICAL             :: IS_TSOA,  IS_ISOA,  IS_ASOA
       LOGICAL             :: IS_POA,   IS_OPOA
       LOGICAL             :: IS_SOAGX, IS_SOAMG
+      LOGICAL             :: Is_SimpleSOA
+      LOGICAL             :: Is_ComplexSOA
 
       ! Pointers      
       REAL(fp), POINTER   :: Spc(:,:,:,:)
@@ -304,7 +306,6 @@
 
       ! Other variables
       CHARACTER(LEN=63)   :: OrigUnit
-!ewl      LOGICAL             :: UNITCONVERSION
 
       !=================================================================
       ! AEROSOL_CONC begins here!
@@ -316,8 +317,6 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       LCARB   = Input_Opt%LCARB
       LDUST   = Input_Opt%LDUST
-      LSOA    = Input_Opt%LSOA
-      LISOPOA = Input_Opt%LISOPOA
       LSSALT  = Input_Opt%LSSALT
       LSULF   = Input_Opt%LSULF
       LPRT    = Input_Opt%LPRT
@@ -344,6 +343,10 @@
       IS_OPOA    = ( id_OPOA1 > 0 .AND. id_OPOA2 > 0 )
       IS_SOAGX   = ( id_SOAGX > 0 )
       IS_SOAMG   = ( id_SOAMG > 0 )
+
+      ! Logical flags for SOA scheme
+      Is_SimpleSOA  = ( id_SOAS > 0 )
+      Is_ComplexSOA = Input_Opt%LSOA
 
       ! Convert species to [kg] for this routine
       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
@@ -567,7 +570,6 @@
             OCPI(I,J,L)    = MAX( OCPI(I,J,L), 1e-35_fp )
             BCPO(I,J,L)    = MAX( BCPO(I,J,L), 1e-35_fp )
             OCPO(I,J,L)    = MAX( OCPO(I,J,L), 1e-35_fp )
-            OCPISOA(I,J,L) = MAX( OCPISOA(I,J,L), 1e-35_fp )
          
          ENDIF ! LCARB
             
@@ -713,7 +715,21 @@
          !
          ! Compute SOA concentration [kg/m3]
          !===========================================================
-         IF ( LSOA ) THEN
+
+         !--------------------------------------------------------
+         ! Simple SOA scheme
+         !--------------------------------------------------------
+         IF ( Is_SimpleSOA ) THEN
+
+            ! Simple SOA [kg/m3]
+            SOAS(I,J,L) = Spc(I,J,L,id_SOAS) / AIRVOL(I,J,L)
+
+         ENDIF
+
+         !--------------------------------------------------------
+         ! Complex SOA scheme
+         !--------------------------------------------------------
+         IF ( Is_ComplexSOA ) THEN
 
             ! TSOA (terpene SOA) [kg/m3]
             IF ( IS_TSOA ) THEN
@@ -745,91 +761,99 @@
      &                       * OCFOPOA / AIRVOL(I,J,L) 
             ENDIF
 
-            !-------------------------------------------------------
-            ! Mass loading of isoprene SOA [kg/m3]:
-            !-------------------------------------------------------
-            IF ( LISOPOA ) THEN
+         ENDIF
 
-               ! Glyoxal:
-               IF ( id_SOAGX > 0 ) THEN
-                  ISOAAQ(I,J,L) = Spc(I,J,L,id_SOAGX) / AIRVOL(I,J,L)
-               ENDIF
+         !-------------------------------------------------------
+         ! Mass loading of isoprene SOA (ISOAAQ) [kg/m3]
+         !-------------------------------------------------------
 
-               ! Methylglyoxal:
-               IF ( id_SOAMG > 0 ) THEN
-                  ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                            Spc(I,J,L,id_SOAMG) / AIRVOL(I,J,L)
-               ENDIF
+         ! Glyoxal
+         IF ( id_SOAGX > 0 ) THEN
+            ISOAAQ(I,J,L) = Spc(I,J,L,id_SOAGX) / AIRVOL(I,J,L)
+         ENDIF
 
-               ! IEPOX:
-               IF ( id_SOAIE > 0 ) THEN
-                  ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                            Spc(I,J,L,id_SOAIE) / AIRVOL(I,J,L)
-               ENDIF
+         ! Methylglyoxal
+         IF ( id_SOAMG > 0 ) THEN
+            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                      Spc(I,J,L,id_SOAMG) / AIRVOL(I,J,L)
+         ENDIF
 
-               ! IMAE (4C epoxide from MACR)
-               IF ( id_SOAME > 0 ) THEN
-                  ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                            Spc(I,J,L,id_SOAME) / AIRVOL(I,J,L)
-               ENDIF
+         ! IEPOX
+         IF ( id_SOAIE > 0 ) THEN
+            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                      Spc(I,J,L,id_SOAIE) / AIRVOL(I,J,L)
+         ENDIF
 
-               ! SOA from alkyl nitrates (some contribution
-               ! from non-isoprene sources):
-               IF ( id_INDIOL > 0 ) THEN
-                  ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                            Spc(I,J,L,id_INDIOL) / AIRVOL(I,J,L)
-               ENDIF
+         ! IMAE (4C epoxide from MACR)
+         IF ( id_SOAME > 0 ) THEN
+            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                      Spc(I,J,L,id_SOAME) / AIRVOL(I,J,L)
+         ENDIF
 
-               ! SOA from ISOPOOH oxidation product:
-               IF ( id_LVOCOA > 0 ) THEN
-                  ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                            Spc(I,J,L,id_LVOCOA) / AIRVOL(I,J,L)
-               ENDIF
+         ! SOA from alkyl nitrates (some contribution
+         ! from non-isoprene sources)
+         IF ( id_INDIOL > 0 ) THEN
+            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                      Spc(I,J,L,id_INDIOL) / AIRVOL(I,J,L)
+         ENDIF
 
-               ! SOA from ISOP+NO3:
-               IF ( id_ISN1OA > 0 ) THEN
-                  ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                            Spc(I,J,L,id_ISN1OA) / AIRVOL(I,J,L)
-               ENDIF
+         ! SOA from ISOPOOH oxidation product
+         IF ( id_LVOCOA > 0 ) THEN
+            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                      Spc(I,J,L,id_LVOCOA) / AIRVOL(I,J,L)
+         ENDIF
 
-            ENDIF
+         ! SOA from ISOP+NO3
+         IF ( id_ISN1OA > 0 ) THEN
+            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                      Spc(I,J,L,id_ISN1OA) / AIRVOL(I,J,L)
+         ENDIF
 
-            !-------------------------------------------------------
-            ! Hydrophilic primary OC plus SOA [kg/m3].
-            !
-            ! We need to multiply by OCF to account for the mass of
-            ! other components which are attached to the OC aerosol.
-            ! (rjp, bmy, 7/15/04)
-            !
-            ! SOAupdate: Update traditional SOA (hotp 7/21/10)
-            ! for new mtp + isop + lumparomivoc (hotp 5/20/10)
-            !
-            ! %%% IMPORTANT %%%
-            ! Note that this includes all the SOA formed in both the
-            ! Pye et al. and Marais et al. scheme and may include some
-            ! double-counting of isoprene SOA. (Aerosol WG)
-            !-------------------------------------------------------
-            IF ( IS_TSOA .and. IS_ISOA .and. IS_ASOA ) THEN
-               OCPISOA(I,J,L) = ( Spc(I,J,L,id_TSOA1)
-     &                          + Spc(I,J,L,id_TSOA2)
-     &                          + Spc(I,J,L,id_TSOA3)
-     &                          + Spc(I,J,L,id_TSOA0)
-     &                          + Spc(I,J,L,id_ISOA1)
-     &                          + Spc(I,J,L,id_ISOA2)
-     &                          + Spc(I,J,L,id_ISOA3) 
-     &                          + Spc(I,J,L,id_ASOAN) 
-     &                          + Spc(I,J,L,id_ASOA1)
-     &                          + Spc(I,J,L,id_ASOA2)
-     &                          + Spc(I,J,L,id_ASOA3) )
-     &                          / AIRVOL(I,J,L) 
-            ENDIF
+         !-------------------------------------------------------
+         ! Hydrophilic primary OC plus SOA [kg/m3].
+         !
+         ! We need to multiply by OCF to account for the mass of
+         ! other components which are attached to the OC aerosol.
+         ! (rjp, bmy, 7/15/04)
+         !
+         ! SOAupdate: use 2.1 (OCFOPOA) (hotp 7/21/10)
+         !
+         ! sfarina - add SOA-Simplified to primary OC.
+         !         - IDTSOAS is already mass basis, so only apply
+         !           OCFOPOA to IDTOCPI
+         !
+         ! SOAupdate: Update traditional SOA (hotp 7/21/10)
+         ! for new mtp + isop + lumparomivoc (hotp 5/20/10)
+         !
+         ! %%% IMPORTANT %%%
+         ! Note that if complex SOA is used then PM2.5 includes all
+         ! the SOA formed in both the Marais et al. and Pye et al.
+         ! schemes and may include some double-counting of isoprene SOA.
+         ! (Aerosol WG)
+         !-------------------------------------------------------
 
-            ! Add mechanistic isoprene OA (eam, 08/2015):
-            IF ( LISOPOA ) THEN
-               OCPISOA(I,J,L) = OCPISOA(I,J,L) + ISOAAQ(I,J,L)
-            ENDIF
+         ! Use simple SOA by default over complex SOA in calculations
+         IF ( Is_SimpleSOA ) THEN
+            OCPISOA(I,J,L) = 
+     &        ( Spc(I,J,L,id_OCPI) * OCFOPOA +
+     &          Spc(I,J,L,id_SOAS)             ) / AIRVOL(I,J,L)
 
-            IF ( IS_OPOA ) THEN  ! hotp 7/28/10
+         ELSEIF ( Is_ComplexSOA ) THEN
+
+            OCPISOA(I,J,L) = ( Spc(I,J,L,id_TSOA1)
+     &                       + Spc(I,J,L,id_TSOA2)
+     &                       + Spc(I,J,L,id_TSOA3)
+     &                       + Spc(I,J,L,id_TSOA0)
+     &                       + Spc(I,J,L,id_ISOA1)
+     &                       + Spc(I,J,L,id_ISOA2)
+     &                       + Spc(I,J,L,id_ISOA3) 
+     &                       + Spc(I,J,L,id_ASOAN) 
+     &                       + Spc(I,J,L,id_ASOA1)
+     &                       + Spc(I,J,L,id_ASOA2)
+     &                       + Spc(I,J,L,id_ASOA3) )
+     &                       / AIRVOL(I,J,L) 
+
+            IF ( IS_OPOA ) THEN ! hotp 7/28/10
                OCPISOA(I,J,L) = OCPISOA(I,J,L) +
      &                          ( Spc(I,J,L,id_OPOA1)
      &                          + Spc(I,J,L,id_OPOA2) )
@@ -842,30 +866,11 @@
      &                          * OCFOPOA / AIRVOL(I,J,L) 
             ENDIF
 
-         ELSE
+         ENDIF
 
-            !-------------------------------------------------------
-            ! Hydrophilic primary and SOA OC [kg/m3].
-            !
-            ! We need to multiply by OCF to account for the mass of
-            ! other components which are attached to the OC aerosol.
-            ! (rjp, bmy, 7/15/04)
-            !
-            ! SOAupdate: use 2.1 (OCFOPOA) (hotp 7/21/10)
-            !
-            !sfarina - add SOA-Simplified to primary OC.
-            !        - IDTSOAS is already mass basis, so only apply
-            !          OCFOPOA to IDTOCPI
-            !-------------------------------------------------------
-            OCPISOA(I,J,L) = 
-     &          ( Spc(I,J,L,id_OCPI) * OCFOPOA +
-     &            Spc(I,J,L,id_SOAS)             ) / AIRVOL(I,J,L)
-
-            ! Simple SOA [kg/m3]
-            SOAS(I,J,L) = Spc(I,J,L,id_SOAS) / AIRVOL(I,J,L)
+         ! Add mechanistic isoprene OA (eam, 08/2015)
+         OCPISOA(I,J,L) = OCPISOA(I,J,L) + ISOAAQ(I,J,L)
                   
-         ENDIF ! LSOA
-
          ! Now avoid division by zero (bmy, 4/20/04)
          OCPISOA(I,J,L) = MAX( OCPISOA(I,J,L), 1e-35_fp )
 
@@ -896,12 +901,14 @@
          !    1.86 for SALA
          ! - Ratio of OM/OC = 2.1 is applied to OCPI and OCPO above
          ! - Aerosol WG recommends including 38% of DST2 in PM2.5
-         ! - SOAS will only be non-zero if complex SOA is not used
+         ! - Use either simple SOA or complex SOA in PM2.5 calculation.
+         !   By default simple SOA will be used.
          !
          ! %%% IMPORTANT %%%
-         ! Note that this includes all the SOA formed in both the
-         ! Pye et al. and Marais et al. scheme and may include some
-         ! double-counting of isoprene SOA. (Aerosol WG)
+         ! Note that if complex SOA is used then PM2.5 includes all
+         ! the SOA formed in both the Marais et al. and Pye et al.
+         ! schemes and may include some double-counting of isoprene SOA.
+         ! (Aerosol WG)
          !==============================================================
 
          ! Units: [kg/m3]
@@ -912,17 +919,25 @@
      &               + BCPO(I,J,L)
      &               + OCPO(I,J,L)
      &               + OCPI(I,J,L)       * ORG_GROWTH
-     &               + TSOA(I,J,L)       * ORG_GROWTH
-     &               + ISOA(I,J,L)       * ORG_GROWTH
-     &               + ASOA(I,J,L)       * ORG_GROWTH
      &               + SALA(I,J,L)       * SSA_GROWTH
      &               + SOILDUST(I,J,L,1)                 ! DST1
      &               + SOILDUST(I,J,L,2)                 ! DST1
      &               + SOILDUST(I,J,L,3)                 ! DST1
      &               + SOILDUST(I,J,L,4)                 ! DST1
      &               + SOILDUST(I,J,L,5) * 0.38          ! 38% of DST2
-     &               + ISOAAQ(I,J,L)     * ORG_GROWTH    ! Incl SOAGX,SOAMG
-     &               + SOAS(I,J,L)       * ORG_GROWTH
+     &               + ISOAAQ(I,J,L)     * ORG_GROWTH    ! Includes SOAGX+SOAMG
+
+         ! Include either simple SOA (default) or complex SOA in
+         ! PM2.5 calculation
+         IF ( Is_SimpleSOA ) THEN
+            PM25(I,J,L) = PM25(I,J,L)
+     &                  + SOAS(I,J,L)    * ORG_GROWTH
+         ELSEIF ( Is_ComplexSOA ) THEN
+            PM25(I,J,L) = PM25(I,J,L)
+     &                  + TSOA(I,J,L)    * ORG_GROWTH
+     &                  + ISOA(I,J,L)    * ORG_GROWTH
+     &                  + ASOA(I,J,L)    * ORG_GROWTH
+         ENDIF
 
          ! Apply STP correction factor based on ideal gas law
          PM25(I,J,L) = PM25(I,J,L) 
@@ -1640,9 +1655,8 @@
      &                             ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
             ENDIF
 
-            ! Get the AOD contribution from isoprene SOA
-            ! only (eam, 2014):
-            IF ((N.eq.3) .and. LSOA ) THEN
+            ! Get the AOD contribution from isoprene SOA only (eam, 2014)
+            IF ( N.eq.3 ) THEN
                ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0
      &                           * State_Met%BXHEIGHT(I,J,L) 
      &                           * ISOAAQ(I,J,L) * QQAA(IWV,1,N) / 
@@ -1993,8 +2007,8 @@
                      ENDIF
                   ENDIF
 
-                  ! Add ISOP AOD to tracer 34 of ND21 (eam, 2014):
-                  IF ((N.eq.3) .and. LSOA ) THEN
+                  ! Add ISOP AOD to tracer 34 of ND21 (eam, 2014)
+                  IF ( N.eq.3 ) THEN
                      AD21(I,J,L,34) = AD21(I,J,L,34) +
      &                                ISOPOD(I,J,L,IWVSELECT(1,W))
                   ENDIF

@@ -1832,7 +1832,7 @@
       LOGICAL            :: LSVPOA,     LDUST,      LDSTUP
       LOGICAL            :: LSSALT,     LCRYST,     LDICARB
       LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
-      LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA, LISOPOA
+      LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA
       INTEGER            :: N,          T,          I 
       CHARACTER(LEN=255) :: MSG,        LOCATION
       REAL(fp)           :: T_NAT_SUPERCOOL, P_ICE_SUPERSAT
@@ -1908,14 +1908,6 @@
          RETURN
       ENDIF
       READ( SUBSTRS(1:N), * ) LSVPOA
-
-      ! Use mechanistic isoprene OA (eam, 08/2015):
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LISOPOA', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) LISOPOA
 
       ! Use online dust aerosols ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LDUST', RC )
@@ -2066,7 +2058,6 @@
          LSSALT = .FALSE.
          LMPOA  = .FALSE.
          LSVPOA = .FALSE.
-         LISOPOA= .FALSE.
       ENDIF
 
       !%%% The cryst/aq code is currently under development so make
@@ -2083,7 +2074,6 @@
       Input_Opt%LBRC               = LBRC
       Input_Opt%LSOA               = LSOA 
       Input_Opt%LSVPOA             = LSVPOA
-      Input_Opt%LISOPOA            = LISOPOA
       Input_Opt%LDUST              = LDUST 
       Input_Opt%LDSTUP             = LDSTUP
       Input_Opt%LSSALT             = LSSALT
@@ -2112,7 +2102,6 @@
          WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ', LBRC
          WRITE( 6, 100     ) 'Online COMPLEX SOA?         : ', LSOA
          WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
-         WRITE( 6, 100     ) 'Mechanistic isoprene OA?    : ', LISOPOA
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
          WRITE( 6, 100     ) 'Acid uptake on dust?        : ', LDSTUP
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
@@ -10072,12 +10061,6 @@
 
       IF ( Input_Opt%LSVPOA .and. ( .NOT. Input_Opt%LSOA ) ) THEN
          MSG = 'Semivolatile POA requires COMPLEX SOA (LSOA=T)'
-         CALL GC_Error( Msg, RC, Location )
-         RETURN
-      ENDIF
-
-      IF ( Input_Opt%LISOPOA .and. ( .NOT. Input_Opt%LSOA ) ) THEN
-         MSG = 'Mechanistic isoprene OA requires COMPLEX SOA (LSOA=T)'
          CALL GC_Error( Msg, RC, Location )
          RETURN
       ENDIF

@@ -531,7 +531,7 @@
 
       ! Scalars
       LOGICAL           :: IS_CHEM,     IS_DIAG,   IS_EMIS
-      LOGICAL           :: LSOA,        LISOPOA
+      LOGICAL           :: LSOA
       LOGICAL           :: LINTERP
       INTEGER           :: H, I, J, K, L, M, N, ISPC, nAdvect
       INTEGER           :: PBLINT,  R, X, Y, W, XMIN
@@ -553,7 +553,6 @@
 
       ! Copy values from INPUT_OPT
       LSOA      = Input_Opt%LSOA
-      LISOPOA   = Input_Opt%LISOPOA
 
       ! Number of advected species
       nAdvect   = State_Chm%nAdvect
@@ -1204,54 +1203,74 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &              ( SAVEOA(I,J,L) * GOOD_CHEM(X) )
 
-            ELSE IF ( N == 535 .and. LSOA ) THEN
+            ELSE IF ( N == 535 ) THEN
 
-               !--------------------------------------
-               ! total isoprene SOA [ug/m3]
-               ! NOTE: Only archive at chem timestep
-               ! and if an SOA simulation
-               !--------------------------------------
+               !--------------------------------------------------------------
+               ! Total isoprene SOA [ug/m3]
+               !
+               ! %%% IMPORTANT %%%
+               ! Note that if complex SOA is used then PM2.5 includes all
+               ! the SOA formed in both the Marais et al. and Pye et al.
+               ! schemes and may include some double-counting of isoprene SOA.
+               ! (Aerosol WG)
+               !--------------------------------------------------------------
                ! Temp variable for accumulation
                TMP = 0.0e+0_fp
 
-               ! Mechanistic isoprene OA:
-               IF ( LISOPOA ) THEN
+               !---------------------------------
+               ! Mechanistic isoprene OA
+               !---------------------------------
 
-                  ! IEPOX-OA (ug/m3):
+               ! IEPOX-OA (ug/m3)
+               IF ( id_SOAIE > 0 ) THEN
                   TMP = TMP + ( Spc(I,J,L,id_SOAIE)  * GOOD(I) *
      &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+               ENDIF
 
-                  ! IMAE-OA (ug/m3):
+               ! IMAE-OA (ug/m3)
+               IF ( id_SOAME > 0 ) THEN
                   TMP = TMP + ( Spc(I,J,L,id_SOAME)  * GOOD(I) *
      &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+               ENDIF
 
-                  ! INDIOL (ug/m3):
+               ! INDIOL (ug/m3)
+               IF ( id_INDIOL > 0 ) THEN
                   TMP = TMP + ( Spc(I,J,L,id_INDIOL)  * GOOD(I) *
      &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+               ENDIF
 
-                  ! LVOCOA (ug/m3):
+               ! LVOCOA (ug/m3)
+               IF ( id_LVOCOA > 0 ) THEN
                   TMP = TMP + ( Spc(I,J,L,id_LVOCOA)  * GOOD(I) *
      &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+               ENDIF
 
-                  ! ISOP+NO3 aerosols (ug/m3):
+               ! ISOP+NO3 aerosols (ug/m3)
+               IF ( id_ISN1OA > 0 ) THEN
                   TMP = TMP + ( Spc(I,J,L,id_ISN1OA)  * GOOD(I) *
      &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+               ENDIF
 
-               ELSE
+               !---------------------------------
+               ! Reversible partitioning scheme
+               !---------------------------------
 
-                  ! Reversible partitioning scheme:
-                  ! ISOA1 (ug/m3):
+               ! ISOA1 (ug/m3)
+               IF ( id_ISOA1 > 0 ) THEN
                   TMP = TMP + ( Spc(I,J,L,id_ISOA1)  * GOOD(I) *
      &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+               ENDIF
 
-                  ! ISOA2 (ug/m3):
+               ! ISOA2 (ug/m3)
+               IF ( id_ISOA2 > 0 ) THEN
                   TMP = TMP + ( Spc(I,J,L,id_ISOA2)  * GOOD(I) *
      &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
+               ENDIF
 
-                  ! ISOA3 (ug/m3):
+               ! ISOA3 (ug/m3)
+               IF ( id_ISOA3 > 0 ) THEN
                   TMP = TMP + ( Spc(I,J,L,id_ISOA3)  * GOOD(I) *
      &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
-
                ENDIF
 
                ! Save afternoon points

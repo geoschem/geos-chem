@@ -150,7 +150,8 @@
       INTEGER, SAVE       :: id_SOAGX,  id_SOAMG
       INTEGER, SAVE       :: id_LVOCOA, id_ISN1OA
       LOGICAL, SAVE       :: IS_BETANOSAVE
-      LOGICAL             :: IS_POA
+      LOGICAL, SAVE       :: IS_POA
+      LOGICAL, SAVE       :: IS_ISOPOA
 
       ! Define number of carbon atoms in each irreversible isoprene
       ! SOA tracer species. Named according to the parent HC (same 
@@ -187,12 +188,16 @@
          id_ISN1OA     = Ind_( 'ISN1OA' )
          IS_BETANOSAVE = ALLOCATED( BETANOSAVE )
 
+         ! Define logical flags
+         IS_POA    = ( id_POA1   > 0 .and. id_POA2   > 0 )
+         IS_ISOPOA = ( id_SOAIE  > 0 .and. id_SOAME  > 0 .and. 
+     &                 id_INDIOL > 0 .and. id_SOAGX  > 0 .and. 
+     &                 id_SOAMG  > 0 .and. id_LVOCOA > 0 .and. 
+     &                 id_ISN1OA > 0 )
+
          ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
-
-      ! Define logical flags
-      IS_POA = ( id_POA1  > 0 .AND. id_POA2  > 0 )
 
       ! Conversion factor from kg/m3 --> ug/m3
       FACTOR = 1e+9_fp
@@ -277,7 +282,7 @@
          ENDIF
 
          ! Add mechanistic isoprene OA
-         IF ( Input_Opt%LISOPOA ) THEN
+         IF ( IS_ISOPOA ) THEN
 
             ! Convert from kg to ugC/m3
             AD42(I,J,L,7) = AD42(I,J,L,7) + (
@@ -379,7 +384,7 @@
          ! Isoprene SOA obtained from irreversible uptake of isoprene
          ! SOA precursors IEPOX and IMAE (eam,  2014)
          !--------------------------------------------------------------
-         IF ( Input_Opt%LISOPOA ) THEN
+         IF ( IS_ISOPOA ) THEN
 
             ! IEPOX-OA [ug/m3]:
             AD42(I,J,L,21) = AD42(I,J,L,21) + Spc(I,J,L,id_SOAIE )
