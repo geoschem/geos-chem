@@ -102,13 +102,13 @@ CONTAINS
     USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_STRAT
     USE CMN_FJX_MOD
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
-    USE DIAG_MOD,             ONLY : LTJV,  CTJV
+    USE DIAG_MOD,             ONLY : LTJV
 #if defined( BPCH_DIAG )
     USE CMN_DIAG_MOD,         ONLY : ND52
     USE DIAG_MOD,             ONLY : AD65,  AD52, ad22
+#endif
     USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
     USE DIAG20_MOD,           ONLY : DIAG20, POx, LOx
-#endif
     USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
     USE ErrCode_Mod
     USE ERROR_MOD
@@ -1306,8 +1306,9 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Met_Mod,  ONLY : MetState
 #if defined( BPCH_DIAG )
-    USE Diag_Mod,       ONLY : AD43, LTOH, LTHO2, LTO1D, LTO3P
+    USE Diag_Mod,       ONLY : AD43
 #endif
+    USE Diag_Mod,       ONLY : LTOH, LTHO2, LTO1D, LTO3P
 !
 ! !INPUT PARAMETERS:
 !
