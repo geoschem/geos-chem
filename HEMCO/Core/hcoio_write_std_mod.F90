@@ -139,6 +139,7 @@ CONTAINS
 !  08 Mar 2017 - R. Yantosca - Use unlimited time dimensions for netCDF files
 !  03 Jan 2018 - R. Yantosca - Added more metadata for COARDS compliance.
 !                              Also make TIME a 8-byte var to avoid roundoffs
+!  05 Jan 2018 - R. Yantosca - Now print out all index variables as REAL*8
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -149,9 +150,7 @@ CONTAINS
     REAL(dp)                  :: GMT, JD1, JD1985, JD_DELTA, THISDAY, P0
     REAL(sp)                  :: TMP, JD_DELTA_RND
     INTEGER                   :: YYYY, MM, DD, h, m, s
-!    REAL(sp), POINTER         :: nctime(:)
-    REAL(dp), POINTER         :: nctime(:)
-    REAL(sp), POINTER         :: Arr1D(:)
+    REAL(dp), POINTER         :: Arr1D(:)
     INTEGER,  POINTER         :: Int1D(:)
     REAL(sp), POINTER         :: Arr3D(:,:,:)
     REAL(sp), POINTER         :: Arr4D(:,:,:,:)
@@ -186,7 +185,6 @@ CONTAINS
     ! Init
     RC        =  HCO_SUCCESS
     CNT       =  0
-    nctime    => NULL()
     Arr1D     => NULL()
     Int1D     => NULL()
     Arr3D     => NULL()
@@ -383,14 +381,14 @@ CONTAINS
                      VarLongName = 'Longitude',                              &
                      VarUnit     = 'degrees_east',                           &
                      Axis        = 'X',                                      &
-                     DataType    = Prc,                                      &
+                     DataType    = dp,                                        &
                      VarCt       = VarCt,                                    & 
                      Compress    = .TRUE.                                   )
 
     ! Write data
     ALLOCATE( Arr1D( nLon ) )
     Arr1D = HcoState%Grid%XMID%Val(:,1)
-    CALL NC_VAR_WRITE ( fId, 'lon', Arr1D=Arr1D )
+    CALL NC_Var_Write( fId, 'lon', Arr1D=Arr1D )
     DEALLOCATE( Arr1D )
     
     !------------------------------------------------------------------------
@@ -407,14 +405,14 @@ CONTAINS
                      VarLongName = 'Latitude',                               &
                      VarUnit     = 'degrees_north',                          &
                      Axis        = 'Y',                                      &
-                     DataType    = Prc,                                      &
+                     DataType    = dp,                                       &
                      VarCt       = VarCt,                                    & 
                      Compress    = .TRUE.                                   )
 
     ! Write data
     ALLOCATE( Arr1D( nLat ) )
     Arr1D = HcoState%Grid%YMID%Val(1,:)
-    CALL NC_Var_Write ( fId, 'lat', Arr1D=Arr1D )
+    CALL NC_Var_Write( fId, 'lat', Arr1D=Arr1D )
     DEALLOCATE( Arr1D )
 
     !------------------------------------------------------------------------
@@ -422,8 +420,8 @@ CONTAINS
     !------------------------------------------------------------------------ 
     IF ( .NOT. NoLevDim ) THEN
 
-       ! Reference pressure
-       P0 = 1000.0_dp
+       ! Reference pressure [Pa]
+       P0 = 1.0e+05_dp
 
        ! Allocate vertical coordinate arrays
        ALLOCATE( Arr1D( nLev ) )
@@ -434,12 +432,12 @@ CONTAINS
        DO L = 1, nLev
 
           ! A parameter at grid midpoints
-          hyam(L)   = ( HcoState%Grid%ZGrid%Ap(L)                            &
-                    +   HcoState%Grid%ZGrid%Ap(L+1) ) * 0.5_hp
+          hyam(L)  = ( HcoState%Grid%zGrid%Ap(L)                             &
+                   +   HcoState%Grid%zGrid%Ap(L+1) ) * 0.5_dp
 
           ! B parameter at grid midpoints
-          hybm(L)   = ( HcoState%Grid%ZGrid%Bp(L)                            &
-                    +   HcoState%Grid%ZGrid%Bp(L+1) ) * 0.5_hp
+          hybm(L)  = ( HcoState%Grid%zGrid%Bp(L)                             &
+                   +   HcoState%Grid%zGrid%Bp(L+1) ) * 0.5_dp
 
           ! Vertical level coordinate
           Arr1d(L) = ( hyam(L) / P0 ) + hybm(L)
@@ -468,12 +466,12 @@ CONTAINS
                         VarUnit      = 'level',                              &
                         Axis         = 'Z',                                  &
                         Positive     = 'up',                                 &
-                        DataType     = Prc,                                  &
+                        DataType     = dp,                                   &
                         VarCt        = VarCt,                                & 
                         Compress     = .TRUE.                               )
 
        ! Write data
-       CALL NC_Var_Write ( fId, 'lev', Arr1D=Arr1D )
+       CALL NC_Var_Write( fId, 'lev', Arr1D=Arr1D )
 
        !---------------------------------------------------------------------
        ! Write hybrid A coordinate ("hyam") to file
@@ -490,13 +488,13 @@ CONTAINS
                         timeId       = -1,                                   &
                         VarName      = 'hyam',                               &
                         VarLongName  = MyLName,                              &
-                        VarUnit      = 'hPa',                                &
-                        DataType     = Prc,                                  &
+                        VarUnit      = 'Pa',                                 &
+                        DataType     = dp,                                   &
                         VarCt        = VarCt,                                & 
                         Compress     = .TRUE.                               )
 
        ! Write data
-       CALL NC_Var_Write ( fId, 'lev', Arr1D=hyam )
+       CALL NC_Var_Write ( fId, 'hyam', Arr1D=hyam )
 
        !---------------------------------------------------------------------
        ! Write hybrid B coordinate ("hybm") to file
@@ -514,12 +512,12 @@ CONTAINS
                         VarName      = 'hybm',                               &
                         VarLongName  = MyLName,                              &
                         VarUnit      = '1',                                  &
-                        DataType     = Prc,                                  &
+                        DataType     = dp,                                   &
                         VarCt        = VarCt,                                & 
                         Compress     = .TRUE.                               )
 
        ! Write data
-       CALL NC_Var_Write ( fId, 'lev', Arr1D=hybm )
+       CALL NC_Var_Write( fId, 'hybm', Arr1D=hybm )
 
        !-----------------------------------------------------------------------
        ! Write out reference pressure (P0) to file
@@ -533,13 +531,13 @@ CONTAINS
                         timeId      = -1,                                    &
                         VarName     = 'P0',                                  &
                         VarLongName = 'Reference pressure',                  &
-                        VarUnit     = 'hPa',                                 &
-                        DataType    = 8,                                     &
+                        VarUnit     = 'Pa',                                  &
+                        DataType    = dp,                                    &
                         VarCt       = VarCt,                                 & 
                         Compress    = .TRUE.                                )
 
        ! Write data
-       CALL NC_Var_Write ( fId, 'P0', P0 )
+       CALL NC_Var_Write( fId, 'P0', P0 )
 
        ! Deallocate arrays
        DEALLOCATE( Arr1d )
@@ -618,10 +616,10 @@ CONTAINS
                      Compress    = .TRUE.                                   )
 
     ! Write data
-    ALLOCATE( nctime(1) ) 
-    nctime(1) = JD_DELTA
-    CALL NC_Var_Write( fId, 'time', Arr1D=nctime )
-    DEALLOCATE( nctime )
+    ALLOCATE( Arr1D(1) ) 
+    Arr1d(1) = JD_DELTA
+    CALL NC_Var_Write( fId, 'time', Arr1D=Arr1D )
+    DEALLOCATE( Arr1d )
 
     !-----------------------------------------------------------------------
     ! Write out grid box areas 
