@@ -130,7 +130,6 @@
       !-----------------------------------------------------------------
       ! GEOS-Chem modules
       !-----------------------------------------------------------------
-      USE CHEMGRID_MOD,        ONLY : ITS_IN_THE_TROP
       USE CHEMGRID_MOD,        ONLY : GET_CHEMGRID_LEVEL
       USE CMN_FJX_MOD,         ONLY : NSPECRAD  ! NUMBER OF SPECIES FOR RT
       USE CMN_FJX_MOD,         ONLY : NASPECRAD ! NUMBER OF AEROSOL SPECIES
@@ -139,7 +138,6 @@
       USE CMN_FJX_MOD,         ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV 
       USE CMN_FJX_MOD,         ONLY : WVAA,       NWVAA
       USE CMN_FJX_MOD,         ONLY : NWVAA0
-      USE DIAG_MOD,            ONLY : AD72
       USE ErrCode_Mod
       USE ERROR_MOD
       USE GC_GRID_MOD,         ONLY : GET_YMID
@@ -152,6 +150,9 @@
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
       USE UnitConv_Mod,        ONLY : Convert_Spc_Units
+#if defined( BPCH_DIAG )
+      USE DIAG_MOD,            ONLY : AD72
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -637,6 +638,7 @@
 !$OMP END PARALLEL DO
 
       !GET PCENTER, PEDGE AND DETERMINE IF IN TROP
+      !%%% NOTE: LOOPS ARE GOING IN WRONG ORDER (bmy, 1/8/18)
       DO I = 1, IIPAR
       DO J = 1, JJPAR
       DO L = 1, LLPAR
@@ -644,7 +646,7 @@
          PEDGE  (I,J,L) = GET_PEDGE  ( I, J, L )
          H2OVMR (I,J,L) = State_Met%AVGW(I,J,L)
          TLAY   (I,J,L) = State_Met%T(I,J,L)
-         INTROP (I,J,L) = ITS_IN_THE_TROP( I, J, L, State_Met )
+         INTROP (I,J,L) = State_Met%InTroposphere(I,J,L)
          SUNCOS (I,J,L) = State_Met%SUNCOS(I,J)
       ENDDO
       TSFC  (I,J)   = State_Met%TSKIN(I,J)

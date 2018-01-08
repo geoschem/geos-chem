@@ -17,11 +17,10 @@
 ! !USES:
 !
       ! References to F90 modules
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD33, AD35, AD54 
       USE DIAG_MOD,           ONLY : AD47
       USE DIAG_MOD,           ONLY : AD30, AD31, AD45, AD57 
@@ -31,6 +30,7 @@
       USE DIAG_MOD,           ONLY : AD71_LDAY,  AD71_LHR
       USE DIAG_MOD,           ONLY : AD71_COUNT, AD71_HRCT
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -366,7 +366,7 @@
             !=========================================================== 
             IF ( Do_ND54 .and. NA == 1 .and. L <= LD54 ) THEN
 
-               IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
+               IF ( State_Met%InTroposphere(I,J,L) ) THEN
                   AD54(I,J,L) = AD54(I,J,L) + 1.0_f4
                ENDIF
                

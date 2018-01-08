@@ -191,7 +191,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_TROP
       USE CMN_FJX_MOD,    ONLY : REAA
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
@@ -449,7 +448,7 @@
             ! stratospheric NH4 is ignored, stratospheric NIT is taken
             ! as available for NAT formation and stratospheric SO4 is
             ! taken as sulfuric acid
-            IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
+            IF ( State_Met%InTroposphere(I,J,L) ) THEN
 
                ! Tropospheric - keep as normal
                ! now including sulfate and nitrate associated with sea-salt
@@ -1006,14 +1005,8 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_CHEMGRID
-      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_DIAG_MOD
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE DIAG_MOD,       ONLY : AD21
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD,      ONLY : ERROR_STOP
       USE Input_Opt_Mod,  ONLY : OptInput
@@ -1026,6 +1019,10 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D
       USE UCX_MOD,        ONLY : GET_STRAT_OPT
       USE UCX_MOD,        ONLY : NDENS_AER
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,       ONLY : AD21
+#endif
 
       IMPLICIT NONE
 !
@@ -1545,7 +1542,7 @@
          DO I = 1, IIPAR
 
             ! Skip non-chemistry boxes
-            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+            IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
             ! Calculate RH. Not clear why the result of this calc is 
             ! slightly different than State_Met%RH
@@ -1836,7 +1833,7 @@
             CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
 
             ! Moved this from a separate loop for clarity
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
                ! Add surface area to TAREA array
                TAREA(I,J,L,NDUST+N)  = SADSTRAT

@@ -265,7 +265,6 @@
       USE ErrCode_Mod    
       USE GC_GRID_MOD,   ONLY : Get_Area_M2
       USE Input_Opt_Mod, ONLY : OptInput
-      USE Pbl_Mix_Mod,   ONLY : Get_Pbl_Top_L
       USE State_Met_Mod, ONLY : MetState
       USE State_Chm_Mod, ONLY : ChmState
       USE PhysConstants, ONLY : AIRMW, AVO
@@ -814,8 +813,8 @@
 !$OMP END PARALLEL DO
 
          ELSE
-            MSG = 'Incorrect species units: ' // 
-     &             TRIM( State_Chm%Spc_Units )
+            ErrMsg = 'Incorrect species units: ' // 
+     &                TRIM( State_Chm%Spc_Units )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF

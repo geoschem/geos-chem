@@ -417,7 +417,6 @@
       USE m_netcdf_io_get_dimlen                   ! netCDF get dimensions
       USE m_netcdf_io_close                        ! netCDF file close
       USE PHYSCONSTANTS,      ONLY : BOLTZ
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
@@ -735,7 +734,7 @@
                      ENDIF
                   ELSE
                      ! Test for troposphere
-                     IF ( ITS_IN_THE_TROP(I,J,L,State_Met) ) THEN
+                     IF ( State_Met%InTroposphere(I,J,L) ) THEN
                         ! Free troposphere: 0.6 ppbv MOH
                         State_Chm%Species(I,J,L,N) = 0.600e-9_fp 
      &                                               * MW_g / AIRMW

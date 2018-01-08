@@ -2673,7 +2673,6 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_DIAG_MOD             ! ND44
       USE CMN_FJX_MOD,        ONLY : RAA, IND999
@@ -3031,7 +3030,7 @@
          Spc(I,J,L,id_BCPI)= Spc(I,J,L,id_BCPI)* CONST_V(IBC) 
 
          DO L = LLPAR-1,1,-1
-            IF (ITS_IN_THE_TROP(I,J,L+1,State_Met)) CYCLE
+            IF ( State_Met%InTroposphere(I,J,L+1) ) CYCLE
             DELZ  = State_Met%BXHEIGHT(I,J,L)
             DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
 
@@ -3391,7 +3390,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -3491,7 +3489,7 @@
          INVAIR  = AIRMW / State_Met%AD(I,J,L)
          IF (PCENTER.ge.1.e+2_fp) THEN
             AERFRAC(I,J,L,1) = 1e+0_fp
-         ELSEIF (ITS_IN_THE_TROP(I,J,L,State_Met)) THEN
+         ELSEIF ( State_Met%InTroposphere(I,J,L) ) THEN
             ! Don't want to interfere with tropospheric aerosols
             AERFRAC(I,J,L,1) = 1e+0_fp
          ELSE
@@ -5575,7 +5573,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : AIRQNT
       USE ErrCode_Mod
@@ -5690,7 +5687,7 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         READ_SPHU = ( ITS_IN_THE_TROP( I, J, L, State_Met ) .or.
+         READ_SPHU = ( State_Met%InTroposphere(I,J,L) .or.
      &                 SETSTRAT .or. ( .not. LACTIVEH2O )  )
 
 

@@ -24,16 +24,9 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      !--------------------------------------------------------------------
-      ! Prior to 12/11/17:
-      ! Comment this routine out to speed up GEOS-Chem (bmy, 12/11/17)
-      !PUBLIC  :: CHECK_VAR_TROP
-      !--------------------------------------------------------------------
       PUBLIC  :: DIAG_TROPOPAUSE
-      PUBLIC  :: GET_MIN_CHEMGRID_LEVEL
       PUBLIC  :: GET_MAX_CHEMGRID_LEVEL
       PUBLIC  :: GET_MIN_TPAUSE_LEVEL
-      PUBLIC  :: GET_MAX_TPAUSE_LEVEL
       PUBLIC  :: GET_TPAUSE_LEVEL
       PUBLIC  :: GET_CHEMGRID_LEVEL
       PUBLIC  :: INIT_CHEMGRID
@@ -87,116 +80,6 @@
 
       CONTAINS
 !EOC
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 12/11/17:
-!%%% Comment out this routine to speed up GEOS-Chem (bmy, 12/11/17)
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: check_var_trop
-!!
-!! !DESCRIPTION: Subroutine CHECK\_VAR\_TROP checks that the entire variable 
-!!  troposphere is included in the 1..LLTROP range, and set the LMIN and LMAX
-!!  to current min and max tropopause. 
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE CHECK_VAR_TROP( am_I_Root, State_Met, RC )
-!!
-!! !USES:
-!!
-!      USE CMN_SIZE_MOD
-!      USE ErrCode_Mod
-!      USE State_Met_Mod, ONLY : MetState
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-!      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!! 
-!! !REVISION HISTORY: 
-!!  24 Aug 2006 - P. Le Sager - Initial version
-!!  (1 ) LLTROP is set at the first level entirely above 20 km (phs, 9/29/06)
-!!  (2 ) Fix LPAUSE for CH4 chemistry (phs, 1/19/07)
-!!  09 Sep 2010 - R. Yantosca - Added ProTeX headers
-!!  21 Feb 2014 - M. Sulprizio- Now pass State_Met object via the arg list
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER  :: I, J
-!      REAL(fp) :: TPAUSE_LEV(IIPAR,JJPAR)
-!
-!      !=================================================================
-!      ! CHECK_VAR_TROP begins here!
-!      !=================================================================
-!
-!      ! set LMIN and LMAX to current min and max tropopause
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!         TPAUSE_LEV(I,J) = GET_TPAUSE_LEVEL( I, J, State_Met )
-!      ENDDO
-!      ENDDO
-!
-!      LMIN = MINVAL( TPAUSE_LEV )
-!      LMAX = MAXVAL( TPAUSE_LEV )
-!
-!      ! check to be sure LLTROP is large enough.
-!      IF ( LLTROP < LMAX ) THEN
-!         WRITE( 6, '(a)' ) 'CHECK_VAR_TROP: LLTROP is set too low!' 
-!         WRITE( 6, 10   ) LMAX, LLTROP
-! 10      FORMAT( 'MAX TROPOSPHERE LEVEL = ', i3, ' and LLTROP = ', i3 )
-!         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!         
-!         ! Exit with error!
-!         RC = GC_FAILURE
-!         RETURN
-!      ENDIF
-!
-!      END SUBROUTINE CHECK_VAR_TROP
-!!EOC
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_max_tpause_level
-!
-! !DESCRIPTION: Function GET\_MAX\_TPAUSE\_LEVEL returns GEOS-Chem level at 
-!  the highest extent of the annual mean tropopause.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_MAX_TPAUSE_LEVEL() RESULT( L_MAX )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: L_MAX    ! Maximum tropopause level
-!
-! !REVISION HISTORY: 
-!  10 Feb 2005 - R. Yantosca - Initial version
-!  09 Sep 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! GET_MAX_TPAUSE_LEVEL begins here!
-      !=================================================================
-      L_MAX = LMAX
-
-      END FUNCTION GET_MAX_TPAUSE_LEVEL
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -228,49 +111,6 @@
       L_MIN = LMIN
 
       END FUNCTION GET_MIN_TPAUSE_LEVEL
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_min_chemgrid_level
-!
-! !DESCRIPTION: Function GET\_MIN\_CHEMGRID\_LEVEL returns GEOS-Chem level 
-!  at the lowest extent of the chemistry grid
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_MIN_CHEMGRID_LEVEL() RESULT( L_MIN )
-!
-! !USES:
-!
-!
-! !RETURN VALUE:
-!
-      INTEGER :: L_MIN   ! Minimum chemistry grid level
-! 
-! !REVISION HISTORY: 
-!  10 Feb 2005 - R. Yantosca   - Initial version
-!  09 Sep 2010 - R. Yantosca   - Added ProTeX headers
-!  25 Mar 2013 - S. D. Eastham - Adapted from GET\_MIN\_TPAUSE\_LEVEL
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-      !=================================================================
-      ! GET_MIN_CHEMGRID_LEVEL begins here!
-      !=================================================================
-
-#if defined( UCX )
-      ! Minimum level is fixed at stratopause
-      L_MIN = LLSTRAT
-#else
-      L_MIN = LMIN
-#endif
-
-      END FUNCTION GET_MIN_CHEMGRID_LEVEL
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
