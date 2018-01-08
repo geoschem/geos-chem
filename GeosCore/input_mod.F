@@ -1833,6 +1833,8 @@
       LOGICAL            :: LSSALT,     LCRYST,     LDICARB
       LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
       LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA
+      LOGICAL            :: LBCAE  !(xnw, 8/24/15)     
+      REAL(fp)           :: BCAE_1,   BCAE_2
       INTEGER            :: N,          T,          I 
       CHARACTER(LEN=255) :: MSG,        LOCATION
       REAL(fp)           :: T_NAT_SUPERCOOL, P_ICE_SUPERSAT
@@ -2027,6 +2029,30 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) LSTRATOD
 
+      ! Include BC absorption enhancement due to coating? (xnw, 8/24/15)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LBCAE', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) LBCAE
+
+      ! Define BC absorption enhancement (xnw, 8/24/15)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'BCAE_1', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) BCAE_1
+
+      ! Define BC absorption enhancement (xnw, 8/24/15)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'BCAE_2', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) BCAE_2
+
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 2', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -2058,6 +2084,7 @@
          LSSALT = .FALSE.
          LMPOA  = .FALSE.
          LSVPOA = .FALSE.
+         LBCAE  = .FALSE.
       ENDIF
 
       !%%% The cryst/aq code is currently under development so make
@@ -2086,6 +2113,9 @@
       Input_Opt%P_ICE_SUPERSAT     = P_ICE_SUPERSAT  ! Ice supersaturation (-)
       Input_Opt%LPSCCHEM           = LPSCCHEM
       Input_Opt%LSTRATOD           = LSTRATOD
+      Input_Opt%LBCAE              = LBCAE
+      Input_Opt%BCAE_1             = BCAE_1      !(xnw,8/24/15)
+      Input_Opt%BCAE_2             = BCAE_2
 
       ! Return success
       RC = GC_SUCCESS
@@ -2121,6 +2151,10 @@
      &                                     ((P_ICE_SUPERSAT-1)*1.e+2_fp)
          WRITE( 6, 100     ) 'Perform PSC het. chemistry? : ',LPSCCHEM
          WRITE( 6, 100     ) 'Use strat. aerosol OD?      : ', LSTRATOD
+         WRITE( 6, 100     ) 'BC Absorption Enhancement?  : ', LBCAE
+         !for BC absorption enhancement, (xnw, 8/24/15)
+         WRITE( 6, 105     ) 'Hydrophilic BC AE factor    : ', BCAE_1
+         WRITE( 6, 105     ) 'Hydrophobic BC AE factor    : ', BCAE_2
       ENDIF
 
  100  FORMAT( A, L5     )
