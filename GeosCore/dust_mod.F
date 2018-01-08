@@ -997,7 +997,9 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD21
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -1490,7 +1492,9 @@
       USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_FJX_MOD
       USE CMN_DIAG_MOD
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,       ONLY : AD21
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,      ONLY : ERROR_STOP
       USE Input_Opt_Mod,  ONLY : OptInput
@@ -1845,6 +1849,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( BPCH_DIAG )
       !==============================================================
       ! ND21 Diagnostic: 
       !
@@ -1939,6 +1944,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
          ! Save the current month
          ! Set diagnostic to aggregate next call time. 

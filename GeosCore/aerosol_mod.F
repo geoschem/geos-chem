@@ -1011,7 +1011,9 @@
       USE CMN_DIAG_MOD
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,       ONLY : AD21
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,      ONLY : ERROR_STOP
       USE Input_Opt_Mod,  ONLY : OptInput
@@ -1705,11 +1707,13 @@
             !only need to do hyg once, not for each wavelength             
             IF ((IIWV.EQ.1).and.(ISTRAT.le.0)) THEN
 
+#if defined( BPCH_DIAG )
                !save increase in AOD resulting from water uptake
                IF( ND21 > 0 .AND. L <= LD21 .AND.ODSWITCH.EQ.1) THEN
                   AD21(I,J,L,7+3*(N-1)) = AD21(I,J,L,7+3*(N-1)) +
      &                                    SCALEOD
                ENDIF
+#endif
 
                !now calulate the surface areas
                !==============================================================
@@ -1794,8 +1798,10 @@
                   TAERVOL = ( ERADIUS(I,J,L,NDUST+N) * 
      &                        TAREA(I,J,L, N+NDUST) ) / 3.D0
 
+#if defined( BPCH_DIAG )
                   ! Add to diagnostic:
                   AD21(I,J,L,35) = AD21(I,J,L,35) + TAERVOL
+#endif
                ENDIF
 
             ENDIF    !Surface area calcs
@@ -1842,10 +1848,12 @@
 
             ENDIF
 
+#if defined( BPCH_DIAG )
             ! Store SAD
             IF ((ND21.gt.0).and.(L.le.LD21)) THEN
                 AD21(I,J,L,IOUT+2) = AD21(I,J,L,IOUT+2) + SADSTRAT
             ENDIF
+#endif
 
          ENDDO
          ENDDO
@@ -1854,6 +1862,7 @@
       ENDDO
 #endif
        
+#if defined( BPCH_DIAG )
       !==============================================================
       ! ND21 Diagnostic: Aerosol OD's, Growth Rates, Surface Areas
       !
@@ -2029,6 +2038,7 @@
 !$OMP END PARALLEL DO
       
       ENDIF 
+#endif
 #if defined( UCX )
       ! Turn off radiative effects of stratospheric aerosols?
       IF (.not.(LSTRATOD)) THEN
