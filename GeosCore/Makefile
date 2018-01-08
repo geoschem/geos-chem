@@ -508,7 +508,7 @@ convection_mod.o            : convection_mod.F                               \
                               mercury_mod.o           tendencies_mod.o       \
                               hco_interface_mod.o
 
-dao_mod.o                   : dao_mod.F                              
+dao_mod.o                   : dao_mod.F
 
 depo_mercury_mod.o          : depo_mercury_mod.F                             \
                               dao_mod.o               diag_mod.o             \

@@ -317,6 +317,7 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
 !  06 Nov 2017 - R. Yantosca - Now return error to main program level
+!  08 Jan 2018 - R. Yantosca - Now compute query field State_Met%InPbl
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -333,8 +334,9 @@
       !=================================================================
 
       ! Initialize
-      RC      = GC_SUCCESS
-      Bad_Sum = .FALSE.
+      RC              = GC_SUCCESS
+      Bad_Sum         = .FALSE.
+      State_Met%InPbl = .FALSE.
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -367,6 +369,8 @@
          !----------------------------------------------
          ! Find model level where BLTOP occurs
          !----------------------------------------------
+
+         ! Initialize
          LTOP = 0
 
          ! Loop over levels
@@ -376,6 +380,8 @@
             IF ( BLTOP > P(L) ) THEN
                LTOP = L
                EXIT
+            ELSE
+               State_Met%InPbl(I,J,L) = .TRUE.
             ENDIF
 
          ENDDO 
@@ -964,7 +970,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)              :: TOP    ! PBL top [model levels]
+      REAL(fp)            :: TOP    ! PBL top [model levels]
 ! 
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version

@@ -27,22 +27,22 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CMN_DIAG_MOD             ! HR_OH1, HR_OH2, etc.
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE DIAG_MOD,           ONLY : LTJV, LTOH, LTHO2, LTO1D, LTO3P
+      USE CMN_SIZE_MOD
+      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_CHEMGRID
 #if defined( BPCH_DIAG )
-      USE DIAG_MOD,           ONLY : LTOTH, CTOTH
-      USE DIAG_MOD,           ONLY : CTJV,  CTOH, CTHO2, CTO1D, CTO3P
-      USE DIAG_MOD,           ONLY : CTO3_24h
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,      ONLY : LTJV, LTOH, LTHO2, LTO1D, LTO3P
+      USE DIAG_MOD,      ONLY : LTOTH, CTOTH
+      USE DIAG_MOD,      ONLY : CTJV,  CTOH, CTHO2, CTO1D, CTO3P
+      USE DIAG_MOD,      ONLY : CTO3_24h
 #endif
-      USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_LOCALTIME
-      USE TIME_MOD,           ONLY : ITS_TIME_FOR_DIAG
-      USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
-      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
-      USE TIME_MOD,           ONLY : GET_TS_DIAG
+      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
+      USE State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,      ONLY : GET_LOCALTIME
+      USE TIME_MOD,      ONLY : ITS_TIME_FOR_DIAG
+      USE TIME_MOD,      ONLY : ITS_TIME_FOR_CHEM
+      USE TIME_MOD,      ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,      ONLY : GET_TS_DIAG
 
       IMPLICIT NONE
 !
@@ -80,22 +80,24 @@
 !  08 Nov 2013 - M. Sulprizio- Removed CTO3 and LTO3. They are no longer used
 !                              because O3 is now a tracer.
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  08 Jan 2018 - R. Yantosca - Only compute 2pm diag arrays if BPCH_DIAG=y
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: IS_ND22, IS_ND43, IS_ND45, IS_ND45_O3
-      LOGICAL :: IS_ND47, IS_ND65, ITS_AFTER_DIAG
-      LOGICAL :: IS_CHEM
-      INTEGER :: I,       J,       L
-      INTEGER :: PREV_TS
-      REAL(fp)  :: LT(IIPAR)
+      LOGICAL  :: IS_ND22, IS_ND43, IS_ND45, IS_ND45_O3
+      LOGICAL  :: IS_ND47, IS_ND65, ITS_AFTER_DIAG
+      LOGICAL  :: IS_CHEM
+      INTEGER  :: I,       J,       L
+      INTEGER  :: PREV_TS
+      REAL(fp) :: LT(IIPAR)
 
       !=================================================================
       ! DIAG_2PM begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Set logical flags
       IS_ND22    = ( ND22 > 0 .and. ITS_TIME_FOR_CHEM() )
@@ -123,7 +125,6 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-#if defined( BPCH_DIAG )
          !-----------------------------
          ! ND45 -- mixing ratios
          !-----------------------------
@@ -163,7 +164,6 @@
                ENDDO
 
          ENDIF
-#endif
 
          !-----------------------------
          ! ND22 -- J-Value diagnostic
@@ -173,9 +173,7 @@
             ! Archive if we fall w/in the local time limits
             IF ( LT(I) >= HR1_JV .and. LT(I) <= HR2_JV ) THEN
                LTJV(I,J) = 1
-#if defined( BPCH_DIAG )
                CTJV(I,J) = CTJV(I,J) + 1
-#endif
             ELSE
                LTJV(I,J) = 0
             ENDIF
@@ -195,7 +193,6 @@
                LTO1D(I,J) = 1
                LTO3P(I,J) = 1
 
-#if defined( BPCH_DIAG )
                ! Counters for # of OH, HO2 boxes in the chemgrid (phs, 1/24/07)
                DO L = 1, LD43 
                   IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
@@ -205,7 +202,6 @@
                      CTO3P(I,J,L) = CTO3P(I,J,L) + 1
                   ENDIF
                ENDDO
-#endif
 
             ELSE
                LTOH(I,J)  = 0
@@ -219,5 +215,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#endif
       END SUBROUTINE DIAG_2PM
 !EOC

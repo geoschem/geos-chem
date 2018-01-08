@@ -195,10 +195,16 @@ MODULE State_Met_Mod
 
      !----------------------------------------------------------------------
      ! Fields for querying in which vertical regime a grid box is in
+     ! or if a grid box is near local noon solar time
      !----------------------------------------------------------------------
-     LOGICAL,  POINTER :: InChemGrid   (:,:,:) ! Are we in the chemistry grid?
-     LOGICAL,  POINTER :: InPbl        (:,:,:) ! Are we in the PBL?
-     LOGICAL,  POINTER :: InTroposphere(:,:,:) ! Are we in the troposphere?  
+     LOGICAL,  POINTER :: InChemGrid    (:,:,:) ! Are we in the chemistry grid?
+     LOGICAL,  POINTER :: InPbl         (:,:,:) ! Are we in the PBL?
+     LOGICAL,  POINTER :: InStratMeso   (:,:,:) ! Are we in the stratosphere
+                                                !            or mesosphere?
+     LOGICAL,  POINTER :: InStratosphere(:,:,:) ! Are we in the stratosphere?
+     LOGICAL,  POINTER :: InTroposphere (:,:,:) ! Are we in the troposphere?  
+     LOGICAL,  POINTER :: IsLocalNoon   (:,:  ) ! Is it local noon (between 11
+                                                !  and 13 local solar time?
 
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Met
@@ -262,6 +268,7 @@ MODULE State_Met_Mod
 !                              in GEOS-Chem (EVAP, GRN, PRECSNO, PV, RADLWG)
 !  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Met and Print_State_Met
 !  07 Nov 2017 - R. Yantosca - Add tropht and troplev fields
+!  08 Jan 2018 - R. Yantosca - Added logical query fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1700,7 +1707,10 @@ CONTAINS
 
 
     !=======================================================================
-    ! Allocate arrays for querying which vertical regime a grid box is in
+    ! Allocate fields for querying which vertical regime a grid box is in
+    ! or if a grid box is near local solar noontime.
+    ! 
+    ! %%%%% NOTE: Do not register these query fields %%%%%
     !=======================================================================
 
     !-------------------------
@@ -1710,20 +1720,6 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%IsChemGrid', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%InChemGrid = .FALSE.
-!    CALL Register_MetField( am_I_Root, 'INCHEMGRID', State_Met%InChemGrid,   &
-!                            State_Met,  RC                                  )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !-------------------------
-    ! InTroposphere
-    !-------------------------
-    ALLOCATE( State_Met%InTroposphere( IM, JM, LM ), STAT=RC )        
-    CALL GC_CheckVar( 'State_Met%InTropoSphere', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%InTroposphere = .FALSE.
-!    CALL Register_MetField( am_I_Root, 'INTROPOSPHERE',                      &
-!                            State_Met%InTroposphere,                         &
-!                            State_Met,  RC                                  )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
@@ -1733,8 +1729,42 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%InPbl', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%InPbl = .FALSE.
-!    CALL Register_MetField( am_I_Root, 'INPBL', State_Met%InPbl,             &
-!                            State_Met, RC                                   )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! InStratosphere
+    !-------------------------
+    ALLOCATE( State_Met%InStratosphere( IM, JM, LM ), STAT=RC )        
+    CALL GC_CheckVar( 'State_Met%InStratosphere', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%InStratosphere = .FALSE.
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! InStratMeso
+    !-------------------------
+    ALLOCATE( State_Met%InStratMeso( IM, JM, LM ), STAT=RC )        
+    CALL GC_CheckVar( 'State_Met%InStratMeso', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%InStratMeso = .FALSE.
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! InTroposphere
+    !-------------------------
+    ALLOCATE( State_Met%InTroposphere( IM, JM, LM ), STAT=RC )        
+    CALL GC_CheckVar( 'State_Met%InTropoSphere', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%InTroposphere = .FALSE.
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! IsLocalNoon
+    !-------------------------
+    ALLOCATE( State_Met%IsLocalNoon( IM, JM ), STAT=RC )        
+    CALL GC_CheckVar( 'State_Met%IsLocalNoon', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%IsLocalNoon = .FALSE.
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !=======================================================================
@@ -2000,10 +2030,43 @@ CONTAINS
 
     !=======================================================================
     ! Fields for querying which vertical regime a grid box is in
+    ! or if it is near local solar noon at a grid box
     !=======================================================================
-    IF (ASSOCIATED( State_Met%InChemGrid   )) DEALLOCATE(State_Met%InChemGrid  )
-    IF (ASSOCIATED( State_Met%InTroposphere)) DEALLOCATE(State_Met%InTroposphere)
-    IF (ASSOCIATED( State_Met%InPbl        )) DEALLOCATE(State_Met%InPbl       )
+    IF ( ASSOCIATED( State_Met%InChemGrid ) ) THEN
+       DEALLOCATE( State_Met%InChemGrid, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%InChemGrid', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%InPbl ) ) THEN
+       DEALLOCATE( State_Met%InPbl, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%InPbl', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%InStratMeso ) ) THEN
+       DEALLOCATE( State_Met%InStratMeso, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%InStratMeso', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%InStratosphere ) ) THEN
+       DEALLOCATE( State_Met%InTroposphere, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%InStratosphere', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%InTroposphere ) ) THEN
+       DEALLOCATE( State_Met%InTroposphere, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%InTroposphere', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%IsLocalNoon ) ) THEN
+       DEALLOCATE( State_Met%IsLocalNoon, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%IsLocalNoon', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
 
     !=======================================================================
     ! Destroy the registry of fields for this module

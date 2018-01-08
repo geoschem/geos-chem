@@ -102,13 +102,12 @@ CONTAINS
     USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_STRAT
     USE CMN_FJX_MOD
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
-    USE DIAG_MOD,             ONLY : LTJV
 #if defined( BPCH_DIAG )
     USE CMN_DIAG_MOD,         ONLY : ND52
     USE DIAG_MOD,             ONLY : AD65,  AD52, ad22
+    USE DIAG20_MOD,           ONLY : DIAG20, POx, LOx
 #endif
     USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
-    USE DIAG20_MOD,           ONLY : DIAG20, POx, LOx
     USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
     USE ErrCode_Mod
     USE ERROR_MOD
@@ -621,16 +620,8 @@ CONTAINS
        YLAT      = 0.0_fp            ! Latitude
        P         = 0                 ! GEOS-Chem photolyis species ID
 
-       ! NOTE: We should eventually replace the use of LTJV which is used for
-       ! bpch diagnostics. LTJV is only calculated if ND22 is turned on, so
-       ! turning off bpch diagnostics will impact the netCDF J-value diagnostic.
-       ! (mps, 1/5/18)
-#if defined( ESMF_ ) 
-       ! J-value diagnostics not yet functional in GCHP (ewl, 1/5/118)
-       IsLocNoon = .FALSE.
-#else
-       IsLocNoon = ( LTJV(I,J) > 0 ) ! Is it local noon (11am to 1pm LST)?
-#endif
+       ! Is it near local noon in the vertical column?
+       IsLocNoon = State_Met%IsLocalNoon(I,J)
 
        !====================================================================
        ! Test if we need to do the chemistry for box (I,J,L),
@@ -758,6 +749,11 @@ CONTAINS
              PHOTOL(N) = ZPJ(L,N,I,J)
                 
 #if defined( NC_DIAG )
+             ! NOTE: We may want to move this above the test for 
+             ! if we are in the chemistry grid.  This will make sure that
+             ! all of the J-value diagnostics are defined on all vertical
+             ! levels. (bmy, 1/8/18)
+
              !--------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
              !
@@ -1307,8 +1303,8 @@ CONTAINS
     USE State_Met_Mod,  ONLY : MetState
 #if defined( BPCH_DIAG )
     USE Diag_Mod,       ONLY : AD43
-#endif
     USE Diag_Mod,       ONLY : LTOH, LTHO2, LTO1D, LTO3P
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1332,8 +1328,8 @@ CONTAINS
 !  arrays (SAVEOH, SAVEHO2, etc.) are no longer necessary.  We can now just
 !  just get values directly from State_Chm%SPECIES.
 !
-!  Also note: remove multiplication by LTOH etc arrays.  These are almost
-!  always set between 0 and 24.
+!  Also note: for the netCDF diagnostics, we have removed multiplication by 
+!  LTOH etc arrays.  These are almost always set between 0 and 24.
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
@@ -1401,8 +1397,7 @@ CONTAINS
 #if defined( NC_DIAG )
             ! HISTORY (aka netCDF diagnostics)
             IF ( Archive_OHconcAfterChem ) THEN
-               State_Diag%OHconcAfterChem(I,J,L) = ( Spc(I,J,L,id_OH)        &
-                                                 *   LTOH(I,J)              )
+               State_Diag%OHconcAfterChem(I,J,L) = Spc(I,J,L,id_OH)
             ENDIF
 #endif
 
@@ -1427,8 +1422,7 @@ CONTAINS
             ! HISTORY (aka netCDF diagnostics)
             IF ( Archive_HO2concAfterChem ) THEN
                State_Diag%HO2concAfterChem(I,J,L) = ( Spc(I,J,L,id_HO2)      &
-                                                  /   AirNumDen(I,J,L)      )&
-                                                  * ( LTHO2(I,J)            )
+                                                  /   AirNumDen(I,J,L)      )
             ENDIF
 #endif
          ENDIF
@@ -1451,8 +1445,7 @@ CONTAINS
 #if defined( NC_DIAG )
                ! HISTORY (aka netCDF diagnostics)
                IF ( Archive_O1DconcAfterChem ) THEN
-                  State_Diag%O1DconcAfterChem(I,J,L) = ( Spc(I,J,L,id_O1D)   &
-                                                     *   LTO1D(I,J)         )
+                  State_Diag%O1DconcAfterChem(I,J,L) = Spc(I,J,L,id_O1D)
                ENDIF
 #endif
             ENDIF
@@ -1474,8 +1467,7 @@ CONTAINS
 #if defined( NC_DIAG )
                ! HISTORY (aka netCDF diagnostics)
                IF ( Archive_O3PconcAfterChem ) THEN
-                  State_Diag%O3PconcAfterChem(I,J,L) = ( Spc(I,J,L,id_O3P)   &
-                                                     *   LTO3P(I,J)         )
+                  State_Diag%O3PconcAfterChem(I,J,L) = Spc(I,J,L,id_O3P)
                ENDIF
 #endif
 

@@ -257,38 +257,37 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AIRQNT( am_I_Root, Input_Opt, State_Met, State_Chm, 
-     &                   RC, update_mixing_ratio )
+      SUBROUTINE AIRQNT( am_I_Root, Input_Opt, State_Met,
+     &                   State_Chm, RC,        Update_Mixing_Ratio )
 !
 ! !USES:
 !
-      USE ErrCode_Mod
-      USE ERROR_MOD
-      USE GC_GRID_MOD,          ONLY : GET_AREA_M2
-      USE Input_Opt_Mod,        ONLY : OptInput
-      USE State_Met_Mod,        ONLY : MetState
-      USE State_Chm_Mod,        ONLY : ChmState
-      USE PRESSURE_MOD    
-
-      ! Temporary fix for calculating air density (mps, 12/23/15)
-      USE PhysConstants,        ONLY : AIRMW, AVO
+      USE ErrCode_Mod    
+      USE GC_GRID_MOD,   ONLY : Get_Area_M2
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE Pbl_Mix_Mod,   ONLY : Get_Pbl_Top_L
+      USE State_Met_Mod, ONLY : MetState
+      USE State_Chm_Mod, ONLY : ChmState
+      USE PhysConstants, ONLY : AIRMW, AVO
+      USE Pressure_Mod
+      USE Time_Mod,      ONLY : Get_LocalTime
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)           :: am_I_Root  ! On the root CPU?
-      TYPE(OptInput), INTENT(IN)           :: Input_Opt  ! Input options
+      LOGICAL,        INTENT(IN)           :: am_I_Root ! On the root CPU?
+      TYPE(OptInput), INTENT(IN)           :: Input_Opt ! Input Options obj
       LOGICAL,        INTENT(IN), OPTIONAL :: update_mixing_ratio 
-                                                         ! Update mixing ratio?
-                                                         ! Default is yes
+                                                        ! Update mixing ratio?
+                                                        ! Default is yes
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Obj for met fields
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT)        :: State_Met ! Met State obj
+      TYPE(ChmState), INTENT(INOUT)        :: State_Chm ! Chemistry State obj
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)          :: RC        ! Success or failure?
 !
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT:
@@ -375,27 +374,34 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  15 Aug 2016 - E. Lundgren - Update conc w/ RH for all species
+!  08 Jan 2018 - R. Yantosca - Now define query fields from State_Met here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER   :: I,  J,  L,  N    
-      REAL(fp)  :: PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean
-      REAL(fp)  :: PMEAN, PMEAN_DRY  
-      REAL(fp)  :: EsatA, EsatB, EsatC, EsatD
-      REAL(fp)  :: AREA_M2, SPHU_kgkg, AVGW_moist
-      LOGICAL   :: UpdtMR
+      ! Scalars
+      INTEGER             :: I,         J,         L,         N
+      REAL(fp)            :: PEdge_Top, Esat,      Ev_mid,    Ev_edge
+      REAL(fp)            :: Ev_mean,   PMEAN,     PMEAN_DRY, EsatA
+      REAL(fp)            :: EsatB,     EsatC,     EsatD,     AREA_M2
+      REAL(fp)            :: SPHU_kgkg, AVGW_moist
+      LOGICAL             :: UpdtMR
 
-      ! Error handling
-      CHARACTER(LEN=255) :: MSG, LOC
+      ! Arrays
+      REAL(f8)            :: LocTime(IIPAR)
 
+      ! Strings
+      CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
+!
+! DEFINED PARAMETERS:
+!
       ! Conversion factors
-      REAL(fp), PARAMETER   :: TOFFSET = -2.7315e+2_fp   ! K -> deg C
-      REAL(fp), PARAMETER   :: PCONV   = 1.00e+2_fp      ! hPa -> Pa 
-      REAL(fp), PARAMETER   :: RHCONV  = 1.00e-2_fp      ! % -> fraction
-      REAL(fp), PARAMETER   :: MCONV   = 1.00e-3_fp      ! g -> kg
+      REAL(fp), PARAMETER :: TOFFSET = -2.7315e+2_fp   ! K   -> deg C
+      REAL(fp), PARAMETER :: PCONV   = 1.00e+2_fp      ! hPa -> Pa
+      REAL(fp), PARAMETER :: RHCONV  = 1.00e-2_fp      ! %   -> fraction
+      REAL(fp), PARAMETER :: MCONV   = 1.00e-3_fp      ! g   -> kg
 
       ! Empirical parameters for water vapor saturation pressure
       ! (Source: Nordquist, 1973. "Numerical Approximiations of
@@ -403,39 +409,46 @@
       !  Text quality clarifications from Stipanuk, 1973. "Algorithms
       !  for Generating a Skew-T, Log P Diagram and Computing Selected
       !  Meteorological Quantities") 
-      REAL(fp), PARAMETER   :: ESATP1  = 2.3832241e+1_fp   
-      REAL(fp), PARAMETER   :: ESATP2  = -5.02808e+0_fp       
-      REAL(fp), PARAMETER   :: ESATP3  = 8.1328e-3_fp    
-      REAL(fp), PARAMETER   :: ESATP4  = 3.49149e+0_fp     
-      REAL(fp), PARAMETER   :: ESATP5  = -1.3028844e+3_fp
-      REAL(fp), PARAMETER   :: ESATP6  = -1.3816e-7_fp
-      REAL(fp), PARAMETER   :: ESATP7  = 1.1344e+1_fp
-      REAL(fp), PARAMETER   :: ESATP8  = -3.03998e-2_fp
-      REAL(fp), PARAMETER   :: ESATP9  = -2.949076e+3_fp
+      REAL(fp), PARAMETER :: ESATP1  =  2.3832241e+1_fp
+      REAL(fp), PARAMETER :: ESATP2  = -5.02808e+0_fp
+      REAL(fp), PARAMETER :: ESATP3  =  8.1328e-3_fp
+      REAL(fp), PARAMETER :: ESATP4  =  3.49149e+0_fp
+      REAL(fp), PARAMETER :: ESATP5  = -1.3028844e+3_fp
+      REAL(fp), PARAMETER :: ESATP6  = -1.3816e-7_fp
+      REAL(fp), PARAMETER :: ESATP7  =  1.1344e+1_fp
+      REAL(fp), PARAMETER :: ESATP8  = -3.03998e-2_fp
+      REAL(fp), PARAMETER :: ESATP9  = -2.949076e+3_fp
 
       !=================================================================
       ! AIRQNT begins here! 
       !=================================================================
 
-      ! Assume success
-      RC = GC_SUCCESS
+      ! Initialize
+      RC       = GC_SUCCESS
+      ErrMsg   = ''
+      ThisLoc  = ' -> at AIRQNT (in module GeosCore/dao_mod.F)'
 
       ! Shadow variable for mixing ratio update
       UpdtMR = .TRUE.
       IF ( PRESENT(update_mixing_ratio) ) UpdtMR = update_mixing_ratio
+
+      ! Pre-compute local solar time = UTC + Lon/15
+      DO I = 1, IIPAR
+         LocTime(I) = GET_LOCALTIME( I, 1, 1 )
+      ENDDO
 
       !=============================================================
       ! Update air quantities
       !=============================================================  
 
 !$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-!$OMP+PRIVATE( PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean )
-!$OMP+PRIVATE( PMEAN, PMEAN_DRY )
-!$OMP+PRIVATE( EsatA, EsatB, EsatC, EsatD )
-!$OMP+PRIVATE( AREA_M2, SPHU_kgkg, AVGW_moist )
-
+!$OMP+DEFAULT( SHARED                                     )
+!$OMP+PRIVATE( I,         J,          L                   )
+!$OMP+PRIVATE( PEdge_Top, Esat,       Ev_mid,    Ev_edge  )
+!$OMP+PRIVATE( Ev_mean,   PMEAN,      PMEAN_DRY, EsatA    )
+!%OMP+PRIVATE( EsatB,     EsatC,      EsatD,     AREA_M2  )   
+!$OMP+PRIVATE( SPHU_kgkg, AVGW_moist                      )
+!$OMP+SCHEDULE( DYNAMIC, 4                                )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -676,11 +689,11 @@
          ! mass/volume. Moving to use of the ideal gas law is necessary 
          ! for grid-independence (ewl, 9/16/16)
          State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L)  
-     &                             / State_Met%AIRVOL(I,J,L)
+     &                           / State_Met%AIRVOL(I,J,L)
 
          ! Set grid box dry air number density [molec/cm3]
          State_Met%AIRNUMDEN(I,J,L) = State_Met%AIRDEN(I,J,L)
-     &                                * 1e-3_fp *  AVO / AIRMW
+     &                              * 1e-3_fp *  AVO / AIRMW
 
          ! Set grid box moist air density [kg/m3] using the ideal gas law
          ! and pressures derived from GMAO pressure
@@ -704,16 +717,60 @@
 
 
          !==============================================================
-         ! Query in which vertical regime each grid box lies in 
+         ! Define the various query fields of State_Met
+         !
+         ! NOTE: For convenience, we set State_Met%InPbl in routine 
+         ! COMPUTE_PBL_HEIGHT (in module GeosCore/pbl_mix_mod.F).
+         !
+         ! NOTE: For certain queries we test against level numbers,
+         ! (e.g. LLSTRAT, LLCHEM), but should really test level 
+         ! pressure edges, so that this algorithm will be robust if 
+         ! we switch to different met fields or interface with 
+         ! different ESMs.  Add this at a later time. (bmy, 1/8/18)
          !============================================================== 
  
-         ! Is grid box (I,J,L) within the troposphere?
-         State_Met%InTroposphere(I,J,L) = ( State_Met%PEDGE(I,J,L) > 
-     &                                      State_Met%TROPP(I,J)     )
+         ! Is this grid box within the troposphere?
+         State_Met%InTroposphere(I,J,L) = 
+     &      ( State_Met%PEDGE(I,J,L) > State_Met%TROPP(I,J) )
+
+         ! Is this grid box within the stratosphere or mesosphere?
+         State_Met%InStratMeso(I,J,L) = 
+     &      ( .not. State_Met%InTroposphere(I,J,L) )
+
+         ! Is this grid box within the stratosphere (but not mesosphere)?
+         State_Met%InStratosphere(I,J,L) =
+     &      ( L <= LLSTRAT .and. State_Met%InStratMeso(I,J,L) )
 
          ! Is grid box (I,J,L) within the chemistry grid?
-         
-         
+         IF ( L > LLCHEM ) THEN
+
+            ! Chemistry is not done higher than the mesopause
+            State_Met%InChemGrid(I,J,L) = .FALSE.
+
+         ELSE
+
+            IF ( Input_Opt%LUCX ) THEN
+
+               ! UCX mechanisms: Chemistry grid goes up to mesopause
+               State_Met%InChemGrid(I,J,L) = ( L <= LLSTRAT )
+
+            ELSE
+
+               ! "tropchem" mechanisms: Chemistry grid goes up to tropopause
+               State_Met%InChemGrid(I,J,L) =
+     &              State_Met%InTroposphere(I,J,L)
+
+            ENDIF
+
+         ENDIF
+
+         ! Is the grid box near local noon
+         ! (between 11:00 and 13:00 local solar time)?
+         IF ( L == 1 ) THEN
+            State_Met%IsLocalNoon(I,J) = 
+     &         ( LocTime(I) >= 11.0_f8 .and. LocTime(I) <= 13.0_f8 )         
+         ENDIF
+
 
       ENDDO
       ENDDO
@@ -757,10 +814,10 @@
 !$OMP END PARALLEL DO
 
          ELSE
-            MSG = 'Incorrect tracer units: ' 
-     &              // TRIM(State_Chm%Spc_Units)
-            LOC = 'DAO_MOD: AIRQNT'
-            CALL GC_Error( TRIM(MSG), RC, TRIM(LOC) )
+            MSG = 'Incorrect species units: ' // 
+     &             TRIM( State_Chm%Spc_Units )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
       ENDIF
 
