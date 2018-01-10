@@ -2057,6 +2057,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -2080,55 +2081,83 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=512)     :: ErrMsg
+    CHARACTER(LEN=255)     :: ErrMsg_reg,  ThisLoc
     CHARACTER(LEN=255)     :: desc, units, perSpecies
     CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
     INTEGER                :: N, rank, type,  vloc
-    LOGICAL                :: found
+    LOGICAL                :: found, onEdges
     TYPE(Species), POINTER :: SpcInfo
 
+    !-----------------------------------------------------------------------   
     ! Initialize
+    !-----------------------------------------------------------------------   
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_ChmField_R4_3D (in Headers/state_chm_mod.F90)'
-    ErrMsg_reg = 'Error encountered while registering State_Chm field'
+    ErrMsg  = ''
+    ErrMsg_reg = 'Error encountered while registering State_Chm%'
 
-    CALL Get_Metadata_State_Chm( am_I_Root, metadataID,  Found,  RC,   &
-                                 desc=desc, units=units, rank=rank,    &
+    !-----------------------------------------------------------------------   
+    ! Get metadata
+    !-----------------------------------------------------------------------   
+    CALL Get_Metadata_State_Chm( am_I_Root, metadataID,  Found,  RC,         &
+                                 desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc, perSpecies=perSpecies )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Chm"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
     
+    !-----------------------------------------------------------------------
     ! If not tied to species then simply register the single field
+    !-----------------------------------------------------------------------
     IF ( perSpecies == '' ) THEN
        
        ! Check that metadata consistent with data size
        IF ( rank /= 3 ) THEN
-          ErrMsg = 'Data dims and metadata rank do not match for ' &
+          ErrMsg = 'Data dims and metadata rank do not match for '           &
                    // TRIM(metadataID)
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
-       CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                               Registry     = State_Chm%Registry,   &
-                               State        = State_Chm%State,      &
-                               Variable     = metadataID,           &
-                               Description  = desc,                 &
-                               Units        = units,                &
-                               Data3d_4     = Ptr2Data,             &
-                               RC           = RC                   )
+       ! Is the data placed on vertical edges?
+       onEdges = ( vLoc == VLocationEdge )
+
+       ! Add field to registry
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+                               Registry     = State_Chm%Registry,            &
+                               State        = State_Chm%State,               &
+                               Variable     = metadataID,                    &
+                               Description  = desc,                          &
+                               Units        = units,                         &
+                               Data3d_4     = Ptr2Data,                      &
+                               OnLevelEdges = onEdges,                       &
+                               RC           = RC                            )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+                  '; Abnormal exit from routine "Registry_AddField"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
+ 
+    !-----------------------------------------------------------------------   
+    ! Otherwise exit with error
+    !-----------------------------------------------------------------------   
     ELSE
-       ErrMsg = 'Handling of PerSpecies metadata ' // TRIM(perSpecies) // &
+
+       ! Error: cannot register field!
+       ErrMsg = 'Handling of PerSpecies metadata ' // TRIM(perSpecies) //    &
                 ' is not implemented for this combo of data type and size'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+
     ENDIF
 
   END SUBROUTINE Register_ChmField_R4_3D
@@ -2152,6 +2181,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -2174,54 +2204,82 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=512)     :: ErrMsg
+    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, perSpecies
     CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
     INTEGER                :: N, rank, type,  vloc
-    LOGICAL                :: found
+    LOGICAL                :: found, onEdges
     TYPE(Species), POINTER :: SpcInfo
 
+    !-----------------------------------------------------------------------   
     ! Initialize
-    RC = GC_SUCCESS
+    !-----------------------------------------------------------------------   
+    RC      = GC_SUCCESS
     ThisLoc = ' -> at Register_ChmField_Rfp_3D (in Headers/state_chm_mod.F90)'
-    ErrMsg_reg = 'Error encountered while registering State_Chm field'
+    ErrMsg  = ''
+    ErrMsg_reg = 'Error encountered while registering State_Chm%'
 
-    CALL Get_Metadata_State_Chm( am_I_Root, metadataID,  Found,  RC,   &
-                                 desc=desc, units=units, rank=rank,    &
+    !-----------------------------------------------------------------------   
+    ! Get metadata
+    !-----------------------------------------------------------------------   
+    CALL Get_Metadata_State_Chm( am_I_Root, metadataID,  Found,  RC,         &
+                                 desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc, perSpecies=perSpecies )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Chm"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    ! Is the data placed on vertical edges?
+    onEdges = ( vLoc == VLocationEdge )
     
+    !-----------------------------------------------------------------------   
     ! If not tied to species then simply register the single field
+    !-----------------------------------------------------------------------   
     IF ( perSpecies == '' ) THEN
        
        ! Check that metadata consistent with data size
        IF ( rank /= 3 ) THEN
-          ErrMsg = 'Data dims and metadata rank do not match for ' &
+          ErrMsg = 'Data dims and metadata rank do not match for '           &
                    // TRIM(metadataID)
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-       CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                               Registry     = State_Chm%Registry,   &
-                               State        = State_Chm%State,      &
-                               Variable     = metadataID,           &
-                               Description  = desc,                 &
-                               Units        = units,                &
-                               Data3d       = Ptr2Data,             &
-                               RC           = RC                   )
+
+       ! Add field to registry
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+                               Registry     = State_Chm%Registry,            &
+                               State        = State_Chm%State,               &
+                               Variable     = metadataID,                    &
+                               Description  = desc,                          &
+                               Units        = units,                         &
+                               OnLevelEdges = onEdges,                       &
+                               Data3d       = Ptr2Data,                      &
+                               RC           = RC                            )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+                  '; Abnormal exit from routine "Registry_AddField"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
+    !-----------------------------------------------------------------------   
+    ! Otherwise exit with error
+    !-----------------------------------------------------------------------   
     ELSE
-       ErrMsg = 'Handling of PerSpecies metadata ' // TRIM(perSpecies) // &
+
+       ErrMsg = 'Handling of PerSpecies metadata ' // TRIM(perSpecies) //    &
                 ' is not implemented for this combo of data type and size'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+
     ENDIF
 
   END SUBROUTINE Register_ChmField_Rfp_3D
@@ -2240,11 +2298,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_ChmField_Rfp_4D( am_I_Root,  metadataID, Ptr2Data,  &
-                                       State_Chm,  RC,         Ncat )
+  SUBROUTINE Register_ChmField_Rfp_4D( am_I_Root,  metadataID, Ptr2Data,     &
+                                       State_Chm,  RC,         Ncat         )
 !
 ! !USES:
 !
+    USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -2271,27 +2330,39 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=512)     :: ErrMsg
+    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, perSpecies
     CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
     INTEGER                :: N, rank, type,  vloc
-    LOGICAL                :: found
+    LOGICAL                :: found, onEdges
     TYPE(Species), POINTER :: SpcInfo
 
+    !-----------------------------------------------------------------------
     ! Initialize
+    !-----------------------------------------------------------------------
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_ChmField_Rfp_4D (in Headers/state_chm_mod.F90)'
-    ErrMsg_reg = 'Error encountered while registering State_Chm field'
+    ErrMsg_reg = 'Error encountered while registering State_Chm%'
 
-    CALL Get_Metadata_State_Chm( am_I_Root, metadataID,  Found,  RC,   &
-                                 desc=desc, units=units, rank=rank,    &
+    !-----------------------------------------------------------------------
+    ! Initialize
+    !-----------------------------------------------------------------------
+    CALL Get_Metadata_State_Chm( am_I_Root, metadataID,  Found,  RC,         &
+                                 desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc, perSpecies=perSpecies )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Chm"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    !-----------------------------------------------------------------------
     ! Check that metadata consistent with data size
+    !-----------------------------------------------------------------------
     IF ( rank /= 3 ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for ' &
                 // TRIM(metadataID)
@@ -2299,36 +2370,73 @@ CONTAINS
        RETURN
     ENDIF
     
+    ! Is the data placed on level edges?
+    onEdges = ( VLoc == VLocationEdge )
+
+    !-----------------------------------------------------------------------
     ! If tied to all species then register each one
+    !-----------------------------------------------------------------------
     IF ( perSpecies == 'ALL' ) THEN       
+
+       ! Loop over all species
        DO N = 1, State_Chm%nSpecies
-          SpcInfo  => State_Chm%SpcData(N)%Info
+
+          ! Get name from species database for name and description tags
+          SpcInfo     => State_Chm%SpcData(N)%Info
           thisSpcName = TRIM( metadataID ) // '_' // TRIM( SpcInfo%Name )
-          thisSpcDesc = TRIM( Desc ) // ' ' // TRIM( SpcInfo%Name )
-          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                                  Registry     = State_Chm%Registry ,  &
-                                  State        = State_Chm%State,      &
-                                  Variable     = thisSpcName,          &
-                                  Description  = thisSpcDesc,          &
-                                  Units        = units,                &
-                                  Data3d       = Ptr2Data(:,:,:,N),    &
-                                  RC           = RC                   )
+          thisSpcDesc = TRIM( Desc       ) // ' ' // TRIM( SpcInfo%Name )
+
+          ! Add field to registry
+          CALL Registry_AddField( am_I_Root    = am_I_Root,                  &
+                                  Registry     = State_Chm%Registry ,        &
+                                  State        = State_Chm%State,            &
+                                  Variable     = thisSpcName,                &
+                                  Description  = thisSpcDesc,                &
+                                  Units        = units,                      &
+                                  OnLevelEdges = onEdges,                    &
+                                  Data3d       = Ptr2Data(:,:,:,N),          &
+                                  RC           = RC                         )
+
+          ! Free pointers
           SpcInfo => NULL()
+
+          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //            &
+                      '; Abnormal exit from routine "Registry_AddField"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
+
        ENDDO
+
+    !-----------------------------------------------------------------------
     ! If tied to a given category, only registry that one
+    !-----------------------------------------------------------------------
     ELSE IF ( PRESENT(Ncat) ) THEN
-       CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                               Registry     = State_Chm%Registry ,  &
-                               State        = State_Chm%State,      &
-                               Variable     = metadataID ,          &
-                               Description  = desc,                 &
-                               Units        = units,                &
-                               Data3d       = Ptr2Data(:,:,:,Ncat), &
-                               RC           = RC                   )
+
+       ! Add field to registry
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+                               Registry     = State_Chm%Registry ,           &
+                               State        = State_Chm%State,               &
+                               Variable     = metadataID ,                   &
+                               Description  = desc,                          &
+                               Units        = units,                         &
+                               OnLevelEdges = onEdges,                       &
+                               Data3d       = Ptr2Data(:,:,:,Ncat),          &
+                               RC           = RC                            )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+                   '; Abnormal exit from Registry_AddField!'
+          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Otherwise, exit with error
+    !-----------------------------------------------------------------------
     ELSE
        ErrMsg = 'Handling of PerSpecies metadata ' // TRIM(perSpecies) // &
                 ' is not implemented for this combo of data type and size'

@@ -2037,7 +2037,7 @@ CONTAINS
     IF ( isDesc  ) Desc  = ''              
     IF ( isRank  ) Rank  = -1              ! initialize as bad value 
     IF ( isType  ) Type  = KINDVAL_FP      ! Assume real with flex precision
-    IF ( isVLoc  ) VLoc  = VLocationCenter ! Assume centered
+    IF ( isVLoc  ) VLoc  = VLocationNone   ! Assume no vertical location
 
     ! Convert name to uppercase
     Name_AllCaps = To_Uppercase( TRIM( metadataID ) )
@@ -2389,46 +2389,56 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Dry air mass'
           IF ( isUnits ) Units = 'kg'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'AIRDEN' )
           IF ( isDesc  ) Desc  = 'Dry air density'
           IF ( isUnits ) Units = 'kg m-3'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'MAIRDEN' )
           IF ( isDesc  ) Desc  = 'Moist air density'
           IF ( isUnits ) Units = 'kg m-3'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'AIRNUMDEN' )
           IF ( isDesc  ) Desc  = 'Dry air density'
           IF ( isUnits ) Units = 'm-3'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'AIRVOL' )
           IF ( isDesc  ) Desc  = 'Volume of dry air in grid box'
           IF ( isUnits ) Units = 'm3'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'AREA_M2' )
           IF ( isDesc  ) Desc  = 'Surface area of grid box'
           IF ( isUnits ) Units = 'm2'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'AVGW' )
           IF ( isDesc  ) Desc  = 'Water vapor mixing ratio (w/r/t dry air)'
           IF ( isUnits ) Units = 'vol vol-1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+
 
        CASE ( 'BXHEIGHT' )
           IF ( isDesc  ) Desc  = 'Grid box height (w/r/t dry air)'
           IF ( isUnits ) Units = 'm'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'CLDF' )
           IF ( isDesc  ) Desc  = '3-D cloud fraction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'CMFMC' )
           IF ( isDesc  ) Desc  = 'Cloud mass flux'
@@ -2440,43 +2450,51 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Delta-pressure across grid box(wet air)'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'DELP_DRY' )
           IF ( isDesc  ) Desc  = 'Delta-pressure across grid box (dry air)'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'DP_DRY_PREV' )
           IF ( isDesc  ) Desc  = 'Previous State_Met%DELP_DRY'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'DQRCU' )
           IF ( isDesc  ) Desc  = 'Production rate of convective ' // &
                                  'precipitation (per dry air)'
           IF ( isUnits ) Units = 'kg kg-1 s-1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'DQRLSAN' )
           IF ( isDesc  ) Desc  = 'Production rate of large-scale ' // &
                                  'precipitation (per dry air)'
           IF ( isUnits ) Units = 'kg kg-1 s-1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'DTRAIN' )
           IF ( isDesc  ) Desc  = 'Detrainment flux'
           IF ( isUnits ) Units = 'kg m-2 s-1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'OMEGA' )
           IF ( isDesc  ) Desc  = 'Updraft velocity'
           IF ( isUnits ) Units = 'Pa s-1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'OPTD' )
           IF ( isDesc  ) Desc  = 'Visible optical depth'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'PEDGE' )
           IF ( isDesc  ) Desc  = 'Pressure (w/r/t moist air) at level edges'
@@ -2494,11 +2512,13 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Pressure (w/r/t moist air) at level centers'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'PMID_DRY' )
           IF ( isDesc  ) Desc  = 'Pressure (w/r/t dry air) at level centers'
           IF ( isUnits ) Units = ''
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
 !------------------------------------------------------------------------------
 ! Comment out for now. State_Met%EVAP is not used in the code. (mps, 9/14/17)
@@ -2506,62 +2526,74 @@ CONTAINS
 !          IF ( isDesc  ) Desc  = 'Ertel potential vorticity'
 !          IF ( isUnits ) Units = 'kg m2 kg-1 s-1'
 !          IF ( isRank  ) Rank  = 3
+!          IF ( isVLoc  ) VLoc  = VLocationCenter
 !------------------------------------------------------------------------------
 
        CASE ( 'QI' )
           IF ( isDesc  ) Desc  = 'Ice mixing ratio (w/r/t dry air)'
           IF ( isUnits ) Units = 'kg kg-1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'QL' )
           IF ( isDesc  ) Desc  = 'Water mixing ratio (w/r/t dry air)'
           IF ( isUnits ) Units = 'kg kg-1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'RH' )
           IF ( isDesc  ) Desc  = 'Relative humidity'
           IF ( isUnits ) Units = '%'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'SPHU' )
           IF ( isDesc  ) Desc  = 'Specific humidity (w/r/t moist air)'
           IF ( isUnits ) Units = 'g kg-1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'T' )
           IF ( isDesc  ) Desc  = 'Temperature'
           IF ( isUnits ) Units = 'K'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'TV' )
           IF ( isDesc  ) Desc  = 'Virtual temperature'
           IF ( isUnits ) Units = 'K'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'TAUCLI' )
           IF ( isDesc  ) Desc  = 'Optical depth of ice clouds'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'TAUCLW' )
           IF ( isDesc  ) Desc  = 'Optical depth of H2O clouds'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'U' )
           IF ( isDesc  ) Desc  = 'East-west component of wind'
           IF ( isUnits ) Units = 'm s-1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'V' )
           IF ( isDesc  ) Desc  = 'North-south component of wind'
           IF ( isUnits ) Units = 'm s-1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'UPDVVEL' )
           IF ( isDesc  ) Desc  = 'Updraft vertical velocity'
           IF ( isUnits ) Units = 'hPa s-1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'PFICU' )
           IF ( isDesc  ) Desc  = 'Downward flux of ice precipitation ' // &
@@ -2596,46 +2628,50 @@ CONTAINS
                                  'precipitation (w/r/t dry air)'
           IF ( isUnits ) Units = 'kg kg-1 s-1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'REEVAPLS' )
           IF ( isDesc  ) Desc  = 'Evaporation of large-scale + anvil ' // &
                                  'precipitation (w/r/t dry air)'
           IF ( isUnits ) Units = 'kg '
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'SPHU1' )
           IF ( isDesc  ) Desc  = 'Instantaneous specific humidity at time=T'
           IF ( isUnits ) Units = 'g kg-1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'SPHU2' )
           IF ( isDesc  ) Desc  = 'Instantaneous specific humidity at time=T+dt'
           IF ( isUnits ) Units = 'g kg-1'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'TMPU1' )
           IF ( isDesc  ) Desc  = 'Instantaneous temperature at time=T'
           IF ( isUnits ) Units = 'K'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'TMPU2' )
           IF ( isDesc  ) Desc  = 'Instantaneous temperature at time T+dt'
           IF ( isUnits ) Units = 'K'
           IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'IREG' )
           IF ( isDesc  ) Desc  = 'Number of Olson land types in each grid box'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
           IF ( isType  ) Type  = KINDVAL_I4
-          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'ILAND' )
           IF ( isDesc  ) Desc  = 'Olson land type indices in each grid box'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
           IF ( isType  ) Type  = KINDVAL_I4
-          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'IUSE' )
           IF ( isDesc  ) Desc  = 'Fraction (per mil) occupied by each ' // &
@@ -2643,14 +2679,12 @@ CONTAINS
           IF ( isUnits ) Units = 'o/oo'
           IF ( isRank  ) Rank  = 3
           IF ( isType  ) Type  = KINDVAL_I4
-          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'XLAI' )
           IF ( isDesc  ) Desc  = 'MODIS LAI for each Olson land type, ' // &
                                  'current month'
           IF ( isUnits ) Units = 'm2 m-2'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'MODISLAI' )
           IF ( isDesc  ) Desc  = 'Daily LAI computed from monthly ' // &
@@ -2663,7 +2697,6 @@ CONTAINS
                                  'current month'
           IF ( isUnits ) Units = 'mg m-3'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'MODISCHLR' )
           IF ( isDesc  ) Desc  = 'Daily chlorophyll-a computed ' // &
@@ -2675,19 +2708,16 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Olson fraction per land type'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'XLAI_NATIVE' )
           IF ( isDesc  ) Desc  = 'Average LAI per Olson land type'
           IF ( isUnits ) Units = 'm2 m-2'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE ( 'XCHLR_NATIVE' )
           IF ( isDesc  ) Desc  = 'Average CHLR per Olson type'
           IF ( isUnits ) Units = 'mg m-3'
           IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocationNone
 
        CASE DEFAULT
           Found = .False.
@@ -2712,17 +2742,17 @@ CONTAINS
 !
 ! !IROUTINE: Register_MetField_Rfp_2D
 !
-! !DESCRIPTION:
+! !DESCRIPTION: Registers a 2-D State\_Met field (flexible precision).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_MetField_Rfp_2D( am_I_Root, metadataID, Ptr2Data, &
-                                       State_Met, RC )
+  SUBROUTINE Register_MetField_Rfp_2D( am_I_Root, metadataID, Ptr2Data,      &
+                                       State_Met, RC                        )
 !
 ! !USES:
 !
-    USE ErrCode_Mod
+    USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -2733,7 +2763,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC               ! Success/failure
+    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
 !
 ! !REMARKS:
 !
@@ -2745,38 +2775,60 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: desc, units, ErrMsg, ErrMsg_reg, ThisLoc
-    INTEGER                :: rank, type,  vloc
+    CHARACTER(LEN=512)     :: ErrMsg
+    CHARACTER(LEN=255)     :: desc,  units, ErrMsg_reg, ThisLoc
+    INTEGER                :: rank,  type,  vloc
     LOGICAL                :: found
 
+    !---------------------   
     ! Initialize
-    RC = GC_SUCCESS
+    !---------------------   
+    RC      = GC_SUCCESS
     ThisLoc = ' -> at Register_MetField_Rfp_2D (in Headers/state_met_mod.F90)'
-    ErrMsg_reg = 'Error encountered while registering State_Met field'
+    ErrMsg  = ''
+    ErrMsg_reg = 'Error encountered while registering State_Met%'
 
+    !---------------------
     ! Get metadata
-    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC, &
-                                 desc=desc, units=units, rank=rank, &
-                                 type=type, vloc=vloc )
+    !---------------------
+    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC,          &
+                                 desc=desc, units=units, rank=rank,          &
+                                 type=type, vloc=vloc                       )
+    
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Met"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    !---------------------
     ! Check dimensions
+    !---------------------
     IF ( rank /= 2 ) THEN
        ErrMsg = 'Data and metadata rank do not match for ' // TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    !---------------------
     ! Add to registry
-    CALL Registry_AddField( am_I_Root,         State_Met%Registry,    &
-                            State_Met%State,   TRIM(metadataID),      &
-                            units=TRIM(units), Data2d=Ptr2Data,       &
-                            Description=TRIM(desc),  RC=RC                 )
+    !---------------------
+    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
+                            Registry    = State_Met%Registry,                &
+                            State       = State_Met%State,                   &
+                            Variable    = TRIM( MetadataID ),                &
+                            Units       = TRIM( Units      ),                &
+                            Description = TRIM( Desc       ),                &
+                            Data2d      = Ptr2Data,                          &
+                            RC          = RC                                )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Registry_AddField"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -2789,16 +2841,17 @@ CONTAINS
 !
 ! !IROUTINE: Register_MetField_Rfp_3D
 !
-! !DESCRIPTION:
+! !DESCRIPTION: Registers a 3-D State\_Met field (flexible precision).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_MetField_Rfp_3D( am_I_Root, metadataID, Ptr2Data,  &
-                                       State_Met, RC )
+  SUBROUTINE Register_MetField_Rfp_3D( am_I_Root, metadataID, Ptr2Data,      &
+                                       State_Met, RC                        )
 !
 ! !USES:
 !
+    USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -2809,7 +2862,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)   :: RC               ! Success/failure
+    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
 !
 ! !REMARKS:
 !
@@ -2821,38 +2874,64 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: desc, units, ErrMsg, ErrMsg_reg, ThisLoc
-    INTEGER                :: rank, type,  vloc
-    LOGICAL                :: found
+    CHARACTER(LEN=512)     :: ErrMsg
+    CHARACTER(LEN=255)     :: desc,  units,  ErrMsg_reg, ThisLoc
+    INTEGER                :: rank,  type,   vloc
+    LOGICAL                :: found, onEdges
 
+    !---------------------   
     ! Initialize
-    RC = GC_SUCCESS
+    !---------------------   
+    RC      = GC_SUCCESS
     ThisLoc = ' -> at Register_MetField_Rfp_3D (in Headers/state_met_mod.F90)'
-    ErrMsg_reg = 'Error encountered while registering State_Met field'
+    ErrMsg  = ''
+    ErrMsg_reg = 'Error encountered while registering State_Met%'
 
+    !---------------------   
     ! Get metadata
-    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC, &
-                                 desc=desc, units=units, rank=rank, &
+    !---------------------
+    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC,          &
+                                 desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Met"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    !---------------------   
     ! Check dimensions
+    !---------------------  
     IF ( rank /= 3 ) THEN
        ErrMsg = 'Data and metadata rank do not match for ' // TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    ! Is the data placed on vertical edges?
+    onEdges = ( vLoc == vLocationEdge )
+
+    !---------------------   
     ! Add to registry
-    CALL Registry_AddField( am_I_Root,              State_Met%Registry,    &
-                            State_Met%State,        TRIM(metadataID),      &
-                            units=TRIM(units),      Data3d=Ptr2Data,       &
-                            Description=TRIM(desc), RC=RC                 )
+    !---------------------   
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = State_Met%Registry,               &
+                            State        = State_Met%State,                  &
+                            Variable     = TRIM( MetadataID ),               &
+                            Units        = TRIM( Units      ),               &
+                            Description  = TRIM( Desc       ),               &
+                            OnLevelEdges = onEdges,                          &
+                            Data3d       = Ptr2Data,                         &
+                            RC           = RC                               )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Registry_AddField"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -2865,16 +2944,17 @@ CONTAINS
 !
 ! !IROUTINE: Register_MetField_Int_2D
 !
-! !DESCRIPTION:
+! !DESCRIPTION: Registers a 2-D State\_Met field (integer precision).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_MetField_Int_2D( am_I_Root, metadataID, Ptr2Data, &
-                                       State_Met, RC )
+  SUBROUTINE Register_MetField_Int_2D( am_I_Root, metadataID, Ptr2Data,      &
+                                       State_Met, RC                        )
 !
 ! !USES:
 !
+    USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -2897,38 +2977,60 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: desc, units, ErrMsg, ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=512)     :: ErrMsg
+    CHARACTER(LEN=255)     :: desc, units, ErrMsg_reg, ThisLoc
     INTEGER                :: rank, type,  vloc
     LOGICAL                :: found
 
+    !---------------------   
     ! Initialize
+    !---------------------   
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_MetField_Int_2D (in Headers/state_met_mod.F90)'
-    ErrMsg_reg = 'Error encountered while registering State_Met field'
+    ErrMsg  = ''
+    ErrMsg_reg = 'Error encountered while registering State_Met%'
 
+    !---------------------   
     ! Get metadata
-    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC, &
-                                 desc=desc, units=units, rank=rank, &
-                                 type=type, vloc=vloc )
+    !---------------------   
+    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC,          &
+                                 desc=desc, units=units, rank=rank,          &
+                                 type=type, vloc=vloc                       )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Met"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    !---------------------
     ! Check dimensions
+    !---------------------
     IF ( rank /= 2 ) THEN
        ErrMsg = 'Data and metadata rank do not match for ' // TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    !---------------------   
     ! Add to registry
-    CALL Registry_AddField( am_I_Root,              State_Met%Registry,    &
-                            State_Met%State,        TRIM(metadataID),      &
-                            units=TRIM(units),      Data2d_I=Ptr2Data,     &
-                            Description=TRIM(desc), RC=RC                 )
+    !---------------------   
+    CALL Registry_AddField( am_I_Root   = am_I_Root,                         &
+                            Registry    = State_Met%Registry,                &
+                            State       = State_Met%State,                   &
+                            Variable    = TRIM( metadataID ),                &
+                            units       = TRIM( units      ),                &
+                            Description = TRIM( desc       ),                &
+                            Data2d_I    = Ptr2Data,                          &
+                            RC          = RC                                )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Registry_AddField"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -2941,16 +3043,17 @@ CONTAINS
 !
 ! !IROUTINE: Register_MetField_Int_3D
 !
-! !DESCRIPTION:
+! !DESCRIPTION: Registers a 3-D State\_Met field (integer precision).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_MetField_Int_3D( am_I_Root, metadataID, Ptr2Data,  &
-                                       State_Met, RC )
+  SUBROUTINE Register_MetField_Int_3D( am_I_Root, metadataID, Ptr2Data,      &
+                                       State_Met, RC                        )
 !
 ! !USES:
 !
+    USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -2973,38 +3076,64 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: desc, units, ErrMsg, ErrMsg_reg, ThisLoc
-    INTEGER                :: rank, type,  vloc
-    LOGICAL                :: found
+    CHARACTER(LEN=512)     :: ErrMsg
+    CHARACTER(LEN=255)     :: desc,   units,  ErrMsg_reg, ThisLoc
+    INTEGER                :: rank,   type,   vloc
+    LOGICAL                :: found,  onEdges
 
+    !---------------------   
     ! Initialize
-    RC = GC_SUCCESS
+    !---------------------   
+    RC      = GC_SUCCESS
     ThisLoc = ' -> at Register_MetField_Int_3D (in Headers/state_met_mod.F90)'
-    ErrMsg_reg = 'Error encountered while registering State_Met field'
+    ErrMsg  = ''
+    ErrMsg_reg = 'Error encountered while registering State_Met%'
 
+    !---------------------   
     ! Get metadata
-    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC, &
-                                 desc=desc, units=units, rank=rank, &
-                                 type=type, vloc=vloc )
+    !---------------------   
+    CALL Get_Metadata_State_Met( am_I_Root, metadataID,  found, RC,          &
+                                 desc=desc, units=units, rank=rank,          &
+                                 type=type, vloc=vloc                       )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Met"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    !---------------------
     ! Check dimensions
+    !---------------------
     IF ( rank /= 3 ) THEN
        ErrMsg = 'Data and metadata rank do not match for ' // TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    ! Is the data placed on vertical edges?
+    onEdges = ( vLoc == vLocationEdge )
+
+    !---------------------   
     ! Add to registry
-    CALL Registry_AddField( am_I_Root,              State_Met%Registry,    &
-                            State_Met%State,        TRIM(metadataID),      &
-                            units=TRIM(units),      Data3d_I=Ptr2Data,     &
-                            Description=TRIM(desc), RC=RC                 )
+    !---------------------   
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = State_Met%Registry,               &
+                            State        = State_Met%State,                  &
+                            Variable     = TRIM( metadataID ),               &
+                            units        = TRIM( units      ),               &
+                            Description  = TRIM( desc       ),               &
+                            OnLevelEdges = onEdges,                          &
+                            Data3d_I     = Ptr2Data,                         &
+                            RC           = RC                               )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Registry_AddField"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
