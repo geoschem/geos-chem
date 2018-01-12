@@ -2171,9 +2171,9 @@
       ! Set GEOS-Chem version
       VERSION = 'v11-02'
 
-      !-------------------------------------------------
+      !-----------------------------------------------------------------
       ! Print resolution info
-      !-------------------------------------------------
+      !-----------------------------------------------------------------
 #if   defined( GRID4x5   )
       WRITE( 6, '(a)' )                   
      &    REPEAT( '*', 13 )                                          //
@@ -2200,86 +2200,114 @@
 
 #endif
 
-      !-------------------------------------------------
-      ! Print machine info
-      !-------------------------------------------------
 
-      ! Get the proper FORMAT statement for the model being used
-#if   defined( COMPAQ    )
-      WRITE( 6, '(a)' ) 'Created w/ HP/COMPAQ Alpha compiler'
-#elif defined( IBM_AIX   )
-      WRITE( 6, '(a)' ) 'Created w/ IBM-AIX compiler'
-#elif defined( LINUX_PGI )
-      WRITE( 6, '(a)' ) 'Created w/ LINUX/PGI compiler'
-#elif defined( LINUX_IFORT )
-      WRITE( 6, '(a)' ) 'Created w/ LINUX/IFORT compiler'
-      WRITE( 6, '(a)' ) 'Use ifort -V to print version information'
-#elif defined( LINUX_GFORTRAN )
-      WRITE( 6, '(a)' ) 'Created w/ LINUX/GFORTRAN compiler'
-#elif defined( SGI_MIPS  )
-      WRITE( 6, '(a)' ) 'Created w/ SGI MIPSpro compiler'
-#elif defined( SPARC     )
-      WRITE( 6, '(a)' ) 'Created w/ Sun/SPARC compiler'
-#endif
+      !-----------------------------------------------------------------
+      ! Mode of simulation
+      !-----------------------------------------------------------------
+      WRITE( 6, 100 ) 'GEOS-Chem "Classic"'
 
-      !-------------------------------------------------
+      !-----------------------------------------------------------------
       ! Print model version
-      !-------------------------------------------------
-      WRITE( 6, '(a)' ) 'Using GEOS-Chem ' // TRIM( VERSION )
+      !-----------------------------------------------------------------
+      WRITE( 6, 110 ) TRIM( VERSION )
 
-      !-------------------------------------------------
+      !-----------------------------------------------------------------
+      ! Print compiler
+      !-----------------------------------------------------------------
+#if defined( LINUX_PGI )
+      WRITE( 6, 120 ) 'PGI compiler (aka pgfortran)'
+#elif defined( LINUX_IFORT )
+      WRITE( 6, 120  ) 'Intel Fortran Compiler (aka ifort)'
+#elif defined( LINUX_GFORTRAN )
+      WRITE( 6, 120 ) 'GNU Fortran compiler (aka gfortran)'
+#endif
+
+      !-----------------------------------------------------------------
       ! Print met field info
-      !-------------------------------------------------
+      !-----------------------------------------------------------------
 #if defined( GEOS_FP )
-      WRITE( 6, '(a)' ) 'Using GMAO GEOS-FP met fields'
+
+#if defined( GRIDREDUCED ) 
+      WRITE( 6, 130 ) 'GMAO GEOS-FP (on reduced 47-layer vertical grid)'
+#else
+      WRITE( 6, 130 ) 'GMAO GEOS-FP (on native 72-layer vertical grid)'
+#endif
+
 #elif defined( MERRA2 )
-      WRITE( 6, '(a)' ) 'Using GMAO MERRA-2 met fields'
+
+#if defined( GRIDREDUCED )
+      WRITE( 6, 130 ) 'GMAO MERRA-2 (on reduced 47-layer vertical grid)'
+#else
+      WRITE( 6, 130 ) 'GMAO MERRA-2 (on native 72-layer vertical grid)'
 #endif
 
-      !-------------------------------------------------
-      ! Print msg if ISORROPIA is turned off for debug
-      !-------------------------------------------------
-#if   defined( NO_ISORROPIA ) 
-      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
-      WRITE( 6, '(a)' ) '# ISORROPIA TURNED OFF FOR TESTING!!! #'
-      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
 #endif
 
-      !-------------------------------------------------
-      ! Print msg if OpenMP is turned off for debug
-      !-------------------------------------------------
-#if   defined( NO_OMP ) 
-      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
-      WRITE( 6, '(a)' ) '# OPENMP TURNED OFF FOR TESTING!!!    #'
-      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+      !-----------------------------------------------------------------
+      ! Print status of ISORROPIA
+      !-----------------------------------------------------------------
+#if defined( NO_ISORROPIA ) 
+      WRITE( 6, 140 ) 'TURNED OFF FOR TESTING'
+#else
+      WRITE( 6, 140 ) 'ON'
 #endif
 
-      !-------------------------------------------------
-      ! Print msg if DEVEL is turned on for testing
-      !-------------------------------------------------
-#if   defined( DEVEL ) 
-      WRITE( 6, '(a)' ) REPEAT( '#', 34 )
-      WRITE( 6, '(a)' ) '# USING -DDEVEL FOR TESTING GCHP #'
-      WRITE( 6, '(a)' ) REPEAT( '#', 34 )
+      !-----------------------------------------------------------------
+      ! Print status of OpenMP
+      !-----------------------------------------------------------------
+#if defined( NO_OMP ) 
+      WRITE( 6, 150 ) 'OFF'
+#else
+      WRITE( 6, 150 ) 'ON'
 #endif
 
-      !-------------------------------------------------
-      ! Print msg if DEVEL is turned on for testing
-      !-------------------------------------------------
-#if   defined( NC_HAS_COMPRESSION )
-      WRITE( 6, '(a)' ) REPEAT( '#', 55 )
-      WRITE( 6, 100 ) 
- 100  FORMAT( '# This netCDF library build supports file compression #')
-      WRITE( 6, '(a)' ) REPEAT( '#', 55 )
-      
+      !-----------------------------------------------------------------
+      ! Print status of binary punch (bpch) diagnostics
+      !-----------------------------------------------------------------
+#if defined( BPCH_DIAG ) 
+      WRITE( 6, 160 ) 'ON'
+#else
+      WRITE( 6, 160 ) 'OFF'
 #endif
-      
-      !-------------------------------------------------
+
+      !-----------------------------------------------------------------
+      ! Print status of netCDF diagnostics (aka History)
+      !-----------------------------------------------------------------
+#if defined( NC_DIAG ) 
+      WRITE( 6, 170 ) 'ON'
+#else
+      WRITE( 6, 170 ) 'OFF'
+#endif
+
+      !-----------------------------------------------------------------
+      ! Print msg if netCDF compression is supported
+      !-----------------------------------------------------------------
+#if defined( NC_HAS_COMPRESSION )
+      WRITE( 6, 180 ) 'SUPPORTED'
+#else
+      WRITE( 6, 180 ) 
+     & 'NOT SUPPORTED (or shut off w/ NC_NODEFLATE=y)'
+#endif
+
+      !-----------------------------------------------------------------
       ! System time stamp
-      !-------------------------------------------------
+      !-----------------------------------------------------------------
       STAMP = SYSTEM_TIMESTAMP()
-      WRITE( 6, 110 ) STAMP
- 110  FORMAT( /, '===> SIMULATION START TIME: ', a, ' <===', / )
+      WRITE( 6, 190 ) STAMP
+
+      !-----------------------------------------------------------------
+      ! Format strings
+      !-----------------------------------------------------------------
+ 100  FORMAT( /, '===> Mode of operation         : ', a             )
+ 110  FORMAT(    '===> GEOS-Chem version         : ', a             )
+ 120  FORMAT(    '===> Compiler                  : ', a             )
+ 130  FORMAT(    '===> Driven by meteorology     : ', a             )
+ 140  FORMAT(    '===> ISORROPIA ATE package     : ', a             )
+ 150  FORMAT(    '===> Parallelization w/ OpenMP : ', a             )
+ 160  FORMAT(    '===> Binary punch diagnostics  : ', a             )
+ 170  FORMAT(    '===> netCDF diagnostics        : ', a             )
+ 180  FORMAT(    '===> netCDF file compression   : ', a             )
+ 190  FORMAT( /, '===> SIMULATION START TIME: ',      a, ' <===', / )
 
       END SUBROUTINE DISPLAY_GRID_AND_MODEL
 !EOC
@@ -2314,7 +2342,13 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
+#if defined( BPCH_DIAG )
+      ! NOTE: Block out with an #ifdef, so that we don't interfere
+      ! with file units in GCHP, or when using GEOS-Chem as an
+      ! instance in other models like CESM or ECMWF (bmy, 1/12/18)
       CALL FLUSH( IU_BPCH )  
+#endif
 
       END SUBROUTINE CTM_FLUSH
 !EOC
