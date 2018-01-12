@@ -108,6 +108,7 @@
 !  536           : Total organic aerosol                    [ug/m3      ]
 !  537           : ISORROPIA aerosol pH                     [unitless   ]
 !  538           : ISORROPIA aerosol water                  [ug/m3 air  ]
+!  539           : Ozone at 10m                             [ppb        ]
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -222,6 +223,7 @@
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD	           ! SAVEOH  SAVEOA
+      USE DIAG_MOD,           ONLY : AD44b, AD_RA
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
@@ -337,6 +339,7 @@
       REAL(f8)                 :: TAU
       REAL(fp)                 :: TMP, SCALEAODnm
       REAL(fp)                 :: Q( ND49_NI, ND49_NJ, ND49_NL )
+      REAL(fp)                 :: TMPO3, CONV
       CHARACTER(LEN=16)        :: STAMP
       CHARACTER(LEN=40)        :: CATEGORY
       CHARACTER(LEN=40)        :: UNIT
@@ -1663,6 +1666,35 @@
                I = GET_I( X )
                Q(X,Y,K) = State_Chm%WaterSav(I,J,L)
             ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 539 ) THEN
+            
+            !-----------------------------------------
+            ! Adjust ozone from lowest model level to 10m
+            ! (krt, 11/2017) 
+            !-----------------------------------------
+            CATEGORY = 'O3@10m-$'
+            UNIT     = 'ppbv'
+            GMNL     = 1
+            GMTRC    = 2
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y, TMPO3, CONV )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               TMPO3 = SPC(I,J,1,id_O3) * ( AIRMW 
+     &                 / State_Chm%SpcData(id_O3)%Info%emMW_g ) ! v/v
+
+               CONV = (1-(AD_RA(I,J)/100.)* AD44b(I,J,id_O3) )
+               IF (CONV .lt. 0) CONV = 1.0
+               Q(X,Y,1)= CONV *TMPO3*1E9
+               
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO

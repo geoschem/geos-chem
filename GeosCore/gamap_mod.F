@@ -1117,6 +1117,11 @@
       DESCRIPT(N) = 'Biofuel NH3 emissions'
       OFFSET(N)   = SPACING * 4
 
+      N           = N + 1
+      CATEGORY(N) = 'O3@10m-$'
+      DESCRIPT(N) = 'O3 Corrected to 10m'
+      OFFSET(N)   = SPACING * 3
+
 #if   defined( TOMAS )
       N           = N + 1               !(win, 7/9/09)
       CATEGORY(N) = 'NK-EMISS'

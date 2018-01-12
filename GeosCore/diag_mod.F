@@ -121,6 +121,10 @@
 
       ! For ND44 -- Dry deposition fluxes & velocities
       REAL*4,  ALLOCATABLE :: AD44(:,:,:,:)
+      ! Instantaneous dry dep velocity (krt, 11/2017)
+      REAL*4,  ALLOCATABLE :: AD44b(:,:,:)
+      ! For aerodynamic resistance (krt, 11/2017)
+      REAL*4,  ALLOCATABLE :: AD_RA(:,:)
 
       ! For ND45 -- Tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD45(:,:,:,:)
@@ -357,6 +361,8 @@
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )
       IF ( ALLOCATED( AD43        ) ) DEALLOCATE( AD43        )
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )
+      IF ( ALLOCATED( AD44b       ) ) DEALLOCATE( AD44b       )
+      IF ( ALLOCATED( AD_RA       ) ) DEALLOCATE( AD_RA       )
       IF ( ALLOCATED( AD45        ) ) DEALLOCATE( AD45        )
       IF ( ALLOCATED( AD47        ) ) DEALLOCATE( AD47        )
       IF ( ALLOCATED( AD52        ) ) DEALLOCATE( AD52        )
