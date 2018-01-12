@@ -77,7 +77,9 @@ CONTAINS
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
     USE CMN_DIAG_Mod,       ONLY : Init_CMN_DIAG
+#endif
     USE CMN_FJX_MOD,        ONLY : Init_CMN_FJX
     USE CMN_O3_Mod,         ONLY : Init_CMN_O3
     USE CMN_SIZE_Mod,       ONLY : Init_CMN_SIZE
@@ -221,6 +223,7 @@ CONTAINS
 
 #endif
 
+#if defined( BPCH_DIAG )
     ! Set dimensions in CMN_DEP_mod.F and allocate arrays
     CALL Init_CMN_DIAG( am_I_Root, RC )
 
@@ -230,6 +233,7 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+#endif
 
     ! Initialize CMN_O3_mod.F
     CALL Init_CMN_O3( am_I_Root, RC )

@@ -325,10 +325,10 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD             ! NDxx flags
       USE CMN_SIZE_MOD             ! Size parameters        
       USE DAO_MOD,            ONLY : AIRQNT
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD             ! NDxx flags
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
 #endif
       USE ErrCode_Mod
@@ -586,10 +586,10 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD               ! NDxx flags
       USE CMN_SIZE_MOD               ! Size parameters
       USE DAO_MOD,              ONLY : AIRQNT
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD               ! NDxx flags
       USE DIAG_MOD,             ONLY : MASSFLEW, MASSFLNS, MASSFLUP
 #endif
       USE ErrCode_Mod

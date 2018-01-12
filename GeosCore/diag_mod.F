@@ -26,6 +26,8 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
+#if defined( BPCH_DIAG )
+
       ! For ND01 -- Pb emissions (Rn, Be now tracked thru HEMCO)
       REAL*4,  ALLOCATABLE :: AD01(:,:,:)
 
@@ -73,9 +75,6 @@
       REAL*4,  ALLOCATABLE :: AD22(:,:,:,:)      
       INTEGER, ALLOCATABLE :: LTJV(:,:)
       INTEGER, ALLOCATABLE :: CTJV(:,:) 
-
-      ! For ND23 -- CH3CCl3 lifetime diagnostic
-      REAL(fp),  ALLOCATABLE :: DIAGCHLORO(:,:,:,:)
 
       ! For ND24 -- E/W transport mass flux diagnostic
       REAL(fp),  ALLOCATABLE, TARGET :: MASSFLEW(:,:,:,:)
@@ -209,6 +208,10 @@
 
       ! For ND64 -- ISORROPIA pH, H+, and aerosol H2O diagnostic:
       REAL*4,  ALLOCATABLE :: AD73(:,:,:,:)
+#endif
+
+      ! For ND23 -- CH3CCl3 lifetime diagnostic
+      REAL(fp),  ALLOCATABLE :: DIAGCHLORO(:,:,:,:)
 !
 ! !REVISION HISTORY:
 !  30 Nov 1999 - A. Fiore - Initial version
@@ -334,6 +337,7 @@
       !=================================================================
       ! CLEANUP_DIAG begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD01        ) ) DEALLOCATE( AD01        )
       IF ( ALLOCATED( AD02        ) ) DEALLOCATE( AD02        )
       IF ( ALLOCATED( AD07_BC     ) ) DEALLOCATE( AD07_BC     )
@@ -418,6 +422,7 @@
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
       IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  )
+#endif
 
       END SUBROUTINE CLEANUP_DIAG
 !EOC

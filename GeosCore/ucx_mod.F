@@ -2669,7 +2669,6 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD             ! ND44
       USE CMN_FJX_MOD,        ONLY : RAA, IND999
       USE CMN_SIZE_MOD             ! Size parameters
       USE ErrCode_Mod

@@ -20,7 +20,9 @@
      &                         WVAA, SPECMASK, LSPECRADMENU,
      &                         NSPECRADMENU
       USE CMN_SIZE_MOD, ONLY : IIPAR,JJPAR,LLPAR, NDUST, NAER
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,     ONLY : AD72 !RAD OUTPUT DIAGNOSTIC ARRAY
+#endif
       USE OMP_LIB
       USE PARRRTM,      ONLY : NBNDLW
       USE PARRRSW,      ONLY : NBNDSW
@@ -1537,6 +1539,7 @@
 !$OMP+SCHEDULE( DYNAMIC )
       DO J=1,JJPAR
       DO I=1,IIPAR
+#if defined( BPCH_DIAG )
        IF (ICLD.GT.0) THEN
         !ALL-SKY (WE GET CLEAR-SKY WITH THIS TOO)
         !N.B. UPWELLING SHOULD BE NEGATIVE AS DOWN IS +VE
@@ -1567,6 +1570,7 @@
         AD72(I,J,OUTIDX+7*NAD72) = AD72(I,J,OUTIDX+7*NAD72) +
      &                     SNGL(LW_DFLUX(I,J,1))
        ENDIF
+#endif
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT 
        !SKIP OUTIDX=1,2,3 (BASELINE, OZONE AND CH4)
@@ -1607,6 +1611,7 @@
          !DIVIDE THROUGH BY AOD
          SSAOUT=SSAOUT/AODOUT
          !offsetting output depending on wavelength
+#if defined( BPCH_DIAG )
          AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) = 
      &   AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) + AODOUT
          AD72(I,J,OUTIDX+(9+3*(W-1))*NAD72) = 
@@ -1614,6 +1619,7 @@
      &   AD72(I,J,OUTIDX+(9+3*(W-1))*NAD72) + SSAOUT
          AD72(I,J,OUTIDX+(10+3*(W-1))*NAD72)= 
      &   AD72(I,J,OUTIDX+(10+3*(W-1))*NAD72) + ASYMOUT
+#endif
         ENDDO !NWVSELECT
        ENDIF
       ENDDO 

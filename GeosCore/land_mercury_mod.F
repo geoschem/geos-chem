@@ -203,7 +203,6 @@
 ! !USES:
 !     
       USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD

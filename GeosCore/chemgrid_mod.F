@@ -494,6 +494,8 @@
 
       ! Initialize
       RC      =  GC_SUCCESS
+
+#if defined( NC_DIAG )
       ErrMsg  = ''
       ThisLoc = 
      &     ' -> at INIT_CHEMGRID (in module GeosCore/chemgrid_mod.F)'
@@ -511,6 +513,8 @@
      &                     SubStr    = 'MET_TROPHT',
      &                     Found     = Archive_MetTropHt, 
      &                     RC        = RC                  )
+
+#endif
    
       END SUBROUTINE INIT_CHEMGRID
 !EOC

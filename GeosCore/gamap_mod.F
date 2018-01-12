@@ -194,6 +194,8 @@
       ! Assume success
       RC = GC_SUCCESS
 
+#if defined( BPCH_DIAG )
+
       ! Allocate and initialize variables
       CALL INIT_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )
 
@@ -211,6 +213,8 @@
 
       ! Deallocate variables
       CALL CLEANUP_GAMAP
+
+#endif
 
       END SUBROUTINE DO_GAMAP
 !EOC
@@ -250,6 +254,8 @@
       !=================================================================
       ! CREATE_DINFO begins here!
       !=================================================================
+
+#if defined( BPCH_DIAG )
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
@@ -309,6 +315,7 @@
 
       ! Close file
       CLOSE( IU_FILE )
+#endif
 
       END SUBROUTINE CREATE_DINFO
 !EOC
@@ -371,6 +378,8 @@
 
       ! Assume success
       RC      =  GC_SUCCESS
+
+#if defined( BPCH_DIAG )
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
@@ -688,6 +697,7 @@
             ENDDO
          ENDIF
       ENDDO
+#endif
 
       END SUBROUTINE CREATE_TINFO
 !EOC
@@ -736,6 +746,7 @@
       !=================================================================
       ! WRITE_TINFO begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Write one line to "tracerinfo.dat" file
       WRITE( IU_FILE, 100, IOSTAT=IOS ) 
@@ -747,6 +758,7 @@
 
       ! FORMAT string
  100  FORMAT( a8, 1x, a30, es10.3, i3, i9, es10.3, 1x, a )
+#endif
 
       END SUBROUTINE WRITE_TINFO
 !EOC
@@ -792,6 +804,7 @@
       !=================================================================
       ! WRITE_SEPARATOR begins here! 
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Create separator string
       SEPARATOR = '#' // REPEAT( '=', 78 )
@@ -842,7 +855,8 @@
  170  FORMAT( '# Quantities for Soil NOx restart file' )
  180  FORMAT( '# ND', i2.2, ' diagnostic quantities'   )
  190  FORMAT( '# TOMAS aerosol rate [cm-3 s-1]'      )   !(win, 7/9/09)
-      
+#endif
+
       END SUBROUTINE WRITE_SEPARATOR
 !EOC
 !------------------------------------------------------------------------------
@@ -901,6 +915,7 @@
       !=================================================================
       ! INIT_DIAGINFO begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       N           = 1
       CATEGORY(N) = 'IJ-AVG-$'
@@ -1713,7 +1728,8 @@
 
       ! Number of categories
       NCATS = N
-      
+#endif
+
       END SUBROUTINE INIT_DIAGINFO
 !EOC
 !------------------------------------------------------------------------------
@@ -1734,8 +1750,9 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD,       ONLY : PD64, PD68, PD72R
       USE CMN_FJX_MOD,        ONLY : NSPECRADMENU, STRWVSELECT
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD,       ONLY : PD64, PD68, PD72R
       USE DIAG03_MOD,         ONLY : ND03, PD03, PD03_PL
       USE DIAG04_MOD,         ONLY : ND04
       USE DIAG41_MOD,         ONLY : ND41
@@ -1748,6 +1765,7 @@
       USE DIAG53_MOD,         ONLY : ND53, PD53
       USE DIAG56_MOD,         ONLY : ND56
       USE DIAG63_MOD,         ONLY:  DO_SAVE_DIAG63
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
@@ -1859,6 +1877,8 @@
 
       ! Assume success
       RC = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
 
       ! Initialization
       DUM = 1.0
@@ -8016,6 +8036,7 @@
          HDFSCALE(:,:)  = SCALE(:,:)
          
       ENDIF
+#endif
 
       END SUBROUTINE INIT_GAMAP
 !EOC
@@ -8042,6 +8063,7 @@
       !===================================================================
       ! CLEANUP_GAMAP begins here!
       !===================================================================
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( CATEGORY ) ) DEALLOCATE( CATEGORY )
       IF ( ALLOCATED( DESCRIPT ) ) DEALLOCATE( DESCRIPT )
       IF ( ALLOCATED( FNAME    ) ) DEALLOCATE( FNAME    )
@@ -8053,6 +8075,7 @@
       IF ( ALLOCATED( OFFSET   ) ) DEALLOCATE( OFFSET   )
       IF ( ALLOCATED( SCALE    ) ) DEALLOCATE( SCALE    )
       IF ( ALLOCATED( UNIT     ) ) DEALLOCATE( UNIT     )
+#endif
 
       END SUBROUTINE CLEANUP_GAMAP
 !EOC

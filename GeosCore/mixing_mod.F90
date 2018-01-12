@@ -338,7 +338,6 @@ CONTAINS
 ! !USES:
 !
     USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
-    USE CMN_DIAG_MOD,       ONLY : ND44
     USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR,   LLPAR
     USE DRYDEP_MOD,         ONLY : DEPSAV
     USE ErrCode_Mod
@@ -356,6 +355,7 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 #if defined( BPCH_DIAG )
+    USE CMN_DIAG_MOD,       ONLY : ND44
     USE DIAG_MOD,           ONLY : AD44
 #endif
 #if defined( USE_TEND )

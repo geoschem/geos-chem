@@ -38,10 +38,12 @@ MODULE HCOI_GC_Diagn_Mod
 !
   ! GEOS-Chem diagnostic switches and arrays
   USE CMN_SIZE_Mod
+#if defined( BPCH_DIAG )
   USE CMN_DIAG_Mod
   USE DIAG_Mod
   USE DIAG53_Mod
   USE DIAG56_Mod
+#endif
   USE HCO_Diagn_Mod
   USE HCO_Error_Mod
   USE HCO_Interface_Mod
@@ -158,6 +160,7 @@ CONTAINS
 
     ! Assume success
     RC  = HCO_SUCCESS
+#if defined( BPCH_DIAG )
 
     !=======================================================================
     ! Define manual diagnostics
@@ -465,6 +468,7 @@ CONTAINS
 
     ! Leave w/ success
     RC = HCO_SUCCESS 
+#endif
 
   END SUBROUTINE HCOI_GC_Diagn_Init
 !EOC
@@ -527,6 +531,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if the Rn-Pb-Be simulation is not selected
     IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM ) RETURN
@@ -591,6 +597,7 @@ CONTAINS
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
+#endif
 
   END SUBROUTINE Diagn_Radon
 !EOC
@@ -659,6 +666,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if we are doing a specialty simulation w/o dust
     IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )   .and. &
@@ -772,6 +781,7 @@ CONTAINS
        ENDIF
 
     ENDIF
+#endif
 
   END SUBROUTINE Diagn_Dust
 !EOC
@@ -836,6 +846,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if we are doing a specialty simulation w/o carbon aerosols
     IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )   .and. &
@@ -910,6 +922,7 @@ CONTAINS
           ENDDO
        ENDDO
     ENDIF 
+#endif
 
   END SUBROUTINE Diagn_Carbon
 !EOC
@@ -973,6 +986,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if we are doing a specialty simulation w/o sea salt
     IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )   .and. &
@@ -1049,6 +1064,7 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDDO 
     ENDIF
+#endif
 
   END SUBROUTINE Diagn_SeaSalt
 !EOC
@@ -1113,6 +1129,8 @@ CONTAINS
     ! Assume success
     RC = HCO_SUCCESS
 
+#if defined( BPCH_DIAG )
+
     ! Exit if we are doing a specialty simulation w/o acetone
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
        RETURN
@@ -1153,7 +1171,7 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
     ENDIF
-
+#endif
 
   END SUBROUTINE Diagn_AcetSrc
 !EOC
@@ -1219,6 +1237,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if we are doing a specialty simulation w/o carbon aerosols
     IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )   .and. &
@@ -1488,6 +1508,7 @@ CONTAINS
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
+#endif
 
   END SUBROUTINE Diagn_Sulfur
 !EOC
@@ -1566,6 +1587,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if we are doing a specialty simulation w/o biomass
     IF ( Input_Opt%ITS_A_POPS_SIM   ) RETURN
@@ -2327,6 +2350,7 @@ CONTAINS
                           RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
+#endif
 
   END SUBROUTINE Diagn_Biomass
 !EOC
@@ -2393,6 +2417,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if we are doing a specialty simulation w/o NO
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
@@ -2536,7 +2562,8 @@ CONTAINS
        ENDIF
   
     ENDIF !ND32
- 
+#endif
+
   END SUBROUTINE Diagn_NOsrc
 !EOC
 !------------------------------------------------------------------------------
@@ -2602,6 +2629,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if we are doing a specialty simulation w/o biofuels
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) RETURN
@@ -2751,6 +2780,7 @@ CONTAINS
          IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
    ENDIF
+#endif
 
   END SUBROUTINE Diagn_Biofuel
 !EOC
@@ -2835,6 +2865,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if we are doing a specialty simulation w/o the anthro species below
     IF ( Input_Opt%ITS_A_C2H6_SIM    ) RETURN
@@ -3628,6 +3660,7 @@ CONTAINS
           ENDDO
        ENDIF
     ENDIF
+#endif
 
   END SUBROUTINE Diagn_Anthro
 !EOC
@@ -3708,6 +3741,8 @@ CONTAINS
     
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if we are doing a specialty simulation w/o biofuels
     IF ( Input_Opt%ITS_A_HCN_SIM     ) RETURN
@@ -4358,6 +4393,7 @@ CONTAINS
        ENDIF
 
     ENDIF
+#endif
 
   END SUBROUTINE Diagn_Biogenic
 !EOC
@@ -4428,6 +4464,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if we are doing a specialty simulation w/o lightning
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
@@ -4522,6 +4560,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDIF ! ND56 
+#endif
 
   END SUBROUTINE Diagn_LFlash
 !EOC
@@ -4583,6 +4622,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if we are doing a specialty simulation w/o lightning
     IF ( .NOT. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
@@ -4706,6 +4747,7 @@ CONTAINS
           ENDIF 
        ENDIF
     ENDIF
+#endif
 
   END SUBROUTINE Diagn_ParaNOx
 !EOC
@@ -4765,6 +4807,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if the POPs simulation is not selected
     IF ( .not. Input_Opt%ITS_A_POPS_SIM ) RETURN
@@ -4906,6 +4950,7 @@ CONTAINS
        ENDDO
 
     ENDIF
+#endif
 
   END SUBROUTINE Diagn_POPs
 !EOC
@@ -4977,6 +5022,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if the CH4 simulation is not selected
     IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. Ind_('CH4','A') > 0 ) ) RETURN
@@ -5305,6 +5352,7 @@ CONTAINS
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF     
+#endif
 
   END SUBROUTINE Diagn_CH4
 !EOC
@@ -5362,6 +5410,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if the mercury simulation is not selected
     IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) RETURN
@@ -5491,6 +5541,7 @@ CONTAINS
     ! %%%%% BIOMASS BURNING HG %%%%%
     ! ==> defined in Diagn_Biomass
     !-------------------------------------------
+#endif
 
   END SUBROUTINE Diagn_Hg
 !EOC
@@ -5546,6 +5597,8 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+#if defined( BPCH_DIAG )
 
     ! Exit if the CH4 simulation is not selected
     !IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. id_CH4 > 0 ) ) RETURN
@@ -5919,7 +5972,9 @@ CONTAINS
                        RC        = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-  End  SUBROUTINE Diagn_TOMAS
+#endif
+
+  END SUBROUTINE Diagn_TOMAS
 !EOC
 #endif
 !------------------------------------------------------------------------------

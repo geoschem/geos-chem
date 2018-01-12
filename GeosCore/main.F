@@ -74,6 +74,7 @@
       !-----------------------------------------------------------------
       ! GEOS-Chem diagnostics modules
       !-----------------------------------------------------------------
+#if defined( BPCH_DIAG )
       USE BENCHMARK_MOD         ! For the 1-month benchmark simulations
       USE CMN_DIAG_MOD          ! Logical switches for G-C diagnostics
       USE DIAG_MOD              ! G-C diagnostic arrays & counters
@@ -85,6 +86,7 @@
       USE DIAG51_MOD            ! For ND51  (satellite timeseries) diag
       USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
       USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
+#endif
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE HISTORY_MOD           ! Updated netCDF diagnostics
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
@@ -580,6 +582,7 @@
       ! initialization of the state objects. Also note that the diag_list
       ! obj may be stored in the HistoryConfig object in GCHP and we may
       ! want to replicate that behavior in GCC in the future. (ewl, 9/26/17)
+#if defined( NC_DIAG )
       historyConfigFile = 'HISTORY.rc' ! cannot use Input_Opt variable in GCHP
       CALL Init_DiagList( am_I_Root, historyConfigFile, Diag_List, RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -589,6 +592,7 @@
 
       !### Print diagnostic list if needed for debugging 
       CALL Print_DiagList( am_I_Root, Diag_List, RC )
+#endif
 
       ! Initialize Input_Opt, State_Chm, State_Diag, State_Met objects
       CALL GC_Init_All( am_I_Root, Diag_List,  Input_Opt, 
@@ -848,6 +852,7 @@
          ENDIF
       ENDIF
 
+#if defined( BPCH_DIAG )
       ! Save initial tracer mass [kg] to disk for model benchmarking
       ! for Rn-Pb-Be and full-chem benchmark simulations
       ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
@@ -857,6 +862,7 @@
      &                State_Chm,    State_Diag, RC,
      &                LBEGIN=.TRUE.                        )
       ENDIF
+#endif
 
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
@@ -1000,6 +1006,8 @@
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "HEMCO", RC )
 #endif
+
+#if defined( BPCH_DIAG )
          ! Original diagnostics
          IF ( ITS_TIME_FOR_BPCH() ) THEN
 
@@ -1009,14 +1017,13 @@
             ! Write bpch file
             IF ( DO_DIAG_WRITE ) THEN
 
-#if defined( BPCH_DIAG )
                CALL DIAG3
      &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-#endif 
                ! Flush file units
                CALL CTM_FLUSH
 
             ENDIF
+#endif 
 
             !===========================================================
             !    *****  W R I T E   R E S T A R T   F I L E S  *****
@@ -1211,8 +1218,10 @@
          CALL DIAG_TROPOPAUSE( am_I_Root, Input_Opt, 
      &                         State_Met, State_Diag, RC )
 
+#if defined( BPCH_DIAG )
          ! Update dynamic timestep
          CALL SET_CT_DYN( INCREMENT=.TRUE. )
+#endif
 
          !### Debug
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INTERP, etc' )
@@ -1403,8 +1412,10 @@
          !--------------------------------------------------------------
          IF ( ITS_TIME_FOR_EMIS() ) THEN
 
+#if defined( BPCH_DIAG )
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
+#endif
      
             !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
@@ -1481,8 +1492,10 @@
             CALL GEOS_Timer_Start( "Convection", RC )
 #endif
 
+#if defined( BPCH_DIAG )
             ! Increment the convection timestep
             CALL SET_CT_CONV( INCREMENT=.TRUE. )
+#endif
 
             !===========================================================
             !      ***** M I X E D   L A Y E R   M I X I N G *****
@@ -1559,8 +1572,10 @@
          ! Every chemistry timestep...
          IF ( ITS_TIME_FOR_CHEM() ) THEN
 
+#if defined( BPCH_DIAG )
             ! Increment chemistry timestep counter
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
+#endif
 
             ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
             IF ( ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
@@ -1716,8 +1731,10 @@
                   ENDIF
                ENDDO
 
+#if defined( BPCH_DIAG )
                ! Increment radiation timestep counter
                CALL SET_CT_RAD( INCREMENT=.TRUE. )
+#endif
 
                !### Debug
                IF ( prtDebug ) THEN 
@@ -1843,6 +1860,7 @@
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG1' )
 
+#if defined( BPCH_DIAG )
             ! ND41: save PBL height in 1200-1600 LT (amf)
             ! (for comparison w/ Holzworth, 1967)
             IF ( ND41 > 0 ) CALL DIAG41
@@ -1863,6 +1881,7 @@
 
             ! Increment diagnostic timestep counter. (ccc, 5/13/09)
             CALL SET_CT_DIAG( INCREMENT=.TRUE. )
+#endif
 
             ! Planeflight diagnostic moved to be after chemistry, kyu
             !### Debug
@@ -2000,6 +2019,7 @@
       ! Print the mass-weighted mean OH concentration (if applicable)
       CALL PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
 
+#if defined( BPCH_DIAG )
       ! Save final tracer mass [kg] to disk for model benchmarking
       ! for Rn-Pb-Be and full-chem benchmark simulations
       ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
@@ -2014,6 +2034,7 @@
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
       ENDIF
+#endif
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End ( "Timesteps", RC )
@@ -2068,6 +2089,7 @@
       ! Deallocate the derived type object w/ mapping info
       CALL CLEANUP_MAPPING( mapping )
 
+#if defined( NC_DIAG )
       ! Deallocate fields of the diagnostics list object
       CALL Cleanup_DiagList( am_I_Root, Diag_List, RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -2075,6 +2097,7 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup Diag_List' )
+#endif
 
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION

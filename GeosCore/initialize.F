@@ -22,12 +22,13 @@
 !
       ! Modules from Headers subdirectory
       USE CMN_SIZE_MOD          
-      USE CMN_DIAG_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
       USE PRECISION_MOD
 
       ! Modules from GeosCore subdirectory
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD
       USE DIAG03_MOD
       USE DIAG04_MOD
@@ -35,6 +36,8 @@
       USE DIAG42_MOD
       USE DIAG53_MOD
       USE DIAG56_MOD
+#endif
+
       USE ERROR_MOD
       USE TIME_MOD
 
@@ -343,13 +346,13 @@
             AD71_LHR   = -1
             AD71_LDAY  = -1
          ENDIF
-#endif
 
          ! Echo output
          IF ( am_I_Root ) THEN
             WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
          ENDIF
       ENDIF
+#endif
 
       END SUBROUTINE INITIALIZE
 !EOC

@@ -670,7 +670,10 @@
          ! Grid box surface area [m2]
          AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
 
-         ! Update diagnostics
+#if defined( BPCH_DIAG )
+         !--------------------------------------------------------------
+         ! ND58 (bpch) diagnostic
+         !--------------------------------------------------------------
          IF ( ND58 > 0 ) THEN
 
             ! All emission sources excluding soil absorption [kg]
@@ -683,6 +686,7 @@
      &            CH4_EMIS(IREF,JREF,N) * DTSRCE * AREA_M2
             ENDDO
          ENDIF
+#endif
 
       ENDDO
       ENDDO
@@ -1331,8 +1335,12 @@
 
             TROPOCH4=TROPOCH4 + GCH4 * KRATE * C_OH * DT / Spc2GCH4
 
-            ! Modify AD19 Diagnostic
+#if defined( BPCH_DIAG )
+            !-----------------------------------------------------------
+            ! ND19 (bpch) diagnostic
+            !
             ! How much CH4 (kg) is lost by reaction with OH
+            !-----------------------------------------------------------
             IF ( ND19 > 0 ) THEN  ! --> [kg/box]
                IF ( L <= LD19 ) THEN
 !	    	AD19(I,J,12) = AD19(I,J,12) + 
@@ -1340,6 +1348,7 @@
      &                 ( GCH4 * KRATE * C_OH * DT ) / Spc2GCH4
                ENDIF
             ENDIF
+#endif
 
             ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt) 
             GCH4 = GCH4 * ( 1e+0_fp - KRATE * C_OH * DT )
@@ -1597,7 +1606,7 @@
 !
       ! Scalars
       INTEGER           :: N,  NA,   nAdvect
-      INTEGER           :: I,  J,    L,        BASELEV
+      INTEGER           :: I,  J,    L
       REAL(fp)          :: DT, GCH4, Spc2GCH4, LRATE,  BOXVL
 
       ! Local variables for quantities from Input_Opt

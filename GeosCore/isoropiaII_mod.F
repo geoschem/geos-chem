@@ -709,13 +709,6 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
-         !--------------------------------------------------------------
-         ! HISTORY (aka netCDF diagnostics)
-         !--------------------------------------------------------------
-
-#endif
-
       ENDDO
       ENDDO
       ENDDO 

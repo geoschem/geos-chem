@@ -278,8 +278,8 @@
 ! !USES:
 ! 
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND44
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD             ! ND44
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE ErrCode_Mod
@@ -509,9 +509,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD             ! ND59
       USE CMN_SIZE_MOD             ! Size parameters
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD             ! ND59
       USE DIAG_MOD,           ONLY : AD59_DUST, AD59_NUMB  !(win, 7/17/09)
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -682,9 +684,9 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE ErrCode_Mod

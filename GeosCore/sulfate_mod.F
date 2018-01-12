@@ -871,9 +871,9 @@
 !
       SUBROUTINE EMISSSULFATETOMAS( am_I_Root, Input_Opt,
      &                              State_Met, State_Chm, RC )
-
+!
 ! !USES:
-      USE CMN_DIAG_MOD
+!
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD
@@ -1013,8 +1013,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD             ! ND13 (for now)
       USE DIAG_MOD,           ONLY : AD59_SULF,     AD59_NUMB
+#endif
       USE ERROR_MOD,          ONLY : ERROR_STOP,  IT_IS_NAN
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
@@ -1455,6 +1457,7 @@
 !trigger a big particle shift in mnfix and it will look like a
 !'negative number emission' event as defined by this inequality
 
+#if defined( BPCH_DIAG )
 !sfarina - changing the definition of this diagnostic to ignore changes to the
 !distribution by mnfix
 !                  AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) +
@@ -1463,6 +1466,7 @@
 !     &                                  TC1(I,J,L,K)-N0(L,K)
                   AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + Mdiag(K)
                   AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + Ndiag(K)
+#endif
                ENDDO
             ENDIF
 
@@ -1483,6 +1487,7 @@
                ENDDO
             ENDDO
 
+#if defined( BPCH_DIAG )
            !==============================================================
            ! ND59 Diagnostic: Size-resolved primary sulfate emission in
            !                 [kg S/box/timestep] and the corresponding
@@ -1504,6 +1509,7 @@
                ENDDO
 
             ENDIF
+#endif
 
          ENDIF !SGCOAG
 
@@ -1534,9 +1540,9 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD        
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE ErrCode_Mod
@@ -2332,9 +2338,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
@@ -3824,14 +3827,13 @@
 !
 ! !USES:
 !
-      !---------------------------------------------------------------
-      ! DIAGNOSTICS -- leave commented out for now (bec, bmy, 4/13/05)
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD             ! ND05, LD05
+      USE DIAG_MOD,           ONLY : AD05
       !USE CMN_DIAG_MOD          ! ND19
       !USE DIAG_MOD,        ONLY : AD09
-      !---------------------------------------------------------------
-      USE CMN_DIAG_MOD             ! ND05, LD05
+#endif
       USE CMN_SIZE_MOD          
-      USE DIAG_MOD,           ONLY : AD05
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
@@ -6167,7 +6169,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : ChmState
@@ -6560,7 +6561,6 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -6699,7 +6699,6 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput

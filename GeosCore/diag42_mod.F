@@ -85,7 +85,9 @@
       USE AEROSOL_MOD,        ONLY : OCFPOA, OCFOPOA
       USE CARBON_MOD,         ONLY : BETANOSAVE
       USE CMN_SIZE_MOD             ! Size parameters
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD             ! NDxx flags
+#endif
       USE CMN_O3_MOD,         ONLY : SAVEOA
       USE ErrCode_Mod
       USE ERROR_MOD
@@ -171,6 +173,7 @@
       !================================================================= 
       ! DIAG42 begins here! 
       !================================================================= 
+#if defined( BPCH_DIAG )
 
       ! First-time setup
       IF ( FIRST ) THEN
@@ -420,6 +423,7 @@
       ! Free pointers
       Spc    => NULL()
       AIRVOL => NULL()
+#endif
 
       END SUBROUTINE DIAG42
 !EOC
@@ -446,12 +450,14 @@
       !=================================================================
       ! ZERO_DIAG42 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Exit if ND42 is turned off
       IF ( ND42 == 0 ) RETURN
 
       ! Zero arrays
       AD42(:,:,:,:) = 0e0
+#endif
 
       END SUBROUTINE ZERO_DIAG42
 !EOC
@@ -472,12 +478,14 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
       USE CMN_DIAG_MOD             ! TINDEX
-      USE CMN_SIZE_MOD             ! Size parameters
       USE FILE_MOD,           ONLY : IU_BPCH
+#endif
+      USE CMN_SIZE_MOD             ! Size parameters
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET
       USE GC_GRID_MOD,        ONLY : GET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -520,6 +528,7 @@
       !=================================================================
       ! WRITE_DIAG42 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Exit if ND42 is turned off
       IF ( ND42 == 0 ) RETURN
@@ -572,6 +581,7 @@
      &               IIPAR,     JJPAR,     LD42,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD42) )
       ENDDO
+#endif
 
       END SUBROUTINE WRITE_DIAG42
 !EOC
@@ -595,7 +605,6 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE Input_Opt_Mod,      ONLY : OptInput
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -619,6 +628,7 @@
       !=================================================================
       ! INIT_DIAG42 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
      
       ! This is no longer necessary (bmy, 12/13/17)
       !! Turn off ND42 if SOA tracers are not used
@@ -640,6 +650,7 @@
 
       ! Zero arrays
       CALL ZERO_DIAG42
+#endif
 
       END SUBROUTINE INIT_DIAG42
 !EOC
@@ -666,7 +677,9 @@
       !=================================================================
       ! CLEANUP_DIAG42 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD42 ) ) DEALLOCATE( AD42 ) 
+#endif
 
       END SUBROUTINE CLEANUP_DIAG42
 !EOC

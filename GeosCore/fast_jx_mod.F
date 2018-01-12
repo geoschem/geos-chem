@@ -1657,7 +1657,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD,   ONLY : ND64
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE inquireMod,     ONLY : findFreeLUN

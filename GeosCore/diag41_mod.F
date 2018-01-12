@@ -87,6 +87,7 @@
       !=================================================================
       ! ZERO_DIAG41 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Exit if ND41 is turned off
       IF ( ND41 == 0 ) RETURN
@@ -109,6 +110,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#endif
       END SUBROUTINE ZERO_DIAG41
 !EOC
 !------------------------------------------------------------------------------
@@ -176,6 +178,7 @@
       !=================================================================
       ! WRITE_DIAG41 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Exit if ND41 is turned off
       IF ( ND41 == 0 ) RETURN
@@ -223,6 +226,7 @@
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       ENDDO
+#endif
 
       END SUBROUTINE WRITE_DIAG41
 !EOC
@@ -287,6 +291,7 @@
       !=================================================================
       ! DIAG41 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       !-----------------------------------
       ! Find boxes where it is afternoon
@@ -337,6 +342,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#endif
       END SUBROUTINE DIAG41
 !EOC
 !------------------------------------------------------------------------------
@@ -374,6 +380,7 @@
       !=================================================================
       ! INIT_DIAG41 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Exit if ND41 is turned off
       IF ( ND41 == 0 ) RETURN
@@ -388,6 +395,7 @@
 
       ! Zero arrays
       CALL ZERO_DIAG41
+#endif
 
       END SUBROUTINE INIT_DIAG41
 !EOC
@@ -414,8 +422,10 @@
       !=================================================================
       ! CLEANUP_DIAG41 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD41    ) ) DEALLOCATE( AD41    ) 
       IF ( ALLOCATED( GOOD_CT ) ) DEALLOCATE( GOOD_CT )
+#endif
 
       END SUBROUTINE CLEANUP_DIAG41
 !EOC

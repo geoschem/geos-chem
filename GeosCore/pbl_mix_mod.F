@@ -536,9 +536,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : TURBFLUP
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE PhysConstants,  ONLY : AIRMW
@@ -760,9 +762,10 @@
                
             TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) / AD(I,J,L)
 
+#if defined( BPCH_DIAG )
             !=======================================================
-            ! ND15 Diagnostic: 
-            ! mass change due to mixing in the boundary layer
+            ! ND15 (bpch) Diagnostic: 
+            ! Mass change due to mixing in the boundary layer
             !=======================================================
             IF ( ND15 > 0 ) THEN
                DO L = 1, IMIX(I,J)
@@ -771,6 +774,7 @@
      &                 / State_Chm%SpcData(N)%Info%emMW_g ) * DTCONV )
                ENDDO
             ENDIF
+#endif
          ENDDO                  
       ENDDO                     
       ENDDO                     

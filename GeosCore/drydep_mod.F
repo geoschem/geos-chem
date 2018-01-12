@@ -16,9 +16,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD                          ! Size parameters
-      USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE DAO_MOD                               ! Met field subroutines
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
 #endif
       USE ERROR_MOD                             ! Error handling routines

@@ -433,6 +433,8 @@
                RETURN
             ENDIF
                                                   
+#if defined( BPCH_DIAG )
+         ! Only read if compiled with BPCH_DIAG=y (bmy, 1/12/18)
          ELSE IF ( INDEX( LINE, 'DIAGNOSTIC MENU'  ) > 0 ) THEN
             CALL READ_DIAGNOSTIC_MENU( am_I_Root, Input_Opt, RC )             
             IF ( RC /= GC_SUCCESS ) THEN
@@ -440,6 +442,7 @@
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
+#endif
 
          ELSE IF ( INDEX( LINE, 'PLANEFLIGHT MENU' ) > 0 ) THEN
             CALL READ_PLANEFLIGHT_MENU( am_I_Root, Input_Opt, RC )             
@@ -449,6 +452,8 @@
                RETURN
             ENDIF
                                                   
+#if defined( BPCH_DIAG )
+         ! Only read if compiled with BPCH_DIAG=y (bmy, 1/12/18)
          ELSE IF ( INDEX( LINE, 'ND48 MENU'        ) > 0 ) THEN
             CALL READ_ND48_MENU( am_I_Root, Input_Opt, RC )                  
             IF ( RC /= GC_SUCCESS ) THEN
@@ -504,6 +509,7 @@
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
+#endif
                                              
          ELSE IF ( INDEX( LINE, 'UNIX CMDS MENU'   ) > 0 ) THEN 
             CALL READ_UNIX_CMDS_MENU( am_I_Root, Input_Opt, RC )              
@@ -4387,7 +4393,9 @@
 !
 ! !USES:
 !      
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD         ! NJDAY
+#endif
       USE CMN_SIZE_MOD         ! Size parameters
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
@@ -4431,9 +4439,12 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
+
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
-     &   ' -> at  (in module GeosCore/input_mod.F)'
+     &   ' -> at Read_Output_Menu (in module GeosCore/input_mod.F)'
 
       ! Read info
       READ( IU_GEOS, 100, IOSTAT=IOS ) NJDAY
@@ -4502,6 +4513,7 @@
        ENDIF
 #endif
 
+#endif
       END SUBROUTINE READ_OUTPUT_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -4521,9 +4533,10 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD        ! Size parameters
+#if defined( BPCH_DIAG )
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
       USE CMN_DIAG_MOD        ! NDxx flags, TINDEX, TCOUNT, TMAX
-      USE CMN_SIZE_MOD        ! Size parameters
       USE DIAG03_MOD,    ONLY : ND03,      PD03
       USE DIAG03_MOD,    ONLY : PD03_PL    !eds 9/9/10
       USE DIAG04_MOD,    ONLY : ND04,      PD04,      INIT_DIAG04
@@ -4531,6 +4544,7 @@
       USE DIAG42_MOD,    ONLY : ND42,      PD42,      INIT_DIAG42
       USE DIAG53_MOD,    ONLY : ND53,      PD53,      INIT_DIAG53
       USE DIAG56_MOD,    ONLY : ND56,      PD56,      INIT_DIAG56
+#endif
       USE DRYDEP_MOD,    ONLY : NUMDEP
       USE ErrCode_Mod
       USE FILE_MOD,      ONLY : IU_BPCH
@@ -4618,6 +4632,8 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_Diagnostic_Menu (in module GeosCore/input_mod.F)'
@@ -5576,6 +5592,8 @@
       ! Open the binary punch file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, BPCH_FILE )
 
+#endif
+
       END SUBROUTINE READ_DIAGNOSTIC_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -5924,7 +5942,9 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE DIAG48_MOD,    ONLY : INIT_DIAG48, ND48_MAX_STATIONS
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
 !
@@ -5975,6 +5995,9 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
+
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND48_Menu (in module GeosCore/input_mod.F)'
@@ -6076,6 +6099,7 @@
          CALL INIT_DIAG48( DO_ND48, FREQ, N_STA, IARR, 
      &                     JARR,    LARR, NARR,  FILE )
       ENDIF
+#endif
 
       END SUBROUTINE READ_ND48_MENU
 !EOC
@@ -6097,7 +6121,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE DIAG49_MOD,         ONLY : INIT_DIAG49
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -6147,6 +6173,9 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
+
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND49_Menu (in module GeosCore/input_mod.F)'
@@ -6302,6 +6331,7 @@
      &                     IMAX,    JMIN,   JMAX,    LMIN,    
      &                     LMAX,    FREQ,   FILE )
       ENDIF
+#endif
 
       END SUBROUTINE READ_ND49_MENU
 !EOC
@@ -6322,7 +6352,9 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE DIAG50_MOD,         ONLY : INIT_DIAG50
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -6374,6 +6406,8 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND50_Menu (in module GeosCore/input_mod.F)'
@@ -6505,6 +6539,7 @@
          CALL INIT_DIAG50( DO_ND50, N_ND50, TRACERS, IMIN, IMAX, 
      &                     JMIN,    JMAX,   LMIN,    LMAX, FILE )
       ENDIF
+#endif
 
       END SUBROUTINE READ_ND50_MENU
 !EOC
@@ -6525,9 +6560,11 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
       USE DIAG51_MOD,         ONLY : INIT_DIAG51
+#endif
+      USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -6581,6 +6618,8 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+#if defined( BPCH_DIAG )
+
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND51_Menu (in module GeosCore/input_mod.F)'
@@ -6735,6 +6774,7 @@
      &                     HR1,     HR2,    IMIN,    IMAX,   
      &                     JMIN,    JMAX,   LMIN,    LMAX,  FILE )
       ENDIF
+#endif
 
       END SUBROUTINE READ_ND51_MENU
 !EOC
@@ -6755,9 +6795,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG51b_MOD,   ONLY : INIT_DIAG51b
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
 !
@@ -6807,6 +6849,8 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND51b_MENU  (in module GeosCore/input_mod.F)'
@@ -6964,6 +7008,7 @@
      &                      HR1,     HR2,    IMIN,    IMAX,
      &                      JMIN,    JMAX,   LMIN,    LMAX,  FILE )
       ENDIF
+#endif
 
       END SUBROUTINE READ_ND51b_MENU
 !EOC
@@ -6985,7 +7030,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE DIAG63_MOD,    ONLY : INIT_DIAG63
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
 !
@@ -7035,6 +7082,8 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND63_Menu (in module GeosCore/input_mod.F)'
@@ -7158,6 +7207,7 @@
          CALL INIT_DIAG63( DO_ND63, N_ND63, TRACERS, IMIN, 
      &                     IMAX,    JMIN,   JMAX,  FREQ,   FILE )
       ENDIF
+#endif
 
       END SUBROUTINE READ_ND63_MENU
 !EOC
@@ -7178,7 +7228,9 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+#endif
       USE CMN_SIZE_MOD
       USE CHARPAK_MOD,        ONLY : ISDIGIT,         STRSPLIT
       USE ErrCode_Mod
@@ -7234,6 +7286,8 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_Prod_Loss_Menu (in module GeosCore/input_mod.F)'
@@ -7392,6 +7446,7 @@
  100  FORMAT( A, L5 )
  110  FORMAT( A, I5 )
  120  FORMAT( /, 'Family=', A10, '  Type=', A4 )
+#endif
 
       END SUBROUTINE READ_PROD_LOSS_MENU
 !EOC

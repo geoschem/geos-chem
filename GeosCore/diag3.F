@@ -36,6 +36,7 @@
       USE TIME_MOD
 
       ! Modules from GeosCore directory
+#if defined( BPCH_DIAG )
       USE BPCH2_MOD                          ! For binary punch I/O routines
       USE DIAG_MOD                           ! For diagnostic arrays
       USE DIAG03_MOD                         ! For Hg diagnostic
@@ -44,6 +45,7 @@
       USE DIAG42_MOD                         ! For SOA diag
       USE DIAG53_MOD                         ! For POPs diag
       USE DIAG56_MOD                         ! For time in tropopause diag
+#endif
       USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
       USE DRYDEP_MOD                         ! For dry deposition
       USE WETSCAV_MOD                        ! For wet deposition
@@ -389,6 +391,8 @@
       ! Assume success
       RC         = GC_SUCCESS
 
+#if defined( BPCH_DIAG )
+
       ! Number of advected species
       nAdvect    = State_Chm%nAdvect
 
@@ -525,7 +529,6 @@
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not defined!', LOC ) 
       ENDIF
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND01: Rn, Pb, Be emissions (Category: "RN--SRCE")
@@ -628,7 +631,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD02) )
          ENDDO
       ENDIF
-#endif
 !
 !******************************************************************************
 !  ND03: Diagnostics from Hg0/Hg2/HgP offline simulation (eck, bmy, 1/20/05)
@@ -690,7 +692,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD05) )
          ENDDO
       ENDIF
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND06: Dust aerosol emissions
@@ -783,7 +784,6 @@
          ENDIF
 
       ENDIF     
-#endif
 !
 !******************************************************************************
 !  ND07: Emissions of BC and OC aerosols
@@ -812,7 +812,6 @@
          ! defined in hcoi_gc_diagn_mod.F
          !--------------------------------------------------------------
 
-#if defined( BPCH_DIAG )
          ! Do for BC and OC
          DO J = 1, 2
 
@@ -945,7 +944,6 @@
                DiagnCnt => NULL()
             ENDDO !I
          ENDDO !J
-#endif
 
          !--------------------------------------------------------------
          ! Other BC diagnostics
@@ -975,7 +973,6 @@
             UNIT      = 'kgC'
             N         = id_OCPI
 
-#if defined( BPCH_DIAG )
             !%%%%% Biogenic OC (kg/m2/s --> kg) %%%%%
             CATEGORY  = 'OC-BIOG'
             DiagnName = 'BIOGENIC_OCPI'
@@ -984,7 +981,6 @@
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                 UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1 )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-#endif
          
             !%%%%% Hydrophilic OC from hydrophobic OC %%%%%
             CATEGORY     = 'PL-OC=$'
@@ -1366,7 +1362,6 @@
 
          ENDIF
       ENDIF   
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND08: Sea salt aerosol emissions
@@ -1423,7 +1418,6 @@
          ENDIF
 
       ENDIF   
-#endif
 !
 !******************************************************************************
 !  ND09: HCN/CH3CN sources/sinks (Categories: "HCN-PL-$", "HCN-SRCE")
@@ -1495,7 +1489,6 @@
             ENDIF
          ENDDO
       ENDIF
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND11: Acetone source & sink diagnostic (Category: "ACETSRCE")
@@ -1545,8 +1538,6 @@
 
          ENDDO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND12: distribution of surface emissions in the boundry layer: [fraction]
@@ -1570,8 +1561,6 @@
      &               IIPAR,     JJPAR,     LLCHEM,   IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD12) )
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND13: Sulfur emissions (for DMS/SO2/SO4/MSA/NH3/NH4/NIT chemistry)
@@ -1730,8 +1719,6 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
       ENDIF    
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND14: Upward mass flux from wet convection (NFCLDMX)
@@ -1944,7 +1931,6 @@
      &               JFIRST,    LFIRST,    AD19(:,:,:) )
 
 	ENDIF
-#endif
 !
 !******************************************************************************
 !  ND21: Optical depth diagnostics
@@ -2231,7 +2217,6 @@
          ENDDO 
 
       ENDIF     
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND24: Eastward mass flux from transport (TPCORE, XTP)
@@ -2331,8 +2316,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD26) )
          ENDDO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND28: Biomass burning diagnostic 
@@ -2798,8 +2781,6 @@
          SpcInfo => NULL()
 
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND29: CO source diagnostics
@@ -2930,8 +2911,6 @@
          ! Free pointer
          SpcInfo => NULL()
       ENDIF
-#endif
-#if defined( BPCH)
 !
 !******************************************************************************
 !  ND30: Land map diagnostic
@@ -2957,8 +2936,6 @@
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND31: Surface pressure diagnostic
@@ -2990,8 +2967,6 @@
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD31) )
       ENDIF
 
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND32: NOx source diagnostic
@@ -3145,8 +3120,6 @@
          SpcInfo => NULL()
 
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND33: Atmospheric column sum of Tracer
@@ -3180,8 +3153,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF  
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND34: Biofuel burning diagnostic 
@@ -3427,7 +3398,6 @@
          ! Free pointer
          SpcInfo => NULL()
       ENDIF
-#endif
 !
 !******************************************************************************
 !  ND35: Tracer concentration at 500 mb 
@@ -3459,7 +3429,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF  
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND36: Anthropogenic source diagnostic
@@ -3731,7 +3700,6 @@
 
          ENDDO ! I
       ENDIF
-#endif
 !
 !******************************************************************************
 !  ND37: Fraction of tracer scavenged in convective cloud updrafts
@@ -3774,9 +3742,6 @@
          ENDDO
       ENDIF
 !
-
-#if defined( BPCH_DIAG )
-
 !******************************************************************************
 !  ND38: Rainout loss of tracer in convective updrafts
 !
@@ -3866,8 +3831,6 @@
          ENDDO
 
       ENDIF
-
-#endif
 !
 !******************************************************************************
 !  ND41: Afternoon boundary layer heights
@@ -3985,7 +3948,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD43) )
          ENDDO
       ENDIF
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND44: Drydep flux (molec/cm2/s) and velocity (cm/s) diagnostics
@@ -4199,9 +4161,6 @@
          ENDDO
 
       ENDIF
-
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND46: Biogenic source diagnostic
@@ -4802,7 +4761,6 @@
          ENDIF
 
       ENDIF
-#endif
 !
 !******************************************************************************
 !  ND47: Tracer Mixing Ratio (v/v) for Levels L = 1, LD47
@@ -5224,7 +5182,6 @@
      &               IIPAR,     JJPAR,     LD54,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD54) )
       ENDIF
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND55: Tropopause diagnostics
@@ -5263,8 +5220,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND56: Lightning flash rate diagnostics (ltm, bmy, 5/5/06))
@@ -5313,8 +5268,6 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)   
 
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND57: THETA
@@ -5337,8 +5290,6 @@
      &               IIPAR,     JJPAR,     LD57,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD57) )
       ENDIF
-
-#endif
 !
 !******************************************************************************
 !  ND58: CH4 Emission Diagnostics
@@ -5750,7 +5701,6 @@
          ENDDO
 
       ENDIF
-
 !
 !*****************************************************************************
 !  ND61: TOMAS microphysics process rate saved in 3-D (kg/s)
@@ -5988,8 +5938,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD65) )
          ENDDO       
       ENDIF
-
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND66: GMAO 3-D fields 
@@ -6066,8 +6014,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD66) )
          ENDDO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND67: GMAO surface fields
@@ -6198,8 +6144,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
+!
 !******************************************************************************
 !  ND68: Grid box diagnostics
 !
@@ -6240,8 +6185,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD68) )
          ENDDO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND69: Grid Box Surface Areas
@@ -6294,8 +6237,6 @@
 !%%%         CALL UPDATE_DEP( N )
 !%%%      ENDIF
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND71: Tracer Mixing Ratio (v/v) at surface, maximum value
@@ -6326,8 +6267,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
-
-#endif
 
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'
@@ -6481,6 +6420,8 @@
       DiagnCnt => NULL()
       SpcInfo => NULL()
 
+#endif
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -6568,6 +6509,7 @@
       !=================================================================
       ! DIAG2BPCH begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Initialize
       ARRAY    = 0e0
@@ -6636,6 +6578,8 @@
 
       ! Nullify pointer
       DgnCont => NULL()
+
+#endif
 
       END SUBROUTINE DIAG2BPCH
 !EOC

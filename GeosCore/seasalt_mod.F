@@ -318,9 +318,9 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE ErrCode_Mod
@@ -809,7 +809,6 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -939,7 +938,6 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
