@@ -22,6 +22,7 @@
       USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
       USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
       USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
       USE DIAG04_MOD,              ONLY : CLEANUP_DIAG04
@@ -29,7 +30,8 @@
       USE DIAG41_MOD,              ONLY : CLEANUP_DIAG41
       USE DIAG50_MOD,              ONLY : CLEANUP_DIAG50
       USE DIAG51_MOD,              ONLY : CLEANUP_DIAG51
-      USE DIAG53_MOD,              ONLY : CLEANUP_DIAG53 !(clf, 3/11/11)
+      USE DIAG53_MOD,              ONLY : CLEANUP_DIAG53
+#endif
       USE DIAG_OH_MOD,             ONLY : CLEANUP_DIAG_OH
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
       USE DUST_MOD,                ONLY : CLEANUP_DUST
@@ -310,6 +312,7 @@
       CALL CLEANUP_C2H6()
       CALL CLEANUP_CARBON()
       CALL CLEANUP_CO2()
+#if defined( BPCH_DIAG )
       CALL CLEANUP_DIAG()
       CALL CLEANUP_DIAG03()
       CALL CLEANUP_DIAG04()
@@ -318,6 +321,7 @@
       CALL CLEANUP_DIAG50()
       CALL CLEANUP_DIAG51()
       CALL CLEANUP_DIAG53()
+#endif
       CALL CLEANUP_DIAG_OH()
       CALL CLEANUP_DRYDEP()
       CALL CLEANUP_DUST()

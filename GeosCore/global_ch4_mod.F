@@ -345,9 +345,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD58
+#endif
       USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -875,10 +877,11 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD43
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
@@ -1070,8 +1073,7 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-!               AD43(I,J,L,1) = AD43(I,J,L,1) + BOH(I,J,L,LMN)
+            IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
 #if defined( BPCH_DIAG )
                !--------------------------------------------------------
@@ -1215,10 +1217,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD19   	      
+#endif
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR
@@ -1298,7 +1301,7 @@
       DO I = 1, IIPAR
 
          ! Only consider tropospheric boxes
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
             ! Use 24-hr avg temperature to calc. rate coeff.
             ! citation needed
@@ -1376,7 +1379,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
       USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
@@ -1441,7 +1443,7 @@
       DO I = 1, IIPAR 
 
          ! Only process tropospheric boxes (bmy, 4/17/00)
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
             ! Grid box volume [cm3]
             BOXVL  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -1537,8 +1539,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CHEMGRID_MOD,       ONLY : GET_MIN_TPAUSE_LEVEL
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE ErrCode_Mod
 !-----------------------------------------------------------------------------
 ! Prior to 12/11/17:
@@ -1668,11 +1668,20 @@
          !=================================================================
          ! Loop over stratospheric boxes only
          !=================================================================
-         BASELEV = GET_MIN_TPAUSE_LEVEL()
-         DO L = BASELEV, LLPAR 
+!------------------------------------------------------------------------------
+! Prior to 1/11/19:
+! Better to just loop over all levels and test if we are in the chem grid;
+! can also parallelize this loop later
+! (bmy, 1/11/19)
+!         BASELEV = GET_MIN_TPAUSE_LEVEL()
+!         DO L = BASELEV, LLPAR 
+!------------------------------------------------------------------------------
+         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met) ) THEN
+
+            ! Only proceed if we are outside of the chemistry grid
+            IF ( .not. State_Met%InChemGrid(I,J,L) ) THEN
 
                ! Conversion factor [kg/box] --> [molec/cm3]
                ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
@@ -2251,8 +2260,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_CHEMGRID
-      USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE State_Met_Mod,     ONLY : State_Met
 !
@@ -2326,7 +2333,7 @@
          DO L = 1,  LLPAR
          DO J = J1, J2
          DO I = I1, I2
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            IF ( State_Met%InChemGrid(I,J,L) ) THEN
                SUM_CH4 = SUM_CH4 + TCH4(I,J,L,K)
             ENDIF
          ENDDO
@@ -2343,7 +2350,7 @@
          DO L = 1,  LLPAR
          DO J = J1, J2
          DO I = I1, I2
-            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
+            IF (  .not. State_Met%InChemGrid(I,J,L) ) THEN
                SUM_CH4 = SUM_CH4 + TCH4(I,J,L,K)
             ENDIF            
          ENDDO
@@ -2573,7 +2580,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP

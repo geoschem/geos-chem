@@ -1182,7 +1182,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GC_GRID_MOD,        ONLY : GET_YMID
@@ -1580,7 +1579,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : ALLOC_ERR
@@ -1825,7 +1823,7 @@
          LSTART = GET_CHEMGRID_LEVEL( I, J, State_Met)
 
          DO L = LSTART, LLPAR
-            IF (ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) CYCLE
+            IF ( State_Met%InChemGrid(I,J,L) ) CYCLE
 
             ! Pressure at center of cell
             PCENTER = State_Met%PMID(I,J,L)
@@ -1900,7 +1898,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -2087,7 +2084,7 @@
             DO L = 1, L_MAX
                IF (STRAT_ONLY) THEN
                   ! Only want to set non-trop cells
-                  SET_CELL = ITS_IN_THE_STRATMESO(I,J,L,State_Met)
+                  SET_CELL = State_Met%InStratMeso(I,J,L)
                ELSE
                   SET_CELL = .TRUE.
                ENDIF
@@ -2672,8 +2669,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_DIAG_MOD             ! ND44
       USE CMN_FJX_MOD,        ONLY : RAA, IND999
       USE CMN_SIZE_MOD             ! Size parameters
@@ -2884,11 +2879,11 @@
             ! Use moist air pressure for mean free path (ewl, 3/2/15)
             P       = State_Met%PMID(I,J,L)  * 0.1e+0_fp
 
-            RUNCALC = ITS_IN_THE_STRATMESO(I,J,L,State_Met)
+            RUNCALC = State_Met%InStratMeso(I,J,L)
 
             IF (RUNCALC) THEN
                ! Need to translate for BC radii
-               IF (ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) THEN
+               IF ( State_Met%InChemGrid(I,J,L) ) THEN
                   RWET(IBC) = WERADIUS(I,J,L,2)*1.e-2_fp
                ELSE
                   ! Use defaults, assume dry (!)
@@ -3585,7 +3580,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -3828,7 +3822,7 @@
                TINV       = 1.e+0_fp/TCENTER
 
                ! Apply other limits from Kirner et al.
-               IS_STRAT = ITS_IN_THE_STRATMESO(I,J,L,State_Met)
+               IS_STRAT =  State_Met%InStratMeso(I,J,L)
                IS_VALID = (IS_POLAR).and.(IS_STRAT).and.       
      &                        (.not.((PCENTER_PA.lt.PSC_PMIN).or.
      &                               (PCENTER_PA.gt.PSC_PMAX)))

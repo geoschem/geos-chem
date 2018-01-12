@@ -284,8 +284,10 @@
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
-      USE DIAG03_MOD,         ONLY : AD03, ND03
       USE State_Met_Mod,      ONLY : MetState
+#if defined( BPCH_DIAG )
+      USE DIAG03_MOD,         ONLY : AD03, ND03
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -376,6 +378,7 @@
      7                               FRAC_SNOW_OR_ICE
      &                               * MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
 
+#if defined( BPCH_DIAG )
 !----------------------------------------------------------------------------
 ! NOTE: Archiving to AD03(I,J,21,1) causes the slot #4 of the PL-HG2-$ 
 ! diagnostic to yield different results when comparing a GEOS-5 Hg simulation
@@ -404,6 +407,8 @@
      &                                    FRAC_SNOW_OR_ICE *
      &                                    MAX(DEP_HG2, 0e+0_fp) 
 !----------------------------------------------------------------------------
+#endif
+
       ENDIF
 
       END SUBROUTINE ADD_HG2_SNOWPACK

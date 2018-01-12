@@ -100,8 +100,9 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+#endif
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -215,6 +216,8 @@
       ! Assume success
       RC = GC_SUCCESS
 
+#if defined( BPCH_DIAG )
+
       ! First-time initialization
       IF ( FIRST ) THEN
 
@@ -263,7 +266,7 @@
          L_Ox  = 0e+0_fp
 
          ! If this is a grid box where we have done chemistry, then ...
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%% NOTE: If you want to restrict output to a given local
@@ -368,6 +371,7 @@
          TAU0  = TAU1
 
       ENDIF
+#endif
 
       END SUBROUTINE DIAG20
 !EOC
@@ -388,10 +392,12 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD      ! LD65
       USE BPCH2_MOD,   ONLY : BPCH2,         GET_HALFPOLAR
       USE BPCH2_MOD,   ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
+#endif
       USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! LD65
       USE GC_GRID_MOD, ONLY : GET_XOFFSET,   GET_YOFFSET
       USE inquireMod,  ONLY : findFreeLUN
 ! 
@@ -438,6 +444,8 @@
       !=================================================================
       ! WRITE20 begins here!
       !=================================================================
+
+#if defined( BPCH_DIAG )
 
       ! Find a free file LUN
       IU_ND20   = findFreeLUN()
@@ -499,6 +507,7 @@
 
       ! Close BPCH file
       CLOSE( IU_ND20 )
+#endif
 
       END SUBROUTINE WRITE20
 !EOC
@@ -597,7 +606,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -623,6 +634,7 @@
       ! INIT_DIAG20 begins here!
       !=================================================================
 
+#if defined( BPCH_DIAG )
       ALLOCATE( COUNT( IIPAR, JJPAR, LD65 ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'COUNT' )
       COUNT = 0
@@ -638,6 +650,7 @@
       ALLOCATE( LOx( IIPAR, JJPAR, LLPAR ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'LOx' )
       LOx = 0e+0_fp
+#endif
 
       END SUBROUTINE INIT_DIAG20
 !EOC
@@ -663,10 +676,12 @@
       !=================================================================
       ! CLEANUP_DIAG20 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( COUNT     ) ) DEALLOCATE( COUNT     )
       IF ( ALLOCATED( PL24H     ) ) DEALLOCATE( PL24H     )
       IF ( ALLOCATED( POx       ) ) DEALLOCATE( POx       )
       IF ( ALLOCATED( LOx       ) ) DEALLOCATE( LOx       )
+#endif
 
       END SUBROUTINE CLEANUP_DIAG20
 !EOC

@@ -211,8 +211,6 @@ CONTAINS
 ! !USES:
 !
     USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
-    USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-    USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
     USE ERROR_MOD
@@ -434,7 +432,8 @@ CONTAINS
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
-                IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) CYCLE
+                ! Only consider boxes above the chemistry grid
+                IF ( State_Met%InChemGrid(I,J,L) ) CYCLE
 
                 ! Loop over the # of active strat chem species
                 DO N = 1, NSCHEM
@@ -546,7 +545,7 @@ CONTAINS
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
-                IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) CYCLE
+                IF ( State_Met%InChemGrid(I,J,L) ) CYCLE
 
                 ! Grid box volume [cm3]
                 BOXVL = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -642,9 +641,9 @@ CONTAINS
              DO I = 1, IIPAR  
                  
                 IF ( LRESET ) THEN
-                   LCYCLE = ITS_IN_THE_TROP( I, J, L, State_Met )
+                   LCYCLE = State_Met%InTroposphere(I,J,L)
                 ELSE 
-                   LCYCLE = ITS_IN_THE_CHEMGRID( I, J, L, State_Met )
+                   LCYCLE = State_Met%InChemGrid(I,J,L)
                 ENDIF
                 IF ( LCYCLE ) CYCLE
 

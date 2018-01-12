@@ -98,8 +98,6 @@ CONTAINS
 ! !USES:
 !
     USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
-    USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_CHEMGRID
-    USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_STRAT
     USE CMN_FJX_MOD
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
 #if defined( BPCH_DIAG )
@@ -629,7 +627,7 @@ CONTAINS
        !====================================================================
 
        ! If we are not in the troposphere don't do the chemistry!
-       IF ( .not. ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) CYCLE
+       IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
        ! Keep a running total of the # of times it was local noon at each box
        IF ( IsLocNoon ) THEN
@@ -1261,7 +1259,7 @@ CONTAINS
 
              ! Aggregate stratospheric chemical tendency [kg box-1]
              ! for tropchem simulations
-             IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
+             IF ( State_Met%InStratosphere(I,J,L) ) THEN
                 SChem_Tend(I,J,L,N) = SChem_Tend(I,J,L,N) + &
                      ( State_Chm%Species(I,J,L,N) - Before(I,J,L,N) )
              ENDIF
@@ -1295,7 +1293,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ChemGrid_Mod,   ONLY : Its_In_The_NoChemGrid
     USE CMN_SIZE_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
@@ -1376,7 +1373,7 @@ CONTAINS
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) THEN
             ! Skip to next grid box
             CYCLE
          ENDIF

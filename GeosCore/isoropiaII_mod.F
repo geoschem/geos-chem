@@ -129,25 +129,25 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
-      USE CMN_DIAG_MOD,       ONLY : LD73,   ND73
       USE CMN_SIZE_MOD 
-      USE DIAG_MOD,           ONLY : AD73
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Diag_Mod,     ONLY : DgnState
-      USE State_Chm_Mod,      ONLY : Ind_
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MONTH
-      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-
-      USE IsorropiaII_Main_Mod,Only : Isoropia
+      USE ERROR_MOD,            ONLY : DEBUG_MSG
+      USE ERROR_MOD,            ONLY : ERROR_STOP
+      USE ERROR_MOD,            ONLY : SAFE_DIV
+      USE HCO_INTERFACE_MOD,    ONLY : HcoState
+      USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,        ONLY : OptInput
+      USE State_Chm_Mod,        ONLY : ChmState
+      USE State_Diag_Mod,       ONLY : DgnState
+      USE State_Chm_Mod,        ONLY : Ind_
+      USE State_Met_Mod,        ONLY : MetState
+      USE TIME_MOD,             ONLY : GET_MONTH
+      USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
+      USE IsorropiaII_Main_Mod, ONLY : Isoropia
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD,         ONLY : LD73,   ND73
+      USE DIAG_MOD,             ONLY : AD73
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -379,7 +379,7 @@
       DO I = 1, IIPAR
 
          ! Only applying ISORROPIA II in troposphere
-         IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) CYCLE
+         IF ( State_Met%InStratMeso(I,J,L) ) CYCLE
 
          ! Initialize WI, WT
          DO N = 1, NCOMPA

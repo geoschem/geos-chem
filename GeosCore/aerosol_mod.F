@@ -1023,8 +1023,6 @@
       USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD21
 #endif
-      use chemgrid_mod,   only : its_in_the_chemgrid
-      use chemgrid_mod,   only : its_in_the_nochemgrid
 
       IMPLICIT NONE
 !
@@ -1544,8 +1542,7 @@
          DO I = 1, IIPAR
 
             ! Skip non-chemistry boxes
-            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
-!            IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
+            IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
             ! Calculate RH. Not clear why the result of this calc is 
             ! slightly different than State_Met%RH
@@ -1836,8 +1833,7 @@
             CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
 
             ! Moved this from a separate loop for clarity
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-            !IF ( State_Met%InChemGrid(I,J,L) ) THEN
+            IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
                ! Add surface area to TAREA array
                TAREA(I,J,L,NDUST+N)  = SADSTRAT

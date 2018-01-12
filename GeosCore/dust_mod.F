@@ -995,9 +995,8 @@
 !
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
 #endif
       USE ErrCode_Mod
@@ -1231,7 +1230,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
 #if defined ( UCX )
          ! Bug fix: Dust properties are read from file #8 in RD_AOD
@@ -1487,12 +1486,11 @@
 !
 ! !USES:
 !
+      USE CMN_FJX_MOD
+#if defined( BPCH_DIAG )
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
-      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_FJX_MOD
       USE CMN_DIAG_MOD
-#if defined( BPCH_DIAG )
       USE DIAG_MOD,       ONLY : AD21
 #endif
       USE ErrCode_Mod
@@ -1825,7 +1823,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
          ERADIUS(I,J,L,N) = RDAA(N,6) * 1.0e-4_fp
 

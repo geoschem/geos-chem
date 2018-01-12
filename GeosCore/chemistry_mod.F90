@@ -100,7 +100,6 @@ CONTAINS
     USE AEROSOL_MOD,    ONLY : SOILDUST
     USE C2H6_MOD,       ONLY : CHEMC2H6
     USE CARBON_MOD,     ONLY : CHEMCARBON
-    USE CMN_DIAG_MOD  
     USE CMN_SIZE_MOD
     USE DUST_MOD,       ONLY : CHEMDUST
     USE DUST_MOD,       ONLY : RDUST_ONLINE
@@ -129,7 +128,9 @@ CONTAINS
     USE TENDENCIES_MOD
 #endif
     USE UnitConv_Mod,   ONLY : Convert_Spc_Units
-
+#if defined( BPCH_DIAG )
+    USE CMN_DIAG_MOD  
+#endif
 #if defined (UCX )
     USE UCX_MOD,        ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
     USE UCX_MOD,        ONLY : READ_PSC_FILE

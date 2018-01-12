@@ -97,10 +97,10 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DIAG_MOD,       ONLY : CONVFLUP
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,       ONLY : CONVFLUP
       USE DIAG_MOD,       ONLY : AD38
 #endif
       USE ErrCode_Mod

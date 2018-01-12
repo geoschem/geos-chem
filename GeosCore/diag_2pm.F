@@ -28,7 +28,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_CHEMGRID
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,      ONLY : LTJV, LTOH, LTHO2, LTO1D, LTO3P
@@ -157,8 +156,7 @@
 
                ! Counter for # of O3 boxes in the chemgrid (phs, 11/17/08)
                DO L = 1, MAX( LD47, LD65 )
-                 IF ( IS_CHEM .and.
-     &                ITS_IN_THE_CHEMGRID( I, J, L, State_Met )) THEN
+                 IF ( IS_CHEM .and. State_Met%InChemGrid(I,J,L) ) THEN
                      CTO3_24h(I,J,L) = CTO3_24h(I,J,L) + 1
                   ENDIF
                ENDDO
@@ -195,7 +193,7 @@
 
                ! Counters for # of OH, HO2 boxes in the chemgrid (phs, 1/24/07)
                DO L = 1, LD43 
-                  IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+                  IF ( State_Met%InChemGrid(I,J,L) ) THEN
                      CTOH(I,J,L)  = CTOH(I,J,L)  + 1
                      CTHO2(I,J,L) = CTHO2(I,J,L) + 1
                      CTO1D(I,J,L) = CTO1D(I,J,L) + 1

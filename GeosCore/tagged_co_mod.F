@@ -165,10 +165,11 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD65
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : CHECK_VALUE
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -560,7 +561,7 @@
          CO_CH4 = 0e+0_fp
 
          ! Test level for stratosphere or troposphere
-         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InStratosphere(I,J,L) ) THEN
 
             !===========================================================
             ! (1a-1) Production of CO from CH4 in the stratosphere 
@@ -796,7 +797,7 @@
          !==============================================================
 
          ! Select out tropospheric or stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InStratosphere(I,J,L) ) THEN
 
             !===========================================================
             ! (2a-1) Stratospheric loss of CO due to chemical rxn w/ OH

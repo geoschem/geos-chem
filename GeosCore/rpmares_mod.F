@@ -129,7 +129,6 @@
 !
 ! !USES:
 !      
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -255,7 +254,7 @@
       DO I = 1, IIPAR
          
          ! Skip if we are outside the troposphere (bmy, 4/3/08)
-         IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) CYCLE
+         IF ( State_Met%InStratMeso(I,J,L) ) CYCLE
 
          ! Temperature [K], RH [unitless], and volume [m3]
          ATEMP = State_Met%T(I,J,L)

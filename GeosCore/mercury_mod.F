@@ -3338,7 +3338,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : GET_OBK
       USE DAO_MOD,            ONLY : IS_WATER
@@ -3444,7 +3443,7 @@
       BRO_PPTV = BRO_MERGE(I,J,L)
 
       ! Multiple stratospheric concentrations by Factor, if necessary
-      IF ( (ITS_IN_THE_STRAT( I, J, L, State_Met )) .AND.
+      IF ( State_Met%InStratosphere(I,J,L) .and.
      &     (ABS(STRAT_BR_FACTOR - 1e+0_fp) > 1e-2_fp) )    THEN
 
          BR_PPTV  = BR_PPTV  * STRAT_BR_FACTOR
