@@ -1297,9 +1297,9 @@ CONTAINS
              ! Do not reduce the Kc (cloud condensate -> precip) rate
              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
-             ! Allow rainout of dust when T < 258K, becasue dust
+             ! Allow rainout of dust when T < 258K, because dust
              ! is considered to be IN.
-             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1343,9 +1343,9 @@ CONTAINS
              ! Do not reduce the Kc (cloud condensate -> precip) rate
              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
-             ! Allow rainout of dust when T < 258K, becasue dust
+             ! Allow rainout of dust when T < 258K, because dust
              ! is considered to be IN.
-             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1390,9 +1390,9 @@ CONTAINS
              ! Do not reduce the Kc (cloud condensate -> precip) rate
              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
-             ! Allow rainout of dust when T < 258K, becasue dust
+             ! Allow rainout of dust when T < 258K, because dust
              ! is considered to be IN.
-             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
