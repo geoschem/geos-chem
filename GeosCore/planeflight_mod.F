@@ -1406,6 +1406,7 @@
 !
 ! !USES:
 !
+      USE BPCH2_MOD,          ONLY : GET_TAU0
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_SIZE_MOD
@@ -1421,7 +1422,6 @@
       USE TIME_MOD
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 #if defined( BPCH_DIAG )
-      USE BPCH2_MOD,          ONLY : GET_TAU0
       USE CMN_DIAG_MOD,       ONLY : NDUST, NAER
 #if   defined( TOMAS )
       USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)

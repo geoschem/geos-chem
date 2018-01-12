@@ -1648,6 +1648,7 @@
       REAL(fp)               :: DEN 
       REAL(fp)               :: EmMw_g
       REAL(f8)               :: RHO1,      WTP,    RHO
+      INTEGER                :: ND44x
 
       ! Arrays
       REAL(fp)               :: SALA_REDGE_um(2)
@@ -1665,7 +1666,16 @@
 
       ! Initialize
       RC       =  GC_SUCCESS
-      Do_Diag  = ( ND44 > 0 .or. Archive_DryDepChm .or. Archive_DryDep )
+
+      ! Define a shadow variable for ND44
+#if defined( BPCH_DIAG )
+      ND44x = ND44
+#else
+      ND44x = 0
+#endif
+
+      ! Set a flag if drydep diagnostics are being archived
+      Do_Diag = ( ND44x > 0 .or. Archive_DryDepChm .or. Archive_DryDep )
 
       ! Return if tracers are undefined
       IF ( Input_Opt%LDSTUP ) THEN

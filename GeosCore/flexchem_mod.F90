@@ -1198,8 +1198,11 @@ CONTAINS
        CALL DEBUG_MSG( '### Do_FlexChem: after DO_DIAG_OH' )
     ENDIF
 
+#if defined( BPCH_DIAG )
     !=======================================================================
     ! Save out P(O3) and L(O3) for a tagged O3 run
+    !
+    ! %%%% NOTE: Currently only works when BPCH_DIAG=y %%%%
     !=======================================================================
     IF ( Input_Opt%DO_SAVE_O3 ) THEN
        CALL DIAG20( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
@@ -1207,6 +1210,7 @@ CONTAINS
           CALL DEBUG_MSG( '### Do_FlexChem: after DIAG20' )
        ENDIF
     ENDIF
+#endif
 
     !=======================================================================
     ! Convert species back to original units (ewl, 8/16/16)

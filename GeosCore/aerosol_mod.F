@@ -1781,8 +1781,9 @@
      &                                       DRYAREA )
                ENDIF !Hydrophobic aerosol surface area
 
+#if defined( BPCH_DIAG )
                !==============================================================
-               ! ND21 Diagnostic: 
+               ! ND21 (bpch) Diagnostic: 
                !    Output aqueous aerosol volume as tracer=35
                !    AQ AEROSOL VOL = (RADIUS * AREA)/3
                !==============================================================
@@ -1795,11 +1796,10 @@
                   TAERVOL = ( ERADIUS(I,J,L,NDUST+N) * 
      &                        TAREA(I,J,L, N+NDUST) ) / 3.D0
 
-#if defined( BPCH_DIAG )
                   ! Add to diagnostic:
                   AD21(I,J,L,35) = AD21(I,J,L,35) + TAERVOL
-#endif
                ENDIF
+#endif
 
             ENDIF    !Surface area calcs
          ENDDO

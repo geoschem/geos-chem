@@ -411,6 +411,7 @@
       INTEGER                  :: ID
       LOGICAL, SAVE            :: FIRST = .TRUE.
       REAL(f8)                 :: RHO, RHO1
+      INTEGER                  :: ND44x
 !
 ! !DEFINED PARAMETERS:
 !      
@@ -447,8 +448,17 @@
 
       ! Initialize
       RC       = GC_SUCCESS
-      Do_Diag  = ( ND44 > 0 .or. Archive_DryDepChm .or. Archive_DryDep )
       prtDebug = ( Input_Opt%LPRT .and. am_I_Root                      )
+
+      ! Define a shadow variable for ND44
+#if defined( BPCH_DIAG )
+      ND44x = ND44
+#else
+      ND44x = 0
+#endif
+
+      ! Set a flag if we need to archive diagnostics
+      Do_Diag = ( ND44x > 0 .or. Archive_DryDepChm .or. Archive_DryDep )
 
       ! Copy fields from INPUT_OPT to local variables for use below
       SALA_REDGE_um = Input_Opt%SALA_REDGE_um 

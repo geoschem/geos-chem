@@ -136,6 +136,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Diagnostic flags
+      LOGICAL               :: Do_ND43
       LOGICAL               :: Archive_OHconcAfterChem
 
       ! Species ID flag
@@ -1066,7 +1067,7 @@
       ! BOH is in kg/m3 (from HEMCO), convert to molecules/cm3 
       ! (ckeller, 9/16/2014)
       !=================================================================
-      IF ( ND43 > 0 .or. Archive_OHconcAfterChem ) THEN
+      IF ( Do_ND43 .or. Archive_OHconcAfterChem ) THEN
 
          ! Zero the diagnostic array for OH to avoid leftover values
          IF ( Archive_OHconcAfterChem ) THEN
@@ -2664,7 +2665,12 @@
       TCH4 = 0e+0_fp      
 #endif
 
-      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, PD58), STAT=AS )
+!------------------------------------------------------------------
+! Prior to 1/12/18:
+! Remove dependence on PD58 (bmy, 1/12/18)
+!      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, PD58), STAT=AS )
+!------------------------------------------------------------------
+      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, 12 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_EMIS' )
       CH4_EMIS = 0e+0_fp
 
@@ -2681,6 +2687,13 @@
 
       ! Set a flag to denote if netCDF diagnostics are activated
       Archive_OHconcAfterChem = ASSOCIATED( State_Diag%OHconcAfterChem )
+
+      ! Set a flag to denote if bpch diagnostics are activated
+#if defined( BPCH_DIAG )
+      Do_ND43 = ( ND43 > 0 )
+#else
+      Do_ND43 = .FALSE.
+#endif
 
       END SUBROUTINE INIT_GLOBAL_CH4
 !EOC

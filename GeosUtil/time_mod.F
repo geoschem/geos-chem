@@ -3514,10 +3514,8 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD  ! NJDAY
-#endif
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_DIAG_MOD, ONLY : NJDAY
+      USE CMN_SIZE_MOD
 !
 ! !RETURN VALUE:
 !
@@ -3536,8 +3534,6 @@
       !=================================================================
       ! ITS_TIME_FOR_BPCH begins here!
       !================================================================= 
-
-#if defined( BPCH_DIAG )
 
       ! Return FALSE if it's the first timestep
       IF ( TAU == TAUb ) THEN
@@ -3562,13 +3558,6 @@
       ELSE
          DO_BPCH = .FALSE.
       ENDIF
-
-#else
-      
-      ! If BPCH_DIAG=n then return false
-      DO_BPCH = .FALSE.
-
-#endif
 
       END FUNCTION ITS_TIME_FOR_BPCH
 !EOC

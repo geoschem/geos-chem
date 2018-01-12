@@ -99,6 +99,7 @@
 !
 ! !PRIVATE TYPES:
 !
+#if defined( BPCH_DIAG )
       ! For "diaginfo.dat"
 !      INTEGER,           PARAMETER   :: MAXCAT    = 150
       INTEGER,           PARAMETER   :: MAXCAT    = 160
@@ -142,6 +143,7 @@
       INTEGER :: id_PAN,   id_POA1,  id_PRPE  
       INTEGER :: id_SO2,   id_TSOA1, id_POG1,  id_POG2  
       INTEGER :: id_TOLU,  id_XYLE,  id_HNO3
+#endif
 
       CONTAINS
 !EOC
@@ -366,11 +368,15 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
+
+
       INTEGER           :: D, IOS, N, T
       INTEGER           :: IU_FILE
       REAL*4            :: SCALE_NEW
       CHARACTER(LEN=2)  :: C
       CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW, FNAME_NEW
+#endif
 
       !=================================================================
       ! CREATE_TINFO begins here!
@@ -741,12 +747,12 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       INTEGER :: IOS
 
       !=================================================================
       ! WRITE_TINFO begins here!
       !=================================================================
-#if defined( BPCH_DIAG )
 
       ! Write one line to "tracerinfo.dat" file
       WRITE( IU_FILE, 100, IOSTAT=IOS ) 
@@ -798,13 +804,13 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       INTEGER           :: IOS
       CHARACTER(LEN=79) :: SEPARATOR
 
       !=================================================================
       ! WRITE_SEPARATOR begins here! 
       !=================================================================
-#if defined( BPCH_DIAG )
 
       ! Create separator string
       SEPARATOR = '#' // REPEAT( '=', 78 )
@@ -910,12 +916,12 @@
 !
 ! !LOCAL VARIABLES:
 ! 
+#if defined( BPCH_DIAG )
       INTEGER :: N
 
       !=================================================================
       ! INIT_DIAGINFO begins here!
       !=================================================================
-#if defined( BPCH_DIAG )
 
       N           = 1
       CATEGORY(N) = 'IJ-AVG-$'
@@ -1859,6 +1865,8 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
+
       INTEGER :: N, NN, NYMDb, NHMSb, T, T0, T1
       INTEGER :: nAdvect, nDryDep, nSpecies
       LOGICAL :: DO_TIMESERIES
@@ -1870,6 +1878,7 @@
 
       ! Objects
       TYPE(Species), POINTER  :: SpcInfo
+#endif
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -7785,6 +7794,8 @@
       ! Nullify pointer
       SpcInfo  => NULL()
 
+#endif
+
       END SUBROUTINE INIT_TRACERINFO
 !EOC
 !------------------------------------------------------------------------------
@@ -7866,6 +7877,7 @@
       !=================================================================
       ! INIT_GAMAP begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Save from arguments to module variables
       DFILE = Input_Opt%GAMAP_DIAGINFO

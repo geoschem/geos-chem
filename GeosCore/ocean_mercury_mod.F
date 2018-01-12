@@ -2020,8 +2020,8 @@
                   ! Store carbon sinking [kgC/time]
                   IF ( ND03 > 0 ) THEN
                      AD03(I,J,12,1) = AD03(I,J,12,1) + JorgC_kg
-#endif
                   ENDIF
+#endif
                 
                !- eds 8/31/10 -----------------------------------------
                !ENDIF

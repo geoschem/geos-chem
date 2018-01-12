@@ -75,12 +75,14 @@
       !=================================================================
       ! ZERO_DIAG56 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Exit if ND56 is turned off
       IF ( ND56 == 0 ) RETURN
 
       ! Zero arrays
       AD56(:,:,:) = 0e0
+#endif
 
       END SUBROUTINE ZERO_DIAG56
 !EOC    
@@ -131,6 +133,8 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
+
       INTEGER               :: CENTER180, HALFPOLAR,   IFIRST
       INTEGER               :: JFIRST,    LFIRST,      M,      N         
       REAL(f4)              :: ARRAY(IIPAR,JJPAR,1)
@@ -181,6 +185,7 @@
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       ENDDO
+#endif
 
       END SUBROUTINE WRITE_DIAG56
 !EOC    
@@ -213,6 +218,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       INTEGER :: AS
       
       !=================================================================
@@ -228,6 +234,7 @@
 
       ! Zero arrays
       CALL ZERO_DIAG56
+#endif
 
       END SUBROUTINE INIT_DIAG56
 !EOC    
@@ -254,7 +261,9 @@
       !=================================================================
       ! CLEANUP_DIAG56 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD56 ) ) DEALLOCATE( AD56 ) 
+#endif
 
       END SUBROUTINE CLEANUP_DIAG56
 !EOC

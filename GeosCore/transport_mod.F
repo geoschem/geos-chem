@@ -411,6 +411,7 @@
       LOGICAL            :: LPRT
       LOGICAL            :: LWINDO
       INTEGER            :: I, J, L, L2, N, N_DYN, NA, nAdvect
+      INTEGER            :: ND24x, ND25x, ND26x
       REAL(fp)           :: D_DYN
 
       ! Arrays
@@ -449,6 +450,17 @@
       ! Dynamic timestep [s]
       N_DYN       =  GET_TS_DYN() * 60
       D_DYN       =  DBLE( N_DYN )
+
+      ! Define shadow variables for ND24, ND25, ND26
+#if defined( BPCH_DIAG )
+      ND24x       = ND24
+      ND25x       = ND25
+      ND26x       = ND26
+#else
+      ND24x       = 0
+      ND25x       = 0
+      ND26x       = 0
+#endif
 
       !=================================================================
       ! Prepare variables for calls to PJC pressure-fixer and TPCORE
@@ -530,7 +542,7 @@
      &                   P_TEMP,    p_Spc,    IORD,     JORD,      
      &                   KORD,      N_ADJ,    p_XMASS,  p_YMASS, 
      &                   LFILL,     p_MFLEW,  p_MFLNS,  p_MFLUP,
-     &                   A_M2,      ND24,     ND25,     ND26,
+     &                   A_M2,      ND24x,    ND25x,    ND26x,
      &                   State_Diag                            )
 
       ! Free pointer memory
@@ -672,6 +684,7 @@
       INTEGER            :: I0,    J0,    NA,    nAdvect, N_DYN 
       INTEGER            :: IM_W1, JM_W1, I0_W1, J0_W1,   BUFF_SIZE
       INTEGER            :: I,     J,     L,     L2,      N
+      INTEGER            :: ND24x, ND25x, ND26x
       REAL(fp)           :: D_DYN
 
       ! Arrays
@@ -736,6 +749,17 @@
       JM_W1       =  JM_W + 2 * BUFF_SIZE
       I0_W1       =  I0_W     - BUFF_SIZE
       J0_W1       =  J0_W     - BUFF_SIZE
+
+      ! Define shadow variables for ND24, ND25, ND26
+#if defined( BPCH_DIAG )
+      ND24x       = ND24
+      ND25x       = ND25
+      ND26x       = ND26
+#else
+      ND24x       = 0
+      ND25x       = 0
+      ND26x       = 0
+#endif
 
       !=================================================================
       ! Prepare variables for calls to PJC pressure-fixer and TPCORE
@@ -875,8 +899,8 @@
      &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
      &      p_P_TP2, p_P_TEMP, p_Spc,   IORD,    JORD, 
      &      KORD,    N_ADJ,    p_XMASS, p_YMASS, p_MFLEW, 
-     &      p_MFLNS, p_MFLUP,  p_A_M2,  ND24,    ND25,    
-     &      ND26                                          ) 
+     &      p_MFLNS, p_MFLUP,  p_A_M2,  ND24x,   ND25x,   
+     &      ND26x                                         ) 
 
       ! Free pointer memory
       p_UWND   => NULL()  

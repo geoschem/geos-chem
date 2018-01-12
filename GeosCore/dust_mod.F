@@ -752,7 +752,8 @@
       REAL(fp)               :: NUM,      LAMDA, FLUX
       REAL(fp)               :: AREA_CM2, TC0(LLPAR)
       REAL(fp)               :: TOT1,     TOT2
-
+      INTEGER                :: ND44x
+      
       ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa      
       REAL(fp)               :: P 
 
@@ -793,7 +794,16 @@
       RC        =  GC_SUCCESS
       ThisSpc   => NULL()
       TC        => State_Chm%Species
-      Do_Diag   = ( ND44 > 0          .or.
+
+      ! Define a shadow variable for ND44
+#if defined( BPCH_DIAG )
+      ND44x     = ND44
+#else
+      ND44x     = 0
+#endif
+      
+      ! Set a flag if we are archiving drydep diagnostics
+      Do_Diag   = ( ND44x > 0         .or.
      &              Archive_DryDepChm .or. Archive_DryDep )
 
       ! Dust settling timestep [s]
@@ -1488,6 +1498,7 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE CMN_FJX_MOD
 #if defined( BPCH_DIAG )
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
@@ -1615,7 +1626,7 @@
       INTEGER             :: I, J, L, N, NOUT, W
       INTEGER             :: IWV, IIWV, NWVS, IDST
       INTEGER, SAVE       :: MONTH_LAST = -999
-      LOGICAL, SAVE       :: DO_DIAG = .FALSE.
+      LOGICAL, SAVE       :: DO_DIAGN = .FALSE.
       REAL(f4)            :: TEMP(IIPAR,JJPAR,LGLOB)
       REAL(fp)            :: DUST(IIPAR,JJPAR,LLPAR,NDUST)
       REAL(fp)            :: MSDENS(NDUST)
@@ -1640,7 +1651,16 @@
 
       ! Assume success
       RC        =  GC_SUCCESS
+
+#if defined( BPCH_DIAG )
+      !#################################################################
+      !####  WE HAVE BLOCKED OUT THIS CODE SO AS TO AVOID COMPILING
+      !####  BPCH SPECIFIC CODE IN GCHP.  THIS MAY BREAK SOME THINGS
+      !####  GOING FORWARD.  WORRY ABOUT IT LATER.  BPCH IS BEING
+      !####  TOTALLY PHASED OUT (bmy, 1/12/18)
+      !#################################################################
  
+
       ! Initialize pointers
       ERADIUS   => State_Chm%AeroRadi     ! Aerosol Radius     [cm]
       TAREA     => State_Chm%AeroArea     ! Aerosol Area       [cm2/cm3]
@@ -1655,7 +1675,7 @@
 
       ! Read aerosol data from the binary punch file during the first 
       ! chemistry timestep and, after that, at the start of each month.
-      IF ( THISMONTH /= MONTH_LAST .or. DO_DIAG ) THEN
+      IF ( THISMONTH /= MONTH_LAST .or. DO_DIAGN ) THEN
          
          ! Get TAU0 value used to index the punch file
          ! Use the "generic" year 1985
@@ -1950,9 +1970,9 @@
          ! Set diagnostic to aggregate next call time. 
          IF ( THISMONTH /= MONTH_LAST ) THEN
             MONTH_LAST = THISMONTH
-            DO_DIAG = .TRUE.
+            DO_DIAGN = .TRUE.
          ELSE
-            DO_DIAG = .FALSE.
+            DO_DIAGN = .FALSE.
          ENDIF
          
       ENDIF
@@ -1962,6 +1982,8 @@
       TAREA    => NULL()
       WERADIUS => NULL()
       WTAREA   => NULL()
+
+#endif
 
       END SUBROUTINE RDUST_OFFLINE
 !EOC

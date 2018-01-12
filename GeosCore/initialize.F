@@ -155,6 +155,7 @@
       !=================================================================
       ! INITIALIZE begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Error condition if IFLAG does not equal 2, or 3!
       IF ( IFLAG < 2 .or. IFLAG > 3 ) THEN
@@ -168,7 +169,6 @@
 
          ! Allocatable arrays are zeroed only if their
          ! respective diagnostics are turned on (bmy, 2/17/00)
-#if defined( BPCH_DIAG )
          IF ( ND01 > 0 ) AD01     = 0e0
          IF ( ND02 > 0 ) AD02     = 0e0
          IF ( ND05 > 0 ) AD05     = 0e0
@@ -296,7 +296,6 @@
          IF ( ND61 > 0 ) AD61 = 0e0
 #endif
 
-#endif
          ! Echo output
          IF ( am_I_Root ) THEN
             WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'
@@ -323,7 +322,6 @@
          ! Leave the ND48 counter for now
          KDA48     = 0
 
-#if defined( BPCH_DIAG )
          ! Allocatable counter arrays
          IF ( ND16 >               0 ) CT16       = 0
          IF ( ND17 >               0 ) CT17       = 0

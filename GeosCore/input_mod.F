@@ -432,7 +432,7 @@
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-                                                  
+
 #if defined( BPCH_DIAG )
          ! Only read if compiled with BPCH_DIAG=y (bmy, 1/12/18)
          ELSE IF ( INDEX( LINE, 'DIAGNOSTIC MENU'  ) > 0 ) THEN
@@ -5642,6 +5642,8 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
+
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL             :: IS_ALL 
       INTEGER             :: M
@@ -5781,6 +5783,7 @@
          ENDIF
 
       ENDIF
+#endif
 
       END SUBROUTINE SET_TINDEX
 !EOC
@@ -5974,6 +5977,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       LOGICAL            :: DO_ND48
       INTEGER            :: N, S
       INTEGER            :: FREQ
@@ -5988,6 +5992,7 @@
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
       CHARACTER(LEN=255) :: FILE
       CHARACTER(LEN=10)  :: C
+#endif
 
       !=================================================================
       ! READ_ND48_MENU begins here!
@@ -6152,6 +6157,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       LOGICAL             :: DO_ND49
       INTEGER             :: N,    I,         AS
       ! Increased to 121 from 100 (mpb,2009)
@@ -6166,6 +6172,7 @@
 
       ! Arrays
       CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM)
+#endif
 
       !=================================================================
       ! READ_ND49_MENU begins here!
@@ -6387,6 +6394,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       ! Scalars
       LOGICAL            :: DO_ND50, LND50_HDF
       INTEGER            :: N,       I,        AS  
@@ -6399,6 +6407,7 @@
       ! Arrays
       INTEGER            :: TRACERS(121)   
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+#endif
 
       !=================================================================
       ! READ_ND50_MENU begins here!
@@ -6597,6 +6606,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       ! Scalars
       LOGICAL            :: DO_ND51, LND51_HDF
       INTEGER            :: N,       I,        AS
@@ -6611,6 +6621,7 @@
       ! Arrays
       INTEGER            :: TRACERS(121)
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+#endif
 
       !=================================================================
       ! READ_ND51_MENU begins here!
@@ -6618,8 +6629,8 @@
 
       ! Initialize
       RC      = GC_SUCCESS
-#if defined( BPCH_DIAG )
 
+#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND51_Menu (in module GeosCore/input_mod.F)'
@@ -6828,6 +6839,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       ! Scalars
       LOGICAL              :: DO_ND51, LND51b_HDF
       INTEGER              :: N,       I,       AS
@@ -6842,6 +6854,7 @@
       ! Arrays
       INTEGER              :: TRACERS(121)
       CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM)
+#endif
 
       !=================================================================
       ! READ_ND51_MENU begins here!
@@ -7064,6 +7077,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       LOGICAL             :: DO_ND63
       INTEGER             :: N,    I,         AS
       INTEGER             :: ND63, TRACERS(121)
@@ -7075,6 +7089,7 @@
 
       ! Arrays
       CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM)
+#endif
 
       !=================================================================
       ! READ_ND63_MENU begins here!
@@ -7271,6 +7286,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       LOGICAL            :: EOF,      DO_SAVE_PL, DO_SAVE_O3
       INTEGER            :: F,        N,          N_ADVECT
 
@@ -7279,6 +7295,7 @@
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+#endif
 
       !=================================================================
       ! READ_PROD_LOSS_MENU begins here!

@@ -311,7 +311,7 @@
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
       INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
-      INTEGER                  :: id_H2O
+      INTEGER                  :: id_H2O,        ND40x
       REAL(f8)                 :: TAU,           TAUb      
       CHARACTER(LEN=255)       :: ZTYPE
       CHARACTER(LEN=255)       :: ErrMsg,        ThisLoc
@@ -437,7 +437,7 @@
       ! NOTE: At this point we have not yet read in the "input.geos"
       ! file so these are just placeholder values (bmy, 11/7/12)
       !
-      Input_Opt%MAX_DIAG      = MAX_DIAG
+      Input_Opt%MAX_DIAG      = 200      ! Set to large placeholder value
       Input_Opt%MAX_FAM       = 250      ! Set to large placeholder value
       Input_Opt%MAX_SPC       = 500      ! Set to large placeholder value
       Input_Opt%LINOZ_NLAT    = 18
@@ -551,10 +551,17 @@
       LWETD               =  Input_Opt%LWETD
       LWINDO              =  Input_Opt%LWINDO
 
+      ! Define a shadow variable for ND40
+#if defined( BPCH_DIAG )
+      ND40x               = ND40
+#else
+      ND40x               = 0
+#endif
+
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug            = ( LPRT .and. am_I_Root )
       
-      ! Debug outputg
+      ! Debug output
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
       !-----------------------------------------------------------------
@@ -1007,9 +1014,10 @@
          CALL GEOS_Timer_End( "HEMCO", RC )
 #endif
 
-#if defined( BPCH_DIAG )
          ! Original diagnostics
          IF ( ITS_TIME_FOR_BPCH() ) THEN
+
+#if defined( BPCH_DIAG )
 
             ! Set time at end of diagnostic timestep
             CALL SET_DIAGe( TAU )
@@ -1808,7 +1816,8 @@
 #endif
 
          ! Planeflight diagnostic
-         IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
+         ! %%%%% NOTE: Currently only works if BPCH_DIAG=y %%%%%
+         IF ( ND40x > 0 .and. DO_DIAG_WRITE ) THEN 
             IF ( ITS_A_NEW_DAY() ) THEN
 
                ! Initialize planeflight diagnostic
@@ -1833,7 +1842,8 @@
          ! Plane following diagnostic, moved here to be consistent
          ! with species array and not be biased by emissions, kyu 30
          ! jan 2015
-         IF ( ND40 > 0 ) THEN 
+         ! %%%%% NOTE: Currently only works if BPCH_DIAG=y %%%%%
+         IF ( ND40x > 0 ) THEN 
             ! Archive data along the flight track
             CALL PLANEFLIGHT( am_I_Root, Input_Opt,  State_Met,
      &                        State_Chm, State_Diag, RC )

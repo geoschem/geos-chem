@@ -1751,7 +1751,8 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       call RD_XXX(JXUNIT,TRIM( FILENAME ), am_I_Root)
 
-      ! If we are using ND64, calculate exposure factors
+#if defined( BPCH_DIAG )
+      ! Compute factors for ND64
       IF ( ND64 > 0 ) THEN
          UVXFACTOR(:) = 0e+0_fp
          ND64MULT = UVXPLANCK*UVXCCONST*1.0e+13_fp
@@ -1759,6 +1760,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
             UVXFACTOR(J) = ND64MULT/WL(J)
          ENDDO
       ENDIF
+#endif
 
       !=====================================================================
       ! Read in 5-wavelength scattering data

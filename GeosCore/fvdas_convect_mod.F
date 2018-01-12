@@ -809,8 +809,8 @@
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD             ! ND38, LD38, ND14, LD14
       USE DIAG_MOD,           ONLY : AD38
-#endif
       USE DIAG_MOD,           ONLY : CONVFLUP 
+#endif
       USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants            ! Universal constants
@@ -1147,6 +1147,7 @@
                ! convection step is simply accounting for the scale 
                ! factors (SCALECONV) in diag3.f.
                !========================================================
+#if defined( BPCH_DIAG )
 
                ! Only save ND14 if it's turned on
                IF ( ND14 > 0 ) THEN 
@@ -1170,6 +1171,7 @@
 
                   ENDIF
                ENDIF 
+#endif
 
                !========================================================
                ! ND38 Diagnostic: loss of soluble tracer [kg/s] to
