@@ -1822,6 +1822,8 @@
 !  08 Jul 2015 - E. Lundgren - Added LMPOA option for marine organic aerosols
 !  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function
 !  22 Jun 2016 - R. Yantosca - Move error checks to DO_ERROR_CHECKS routine
+!  16 Jan 2018 - M. Sulprizio- Add option for using spatially and seasonally
+!                              varying OM/OC from Philip et al. (2014)
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -1833,7 +1835,7 @@
       LOGICAL            :: LSSALT,     LCRYST,     LDICARB
       LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
       LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA
-      LOGICAL            :: LBCAE  !(xnw, 8/24/15)     
+      LOGICAL            :: LBCAE,      LOMOC
       REAL(fp)           :: BCAE_1,   BCAE_2
       INTEGER            :: N,          T,          I 
       CHARACTER(LEN=255) :: MSG,        LOCATION
@@ -1910,6 +1912,14 @@
          RETURN
       ENDIF
       READ( SUBSTRS(1:N), * ) LSVPOA
+
+      ! Use spatially and seasonally varying OM/OC?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LOMOC', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) LOMOC
 
       ! Use online dust aerosols ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LDUST', RC )
@@ -2084,6 +2094,7 @@
          LSSALT = .FALSE.
          LMPOA  = .FALSE.
          LSVPOA = .FALSE.
+         LOMOC  = .FALSE.
          LBCAE  = .FALSE.
       ENDIF
 
@@ -2101,6 +2112,7 @@
       Input_Opt%LBRC               = LBRC
       Input_Opt%LSOA               = LSOA 
       Input_Opt%LSVPOA             = LSVPOA
+      Input_Opt%LOMOC              = LOMOC
       Input_Opt%LDUST              = LDUST 
       Input_Opt%LDSTUP             = LDSTUP
       Input_Opt%LSSALT             = LSSALT
@@ -2132,6 +2144,7 @@
          WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ', LBRC
          WRITE( 6, 100     ) 'Online COMPLEX SOA?         : ', LSOA
          WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
+         WRITE( 6, 100     ) 'Spatial & seasonal OM/OC?   : ', LOMOC
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
          WRITE( 6, 100     ) 'Acid uptake on dust?        : ', LDSTUP
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT

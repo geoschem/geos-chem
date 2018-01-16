@@ -55,6 +55,8 @@
       ! PM25        : Particulate matter < 2.5 um        [kg/m3]
       ! ISOAAQ      : Isoprene SOA (aqueous formation)   [kg/m3]
       ! SOAS        : Simple SOA                         [kg/m3]
+      ! OCFPOA      : OM/OC for POA                      [unitless]
+      ! OCFOPOA     : OM/OC for OPOA, OCPI, OCPO         [unitless]
       !========================================================================
       REAL(fp), ALLOCATABLE, PUBLIC :: BCPI(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: BCPO(:,:,:)
@@ -80,13 +82,11 @@
       REAL(fp), ALLOCATABLE, PUBLIC :: PM25(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: ISOAAQ(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: SOAS(:,:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: OCFPOA(:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: OCFOPOA(:,:)
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp), PARAMETER, PUBLIC :: OCFPOA  = 1.4e+0_fp ! OM/OC for POA
-      REAL(fp), PARAMETER, PUBLIC :: OCFOPOA = 2.1e+0_fp ! OM/OC for OPOA, OCPI,
-                                                         !  and OCPO
-
       ! For SOAGX, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
       REAL(fp), PARAMETER, PUBLIC :: OCFG = 1.e+0_fp
@@ -94,7 +94,6 @@
       ! For SOAMG, assume the total aerosol mass/methylglyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
       REAL(fp), PARAMETER, PUBLIC :: OCFM = 1.e+0_fp
-
 !
 ! !REMARKS:
 !  References:
@@ -102,6 +101,11 @@
 !  (1 ) Pye, H.O.T., and J.H. Seinfeld, "A global perspective on aerosol from
 !        low-volatility organic compounds", Atmos. Chem. & Phys., Vol 10, pp
 !        4377-4401, 2010.
+!  (2 ) Philip, S., R.V. Martin, J.R. Pierce, J.L. Jimenez, Q. Zhang, M.R.
+!       Canagaratna, D.V. Spracklen, C.R. Nowlan, L.N. Lamsal, M.J. Cooper, and
+!       N.A. Krotkov, "Spatially and seasonally resolved estimate of the ratio
+!       of global organic mass to organic carbon", Atmospheric Environment, 87,
+!       34-40, doi:10.1016/j.atmosenv.2013.11.065, 2014
 !
 ! !REVISION HISTORY:
 !  (1 ) Added AEROSOL_RURALBOX routine (bmy, 9/28/04)
@@ -135,6 +139,9 @@
 !  13 Jun 2017 - M. Sulprizio- Added AOD calculation for isoprene only. Don't
 !                              add to OCPI, as this would be double-counting
 !                              the isoprene SOA contribution to AOD (eam, 2014)
+!  16 Jan 2018 - M. Sulprizio- Add option for spatially and seasonally varying
+!                              OM/OC from Philip et al. (2014); Make OCFPOA
+!                              and OCFOPOA 2-D arrays.
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -196,12 +203,16 @@
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD
+      USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr 
+      USE HCO_Error_Mod
+      USE HCO_INTERFACE_MOD, ONLY : HcoState
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Met_Mod,  ONLY : MetState
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
       USE UCX_MOD,        ONLY : KG_STRAT_AER
       USE UnitConv_Mod,   ONLY : Convert_Spc_Units
+      USE TIME_MOD,       ONLY : GET_MONTH
 #if   defined( TOMAS ) 
       USE TOMAS_MOD,      ONLY : IBINS
 #endif
@@ -307,6 +318,13 @@
       ! Other variables
       CHARACTER(LEN=63)   :: OrigUnit
 
+      ! For spatially and seasonally varying OM/OC
+      CHARACTER(LEN=255)  :: FIELDNAME
+      CHARACTER(LEN=1023) :: MSG
+      INTEGER             :: MONTH
+      LOGICAL             :: FND
+      REAL(f4), POINTER   :: OMOC(:,:) => NULL()
+
       !=================================================================
       ! AEROSOL_CONC begins here!
       !=================================================================
@@ -362,6 +380,48 @@
       AIRVOL => State_Met%AIRVOL
       PMID   => State_Met%PMID
       T      => State_Met%T
+
+      !=================================================================
+      ! OM/OC ratio
+      !
+      ! Get spatial and seasonally varying OM/OC from Philip et al. (2014)
+      ! or use default global mean values recommended by Aerosols WG
+      !=================================================================
+      IF ( Input_Opt%LOMOC ) THEN
+
+         ! Get pointer to OM/OC for current month from HEMCO
+         MONTH = GET_MONTH() 
+         IF      ( MONTH == 12 .or. MONTH == 1  .or. MONTH == 2  ) THEN
+            FieldName = 'OMOC_DJF'
+         ELSE IF ( MONTH == 3  .or. MONTH == 4  .or. MONTH == 5  ) THEN
+            FieldName = 'OMOC_MAM'
+         ELSE IF ( MONTH == 6  .or. MONTH == 7  .or. MONTH == 8  ) THEN
+            FieldName = 'OMOC_JJA'
+         ELSE IF ( MONTH == 9  .or. MONTH == 10 .or. MONTH == 11 ) THEN
+            FieldName = 'OMOC_SON'
+         ENDIF
+         CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, OMOC, RC,
+     &                    FOUND=FND )
+         IF ( RC /= HCO_SUCCESS .OR. .NOT. FND ) THEN
+            MSG = 'Cannot find seasonal OM/OC field ' //
+     &             TRIM(FIELDNAME) // '. Please add a corresponding ' //
+     &            'entry to the HEMCO configuration file.'
+            CALL ERROR_STOP (TRIM(MSG),'AEROSOL_CONC (aerosol_mod.F90)')
+            RETURN
+         ENDIF
+
+         ! Set OM/OC using spatially and seasonally varying data from
+         ! Philip et al. (2014)
+         OCFPOA(:,:)  = OMOC(:,:) ! OM/OC for POA
+         OCFOPOA(:,:) = OMOC(:,:) ! OM/OC for OPOA, OCPI, and OCPO
+
+      ELSE
+
+         ! Use default global mean OM/OC recommended by the Aerosols WG
+         OCFPOA(:,:)  = 1.4e+0_fp ! OM/OC for POA
+         OCFOPOA(:,:) = 2.1e+0_fp ! OM/OC for OPOA, OCPI, and OCPO
+
+      ENDIF
 
       !=================================================================
       ! Compute growth factors at 35% RH
@@ -553,16 +613,16 @@
             ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4) 
             IF ( IS_POA ) THEN
                OCPO(I,J,L) = ( Spc(I,J,L,id_POA1) + Spc(I,J,L,id_POA2) )
-     &                       * OCFPOA / AIRVOL(I,J,L)
+     &                       * OCFPOA(I,J) / AIRVOL(I,J,L)
             ELSE IF ( IS_OCPO ) THEN
                OCPO(I,J,L) = Spc(I,J,L,id_OCPO)
-     &                       * OCFOPOA / AIRVOL(I,J,L)
+     &                       * OCFOPOA(I,J) / AIRVOL(I,J,L)
             ENDIF
 
             ! Hydrophilic OC [kg/m3]
             IF ( IS_OCPI ) THEN
                OCPI(I,J,L) = Spc(I,J,L,id_OCPI)
-     &                       * OCFOPOA / AIRVOL(I,J,L)
+     &                       * OCFOPOA(I,J) / AIRVOL(I,J,L)
             ENDIF
 
             ! Now avoid division by zero (bmy, 4/20/04)
@@ -758,7 +818,7 @@
             IF ( IS_OPOA ) THEN
                OPOA(I,J,L) = ( Spc(I,J,L,id_OPOA1)
      &                       + Spc(I,J,L,id_OPOA2) )
-     &                       * OCFOPOA / AIRVOL(I,J,L) 
+     &                       * OCFOPOA(I,J) / AIRVOL(I,J,L) 
             ENDIF
 
          ENDIF
@@ -835,7 +895,7 @@
          ! Use simple SOA by default over complex SOA in calculations
          IF ( Is_SimpleSOA ) THEN
             OCPISOA(I,J,L) = 
-     &        ( Spc(I,J,L,id_OCPI) * OCFOPOA +
+     &        ( Spc(I,J,L,id_OCPI) * OCFOPOA(I,J) +
      &          Spc(I,J,L,id_SOAS)             ) / AIRVOL(I,J,L)
 
          ELSEIF ( Is_ComplexSOA ) THEN
@@ -857,13 +917,13 @@
                OCPISOA(I,J,L) = OCPISOA(I,J,L) +
      &                          ( Spc(I,J,L,id_OPOA1)
      &                          + Spc(I,J,L,id_OPOA2) )
-     &                          * OCFOPOA / AIRVOL(I,J,L)
+     &                          * OCFOPOA(I,J) / AIRVOL(I,J,L)
             ENDIF
 
             IF ( IS_OCPI ) THEN  ! hotp 7/28/10
                OCPISOA(I,J,L) = OCPISOA(I,J,L)
      &                          + Spc(I,J,L,id_OCPI)
-     &                          * OCFOPOA / AIRVOL(I,J,L) 
+     &                          * OCFOPOA(I,J) / AIRVOL(I,J,L) 
             ENDIF
 
          ENDIF
@@ -996,6 +1056,7 @@
       ! Free pointers
       Spc    => NULL()
       AIRVOL => NULL()
+      OMOC   => NULL()
 
       END SUBROUTINE AEROSOL_CONC
 !EOC
@@ -2368,6 +2429,18 @@
       IF ( RC /= GC_SUCCESS ) RETURN
       SOAS = 0.0_fp
 
+      ! OM/OC for POA
+      ALLOCATE( OCFPOA(IIPAR,JJPAR), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:OCFPOA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      OCFPOA = 0.0_fp
+
+      ! OM/OC for OPOA, OCPI, OCPO
+      ALLOCATE( OCFOPOA(IIPAR,JJPAR), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:OCFOPOA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      OCFOPOA = 0.0_fp
+
       END SUBROUTINE INIT_AEROSOL
 !EOC
 !------------------------------------------------------------------------------
@@ -2419,6 +2492,8 @@
       IF ( ALLOCATED( DAERSL      ) ) DEALLOCATE( DAERSL      )
       IF ( ALLOCATED( ISOAAQ      ) ) DEALLOCATE( ISOAAQ      )
       IF ( ALLOCATED( SOAS        ) ) DEALLOCATE( SOAS        )
+      IF ( ALLOCATED( OCFPOA      ) ) DEALLOCATE( OCFPOA      )
+      IF ( ALLOCATED( OCFOPOA     ) ) DEALLOCATE( OCFOPOA     )
 
       END SUBROUTINE CLEANUP_AEROSOL
 !EOC

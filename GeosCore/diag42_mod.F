@@ -272,13 +272,13 @@
          IF ( IS_POA ) THEN
             AD42(I,J,L,7) = AD42(I,J,L,7) +
      &                    ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
-     &                        OCPI(I,J,L) + OPOA(I,J,L) ) / OCFOPOA +
-     &                        OCPO(I,J,L) / OCFPOA ) * FACTOR
+     &                        OCPI(I,J,L) + OPOA(I,J,L) )/OCFOPOA(I,J)+
+     &                        OCPO(I,J,L) / OCFPOA(I,J) ) * FACTOR
          ELSE
             AD42(I,J,L,7) = AD42(I,J,L,7)  +
      &                    ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
      &                        OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) )
-     &                      / OCFOPOA ) * FACTOR
+     &                      / OCFOPOA(I,J) ) * FACTOR
          ENDIF
 
          ! Add mechanistic isoprene OA
@@ -324,18 +324,18 @@
          !--------------------------------------------------------------
          IF ( IS_POA ) THEN
             AD42(I,J,L,10) = AD42(I,J,L,10) +
-     &                       ( OCPO(I,J,L) / OCFPOA ) * FACTOR
+     &                       ( OCPO(I,J,L) / OCFPOA(I,J) ) * FACTOR
          ELSE
             AD42(I,J,L,10) = AD42(I,J,L,10) + 
-     &                       ( ( OCPI(I,J,L) + OCPO(I,J,L) ) / OCFOPOA )
-     &                       * FACTOR
+     &                       ( ( OCPI(I,J,L) + OCPO(I,J,L) ) /
+     &                       OCFOPOA(I,J) ) * FACTOR
          ENDIF
 
          !--------------------------------------------------------------
          ! OPOA [ugC/m3]
          !--------------------------------------------------------------
          AD42(I,J,L,11) = AD42(I,J,L,11) +
-     &                    OPOA(I,J,L) / OCFOPOA * FACTOR
+     &                    OPOA(I,J,L) / OCFOPOA(I,J) * FACTOR
 
          !--------------------------------------------------------------
          ! Additional aerosol tracers
@@ -343,8 +343,8 @@
 
          ! OC [ugC/m3]
          AD42(I,J,L,12) = AD42(I,J,L,12) + 
-     &                    ( ( OCPI(I,J,L) + OCPO(I,J,L) ) / OCFOPOA )
-     &                    * FACTOR
+     &                    ( ( OCPI(I,J,L) + OCPO(I,J,L) ) / 
+     &                    OCFOPOA(I,J) ) * FACTOR
 
          ! BC [ugC/m3]
          AD42(I,J,L,13) = AD42(I,J,L,13) + 
