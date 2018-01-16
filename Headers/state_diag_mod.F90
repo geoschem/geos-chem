@@ -91,10 +91,26 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: ODDustBinsWL1   (:,:,:,:) ! All bins 1st WL dust OD
      REAL(f4),  POINTER :: ODDustBinsWL2   (:,:,:,:) ! All bins 2nd WL dust OD
      REAL(f4),  POINTER :: ODDustBinsWL3   (:,:,:,:) ! All bins 3rd WL dust OD
+     REAL(f4),  POINTER :: ODAerWL1        (:,:,:,:) ! Aerosol OD for 1st WL
+     REAL(f4),  POINTER :: ODAerWL2        (:,:,:,:) ! Aerosol OD for 2nd WL
+     REAL(f4),  POINTER :: ODAerWL3        (:,:,:,:) ! Aerosol OD for 3rd WL
+     REAL(f4),  POINTER :: HygroGrowth     (:,:,:,:) ! Hydroscopic growth of spc
+     REAL(f4),  POINTER :: SurfAreaMinDust (:,:,:  ) ! Mineral dust surface area
+     REAL(f4),  POINTER :: SurfAreaAerosol (:,:,:,:) ! Aerosol surface area
+     ! OD for isoprene still used??? (tracer 58 of ND21)
      REAL(f4),  POINTER :: PM25            (:,:,:  ) ! Part. matter, r < 2.5 um
      REAL(f4),  POINTER :: TerpeneSOA      (:,:,:  )
      REAL(f4),  POINTER :: IsopreneSOA     (:,:,:  )
      REAL(f4),  POINTER :: AromaticSOA     (:,:,:  )
+
+     ! UCX-only Aerosols (not yet implemented)
+     REAL(f4),  POINTER :: StratLiqDen     (:,:,:  ) ! Strat liquid # density
+     REAL(f4),  POINTER :: StratPartDen    (:,:,:  ) ! Strat particulate # den
+     REAL(f4),  POINTER :: AerAqVol        (:,:,:  ) ! Aerosol aqueous volume
+     REAL(f4),  POINTER :: StratLiqSurfArea(:,:,:  ) ! Strat liquid surf area
+     REAL(f4),  POINTER :: PSCSurfArea     (:,:,:  ) ! Polar strat cld surf area
+     REAL(f4),  POINTER :: ODSLA           (:,:,:  ) ! Strat liquid aerosol OD
+     REAL(f4),  POINTER :: ODPSC           (:,:,:  ) ! Polar strat cloud OD
 
      ! Advection
      REAL(f4),  POINTER :: AdvFluxZonal    (:,:,:,:) ! EW Advective Flux
@@ -267,6 +283,7 @@ CONTAINS
     INTEGER                :: N, IM, JM, LM
     INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc
     INTEGER                :: nWetDep,  nPhotol, nProd,   nLoss
+    INTEGER                :: nHygGrth
     LOGICAL                :: EOF,      Found
 
     !=======================================================================
@@ -291,6 +308,7 @@ CONTAINS
     nSpecies  = State_Chm%nSpecies
     nAdvect   = State_Chm%nAdvect
     nDryDep   = State_Chm%nDryDep
+    nHygGrth  = State_Chm%nHygGrth
     nKppSpc   = State_Chm%nKppSpc
     nLoss     = State_Chm%nLoss
     nPhotol   = State_Chm%nPhotol
@@ -369,6 +387,24 @@ CONTAINS
     State_Diag%RadClrSkyLWTOA             => NULL()
     State_Diag%RadClrSkySWSurf            => NULL()
     State_Diag%RadClrSkySWTOA             => NULL()
+
+    State_Diag%ODDust              => NULL()
+    State_Diag%ODDustBinsWL1       => NULL()
+    State_Diag%ODDustBinsWL2       => NULL()
+    State_Diag%ODDustBinsWL3       => NULL()
+    State_Diag%ODAerWL1            => NULL()
+    State_Diag%ODAerWL2            => NULL()
+    State_Diag%ODAerWL3            => NULL()
+    State_Diag%HygroGrowth         => NULL()
+    State_Diag%SurfAreaMinDust     => NULL()
+    State_Diag%SurfAreaAerosol     => NULL()
+    State_Diag%StratLiqDen         => NULL()
+    State_Diag%StratPartDen        => NULL()
+    State_Diag%AerAqVol            => NULL()
+    State_Diag%StratLiqSurfArea    => NULL()
+    State_Diag%PSCSurfArea         => NULL()
+    State_Diag%ODSLA               => NULL()
+    State_Diag%ODPSC               => NULL()
 
 #if defined( NC_DIAG )
 
@@ -1262,7 +1298,7 @@ CONTAINS
        ! Dust Optical Depth
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ODDust'
-       diagID  = 'OpticalDepthDust'
+       diagID  = 'AODDust'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1279,7 +1315,7 @@ CONTAINS
        ! Dust Optical Depth per bin at 1st wavelength
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ODDustBinsWL1'
-       diagID  = 'OpticalDepthDust' // TRIM(RadWL(1))
+       diagID  = 'AODDust' // TRIM(RadWL(1))
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1297,7 +1333,7 @@ CONTAINS
        ! Dust Optical Depth per bin at 2nd wavelength
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ODDustBinsWL2'
-       diagID  = 'OpticalDepthDust' // TRIM(RadWL(2))
+       diagID  = 'AODDust' // TRIM(RadWL(2))
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1315,7 +1351,7 @@ CONTAINS
        ! Dust Optical Depth per bin at 3rd wavelength
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ODDustBinsWL3'
-       diagID  = 'OpticalDepthDust' // TRIM(RadWL(3))
+       diagID  = 'AODDust' // TRIM(RadWL(3))
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1327,6 +1363,234 @@ CONTAINS
                                    State_Diag%ODDustBinsWL3,                &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Optical Depth per Aerosol Species at 1st Wavelength
+       ! NOTE: includes only aerosols with hygroscopic growth tracked
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%ODAerWL1'
+       diagID  = 'AOD' // TRIM(RadWL(1))
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ODAerWL1( IM, JM, LM, nHygGrth ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ODAerWL1 = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%ODAerWL1, &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Optical Depth per Aerosol Species at 2nd Wavelength
+       ! NOTE: includes only aerosols with hygroscopic growth tracked
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%ODAerWL2'
+       diagID  =  'AOD' // TRIM(RadWL(2))
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ODAerWL2( IM, JM, LM, nHygGrth ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ODAerWL2 = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%ODAerWL2, &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Optical Depth per Aerosol Species at 3rd Wavelength
+       ! NOTE: includes only aerosols with hygroscopic growth tracked
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%ODAerWL3'
+       diagID  =  'AOD' // TRIM(RadWL(3))
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ODAerWL3( IM, JM, LM, nHygGrth ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ODAerWL3 = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%ODAerWL3, &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Hygroscopic Growth per Aerosol Species
+       ! NOTE: includes primary aerosols only
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%HygroGrowth'
+       diagID  = 'AerHygroscopicGrowth'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%HygroGrowth( IM, JM, LM, nHygGrth ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%HygroGrowth = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%HygroGrowth, &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Surface Area of Mineral Dust 
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%SurfAreaMinDust'
+       diagID  = 'AerSurfAreaDust'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%SurfAreaMinDust( IM, JM, LM ), STAT=RC)
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%SurfAreaMinDust = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,          &
+                                   State_Diag%SurfAreaMinDust, &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Surface Area of Aerosol Species
+       ! NOTE: includes only aerosols with hygroscopic growth tracked
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%SurfAreaAerosol'
+       diagID  = 'AerSurfArea'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%SurfAreaAerosol( IM, JM, LM, nHygGrth ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%SurfAreaAerosol = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,          &
+                                   State_Diag%SurfAreaAerosol, &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Stratospheric Liquid Aerosol Number Density
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%StratLiqDen'
+       diagID  = 'AerNumDensitryStratLiquid'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%StratLiqDen( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%StratLiqDen = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%StratLiqDen, &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Strospheric Particulate Aerosol Number Density
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%StratPartDen'
+       diagID  = 'AerNumDensityStratParticulate'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%StratPartDen( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%StratPartDen = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%StratPartDen, &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aqueous Aerosol Volume
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerAqVol'
+       diagID  = 'AerAqueousVolume'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerAqVol( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerAqVol = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%AerAqVol, &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Stratospheric Liquid Aerosol Surface Area
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%StratLiqSurfArea'
+       diagID  = 'AerSurfAreaStratLiquid'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%StratLiqSurfArea( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%StratLiqSurfArea = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,           &
+                                   State_Diag%StratLiqSurfArea, &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Polar Stratospheric Cloud Type 1a/2 Surface Area
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%PSCSurfArea'
+       diagID  = 'AerSurfAreaPolarStratCloud'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%PSCSurfArea( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%PSCSurfArea = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PSCSurfArea, &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Stratospheric Liquid Aerosol Optical Depth (600 nm?)
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%ODSLA'
+       diagID  = 'AODStratLiquid'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ODSLA( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ODSLA = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%ODSLA, &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Polar Stratospheric Cloud Type 1a/2 Optical Depth
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%ODPSC'
+       diagID  = 'AODPolarStratCloud'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ODPSC( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ODPSC = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%ODPSC, &
+                                   State_Chm, State_Diag, RC )
        ENDIF
 
        !--------------------------------------------------------------------
@@ -1538,7 +1802,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AromaticSOA = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%AromaticSOA,    &
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%AromaticSOA, &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -1563,13 +1827,13 @@ CONTAINS
              CASE( 2  ) 
                 diagID = 'ProdOCPIfromOCPO'
              CASE( 3  ) 
-                diagID = 'OpticalDepthDust'
+                diagID = 'AODDust'
              CASE( 4  ) 
-                diagID = 'OpticalDepthDust' // TRIM( RadWL(1) )
+                diagID = 'AODDust' // TRIM( RadWL(1) )
              CASE( 5  ) 
-                diagID = 'OpticalDepthDust' // TRIM( RadWL(2) )
+                diagID = 'AODDust' // TRIM( RadWL(2) )
              CASE( 6  )                
-                diagID = 'OpticalDepthDust' // TRIM( RadWL(3) )
+                diagID = 'AODDust' // TRIM( RadWL(3) )
              CASE( 7  )                
                 diagID = 'ProdSO4fromGasPhase'
              CASE( 8  )                
@@ -2210,6 +2474,84 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%ODAerWL1 ) ) THEN
+       DEALLOCATE( State_Diag%ODAerWL1, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ODAerWL1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ODAerWL2 ) ) THEN
+       DEALLOCATE( State_Diag%ODAerWL2, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ODAerWL2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ODAerWL3 ) ) THEN
+       DEALLOCATE( State_Diag%ODAerWL3, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ODAerWL3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%HygroGrowth ) ) THEN
+       DEALLOCATE( State_Diag%HygroGrowth, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%HygroGrowth', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%SurfAreaMinDust ) ) THEN
+       DEALLOCATE( State_Diag%SurfAreaMinDust, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%SurfAreaMinDust', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%SurfAreaAerosol ) ) THEN
+       DEALLOCATE( State_Diag%SurfAreaAerosol, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%SurfAreaAerosol', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%StratLiqDen ) ) THEN
+       DEALLOCATE( State_Diag%StratLiqDen, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%StratLiqDen', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%StratPartDen ) ) THEN
+       DEALLOCATE( State_Diag%StratPartDen, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%StratPartDen', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerAqVol ) ) THEN
+       DEALLOCATE( State_Diag%AerAqVol, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerAqVol', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%StratLiqSurfArea ) ) THEN
+       DEALLOCATE( State_Diag%StratLiqSurfArea, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%StratLiqSurfArea', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%PSCSurfArea ) ) THEN
+       DEALLOCATE( State_Diag%PSCSurfArea, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%PSCSurfArea', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ODSLA ) ) THEN
+       DEALLOCATE( State_Diag%ODSLA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ODSLA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ODPSC ) ) THEN
+       DEALLOCATE( State_Diag%ODPSC, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ODPSC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%Loss ) ) THEN
        DEALLOCATE( State_Diag%Loss, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%Loss', 2, RC )
@@ -2712,31 +3054,107 @@ CONTAINS
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'OPTICALDEPTHDUST' ) THEN
+    ELSE IF ( TRIM(Name_AllCaps) == 'AODDUST' ) THEN
        IF ( isDesc    ) Desc  = 'Optical depth for mineral dust'
        IF ( isUnits   ) Units = 'unitless'
        IF ( isRank    ) Rank  =  3
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'OPTICALDEPTHDUST' // TRIM(RadWL(1)) ) THEN 
+    ELSE IF ( TRIM(Name_AllCaps) == 'AODDUST' // TRIM(RadWL(1)) ) THEN 
        IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
                                    TRIM(RadWL(1)) // ' nm'
        IF ( isUnits   ) Units   = 'unitless'
        IF ( isRank    ) Rank    =  3
        IF ( isTagged  ) TagId   = 'DUSTBIN'
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'OPTICALDEPTHDUST' // TRIM(RadWL(2)) ) THEN
+    ELSE IF ( TRIM(Name_AllCaps) == 'AODDUST' // TRIM(RadWL(2)) ) THEN
        IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
                                    TRIM(RadWL(2)) // ' nm'
        IF ( isUnits   ) Units   = 'unitless'
        IF ( isRank    ) Rank    =  3
        IF ( isTagged  ) TagId   = 'DUSTBIN'
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'OPTICALDEPTHDUST' // TRIM(RadWL(3)) ) THEN
+    ELSE IF ( TRIM(Name_AllCaps) == 'AODDUST' // TRIM(RadWL(3)) ) THEN
        IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
                                    TRIM(RadWL(3)) // ' nm'
        IF ( isUnits   ) Units   = 'unitless'
        IF ( isRank    ) Rank    =  3
        IF ( isTagged  ) TagId   = 'DUSTBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'AOD' // TRIM(RadWL(1)) ) THEN
+       IF ( isDesc    ) Desc  =  'Optical depth for aerosol at ' // &
+                                   TRIM(RadWL(1)) // ' nm'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'AOD' // TRIM(RadWL(2)) ) THEN
+       IF ( isDesc    ) Desc  =  'Optical depth for aerosol at ' // &
+                                   TRIM(RadWL(2)) // ' nm'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'AOD' // TRIM(RadWL(3)) ) THEN
+       IF ( isDesc    ) Desc  =  'Optical depth for aerosol at ' // &
+                                   TRIM(RadWL(3)) // ' nm'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'AERHYGROSCOPICGROWTH' ) THEN
+       IF ( isDesc    ) Desc  = 'Hygroscopic growth of aerosol species'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'AERSURFACEAREADUST' ) THEN
+       IF ( isDesc    ) Desc  = 'Surface area of mineral dust'
+       IF ( isUnits   ) Units = 'cm2 cm-3'
+       IF ( isRank    ) Rank  =  3
+
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'AERSURFACEAREA' ) THEN
+       IF ( isDesc    ) Desc  = 'Surface area of aerosol species'
+       IF ( isUnits   ) Units = 'cm2 cm-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'AERNUMDENSITYSTRATLIQOUID' ) THEN
+       IF ( isDesc    ) Desc  = 'Stratospheric liquid aerosol number density'
+       IF ( isUnits   ) Units = '# cm-3'
+       IF ( isRank    ) Rank  =  3
+
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'AEROSOLSTRATPARTICULATENUMDENSITY' ) THEN
+       IF ( isDesc    ) Desc  = 'Stratospheric particulate aerosol ' // &
+                                'number density'
+       IF ( isUnits   ) Units = '# cm-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'AERAQUEOUSVOLUME' ) THEN
+       IF ( isDesc    ) Desc  = 'Aqueous aerosol volume'
+       IF ( isUnits   ) Units = 'cm3 cm-3'
+       IF ( isRank    ) Rank  =  3
+
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'AERSURFAREASTRATLIQUID' ) THEN
+       IF ( isDesc    ) Desc  = 'Stratospheric liquid surface area'
+       IF ( isUnits   ) Units = 'cm2 cm-3'
+       IF ( isRank    ) Rank  =  3
+
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'AERSURFAREAPOLARSTRATCLOUD' ) THEN
+       IF ( isDesc    ) Desc  = 'Polar stratospheric cloud type 1a/2 ' // &
+                                'surface area'
+       IF ( isUnits   ) Units = 'cm2 cm-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'AODSTRATLIQUID' ) THEN
+       IF ( isDesc    ) Desc  = 'Stratospheric liquid aerosol optical ' // &
+                                'depth (600 nm)'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'AODPOLARSTRATCLOUD' ) THEN
+       IF ( isDesc    ) Desc  = 'Polar stratospheric cloud type 1a/2 ' // &
+                                'optical depth (600 nm)'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSS' ) THEN
        IF ( IsDesc    ) Desc  = 'Chemical loss of'
