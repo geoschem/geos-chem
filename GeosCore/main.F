@@ -437,7 +437,11 @@
       ! NOTE: At this point we have not yet read in the "input.geos"
       ! file so these are just placeholder values (bmy, 11/7/12)
       !
-      Input_Opt%MAX_DIAG      = 200      ! Set to large placeholder value
+#if defined( BPCH_DIAG )
+      Input_Opt%MAX_DIAG      = MAX_DIAG ! Max # of diags from CMN_DIAG_mod.F
+#else
+      Input_Opt%MAX_DIAG      = 1        ! or placeholder value if BPCH_DIAG=n
+#endif
       Input_Opt%MAX_FAM       = 250      ! Set to large placeholder value
       Input_Opt%MAX_SPC       = 500      ! Set to large placeholder value
       Input_Opt%LINOZ_NLAT    = 18

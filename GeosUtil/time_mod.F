@@ -3514,13 +3514,16 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD, ONLY : NJDAY
       USE CMN_SIZE_MOD
 !
 ! !RETURN VALUE:
 !
       LOGICAL :: DO_BPCH
 ! 
+! !REMARKS:
+!  NJDAY is now located in CMN_SIZE_mod.F, so that we can eventually
+!  retire the obsolete CMN_DIAG_mod.F. (bmy, 1/16/18)
+!
 ! !REVISION HISTORY: 
 !  02 Feb 2007 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers

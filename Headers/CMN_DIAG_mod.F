@@ -28,7 +28,6 @@
       !######################################################
       !##### NOTE: We need to keep these variables!     #####
       !######################################################
-      INTEGER            :: NJDAY(366)
       INTEGER, PARAMETER :: PD40=4
       INTEGER            :: ND40
 
