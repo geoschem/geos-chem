@@ -1225,6 +1225,21 @@
          CALL GET_COSINE_SZA( am_I_Root, Input_Opt, State_Met, RC )
 
 #if defined( BPCH_DIAG )
+         !-------------------------------------------------------------
+         ! ND55 (bpch) DIAGNOSTIC
+         !
+         ! Tropopause level, height [km], and pressure [hPa]
+         !
+         ! NOTE: Attach here because this is where the call to
+         ! obsolete routine DIAG_TROPOPAUSE was.  This should
+         ! replicate results w/ prior versions. (bmy, 1/17/18)
+         !-------------------------------------------------------------
+         IF ( ND55 > 0 ) THEN
+            AD55(:,:,1) = AD55(:,:,1) + State_Met%TropLev
+            AD55(:,:,2) = AD55(:,:,2) + State_Met%TropHt
+            AD55(:,:,3) = AD55(:,:,3) + State_Met%TropP
+         ENDIF
+
          ! Update dynamic timestep
          CALL SET_CT_DYN( INCREMENT=.TRUE. )
 #endif

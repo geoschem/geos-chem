@@ -119,7 +119,7 @@ MODULE State_Met_Mod
                                                 !  [W/m2]
      REAL(fp), POINTER :: TO3           (:,:  ) ! Total overhead O3 column [DU]
      REAL(fp), POINTER :: TROPP         (:,:  ) ! Tropopause pressure [hPa]     
-     REAL(fp), POINTER :: TropLev       (:,:  ) ! Tropopause level [1]
+     INTEGER,  POINTER :: TropLev       (:,:  ) ! Tropopause level [1]
      REAL(fp), POINTER :: TropHt        (:,:  ) ! Tropopause height [km]
      REAL(fp), POINTER :: TS            (:,:  ) ! Surface temperature [K]
      REAL(fp), POINTER :: TSKIN         (:,:  ) ! Surface skin temperature [K]
@@ -871,7 +871,7 @@ CONTAINS
     ALLOCATE( State_Met%TropLev( IM, JM ), STAT=RC )
     CALL GC_CheckVar( 'State_Met%TropLev', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%TropLev = 0.0_fp
+    State_Met%TropLev = 0
     CALL Register_MetField( am_I_Root, 'TROPLEV', State_Met%TropLev, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN

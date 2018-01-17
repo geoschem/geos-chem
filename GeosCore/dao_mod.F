@@ -270,10 +270,6 @@
       USE PhysConstants, ONLY : AIRMW, AVO
       USE Pressure_Mod
       USE Time_Mod,      ONLY : Get_LocalTime
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD,  ONLY : ND55
-      USE DIAG_MOD,      ONLY : AD55
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -794,8 +790,8 @@
       ! grid.  Ditto for State_Met%InPbl and State_Met%InTroposphere.
       !=================================================================
 !$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED                             )
-!$OMP+PRIVATE( I, J,  L_CG, L_TP, H, Pb, Pt, FRAC )
+!$OMP+DEFAULT( SHARED                            )
+!$OMP+PRIVATE( I, J, L_CG, L_TP, H, Pb, Pt, FRAC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -803,7 +799,7 @@
          ! Compute highest level of chemistry grid and the troposphere
          !--------------------------------------------------------------
 
-         ! Highest level in the column at (I,J) 
+         ! Highest level in the column at (I,J)
          ! that is fully within the chemistry grid
          L_CG  = COUNT( State_Met%InChemGrid(I,J,:) )
 
@@ -818,6 +814,13 @@
          ! Get height (from surface to top edge) of all boxes that lie
          ! totally w/in the troposphere.  NOTE: Grid box (I,J,L_TP-1)
          ! is the highest purely tropospheric grid box in the column.
+         !
+         ! BMY COMMENT: L_TP may be the highest purely tropospheric
+         ! grid box in the column, not L_TP-1. That might have been
+         ! due to historical baggage.  In any case, this is only used
+         ! to compute State_Met%TropHt which is a purely diagnostic
+         ! output, so it won't make a big difference even if it is
+         ! incorrect.  Check into this later on. (bmy, 1/17/18)
          H     = SUM( State_Met%BXHEIGHT(I,J,1:L_TP-1) )
 
          ! Get the pressures [hPa] at the bottom and top edges
@@ -839,17 +842,6 @@
          State_Met%ChemGridLev(I,J) = L_CG           ! Max chemgrid level
          State_Met%TropLev    (I,J) = L_TP           ! Max tropopause level
          State_Met%TropHt     (I,J) = H / 1000.0_fp  ! Troposphere ht [km]
-
-#if defined( BPCH_DIAG )
-         !-------------------------------------------------------------
-         ! ND55 (bpch) DIAGNOSTIC
-         !
-         ! Tropopause level, height [km], and pressure [hPa]
-         !-------------------------------------------------------------
-         AD55(I,J,1) = AD55(I,J,1) + State_Met%TropLev(I,J)
-         AD55(I,J,2) = AD55(I,J,2) + State_Met%TropHt (I,J)
-         AD55(I,J,3) = AD55(I,J,3) + State_Met%TropP  (I,J)
-#endif
 
       ENDDO
       ENDDO
