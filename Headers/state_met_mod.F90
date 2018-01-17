@@ -197,6 +197,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: PMID_DRY      (:,:,:) ! Dry air partial pressure [hPa]
                                                 !  defined as arithmetic avg
                                                 !  of edge pressures 
+     REAL(fp), POINTER :: THETA         (:,:,:) ! Potential temperature [K]
      REAL(fp), POINTER :: TV            (:,:,:) ! Virtual temperature [K]
      REAL(fp), POINTER :: MAIRDEN       (:,:,:) ! Moist air density [kg/m3]
      REAL(fp), POINTER :: AIRDEN        (:,:,:) ! Dry air density [kg/m3]
@@ -1460,6 +1461,17 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
+    ! THETA [K]
+    !-------------------------
+    ALLOCATE( State_Met%THETA( IM, JM, LM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%THETA', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN           
+    State_Met%THETA = 0.0_fp
+    CALL Register_MetField( am_I_Root, 'THETA', State_Met%THETA, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
     ! TV [K]
     !-------------------------
     ALLOCATE( State_Met%TV( IM, JM, LM ), STAT=RC )
@@ -2006,12 +2018,13 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) NULLIFY( State_Met%PEDGE_DRY  )
     IF ( ASSOCIATED( State_Met%PMID       )) NULLIFY( State_Met%PMID       )
     IF ( ASSOCIATED( State_Met%PMID_DRY   )) NULLIFY( State_Met%PMID_DRY   )
-    !IF ( ASSOCIATED( State_Met%PV         )) NULLIFY( State_Met%PV         )
+   !IF ( ASSOCIATED( State_Met%PV         )) NULLIFY( State_Met%PV         )
     IF ( ASSOCIATED( State_Met%QI         )) NULLIFY( State_Met%QI         )
     IF ( ASSOCIATED( State_Met%QL         )) NULLIFY( State_Met%QL         )
     IF ( ASSOCIATED( State_Met%RH         )) NULLIFY( State_Met%RH         )
     IF ( ASSOCIATED( State_Met%SPHU       )) NULLIFY( State_Met%SPHU       )
     IF ( ASSOCIATED( State_Met%T          )) NULLIFY( State_Met%T          )
+    IF ( ASSOCIATED( State_Met%THETA      )) NULLIFY( State_Met%THETA      )
     IF ( ASSOCIATED( State_Met%TV         )) NULLIFY( State_Met%TV         )
     IF ( ASSOCIATED( State_Met%TAUCLI     )) NULLIFY( State_Met%TAUCLI     )
     IF ( ASSOCIATED( State_Met%TAUCLW     )) NULLIFY( State_Met%TAUCLW     ) 
@@ -2601,7 +2614,6 @@ CONTAINS
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
 
-
        CASE ( 'BXHEIGHT' )
           IF ( isDesc  ) Desc  = 'Grid box height (w/r/t dry air)'
           IF ( isUnits ) Units = 'm'
@@ -2729,6 +2741,12 @@ CONTAINS
 
        CASE ( 'T' )
           IF ( isDesc  ) Desc  = 'Temperature'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+
+       CASE ( 'THETA' )
+          IF ( isDesc  ) Desc  = 'Potential temperature'
           IF ( isUnits ) Units = 'K'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter

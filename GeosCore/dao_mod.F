@@ -556,12 +556,17 @@
          !                                                                
          ! Assume constant temperature and moisture acros grid box.       
          !                                                                
-                                                                          
+
+         ! Grid box potential temperature [K]
+         State_Met%THETA(I,J,L)    = State_Met%T(I,J,L)
+     &                             * ( State_Met%PEDGE(I,J,1)
+     &                             /   State_Met%PMID (I,J,L) )**0.286
+
          ! Grid box virtual temperature [K]                               
          State_Met%TV(I,J,L)       = State_Met%T(I,J,L) / (1 -
      &                               Ev_edge / State_Met%PEDGE(I,J,L)
      &                             * ( 1 - H2OMW / AIRMW ) )
-                                                                          
+
          ! Grid box box height [m]                                        
          State_Met%BXHEIGHT(I,J,L) = Rdg0 * State_Met%TV(I,J,L)
      &                             * LOG( State_Met%PEDGE(I,J,L)
@@ -766,14 +771,6 @@
 
          ENDIF
 
-         ! Is the grid box near local noon
-         ! (between 11:00 and 13:00 local solar time)?
-         IF ( L == 1 ) THEN
-            State_Met%IsLocalNoon(I,J) = 
-     &         ( LocTime(I) >= 11.0_f8 .and. LocTime(I) <= 13.0_f8 )         
-         ENDIF
-
-
       ENDDO
       ENDDO
       ENDDO
@@ -784,10 +781,8 @@
       ! has to be done after the State_Met%InChemGrid etc. fields have 
       ! been totally initialized.
       !
-      ! NOTE: The COUNT intrinsic function returns the number of 
-      ! locations where the column State_Met%InChemGrid(I,J,:) is TRUE.  
-      ! This is also equivalent to the maximum level of the chemistry 
-      ! grid.  Ditto for State_Met%InPbl and State_Met%InTroposphere.
+      ! Also compute if it is near local noon in a grid box.
+      ! This will be used for the J-value diagnostics.
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED                            )
@@ -796,7 +791,19 @@
       DO I = 1, IIPAR
 
          !--------------------------------------------------------------
+         ! Is the grid box near local noon
+         ! (between 11:00 and 13:00 local solar time)?
+         !--------------------------------------------------------------
+         State_Met%IsLocalNoon(I,J) = 
+     &      ( LocTime(I) >= 11.0_f8 .and. LocTime(I) <= 13.0_f8 )         
+
+         !--------------------------------------------------------------
          ! Compute highest level of chemistry grid and the troposphere
+         !
+         ! NOTE: The COUNT intrinsic function returns the number of 
+         ! locations where the column State_Met%InChemGrid(I,J,:) is 
+         ! TRUE.  This is also equivalent to the maximum level of the 
+         ! chemistry grid.  Ditto for State_Met%InTroposphere.
          !--------------------------------------------------------------
 
          ! Highest level in the column at (I,J)

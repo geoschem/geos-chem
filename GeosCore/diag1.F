@@ -376,14 +376,7 @@
             ! ND57: Potential temperature
             !===========================================================
             IF ( Do_ND57 .and. NA == 1 .and. L <= LD57 ) THEN
-
-               ! Surface pressure [hPa]
-               P0          = State_Met%PEDGE(I,J,1)
-
-               ! NOTE: Exponent should be e.g. 0.286_fp
-               AD57(I,J,L) = AD57(I,J,L) 
-     &                     + State_Met%T(I,J,L) 
-     &                     * ( P0 / State_Met%PMID(I,J,L) )**0.286
+               AD57(I,J,L) = AD57(I,J,L) + State_Met%THETA(I,J,L)
             ENDIF
 
             !===========================================================
