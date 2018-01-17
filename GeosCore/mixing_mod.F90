@@ -337,7 +337,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
     USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR,   LLPAR
     USE DRYDEP_MOD,         ONLY : DEPSAV
     USE ErrCode_Mod
@@ -659,7 +658,7 @@ CONTAINS
 
           ! Restrict to chemistry grid
           IF ( ChemGridOnly ) THEN
-             EMIS_TOP = GET_CHEMGRID_LEVEL( I, J, State_Met )
+             EMIS_TOP = State_Met%ChemGridLev(I,J)
              EMIS_TOP = MIN(LLPAR,EMIS_TOP)
           ELSE
              EMIS_TOP = LLPAR

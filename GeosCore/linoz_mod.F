@@ -211,8 +211,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL 
-      USE CHEMGRID_MOD,       ONLY : GET_MAX_CHEMGRID_LEVEL
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE GC_GRID_MOD,        ONLY : GET_AREA_CM2   
@@ -346,7 +344,8 @@
       ! highest possible tropopause level.  This is only required
       ! when doing a tagged O3 simulation. (bmy, 3/18/13)
       !-----------------------------------------------------------------
-      L_OVERWRLD = GET_MAX_CHEMGRID_LEVEL()
+      !L_OVERWRLD = GET_MAX_CHEMGRID_LEVEL()
+      L_OVERWRLD = MAXVAL( State_Met%ChemGridLev )
 #endif
 
       !=================================================================
@@ -413,7 +412,8 @@
             ! CALL FLUSH(6) 
             !END IF
 
-            LBOT = GET_CHEMGRID_LEVEL( I, J, State_Met )+1
+            !LBOT = GET_CHEMGRID_LEVEL( I, J, State_Met )+1
+            LBOT = State_Met%ChemGridLev(I,J) + 1
             LPOS = 1
             DO WHILE (State_Met%PEDGE(I,J,LPOS+1) .GE. 0.3e+0_f8)
                LPOS = LPOS +1

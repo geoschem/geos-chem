@@ -132,7 +132,6 @@
       !-----------------------------------------------------------------
       ! GEOS-Chem modules
       !-----------------------------------------------------------------
-      USE CHEMGRID_MOD,        ONLY : GET_CHEMGRID_LEVEL
       USE CMN_FJX_MOD,         ONLY : NSPECRAD  ! NUMBER OF SPECIES FOR RT
       USE CMN_FJX_MOD,         ONLY : NASPECRAD ! NUMBER OF AEROSOL SPECIES
       USE CMN_FJX_MOD,         ONLY : SPECMASK,   IRTWVSELECT
@@ -703,7 +702,7 @@
 
        ! CTM ozone densities (molec/cm3)
        O3_CTM          = 0d0
-       LCHEM           = GET_CHEMGRID_LEVEL(I,J,State_Met)
+       LCHEM           = State_Met%ChemGridLev(I,J)
        DO L = 1, LCHEM
           O3_CTM(L)    = State_Chm%Species(I,J,L,id_O3)
        ENDDO

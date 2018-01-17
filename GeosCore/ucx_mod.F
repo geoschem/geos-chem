@@ -1195,7 +1195,6 @@
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TIME_MOD,           ONLY : GET_MINUTE
-      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
       USE CMN_FJX_MOD,        ONLY : ZPJ
       USE FAST_JX_MOD,        ONLY : RXN_NO, RXN_NO2, RXN_NO3, RXN_N2O
 !
@@ -1355,7 +1354,7 @@
 
          ! Calculate daylight fraction
          DAYFRAC = State_Met%SUNCOSmid(I,J)
-         LMINPHOT  = GET_CHEMGRID_LEVEL( I, J, State_Met)
+         LMINPHOT  = State_Met%ChemGridLev(I,J)
          CycleBox = (L.le.LMinPhot)
 
          ! Are the pre-calculated J-rates zero (ie in darkness)?
@@ -1579,7 +1578,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE FILE_MOD,           ONLY : IOERROR
@@ -1820,7 +1818,7 @@
          ! is at the *top* of the atmosphere
          VERTCOUNT = 51
          EXTRAP = .TRUE.
-         LSTART = GET_CHEMGRID_LEVEL( I, J, State_Met)
+         LSTART = State_Met%ChemGridLev(I,J)
 
          DO L = LSTART, LLPAR
             IF ( State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -5762,7 +5760,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
       USE CMN_FJX_MOD,        ONLY : ZPJ
       USE FAST_JX_MOD,        ONLY : RXN_H2SO4
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -5841,7 +5838,7 @@
          DAYCOLUMN = (GMU.gt.0e+0_fp)
 
          IF (DAYCOLUMN) THEN
-            LMINPHOT  = GET_CHEMGRID_LEVEL( I, J, State_Met)
+            LMINPHOT  = State_Met%ChemGridLev(I,J)
 
             ! Retrieve photolysis rate as a fraction of gaseous SO4
             PHOTDELTA = ZPJ(LMINPHOT,RXN_H2SO4,I,J) * DTCHEM

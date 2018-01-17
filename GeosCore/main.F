@@ -95,7 +95,6 @@
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
       !-----------------------------------------------------------------
-      USE CHEMGRID_MOD          ! For the dynamic tropopause
       USE CONVECTION_MOD        ! For deep cloud convection
       USE LINOZ_MOD             ! For LINOX linear strat chemistry
       USE PBL_MIX_MOD           ! To compute PBL height 
@@ -1225,11 +1224,6 @@
          ! State_Met%SUNCOSmid5 = at the midpt of the chem timestep 5hrs ago
          CALL GET_COSINE_SZA( am_I_Root, Input_Opt, State_Met, RC )
 
-         ! Compute tropopause height for ND55 diagnostic
-         ! Consider updating all Met diagnostics here (ewl, 1/22/16) 
-         CALL DIAG_TROPOPAUSE( am_I_Root, Input_Opt, 
-     &                         State_Met, State_Diag, RC )
-
 #if defined( BPCH_DIAG )
          ! Update dynamic timestep
          CALL SET_CT_DYN( INCREMENT=.TRUE. )
@@ -1308,6 +1302,9 @@
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
 ! This is only invoked when compiling GEOS-Chem with COUPLE=y
+!
+! %%%% NOTE: This option is likely broken due to the implementation of 
+! %%%% several different new features (HEMCO, FlexChem, etc.). 
 !
 #if defined( EXCHANGE )
 

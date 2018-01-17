@@ -270,6 +270,10 @@
       USE PhysConstants, ONLY : AIRMW, AVO
       USE Pressure_Mod
       USE Time_Mod,      ONLY : Get_LocalTime
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD,  ONLY : ND55
+      USE DIAG_MOD,      ONLY : AD55
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -374,6 +378,8 @@
 !                              species ID from State_Chm%Map_Advect.
 !  15 Aug 2016 - E. Lundgren - Update conc w/ RH for all species
 !  08 Jan 2018 - R. Yantosca - Now define query fields from State_Met here
+!  17 Jan 2018 - R. Yantosca - Now compute tropopause quantities here, which
+!                              allows us to retire GeosCore/chemgrid_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -381,11 +387,13 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER             :: I,         J,         L,         N
-      REAL(fp)            :: PEdge_Top, Esat,      Ev_mid,    Ev_edge
-      REAL(fp)            :: Ev_mean,   PMEAN,     PMEAN_DRY, EsatA
-      REAL(fp)            :: EsatB,     EsatC,     EsatD,     AREA_M2
-      REAL(fp)            :: SPHU_kgkg, AVGW_moist
+      INTEGER             :: I,         J,          L
+      INTEGER             :: L_CG,      L_TP,       N
+      REAL(fp)            :: PEdge_Top, Esat,       Ev_mid,    Ev_edge
+      REAL(fp)            :: Ev_mean,   PMEAN,      PMEAN_DRY, EsatA
+      REAL(fp)            :: EsatB,     EsatC,      EsatD,     AREA_M2
+      REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
+      REAL(fp)            :: Pb,        Pt
       LOGICAL             :: UpdtMR
 
       ! Arrays
@@ -775,10 +783,82 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !=============================================================
+      !=================================================================
+      ! Compute more tropopause and chemistry grid quantities.  This
+      ! has to be done after the State_Met%InChemGrid etc. fields have 
+      ! been totally initialized.
+      !
+      ! NOTE: The COUNT intrinsic function returns the number of 
+      ! locations where the column State_Met%InChemGrid(I,J,:) is TRUE.  
+      ! This is also equivalent to the maximum level of the chemistry 
+      ! grid.  Ditto for State_Met%InPbl and State_Met%InTroposphere.
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED                             )
+!$OMP+PRIVATE( I, J,  L_CG, L_TP, H, Pb, Pt, FRAC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         !--------------------------------------------------------------
+         ! Compute highest level of chemistry grid and the troposphere
+         !--------------------------------------------------------------
+
+         ! Highest level in the column at (I,J) 
+         ! that is fully within the chemistry grid
+         L_CG  = COUNT( State_Met%InChemGrid(I,J,:) )
+
+         ! Highest level in the column at (I,J)
+         ! that is fully within the tropopause
+         L_TP  = COUNT( State_Met%InTroposphere(I,J,:) )
+
+         !--------------------------------------------------------------
+         ! Compute tropopause height
+         !--------------------------------------------------------------
+
+         ! Get height (from surface to top edge) of all boxes that lie
+         ! totally w/in the troposphere.  NOTE: Grid box (I,J,L_TP-1)
+         ! is the highest purely tropospheric grid box in the column.
+         H     = SUM( State_Met%BXHEIGHT(I,J,1:L_TP-1) )
+
+         ! Get the pressures [hPa] at the bottom and top edges
+         ! of the grid box in which the tropopause occurs
+         Pb    = State_Met%PEDGE(I,J,L_TP  )  
+         Pt    = State_Met%PEDGE(I,J,L_TP+1)
+
+         ! FRAC is the fraction of the grid box (I,J,L_TP) 
+         ! that lies totally within the troposphere
+         FRAC  = ( Pb - State_Met%TROPP(I,J) ) / ( Pb - Pt ) 
+
+         ! Add to H the height [m] of the purely tropospheric 
+         ! fraction of grid box (I,J,L_TP)
+         H     = H + ( FRAC * State_Met%BXHEIGHT(I,J,L_TP) )
+
+         !--------------------------------------------------------------
+         ! Save in the relevant fields of State_Met
+         !--------------------------------------------------------------
+         State_Met%ChemGridLev(I,J) = L_CG           ! Max chemgrid level
+         State_Met%TropLev    (I,J) = L_TP           ! Max tropopause level
+         State_Met%TropHt     (I,J) = H / 1000.0_fp  ! Troposphere ht [km]
+
+#if defined( BPCH_DIAG )
+         !-------------------------------------------------------------
+         ! ND55 (bpch) DIAGNOSTIC
+         !
+         ! Tropopause level, height [km], and pressure [hPa]
+         !-------------------------------------------------------------
+         AD55(I,J,1) = AD55(I,J,1) + State_Met%TropLev(I,J)
+         AD55(I,J,2) = AD55(I,J,2) + State_Met%TropHt (I,J)
+         AD55(I,J,3) = AD55(I,J,3) + State_Met%TropP  (I,J)
+#endif
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      !=================================================================
       ! Update species concentrations with updated air quantities
       ! if update mixing ratio flag indicates to do so
-      !=============================================================  
+      !=================================================================
 
       ! Update the mixing ratio with new air quantities such that species
       ! mass is conserved if (1) update_mixing_ratio flag is not passed, 

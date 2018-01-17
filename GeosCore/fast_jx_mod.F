@@ -107,7 +107,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
       USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
       USE CMN_SIZE_MOD,       ONLY : NDUST
       USE ErrCode_Mod
@@ -378,9 +377,9 @@
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
             O3_CTM          = 0e+0_fp
-            LCHEM           = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
+            LCHEM           = State_Met%ChemGridLev(NLON,NLAT)
             DO L = 1, LCHEM
-               O3_CTM(L) = State_Chm%Species(NLON,NLAT,L,id_O3)
+               O3_CTM(L)    = State_Chm%Species(NLON,NLAT,L,id_O3)
             ENDDO
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)

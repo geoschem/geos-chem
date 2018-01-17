@@ -9657,7 +9657,6 @@
       USE Carbon_Mod,         ONLY : Init_Carbon
       USE CO2_Mod,            ONLY : Init_CO2
       USE C2H6_Mod,           ONLY : Init_C2H6
-      USE Chemgrid_Mod,       ONLY : Init_Chemgrid
       USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
       USE Diagnostics_Mod
       USE Diag03_Mod,         ONLY : Init_Diag03
@@ -9962,20 +9961,7 @@
       ENDIF
 
       !-----------------------------------------------------------------
-      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
-      !-----------------------------------------------------------------
-      CALL Init_ChemGrid( am_I_Root, Diag_List, 
-     &                    Input_Opt, State_Diag, RC )
-
-      ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Init_ChemGrid"!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      !-----------------------------------------------------------------
-      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
+      ! Initialize "toms_mod.F"
       !-----------------------------------------------------------------
       CALL Init_Toms( am_I_Root, Input_Opt, RC )
 

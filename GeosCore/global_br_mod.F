@@ -97,7 +97,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
@@ -138,6 +137,8 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !  12 Mar 2015 - R. Yantosca - Retire bpch input
+!  17 Jan 2018 - R. Yantosca - Replace GET_TPAUSE_LEVEL w/ State_Met%TropLev
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -271,7 +272,7 @@
       DO I=1, IIPAR
          
          ! First layer in the stratosphere
-         TPL = GET_TPAUSE_LEVEL( I, J, State_Met )
+         TPL = State_Met%TropLev(I,J)
 
          BR_MERGE(I,J,TPL:LLPAR) = MERGE(
      &        BR_STRAT(I,J,TPL:LLPAR), 

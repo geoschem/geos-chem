@@ -48,150 +48,188 @@ MODULE State_Met_Mod
      !----------------------------------------------------------------------
      ! Surface fields
      !----------------------------------------------------------------------
-     REAL(fp), POINTER :: ALBD      (:,:  ) ! Visible surface albedo [1]
-     REAL(fp), POINTER :: CLDFRC    (:,:  ) ! Column cloud fraction [1]
-     INTEGER,  POINTER :: CLDTOPS   (:,:  ) ! Max cloud top height [levels]
-     REAL(fp), POINTER :: EFLUX     (:,:  ) ! Latent heat flux [W/m2]
-     !REAL(fp), POINTER :: EVAP      (:,:  ) ! Surface evap [kg/m2/s]
-     REAL(fp), POINTER :: FRCLND    (:,:  ) ! Olson land fraction [1]
-     REAL(fp), POINTER :: FRLAKE    (:,:  ) ! Fraction of lake [1]
-     REAL(fp), POINTER :: FRLAND    (:,:  ) ! Fraction of land [1]
-     REAL(fp), POINTER :: FRLANDIC  (:,:  ) ! Fraction of land ice [1]
-     REAL(fp), POINTER :: FROCEAN   (:,:  ) ! Fraction of ocean [1]
-     REAL(fp), POINTER :: FRSEAICE  (:,:  ) ! Sfc sea ice fraction
-     REAL(fp), POINTER :: FRSNO     (:,:  ) ! Sfc snow fraction
-     !REAL(fp), POINTER :: GRN       (:,:  ) ! Greenness fraction
-     REAL(fp), POINTER :: GWETROOT  (:,:  ) ! Root soil wetness [1]
-     REAL(fp), POINTER :: GWETTOP   (:,:  ) ! Top soil moisture [1]
-     REAL(fp), POINTER :: HFLUX     (:,:  ) ! Sensible heat flux [W/m2]
-     REAL(fp), POINTER :: LAI       (:,:  ) ! Leaf area index [m2/m2] (online)
-     REAL(fp), POINTER :: LWI       (:,:  ) ! Land/water indices [1]
-     REAL(fp), POINTER :: PARDR     (:,:  ) ! Direct  photsyn active rad [W/m2]
-     REAL(fp), POINTER :: PARDF     (:,:  ) ! Diffuse photsyn active rad [W/m2]
-     REAL(fp), POINTER :: PBLH      (:,:  ) ! PBL height [m]
-     INTEGER,  POINTER :: PBL_TOP_L (:,:  ) ! PBL top layer [1]
-     REAL(fp), POINTER :: PHIS      (:,:  ) ! Sfc geopotential height [m2/s2]
-     REAL(fp), POINTER :: PRECANV   (:,:  ) ! Anvil previp @ ground [kg/m2/s]
-     REAL(fp), POINTER :: PRECCON   (:,:  ) ! Conv  precip @ ground [kg/m2/s]
-     REAL(fp), POINTER :: PRECTOT   (:,:  ) ! Total precip @ ground [kg/m2/s]
-     REAL(fp), POINTER :: PRECLSC   (:,:  ) ! LS precip @ ground [kg/m2/s]
-     !REAL(fp), POINTER :: PRECSNO   (:,:  ) ! Snow precip [kg/m2/s]
-     REAL(fp), POINTER :: PS1_WET   (:,:  ) ! Wet sfc press at dt start[hPa]
-     REAL(fp), POINTER :: PS2_WET   (:,:  ) ! Wet sfc press at dt end [hPa]
-     REAL(fp), POINTER :: PSC2_WET  (:,:  ) ! Wet interpolated sfc press [hPa]
-     REAL(fp), POINTER :: PS1_DRY   (:,:  ) ! Dry sfc press at dt start[hPa]
-     REAL(fp), POINTER :: PS2_DRY   (:,:  ) ! Dry sfc press at dt end [hPa]
-     REAL(fp), POINTER :: PSC2_DRY  (:,:  ) ! Dry interpolated sfc press [hPa]
-     !REAL(fp), POINTER :: RADLWG    (:,:  ) ! Net LW radiation @ ground [W/m2]
-     REAL(fp), POINTER :: SEAICE00  (:,:  ) ! Sea ice coverage 00-10%
-     REAL(fp), POINTER :: SEAICE10  (:,:  ) ! Sea ice coverage 10-20%
-     REAL(fp), POINTER :: SEAICE20  (:,:  ) !  Sea ice coverage 20-30%
-     REAL(fp), POINTER :: SEAICE30  (:,:  ) ! Sea ice coverage 30-40%
-     REAL(fp), POINTER :: SEAICE40  (:,:  ) ! Sea ice coverage 40-50%
-     REAL(fp), POINTER :: SEAICE50  (:,:  ) ! Sea ice coverage 50-60%
-     REAL(fp), POINTER :: SEAICE60  (:,:  ) ! Sea ice coverage 60-70%
-     REAL(fp), POINTER :: SEAICE70  (:,:  ) ! Sea ice coverage 70-80%
-     REAL(fp), POINTER :: SEAICE80  (:,:  ) ! Sea ice coverage 80-90%
-     REAL(fp), POINTER :: SEAICE90  (:,:  ) ! Sea ice coverage 90-100%
-     REAL(fp), POINTER :: SLP       (:,:  ) ! Sea level pressure [hPa]
-     REAL(fp), POINTER :: SNODP     (:,:  ) ! Snow depth [m]
-     REAL(fp), POINTER :: SNOMAS    (:,:  ) ! Snow mass [kg/m2]
-     REAL(fp), POINTER :: SUNCOS    (:,:  ) ! COS(SZA), current time
-     REAL(fp), POINTER :: SUNCOSmid (:,:  ) ! COS(SZA), midpt of chem timestep
-     REAL(fp), POINTER :: SWGDN     (:,:  ) ! Incident radiation @ grnd [W/m2]
-     REAL(fp), POINTER :: TO3       (:,:  ) ! Total overhead O3 column [DU]
-     REAL(fp), POINTER :: TROPP     (:,:  ) ! Tropopause pressure [hPa]
-     REAL(fp), POINTER :: TropLev   (:,:  ) ! Tropopause level [1]
-     REAL(fp), POINTER :: TropHt    (:,:  ) ! Tropopause height [km]
-     REAL(fp), POINTER :: TS        (:,:  ) ! Surface temperature [K]
-     REAL(fp), POINTER :: TSKIN     (:,:  ) ! Surface skin temperature [K]
-     REAL(fp), POINTER :: U10M      (:,:  ) ! E/W wind speed @ 10m height [m/s]
-     REAL(fp), POINTER :: USTAR     (:,:  ) ! Friction velocity [m/s]
-     REAL(fp), POINTER :: UVALBEDO  (:,:  ) ! UV surface albedo [1]
-     REAL(fp), POINTER :: V10M      (:,:  ) ! N/S wind speed @ 10m height [m/s]
-     REAL(fp), POINTER :: Z0        (:,:  ) ! Surface roughness height [m]
-     REAL(fp), POINTER :: CNV_FRC   (:,:  ) ! Convective fraction [1] 
+     REAL(fp), POINTER :: ALBD          (:,:  ) ! Visible surface albedo [1]
+     INTEGER,  POINTER :: ChemGridLev   (:,:  ) ! Chemistry grid level
+     REAL(fp), POINTER :: CLDFRC        (:,:  ) ! Column cloud fraction [1]
+     INTEGER,  POINTER :: CLDTOPS       (:,:  ) ! Max cloud top height [levels]
+     REAL(fp), POINTER :: EFLUX         (:,:  ) ! Latent heat flux [W/m2]
+    !REAL(fp), POINTER :: EVAP          (:,:  ) ! Surface evap [kg/m2/s]
+     REAL(fp), POINTER :: FRCLND        (:,:  ) ! Olson land fraction [1]
+     REAL(fp), POINTER :: FRLAKE        (:,:  ) ! Fraction of lake [1]
+     REAL(fp), POINTER :: FRLAND        (:,:  ) ! Fraction of land [1]
+     REAL(fp), POINTER :: FRLANDIC      (:,:  ) ! Fraction of land ice [1]
+     REAL(fp), POINTER :: FROCEAN       (:,:  ) ! Fraction of ocean [1]
+     REAL(fp), POINTER :: FRSEAICE      (:,:  ) ! Sfc sea ice fraction
+     REAL(fp), POINTER :: FRSNO         (:,:  ) ! Sfc snow fraction
+    !REAL(fp), POINTER :: GRN           (:,:  ) ! Greenness fraction
+     REAL(fp), POINTER :: GWETROOT      (:,:  ) ! Root soil wetness [1]
+     REAL(fp), POINTER :: GWETTOP       (:,:  ) ! Top soil moisture [1]
+     REAL(fp), POINTER :: HFLUX         (:,:  ) ! Sensible heat flux [W/m2]
+     REAL(fp), POINTER :: LAI           (:,:  ) ! Leaf area index [m2/m2]  
+                                                !  (online)
+     REAL(fp), POINTER :: LWI           (:,:  ) ! Land/water indices [1]
+     REAL(fp), POINTER :: PARDR         (:,:  ) ! Direct photsynthetically
+                                                !  active radiation [W/m2]
+     REAL(fp), POINTER :: PARDF         (:,:  ) ! Diffuse photsynthetically
+                                                !  active radiation [W/m2]
+     REAL(fp), POINTER :: PBLH          (:,:  ) ! PBL height [m]
+     INTEGER,  POINTER :: PBL_TOP_L     (:,:  ) ! PBL top layer [1]
+     REAL(fp), POINTER :: PHIS          (:,:  ) ! Surface geopotential height 
+                                                !  [m2/s2]
+     REAL(fp), POINTER :: PRECANV       (:,:  ) ! Anvil previp @ ground 
+                                                !  [kg/m2/s]
+     REAL(fp), POINTER :: PRECCON       (:,:  ) ! Conv  precip @ ground 
+                                                !  [kg/m2/s]
+     REAL(fp), POINTER :: PRECTOT       (:,:  ) ! Total precip @ ground 
+                                                !  [kg/m2/s]
+     REAL(fp), POINTER :: PRECLSC       (:,:  ) ! LS precip @ ground [kg/m2/s]
+    !REAL(fp), POINTER :: PRECSNO       (:,:  ) ! Snow precip [kg/m2/s]
+     REAL(fp), POINTER :: PS1_WET       (:,:  ) ! Wet surface pressure at
+                                                !  start of timestep [hPa]
+     REAL(fp), POINTER :: PS2_WET       (:,:  ) ! Wet surface pressure at 
+                                                !  end of timestep [hPa]
+     REAL(fp), POINTER :: PSC2_WET      (:,:  ) ! Wet interpolated surface
+                                                !  pressure [hPa]
+     REAL(fp), POINTER :: PS1_DRY       (:,:  ) ! Dry surface pressure at
+                                                !  start of timestep [hPa]
+     REAL(fp), POINTER :: PS2_DRY       (:,:  ) ! Dry surface pressure at
+                                                !  end of timestep [hPa]
+     REAL(fp), POINTER :: PSC2_DRY      (:,:  ) ! Dry interpolated surface
+                                                !  pressure [hPa]
+    !REAL(fp), POINTER :: RADLWG        (:,:  ) ! Net longwave radiation @ 
+                                                !  ground [W/m2]
+     REAL(fp), POINTER :: SEAICE00      (:,:  ) ! Sea ice coverage 00-10%
+     REAL(fp), POINTER :: SEAICE10      (:,:  ) ! Sea ice coverage 10-20%
+     REAL(fp), POINTER :: SEAICE20      (:,:  ) ! Sea ice coverage 20-30%
+     REAL(fp), POINTER :: SEAICE30      (:,:  ) ! Sea ice coverage 30-40%
+     REAL(fp), POINTER :: SEAICE40      (:,:  ) ! Sea ice coverage 40-50%
+     REAL(fp), POINTER :: SEAICE50      (:,:  ) ! Sea ice coverage 50-60%
+     REAL(fp), POINTER :: SEAICE60      (:,:  ) ! Sea ice coverage 60-70%
+     REAL(fp), POINTER :: SEAICE70      (:,:  ) ! Sea ice coverage 70-80%
+     REAL(fp), POINTER :: SEAICE80      (:,:  ) ! Sea ice coverage 80-90%
+     REAL(fp), POINTER :: SEAICE90      (:,:  ) ! Sea ice coverage 90-100%
+     REAL(fp), POINTER :: SLP           (:,:  ) ! Sea level pressure [hPa]
+     REAL(fp), POINTER :: SNODP         (:,:  ) ! Snow depth [m]
+     REAL(fp), POINTER :: SNOMAS        (:,:  ) ! Snow mass [kg/m2]
+     REAL(fp), POINTER :: SUNCOS        (:,:  ) ! COS(solar zenith angle) at
+                                                !   current time
+     REAL(fp), POINTER :: SUNCOSmid     (:,:  ) ! COS(solar zenith angle) at
+                                                !  midpoint of chem timestep
+     REAL(fp), POINTER :: SWGDN         (:,:  ) ! Incident radiation @ ground
+                                                !  [W/m2]
+     REAL(fp), POINTER :: TO3           (:,:  ) ! Total overhead O3 column [DU]
+     REAL(fp), POINTER :: TROPP         (:,:  ) ! Tropopause pressure [hPa]     
+     REAL(fp), POINTER :: TropLev       (:,:  ) ! Tropopause level [1]
+     REAL(fp), POINTER :: TropHt        (:,:  ) ! Tropopause height [km]
+     REAL(fp), POINTER :: TS            (:,:  ) ! Surface temperature [K]
+     REAL(fp), POINTER :: TSKIN         (:,:  ) ! Surface skin temperature [K]
+     REAL(fp), POINTER :: U10M          (:,:  ) ! E/W wind speed @ 10m ht [m/s]
+     REAL(fp), POINTER :: USTAR         (:,:  ) ! Friction velocity [m/s]
+     REAL(fp), POINTER :: UVALBEDO      (:,:  ) ! UV surface albedo [1]
+     REAL(fp), POINTER :: V10M          (:,:  ) ! N/S wind speed @ 10m ht [m/s]
+     REAL(fp), POINTER :: Z0            (:,:  ) ! Surface roughness height [m]
+     REAL(fp), POINTER :: CNV_FRC       (:,:  ) ! Convective fraction [1] 
             
      !----------------------------------------------------------------------
      ! 3-D Fields                  
      !----------------------------------------------------------------------
-     REAL(fp), POINTER :: AREA_M2   (:,:,:) ! Grid box surface area [cm2]
-     REAL(fp), POINTER :: CLDF      (:,:,:) ! 3-D cloud fraction [1]
-     REAL(fp), POINTER :: CMFMC     (:,:,:) ! Cloud mass flux [kg/m2/s]
-     REAL(fp), POINTER :: DQRCU     (:,:,:) ! Conv precip prod rate [kg/kg/s]
-                                            ! (assume per dry air)
-     REAL(fp), POINTER :: DQRLSAN   (:,:,:) ! LS precip prod rate [kg/kg/s]
-                                            ! (assume per dry air)
-     REAL(fp), POINTER :: DTRAIN    (:,:,:) ! Detrainment flux [kg/m2/s]
-     REAL(fp), POINTER :: OMEGA     (:,:,:) ! Updraft velocity [Pa/s]
-     REAL(fp), POINTER :: OPTD      (:,:,:) ! Visible optical depth [1]
-     REAL(fp), POINTER :: PEDGE     (:,:,:) ! Wet air press @ level edges [hPa]
-     REAL(fp), POINTER :: PFICU     (:,:,:) ! Dwn flux ice prec:conv [kg/m2/s]
-     REAL(fp), POINTER :: PFILSAN   (:,:,:) ! Dwn flux ice prec:LS+anv [kg/m2/s]
-     REAL(fp), POINTER :: PFLCU     (:,:,:) ! Dwn flux liq prec:conv [kg/m2/s]
-     REAL(fp), POINTER :: PFLLSAN   (:,:,:) ! Dwn flux ice prec:LS+anv [kg/m2/s]
-     !REAL(fp), POINTER :: PV        (:,:,:) ! Potential vort [kg*m2/kg/s]
-     REAL(fp), POINTER :: QI        (:,:,:) ! Ice mixing ratio [kg/kg dry air]
-     REAL(fp), POINTER :: QL        (:,:,:) ! Water mixing ratio [kg/kg dry air]
-     REAL(fp), POINTER :: REEVAPCN  (:,:,:) ! Evap of precip conv [kg/kg/s]
-                                            ! (assume per dry air)
-     REAL(fp), POINTER :: REEVAPLS  (:,:,:) ! Evap of precip LS+anvil [kg/kg/s]
-                                            ! (assume per dry air)
-     REAL(fp), POINTER :: RH        (:,:,:) ! Relative humidity [%]
-     REAL(fp), POINTER :: SPHU      (:,:,:) ! Spcfc humidity [g H2O/kg tot air]
-     REAL(fp), POINTER :: SPHU1     (:,:,:) ! Spec hum at timestep start [g/kg]
-     REAL(fp), POINTER :: SPHU2     (:,:,:) ! Spec hum at timestep end [g/kg] 
-     REAL(fp), POINTER :: T         (:,:,:) ! Temperature [K]
-     REAL(fp), POINTER :: TAUCLI    (:,:,:) ! Opt depth of ice clouds [1]
-     REAL(fp), POINTER :: TAUCLW    (:,:,:) ! Opt depth of H2O clouds [1]
-     REAL(fp), POINTER :: TMPU1     (:,:,:) ! Temperature at timestep start [K]
-     REAL(fp), POINTER :: TMPU2     (:,:,:) ! Temperature at timestep end [K]
-     REAL(fp), POINTER :: U         (:,:,:) ! E/W component of wind [m s-1]
-     REAL(fp), POINTER :: UPDVVEL   (:,:,:) ! Updraft vertical velocity [hPa/s]
-     REAL(fp), POINTER :: V         (:,:,:) ! N/S component of wind [m s-1]
+     REAL(fp), POINTER :: AREA_M2       (:,:,:) ! Grid box surface area [cm2]
+     REAL(fp), POINTER :: CLDF          (:,:,:) ! 3-D cloud fraction [1]
+     REAL(fp), POINTER :: CMFMC         (:,:,:) ! Cloud mass flux [kg/m2/s]
+     REAL(fp), POINTER :: DQRCU         (:,:,:) ! Conv precip production rate 
+                                                !  [kg/kg/s] (assume per 
+                                                !  dry air)
+     REAL(fp), POINTER :: DQRLSAN       (:,:,:) ! LS precip prod rate [kg/kg/s]
+                                                !  (assume per dry air)
+     REAL(fp), POINTER :: DTRAIN        (:,:,:) ! Detrainment flux [kg/m2/s]
+     REAL(fp), POINTER :: OMEGA         (:,:,:) ! Updraft velocity [Pa/s]
+     REAL(fp), POINTER :: OPTD          (:,:,:) ! Visible optical depth [1]
+     REAL(fp), POINTER :: PEDGE         (:,:,:) ! Wet air press @ level 
+                                                !  edges [hPa]
+     REAL(fp), POINTER :: PFICU         (:,:,:) ! Dwn flux ice prec:conv 
+                                                !  [kg/m2/s]
+     REAL(fp), POINTER :: PFILSAN       (:,:,:) ! Dwn flux ice prec:LS+anv 
+                                                !  [kg/m2/s]
+     REAL(fp), POINTER :: PFLCU         (:,:,:) ! Dwn flux liq prec:conv 
+                                                !  [kg/m2/s]
+     REAL(fp), POINTER :: PFLLSAN       (:,:,:) ! Dwn flux ice prec:LS+anv 
+                                                !  [kg/m2/s]
+    !REAL(fp), POINTER :: PV            (:,:,:) ! Potential vorticity 
+                                                !  [kg*m2/kg/s]
+     REAL(fp), POINTER :: QI            (:,:,:) ! Ice mixing ratio 
+                                                !  [kg/kg dry air]
+     REAL(fp), POINTER :: QL            (:,:,:) ! Water mixing ratio 
+                                                !  [kg/kg dry air]
+     REAL(fp), POINTER :: REEVAPCN      (:,:,:) ! Evap of precip conv [kg/kg/s]
+                                                !  (assume per dry air)
+     REAL(fp), POINTER :: REEVAPLS      (:,:,:) ! Evap of precip LS+anvil 
+                                                !  [kg/kg/s] (assume per 
+                                                !  dry air)
+     REAL(fp), POINTER :: RH            (:,:,:) ! Relative humidity [%]
+     REAL(fp), POINTER :: SPHU          (:,:,:) ! Specific humidity 
+                                                !  [g H2O/kg tot air]
+     REAL(fp), POINTER :: SPHU1         (:,:,:) ! Specific humidity at start
+                                                !  of timestep [g/kg]
+     REAL(fp), POINTER :: SPHU2         (:,:,:) ! Specific humidity at end
+                                                !  of timestep [g/kg]  
+     REAL(fp), POINTER :: T             (:,:,:) ! Temperature [K]
+     REAL(fp), POINTER :: TAUCLI        (:,:,:) ! Opt depth of ice clouds [1]
+     REAL(fp), POINTER :: TAUCLW        (:,:,:) ! Opt depth of H2O clouds [1]
+     REAL(fp), POINTER :: TMPU1         (:,:,:) ! Temperature at start of
+                                                !  timestep [K]
+     REAL(fp), POINTER :: TMPU2         (:,:,:) ! Temperature at end of
+                                                !  timestep [K]
+     REAL(fp), POINTER :: U             (:,:,:) ! E/W component of wind [m s-1]
+     REAL(fp), POINTER :: UPDVVEL       (:,:,:) ! Updraft vertical velocity 
+                                                !  [hPa/s]
+     REAL(fp), POINTER :: V             (:,:,:) ! N/S component of wind [m s-1]
 
      !----------------------------------------------------------------------
      ! Air quantities assigned in AIRQNT
      !----------------------------------------------------------------------
      ! Note on pressures: PMID is calculated from PEDGE, 
      ! and dry air pressures assume constant RH and T across grid box
-     REAL(fp), POINTER :: PEDGE_DRY (:,:,:) ! Dry air partial pressure [hPa] 
-                                            ! @ level edges [hPa]
-     REAL(fp), POINTER :: PMID      (:,:,:) ! Average wet air pressure [hPa]
-                                            ! defined as arithmetic
-                                            ! average of edge pressures
-     REAL(fp), POINTER :: PMID_DRY  (:,:,:) ! Dry air partial pressure [hPa]
-                                            ! defined as arithmetic average
-                                            ! of edge pressures 
-     REAL(fp), POINTER :: TV        (:,:,:) ! Virtual temperature [K]
-     REAL(fp), POINTER :: MAIRDEN   (:,:,:) ! Moist air density [kg/m3]
-     REAL(fp), POINTER :: AIRDEN    (:,:,:) ! Dry air density [kg/m3]
-     REAL(fp), POINTER :: AIRNUMDEN (:,:,:) ! Dry air density [molec/cm3]
-     REAL(fp), POINTER :: AVGW      (:,:,:) ! Water vapor volume mixing ratio
-                                            ! [vol H2O / vol dry air]
-     REAL(fp), POINTER :: BXHEIGHT  (:,:,:) ! Grid box height [m] (dry air)
-     REAL(fp), POINTER :: DELP      (:,:,:) ! Delta-P (wet) across box [hPa]
-     REAL(fp), POINTER :: DELP_DRY  (:,:,:) ! Delta-P (dry) across box [hPa]
-     REAL(fp), POINTER :: AD        (:,:,:) ! Dry air mass [kg] in grid box
-     REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3] (dry air)
-     REAL(fp), POINTER :: DP_DRY_PREV (:,:,:) ! Previous State_Met%DELP_DRY
+     REAL(fp), POINTER :: PEDGE_DRY     (:,:,:) ! Dry air partial pressure 
+                                                !  @ level edges [hPa]
+     REAL(fp), POINTER :: PMID          (:,:,:) ! Average wet air pressure [hPa]
+                                                !  defined as arithmetic
+                                                !  average of edge pressures
+     REAL(fp), POINTER :: PMID_DRY      (:,:,:) ! Dry air partial pressure [hPa]
+                                                !  defined as arithmetic avg
+                                                !  of edge pressures 
+     REAL(fp), POINTER :: TV            (:,:,:) ! Virtual temperature [K]
+     REAL(fp), POINTER :: MAIRDEN       (:,:,:) ! Moist air density [kg/m3]
+     REAL(fp), POINTER :: AIRDEN        (:,:,:) ! Dry air density [kg/m3]
+     REAL(fp), POINTER :: AIRNUMDEN     (:,:,:) ! Dry air density [molec/cm3]
+     REAL(fp), POINTER :: AVGW          (:,:,:) ! Water vapor volume mixing 
+                                                !  ratio [vol H2O/vol dry air]
+     REAL(fp), POINTER :: BXHEIGHT      (:,:,:) ! Grid box height [m] (dry air)
+     REAL(fp), POINTER :: DELP          (:,:,:) ! Delta-P (wet) across box [hPa]
+     REAL(fp), POINTER :: DELP_DRY      (:,:,:) ! Delta-P (dry) across box [hPa]
+     REAL(fp), POINTER :: AD            (:,:,:) ! Dry air mass [kg] in grid box
+     REAL(fp), POINTER :: AIRVOL        (:,:,:) ! Grid box volume [m3] (dry air)
+     REAL(fp), POINTER :: DP_DRY_PREV   (:,:,:) ! Previous State_Met%DELP_DRY
 
      !----------------------------------------------------------------------
      ! Offline land type, leaf area index, and chlorophyll fields
      !----------------------------------------------------------------------
-     INTEGER,  POINTER :: IREG      (:,:  ) ! # of landtypes in grid box (I,J) 
-     INTEGER,  POINTER :: ILAND     (:,:,:) ! Land type at (I,J); 1..IREG(I,J)
-     INTEGER,  POINTER :: IUSE      (:,:,:) ! Fraction (per mil) of grid box
-                                            ! (I,J) occupied by each land type
-     REAL(fp), POINTER :: MODISLAI  (:,:  ) ! Daily LAI computed from monthly
-                                            ! offline MODIS values [m2/m2]
-     REAL(fp), POINTER :: MODISCHLR (:,:  ) ! Daily chlorophyll-a computed from
-                                            ! offline MODIS monthly values
-     REAL(fp), POINTER :: XLAI      (:,:,:) ! MODIS LAI per land type, this mo
-     REAL(fp), POINTER :: XCHLR     (:,:,:) ! MODIS CHLR per land type, this mo
-     REAL(fp), POINTER :: LandTypeFrac(:,:,:) ! Olson frac per type (I,J,type)
-     REAL(fp), POINTER :: XLAI_NATIVE(:,:,:)  ! avg LAI per type (I,J,type)
-     REAL(fp), POINTER :: XCHLR_NATIVE(:,:,:) ! avg CHLR per type (I,J,type)
+     INTEGER,  POINTER :: IREG          (:,:  ) ! # of landtypes in box (I,J) 
+     INTEGER,  POINTER :: ILAND         (:,:,:) ! Land type at (I,J); 
+                                                !  1..IREG(I,J)
+     INTEGER,  POINTER :: IUSE          (:,:,:) ! Fraction (per mil) of box
+                                                !  (I,J) occupied by each land 
+                                                !  type
+     REAL(fp), POINTER :: MODISLAI      (:,:  ) ! Daily LAI computed from 
+                                                !  monthly offline MODIS [m2/m2]
+     REAL(fp), POINTER :: MODISCHLR     (:,:  ) ! Daily chlorophyll-a computed 
+                                                !  from offline monthly MODIS
+     REAL(fp), POINTER :: XLAI          (:,:,:) ! MODIS LAI per land type, 
+                                                !  for this month
+     REAL(fp), POINTER :: XCHLR         (:,:,:) ! MODIS CHLR per land type,
+                                                !  for this month
+     REAL(fp), POINTER :: LandTypeFrac  (:,:,:) ! Olson frac per type (I,J,type)
+     REAL(fp), POINTER :: XLAI_NATIVE   (:,:,:) ! avg LAI per type (I,J,type)
+     REAL(fp), POINTER :: XCHLR_NATIVE  (:,:,:) ! avg CHLR per type (I,J,type)
 
      !----------------------------------------------------------------------
      ! Fields for querying in which vertical regime a grid box is in
@@ -392,6 +430,19 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%ALBD = 0.0_fp
     CALL Register_MetField( am_I_Root, 'ALBD', State_Met%ALBD, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+
+    !-------------------------
+    ! ChemGridLev [1]
+    !-------------------------
+    ALLOCATE( State_Met%ChemGridLev( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%ChemGridLev', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%ChemGridLev = 0.0_fp
+    CALL Register_MetField( am_I_Root, 'CHEMGRIDLEV',  &
+                            State_Met%ChemGridLev,     &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -1852,6 +1903,7 @@ CONTAINS
 
     ! 2-D fields
     IF ( ASSOCIATED( State_Met%ALBD       )) DEALLOCATE( State_Met%ALBD       ) 
+    IF ( ASSOCIATED( State_Met%ChemGridLev)) DEALLOCATE( State_Met%ChemGridLev)
     IF ( ASSOCIATED( State_Met%CLDFRC     )) DEALLOCATE( State_Met%CLDFRC     ) 
     IF ( ASSOCIATED( State_Met%CLDTOPS    )) DEALLOCATE( State_Met%CLDTOPS    )
     IF ( ASSOCIATED( State_Met%EFLUX      )) DEALLOCATE( State_Met%EFLUX      ) 
@@ -2166,6 +2218,11 @@ CONTAINS
 
        CASE ( 'ALBD' )
           IF ( isDesc  ) Desc  = 'Visible surface albedo'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'CHEMGRIDLEV' )
+          IF ( isDesc  ) Desc  = 'Highest level of the chemistry grid'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 

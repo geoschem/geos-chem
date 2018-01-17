@@ -210,7 +210,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
     USE ERROR_MOD
@@ -278,6 +277,7 @@ CONTAINS
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  19 Oct 2016 - R. Yantosca - Add routine Set_Init_Conc_Strat_Chem for GCHP
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!  17 Jan 2018 - R. Yantosca - Replace GET_TPAUSE_LEVEL w/ State_Met%TropLev
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -425,7 +425,7 @@ CONTAINS
           DO I=1,IIPAR
 
              ! Add to tropopause level aggregator for later determining STE flux
-             TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
+             TpauseL(I,J) = TpauseL(I,J) + State_Met%TropLev(I,J)
 
              ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
              ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
@@ -756,7 +756,7 @@ CONTAINS
        !$OMP PRIVATE( I, J )
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
+          TpauseL(I,J) = TpauseL(I,J) + State_Met%TropLev(I,J)
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
@@ -1975,7 +1975,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
