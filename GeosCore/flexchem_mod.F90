@@ -2,7 +2,6 @@
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
-!
 ! !MODULE: flexchem_mod.F90
 !
 ! !DESCRIPTION: Module FlexChem\_Mod contines arrays and routines for the
@@ -198,6 +197,8 @@ CONTAINS
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
 !  21 Dec 2017 - R. Yantosca - Add netCDF diagnostics for J-values, prod/loss
+!  18 Jan 2018 - R. Yantosca - Now do photolysis for all levels, so that 
+!                              J-values can be saved up to the atm top
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -437,6 +438,11 @@ CONTAINS
                           State_Diag, SOILDUST,  WAVELENGTH, RC             )
     ELSE
 #if !defined( TOMAS )
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% NOTE: RDUST_OFFLINE STILL HAS BPCH CODE AND THEREFORE   %%%% 
+       !%%%% IS PROBABLY NOW OBSOLETE.  THIS WILL BE REMOVED WHEN WE %%%%
+       !%%%% GET HIGH_RESOLUTION DUST EMISSIONS (bmy, 1/18/18)       %%%%
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Don't read dust emissions from disk when using TOMAS,
        ! because TOMAS uses a different set of dust species than the 
        ! std code (win, bmy, 1/25/10)
@@ -600,34 +606,36 @@ CONTAINS
     DO I = 1, IIPAR
 
        !====================================================================
-       ! For safety's sake, zero variables for each grid box (I,J,L),
-       ! whether or not chemistry will be done there.
+       ! For safety's sake, initialize certain variables for each grid
+       ! box (I,J,L), whether or not chemistry will be done there.
        !====================================================================
        HET       = 0.0_dp            ! Het chem array
-       H2O       = 0.0_dp            ! H2O concentration
        IERR      = 0                 ! Success or failure flag
        ISTATUS   = 0.0_dp            ! Rosenbrock output 
        PHOTOL    = 0.0_dp            ! Photolysis array
-       PRESS     = 0.0_dp            ! Pressure
-       NUMDEN    = 0.0_dp            ! Air number density
        RCNTRL    = 0.0_fp            ! Rosenbrock input
        RSTATE    = 0.0_dp            ! Rosenbrock output
        SCF       = 0.0_dp            ! For hetchem diagnostics
        SO4_FRAC  = 0.0_fp            ! Fraction of SO4 available for photolysis
-       TEMP      = 0.0_fp            ! Temperature
-       YLAT      = 0.0_fp            ! Latitude
        P         = 0                 ! GEOS-Chem photolyis species ID
 
        ! Is it near local noon in the vertical column?
        IsLocNoon = State_Met%IsLocalNoon(I,J)
 
-       !====================================================================
-       ! Test if we need to do the chemistry for box (I,J,L),
-       ! otherwise move onto the next box.
-       !====================================================================
+       ! Grid-box latitude [degrees]
+       YLAT      = GET_YMID( I, J, L )
 
-       ! If we are not in the troposphere don't do the chemistry!
-       IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
+       ! Temperature [K]
+       TEMP      = State_Met%T(I,J,L)
+
+       ! Pressure [hPa]
+       PRESS     = GET_PCENTER( I, J, L )
+
+       ! mje Calculate NUMDEN based on ideal gas law (# cm-3)
+       NUMDEN    = State_Met%AIRNUMDEN(I,J,L)
+
+       ! mje H2O arrives in g/kg needs to be in mol cm-3 
+       H2O       = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
        ! Keep a running total of the # of times it was local noon at each box
        IF ( IsLocNoon ) THEN
@@ -644,74 +652,6 @@ CONTAINS
 
        ENDIF
 
-       ! Skipping buffer zone (lzh, 08/10/2014)
-       IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
-          IF ( J <=         Input_Opt%NESTED_J0W ) CYCLE
-          IF ( J >  JJPAR - Input_Opt%NESTED_J0E ) CYCLE
-          IF ( I <=         Input_Opt%NESTED_I0W ) CYCLE
-          IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
-       ENDIF
-
-       !====================================================================
-       ! Initialize quantities for boxes where chemistry happens
-       !====================================================================
-
-       ! Grid-box latitude [degrees]
-       YLAT   = GET_YMID( I, J, L )
-
-       ! Temperature [K]
-       TEMP   = State_Met%T(I,J,L)
-
-       ! Pressure [hPa]
-       PRESS  = GET_PCENTER( I, J, L )
-
-       ! mje Calculate NUMDEN based on ideal gas law (# cm-3)
-       NUMDEN = State_Met%AIRNUMDEN(I,J,L)
-
-       ! mje H2O arrives in g/kg needs to be in mol cm-3 
-       H2O    = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
-
-       ! Intialize CFACTOR, VAR, and FIX arrays
-       CALL Init_KPP( )
-
-       !====================================================================
-       ! Get rates for heterogeneous chemistry
-       !====================================================================
-
-!#if defined( DEVEL )
-!       ! Get starting time for rate computation
-!       CALL CPU_TIME( start )
-!#endif
-
-       IF ( DO_HETCHEM ) THEN
-
-          ! Copy SCOEFF to SCF, this will avoid an array temporary
-          SCF = SCOEFF(I,J,L,:)
-
-          ! Set hetchem rates
-          CALL SET_HET( I,         J,         L,         State_Diag,  &
-                        State_Chm, State_Met, Input_Opt, SCF         )
-
-#if defined( BPCH_DIAG )
-          IF ( ND52 > 0 ) THEN
-             ! Archive gamma values
-             AD52(I,J,L,1) = AD52(I,J,L,1) + HET(ind_HO2,   1)
-             AD52(I,J,L,2) = AD52(I,J,L,2) + HET(ind_IEPOXA,1) &
-                                           + HET(ind_IEPOXB,1) &
-                                           + HET(ind_IEPOXD,1)
-             AD52(I,J,L,3) = AD52(I,J,L,3) + HET(ind_IMAE,  1)
-             AD52(I,J,L,4) = AD52(I,J,L,4) + HET(ind_ISOPND,1) &
-                                           + HET(ind_ISOPNB,1)
-             AD52(I,J,L,5) = AD52(I,J,L,5) + HET(ind_DHDN,  1)
-             AD52(I,J,L,6) = AD52(I,J,L,6) + HET(ind_GLYX,  1)
-          ENDIF
-#endif
-
-          ! Copy SCF back into SCOEFF
-          SCOEFF(I,J,L,:) = SCF
-
-       ENDIF
-
        !====================================================================
        ! Get photolysis rates (daytime only)
        !
@@ -720,6 +660,12 @@ CONTAINS
        ! I've assumed that these are the same as in the text files
        ! but this may have been changed.  This needs to be checked
        ! through more thoroughly -- M. Long (3/28/16)
+       !
+       ! ALSO NOTE: We moved this section above the test to see if grid 
+       ! box (I,J,L) is in the chemistry grid.  This will ensure that
+       ! J-value diagnostics are defined for all levels in the column.
+       ! This modification was validated by a geosfp_4x5_standard
+       ! difference test. (bmy, 1/18/18)
        !====================================================================
        IF ( State_Met%SUNCOSmid(I,J) > 0.e+0_fp ) THEN
 
@@ -747,11 +693,6 @@ CONTAINS
              PHOTOL(N) = ZPJ(L,N,I,J)
                 
 #if defined( NC_DIAG )
-             ! NOTE: We may want to move this above the test for 
-             ! if we are in the chemistry grid.  This will make sure that
-             ! all of the J-value diagnostics are defined on all vertical
-             ! levels. (bmy, 1/8/18)
-
              !--------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
              !
@@ -855,6 +796,64 @@ CONTAINS
              ENDIF
           ENDIF
 #endif 
+
+       ENDIF
+       !====================================================================
+       ! Test if we need to do the chemistry for box (I,J,L),
+       ! otherwise move onto the next box.
+       !====================================================================
+
+       ! If we are not in the troposphere don't do the chemistry!
+       IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
+
+       ! Skipping buffer zone (lzh, 08/10/2014)
+       IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
+          IF ( J <=         Input_Opt%NESTED_J0W ) CYCLE
+          IF ( J >  JJPAR - Input_Opt%NESTED_J0E ) CYCLE
+          IF ( I <=         Input_Opt%NESTED_I0W ) CYCLE
+          IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
+       ENDIF
+
+       !====================================================================
+       ! Intialize KPP solver arrays: CFACTOR, VAR, FIX, etc.
+       !====================================================================
+       CALL Init_KPP( )
+
+       !====================================================================
+       ! Get rates for heterogeneous chemistry
+       !====================================================================
+
+!#if defined( DEVEL )
+!       ! Get starting time for rate computation
+!       CALL CPU_TIME( start )
+!#endif
+
+       IF ( DO_HETCHEM ) THEN
+
+          ! Copy SCOEFF to SCF, this will avoid an array temporary
+          SCF = SCOEFF(I,J,L,:)
+
+          ! Set hetchem rates
+          CALL SET_HET( I,         J,         L,         State_Diag,  &
+                        State_Chm, State_Met, Input_Opt, SCF         )
+
+#if defined( BPCH_DIAG )
+          IF ( ND52 > 0 ) THEN
+             ! Archive gamma values
+             AD52(I,J,L,1) = AD52(I,J,L,1) + HET(ind_HO2,   1)
+             AD52(I,J,L,2) = AD52(I,J,L,2) + HET(ind_IEPOXA,1) &
+                                           + HET(ind_IEPOXB,1) &
+                                           + HET(ind_IEPOXD,1)
+             AD52(I,J,L,3) = AD52(I,J,L,3) + HET(ind_IMAE,  1)
+             AD52(I,J,L,4) = AD52(I,J,L,4) + HET(ind_ISOPND,1) &
+                                           + HET(ind_ISOPNB,1)
+             AD52(I,J,L,5) = AD52(I,J,L,5) + HET(ind_DHDN,  1)
+             AD52(I,J,L,6) = AD52(I,J,L,6) + HET(ind_GLYX,  1)
+          ENDIF
+#endif
+
+          ! Copy SCF back into SCOEFF
+          SCOEFF(I,J,L,:) = SCF
 
        ENDIF
 
