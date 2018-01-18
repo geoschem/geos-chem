@@ -63,6 +63,7 @@
       USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
       USE UCX_MOD               ! For unified trop-strat chemistry (SDE)
       USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
+      USE SET_GLOBAL_CH4_MOD    ! For setting global CH4 concentrations
 
       !-----------------------------------------------------------------
       ! GEOS-Chem deposition modules
@@ -309,7 +310,7 @@
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
       INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
-      INTEGER                  :: id_H2O
+      INTEGER                  :: id_H2O,        id_CH4
       REAL(f8)                 :: TAU,           TAUb      
       CHARACTER(LEN=255)       :: ZTYPE
       CHARACTER(LEN=255)       :: ErrMsg,        ThisLoc
@@ -621,6 +622,7 @@
       ! Define advected species ID flags for use below
       id_CLOCK = Ind_('CLOCK','A')
       id_H2O   = Ind_('H2O'  ,'A')
+      id_CH4   = Ind_('CH4'  ,'A')
       !
       !-----------------------------------------------------------------
 
@@ -1266,6 +1268,15 @@
                  CALL DEBUG_MSG( '### MAIN: a READ_HG2_PARTITIONING')
                ENDIF
             ENDIF
+         ENDIF
+
+         ! Prescribe methane surface concentrations throughout PBL
+         IF ( ITS_A_FULLCHEM_SIM .and. id_CH4 > 0 ) THEN
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: Setting PBL CH4 conc')
+            ENDIF
+            CALL SET_CH4( am_I_Root, Input_Opt, State_Met,
+     &                    State_Chm, RC )
          ENDIF
 
          !==============================================================

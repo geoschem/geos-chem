@@ -307,35 +307,39 @@ CONTAINS
        ENDIF
     ENDIF
     
-    !-----------------------------------------------------------------------
-    ! Initialize global concentration of CH4
-    !-----------------------------------------------------------------------
-    IF ( FIRSTCHEM ) THEN
-
-       ! Check that CH4 is not an advected species
-       ! Check that CH4 is a KPP species (ind_CH4 is from gckpp_Monitor.F90)
-       IF ( id_CH4 <= 0 .and. ind_CH4 > 0 .and. ( CH4_YEAR /= YEAR ) ) THEN
-
-          ! If CH4 is a species, then call GET_GLOBAL_CH4
-          ! to return the globally-varying CH4 conc. as a function of
-          ! year and latitude bin. (bnd, bmy, 7/1/03)
-          !
-          ! If we are using the future emissions, then get the CH4
-          ! concentrations for FUTURE_YEAR.  Otherwise get the CH4
-          ! concentrations for the current met field year. 
-          ! (swu, havala, bmy, 1/24/08)
-          IF ( Input_Opt%LFUTURE ) THEN
-             CH4_YEAR = GET_FUTURE_YEAR()
-          ELSE
-             CH4_YEAR = YEAR
-          ENDIF
-
-          ! Get CH4 [ppbv] in 4 latitude bins for each year
-          CALL GET_GLOBAL_CH4( CH4_YEAR,  .TRUE.,  C3090S, &
-                               C0030S,    C0030N,  C3090N, & 
-                               am_I_Root, Input_Opt        )
-       ENDIF
-    ENDIF
+!------------------------------------------------------------------------------
+! Prior to 1/18/18:
+! We now obtain monthly mean surface CH4 concentrations in main.F (mps, 1/18/18)
+!    !-----------------------------------------------------------------------
+!    ! Initialize global concentration of CH4
+!    !-----------------------------------------------------------------------
+!    IF ( FIRSTCHEM ) THEN
+!
+!       ! Check that CH4 is not an advected species
+!       ! Check that CH4 is a KPP species (ind_CH4 is from gckpp_Monitor.F90)
+!       IF ( id_CH4 <= 0 .and. ind_CH4 > 0 .and. ( CH4_YEAR /= YEAR ) ) THEN
+!
+!          ! If CH4 is a species, then call GET_GLOBAL_CH4
+!          ! to return the globally-varying CH4 conc. as a function of
+!          ! year and latitude bin. (bnd, bmy, 7/1/03)
+!          !
+!          ! If we are using the future emissions, then get the CH4
+!          ! concentrations for FUTURE_YEAR.  Otherwise get the CH4
+!          ! concentrations for the current met field year. 
+!          ! (swu, havala, bmy, 1/24/08)
+!          IF ( Input_Opt%LFUTURE ) THEN
+!             CH4_YEAR = GET_FUTURE_YEAR()
+!          ELSE
+!             CH4_YEAR = YEAR
+!          ENDIF
+!
+!          ! Get CH4 [ppbv] in 4 latitude bins for each year
+!          CALL GET_GLOBAL_CH4( CH4_YEAR,  .TRUE.,  C3090S, &
+!                               C0030S,    C0030N,  C3090N, & 
+!                               am_I_Root, Input_Opt        )
+!       ENDIF
+!    ENDIF
+!------------------------------------------------------------------------------
 
     !=======================================================================
     ! Get concentrations of aerosols in [kg/m3] 
@@ -905,26 +909,29 @@ CONTAINS
        C(ind_H2O) = H2O
 #endif
 
-       ! id_CH4 is the GEOS-Chem advected species index for CH4
-       ! ind_CH4 is the KPP species index for CH4
-       ! If both are nonzero, then CH4 is an advected species.
-       ! If id_CH4 <= 0 but ind_CH4 > 0, then CH4 is a non-advected species.
-       ! (bmy, 6/20/16_)
-#if !defined(ESMF_)
-       IF ( id_CH4 <= 0 .and. ind_CH4 > 0 ) THEN
-          ! Set CH4 according to latitude
-          ! Convert from [ppbv CH4] to [molec CH4/cm3]
-          IF ( YLAT < -30.0_fp ) THEN
-             C(ind_CH4) = C3090S * 1e-9_dp * NUMDEN
-          ELSE IF ( YLAT >= -30.0_fp .and. YLAT < 0.0_fp  ) THEN
-             C(ind_CH4) = C0030S * 1e-9_dp * NUMDEN
-          ELSE IF ( YLAT >=   0.0_fp .and. YLAT < 30.0_fp ) THEN
-             C(ind_CH4) = C0030N * 1e-9_dp * NUMDEN
-          ELSE
-             C(ind_CH4) = C3090N * 1e-9_dp * NUMDEN
-          ENDIF
-       ENDIF
-#endif
+!------------------------------------------------------------------------------
+! Prior to 1/18/18:
+!       ! id_CH4 is the GEOS-Chem advected species index for CH4
+!       ! ind_CH4 is the KPP species index for CH4
+!       ! If both are nonzero, then CH4 is an advected species.
+!       ! If id_CH4 <= 0 but ind_CH4 > 0, then CH4 is a non-advected species.
+!       ! (bmy, 6/20/16_)
+!#if !defined(ESMF_)
+!       IF ( id_CH4 <= 0 .and. ind_CH4 > 0 ) THEN
+!          ! Set CH4 according to latitude
+!          ! Convert from [ppbv CH4] to [molec CH4/cm3]
+!          IF ( YLAT < -30.0_fp ) THEN
+!             C(ind_CH4) = C3090S * 1e-9_dp * NUMDEN
+!          ELSE IF ( YLAT >= -30.0_fp .and. YLAT < 0.0_fp  ) THEN
+!             C(ind_CH4) = C0030S * 1e-9_dp * NUMDEN
+!          ELSE IF ( YLAT >=   0.0_fp .and. YLAT < 30.0_fp ) THEN
+!             C(ind_CH4) = C0030N * 1e-9_dp * NUMDEN
+!          ELSE
+!             C(ind_CH4) = C3090N * 1e-9_dp * NUMDEN
+!          ENDIF
+!       ENDIF
+!#endif
+!------------------------------------------------------------------------------
 
        !==================================================================
        ! Update KPP's rates

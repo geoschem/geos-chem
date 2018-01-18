@@ -495,7 +495,8 @@ cleanup.o                   : cleanup.F                                      \
                               geosfp_read_mod.o       merra2_read_mod.o      \
                               tpcore_window_mod.o     flexchem_mod.o         \
                               toms_mod.o              emissions_mod.o        \
-                              rrtmg_rad_transfer_mod.o
+                              rrtmg_rad_transfer_mod.o                       \
+                              set_global_ch4_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
@@ -627,9 +628,6 @@ gc_environment_mod.o        : gc_environment_mod.F90                         \
 
 geosfp_read_mod.o           : geosfp_read_mod.F90                            \
                               dao_mod.o               diag_mod.o
-
-get_global_ch4.o            : get_global_ch4.F                               \
-                              future_emissions_mod.o
 
 get_ndep_mod.o              : get_ndep_mod.F                              
 
@@ -804,6 +802,9 @@ seasalt_mod.o               : seasalt_mod.F           dao_mod.o              \
                               diag_mod.o              drydep_mod.o           \
                               pbl_mix_mod.o           tomas_mod.o            \
                               hco_interface_mod.o     vdiff_pre_mod.o
+
+set_global_ch4_mod.o        : set_global_ch4_mod.F90                         \
+                              pbl_mix_mod.o
 
 set_prof_o3.o               : set_prof_o3.F                                   
 

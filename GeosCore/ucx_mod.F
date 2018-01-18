@@ -1032,55 +1032,60 @@
          ENDIF
       ENDIF
 
-      ! CH4 taken from the existing GEOS-Chem input data,
-      ! rather than from 2D data
+!------------------------------------------------------------------------------
+! Prior to 1/18/18:
+! We now obtain monthly mean surface CH4 concentrations in main.F (mps, 1/18/18)
+!      ! CH4 taken from the existing GEOS-Chem input data,
+!      ! rather than from 2D data
+!
+!      IF (LSETCH4) THEN
+!         IF ( am_I_Root ) THEN
+!            WRITE(6,*) '|CH4      |         |         |'
+!            WRITE(6,*) '|---------|---------|---------|'
+!         ENDIF
+!
+!         ! Retrieve 4 large-scale averages, scaled to target year
+!         CALL GET_UCX_CH4( CFCYEAR+OFFSETYEAR,
+!     &                     C3090S, C0030S, C0030N, C3090N,
+!     &                     am_I_Root, Input_Opt )
+!
+!         ! Convert from [vv] to [kg CH4/kg air]
+!         ! (ewl, 3/16/15) 
+!         TRAC_IDX = id_CH4
+!         MW_g = State_Chm%SpcData(TRAC_IDX)%Info%emMW_g 
+!         C3090S = C3090S / ( AIRMW / MW_g )
+!         C0030S = C0030S / ( AIRMW / MW_g )
+!         C0030N = C0030N / ( AIRMW / MW_g )
+!         C3090N = C3090N / ( AIRMW / MW_g )
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, YLAT )
+!         DO L = 1, LLPAR
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!
+!            ! Grid-box latitude index
+!            YLAT  = GET_YMID( I,J,L )
+!
+!            ! Set CH4 according to latitude
+!            ! Spc now in [kg/kg] (ewl, 3/16/15)
+!            IF ( YLAT < -30e+0_fp ) THEN
+!               Spc(I,J,L,TRAC_IDX) = C3090S
+!            ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
+!               Spc(I,J,L,TRAC_IDX) = C0030S
+!            ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
+!               Spc(I,J,L,TRAC_IDX) = C0030N
+!            ELSE
+!               Spc(I,J,L,TRAC_IDX) = C3090N
+!            ENDIF
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
 
       IF (LSETCH4) THEN
-         IF ( am_I_Root ) THEN
-            WRITE(6,*) '|CH4      |         |         |'
-            WRITE(6,*) '|---------|---------|---------|'
-         ENDIF
-
-         ! Retrieve 4 large-scale averages, scaled to target year
-         CALL GET_UCX_CH4( CFCYEAR+OFFSETYEAR,
-     &                     C3090S, C0030S, C0030N, C3090N,
-     &                     am_I_Root, Input_Opt )
-
-         ! Convert from [vv] to [kg CH4/kg air]
-         ! (ewl, 3/16/15) 
-         TRAC_IDX = id_CH4
-         MW_g = State_Chm%SpcData(TRAC_IDX)%Info%emMW_g 
-         C3090S = C3090S / ( AIRMW / MW_g )
-         C0030S = C0030S / ( AIRMW / MW_g )
-         C0030N = C0030N / ( AIRMW / MW_g )
-         C3090N = C3090N / ( AIRMW / MW_g )
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, YLAT )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Grid-box latitude index
-            YLAT  = GET_YMID( I,J,L )
-
-            ! Set CH4 according to latitude
-            ! Spc now in [kg/kg] (ewl, 3/16/15)
-            IF ( YLAT < -30e+0_fp ) THEN
-               Spc(I,J,L,TRAC_IDX) = C3090S
-            ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
-               Spc(I,J,L,TRAC_IDX) = C0030S
-            ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
-               Spc(I,J,L,TRAC_IDX) = C0030N
-            ELSE
-               Spc(I,J,L,TRAC_IDX) = C3090N
-            ENDIF
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
          ! Set stratospheric CH4 from AER data?
          IF ( STRAT2DCH4 ) THEN
             IF ( am_I_Root ) THEN
@@ -2375,28 +2380,34 @@
                   ! Simple boundary condition
                   GRID_EMIT(:,:,N) = H2_MR
                CASE ('CH4')
-                  ! Get the 4 major mixing ratios
-                  CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
-     &                             MR90S, MR30S, MR30N, MR90N,
-     &                             am_I_Root, Input_Opt )
-                  ! Figure out which box each is in
-                  DO I=1,IIPAR   
-                  DO J=1,JJPAR   
-                     ! Grid-box latitude index
-                     YLAT  = GET_YMID( I,J,1 )
-                     IF ( YLAT < -30e+0_fp ) THEN
-                        GRID_EMIT(I,J,N) = MR90S
-                     ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  )
-     &                THEN
-                        GRID_EMIT(I,J,N) = MR30S
-                     ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp )
-     &                THEN
-                        GRID_EMIT(I,J,N) = MR30N
-                     ELSE
-                        GRID_EMIT(I,J,N) = MR90N
-                     ENDIF
-                  ENDDO
-                  ENDDO
+!------------------------------------------------------------------------------
+! Prior to 1/18/18:
+! We now obtain monthly mean surface CH4 concentrations in main.F (mps, 1/18/18)
+!                  ! Get the 4 major mixing ratios
+!                  CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
+!     &                             MR90S, MR30S, MR30N, MR90N,
+!     &                             am_I_Root, Input_Opt )
+!                  ! Figure out which box each is in
+!                  DO I=1,IIPAR   
+!                  DO J=1,JJPAR   
+!                     ! Grid-box latitude index
+!                     YLAT  = GET_YMID( I,J,1 )
+!                     IF ( YLAT < -30e+0_fp ) THEN
+!                        GRID_EMIT(I,J,N) = MR90S
+!                     ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  )
+!     &                THEN
+!                        GRID_EMIT(I,J,N) = MR30S
+!                     ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp )
+!     &                THEN
+!                        GRID_EMIT(I,J,N) = MR30N
+!                     ELSE
+!                        GRID_EMIT(I,J,N) = MR90N
+!                     ENDIF
+!                  ENDDO
+!                  ENDDO
+!------------------------------------------------------------------------------
+                  ! Now obtain monthly mean surface CH4 concentrations
+                  ! in main.F (mps, 1/18/18)
                CASE DEFAULT
                   ! Standard 1:1
                   CALL SET_MONTREAL_NCDF(LOCAL_NAME,
@@ -2440,28 +2451,34 @@
                   ! Simple boundary condition
                   GRID_EMIT(:,:,N) = H2_MR
                CASE ('CH4')
-                  ! Get the 4 major mixing ratios
-                  CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
-     &                             MR90S, MR30S, MR30N, MR90N,
-     &                             am_I_Root, Input_Opt )
-                  ! Figure out which box each is in
-                  DO I=1,IIPAR   
-                  DO J=1,JJPAR   
-                     ! Grid-box latitude index
-                     YLAT  = GET_YMID( I,J,1 )
-                     IF ( YLAT < -30e+0_fp ) THEN
-                        GRID_EMIT(I,J,N) = MR90S
-                     ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  )
-     &                THEN
-                        GRID_EMIT(I,J,N) = MR30S
-                     ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp )
-     &                THEN
-                        GRID_EMIT(I,J,N) = MR30N
-                     ELSE
-                        GRID_EMIT(I,J,N) = MR90N
-                     ENDIF
-                  ENDDO
-                  ENDDO
+!------------------------------------------------------------------------------
+! Prior to 1/18/18:
+! We now obtain monthly mean surface CH4 concentrations in main.F (mps, 1/18/18)
+!                  ! Get the 4 major mixing ratios
+!                  CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
+!     &                             MR90S, MR30S, MR30N, MR90N,
+!     &                             am_I_Root, Input_Opt )
+!                  ! Figure out which box each is in
+!                  DO I=1,IIPAR   
+!                  DO J=1,JJPAR   
+!                     ! Grid-box latitude index
+!                     YLAT  = GET_YMID( I,J,1 )
+!                     IF ( YLAT < -30e+0_fp ) THEN
+!                        GRID_EMIT(I,J,N) = MR90S
+!                     ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  )
+!     &                THEN
+!                        GRID_EMIT(I,J,N) = MR30S
+!                     ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp )
+!     &                THEN
+!                        GRID_EMIT(I,J,N) = MR30N
+!                     ELSE
+!                        GRID_EMIT(I,J,N) = MR90N
+!                     ENDIF
+!                  ENDDO
+!                  ENDDO
+!------------------------------------------------------------------------------
+                  ! Now obtain monthly mean surface CH4 concentrations
+                  ! in main.F (mps, 1/18/18)
                CASE DEFAULT
                   ! Standard 1:1
                   CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
@@ -5879,128 +5896,133 @@
 
       END SUBROUTINE UCX_H2SO4PHOT
 !EOC
-!------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
-!------------------------------------------------------------------------------
-!BOP
+!==============================================================================
+! Prior to 1/18/18:
+! This routine is obsolete. We now obtain monthly mean surface CH4 in main.F
+! (mps, 1/18/18)
+!!------------------------------------------------------------------------------
+!!               MIT Laboratory for Aviation and the Environment               !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: get_ucx_ch4
+!!
+!! !DESCRIPTION: Subroutine GET\_UCX\_CH4 retrieves zonal mean surface mixing
+!!  ratios for 4 equal-area regions (90S-30S,30S-0,0-30N,30N-90N)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE GET_UCX_CH4( CH4_YEAR, MR90S, MR30S, MR30N, MR90N,
+!     &                        am_I_Root, Input_Opt )
+!!
+!! !USES:
+!!
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
+!      USE Input_Opt_Mod,        ONLY : OptInput
+!      USE TIME_MOD,             ONLY : GET_MONTH
+!      USE TIME_MOD,             ONLY : GET_YEAR
+!!
+!! !INPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(IN)  :: CH4_YEAR    ! Target year
+!      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+!      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input options
+!!
+!! !OUTPUT VARIABLES:
+!!
+!      REAL(fp),         INTENT(OUT) :: MR90S
+!      REAL(fp),         INTENT(OUT) :: MR30S
+!      REAL(fp),         INTENT(OUT) :: MR30N
+!      REAL(fp),         INTENT(OUT) :: MR90N
+!!
+!! !REVISION HISTORY: 
+!!  18 Dec 2013 - S. D. Eastham - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER               :: BASE_YEAR, CH4_TARG_YEAR
+!      INTEGER, PARAMETER    :: REF_YEAR=2007
+!      REAL(fp)                :: CH4_SCALE
+!      INTEGER               :: FUTURE_LINE
+!!      INTEGER               :: BASIS_LINE
+!      INTEGER               :: THIS_YEAR
+!      INTEGER, SAVE         :: LAST_YEAR=-1
+!      REAL(fp), SAVE          :: LAST_MR(4)
 !
-! !IROUTINE: get_ucx_ch4
+!      ! Local variables for quantities from Input_Opt
+!      LOGICAL :: LFUTURE
 !
-! !DESCRIPTION: Subroutine GET\_UCX\_CH4 retrieves zonal mean surface mixing
-!  ratios for 4 equal-area regions (90S-30S,30S-0,0-30N,30N-90N)
-!\\
-!\\
-! !INTERFACE:
+!      !=================================================================
+!      ! GET_UCX_CH4 begins here!
+!      !=================================================================
 !
-      SUBROUTINE GET_UCX_CH4( CH4_YEAR, MR90S, MR30S, MR30N, MR90N,
-     &                        am_I_Root, Input_Opt )
+!      ! Copy fields from INPUT_OPT
+!      LFUTURE = Input_Opt%LFUTURE
 !
-! !USES:
+!      ! Adapted from GEOS-Chem routine
 !
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
-      USE Input_Opt_Mod,        ONLY : OptInput
-      USE TIME_MOD,             ONLY : GET_MONTH
-      USE TIME_MOD,             ONLY : GET_YEAR
+!      ! Pick the CH4 concentration [ppbv] for the proper lat bin
+!      ! CH4 values are read in "chemdr.f"
+!      IF ( LFUTURE ) THEN
+!         CH4_TARG_YEAR = GET_FUTURE_YEAR()
+!         BASE_YEAR = CH4_TARG_YEAR
+!      ELSE
+!         CH4_TARG_YEAR = CFCYEAR + OFFSETYEAR
+!         BASE_YEAR = MIN(REF_YEAR,CH4_TARG_YEAR)
+!      ENDIF
 !
-! !INPUT PARAMETERS:
+!      IF (LAST_YEAR .ne. CH4_TARG_YEAR) THEN
+!         ! Get CH4 [ppbv] in 4 latitude bins for each year
+!         CALL GET_GLOBAL_CH4( BASE_YEAR, .TRUE., MR90S,
+!     &                        MR30S,     MR30N,  MR90N,
+!     &                        am_I_Root, Input_Opt      )
 !
-      INTEGER,        INTENT(IN)  :: CH4_YEAR    ! Target year
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input options
+!         ! Convert from [ppbv] to [vv] and scale by year
+!         ! Using just one month's data to be consistent with
+!         ! base GEOS-Chem approach to CH4 (1-yr resolution)
+!         IF (CH4_YEAR > BASE_YEAR) THEN
+!            IF (UCXNETCDF) THEN
+!               CH4_SCALE = (1.0e-9_fp)*
+!     &               GET_MONTREAL_NCDF('CH4',CFCYEAR+OFFSETYEAR,1)/
+!     &               GET_MONTREAL_NCDF('CH4',REF_YEAR,1)
+!            ELSE
+!!               FUTURE_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + 1
+!!               BASIS_LINE = (12*(REF_YEAR-1959)) + 1
+!!               CH4_SCALE = (1.0d-9)*GET_MONTREAL('CH4',FUTURE_LINE)/
+!!     &                       GET_MONTREAL('CH4',BASIS_LINE)
+!               THIS_YEAR = CFCYEAR+OFFSETYEAR
+!               CH4_SCALE = (1.0e-9_fp) * SFCMR_GET('CH4',THIS_YEAR,1)
+!     &                   / SFCMR_GET('CH4',REF_YEAR,1)
+!            ENDIF
+!         ELSE
+!            CH4_SCALE = 1.0e-9_fp
+!         ENDIF
 !
-! !OUTPUT VARIABLES:
+!         MR90S = MR90S * CH4_SCALE
+!         MR30S = MR30S * CH4_SCALE
+!         MR30N = MR30N * CH4_SCALE
+!         MR90N = MR90N * CH4_SCALE
 !
-      REAL(fp),         INTENT(OUT) :: MR90S
-      REAL(fp),         INTENT(OUT) :: MR30S
-      REAL(fp),         INTENT(OUT) :: MR30N
-      REAL(fp),         INTENT(OUT) :: MR90N
+!         ! Save for later calls
+!         LAST_MR(1) = MR90S
+!         LAST_MR(2) = MR30S
+!         LAST_MR(3) = MR30N
+!         LAST_MR(4) = MR90N
+!      ELSE
+!         ! Re-use data
+!         MR90S = LAST_MR(1)
+!         MR30S = LAST_MR(2)
+!         MR30N = LAST_MR(3)
+!         MR90N = LAST_MR(4)
+!      ENDIF
 !
-! !REVISION HISTORY: 
-!  18 Dec 2013 - S. D. Eastham - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER               :: BASE_YEAR, CH4_TARG_YEAR
-      INTEGER, PARAMETER    :: REF_YEAR=2007
-      REAL(fp)                :: CH4_SCALE
-      INTEGER               :: FUTURE_LINE
-!      INTEGER               :: BASIS_LINE
-      INTEGER               :: THIS_YEAR
-      INTEGER, SAVE         :: LAST_YEAR=-1
-      REAL(fp), SAVE          :: LAST_MR(4)
-
-      ! Local variables for quantities from Input_Opt
-      LOGICAL :: LFUTURE
-
-      !=================================================================
-      ! GET_UCX_CH4 begins here!
-      !=================================================================
-
-      ! Copy fields from INPUT_OPT
-      LFUTURE = Input_Opt%LFUTURE
-
-      ! Adapted from GEOS-Chem routine
-
-      ! Pick the CH4 concentration [ppbv] for the proper lat bin
-      ! CH4 values are read in "chemdr.f"
-      IF ( LFUTURE ) THEN
-         CH4_TARG_YEAR = GET_FUTURE_YEAR()
-         BASE_YEAR = CH4_TARG_YEAR
-      ELSE
-         CH4_TARG_YEAR = CFCYEAR + OFFSETYEAR
-         BASE_YEAR = MIN(REF_YEAR,CH4_TARG_YEAR)
-      ENDIF
-
-      IF (LAST_YEAR .ne. CH4_TARG_YEAR) THEN
-         ! Get CH4 [ppbv] in 4 latitude bins for each year
-         CALL GET_GLOBAL_CH4( BASE_YEAR, .TRUE., MR90S,
-     &                        MR30S,     MR30N,  MR90N,
-     &                        am_I_Root, Input_Opt      )
-
-         ! Convert from [ppbv] to [vv] and scale by year
-         ! Using just one month's data to be consistent with
-         ! base GEOS-Chem approach to CH4 (1-yr resolution)
-         IF (CH4_YEAR > BASE_YEAR) THEN
-            IF (UCXNETCDF) THEN
-               CH4_SCALE = (1.0e-9_fp)*
-     &               GET_MONTREAL_NCDF('CH4',CFCYEAR+OFFSETYEAR,1)/
-     &               GET_MONTREAL_NCDF('CH4',REF_YEAR,1)
-            ELSE
-!               FUTURE_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + 1
-!               BASIS_LINE = (12*(REF_YEAR-1959)) + 1
-!               CH4_SCALE = (1.0d-9)*GET_MONTREAL('CH4',FUTURE_LINE)/
-!     &                       GET_MONTREAL('CH4',BASIS_LINE)
-               THIS_YEAR = CFCYEAR+OFFSETYEAR
-               CH4_SCALE = (1.0e-9_fp) * SFCMR_GET('CH4',THIS_YEAR,1)
-     &                   / SFCMR_GET('CH4',REF_YEAR,1)
-            ENDIF
-         ELSE
-            CH4_SCALE = 1.0e-9_fp
-         ENDIF
-
-         MR90S = MR90S * CH4_SCALE
-         MR30S = MR30S * CH4_SCALE
-         MR30N = MR30N * CH4_SCALE
-         MR90N = MR90N * CH4_SCALE
-
-         ! Save for later calls
-         LAST_MR(1) = MR90S
-         LAST_MR(2) = MR30S
-         LAST_MR(3) = MR30N
-         LAST_MR(4) = MR90N
-      ELSE
-         ! Re-use data
-         MR90S = LAST_MR(1)
-         MR30S = LAST_MR(2)
-         MR30N = LAST_MR(3)
-         MR90N = LAST_MR(4)
-      ENDIF
-
-      END SUBROUTINE GET_UCX_CH4
-!EOC
+!      END SUBROUTINE GET_UCX_CH4
+!!EOC
+!==============================================================================
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------

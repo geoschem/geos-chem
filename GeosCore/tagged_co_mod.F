@@ -141,6 +141,7 @@
       REAL(f4), POINTER     :: OH         (:,:,:) => NULL() ! Global OH
       REAL(f4), POINTER     :: GMI_PROD_CO(:,:,:) => NULL() ! Global P(CO)
       REAL(f4), POINTER     :: GMI_LOSS_CO(:,:,:) => NULL() ! Global L(CO)
+      REAL(f4), POINTER     :: SFC_CH4    (:,:  ) => NULL() ! Global sfc CH4
 
       ! Diagnostic flags
       LOGICAL               :: Archive_Loss
@@ -282,6 +283,8 @@
 !                              loss to the CO tagged species 
 !  24 Apr 2017 - M. Sulprizio- Update CO + OH (+M) rate constant for JPL 15-10
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  18 Jan 2018 - M. Sulprizio- Remove call to GET_GLOBAL_CH4 and obtain monthly
+!                              CH4 concentrations from HEMCO instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -289,7 +292,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL                  :: FOUND,         LSPLIT
+      LOGICAL                  :: LSPLIT
       INTEGER                  :: nAdvect,       HcoID,       NA
       INTEGER                  :: I,             J,           L
       INTEGER                  :: N,             MONTH,       YEAR
@@ -321,11 +324,9 @@
       REAL(fp),        POINTER :: AIRVOL(:,:,:  )
       REAL(fp),        POINTER :: Spc   (:,:,:,:)
       REAL(fp),        POINTER :: T     (:,:,:  )
-      REAL(f4),        POINTER :: Ptr2D (:,:    )
 
       ! SAVED scalars
       LOGICAL,   SAVE          :: FIRST = .TRUE.
-      REAL(fp),  SAVE          :: A3090S, A0030S, A0030N, A3090N
 !
 ! !DEFINED PARAMETERS:
 !
@@ -362,7 +363,6 @@
       AIRVOL    => State_Met%AIRVOL
       Spc       => State_Chm%Species
       T         => State_Met%T
-      Ptr2D     => NULL()  
 
       ! Get the molecular weight of CO [kg/mol] from the species database
       ! (All tagged species are CO, so we can use the value for species #1)
@@ -415,7 +415,14 @@
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GMI_LOSS_CO', LOC )
          ENDIF
-            
+
+         ! Get pointer to surface CH4 data
+         CALL HCO_GetPtr( am_I_Root, HcoState,
+     &                    'NOAA_GMD_CH4', SFC_CH4, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to NOAA_GMD_CH4', LOC)
+         ENDIF
+
          ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
@@ -469,25 +476,6 @@
             CALL ERROR_STOP( 'MONX not turned on in Megan_MONO !', LOC )
          ENDIF
 
-      ENDIF
-
-      !=================================================================
-      ! Get the yearly and latitudinal gradients for CH4
-      ! This only needs to be called once per year
-      !
-      ! NOTE: If you are going to run w/ future emissions you must 
-      !       pass the future emissions year to GET_GLOBAL_CH4.  
-      !       See the modification that was made in "chemdr.f" 
-      !       (bmy, 1/24/08)
-      !=================================================================
-      IF ( ITS_A_NEW_YEAR() ) THEN 
-
-         ! Get current year
-         YEAR = GET_YEAR()
-
-         ! Get the semi-hemispheric CH4 gradients
-         CALL GET_GLOBAL_CH4( YEAR,  .TRUE.,  A3090S,    A0030S, 
-     &                        A0030N, A3090N, am_I_Root, Input_Opt )
       ENDIF
 
       !=================================================================
@@ -578,12 +566,8 @@
             ! (1a-2) Production of CO from CH4 in the troposphere 
             !===========================================================
 
-            ! CH4 concentration [ppbv] for the given latitude band 
-            ! (bmy, 1/2/01)
-            CH4 = A3090S
-            IF ( YMID >= -30.0 .and. YMID < 0.0  ) CH4 = A0030S
-            IF ( YMID >=   0.0 .and. YMID < 30.0 ) CH4 = A0030N
-            IF ( YMID >=  30.0                   ) CH4 = A3090N
+            ! CH4 concentration from HEMCO [ppbv]
+            CH4 = SFC_CH4(I,J)
             
             ! Convert CH4 from [ppbv] to [molec CH4/cm3]
             CH4 = CH4 * 1e-9_fp * DENS
@@ -1092,7 +1076,6 @@
       AIRVOL   => NULL()
       Spc      => NULL()
       T        => NULL()
-      Ptr2D    => NULL()
 
       END SUBROUTINE CHEM_TAGGED_CO
 !EOC
@@ -1461,6 +1444,7 @@
       GMI_PROD_CO => NULL()
       GMI_LOSS_CO => NULL()
       OH          => NULL()
+      SFC_CH4     => NULL()
 
       END SUBROUTINE CLEANUP_TAGGED_CO
 !EOC
