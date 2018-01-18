@@ -59,21 +59,26 @@ MODULE History_Mod
 ! !LOCAL VARIABLES:
 !
   ! Scalars
-  INTEGER                          :: CollectionCount
+  INTEGER                              :: CollectionCount
 
   ! Strings
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionName       (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionFileName   (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionTemplate   (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionSubsetDims (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionFormat     (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionFrequency  (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionAccInterval(:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionDuration   (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionMode       (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionName       (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFileName   (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionTemplate   (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionSubsetDims (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFormat     (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFrequency  (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionAccInterval(:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionDuration   (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionMode       (:)
 
   ! Objects
-  TYPE(MetaHistContainer), POINTER :: CollectionList
+  TYPE(MetaHistContainer), POINTER     :: CollectionList
+!
+! !DEFINED PARAMETERS:
+!
+  ! Maximum number of collections (set to a ridiculously big number)
+  INTEGER,                 PARAMETER   :: MAX_COLLECTIONS = 500
 
 CONTAINS
 !EOC
@@ -239,11 +244,6 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !DEFINED PARAMETERS:
-!
-    ! Ridiculously big number
-    INTEGER, PARAMETER :: MAX_COLLECTIONS = 500
 !
 ! !LOCAL VARIABLES:
 !
@@ -797,7 +797,7 @@ CONTAINS
              ! List the defined collections
              WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
              WRITE( 6, 200   ) 
- 200         FORMAT( 'GEOS-Chem ERROR: one or more collection ',             &
+ 200         FORMAT( 'GEOS-Chem ERROR: One or more collection ',             &
                      'attributes do not correspond',                      /  &
                      'to any of these defined collection names '             &
                      'in the "HISTORY.rc" input file:'                      )
@@ -1279,10 +1279,10 @@ CONTAINS
                 WRITE( 6, 210 ) N, TRIM( CollectionName(N) )
              ENDDO
              WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )
-          
+
              ! Write error message and then return
              ErrMsg = 'Inconsistency in collection names and attributes!' // &
-                  '    Please check "HISTORY.rc" for typos.'
+                      ' Please check "HISTORY.rc" for typos.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -2408,6 +2408,7 @@ CONTAINS
 !  15 Aug 2017 - R. Yantosca - Bug fix: TRIM string arguments to INDEX, and
 !                              initialize output arguments to undefined values
 !  01 Nov 2017 - R. Yantosca - Now get CleanText from charpak_mod.F90
+!  18 Jan 2018 - R. Yantosca - Bug fix: now DO N = 1, CollectionCount
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2421,10 +2422,6 @@ CONTAINS
     CHARACTER(LEN=255)       :: Name
     CHARACTER(LEN=255)       :: SubStr(255)
 
-    ! SAVEd variables
-    INTEGER,            SAVE :: CollectionStart = 0
-    CHARACTER(LEN=255), SAVE :: LastName        = ''
-     
     !=======================================================================
     ! Initialize
     !=======================================================================
@@ -2443,15 +2440,12 @@ CONTAINS
     N = LEN_TRIM( Name    )
     P = LEN_TRIM( Pattern )
 
-    ! Increment the number of the collection that we'll search from
-    ! if the current collection name is different from the prior one.
-    IF ( TRIM( Name ) /= TRIM( LastName ) ) THEN
-       LastName        = Name
-       CollectionStart = CollectionStart + 1
-    ENDIF
-
     ! Loop over all collection names
-    DO C = CollectionStart, CollectionCount
+    ! NOTE: This algorithm may not be the most efficient, as it will
+    ! not skip collections that we have already encountered.  But it
+    ! only gets done during the init phase, so it might not be a huge
+    ! expenditure of time anyway.  Worry about this later. (bmy, 1/18/18)
+    DO C = 1, CollectionCount
 
        ! Check to see if the current line matches the collection name
        ! Then check to see which collection this is in
