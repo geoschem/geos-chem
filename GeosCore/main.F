@@ -438,7 +438,7 @@
       !
       Input_Opt%MAX_DIAG      = MAX_DIAG
       Input_Opt%MAX_FAM       = 250      ! Set to large placeholder value
-      Input_Opt%MAX_SPC       = 500      ! Set to large placeholder value
+      Input_Opt%MAX_SPC       = 600      ! Set to large placeholder value
       Input_Opt%LINOZ_NLAT    = 18
       Input_Opt%LINOZ_NMONTHS = 12
       Input_Opt%LINOZ_NFIELDS = 7
