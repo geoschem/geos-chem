@@ -146,7 +146,7 @@ CONTAINS
 
     !$OMP PARALLEL DO                 &
     !$OMP DEFAULT( SHARED )           &
-    !$OMP PRIVATE( I, J, L, PBL_TOP ) &
+    !$OMP PRIVATE( I, J, L, PBL_TOP, CH4 ) &
     !$OMP SCHEDULE( DYNAMIC )
     DO J=1,JJPAR
     DO I=1,IIPAR
