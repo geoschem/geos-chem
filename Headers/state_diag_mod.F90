@@ -71,8 +71,7 @@ MODULE State_Diag_Mod
 
      ! Chemistry
      REAL(f4),  POINTER :: JVal            (:,:,:,:) ! J-values, instantaneous
-     REAL(f4),  POINTER :: JNoonDailyAvg   (:,:,:,:) ! Noon J-values, day avg
-     REAL(f4),  POINTER :: JNoonMonthlyAvg (:,:,:,:) ! Noon J-values, mon avg
+     REAL(f4),  POINTER :: JNoon           (:,:,:,:) ! Noon J-values
      REAL(f4),  POINTER :: RxnRates        (:,:,:,:) ! Reaction rates from KPP
      REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:  ) ! Diffuse UV flux per bin
      REAL(f4),  POINTER :: UVFluxDirect    (:,:,:  ) ! Direct UV flux per bin
@@ -320,8 +319,7 @@ CONTAINS
 
     State_Diag%SpeciesConc                => NULL()
     State_Diag%JVal                       => NULL()
-    State_Diag%JNoonDailyAvg              => NULL()
-    State_Diag%JNoonMonthlyAvg            => NULL()
+    State_Diag%JNoon                      => NULL()
     State_Diag%RxnRates                   => NULL()
     State_Diag%UVFluxDiffuse              => NULL()
     State_Diag%UVFluxDirect               => NULL()
@@ -966,43 +964,21 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Noontime J-values, daily average
+       ! Noontime J-values
        !
        ! NOTE: Dimension array nPhotol+2 to archive special photolysis
        ! reactions for O3_O1D, O3_O3P (with UCX) or O3, POH (w/o UCX)
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%JNoonDailyAvg'
-       diagID  = 'JNoonDailyAvg'
+       arrayID = 'State_Diag%JNoon'
+       diagID  = 'JNoon'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%JNoonDailyAvg(IM,JM,LM,nPhotol+2), STAT=RC )
+          ALLOCATE( State_Diag%JNoon( IM, JM, LM, nPhotol+2 ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%JNoonDailyAvg = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%JNoonDailyAvg,                 &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Noontime J-values, monthly average
-       !
-       ! NOTE: Dimension array nPhotol+2 to archive special photolysis
-       ! reactions for O3_O1D, O3_O3P (with UCX) or O3, POH (w/o UCX)
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%JNoonMonthlyAvg'
-       diagID  = 'JNoonMonthlyAvg'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%JNoonMonthlyAvg(IM,JM,LM,nPhotol+2), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%JNoonMonthlyAvg = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%JNoonMonthlyAvg,               &
+          State_Diag%JNoon = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%JNoon,  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -1125,7 +1101,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 10
+       DO N = 1, 9
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -1134,20 +1110,18 @@ CONTAINS
              CASE( 2  ) 
                 diagID = 'JVal'
              CASE( 3  ) 
-                diagID = 'JNoonDailyAvg'
+                diagID = 'JNoon'
              CASE( 4  ) 
-                diagID = 'JNoonMonthlyAvg'
-             CASE( 5  ) 
                 diagID = 'UvFluxDiffuse'
-             CASE( 6  ) 
+             CASE( 5  ) 
                 diagID = 'UvFluxDirect'
-             CASE( 7  ) 
+             CASE( 6  ) 
                 diagID = 'UvFluxNet'
-             CASE( 8  )
+             CASE( 7  )
                 diagID = 'HO2concAfterChem'
-             CASE( 9  )
+             CASE( 8  )
                 diagID = 'O1DconcAfterChem'
-             CASE( 10 )
+             CASE( 9  )
                 diagID = 'O3PconcAfterChem'
           END SELECT
 
@@ -1988,15 +1962,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%JNoonDailyAvg ) ) THEN
-       DEALLOCATE( State_Diag%JNoonDailyAvg, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%JNoonDailyAvg', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%JNoonMonthlyAvg ) ) THEN
-       DEALLOCATE( State_Diag%JNoonMonthlyAvg, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%JNoonMonthlyAvg', 2, RC )
+    IF ( ASSOCIATED( State_Diag%JNoon ) ) THEN
+       DEALLOCATE( State_Diag%JNoon, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%JNoon', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -2509,13 +2477,7 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'PHO'
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'JNOONDAILYAVG' ) THEN
-       IF ( isDesc    ) Desc  = 'Noontime photolysis rate for species' 
-       IF ( isUnits   ) Units = 's-1'
-       IF ( isRank    ) Rank  = 3
-       IF ( isTagged  ) TagId = 'PHO'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'JNOONMONTHLYAVG' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'JNOON' ) THEN
        IF ( isDesc    ) Desc  = 'Noontime photolysis rate for species' 
        IF ( isUnits   ) Units = 's-1'
        IF ( isRank    ) Rank  = 3

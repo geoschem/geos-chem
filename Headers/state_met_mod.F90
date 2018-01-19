@@ -242,6 +242,7 @@ MODULE State_Met_Mod
                                                 !            or mesosphere?
      LOGICAL,  POINTER :: InStratosphere(:,:,:) ! Are we in the stratosphere?
      LOGICAL,  POINTER :: InTroposphere (:,:,:) ! Are we in the troposphere?  
+     REAL(fp), POINTER :: LocalSolarTime(:,:  ) ! Local solar time
      LOGICAL,  POINTER :: IsLocalNoon   (:,:  ) ! Is it local noon (between 11
                                                 !  and 13 local solar time?
 
@@ -1830,6 +1831,18 @@ CONTAINS
     State_Met%IsLocalNoon = .FALSE.
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    !-------------------------
+    ! LocalSolarTime
+    !-------------------------
+    ALLOCATE( State_Met%LocalSolarTime( IM, JM ), STAT=RC )        
+    CALL GC_CheckVar( 'State_Met%LocalSolarTime', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%LocalSolarTime = 0.0_fp
+    CALL Register_MetField( am_I_Root, 'LOCALSOLARTIME',                     &
+                            State_Met%LocalSolarTime,                        &
+                            State_Met, RC                             )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     !=======================================================================
     ! Print information about the registered fields (short format)
     !=======================================================================
@@ -1838,10 +1851,10 @@ CONTAINS
 10     FORMAT( /, 'Registered variables contained within the State_Met object:')
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     ENDIF
-    CALL Registry_Print( am_I_Root   = am_I_Root,           &
-                         Registry    = State_Met%Registry,  &
-                         ShortFormat = .TRUE.,              &
-                         RC          = RC                  )
+    CALL Registry_Print( am_I_Root   = am_I_Root,                            &
+                         Registry    = State_Met%Registry,                   &
+                         ShortFormat = .TRUE.,                               &
+                         RC          = RC                                   )
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2099,37 +2112,43 @@ CONTAINS
     !=======================================================================
     IF ( ASSOCIATED( State_Met%InChemGrid ) ) THEN
        DEALLOCATE( State_Met%InChemGrid, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%InChemGrid', 2, RC )
+       CALL GC_CheckVar( 'State_Met%InChemGrid', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Met%InPbl ) ) THEN
        DEALLOCATE( State_Met%InPbl, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%InPbl', 2, RC )
+       CALL GC_CheckVar( 'State_Met%InPbl', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Met%InStratMeso ) ) THEN
        DEALLOCATE( State_Met%InStratMeso, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%InStratMeso', 2, RC )
+       CALL GC_CheckVar( 'State_Met%InStratMeso', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Met%InStratosphere ) ) THEN
        DEALLOCATE( State_Met%InTroposphere, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%InStratosphere', 2, RC )
+       CALL GC_CheckVar( 'State_Met%InStratosphere', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Met%InTroposphere ) ) THEN
        DEALLOCATE( State_Met%InTroposphere, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%InTroposphere', 2, RC )
+       CALL GC_CheckVar( 'State_Met%InTroposphere', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Met%IsLocalNoon ) ) THEN
        DEALLOCATE( State_Met%IsLocalNoon, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%IsLocalNoon', 2, RC )
+       CALL GC_CheckVar( 'State_Met%IsLocalNoon', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+ 
+    IF ( ASSOCIATED( State_Met%LocalSolarTime ) ) THEN
+       DEALLOCATE( State_Met%LocalSolarTime, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%LocalSolarTime', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -2383,7 +2402,7 @@ CONTAINS
 
        CASE ( 'PS1_DRY' )
           IF ( isDesc  ) Desc  = 'Dry surface pressure at dt start'
-          IF ( isUnits ) Units = ''
+          IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'PS2_DRY' )
@@ -2393,7 +2412,7 @@ CONTAINS
 
        CASE ( 'PSC2_DRY' )
           IF ( isDesc  ) Desc  = 'Dry interpolated surface pressure'
-          IF ( isUnits ) Units = 'hPA'
+          IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 2
 
 !------------------------------------------------------------------------------
@@ -2572,6 +2591,11 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
+       CASE ( 'LOCALSOLARTIME' )
+          IF ( isDesc  ) Desc  = 'Local solar time'
+          IF ( isUnits ) Units = 'hours'
+          IF ( isRank  ) Rank  = 2
+
        CASE ( 'AD' )
           IF ( isDesc  ) Desc  = 'Dry air mass'
           IF ( isUnits ) Units = 'kg'
@@ -2702,7 +2726,7 @@ CONTAINS
 
        CASE ( 'PMID_DRY' )
           IF ( isDesc  ) Desc  = 'Pressure (w/r/t dry air) at level centers'
-          IF ( isUnits ) Units = ''
+          IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
 

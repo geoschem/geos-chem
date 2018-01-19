@@ -393,7 +393,9 @@
       LOGICAL             :: UpdtMR
 
       ! Arrays
-      REAL(f8)            :: LocTime(IIPAR)
+      LOGICAL             :: IsLocNoon(IIPAR)
+      REAL(f8)            :: LocTime  (IIPAR)
+      REAL(f8)            :: Nearest  (IIPAR)
 
       ! Strings
       CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
@@ -436,9 +438,15 @@
       IF ( PRESENT(update_mixing_ratio) ) UpdtMR = update_mixing_ratio
 
       ! Pre-compute local solar time = UTC + Lon/15
+      ! NOTE: Local time only depends on longitude
       DO I = 1, IIPAR
          LocTime(I) = GET_LOCALTIME( I, 1, 1 )
+         Nearest(I) = ABS( LocTime(I) - 12.0_fp )
       ENDDO
+
+      ! Find the box that is nearest to local noon
+      IsLocNoon                      = .FALSE.
+      IsLocNoon( MINLOC( Nearest ) ) = .TRUE.
 
       !=============================================================
       ! Update air quantities
@@ -791,11 +799,10 @@
       DO I = 1, IIPAR
 
          !--------------------------------------------------------------
-         ! Is the grid box near local noon
-         ! (between 11:00 and 13:00 local solar time)?
+         ! Local solar time and box that is nearest to local noon
          !--------------------------------------------------------------
-         State_Met%IsLocalNoon(I,J) = 
-     &      ( LocTime(I) >= 11.0_f8 .and. LocTime(I) <= 13.0_f8 )         
+         State_Met%LocalSolarTime(I,J) = LocTime(I)
+         State_Met%IsLocalNoon(I,J)    = IsLocNoon(I)
 
          !--------------------------------------------------------------
          ! Compute highest level of chemistry grid and the troposphere

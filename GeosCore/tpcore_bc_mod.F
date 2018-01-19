@@ -186,7 +186,7 @@
       ! BC_AS    : Array containing AS tracers on coarse grid
       ! MAP1x1   : Mapping array from 1x1 -> 4x5 grid
       !=================================================================
-
+#if defined( BPCH_DIAG )
       ! Scalars
       LOGICAL              :: CLEAN_BC
       INTEGER              :: I0_BC,    J0_BC,    I1_BC,    J1_BC
@@ -217,6 +217,7 @@
       REAL*4,  ALLOCATABLE :: BC_EU (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_CH (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_AS (:,:,:,:)
+#endif
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -275,8 +276,10 @@
 !
 ! !USES:
 !
+#if defined( BPCH _DIAG )
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
       USE inquireMod,    ONLY : findFreeLUN
@@ -323,8 +326,10 @@
 !
 ! !LOCAL VARIABLES:
 ! 
+#if defined( BPCH_DIAG )
       LOGICAL            :: IS_OPEN    ! Is the file already open?
       CHARACTER(LEN=255) :: FILENAME   ! Name of file to read
+#endif
 
       !=================================================================
       ! OPEN_BC_FILE begins here!
@@ -333,6 +338,7 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
+#if defined( BPCH_DIAG )
       ! Only open file if it's a new day
       IF ( ITS_A_NEW_DAY(.TRUE.) ) THEN
 
@@ -487,6 +493,7 @@
          ENDIF
 
       ENDIF
+#endif
 
       END SUBROUTINE OPEN_BC_FILE
 !EOC
@@ -509,7 +516,9 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE BPCH2_MOD
+#endif
       USE CMN_SIZE_MOD 
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -555,6 +564,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( BPCH_DIAG )
 !
 ! !DEFINED PARAMETERS:
 !
@@ -588,6 +598,7 @@
 
       ! Pointers
       REAL(fp), POINTER    :: Spc(:,:,:,:)
+#endif
 
       !=================================================================
       ! SAVE_GLOBAL_TPCORE_BC begins here!
@@ -596,6 +607,7 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
+#if defined( BPCH_DIAG )
       ! Copy values from Input_Opt
       LWINDO_CU = Input_Opt%LWINDO_CU
       LWINDO_NA = Input_Opt%LWINDO_NA
@@ -837,6 +849,7 @@
  112  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote EU BC''s at ', a )
  113  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote CH BC''s at ', a )
  114  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote AS BC''s at ', a )
+#endif
 
       END SUBROUTINE SAVE_GLOBAL_TPCORE_BC
 !EOC
@@ -891,6 +904,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       ! SAVEd scalars
       LOGICAL, SAVE     :: FIRST = .TRUE.
 
@@ -900,6 +914,7 @@
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
+#endif
 
       !=================================================================
       ! DO_WINDOW_TPCORE_BC begins here!
@@ -908,6 +923,7 @@
       ! Assume success
       RC         =  GC_SUCCESS
 
+#if defined( BPCH_DIAG )
       ! Copy values from Input_Opt
       LWINDO2x25 = Input_Opt%LWINDO2x25
       
@@ -1037,6 +1053,7 @@
 
       ! Free pointer
       Spc => NULL()
+#endif
 
       END SUBROUTINE DO_WINDOW_TPCORE_BC
 !EOC
@@ -1188,6 +1205,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       ! Scalars
       INTEGER           :: I,      IOS,     J,         L      
       INTEGER           :: NI,     NJ,      NL,        NT
@@ -1208,7 +1226,7 @@
 
       ! Arrays
       REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR)
-
+#endif
 
       !=================================================================
       ! READ_WINDOW_TPCORE_BC begins here!
@@ -1217,6 +1235,7 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
+#if defined( BPCH_DIAG )
       IF ( ITS_TIME_FOR_BC() ) THEN
 
          ! Open boundary conditions file (if necessary) 
@@ -1289,6 +1308,7 @@
             ENDIF
          ENDDO
       ENDIF
+#endif
 
       END SUBROUTINE READ_WINDOW_TPCORE_BC
 !EOC
@@ -1304,7 +1324,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_4x5_BC_INIT
+      SUBROUTINE GET_4x5_BC_INIT()
 !
 ! !USES:
 !
@@ -1335,6 +1355,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       !clb
       INTEGER       :: I, II, J, JJ
       REAL(fp)        :: X, Y
@@ -1436,6 +1457,7 @@
          ENDDO
       ENDDO
       ENDDO
+#endif
 
       END SUBROUTINE GET_4x5_BC_INIT
 !EOC
@@ -1489,6 +1511,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       !clb
       INTEGER       :: II, II1, JJ, JJ1
 
@@ -1521,6 +1544,7 @@
       ELSE
          VALUE = BC(II,JJ,L_1x1,N_1x1)
       ENDIF
+#endif
 
       END FUNCTION GET_4x5_BC
 !EOC
@@ -1537,7 +1561,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_2x25_BC_INIT
+      SUBROUTINE GET_2x25_BC_INIT()
 !
 ! !USES:
 !
@@ -1570,6 +1594,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       INTEGER       :: I, II, J, JJ
       REAL(fp)        :: X, Y
       REAL(fp)        :: XE2x25(145), YE2x25(92)
@@ -1668,6 +1693,7 @@
          ENDDO
       ENDDO
       ENDDO
+#endif
 
       END SUBROUTINE GET_2x25_BC_INIT
 !EOC
@@ -1723,6 +1749,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       INTEGER       :: II, II1, JJ, JJ1
 
       !=================================================================
@@ -1754,6 +1781,7 @@
       ELSE
          VALUE = BC(II,JJ,L_1x1,N_1x1)
       ENDIF
+#endif
 
       END FUNCTION GET_2x25_BC
 !EOC
@@ -1851,6 +1879,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       INTEGER :: AS, I, J
 
       ! For values from Input_Opt
@@ -2204,6 +2233,8 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MAP1x1' )
       MAP1x1 = 0
 
+#endif
+
       ! Return 
       RC = GC_SUCCESS
 
@@ -2221,7 +2252,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_TPCORE_BC
+      SUBROUTINE CLEANUP_TPCORE_BC()
 ! 
 ! !REVISION HISTORY: 
 !  04 Mar 2003 - R. Yantosca - Initial version
@@ -2232,6 +2263,7 @@
       !=================================================================
       ! CLEANUP_TPCORE_BC begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( BC     ) ) DEALLOCATE( BC     )
       IF ( ALLOCATED( BC_CU  ) ) DEALLOCATE( BC_CU  )
       IF ( ALLOCATED( BC_NA  ) ) DEALLOCATE( BC_NA  )
@@ -2239,6 +2271,7 @@
       IF ( ALLOCATED( BC_CH  ) ) DEALLOCATE( BC_CH  )
       IF ( ALLOCATED( BC_AS  ) ) DEALLOCATE( BC_AS  )
       IF ( ALLOCATED( MAP1x1 ) ) DEALLOCATE( MAP1x1 )
+#endif
 
       END SUBROUTINE CLEANUP_TPCORE_BC
 !EOC
