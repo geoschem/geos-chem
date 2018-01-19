@@ -327,8 +327,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMMERCURY( am_I_Root, Input_Opt,
-     &                        State_Met, State_Chm, RC )
+      SUBROUTINE CHEMMERCURY( am_I_Root, Input_Opt,  State_Met,
+     &                        State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -359,6 +359,7 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -374,6 +375,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -487,6 +489,7 @@
 !                              species ID from State_Chm%Map_Advect.
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  11 Oct 2016 - R. Yantosca - Pass additional args to SET_OPTIONS_FROM_HEMCO
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1457,7 +1460,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
       ! Added for GTMM (ccc, 11/19/09)
       USE LAND_MERCURY_MOD,   ONLY : GTMM_DR
@@ -1495,22 +1498,24 @@
 !  20 Jun 2014 - R. Yantosca - Now pass Input_Opt to VEGEMIS
 !  23 Jun 2014 - R. Yantosca - Now pass am_I_Root to OCEAN_MERCURY_FLUX
 !  05 Oct 2015 - E. Lundgren - Now convert tracer units to kg locally
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE   :: FIRST = .TRUE. 
-      INTEGER         :: THISMONTH, I, J
+      LOGICAL, SAVE     :: FIRST = .TRUE. 
+      INTEGER           :: THISMONTH, I, J
+      CHARACTER(LEN=63) :: OrigUnit
 
       ! For fields from Input_Opt
-      LOGICAL         :: LDYNOCEAN
-      LOGICAL         :: LGTMM
-      LOGICAL         :: LNLPBL
-      LOGICAL         :: LPRT
-      LOGICAL         :: LPREINDHG
-      LOGICAL         :: LEMIS
+      LOGICAL           :: LDYNOCEAN
+      LOGICAL           :: LGTMM
+      LOGICAL           :: LNLPBL
+      LOGICAL           :: LPRT
+      LOGICAL           :: LPREINDHG
+      LOGICAL           :: LEMIS
 
       !=================================================================
       ! EMISSMERCURY begins here!
@@ -1529,8 +1534,8 @@
 
       ! Convert species units to [kg] for EMISSMERCURY (ewl, 8/12/15)
       ! NOTE: This is temporary until mercury code is in [kg/kg dry air]
-      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
-     &                               State_Chm, RC ) 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
      &                 'Routine EMISSIONS_RUN in emissions_mod.F')
@@ -1661,10 +1666,9 @@
       CALL SRCHgP( am_I_Root, Input_Opt, State_Chm, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHgP' )
       
-      ! Convert species units back to [kg/kg] after mercury emissions
-      !  (ewl, 8/12/15)
-      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
-     &                               State_Chm, RC ) 
+      ! Convert species units back to original unit 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
      &                 'Routine EMISSMERCURY in mercury_mod.F')

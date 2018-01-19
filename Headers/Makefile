@@ -62,6 +62,7 @@
 #  13 Jul 2017 - E. Lundgren - Remove passive_species_mod.F90
 #  14 Jul 2017 - R. Yantosca - Add registry_params_mod.F90
 #  13 Sep 2017 - R. Yantosca - Add registry_mod.o to state_chm_mod dependency
+#  31 Oct 2017 - R. Yantosca - Compile charpak_mod.F90 and not charpak_mod.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -144,6 +145,8 @@ debug:
 ###                                                                         ###
 ###############################################################################
 
+charpak_mod.o          : charpak_mod.F90
+
 CMN_DIAG_mod.o         : CMN_DIAG_mod.F           \
                          CMN_SIZE_mod.o           \
                          CMN_FJX_MOD.o            \
@@ -167,14 +170,23 @@ commsoil_mod.o         : commsoil_mod.F90         \
                          CMN_SIZE_mod.o           \
                          errcode_mod.o
 
-errcode_mod.o          : errcode_mod.F90
+diagnostics_mod.o      : diagnostics_mod.F90      \
+                         charpak_mod.o            \
+                         inquireMod.o             \
+                         registry_mod.o
+
+errcode_mod.o          : errcode_mod.F90          \
+                         charpak_mod.o
 
 input_opt_mod.o        : input_opt_mod.F90        \
                          errcode_mod.o            \
                          CMN_SIZE_mod.o           \
                          precision_mod.o
 
+inquiremod.o           : inquireMod.F90
+
 state_chm_mod.o        : state_chm_mod.F90        \
+                         charpak_mod.o            \
                          physconstants.o          \
                          errcode_mod.o            \
                          input_opt_mod.o          \
@@ -184,12 +196,16 @@ state_chm_mod.o        : state_chm_mod.F90        \
                          species_database_mod.o
 
 state_diag_mod.o       : state_diag_mod.F90       \
+                         charpak_mod.o            \
+                         diagnostics_mod.o        \
                          errcode_mod.o            \
                          precision_mod.o          \
                          input_opt_mod.o          \
-                         registry_mod.o
+                         registry_mod.o           \
+                         state_chm_mod.o
 
 state_met_mod.o        : state_met_mod.F90        \
+                         charpak_mod.o            \
                          errcode_mod.o            \
                          CMN_SIZE_mod.o           \
                          precision_mod.o          \
@@ -199,6 +215,7 @@ physconstants.o        : physconstants.F          \
                          precision_mod.o
 
 registry_mod.o         : registry_mod.F90         \
+                         charpak_mod.o            \
                          errcode_mod.o            \
                          precision_mod.o          \
                          registry_params_mod.o
@@ -207,6 +224,7 @@ registry_params_mod.o  : registry_params_mod.F90 \
                          precision_mod.o
 
 species_mod.o          : species_mod.F90          \
+                         charpak_mod.o            \
                          physconstants.o          \
                          precision_mod.o 
 

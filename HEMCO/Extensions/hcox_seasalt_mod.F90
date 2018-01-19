@@ -608,6 +608,7 @@ CONTAINS
 !  09 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !  21 Sep 2016 - R. Yantosca - Bug fix: don't initialize SS_DEN before
 !                              it is allocated.  This causes a segfault.
+!  27 Nov 2017 - C. Keller   - Use nSpcSS to fill IDTBrSALA and IDTBrSALC.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -677,7 +678,8 @@ CONTAINS
        BrContent = 0.0d0
     ENDIF
 
-    ! Get HEMCO species IDs
+    ! Get HEMCO species IDs. The ordering must be:
+    ! SALA, SALC, (Br2), (BrSALA, BrSALC)
     CALL HCO_GetExtHcoID( HcoState,   ExtNrSS, HcoIDsSS,     &
                           SpcNamesSS, nSpcSS,  RC           )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -693,8 +695,8 @@ CONTAINS
     IDTSALAAL = HcoIDsSS(5)
     IDTSALCAL = HcoIDsSS(6)
     IF ( CalcBr2 ) IDTBR2 = HcoIDsSS(7)
-    IF ( CalcBrSalt ) IDTBrSALA = HcoIDsSS(minLen-1)
-    IF ( CalcBrSalt ) IDTBrSALC = HcoIDsSS(minLen)
+    IF ( CalcBrSalt ) IDTBrSALA = HcoIDsSS(nSpcSS-1)
+    IF ( CalcBrSalt ) IDTBrSALC = HcoIDsSS(nSpcSS)
     
     ! Get the marine organic aerosol species defined for MarinePOA option
     IF ( ExtNrMPOA > 0 ) THEN
@@ -784,9 +786,10 @@ CONTAINS
        ENDIF
 
        IF ( CalcBrSalt ) THEN
-          WRITE(MSG,*) 'BrSALA: ', TRIM(SpcNamesSS(minLen-1)), IDTBrSALA
-          WRITE(MSG,*) 'BrSALC: ', TRIM(SpcNamesSS(minLen)), IDTBrSALC
-          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'BrSALA: ', TRIM(SpcNamesSS(nSpcSS-1)), IDTBrSALA
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
+          WRITE(MSG,*) 'BrSALC: ', TRIM(SpcNamesSS(nSpcSS)), IDTBrSALC
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Br- mass content: ', BrContent
           CALL HCO_MSG(MSG)
        ENDIF

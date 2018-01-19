@@ -289,6 +289,9 @@
       REAL(f8),          ALLOCATABLE :: DMID    (:    )
       REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
       
+      ! Are certain History diagnostics turned on?
+      LOGICAL                        :: Archive_DryDepVel
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -309,8 +312,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DRYDEP( am_I_Root, Input_Opt, 
-     &                      State_Met, State_Chm, RC )
+      SUBROUTINE DO_DRYDEP( am_I_Root, Input_Opt,  State_Met,
+     &                      State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -321,6 +324,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE UnitConv_Mod
 !
@@ -333,6 +337,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -416,6 +421,7 @@
 !                              eliminated.
 !  13 Jul 2017 - M. Sulprizio- Add scaling of species drydep relative to HNO3,
 !                              PAN, and ISOPN (from K. Travis, J. Fisher)
+!  05 Oct 2017 - R. Yantosca - Now update State_Diag%DryDepVel diagnostic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -611,6 +617,13 @@
             ! ND44 diagnostic: drydep velocity [cm/s]
             IF ( ND44 > 0 ) THEN 
                AD44(I,J,D,2) = AD44(I,J,D,2) + DVZ
+            ENDIF
+#endif
+
+#if defined( NC_DIAG )
+            ! Archive dry dep velocity [cm/s]
+            IF ( Archive_DryDepVel ) THEN
+               State_Diag%DryDepVel(I,J,D) = DVZ
             ENDIF
 #endif
 
@@ -1197,10 +1210,10 @@
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
 !$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
 !$OMP+PRIVATE( DIAM,   DEN,    XLAI_FP, SUNCOS_FP, CFRAC_FP   )
-!$OMP+PRIVATe( SpcId,  SpcInfo                                )
 #if defined( TOMAS )
 !$OMP+PRIVATE( BIN                                            )
 #endif
+!$OMP+PRIVATE( SpcId,  SpcInfo                                )
 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -3771,15 +3784,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DRYDEP( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE INIT_DRYDEP( am_I_Root, Input_Opt, 
+     &                        State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE Species_Mod,        ONLY : Species
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE Species_Mod,    ONLY : Species
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3788,7 +3803,8 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry_State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3865,6 +3881,8 @@
 !                              Family tracers have been eliminated.
 !  13 Jul 2017 - M. Sulprizio- Add scaling of species drydep relative to HNO3,
 !                              PAN, and ISOPN (from K. Travis, J. Fisher)
+!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  07 Nov 2017 - R. Yantosca - Now return error condition to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3873,10 +3891,10 @@
 !
       LOGICAL                :: LDRYD
       LOGICAL                :: IS_Hg
-      INTEGER                :: AS, N
+      INTEGER                :: N
 
       ! Strings
-      CHARACTER(LEN=255)     :: MSG
+      CHARACTER(LEN=255)     :: Msg, ErrMsg, ThisLoc
 
       ! Objects
       TYPE(Species), POINTER :: SpcInfo 
@@ -3885,26 +3903,18 @@
       ! INIT_DRYDEP begins here!
       !=================================================================
       
-      ! Assume success
-      RC      = GC_SUCCESS
-     
-      ! Is this a mercury simulation?
-      IS_Hg   = Input_Opt%ITS_A_MERCURY_SIM
-
-      ! ARe we using drydep?
-      LDRYD   = Input_Opt%LDRYD
-
-      ! Count of drydep species
-      NUMDEP  = 0
-
-      ! Flag to identify species
+      ! Initialize
+      RC        = GC_SUCCESS
+      IS_Hg     = Input_Opt%ITS_A_MERCURY_SIM
+      LDRYD     = Input_Opt%LDRYD
+      NUMDEP    = 0
       id_ACET   = 0
       id_ALD2   = 0
-
-      ! Define species IDs
       id_HNO3   = IND_('HNO3'  )
       id_PAN    = IND_('PAN'   )
       id_ISOPND = IND_('ISOPND')
+      ErrMsg    = ''
+      ThisLoc   = ' -> at Init_Drydep (in module GeosCore/drydep_mod.F)'
 
       !===================================================================
       ! Arrays that hold information about dry-depositing species
@@ -3913,58 +3923,69 @@
       IF ( State_Chm%nDryDep > 0 ) THEN
 
          ! Aerosol density [kg/m3]
-         ALLOCATE( A_DEN( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_DEN' )
+         ALLOCATE( A_DEN( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:A_DEN', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          A_DEN(:)   = 0e+0_f8
 
          ! Aerosol radius [um]
-         ALLOCATE( A_RADI( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_RADI' )
+         ALLOCATE( A_RADI( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:A_RADI', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          A_RADI = 0e+0_f8
 
          ! Is the species an aerosol? (T/F)
-         ALLOCATE( AIROSOL( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIROSOL' )
+         ALLOCATE( AIROSOL( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:AIROSOL', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          AIROSOL = .FALSE.
 
          ! Drydep species name
-         ALLOCATE( DEPNAME( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DEPNAME' )
+         ALLOCATE( DEPNAME( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:DEPNAME', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          DEPNAME = ''
 
          ! Reactivity factor
-         ALLOCATE( F0( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'F0' )
+         ALLOCATE( F0( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:F0', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          F0 = 0e+0_f8
 
          ! Henry's law K0
-         ALLOCATE( HSTAR( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'HSTAR' )
+         ALLOCATE( HSTAR( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:HSTAR', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          HSTAR = 0e+0_f8
 
          ! POPs KOA
-         ALLOCATE( KOA( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'KOA' )
+         ALLOCATE( KOA( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:KOA', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          KOA  = 0e+0_f8
 
          ! Drydep species indicies
-         ALLOCATE( NDVZIND( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NDVZIND' )
+         ALLOCATE( NDVZIND( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:NDVZIND', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          NDVZIND = 0
 
          ! Drydep scaling flag
-         ALLOCATE( FLAG( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FLAG' )
+         ALLOCATE( FLAG( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:FLAG', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          FLAG = 0
 
          ! Species indices
-         ALLOCATE( NTRAIND( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NTRAIND' )
+         ALLOCATE( NTRAIND( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:NTRAIND', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          NTRAIND = 0
 
          ! Molecular weight [kg/mol]
-         ALLOCATE( XMW( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'XMW' )
+         ALLOCATE( XMW( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:XMW', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          XMW = 0e+0_f8
 
       ENDIF
@@ -4115,16 +4136,19 @@
       ! Allocate arrays
       ! add allocation for SALT_V and DMID (jaegle 5/11/11)
       !=================================================================
-      ALLOCATE( DEPSAV( IIPAR, JJPAR, NUMDEP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DEPSAV' )
+      ALLOCATE( DEPSAV( IIPAR, JJPAR, NUMDEP ), STAT=RC )
+      CALL GC_CheckVar( 'drydep_mod:DEPSAV', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       DEPSAV = 0e+0_fp
 
-      ALLOCATE( SALT_V( NR_MAX ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALT_V' )
+      ALLOCATE( SALT_V( NR_MAX ), STAT=RC )
+      CALL GC_CheckVar( 'drydep_mod:SALT_V', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SALT_V = 0e+0_f8
 
-      ALLOCATE( DMID( NR_MAX ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
+      ALLOCATE( DMID( NR_MAX ), STAT=RC )
+      CALL GC_CheckVar( 'drydep_mod:DMID', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       DMID = 0e+0_f8
 
       ! SDE 2016-03-27: This is now called after Input_Opt has already
@@ -4189,11 +4213,22 @@
      &                         IRCLS,     IRCLO,    IVSMAX, 
      &                         RC )
 
+       ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Read_Drydep_Inputs"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
       ! sea salt aerosols (jaegle 5/11/11)
       CALL INIT_WEIGHTSS( Input_Opt )
     
+      !===================================================================
+      ! Set logical flags to determine if diagnostics are turned on
+      !===================================================================
+      Archive_DryDepVel      = ASSOCIATED( State_Diag%DryDepVel      )
+
       END SUBROUTINE INIT_DRYDEP
 !EOC
 !------------------------------------------------------------------------------

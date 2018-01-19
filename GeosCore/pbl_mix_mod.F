@@ -112,8 +112,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_PBL_MIX( am_I_Root,  DO_TURBDAY, Input_Opt, 
-     &                       State_Met,  State_Chm,  RC )
+      SUBROUTINE DO_PBL_MIX( am_I_Root,  DO_TURBDAY, Input_Opt,
+     &                       State_Met,  State_Chm,  State_Diag, RC )
 !
 ! !USES:
 !
@@ -121,10 +121,12 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE TIME_MOD,           ONLY : GET_TS_CONV
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
+      USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS: 
 !
@@ -137,6 +139,7 @@
 !
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
       INTEGER,        INTENT(INOUT) :: RC          ! Return code
 !
 ! !REVISION HISTORY: 
@@ -150,6 +153,10 @@
 !  06 Jul 2016 - R. Yantosca - Now pass State_Chm and am_I_Root to TURBDAY
 !  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  27 Sep 2017 - E. Lundgren - Apply unit conversion within routine instead
+!                              of in do_mixing
+!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  07 Nov 2017 - R. Yantosca - Now return error conditions to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -157,32 +164,71 @@
 ! !LOCAL VARIABLES:
 !
       ! SAVEd scalars
-      LOGICAL, SAVE  :: FIRST = .TRUE.
+      LOGICAL, SAVE      :: FIRST = .TRUE.
 
       ! Scalars
-      INTEGER        :: N, NA, nAdvect
+      INTEGER            :: N, NA
 #if defined( USE_TEND )
-      REAL(fp)       :: DT_TEND
+      REAL(fp)           :: DT_TEND
 #endif
+
+      ! Strings
+      CHARACTER(LEN=63)  :: OrigUnit 
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       !=================================================================
       ! DO_PBL_MIX begins here!
       !=================================================================
 
-      ! Assume success
+      ! Initialize
       RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = ' -> at DO_PBL_MIX (in module GeosCore/pbl_mix_mod.F)'
 
-      ! Number of advected species
-      nAdvect = State_Chm%nAdvect
-
+      !-----------------------------
       ! First-time initialization
+      !-----------------------------
       IF ( FIRST ) THEN
-         CALL INIT_PBL_MIX()
+
+         ! Allocate arrays etc.
+         CALL INIT_PBL_MIX( am_I_Root, RC )
+
+         ! Trap potential error
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "INIT_PBL_MIX"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+         
+         ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
-         
-      ! The following only needs be done if turbulence is turned on...
+
+      !=================================================================
+      ! The following only needs be done if full PBL mixing is on...
+      !=================================================================
       IF ( DO_TURBDAY ) THEN
+
+         !--------------------------
+         ! Unit conversion #1
+         !--------------------------
+
+         ! Convert species to v/v dry
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, 'v/v dry', RC, 
+     &                           OrigUnit=OrigUnit )
+
+         ! Trap potential error
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 
+     &        'Error encountred in "Convert_Spc_Units" (to v/v dry)!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         !--------------------------
+         ! Do full PBL mixing
+         !--------------------------
 
 #if defined( USE_TEND ) 
          ! Archive species concentrations for tendencies. Tracers are 
@@ -191,8 +237,9 @@
      &                     State_Chm, 'PBLMIX', RC )
 #endif
 
-         ! Do complete mixing of tracers in the PBL (if necessary)
-         CALL TURBDAY( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+         ! Do complete mixing of tracers in the PBL
+         CALL TURBDAY( am_I_Root, Input_Opt,  State_Met,
+     &                 State_Chm, State_Diag, RC         )
 
 #if defined( USE_TEND ) 
          ! Archive species concentrations for tendencies (ckeller, 7/15/2015)
@@ -200,6 +247,23 @@
          CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met,
      &                     State_Chm, 'PBLMIX', DT_TEND, RC )
 #endif
+
+         !--------------------------
+         ! Unit conversion #2
+         !--------------------------
+
+         ! Convert species back to original units
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, OrigUnit,  RC )
+
+         ! Trap potential error
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 
+     &         'Error encountred in "Convert_Spc_Units" (from v/v dry)!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
       ENDIF
 
       END SUBROUTINE DO_PBL_MIX
@@ -217,18 +281,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_PBL_HEIGHT( State_Met )
+      SUBROUTINE COMPUTE_PBL_HEIGHT( am_I_Root, State_Met, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
-      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ErrCode_Mod
       USE PhysConstants            ! Scale height
       USE State_Met_Mod,      ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -244,19 +316,25 @@
 !  22 Aug 2014 - R. Yantosca - Now declare State_Met INTENT(INOUT)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
+!  06 Nov 2017 - R. Yantosca - Now return error to main program level
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,     J,      L,    LTOP
-      REAL(fp)  :: BLTOP, BLTHIK, DELP
-      REAL(fp)  :: P(0:LLPAR)
+      LOGICAL  :: Bad_Sum
+      INTEGER  :: I,     J,      L,    LTOP
+      REAL(fp) :: BLTOP, BLTHIK, DELP
+      REAL(fp) :: P(0:LLPAR)
 
       !=================================================================
       ! COMPUTE_PBL_HEIGHT begins here!
       !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      Bad_Sum = .FALSE.
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -413,13 +491,21 @@
 
          ! Error check
          IF (ABS(SUM( F_OF_PBL(I,J,:) ) - 1.e+0_fp) > 1.e-3_fp) THEN
+!$OMP CRITICAL
             PRINT*, 'bad sum at: ', I, J
-            CALL ERROR_STOP( 'Error in computing F_OF_PBL!',
-     &                       'COMPUTE_PBL_HEIGHT ("pbl_mix_mod.f")' )
+            Bad_Sum = .TRUE.
+!$OMP END CRITICAL
          ENDIF
       ENDDO
       ENDDO 
 !$OMP END PARALLEL DO
+
+      ! Exit to main program level if bad sum was encountered
+      IF ( Bad_Sum ) THEN 
+         CALL GC_Error( 'Error in computing F_OF_PBL !', RC,
+     &                  'COMPUTE_PBL_HEIGHT ("pbl_mix_mod.f")' )
+         RETURN
+      ENDIF
 
       ! Model level where PBL top occurs
       PBL_MAX_L = MAXVAL( IMIX ) 
@@ -439,34 +525,38 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TURBDAY( am_I_root, Input_Opt, 
-     &                    State_Met, State_Chm, RC )
+      SUBROUTINE TURBDAY( am_I_root, Input_Opt,  State_Met,
+     &                    State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : TURBFLUP
+      USE DIAG_MOD,       ONLY : TURBFLUP
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE PhysConstants,      ONLY : AIRMW
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CONV
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE PhysConstants,  ONLY : AIRMW
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Met_Mod,  ONLY : MetState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE TIME_MOD,       ONLY : GET_TS_CONV
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root      
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt
-      TYPE(MetState), INTENT(IN)    :: State_Met
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options Object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Metoerology State object
+
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  Original subroutine by Dale Allen, Univ of MD.
@@ -534,6 +624,7 @@
 !  06 Jul 2016 - R. Yantosca - Now pass State_Chm and am_I_Root as args
 !                              so that we can loop over advected species   
 !  25 Jul 2016 - M. Yannetti - Now takes in State_Chm to access spec db
+!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -963,70 +1054,89 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_PBL_MIX
+      SUBROUTINE INIT_PBL_MIX( am_I_root, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC           ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
 !  28 Feb 2012 - R. Yantosca - Added ProTeX headers
 !  14 Nov 2014 - C. Keller   - Added error trap to prevent second allocation 
 !                              attempt in ESMF environment.
+!  07 Nov 2017 - R. Yantosca - Add am_I_root, RC as arguments so that we
+!                              can propagate the error to the top level
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS
-
       !=================================================================
       ! INIT_PBL_MIX begins here!
       !=================================================================
 
+      ! Initialize
+      RC = GC_SUCCESS
+
       ! Error trap: in an ESMF environment, it is possible that this
       ! routine is called twice. No need to allocate arrays if already
       ! done so.
-      IF ( ALLOCATED(IMIX) ) RETURN
+      IF ( ALLOCATED( IMIX ) ) RETURN
 
       ! Scalars
       PBL_MAX_L = 0
 
       ! Arrays
-      ALLOCATE( IMIX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IMIX' )
+      ALLOCATE( IMIX( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'pbl_mix_mod:IMIX', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       IMIX = 0
 
-      ALLOCATE( FPBL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FPBL' )
-      FPBL = 0e+0_fp
+      ALLOCATE( FPBL( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'pbl_mix_mod:FPBL', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      FPBL = 0.0_fp
 
-      ALLOCATE( F_OF_PBL( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'F_OF_PBL' )
-      F_OF_PBL = 0e+0_fp
+      ALLOCATE( F_OF_PBL( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      CALL GC_CheckVar( 'pbl_mix_mod:F_OF_PBL', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      F_OF_PBL = 0.0_fp
 
-      ALLOCATE( F_UNDER_TOP( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'F_UNDER_TOP' )
-      F_UNDER_TOP = 0e+0_fp
+      ALLOCATE( F_UNDER_TOP( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      CALL GC_CheckVar( 'pbl_mix_mod:F_UNDER_TOP', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      F_UNDER_TOP = 0.0_fp
 
-      ALLOCATE( PBL_TOP_hPa( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL_TOP_hPa' )
-      PBL_TOP_hPa = 0e+0_fp
+      ALLOCATE( PBL_TOP_hPa( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'pbl_mix_mod:PBL_TOP_hPa', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      PBL_TOP_hPa = 0.0_fp
 
-      ALLOCATE( PBL_TOP_L( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL_TOP_L' )
-      PBL_TOP_L = 0e+0_fp
+      ALLOCATE( PBL_TOP_L( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'pbl_mix_mod:PBL_TOP_L', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      PBL_TOP_L = 0.0_fp
 
-      ALLOCATE( PBL_TOP_m( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL_TOP_m' )
-      PBL_TOP_m = 0e+0_fp
+      ALLOCATE( PBL_TOP_m( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'pbl_mix_mod:PBL_TOP_m', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      PBL_TOP_m = 0.0_fp
 
-      ALLOCATE( PBL_THICK( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL_THICK' )
-      PBL_THICK = 0e+0_fp
+      ALLOCATE( PBL_THICK( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'pbl_mix_mod:PBL_THICK', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      PBL_THICK = 0.0_fp
 
       END SUBROUTINE INIT_PBL_MIX
 !EOC

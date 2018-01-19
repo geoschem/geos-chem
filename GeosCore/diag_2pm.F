@@ -1,4 +1,3 @@
-
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -31,21 +30,12 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_DIAG_MOD             ! HR_OH1, HR_OH2, etc.
       USE CMN_SIZE_MOD             ! Size parameters
-      USE DIAG_MOD,           ONLY : LTJV,  CTJV
-      USE DIAG_MOD,           ONLY : LTOH,  CTOH
+      USE DIAG_MOD,           ONLY : LTJV, LTOH, LTHO2, LTO1D, LTO3P
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : LTOTH, CTOTH
-#endif
-      USE DIAG_MOD,           ONLY : LTHO2, CTHO2
+      USE DIAG_MOD,           ONLY : CTJV,  CTOH, CTHO2, CTO1D, CTO3P
       USE DIAG_MOD,           ONLY : CTO3_24h
-      USE DIAG_MOD,           ONLY : CTO1D,    LTO1D
-      USE DIAG_MOD,           ONLY : CTO3P,    LTO3P
-      USE DIAG_MOD,           ONLY : LTLBRO2H, LTLBRO2N
-      USE DIAG_MOD,           ONLY : LTLTRO2H, LTLTRO2N
-      USE DIAG_MOD,           ONLY : LTLXRO2H, LTLXRO2N
-      USE DIAG_MOD,           ONLY : CTLBRO2H, CTLBRO2N
-      USE DIAG_MOD,           ONLY : CTLTRO2H, CTLTRO2N
-      USE DIAG_MOD,           ONLY : CTLXRO2H, CTLXRO2N
+#endif
       USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_LOCALTIME
@@ -132,6 +122,7 @@
 !$OMP+PRIVATE( I, J, L )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
 #if defined( BPCH_DIAG )
          !-----------------------------
          ! ND45 -- mixing ratios
@@ -157,7 +148,7 @@
 
             ENDIF
          ENDIF
-#endif
+         
          !-----------------------------
          ! ND47_O3 / ND65 -- "chemistry all day long" counter
          !-----------------------------
@@ -172,6 +163,7 @@
                ENDDO
 
          ENDIF
+#endif
 
          !-----------------------------
          ! ND22 -- J-Value diagnostic
@@ -181,7 +173,9 @@
             ! Archive if we fall w/in the local time limits
             IF ( LT(I) >= HR1_JV .and. LT(I) <= HR2_JV ) THEN
                LTJV(I,J) = 1
+#if defined( BPCH_DIAG )
                CTJV(I,J) = CTJV(I,J) + 1
+#endif
             ELSE
                LTJV(I,J) = 0
             ENDIF
@@ -200,11 +194,8 @@
                LTHO2(I,J) = 1
                LTO1D(I,J) = 1
                LTO3P(I,J) = 1
-               ! update for arom (dkh, 06/22/07)  
-               LTLBRO2H(I,J) = 1
-               LTLTRO2H(I,J) = 1
-               LTLXRO2H(I,J) = 1
 
+#if defined( BPCH_DIAG )
                ! Counters for # of OH, HO2 boxes in the chemgrid (phs, 1/24/07)
                DO L = 1, LD43 
                   IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
@@ -212,22 +203,15 @@
                      CTHO2(I,J,L) = CTHO2(I,J,L) + 1
                      CTO1D(I,J,L) = CTO1D(I,J,L) + 1
                      CTO3P(I,J,L) = CTO3P(I,J,L) + 1
-                     ! update for arom (dkh, 06/22/07)  
-                     CTLBRO2H(I,J,L) = CTLBRO2H(I,J,L) + 1
-                     CTLTRO2H(I,J,L) = CTLTRO2H(I,J,L) + 1
-                     CTLXRO2H(I,J,L) = CTLXRO2H(I,J,L) + 1
                   ENDIF
                ENDDO
+#endif
 
             ELSE
                LTOH(I,J)  = 0
                LTHO2(I,J) = 0
                LTO1D(I,J) = 0
                LTO3P(I,J) = 0
-               ! update for arom (dkh, 06/22/07)  
-               LTLBRO2H(I,J) = 0
-               LTLTRO2H(I,J) = 0
-               LTLXRO2H(I,J) = 0 
             ENDIF
          ENDIF
 

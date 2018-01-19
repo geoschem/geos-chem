@@ -152,6 +152,8 @@ CONTAINS
 !                              (B. Henderson)
 !  13 Jun 2017 - M. Sulprizio- Add species for mechanistic isoprene SOA
 !                              (E. Marais)
+!  27 Nov 2017 - E. Lundgren - Add SALA, SALC, OCPO/OCPI, BCPO/BCPI, and SO4
+!                              as hygroscopic growth species for cloud diags
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -451,6 +453,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_HygroGrowth= T,                            &
                               Density       = 1800.0_fp,                    &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
@@ -3502,6 +3505,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_HygroGrowth= T,                            &
                               Density       = 1300.0_fp,                    &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
@@ -3907,6 +3911,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_HygroGrowth= T,                            &
                               Density       = 2200.0_fp,                    &
                               Radius        = Radius,                       &
                               DD_AeroDryDep = T,                            &
@@ -3985,6 +3990,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_HygroGrowth= T,                            &
                               Density       = 2200.0_fp,                    &
                               Radius        = Radius,                       &
                               DD_AeroDryDep = T,                            &
@@ -4111,6 +4117,7 @@ CONTAINS
 #if defined( UCX )
                               Is_Photolysis = T,                            &
 #endif
+                              Is_HygroGrowth= T,                            &
                               Density       = 1700.0_fp,                    &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_DvzMinVal  = DvzMinVal,                    &

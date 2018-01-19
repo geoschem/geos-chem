@@ -336,31 +336,35 @@
       ! Only open file if it's a new day
       IF ( ITS_A_NEW_DAY(.TRUE.) ) THEN
 
-         ! File name for BC's
-         IF ( WINDOW .eq. 6 ) THEN
-#if   defined( NESTED_NA )
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_NA ) // 'BC.YYYYMMDD' ! Input file, NA
-#elif defined( NESTED_EU )
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Input file, EU
-#elif defined( NESTED_CH )
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Input file, CH
-#elif defined( NESTED_AS )
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_AS ) // 'BC.YYYYMMDD' ! Input file, AS
-#endif
-         ELSEIF ( WINDOW .eq. 1 ) THEN
-            FILENAME = TRIM( Input_Opt%TPBC_DIR )    // 'BC.YYYYMMDD' ! Output file, CU
-         ELSEIF ( WINDOW .eq. 2 ) THEN
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_NA ) // 'BC.YYYYMMDD' ! Output file, NA
-         ELSEIF ( WINDOW .eq. 3 ) THEN
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Output file, EU
-         ELSEIF ( WINDOW .eq. 4 ) THEN
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Output file, CH
-         ELSEIF ( WINDOW .eq. 5 ) THEN
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_AS ) // 'BC.YYYYMMDD' ! Output file, AS
-         ENDIF
-         
+         ! Boundary condition filename
+         FILENAME = 'BC.YYYYMMDD'
+
          ! Replace YYYYMMDD with the actual date
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
+
+         ! File name for BC's
+         ! Prefix the directory path to the file name
+         IF ( WINDOW .eq. 6 ) THEN
+#if   defined( NESTED_NA )
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_NA ) // TRIM( FILENAME )
+#elif defined( NESTED_EU )
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_EU ) // TRIM( FILENAME )
+#elif defined( NESTED_CH )
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_CH ) // TRIM( FILENAME )
+#elif defined( NESTED_AS )
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_AS ) // TRIM( FILENAME )
+#endif
+         ELSEIF ( WINDOW .eq. 1 ) THEN
+            FILENAME = TRIM( Input_Opt%TPBC_DIR )    // TRIM( FILENAME )
+         ELSEIF ( WINDOW .eq. 2 ) THEN
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_NA ) // TRIM( FILENAME )
+         ELSEIF ( WINDOW .eq. 3 ) THEN
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_EU ) // TRIM( FILENAME ) 
+         ELSEIF ( WINDOW .eq. 4 ) THEN
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_CH ) // TRIM( FILENAME ) 
+         ELSEIF ( WINDOW .eq. 5 ) THEN
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_AS ) // TRIM( FILENAME ) 
+         ENDIF
 
          ! FORMAT string for use below
  100     FORMAT( '     - OPEN_BC_FILE: Opening ', a, ' on unit ', i4 )

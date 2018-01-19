@@ -1,4 +1,4 @@
-List of GEOS-Chem developers (20 Sep 2017)
+List of GEOS-Chem developers (23 Oct 2017)
 ===============================================================================
 
 Peter Adams
@@ -161,6 +161,7 @@ Arjen Markus
 Randall Martin
 Chris McLinden
 Nicholas Meskhidze
+Natallia Miatselskaya
 Loretta Mickley
 Dylan Millet
 Kai Ming

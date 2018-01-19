@@ -74,6 +74,8 @@ CONTAINS
 !  Initial code.
 !  07 Mar 2017 - R. Yantosca - Now exit with error code 999, to avoid an
 !                              inadvertent error code of 0 being returned
+!  08 Nov 2017 - R. Yantosca - Now flush the buffer after writing,
+!                              to be visilble after stop (esp. w/ gfortran)
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -100,9 +102,12 @@ CONTAINS
          '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
     Write (6,*)
 
+    call flush(6)
+
     if (err_do_stop) then
        WRITE( 6, 100 )
  100   FORMAT( 'Code stopped from DO_ERR_OUT (in module m_do_err_out.F90' )
+       call flush(6)
        CALL EXIT( 999 )
     end if
 

@@ -142,6 +142,9 @@
       REAL(f4), POINTER     :: GMI_PROD_CO(:,:,:) => NULL() ! Global P(CO)
       REAL(f4), POINTER     :: GMI_LOSS_CO(:,:,:) => NULL() ! Global L(CO)
 
+      ! Diagnostic flags
+      LOGICAL               :: Archive_Loss
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -157,8 +160,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_CO( am_I_Root, Input_Opt,
-     &                           State_Met, State_Chm, RC )
+      SUBROUTINE CHEM_TAGGED_CO( am_I_Root, Input_Opt,  State_Met,
+     &                           State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -176,6 +179,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
@@ -190,6 +194,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -276,6 +281,7 @@
 !  27 Mar 2017 - R. Yantosca - Now compute ND65 diagnostic before applying the
 !                              loss to the CO tagged species 
 !  24 Apr 2017 - M. Sulprizio- Update CO + OH (+M) rate constant for JPL 15-10
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -373,6 +379,10 @@
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP( 'HcoState not associated!', LOC )
       ENDIF 
+
+      ! Zero diagnostic archival arrays to make sure that we don't have any
+      ! leftover values from the last timestep near the top of the chemgrid
+      IF ( Archive_Loss ) State_Diag%Loss = 0.0_f4
 
       !=================================================================
       ! Get pointers from HEMCO for OH, P(CO), and L(CO) fields
@@ -813,6 +823,7 @@
                   ! Advected species ID
                   N            = State_Chm%Map_Advect(NA)
 
+                  !------------------------------------------------------
                   ! NOTE: The proper order should be:
                   !   (1) Calculate CO loss rate
                   !   (2) Update AD65 array
@@ -824,11 +835,34 @@
                   !
                   !    -- Jenny Fisher (27 Mar 2017)
                   !
-                  ! ND65 diagnostic -- loss of CO by OH for "tagged" species
+                  !------------------------------------------------------
+
+#if defined( BPCH_DIAG )
+                  !-----------------------------------------------------
+                  ! ND65 (bpch) diagnostic
+                  !
+                  ! Loss of CO by OH for "tagged" species
+                  !-----------------------------------------------------
+
+                  ! Units: [kg/s]
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) +
      &                               ( CORATE * Spc(I,J,L,N) * STTCO)
                   ENDIF
+#endif
+
+#if defined( NC_DIAG )
+                  !-----------------------------------------------------
+                  ! ND65 (bpch) diagnostic
+                  !
+                  ! Loss of CO by OH for "tagged" species
+                  !-----------------------------------------------------
+                  IF ( Archive_Loss ) THEN
+                     State_Diag%Loss(I,J,L,N) = ( CORATE 
+     &                                        *   Spc(I,J,L,N) 
+     &                                        *   STTCO        )
+                  ENDIF
+#endif
 
                   ! Loss
                   Spc(I,J,L,N) = Spc(I,J,L,N) * ( 1.0_fp - CO_OH )
@@ -929,6 +963,7 @@
                   ! Advected species ID
                   N            = State_Chm%Map_Advect(NA)
 
+                  !-----------------------------------------------------
                   ! NOTE: The proper order should be:
                   !   (1) Calculate CO loss rate
                   !   (2) Update AD65 array
@@ -939,13 +974,37 @@
                   ! tagged CO concentrations stored in the SPC array.
                   !
                   !    -- Jenny Fisher (27 Mar 2017)
+                  !-----------------------------------------------------
+
+#if defined( BPCH_DIAG )
+                  !-----------------------------------------------------
+                  ! ND65 (bpch) diagnostic
                   !
-                  ! ND65 diagnostic -- loss of CO by OH for "tagged" species
+                  ! Loss of CO by OH for "tagged" species
+                  !-----------------------------------------------------
+
+                  ! Units: [kg/s]
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) + 
      &                   ( KRATE * OH_MOLEC_CM3 * Spc(I,J,L,N) * STTCO )
                   ENDIF
+#endif
 
+#if defined( NC_DIAG )
+                  !-----------------------------------------------------
+                  ! HISTORY (aka netCDF diagnostics)
+                  !
+                  ! Loss of CO by OH for "tagged" species
+                  !-----------------------------------------------------
+
+                  ! Units: [kg/s]
+                  IF ( Archive_Loss ) THEN
+                     State_Diag%Loss(I,J,L,N) = ( KRATE       
+     &                                        *   OH_MOLEC_CM3 
+     &                                        *   Spc(I,J,L,N) 
+     &                                        *   STTCO        )
+                  ENDIF
+#endif
 
                   ! Use tropospheric rate constant 
                   Spc(I,J,L,N) = Spc(I,J,L,N) *
@@ -976,8 +1035,9 @@
          ! State_Chm%Species
          Spc(I,J,L,1) = GCO / STTCO
 
+#if defined( BPCH_DIAG )
          !==============================================================
-         ! Archive ND65 diagnostics -- Production & Loss of CO
+         ! ND65 (bpch) diagnostics -- Production & Loss of CO
          ! Also save P(CO) from CH3OH and MONOTERPENES (bmy, 1/2/01)
          !==============================================================
          IF ( ND65 > 0 .and. L <= LD65 ) THEN
@@ -1006,6 +1066,22 @@
             N             = nAdvect + 5 
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ACET / DTCHEM )
          ENDIF
+#endif
+
+#if defined( NC_DIAG )
+         !==============================================================
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! Loss of total CO species 
+         !==============================================================
+
+         ! Units: [kg/s]
+         IF ( Archive_Loss ) THEN
+            State_Diag%Loss(I,J,L,1) = ( CO_OH / DTCHEM )
+         ENDIF   
+#endif
+
+
       ENDDO
       ENDDO
       ENDDO
@@ -1251,19 +1327,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TAGGED_CO( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TAGGED_CO( am_I_Root, Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : Alloc_Err
-      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(DgnState), INTENT(IN)    :: State_Diag  ! Diagnostic state object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1288,45 +1365,58 @@
 !  10 Apr 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  21 Mar 2016 - R. Yantosca - Remove CO_PRODS, CO_LOSSS arrays
 !  28 Jun 2016 - R. Yantosca - Remove EMACET array
+!  05 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS, I, J
-      
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
       !=================================================================
       ! INIT_TAGGED_CO begins here!
       !=================================================================
 
-      ! Assume success until otherwise known
-      RC = GC_SUCCESS
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &     ' -> at Init_Tagged_CO (in module GeosCore/tagged_co_mod.F)'
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
-      ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMISOPCO' )         
+      ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'tagged_co_mod.F:SUMISOPCO', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SUMISOPCO = 0.0_fp 
 
-      ! Allocate SUMISOPCO -- array for CO from isoprene
-      ALLOCATE( SUMMONOCO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMMONOCO' )         
+      ! Allocate SUMMONOCO -- array for CO from monoterpenes
+      ALLOCATE( SUMMONOCO( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'tagged_co_mod.F:SUMMONOCO', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SUMMONOCO = 0.0_fp 
 
-      ! Allocate SUMISOPCO -- array for CO from isoprene
-      ALLOCATE( SUMCH3OHCO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMCH3OHCO' )         
+      ! Allocate SUMCH3OH -- array for CO from CH3OH
+      ALLOCATE( SUMCH3OHCO( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'tagged_co_mod.F:SUMCH3OHCO', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SUMCH3OHCO = 0.0_fp 
 
       ! Allocate SUMACETCO -- array for CO from isoprene
-      ALLOCATE( SUMACETCO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMACETCO' )         
+      ALLOCATE( SUMACETCO( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'tagged_co_mod.F:SUMACETCO', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SUMACETCO = 0.0_fp 
 
       ! Allocate TCOSZ -- array for sum of COS(SZA)
-      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )         
-      TCOSZ = 0d0 
+      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'tagged_co_mod.F:TCOSZ', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      TCOSZ = 0.0_fp
+
+      ! Test if netCDF diagnostics have been activated
+      Archive_Loss = ASSOCIATED( State_Diag%Loss )
 
       END SUBROUTINE INIT_TAGGED_CO
 !EOC

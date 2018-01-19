@@ -846,6 +846,7 @@
 !  28 Oct 2015 - E. Lundgren - Set previous SPHU to current SPHU before update
 !  04 May 2016 - E. Lundgren - Now also interpolate dry pressure calculated
 !                              in SET_DRY_SURFACE_PRESSURE using GMAO wet P
+!  07 Nov 2017 - R. Yantosca - Dynamic tropopause is now always assumed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -915,12 +916,9 @@
             ! so that we don't do chemistry at an abnormally high
             ! altitude.  Set TROPP in the polar regions to 200 hPa.
             ! (jal, phs, bmy, 9/18/07)
-            IF ( Input_Opt%LVARTROP ) THEN
-
-               IF ( YSOUTH >= 60.0_fp .OR. YNORTH <= -60.0_fp ) THEN
-                  State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
-     &                                        200e+0_fp )
-               ENDIF
+            IF ( YSOUTH >= 60.0_fp .OR. YNORTH <= -60.0_fp ) THEN
+               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
+     &                                     200e+0_fp )
             ENDIF
          ENDIF
 

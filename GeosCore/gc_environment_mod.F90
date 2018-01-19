@@ -134,14 +134,31 @@ CONTAINS
 !  17 Jun 2016 - R. Yantosca - Move call to INIT_GET_NDEP to GIGC_INIT_EXTRA
 !                              which is called after species database init
 !  30 Jun 2016 - M. Sulprizio- Remove call to INIT_COMODE_LOOP; it's obsolete
+!  20 Dec 2017 - R. Yantosca - Return when encountering errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    
+    !=======================================================================
+    ! GC_Allocate_All begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = &
+       ' -> at GC_Allocate_All  (in module GeosCore/gc_environment_mod.F90)'
+
     ! Initialize fields of the Input Options object
     CALL Set_Input_Opt( am_I_Root, Input_Opt, RC )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       WRITE( 6, '(a)' ) 'ERROR initializing Input_Opt'
+       ErrMsg = 'Error encountered within call to "Set_Input_Opt"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -172,6 +189,13 @@ CONTAINS
                         value_LLSTRAT  = 59,              &
                         RC             = RC              )
 
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_State_Diag"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
     ! Exit upon error
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -187,22 +211,56 @@ CONTAINS
 
     ! Set dimensions in CMN_SIZE
     CALL Init_CMN_SIZE( am_I_Root, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_CMN_SIZE"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
 #endif
 
     ! Set dimensions in CMN_DEP_mod.F and allocate arrays
     CALL Init_CMN_DIAG( am_I_Root, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
 
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_CMN_DIAG"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Initialize CMN_O3_mod.F
     CALL Init_CMN_O3( am_I_Root, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
 
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_CMN_O3"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+
+    ! Initialize vdiff_pre_mod.F90
     CALL Init_VDIFF_PRE( am_I_Root, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
 
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_Vdiff_Pre"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Initialize CMN_FJX_mod.F
     CALL Init_CMN_FJX( am_I_Root, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_CMN_FJX"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
           
   END SUBROUTINE GC_Allocate_All
 !EOC
@@ -220,12 +278,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Init_All( am_I_Root,  Input_Opt, State_Chm,  &
-                          State_Diag, State_Met, RC         )
+  SUBROUTINE GC_Init_All( am_I_Root,  Diag_List, Input_Opt, State_Chm,       &
+                          State_Diag, State_Met, RC                         )
 !
 ! !USES:
 !
-    USE CMN_Size_Mod, ONLY : IIPAR, JJPAR, LLPAR, NDUST, NAER
+    USE Diagnostics_Mod
     USE ErrCode_Mod
     USE Input_Opt_Mod
     USE State_Chm_Mod
@@ -235,6 +293,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(DgnList),  INTENT(IN)    :: Diag_List   ! Diagnostics list object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -275,6 +334,9 @@ CONTAINS
 !  30 Jun 2016 - M. Sulprizio- Remove nSpecies from call to Init_GIGC_State_Chm
 !  26 Jun 2017 - R. Yantosca - Now call GC_ERROR to give better error feedback
 !  05 Jul 2017 - R. Yantosca - Now initialize the Diagnostics State object
+!  26 Sep 2017 - E. Lundgren - Pass diagnostics list object as argument
+!  16 Nov 2017 - E. Lundgren - Do not pass IIPAR, JJPAR, LLPAR, NDUST, AER
+!                              since available from CMN_Size_Mod in routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -287,19 +349,16 @@ CONTAINS
     ! Initialize
     !=======================================================================
     ErrMsg  = ''
-    ThisLoc = ' -> at Init_All (in GeosCore/gc_environment_mod.F90)'
+    ThisLoc = ' -> at GC_Init_All (in GeosCore/gc_environment_mod.F90)'
     
     !=======================================================================
     ! Initialize the Meteorology State object
     !=======================================================================
     CALL Init_State_Met( am_I_Root   = am_I_Root,   & ! Root CPU (T/F?)
-                         IM          = IIPAR,       & ! # of longitudes
-                         JM          = JJPAR,       & ! # of latitudes
-                         LM          = LLPAR,       & ! # of levels
                          State_Met   = State_Met,   & ! Meteorology State
                          RC          = RC          )  ! Success or failure?
 
-    ! Trap errors
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered within call to "Init_State_Met"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -310,15 +369,11 @@ CONTAINS
     ! Initialize the Chemistry State object
     !=======================================================================
     CALL Init_State_Chm(  am_I_Root  = am_I_Root,   &  ! Root CPU (Y/N)?
-                          IM         = IIPAR,       &  ! # of lons
-                          JM         = JJPAR,       &  ! # of lats
-                          LM         = LLPAR,       &  ! # of levels
-                          nAerosol   = NDUST+NAER,  &  ! # of aerosol types
                           Input_Opt  = Input_Opt,   &  ! Input Options
                           State_Chm  = State_Chm,   &  ! Chemistry State
                           RC         = RC          )   ! Success or failure
     
-    ! Trap errors
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered within call to "Init_State_Chm"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -329,14 +384,13 @@ CONTAINS
     ! Initialize the Diagnostics State object
     !=======================================================================
     CALL Init_State_Diag( am_I_Root  = am_I_Root,   &  ! Root CPU (Y/N)?
-                          IM         = IIPAR,       &  ! # of lons
-                          JM         = JJPAR,       &  ! # of lats
-                          LM         = LLPAR,       &  ! # of levels
                           Input_Opt  = Input_Opt,   &  ! Input Options
+                          State_Chm  = State_Chm,   &  ! Chemistry State
+                          Diag_List  = Diag_List,   &  ! Diagnostic list obj 
                           State_Diag = State_Diag,  &  ! Chemistry State
                           RC         = RC          )   ! Success or failure
 
-    ! Trap errors
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered within call to "Init_State_Diag"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

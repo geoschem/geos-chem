@@ -312,6 +312,7 @@ CONTAINS
 !                               UpdateAlarm value so as to update collections
 !                               at the same times w/r/t the "legacy" diags
 !  18 Sep 2017 - R. Yantosca - Now accept heartbeat dt in seconds
+!  02 Jan 2018 - R. Yantosca - Fix construction of default file template
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -523,20 +524,46 @@ CONTAINS
     !----------------------------------
     ! File Template
     !----------------------------------
-    IF ( LEN_TRIM( FileTemplate) > 0 ) THEN
-       TempStr                = FileTemplate
-       Container%FileTemplate = TempStr
+    IF ( LEN_TRIM( FileTemplate ) > 0 ) THEN
+
+       ! If the FILETEMPLATE argument is passed (and not the undefined
+       ! string) then use it.  Otherwise, construct a default template.
+       IF ( TRIM( FileTemplate ) /= UNDEFINED_STR ) THEN
+          TempStr                = FileTemplate
+          Container%FileTemplate = TempStr
+       ELSE
+          Container%FileTemplate = '%y4%m2%d2.nc4'
+       ENDIF
+
     ELSE
-       Container%FileTemplate = ''
+
+       ! If the FILETEMPLATE argument isn't passed, 
+       ! then construct a default template 
+       Container%FileTemplate = '%y4%m2%d2.nc4'
+
     ENDIF
 
     !----------------------------------
     ! File Name
     !----------------------------------
     IF ( LEN_TRIM( FileName ) > 0 ) THEN
-       TempStr            = FileName
-       Container%FileName = TempStr
+
+       ! If the FILENAME argument is passed, then use it,
+       ! otherwise, construct a default file name
+       IF ( TRIM( FileName ) /= UNDEFINED_STR ) THEN
+          TempStr                = FileName
+          Container%FileName     = TempStr
+          Container%FilePrefix   = UNDEFINED_STR
+          Container%FileTemplate = UNDEFINED_STR
+       ELSE
+          Container%FileName = TRIM( Container%FilePrefix   ) // &
+                               TRIM( Container%FileTemplate )
+       ENDIF
+
     ELSE
+       
+       ! If the FILENAME argument isn't passed, 
+       ! construct a default file name
        Container%FileName = TRIM( Container%FilePrefix   ) // &
                             TRIM( Container%FileTemplate )
     ENDIF
@@ -848,6 +875,7 @@ CONTAINS
        WRITE( 6, 130 ) 'yDimId           : ', Container%yDimId 
        WRITE( 6, 130 ) 'zDimId           : ', Container%zDimId 
        WRITE( 6, 130 ) 'tDimId           : ', Container%tDimId 
+       WRITE( 6, 120 ) 'FileName         : ', TRIM( Container%FileName     )
        WRITE( 6, 120 ) 'FilePrefix       : ', TRIM( Container%FilePrefix   )
        WRITE( 6, 120 ) 'FileTemplate     : ', TRIM( Container%FileTemplate )
        WRITE( 6, 120 ) 'Filename         : ', TRIM( Container%FileName     )
@@ -1017,6 +1045,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  06 Sep 2017 - R. Yantosca - Initial version
 !  18 Sep 2017 - R. Yantosca - Now return update interval in seconds
+!  26 Oct 2017 - R. Yantosca - Now allow update interval to be greater
+!                              than one month (similar to write, close)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1024,8 +1054,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: Year,     Month,     Day
-    INTEGER            :: Hour,     Minute,    Second
+    INTEGER            :: Year,   Month,   Day
+    INTEGER            :: Hour,   Minute,  Second
+    INTEGER            :: nDays
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -1041,16 +1072,58 @@ CONTAINS
     !=======================================================================
     ! Compute the interval for the "UpdateAlarm" 
     !=======================================================================
+    IF ( Container%FileCloseYmd >= 010000 ) THEN
 
-    ! Split the update interval date and time into constituent values
-    CALL Ymd_Extract( Container%UpdateYmd, Year, Month,  Day    )
-    CALL Ymd_Extract( Container%UpdateHms, Hour, Minute, Second )
+       !--------------------------------------------------------------------
+       ! File close interval is one or more years
+       !--------------------------------------------------------------------
 
-    ! "Update" interval in minutes
-    Container%UpdateIvalSec = ( DBLE( Day    ) * SECONDS_PER_DAY    ) +      &
-                              ( DBLE( Hour   ) * SECONDS_PER_HOUR   ) +      &
-                              ( DBLE( Minute ) * SECONDS_PER_MINUTE ) +      &
-                              ( DBLE( Second )                      )
+       ! Split the current date & time into its constituent values
+       CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
+    
+       ! Set the file write interval, accounting for leap year
+       IF ( Its_A_LeapYear( Year ) ) THEN
+          Container%UpdateIvalSec = 366.0_f8 * SECONDS_PER_DAY
+       ELSE
+          Container%UpdateIvalSec = 365.0_f8 * SECONDS_PER_DAY
+       ENDIF
+       
+    ELSE IF ( Container%FileCloseYmd >= 000100 ) THEN
+       
+       !--------------------------------------------------------------------
+       ! File close interval is one or more months but less than a year
+       !--------------------------------------------------------------------
+
+       ! Split the current date & time into its constituent values
+       CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
+
+       ! Number of days in the month
+       nDays = DaysPerMonth(Month)
+
+       ! Adjust for leap year
+       IF ( Its_A_LeapYear( Year ) .AND. Month == 2 ) THEN
+          nDays = nDays + 1
+       ENDIF
+
+       ! Convert to minutes and set this as the file write interval
+       Container%UpdateIvalSec = DBLE( nDays ) * SECONDS_PER_DAY
+      
+    ELSE
+
+       !--------------------------------------------------------------------
+       ! Update interval is less than a month
+       !--------------------------------------------------------------------
+
+       ! Split the update interval date and time into constituent values
+       CALL Ymd_Extract( Container%UpdateYmd, Year, Month,  Day    )
+       CALL Ymd_Extract( Container%UpdateHms, Hour, Minute, Second )
+
+       ! "Update" interval in seconds
+       Container%UpdateIvalSec = ( DBLE( Day    ) * SECONDS_PER_DAY    ) +   &
+                                 ( DBLE( Hour   ) * SECONDS_PER_HOUR   ) +   &
+                                 ( DBLE( Minute ) * SECONDS_PER_MINUTE ) +   &
+                                 ( DBLE( Second )                      )
+    ENDIF
 
   END SUBROUTINE HistContainer_UpdateIvalSet
 !EOC
@@ -1094,6 +1167,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  06 Sep 2017 - R. Yantosca - Initial version
 !  18 Sep 2017 - R. Yantosca - Now return file close interval in seconds
+!  26 Oct 2017 - R. Yantosca - Add modifications for a little more efficiency
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1101,9 +1175,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: Year,     Month,     Day
-    INTEGER            :: Hour,     Minute,    Second
-    INTEGER            :: CurrYear, CurrMonth, CurrDay
+    INTEGER            :: Year,   Month,   Day
+    INTEGER            :: Hour,   Minute,  Second
     INTEGER            :: nDays
 
     ! Strings
@@ -1120,11 +1193,6 @@ CONTAINS
     !=======================================================================
     ! Compute the interval for the "FileCloseAlarm"
     !=======================================================================
-
-    ! Split the file close interval date/time into its constituent values
-    CALL Ymd_Extract( Container%FileCloseYmd, Year, Month,  Day    )
-    CALL Ymd_Extract( Container%FileCloseHms, Hour, Minute, Second )
-
     IF ( Container%FileCloseYmd >= 010000 ) THEN
 
        !--------------------------------------------------------------------
@@ -1132,10 +1200,10 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! Split the current date & time into its constituent values
-       CALL Ymd_Extract( Container%CurrentYmd, CurrYear, CurrMonth, CurrDay )
+       CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
     
        ! Set the file write interval, accounting for leap year
-       IF ( Its_A_LeapYear( CurrYear ) ) THEN
+       IF ( Its_A_LeapYear( Year ) ) THEN
           Container%FileCloseIvalSec = 366.0_f8 * SECONDS_PER_DAY
        ELSE
           Container%FileCloseIvalSec = 365.0_f8 * SECONDS_PER_DAY
@@ -1148,13 +1216,13 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! Split the current date & time into its constituent values
-       CALL Ymd_Extract( Container%CurrentYmd, CurrYear, CurrMonth, CurrDay )
+       CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
 
        ! Number of days in the month
-       nDays = DaysPerMonth(CurrMonth)
+       nDays = DaysPerMonth(Month)
 
        ! Adjust for leap year
-       IF ( Its_A_LeapYear( CurrYear ) .AND. CurrMonth == 2 ) THEN
+       IF ( Its_A_LeapYear( Year ) .AND. Month == 2 ) THEN
           nDays = nDays + 1
        ENDIF
 
@@ -1167,7 +1235,11 @@ CONTAINS
        ! File close interval is less than a month
        !--------------------------------------------------------------------
 
-       ! "FileWrite" interval in minutes
+       ! Split the file close interval date/time into its constituent values
+       CALL Ymd_Extract( Container%FileCloseYmd, Year, Month,  Day    )
+       CALL Ymd_Extract( Container%FileCloseHms, Hour, Minute, Second )
+
+       ! "FileWrite" interval in seconds
        Container%FileCloseIvalSec = ( DBLE(Day   ) * SECONDS_PER_DAY    ) +  &
                                     ( DBLE(Hour  ) * SECONDS_PER_HOUR   ) +  &
                                     ( DBLE(Minute) * SECONDS_PER_MINUTE ) +  &
@@ -1216,6 +1288,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  18 Sep 2017 - R. Yantosca - Now return file write interval in seconds
+!  26 Oct 2017 - R. Yantosca - Add modifications for a little more efficiency
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1223,9 +1296,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: Year,     Month,     Day
-    INTEGER            :: Hour,     Minute,    Second
-    INTEGER            :: CurrYear, CurrMonth, CurrDay
+    INTEGER            :: Year,   Month,   Day
+    INTEGER            :: Hour,   Minute,  Second
     INTEGER            :: nDays
 
     ! Strings
@@ -1242,11 +1314,6 @@ CONTAINS
     !=======================================================================
     ! Compute the interval for the "FileWriteAlarm"
     !=======================================================================
-
-    ! Split the file write interval date/time into its constituent values
-    CALL Ymd_Extract( Container%FileWriteYmd, Year, Month,  Day    )
-    CALL Ymd_Extract( Container%FileWriteHms, Hour, Minute, Second )
-
     IF ( Container%FileWriteYmd >= 010000 ) THEN
 
        !--------------------------------------------------------------------
@@ -1254,10 +1321,10 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! Split the current date & time into its constituent values
-       CALL Ymd_Extract( Container%CurrentYmd, CurrYear, CurrMonth, CurrDay )
+       CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
     
        ! Set the file write interval, accounting for leap year
-       IF ( Its_A_LeapYear( CurrYear ) ) THEN
+       IF ( Its_A_LeapYear( Year ) ) THEN
           Container%FileWriteIvalSec = 366.0_f8 * SECONDS_PER_DAY
        ELSE
           Container%FileWriteIvalSec = 365.0_f8 * SECONDS_PER_DAY
@@ -1273,13 +1340,13 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! Split the current date & time into its constituent values
-       CALL Ymd_Extract( Container%CurrentYmd, CurrYear, CurrMonth, CurrDay )
+       CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
 
        ! Number of days in the month
-       nDays = DaysPerMonth(CurrMonth)
+       nDays = DaysPerMonth(Month)
 
        ! Adjust for leap year
-       IF ( Its_A_LeapYear( CurrYear ) .AND. CurrMonth == 2 ) THEN
+       IF ( Its_A_LeapYear( Year ) .AND. Month == 2 ) THEN
           nDays = nDays + 1
        ENDIF
 
@@ -1292,7 +1359,11 @@ CONTAINS
        ! File write interval is less than a month
        !--------------------------------------------------------------------
 
-       ! "FileWrite" interval in minutes
+       ! Split the file write interval date/time into its constituent values
+       CALL Ymd_Extract( Container%FileWriteYmd, Year, Month,  Day    )
+       CALL Ymd_Extract( Container%FileWriteHms, Hour, Minute, Second )
+
+       ! "FileWrite" interval in seconds
        Container%FileWriteIvalSec = ( DBLE(Day   ) * SECONDS_PER_DAY    ) +  &
                                     ( DBLE(Hour  ) * SECONDS_PER_HOUR   ) +  &
                                     ( DBLE(Minute) * SECONDS_PER_MINUTE ) +  &

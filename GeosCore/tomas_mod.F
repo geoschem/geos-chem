@@ -331,37 +331,58 @@
       CONTAINS
 
 !------------------------------------------------------------------------------
-
-      SUBROUTINE DO_TOMAS( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine DO_TOMAS is the driver subroutine that calls the appropriate
-!  aerosol microphysics and dry deposition subroutines. (win, 7/23/07)
+! !IROUTINE: do_tomas
 !
-!  NOTES: 
+! !DESCRIPTION: Subroutine DO\_TOMAS is the driver subroutine that calls the
+!  appropriate aerosol microphysics and dry deposition subroutines. (win,
+!  7/23/07)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DO_TOMAS( am_I_Root, Input_Opt,  State_Met,
+     &                     State_Chm, State_Diag, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Met_Mod,      ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY:
 !  26 Apr 2013 - R. Yantosca - Remove LTOMAS flag, that is now obsolete.
 !  31 May 2013 - R. Yantosca - Now pass State_Chm object via the arg list
 !  31 May 2013 - R. Yantosca - Remove LDRYD; replace w/ Input_Opt%LDRYD
 !  31 May 2013 - R. Yantosca - Pass State_Chm to AEROPHYS, AERO_DRYDEP
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE ErrCode_Mod
-      USE ERROR_MOD
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-
-      ! Arguments
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-
+!  04 Jan 2018 - M. Sulprizio- Now accept State_Diag as an argument; Add ProTeX
+!                              headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -398,8 +419,8 @@
 
       ! Do dry deposition
       IF ( Input_Opt%LDRYD ) THEN
-         CALL AERO_DRYDEP
-     &        ( am_I_Root, Input_Opt, State_Met, State_Chm,RC )
+         CALL AERO_DRYDEP( am_I_Root, Input_Opt,  State_Met,
+     &                     State_Chm, State_Diag, RC )
       ENDIF
 
 ! not in kg
@@ -412,7 +433,7 @@
      &              'Before exiting DO_TOMAS', RC )
 
       END SUBROUTINE DO_TOMAS
-
+!EOC
 !------------------------------------------------------------------------------
 
       SUBROUTINE AEROPHYS( am_I_Root, Input_Opt, 
@@ -7008,6 +7029,7 @@
 !                              (IIPAR,JJPAR,IBINS)
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !******************************************************************************
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -7016,7 +7038,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
       IMPLICIT NONE
 
@@ -7035,8 +7057,8 @@
       INTEGER             :: N, NA, nAdvect
       REAL(fp)            :: MSO4, MNACL, MH2O
       REAL(fp)            :: MECIL, MECOB, MOCIL, MOCOB, MDUST
-      LOGICAL             :: UNITCONV = .FALSE.
       CHARACTER(LEN=255)  :: MSG, LOC
+      CHARACTER(LEN=63)   :: OrigUnit
 
       ! Arrays
       REAL(fp)            :: AMASS(ICOMP)
@@ -7051,28 +7073,16 @@
       ! Assume success
       RC                =  GC_SUCCESS
 
-      ! If species units are [kg/kg dry], convert to [kg] for this routine.
-      ! Otherwise, if species units are not [kg] then throw an error to the 
-      ! calling routine (ewl, 8/12/15)
+      ! Convert species units to [kg] for this routine.
       ! NOTE: For complete area-independence, species units will need to be 
       !       mixing ratio or mass per unit area in TOMAS
-      IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg dry' ) THEN
-         CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
-     &                                  State_Chm, RC ) 
-         UNITCONV = .TRUE.
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
-     &                    'Routine AERO_DIADEN in tomas_mod.F')
-            RETURN
-         ENDIF 
-      ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-         CALL GC_Error('Incorrect species units for TOMAS: ' // 
-     &                 TRIM( State_Chm%Spc_Units ), RC, 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                 'Routine AERO_DIADEN in tomas_mod.F')
          RETURN
-      ELSE
-         UNITCONV = .FALSE.
-      ENDIF
+      ENDIF 
 
       ! Check that species units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -7152,17 +7162,14 @@
          CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
-      ! If units were originally [kg/kg dry], convert [kg] back to mixing 
-      ! ratio (ewl, 8/12/15)
-      IF ( UNITCONV ) THEN
-         CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, 
-     &                                  State_Chm, RC )  
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
-     &                    'Routine AERO_DIADEN in tomas_mod.F')
-            RETURN
-         ENDIF 
-      ENDIF
+      ! Convert species units back to original unit 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'Routine AERO_DIADEN in tomas_mod.F')
+         RETURN
+      ENDIF 
       
       ! Free pointer
       Spc => NULL()

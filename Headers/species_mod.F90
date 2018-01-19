@@ -22,7 +22,6 @@ MODULE Species_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Str2Hash
   PUBLIC :: SpcData_Init
   PUBLIC :: SpcData_Cleanup
   PUBLIC :: Spc_Create
@@ -35,17 +34,20 @@ MODULE Species_Mod
   !=========================================================================
   ! Counters for the species indices
   !=========================================================================
-  INTEGER, PRIVATE :: AdvectCount = 0       ! Counter of advected species
-  INTEGER, PRIVATE :: DryDepCount = 0       ! Counter of dry-deposited species
-  INTEGER, PRIVATE :: KppSpcCount = 0       ! Counter of species in KPP matrix
-  INTEGER, PRIVATE :: WetDepCount = 0       ! Counter of wet-deposited species
-  INTEGER, PRIVATE :: ActiveCount = 0       ! Counter of active chem species
-  INTEGER, PRIVATE :: FixedCount  = 0       ! Counter of fixed chem species
-  INTEGER, PRIVATE :: PhotolCount = 0       ! Counter of photolysis species
-  INTEGER, PRIVATE :: Hg0Count    = 0       ! Number  of Hg0 tracers
-  INTEGER, PRIVATE :: Hg2Count    = 0       ! Number  of Hg2 tracers
-  INTEGER, PRIVATE :: HgPCount    = 0       ! Number  of HgP tracers
-  
+  INTEGER, PRIVATE :: AdvectCount  = 0  ! Counter of advected species
+  INTEGER, PRIVATE :: AeroCount    = 0  ! Counter of aerosol species
+  INTEGER, PRIVATE :: DryDepCount  = 0  ! Counter of dry-deposited species
+  INTEGER, PRIVATE :: GasSpcCount  = 0  ! Counter of gas-phase species
+  INTEGER, PRIVATE :: HygGrthCount = 0  ! Counter of hygroscopic growth spc
+  INTEGER, PRIVATE :: KppVarCount  = 0  ! Counter of variable KPP species
+  INTEGER, PRIVATE :: KppFixCount  = 0  ! Counter of fixed KPP species
+  INTEGER, PRIVATE :: KppSpcCount  = 0  ! Counter of species in KPP matrix
+  INTEGER, PRIVATE :: PhotolCount  = 0  ! Counter of photolysis species
+  INTEGER, PRIVATE :: WetDepCount  = 0  ! Counter of wet-deposited species
+  INTEGER, PRIVATE :: Hg0Count     = 0  ! Number  of Hg0 tracers
+  INTEGER, PRIVATE :: Hg2Count     = 0  ! Number  of Hg2 tracers
+  INTEGER, PRIVATE :: HgPCount     = 0  ! Number  of HgP tracers
+
   !=========================================================================
   ! Type for the Species Database object (vector of type Species)
   !=========================================================================
@@ -62,12 +64,15 @@ MODULE Species_Mod
      ! Indices
      INTEGER            :: ModelID          ! Model species ID
      INTEGER            :: AdvectID         ! Advection index
+     INTEGER            :: AeroID           ! Aerosol species index
      INTEGER            :: DryDepID         ! Dry deposition index
-     INTEGER            :: WetDepID         ! Wet deposition index
-     INTEGER            :: KppSpcID         ! KPP species index
+     INTEGER            :: GasSpcID         ! Gas-phase species index
+     INTEGER            :: HygGrthID        ! Hygroscopic growth species index
      INTEGER            :: KppVarId         ! KPP variable species index
      INTEGER            :: KppFixId         ! KPP fixed spcecies index
+     INTEGER            :: KppSpcID         ! KPP species index
      INTEGER            :: PhotolID         ! Photolysis index
+     INTEGER            :: WetDepID         ! Wet deposition index
 
      ! Names
      CHARACTER(LEN=31)  :: Name             ! Short name
@@ -76,14 +81,16 @@ MODULE Species_Mod
      INTEGER            :: NameHash         ! Integer hash for short name
 
      ! Logical switches
-     LOGICAL            :: Is_Gas           ! Is it a gas?  If not, aerosol.
      LOGICAL            :: Is_Advected      ! Is it advected?
+     LOGICAL            :: Is_Aero          ! Is it an aerosol species?
      LOGICAL            :: Is_DryDep        ! Is it dry-deposited?
-     LOGICAL            :: Is_WetDep        ! Is it wet-deposited?
-     LOGICAL            :: Is_Kpp           ! Is it in the KPP mechanism?
+     LOGICAL            :: Is_Gas           ! Is it a gas?  If not, aerosol.
+     LOGICAL            :: Is_HygroGrowth   ! Does it have hygroscropic growth?
      LOGICAL            :: Is_ActiveChem    ! Is it an active chemical species?
      LOGICAL            :: Is_FixedChem     ! Is it a fixed chemical species?
+     LOGICAL            :: Is_Kpp           ! Is it in the KPP mechanism?
      LOGICAL            :: Is_Photolysis    ! Is it an photolysis species?
+     LOGICAL            :: Is_WetDep        ! Is it wet-deposited?
      LOGICAL            :: Is_InRestart     ! Is it in the restart file?
 
      ! Molecular weights
@@ -209,77 +216,14 @@ MODULE Species_Mod
 !  04 Aug 2016 - R. Yantosca - Add parameter MISSING_MW = -1.0
 !  10 Aug 2016 - E. Lundgren - Add BackgroundVV field for default background 
 !                              and missing background concentration param [v/v]
+!  31 Oct 2017 - R. Yantosca - Move Str2Hash, To_UpperCase to species_mod.F90
+!  16 Nov 2017 - E. Lundgren - Add Is_HygroGrowth for cloud diagnostics
+!  27 Nov 2017 - E. Lundgren - Complete implementation for gas, aerosol, and 
+!                              photolysis species categories (id and count)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Str2Hash
-!
-! !DESCRIPTION: Returns a unique integer hash for a given character string.
-!  This allows us to implement a fast name lookup algorithm.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Str2Hash( Str ) RESULT( Hash )
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=14), INTENT(IN) :: Str    ! String (14 chars long)
-!
-! !RETURN VALUE:
-!
-    INTEGER                       :: Hash   ! Hash value from string
-!
-! !REMARKS:
-!  (1) Algorithm taken from this web page:
-!       https://fortrandev.wordpress.com/2013/07/06/fortran-hashing-algorithm/
-!
-!  (2) For now, we only use the first 14 characers of the character string
-!       to compute the hash value.  Most GEOS-Chem species names only use
-!       at most 14 unique characters.  We can change this later if need be.
-!
-! !REVISION HISTORY:
-!  04 May 2016 - R. Yantosca - Initial version
-!  05 May 2016 - R. Yantosca - Now make the input string 14 chars long
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Initialize
-    Hash = 5381
-
-    !-----------------------------------------------------------------------
-    ! Construct the hash from the first 14 characters of the string,
-    ! which is about the longest species name for GEOS-Chem.
-    !
-    ! NOTE: It's MUCH faster to explicitly write these statements
-    ! instead of writing them using a DO loop (bmy, 5/4/16)
-    !-----------------------------------------------------------------------
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 1: 1) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 2: 2) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 3: 3) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 4: 4) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 5: 5) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 6: 6) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 7: 7) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 8: 8) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str( 9: 9) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(10:10) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(11:11) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(12:12) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(13:13) )
-    Hash = ( ISHFT( Hash, 5 ) + Hash ) + ICHAR( Str(14:14) )
-
-  END FUNCTION Str2Hash
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -360,7 +304,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHARPAK_MOD, ONLY : TRANUC
+    USE CharPak_Mod, ONLY : Str2Hash14, To_UpperCase
 !
 ! !INPUT PARAMETERS:
 !
@@ -384,7 +328,9 @@ CONTAINS
 !  04 May 2016 - R. Yantosca - Renamed to Spc_GetIndx
 !  05 May 2016 - R. Yantosca - The NAME argument is now of variable length 
 !  15 Jun 2016 - M. Sulprizio- Make species name uppercase before computing hash
-!EOP
+!  01 Nov 2017 - R. Yantosca - Now use Str2Hash14 from charpak_mod.F90, which
+!                              computes a hash from an input string of 14 chars
+!EOP!EOP
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -401,11 +347,10 @@ CONTAINS
     Indx   = -1
 
     ! Make species name uppercase for hash algorithm
-    Name14 = Name
-    CALL TRANUC( Name14 )
+    Name14 = To_UpperCase( Name )
 
     ! Compute the hash corresponding to the given species name
-    Hash   = Str2Hash( Name14 )
+    Hash   = Str2Hash14( Name14 )
 
     ! Loop over all entries in the Species Database object
     DO N = 1, SIZE( SpecDB )
@@ -492,27 +437,27 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_Create( am_I_Root,     ThisSpc,       ModelID,        &
-                         DryDepID,      Name,          FullName,       &
-                         Formula,                                      &
-                         MW_g,          EmMW_g,        MolecRatio,     &
-                         BackgroundVV,  Henry_K0,      Henry_CR,       &
-                         Henry_PKA,     Density,       Radius,         &
-                         DD_AeroDryDep, DD_DustDryDep, DD_DvzAerSnow,  &
-                         DD_DvzMinVal,  DD_F0,         DD_KOA,         &
-                         DD_HStar_Old,  MP_SizeResAer, MP_SizeResNum,  &
-                         WD_RetFactor,  WD_LiqAndGas,  WD_ConvFacI2G,  &
-                         WD_AerScavEff, WD_KcScaleFac, WD_RainoutEff,  &
-                         WD_CoarseAer,  Is_Advected,   Is_Gas,         &
-                         Is_Drydep,     Is_Wetdep,     Is_Photolysis,  &
-                         Is_InRestart,  Is_Hg0,        Is_Hg2,         &
-                         Is_HgP,        KppSpcId,      KppVarId,       &
-                         KppFixId,      RC )
+  SUBROUTINE Spc_Create( am_I_Root,      ThisSpc,       ModelID,        &
+                         DryDepID,       Name,          FullName,       &
+                         Formula,                                       &
+                         MW_g,           EmMW_g,        MolecRatio,     &
+                         BackgroundVV,   Henry_K0,      Henry_CR,       &
+                         Henry_PKA,      Density,       Radius,         &
+                         DD_AeroDryDep,  DD_DustDryDep, DD_DvzAerSnow,  &
+                         DD_DvzMinVal,   DD_F0,         DD_KOA,         &
+                         DD_HStar_Old,   MP_SizeResAer, MP_SizeResNum,  &
+                         WD_RetFactor,   WD_LiqAndGas,  WD_ConvFacI2G,  &
+                         WD_AerScavEff,  WD_KcScaleFac, WD_RainoutEff,  &
+                         WD_CoarseAer,   Is_Advected,                   &
+                         Is_Drydep,      Is_Gas,        Is_HygroGrowth, &
+                         Is_Photolysis,  Is_Wetdep,     Is_InRestart,   &
+                         Is_Hg0,         Is_Hg2,        Is_HgP,         &
+                         KppSpcId,       KppVarId,      KppFixId,      RC )
 !
 ! !USES:
 !
-    USE CHARPAK_MOD,        ONLY : TRANUC             ! String manipulation
-    USE PhysConstants,      ONLY : AIRMW, AVO         ! Physical constants
+    USE CharPak_Mod,        ONLY : Str2Hash14, To_UpperCase
+    USE PhysConstants,      ONLY : AIRMW,      AVO         
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -560,10 +505,11 @@ CONTAINS
     REAL(fp),         OPTIONAL    :: WD_RainoutEff(3) ! Rainout efficiency
     LOGICAL,          OPTIONAL    :: WD_CoarseAer     ! Coarse aerosol?
     LOGICAL,          OPTIONAL    :: Is_Advected      ! Is it advected?
-    LOGICAL,          OPTIONAL    :: Is_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL,          OPTIONAL    :: Is_Drydep        ! Is it dry deposited?
-    LOGICAL,          OPTIONAL    :: Is_Wetdep        ! Is it wet deposited?
+    LOGICAL,          OPTIONAL    :: Is_Gas           ! Gas (T) or aerosol (F)?
+    LOGICAL,          OPTIONAL    :: Is_HygroGrowth   ! Is hygroscopic growth?
     LOGICAL,          OPTIONAL    :: Is_Photolysis    ! Is it photolysis spc?
+    LOGICAL,          OPTIONAL    :: Is_Wetdep        ! Is it wet deposited?
     LOGICAL,          OPTIONAL    :: Is_InRestart     ! Is it in restart file?
     LOGICAL,          OPTIONAL    :: Is_Hg0           ! Denotes Hg0 species
     LOGICAL,          OPTIONAL    :: Is_Hg2           ! Denotes Hg2 species
@@ -615,6 +561,9 @@ CONTAINS
 !  04 Aug 2016 - R. Yantosca - Now set missing molecular weights to -1, 
 !                              which seems to avoid numerical roundoff
 !  10 Aug 2016 - E. Lundgren - Add default background concentration argument
+!  01 Nov 2017 - R. Yantosca - Now use Str2Hash14 from charpak_mod.F90, which
+!                              computes a hash from an input string of 14 chars
+!  27 Nov 2017 - E. Lundgren - Add additional species categories
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -649,9 +598,8 @@ CONTAINS
        ThisSpc%Name     = Name
 
        ! Make species name uppercase for hash algorithm
-       Name14 = Name
-       CALL TRANUC( Name14 )
-       ThisSpc%NameHash = Str2Hash( Name14 )
+       Name14           = To_UpperCase( Name )
+       ThisSpc%NameHash = Str2Hash14( Name14 )
     ELSE
        ThisSpc%Name     = ''
        ThisSpc%NameHash = MISSING_INT
@@ -678,8 +626,6 @@ CONTAINS
     ELSE
        ThisSpc%Formula = ''
     ENDIF
-
-
 
     !---------------------------------------------------------------------
     ! Molecular weight [g]
@@ -882,15 +828,6 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
-    ! Is it a gas?  (If FALSE, then it's an aerosol)
-    !---------------------------------------------------------------------
-    IF ( PRESENT( Is_Gas ) ) THEN
-       ThisSpc%Is_Gas = Is_Gas
-    ELSE
-       ThisSpc%Is_Gas = .FALSE.
-    ENDIF
-
-    !---------------------------------------------------------------------
     ! Is it advected?
     !---------------------------------------------------------------------
     IF ( PRESENT( Is_Advected ) ) THEN
@@ -942,6 +879,77 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
+    ! Is it a gas?  (If FALSE, then it's an aerosol)
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_Gas ) ) THEN
+       ThisSpc%Is_Gas     = Is_Gas
+
+       ! Update count & index of gas species
+       IF ( Is_Gas ) THEN
+          GasSpcCount      = GasSpcCount + 1
+          ThisSpc%GasSpcID = GasSpcCount
+       ELSE
+          ThisSpc%Is_Gas   = .FALSE.
+          ThisSpc%GasSpcID = MISSING_INT
+       ENDIF
+    ELSE
+       ThisSpc%Is_Gas = .FALSE.
+       ThisSpc%GasSpcID = MISSING_INT
+    ENDIF
+
+    !---------------------------------------------------------------------
+    ! Is it an aerosol? (TRUE if not a gas)
+    !---------------------------------------------------------------------
+    ThisSpc%Is_Aero = .NOT. ThisSpc%Is_Gas
+    IF ( ThisSpc%Is_Aero ) THEN
+       ! Update count & index of aerosol species
+       AeroCount      = AeroCount + 1
+       ThisSpc%AeroID = AeroCount
+    ELSE
+       ThisSpc%AeroID = MISSING_INT
+    ENDIF
+
+
+    !---------------------------------------------------------------------
+    ! Is it an aerosol with hygroscopic growth?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_HygroGrowth ) ) THEN
+       ThisSpc%Is_HygroGrowth = Is_HygroGrowth
+
+       ! Increment count & index of hygroscopic growth species
+       IF ( Is_HygroGrowth ) THEN
+          HygGrthCount = HygGrthCount + 1
+          ThisSpc%HygGrthID   = HygGrthCount
+       ELSE
+          ThisSpc%Is_HygroGrowth = .FALSE.
+          ThisSpc%HygGrthID   = MISSING_INT          
+       ENDIF
+    ELSE
+       ThisSpc%Is_HygroGrowth = .FALSE.
+       ThisSpc%HygGrthID   = MISSING_INT          
+    ENDIF
+
+    !---------------------------------------------------------------------
+    ! Is it a photolysis species in the KPP chemical mechanism?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_Photolysis ) ) THEN
+       ThisSpc%Is_Photolysis = Is_Photolysis
+
+       ! Increment count & index of wet deposited species
+       IF ( Is_Photolysis ) THEN
+          PhotolCount        = PhotolCount + 1
+          ThisSpc%PhotolID   = PhotolCount
+       ELSE
+          ThisSpc%Is_Photolysis = .FALSE.
+          ThisSpc%PhotolID      = MISSING_INT
+       ENDIF
+
+    ELSE
+       ThisSpc%Is_Photolysis = .FALSE.
+       ThisSpc%PhotolID      = MISSING_INT
+    ENDIF
+
+    !---------------------------------------------------------------------
     ! Is it wet deposited?  If TRUE, then update wetdep species index.
     !---------------------------------------------------------------------
     IF ( PRESENT( Is_Wetdep ) ) THEN
@@ -985,6 +993,7 @@ CONTAINS
     ! Is it a variable species in the KPP chemical mechanism?
     !---------------------------------------------------------------------
     IF ( PRESENT( KppVarId ) ) THEN 
+       KppVarCount      = KppVarCount + 1
        ThisSpc%KppVarId = KppVarId
     ELSE
        ThisSpc%KppVarId = MISSING_INT
@@ -994,29 +1003,10 @@ CONTAINS
     ! Is it a fixed species in the KPP chemical mechanism?
     !---------------------------------------------------------------------
     IF ( PRESENT( KppFixId ) ) THEN 
+       KppFixCount      = KppFixCount + 1
        ThisSpc%KppFixId = KppFixId
     ELSE
        ThisSpc%KppFixId = MISSING_INT
-    ENDIF
-
-    !---------------------------------------------------------------------
-    ! Is it a photolysis species in the KPP chemical mechanism?
-    !---------------------------------------------------------------------
-    IF ( PRESENT( Is_Photolysis ) ) THEN
-       ThisSpc%Is_Photolysis = Is_Photolysis
-
-       ! Increment count & index of wet deposited species
-       IF ( Is_Photolysis ) THEN
-          PhotolCount        = PhotolCount + 1
-          ThisSpc%PhotolID   = PhotolCount
-       ELSE
-          ThisSpc%Is_Photolysis = .FALSE.
-          ThisSpc%PhotolID      = MISSING_INT
-       ENDIF
-
-    ELSE
-       ThisSpc%Is_Photolysis = .FALSE.
-       ThisSpc%PhotolID      = MISSING_INT
     ENDIF
 
     !---------------------------------------------------------------------
@@ -1285,6 +1275,11 @@ CONTAINS
        !-------------------------
        WRITE( 6, 130 ) 'Is it a photol. spc? ',          ThisSpc%Is_Photolysis
 
+       !------------------------------
+       ! Print hygroscopic growth info
+       !------------------------------
+       WRITE( 6, 130 ) 'Is it a hygro. spc? ',          ThisSpc%Is_HygroGrowth
+
        !-------------------------
        ! Print drydep info
        !-------------------------
@@ -1368,31 +1363,48 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nDryDep,  nKppSpc, nWetDep,  &
+  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nAero,   nDryDep, nGasSpc,  &
+                                nHygGrth, nKppVar, nKppFix, nKppSpc,  &
+                                nPhotol,  nWetDep,                      &
                                 nHg0Cats, nHg2Cats, nHgPCats          )
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT) :: nAdvect   ! # of advected species
-    INTEGER, INTENT(OUT) :: nDryDep   ! # of dry-deposited species
-    INTEGER, INTENT(OUT) :: nKppSpc   ! # of species in the KPP mechanism
-    INTEGER, INTENT(OUT) :: nWetDep   ! # of wet-deposited species
-    INTEGER, INTENT(OUT) :: nHg0Cats  ! # of Hg0 categories
-    INTEGER, INTENT(OUT) :: nHg2Cats  ! # of Hg0 categories
-    INTEGER, INTENT(OUT) :: nHgPCats  ! # of Hg0 categories
+    INTEGER, INTENT(OUT) :: nAdvect     ! # of advected species
+    INTEGER, INTENT(OUT) :: nAero       ! # of aerosol species 
+    INTEGER, INTENT(OUT) :: nDryDep     ! # of dry-deposited species
+    INTEGER, INTENT(OUT) :: nGasSpc     ! # of gas-phase species
+    INTEGER, INTENT(OUT) :: nHygGrth    ! # of species with hygroscopic growth
+    INTEGER, INTENT(OUT) :: nKppVar     ! # of variable KPP species
+    INTEGER, INTENT(OUT) :: nKppFix     ! # of fixed KPP species
+    INTEGER, INTENT(OUT) :: nKppSpc     ! # of species in KPP mechanism
+    INTEGER, INTENT(OUT) :: nPhotol     ! # of photolysis species
+    INTEGER, INTENT(OUT) :: nWetDep     ! # of wet-deposited species
+    INTEGER, INTENT(OUT) :: nHg0Cats    ! # of Hg0 categories
+    INTEGER, INTENT(OUT) :: nHg2Cats    ! # of Hg0 categories
+    INTEGER, INTENT(OUT) :: nHgPCats    ! # of Hg0 categories
 ! 
 ! !REVISION HISTORY: 
 !  02 Sep 2015 - R. Yantosca - Initial version
 !  25 Apr 2016 - R. Yantosca - Also return the # of Hg0, Hg2, HgP categories
 !  18 May 2016 - R. Yantosca - Also return the # of KPP chemical species
+!  27 Nov 2017 - E. Lundgren - Add additional species categories for aerosol,
+!                              gas, hygroscopic growth, active KPP, fixed KPP, 
+!                              and photolysis species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     ! Return module variables
     nAdvect  = AdvectCount
+    nAero    = AeroCount
     nDryDep  = DryDepCount
+    nGasSpc  = GasSpcCount
+    nHygGrth = HygGrthCount
+    nKppVar  = KppVarCount
+    nKppFix  = KppFixCount
     nKppSpc  = KppSpcCount
+    nPhotol  = PhotolCount
     nWetDep  = WetDepCount
     nHg0Cats = Hg0Count
     nHg2Cats = Hg2Count

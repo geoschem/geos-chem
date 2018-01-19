@@ -328,7 +328,9 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Mar 2013 - T. Sherwen - Initial implementation (v9-3-01)
-!  15 Jul 2015 - T. Sherwen - Now a HEMCO extension module adapted from hcox_seasalt_mod 
+!  15 Jul 2015 - T. Sherwen - Now a HEMCO extension module adapted from hcox_seasalt_mod
+!  11 Oct 2017 - R. Yantosca - Fixed typo in comment character (# instead of !)
+!  27 Nov 2017 - C. Keller   - Now output messages to HEMCO logfile
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -367,7 +369,7 @@ CONTAINS
     CALL GetExtOpt ( HcoState%Config, ExtNr, 'Emit HOI', OptValBool=CalcHOI, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    # Set minimum length and update if CalcI2/CalcHOI==True
+    ! Set minimum length and update if CalcI2/CalcHOI==True
     minLen = 0
     IF ( CalcI2 ) THEN
        minLen = minLen +1
@@ -394,16 +396,16 @@ CONTAINS
     ! Verbose mode
     IF ( am_I_Root ) THEN
        MSG = 'Use inorganic iodine emissions (extension module)'
-       CALL HCO_MSG( MSG, SEP1='-' )
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='-')
 
        IF ( CalcHOI ) THEN
           WRITE(MSG,*) 'HOI: ', TRIM(SpcNames(1)), IDTHOI
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
    
        IF ( CalcI2 ) THEN
           WRITE(MSG,*) 'I2: ', TRIM(SpcNames(2)), IDTI2
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
     ENDIF
 

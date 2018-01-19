@@ -160,6 +160,12 @@
       INTEGER :: id_SOAIE, id_SOAME
       INTEGER :: id_INDIOL,id_LVOCOA,id_ISN1OA
 
+      ! Diagnostic flags
+      LOGICAL :: Archive_PM25
+      LOGICAL :: Archive_TerpeneSOA
+      LOGICAL :: Archive_IsopreneSOA
+      LOGICAL :: Archive_AromaticSOA
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -180,23 +186,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AEROSOL_CONC( am_I_Root, Input_Opt, 
-     &                         State_Met, State_Chm, RC )
+      SUBROUTINE AEROSOL_CONC( am_I_Root, Input_Opt,  State_Met,
+     &                         State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-      USE CMN_FJX_MOD,        ONLY : REAA
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_TROP
+      USE CMN_FJX_MOD,    ONLY : REAA
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Met_Mod,      ONLY : MetState
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE UCX_MOD,            ONLY : KG_STRAT_AER
-      USE UnitConv_Mod
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Met_Mod,  ONLY : MetState
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE UCX_MOD,        ONLY : KG_STRAT_AER
+      USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 #if   defined( TOMAS ) 
-      USE TOMAS_MOD,          ONLY : IBINS
+      USE TOMAS_MOD,      ONLY : IBINS
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -208,6 +215,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -249,6 +257,8 @@
 !                              at 35% RH
 !  07 Feb 2017 - M. Sulprizio- Apply STP correction factor to PM2.5
 !  07 Sep 2017 - M. Sulprizio- Add simple SOA to PM2.5 calculation
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversion with wrapper routine
+!  13 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -272,7 +282,6 @@
 
       ! Logical flags
       LOGICAL             :: prtDebug
-      LOGICAL             :: UNITCONVERSION
       LOGICAL             :: LCARB
       LOGICAL             :: LDUST
       LOGICAL             :: LSOA
@@ -292,6 +301,10 @@
       REAL(fp), POINTER   :: AIRVOL(:,:,:)
       REAL(fp), POINTER   :: PMID(:,:,:)
       REAL(fp), POINTER   :: T(:,:,:)
+
+      ! Other variables
+      CHARACTER(LEN=63)   :: OrigUnit
+!ewl      LOGICAL             :: UNITCONVERSION
 
       !=================================================================
       ! AEROSOL_CONC begins here!
@@ -332,23 +345,12 @@
       IS_SOAGX   = ( id_SOAGX > 0 )
       IS_SOAMG   = ( id_SOAMG > 0 )
 
-      ! If species units are 'kg/kg dry', convert to [kg] for this routine.
-      ! Otherwise, if tracer units are not 'kg', throw an error to the 
-      ! calling routine (ewl, 8/12/15)
-      UNITCONVERSION = .FALSE.
-      IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg dry' ) THEN
-         CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
-     &                                  State_Chm, RC         )  
-         UNITCONVERSION = .TRUE.
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
-     &                    'AEROSOL_CONC in aerosol_mod.F')
-            RETURN
-         ENDIF
-      ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-         CALL GC_Error('Unexpected species units' // 
-     &                 State_Chm%Spc_Units, RC, 
-     &                 'AEROSOL_CONC in aerosol_mod')
+      ! Convert species to [kg] for this routine
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'Start of AEROSOL_CONC in aerosol_mod.F')
          RETURN
       ENDIF
 
@@ -884,7 +886,7 @@
             SOAMG(I,J,L) = Spc(I,J,L,id_SOAMG) * OCFM / AIRVOL(I,J,L)
          ENDIF
 
-         !===========================================================
+         !==============================================================
          ! P A R T I C U L A T E   M A T T E R
          !
          ! Compute PM2.5 concentration [kg/m3]
@@ -906,44 +908,80 @@
          ! Note that this includes all the SOA formed in both the
          ! Pye et al. and Marais et al. scheme and may include some
          ! double-counting of isoprene SOA. (Aerosol WG)
-         !===========================================================
+         !==============================================================
 
-         PM25(I,J,L) = NH4(I,J,L)  * SIA_GROWTH
-     &               + NIT(I,J,L)  * SIA_GROWTH
-     &               + SO4(I,J,L)  * SIA_GROWTH
+         ! Units: [kg/m3]
+         PM25(I,J,L) = NH4(I,J,L)        * SIA_GROWTH
+     &               + NIT(I,J,L)        * SIA_GROWTH
+     &               + SO4(I,J,L)        * SIA_GROWTH
      &               + BCPI(I,J,L)
      &               + BCPO(I,J,L)
      &               + OCPO(I,J,L)
-     &               + OCPI(I,J,L) * ORG_GROWTH
-     &               + TSOA(I,J,L) * ORG_GROWTH
-     &               + ISOA(I,J,L) * ORG_GROWTH
-     &               + ASOA(I,J,L) * ORG_GROWTH
-     &               + SALA(I,J,L) * SSA_GROWTH
-     &               + SOILDUST(I,J,L,1) + SOILDUST(I,J,L,2) ! DST1
-     &               + SOILDUST(I,J,L,3) + SOILDUST(I,J,L,4) ! DST1
-     &               + SOILDUST(I,J,L,5) * 0.38              ! 38% of DST2
-     &               + ISOAAQ(I,J,L) * ORG_GROWTH            ! Incl SOAGX,SOAMG
-     &               + SOAS(I,J,L) * ORG_GROWTH
+     &               + OCPI(I,J,L)       * ORG_GROWTH
+     &               + TSOA(I,J,L)       * ORG_GROWTH
+     &               + ISOA(I,J,L)       * ORG_GROWTH
+     &               + ASOA(I,J,L)       * ORG_GROWTH
+     &               + SALA(I,J,L)       * SSA_GROWTH
+     &               + SOILDUST(I,J,L,1)                 ! DST1
+     &               + SOILDUST(I,J,L,2)                 ! DST1
+     &               + SOILDUST(I,J,L,3)                 ! DST1
+     &               + SOILDUST(I,J,L,4)                 ! DST1
+     &               + SOILDUST(I,J,L,5) * 0.38          ! 38% of DST2
+     &               + ISOAAQ(I,J,L)     * ORG_GROWTH    ! Incl SOAGX,SOAMG
+     &               + SOAS(I,J,L)       * ORG_GROWTH
 
          ! Apply STP correction factor based on ideal gas law
-         PM25(I,J,L) = PM25(I,J,L) * ( 1013.25e+0_fp / PMID(I,J,L) ) *
-     &                 ( T(I,J,L) / 298.e+0_fp )
+         PM25(I,J,L) = PM25(I,J,L) 
+     &               * ( 1013.25_fp / PMID(I,J,L) ) 
+     &               * ( T(I,J,L)   / 298.0_fp    )
+
+#if defined( NC_DIAG )
+         !==============================================================
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! SOA and PM2.5 diagnostics
+         !
+         ! NOTE: Convert from [kg/m3] to [ug/m3] (factor = 1e9) so 
+         !       as to match the units of the ND42 bpch diagnostic.
+         !==============================================================
+
+         ! Terpene SOA [ug/m3]
+         IF ( Archive_TerpeneSOA ) THEN
+            State_Diag%TerpeneSOA(I,J,L) = ( TSOA(I,J,L) * 1.0e+9_fp )
+         ENDIF
+
+         ! Isoprene SOA [ug/m3]
+         ! NOTE: Includes contribution from semivolatile isoprene OA
+         ! (aka ISOA) and mechanistic isoprene OA (aka ISOAAQ).
+         ! This is done to match the ND42 bpch diagnostic.
+         IF ( Archive_IsopreneSOA ) THEN
+            State_Diag%IsopreneSOA(I,J,L) = 
+     &         ( ( ISOA(I,J,L) + ISOAAQ(I,J,L) ) * 1.0e+9_fp )
+         ENDIF 
+
+         ! Aromatic SOA [ug/m3]
+         IF ( Archive_AromaticSOA ) THEN
+            State_Diag%AromaticSOA(I,J,L) = ( ASOA(I,J,L) * 1.0e+9_fp )
+         ENDIF
+          
+         ! PM2.5 concentration at STP [ug/m3]
+         IF ( Archive_PM25 ) THEN
+            State_Diag%PM25(I,J,L) = ( PM25(I,J,L) * 1.0e+9_fp )
+         ENDIF
+#endif
 
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! If units were originally 'kg/kg dry', convert [kg] back to mixing 
-      ! ratio (ewl, 8/12/15)
-      IF ( UNITCONVERSION ) THEN
-         CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, 
-     &                                  State_Chm, RC         )  
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
-     &                    'AEROSOL_CONC in aerosol_mod.F')
-            RETURN
-         ENDIF
+      ! Convert species back to original unit
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'End of AEROSOL_CONC in aerosol_mod.F')
+         RETURN
       ENDIF
 
       ! Free pointers
@@ -968,52 +1006,57 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDAER( am_I_Root, Input_Opt, State_Met,  State_Chm,
-     &                  RC,        MONTH,     YEAR,       ODSWITCH   )
+      SUBROUTINE RDAER( am_I_Root, Input_Opt,  State_Met,
+     &                  State_Chm, State_Diag, RC,
+     &                  MONTH,     YEAR,       ODSWITCH   )
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_CHEMGRID
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_DIAG_MOD
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : AD21
+#if defined( BPCH_DIAG )
+      USE DIAG_MOD,       ONLY : AD21
+#endif
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE PhysConstants,      ONLY : CONSVAP
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TIME_MOD,           ONLY : SYSTEM_TIMESTAMP
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-      USE UCX_MOD,            ONLY : GET_STRAT_OPT
-      USE UCX_MOD,            ONLY : NDENS_AER
+      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE PhysConstants,  ONLY : CONSVAP
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Met_Mod,  ONLY : MetState
+      USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH
+      USE TIME_MOD,       ONLY : SYSTEM_TIMESTAMP
+      USE TRANSFER_MOD,   ONLY : TRANSFER_3D
+      USE UCX_MOD,        ONLY : GET_STRAT_OPT
+      USE UCX_MOD,        ONLY : NDENS_AER
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root     ! Are we on root CPU?
-      TYPE(MetState), INTENT(IN)  :: State_Met     ! Meteorology State
-      INTEGER,        OPTIONAL    :: MONTH         ! # of current month
-      INTEGER,        OPTIONAL    :: YEAR          ! 4-digit year
-      INTEGER,        OPTIONAL    :: ODSWITCH      ! Logical indicator
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on root CPU?
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State
+      INTEGER,        OPTIONAL      :: MONTH       ! # of current month
+      INTEGER,        OPTIONAL      :: YEAR        ! 4-digit year
+      INTEGER,        OPTIONAL      :: ODSWITCH    ! Logical indicator
                                                    !  = 0: AOD computed 
                                                    !       at 999 nm
                                                    !  = 1: AOD computed 
                                                    !       at wavelength set 
                                                    !       in Radiation Menu
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:                             
 !
-      INTEGER,        INTENT(OUT) :: RC            ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  (1 ) At the point in which "rdaer.f" is called, ABSHUM is actually
@@ -1077,6 +1120,7 @@
 !                              on comode_loop_mod.F
 !  22 Nov 2016 - M. Sulprizio- Now define aerosol densities in species database
 !                              and use SpcData%Info%Density to populate MSDENS
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1669,12 +1713,14 @@
             !only need to do hyg once, not for each wavelength             
             IF ((IIWV.EQ.1).and.(ISTRAT.le.0)) THEN
 
+#if defined( BPCH_DIAG )
                !save increase in AOD resulting from water uptake
                IF( ND21 > 0 .AND. L <= LD21 .AND.ODSWITCH.EQ.1) THEN
                   AD21(I,J,L,7+3*(N-1)) = AD21(I,J,L,7+3*(N-1)) +
      &                                    SCALEOD
                ENDIF
-            
+#endif
+
                !now calulate the surface areas
                !==============================================================
                !  Calculate Aerosol Surface Area
@@ -1758,8 +1804,10 @@
                   TAERVOL = ( ERADIUS(I,J,L,NDUST+N) * 
      &                        TAREA(I,J,L, N+NDUST) ) / 3.D0
 
+#if defined( BPCH_DIAG )
                   ! Add to diagnostic:
                   AD21(I,J,L,35) = AD21(I,J,L,35) + TAERVOL
+#endif
                ENDIF
 
             ENDIF    !Surface area calcs
@@ -1806,10 +1854,12 @@
 
             ENDIF
 
+#if defined( BPCH_DIAG )
             ! Store SAD
             IF ((ND21.gt.0).and.(L.le.LD21)) THEN
                 AD21(I,J,L,IOUT+2) = AD21(I,J,L,IOUT+2) + SADSTRAT
             ENDIF
+#endif
 
          ENDDO
          ENDDO
@@ -1818,6 +1868,7 @@
       ENDDO
 #endif
        
+#if defined( BPCH_DIAG )
       !==============================================================
       ! ND21 Diagnostic: Aerosol OD's, Growth Rates, Surface Areas
       !
@@ -1993,6 +2044,7 @@
 !$OMP END PARALLEL DO
       
       ENDIF 
+#endif
 #if defined( UCX )
       ! Turn off radiative effects of stratospheric aerosols?
       IF (.not.(LSTRATOD)) THEN
@@ -2046,20 +2098,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_AEROSOL( am_I_Root, Input_Opt, RC )
+      SUBROUTINE Init_Aerosol( am_I_Root, Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : Ind_
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2070,6 +2123,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  17 Jun 2016 - R. Yantosca - Now use locally-defined species ID flags,
+!  13 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2078,164 +2132,204 @@
 !
       INTEGER :: AS
 
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
       !=================================================================
       ! INIT_AEROSOL begins here!
       !=================================================================
 
-      ! Assume success
-      RC = GC_SUCCESS
+      ! Initialize
+      RC        = GC_SUCCESS
+      ErrMsg    = ''
+      ThisLoc   = 
+     &   ' -> at Init_Aerosol (in module GeosCore/aerosol_mod.F)'
 
       ! Add tracer ID flags as module variables (bmy, 6/16/16)
-      id_BCPI  = Ind_('BCPI' )
-      id_BCPO  = Ind_('BCPO' )
-      id_DST1  = Ind_('DST1' )
-      id_DST2  = Ind_('DST2' )
-      id_DST3  = Ind_('DST3' ) 
-      id_DST4  = Ind_('DST4' )
-      id_DUST1 = Ind_('DUST1')
-      id_NH4   = Ind_('NH4'  )
-      id_NIT   = Ind_('NIT'  ) 
-      id_OCPO  = Ind_('OCPO' ) 
-      id_OCPI  = Ind_('OCPI' )  
-      id_SOAS  = Ind_('SOAS' )  
-      id_SALA  = Ind_('SALA' )  
-      id_SALC  = Ind_('SALC' )   
-      id_SO4   = Ind_('SO4'  )         
-      id_SO4s  = Ind_('SO4s' )  
-      id_NITs  = Ind_('NITs' ) 
-      id_POA1  = Ind_('POA1' )   
-      id_POA2  = Ind_('POA2' )    
-      id_OPOA1 = Ind_('OPOA1')   
-      id_OPOA2 = Ind_('OPOA2')    
-      id_TSOA1 = Ind_('TSOA1') 
-      id_TSOA2 = Ind_('TSOA2') 
-      id_TSOA3 = Ind_('TSOA3')
-      id_TSOA0 = Ind_('TSOA0') 
-      id_ISOA1 = Ind_('ISOA1')  
-      id_ISOA2 = Ind_('ISOA2')  
-      id_ISOA3 = Ind_('ISOA3')
-      id_ASOAN = Ind_('ASOAN') 
-      id_ASOA1 = Ind_('ASOA1')  
-      id_ASOA2 = Ind_('ASOA2') 
-      id_ASOA3 = Ind_('ASOA3')
-      id_SOAGX = Ind_('SOAGX')
-      id_SOAMG = Ind_('SOAMG')
-      id_SOAIE = Ind_('SOAIE')
-      id_SOAME = Ind_('SOAME')
-      id_INDIOL= Ind_('INDIOL')
-      id_LVOCOA= Ind_('LVOCOA')
-      id_ISN1OA= Ind_('ISN1OA')
+      id_BCPI   = Ind_( 'BCPI'   )
+      id_BCPO   = Ind_( 'BCPO'   )
+      id_DST1   = Ind_( 'DST1'   )
+      id_DST2   = Ind_( 'DST2'   )
+      id_DST3   = Ind_( 'DST3'   ) 
+      id_DST4   = Ind_( 'DST4'   )
+      id_DUST1  = Ind_( 'DUST1'  )
+      id_NH4    = Ind_( 'NH4'    )
+      id_NIT    = Ind_( 'NIT'    ) 
+      id_OCPO   = Ind_( 'OCPO'   ) 
+      id_OCPI   = Ind_( 'OCPI'   )  
+      id_SOAS   = Ind_( 'SOAS'   )  
+      id_SALA   = Ind_( 'SALA'   )  
+      id_SALC   = Ind_( 'SALC'   )   
+      id_SO4    = Ind_( 'SO4'    )         
+      id_SO4s   = Ind_( 'SO4s'   )  
+      id_NITs   = Ind_( 'NITs'   ) 
+      id_POA1   = Ind_( 'POA1'   )   
+      id_POA2   = Ind_( 'POA2'   )    
+      id_OPOA1  = Ind_( 'OPOA1'  )   
+      id_OPOA2  = Ind_( 'OPOA2'  )    
+      id_TSOA1  = Ind_( 'TSOA1'  ) 
+      id_TSOA2  = Ind_( 'TSOA2'  ) 
+      id_TSOA3  = Ind_( 'TSOA3'  )
+      id_TSOA0  = Ind_( 'TSOA0'  ) 
+      id_ISOA1  = Ind_( 'ISOA1'  )  
+      id_ISOA2  = Ind_( 'ISOA2'  )  
+      id_ISOA3  = Ind_( 'ISOA3'  )
+      id_ASOAN  = Ind_( 'ASOAN'  ) 
+      id_ASOA1  = Ind_( 'ASOA1'  )  
+      id_ASOA2  = Ind_( 'ASOA2'  ) 
+      id_ASOA3  = Ind_( 'ASOA3'  )
+      id_SOAGX  = Ind_( 'SOAGX'  )
+      id_SOAMG  = Ind_( 'SOAMG'  )
+      id_SOAIE  = Ind_( 'SOAIE'  )
+      id_SOAME  = Ind_( 'SOAME'  )
+      id_INDIOL = Ind_( 'INDIOL' )
+      id_LVOCOA = Ind_( 'LVOCOA' )
+      id_ISN1OA = Ind_( 'ISN1OA' )
 
+      ! Are certain diagnostics turned on?
+      Archive_PM25        = ASSOCIATED( State_Diag%PM25        )
+      Archive_TerpeneSOA  = ASSOCIATED( State_Diag%TerpeneSOA  )
+      Archive_IsopreneSOA = ASSOCIATED( State_Diag%IsopreneSOA )
+      Archive_AromaticSOA = ASSOCIATED( State_Diag%AromaticSOA )
+
+      !=================================================================
       ! Allocate arrays
-      ALLOCATE( BCPI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI' )
-      BCPI = 0d0
+      !=================================================================
+      ALLOCATE( BCPI( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      BCPI = 0.0_fp
 
-      ALLOCATE( BCPO( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO' )
-      BCPO = 0d0
+      ALLOCATE( BCPO( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:BCPO', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      BCPO = 0.0_fp
 
-      ALLOCATE( OCPI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI' )
-      OCPI = 0d0
+      ALLOCATE( OCPI( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:OCPI', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      OCPI = 0.0_fp
 
-      ALLOCATE( OCPO( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO' )
-      OCPO = 0d0
+      ALLOCATE( OCPO( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:OCPO', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      OCPO = 0.0_fp
 
-      ALLOCATE( OCPISOA( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPISOA' )
-      OCPISOA = 0d0
+      ALLOCATE( OCPISOA( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:OCPISOA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      OCPISOA = 0.0_fp
 
-      ALLOCATE( SALA( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALA' )
-      SALA = 0d0
+      ALLOCATE( SALA( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:SALA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      SALA = 0.0_fp
 
-      ALLOCATE( SALC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALC' )
-      SALC = 0d0
+      ALLOCATE( SALC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:SALC', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      SALC = 0.0_fp
 
-      ALLOCATE( SO4_NH4_NIT( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_NH4_NIT' )
-      SO4_NH4_NIT = 0d0
+      ALLOCATE( SO4_NH4_NIT( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:SO4_NH4_NIT', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      SO4_NH4_NIT = 0.0_fp
 
-      ALLOCATE( SO4( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4' )
-      SO4 = 0d0
+      ALLOCATE( SO4( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:SO4', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      SO4 = 0.0_fp
 
-      ALLOCATE( NH4( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NH4' )
-      NH4 = 0d0
+      ALLOCATE( NH4( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:NH4', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      NH4 = 0.0_fp
 
-      ALLOCATE( NIT( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NIT' )
-      NIT = 0d0
+      ALLOCATE( NIT( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:NIT', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      NIT = 0.0_fp
 
-      ALLOCATE( FRAC_SNA( IIPAR, JJPAR, LLPAR, 3 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_SNA' )
-      FRAC_SNA = 0d0
+      ALLOCATE( FRAC_SNA( IIPAR, JJPAR, LLPAR, 3 ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:FRAC_SNA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      FRAC_SNA = 0.0_fp
 
-      ALLOCATE( SOILDUST( IIPAR, JJPAR, LLPAR, NDUST ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOILDUST' )
-      SOILDUST = 0d0
+      ALLOCATE( SOILDUST( IIPAR, JJPAR, LLPAR, NDUST ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:SOILDUST', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      SOILDUST = 0.0_fp
 
-#if defined( UCX )
-      ALLOCATE( SLA( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLA' )
-      SLA = 0d0
+      IF ( Input_Opt%LUCX ) THEN 
+         ALLOCATE( SLA( IIPAR, JJPAR, LLPAR ), STAT=RC )
+         CALL GC_CheckVar( 'aerosol_mod.F:SLA', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         SLA = 0.0_fp
 
-      ALLOCATE( SPA( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPA' )
-      SPA   = 0d0
-#endif
+         ALLOCATE( SPA( IIPAR, JJPAR, LLPAR ), STAT=RC )
+         CALL GC_CheckVar( 'aerosol_mod.F:SPA', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         SPA   = 0.0_fp
+      ENDIF
 
-      ALLOCATE( TSOA( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSOA' )
-      TSOA = 0d0
+      ALLOCATE( TSOA( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:TSOA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      TSOA = 0.0_fp
 
-      ALLOCATE( ISOA( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ISOA' )
-      ISOA = 0d0
+      ALLOCATE( ISOA( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:ISOA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ISOA = 0.0_fp
 
-      ALLOCATE( ASOA( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ASOA' )
-      ASOA = 0d0
+      ALLOCATE( ASOA( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:ASOA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ASOA = 0.0_fp
 
-      ALLOCATE( OPOA( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPOA' )
-      OPOA = 0d0
+      ALLOCATE( OPOA( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:OPOA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      OPOA = 0.0_fp
 
-      ALLOCATE( PM25( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PM25' )
-      PM25 = 0d0
+      ALLOCATE( PM25( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:PM25', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      PM25 = 0.0_fp
 
-      ALLOCATE( SOAGX( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOAGX' )
-      SOAGX = 0d0
+      ALLOCATE( SOAGX( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:SOAGX', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      SOAGX = 0.0_fp
 
-      ALLOCATE( SOAMG( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOAMG' )
-      SOAMG = 0d0
+      ALLOCATE( SOAMG( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:SOAMG', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      SOAMG = 0.0_fp
 
       ! Mass of hydrophobic aerosol from Mian Chin
-      ALLOCATE( DAERSL(IIPAR,JJPAR,LLPAR,2), STAT=AS)       
-      IF ( AS /= 0) CALL ALLOC_ERR( 'DAERSL' )
-      DAERSL = 0d0
+      ALLOCATE( DAERSL(IIPAR,JJPAR,LLPAR,2), STAT=RC)       
+      CALL GC_CheckVar( 'aerosol_mod.F:DAERSL', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      DAERSL = 0.0_fp
 
       ! Mass of hydrophilic aerosol from Mian Chin
-      ALLOCATE( WAERSL(IIPAR,JJPAR,LLPAR,NAER), STAT=AS)       
-      IF ( AS /= 0) CALL ALLOC_ERR( 'WAERSL' )
-      WAERSL = 0d0
+      ALLOCATE( WAERSL(IIPAR,JJPAR,LLPAR,NAER), STAT=RC)       
+      CALL GC_CheckVar( 'aerosol_mod.F:WAERSL', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      WAERSL = 0.0_fp
 
       ! Mechanistic isoprene SOA (eam, 2014):
-      ALLOCATE( ISOAAQ(IIPAR,JJPAR,LLPAR), STAT=AS)
-      IF ( AS /= 0) CALL ALLOC_ERR( 'ISOAAQ' )
-      ISOAAQ = 0d0
+      ALLOCATE( ISOAAQ(IIPAR,JJPAR,LLPAR), STAT=RC)
+      CALL GC_CheckVar( 'aerosol_mod.F:ISOAAQ', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ISOAAQ = 0.0_fp
 
       ! Simple SOA
-      ALLOCATE( SOAS(IIPAR,JJPAR,LLPAR), STAT=AS)
-      IF ( AS /= 0) CALL ALLOC_ERR( 'SOAS' )
-      SOAS = 0d0
+      ALLOCATE( SOAS(IIPAR,JJPAR,LLPAR), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:SOAS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      SOAS = 0.0_fp
 
       END SUBROUTINE INIT_AEROSOL
 !EOC

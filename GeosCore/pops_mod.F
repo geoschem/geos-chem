@@ -112,8 +112,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMPOPS( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
+      SUBROUTINE CHEMPOPS( am_I_Root, Input_Opt,  State_Met,
+     &                     State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -126,6 +126,7 @@
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -137,6 +138,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -151,6 +153,7 @@
 !  10 Sep 2014 - M. Sulprizio- Now get global concentrations of OH, O3, OC, and
 !                              BC from HEMCO
 !  03 Mar 2015 - C. Keller   - Now do dry-deposition always outside of chempops
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC

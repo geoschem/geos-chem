@@ -15,8 +15,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AERO_DRYDEP( am_I_Root, Input_Opt, 
-     &                        State_Met, State_Chm, RC )
+      SUBROUTINE AERO_DRYDEP( am_I_Root, Input_Opt,  State_Met,
+     &                        State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -35,6 +35,7 @@
       USE PRECISION_MOD
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD
@@ -50,6 +51,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -80,6 +82,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  04 Jan 2018 - M. Sulprizio- Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -394,8 +397,8 @@ cdbg  print *, dryd(:)
 
       ! Dust gravitational settling 
       IF ( .not. DOSETTLING ) THEN
-         CALL SETTLEDUST( am_I_Root, Input_Opt,
-     &                    State_Met, State_Chm, RC )
+         CALL SETTLEDUST( am_I_Root, Input_Opt,  State_Met,
+     &                    State_Chm, State_Diag, RC )
       ENDIF
 
 

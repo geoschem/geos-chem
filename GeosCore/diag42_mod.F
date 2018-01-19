@@ -94,7 +94,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
@@ -131,6 +131,7 @@
 !  18 Nov 2016 - M. Sulprizio- Move code for calculating concentrations to
 !                              AEROSOL_CONC (in aerosol_mod.F) so it is in a
 !                              single location
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions with wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -139,7 +140,8 @@
 !
       INTEGER             :: I, J, L
       REAL(fp)            :: FACTOR
-      LOGICAL             :: UNITCONVERSION
+      CHARACTER(LEN=63)   :: OrigUnit
+      CHARACTER(LEN=255)  :: MSG
      
       ! Species ID flags
       LOGICAL, SAVE       :: FIRST = .TRUE.
@@ -147,6 +149,7 @@
       INTEGER, SAVE       :: id_SOAIE,  id_SOAME, id_INDIOL
       INTEGER, SAVE       :: id_SOAGX,  id_SOAMG
       INTEGER, SAVE       :: id_LVOCOA, id_ISN1OA
+      LOGICAL, SAVE       :: IS_BETANOSAVE
       LOGICAL             :: IS_POA
 
       ! Define number of carbon atoms in each irreversible isoprene
@@ -173,15 +176,16 @@
       IF ( FIRST ) THEN
 
          ! Define species ID flags
-         id_POA1   = Ind_('POA1' )
-         id_POA2   = Ind_('POA2' )
-         id_SOAIE  = Ind_('SOAIE' )
-         id_SOAME  = Ind_('SOAME' )
-         id_INDIOL = Ind_('INDIOL' )
-         id_SOAGX  = Ind_('SOAGX' )
-         id_SOAMG  = Ind_('SOAMG' )
-         id_LVOCOA = Ind_('LVOCOA' )
-         id_ISN1OA = Ind_('ISN1OA' )
+         id_POA1       = Ind_( 'POA1'   )
+         id_POA2       = Ind_( 'POA2'   )
+         id_SOAIE      = Ind_( 'SOAIE'  )
+         id_SOAME      = Ind_( 'SOAME'  )
+         id_INDIOL     = Ind_( 'INDIOL' )
+         id_SOAGX      = Ind_( 'SOAGX'  )
+         id_SOAMG      = Ind_( 'SOAMG'  )
+         id_LVOCOA     = Ind_( 'LVOCOA' )
+         id_ISN1OA     = Ind_( 'ISN1OA' )
+         IS_BETANOSAVE = ALLOCATED( BETANOSAVE )
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -193,25 +197,14 @@
       ! Conversion factor from kg/m3 --> ug/m3
       FACTOR = 1e+9_fp
 
-      ! If species units are 'kg/kg dry', convert to [kg] for this routine.
-      ! Otherwise, if tracer units are not 'kg', throw an error to the 
-      ! calling routine (ewl, 8/12/15)
-      UNITCONVERSION = .FALSE.
-      IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg dry' ) THEN
-         CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
-     &                                  State_Chm, RC         )  
-         UNITCONVERSION = .TRUE.
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
-     &                    'AEROSOL_CONC in aerosol_mod.F')
-            RETURN
-         ENDIF
-      ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-         CALL GC_Error('Unexpected species units' // 
-     &                 State_Chm%Spc_Units, RC, 
-     &                 'DIAG42 in diag42_mod')
+      ! Convert species units to [kg] for this routine (ewl, 8/12/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      IF ( RC /= GC_SUCCESS ) THEN
+         MSG = 'Unit conversion error!'
+         CALL GC_Error( MSG, RC, 'Start of diag42 in diag42_mod.F')
          RETURN
-      ENDIF
+      ENDIF 
 
       ! Initialize pointers
       Spc    => State_Chm%Species
@@ -316,8 +309,10 @@
          !--------------------------------------------------------------
          ! NO branching ratio [dimless]
          !--------------------------------------------------------------
-         ! will have zero or junk values if not in troposphere
-         AD42(I,J,L,9) = AD42(I,J,L,9) + BETANOSAVE(I,J,L)
+         IF ( IS_BETANOSAVE ) THEN
+            ! will have zero or junk values if not in troposphere
+            AD42(I,J,L,9) = AD42(I,J,L,9) + BETANOSAVE(I,J,L)
+         ENDIF
 
          !--------------------------------------------------------------
          ! POA [ugC/m3]
@@ -413,17 +408,14 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! If units were originally 'kg/kg dry', convert [kg] back to mixing 
-      ! ratio (ewl, 8/12/15)
-      IF ( UNITCONVERSION ) THEN
-         CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, 
-     &                                  State_Chm, RC         )  
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
-     &                    'AEROSOL_CONC in aerosol_mod.F')
-            RETURN
-         ENDIF
-      ENDIF
+      ! Convert back to original unit (ewl, 8/12/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         MSG = 'Unit conversion error!'
+         CALL GC_Error( MSG, RC, 'End of diag42 in diag42_mod.F')
+         RETURN
+      ENDIF 
 
       ! Free pointers
       Spc    => NULL()
@@ -627,12 +619,13 @@
       !=================================================================
       ! INIT_DIAG42 begins here!
       !=================================================================
-
-      ! Turn off ND42 if SOA tracers are not used
-      IF ( .not. Input_Opt%LSOA ) THEN
-         ND42 = 0
-         RETURN
-      ENDIF
+     
+      ! This is no longer necessary (bmy, 12/13/17)
+      !! Turn off ND42 if SOA tracers are not used
+      !IF ( .not. Input_Opt%LSOA ) THEN
+      !   ND42 = 0
+      !   RETURN
+      !ENDIF
 
       ! Exit if ND42 is turned off
       IF ( ND42 == 0 ) RETURN

@@ -1056,7 +1056,7 @@
 
          ! do not allow reversal of curvature: F2 > 0
          F2   = MIN(F2, ABS(F1)*THIRD, 5.e-1_fp*F0)
-         IF (F1 .LT .0.e+0_fp)  THEN
+         IF (F1 .LT. 0.e+0_fp)  THEN
             F1 = MAX(-(F0+F2), F1)
          ELSE
             F1 = MIN(+(F0+F2), F1)

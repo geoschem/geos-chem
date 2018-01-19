@@ -64,7 +64,6 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: GEOS_FP_DIR        
      CHARACTER(LEN=255)          :: MERRA2_DIR          
      CHARACTER(LEN=255)          :: DATA_DIR_1x1       
-     LOGICAL                     :: LVARTROP           
      LOGICAL                     :: LCAPTROP
      REAL(fp)                    :: OZONOPAUSE
      INTEGER                     :: NESTED_I0          
@@ -75,11 +74,13 @@ MODULE Input_Opt_Mod
      ! PASSIVE SPECIES MENU fields
      !----------------------------------------
      INTEGER                     :: NPASSIVE
+     INTEGER                     :: NPASSIVE_DECAY
      CHARACTER(LEN=63), POINTER  :: PASSIVE_NAME    (:)
      INTEGER,           POINTER  :: PASSIVE_ID      (:)
      REAL(fp),          POINTER  :: PASSIVE_MW      (:)
      REAL(fp),          POINTER  :: PASSIVE_TAU     (:)
      REAL(fp),          POINTER  :: PASSIVE_INITCONC(:)
+     INTEGER,           POINTER  :: PASSIVE_DECAYID (:)
 
      !----------------------------------------
      ! ADVECTED SPECIES MENU fields
@@ -136,7 +137,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      LOGICAL                     :: LEMIS
      INTEGER                     :: TS_EMIS
-     INTEGER                     :: LBIOFUEL
+     LOGICAL                     :: LBIOFUEL
      LOGICAL                     :: LOTDLOC
      LOGICAL                     :: LSOILNOX
      LOGICAL                     :: LWARWICK_VSLS
@@ -624,6 +625,8 @@ MODULE Input_Opt_Mod
 !                              default.
 !  14 Sep 2017 - M. Sulprizio- Add USE_ONLINE_O3 and USE_TOMS_O3 to options for
 !                              overhead O3 in chemistry menu
+!  02 Nov 2017 - R. Yantosca - Bug fix: LBIOFUEL should be LOGICAL
+!  07 Nov 2017 - R. Yantosca - Remove LVARTROP; it's not needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -713,6 +716,8 @@ CONTAINS
 !  16 Mar 2017 - R. Yantosca - Remove obsolete family and drydep variables
 !  17 Mar 2017 - R. Yantosca - Remove IDDEP, DUSTREFF, DUSTDEN
 !  12 Jul 2017 - R. Yantosca - Initialize Input_Opt%HistoryInputFile field
+!  02 Nov 2017 - R. Yantosca - LWINDO_CU should be .FALSE., not 0
+!  07 Nov 2017 - R. Yantosca - Remove LVARTROP; it's not needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -755,7 +760,6 @@ CONTAINS
     Input_Opt%GEOS_FP_DIR            = './'
     Input_Opt%MERRA2_DIR             = './'
     Input_Opt%DATA_DIR_1x1           = './'      ! NOTE: Now deprecated!
-    Input_Opt%LVARTROP               = .FALSE.
     Input_Opt%LCAPTROP               = .FALSE.
     Input_Opt%OZONOPAUSE             = -999.0 
     Input_Opt%NESTED_I0              = 0
@@ -770,13 +774,16 @@ CONTAINS
     ALLOCATE( Input_Opt%PASSIVE_MW      ( MAXPASV ), STAT=RC )
     ALLOCATE( Input_Opt%PASSIVE_TAU     ( MAXPASV ), STAT=RC )
     ALLOCATE( Input_Opt%PASSIVE_INITCONC( MAXPASV ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_DECAYID ( MAXPASV ), STAT=RC )
 
-    Input_Opt%NPASSIVE               = 0           
-    Input_Opt%PASSIVE_NAME    (:)    = ''
-    Input_Opt%PASSIVE_ID      (:)    = -999
-    Input_Opt%PASSIVE_MW      (:)    = 0.0_fp
-    Input_Opt%PASSIVE_TAU     (:)    = 0.0_fp
-    Input_Opt%PASSIVE_INITCONC(:)    = 0.0_fp
+    Input_Opt%NPASSIVE               = 0 
+    Input_Opt%NPASSIVE_DECAY         = 0 
+    Input_Opt%PASSIVE_NAME           = ''
+    Input_Opt%PASSIVE_ID             = -999
+    Input_Opt%PASSIVE_MW             = 0.0_fp
+    Input_Opt%PASSIVE_TAU            = 0.0_fp
+    Input_Opt%PASSIVE_INITCONC       = 0.0_fp
+    Input_Opt%PASSIVE_DECAYID        = 0
                                   
     !----------------------------------------
     ! ADVECTED SPECIES MENU fields
@@ -1268,7 +1275,7 @@ CONTAINS
     Input_Opt%TPBC_DIR_CH            = './'
     Input_Opt%LWINDO_AS              = .FALSE.
     Input_Opt%TPBC_DIR_AS            = './'
-    Input_Opt%LWINDO_CU              = 0
+    Input_Opt%LWINDO_CU              = .FALSE.
     Input_Opt%TPBC_DIR               = './'
     Input_Opt%NESTED_TS              = 0
     Input_Opt%NESTED_I1              = 0

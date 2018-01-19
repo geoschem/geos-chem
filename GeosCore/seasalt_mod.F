@@ -145,6 +145,10 @@
       INTEGER               :: id_SALAAL
       INTEGER               :: id_SALCAL
 
+      ! Diagnostic flags
+      LOGICAL               :: Archive_DryDepChm
+      LOGICAL               :: Archive_DryDep
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -164,8 +168,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMSEASALT( am_I_Root, Input_Opt, 
-     &                        State_Met, State_Chm, RC )
+      SUBROUTINE CHEMSEASALT( am_I_Root, Input_Opt,  State_Met,
+     &                        State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -174,6 +178,7 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -185,6 +190,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !      
@@ -211,15 +217,15 @@
 !                              species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  20 Sep 2016 - R. Yantosca - Bug fix: rewrite invalid ( LMPOA > 0 ) test
+!  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Non-SAVEd variables
+      ! Scalars
       LOGICAL           :: prtDebug
-      LOGICAL           :: LPRT, LMPOA
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
@@ -228,18 +234,12 @@
       ! CHEMSEASALT begins here!
       !=================================================================
 
-      ! Assume success
-      RC       = GC_SUCCESS
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      LPRT     = Input_Opt%LPRT
-      LMPOA    = Input_Opt%LMPOA
-
-      ! Point to chemical species array [kg]
+      ! Initialize
+      RC       =  GC_SUCCESS
       Spc      => State_Chm%Species
 
       ! Do we have to print debug output?
-      prtDebug = ( LPRT .and. am_I_Root )
+      prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
 
       !=================================================================
       ! Maybe someday we should merge these two separate calculations
@@ -250,9 +250,10 @@
       ! Accumulation mode wet settling
       !=================================================================
       IF ( id_SALA > 0 ) THEN
-       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   State_Chm, Spc(:,:,:,id_SALA), 1,         
-     &                   RC         )
+       CALL WET_SETTLING( am_I_Root,  Input_Opt,
+     &                    State_Met,  State_Chm,
+     &                    State_Diag, Spc(:,:,:,id_SALA),
+     &                    1,          RC                  )
 
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
@@ -289,9 +290,10 @@
       ! Coarse mode wet settling
       !=================================================================
       IF ( id_SALC > 0 ) THEN
-        CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   State_Chm, Spc(:,:,:,id_SALC), 2,         
-     &                   RC         )
+        CALL WET_SETTLING( am_I_Root,  Input_Opt,
+     &                     State_Met,  State_Chm,
+     &                     State_Diag, Spc(:,:,:,id_SALC),
+     &                     2,          RC                  )
 
          IF ( prtDebug ) THEN 
             CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
@@ -327,11 +329,12 @@
       !=================================================================
       ! Do chemistry for marine organic aerosol tracers 
       !=================================================================
-      IF ( LMPOA ) THEN
+      IF ( Input_Opt%LMPOA ) THEN
 
          ! Chemistry for hydrophobic MOA
          IF ( id_MOPO > 0 ) THEN
-            CALL CHEM_MOPO( am_I_Root, Input_Opt, State_Chm, RC )
+            CALL CHEM_MOPO( am_I_Root, Input_Opt,
+     &                      State_Chm, State_Diag, RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPO' )
             ENDIF
@@ -339,7 +342,8 @@
 
          ! Chemistry for hydrophilic MOA
          IF ( id_MOPI > 0 ) THEN
-            CALL CHEM_MOPI( am_I_Root, Input_Opt, State_Chm, RC )
+            CALL CHEM_MOPI( am_I_Root, Input_Opt,
+     &                      State_Chm, State_Diag, RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPI' )
             ENDIF
@@ -365,9 +369,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WET_SETTLING( am_I_Root, Input_Opt, State_Met, 
-     &                         State_Chm, TC,        N,                 
-     &                         RC         )
+      SUBROUTINE WET_SETTLING( am_I_Root, Input_Opt,  State_Met,
+     &                         State_Chm, State_Diag, TC, 
+     &                         N,         RC                     )
 !
 ! !USES:
 !
@@ -383,25 +387,31 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)    :: N                     ! 1=accum mode; 
-                                                             ! 2=coarse mode
-      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
-      TYPE(MetState), INTENT(IN)    :: State_Met             ! MeteorologyState
+      INTEGER,        INTENT(IN)    :: N           ! 1=accum mode;
+                                                   ! 2=coarse mode
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! MeteorologyState
       TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
       REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [kg]
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC                    ! Success/failure 
+      INTEGER,        INTENT(OUT)   :: RC          ! Success/failure
+!
+! !REMARKS:
+!  TODO: Declare State_Chm as INTENT(INOUT) and make TC a local pointer
+!  to State_Chm%SPECIES.  Pass in the ID field to index State_Chm.
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
@@ -431,14 +441,16 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  31 May 2016 - E. Lundgren - Remove usage of Input_Opt%XNUMOL
 !  22 Jun 2016 - M. Yannetti - Replaced TCVV with spec db and phys constant
-!  20 Oct 2016 - R. Yantosca  - Only print out debug output on the root CPU
+!  20 Oct 2016 - R. Yantosca - Only print out debug output on the root CPU
+!  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                  :: I,      J,     L
+      LOGICAL                  :: Do_Diag, PrtDebug
+      INTEGER                  :: I,      J,     L,        ND
       REAL(fp)                 :: DELZ,   DELZ1, REFF,     DEN
       REAL(fp)                 :: P,      DP,    PDP,      TEMP        
       REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
@@ -486,21 +498,14 @@
       REAL(fp)                 :: SALA_REDGE_um(2)
       REAL(fp)                 :: SALC_REDGE_um(2)
 
-      ! Non-SAVEd variables
-      LOGICAL        :: prtDebug
-      LOGICAL        :: LPRT
-
       !=================================================================
       ! WET_SETTLING begins here!
       !=================================================================
-      ! Copy fields from INPUT_OPT to local variables for use below
-      LPRT          = Input_Opt%LPRT
 
-      ! Do we have to print debug output?
-      prtDebug      = ( LPRT .and. am_I_Root )
-
-      ! Assume success
-      RC            = GC_SUCCESS
+      ! Initialize
+      RC       = GC_SUCCESS
+      Do_Diag  = ( ND44 > 0 .or. Archive_DryDepChm .or. Archive_DryDep )
+      prtDebug = ( Input_Opt%LPRT .and. am_I_Root                      )
 
       ! Copy fields from INPUT_OPT to local variables for use below
       SALA_REDGE_um = Input_Opt%SALA_REDGE_um 
@@ -601,7 +606,7 @@
 !$OMP+PRIVATE( DP,       PDP,   CONST, SLIP,            VISC       )
 !$OMP+PRIVATE( TC0,      DELZ,  DELZ1, TOT1,            TOT2       )
 !$OMP+PRIVATE( AREA_CM2, FLUX,  ID,    SALT_MASS_TOTAL, VTS_WEIGHT )
-!$OMP+PRIVATE( DMIDW,    RHO1,  WTP,   SALT_MASS                   )
+!$OMP+PRIVATE( DMIDW,    RHO1,  WTP,   SALT_MASS,       ND         )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR       
@@ -775,9 +780,9 @@
          ENDDO
 
          !==============================================================
-         ! ND44 diagnostic: sea salt loss [molec/cm2/s]
+         ! DIAGNOSTIC: Sea salt loss to dry deposition [molec/cm2/s]
          !==============================================================
-         IF ( ND44 > 0 ) THEN
+         IF ( Do_Diag ) THEN
 
             ! Initialize
             TOT1 = 0e+0_fp
@@ -799,9 +804,39 @@
      &                 * 1.e-3_fp ) / AREA_CM2 
    
 #if defined( BPCH_DIAG )
-            ! For bpch diagnostic, store in global AD44 array
-            AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
+            !-----------------------------------------------------------
+            ! ND44 DIAGNOSTIC (bpch)
+            ! Dry deposition flux loss [molec/cm2/s]
+            !
+            ! NOTE: Bpch diagnostics are being phased out.
+            !-----------------------------------------------------------
+            ND             = IDDEP(N)
+            AD44(I,J,ND,1) = AD44(I,J,ND,1) + FLUX
 #endif
+
+#if defined( NC_DIAG )
+            !-----------------------------------------------------------
+            ! HISTORY (aka netCDF diagnostics)
+            ! Dry deposition flux loss [molec/cm2/s]
+            !
+            ! NOTE: Eventually think about converting this
+            ! diagnostic to more standard units [kg/m2/s]
+            !-----------------------------------------------------------
+
+            ! Drydep index
+            ND = IDDEP(N)
+
+            ! Drydep flux in chemistry only
+            IF ( Archive_DryDepChm ) THEN
+               State_Diag%DryDepChm(I,J,1,ND) = FLUX
+            ENDIF
+
+            ! Total drydep flux
+            IF ( Archive_DryDep ) THEN
+               State_Diag%DryDep(I,J,1,ND) = FLUX
+            ENDIF
+#endif
+
          ENDIF
 
       ENDDO ! I
@@ -809,6 +844,7 @@
 !$OMP END PARALLEL DO
 
       IF ( prtDebug ) CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
+
       END SUBROUTINE WET_SETTLING
 !EOC
 !------------------------------------------------------------------------------
@@ -825,7 +861,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_MOPO( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE CHEM_MOPO( am_I_Root, Input_Opt,
+     &                      State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -834,20 +871,22 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 ! 
@@ -855,6 +894,7 @@
 !  10 Jul 2015 - E. Lundgren - Initial version (based on routine Chem_OCPO)
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -951,7 +991,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_MOPI( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE CHEM_MOPI( am_I_Root, Input_Opt,
+     &                      State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -960,6 +1001,7 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -970,6 +1012,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -979,6 +1022,7 @@
 ! 
 ! !REVISION HISTORY:
 !  10 Jul 2015 - E. Lundgren - Initial version (based on routine Chem_OCPI)
+!  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1055,7 +1099,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SEASALT( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE INIT_SEASALT( am_I_Root, Input_Opt,
+     &                         State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -1066,16 +1111,18 @@
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt
-      TYPE(ChmState), INTENT(IN)  :: State_Chm
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  (1 ) Now exit if we have allocated arrays before.  Now also allocate 
@@ -1091,6 +1138,7 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  17 Jun 2016 - R. Yantosca - Now define species ID's on the first call
 !  13 Oct 2016 - R. Yantosca - Now allocate OCCONV for marine-POA simulations
+!  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1113,6 +1161,10 @@
 
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
+
+      ! Check if netCDF diagnostics are turned on
+      Archive_DryDepChm = ASSOCIATED( State_Diag%DryDepChm )
+      Archive_DryDep    = ASSOCIATED( State_Diag%DryDep    )
 
       ! Define species indices
       id_MOPI = Ind_('MOPI')
@@ -1447,11 +1499,13 @@
                !==============================================================
                ! ND59 Diagnostic: Sea salt emission in [kg/box/timestep]       
                !==============================================================
+#if defined( BPCH_DIAG )
                IF ( ND59 > 0) THEN
                   AD59_NUMB(I,J,1,k) = AD59_NUMB(I,J,1,k) + NUM
                   AD59_SALT(I,J,1,k) = AD59_SALT(I,J,1,k) + 
      &                                       NUM*sqrt(xk(k)*xk(k+1))
                ENDIF
+#endif
 
             ENDDO
             

@@ -422,17 +422,22 @@ endif
 # Diagnostic settings
 #------------------------------------------------------------------------------
 
-# %%%%% Use netCDF diagnostics if DEVEL=y %%%%%
+## %%%%% Use netCDF diagnostics if DEVEL=y %%%%%
 ifdef DEVEL
   NC_DIAG            :=yes
   BPCH_DIAG          :=no
 endif
 
-# %%%%% Test for diagnostic output type, set to bpch if not specified %%%%%
+# %%%%% Always use bpch diagnostics unless otherwise specified %%%%%
+# %%%%% Bpch diagnostics will eventually be disabled           %%%%%
 ifndef BPCH_DIAG
-  ifndef NC_DIAG
-    BPCH_DIAG        :=yes
-  endif
+  BPCH_DIAG          :=yes
+endif
+
+# %%%%% Never use netCDF diagnostics unless explicitly specified %%%%%
+# %%%%% netCDF diagnostics will eventually become the default    %%%%%
+ifndef NC_DIAG
+  NC_DIAG            :=no
 endif
 
 # %%%%% BPCH (for using old BPCH diagnostic output) %%%%%
@@ -495,41 +500,6 @@ REGEXP               :=(^[Uu][Cc][Xx])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   UCX                :=y
   KPP_CHEM           :=Standard
-  IS_CHEM_SET        :=1
-endif
-
-# %%%%% Test if CHEM=Halogens %%%%%
-REGEXP               :=(^[Hh][Aa][Ll][Oo][Gg][Ee][Nn][Ss])
-ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=Halogens
-  IS_CHEM_SET        :=1
-endif
-
-# %%%%% Test if CHEM=BrCl %%%%%
-REGEXP               :=(^[Bb][Rr][Cc][Ll])
-ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=BrCl
-  IS_CHEM_SET        :=1
-endif
-
-# %%%%% Test if CHEM=IGas %%%%%
-REGEXP               :=(^[Ii][Gg][Aa][Ss])
-ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=IGas
-  IS_CHEM_SET        :=1
-endif
-
-# %%%%% Test if CHEM=Hetv2 %%%%%
-REGEXP               :=(^[Hh][Ee][Tt][Vv]2)
-ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=Hetv2
-  IS_CHEM_SET        :=1
-endif
-
-# %%%%% Test if CHEM=NoHet %%%%%
-REGEXP               :=(^[Nn][Oo][Hh][Ee][Tt])
-ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=NoHet
   IS_CHEM_SET        :=1
 endif
 

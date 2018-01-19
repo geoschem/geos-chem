@@ -1685,7 +1685,7 @@
       OFFSET(N)   = SPACING * 53
 
       N           = N + 1
-      CATEGORY(N) = 'FJX-FLUX-$'
+      CATEGORY(N) = 'FJX-FLX$'
       DESCRIPT(N) = 'Radiative flux from FAST-JX'
       OFFSET(N)   = SPACING * 54
 
@@ -4610,7 +4610,7 @@
       IF ( ND05 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(05) = 14
+         NTRAC(05) = 19
 
          ! Loop over tracers
          DO T = 1, NTRAC(05)
@@ -4687,6 +4687,31 @@
                   FNAME(T,05) = 'L(HNO3) on seasalt'
                   UNIT (T,05) = 'kg N'
                   MWT  (T,05) = 14e-3  ! hard-coded MW
+               CASE( 15  )
+                  NAME (T,05) = 'SO4hobr'       !qjc (04/05/16)
+                  FNAME(T,05) = 'P(SO4) by HOBr'
+                  UNIT (T,05) = 'kg S'
+                  MWT  (T,05) = 32e-3  ! hard-coded MW
+               CASE( 16  )
+                  NAME (T,05) = 'SO4sro3'       !qjc (04/05/16)
+                  FNAME(T,05) = 'P(SO4) by SRo3'
+                  UNIT (T,05) = 'kg S'
+                  MWT  (T,05) = 32e-3  ! hard-coded MW
+               CASE( 17  )
+                  NAME (T,05) = 'SO4srhobr'    !qjc (04/05/16)
+                  FNAME(T,05) = 'P(SO4) by SRhobr'
+                  UNIT (T,05) = 'kg S'
+                  MWT  (T,05) = 32e-3  ! hard-coded MW
+               CASE( 18  )
+                  NAME (T,05) = 'SO4o3s'       !qjc (04/05/16)
+                  FNAME(T,05) = 'P(SO4) by o3s'
+                  UNIT (T,05) = 'kg S'
+                  MWT  (T,05) = 32e-3  ! hard-coded MW
+               CASE( 19  )
+                  NAME (T,05) = 'HPLUS'       !qjc (04/05/16)
+                  FNAME(T,05) = 'Cloud pH'
+                  UNIT (T,05) = 'unitless'
+                  MWT  (T,05) = 0e0
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -5048,32 +5073,14 @@
       ! LS or conv precipitation (ND16)
       !-------------------------------------   
       IF ( ND16 > 0 ) THEN
-
-         ! Number of tracers
-         NTRAC(16) = 2
-
-         ! Loop over tracers
-         DO T = 1, NTRAC(16)
-
-            ! Get name, longname
-            SELECT CASE( T )
-               CASE( 1 )
-                  NAME (T,16) = 'LS-f'
-                  FNAME(T,16) = 'Large scale fraction'
-               CASE( 2 )
-                  NAME (T,16) = 'CV-f'
-                  FNAME(T,16) = 'Convective fraction' 
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
-
-            ! Define the rest of the quantities
-            UNIT (T,16) = 'unitless'
-            INDEX(T,16) = T + ( SPACING * 28 )
-            MOLC (T,16) = 1
-            MWT  (T,16) = 0e0
-            SCALE(T,16) = 1e0
-         ENDDO
+         NTRAC(16)   = 1
+         NAME (T,16) = 'LS-f'
+         FNAME(T,16) = 'Large scale fraction'
+         UNIT (T,16) = 'unitless'
+         INDEX(T,16) = T + ( SPACING * 28 )
+         MOLC (T,16) = 1
+         MWT  (T,16) = 0e0
+         SCALE(T,16) = 1e0
       ENDIF
 
       !-------------------------------------      
@@ -6308,9 +6315,7 @@
       IF ( ND43 > 0 .or. DO_TIMESERIES ) THEN 
 
          ! Number of tracers
-         ! update for arom (dkh, 06/22/07)  
-         !NTRAC(43) = 5
-         NTRAC(43) = 11
+         NTRAC(43) = 4
 
          ! Loop over tracers
          DO T = 1, NTRAC(43)
@@ -6318,55 +6323,32 @@
             ! Get name and unit for each met field
             SELECT CASE( T )
                CASE( 1 )
-                  NAME(T,43) = 'OH'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 17e-3
+                  NAME (T,43) = 'OH'
+                  UNIT (T,43) = 'molec/cm3'
+                  MWT  (T,43) = 17e-3
+                  INDEX(T,43) = 1 + ( SPACING * 16 )
+               CASE( 2 )
+                  NAME(T,43)  = 'HO2'
+                  UNIT(T,43)  = 'v/v'
+                  MWT (T,43)  = 33e-3
+                  INDEX(T,43) = 3 + ( SPACING * 16 )
                CASE( 3 )
-                  NAME(T,43) = 'HO2'
-                  UNIT(T,43) = 'v/v'
-                  MWT (T,43) = 33e-3
-#if defined( UCX )
+                  NAME(T,43)  = 'O1D'
+                  UNIT(T,43)  = 'molec/cm3'
+                  MWT (T,43)  = 16e-3
+                  INDEX(T,43) = 4 + ( SPACING * 16 )
                CASE( 4 )
-                  NAME(T,43) = 'O1D'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 16e-3
-               CASE( 5 )
-                  NAME(T,43) = 'O'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 16e-3
-#endif
-               ! update for arom (dkh, 06/22/07)  
-               CASE( 6 )
-                  NAME(T,43) = 'LBRO2H'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 127e-3
-               CASE( 7 )
-                  NAME(T,43) = 'LBRO2N'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 127e-3
-               CASE( 8 )
-                  NAME(T,43) = 'LTRO2H'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 141e-3
-               CASE( 9 )
-                  NAME(T,43) = 'LTRO2N'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 141e-3
-               CASE( 10)
-                  NAME(T,43) = 'LXRO2H'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 155e-3
-               CASE( 11)
-                  NAME(T,43) = 'LXRO2N'
-                  UNIT(T,43) = 'molec/cm3'
-                  MWT (T,43) = 155e-3
+                  NAME(T,43)  = 'O'
+                  UNIT(T,43)  = 'molec/cm3'
+                  MWT (T,43)  = 16e-3
+                  INDEX(T,43) = 5 + ( SPACING * 16 )
+
                CASE DEFAULT
                   ! Nothing
             END SELECT
 
             ! Define the rest of the quantities
             FNAME(T,43) = 'Chemically produced ' // TRIM( NAME(T,43) )
-            INDEX(T,43) = T + ( SPACING * 16 )
             MOLC (T,43) = 1
             SCALE(T,43) = 1e0
          ENDDO
@@ -7309,15 +7291,15 @@
             ENDIF
             ! Define quantities
             IF (N .eq. 1) THEN
-                WRITE(NAME(T,64),'(a,I02)') 'NETWL', NN
+                WRITE(NAME(T,64),'(a,I2.2)') 'NETWL', NN
                 WRITE(FNAME(T,64),'(a,I2)') 
      &                'Net UV flux in bin ', NN
             ELSEIF (N .eq. 2) THEN
-                WRITE(NAME(T,64),'(a,I02)') 'DIRWL', NN
+                WRITE(NAME(T,64),'(a,I2.2)') 'DIRWL', NN
                 WRITE(FNAME(T,64),'(a,I2)') 
      &                'Direct UV flux in bin ', NN
             ELSEIF (N .eq. 3) THEN
-                WRITE(NAME(T,64),'(a,I02)') 'DIFWL', NN
+                WRITE(NAME(T,64),'(a,I2.2)') 'DIFWL', NN
                 WRITE(FNAME(T,64),'(a,I2)') 
      &                'Diffuse UV flux in bin ', NN
             ENDIF

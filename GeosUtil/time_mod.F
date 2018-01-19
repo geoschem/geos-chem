@@ -466,22 +466,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_BEGIN_TIME( THISNYMDb, THISNHMSb )
+      SUBROUTINE SET_BEGIN_TIME( THISNYMDb, THISNHMSb, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,  ONLY : ERROR_STOP
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: THISNYMDb   ! YYYYMMDD @ start of G-C simulation
-      INTEGER, INTENT(IN) :: THISNHMSb   ! HHMMSS   @ start of G-C simulation
+      INTEGER, INTENT(IN)  :: THISNYMDb   ! YYYYMMDD @ start of G-C simulation
+      INTEGER, INTENT(IN)  :: THISNHMSb   ! HHMMSS   @ start of G-C simulation
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  16 Dec 2010 - R. Yantosca - Updated error check for THISNYMDe, since 
 !                              MERRA met data goes back prior to 1985
+!  08 Nov 2017 - R. Yantosca - Return error condition to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -490,21 +495,31 @@
 !
       REAL(f4) :: TMP
 
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
       !=================================================================
       ! SET_BEGIN_TIME begins here!
       !=================================================================
 
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &   ' -> at Set_Begin_Time (in module GeosUtil/time_mod.F)'
+
       ! Error check THISNHMSb
       IF ( THISNHMSb > 235959 ) THEN
-         CALL ERROR_STOP( 'NHMSb cannot be greater than 23:59:59!',
-     &                    'SET_BEGIN_TIME (time_mod.f)' )
+         ErrMsg = 'NHMSb cannot be greater than 23:59:59!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       ! Error check THISNYMDb
       IF ( THISNYMDb < 19000101 ) THEN
-         CALL ERROR_STOP( 'NYMDb must be in the format YYYYMMDD!',
-     &                    'SET_BEGIN_TIME (time_mod.f)' )
-
+         ErrMsg = 'NYMDb must be in the format YYYYMMDD!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       ! Initialize NYMDb, NHMSb
@@ -535,45 +550,61 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_END_TIME( THISNYMDe, THISNHMSe )
+      SUBROUTINE SET_END_TIME( THISNYMDe, THISNHMSe, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,  ONLY : ERROR_STOP
+      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: THISNYMDe   ! YYYYMMDD @ end of G-C simulation
-      INTEGER, INTENT(IN) :: THISNHMSe   ! HHMMSS   @ end of G-C simulation
+      INTEGER, INTENT(IN)  :: THISNYMDe   ! YYYYMMDD @ end of G-C simulation
+      INTEGER, INTENT(IN)  :: THISNHMSe   ! HHMMSS   @ end of G-C simulation
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  16 Dec 2010 - R. Yantosca - Updated error check for THISNYMDe, since 
 !                              MERRA met data goes back prior to 1985
+!  08 Nov 2017 - R. Yantosca - Return error condition to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       REAL(f4) :: TMP
+
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       !=================================================================
       ! SET_END_TIME begins here!
       !=================================================================
 
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &   ' -> at Set_End_Time (in module GeosUtil/time_mod.F)'
+
       ! Error check THISNHMS
       IF ( THISNHMSe > 235959 ) THEN
-         CALL ERROR_STOP( 'NHMSe cannot be greater than 23:59:59!',
-     &                    'SET_END_TIME (time_mod.f)' )
+         ErrMsg = 'NHMSe cannot be greater than 23:59:59!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       ! Error check THISNYMDe
       IF ( THISNYMDe < 19000101 ) THEN
-         CALL ERROR_STOP( 'NYMDe must be in the format YYYYMMDD!',
-     &                    'SET_END_TIME (time_mod.f)' )
-
+         ErrMsg = 'NYMDe must be in the format YYYYMMDD!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       ! Initialize NYMDe, NHMSe
@@ -4173,6 +4204,8 @@
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  10 Oct 2017 - R. Yantosca - Now print 6 decimal digits for elapsed time
+!  10 Oct 2017 - R. Yantosca - Change "GMT" to "UTC", which is more standard
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4189,7 +4222,7 @@
 
       ! Format string
  100  FORMAT( '---> DATE: ', i4.4, '/', i2.2, '/', i2.2, 
-     &            '  GMT: ', i2.2, ':', i2.2, '  X-HRS: ', f11.3 )
+     &            '  UTC: ', i2.2, ':', i2.2, '  X-HRS: ', f13.6 )
 
       END SUBROUTINE PRINT_CURRENT_TIME
 !EOC

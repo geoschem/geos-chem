@@ -792,8 +792,8 @@ CONTAINS
     IF ( .NOT. FOUND .OR. .NOT. ASSOCIATED(ThisTend) ) RETURN
 
     ! Convert tracers to kg/kg dry
-    CALL Convert_Units( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, 'kg/kg dry', RC, InUnit=OrigUnit )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, 'kg/kg dry', RC, OrigUnit=OrigUnit )
     IF ( RC/= HCO_SUCCESS ) RETURN
 
     ! Loop over # of tendencies species
@@ -820,8 +820,8 @@ CONTAINS
     ThisTend%Stage = 1
 
     ! Convert tracers back to original unit 
-    CALL Convert_Units( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, OrigUnit,  RC )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
     IF ( RC/= HCO_SUCCESS ) RETURN
 
     ! Cleanup
@@ -934,8 +934,8 @@ CONTAINS
     ENDIF
 
     ! Convert tracers to kg/kg dry
-    CALL Convert_Units( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, 'kg/kg dry', RC, InUnit=OrigUnit )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, 'kg/kg dry', RC, OrigUnit=OrigUnit )
     IF ( RC/= HCO_SUCCESS ) RETURN
 
     ! Loop over # of tendencies species
@@ -987,8 +987,8 @@ CONTAINS
     ThisTend%Stage = 2
 
     ! Convert tracers back to original unit 
-    CALL Convert_Units( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, OrigUnit,  RC )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
     IF ( RC/= HCO_SUCCESS ) RETURN
 
     ! Cleanup

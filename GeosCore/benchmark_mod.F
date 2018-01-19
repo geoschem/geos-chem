@@ -58,28 +58,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE STDRUN( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
-     &                   LBEGIN )
+      SUBROUTINE STDRUN( am_I_Root, Input_Opt,  State_Met, 
+     &                   State_Chm, State_Diag, RC,        LBEGIN )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,          ONLY : BPCH2             
-      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
-      USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
-      USE BPCH2_MOD,          ONLY : GET_MODELNAME
+      USE BPCH2_MOD,      ONLY : BPCH2
+      USE BPCH2_MOD,      ONLY : OPEN_BPCH2_FOR_WRITE
+      USE BPCH2_MOD,      ONLY : GET_HALFPOLAR
+      USE BPCH2_MOD,      ONLY : GET_MODELNAME
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE FILE_MOD,           ONLY : IOERROR
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE inquireMod,         ONLY : findFreeLUN
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : EXPAND_DATE
-      USE TIME_MOD,           ONLY : GET_NYMD
-      USE TIME_MOD,           ONLY : GET_NHMS
-      USE TIME_MOD,           ONLY : GET_TAU
-      USE UnitConv_Mod
+      USE FILE_MOD,       ONLY : IOERROR
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE inquireMod,     ONLY : findFreeLUN
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Met_Mod,  ONLY : MetState
+      USE TIME_MOD,       ONLY : EXPAND_DATE
+      USE TIME_MOD,       ONLY : GET_NYMD
+      USE TIME_MOD,       ONLY : GET_NHMS
+      USE TIME_MOD,       ONLY : GET_TAU
+      USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS: 
 !
@@ -92,7 +93,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -126,6 +127,8 @@
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  29 Nov 2016 - M. Sulprizio- Convert species locally from kg/kg to kg
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -145,6 +148,7 @@
       CHARACTER(LEN=40)   :: CATEGORY, RESERVED, UNIT
       CHARACTER(LEN=80)   :: TITLE
       CHARACTER(LEN=255)  :: FILENAME
+      CHARACTER(LEN=63)   :: OrigUnit
 
       !=================================================================
       ! STDRUN begins here!
@@ -188,12 +192,12 @@
       ! Expand any date tokens in the filename
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
-      ! Convert species from [kg/kg dry air] to [kg]
-      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm,
-     &                               RC )
+      ! Convert species from to [kg]
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC,
-     &                 'Routine STDRUN in benchmark_mod.F')
+     &                 'Start of STDRUN in benchmark_mod.F')
          RETURN
       ENDIF
 
@@ -247,12 +251,12 @@
       ! Close file
       CLOSE( IU_FILE )
 
-      ! Convert species back to [kg/kg dry air]
-      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm,
-     &                               RC )
+      ! Convert species back to original units
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC,
-     &                 'Routine STDRUN in benchmark_mod.F')
+     &                 'End of STDRUN in benchmark_mod.F')
          RETURN
       ENDIF
 

@@ -201,7 +201,7 @@
       INTEGER              :: I0,             J0
       ! Increased to 120 from 100 (mpb,2009)
       ! Increased to 121 (ccc, 4/20/10)
-      INTEGER              :: ND51_N_TRACERS, ND51_TRACERS(188)
+      INTEGER              :: ND51_N_TRACERS, ND51_TRACERS(538)
       INTEGER              :: ND51_IMIN,      ND51_IMAX
       INTEGER              :: ND51_JMIN,      ND51_JMAX
       INTEGER              :: ND51_LMIN,      ND51_LMAX
@@ -527,7 +527,7 @@
       INTEGER, SAVE     :: id_INDIOL,   id_LVOCOA, id_ISN1OA
       INTEGER, SAVE     :: id_ISOA1,    id_ISOA2,  id_ISOA3
       INTEGER, SAVE     :: id_SO4,      id_NH4,    id_NIT
-      INTEGER, SAVE     :: id_BCPI,     id_BCPO
+      INTEGER, SAVE     :: id_BCPI,     id_BCPO,   id_OH
 
       ! Scalars
       LOGICAL           :: IS_CHEM,     IS_DIAG,   IS_EMIS
@@ -589,6 +589,7 @@
          id_NIT     = Ind_('NIT'    )
          id_BCPI    = Ind_('BCPI'   )
          id_BCPO    = Ind_('BCPO'   )
+         id_OH      = Ind_('OH'     )
 
          ! Set logical flags on first call
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
@@ -739,17 +740,19 @@
      &                      ( Spc(I,J,L,N) * (AIRMW 
      &                 / State_Chm%SpcData(N)%Info%emMW_g ) * GOOD(I) )
 
-            ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
-
-               !--------------------------------------
-               ! OH [molec/cm3]
-               ! NOTE: Only archive at chem timestep
-               !--------------------------------------
-
-               ! Accumulate data
-               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &              ( SAVEOH(I,J,L) * GOOD_CHEM(X) )
-
+! NOTE: We can restore this once we figure out what the
+! proper unit conversion is (bmy, 11/20/17)
+!            ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
+!
+!               !--------------------------------------
+!               ! OH [molec/cm3]
+!               ! NOTE: Only archive at chem timestep
+!               !--------------------------------------
+!
+!               ! Accumulate data
+!               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+!     &              ( SAVEOH(I,J,L,id_OH) * GOOD_CHEM(X) )
+!
             ELSE IF ( N == 502 .and. IS_NOy ) THEN
 
                !--------------------------------------
@@ -1254,17 +1257,17 @@
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
 
-            ELSE IF ( N == 536 .and. IS_FULLCHEM ) THEN
-
-               !--------------------------------------
-               ! GLYX [molec/cm3]
-               ! NOTE: Only archive at chem timestep
-               !--------------------------------------
-
-               ! Accumulate data
-               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &              ( SAVEGLYX(I,J,L) * GOOD_CHEM(X) )
-
+!            ELSE IF ( N == 536 .and. IS_FULLCHEM ) THEN
+!
+!               !--------------------------------------
+!               ! GLYX [molec/cm3]
+!               ! NOTE: Only archive at chem timestep
+!               !--------------------------------------
+!
+!               ! Accumulate data
+!               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+!     &              ( SAVEGLYX(I,J,L) * GOOD_CHEM(X) )
+!
             ELSE IF ( N == 537 ) THEN
 
                !--------------------------------------
@@ -1384,8 +1387,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: ITS_TIME
-      REAL(fp)  :: TAU, HOUR, DYN, TS_DIAG
+      LOGICAL  :: ITS_TIME
+      REAL(fp) :: TAU, HOUR, DYN, TS_DIAG
 
       !=================================================================
       ! ITS_TIME_FOR_WRITE_DIAG51 begins here!
@@ -1397,10 +1400,13 @@
       ! Add a check for the time to save. Must be a multiple of TS_DIAG
       ! (ccc, 7/21/09)
       TS_DIAG = ( GET_TS_DIAG() / 60e+0_fp )
-      IF ( MOD(ND51_HR_WRITE, TS_DIAG) /= 0 ) THEN
-         WRITE( 6, 100 ) 'ND51', ND51_HR_WRITE, TS_DIAG
- 100     FORMAT( 'The ',a,' output frequency must be a multiple '
-     &        'of the largest time step:', i5, i5 )
+
+      ! NOTE: Change from equality to greater than an a small number, 
+      ! because 20min or 40min timesteps are irrational numbers in hours
+      IF ( MOD(ND51_HR_WRITE, TS_DIAG) > 1e-5_fp ) THEN
+         WRITE( 6, 100 ) ND51_HR_WRITE, TS_DIAG
+ 100     FORMAT( 'The ND51 output frequency must be a multiple '
+     &        'of the largest time step:', f9.2, f9.2 )
          CALL GEOS_CHEM_STOP
       ENDIF
 
@@ -1672,7 +1678,7 @@
             GMNL     = ND51_NL
             GMTRC    = N
 
-         ELSE IF ( N == 151 ) THEN
+         ELSE IF ( N == 501 ) THEN
 
             !---------------------
             ! OH 
@@ -1682,7 +1688,7 @@
             GMNL      = ND51_NL
             GMTRC     = 1
 
-         ELSE IF ( N == 152 ) THEN
+         ELSE IF ( N == 502 ) THEN
 
             !---------------------
             ! NOy 
@@ -1692,7 +1698,7 @@
             GMNL     = ND51_NL
             GMTRC    = 2
 
-         ELSE IF ( N == 153 ) THEN
+         ELSE IF ( N == 503 ) THEN
 
             !---------------------
             ! Relative humidity 
@@ -1702,7 +1708,7 @@
             GMNL     = ND51_NL
             GMTRC    = 3
 
-         ELSE IF ( N == 154 ) THEN
+         ELSE IF ( N == 504 ) THEN
 
             !---------------------
             ! 3-D Cloud fractions
@@ -1712,7 +1718,7 @@
             GMNL     = ND51_NL
             GMTRC    = 4
 
-         ELSE IF ( N == 155 ) THEN
+         ELSE IF ( N == 505 ) THEN
 
             !---------------------
             ! Column opt depths 
@@ -1722,7 +1728,7 @@
             GMNL     = 1
             GMTRC    = 5
             
-         ELSE IF ( N == 156 ) THEN
+         ELSE IF ( N == 506 ) THEN
         
             !---------------------
             ! Cloud top heights 
@@ -1732,7 +1738,7 @@
             GMNL     = 1
             GMTRC    = 6
 
-         ELSE IF ( N == 157 ) THEN
+         ELSE IF ( N == 507 ) THEN
 
              !---------------------
             ! Air Density 
@@ -1742,7 +1748,7 @@
             GMNL     = ND51_NL
             GMTRC    = 7
 
-         ELSE IF ( N == 158 ) THEN
+         ELSE IF ( N == 508 ) THEN
 
             !---------------------
             ! Total seasalt
@@ -1752,7 +1758,7 @@
             GMNL     = ND51_NL
             GMTRC    = 8
 
-         ELSE IF ( N == 159 ) THEN 
+         ELSE IF ( N == 509 ) THEN 
 
             !---------------------
             ! PBL Height [m] 
@@ -1762,7 +1768,7 @@
             GMNL     = 1
             GMTRC    = 1
 
-         ELSE IF ( N == 160 ) THEN
+         ELSE IF ( N == 510 ) THEN
 
             !---------------------
             ! PBL Height [levels]
@@ -1772,7 +1778,7 @@
             GMNL     = 1
             GMTRC    = 2
 
-         ELSE IF ( N == 161 ) THEN
+         ELSE IF ( N == 511 ) THEN
 
             !---------------------
             ! Grid box heights
@@ -1782,7 +1788,7 @@
             GMNL     = ND51_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 162 ) THEN
+         ELSE IF ( N == 512 ) THEN
 
             !---------------------
             ! PEDGE-$
@@ -1792,7 +1798,7 @@
             GMNL     = ND51_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 163 ) THEN
+         ELSE IF ( N == 513 ) THEN
 
             !---------------------
             ! Sea level prs
@@ -1802,7 +1808,7 @@
             GMNL     = 1
             GMTRC    = 18
 
-         ELSE IF ( N == 164 ) THEN
+         ELSE IF ( N == 514 ) THEN
 
             !---------------------
             ! U-wind
@@ -1812,7 +1818,7 @@
             GMNL     = ND51_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 165 ) THEN
+         ELSE IF ( N == 515 ) THEN
 
             !---------------------
             ! V-wind
@@ -1822,7 +1828,7 @@
             GMNL     = ND51_NL
             GMTRC    = 2
 
-         ELSE IF ( N == 166 ) THEN
+         ELSE IF ( N == 516 ) THEN
 
             !---------------------
             ! Temperature
@@ -1832,7 +1838,7 @@
             GMNL     = ND51_NL
             GMTRC    = 3
 
-         ELSE IF ( N == 167 ) THEN
+         ELSE IF ( N == 517 ) THEN
 
             !---------------------
             ! Sulfate AOD
@@ -1842,7 +1848,7 @@
             GMNL     = ND51_NL
             GMTRC    = 6
 
-         ELSE IF ( N == 168 ) THEN
+         ELSE IF ( N == 518 ) THEN
 
             !---------------------
             ! Black Carbon AOD
@@ -1852,7 +1858,7 @@
             GMNL     = ND51_NL
             GMTRC    = 9
 
-         ELSE IF ( N == 169 ) THEN
+         ELSE IF ( N == 519 ) THEN
 
             !---------------------
             ! Organic Carbon AOD
@@ -1862,7 +1868,7 @@
             GMNL     = ND51_NL
             GMTRC    = 12
             
-         ELSE IF ( N == 170 ) THEN
+         ELSE IF ( N == 520 ) THEN
 
             !---------------------
             ! SS Accum AOD
@@ -1872,7 +1878,7 @@
             GMNL     = ND51_NL
             GMTRC    = 15
 
-         ELSE IF ( N == 171 ) THEN
+         ELSE IF ( N == 521 ) THEN
 
             !---------------------
             ! SS Coarse AOD
@@ -1882,7 +1888,7 @@
             GMNL     = ND51_NL
             GMTRC    = 18
 
-         ELSE IF ( N == 172 ) THEN
+         ELSE IF ( N == 522 ) THEN
 
             !---------------------
             ! Total dust OD
@@ -1892,7 +1898,7 @@
             GMNL     = ND51_NL
             GMTRC    = 4
 
-         ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
+         ELSE IF ( ( N >= 523 ) .and. ( N <= 529) ) THEN
 
             !---------------------
             ! dust OD (bins 1-7)
@@ -1900,9 +1906,9 @@
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND51_NL
-            GMTRC    = 21+(N-173)
+            GMTRC    = 21+(N-523)
 
-         ELSE IF ( N == 180 ) THEN
+         ELSE IF ( N == 530 ) THEN
             
             !---------------------
             ! PARDR [W/m2]
@@ -1913,7 +1919,7 @@
             GMNL     = ND51_NL
             GMTRC    = 20
 
-         ELSE IF ( N == 181 ) THEN
+         ELSE IF ( N == 531 ) THEN
             
             !---------------------
             ! PARDF [W/m2]
@@ -1924,7 +1930,7 @@
             GMNL     = ND51_NL
             GMTRC    = 21
 
-         ELSE IF ( N == 182 ) THEN
+         ELSE IF ( N == 532 ) THEN
 
             !---------------------
             ! DAILY LAI [W/m2]
@@ -1935,7 +1941,7 @@
             GMNL     = ND51_NL
             GMTRC    = 9
 
-         ELSE IF ( N == 183 ) THEN
+         ELSE IF ( N == 533 ) THEN
 
             !---------------------
             ! T at 2m
@@ -1946,7 +1952,7 @@
             GMNL     = ND51_NL
             GMTRC    = 5
 
-         ELSE IF ( N == 184 ) THEN
+         ELSE IF ( N == 534 ) THEN
 
             !---------------------
             ! Total org aerosol 
@@ -1958,7 +1964,7 @@
             GMNL     = ND51_NL
             GMTRC    = 6   
 
-         ELSE IF ( N == 185 ) THEN
+         ELSE IF ( N == 535 ) THEN
 
             !---------------------
             ! Total isorpene SOA 
@@ -1970,7 +1976,7 @@
             GMNL     = ND51_NL
             GMTRC    = 2 
 
-         ELSE IF ( N == 186 ) THEN
+         ELSE IF ( N == 536 ) THEN
 
             !---------------------
             ! Glyoxal concn
@@ -1981,7 +1987,7 @@
             GMNL     = ND51_NL
             GMTRC    = 34
 
-         ELSE IF ( N == 187 ) THEN
+         ELSE IF ( N == 537 ) THEN
 
             !---------------------
             ! Aerosol mass
@@ -1992,7 +1998,7 @@
             GMNL     = ND51_NL
             GMTRC    = 35
 
-         ELSE IF ( N == 188 ) THEN
+         ELSE IF ( N == 538 ) THEN
 
             !---------------------
             ! Isoprene AOD

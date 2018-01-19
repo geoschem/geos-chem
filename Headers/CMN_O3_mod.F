@@ -33,10 +33,10 @@
       ! SAVEEOH = array to save EOH fields (evf, 5/21/13)
       ! SAVEGLYX= array to save GLYX fields (eam, 8/25/14 )
       ! SAVEOA  = array for total organic aerosol (trc 6 of ND42, eam,7/10/14)
-      REAL(fp), ALLOCATABLE :: SAVEOH(:,:,:)
-      REAL(fp), ALLOCATABLE :: SAVEHO2(:,:,:)
-      REAL(fp), ALLOCATABLE :: SAVEO1D(:,:,:)
-      REAL(fp), ALLOCATABLE :: SAVEO3P(:,:,:)
+      !REAL(fp), ALLOCATABLE :: SAVEOH(:,:,:)
+      !REAL(fp), ALLOCATABLE :: SAVEHO2(:,:,:)
+      !REAL(fp), ALLOCATABLE :: SAVEO1D(:,:,:)
+      !REAL(fp), ALLOCATABLE :: SAVEO3P(:,:,:)
       REAL(fp), ALLOCATABLE :: SAVEEOH(:,:,:)
       REAL(fp), ALLOCATABLE :: SAVEGLYX(:,:,:)
       REAL(fp), ALLOCATABLE :: SAVEOA(:,:,:)
@@ -110,19 +110,19 @@
       RC = GC_SUCCESS
 
       ! Allocate arrays
-      ALLOCATE( SAVEOH (     IIPAR, JJPAR, LLPAR ), STAT=RC )
-      ALLOCATE( SAVEHO2(     IIPAR, JJPAR, LLPAR ), STAT=RC )
-      ALLOCATE( SAVEO1D(     IIPAR, JJPAR, LLPAR ), STAT=RC )
-      ALLOCATE( SAVEO3P(     IIPAR, JJPAR, LLPAR ), STAT=RC )
+      !ALLOCATE( SAVEOH (     IIPAR, JJPAR, LLPAR ), STAT=RC )
+      !ALLOCATE( SAVEHO2(     IIPAR, JJPAR, LLPAR ), STAT=RC )
+      !ALLOCATE( SAVEO1D(     IIPAR, JJPAR, LLPAR ), STAT=RC )
+      !ALLOCATE( SAVEO3P(     IIPAR, JJPAR, LLPAR ), STAT=RC )
       ALLOCATE( SAVEEOH(     IIPAR, JJPAR, LLPAR ), STAT=RC )
       ALLOCATE( SAVEGLYX(    IIPAR, JJPAR, LLPAR ), STAT=RC )
       ALLOCATE( SAVEOA(      IIPAR, JJPAR, LLPAR ), STAT=RC )
 
       ! Zero arrays
-      SAVEOH     = 0e+0_fp
-      SAVEHO2    = 0e+0_fp
-      SAVEO1D    = 0e+0_fp
-      SAVEO3P    = 0e+0_fp
+      !SAVEOH     = 0e+0_fp
+      !SAVEHO2    = 0e+0_fp
+      !SAVEO1D    = 0e+0_fp
+      !SAVEO3P    = 0e+0_fp
       SAVEEOH    = 0e+0_fp
       SAVEGLYX   = 0e+0_fp
       SAVEOA     = 0e+0_fp
@@ -168,10 +168,10 @@
       RC = GC_SUCCESS
       
       ! Deallocate arrays
-      IF ( ALLOCATED( SAVEOH      ) ) DEALLOCATE( SAVEOH      )
-      IF ( ALLOCATED( SAVEHO2     ) ) DEALLOCATE( SAVEHO2     )
-      IF ( ALLOCATED( SAVEO1D     ) ) DEALLOCATE( SAVEO1D     ) 
-      IF ( ALLOCATED( SAVEO3P     ) ) DEALLOCATE( SAVEO3P     )
+      !IF ( ALLOCATED( SAVEOH      ) ) DEALLOCATE( SAVEOH      )
+      !IF ( ALLOCATED( SAVEHO2     ) ) DEALLOCATE( SAVEHO2     )
+      !IF ( ALLOCATED( SAVEO1D     ) ) DEALLOCATE( SAVEO1D     ) 
+      !IF ( ALLOCATED( SAVEO3P     ) ) DEALLOCATE( SAVEO3P     )
       IF ( ALLOCATED( SAVEEOH     ) ) DEALLOCATE( SAVEEOH     )
       IF ( ALLOCATED( SAVEGLYX    ) ) DEALLOCATE( SAVEGLYX    )
       IF ( ALLOCATED( SAVEOA      ) ) DEALLOCATE( SAVEOA      )
