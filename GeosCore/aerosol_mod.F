@@ -455,11 +455,14 @@
                ! distribution but are currently simply treated in the same
                ! way (size and optics) as all other sulfate aerosol (DAR
                ! 2013)
+               ! With coarse SSA thermodynamcis, including NITs would
+               ! bias nitrate largely, alternatively, SO4s and NITs
+               ! should be considered as a part of sea-salt (XNW Dec 7 2017)
                SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)    + 
      &                                Spc(I,J,L,id_NH4)    +
-     &                                Spc(I,J,L,id_NIT)    +
-     &                                Spc(I,J,L,id_SO4s)   +
-     &                                Spc(I,J,L,id_NITs) ) /
+     &                                Spc(I,J,L,id_NIT)  ) /
+!     &                                Spc(I,J,L,id_SO4s)   +
+!     &                                Spc(I,J,L,id_NITs) ) /
      &                                AIRVOL(I,J,L)
                SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
                NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
@@ -485,11 +488,14 @@
             ! distribution but are currently simply treated in the same
             ! way (size and optics) as all other sulfate aerosol (DAR
             ! 2013)
+            ! With coarse SSA thermodynamcis, including NITs would
+            ! bias nitrate largely, alternatively, SO4s and NITs
+            ! should be considered as a part of sea-salt (XNW Dec 7 2017)
             SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)    + 
      &                             Spc(I,J,L,id_NH4)    +
-     &                             Spc(I,J,L,id_NIT)    +
-     &                             Spc(I,J,L,id_SO4s)   +
-     &                             Spc(I,J,L,id_NITs) ) /
+     &                             Spc(I,J,L,id_NIT)  ) /
+!     &                             Spc(I,J,L,id_SO4s)   +
+!     &                             Spc(I,J,L,id_NITs) ) /
      &                             AIRVOL(I,J,L)
 
             SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
@@ -503,13 +509,13 @@
 
                ! Save these fractions for partitioning of optics
                ! until later when these may be treated independently
-               FRAC_SNA(I,J,L,1) = ( ( Spc(I,J,L,id_SO4 ) 
-     &                           +     Spc(I,J,L,id_SO4s) )
+               FRAC_SNA(I,J,L,1) = ( ( Spc(I,J,L,id_SO4 ) )
+!     &                           +     Spc(I,J,L,id_SO4s) )
      &                           /   AIRVOL(I,J,L)          )
      &                           / SO4_NH4_NIT(I,J,L)
 
-               FRAC_SNA(I,J,L,2) = ( ( Spc(I,J,L,id_NIT )
-     &                           +     Spc(I,J,L,id_NITs) )
+               FRAC_SNA(I,J,L,2) = ( ( Spc(I,J,L,id_NIT ) )
+!     &                           +     Spc(I,J,L,id_NITs) )
      &                           /   AIRVOL(I,J,L)          )
      &                           / SO4_NH4_NIT(I,J,L)
 

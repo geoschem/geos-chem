@@ -4091,6 +4091,12 @@
                   ! backwards compatibility with older code
                   DEPNAME(NUMDEP) = 'SO4S'
 
+               CASE( 'NH4s', 'NH4S' )
+                  ! DEPNAME for NH4s has to be in all caps, for 
+                  ! backwards compatibility with older code
+                  ! xnw, 11/20/17
+                  DEPNAME(NUMDEP) = 'NH4S'
+
                CASE DEFAULT
                   ! Do nothing
 

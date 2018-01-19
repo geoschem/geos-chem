@@ -3130,6 +3130,42 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
+          CASE( 'NH4S' )
+             Fullname = 'Ammonium on surface of seasalt aerosol'
+             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
+                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff   = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = 'NH4s',                       &
+                              FullName      = Fullname,                     &
+                              MW_g          = 31.4_fp,                      &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              Density       = 2200.0_fp,                    &
+                              Radius        = Radius,                       &
+                              DD_AeroDryDep = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_Old  = 0.0_fp,                       &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_CoarseAer  = T,                            &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
           CASE( 'NIT' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -3216,6 +3252,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_CoarseAer  = T,                            &
                               WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
@@ -3837,8 +3874,15 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-          CASE( 'SALA' )
-             FullName = 'Accumulation mode sea salt aerosol'
+          CASE( 'SALA', 'SALAAL' )
+
+             SELECT CASE( NameAllCaps )
+                CASE( 'SALA' )
+                   FullName = 'Accumulation mode sea salt aerosol'
+                CASE( 'SALAAL' )
+                   FullName = 'Accumulation mode sea salt alkalinity'
+             ENDSELECT
+
              Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
                           Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
 
@@ -3873,8 +3917,50 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
-          CASE( 'SALC' )
-             FullName = 'Coarse mode sea salt aerosol'
+          CASE( 'SALACL' )
+             FullName = 'Chloride in Accumulation mode sea salt aerosol'
+             Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
+                          Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = Fullname,                     &
+                              MW_g          = 35.45_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              Density       = 2200.0_fp,                    &
+                              Radius        = Radius,                       &
+                              DD_AeroDryDep = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'SALC', 'SALCAL' )
+
+             SELECT CASE( NameAllCaps )
+                CASE( 'SALC' )
+                   FullName = 'Coarse mode sea salt aerosol'
+                CASE( 'SALCAL' )
+                   FullName = 'Coarse mode sea salt alkalinity'
+             ENDSELECT
+
              Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
                           Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
  
@@ -3894,6 +3980,42 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = Fullname,                     &
                               Formula       = '',                           &
+                              MW_g          = 31.4_fp,                      &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              Density       = 2200.0_fp,                    &
+                              Radius        = Radius,                       &
+                              DD_AeroDryDep = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_CoarseAer  = T,                            &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'SALCCL' )
+             FullName = 'Chloride in Coarse mode sea salt aerosol'
+             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
+                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = Fullname,                     &
                               MW_g          = 31.4_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
@@ -4047,6 +4169,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_CoarseAer  = T,                            &
                               WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
