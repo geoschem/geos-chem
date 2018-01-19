@@ -608,7 +608,7 @@
          ! NH4s [kg] gravitational settling, xnw 11/20/17
          IF ( id_NH4s > 0 ) THEN
             CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                       State_Chm, id_NH4s,     RC )
+     &                       State_Chm, State_Diag, id_NH4s,   RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NH4S' )
             ENDIF
@@ -2952,8 +2952,8 @@
      &                         Kt1N,      Kt2N,      Kt1L,      Kt2L, 
      &                         SO2_ss,   PSO4E,  
      &                         PSO4F,     AlkA,      AlkC,
-     &                         am_I_Root, Input_Opt, 
-     &                         State_Met, State_Chm, FullRun,  RC     )
+     &                         am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, State_Diag,FullRun,  RC     )
 
          ELSE
 
@@ -3855,7 +3855,7 @@
      &                          SO2_ss,    PSO4E,
      &                          PSO4F,     AlkA,      AlkC,
      &                          am_I_Root, Input_Opt,
-     &                          State_Met, State_Chm, 
+     &                          State_Met, State_Chm, State_Diag,
      &                          FullRun,   RC )
 !
 ! !USES:
@@ -8225,16 +8225,16 @@
       PNITs = 0e+0_fp
 
       !xnw
-      ALLOCATE( PNIT( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNIT' )
+      ALLOCATE( PNIT( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'PNIT' )
       PNIT = 0e+0_fp
       !xnw
-      ALLOCATE( PACL( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PACL' )
+      ALLOCATE( PACL( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'PACL' )
       PACL = 0e+0_fp      
       !xnw
-      ALLOCATE( PCCL( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PCCL' )
+      ALLOCATE( PCCL( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'PCCL' )
       PCCL = 0e+0_fp
 
       !tdf

@@ -800,64 +800,69 @@
             ENDIF
 
             !-------------------------
-            ! ND42 diagnostic arrays
+            ! ND42 diagnostic arrays, only for fine mode
             !-------------------------
 
-            ! AEROPH: get pH related info to SAV arrays (hotp 8/11/09)
-            ! HPLUSTEMP is H+ in mol/L water, AERLIQ1 is H, AERLIQ8 is H2O
-            ! in mol/m3 air --> convert to mol/L water
-            IF ( AERLIQ(8) < 1e-32_fp ) THEN
-               ! Aerosol is dry so HPLUSTEMP and PH_SAV are undefined
-               ! We force HPLUSTEMP to 1d20 and PH_SAV to -999e+0_fp.
-               ! (hotp, ccc, 12/18/09)
-               HPLUSTEMP       = 1e+20_fp
-               SULFTEMP        = 1e-30_fp
-               BISULTEMP       = 1e-30_fp
-               NITRTEMP        = 1e-30_fp
-               State_Chm%pHSav(I,J,L) = -999e+0_fp
-            ELSE
-               HPLUSTEMP       = AERLIQ(1) / AERLIQ(8) * 1e+3_fp/18e+0_fp
-               SULFTEMP        = AERLIQ(5) / AERLIQ(8) * 1e+3_fp/18e+0_fp
-               BISULTEMP       = AERLIQ(6) / AERLIQ(8) * 1e+3_fp/18e+0_fp
-               NITRTEMP        = AERLIQ(7) / AERLIQ(8) * 1e+3_fp/18e+0_fp
+            IF ( N == 1 ) THEN
 
-               ! Use SAFELOG10 to prevent NAN
-               State_Chm%pHSav(I,J,L) = -1e+0_fp * SAFELOG10( HPLUSTEMP )
-            ENDIF
+               ! AEROPH: get pH related info to SAV arrays (hotp 8/11/09)
+               ! HPLUSTEMP is H+ in mol/L water, AERLIQ1 is H, AERLIQ8 is H2O
+               ! in mol/m3 air --> convert to mol/L water
+               IF ( AERLIQ(8) < 1e-32_fp ) THEN
+                  ! Aerosol is dry so HPLUSTEMP and PH_SAV are undefined
+                  ! We force HPLUSTEMP to 1d20 and PH_SAV to -999e+0_fp.
+                  ! (hotp, ccc, 12/18/09)
+                  HPLUSTEMP       = 1e+20_fp
+                  SULFTEMP        = 1e-30_fp
+                  BISULTEMP       = 1e-30_fp
+                  NITRTEMP        = 1e-30_fp
+                  State_Chm%pHSav(I,J,L) = -999e+0_fp
+               ELSE
+                  HPLUSTEMP    = AERLIQ(1) / AERLIQ(8) *1e+3_fp/18e+0_fp
+                  SULFTEMP     = AERLIQ(5) / AERLIQ(8) *1e+3_fp/18e+0_fp
+                  BISULTEMP    = AERLIQ(6) / AERLIQ(8) *1e+3_fp/18e+0_fp
+                  NITRTEMP     = AERLIQ(7) / AERLIQ(8) *1e+3_fp/18e+0_fp
 
-            ! Additional Info
-            State_Chm%HplusSav(I,J,L)  = HPLUSTEMP
-            State_Chm%WaterSav(I,J,L)  = AERLIQ(8) * 18e+6_fp ! mol/m3 -> ug/m3
-            State_Chm%SulratSav(I,J,L) = SULFTEMP
-            State_Chm%NaRatSav(I,J,L)  = NITRTEMP
-            State_Chm%BisulSav(I,J,L)  = BISULTEMP
+                  ! Use SAFELOG10 to prevent NAN
+                  State_Chm%pHSav(I,J,L) =-1e+0_fp*SAFELOG10( HPLUSTEMP)
+               ENDIF
 
-            NUM_SAV    = ( Spc(I,J,L,id_NH3) /17e+0_fp         +
-        &                  Spc(I,J,L,id_NH4) /18e+0_fp         +
-        &                  Spc(I,J,L,id_SALA)*0.3061e+0_fp/23.0e+0_fp )
+               ! Additional Info
+               State_Chm%HplusSav(I,J,L)  = HPLUSTEMP
+               State_Chm%WaterSav(I,J,L)  = AERLIQ(8) * 18e+6_fp ! mol/m3 -> ug/m3
+               State_Chm%SulratSav(I,J,L) = SULFTEMP
+               State_Chm%NaRatSav(I,J,L)  = NITRTEMP
+               State_Chm%BisulSav(I,J,L)  = BISULTEMP
 
-            DEN_SAV    = ( Spc(I,J,L,id_SO4)  / 96e+0_fp  * 2e+0_fp  +
-        &                  Spc(I,J,L,id_NIT)  / 62e+0_fp             + 
-        &                  HNO3_DEN           / 63e+0_fp             +
-        &                  Spc(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)
+               NUM_SAV    = ( Spc(I,J,L,id_NH3) /17e+0_fp         +
+     &                     Spc(I,J,L,id_NH4) /18e+0_fp         +   
+     &                     Spc(I,J,L,id_SALA)*0.3061e+0_fp/23.0e+0_fp )
 
-            ! Value if DEN_SAV and NUM_SAV too small.
-            State_Chm%AcidPurSav(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
-        &                                          0e+0_fp, 999e+0_fp)
+               DEN_SAV    = ( Spc(I,J,L,id_SO4)  / 96e+0_fp  * 2e+0_fp +
+     &                     Spc(I,J,L,id_NIT)  / 62e+0_fp             + 
+     &                     HNO3_DEN           / 63e+0_fp             +
+     &                     Spc(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)
 
-            !==============================================================
-            ! DIAGNOSTICS: Archive ISORROPIA H+ and pH values
-            !==============================================================
+               ! Value if DEN_SAV and NUM_SAV too small.
+               State_Chm%AcidPurSav(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
+     &                                             0e+0_fp, 999e+0_fp)
+
+               !==============================================================
+               ! DIAGNOSTICS: Archive ISORROPIA H+ and pH values
+               !==============================================================
 
 #if defined( BPCH_DIAG )
-            !--------------------------------------------------------------
-            ! ND73: bpch diagnostic (eam, 04/2015)
-            !--------------------------------------------------------------
-            IF ( ND73 > 0 ) THEN
-               IF ( L <= LD73 ) THEN
-                  AD73(I,J,L,1) = AD73(I,J,L,1)+State_Chm%pHSav(   I,J,L)
-                  AD73(I,J,L,2) = AD73(I,J,L,2)+State_Chm%HplusSav(I,J,L)
-                  AD73(I,J,L,3) = AD73(I,J,L,3)+State_Chm%WaterSav(I,J,L)
+               !--------------------------------------------------------------
+               ! ND73: bpch diagnostic (eam, 04/2015)
+               !--------------------------------------------------------------
+               IF ( ND73 > 0 ) THEN
+                  IF ( L <= LD73 ) THEN
+                     AD73(I,J,L,1) =AD73(I,J,L,1) + 
+     &                              State_Chm%pHSav(   I,J,L)
+                     AD73(I,J,L,2) =AD73(I,J,L,2) + 
+     &                              State_Chm%HplusSav(I,J,L)
+                     AD73(I,J,L,3) =AD73(I,J,L,3) + 
+     &                              State_Chm%WaterSav(I,J,L)
                ENDIF
             ENDIF
 #endif
@@ -868,6 +873,9 @@
             !--------------------------------------------------------------
 
 #endif
+
+            ENDIF
+         ENDDO
 
       ENDDO
       ENDDO

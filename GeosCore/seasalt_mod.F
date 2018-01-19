@@ -264,8 +264,9 @@
       ! Accumulation mode Choloride wet settling
       !=================================================================
       IF ( id_SALACL > 0 ) THEN
-       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   State_Chm, Spc(:,:,:,id_SALACL), 3,
+       CALL WET_SETTLING( am_I_Root,  Input_Opt, State_Met,
+     &                   State_Chm, State_Diag,
+     &                   Spc(:,:,:,id_SALACL), 3,
      &                   RC         )
 
          IF ( prtDebug ) THEN
@@ -278,7 +279,8 @@
       !=================================================================
       IF ( id_SALAAL > 0 ) THEN
        CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   State_Chm, Spc(:,:,:,id_SALAAL), 5,
+     &                   State_Chm, State_Diag, 
+     &                   Spc(:,:,:,id_SALAAL), 5,
      &                   RC         )
 
          IF ( prtDebug ) THEN
@@ -305,7 +307,8 @@
       !=================================================================
       IF ( id_SALCCL > 0 ) THEN
        CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   State_Chm, Spc(:,:,:,id_SALCCL), 4,
+     &                   State_Chm, State_Diag, 
+     &                   Spc(:,:,:,id_SALCCL), 4,
      &                   RC         )
 
          IF ( prtDebug ) THEN
@@ -318,7 +321,8 @@
       !=================================================================
       IF ( id_SALCAL > 0 ) THEN
        CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   State_Chm, Spc(:,:,:,id_SALCAL), 6,
+     &                   State_Chm, State_Diag, 
+     &                   Spc(:,:,:,id_SALCAL), 6,
      &                   RC         )
 
          IF ( prtDebug ) THEN
