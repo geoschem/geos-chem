@@ -8226,15 +8226,18 @@
 
       !xnw
       ALLOCATE( PNIT( IIPAR, JJPAR, LLCHEM ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'PNIT' )
+      CALL GC_CheckVar( 'sulfate_mod.F:PNIT', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PNIT = 0e+0_fp
       !xnw
       ALLOCATE( PACL( IIPAR, JJPAR, LLCHEM ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'PACL' )
+      CALL GC_CheckVar( 'sulfate_mod.F:PACL', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PACL = 0e+0_fp      
       !xnw
       ALLOCATE( PCCL( IIPAR, JJPAR, LLCHEM ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'PCCL' )
+      CALL GC_CheckVar( 'sulfate_mod.F:PCCL', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PCCL = 0e+0_fp
 
       !tdf
