@@ -325,6 +325,7 @@ CONTAINS
        ErrMsg = &
          'Error encountered in ""SetHcoSpecies" (first call, to get species)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -340,6 +341,7 @@ CONTAINS
        RC     = HMRC
        ErrMsg = 'Error encountered in "HCOState_Init"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -356,6 +358,7 @@ CONTAINS
        ErrMsg = &
      'Error encountered in "SetHcoSpecies" (second call, to register species)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -369,6 +372,7 @@ CONTAINS
        RC     = HMRC
        ErrMsg = 'Error encountered in "Set_Grid"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -412,6 +416,7 @@ CONTAINS
        RC     = HMRC
        ErrMsg = 'Error encountered in "HCO_Init"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -447,6 +452,7 @@ CONTAINS
        RC     = HMRC
        ErrMsg = 'Error encountered in "HCOX_Init"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -462,6 +468,7 @@ CONTAINS
        IF ( .not. Input_Opt%LDUST ) THEN
           ErrMsg = 'DustGinoux is on in HEMCO but LDUST=F in input.geos!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
        Input_Opt%LDEAD = .FALSE.
@@ -472,6 +479,7 @@ CONTAINS
        IF ( .not. Input_Opt%LDUST ) THEN
           ErrMsg = 'DustDead is on in HEMCO but LDUST=F in input.geos!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
        Input_Opt%LDEAD = .TRUE.
@@ -482,6 +490,7 @@ CONTAINS
        IF ( .not. Input_Opt%LDSTUP ) THEN
           ErrMsg = 'DustAlk is on in HEMCO but LDSTUP=F in input.geos'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
     ENDIF
@@ -491,6 +500,7 @@ CONTAINS
        IF ( .not. Input_Opt%LMPOA ) THEN
           ErrMsg = 'MarinePOA is on in HEMCO but LMPOA=F in input.geos'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
     ENDIF
@@ -522,6 +532,7 @@ CONTAINS
        RC     = HMRC
        ErrMsg = 'Error encountered in "ExtState_InitTargets"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -539,6 +550,7 @@ CONTAINS
           RC     = HMRC
           ErrMsg = 'Error encountered in "HCOI_GC_Diagn_Init"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
     ENDIF
@@ -663,6 +675,7 @@ CONTAINS
        RC     = HMRC
        ErrMsg = 'Error encountered in "SetHcoTime"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -680,6 +693,7 @@ CONTAINS
        RC     = HMRC
        ErrMsg = 'Error encountered in "HcoClock_Get"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -695,6 +709,7 @@ CONTAINS
           RC     = HMRC
           ErrMsg = 'Error encountered in "HCO_FluxArrReset"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
     ENDIF
@@ -709,6 +724,7 @@ CONTAINS
        RC     = HMRC
        ErrMsg = 'Error encountered in "GridEdge_Set"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
  
@@ -741,6 +757,7 @@ CONTAINS
        RC     = HMRC
        ErrMsg = 'Error encountered in "HCO_Run"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -765,6 +782,7 @@ CONTAINS
           RC     = HMRC
           ErrMsg = 'Error encountered in "ExtState_SetFields"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
    
@@ -776,6 +794,7 @@ CONTAINS
           RC     = HMRC
           ErrMsg = 'Error encountered in "ExtState_UpdateFields"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
    
@@ -790,6 +809,7 @@ CONTAINS
           RC     = HMRC
           ErrMsg = 'Error encountered in "HCOX_Run"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
    
@@ -807,6 +827,7 @@ CONTAINS
              RC     = HMRC
              ErrMsg = 'Error encountered in "HcoDiagn_AutoUpdate"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+             CALL Flush( HcoState%Config%Err%Lun )
              RETURN
           ENDIF
        ENDIF
@@ -827,6 +848,7 @@ CONTAINS
           RC     = HMRC
           ErrMsg = 'Error encountered in "HcoClock_EmissionsDone"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
        
@@ -911,6 +933,7 @@ CONTAINS
        RC     = HMRC
        ErrMsg = 'Error encountered in "HCO_Final"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -925,6 +948,7 @@ CONTAINS
        RC     = HMRC
        ErrMsg = 'Error encountered in "HCOX_Final"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -1051,6 +1075,7 @@ CONTAINS
        RC     = HMRC
        ErrMsg = 'Error encountered in "SetHcoTime"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -1064,6 +1089,7 @@ CONTAINS
        RC     = HMRC
        ErrMsg = 'Error encountered in "HcoDiagn_Write"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -1201,6 +1227,7 @@ CONTAINS
           RC     = HMRC
           ErrMsg = 'Error encountered in "HCO_ArrAssert( TROPP )"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
     ENDIF
@@ -1215,6 +1242,7 @@ CONTAINS
           RC     = HMRC
           ErrMsg = 'Error encountered in "HCO_ArrAssert( SPHU )"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
     ENDIF
@@ -1229,6 +1257,7 @@ CONTAINS
           RC     = HMRC
           ErrMsg = 'Error encountered in "HCO_ArrAssert( SUNCOS )"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
     ENDIF
@@ -1439,6 +1468,7 @@ CONTAINS
        RC     = HMRC
        ErrMsg = 'Error encountered in "ExtDat_Set( V10M_FOR_EMIS)"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -1530,7 +1560,6 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        RETURN
     ENDIF
-    IF ( HMRC /= HCO_SUCCESS ) RETURN
 
     ! Z0
     CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%Z0,                    &
@@ -1864,7 +1893,7 @@ CONTAINS
        CALL ExtDat_Set( am_I_Root,            HcoState, ExtState%HNO3,       &
                        'HEMCO_HNO3_FOR_EMIS', HMRC,     FIRST,       Trgt3D ) 
 
-    ! Trap potential errors
+       ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
           RC     = HMRC
           ErrMsg = 'Error encountered in "ExtDat_Set( HEMCO_HNO3_FOR_EMIS )"!'
@@ -1947,7 +1976,7 @@ CONTAINS
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
        RC     = HMRC
-       ErrMsg = 'Error encountered in " HCO_SetExtState_ESMF"!'
+       ErrMsg = 'Error encountered in "HCO_SetExtState_ESMF"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        RETURN
     ENDIF
