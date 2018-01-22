@@ -276,7 +276,7 @@
 !
 ! !USES:
 !
-#if defined( BPCH _DIAG )
+#if defined( BPCH_DIAG )
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
 #endif

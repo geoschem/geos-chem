@@ -305,7 +305,7 @@
       CALL CLEANUP_UCX( am_I_Root )
 
       ! Cleanup HEMCO
-      CALL EMISSIONS_FINAL ( am_I_Root, ERROR )
+      CALL EMISSIONS_FINAL( am_I_Root, ERROR, RC )
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_AEROSOL()

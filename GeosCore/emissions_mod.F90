@@ -13,7 +13,7 @@
 !\\
 ! !INTERFACE:
 !
-MODULE EMISSIONS_MOD
+MODULE Emissions_Mod
 !
 ! !USES:
 !
@@ -22,9 +22,9 @@ MODULE EMISSIONS_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: EMISSIONS_INIT
-  PUBLIC :: EMISSIONS_RUN
-  PUBLIC :: EMISSIONS_FINAL
+  PUBLIC :: Emissions_Init
+  PUBLIC :: Emissions_Run
+  PUBLIC :: Emissions_Final
 !
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version. 
@@ -53,15 +53,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EMISSIONS_INIT( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                             RC,        HcoConfig ) 
+  SUBROUTINE Emissions_Init( am_I_Root, Input_Opt, State_Met,                &
+                             State_Chm, RC,        HcoConfig                ) 
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_INIT
-    USE HCO_TYPES_MOD,      ONLY : ConfigObj
+    USE HCOI_GC_Main_Mod,   ONLY : HCoi_GC_Init
+    USE HCO_Types_Mod,      ONLY : ConfigObj
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
@@ -69,30 +68,36 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
-    TYPE(MetState),   INTENT(IN   )          :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   )          :: State_Chm  ! Chemistry state 
+    LOGICAL,         INTENT(IN   )          :: am_I_Root  ! root CPU?
+    TYPE(MetState),  INTENT(IN   )          :: State_Met  ! Met state
+    TYPE(ChmState),  INTENT(IN   )          :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(INOUT)          :: Input_Opt  ! Input opts
-    TYPE(ConfigObj),  POINTER,      OPTIONAL :: HcoConfig  ! HEMCO config object
-    INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
+    TYPE(OptInput),  INTENT(INOUT)          :: Input_Opt  ! Input opts
+    TYPE(ConfigObj), POINTER,      OPTIONAL :: HcoConfig  ! HEMCO config object
+    INTEGER,         INTENT(INOUT)          :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  27 Aug 2014 - C. Keller   - Initial version 
 !  16 Jun 2016 - J. Sheng    - Added tracer index retriever
 !  20 Jun 2016 - R. Yantosca - Now define species IDs only in the INIT phase
+!  22 Jan 2018 - R. Yantosca - Return error code to calling routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=================================================================
     ! EMISSIONS_INIT begins here!
     !=================================================================
 
-    ! Assume success
+    ! Initialize
     RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = ' -> at Emissions_Init (in module GeosCore/emissions_mod.F90)'
 
     ! Define species ID flags for use in routines below
     id_BrO   = Ind_('BrO'  )
@@ -100,11 +105,17 @@ CONTAINS
     id_CH3Br = Ind_('CH3Br')    
 
     ! Initialize the HEMCO environment for this GEOS-Chem run.
-    CALL HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                       RC,        HcoConfig=HcoConfig ) 
-    IF ( RC/=GC_SUCCESS ) RETURN 
+    CALL HCOI_GC_Init( am_I_Root, Input_Opt, State_Met,                      &
+                       State_Chm, RC,        HcoConfig=HcoConfig            ) 
 
-  END SUBROUTINE EMISSIONS_INIT
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "HCOI_GC_Init"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Emissions_Init
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -119,8 +130,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, EmisTime,  Phase,     RC ) 
+  SUBROUTINE Emissions_Run( am_I_Root, Input_Opt, State_Met,                 &
+                            State_Chm, EmisTime,  Phase,     RC             ) 
 !
 ! !USES:
 !
@@ -152,17 +163,17 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    LOGICAL,          INTENT(IN   )  :: EmisTime   ! Emissions in this time step
-    INTEGER,          INTENT(IN   )  :: Phase      ! Run phase
+    LOGICAL,        INTENT(IN   )  :: am_I_Root  ! root CPU?
+    LOGICAL,        INTENT(IN   )  :: EmisTime   ! Emissions in this time step
+    INTEGER,        INTENT(IN   )  :: Phase      ! Run phase
  
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state 
-    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    TYPE(MetState), INTENT(INOUT)  :: State_Met  ! Met state
+    TYPE(ChmState), INTENT(INOUT)  :: State_Chm  ! Chemistry state 
+    TYPE(OptInput), INTENT(INOUT)  :: Input_Opt  ! Input opts
+    INTEGER,        INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  27 Aug 2014 - C. Keller   - Initial version 
@@ -172,24 +183,36 @@ CONTAINS
 !  22 Sep 2016 - R. Yantosca - Don't call EMISSCARBON unless we are doing
 !                              a fullchem or aerosol simulation
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  22 Jan 2018 - R. Yantosca - Return error code to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
     !=================================================================
     ! EMISSIONS_RUN begins here!
     !=================================================================
 
-    ! Assume success
-    RC = GC_SUCCESS
+    ! Initialize
+    RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = ' -> at Emissions_Run (in module GeosCore/emissions_mod.F90)'
 
     ! Run HEMCO. Phase 1 will only update the HEMCO clock and the 
     ! HEMCO data list, phase 2 will perform the emission calculations.
-    CALL HCOI_GC_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, & 
+    CALL HCOI_GC_Run( am_I_Root, Input_Opt, State_Met, State_Chm, & 
                       EmisTime,  Phase,     RC                     ) 
-    IF ( RC /= GC_SUCCESS ) RETURN 
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "HCOI_GC_Run"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     ! The following only needs to be done in phase 2
     IF ( Phase /= 1 ) THEN 
@@ -200,23 +223,50 @@ CONTAINS
        ! are correctly treated.
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
             Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
-          CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN 
+          CALL EmissCarbon( am_I_Root, Input_Opt, State_Met, RC )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "EmissCarbon"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
 
     ! Call TOMAS emission routines (JKodros 6/2/15)
 #if defined ( TOMAS )
-       CALL EMISSCARBONTOMAS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-    
-       CALL EMISSSULFATETOMAS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       CALL EmissCarbonTomas( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "EmissCarbonTomas"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       CALL EmissSulfateTomas( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "EmissSulfateTomas"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
 #endif
    
        ! For CO2 simulation, emissions are not added to STT in mixing_mod.F90 
        ! because the HEMCO CO2 species are not GEOS-Chem tracers. The emissions
        ! thus need to be added explicitly, which is done in EMISSCO2.
        IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-          CALL EMISSCO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN 
+          CALL EmissCO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "EmissCO2"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
    
        ! For CH4 simulation or if CH4 is defined, call EMISSCH4. 
@@ -227,20 +277,40 @@ CONTAINS
        ! ND58 diagnostics.
        IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
           ( id_CH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
-          CALL EMISSCH4( am_I_Root, Input_Opt, State_Met, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN 
+          CALL EmissCh4( am_I_Root, Input_Opt, State_Met, RC )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "EmissCH4"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
    
        ! For UCX, use Seb's routines for stratospheric species for now.
 #if defined( UCX )
        IF ( Input_Opt%LBASICEMIS ) THEN
-          CALL EMISS_BASIC( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+          CALL Emiss_Basic( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Emiss_Basic"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
 #endif
 
        ! For mercury, use old emissions code for now
        IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-          CALL EMISSMERCURY ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+          CALL EmissMercury( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "EmissMercury"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
 
        ! Prescribe some concentrations if needed
@@ -254,8 +324,15 @@ CONTAINS
           !         entirely fixed! Ask around on how to...
           !========================================================
           IF ( Input_Opt%LEMIS .AND. ( id_CH3Br > 0 ) ) THEN
-             CALL SET_CH3BR( am_I_Root, Input_Opt, State_Met, &
+             CALL Set_CH3Br( am_I_Root, Input_Opt, State_Met, &
                              State_Chm, RC )
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "Set_CH3BR"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
           ENDIF
    
           ! ----------------------------------------------------
@@ -263,15 +340,30 @@ CONTAINS
           ! concentration of BrO equal to 1 pptv during daytime.
           ! ----------------------------------------------------
           IF ( Input_Opt%LEMIS .AND. ( id_BrO > 0 ) ) THEN
-             CALL SET_BRO( am_I_Root, Input_Opt, State_Met, & 
+             CALL Set_BrO( am_I_Root, Input_Opt, State_Met, & 
                            State_Chm, RC          )
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "Set_BrO"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
           ENDIF
    
           ! Set other (non-UCX) fixed VMRs
           If ( Input_Opt%LEMIS ) Then
-             CALL fixSfcVMR( am_I_Root, Input_Opt, State_Met, & 
+             CALL FixSfcVMR( am_I_Root, Input_Opt, State_Met, & 
                              State_Chm, RC          )
-          End If
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "FixSfcVmr"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+          endif
  
        ENDIF
     ENDIF ! Phase/=1  
@@ -294,16 +386,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EMISSIONS_FINAL( am_I_Root, ERROR )
+  SUBROUTINE Emissions_Final( am_I_Root, Error, RC )
 !
 ! !USES:
 !
-    USE HCOI_GC_MAIN_MOD, ONLY : HCOI_GC_FINAL
+    USE ErrCode_Mod
+    USE HCOI_GC_Main_Mod, ONLY : HCOI_GC_Final
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    LOGICAL,          INTENT(IN   )  :: ERROR      ! Cleanup after crash? 
+    LOGICAL, INTENT(IN)  :: am_I_Root  ! root CPU?
+    LOGICAL, INTENT(IN)  :: Error      ! Cleanup arrays after crash? 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(OUT) :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  27 Aug 2014 - C. Keller    - Initial version 
@@ -311,12 +408,28 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
  
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
     !=================================================================
     ! EMISSIONS_FINAL begins here!
     !=================================================================
 
-    CALL HCOI_GC_Final( am_I_Root, ERROR )
+    ! Initialize
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at HCOI_GC_Final (in module GeosCore/hcoi_gc_final_mod.F90)'
 
-  END SUBROUTINE EMISSIONS_FINAL
+    ! Finalize HEMCO
+    CALL HCOI_GC_Final( am_I_Root, Error, RC )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "HCOI_GC_Final"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Emissions_Final
 !EOC
-END MODULE EMISSIONS_MOD
+END MODULE Emissions_Mod
